@@ -1,0 +1,14 @@
+{
+  "pricing": "plan, 300 gratis al día y después desde 9 US$ al mes por 5000",
+  "dedicatedIps": "planes Professional y Enterprise, como complemento",
+  "terms.0.note": "Solo con consentimiento activo, explícito y demostrable; nada de listas compradas ni extraídas de la web. Brevo añade su propia cabecera de baja, y sus bajas llegan a la lista compartida a través del webhook.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Solo recibir",
+  "field.api_key.label": "Clave de API",
+  "field.api_key.help": "Brevo › SMTP & API › API keys. Empieza por xkeysib-.",
+  "field.monthly_limit.label": "Plan · correos al mes",
+  "field.monthly_limit.help": "Se usa para la barra de cuota cuando el plan incluye una cantidad mensual.",
+
+  "account": "{company, select, none {Cuenta de Brevo} other {{name}}}{plan, select, free { · plan gratuito · quedan {n} correos{today, select, yes { hoy} other {}}} subscription { · suscripción · quedan {n} correos} credits { · quedan {n} créditos de prepago} other {}}"
+}

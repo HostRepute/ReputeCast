@@ -1,0 +1,38 @@
+import { translate } from '@/i18n'
+import { m } from './reset.messages'
+
+/** Spanish (docs/i18n/glossary-es.md). */
+export default translate(m, {
+  title: 'Restablece tu contraseña',
+  emailInvalid: 'Introduce tu correo de trabajo, como tu@empresa.com.',
+  emailUnavailableLabel: 'Correo no disponible',
+  emailUnavailable: 'Aún no hay ningún proveedor de envío conectado al flujo Sistema, así que el correo de restablecimiento no puede salir. Quien administra la instancia puede restablecerla desde el servidor:',
+  commandNote: 'El comando muestra un enlace de un solo uso que funciona durante {minutes} minutos. Lo mismo vale para restablecer la verificación en dos pasos: <mono>reputecast user reset-2fa --email …</mono>',
+  backToSignIn: 'Volver al inicio de sesión',
+  managedTitle: '{name} gestiona tu contraseña',
+  ssoLabel: 'SSO',
+  managedNote: 'Las cuentas de {domain} inician sesión mediante {name}. ReputeCast no guarda ninguna contraseña para esta cuenta, así que aquí no hay nada que restablecer.',
+  continueWith: 'Continuar con {name}',
+  lockedOut: '¿Tampoco puedes entrar en {provider}? Contacta con quien administra {name} en tu organización.',
+  workEmail: 'Correo de trabajo',
+  emailMe: 'Enviarme un enlace de restablecimiento',
+  sentLabel: 'Enviado',
+  sent: 'Si {email} pertenece a un miembro, el enlace va en camino. Funciona una vez y caduca dentro de {minutes} minutos. Si tarda, revisa Promociones o spam.',
+  expiredLabel: 'Caducado',
+  expired: 'Este enlace de restablecimiento tiene más de 15 minutos o ya se usó. <link>Solicita uno nuevo</link>; tu contraseña actual sigue funcionando hasta que la cambies.',
+  foot: '<link>Volver al inicio de sesión</link> · Los espacios de trabajo que usan SSO restablecen las contraseñas con su proveedor de identidad.',
+  newTitle: 'Elige una contraseña nueva',
+  checking: 'Comprobando el enlace de restablecimiento…',
+  errorLabel: 'Error',
+  stillWorks: 'El enlace sigue funcionando hasta que caduque.',
+  tryAgain: 'Reintentar',
+  tooShort: 'Usa al menos {min} caracteres. Puedes usar una frase de contraseña.',
+  mismatch: 'Las dos contraseñas no coinciden.',
+  notSavedLabel: 'Sin guardar',
+  newPassword: 'Contraseña nueva',
+  hintBreached: 'Al menos {min} caracteres. Se comprueba en filtraciones conocidas.',
+  hintPassphrase: 'Al menos {min} caracteres. Puedes usar una frase de contraseña.',
+  confirmPassword: 'Confirmar la contraseña nueva',
+  save: 'Guardar contraseña nueva',
+  tokenFoot: 'El enlace funciona una vez, hasta las {time}. Al guardar se cierran todas las sesiones; la verificación en dos pasos sigue aplicándose al iniciar sesión.',
+})

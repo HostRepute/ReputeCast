@@ -1,0 +1,5 @@
+{
+  "problem.pseudo": "La pseudolocalización solo está disponible en desarrollo o cuando el servidor se ejecuta con i18n.pseudo_locale activado.",
+  "problem.language": "ReputeCast no está traducido a ese idioma. Elige {languages}.",
+  "problem.region": "Elige uno de los formatos regionales de la lista."
+}

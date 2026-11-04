@@ -1,0 +1,5 @@
+{
+  "rateLimit.signIn": "Demasiados intentos de inicio de sesión desde tu red. Espera un minuto y vuelve a intentarlo.",
+  "rateLimit.api": "Se alcanzó el límite de solicitudes. Las solicitudes se reanudan en menos de un minuto; los endpoints por lotes aceptan hasta {max, number} elementos por llamada.",
+  "spa.noscript": "ReputeCast necesita JavaScript. Las páginas públicas (suscripción, preferencias, archivo) funcionan sin él."
+}

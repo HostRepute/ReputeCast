@@ -1,0 +1,46 @@
+{
+  "pricing": "0,10 US$ por cada 1000",
+  "dedicatedIps": "opcional, 24,95 US$ por IP al mes",
+  "terms.0.note": "Requiere acceso de producción; la cuenta debe mantenerse por debajo de los umbrales de rebote y de queja de SES.",
+  "events": "Webhooks de SNS o una cola SQS",
+  "domainSetup": "API",
+  "suppressionMode": "Bidireccional",
+  "field.region.label": "Región",
+  "field.access.label": "Acceso",
+  "field.access.help": "Un rol de CloudFormation (recomendado) o claves de acceso de IAM.",
+  "field.role_arn.label": "Role ARN",
+  "field.role_arn.help": "Lo crea la plantilla de CloudFormation.",
+  "field.access_key_id.label": "Access key ID",
+  "field.secret_access_key.label": "Secret access key",
+  "field.configuration_set.label": "Configuration set",
+  "field.configuration_set.help": "Se crea durante la configuración; publica los eventos en SNS.",
+
+  "account": "{mode, select, sandbox {Sandbox} other {Producción}} · {enforcement, select, probation {en revisión (probation)} shutdown {envío pausado por AWS} disabled {envío desactivado} other {sin restricciones}}",
+
+  "tracking.scope": "Configuration set {name}",
+  "tracking.scopeNone": "Sin configuration set",
+  "tracking.none": "Los mensajes se envían sin configuration set: sin seguimiento de aperturas ni de clics.",
+  "tracking.openClick": "El configuration set {name} publica eventos de apertura y de clic, así que SES añade un píxel y reescribe los enlaces.",
+  "tracking.open": "El configuration set {name} publica eventos de apertura, así que SES añade un píxel.",
+  "tracking.click": "El configuration set {name} publica eventos de clic, así que SES reescribe los enlaces.",
+  "tracking.off": "Configuration set {name}: seguimiento de aperturas y clics desactivado. No hace falta un dominio de redirección personalizado.",
+
+  "provision.topic": "Crear el SNS topic `{topic}` y suscribir `{url}`",
+  "provision.confirm": "Confirmar la suscripción de SNS (handshake)",
+  "provision.configSet": "Crear el configuration set `{name}`",
+  "provision.topicDone": "Se creó el SNS topic `{topic}` y se suscribió `{url}`",
+  "provision.confirmDone": "Se confirmó la suscripción de SNS (handshake recibido)",
+  "provision.configSetDone": "Se creó el configuration set `{name}` con destino de eventos y seguimiento desactivado",
+
+  "provision.tenant": "Crear el tenant `{tenant}`",
+  "provision.tenantDone": "Se creó el tenant `{tenant}`",
+  "provision.tenantNote": "Lista de supresión propia de este espacio de trabajo y {hasPolicy, select, yes {política de reputación {policy}} other {reputación propia}}, que solo pausa este tenant",
+  "provision.queue": "Crear el SNS topic `{topic}` y una cola SQS suscrita a él",
+  "provision.queueDone": "Se creó el SNS topic `{topic}` y una cola SQS suscrita a él: `{queue}`",
+  "provision.queuePolicy": "Limitar la cola a ese topic y empezar a consultarla cada {seconds} s",
+  "provision.queuePolicyDone": "Se limitó la cola a ese topic y se empezó a consultarla cada {seconds} s",
+
+  "status.incident": "AWS informa de un incidente de SES en {region}.",
+
+  "error.dedicatedIpsDenied": "El rol o las claves que usa ReputeCast no pueden listar las IP dedicadas de la cuenta: permite ses:GetDedicatedIps en su política de IAM (la plantilla de CloudFormation lo hace) y vuelve a comprobarlo."
+}

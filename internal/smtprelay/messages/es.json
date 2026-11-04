@@ -1,0 +1,23 @@
+{
+  "check.noHostname": "Aún no hay nombre de host",
+  "check.unresolved": "{host} no se resuelve",
+  "check.unresolvedAdd": "{host} no se resuelve: añade un registro A o AAAA que apunte a este servidor",
+  "check.portUnresolved": "El puerto {port} no se puede comprobar hasta que {host} se resuelva",
+  "check.certUnresolved": "El certificado no se puede comprobar hasta que {host} se resuelva",
+  "check.resolves": "DNS · {host} apunta a {addresses}",
+  "check.portUnreachable": "El puerto {port} no es accesible en {host}: {error}",
+  "check.portReachable": "Puerto {port} accesible desde internet",
+  "check.certUnverified": "No se pudo verificar el certificado: {error}",
+  "check.noCert": "El relay no envió ningún certificado",
+  "check.certExpired": "El certificado caducó el {at, date}",
+  "check.certValid": "Certificado válido hasta el {at, date}",
+
+  "notify.title": "SMTP relay inaccesible",
+  "notify.body": "{why, select, unresolved {El puerto {port} no se puede comprobar hasta que {host} se resuelva} other {El puerto {port} no es accesible en {host}: {error}}}. Las aplicaciones que envían por SMTP no pueden conectarse; la API HTTP sigue funcionando.",
+
+  "problem.hostnameNeeded": "Escribe el nombre de host al que se conectan las aplicaciones, como el host de la propia instancia.",
+  "problem.hostnameFormat": "Escribe un nombre de host como reputecast.acme.io.",
+  "problem.portsDiffer": "Los puertos STARTTLS y TLS deben ser distintos.",
+  "problem.certFiles": "Indica las rutas de los archivos del certificado y de la clave, tal como las ve este servidor.",
+  "problem.certUnreadable": "No se pudieron leer el certificado y la clave: {error}"
+}

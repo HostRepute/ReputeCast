@@ -1,0 +1,14 @@
+{
+  "detail.mailboxFailing": "Buzón de rebotes inaccesible",
+  "detail.rejecting": "Rechaza mensajes",
+  "detail.down": "Caído",
+  "detail.downAuth": "Caído · falló la autenticación",
+  "detail.webhooksSilent": "Webhooks sin eventos",
+  "vet.available": "{detail, select, disconnected {{provider} está desconectado.} down {{provider} está caído.} paused {{provider} está en pausa.} degraded {{provider} no envía eventos de entrega, así que nada protegería este correo.} other {{provider} no puede aceptar correo ahora mismo.}}",
+  "vet.bulkTerms": "{detail, select, broadcast_streams_only {Las condiciones de {provider} solo permiten el correo masivo en un flujo de tipo broadcast, y esta cuenta no tiene ninguno.} other {Las condiciones de {provider} no permiten el correo masivo.}}",
+  "vet.sandbox": "{provider} está en modo sandbox: solo envía a direcciones verificadas.",
+  "vet.domain": "{result, select, unknown {{detail, select, no_sender {Este correo no tiene ningún remitente guardado que comprobar en {provider}.} other {ReputeCast no puede confirmar que {provider} envíe para el dominio del remitente: no tiene API de dominios.}}} other {{detail, select, pending {El dominio del remitente aún se está verificando en {provider}.} failed {{provider} no pudo verificar el dominio del remitente.} not_used {El remitente está configurado para no usar {provider}.} other {El dominio del remitente no está configurado en {provider}.}}}}",
+  "vet.quota": "{result, select, unknown {Aún no se ha leído la cuota de {provider}.} other {A {provider} le quedan {left, number} mensajes de su cuota; se moverían {need, number}.}}",
+  "vet.warm": "{detail, select, paused {El calentamiento de {provider} está en pausa.} other {{result, select, unknown {{provider} está en calentamiento y no se conoce el límite de hoy.} fail {{provider} está en calentamiento: quedan {left, number} mensajes del límite de hoy; se moverían {need, number}.} other {{provider} está en calentamiento: este correo usaría {need, number} de los {left, number} mensajes que quedan hoy.}}}}",
+  "detail.queueFailing": "Cola de eventos inaccesible"
+}

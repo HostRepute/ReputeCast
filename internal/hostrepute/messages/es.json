@@ -1,0 +1,27 @@
+{
+  "scope.monitorRead": "datos de listas de bloqueo, Postmaster, SNDS y DMARC",
+  "scope.alertsRead": "incidentes",
+  "scope.assetsWrite": "añadir dominios e IP a la supervisión",
+
+  "unreachable": "No se pudo acceder a {host} ({reason, select, timeout_s {tiempo agotado tras {n} s} timeout_ms {tiempo agotado tras {n} ms} timeout {tiempo agotado} refused {conexión rechazada} dns {falló la consulta DNS} token {falló la renovación del token} http {HTTP {status}} other {error de red}}, {attempts, plural, one {# intento} other {# intentos}})",
+  "unreachableHostRepute": "No se pudo acceder a HostRepute",
+  "syncFailed": "Falló la sincronización con HostRepute: {error}",
+
+  "problem.unavailable": "{reach}. {nothing, select, saved {No se guardó nada; vuelve a intentarlo en un minuto.} changed {No ha cambiado nada; vuelve a intentarlo en un minuto.} other {No se solicitó nada; vuelve a intentarlo en un minuto.}}",
+  "problem.keyFormat": "Pega la clave completa, sin espacios. Empieza por hr_live_.",
+  "problem.answeredError": "HostRepute respondió con un error ({error}). No se guardó nada.",
+  "problem.keyRejected": "HostRepute no aceptó esta clave. Vuelve a copiarla desde HostRepute → Settings → API; necesita los ámbitos monitor:read, alerts:read y assets:write.",
+  "problem.notConnected": "HostRepute no está conectado. Conéctalo primero en Configuración › Integraciones.",
+  "problem.reconnect": "HostRepute rechazó el token{when, select, yes { el {date}} other {}}. Vuelve a conectar HostRepute e inténtalo de nuevo.",
+  "problem.noAssetsScope": "Esta conexión no tiene el ámbito assets:write, así que ReputeCast no puede añadir recursos a la supervisión. Vuelve a conectar HostRepute y apruébalo.",
+  "problem.notCandidate": "Solo se pueden añadir a la supervisión los dominios de envío, las IP dedicadas y los nombres de host de los servidores de este espacio de trabajo.",
+  "problem.limit": "Tu equipo de HostRepute “{team}” supervisa {used, number} de los {limit, number} recursos que permite su plan, así que ahora mismo no se puede añadir {asset}. Es un límite de HostRepute, no de ReputeCast.",
+  "problem.notMonitored": "HostRepute no supervisa {asset}.",
+
+  "notify.reconnectTitle": "Hay que volver a conectar HostRepute",
+  "notify.reconnectBody": "HostRepute rechazó el token. Los datos de listas de bloqueo, Postmaster, SNDS y DMARC estarán desactualizados hasta que alguien vuelva a conectarlo; la revisión previa marca la comprobación de reputación como desconocida.",
+
+  "run.notConnected": "HostRepute no está conectado.",
+  "run.tokenRejected": "HostRepute rechazó el token. Vuelve a conectarlo para reanudar.",
+  "run.tokenRejectedDetail": "HostRepute rechazó el token (se revocó desde HostRepute o caducó)."
+}

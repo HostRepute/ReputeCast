@@ -1,0 +1,38 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+/** Spanish (docs/i18n/glossary-es.md). */
+export default translate(m, {
+  exitSetup: 'Salir del asistente',
+  stepBadge: 'Paso {n} de 6',
+  title: 'Conectar un proveedor de envío',
+  stepsLabel: 'Pasos de configuración',
+  stepProvider: 'Proveedor',
+  stepProviderLine: 'Elige uno del catálogo',
+  stepConnection: 'Conexión',
+  stepConnectionLine: 'Claves, región, webhooks',
+  stepDomain: 'Verificación del dominio',
+  stepDomainLine: 'DKIM, return-path, SPF, DMARC',
+  stepTest: 'Envío de prueba',
+  stepTestLine: 'Mira cómo llega el evento',
+  stepStreams: 'Flujos',
+  stepStreamsLine: 'Envíos masivos, Automatizaciones, Sistema',
+  stepContacts: 'Contactos',
+  stepContactsLine: 'Importa o empieza sin contactos',
+  stepStreamsCurrent: 'Qué llevará {provider}',
+  stepStreamsCurrentNoName: 'Qué llevará',
+  stepsFoot: 'La mayoría de las configuraciones tardan 10–15 minutos; Amazon SES tarda más cuando ReputeCast no se ejecuta en AWS, y una cuenta de AWS nueva puede esperar hasta 24 horas el acceso de producción. Puedes añadir más proveedores después y enviar a través de varios a la vez.',
+  stateDone: 'Listo',
+  stateVerified: 'Verificado',
+  stateFailed: 'Falló',
+  stateSkipped: 'Omitido',
+  statePending: 'Pendiente',
+  stateYes: 'Sí',
+  statePartial: 'Parcial',
+  stateNo: 'No',
+  copied: '{what, select, zone {Archivo de zona copiado} secret {Secreto del webhook copiado} url {URL del webhook copiada} other {Valor de {label} copiado}}',
+  copyFailed: '{what, select, zone {No se pudo copiar el archivo de zona} secret {No se pudo copiar el secreto del webhook} url {No se pudo copiar la URL del webhook} other {No se pudo copiar el valor de {label}}}',
+  copyBlocked: 'Tu navegador bloqueó el portapapeles. Selecciona el texto y cópialo a mano.',
+  readOnlyCatalog: 'Puedes consultar el catálogo y las configuraciones que otros empezaron. Tu rol no puede conectar proveedores.',
+  readOnlySetup: 'Puedes seguir esta configuración. Tu rol no puede conectar ni cambiar proveedores.',
+})

@@ -1,0 +1,26 @@
+{
+  "pricing": "plan, gratis hasta 3000 al mes y después desde 20 US$ al mes",
+  "pricingPlan": "plan, {n, number} al mes",
+  "dedicatedIps": "plan Scale, 30 US$ al mes",
+  "terms.0.note": "Solo destinatarios con consentimiento. El correo masivo necesita un enlace de baja visible y cabeceras List-Unsubscribe de baja con un clic, que añade ReputeCast; Resend puede cerrar las cuentas que superen el 0,08 % de quejas o el 4 % de rebotes.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Bidireccional",
+  "field.api_key.label": "Clave de API",
+  "field.api_key.help": "Resend › API Keys. Una clave Full access permite que ReputeCast registre webhooks, configure dominios y sincronice supresiones; una clave Sending access solo puede enviar.",
+  "field.region.label": "Región",
+  "field.region.help": "Dónde se alojan los dominios de envío que añade ReputeCast.",
+  "field.monthly_limit.label": "Plan · correos al mes",
+  "field.monthly_limit.help": "Se usa para la barra de cuota y el costo por cada 1000.",
+  "field.webhook_signing_secret.label": "Secreto de firma del webhook",
+  "field.webhook_signing_secret.help": "Solo para un webhook que creaste tú (Resend › Webhooks › Signing secret). ReputeCast lo lee para los webhooks que registra.",
+
+  "account": "{verified, plural, =0 {Ningún dominio verificado · correo de prueba solo a tu propia dirección} one {# dominio verificado} other {# dominios verificados}}{plan, select, yes { · plan de {limit, number} al mes} other {}}",
+  "account.sendingKey": "Clave Sending access · la cuota y los dominios necesitan una clave Full access",
+  "tracking.scope": "Dominios",
+  "tracking.openClick": "El seguimiento de aperturas está activado para {opens} y el de clics, para {clicks}.",
+  "tracking.open": "El seguimiento de aperturas está activado para {opens}.",
+  "tracking.click": "El seguimiento de clics está activado para {clicks}.",
+  "tracking.off": "El seguimiento de aperturas y clics está desactivado en todos los dominios.",
+  "error.domainMissing": "{domain} no está configurado en Resend"
+}

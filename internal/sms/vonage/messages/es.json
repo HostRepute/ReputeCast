@@ -1,0 +1,9 @@
+{
+  "summary": "Pago por uso · amplia cobertura de ID de remitente en Europa",
+  "badge.opt_out_sync.note": "a partir de respuestas y mensajes rechazados",
+  "badge.registration.note": "manual",
+  "field.api_key.label": "Clave de API",
+  "field.api_secret.label": "API secret",
+  "field.signature_secret.label": "Signature secret",
+  "field.signature_secret.help": "Settings › API settings › Signed webhooks, con HMAC SHA-256. ReputeCast comprueba con él cada confirmación de entrega y cada respuesta."
+}

@@ -1,0 +1,31 @@
+{
+  "problem.ownScope": "Una clave no puede llegar a listas fuera de tu propio ámbito.",
+  "problem.expiry": "Elige una fecha de caducidad futura.",
+  "problem.sendOnlyKind": "Solo las claves de API pueden ser claves solo de envío.",
+  "problem.name": "Ponle un nombre a la clave.",
+  "problem.integrationKey": "Esta clave pertenece a una integración. Rótala en Configuración › Integraciones, donde la clave anterior sigue funcionando durante 24 horas.",
+  "problem.rotateScope": "Esta clave llega a listas fuera de tu ámbito, así que no puedes rotarla.",
+  "problem.deleteActive": "Solo se pueden eliminar las claves caducadas o revocadas. Revócala primero.",
+  "problem.unknownPermission": "Permiso desconocido: “{permission}”.",
+  "problem.sendOnlyPermission": "Una clave solo de envío tiene transactional:send y nada más.",
+  "problem.sendOnlyLists": "Las claves solo de envío no se limitan por lista; limítalas por plantillas.",
+  "problem.preset": "Elige una clave solo de envío o una credencial SMTP.",
+  "problem.template": "No hay ninguna plantilla con el ID {id}.",
+  "problem.categories": "Elige categorías de este espacio de trabajo.",
+  "problem.testAddress": "“{address}” no es una dirección ni un patrón como qa+*@acme.io.",
+  "problem.testPattern": "“{address}” no es un patrón válido.",
+  "problem.testLive": "Las direcciones de prueba permitidas son para claves en modo de prueba; las claves reales entregan a todo el mundo.",
+
+  "label.formerMember": "Antiguo miembro",
+  "label.deletedCategory": "categoría eliminada",
+  "agent.needs": "necesita {permission}",
+
+  "audit.scopeAllTemplates": "todas las plantillas",
+  "audit.scopeCategory": "categoría {names}",
+  "audit.scopeCategories": "categorías {names}",
+  "audit.testMode": "modo de prueba",
+  "audit.smtp": "credencial SMTP",
+  "audit.expires": "caduca el {at, date}",
+  "audit.noExpiry": "sin caducidad",
+  "audit.rotated": "secreto nuevo {masked} · anterior {old} revocado"
+}

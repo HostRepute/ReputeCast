@@ -1,0 +1,9 @@
+{
+  "summary": "Pago por uso · EE. UU. y Canadá desde 0,0110 US$ por fragmento, tarifas de operador incluidas",
+  "badge.sender_ids.note": "fuera de EE. UU. y Canadá",
+  "badge.opt_out_sync.note": "a partir de respuestas y mensajes rechazados",
+  "field.account_sid.label": "Account SID",
+  "field.api_key_sid.label": "API key SID",
+  "field.api_key_secret.label": "API key secret",
+  "field.mode.label": "Cuenta"
+}

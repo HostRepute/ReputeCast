@@ -1,0 +1,20 @@
+{
+  "pricing": "plan, 6000 gratis al mes (200 al día) y después desde 9 US$ al mes",
+  "dedicatedIps": "planes Premium desde 100.000 al mes, previa solicitud",
+  "terms.0.note": "Solo con consentimiento claro, explícito y demostrable; nada de listas de terceros. Cada correo de marketing necesita un enlace de baja y un enlace a la política de privacidad. Límites de Mailjet: 5 % de rebotes, 0,08 % de quejas.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Bidireccional",
+  "field.api_key.label": "Clave de API",
+  "field.api_key.help": "Mailjet › Account settings › API key management. Una clave que solo usa ReputeCast mantiene sus callbacks de eventos separados de los de otras herramientas.",
+  "field.secret_key.label": "Secret key",
+  "field.secret_key.help": "Aparece junto a la clave de API.",
+  "field.monthly_limit.label": "Plan · correos al mes",
+  "field.monthly_limit.help": "Se usa para la barra de cuota y el costo por cada 1000.",
+
+  "account": "{state, select, inactive {Clave de API inactiva} quarantine {Clave de API en cuarentena · {n} por hora} runlevel {Clave de API {runlevel}} other {Clave de API activa}}",
+  "tracking.scope": "Todos los mensajes que envía ReputeCast",
+  "tracking.detail": "ReputeCast envía todos los mensajes con TrackOpens y TrackClicks de Mailjet desactivados, sea cual sea la configuración de la cuenta.",
+  "error.domainMissing": "{domain} no está configurado en Mailjet",
+  "error.callbackTaken": "Mailjet admite una URL de callback por evento y clave de API, y los eventos {events} ya se envían a otra URL. Usa una clave de API que solo use ReputeCast o quita esos callbacks en Mailjet, y vuelve a hacer el registro."
+}

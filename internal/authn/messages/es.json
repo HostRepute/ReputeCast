@@ -1,0 +1,5 @@
+{
+  "password.short": "Usa al menos {min} caracteres. Puedes usar una frase de contraseña.",
+  "password.long": "Usa como máximo 256 caracteres.",
+  "password.spaces": "La contraseña no puede tener solo espacios."
+}

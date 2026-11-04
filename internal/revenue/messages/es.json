@@ -1,0 +1,18 @@
+{
+  "problem.currency": "Envía un código de moneda ISO 4217, como USD, EUR o GBP.",
+  "problem.domain": "“{domain}” no es un dominio. Envía uno como app.acme.io, sin https:// ni ruta.",
+  "problem.domainsNeeded": "Añade los dominios a los que se añade el token de clic, como app.acme.io.",
+  "problem.idempotencyKey": "La cabecera Idempotency-Key puede tener hasta 200 caracteres.",
+  "problem.idempotencyReuse": "Esta Idempotency-Key ya se usó para otra conversión. Usa una clave nueva para cada conversión.",
+  "problem.missingIdentity": "Envía el correo del lector, el token de clic (rc_click) o ambos.",
+  "problem.name": "Ponle un nombre a la conversión, como “Cambio al plan Team”.",
+  "problem.occurredAt": "occurred_at debe estar dentro de los últimos 30 días y no en el futuro. Envía la hora en que ocurrió.",
+  "problem.rateLimited": "Esta clave está enviando conversiones demasiado rápido. Vuelve a intentarlo dentro de {seconds, plural, one {# segundo} other {# segundos}}.",
+  "problem.value": "Envía el valor como cadena decimal, como “29.00”, no 29.",
+  "problem.valueDecimals": "El valor tiene más decimales de los que admite su moneda.",
+  "problem.window": "Elige un periodo de 1 a 30 días.",
+
+  "test.name": "Conversión de prueba",
+
+  "problem.campaignNotFound": "No se encontró la campaña."
+}

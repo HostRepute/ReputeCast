@@ -1,0 +1,9 @@
+{
+  "problem.permission": "“{permission}” no es un permiso.",
+  "problem.alreadyHave": "Ya tienes este permiso. Vuelve a cargar la página para usarlo.",
+  "problem.nobody": "Nadie en este espacio de trabajo puede cambiar roles. Pídeselo a quien administra la instancia.",
+  "problem.alreadyAsked": "Ya solicitaste acceso de {role, select, owner {Propietario} admin {Administrador} editor {Editor} other {Lector}} en el último día y se avisó a {names}. Si es urgente, escríbeles directamente.",
+
+  "notify.title": "{name} solicita acceso de {role, select, owner {Propietario} admin {Administrador} editor {Editor} other {Lector}}",
+  "notify.noNote": "Sin nota."
+}

@@ -1,0 +1,37 @@
+import { translate } from '@/i18n'
+import { ms } from './setup.messages'
+
+/** Spanish (docs/i18n/glossary-es.md). */
+export default translate(ms, {
+  backToCatalog: 'Volver al catálogo',
+  unknownAdapter: 'Este proveedor no está en esta compilación',
+  unknownAdapterBody: 'Elige otro proveedor del catálogo o pide a quien administra la instancia que instale su adaptador.',
+  startFailed: 'No se pudo iniciar la configuración',
+  starting: 'Iniciando la configuración…',
+  notFound: 'Esta configuración no existe',
+  loadFailed: 'No se pudo cargar la configuración',
+  loading: 'Cargando la configuración…',
+  cancelledReason: 'Se canceló esta configuración. Vuelve a empezar desde el catálogo.',
+  cancelledNote: 'Se canceló esta configuración. Vuelve a empezar desde el catálogo para conectar el proveedor.',
+  savedForLater: 'Guardado. Elige {provider} en el catálogo para continuar.',
+  saveFailed: 'No se pudo guardar la configuración',
+  doneBadge: 'Listo',
+  took: '{minutes, plural, one {La configuración tardó # minuto. Todo lo de abajo ya está en uso.} other {La configuración tardó # minutos. Todo lo de abajo ya está en uso.}}',
+  tookDomain: '{minutes, plural, one {La configuración tardó # minuto. Todo lo de abajo ya está en uso, y Resumen ya muestra la salud del remitente de {domain}.} other {La configuración tardó # minutos. Todo lo de abajo ya está en uso, y Resumen ya muestra la salud del remitente de {domain}.}}',
+  configuredTitle: 'Qué se configuró',
+  configuredLine: 'todo se puede revertir desde Proveedores de envío',
+  importNow: 'Importar ahora',
+  recommendedTitle: 'Recomendado antes de tu primera campaña',
+  addProviderTitle: 'Añadir otro proveedor',
+  addProviderLine: 'Un segundo proveedor para el correo de Sistema, o un servidor Postal para un reparto ponderado. Pueden funcionar varios a la vez.',
+  addProvider: 'Añadir otro proveedor',
+  hostReputeTitle: 'Conectar HostRepute',
+  hostReputeConnected: 'Conectado: 84 listas de bloqueo, Google Postmaster y Microsoft SNDS aparecen dentro de la revisión previa.',
+  hostReputeOptional: 'Opcional y gratuito: 84 listas de bloqueo, Google Postmaster y Microsoft SNDS dentro de la revisión previa.',
+  open: 'Abrir',
+  connect: 'Conectar',
+  formTitle: 'Crear un formulario de suscripción',
+  formLine: 'La doble confirmación está activada por defecto; las confirmaciones salen por el flujo Sistema.',
+  buildForm: 'Crear un formulario',
+  goToOverview: 'Ir a Resumen',
+})

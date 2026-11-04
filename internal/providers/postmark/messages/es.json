@@ -1,0 +1,28 @@
+{
+  "pricing": "plan, desde 15 US$ al mes",
+  "pricingPlan": "plan, {n} al mes",
+  "dedicatedIps": "desde 300.000 al mes",
+  "terms.0.variant": "Flujo Transactional",
+  "terms.0.note": "Los flujos Transactional son para correo uno a uno que desencadena una acción del usuario. Usarlos para marketing incumple las condiciones de Postmark.",
+  "terms.1.variant": "Flujo Broadcast",
+  "terms.1.note": "Requiere un enlace de baja en cada mensaje; Postmark añade uno si falta.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Bidireccional",
+  "field.server_token.label": "Server API token",
+  "field.server_token.help": "Postmark › Servers › tu servidor › API Tokens.",
+  "field.account_token.label": "Account API token",
+  "field.account_token.help": "Opcional. Permite que ReputeCast añada tu dominio y obtenga sus registros DNS.",
+  "field.message_stream.label": "Flujo de mensajes",
+  "field.message_stream.help": "El flujo Transactional para el correo de los flujos Sistema y Automatizaciones.",
+  "field.broadcast_stream.label": "Flujo Broadcast",
+  "field.broadcast_stream.help": "Necesario para que el flujo Envíos masivos pueda usar Postmark. ReputeCast puede crearlo.",
+  "field.monthly_limit.label": "Plan · correos al mes",
+  "field.monthly_limit.help": "Se usa para la barra de cuota y el costo por cada 1000.",
+
+  "account": "{plan, select, yes {Aprobada · plan de {n, number} al mes} other {Aprobada}}",
+  "tracking.scope": "Servidor {name}",
+  "tracking.detail": "La opción del servidor TrackOpens está {opens, select, on {activada} other {desactivada}} y TrackLinks es {links}.",
+  "error.streamsTaken": "los dos ID de flujo están ocupados; crea un flujo Broadcast en Postmark y escribe su ID",
+  "error.domainMissing": "{domain} no está configurado en Postmark"
+}

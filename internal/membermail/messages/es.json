@@ -1,0 +1,57 @@
+{
+  "reason.default": "Este es un mensaje automático de {brand}.",
+  "reason.password_reset": "Recibes este correo porque alguien pidió restablecer la contraseña de esta cuenta. Si no fuiste tú, ignóralo.",
+  "reason.email_change": "Recibes este correo porque alguien pidió iniciar sesión con esta dirección. Si no fuiste tú, ignóralo.",
+  "reason.email_changed": "Se envía a tu dirección anterior para que no pase desapercibido un cambio que no hiciste tú.",
+  "reason.invite": "Recibes este correo porque un miembro del espacio de trabajo invitó a esta dirección.",
+  "reason.campaign_test": "Esta es una prueba de una campaña; los suscriptores reciben la versión final.",
+  "reason.test": "Esta es una prueba enviada al conectar un proveedor de envío.",
+
+  "footer.sentBy": "Enviado por {instance}",
+  "footer.sentByHost": "Enviado por {instance} · {host}",
+  "footer.sentFor": "Enviado por {instance} para {workspace}",
+  "footer.sentForHost": "Enviado por {instance} para {workspace} · {host}",
+
+  "linkLine": "{label}: {url}",
+
+  "invite.subject": "{inviter} te ha invitado a {workspace}",
+  "invite.lead": "{inviter} te ha invitado a {workspace} en ReputeCast con el rol {role}.",
+  "invite.action": "Aceptar la invitación",
+  "invite.expires": "El enlace funciona hasta el {date}.",
+
+  "reset.subject": "Restablece tu contraseña de {instance}",
+  "reset.lead": "Alguien pidió restablecer la contraseña de <b>{email}</b> en {instance}.",
+  "reset.action": "Establecer una contraseña nueva",
+  "reset.note": "El enlace funciona una sola vez y caduca en 15 minutos. Si no fuiste tú, ignora este correo; tu contraseña no cambia.",
+
+  "resetSso.subject": "Cómo iniciar sesión en {instance}",
+  "resetSso.lead": "Alguien pidió restablecer la contraseña de <b>{email}</b> en {instance}. Esta cuenta no tiene contraseña: inicia sesión con {provider}.",
+  "resetSso.action": "Iniciar sesión",
+  "resetSso.note": "Si no fuiste tú, ignora este correo.",
+
+  "adminReset.subject": "Restablece tu contraseña de {instance}",
+  "adminReset.lead": "{admin}, que administra la instancia, te ha enviado un enlace para establecer una contraseña nueva para <b>{email}</b> en {instance}.",
+  "adminReset.action": "Establecer una contraseña nueva",
+  "adminReset.note": "El enlace funciona una sola vez y caduca en 15 minutos. Tu contraseña actual sigue funcionando hasta que lo uses.",
+
+  "emailChange.subject": "Confirma tu nueva dirección de correo para {instance}",
+  "emailChange.lead": "{email} pidió iniciar sesión en {instance} con esta dirección a partir de ahora.",
+  "emailChange.action": "Confirmar el cambio",
+  "emailChange.note": "El enlace funciona durante 24 horas. Si no lo pediste tú, ignora este correo.",
+
+  "emailChanged.subject": "Se cambió tu dirección de correo de {instance}",
+  "emailChanged.lead": "La cuenta que usaba {old} en {instance} ahora inicia sesión con {new}. Si no lo hiciste tú, contacta de inmediato con quien administra la instancia.",
+
+  "twofaReset.subject": "Se restableció la verificación en dos pasos de tu cuenta de {instance}",
+  "twofaReset.lead": "{admin}, que administra la instancia, restableció la verificación en dos pasos de tu cuenta <b>{email}</b>.",
+  "twofaReset.reason": "Motivo: {reason}",
+  "twofaReset.note": "Inicia sesión con tu contraseña y vuelve a configurar una aplicación de autenticación antes del {date}. Si no lo pediste tú, avisa de inmediato a quien administra la instancia.",
+
+  "notify.subject": "[{workspace}] {title}",
+  "notify.digestSubject": "{count, plural, one {# notificación} other {# notificaciones}}",
+  "notify.open": "Abrir en ReputeCast",
+  "notify.openShort": "Abrir",
+  "notify.openText": "Abrir: {url}",
+  "notify.why": "Recibes este correo por tus <link>preferencias de notificaciones</link>.",
+  "notify.whyText": "Recibes este correo por tus preferencias de notificaciones: {url}"
+}

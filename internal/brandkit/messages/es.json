@@ -1,0 +1,19 @@
+{
+  "problem.badColor": "Usa un color como #4338CA.",
+  "problem.badFallback": "Elige una de las fuentes alternativas seguras para correo.",
+  "problem.badFontUrl": "Usa el enlace https de la hoja de estilos de la fuente web, con el nombre de la fuente.",
+  "problem.badLogo": "Esa imagen no está en la biblioteca de este espacio de trabajo. Vuelve a subir el logotipo.",
+  "problem.oneSection": "Un bloque sincronizado es una sola sección: un mj-section o un mj-wrapper.",
+  "problem.compile": "El MJML del bloque no compila: {error}",
+  "problem.needsUnsubscribe": "El pie necesita el enlace de baja: todos los correos que lo incluyen deben tener uno.",
+  "problem.notSaved": "Guarda primero el kit de marca; la Cabecera y el Pie sincronizados parten de él.",
+  "problem.syncedName": "Ponle un nombre al bloque sincronizado para que se pueda encontrar en el panel de bloques.",
+  "problem.alreadySynced": "Esta sección ya es un bloque sincronizado o contiene uno. Desvincúlala primero para guardarla como uno nuevo.",
+  "problem.holdsSynced": "Un bloque sincronizado no puede contener otro bloque sincronizado.",
+  "problem.keepHeaderFooter": "La Cabecera y el Pie sincronizados se quedan: todos los kits de marca los tienen. Edítalos en su lugar.",
+  "problem.badWebsite": "Escribe la dirección del sitio web, como acme.io.",
+  "problem.unreachable": "No se pudo leer {site} ({reason}). Comprueba la dirección y vuelve a intentarlo.",
+  "import.linkContrast": "{color} no se usa para los enlaces. Tiene un contraste de {ratio}:1 sobre blanco, por debajo del 4,5:1 que necesita el texto pequeño. Los enlaces usan el siguiente color de tu sitio.",
+  "import.svgLogo": "El logotipo de {site} es un SVG, que Gmail y Outlook no muestran. Sube una versión en PNG.",
+  "import.logoNotAdded": "El logotipo de {site} no se añadió a la biblioteca de medios: solo quien edita campañas puede añadir imágenes. Pídele a una de esas personas que lo importe."
+}

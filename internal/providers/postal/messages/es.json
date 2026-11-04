@@ -1,0 +1,16 @@
+{
+  "pricing": "autoalojado",
+  "terms.0.variant": "autoalojado",
+  "terms.0.note": "Tú gestionas el servidor, así que se aplica la política de uso aceptable de tu proveedor de alojamiento.",
+  "events": "Webhooks",
+  "domainSetup": "DNS manual",
+  "suppressionMode": "Solo local",
+  "field.server_url.label": "URL del servidor",
+  "field.server_url.help": "La dirección de tu interfaz web de Postal, p. ej. https://mta.acme.io.",
+  "field.api_key.label": "Clave de API",
+  "field.api_key.help": "Postal › tu servidor de correo › Credentials › API.",
+
+  "account": "Postal{hasVersion, select, yes { {version}} other {}} · accesible",
+  "error.badKey": "No se aceptó la clave de API.",
+  "error.suspended": "El servidor de correo de Postal está suspendido."
+}
