@@ -1,7 +1,8 @@
 /*
  * Text expansion (connect-and-reach brief §5.10 and §7; the rules are in
  * docs/dev/CONVENTIONS.md, "Text expansion"). Translations run longer than
- * English: Vietnamese about 20–30%, the pseudo-locale 40%.
+ * English: Vietnamese, Spanish and French about 20–30%, German 30–40% with
+ * long compounds, the pseudo-locale 40%.
  *
  * Rules that change a layout for longer text apply only when the app isn't
  * in English (:root:not([lang='en'])), so English keeps the boards' layout

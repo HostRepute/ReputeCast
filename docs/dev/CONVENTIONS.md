@@ -313,8 +313,10 @@ being converted.
 
 ### Text expansion
 
-Translations run longer than English: Vietnamese by about a quarter, the
-pseudo-locale by 40%. The stress-test boards (`StressCampaigns…`,
+Translations run longer than English: Vietnamese by about a quarter, Spanish
+and French by 20–30%, German by 30–40% with long compounds, the
+pseudo-locale by 40%. Run `node scripts/i18n-layout.ts --langs <code>` with
+the demo data to list what a language breaks that English doesn't. The stress-test boards (`StressCampaigns…`,
 `StressReview…`, `StressTeam…`) settle how screens make room:
 
 1. **Never cut off** verdicts, status badges, numbers, buttons, permission
