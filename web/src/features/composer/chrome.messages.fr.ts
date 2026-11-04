@@ -149,7 +149,7 @@ export default translate(mh, {
   thumbPreview: 'Aperçu\u00A0: {name}',
   quickNote: '<b>Relecture rapide sur cet écran.</b> Modifiez ici le texte, l’objet et les commentaires. L’édition de la mise en page par glisser-déposer fonctionne sur les écrans plus grands.',
   quickGroup: 'Relecture rapide',
-  editText: 'Modifier le texte',
+  editText: 'Modifier',
   editTextLead: 'Touchez n’importe quel texte encadré dans l’e-mail pour le modifier. Le gras, l’italique, les liens et la personnalisation fonctionnent ici\u202F; la mise en page reste telle quelle.',
   checks: 'Contrôles',
   comments: 'Commentaires',

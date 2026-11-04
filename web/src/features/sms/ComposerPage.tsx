@@ -183,7 +183,7 @@ function Composer({ data }: { data: Campaign }) {
           {saving === 'error' ? t(m.saveFailed, { error: '' }).replace(/:\s*$/, '') : status}
         </Badge>
         {!editable && !data.access.canEdit ? <Badge tone="neutral">{t(m.readOnly)}</Badge> : null}
-        <div className="ml-2 flex flex-wrap gap-2">
+        <div className="ml-2 flex min-w-0 max-w-full flex-wrap gap-2">
           <button type="button" className="btn" onClick={() => setAudienceOpen(true)} disabled={!editable}>
             <Icon name="user" size={14} />
             {data.audience.length ? (
