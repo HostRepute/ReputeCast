@@ -71,7 +71,7 @@ func TestFormLanguages(t *testing.T) {
 		if len(sent) != 1 || sent[0].Subject != "Confirma tu suscripción a Acme" {
 			t.Fatalf("confirmation email: %+v", sent)
 		}
-		if !strings.Contains(sent[0].Text, "Hola:") || !strings.Contains(sent[0].Text, "Weekly Digest y Product Updates") ||
+		if !strings.Contains(sent[0].Text, "Hola,") || !strings.Contains(sent[0].Text, "Weekly Digest y Product Updates") ||
 			!strings.Contains(sent[0].HTML, `<html lang="es" dir="ltr">`) || !strings.Contains(sent[0].HTML, "Confirmar mi suscripción") {
 			t.Fatalf("confirmation copy:\n%s\n%s", sent[0].Text, sent[0].HTML)
 		}
@@ -114,7 +114,7 @@ func TestFormLanguages(t *testing.T) {
 			t.Fatalf("status %d: %s", r.Status, r.Body)
 		}
 		errs, _ := jsonBody(t, r)["errors"].(map[string]any)
-		if errs["email"] != "Diese E-Mail-Adresse scheint unvollständig zu sein." {
+		if errs["email"] != "Das sieht nicht nach einer vollständigen E-Mail-Adresse aus." {
 			t.Fatalf("errors: %v", errs)
 		}
 	})

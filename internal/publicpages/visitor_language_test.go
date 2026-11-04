@@ -87,7 +87,7 @@ func TestVisitorLanguage(t *testing.T) {
 		f := url.Values{"_t": {formToken(env, "frm_8c2e1a", time.Minute)}, "email": {"maria.garcia@fastmail.com"}, "list": {ids.digest.String()},
 			"consent": {"1"}, "_lang": {"es"}}
 		r := do(t, env, http.MethodPost, subscribe, f, hdr{"Origin": env.Server.URL})
-		must(t, r, 200, `<html lang="es" dir="ltr">`, "Revisa tu correo", "maria.garcia@fastmail.com")
+		must(t, r, 200, `<html lang="es" dir="ltr">`, "Revisa tu bandeja de entrada", "maria.garcia@fastmail.com")
 		lacks(t, r, "<script")
 		if n := count(t, env, `SELECT count(*) FROM form_submissions fs JOIN contacts c ON c.id = fs.contact_id
 			WHERE c.email = 'maria.garcia@fastmail.com' AND fs.language = 'es'`); n != 1 {
@@ -117,8 +117,8 @@ func TestVisitorLanguage(t *testing.T) {
 			`<label lang="de"><input type="radio" name="language" value="de">Deutsch</label>`,
 			// Every workspace language, even one whose pages aren't Live.
 			`<label lang="vi"><input type="radio" name="language" value="vi">Tiếng Việt</label>`,
-			"Los correos de Acme llegan en este idioma cuando tienen una versión en él, y si no, en English.")
-		must(t, page(unsub, nil), 200, `<html lang="es" dir="ltr">`, "¿Dar de baja sam.rivera@outlook.com?")
+			"Los correos de Acme llegan en este idioma cuando tienen una versión en él y, si no, en English.")
+		must(t, page(unsub, nil), 200, `<html lang="es" dir="ltr">`, "¿Dar de baja a sam.rivera@outlook.com?")
 
 		// Picking German in "Email language" changes the contact's language,
 		// and the pages follow it.
@@ -140,7 +140,7 @@ func TestVisitorLanguage(t *testing.T) {
 
 		// A language that isn't one of the workspace's is refused.
 		r = do(t, env, http.MethodPost, prefs, url.Values{"language": {"fr"}}, nil)
-		must(t, r, 422, `<html lang="de" dir="ltr">`, "Wähle eine der aufgeführten Sprachen.")
+		must(t, r, 422, `<html lang="de" dir="ltr">`, "Wählen Sie eine der aufgeführten Sprachen.")
 
 		// Vietnamese isn't Live: the fallback's pages. With no language,
 		// the fallback too, as the contact's emails.
@@ -205,7 +205,7 @@ func TestArchiveLanguages(t *testing.T) {
 			`<link rel="alternate" hreflang="en" href="`+canon+`">`,
 			`<link rel="alternate" hreflang="es" href="`+canon+`/es">`,
 			`<link rel="alternate" hreflang="x-default" href="`+canon+`">`,
-			"Acme · Archivo del boletín", ">Suscribirme</a>", `<header class="rcia">`,
+			"Acme · Archivo del boletín", ">Suscribirse</a>", `<header class="rcia">`,
 			`<p class="rcia-also">También en: <a href="`+env.Server.URL+issue+`/en" lang="en" hreflang="en">English</a></p>`,
 			`<nav class="rcia-langs" aria-label="Idioma">`,
 			`<a href="`+env.Server.URL+issue+`?lang=es" lang="es" hreflang="es" aria-current="true">Español</a>`)
@@ -251,8 +251,8 @@ func TestArchiveLanguages(t *testing.T) {
 
 	t.Run("the list in the visitor's language", func(t *testing.T) {
 		r := page("/p/acme-newsletter/archive", hdr{"Accept-Language": "es"})
-		must(t, r, 200, `<html lang="es" dir="ltr">`, "Archivo del boletín", "Todos los números de Weekly Digest y Product Updates desde ", " 46 números.",
-			">Todos</a>", "1 a 10 de 46", "Números anteriores", "Buscar números",
+		must(t, r, 200, `<html lang="es" dir="ltr">`, "Archivo del boletín", "Todas las ediciones de Weekly Digest y Product Updates desde ", " 46 ediciones.",
+			">Todos</a>", "1 a 10 de 46", "Ediciones anteriores", "Buscar ediciones",
 			`<a class="t" href="`+env.Server.URL+issue+`/es">El caso de la infraestructura aburrida</a>`,
 			// The issues without a Spanish version say they're in English.
 			`<article class="issue" lang="en">`,
@@ -307,14 +307,15 @@ func TestNotificationPagesLanguage(t *testing.T) {
 	}
 	unsub := "/p/acme-newsletter/unsubscribe/" + sign(env, linktoken.Unsubscribe, ids.ws, uuid.Nil, msg)
 	r := get(t, env, unsub)
-	must(t, r, 200, `<html lang="de" dir="ltr">`, "nicht mehr", "Konto- und Rechnungs-E-Mails kommen weiterhin an", "Aus Versehen ausgeschaltet?",
-		"wieder einschalten", "Warum hast du es ausgeschaltet?", "Zu oft", "Andere Benachrichtigungen: ", "Der Abmelde-Button in deiner Mail-App macht dasselbe.",
+	// German ships with ReputeCast: its own labels, which say Sie.
+	must(t, r, 200, `<html lang="de" dir="ltr">`, "nicht mehr", "Konto- und Rechnungs-E-Mails wie Passwort-Zurücksetzungen", "Versehentlich deaktiviert?",
+		"wieder aktivieren", "Warum haben Sie das deaktiviert?", "Zu häufig", "Andere Benachrichtigungen: ", "Der Abmelde-Button in Ihrer E-Mail-App bewirkt dasselbe.",
 		`<nav class="langs" aria-label="Sprache">`, `aria-current="true">Deutsch</a>`)
 	lacks(t, r, "Turned it off by mistake?", "You won't get")
 	// The menu's pick beats the message's language; turning it back on
 	// answers in the language picked.
 	r = do(t, env, http.MethodPost, unsub+"?lang=es", url.Values{"action": {"on"}}, nil)
-	must(t, r, 200, `<html lang="es" dir="ltr">`, "vuelve a estar activado", "Desactivar ")
+	must(t, r, 200, `<html lang="es" dir="ltr">`, "Se reactivó", "Desactivar ")
 	prefs := "/p/acme-newsletter/preferences/" + sign(env, linktoken.Preferences, ids.ws, uuid.Nil, msg)
 	r = get(t, env, prefs)
 	must(t, r, 200, `<html lang="de" dir="ltr">`, "E-Mail-Einstellungen", "für "+email, "Benachrichtigungen von ")
