@@ -21,15 +21,22 @@ type Loader = () => Promise<Catalog>
 
 // Translations sit next to their English source, as `messages.<lang>.ts` or
 // `<name>.messages.<lang>.ts`, and load only when the language is picked.
+// So does the list of a language's files (catalogs/<lang>.ts): the first
+// page load carries no language's translations, whichever it shows.
 type Modules = Record<string, () => Promise<Catalog>>
-const translations: Record<Exclude<AppLocale, 'en' | typeof PSEUDO_LOCALE>, Modules> = {
-  de: import.meta.glob<Catalog>('../**/*messages.de.ts', { import: 'default' }),
-  es: import.meta.glob<Catalog>('../**/*messages.es.ts', { import: 'default' }),
-  fr: import.meta.glob<Catalog>('../**/*messages.fr.ts', { import: 'default' }),
-  vi: import.meta.glob<Catalog>('../**/*messages.vi.ts', { import: 'default' }),
+const translations: Record<Exclude<AppLocale, 'en' | typeof PSEUDO_LOCALE>, () => Promise<{ default: Modules }>> = {
+  de: () => import('./catalogs/de'),
+  es: () => import('./catalogs/es'),
+  fr: () => import('./catalogs/fr'),
+  vi: () => import('./catalogs/vi'),
 }
 
-const loadAll = (modules: Modules): Loader => async () => Object.assign({}, ...(await Promise.all(Object.values(modules).map((load) => load()))))
+const loadAll =
+  (list: () => Promise<{ default: Modules }>): Loader =>
+  async () => {
+    const { default: modules } = await list()
+    return Object.assign({}, ...(await Promise.all(Object.values(modules).map((load) => load()))))
+  }
 
 const loaders = new Map<AppLocale, Loader>([
   ['en', async () => ({})],

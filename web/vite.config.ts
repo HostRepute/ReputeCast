@@ -44,6 +44,7 @@ function precompress(): Plugin {
 // Code-splitting groups (build.rolldownOptions below).
 const routesDir = /[\\/]src[\\/]routes[\\/]/
 const sharedDir = /[\\/]src[\\/](components|lib|i18n|api)[\\/]/
+const translationFile = /messages\.[a-z]{2,3}\.ts$|[\\/]src[\\/]i18n[\\/]catalogs[\\/]/
 
 const LAYER_ORDER = '@layer properties, theme, base, components, utilities;'
 
@@ -160,7 +161,10 @@ export default defineConfig({
             // imports them all at startup. A route's page (?tsr-split) stays lazy.
             { name: 'routes', test: (id: string) => routesDir.test(id) && !id.includes('?tsr-split'), priority: 3 },
             // Components, hooks, i18n and the API client every page shares.
-            { name: 'app', test: sharedDir, priority: 2 },
+            // Their translations (messages.<lang>.ts) and the lists of them
+            // (i18n/catalogs) stay lazy, so a page loads only the language
+            // it shows (src/i18n/store.ts).
+            { name: 'app', test: (id: string) => sharedDir.test(id) && !translationFile.test(id), priority: 2 },
           ],
         },
       },
