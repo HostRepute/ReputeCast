@@ -125,7 +125,7 @@ func TestSpanishAndFrenchLanguageNamesTakeTheirPlacesCase(t *testing.T) {
 		}
 	}
 	// German names are capitalised nouns everywhere.
-	if got := LanguageName(German, "es"); got != "Spanisch" {
+	if got := LanguageName(German, "es"); got != "Spanisch" { //nolint:misspell // German, not misspelt English
 		t.Errorf("de name: %q", got)
 	}
 	if got := LanguageName(Spanish, "en"); got != "Inglés" {
