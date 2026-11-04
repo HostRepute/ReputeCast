@@ -1,0 +1,5 @@
+{
+  "rateLimit.signIn": "Zu viele Anmeldeversuche aus Ihrem Netzwerk. Warten Sie eine Minute und versuchen Sie es erneut.",
+  "rateLimit.api": "Rate-Limit erreicht. Anfragen werden innerhalb einer Minute wieder angenommen; Batch-Endpunkte akzeptieren bis zu {max, number} Elemente pro Aufruf.",
+  "spa.noscript": "ReputeCast braucht JavaScript. Öffentliche Seiten (Anmeldung, E-Mail-Einstellungen, Archiv) funktionieren auch ohne."
+}

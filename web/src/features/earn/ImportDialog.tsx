@@ -11,7 +11,7 @@ import { Note } from '@/components/ui/Note'
 import { StepTrail } from '@/components/ui/Stepper'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
+import { lowerFirstInSentence, useT } from '@/i18n'
 import { andList, clock, count, dayMonthDate, dayMonthYear, monthDayTime } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { useWorkspace } from '@/lib/session'
@@ -49,7 +49,7 @@ export function ImportDialog({ id, onClose, onChange }: { id?: string; onClose: 
       hideClose
       onOpenChange={(o) => !o && onClose()}
       className={wide ? 'ea-import ea-wide' : 'ea-import'}
-      eyebrow={step > 0 && imp?.status !== 'done' ? <span className="k">{t(mi.stepOf, { n: step, step: (stepName ?? '').charAt(0).toLowerCase() + (stepName ?? '').slice(1) })}</span> : undefined}
+      eyebrow={step > 0 && imp?.status !== 'done' ? <span className="k">{t(mi.stepOf, { n: step, step: lowerFirstInSentence(stepName ?? '') })}</span> : undefined}
       title={title}
       description={wide ? t(mi.matchLead, { account: status.data?.account ?? '' }) : undefined}
       dismissible={imp?.status !== 'importing'}

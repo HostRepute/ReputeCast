@@ -162,13 +162,23 @@ async function main() {
   try {
     // Resolve the paths once, signed in as each user in English.
     const resolvers = new Map<string, BrowserContext>()
+    // Demo people without a password (SSO only) can't be signed in here.
+    const failed = new Set<string>()
     for (const e of entries as Entry[]) {
       if (!e.path || e.manual || (only.size && !only.has(e.board))) continue
       const user = e.user ?? 'linh@acme.io'
+      if (failed.has(user)) continue
       let ctx = resolvers.get(user)
       if (!ctx) {
         ctx = await browser.newContext()
-        if (user !== 'anon') await signIn(ctx, app, user).catch(() => undefined)
+        try {
+          if (user !== 'anon') await signIn(ctx, app, user)
+        } catch {
+          failed.add(user)
+          await ctx.close()
+          console.log(`skipped: can't sign in as ${user}`)
+          continue
+        }
         resolvers.set(user, ctx)
       }
       const path = await resolvePath(ctx, app, e.path)

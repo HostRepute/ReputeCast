@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/Field'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { lowerFirstInSentence, T, useT } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ComplimentaryDialog } from './ComplimentaryDialog'
@@ -351,7 +351,7 @@ function StatusSentence({ m }: { m: Member }) {
   return (
     <>
       <b>{statusLabel(t, m.status)}</b> · {tierLine(t, m)}
-      {m.kind === 'stripe' ? ` · ${priceLine(t, m, { words: true })}` : ''} · {next.replace(/^./, (c) => c.toLowerCase())}
+      {m.kind === 'stripe' ? ` · ${priceLine(t, m, { words: true })}` : ''} · {lowerFirstInSentence(next)}
     </>
   )
 }

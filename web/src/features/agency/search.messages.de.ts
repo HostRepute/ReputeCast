@@ -1,0 +1,35 @@
+import { translate } from '@/i18n'
+import { m } from './search.messages'
+
+/** German (docs/i18n/glossary-de.md). */
+export default translate(m, {
+  title: 'Alle Kunden durchsuchen',
+  typeMore: 'Geben Sie mindestens 2 Zeichen ein: den Namen einer Kampagne, Automation, Vorlage oder eines Formulars oder die genaue E-Mail-Adresse eines Kontakts.',
+  failed: 'Suche fehlgeschlagen',
+  nameCaption: 'Als {name}: {clients, plural, one {Ihr Kunde} other {Ihre # Kunden}} und die Bibliothek · {n, plural, one {# Ergebnis} other {# Ergebnisse}}',
+  nameCaptionAll: 'Als {name}: alle Kunden und die Bibliothek · {n, plural, one {# Ergebnis} other {# Ergebnisse}}',
+  contactCaption: 'Als {name} · Kontakte werden nur über die genaue E-Mail-Adresse oder Telefonnummer gefunden, bei Kunden, bei denen Sie Kontakte sehen dürfen',
+  noMatch: 'Nichts entspricht „{q}“ bei Ihren Kunden oder in der Bibliothek.',
+  noContact: '{n, plural, =0 {Kein Kunde, bei dem Sie Kontakte sehen dürfen.} one {Kein Kontakt mit dieser Adresse bei dem Kunden, bei dem Sie Kontakte sehen dürfen.} other {Kein Kontakt mit dieser Adresse bei den # Kunden, bei denen Sie Kontakte sehen dürfen.}}',
+  skipped: '{n, plural, one {# Kunde wurde nicht nach Kontakten durchsucht: Sie dürfen dort keine Kontakte sehen.} other {# Kunden wurden nicht nach Kontakten durchsucht: Sie dürfen dort keine Kontakte sehen.}}',
+  audited: 'Diese Suche wird im Audit-Protokoll erfasst: wer gesucht hat und nach welcher Adresse.',
+  libraryGroup: 'Bibliothek von {agency}',
+  libraryHit: '{kind} · v{version}',
+  kindCampaign: 'Kampagne',
+  kindAutomation: 'Automation',
+  kindSection: 'Gespeicherter Abschnitt',
+  kindTemplate: 'Kampagnenvorlage',
+  kindForm: 'Anmeldeformular',
+  kindContact: 'Kontakt',
+  contactSubscribed: 'Kontakt · {lists} · abonniert am {date}',
+  contactLeft: 'Kontakt · {lists} · abgemeldet am {date}',
+  contactLists: 'Kontakt · {lists}',
+  stApproval: 'Wartet auf Freigabe',
+  stDraft: 'Entwurf',
+  stScheduled: 'Geplant',
+  stApproved: 'Freigegeben',
+  stSending: 'Im Versand',
+  stSent: 'Gesendet',
+  stPaused: 'Pausiert',
+  stLive: 'Live',
+})

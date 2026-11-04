@@ -1,0 +1,28 @@
+{
+  "pricing": "Ihr Server oder Relay",
+  "terms.0.note": "Es gilt die Nutzungsrichtlinie Ihres SMTP-Servers oder Relays.",
+  "events": "Bounce-Postfach (IMAP/POP3)",
+  "domainSetup": "Manuelles DNS",
+  "suppressionMode": "Nur lokal",
+  "field.host.label": "SMTP-Host",
+  "field.port.label": "Port",
+  "field.tls.label": "Verschlüsselung",
+  "field.username.label": "Benutzername",
+  "field.password.label": "Passwort",
+  "field.return_path.label": "Bounce-Adresse",
+  "field.return_path.help": "Der Envelope-Absender; Bounces gehen an diese Adresse, lassen Sie sie daher auf das Bounce-Postfach zeigen.",
+  "field.bounce_mailbox.label": "Bounce-Postfach (IMAP oder POP3)",
+  "field.bounce_mailbox.help": "SMTP hat keine Webhooks. ReputeCast liest Bounces und Beschwerden jede Minute aus diesem Postfach.",
+  "field.bounce_password.label": "Passwort des Bounce-Postfachs",
+
+  "account": "{host} · nimmt E-Mails an",
+  "test.summary": "{tls, select, starttls {STARTTLS, {version}} implicit {Implizites TLS, {version}} other {Kein TLS}} · {auth, select, none {keine Authentifizierung} other {AUTH {mechanism} akzeptiert}}",
+  "test.noHost": "Geben Sie den SMTP-Host ein.",
+  "test.noStartTLS": "{host} bietet auf Port {port} kein STARTTLS an. Verwenden Sie implizites TLS auf 465 oder deaktivieren Sie die Verschlüsselung nur in einem privaten Netzwerk.",
+  "test.noLoginMethod": "{host} bietet keine Anmeldemethode an, die ReputeCast unterstützt (angeboten: {offered}).",
+  "test.refused": "ECONNREFUSED · an diesem Port lauscht nichts",
+  "test.notFound": "ENOTFOUND · der Hostname lässt sich nicht auflösen",
+  "test.timedOut": "ETIMEDOUT · keine Antwort innerhalb von 15 s (möglicherweise blockiert eine Firewall den Port)",
+  "mailbox.rejected": "Das Postfach hat Benutzername oder Passwort abgelehnt.",
+  "mailbox.missing": "noch kein Bounce-Postfach eingerichtet: Geben Sie Server und Anmeldedaten ein"
+}

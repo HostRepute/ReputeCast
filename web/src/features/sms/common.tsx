@@ -5,7 +5,7 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { ChannelMenu } from '@/features/channels/ChannelMenu'
-import { getI18n, useT, type MessageDescriptor } from '@/i18n'
+import { getI18n, lowerInSentence, type MessageDescriptor, useT } from '@/i18n'
 import { dayMonthDate, dayMonthYear, money } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
@@ -388,7 +388,7 @@ export function CopyRow({ label, value, mono }: { label: string; value: string; 
           {value}
         </span>
       </div>
-      <CopyButton value={value} label={t(m.copyLabel, { what: label.toLowerCase() })} />
+      <CopyButton value={value} label={t(m.copyLabel, { what: lowerInSentence(label) })} />
     </div>
   )
 }

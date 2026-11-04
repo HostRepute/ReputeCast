@@ -1,6 +1,6 @@
 import type { Schemas } from '@/api/client'
 import type { Tone } from '@/components/ui/Badge'
-import { t as tt } from '@/i18n'
+import { lowerInSentence, t as tt } from '@/i18n'
 import { andList, clock, clockSeconds, count, pct, trimPct } from '@/lib/format'
 import { mc } from './canary.messages'
 import { mailboxName, mailboxRate, pct1, pct2, tiles, type Snapshot, type Tile } from './model'
@@ -62,14 +62,14 @@ export function gateName(key: Gate['key']): string {
 export function canarySummary(c: Canary): string {
   if (c.phase === 'stopped') return tt(mc.sumStopped, { time: clock(c.decidedAt ?? new Date()), queued: count(c.queued) })
   const failing = c.gates.find((g) => g.state === 'failing')
-  if (failing) return tt(mc.sumFailed, { gate: gateName(failing.key).toLowerCase() })
+  if (failing) return tt(mc.sumFailed, { gate: lowerInSentence(gateName(failing.key)) })
   const collecting = c.gates.filter((g) => g.state === 'collecting')
   const passing = c.gates.filter((g) => g.state === 'passing').length
   const gates = tt(mc.sumGates, {
     passing,
     total: c.gates.length,
     collecting: collecting.length,
-    names: andList(collecting.map((g) => gateName(g.key).toLowerCase())),
+    names: andList(collecting.map((g) => lowerInSentence(gateName(g.key)))),
     // "seed placement is", "complaints are".
     singular: collecting.length === 1 && collecting[0]?.key === 'seeds' ? 'yes' : 'no',
   })

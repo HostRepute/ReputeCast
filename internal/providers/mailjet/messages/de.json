@@ -1,0 +1,20 @@
+{
+  "pricing": "Tarif, 6.000 pro Monat kostenlos (200 pro Tag), danach ab 9 $ pro Monat",
+  "dedicatedIps": "Premium-Tarife ab 100.000 pro Monat, auf Anfrage",
+  "terms.0.note": "Nur klares, ausdrückliches und nachweisbares Opt-in; keine Listen von Dritten. Jede Marketing-E-Mail braucht einen Abmeldelink und einen Link zur Datenschutzerklärung. Limits von Mailjet: 5 % Bounces, 0,08 % Beschwerden.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Beidseitig",
+  "field.api_key.label": "API-Schlüssel",
+  "field.api_key.help": "Mailjet › Account settings › API key management. Ein Schlüssel, den nur ReputeCast verwendet, hält seine Event-Callbacks von anderen Tools getrennt.",
+  "field.secret_key.label": "Secret key",
+  "field.secret_key.help": "Wird neben dem API-Schlüssel angezeigt.",
+  "field.monthly_limit.label": "Tarif · E-Mails pro Monat",
+  "field.monthly_limit.help": "Wird für den Kontingentbalken und die Kosten pro 1.000 verwendet.",
+
+  "account": "{state, select, inactive {API-Schlüssel inaktiv} quarantine {API-Schlüssel in Quarantäne · {n} pro Stunde} runlevel {API-Schlüssel {runlevel}} other {API-Schlüssel aktiv}}",
+  "tracking.scope": "Jede Nachricht, die ReputeCast sendet",
+  "tracking.detail": "ReputeCast sendet jede Nachricht mit deaktiviertem TrackOpens und TrackClicks von Mailjet, unabhängig von der Kontoeinstellung.",
+  "error.domainMissing": "{domain} ist in Mailjet nicht eingerichtet",
+  "error.callbackTaken": "Mailjet erlaubt eine Callback-URL pro Ereignis und API-Schlüssel, und {events} senden bereits an eine andere URL. Verwenden Sie einen API-Schlüssel nur für ReputeCast oder entfernen Sie diese Callbacks in Mailjet und registrieren Sie dann erneut."
+}

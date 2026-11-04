@@ -1,0 +1,21 @@
+{
+  "pricing": "Tarif, laut Ihrem SparkPost-Vertrag",
+  "dedicatedIps": "kostenpflichtige Tarife über Starter, pro IP und Monat",
+  "terms.0.note": "Nur Listen mit Erlaubnis und funktionierender Abmeldung; keine gekauften oder gemieteten Listen. Gilt für bestehende SparkPost-Konten; neue Bird-Konten nutzen Bird Email, eine andere API.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Beidseitig",
+  "field.api_key.label": "API-Schlüssel",
+  "field.api_key.help": "SparkPost › Configuration › API Keys, mit den Berechtigungen Transmissions, Webhooks, Sending Domains, Suppression Lists, Account, Metrics und Message Events.",
+  "field.region.label": "Region",
+  "field.region.help": "Konto in den USA (app.sparkpost.com) oder in der EU (app.eu.sparkpost.com).",
+  "field.ip_pool.label": "IP-Pool",
+  "field.ip_pool.help": "Optional. Sendet über diesen Pool dedizierter IPs.",
+
+  "account": "Konto {id} · {status}{hasPlan, select, yes { · {plan}} other {}}",
+  "tracking.scope": "Jede Transmission, die ReputeCast sendet",
+  "tracking.on": "Das Konto trackt Öffnungen und Klicks standardmäßig, aber ReputeCast deaktiviert das Tracking bei jeder gesendeten Transmission.",
+  "tracking.off": "Öffnungs- und Klick-Tracking sind standardmäßig und bei jeder Transmission von ReputeCast deaktiviert.",
+  "error.notRegistered": "Kein SparkPost-Webhook zeigt auf {url}. Registrieren Sie ihn zuerst.",
+  "error.endpointStatus": "der Endpunkt hat auf den Test-Batch von SparkPost mit {status} geantwortet"
+}

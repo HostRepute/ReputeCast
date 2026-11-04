@@ -232,10 +232,14 @@ var english = i18n.Default
 
 // lowerFirstIn lower-cases a first letter followed by a lower-case one. In
 // English it keeps the rule the product has always used (ASCII letters
-// only); in other languages any letter counts, as on the canvas.
+// only); in other languages any letter counts, as on the canvas. German
+// keeps its capitals: its nouns have one wherever they stand.
 func lowerFirstIn(l i18n.Lang, s string) string {
 	if l.Locale == i18n.English {
 		return lowerFirst(s)
+	}
+	if i18n.KeepsCapitals(l.Locale) {
+		return s
 	}
 	r, n := utf8.DecodeRuneInString(s)
 	if n == 0 || !unicode.IsUpper(r) {

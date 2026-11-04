@@ -431,7 +431,10 @@ func (s *Service) apiConfig(l i18n.Lang, d providers.Descriptor, prov *store.Pro
 	enter := func(f providers.Field) error {
 		field := strings.ToLower(f.Label)
 		if !english(l) {
-			field = lowerFirst(f.In(l).Label)
+			field = f.In(l).Label
+			if !i18n.KeepsCapitals(l.Locale) {
+				field = lowerFirst(field)
+			}
 		}
 		return api.Invalid("body.values."+f.Key, mProblemEnterField.Text(l, i18n.Args{"field": field}))
 	}

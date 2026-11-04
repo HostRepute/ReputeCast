@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
-import { useT } from '@/i18n'
+import { keepsCapitals, useT } from '@/i18n'
 import { clock, count, shortDate } from '@/lib/format'
 import { m } from './messages'
 
@@ -74,5 +74,6 @@ export function HeldRecheckCard({ held, notified, actions }: { held: Schemas['Re
 }
 
 function lowerFirst(s: string): string {
+  if (keepsCapitals()) return s
   return s.length > 1 && s[1] === s[1]!.toLowerCase() ? s[0]!.toLowerCase() + s.slice(1) : s
 }

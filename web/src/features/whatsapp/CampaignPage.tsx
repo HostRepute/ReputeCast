@@ -8,7 +8,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
-import { useT, type MessageDescriptor } from '@/i18n'
+import { lowerInSentence, type MessageDescriptor, useT } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear, money } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { categoryBadge, fallbackSentence, FilledBody, statusBadge, testStatusWord, throwIfForbidden, WhatsAppIcon, type Template } from './common'
@@ -260,7 +260,7 @@ function Settings({
         ? t(m.othersPending, { name: x.name })
         : x.status === 'rejected'
           ? t(m.othersRejected, { name: x.name })
-          : t(m.othersOther, { name: x.name, status: t(statusBadge[x.status].msg).toLowerCase() }),
+          : t(m.othersOther, { name: x.name, status: lowerInSentence(t(statusBadge[x.status].msg)) }),
     )
     .join('; ')
   const varOf = (key: string) => draft.variables.find((v) => v.key === key) ?? { key, source: 'field' as const, field: '', fallback: '' }

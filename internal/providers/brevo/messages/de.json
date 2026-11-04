@@ -1,0 +1,14 @@
+{
+  "pricing": "Tarif, 300 pro Tag kostenlos, danach ab 9 $ pro Monat für 5.000",
+  "dedicatedIps": "Tarife Professional und Enterprise, als Add-on",
+  "terms.0.note": "Nur aktives, ausdrückliches und nachweisbares Opt-in; keine gekauften oder gescrapten Listen. Brevo fügt einen eigenen Abmelde-Header hinzu, und seine Abmeldungen gelangen über den Webhook auf die gemeinsame Sperrliste.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Nur abrufen",
+  "field.api_key.label": "API-Schlüssel",
+  "field.api_key.help": "Brevo › SMTP & API › API keys. Beginnt mit xkeysib-.",
+  "field.monthly_limit.label": "Tarif · E-Mails pro Monat",
+  "field.monthly_limit.help": "Wird für den Kontingentbalken verwendet, wenn der Tarif ein monatliches Kontingent hat.",
+
+  "account": "{company, select, none {Brevo-Konto} other {{name}}}{plan, select, free { · kostenloser Tarif · {today, select, yes {heute } other {}}noch {n} E-Mails} subscription { · Abonnement · noch {n} E-Mails} credits { · noch {n} Prepaid-Credits} other {}}"
+}

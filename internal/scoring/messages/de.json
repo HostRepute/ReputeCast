@@ -1,0 +1,27 @@
+{
+  "error.tooManyRules": "Scoring kann höchstens {max} Regeln haben. Deaktivieren oder löschen Sie zuerst eine.",
+  "error.duplicateRule": "Zwei Regeln haben dieselbe ID. Laden Sie Scoring neu und nehmen Sie die Änderung erneut vor.",
+  "error.points": "Punkte reichen von −50 bis +50 und dürfen nicht 0 sein.",
+  "error.list": "Diese Liste gibt es in diesem Arbeitsbereich nicht mehr. Wählen Sie eine andere Liste oder eine beliebige Liste.",
+  "error.contains": "Der im Link gesuchte Text muss kürzer als 200 Zeichen sein.",
+  "error.formMissing": "Wählen Sie das Formular, das zählt.",
+  "error.formGone": "Dieses Formular wurde gelöscht. Wählen Sie ein anderes Formular.",
+  "error.event": "Benennen Sie das API-Ereignis mit Buchstaben, Ziffern und . _ : -, z. B. trial_started.",
+  "error.field": "Wählen Sie das zu prüfende Feld.",
+  "error.fieldGone": "Das Feld {field} wurde gelöscht. Wählen Sie ein anderes Feld.",
+  "error.values": "Geben Sie mindestens einen Wert für {field} ein.",
+  "error.op": "Wählen Sie, wie das Feld geprüft wird: ist eines von, ist nicht oder ist gesetzt.",
+  "error.kind": "Wählen Sie, was die Regel zählt: ein Ereignis oder eine Feldbedingung.",
+  "error.cap": "Wählen Sie ein Limit für die Regel.",
+  "error.capBelowPoints": "Ein Limit von {cap} {period, select, day {pro Tag} week {pro Woche} other {pro Monat}} ist niedriger als die {points} Punkte, die {kind, select, open {eine Öffnung} click {ein Klick} form {eine Formular-Einsendung} api_event {ein API-Ereignis} soft_bounce {ein Soft Bounce} other {eine Abmeldung}} bringt. Erhöhen Sie das Limit auf {points} oder mehr oder senken Sie die Punkte.",
+  "error.decayWeeks": "Das Abklingen beginnt nach 1 bis 52 Wochen ohne menschliche Öffnung oder Klick.",
+  "error.decayPercent": "Das Abklingen zieht pro Woche 1 % bis 100 % des Scores ab.",
+  "error.warmFrom": "Warm beginnt bei einem Score von 1 bis 99.",
+  "error.hotFrom": "Heiß beginnt über Warm ({warm}) und höchstens bei 100.",
+  "error.conflict": "Jemand hat das Scoring seit dem Öffnen gespeichert. Laden Sie neu, um die Änderungen zu sehen, und nehmen Sie Ihre erneut vor.",
+  "error.nothingToRetry": "Keine Neuberechnung wurde abgebrochen, es gibt also nichts erneut zu versuchen.",
+  "error.notSetUp": "Dieser Arbeitsbereich hat Scoring noch nicht eingerichtet.",
+
+  "notify.recalcTitle": "Neuberechnung der Scores abgeschlossen",
+  "notify.recalcBody": "{changed, plural, one {1 Kontakt hat die Stufe gewechselt} other {# Kontakte haben die Stufe gewechselt}}{flows, select, one { · {flow1} {start, select, yes {gestartet} other {nicht gestartet}} für {n1}} two { · {flow1} {start, select, yes {gestartet} other {nicht gestartet}} für {n1} · {flow2} {start, select, yes {gestartet} other {nicht gestartet}} für {n2}} three { · {flow1} {start, select, yes {gestartet} other {nicht gestartet}} für {n1} · {flow2} {start, select, yes {gestartet} other {nicht gestartet}} für {n2} · {flow3} {start, select, yes {gestartet} other {nicht gestartet}} für {n3}} other {}}"
+}

@@ -1,0 +1,6 @@
+{
+  "problem.pickProvider": "Wählen Sie einen Versandanbieter.",
+  "provider.bounceMailbox": "SMTP · Bounce-Postfach",
+  "source.kind": "{kind, select, double_opt_in {Double-Opt-in-Bestätigung} preference_link {Link zum Präferenzcenter} invite {Team-Einladung} password_reset {Passwort zurücksetzen} api {API · transaktional} smtp {SMTP-Relay · transaktional} other {Kopie eines Platzierungstests}}",
+  "source.step": "{automation} · Schritt {step}"
+}

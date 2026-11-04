@@ -311,6 +311,9 @@ func resolveMap(m map[string]any, l i18n.Lang) any {
 		return sentence(fmt.Sprint(resolve(v, l)))
 	}
 	if v, ok := m["lower"]; ok {
+		if i18n.KeepsCapitals(l.Locale) {
+			return fmt.Sprint(resolve(v, l))
+		}
 		return lowerFirst(fmt.Sprint(resolve(v, l)))
 	}
 	for k, write := range timeFormats {

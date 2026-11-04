@@ -1,0 +1,9 @@
+{
+  "summary": "Nutzungsbasiert · USA und Kanada ab 0,0110 $ pro SMS-Teil, inkl. Netzbetreibergebühren",
+  "badge.sender_ids.note": "außerhalb der USA und Kanadas",
+  "badge.opt_out_sync.note": "aus Antworten und abgelehnten SMS",
+  "field.account_sid.label": "Account SID",
+  "field.api_key_sid.label": "API key SID",
+  "field.api_key_secret.label": "API key secret",
+  "field.mode.label": "Konto"
+}

@@ -242,7 +242,11 @@ func (s *Service) notifyHeld(ctx context.Context, tx pgx.Tx, q *store.Queries, w
 		what := ""
 		if blocking != nil {
 			c := blocking.In(l)
-			what = trimDot(lowerFirst(firstNonEmpty(c.FlatTitle, c.Title)))
+			what = firstNonEmpty(c.FlatTitle, c.Title)
+			if !i18n.KeepsCapitals(l.Locale) {
+				what = lowerFirst(what)
+			}
+			what = trimDot(what)
 		}
 		date, clock := whenIn(l, issue.Deadline, loc)
 		args := i18n.Args{"issue": name, "date": date, "time": clock, "block": what}

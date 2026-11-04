@@ -1,0 +1,52 @@
+{
+  "problem.name": "Geben Sie dem Arbeitsbereich einen Namen.",
+  "problem.timezone": "Unbekannte Zeitzone.",
+  "problem.retention": "Wählen Sie einen der angebotenen Zeiträume.",
+  "problem.sender": "Wählen Sie einen Absender dieses Arbeitsbereichs.",
+  "problem.signedInOwner": "Nur ein angemeldeter Inhaber kann die Inhaberschaft übertragen.",
+  "problem.password": "Das Passwort ist nicht korrekt.",
+  "problem.reauth": "Melden Sie sich erneut bei Ihrem Identitätsanbieter an, und übertragen Sie dann innerhalb von 10 Minuten.",
+  "problem.pickOwner": "Wählen Sie den neuen Inhaber.",
+  "problem.notMember": "Nur aktive Mitglieder dieses Arbeitsbereichs können Inhaber werden.",
+  "problem.notEligible": "{name} hat noch keine Zwei-Faktor-Authentifizierung. Nur aktive Mitglieder mit 2FA können Inhaber werden.",
+  "problem.confirmName": "Geben Sie zur Bestätigung genau {name} ein.",
+  "problem.section": "Wählen Sie Transaktional, Wachstum oder Einnahmen.",
+
+  "reason.manage": "Mit Ihrer Rolle können Sie die Einstellungen des Arbeitsbereichs nicht ändern.",
+  "reason.manageAsk": "Mit Ihrer Rolle können Sie die Einstellungen des Arbeitsbereichs nicht ändern. Fragen Sie {helpers}.",
+
+  "rule.audience": "Zielgruppe ≥ {n, number}",
+  "rule.warming": "Route enthält einen Anbieter im Warm-up",
+  "rule.newProvider": "Anbieter in den letzten {days} Tagen verbunden",
+  "rule.warnings": "Versandbereitschaft hat Warnungen",
+  "rule.lacksSend": "Autor ohne Sendeberechtigung",
+  "rule.lists": "Zielgruppe enthält eine Liste, die eine Freigabe erfordert",
+  "rule.clientSignoff": "jeder Versand, für die Kundenfreigabe",
+
+  "signIn.enforced": "SSO über {name} für {domains} erzwungen",
+  "signIn.ownerPassword": "Passwort für den Inhaber beibehalten",
+  "signIn.sso": "SSO über {name} für {domains}",
+  "signIn.alsoPasswords": "Passwörter und Passkeys ebenfalls erlaubt",
+  "signIn.fallback": "Passwort und Passkeys",
+  "signIn.password": "Passwort",
+  "signIn.passkeys": "Passkeys",
+  "signIn.social": "Social Login",
+  "signIn.twoFactorEveryone": "2FA für alle erforderlich",
+  "signIn.twoFactorSensitive": "2FA für ⚑-Berechtigungen erforderlich",
+
+  "note.twoFactor": "{name} nutzt {method, select, passkey {einen Passkey} other {eine Authenticator-App}}, damit ist die 2FA-Anforderung für den Inhaber erfüllt.",
+  "note.idp": "{name} meldet sich über {provider} an, mit 2FA durch den IdP, damit ist die Anforderung an den Notfallzugang des Inhabers erfüllt.",
+  "note.singleSignOn": "Single Sign-on",
+  "reason.noTwoFactor": "{name} hat noch keine Zwei-Faktor-Authentifizierung.",
+
+  "notify.ownerTitle": "{name} hat Sie zum Inhaber von {workspace} gemacht",
+  "notify.deletedTitle": "{name} wurde gelöscht",
+  "notify.deletedBody": "Ein Instanz-Admin kann den Arbeitsbereich bis zum {at, date} wiederherstellen.",
+
+  "audit.nowAdmin": "{name} ist jetzt Admin",
+  "audit.restorable": "wiederherstellbar bis {at, date}",
+  "audit.sendsStopped": "{count, plural, one {# geplanter Versand gestoppt} other {# geplante Versände gestoppt}}",
+  "audit.exported": "Kontakte mit Einwilligung, Kampagnen als MJML, Berichte als CSV, Audit-Protokoll als JSON",
+  "audit.section": "{section, select, transactional {Transaktional} grow {Wachstum} other {Einnahmen}} {shown, select, yes {in der Seitenleiste angezeigt} other {in der Seitenleiste ausgeblendet}}",
+  "problem.exportScope": "Ein vollständiger Export enthält jeden Kontakt im Arbeitsbereich, und Ihr Zugriff ist auf einige Listen oder Absender-Domains beschränkt. Exportieren Sie stattdessen unter Zielgruppe die Kontakte, die Sie sehen."
+}

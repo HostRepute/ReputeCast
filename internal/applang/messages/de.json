@@ -1,0 +1,5 @@
+{
+  "problem.pseudo": "Die Pseudo-Locale ist nur in der Entwicklung verfügbar oder wenn der Server mit aktiviertem i18n.pseudo_locale läuft.",
+  "problem.language": "ReputeCast ist nicht in diese Sprache übersetzt. Wählen Sie {languages}.",
+  "problem.region": "Wählen Sie eines der Regionsformate aus der Liste."
+}

@@ -11,6 +11,7 @@ export type { RichValues, Values } from './format'
 export { getI18n, i18nKey, setCatalogLoader, setLocale, setPreferences, setRegion, subscribeI18n, type AppLocale, type I18nState, type Preferences } from './store'
 export { PSEUDO_LOCALE } from './pseudo'
 export { standaloneLanguageName } from './names'
+export { keepsCapitals, lowerFirstInSentence, lowerInSentence } from './case'
 export { REGION_FORMATS, regionName, type HourCycle, type RegionFormat, type WeekStart } from './regions'
 export {
   APP_LANGUAGES,

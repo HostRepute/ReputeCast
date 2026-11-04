@@ -1,0 +1,15 @@
+{
+  "problem.chooseImage": "Wählen Sie ein Bild zum Hochladen.",
+  "problem.interrupted": "Der Upload wurde unterbrochen. Versuchen Sie es erneut.",
+  "problem.empty": "Die Datei ist leer.",
+  "problem.tooLarge": "Das Bild ist {size} MB groß; das Limit liegt bei 5 MB. Bilder in E-Mails funktionieren am besten unter 200 KB.",
+  "problem.uploadTooLarge": "Die Datei ist {size} MB groß; das Limit liegt bei 20 MB. Exportieren Sie das Bild kleiner und versuchen Sie es erneut.",
+  "problem.gifTooLarge": "Das GIF ist {size} MB groß; GIFs dürfen höchstens 5 MB groß sein, weil sie unverändert gespeichert werden, damit Animationen alle Frames behalten.",
+  "problem.stillTooLarge": "Auch verkleinert und komprimiert ist das Bild {size} MB groß; das Limit liegt bei 5 MB. Verwenden Sie ein kleineres Bild.",
+  "problem.webp": "WebP-Bilder werden in Outlook und einigen anderen E-Mail-Programmen nicht angezeigt. Laden Sie ein PNG, JPEG oder GIF hoch.",
+  "problem.svg": "SVG-Bilder werden in Gmail und Outlook nicht angezeigt. Laden Sie ein PNG, JPEG oder GIF hoch.",
+  "problem.notImage": "Diese Datei ist kein Bild, das ReputeCast verwenden kann. Laden Sie ein PNG, JPEG oder GIF hoch.",
+  "problem.damaged": "Das Bild ist beschädigt oder unvollständig und konnte nicht gelesen werden. Exportieren Sie es erneut und versuchen Sie es noch einmal.",
+  "problem.dimensions": "Die Bildabmessungen sind ungültig oder zu groß (höchstens 50 Megapixel).",
+  "problem.notFound": "Bild nicht gefunden."
+}

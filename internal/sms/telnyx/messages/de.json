@@ -1,0 +1,10 @@
+{
+  "summary": "Nutzungsbasiert · eigener Netzbetreiber in den USA",
+  "badge.opt_out_sync.note": "nur lesen",
+  "badge.pricing.note": "Kosten jeder SMS",
+  "field.api_key.label": "API-Schlüssel",
+  "field.public_key.label": "Öffentlicher Schlüssel",
+  "field.public_key.help": "Portal › Keys & Credentials › Public key. ReputeCast prüft damit die Signatur jedes Webhooks.",
+  "field.messaging_profile_id.label": "Messaging profile ID",
+  "field.messaging_profile_id.help": "Lassen Sie das Feld leer, dann erstellt ReputeCast ein Messaging Profile für seine Webhooks."
+}

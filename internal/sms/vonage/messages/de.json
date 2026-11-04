@@ -1,0 +1,9 @@
+{
+  "summary": "Nutzungsbasiert · starke Abdeckung für Absenderkennungen in Europa",
+  "badge.opt_out_sync.note": "aus Antworten und abgelehnten SMS",
+  "badge.registration.note": "von Hand gesetzt",
+  "field.api_key.label": "API-Schlüssel",
+  "field.api_secret.label": "API secret",
+  "field.signature_secret.label": "Signature secret",
+  "field.signature_secret.help": "Settings › API settings › Signed webhooks, mit HMAC SHA-256. ReputeCast prüft jede Bestätigung und jede Antwort damit."
+}

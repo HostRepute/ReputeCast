@@ -7,7 +7,7 @@ import { Field, Input, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
+import { lowerInSentence, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { count, decimal, shortDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -176,7 +176,7 @@ export function ProviderSettingsDialog({
                       type="password"
                       autoComplete="new-password"
                       aria-label={t(mo.newCredential, { credential: f.label })}
-                      placeholder={t(mo.newCredentialPlaceholder, { credential: f.label.toLowerCase() })}
+                      placeholder={t(mo.newCredentialPlaceholder, { credential: lowerInSentence(f.label) })}
                       value={replacing[f.key]}
                       autoFocus={focus === 'credentials' && f.key === card.credentials[0]?.key}
                       onChange={(e) => setReplacing((r) => ({ ...r, [f.key]: e.target.value }))}

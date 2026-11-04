@@ -8,7 +8,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { T, t as tt, useT } from '@/i18n'
+import { keepsCapitals, lowerInSentence, T, t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { useNow } from '@/lib/hooks'
@@ -681,7 +681,7 @@ export function AwaitingTable({ silent }: { silent: Silent }) {
 
 const statusText: Record<number, string> = { 401: 'Unauthorized', 403: 'Forbidden' }
 
-const lowerFirst = (s: string) => (s.length > 1 && s[1] === s[1]!.toLowerCase() ? s[0]!.toLowerCase() + s.slice(1) : s)
+const lowerFirst = (s: string) => (!keepsCapitals() && s.length > 1 && s[1] === s[1]!.toLowerCase() ? s[0]!.toLowerCase() + s.slice(1) : s)
 
 /**
  * How the banner names the rejected credential: "server API token" in the
@@ -690,7 +690,7 @@ const lowerFirst = (s: string) => (s.length > 1 && s[1] === s[1]!.toLowerCase() 
  */
 export function credentialWords(label?: string): { title: string; button: string; short: string } {
   const l = label || 'Credentials'
-  return { title: lowerFirst(l), button: lowerFirst(l.replace(/^Server /, '')), short: (l.split(' ').pop() ?? l).toLowerCase() }
+  return { title: lowerFirst(l), button: lowerFirst(l.replace(/^Server /, '')), short: lowerInSentence(l.split(' ').pop() ?? l) }
 }
 
 /** Rejected credentials: what failed, what ReputeCast did, and the fix. */

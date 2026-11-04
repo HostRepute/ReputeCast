@@ -1,0 +1,11 @@
+{
+  "token.first_name": "Vorname",
+  "token.last_name": "Nachname",
+  "token.email": "E-Mail-Adresse",
+  "token.unsubscribe_url": "Abmeldelink",
+  "token.preferences_url": "Link zu den E-Mail-Einstellungen",
+  "token.view_in_browser_url": "Link „Im Browser ansehen“",
+  "fallback.first_name": "zusammen",
+  "problem.line": "Zeile {line}: {message}",
+  "problem.loopLimit": "Schleifen sind auf {max} Elemente begrenzt; ({from}..{to}) hat {count}."
+}

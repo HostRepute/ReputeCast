@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
-import { T, formatList, useT } from '@/i18n'
+import { formatList, lowerInSentence, T, useT } from '@/i18n'
 import { count, dayMonthDate, clock } from '@/lib/format'
 import { useMe, useWorkspace } from '@/lib/session'
 import { mc, md, mz } from './messages'
@@ -169,7 +169,7 @@ export function LanguageSwitcher({
                 ? compact
                   ? t(mz.switcherShortLabel, { language: current.name, have, total: offered.length })
                   : t(mz.switcherSourceLabel, { language: current.name, have, total: offered.length })
-                : t(mz.switcherLabel, { language: current.name, status: chip.short.toLowerCase() })
+                : t(mz.switcherLabel, { language: current.name, status: lowerInSentence(chip.short) })
             }
           >
             <Icon name="globe" size={16} />

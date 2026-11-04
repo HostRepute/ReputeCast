@@ -23,7 +23,7 @@ import { TransactionalApprovalCard, TransactionalDecisionDetail, TransactionalDe
 import { IssueApprovalCard, RecurringDigestBadge } from '@/features/digests/IssueParts'
 import { im } from '@/features/digests/issueMessages'
 import { useIssueInfo, type IssueInfo } from '@/features/digests/shared'
-import { T, t as tt, useT } from '@/i18n'
+import { lowerInSentence, T, t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { roleName } from '@/lib/roles'
 import { m as rm } from '@/features/review/messages'
@@ -774,7 +774,7 @@ function ScheduleNoteCard({ detail: d }: { detail: Detail }) {
           <dt>{t(mr.changesSinceLast)}</dt>
           <dd>
             {d.changesSince.length
-              ? t(mr.changedSince, { changes: andList(d.changesSince.map((c) => c.label.toLowerCase())) })
+              ? t(mr.changedSince, { changes: andList(d.changesSince.map((c) => lowerInSentence(c.label))) })
               : d.followsId
                 ? t(mr.nothingChangedSince)
                 : t(mr.firstRequest)}

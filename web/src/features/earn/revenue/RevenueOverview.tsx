@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Tooltip } from '@/components/ui/Menu'
 import { Segmented } from '@/components/ui/Tabs'
-import { T, useT } from '@/i18n'
+import { lowerInSentence, T, useT } from '@/i18n'
 import { andList, count, dayMonthDate, dayMonthYear, orList, pct, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
@@ -607,7 +607,7 @@ function MovementCard({ o }: { o: Overview }) {
     endMembers: m.toMembers,
     parts: bars
       .filter((b) => b.key !== 'start' && b.key !== 'end')
-      .map((b) => t(mr.movePart, { name: name(b.key).toLowerCase(), amount: signedMoney(b.cents), count: count(b.count) }))
+      .map((b) => t(mr.movePart, { name: lowerInSentence(name(b.key)), amount: signedMoney(b.cents), count: count(b.count) }))
       .join('; '),
   })
   const levels = [m.fromCents, m.fromCents + m.new.cents + m.reactivated.cents, m.toCents]

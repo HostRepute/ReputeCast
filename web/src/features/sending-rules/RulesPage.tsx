@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, OptionCard, Select, SwitchInput, Textarea, Toggle } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { keepsCapitals, T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { andList, clock, decimal, shortDate } from '@/lib/format'
 import { useOptimistic } from '@/lib/hooks'
@@ -458,6 +458,7 @@ function RuleForm({
 }
 
 function lowerFirst(s: string): string {
+  if (keepsCapitals()) return s
   return s.length > 1 && s[1] === s[1]!.toLowerCase() ? s[0]!.toLowerCase() + s.slice(1) : s
 }
 

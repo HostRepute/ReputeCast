@@ -4,7 +4,7 @@ import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } 
 import { boughtGoalTitle, boughtPhrase, boughtRef, boughtTriggerName } from '@/features/products/automationText'
 import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
 import { m as smsStep } from '@/features/sms/automation.messages'
-import { t as tt, type MessageDescriptor } from '@/i18n'
+import { keepsCapitals, type MessageDescriptor, t as tt } from '@/i18n'
 import { pct } from '@/lib/format'
 import { mg } from './graph.messages'
 
@@ -227,6 +227,7 @@ export function emailShortRef(name: string): string {
 
 /** Lower-cases ordinary words only: "Step 2" → "step 2", "Gửi email" → "gửi email", "A/B" stays. */
 export function lowerFirst(s: string): string {
+  if (keepsCapitals()) return s
   if (/^\p{Lu}\p{Ll}/u.test(s)) return s[0]!.toLowerCase() + s.slice(1)
   return s
 }

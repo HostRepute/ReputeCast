@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
 import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { lowerInSentence, T, useT } from '@/i18n'
 import { clock, orList, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
@@ -206,7 +206,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
         <span className="k">{s.provider === 'outlook' || s.provider === 'microsoft_365' ? t(m.connMicrosoft) : t(m.connGoogle)}</span>
       </span>
     ) : (
-      <span>{t(m.connImap, { password: credentialName(s.passwordLabel).toLowerCase() })}</span>
+      <span>{t(m.connImap, { password: lowerInSentence(credentialName(s.passwordLabel)) })}</span>
     )
   const actions = (s: SeedView) =>
     d.canManage ? (
@@ -295,7 +295,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
       <div className="pl-md-down">
         {d.seeds.map((s) => {
           const at = s.statusAt ?? s.checkedAt
-          const auth = s.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: credentialName(s.passwordLabel).toLowerCase() })
+          const auth = s.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: lowerInSentence(credentialName(s.passwordLabel)) })
           const added = { name: s.addedBy, date: shortDate(s.addedAt) }
           const used = s.lastUsedAt ? t(m.phoneUsedLine, { when: dayTime(s.lastUsedAt), ...added }) : t(m.phoneUsedNever, added)
           const problem =

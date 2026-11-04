@@ -1,0 +1,46 @@
+{
+  "pricing": "0,10 $ pro 1.000",
+  "dedicatedIps": "optional, 24,95 $ pro IP und Monat",
+  "terms.0.note": "Produktionszugriff erforderlich; das Konto muss unter den Bounce- und Beschwerdeschwellen von SES bleiben.",
+  "events": "SNS-Webhooks oder eine SQS-Queue",
+  "domainSetup": "API",
+  "suppressionMode": "Beidseitig",
+  "field.region.label": "Region",
+  "field.access.label": "Zugriff",
+  "field.access.help": "Eine CloudFormation-Rolle (empfohlen) oder IAM-Zugriffsschlüssel.",
+  "field.role_arn.label": "Role ARN",
+  "field.role_arn.help": "Wird von der CloudFormation-Vorlage angelegt.",
+  "field.access_key_id.label": "Access key ID",
+  "field.secret_access_key.label": "Secret access key",
+  "field.configuration_set.label": "Configuration Set",
+  "field.configuration_set.help": "Wird bei der Einrichtung angelegt; es veröffentlicht Ereignisse an SNS.",
+
+  "account": "{mode, select, sandbox {Sandbox} other {Produktion}} · {enforcement, select, probation {in Prüfung (Probation)} shutdown {Versand von AWS pausiert} disabled {Versand deaktiviert} other {keine Maßnahmen}}",
+
+  "tracking.scope": "Configuration Set {name}",
+  "tracking.scopeNone": "Kein Configuration Set",
+  "tracking.none": "Nachrichten werden ohne Configuration Set gesendet: kein Öffnungs- oder Klick-Tracking.",
+  "tracking.openClick": "Das Configuration Set {name} veröffentlicht Öffnungs- und Klickereignisse, daher fügt SES ein Pixel hinzu und schreibt Links um.",
+  "tracking.open": "Das Configuration Set {name} veröffentlicht Öffnungsereignisse, daher fügt SES ein Pixel hinzu.",
+  "tracking.click": "Das Configuration Set {name} veröffentlicht Klickereignisse, daher schreibt SES Links um.",
+  "tracking.off": "Configuration Set {name}: Öffnungs- und Klick-Tracking deaktiviert. Eigene Weiterleitungs-Domain nicht nötig.",
+
+  "provision.topic": "SNS-Topic `{topic}` anlegen und `{url}` abonnieren",
+  "provision.confirm": "SNS-Abonnement bestätigen (Handshake)",
+  "provision.configSet": "Configuration Set `{name}` anlegen",
+  "provision.topicDone": "SNS-Topic `{topic}` angelegt und `{url}` abonniert",
+  "provision.confirmDone": "SNS-Abonnement bestätigt (Handshake empfangen)",
+  "provision.configSetDone": "Configuration Set `{name}` mit Ereignisziel angelegt, Tracking deaktiviert",
+
+  "provision.tenant": "Tenant `{tenant}` anlegen",
+  "provision.tenantDone": "Tenant `{tenant}` angelegt",
+  "provision.tenantNote": "Eigene Sperrliste und Reputation dieses Arbeitsbereichs{hasPolicy, select, yes { (Reputationsrichtlinie {policy})} other {}}; pausiert wird nur dieser Tenant",
+  "provision.queue": "SNS-Topic `{topic}` und eine SQS-Queue anlegen, die es abonniert",
+  "provision.queueDone": "SNS-Topic `{topic}` und eine SQS-Queue angelegt, die es abonniert: `{queue}`",
+  "provision.queuePolicy": "Queue auf dieses Topic beschränken und alle {seconds} s abfragen",
+  "provision.queuePolicyDone": "Queue auf dieses Topic beschränkt und Abfrage alle {seconds} s gestartet",
+
+  "status.incident": "AWS meldet eine SES-Störung in {region}.",
+
+  "error.dedicatedIpsDenied": "Die Rolle oder Schlüssel, die ReputeCast verwendet, können die dedizierten IPs des Kontos nicht auflisten: Erlauben Sie ses:GetDedicatedIps in der IAM-Richtlinie (die CloudFormation-Vorlage tut das) und prüfen Sie dann erneut."
+}

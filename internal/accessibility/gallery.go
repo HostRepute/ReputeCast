@@ -111,7 +111,11 @@ func GallerySummaryIn(l i18n.Lang, issues []AccessibilityIssue) string {
 			if s := titleIn(l, is.Texts.Title); s != "" {
 				title = s
 			}
-			serious = append(serious, lowerFirst(strings.TrimSuffix(title, ".")))
+			title = strings.TrimSuffix(title, ".")
+			if !i18n.KeepsCapitals(l.Locale) {
+				title = lowerFirst(title)
+			}
+			serious = append(serious, title)
 		}
 	}
 	moderate := moderateSummary(l, issues)

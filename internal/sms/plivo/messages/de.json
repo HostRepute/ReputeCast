@@ -1,0 +1,5 @@
+{
+  "summary": "Nutzungsbasiert · Nummern in 190 Ländern",
+  "field.auth_id.label": "Auth ID",
+  "field.auth_token.label": "Auth token"
+}
