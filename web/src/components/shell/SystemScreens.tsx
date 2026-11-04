@@ -208,10 +208,14 @@ export function ServerErrorState({
 }
 
 /** "just now", "5 min ago", "yesterday", "on Oct 3" */
-function askedWhen(at: string): string {
-  const w = ago(at)
-  if (w === 'now') return t(m.stateAskedJustNow)
-  return w.endsWith(' ago') || w === 'yesterday' ? w : t(m.stateAskedOn, { date: w })
+function askedWhen(at: string, now = new Date()): string {
+  // Decided from the time, not from ago()'s words, which are in the app language.
+  const s = Math.round((now.getTime() - new Date(at).getTime()) / 1000)
+  if (s < 45) return t(m.stateAskedJustNow)
+  const w = ago(at, now)
+  // ago() writes up to six days as "5 min ago", "yesterday", "3 days ago", and a date after that.
+  const days = Math.round(Math.round(Math.round(s / 60) / 60) / 24)
+  return days < 7 ? w : t(m.stateAskedOn, { date: w })
 }
 
 function names(list: string[]): string {
