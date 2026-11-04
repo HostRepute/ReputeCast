@@ -80,9 +80,13 @@ func TestPickerCountries(t *testing.T) {
 	if got := pickerCountries(vi, []string{"US", "CA"}, false); got[0].Code != "US" || got[0].Name != "Hoa Kỳ" || got[1].Name != "Canada" {
 		t.Fatalf("Vietnamese: %+v", got)
 	}
-	// German pages read English labels, so they keep English names too.
-	if got := pickerCountries(i18n.Lang{Locale: "de", Region: "de-DE"}, []string{"DE"}, false); got[0].Name != "Germany" {
+	// German pages read German labels, with German names.
+	if got := pickerCountries(i18n.Lang{Locale: "de", Region: "de-DE"}, []string{"DE"}, false); got[0].Name != "Deutschland" {
 		t.Fatalf("German page: %+v", got)
+	}
+	// Italian pages read English labels, so they keep English names too.
+	if got := pickerCountries(i18n.Lang{Locale: "it"}, []string{"DE"}, false); got[0].Name != "Germany" {
+		t.Fatalf("Italian page: %+v", got)
 	}
 	at := func(list []forms.TextCountry, code string) int {
 		return slices.IndexFunc(list, func(c forms.TextCountry) bool { return c.Code == code })
