@@ -15,7 +15,8 @@ func TestSPANoscriptFollowsTheRequestsLanguage(t *testing.T) {
 	spa := NewSPA(fstest.MapFS{"index.html": {Data: []byte(page)}})
 	for _, tc := range []struct{ accept, want string }{
 		{"", noscript},
-		{"de-DE,de;q=0.9", noscript},
+		{"it-IT,it;q=0.9", noscript},
+		{"de-DE,de;q=0.9", "<noscript>ReputeCast braucht JavaScript. Öffentliche Seiten (Anmeldung, E-Mail-Einstellungen, Archiv) funktionieren auch ohne.</noscript>"},
 		{"vi-VN,vi;q=0.9,en;q=0.8", "<noscript>ReputeCast cần JavaScript. Các trang công khai (đăng ký, tùy chọn, lưu trữ) vẫn dùng được khi không có JavaScript.</noscript>"},
 	} {
 		req := httptest.NewRequest(http.MethodGet, "/w/acme-newsletter/campaigns", nil)

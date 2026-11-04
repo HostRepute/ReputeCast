@@ -124,7 +124,8 @@ func TestPageCopyPerLanguage(t *testing.T) {
 	if !en.IsSource || en.Status != "live" || !en.Labels.Shipped {
 		t.Fatalf("English: %+v", en)
 	}
-	if es.Status != "live" || es.Missing != 0 || es.Native != "Español" || es.By != "Sofia Rossi" || es.Labels.Shipped || es.Labels.Written != pagelabels.Count() || es.Labels.Written != es.Labels.Total {
+	// Spanish: Acme's own text is written; the labels ship with ReputeCast.
+	if es.Status != "live" || es.Missing != 0 || es.Native != "Español" || es.By != "Sofia Rossi" || !es.Labels.Shipped || es.Labels.Written != pagelabels.Count() || es.Labels.Written != es.Labels.Total {
 		t.Fatalf("Spanish: %+v", es)
 	}
 	if pc.lang(t, "de").Status != "live" {
@@ -222,25 +223,40 @@ func TestPageLabels(t *testing.T) {
 		t.Fatalf("shipped: %v", p)
 	}
 
-	// Spanish labels are the workspace's; each keeps to the English placeholders.
-	p = c.Do("PUT", api+"/public-pages/labels/es", map[string]any{"labels": map[string]string{"form.closed.text": "{name} no acepta suscripciones."}}).MustStatus(t, 422).Problem(t)
+	// Spanish, German and French ship too.
+	p = c.Do("PUT", api+"/public-pages/labels/es", map[string]any{"labels": map[string]string{"form.button": "x"}}).MustStatus(t, 409).Problem(t)
+	if !strings.Contains(string(mustJSON(t, p)), "ships the Spanish labels") {
+		t.Fatalf("shipped: %v", p)
+	}
+
+	// Italian labels are the workspace's; each keeps to the English placeholders.
+	c.Do("POST", api+"/languages", map[string]any{"code": "it"}).MustStatus(t, 200)
+	p = c.Do("PUT", api+"/public-pages/labels/it", map[string]any{"labels": map[string]string{"form.closed.text": "{name} non accetta iscrizioni."}}).MustStatus(t, 422).Problem(t)
 	if !strings.Contains(string(mustJSON(t, p)), "{name}") || !strings.Contains(string(mustJSON(t, p)), "{publisher}") {
 		t.Fatalf("argument check: %v", p)
 	}
-	c.Do("PUT", api+"/public-pages/labels/es", map[string]any{"labels": map[string]string{"form.closed.text": "{publisher no"}}).MustStatus(t, 422)
-	var es struct {
+	c.Do("PUT", api+"/public-pages/labels/it", map[string]any{"labels": map[string]string{"form.closed.text": "{publisher no"}}).MustStatus(t, 422)
+	all := map[string]string{}
+	for _, l := range pagelabels.All() {
+		all[l.Key] = l.Source
+	}
+	var it struct {
 		Written int    `json:"written"`
 		By      string `json:"by"`
 	}
-	c.Do("PUT", api+"/public-pages/labels/es", map[string]any{"labels": map[string]string{"form.button": ""}}).MustStatus(t, 200).JSON(t, &es)
-	if es.Written != pagelabels.Count()-1 || es.By != "Linh Nguyen" {
-		t.Fatalf("after removing one: %+v", es)
+	c.Do("PUT", api+"/public-pages/labels/it", map[string]any{"labels": all}).MustStatus(t, 200).JSON(t, &it)
+	if it.Written != pagelabels.Count() || it.By != "Linh Nguyen" {
+		t.Fatalf("all written: %+v", it)
 	}
-	if st, missing := storedPageCopy(t, env, "es"); st != "incomplete" || missing != 1 {
-		t.Fatalf("a missing label makes Spanish Incomplete: %s %d", st, missing)
+	c.Do("PUT", api+"/public-pages/labels/it", map[string]any{"labels": map[string]string{"form.button": ""}}).MustStatus(t, 200).JSON(t, &it)
+	if it.Written != pagelabels.Count()-1 {
+		t.Fatalf("after removing one: %+v", it)
 	}
-	if audits(t, env, "page_copy.labels") != 1 {
-		t.Fatal("page_copy.labels audit entry missing")
+	if st, missing := storedPageCopy(t, env, "it"); st == "live" || missing < 1 {
+		t.Fatalf("a missing label keeps Italian off Live: %s %d", st, missing)
+	}
+	if audits(t, env, "page_copy.labels") != 2 {
+		t.Fatal("page_copy.labels audit entries missing")
 	}
 }
 
