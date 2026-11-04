@@ -1,0 +1,27 @@
+{
+  "scope.monitorRead": "données de listes de blocage, Postmaster, SNDS et DMARC",
+  "scope.alertsRead": "incidents",
+  "scope.assetsWrite": "ajouter des domaines et des IP à la surveillance",
+
+  "unreachable": "Impossible de joindre {host} ({reason, select, timeout_s {délai dépassé après {n}\u00A0s} timeout_ms {délai dépassé après {n}\u00A0ms} timeout {délai dépassé} refused {connexion refusée} dns {échec de la résolution DNS} token {échec du renouvellement du jeton} http {HTTP {status}} other {erreur réseau}}, {attempts, plural, one {# tentative} other {# tentatives}})",
+  "unreachableHostRepute": "Impossible de joindre HostRepute",
+  "syncFailed": "Échec de la synchronisation HostRepute\u00A0: {error}",
+
+  "problem.unavailable": "{reach}. {nothing, select, saved {Rien n’a été enregistré\u202F; réessayez dans une minute.} changed {Rien n’a changé\u202F; réessayez dans une minute.} other {Rien n’a été demandé\u202F; réessayez dans une minute.}}",
+  "problem.keyFormat": "Collez la clé entière, sans espaces. Elle commence par hr_live_.",
+  "problem.answeredError": "HostRepute a répondu par une erreur ({error}). Rien n’a été enregistré.",
+  "problem.keyRejected": "HostRepute n’a pas accepté cette clé. Copiez-la de nouveau depuis HostRepute → Settings → API\u202F; elle doit avoir les portées monitor:read, alerts:read et assets:write.",
+  "problem.notConnected": "HostRepute n’est pas connecté. Connectez-le d’abord dans Paramètres › Intégrations.",
+  "problem.reconnect": "HostRepute a refusé le jeton{when, select, yes { le {date}} other {}}. Reconnectez HostRepute, puis réessayez.",
+  "problem.noAssetsScope": "Cette connexion n’a pas la portée assets:write\u00A0: ReputeCast ne peut donc rien ajouter à la surveillance. Reconnectez HostRepute et approuvez cette portée.",
+  "problem.notCandidate": "Seuls les domaines d’envoi, les IP dédiées et les noms d’hôte des serveurs de cet espace de travail peuvent être ajoutés à la surveillance.",
+  "problem.limit": "Votre équipe HostRepute «\u00A0{team}\u00A0» surveille {used, number} ressources sur les {limit, number} autorisées par son forfait\u00A0: {asset} ne peut donc pas être ajouté pour le moment. C’est une limite de HostRepute, pas de ReputeCast.",
+  "problem.notMonitored": "{asset} n’est pas surveillé par HostRepute.",
+
+  "notify.reconnectTitle": "HostRepute doit être reconnecté",
+  "notify.reconnectBody": "HostRepute a refusé le jeton. Les données de listes de blocage, Postmaster, SNDS et DMARC restent obsolètes jusqu’à la reconnexion\u202F; le contrôle avant envoi marque le contrôle de réputation comme inconnu.",
+
+  "run.notConnected": "HostRepute n’est pas connecté.",
+  "run.tokenRejected": "HostRepute a refusé le jeton. Reconnectez-le pour reprendre.",
+  "run.tokenRejectedDetail": "HostRepute a refusé le jeton (révoqué côté HostRepute ou expiré)."
+}

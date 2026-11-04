@@ -1,0 +1,36 @@
+import { translate } from '@/i18n'
+import { m } from './lists.messages'
+
+/** French (docs/i18n/glossary-fr.md). */
+export default translate(m, {
+  badge: 'Supprimer la liste',
+  title: 'Supprimer «\u00A0{name}\u00A0»\u202F?',
+  stillCounting: 'Comptage des abonnés de la liste {name} en cours. Réessayez dans un instant.',
+  counting: 'Comptage des abonnés de la liste {name}…',
+  confirm: 'Supprimer la liste',
+  deleting: 'Suppression…',
+  typeName: 'Saisissez le nom de la liste pour confirmer',
+  typeHint: 'Les listes supprimées peuvent être restaurées depuis le journal d’audit pendant 30 jours\u202F; d’ici là, les envois les ignorent.',
+  affects: 'Concerne',
+  deleted: '«\u00A0{name}\u00A0» supprimée · contacts conservés',
+  restored: '«\u00A0{name}\u00A0» restaurée',
+  restoreFailed: 'Impossible de restaurer «\u00A0{name}\u00A0»',
+  kept: 'Les exclusions ne sont jamais retirées.',
+  nobody: 'Personne n’est abonné à cette liste. Les exclusions ne sont jamais retirées.',
+  onList: '{n, plural, one {{count} contact est sur cette liste.} other {{count} contacts sont sur cette liste.}}',
+  allElsewhere: '{n, plural, one {Il est aussi sur {lists} et y reste abonné.} other {Tous sont aussi sur {lists} et y restent abonnés.}}',
+  allAlone: '{n, plural, one {Il n’est sur aucune autre liste et deviendra un contact sans abonnement.} other {Aucun n’est sur une autre liste\u00A0: tous deviendront des contacts sans abonnement.}}',
+  split: '{elsewhere, plural, one {{elsewhereCount} est aussi sur {lists} et y reste abonné} other {{elsewhereCount} sont aussi sur {lists} et y restent abonnés}}\u202F; {alone, plural, one {{aloneCount} n’est sur aucune autre liste et deviendra un contact sans abonnement.} other {{aloneCount} ne sont sur aucune autre liste et deviendront des contacts sans abonnement.}}',
+  otherLists: '{n, plural, one {{count} autre liste} other {{count} autres listes}}',
+  forms: '{n, plural, one {{count} formulaire d’inscription} other {{count} formulaires d’inscription}}',
+  automations: '{n, plural, one {{count} déclencheur d’automatisation} other {{count} déclencheurs d’automatisation}}',
+  automationsNamed: '{n, plural, one {{count} déclencheur d’automatisation ({names})} other {{count} déclencheurs d’automatisation ({names})}}',
+  campaigns: '{n, plural, one {{count} campagne programmée} other {{count} campagnes programmées}}',
+  usesIt: '{one, select, yes {{things} utilise cette liste\u00A0: l’élément sera mis en pause.} other {{things} utilisent cette liste\u00A0: ces éléments seront mis en pause.}}',
+  restoredForms: '{n, plural, one {{count} formulaire d’inscription} other {{count} formulaires d’inscription}}',
+  restoredAutomations: '{n, plural, one {{count} automatisation} other {{count} automatisations}}',
+  liveAgain: '{one, select, yes {{things} est de nouveau en ligne} other {{things} sont de nouveau en ligne}}',
+  backOnSchedule: '{n, plural, one {{campaigns} reprend sa programmation} other {{campaigns} reprennent leur programmation}}',
+  membersBack: 'Ses abonnés sont de retour.',
+  stayAsIs: '{n, plural, one {Aucun changement pour {names}.} other {Aucun changement pour {names}.}}',
+})

@@ -1,0 +1,21 @@
+{
+  "pricing": "forfait, fixé par votre contrat SparkPost",
+  "dedicatedIps": "forfaits payants au-delà de Starter, par IP et par mois",
+  "terms.0.note": "Listes fondées sur la permission uniquement, avec un désabonnement fonctionnel\u202F; aucune liste achetée ou louée. Comptes SparkPost existants\u202F; les nouveaux comptes Bird utilisent Bird Email, une autre API.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Bidirectionnelle",
+  "field.api_key.label": "Clé API",
+  "field.api_key.help": "SparkPost › Configuration › API Keys, avec les autorisations Transmissions, Webhooks, Sending Domains, Suppression Lists, Account, Metrics et Message Events.",
+  "field.region.label": "Région",
+  "field.region.help": "Compte US (app.sparkpost.com) ou EU (app.eu.sparkpost.com).",
+  "field.ip_pool.label": "Pool d’IP",
+  "field.ip_pool.help": "Facultatif. Envoie via ce pool d’IP dédiées.",
+
+  "account": "Compte {id} · {status}{hasPlan, select, yes { · {plan}} other {}}",
+  "tracking.scope": "Chaque transmission envoyée par ReputeCast",
+  "tracking.on": "Le compte suit les ouvertures et les clics par défaut, mais ReputeCast désactive le suivi sur chaque transmission qu’il envoie.",
+  "tracking.off": "Le suivi des ouvertures et des clics est désactivé par défaut et sur chaque transmission envoyée par ReputeCast.",
+  "error.notRegistered": "Aucun webhook SparkPost ne pointe vers {url}. Enregistrez-le d’abord.",
+  "error.endpointStatus": "l’endpoint a répondu {status} au lot de test de SparkPost"
+}

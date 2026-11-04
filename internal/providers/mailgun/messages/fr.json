@@ -1,0 +1,26 @@
+{
+  "pricing": "forfait, 100 gratuits par jour, puis à partir de 15\u00A0$US par mois pour 10\u202F000",
+  "dedicatedIps": "forfait Scale, une incluse\u202F; 59\u00A0$US par IP supplémentaire et par mois",
+  "terms.0.note": "Opt-in explicite et prouvable uniquement\u202F; aucune liste achetée, louée ou collectée automatiquement. Chaque e-mail marketing doit contenir un lien de désabonnement et un lien vers la politique de confidentialité. Limites de Mailgun\u00A0: 5\u00A0% de rebonds, 0,08\u00A0% de plaintes.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Bidirectionnelle",
+  "field.api_key.label": "Private API key",
+  "field.api_key.help": "Mailgun › API Security. Utilisez une Private API key (ou une Developer key), et non une Domain Sending key ni la HTTP webhook signing key.",
+  "field.region.label": "Région",
+  "field.region.help": "US · api.mailgun.net ou EU · api.eu.mailgun.net, selon la région où le domaine a été créé.",
+  "field.domain.label": "Domaine d’envoi",
+  "field.domain.help": "Le domaine Mailgun depuis lequel les e-mails sont envoyés, par ex. mg.acme.io. ReputeCast peut l’ajouter pour vous.",
+  "field.monthly_limit.label": "Forfait · e-mails par mois",
+  "field.monthly_limit.help": "Utilisé pour la barre de quota quand le compte n’a pas de limite d’envoi personnalisée.",
+  "field.webhook_signing_key.label": "HTTP webhook signing key",
+  "field.webhook_signing_key.help": "Facultatif. ReputeCast la lit depuis Mailgun\u202F; saisissez-la seulement si votre clé ne le permet pas (API Security › HTTP webhook signing key).",
+
+  "account": "{sandbox, select, yes {Domaine sandbox · destinataires autorisés uniquement} other {Domaine {domain} · {state}}}{limit, select, yes { · limite personnalisée de {n, number} par mois} other {}}",
+  "tracking.scope": "Domaine {domain}",
+  "tracking.unsubscribe": "Le suivi des désabonnements est activé\u00A0: Mailgun ajoute donc son propre lien de désabonnement et son pied de page à côté de ceux de ReputeCast.{on, select, open { Le suivi des ouvertures du domaine est aussi activé, mais ReputeCast le désactive sur chaque message.} click { Le suivi des clics du domaine est aussi activé, mais ReputeCast le désactive sur chaque message.} both { Le suivi des ouvertures et des clics du domaine est aussi activé, mais ReputeCast le désactive sur chaque message.} other {}}",
+  "tracking.on": "{on, select, open {Le suivi des ouvertures du domaine est activé, mais ReputeCast le désactive sur chaque message qu’il envoie.} click {Le suivi des clics du domaine est activé, mais ReputeCast le désactive sur chaque message qu’il envoie.} other {Le suivi des ouvertures et des clics du domaine est activé, mais ReputeCast le désactive sur chaque message qu’il envoie.}}",
+  "tracking.off": "Le suivi des ouvertures, des clics et des désabonnements est désactivé pour {domain}.",
+  "error.domainUnknown": "Mailgun ne connaît pas le domaine {domain} dans cette région. Vérifiez le domaine et la région.",
+  "error.tooManyURLs": "Mailgun autorise trois URL par événement, et {event} en a déjà trois. Retirez-en une dans Mailgun, puis relancez l’enregistrement."
+}

@@ -1,0 +1,37 @@
+import { translate } from '@/i18n'
+import { ms } from './setup.messages'
+
+/** French (docs/i18n/glossary-fr.md). */
+export default translate(ms, {
+  backToCatalog: 'Retour au catalogue',
+  unknownAdapter: 'Ce fournisseur n’est pas inclus dans cette version',
+  unknownAdapterBody: 'Choisissez un autre fournisseur dans le catalogue, ou demandez à un admin de l’instance d’installer son adaptateur.',
+  startFailed: 'Impossible de démarrer la configuration',
+  starting: 'Démarrage de la configuration…',
+  notFound: 'Cette configuration n’existe pas',
+  loadFailed: 'Impossible de charger la configuration',
+  loading: 'Chargement de la configuration…',
+  cancelledReason: 'Cette configuration a été annulée. Recommencez depuis le catalogue.',
+  cancelledNote: 'Cette configuration a été annulée. Recommencez depuis le catalogue pour connecter le fournisseur.',
+  savedForLater: 'Enregistré. Choisissez {provider} dans le catalogue pour reprendre.',
+  saveFailed: 'Impossible d’enregistrer la configuration',
+  doneBadge: 'Terminé',
+  took: '{minutes, plural, one {La configuration a pris # minute. Tout ce qui suit est actif.} other {La configuration a pris # minutes. Tout ce qui suit est actif.}}',
+  tookDomain: '{minutes, plural, one {La configuration a pris # minute. Tout ce qui suit est actif, et la vue d’ensemble affiche désormais la santé de l’expéditeur pour {domain}.} other {La configuration a pris # minutes. Tout ce qui suit est actif, et la vue d’ensemble affiche désormais la santé de l’expéditeur pour {domain}.}}',
+  configuredTitle: 'Ce qui a été configuré',
+  configuredLine: 'tout est réversible depuis Fournisseurs d’envoi',
+  importNow: 'Importer maintenant',
+  recommendedTitle: 'Recommandé avant votre première campagne',
+  addProviderTitle: 'Ajouter un autre fournisseur',
+  addProviderLine: 'Un deuxième fournisseur pour les e-mails Système, ou un serveur Postal pour une répartition pondérée. Plusieurs peuvent fonctionner en même temps.',
+  addProvider: 'Ajouter un autre fournisseur',
+  hostReputeTitle: 'Connecter HostRepute',
+  hostReputeConnected: 'Connecté\u00A0: 84 listes de blocage, Google Postmaster et Microsoft SNDS s’affichent dans le contrôle avant envoi.',
+  hostReputeOptional: 'Facultatif, gratuit\u00A0: 84 listes de blocage, Google Postmaster et Microsoft SNDS dans le contrôle avant envoi.',
+  open: 'Ouvrir',
+  connect: 'Connecter',
+  formTitle: 'Créer un formulaire d’inscription',
+  formLine: 'Le double opt-in est activé par défaut\u202F; les confirmations partent par le flux Système.',
+  buildForm: 'Créer un formulaire',
+  goToOverview: 'Aller à la vue d’ensemble',
+})

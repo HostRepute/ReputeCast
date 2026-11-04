@@ -1,0 +1,12 @@
+{
+  "problem.unknownService": "Choisissez Litmus ou Mailgun Inspect.",
+  "problem.unknownClient": "{service} ne propose pas {client} pour ce compte. Testez la connexion pour actualiser ses clients.",
+  "problem.notConnected": "Aucun service de rendu n’est connecté à cet espace de travail.",
+  "problem.stillRunning": "Un rendu de cette campagne est toujours en cours. Ses captures d’écran apparaissent à mesure qu’elles arrivent.",
+  "problem.refused": "{service} a refusé la clé API. Vérifiez-la dans votre compte {service} et collez-la de nouveau.",
+  "problem.unreachable": "{service} est injoignable ({reason}). Réessayez dans une minute.",
+  "problem.failed": "{service} a répondu par une erreur (HTTP {status}). Réessayez dans une minute.",
+  "render.gaveUp": "{service} n’a pas terminé en 15 minutes. Relancez le rendu pour réessayer.",
+  "render.disconnected": "{service} a été déconnecté avant l’arrivée des captures d’écran.",
+  "render.noScreenshots": "{service} n’a pu capturer aucun des clients."
+}

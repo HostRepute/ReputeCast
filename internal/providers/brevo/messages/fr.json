@@ -1,0 +1,14 @@
+{
+  "pricing": "forfait, 300 gratuits par jour, puis à partir de 9\u00A0$US par mois pour 5\u202F000",
+  "dedicatedIps": "forfaits Professional et Enterprise, en option",
+  "terms.0.note": "Opt-in actif, explicite et prouvable uniquement\u202F; aucune liste achetée ou collectée automatiquement. Brevo ajoute son propre en-tête de désabonnement, et ses désabonnements rejoignent la liste partagée via le webhook.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Import seul",
+  "field.api_key.label": "Clé API",
+  "field.api_key.help": "Brevo › SMTP & API › API keys. Commence par xkeysib-.",
+  "field.monthly_limit.label": "Forfait · e-mails par mois",
+  "field.monthly_limit.help": "Utilisé pour la barre de quota quand le forfait est une allocation mensuelle.",
+
+  "account": "{company, select, none {Compte Brevo} other {{name}}}{plan, select, free { · forfait gratuit · {n} e-mails restants{today, select, yes { aujourd’hui} other {}}} subscription { · abonnement · {n} e-mails restants} credits { · {n} crédits prépayés restants} other {}}"
+}

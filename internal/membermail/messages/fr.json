@@ -1,0 +1,57 @@
+{
+  "reason.default": "Ceci est un message automatique envoyé par {brand}.",
+  "reason.password_reset": "Vous recevez cet e-mail car quelqu’un a demandé à réinitialiser le mot de passe de ce compte. Si ce n’était pas vous, ignorez-le.",
+  "reason.email_change": "Vous recevez cet e-mail car quelqu’un a demandé à se connecter avec cette adresse. Si ce n’était pas vous, ignorez-le.",
+  "reason.email_changed": "Envoyé à votre ancienne adresse, pour qu’un changement que vous n’avez pas fait ne passe pas inaperçu.",
+  "reason.invite": "Vous recevez cet e-mail car un membre de l’espace de travail a invité cette adresse.",
+  "reason.campaign_test": "Ceci est un test de campagne\u202F; les abonnés recevront la version finale.",
+  "reason.test": "Ceci est un test envoyé lors de la connexion d’un fournisseur d’envoi.",
+
+  "footer.sentBy": "Envoyé par {instance}",
+  "footer.sentByHost": "Envoyé par {instance} · {host}",
+  "footer.sentFor": "Envoyé par {instance} pour {workspace}",
+  "footer.sentForHost": "Envoyé par {instance} pour {workspace} · {host}",
+
+  "linkLine": "{label}\u00A0: {url}",
+
+  "invite.subject": "{inviter} vous invite à rejoindre {workspace}",
+  "invite.lead": "{inviter} vous invite à rejoindre {workspace} sur ReputeCast avec le rôle {role}.",
+  "invite.action": "Accepter l’invitation",
+  "invite.expires": "Le lien est valable jusqu’au {date}.",
+
+  "reset.subject": "Réinitialisez votre mot de passe {instance}",
+  "reset.lead": "Quelqu’un a demandé à réinitialiser le mot de passe du compte <b>{email}</b> sur {instance}.",
+  "reset.action": "Définir un nouveau mot de passe",
+  "reset.note": "Le lien ne fonctionne qu’une fois et expire dans 15\u00A0minutes. Si ce n’était pas vous, ignorez cet e-mail\u202F; votre mot de passe reste inchangé.",
+
+  "resetSso.subject": "Comment vous connecter à {instance}",
+  "resetSso.lead": "Quelqu’un a demandé à réinitialiser le mot de passe du compte <b>{email}</b> sur {instance}. Ce compte n’a pas de mot de passe\u00A0: il se connecte avec {provider}.",
+  "resetSso.action": "Se connecter",
+  "resetSso.note": "Si ce n’était pas vous, ignorez cet e-mail.",
+
+  "adminReset.subject": "Réinitialisez votre mot de passe {instance}",
+  "adminReset.lead": "{admin}, admin de l’instance, vous a envoyé un lien pour définir un nouveau mot de passe pour le compte <b>{email}</b> sur {instance}.",
+  "adminReset.action": "Définir un nouveau mot de passe",
+  "adminReset.note": "Le lien ne fonctionne qu’une fois et expire dans 15\u00A0minutes. Votre mot de passe actuel reste valable jusqu’à ce que vous l’utilisiez.",
+
+  "emailChange.subject": "Confirmez votre nouvelle adresse e-mail pour {instance}",
+  "emailChange.lead": "{email} a demandé à se connecter désormais à {instance} avec cette adresse.",
+  "emailChange.action": "Confirmer le changement",
+  "emailChange.note": "Le lien est valable 24\u00A0heures. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.",
+
+  "emailChanged.subject": "Votre adresse e-mail {instance} a été modifiée",
+  "emailChanged.lead": "Le compte qui utilisait {old} sur {instance} se connecte désormais avec {new}. Si vous n’êtes pas à l’origine de ce changement, contactez immédiatement l’admin de votre instance.",
+
+  "twofaReset.subject": "L’authentification à deux facteurs de votre compte {instance} a été réinitialisée",
+  "twofaReset.lead": "{admin}, admin de l’instance, a réinitialisé l’authentification à deux facteurs de votre compte <b>{email}</b>.",
+  "twofaReset.reason": "Motif\u00A0: {reason}",
+  "twofaReset.note": "Connectez-vous avec votre mot de passe et configurez de nouveau une application d’authentification avant le {date}. Si vous n’êtes pas à l’origine de cette demande, prévenez immédiatement votre admin.",
+
+  "notify.subject": "[{workspace}] {title}",
+  "notify.digestSubject": "{count, plural, one {# notification} other {# notifications}}",
+  "notify.open": "Ouvrir dans ReputeCast",
+  "notify.openShort": "Ouvrir",
+  "notify.openText": "Ouvrir\u00A0: {url}",
+  "notify.why": "Vous recevez cet e-mail en raison de vos <link>préférences de notification</link>.",
+  "notify.whyText": "Vous recevez cet e-mail en raison de vos préférences de notification\u00A0: {url}"
+}

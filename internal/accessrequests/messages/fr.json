@@ -1,0 +1,9 @@
+{
+  "problem.permission": "«\u00A0{permission}\u00A0» n’est pas une autorisation.",
+  "problem.alreadyHave": "Vous avez déjà cette autorisation. Rechargez la page pour l’utiliser.",
+  "problem.nobody": "Personne dans cet espace de travail ne peut modifier les rôles. Demandez à un admin de l’instance.",
+  "problem.alreadyAsked": "Vous avez déjà demandé l’accès {role, select, owner {Propriétaire} admin {Admin} editor {Éditeur} other {Observateur}} au cours des dernières 24 heures\u202F; la demande est visible par {names}. Si c’est urgent, contactez directement {names}.",
+
+  "notify.title": "{name} demande l’accès {role, select, owner {Propriétaire} admin {Admin} editor {Éditeur} other {Observateur}}",
+  "notify.noNote": "Aucune note."
+}

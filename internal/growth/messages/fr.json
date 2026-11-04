@@ -1,0 +1,18 @@
+{
+  "period.pickDays": "Choisissez le premier et le dernier jour de la période.",
+  "period.endsBefore": "La période se termine avant de commencer. Inversez les deux jours.",
+  "period.tooLong": "Choisissez une période de deux ans au maximum.",
+
+  "label.form": "Formulaire d’inscription",
+  "label.subscribePage": "Page d’inscription",
+  "label.apiKeyNamed": "Clé API «\u00A0{name}\u00A0»",
+  "label.api": "API",
+  "label.integration": "Intégration",
+  "label.person": "Ajouté par une personne",
+  "label.preferenceCenter": "Centre de préférences",
+  "label.importOn": "Import {name} ({day})",
+  "label.import": "Import {name}",
+  "label.file": "fichier",
+  "label.other": "Autre",
+  "label.unknown": "Inconnue"
+}

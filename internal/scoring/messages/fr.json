@@ -1,0 +1,27 @@
+{
+  "error.tooManyRules": "Le scoring peut avoir au plus {max} règles. Désactivez-en ou supprimez-en une d’abord.",
+  "error.duplicateRule": "Deux règles ont le même identifiant. Rechargez Scoring et refaites la modification.",
+  "error.points": "Les points vont de −50 à +50 et ne peuvent pas valoir 0.",
+  "error.list": "Cette liste n’existe plus dans cet espace de travail. Choisissez une autre liste, ou n’importe quelle liste.",
+  "error.contains": "Limitez le texte à rechercher dans le lien à moins de 200 caractères.",
+  "error.formMissing": "Choisissez le formulaire qui compte.",
+  "error.formGone": "Ce formulaire a été supprimé. Choisissez-en un autre.",
+  "error.event": "Nommez l’événement API avec des lettres, des chiffres et . _\u00A0: -, par exemple trial_started.",
+  "error.field": "Choisissez le champ à vérifier.",
+  "error.fieldGone": "Le champ {field} a été supprimé. Choisissez-en un autre.",
+  "error.values": "Saisissez au moins une valeur pour {field}.",
+  "error.op": "Choisissez comment le champ est vérifié\u00A0: est l’un de, n’est pas, ou est renseigné.",
+  "error.kind": "Choisissez ce que la règle compte\u00A0: un événement ou une condition de champ.",
+  "error.cap": "Choisissez un plafond pour la règle.",
+  "error.capBelowPoints": "Un plafond de {cap} {period, select, day {par jour} week {par semaine} other {par mois}} est inférieur aux {points} points que rapporte {kind, select, open {une ouverture} click {un clic} form {une soumission de formulaire} api_event {un événement API} soft_bounce {un rebond temporaire} other {un désabonnement}}. Relevez le plafond à {points} ou plus, ou réduisez les points.",
+  "error.decayWeeks": "La décroissance commence après 1 à 52 semaines sans ouverture ni clic humain.",
+  "error.decayPercent": "La décroissance retire de 1\u00A0% à 100\u00A0% du score chaque semaine.",
+  "error.warmFrom": "Tiède commence à un score de 1 à 99.",
+  "error.hotFrom": "Chaud commence au-dessus de Tiède ({warm}) et à 100 au maximum.",
+  "error.conflict": "Quelqu’un a enregistré le scoring depuis que vous l’avez ouvert. Rechargez pour voir ses modifications, puis refaites les vôtres.",
+  "error.nothingToRetry": "Aucun recalcul ne s’est arrêté\u00A0: il n’y a rien à relancer.",
+  "error.notSetUp": "Cet espace de travail n’a pas encore configuré le scoring.",
+
+  "notify.recalcTitle": "Recalcul des scores terminé",
+  "notify.recalcBody": "{changed, plural, one {# contact a changé de niveau} other {# contacts ont changé de niveau}}{flows, select, one { · {flow1} {start, select, yes {lancé} other {non lancé}} pour {n1}} two { · {flow1} {start, select, yes {lancé} other {non lancé}} pour {n1} · {flow2} {start, select, yes {lancé} other {non lancé}} pour {n2}} three { · {flow1} {start, select, yes {lancé} other {non lancé}} pour {n1} · {flow2} {start, select, yes {lancé} other {non lancé}} pour {n2} · {flow3} {start, select, yes {lancé} other {non lancé}} pour {n3}} other {}}"
+}

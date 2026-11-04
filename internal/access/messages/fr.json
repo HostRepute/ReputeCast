@@ -1,0 +1,20 @@
+{
+  "scope.list": "liste {list} uniquement",
+  "scope.only": "{name} uniquement",
+  "scope.lists": "{count, plural, one {# liste} other {# listes}}",
+  "scope.parts": "{parts} uniquement",
+  "scope.all": "toutes les listes",
+  "problem.unknownList": "Liste inconnue\u00A0: «\u00A0{value}\u00A0».",
+  "problem.unknownDomain": "Domaine d’expéditeur inconnu\u00A0: «\u00A0{value}\u00A0».",
+
+  "cantGrant": "Vous ne pouvez pas accorder l’autorisation {permission}, car vous ne l’avez pas.",
+  "cantGrantAsk": "Vous ne pouvez pas accorder l’autorisation {permission}, car vous ne l’avez pas. Demandez à {helpers}.",
+  "notHoldable.ai": "Les fonctionnalités d’IA sont réservées aux personnes. Les agents utilisent leur propre modèle.",
+  "notHoldable.peopleOnly": "Seules des personnes peuvent détenir l’autorisation {permission}\u00A0: ni les clés API ni les agents.",
+  "notHoldable.verify": "Non proposée aux agents\u00A0: elle envoie des adresses hors de ReputeCast",
+  "notHoldable.placementRun": "Non proposée aux agents\u00A0: elle envoie des copies via vos fournisseurs",
+  "notHoldable.placementManage": "Non proposée aux agents\u00A0: les mots de passe et jetons des boîtes témoins donnent accès à des boîtes de réception entières",
+  "notHoldable.agents": "Les agents MCP ne peuvent pas détenir l’autorisation {permission}. Accordez-la à une clé API ou à une personne.",
+
+  "problem.audienceScope": "Votre accès est limité à certaines listes\u00A0: envoyez uniquement à ces listes, pas à d’autres listes ni à un segment."
+}

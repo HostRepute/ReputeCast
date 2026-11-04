@@ -1,0 +1,9 @@
+{
+  "notify.title": "Des requêtes passent par un proxy auquel ReputeCast ne fait pas confiance",
+  "notify.body": "{peer} transmet des requêtes à ReputeCast avec {header}, mais {setting} ne le liste pas. Chaque ouverture et chaque clic semble provenir de {peer}\u00A0: le filtre anti-robots ne peut donc pas voir les adresses des lecteurs. Ajoutez {peer} à {setting} (variable d’environnement {env}) et redémarrez ReputeCast.",
+  "advice.none": "Aucune requête n’est passée par un proxy auquel ReputeCast ne fait pas confiance.",
+  "advice.some": "Ajoutez ces adresses à {setting} (variable d’environnement {env}) et redémarrez ReputeCast, pour que les ouvertures, les clics et les limites de débit voient les adresses réelles des lecteurs.",
+  "notify.publicTitle": "La plupart des requêtes portent des en-têtes de transfert venant d’une adresse publique",
+  "notify.publicBody": "Les requêtes venant de {peer} portent des en-têtes de transfert ({header}), et depuis un moment la majeure partie du trafic de ReputeCast passe par là. Si {peer} appartient à votre CDN ou à votre répartiteur de charge, ajoutez à {setting} (variable d’environnement {env}) les plages d’adresses depuis lesquelles il envoie, telles que son fournisseur les publie, puis redémarrez ReputeCast. Si vous ne reconnaissez pas {peer}, ne changez rien\u00A0: n’importe qui peut envoyer ces en-têtes, et une adresse à laquelle ReputeCast fait confiance peut inventer des adresses de lecteurs.",
+  "advice.public": "Ajoutez les adresses de votre propre réseau à {setting} (variable d’environnement {env}) et redémarrez ReputeCast. N’ajoutez pas une adresse publique telle quelle\u00A0: si elle appartient à votre CDN ou à votre répartiteur de charge, ajoutez les plages d’adresses depuis lesquelles il envoie, telles que son fournisseur les publie\u202F; si vous ne la reconnaissez pas, laissez-la de côté, car n’importe qui peut envoyer des en-têtes de transfert."
+}

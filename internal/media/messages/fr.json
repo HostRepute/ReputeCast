@@ -1,0 +1,15 @@
+{
+  "problem.chooseImage": "Choisissez une image à importer.",
+  "problem.interrupted": "L’import a été interrompu. Réessayez.",
+  "problem.empty": "Le fichier est vide.",
+  "problem.tooLarge": "L’image fait {size}\u00A0Mo\u202F; la limite est de 5\u00A0Mo. Les images d’e-mail donnent les meilleurs résultats sous 200\u00A0Ko.",
+  "problem.uploadTooLarge": "Le fichier fait {size}\u00A0Mo\u202F; la limite est de 20\u00A0Mo. Exportez l’image en plus petit et réessayez.",
+  "problem.gifTooLarge": "Le GIF fait {size}\u00A0Mo\u202F; les GIF peuvent atteindre 5\u00A0Mo, car ils sont stockés tels quels pour que les animations gardent toutes leurs images.",
+  "problem.stillTooLarge": "Même redimensionnée et compressée, l’image fait {size}\u00A0Mo\u202F; la limite est de 5\u00A0Mo. Utilisez une image plus petite.",
+  "problem.webp": "Les images WebP ne s’affichent pas dans Outlook ni dans plusieurs autres clients de messagerie. Importez un PNG, JPEG ou GIF.",
+  "problem.svg": "Les images SVG ne s’affichent pas dans Gmail ni dans Outlook. Importez un PNG, JPEG ou GIF.",
+  "problem.notImage": "Ce fichier n’est pas une image utilisable par ReputeCast. Importez un PNG, JPEG ou GIF.",
+  "problem.damaged": "L’image est endommagée ou incomplète et n’a pas pu être lue. Exportez-la de nouveau et réessayez.",
+  "problem.dimensions": "Les dimensions de l’image ne sont pas valides ou sont trop grandes (50\u00A0mégapixels au maximum).",
+  "problem.notFound": "Image introuvable."
+}

@@ -1,0 +1,52 @@
+{
+  "problem.name": "Donnez un nom à l’espace de travail.",
+  "problem.timezone": "Fuseau horaire inconnu.",
+  "problem.retention": "Choisissez l’une des durées proposées.",
+  "problem.sender": "Choisissez un expéditeur de cet espace de travail.",
+  "problem.signedInOwner": "Seul un Propriétaire connecté peut transférer la propriété.",
+  "problem.password": "Ce mot de passe est incorrect.",
+  "problem.reauth": "Reconnectez-vous avec votre fournisseur d’identité, puis effectuez le transfert dans les 10 minutes.",
+  "problem.pickOwner": "Choisissez le nouveau Propriétaire.",
+  "problem.notMember": "Seuls les membres actifs de cet espace de travail peuvent devenir Propriétaire.",
+  "problem.notEligible": "{name} n’a pas encore de 2FA. Seuls les membres actifs disposant de la 2FA peuvent devenir Propriétaire.",
+  "problem.confirmName": "Saisissez {name} exactement pour confirmer.",
+  "problem.section": "Choisissez Transactionnel, Croissance ou Monétisation.",
+
+  "reason.manage": "Votre rôle ne permet pas de modifier les paramètres de l’espace de travail.",
+  "reason.manageAsk": "Votre rôle ne permet pas de modifier les paramètres de l’espace de travail. Demandez à {helpers}.",
+
+  "rule.audience": "audience ≥ {n, number}",
+  "rule.warming": "la route inclut un fournisseur en chauffe",
+  "rule.newProvider": "fournisseur connecté au cours des {days} derniers jours",
+  "rule.warnings": "le contrôle avant envoi signale des avertissements",
+  "rule.lacksSend": "auteur sans droit d’envoi",
+  "rule.lists": "l’audience inclut une liste soumise à approbation",
+  "rule.clientSignoff": "chaque envoi, pour validation client",
+
+  "signIn.enforced": "SSO {name} imposé pour {domains}",
+  "signIn.ownerPassword": "mot de passe conservé pour le Propriétaire",
+  "signIn.sso": "SSO {name} pour {domains}",
+  "signIn.alsoPasswords": "mots de passe et clés d’accès également autorisés",
+  "signIn.fallback": "Mot de passe et clés d’accès",
+  "signIn.password": "mot de passe",
+  "signIn.passkeys": "clés d’accès",
+  "signIn.social": "connexion sociale",
+  "signIn.twoFactorEveryone": "2FA obligatoire pour tout le monde",
+  "signIn.twoFactorSensitive": "2FA obligatoire pour les autorisations ⚑",
+
+  "note.twoFactor": "{name} utilise {method, select, passkey {une clé d’accès} other {une application d’authentification}}\u00A0: l’exigence d’authentification à deux facteurs du Propriétaire est donc remplie.",
+  "note.idp": "{name} se connecte via {provider} avec une 2FA imposée par l’IdP\u00A0: l’exigence de compte d’urgence du Propriétaire est donc remplie.",
+  "note.singleSignOn": "l’authentification unique",
+  "reason.noTwoFactor": "{name} n’a pas encore de 2FA.",
+
+  "notify.ownerTitle": "{name} vous a transféré la propriété de l’espace {workspace}",
+  "notify.deletedTitle": "Espace {name} supprimé",
+  "notify.deletedBody": "Un admin de l’instance peut le restaurer jusqu’au {at, date}.",
+
+  "audit.nowAdmin": "{name} est désormais Admin",
+  "audit.restorable": "restaurable jusqu’au {at, date}",
+  "audit.sendsStopped": "{count, plural, one {# envoi programmé arrêté} other {# envois programmés arrêtés}}",
+  "audit.exported": "contacts avec consentement, campagnes en MJML, rapports en CSV, journal d’audit en JSON",
+  "audit.section": "{section, select, transactional {Transactionnel} grow {Croissance} other {Monétisation}} {shown, select, yes {affiché dans la barre latérale} other {masqué dans la barre latérale}}",
+  "problem.exportScope": "Un export complet contient tous les contacts de l’espace de travail, et votre accès est limité à certaines listes ou à certains domaines d’expéditeur. Exportez plutôt depuis Audience les contacts que vous voyez."
+}

@@ -1,0 +1,14 @@
+{
+  "detail.mailboxFailing": "Boîte des rebonds injoignable",
+  "detail.rejecting": "Rejette des messages",
+  "detail.down": "En panne",
+  "detail.downAuth": "En panne · identifiants refusés",
+  "detail.webhooksSilent": "Webhooks silencieux",
+  "vet.available": "{detail, select, disconnected {{provider} est déconnecté.} down {{provider} est en panne.} paused {{provider} est en pause.} degraded {{provider} n’envoie pas d’événements de livraison\u00A0: rien ne protégerait donc ces e-mails.} other {{provider} ne peut pas accepter d’e-mails pour le moment.}}",
+  "vet.bulkTerms": "{detail, select, broadcast_streams_only {{provider}\u00A0: les conditions n’autorisent les envois en masse que sur un flux broadcast, et ce compte n’en a aucun.} other {{provider}\u00A0: les conditions n’autorisent pas les envois en masse.}}",
+  "vet.sandbox": "{provider} est en mode sandbox\u00A0: il n’envoie qu’aux adresses vérifiées.",
+  "vet.domain": "{result, select, unknown {{detail, select, no_sender {Ces e-mails n’ont aucun expéditeur enregistré à vérifier chez {provider}.} other {ReputeCast ne peut pas confirmer que {provider} envoie pour le domaine de l’expéditeur\u00A0: il n’a pas d’API de domaines.}}} other {{detail, select, pending {Le domaine de l’expéditeur est encore en cours de vérification chez {provider}.} failed {{provider} n’a pas pu vérifier le domaine de l’expéditeur.} not_used {L’expéditeur est configuré pour ne pas utiliser {provider}.} other {Le domaine de l’expéditeur n’est pas configuré chez {provider}.}}}}",
+  "vet.quota": "{result, select, unknown {{provider}\u00A0: le quota n’a pas encore été lu.} other {{provider}\u00A0: il reste {left, number} messages dans le quota\u202F; {need, number} seraient transférés.}}",
+  "vet.warm": "{detail, select, paused {{provider}\u00A0: la chauffe est en pause.} other {{result, select, unknown {{provider} est en chauffe, et le plafond du jour n’est pas connu.} fail {{provider} est en chauffe\u00A0: il reste {left, number} messages sur le plafond du jour\u202F; {need, number} seraient transférés.} other {{provider} est en chauffe\u00A0: ces e-mails utiliseraient {need, number} des {left, number} messages restants aujourd’hui.}}}}",
+  "detail.queueFailing": "File d’événements injoignable"
+}

@@ -1,0 +1,65 @@
+{
+  "alt.title": "{image, select, logo {Le logo n’a} hero {L’image hero n’a} section {Une image de la section {section} n’a} other {Une image n’a}} pas de texte alternatif",
+  "alt.tag": "Image sans texte alternatif",
+  "alt.detail": "Les images sont désactivées par défaut dans Outlook et de nombreux clients d’entreprise\u00A0: c’est le texte alternatif qui s’affiche, et les filtres antispam pénalisent davantage les e-mails composés uniquement d’images.",
+  "alt.fix": "Enregistrer",
+
+  "size.near": "{kb}\u00A0Ko sur la limite de troncature de Gmail (102\u00A0Ko)",
+  "size.over": "{kb}\u00A0Ko\u00A0: au-delà de la limite de troncature de Gmail (102\u00A0Ko)",
+  "size.detail": "Gmail tronque le message et masque le pied de page, y compris le lien de désabonnement.",
+  "size.minify": "Minifier le CSS en ligne · environ {kb}\u00A0Ko gagnés",
+  "size.bulkOne": "La section {section} en représente l’essentiel ({share, number, percent}).",
+  "size.bulkMany": "Les {count, plural, =2 {deux} =3 {trois} =4 {quatre} =5 {cinq} =6 {six} =7 {sept} =8 {huit} =9 {neuf} =10 {dix} other {#}} sections {section} en représentent l’essentiel ({share, number, percent}).",
+  "size.bulkCards": "{count, plural, =2 {Deux} =3 {Trois} =4 {Quatre} =5 {Cinq} =6 {Six} =7 {Sept} =8 {Huit} =9 {Neuf} =10 {Dix} other {#}} {section}{css, select, yes { avec du CSS en ligne} other {}} en représentent l’essentiel.",
+  "size.removeSection": "Supprimer la section {section}",
+  "size.removeRow": "Supprimer la {n, plural, =1 {première} =2 {deuxième} =3 {troisième} =4 {quatrième} =5 {cinquième} =6 {sixième} =7 {septième} =8 {huitième} =9 {neuvième} =10 {dixième} other {#e}} ligne",
+
+  "ratio.title": "L’e-mail est composé à {share, number, percent} d’images",
+  "ratio.detail": "Les filtres antispam pénalisent les e-mails chargés d’images, et l’essentiel du contenu disparaît quand les images sont désactivées. Ajoutez du texte ou utilisez moins d’images.",
+
+  "footer.both": "Aucun lien de désabonnement ni adresse postale dans le corps",
+  "footer.bothTag": "Ni lien de désabonnement ni adresse postale",
+  "footer.address": "Aucune adresse postale dans le pied de page",
+  "footer.addressTag": "Aucune adresse postale",
+  "footer.unsubscribe": "Aucun lien de désabonnement dans le corps",
+  "footer.unsubscribeTag": "Aucun lien de désabonnement",
+  "footer.detail": "Les en-têtes sont ajoutés automatiquement, mais le lien et l’adresse visibles sont aussi obligatoires.",
+  "footer.fix": "Insérer un bloc pied de page",
+
+  "liquid.title": "{where, select, subject {Objet} preheader {Texte d’aperçu} other {Corps}}\u00A0: {problem}",
+  "liquid.titleLine": "{where, select, subject {Objet} preheader {Texte d’aperçu} other {Corps}}\u00A0: Ligne {line}\u00A0: {problem}",
+  "liquid.detail": "Corrigez la balise de personnalisation\u00A0: une balise cassée s’afficherait comme du texte ou bloquerait l’envoi.",
+  "unknownField.title": "{token} n’est pas un champ de contact\u00A0: rien ne s’affiche",
+  "unknownField.detail": "Vérifiez l’orthographe, ou ajoutez une valeur de repli comme | default: \"…\".",
+
+  "subject.missing": "L’objet est vide",
+  "subject.missingDetail": "Les boîtes de réception affichent d’abord l’objet\u00A0: rédigez-en un avant l’envoi.",
+  "subject.spam": "L’objet déclenche {count, plural, one {# signal de spam} other {# signaux de spam}}",
+  "subject.suggested": "Suggestion\u00A0: {suggestion}",
+  "subject.useSuggestion": "Utiliser la suggestion",
+
+  "plainText.title": "La version texte brut est vide",
+  "plainText.detail": "L’e-mail ne contient aucun texte\u00A0: la partie text/plain est donc vide. Ajoutez une phrase qui décrit ce que montrent les images.",
+
+  "link.emptyTitle": "Le bouton «\u00A0{text}\u00A0» n’a pas de lien",
+  "link.emptyTag": "Bouton sans lien",
+  "link.emptyDetail": "Les lecteurs vont cliquer dessus\u00A0: faites-le pointer vers la page qu’il annonce.",
+  "link.edit": "Modifier le lien",
+  "link.blocklistTitle": "{kind, select, button {Le bouton} image {L’image} nav {Le lien du menu} social {Le lien social} other {Le lien}} pointe vers {host}, domaine listé sur {lists}",
+  "link.blocklistTag": "Domaine du lien sur {lists}",
+  "link.blocklistDetail": "Les e-mails qui pointent vers un domaine sur liste de blocage sont filtrés, quelle que soit votre réputation. Utilisez un domaine que vous contrôlez.",
+  "link.replaceWithDestination": "Remplacer par l’URL de destination",
+  "link.shortenerTitle": "{kind, select, button {Le bouton} image {L’image} nav {Le lien du menu} social {Le lien social} other {Le lien}} redirige via {host}, un raccourcisseur d’URL",
+  "link.shortenerTag": "Lien raccourci",
+  "link.shortenerDetail": "Les liens raccourcis masquent leur destination\u00A0: les filtres les jugent suspects et de nombreux domaines de raccourcisseurs sont sur liste de blocage. Pointez directement vers la page.",
+  "link.brokenTitle": "{kind, select, button {Le bouton} image {L’image} nav {Le lien du menu} social {Le lien social} other {Le lien}} vers {url} {status, select, 0 {ne répond pas} other {renvoie {status}}}",
+  "link.brokenTag": "Lien cassé",
+  "link.brokenDetail": "Les lecteurs qui cliquent obtiennent une page d’erreur. Corrigez l’adresse ou supprimez le lien.",
+
+  "link.unknownTitle": "Impossible de vérifier {count, plural, one {# domaine de lien} other {# domaines de lien}} sur {lists}",
+  "link.unknownTag": "Non vérifié",
+  "link.unknownDetail": "{trouble, select, refused {Les listes ont refusé le résolveur DNS de ce serveur\u00A0: les requêtes aux listes de blocage nécessitent votre propre résolveur récursif.} other {Le DNS n’a pas répondu à temps.}} Ne pas savoir ne veut pas dire non listé\u00A0: le contrôle avant envoi les vérifie de nouveau avant l’envoi.",
+
+  "unknownField.titleFallback": "{token} n’est pas un champ de contact\u00A0: tout le monde reçoit «\u00A0{fallback}\u00A0»",
+  "unknownField.fallbackDetail": "La valeur de repli masque la faute dans les aperçus, mais pas aux yeux de vos lecteurs. Vérifiez l’orthographe d’après les champs du menu des variables."
+}

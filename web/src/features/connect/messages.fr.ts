@@ -1,0 +1,38 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+/** French (docs/i18n/glossary-fr.md). */
+export default translate(m, {
+  exitSetup: 'Quitter la configuration',
+  stepBadge: 'Étape {n} sur 6',
+  title: 'Connecter un fournisseur d’envoi',
+  stepsLabel: 'Étapes de configuration',
+  stepProvider: 'Fournisseur',
+  stepProviderLine: 'Choisissez dans le catalogue',
+  stepConnection: 'Connexion',
+  stepConnectionLine: 'Clés, région, webhooks',
+  stepDomain: 'Vérification du domaine',
+  stepDomainLine: 'DKIM, return-path, SPF, DMARC',
+  stepTest: 'Envoi de test',
+  stepTestLine: 'Suivez l’arrivée de l’événement',
+  stepStreams: 'Flux',
+  stepStreamsLine: 'Diffusions, Automatisations, Système',
+  stepContacts: 'Contacts',
+  stepContactsLine: 'Importez ou partez de zéro',
+  stepStreamsCurrent: 'Ce que {provider} gérera',
+  stepStreamsCurrentNoName: 'Ce qu’il gérera',
+  stepsFoot: 'La plupart des configurations prennent 10 à 15 minutes\u202F; Amazon SES prend plus de temps quand ReputeCast ne tourne pas sur AWS, et un nouveau compte AWS peut attendre jusqu’à 24 heures l’accès production. Vous pourrez ajouter d’autres fournisseurs plus tard et envoyer par plusieurs à la fois.',
+  stateDone: 'Terminé',
+  stateVerified: 'Vérifié',
+  stateFailed: 'Échec',
+  stateSkipped: 'Ignoré',
+  statePending: 'En attente',
+  stateYes: 'Oui',
+  statePartial: 'Partiel',
+  stateNo: 'Non',
+  copied: '{what, select, zone {Fichier de zone copié} secret {Secret du webhook copié} url {URL du webhook copiée} other {Valeur {label} copiée}}',
+  copyFailed: '{what, select, zone {Impossible de copier le fichier de zone} secret {Impossible de copier le secret du webhook} url {Impossible de copier l’URL du webhook} other {Impossible de copier la valeur {label}}}',
+  copyBlocked: 'Votre navigateur a bloqué le presse-papiers. Sélectionnez le texte et copiez-le.',
+  readOnlyCatalog: 'Vous pouvez consulter le catalogue et les configurations commencées par d’autres. Votre rôle ne permet pas de connecter des fournisseurs.',
+  readOnlySetup: 'Vous pouvez suivre cette configuration. Votre rôle ne permet pas de connecter ni de modifier des fournisseurs.',
+})

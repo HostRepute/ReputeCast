@@ -1,0 +1,39 @@
+{
+  "address.empty": "saisissez l’adresse d’un flux ou d’une page, comme blog.acme.io/feed/",
+  "address.invalid": "ce n’est pas une adresse\u00A0: saisissez-en une comme blog.acme.io/feed/",
+  "address.scheme": "les flux se lisent via https:// ou http://",
+  "address.redirect": "la cible de la redirection n’est pas une adresse",
+
+  "status.noLocation": "{host} a répondu {status} sans indiquer où aller",
+  "status.notFound": "{host} a répondu {status} {statusText}\u00A0: il n’y a pas de flux à l’adresse {address}",
+  "status.signIn": "{host} a répondu {status} {statusText}\u00A0: le flux exige une connexion, ce que les récapitulatifs ne prennent pas en charge",
+  "status.tooMany": "{host} a répondu 429 Too Many Requests\u00A0: il limite la fréquence de lecture",
+  "status.other": "{host} a répondu {status} {statusText}",
+  "redirects": "{host} a redirigé plus de {max} fois",
+  "tooLarge": "{host} a envoyé plus de {mb}\u00A0Mo, la limite pour un flux",
+
+  "blocked.private": "{host} ne peut pas être lu\u00A0: {ip} est une adresse privée ou de bouclage. Un admin de l’instance peut autoriser les adresses privées pour les flux auto-hébergés",
+  "blocked.special": "{host} ne peut pas être lu\u00A0: {ip} est une adresse lien-local, de métadonnées ou de multidiffusion. Un admin de l’instance peut autoriser les adresses privées pour les flux auto-hébergés",
+  "blocked.localName": "{host} ne peut pas être lu\u00A0: {name} est un nom d’hôte local. Un admin de l’instance peut autoriser les adresses privées pour les flux auto-hébergés",
+  "blocked.other": "{host} ne peut pas être lu\u00A0: {reason}. Un admin de l’instance peut autoriser les adresses privées pour les flux auto-hébergés",
+
+  "unreachable.timeout": "{host} n’a pas répondu\u00A0: délai de connexion dépassé après {seconds}\u00A0s",
+  "unreachable.dns": "{host} n’a pas répondu\u00A0: son nom ne se résout pas (échec de la requête DNS)",
+  "unreachable.tls": "{host} n’a pas répondu de façon sécurisée\u00A0: son certificat TLS n’est pas valide",
+  "unreachable.refused": "{host} n’a pas répondu\u00A0: connexion refusée",
+  "unreachable.reset": "{host} n’a pas répondu\u00A0: la connexion a été réinitialisée",
+  "unreachable.other": "{host} n’a pas répondu\u00A0: {detail}",
+
+  "notFeed.html": "{address} n’est pas un flux\u00A0: l’adresse a renvoyé une page HTML",
+  "notFeed.plain": "{address} n’est pas un flux",
+  "notFeed.empty": "{address} n’est pas un flux\u00A0: le document est vide",
+  "notFeed.neither": "{address} n’est pas un flux\u00A0: le document n’est ni du XML ni du JSON",
+  "notFeed.xml": "{address} n’est pas un flux\u00A0: l’analyse du XML a échoué\u00A0: {detail}",
+  "notFeed.deep": "{address} n’est pas un flux\u00A0: le XML est trop profondément imbriqué",
+  "notFeed.noElements": "{address} n’est pas un flux\u00A0: le XML ne contient aucun élément",
+  "notFeed.noChannel": "{address} n’est pas un flux\u00A0: le document RSS n’a pas d’élément channel",
+  "notFeed.root": "{address} n’est pas un flux\u00A0: document XML dont la racine est <{root}>",
+  "notFeed.json": "{address} n’est pas un flux\u00A0: l’analyse du JSON a échoué\u00A0: {detail}",
+  "notFeed.notJSONFeed": "{address} n’est pas un flux\u00A0: document JSON qui n’est pas un JSON Feed (aucune version jsonfeed.org)",
+  "noFeedLink": "{address} est une page web qui ne renvoie vers aucun flux"
+}
