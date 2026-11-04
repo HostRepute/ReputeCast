@@ -558,12 +558,15 @@
   }
 }
 
-/* SMS capability chips and route pills (sms/ProvidersPage, sms/ComposerPage):
+/* SMS capability chips and route pills (sms/ProvidersPage, sms/ComposerPage)
+   and address verification's default-service pills (verification/
+   ServicesPage, "Vérifications en masse et imports de contacts ·
+   ZeroBounce"):
    a long capability ("Abmelde-Synchronisierung · aus Antworten und
    abgelehnten SMS") or a route over several countries ("Vereinigtes
    Königreich, Deutschland und Niederlande über Vonage") wraps inside its
    chip on a phone instead of pushing the page sideways. */
-:root:not([lang='en']) :is(.sms-cap, .sms-pill) {
+:root:not([lang='en']) :is(.sms-cap, .sms-pill, .vf-pill) {
   height: auto;
   min-height: 24px;
   max-width: 100%;
