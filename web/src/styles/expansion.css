@@ -571,3 +571,13 @@
   white-space: normal;
   line-height: 1.3;
 }
+
+/* The transactional template editor's right panel on phones
+   (TransactionalTemplate): its tabs ("Diseño · Variables · Datos de prueba
+   · Comprobaciones · API") scroll sideways inside the panel, as the
+   composer's do, instead of widening it past the screen. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .txe .cpanel.right.txe-right {
+    min-width: 0;
+  }
+}
