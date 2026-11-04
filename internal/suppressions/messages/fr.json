@@ -1,0 +1,13 @@
+{
+  "scope.tenant": "liste du locataire · {tenant}",
+  "scope.accountReadOnly": "liste au niveau du compte · lecture seule",
+  "scope.domain": "par domaine d’envoi",
+  "detail.accountReadOnly": "Toutes les applications de ce compte AWS partagent la liste {provider} au niveau du compte\u00A0: ReputeCast se contente donc de la lire. Configurez un locataire pour cet espace de travail afin de synchroniser dans les deux sens.",
+  "scope.account": "liste au niveau du compte",
+  "scope.stream": "par flux",
+  "scope.enforced": "appliquée avant l’envoi",
+  "scope.list": "liste de suppression",
+  "detail.local": "ReputeCast vérifie la liste partagée avant de transmettre les e-mails à {provider}.",
+  "provider.import": "{name} (import)",
+  "detail.softBounces": "{count, plural, one {# rebond temporaire} other {# rebonds temporaires}} en {days, plural, one {# jour} other {# jours}} (dernier\u00A0: {last})"
+}

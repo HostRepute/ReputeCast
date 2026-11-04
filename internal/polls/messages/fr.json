@@ -1,0 +1,33 @@
+{
+  "problem.pollQuestion": "Rédigez la question du sondage.",
+  "problem.pollTwoAnswers": "Un sondage nécessite au moins deux réponses.",
+  "problem.pollFiveAnswers": "Un sondage accepte cinq réponses au maximum.",
+  "problem.pollTags": "Attribuez un tag à chaque réponse, ou enregistrez la réponse dans un champ.",
+  "problem.pollField": "Choisissez le champ dans lequel la réponse est enregistrée.",
+  "problem.pollSurvey": "Choisissez le questionnaire qui prend la suite du sondage.",
+  "problem.pollClosed": "Ce sondage est déjà fermé.",
+  "problem.pollOpen": "Ce sondage est déjà ouvert.",
+
+  "problem.surveyFirstQuestion": "Ajoutez la première question.",
+  "problem.surveyMaxQuestions": "Un questionnaire accepte {max, plural, one {# question} other {# questions}} au maximum.",
+  "problem.surveyQuestion": "Rédigez la question.",
+  "problem.surveyTwoAnswers": "Une question à choix nécessite au moins deux réponses.",
+  "problem.surveyField": "Choisissez le champ dans lequel la réponse est enregistrée.",
+  "problem.surveyTags": "Attribuez un tag à chaque réponse, ou n’enregistrez pas la réponse.",
+  "problem.surveySlugTaken": "Un autre questionnaire de cet espace de travail utilise déjà cette adresse. Choisissez-en une autre.",
+  "problem.surveyIncomplete": "La publication attend que toutes les questions soient complètes\u00A0: {problem}",
+  "problem.surveyType": "Choisissez un type pour chaque question\u00A0: choix unique, choix multiple, échelle de 0 à 10, échelle d’emojis, texte court ou texte long.",
+  "problem.surveyClosePassed": "La date de fermeture est passée. Choisissez une date ultérieure, ou fermez le questionnaire manuellement.",
+  "problem.surveyNotPublished": "Ce questionnaire n’est pas encore publié\u00A0: il n’y a rien à fermer.",
+  "problem.surveyCloseFuture": "Choisissez une date de fermeture dans le futur, ou fermez le questionnaire manuellement.",
+
+  "label.untitledSurvey": "Questionnaire sans titre",
+  "label.surveyThanks": "Vos réponses ont été enregistrées.",
+  "label.noTier": "Sans niveau",
+  "label.languageNotSet": "Non définie",
+
+  "tier.active": "Actif",
+  "tier.cooling": "En baisse",
+  "tier.at_risk": "À risque",
+  "tier.sunset": "Arrêt progressif"
+}

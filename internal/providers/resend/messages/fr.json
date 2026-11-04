@@ -1,0 +1,26 @@
+{
+  "pricing": "forfait, gratuit jusqu’à 3\u202F000 par mois, puis à partir de 20\u00A0$US par mois",
+  "pricingPlan": "forfait, {n, number} par mois",
+  "dedicatedIps": "forfait Scale, 30\u00A0$US par mois",
+  "terms.0.note": "Destinataires ayant donné leur consentement uniquement. Les envois en masse nécessitent un lien de désabonnement visible et des en-têtes List-Unsubscribe en un clic, que ReputeCast ajoute\u202F; Resend peut fermer les comptes au-delà de 0,08\u00A0% de plaintes ou de 4\u00A0% de rebonds.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Bidirectionnelle",
+  "field.api_key.label": "Clé API",
+  "field.api_key.help": "Resend › API Keys. Une clé Full access permet à ReputeCast d’enregistrer des webhooks, de configurer des domaines et de synchroniser la liste de suppression\u202F; une clé Sending access peut seulement envoyer.",
+  "field.region.label": "Région",
+  "field.region.help": "L’endroit où sont hébergés les domaines d’envoi ajoutés par ReputeCast.",
+  "field.monthly_limit.label": "Forfait · e-mails par mois",
+  "field.monthly_limit.help": "Utilisé pour la barre de quota et le coût pour 1\u202F000.",
+  "field.webhook_signing_secret.label": "Secret de signature du webhook",
+  "field.webhook_signing_secret.help": "Uniquement pour un webhook que vous avez créé vous-même (Resend › Webhooks › Signing secret). ReputeCast le lit pour les webhooks qu’il enregistre.",
+
+  "account": "{verified, plural, =0 {Aucun domaine vérifié · e-mails de test vers votre propre adresse uniquement} one {# domaine vérifié} other {# domaines vérifiés}}{plan, select, yes { · forfait de {limit, number} par mois} other {}}",
+  "account.sendingKey": "Clé Sending access · le quota et les domaines nécessitent une clé Full access",
+  "tracking.scope": "Domaines",
+  "tracking.openClick": "Le suivi des ouvertures est activé pour {opens}, et celui des clics pour {clicks}.",
+  "tracking.open": "Le suivi des ouvertures est activé pour {opens}.",
+  "tracking.click": "Le suivi des clics est activé pour {clicks}.",
+  "tracking.off": "Le suivi des ouvertures et des clics est désactivé sur tous les domaines.",
+  "error.domainMissing": "{domain} n’est pas configuré dans Resend"
+}

@@ -1,0 +1,9 @@
+{
+  "summary": "Paiement à l’usage · États-Unis et Canada à partir de 0,0110\u00A0$US par segment SMS, frais d’opérateur inclus",
+  "badge.sender_ids.note": "hors États-Unis et Canada",
+  "badge.opt_out_sync.note": "d’après les réponses et les SMS refusés",
+  "field.account_sid.label": "Account SID",
+  "field.api_key_sid.label": "API key SID",
+  "field.api_key_secret.label": "API key secret",
+  "field.mode.label": "Compte"
+}

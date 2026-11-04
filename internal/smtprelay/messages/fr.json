@@ -1,0 +1,23 @@
+{
+  "check.noHostname": "Pas encore de nom d’hôte",
+  "check.unresolved": "{host} n’est pas résolu",
+  "check.unresolvedAdd": "{host} n’est pas résolu\u00A0: ajoutez un enregistrement A ou AAAA pointant vers ce serveur",
+  "check.portUnresolved": "Le port {port} ne peut pas être vérifié tant que {host} n’est pas résolu",
+  "check.certUnresolved": "Le certificat ne peut pas être vérifié tant que {host} n’est pas résolu",
+  "check.resolves": "DNS · {host} pointe vers {addresses}",
+  "check.portUnreachable": "Le port {port} est injoignable sur {host}\u00A0: {error}",
+  "check.portReachable": "Port {port} joignable depuis Internet",
+  "check.certUnverified": "Le certificat n’a pas pu être vérifié\u00A0: {error}",
+  "check.noCert": "Le relais n’a envoyé aucun certificat",
+  "check.certExpired": "Le certificat a expiré le {at, date}",
+  "check.certValid": "Certificat valide jusqu’au {at, date}",
+
+  "notify.title": "Relais SMTP injoignable",
+  "notify.body": "{why, select, unresolved {Le port {port} ne peut pas être vérifié tant que {host} n’est pas résolu} other {Le port {port} est injoignable sur {host}\u00A0: {error}}}. Les applications qui envoient par SMTP ne peuvent pas se connecter\u202F; l’API HTTP continue de fonctionner.",
+
+  "problem.hostnameNeeded": "Saisissez le nom d’hôte auquel les applications se connectent, par exemple l’hôte de l’instance.",
+  "problem.hostnameFormat": "Saisissez un nom d’hôte comme reputecast.acme.io.",
+  "problem.portsDiffer": "Les ports STARTTLS et TLS doivent être différents.",
+  "problem.certFiles": "Indiquez les chemins des fichiers de certificat et de clé, tels que ce serveur les voit.",
+  "problem.certUnreadable": "Le certificat et la clé n’ont pas pu être lus\u00A0: {error}"
+}

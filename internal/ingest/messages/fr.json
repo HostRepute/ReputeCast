@@ -1,0 +1,6 @@
+{
+  "problem.pickProvider": "Choisissez un fournisseur d’envoi.",
+  "provider.bounceMailbox": "SMTP · boîte de réception des rebonds",
+  "source.kind": "{kind, select, double_opt_in {Confirmation double opt-in} preference_link {Lien du centre de préférences} invite {Invitation d’équipe} password_reset {Réinitialisation du mot de passe} api {API · transactionnel} smtp {SMTP relay · transactionnel} other {Copie de test de placement}}",
+  "source.step": "{automation} · étape {step}"
+}

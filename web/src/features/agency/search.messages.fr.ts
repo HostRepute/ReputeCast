@@ -1,0 +1,35 @@
+import { translate } from '@/i18n'
+import { m } from './search.messages'
+
+/** French (docs/i18n/glossary-fr.md). */
+export default translate(m, {
+  title: 'Rechercher dans tous les clients',
+  typeMore: 'Saisissez au moins 2 caractères\u00A0: le nom d’une campagne, d’une automatisation, d’un modèle ou d’un formulaire, ou l’adresse e-mail exacte d’un contact.',
+  failed: 'Impossible d’effectuer la recherche',
+  nameCaption: 'En tant que {name}\u00A0: {clients, plural, one {votre client} other {vos # clients}} et la bibliothèque · {n, plural, one {# résultat} other {# résultats}}',
+  nameCaptionAll: 'En tant que {name}\u00A0: tous les clients et la bibliothèque · {n, plural, one {# résultat} other {# résultats}}',
+  contactCaption: 'En tant que {name} · les contacts ne correspondent qu’à un e-mail ou un numéro de téléphone exact, dans les clients où vous pouvez consulter les contacts',
+  noMatch: 'Rien ne correspond à «\u00A0{q}\u00A0» dans vos clients ni dans la bibliothèque.',
+  noContact: '{n, plural, =0 {Aucun client où vous pouvez consulter les contacts.} one {Aucun contact avec cette adresse dans le client où vous pouvez consulter les contacts.} other {Aucun contact avec cette adresse dans les # clients où vous pouvez consulter les contacts.}}',
+  skipped: '{n, plural, one {# client n’a pas été inclus dans la recherche de contacts\u00A0: vous ne pouvez pas y consulter les contacts.} other {# clients n’ont pas été inclus dans la recherche de contacts\u00A0: vous ne pouvez pas y consulter les contacts.}}',
+  audited: 'Cette recherche est enregistrée dans le journal d’audit\u00A0: qui a cherché, et quelle adresse.',
+  libraryGroup: 'Bibliothèque {agency}',
+  libraryHit: '{kind} · v{version}',
+  kindCampaign: 'Campagne',
+  kindAutomation: 'Automatisation',
+  kindSection: 'Section enregistrée',
+  kindTemplate: 'Modèle de campagne',
+  kindForm: 'Formulaire d’inscription',
+  kindContact: 'Contact',
+  contactSubscribed: 'Contact · {lists} · abonné le {date}',
+  contactLeft: 'Contact · {lists} · désabonné le {date}',
+  contactLists: 'Contact · {lists}',
+  stApproval: 'En attente d’approbation',
+  stDraft: 'Brouillon',
+  stScheduled: 'Programmée',
+  stApproved: 'Approuvée',
+  stSending: 'Envoi en cours',
+  stSent: 'Envoyée',
+  stPaused: 'En pause',
+  stLive: 'En ligne',
+})

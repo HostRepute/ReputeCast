@@ -1,0 +1,46 @@
+{
+  "pricing": "0,10\u00A0$US pour 1\u202F000",
+  "dedicatedIps": "en option, 24,95\u00A0$US par IP et par mois",
+  "terms.0.note": "Accès production requis\u202F; le compte doit rester sous les seuils de rebond et de plainte de SES.",
+  "events": "Webhooks SNS ou file SQS",
+  "domainSetup": "API",
+  "suppressionMode": "Bidirectionnelle",
+  "field.region.label": "Région",
+  "field.access.label": "Accès",
+  "field.access.help": "Un rôle CloudFormation (recommandé) ou des clés d’accès IAM.",
+  "field.role_arn.label": "Role ARN",
+  "field.role_arn.help": "Créé par le modèle CloudFormation.",
+  "field.access_key_id.label": "Access key ID",
+  "field.secret_access_key.label": "Secret access key",
+  "field.configuration_set.label": "Configuration set",
+  "field.configuration_set.help": "Créé pendant la configuration\u202F; il publie les événements vers SNS.",
+
+  "account": "{mode, select, sandbox {Sandbox} other {Production}} · {enforcement, select, probation {en cours d’examen (probation)} shutdown {envoi suspendu par AWS} disabled {envoi désactivé} other {aucune mesure appliquée}}",
+
+  "tracking.scope": "Configuration set {name}",
+  "tracking.scopeNone": "Aucun configuration set",
+  "tracking.none": "Les messages sont envoyés sans configuration set\u00A0: aucun suivi des ouvertures ni des clics.",
+  "tracking.openClick": "Le configuration set {name} publie les événements d’ouverture et de clic\u00A0: SES ajoute donc un pixel et réécrit les liens.",
+  "tracking.open": "Le configuration set {name} publie les événements d’ouverture\u00A0: SES ajoute donc un pixel.",
+  "tracking.click": "Le configuration set {name} publie les événements de clic\u00A0: SES réécrit donc les liens.",
+  "tracking.off": "Configuration set {name}\u00A0: suivi des ouvertures et des clics désactivé. Domaine de redirection personnalisé inutile.",
+
+  "provision.topic": "Créer le SNS topic `{topic}` et y abonner `{url}`",
+  "provision.confirm": "Confirmer l’abonnement SNS (handshake)",
+  "provision.configSet": "Créer le configuration set `{name}`",
+  "provision.topicDone": "SNS topic `{topic}` créé et `{url}` abonné",
+  "provision.confirmDone": "Abonnement SNS confirmé (handshake reçu)",
+  "provision.configSetDone": "Configuration set `{name}` créé avec une destination d’événements, suivi désactivé",
+
+  "provision.tenant": "Créer le tenant `{tenant}`",
+  "provision.tenantDone": "Tenant `{tenant}` créé",
+  "provision.tenantNote": "Liste de suppression et suivi de réputation propres à cet espace de travail{hasPolicy, select, yes { (politique {policy})} other {}}, qui ne met en pause que ce tenant",
+  "provision.queue": "Créer le SNS topic `{topic}` et une file SQS qui y est abonnée",
+  "provision.queueDone": "SNS topic `{topic}` créé, avec une file SQS qui y est abonnée\u00A0: `{queue}`",
+  "provision.queuePolicy": "Limiter la file à ce topic et lancer l’interrogation toutes les {seconds}\u00A0s",
+  "provision.queuePolicyDone": "File limitée à ce topic et interrogation lancée toutes les {seconds}\u00A0s",
+
+  "status.incident": "AWS signale un incident SES dans la région {region}.",
+
+  "error.dedicatedIpsDenied": "Le rôle ou les clés utilisés par ReputeCast ne peuvent pas lister les IP dédiées du compte\u00A0: autorisez ses:GetDedicatedIps dans leur politique IAM (le modèle CloudFormation le fait), puis relancez la vérification."
+}

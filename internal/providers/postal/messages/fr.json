@@ -1,0 +1,16 @@
+{
+  "pricing": "auto-hébergé",
+  "terms.0.variant": "auto-hébergé",
+  "terms.0.note": "Vous gérez le serveur\u00A0: c’est donc la politique d’utilisation acceptable de votre hébergeur qui s’applique.",
+  "events": "Webhooks",
+  "domainSetup": "DNS manuel",
+  "suppressionMode": "Locale uniquement",
+  "field.server_url.label": "URL du serveur",
+  "field.server_url.help": "L’adresse de votre interface web Postal, par ex. https://mta.acme.io.",
+  "field.api_key.label": "Clé API",
+  "field.api_key.help": "Postal › votre serveur de messagerie › Credentials › API.",
+
+  "account": "Postal{hasVersion, select, yes { {version}} other {}} · joignable",
+  "error.badKey": "La clé API n’a pas été acceptée.",
+  "error.suspended": "Le serveur de messagerie Postal est suspendu."
+}

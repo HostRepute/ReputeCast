@@ -1,0 +1,42 @@
+{
+  "label.webhooks": "webhooks",
+  "label.suppressionPull": "import des suppressions",
+  "label.suppressionPush": "export des suppressions",
+  "label.suppressionSync": "synchronisation des suppressions",
+  "label.batch": "lots de {n}",
+  "label.domainAPI": "configuration du domaine via l’API",
+  "label.domainDKIM": "DKIM via l’API",
+  "label.quota": "détection du quota",
+  "label.quotaRate": "détection du quota et du débit",
+
+  "terms.allowed": "Selon le manifest de l’adaptateur, les conditions du fournisseur autorisent le marketing de masse vers des listes avec opt-in.",
+  "terms.forbidden": "Selon le manifest de l’adaptateur, les conditions du fournisseur interdisent le marketing de masse\u00A0: utilisez-le pour les e-mails Automatisations et Système.",
+  "terms.yourPolicy": "Auto-hébergé\u00A0: votre propre politique s’applique.",
+
+  "events.webhooks": "Webhooks",
+  "events.none": "Aucun",
+  "domain.api": "API",
+  "domain.dkim": "DKIM via l’API",
+  "domain.manual": "DNS manuel",
+  "suppression.pull": "Import seul",
+  "suppression.push": "Export seul",
+  "suppression.twoWay": "Bidirectionnelle",
+  "suppression.local": "Locale uniquement",
+
+  "call.endpointRefused": "L’adresse définie pour l’adaptateur {name} est refusée\u00A0: {error}.",
+  "call.noAddress": "L’adaptateur {name} n’a pas encore d’adresse. Un admin de l’instance la définit avec `reputecast adapter set-url {id} '<url>'`.",
+  "call.paused": "L’adaptateur {name} ne répond pas\u00A0: ReputeCast suspend donc les appels vers lui jusqu’à {until}.",
+  "call.busy": "{count} appels à l’adaptateur {name} étaient déjà en attente.",
+  "call.unreachable": "L’adaptateur {name} est injoignable\u00A0: {error}.",
+  "call.cutOff": "La réponse de l’adaptateur {name} a été interrompue\u00A0: {error}.",
+  "call.invalid": "L’adaptateur {name} a répondu à l’opération {op} en dehors du protocole\u00A0: {error}.",
+  "call.signature": "L’adaptateur {name} a rejeté la signature de ReputeCast. Générez un nouveau secret avec `reputecast adapter secret {id}`, définissez-le sur le processus de l’adaptateur, et vérifiez les horloges des deux côtés.",
+  "call.refused": "L’adaptateur {name} a refusé la requête\u00A0: {error}",
+  "call.failed": "L’adaptateur {name} a échoué\u00A0: {error}",
+
+  "problem.manifestUnusable": "Ce manifest est inutilisable\u00A0: {error}.",
+  "problem.keyTaken": "{other} est déjà enregistré sous {key}. Mettez-le à jour ou supprimez-le, ou installez l’adaptateur sous un autre ID.",
+  "problem.address": "Cette adresse est inutilisable\u00A0: {error}.",
+  "problem.inUse": "Fournisseurs connectés qui utilisent {name}\u00A0: {count}. Déconnectez-les d’abord.",
+  "problem.adminOnly": "Les adaptateurs communautaires s’exécutent pour tous les espaces de travail de cette instance\u00A0: seuls les admins de l’instance peuvent donc voir ou modifier l’endroit où ils s’exécutent."
+}

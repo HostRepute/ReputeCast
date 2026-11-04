@@ -1,0 +1,19 @@
+{
+  "problem.badColor": "Utilisez une couleur comme #4338CA.",
+  "problem.badFallback": "Choisissez une des polices de repli compatibles avec les e-mails.",
+  "problem.badFontUrl": "Utilisez le lien https de la feuille de style de la police web, avec le nom de la police.",
+  "problem.badLogo": "Cette image n’est pas dans la médiathèque de cet espace de travail. Importez de nouveau le logo.",
+  "problem.oneSection": "Un bloc synchronisé correspond à une section\u00A0: un mj-section ou un mj-wrapper.",
+  "problem.compile": "Le MJML du bloc ne compile pas\u00A0: {error}",
+  "problem.needsUnsubscribe": "Le pied de page doit contenir le lien de désabonnement\u00A0: chaque e-mail qui l’inclut doit en avoir un.",
+  "problem.notSaved": "Enregistrez d’abord le kit de marque\u00A0: l’en-tête et le pied de page synchronisés en découlent.",
+  "problem.syncedName": "Donnez un nom au bloc synchronisé, pour qu’on puisse le trouver dans le panneau Blocs.",
+  "problem.alreadySynced": "Cette section est déjà un bloc synchronisé, ou en contient un. Dissociez-la d’abord pour l’enregistrer comme nouveau bloc.",
+  "problem.holdsSynced": "Un bloc synchronisé ne peut pas contenir un autre bloc synchronisé.",
+  "problem.keepHeaderFooter": "L’en-tête et le pied de page synchronisés restent\u00A0: chaque kit de marque en a. Modifiez-les plutôt.",
+  "problem.badWebsite": "Saisissez l’adresse du site web, comme acme.io.",
+  "problem.unreachable": "Impossible de lire {site} ({reason}). Vérifiez l’adresse et réessayez.",
+  "import.linkContrast": "La couleur {color} n’est pas utilisée pour les liens\u00A0: son contraste est de {ratio}:1 sur fond blanc, sous le seuil de 4,5:1 requis pour un petit texte. Les liens utilisent la couleur suivante de votre site.",
+  "import.svgLogo": "Le logo du site {site} est un SVG, que Gmail et Outlook n’affichent pas. Importez une version PNG.",
+  "import.logoNotAdded": "Le logo du site {site} n’a pas été ajouté à la médiathèque\u00A0: seules les personnes qui modifient les campagnes peuvent ajouter des images. Demandez à l’une d’elles de l’importer."
+}

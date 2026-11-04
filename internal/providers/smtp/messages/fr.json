@@ -1,0 +1,28 @@
+{
+  "pricing": "votre serveur ou relais",
+  "terms.0.note": "La politique d’utilisation acceptable de votre serveur SMTP ou de votre relais s’applique.",
+  "events": "Boîte de réception des rebonds (IMAP/POP3)",
+  "domainSetup": "DNS manuel",
+  "suppressionMode": "Locale uniquement",
+  "field.host.label": "Hôte SMTP",
+  "field.port.label": "Port",
+  "field.tls.label": "Chiffrement",
+  "field.username.label": "Nom d’utilisateur",
+  "field.password.label": "Mot de passe",
+  "field.return_path.label": "Adresse de rebond",
+  "field.return_path.help": "L’expéditeur de l’enveloppe\u202F; les rebonds y arrivent, faites-la donc pointer vers la boîte de réception des rebonds.",
+  "field.bounce_mailbox.label": "Boîte de réception des rebonds (IMAP ou POP3)",
+  "field.bounce_mailbox.help": "SMTP n’a pas de webhooks. ReputeCast lit les rebonds et les plaintes dans cette boîte toutes les minutes.",
+  "field.bounce_password.label": "Mot de passe de la boîte des rebonds",
+
+  "account": "{host} · accepte les e-mails",
+  "test.summary": "{tls, select, starttls {STARTTLS, {version}} implicit {TLS implicite, {version}} other {Sans TLS}} · {auth, select, none {aucune authentification} other {AUTH {mechanism} acceptée}}",
+  "test.noHost": "Saisissez l’hôte SMTP.",
+  "test.noStartTLS": "{host} ne propose pas STARTTLS sur le port {port}. Utilisez le TLS implicite sur le port 465, ou ne désactivez le chiffrement que sur un réseau privé.",
+  "test.noLoginMethod": "{host} ne propose aucune méthode de connexion prise en charge par ReputeCast (méthodes proposées\u00A0: {offered}).",
+  "test.refused": "ECONNREFUSED · aucun service n’écoute sur ce port",
+  "test.notFound": "ENOTFOUND · le nom d’hôte ne se résout pas",
+  "test.timedOut": "ETIMEDOUT · aucune réponse en 15 s (un pare-feu bloque peut-être le port)",
+  "mailbox.rejected": "La boîte de réception a refusé le nom d’utilisateur ou le mot de passe.",
+  "mailbox.missing": "aucune boîte de réception des rebonds n’est encore configurée\u00A0: saisissez son serveur et ses identifiants"
+}

@@ -1,0 +1,5 @@
+{
+  "summary": "Paiement à l’usage · numéros dans 190 pays",
+  "field.auth_id.label": "Auth ID",
+  "field.auth_token.label": "Auth token"
+}

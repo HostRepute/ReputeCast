@@ -1,0 +1,36 @@
+{
+  "problem.name": "Donnez un nom au rôle.",
+  "problem.builtinName": "Le nom «\u00A0{name}\u00A0» est déjà pris par un rôle intégré. Choisissez-en un autre.",
+  "problem.nameTaken": "Un rôle nommé «\u00A0{name}\u00A0» existe déjà. Choisissez un autre nom.",
+  "problem.unknownPermission": "Autorisation inconnue\u00A0: «\u00A0{permission}\u00A0».",
+  "problem.ownerOnly": "L’autorisation {permission} est réservée au rôle Propriétaire.",
+  "problem.builtinEdit": "{role} est un rôle intégré\u00A0: il ne peut pas être modifié. Dupliquez-le pour le personnaliser.",
+  "problem.builtinDelete": "{role} est un rôle intégré\u00A0: il ne peut pas être supprimé.",
+  "problem.assigned": "Le rôle «\u00A0{role}\u00A0» est attribué à {count, plural, one {# membre} other {# membres}}. Attribuez d’abord un autre rôle à {names}, puis supprimez-le.",
+  "problem.pendingInvite": "Le rôle «\u00A0{role}\u00A0» est utilisé par une invitation en attente. Révoquez d’abord l’invitation, puis supprimez-le.",
+
+  "impact.sensitiveNone": "Aucune sélectionnée · 2FA non obligatoire",
+  "impact.sensitive": "{permissions} · 2FA obligatoire",
+  "impact.loses": "Accès perdu pour {who}\u00A0: {permissions}.",
+  "count.members": "{count, plural, one {# membre} other {# membres}}",
+  "count.apiKeys": "{count, plural, one {# clé API} other {# clés API}}",
+  "count.agents": "{count, plural, one {# agent MCP} other {# agents MCP}}",
+
+  "effect.stillEdit": "Peut toujours modifier\u202F; doit demander une approbation pour envoyer",
+  "effect.noLonger": "Ne peut plus {actions}",
+  "effect.twoFactorIdp": "La 2FA devient obligatoire\u202F; leur IdP l’impose déjà",
+  "effect.twoFactorGrace": "La 2FA devient obligatoire (délai de grâce de {days} jours)",
+  "effect.gains": "Obtient {permissions}",
+  "effect.same": "Aucun changement",
+  "effect.keyAutomations": "Les automatisations qui envoient via cette clé échoueront avec une erreur 403",
+  "effect.keyCalls": "Les appels qui nécessitent {permissions} échoueront avec une erreur 403",
+
+  "approvals.sendApprove": "Les membres ayant ce rôle peuvent envoyer et approuver les envois des autres membres\u202F; ils ne peuvent pas approuver les leurs",
+  "approvals.approve": "Les membres ayant ce rôle peuvent approuver les envois des autres membres",
+  "approvals.send": "Les membres ayant ce rôle peuvent envoyer\u202F; la politique d’approbation s’applique toujours aux envois volumineux ou à risque",
+  "approvals.request": "Les membres ayant ce rôle peuvent demander une approbation pour leurs envois, car ils peuvent modifier les campagnes mais pas les envoyer",
+  "approvals.none": "Les membres ayant ce rôle ne peuvent ni envoyer ni demander d’approbation",
+
+  "audit.permissions": "{count, plural, one {# autorisation} other {# autorisations}}",
+  "audit.renamed": "ancien nom\u00A0: «\u00A0{from}\u00A0»"
+}

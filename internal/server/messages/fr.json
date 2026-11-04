@@ -1,0 +1,5 @@
+{
+  "rateLimit.signIn": "Trop de tentatives de connexion depuis votre réseau. Patientez une minute et réessayez.",
+  "rateLimit.api": "Limite de requêtes atteinte. Les requêtes reprennent dans la minute\u202F; les endpoints par lots acceptent jusqu’à {max, number} éléments par appel.",
+  "spa.noscript": "ReputeCast nécessite JavaScript. Les pages publiques (inscription, préférences, archives) fonctionnent sans."
+}

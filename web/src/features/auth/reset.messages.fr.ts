@@ -1,0 +1,38 @@
+import { translate } from '@/i18n'
+import { m } from './reset.messages'
+
+/** French (docs/i18n/glossary-fr.md). */
+export default translate(m, {
+  title: 'Réinitialiser votre mot de passe',
+  emailInvalid: 'Saisissez votre adresse e-mail professionnelle, par exemple you@company.com.',
+  emailUnavailableLabel: 'E-mail indisponible',
+  emailUnavailable: 'Aucun fournisseur d’envoi n’est encore connecté au flux Système\u00A0: l’e-mail de réinitialisation ne peut donc pas partir. Un admin de l’instance peut réinitialiser le mot de passe depuis le serveur\u00A0:',
+  commandNote: 'La commande affiche un lien à usage unique valable {minutes} minutes. Il en va de même pour la réinitialisation de la 2FA\u00A0: <mono>reputecast user reset-2fa --email …</mono>',
+  backToSignIn: 'Retour à la connexion',
+  managedTitle: 'Votre mot de passe est géré par {name}',
+  ssoLabel: 'SSO',
+  managedNote: 'Les comptes {domain} se connectent via {name}. ReputeCast ne stocke pas de mot de passe pour ce compte\u00A0: il n’y a donc rien à réinitialiser ici.',
+  continueWith: 'Continuer avec {name}',
+  lockedOut: 'Accès à {provider} bloqué aussi\u202F? Contactez votre admin {name}.',
+  workEmail: 'E-mail professionnel',
+  emailMe: 'M’envoyer un lien de réinitialisation',
+  sentLabel: 'Envoyé',
+  sent: 'Si {email} appartient à un membre, un lien est en route. Il ne fonctionne qu’une fois et expire dans {minutes} minutes. S’il tarde, vérifiez l’onglet Promotions ou les spams.',
+  expiredLabel: 'Expiré',
+  expired: 'Ce lien de réinitialisation date de plus de 15 minutes ou a déjà été utilisé. <link>Demandez-en un nouveau</link>\u202F; votre mot de passe actuel fonctionne jusqu’à ce que vous le changiez.',
+  foot: '<link>Retour à la connexion</link> · Les espaces de travail qui utilisent le SSO réinitialisent les mots de passe auprès de leur fournisseur d’identité.',
+  newTitle: 'Définir un nouveau mot de passe',
+  checking: 'Vérification du lien de réinitialisation…',
+  errorLabel: 'Erreur',
+  stillWorks: 'Le lien reste valable jusqu’à son expiration.',
+  tryAgain: 'Réessayer',
+  tooShort: 'Utilisez au moins {min} caractères. Les phrases de passe sont acceptées.',
+  mismatch: 'Les deux mots de passe ne correspondent pas.',
+  notSavedLabel: 'Non enregistré',
+  newPassword: 'Nouveau mot de passe',
+  hintBreached: 'Au moins {min} caractères. Vérifié par rapport aux fuites de données connues.',
+  hintPassphrase: 'Au moins {min} caractères. Les phrases de passe sont acceptées.',
+  confirmPassword: 'Confirmer le nouveau mot de passe',
+  save: 'Enregistrer le nouveau mot de passe',
+  tokenFoot: 'Le lien ne fonctionne qu’une fois, jusqu’à {time}. L’enregistrement déconnecte toutes les sessions\u202F; la 2FA reste exigée à la connexion.',
+})

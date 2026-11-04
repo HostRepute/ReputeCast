@@ -1,0 +1,11 @@
+{
+  "summary": "Paiement à l’usage · dans votre compte AWS, à côté de SES",
+  "field.region.label": "Région",
+  "field.access.label": "Accès",
+  "field.role_arn.label": "Role ARN",
+  "field.role_arn.help": "Le rôle créé par le modèle CloudFormation. ReputeCast assume ce rôle avec l’External ID.",
+  "field.external_id.label": "External ID",
+  "field.access_key_id.label": "Access key ID",
+  "field.secret_access_key.label": "Secret access key",
+  "field.opt_out_list.label": "Liste de désinscription"
+}

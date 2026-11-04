@@ -1,0 +1,31 @@
+{
+  "problem.ownScope": "Une clé ne peut pas accéder à des listes hors de votre propre portée.",
+  "problem.expiry": "Choisissez une date d’expiration dans le futur.",
+  "problem.sendOnlyKind": "Seules les clés API peuvent être des clés d’envoi uniquement.",
+  "problem.name": "Donnez un nom à la clé.",
+  "problem.integrationKey": "Cette clé appartient à une intégration. Renouvelez-la dans Paramètres › Intégrations, où l’ancienne clé reste valable pendant 24 heures.",
+  "problem.rotateScope": "Cette clé accède à des listes hors de votre portée\u00A0: vous ne pouvez donc pas la renouveler.",
+  "problem.deleteActive": "Seules les clés expirées ou révoquées peuvent être supprimées. Révoquez-la d’abord.",
+  "problem.unknownPermission": "Autorisation inconnue\u00A0: «\u00A0{permission}\u00A0».",
+  "problem.sendOnlyPermission": "Une clé d’envoi uniquement détient transactional:send et rien d’autre.",
+  "problem.sendOnlyLists": "Les clés d’envoi uniquement ne sont pas limitées par liste\u202F; limitez-les plutôt à des modèles.",
+  "problem.preset": "Choisissez une clé d’envoi uniquement ou des identifiants SMTP.",
+  "problem.template": "Aucun modèle n’a l’ID {id}.",
+  "problem.categories": "Choisissez des catégories de cet espace de travail.",
+  "problem.testAddress": "«\u00A0{address}\u00A0» n’est ni une adresse ni un motif comme qa+*@acme.io.",
+  "problem.testPattern": "«\u00A0{address}\u00A0» n’est pas un motif valide.",
+  "problem.testLive": "Les adresses de test autorisées concernent les clés en mode test\u202F; les clés de production livrent à tout le monde.",
+
+  "label.formerMember": "Ancien membre",
+  "label.deletedCategory": "catégorie supprimée",
+  "agent.needs": "nécessite {permission}",
+
+  "audit.scopeAllTemplates": "tous les modèles",
+  "audit.scopeCategory": "catégorie {names}",
+  "audit.scopeCategories": "catégories {names}",
+  "audit.testMode": "mode test",
+  "audit.smtp": "identifiants SMTP",
+  "audit.expires": "expire le {at, date}",
+  "audit.noExpiry": "sans expiration",
+  "audit.rotated": "nouveau secret {masked} · ancien {old} révoqué"
+}

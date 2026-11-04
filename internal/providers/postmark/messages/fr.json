@@ -1,0 +1,28 @@
+{
+  "pricing": "forfait, à partir de 15\u00A0$US par mois",
+  "pricingPlan": "forfait, {n} par mois",
+  "dedicatedIps": "à partir de 300\u202F000 par mois",
+  "terms.0.variant": "Flux Transactional",
+  "terms.0.note": "Les flux Transactional sont réservés aux e-mails individuels déclenchés par une action de l’utilisateur. Y envoyer du marketing enfreint les conditions de Postmark.",
+  "terms.1.variant": "Flux Broadcast",
+  "terms.1.note": "Exige un lien de désabonnement dans chaque message\u202F; Postmark en ajoute un s’il manque.",
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Bidirectionnelle",
+  "field.server_token.label": "Server API token",
+  "field.server_token.help": "Postmark › Servers › votre serveur › API Tokens.",
+  "field.account_token.label": "Account API token",
+  "field.account_token.help": "Facultatif. Permet à ReputeCast d’ajouter votre domaine et de récupérer ses enregistrements DNS.",
+  "field.message_stream.label": "Flux de messages",
+  "field.message_stream.help": "Le flux transactionnel des e-mails Système et Automatisations.",
+  "field.broadcast_stream.label": "Flux Broadcast",
+  "field.broadcast_stream.help": "Requis pour que le flux Diffusions puisse utiliser Postmark. ReputeCast peut le créer.",
+  "field.monthly_limit.label": "Forfait · e-mails par mois",
+  "field.monthly_limit.help": "Utilisé pour la barre de quota et le coût pour 1\u202F000.",
+
+  "account": "{plan, select, yes {Approuvé · forfait de {n, number} par mois} other {Approuvé}}",
+  "tracking.scope": "Serveur {name}",
+  "tracking.detail": "Le réglage serveur TrackOpens est {opens, select, on {activé} other {désactivé}}, et TrackLinks vaut {links}.",
+  "error.streamsTaken": "les deux ID de flux sont déjà pris\u202F; créez un flux Broadcast dans Postmark et saisissez son ID",
+  "error.domainMissing": "{domain} n’est pas configuré dans Postmark"
+}
