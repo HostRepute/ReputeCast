@@ -167,3 +167,17 @@ func TestSpanishListsJoinBeforeTheNextSound(t *testing.T) {
 		t.Errorf("fr: %q", got)
 	}
 }
+
+func TestQuoteUsesTheLanguagesMarks(t *testing.T) {
+	for l, want := range map[Locale]string{
+		English:    "“Weekly Digest”",
+		Spanish:    "“Weekly Digest”",
+		Vietnamese: "“Weekly Digest”",
+		German:     "„Weekly Digest“",
+		French:     "« Weekly Digest »",
+	} {
+		if got := Quote(l, "Weekly Digest"); got != want {
+			t.Errorf("%s: %q, want %q", l, got, want)
+		}
+	}
+}
