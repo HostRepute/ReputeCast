@@ -51,7 +51,8 @@ for (const p of files(src)) {
     problems.push(`${rel}: show the next page with Pager from components/ui/Pager`)
   if (/\.indeterminate = /.test(text) && rel !== 'src/components/ui/SelectAll.tsx' && rel !== 'src/features/audience/ContactsPage.tsx')
     problems.push(`${rel}: draw a select-all checkbox with SelectAll from components/ui/SelectAll`)
-  if (/messages(\.vi)?\.ts$/.test(rel)) continue
+  // Messages and their translations are text a person reads ("Use a colour like #4338CA."), not styles.
+  if (/messages(\.[a-z]{2,3})?\.ts$/.test(rel)) continue
   const n = (text.match(hex) ?? []).length
   if (n) counts[rel] = n
 }
