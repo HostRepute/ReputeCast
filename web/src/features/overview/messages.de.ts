@@ -6,7 +6,7 @@ export default translate(m, {
   title: 'Übersicht',
   subtitleNoDomain: '{day} · noch keine Versand-Domain',
   newCampaign: 'Neue Kampagne',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   viewEventLog: 'Ereignisprotokoll ansehen',
   restCurrent: 'Der Rest der Übersicht ist aktuell.',
   loadFailed: '{card, select, health {Absenderzustand konnte nicht geladen werden} next {Nächste geplante Kampagne konnte nicht geladen werden} providers {Versandanbieter konnten nicht geladen werden} growth {Abonnentenzuwachs konnte nicht geladen werden} tiers {Engagement-Stufen konnten nicht geladen werden} recent {Letzte Kampagnen konnten nicht geladen werden} other {Diese Karte konnte nicht geladen werden}}',

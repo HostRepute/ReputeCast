@@ -329,7 +329,7 @@ export default translate(m, {
   noFeaturedImage: 'Kein Beitragsbild von „{title}“',
   badgeNew: 'Neu',
   badgeSentIn: 'Gesendet in #{number}',
-  badgeLeftOut: 'Durch Filter ausgeschlossen',
+  badgeLeftOut: 'Herausgefiltert',
   badgeBefore: 'Vor der Aktivierung',
   olderItems: '{count, plural, one {# älterer Eintrag} other {# ältere Einträge}}: {parts}.',
   olderSent: '{count} in #{number} gesendet',

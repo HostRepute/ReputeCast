@@ -229,7 +229,7 @@ function MessageDetail({ d }: { d: Detail }) {
             <span className="k">{stamp(d.at)}</span>
           </div>
         </div>
-        <div className="flex flex-none flex-wrap gap-2">
+        <div className="flex max-w-full flex-none flex-wrap gap-2">
           <Button
             size="sm"
             disabledReason={why}

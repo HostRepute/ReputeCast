@@ -116,7 +116,7 @@ export default translate(m, {
   offlineReason: 'Sie sind offline',
   offlineTitle: 'Version {version} konnte nicht gespeichert werden: {reason}',
   offlineBody: 'Ihre Änderungen seit {time} bleiben in diesem Browser erhalten. ReputeCast versucht es alle 10 Sekunden erneut und speichert, sobald die Verbindung wieder da ist. Schließen Sie den Tab nicht.',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   downloadBackup: 'MJML als Sicherung herunterladen',
   errorTitle: 'Version {version} konnte nicht gespeichert werden',
   errorBody: '{message} Ihre Änderungen sind noch auf der Arbeitsfläche.',

@@ -565,7 +565,7 @@ export default translate(m, {
   offlineBody: 'Ihre Änderungen seit {time} bleiben in diesem Browser erhalten. ReputeCast versucht es alle 10 Sekunden erneut und speichert, sobald die Verbindung wieder da ist.',
   errorTitle: 'Version {version} konnte nicht gespeichert werden',
   errorBody: '{message} Ihre Änderungen sind noch auf der Seite.',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   leaveTitle: 'Seiteneditor verlassen?',
   leaveBody: 'Ihre letzten Änderungen sind noch nicht gespeichert. Wenn Sie jetzt gehen, bleibt Version {version}; Speichern erstellt Version {next}.',
   leaveSave: 'Als v{version} speichern und verlassen',

@@ -414,10 +414,13 @@
   }
 }
 
-/* The page builder's block tiles (PageBuilder): a name longer than its tile
-   breaks inside the word instead of spilling out of the button, as the
-   pseudo-locale's "Ţéšţîmöñîåļš" would. */
-:root:not([lang='en']) .pb .blk {
+/* The composer's and the page builder's block tiles (Composer,
+   PageBuilder): a name longer than its tile is hyphenated where the
+   language allows it (German "Navigations-leiste", "Produkt-raster"), and
+   breaks inside the word otherwise, instead of spilling out of the button,
+   as the pseudo-locale's "Ţéšţîmöñîåļš" would. */
+:root:not([lang='en']) .blk {
+  hyphens: auto;
   overflow-wrap: anywhere;
 }
 
@@ -552,4 +555,19 @@
   :root:not([lang='en']) .ih-stat .ih-v {
     font-size: 19px;
   }
+}
+
+/* SMS capability chips and route pills (sms/ProvidersPage, sms/ComposerPage):
+   a long capability ("Abmelde-Synchronisierung · aus Antworten und
+   abgelehnten SMS") or a route over several countries ("Vereinigtes
+   Königreich, Deutschland und Niederlande über Vonage") wraps inside its
+   chip on a phone instead of pushing the page sideways. */
+:root:not([lang='en']) :is(.sms-cap, .sms-pill) {
+  height: auto;
+  min-height: 24px;
+  max-width: 100%;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  white-space: normal;
+  line-height: 1.3;
 }

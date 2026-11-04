@@ -104,7 +104,7 @@ export default {
     metaFailed: 'Die Einstellungen der Vorlage konnten nicht gespeichert werden',
     offlineTitle: 'Der Entwurf konnte nicht gespeichert werden: Sie sind offline',
     offlineBody: 'Ihre Änderungen seit {time} bleiben in diesem Browser erhalten. ReputeCast versucht es alle 10 Sekunden erneut und speichert, sobald die Verbindung wieder da ist. Schließen Sie den Tab nicht.',
-    retryNow: 'Jetzt erneut versuchen',
+    retryNow: 'Jetzt wiederholen',
     downloadBackup: 'MJML als Sicherung herunterladen',
     someone: 'Jemand',
     conflictBadge: 'Konflikt',

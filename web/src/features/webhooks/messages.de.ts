@@ -66,7 +66,7 @@ export default translate(m, {
   nextRetryBackoff: '{time} · Backoff {minutes} Min.',
   heldPaused: 'Zurückgehalten · Endpunkt pausiert',
   now: 'Jetzt',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   replay: 'Erneut ausführen',
   payload: 'Payload',
   payloadOf: 'Payload von {event} um {time}',

@@ -71,7 +71,7 @@ export default translate(m, {
   toldValue: '{names}, in der App und per E-Mail',
   replaceCredentials: 'Zugangsdaten ersetzen',
   routesBtn: 'Routen',
-  retryNow: 'Jetzt erneut versuchen',
+  retryNow: 'Jetzt wiederholen',
   silentNote: 'Seit 2 Stunden keine Bestätigungen von {name}, obwohl SMS gesendet wurden. Prüfen Sie {adapter, select, twilio {den Status-Callback} other {den Webhook für Zustellbestätigungen}} in {name}.',
   textsSince: 'SMS seitdem',
   textsSinceValue: '{sent} gesendet · {receipts} Bestätigungen',
