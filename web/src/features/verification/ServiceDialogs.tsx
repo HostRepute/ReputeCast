@@ -8,7 +8,7 @@ import { useT } from '@/i18n'
 import { andList, clock } from '@/lib/format'
 import { useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
-import { base, Notice, useRefreshVerification, type ServiceView } from './shared'
+import { base, Notice, priceValue, useRefreshVerification, type ServiceView } from './shared'
 
 type KeyTest = { ok: boolean; at: string; balance?: number; problem?: string; status?: number }
 
@@ -86,7 +86,7 @@ export function ConnectDialog({ v, open, onOpenChange, otherForms, otherBulk }: 
     setError(undefined)
     const res = await http.POST(`${base}/services`, {
       params: { path: { workspace: slug } },
-      body: { service: v.key, apiKey: key.trim(), price: Number(price) || 0, defaultBulk: bulk, defaultForms: forms, region: (region || undefined) as 'us' | undefined },
+      body: { service: v.key, apiKey: key.trim(), price: priceValue(price) || 0, defaultBulk: bulk, defaultForms: forms, region: (region || undefined) as 'us' | undefined },
     })
     setBusy(undefined)
     if (!res.data) {
@@ -98,7 +98,7 @@ export function ConnectDialog({ v, open, onOpenChange, otherForms, otherBulk }: 
     toast({ kind: 'success', title: t(m.connectedToast, { name: v.name }) })
   }
   const rejected = test && !test.ok
-  const blocked = !key.trim() ? t(m.pasteKey) : !test?.ok ? t(m.testFirst) : !(Number(price) > 0) ? t(m.priceInvalid) : undefined
+  const blocked = !key.trim() ? t(m.pasteKey) : !test?.ok ? t(m.testFirst) : !(priceValue(price) > 0) ? t(m.priceInvalid) : undefined
   return (
     <Dialog
       open={open}

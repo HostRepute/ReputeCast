@@ -62,6 +62,11 @@ export function useJob(id: string, enabled = true) {
 }
 
 /** "$0.008" a check, "$28.92", in the reader's region format. */
+/** A price as typed: "0.008" or, in a region format with a decimal comma, "0,008". */
+export function priceValue(v: string): number {
+  return Number(v.trim().replace(',', '.'))
+}
+
 export function money(v: number, perCheck = false): string {
   return perCheck ? formatMoney(v, 3) : formatMoney(v)
 }
