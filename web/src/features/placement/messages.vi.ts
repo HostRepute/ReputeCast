@@ -82,6 +82,7 @@ export default translate(m, {
   factAsScheduled: 'như đã lên lịch',
   factScheduled: 'lên lịch {date}',
   factSent: 'đã gửi {date}',
+  factSentNoDate: 'đã gửi',
   factKeyVersion: '{key} v{version}',
   factTestData: 'dữ liệu thử “{name}”',
   factFromReview: 'từ Kiểm tra và gửi',

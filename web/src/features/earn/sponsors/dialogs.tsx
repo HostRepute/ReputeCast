@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input, Select, Textarea, Toggle } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
+import { parseAmount as parseMoney } from '@/features/products/format'
 import { useT } from '@/i18n'
 import { dayMonthYear, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -19,12 +20,14 @@ import { Initials, NoteIcon, WS, inputDay, sponsorKeys, type SlotItem, type Spon
 // Currencies without minor units (Stripe's zero-decimal currencies).
 const zeroDecimal = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf'])
 
-/** "750", "1,500.50" → minor units; undefined when it isn't an amount. */
+/**
+ * "750", "1,500.50", and with a decimal comma "750,00" or "1.500,50" → minor
+ * units; undefined when it isn't an amount. A comma used to be read as a
+ * thousands separator only, so "750,00" was 75,000.
+ */
 export function parseAmount(raw: string, currency: string): number | undefined {
-  const s = raw.replace(/[\s,]/g, '').replace(/^[^\d.]+/, '')
-  if (!/^\d+(\.\d{1,2})?$/.test(s)) return undefined
-  const v = Number(s)
-  return zeroDecimal.has(currency.toLowerCase()) ? Math.round(v) : Math.round(v * 100)
+  const v = parseMoney(raw, currency)
+  return v === null || Number.isNaN(v) ? undefined : v
 }
 
 /** Minor units as an input shows them: "750.00". */
