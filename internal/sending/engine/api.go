@@ -229,6 +229,9 @@ func Register(h huma.API, e *Engine) {
 			if err != nil {
 				return nil, err
 			}
+			if err := e.inScope(ctx, id); err != nil {
+				return nil, err
+			}
 			req := ResumeRequest{Mailbox: in.Body.Mailbox, WithChanges: in.Body.WithChanges, Limit: in.Body.Limit}
 			if in.Body.Rate != nil && !in.Body.WithChanges {
 				req.Changes = &ResumeChanges{Mailbox: in.Body.Mailbox, Rate: *in.Body.Rate}
@@ -320,6 +323,9 @@ func Register(h huma.API, e *Engine) {
 			if err != nil {
 				return nil, err
 			}
+			if err := e.inScope(ctx, id); err != nil {
+				return nil, err
+			}
 			from, err1 := uuid.Parse(in.Body.FromProviderID)
 			to, err2 := uuid.Parse(in.Body.ToProviderID)
 			if err1 != nil || err2 != nil {
@@ -336,6 +342,9 @@ func Register(h huma.API, e *Engine) {
 			ctx = ownAPI(ctx)
 			id, by, err := e.actionIDs(ctx, in.CampaignID)
 			if err != nil {
+				return nil, err
+			}
+			if err := e.inScope(ctx, id); err != nil {
 				return nil, err
 			}
 			pid, err := uuid.Parse(in.Body.ProviderID)
@@ -361,6 +370,11 @@ func Register(h huma.API, e *Engine) {
 					return nil, api.Invalid("body.providerId", say(ctx, "problem.providerId", nil))
 				}
 				pid = &p
+			}
+			if in.Body.Action == "resend" {
+				if err := e.inScope(ctx, id); err != nil {
+					return nil, err
+				}
 			}
 			n, err := e.ResolveInDoubt(ctx, id, by, in.Body.Action == "resend", pid)
 			if err != nil {
@@ -412,6 +426,26 @@ func (e *Engine) actionIDs(ctx context.Context, raw string) (uuid.UUID, uuid.UUI
 		by = p.ID
 	}
 	return id, by, nil
+}
+
+// inScope refuses an action that lets a send's mail go out again (resume,
+// retry or move a held share, send the messages in doubt again, continue
+// after the canary) to a member, key or agent limited to lists or sender
+// domains the campaign doesn't stay within, as Review & send refuses to
+// start it. Stopping a send never needs it.
+func (e *Engine) inScope(ctx context.Context, id uuid.UUID) error {
+	ws := api.WorkspaceFrom(ctx)
+	if ws == nil {
+		return nil
+	}
+	msg, err := access.CampaignSendProblem(ctx, e.Q, i18n.LangFrom(ctx), api.PrincipalFrom(ctx), ws.ID, id)
+	if err != nil {
+		return api.MapError(err, "Campaign")
+	}
+	if msg != "" {
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, msg)
+	}
+	return nil
 }
 
 // mapErr turns the engine's errors into problems in the request's language.

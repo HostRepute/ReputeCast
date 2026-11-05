@@ -7,9 +7,40 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 )
+
+const accessScopeCampaign = `-- name: AccessScopeCampaign :one
+SELECT c.audience, coalesce(d.domain, '')::text AS sender_domain, coalesce(s.email, '')::text AS sender_email
+FROM campaigns c
+LEFT JOIN senders s ON s.id = c.sender_id
+LEFT JOIN sending_domains d ON d.id = s.domain_id
+WHERE c.workspace_id = $1 AND c.id = $2
+`
+
+type AccessScopeCampaignParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+type AccessScopeCampaignRow struct {
+	Audience     json.RawMessage `json:"audience"`
+	SenderDomain string          `json:"senderDomain"`
+	SenderEmail  string          `json:"senderEmail"`
+}
+
+// A campaign's audience and the domain it sends from, to check that a send,
+// a schedule or a resume stays within the caller's lists and sender
+// domains. Its sender's sending domain, and its address for a sender whose
+// domain is gone.
+func (q *Queries) AccessScopeCampaign(ctx context.Context, arg AccessScopeCampaignParams) (AccessScopeCampaignRow, error) {
+	row := q.db.QueryRow(ctx, accessScopeCampaign, arg.WorkspaceID, arg.ID)
+	var i AccessScopeCampaignRow
+	err := row.Scan(&i.Audience, &i.SenderDomain, &i.SenderEmail)
+	return i, err
+}
 
 const accessScopeContact = `-- name: AccessScopeContact :one
 

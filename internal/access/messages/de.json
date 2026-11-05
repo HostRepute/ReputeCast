@@ -16,5 +16,6 @@
   "notHoldable.placementManage": "Nicht für Agenten: Passwörter und Tokens von Testpostfächern können ganze Postfächer lesen",
   "notHoldable.agents": "MCP-Agenten können {permission} nicht erhalten. Vergeben Sie die Berechtigung an einen API-Schlüssel oder eine Person.",
 
-  "problem.audienceScope": "Ihr Zugriff ist auf einige Listen beschränkt: Senden Sie nur an diese Listen, nicht an andere Listen oder ein Segment."
+  "problem.audienceScope": "Ihr Zugriff ist auf einige Listen beschränkt: Senden Sie nur an diese Listen, nicht an andere Listen oder ein Segment.",
+  "problem.senderScope": "Ihr Zugriff ist auf einige Absender-Domains beschränkt, und diese Kampagne wird von {domain} gesendet. Wählen Sie im Editor eine Absenderadresse auf einer Ihrer Domains oder fragen Sie jemanden, der von {domain} senden darf."
 }

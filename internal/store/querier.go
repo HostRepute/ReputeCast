@@ -82,6 +82,11 @@ type Querier interface {
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).
 	// The member's latest request for this role in the last day (one a day).
 	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
+	// A campaign's audience and the domain it sends from, to check that a send,
+	// a schedule or a resume stays within the caller's lists and sender
+	// domains. Its sender's sending domain, and its address for a sender whose
+	// domain is gone.
+	AccessScopeCampaign(ctx context.Context, arg AccessScopeCampaignParams) (AccessScopeCampaignRow, error)
 	// Scope checks shared by every domain (internal/access): a member, API key
 	// or agent limited to some lists sees only the contacts on them.
 	// Whether one of a scoped caller's lists has the contact, in any status, as
