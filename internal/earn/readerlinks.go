@@ -14,9 +14,9 @@ import (
 // The paid tokens a campaign fills in per reader at send time (brief §3.7):
 // {{ upgrade_url }} is the upgrade page, which knows the reader and credits
 // the email it came from; {{ manage_subscription_url }} is the reader's
-// billing link (Stripe's portal). Like the unsubscribe link, they aren't
-// redirected through click tracking: the upgrade page records the click
-// itself (UpgradeClicked).
+// billing link (Stripe's portal), which works for LinkValidInEmail. Like
+// the unsubscribe link, they aren't redirected through click tracking:
+// the upgrade page records the click itself (UpgradeClicked).
 
 // ReaderLink is a link a campaign fills in per reader.
 type ReaderLink struct {
@@ -51,7 +51,7 @@ func (s *Service) ReaderLinks(ctx context.Context, wsID uuid.UUID) ([]ReaderLink
 			if contact == uuid.Nil {
 				return ""
 			}
-			return billing + s.Links.Sign(linktoken.Claims{Kind: TokenBilling, WorkspaceID: wsID, ContactID: contact})
+			return billing + s.memberToken(wsID, TokenBilling, contact, LinkValidInEmail)
 		}},
 	}, nil
 }

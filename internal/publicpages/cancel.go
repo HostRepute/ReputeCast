@@ -26,14 +26,15 @@ type cancelBody struct {
 	NotYou      string
 	Preferences string
 	TermsURL    string
-	// The expired link's form asks for a new link by email.
+	// The expired link's form asks for new billing and cancel links by
+	// email (billingRequest).
 	RequestAction string
 	RequestToken  string
 }
 
 func (h *Handler) cancelBody(ctx context.Context, s *site, v offers.CancelView, token string) cancelBody {
 	b := cancelBody{CancelView: v, Action: earnLink(s.links, "cancel/"+token), NotYou: s.links.PreferencesRequest(), Preferences: s.links.PreferencesRequest(),
-		RequestAction: s.links.PreferencesRequest(), RequestToken: h.Forms.FormToken("prefs:"+s.ws.ID.String(), h.now())}
+		RequestAction: earnLink(s.links, "billing"), RequestToken: h.Forms.FormToken("prefs:"+s.ws.ID.String(), h.now())}
 	if h.Earn != nil {
 		b.TermsURL = h.Earn.PageSettingsOf(ctx, s.ws.ID).TermsURL
 	}

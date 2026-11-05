@@ -2,7 +2,10 @@
   {{template "brand" $}}
   <div class="col4"><h1 class="h26">{{$.T "unsub.heading" "email" .Email}}</h1><span class="sub">{{.OnLists}}</span></div>
   {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}
-  {{with .Paid}}<div class="ea-mine" role="note"><p>{{.Text}}</p>{{with .Cancel}}<a class="u" href="{{.}}">{{$.Body.Paid.CancelLabel}}</a>{{end}}</div>
+  {{with .Paid}}<div class="ea-mine" role="note"><p>{{.Text}}</p>{{with $.Body.Billing}}<form method="post" action="{{.Action}}">
+    <input type="hidden" name="t" value="{{.Token}}"><input type="hidden" name="_lang" value="{{$.Lang}}">
+    <button class="u ea-cancel" type="submit"{{if $.Preview}} disabled{{end}}>{{$.Body.Paid.CancelLabel}}</button>
+  </form><span class="t13">{{.Note}}</span>{{end}}</div>
   {{end}}
   {{if .Fewer}}<form class="fewer" method="post" action="{{.Action}}">
     <input type="hidden" name="action" value="fewer">

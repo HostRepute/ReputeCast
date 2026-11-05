@@ -11,7 +11,8 @@ package publicpages
 //	/p/{workspace}/upgrade[/{tier}]       the upgrade page (a hidden tier's own link)
 //	/p/{workspace}/upgrade/checkout       POST: opens Stripe Checkout
 //	/p/{workspace}/upgrade/welcome        after checkout (?session=)
-//	/p/{workspace}/billing/{token}        a paid member's billing portal
+//	/p/{workspace}/billing/{token}        a paid member's billing portal (the link expires)
+//	/p/{workspace}/billing                POST: email a paid member fresh billing and cancel links
 //	/p/{workspace}/cancel/{token}         the portal's cancel step (the cancel page comes with offers)
 //	/p/{workspace}/gift…                  the gift pages (gift.go, X17)
 
@@ -21,13 +22,17 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/offers"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -40,6 +45,7 @@ func (h *Handler) earnRoutes(r chi.Router) {
 	r.Get("/upgrade/{tier}", h.upgradePage)
 	r.Get("/billing/{token}", h.billingPortal)
 	r.Head("/billing/{token}", h.headOnly)
+	r.Post("/billing", h.billingRequest)
 	r.Get("/cancel/{token}", h.cancelPage)
 	r.Post("/cancel/{token}", h.cancelPost)
 	r.Head("/cancel/{token}", h.headOnly)
@@ -48,21 +54,24 @@ func (h *Handler) earnRoutes(r chi.Router) {
 }
 
 // earnRootPaths are the Earn pages on a verified custom domain.
-var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing/*", "/cancel/*", "/gift", "/gift/*"}
+var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing", "/billing/*", "/cancel/*", "/gift", "/gift/*"}
 
 // upgradeBody is the upgrade page.
 type upgradeBody struct {
-	View        earn.UpgradeView
-	Action      string
-	Token       string
-	Test        string
-	MonthHref   string
-	YearHref    string
-	ArchiveHref string
-	TermsURL    string
-	Upgrading   string
-	Retry       string
-	Footer      string
+	View   earn.UpgradeView
+	Action string
+	Token  string
+	// BillingAction is where a paid member's "Manage your subscription"
+	// asks for a billing link by email (billingRequest).
+	BillingAction string
+	Test          string
+	MonthHref     string
+	YearHref      string
+	ArchiveHref   string
+	TermsURL      string
+	Upgrading     string
+	Retry         string
+	Footer        string
 }
 
 // welcomeBody is the welcome page after checkout.
@@ -146,8 +155,9 @@ func (h *Handler) renderUpgrade(w http.ResponseWriter, r *http.Request, s *site,
 		}
 		return earnLink(s.links, page) + "?" + q.Encode()
 	}
-	body := upgradeBody{View: v, Action: earnLink(s.links, "upgrade/checkout"), Token: req.Token, Test: req.TestToken, MonthHref: period("month"),
-		YearHref: period("year"), ArchiveHref: s.links.Archive(), TermsURL: v.TermsURL, Upgrading: earn.TextIn(v.Lang, "page.upgrading", nil), Retry: r.URL.String()}
+	body := upgradeBody{View: v, Action: earnLink(s.links, "upgrade/checkout"), Token: req.Token, BillingAction: earnLink(s.links, "billing"), Test: req.TestToken,
+		MonthHref: period("month"), YearHref: period("year"), ArchiveHref: s.links.Archive(), TermsURL: v.TermsURL, Upgrading: earn.TextIn(v.Lang, "page.upgrading", nil),
+		Retry: r.URL.String()}
 	vw := h.earnView(r, s, h.earnTitle(s, v.Headline), body, pl)
 	vw.Description = v.Intro
 	vw.Canonical = earnLink(s.canon, "upgrade")
@@ -227,7 +237,7 @@ func (h *Handler) cancelPortal(w http.ResponseWriter, r *http.Request) {
 }
 
 // portal sends a paid member to Stripe's billing portal (its cancel step
-// for the cancel link).
+// for the cancel link), from a link still within its time.
 func (h *Handler) portal(w http.ResponseWriter, r *http.Request, kind linktoken.Kind) {
 	s, ok := h.siteOr404(w, r)
 	if !ok {
@@ -242,6 +252,10 @@ func (h *Handler) portal(w http.ResponseWriter, r *http.Request, kind linktoken.
 	switch {
 	case errors.Is(err, earn.ErrBadLink):
 		h.notFound(w, r, s)
+		return
+	case errors.Is(err, earn.ErrLinkExpired):
+		pl, r := h.earnLinkLang(w, r, s, token, kind)
+		h.linkExpired(w, r, s, pl)
 		return
 	case errors.Is(err, earn.ErrNoSubscription):
 		pl, r := h.earnLinkLang(w, r, s, token, kind)
@@ -272,6 +286,103 @@ func (h *Handler) toProvider(w http.ResponseWriter, r *http.Request, s *site, to
 	http.Redirect(w, r, u.String(), http.StatusSeeOther) //nolint:gosec // G710: the provider's session address, checked above
 }
 
+// linkExpired is the page of a billing or cancel link that no longer
+// works (past its time, or signed with an earlier instance key): the
+// member types their address to get a new one (billingRequest).
+func (h *Handler) linkExpired(w http.ResponseWriter, r *http.Request, s *site, pl pageLang) {
+	h.renderCancel(w, r, s, h.cancelBody(r.Context(), s, offers.ExpiredView(r.Context()), ""), http.StatusGone, pl)
+}
+
+// billingForm asks for a paid member's billing and cancel links by email,
+// on a page reached through a link that never expires: the preference
+// center (every "view online" page links to it), the unsubscribe page and
+// the upgrade page of an email. Such links get forwarded, so the pages
+// don't open the portal themselves; the links go to the address on file
+// and work for an hour.
+type billingForm struct {
+	Action, Token, Note string
+}
+
+// billingFormFor is the form of a contact's page, in its language.
+func (h *Handler) billingFormFor(s *site, contact uuid.UUID, email string, l i18n.Lang) *billingForm {
+	return &billingForm{Action: earnLink(s.links, "billing"), Token: h.sign(s, linktoken.Preferences, contact, uuid.Nil),
+		Note: earn.TextIn(l, "portal.emailed", i18n.Args{"email": email})}
+}
+
+// billingKinds are the links that name the paid member asking for billing
+// links: the pages' own, and billing and cancel links, past their time or
+// not (asking only sends a new link to the address on file).
+var billingKinds = []linktoken.Kind{linktoken.Preferences, linktoken.Unsubscribe, earn.TokenUpgrade, earn.TokenBilling, earn.TokenCancel}
+
+// billingRequest emails a paid member fresh links to their billing portal
+// and their cancel page (earn.SendBillingLink): from a page's form, whose
+// link names them (t), or from an expired link's page, where they type
+// their address. The links go only to the address on file, at most one
+// email per member every ten minutes, and the answer is the same whatever
+// happens.
+func (h *Handler) billingRequest(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.siteOr404(w, r)
+	if !ok {
+		return
+	}
+	if h.Earn == nil {
+		h.notFound(w, r, s)
+		return
+	}
+	if !h.parseForm(w, r, 8<<10) {
+		http.Error(w, h.formUnreadable(r, s), http.StatusBadRequest)
+		return
+	}
+	ctx := r.Context()
+	f := r.PostForm
+	contact, email := uuid.Nil, strings.TrimSpace(f.Get("email"))
+	if t := f.Get("t"); t != "" {
+		for _, k := range billingKinds {
+			if c, ok := h.claims(s, t, k); ok && c.ContactID != uuid.Nil {
+				contact = c.ContactID
+				break
+			}
+		}
+		pc, err := h.Audience.LoadPublicContact(ctx, h.Q, s.ws, contact)
+		if err != nil {
+			h.notFound(w, r, s)
+			return
+		}
+		email = pc.Email
+	} else if email == "" {
+		h.notFound(w, r, s)
+		return
+	}
+	pl := h.langOf(w, r, s, languages.Base(f.Get("_lang")))
+	ip := "unknown"
+	if a := clientIP(r); a != nil {
+		ip = a.String()
+	}
+	// Bots fill the invisible field; like a visitor over the limit, they
+	// get the same answer and nothing is sent.
+	if h.Forms.AllowPerMinute("billing-ip:"+ip, 3) && f.Get("website") == "" {
+		if contact == uuid.Nil {
+			id, found, err := h.Audience.FindPublicContact(ctx, h.Q, s.ws, email)
+			if err != nil {
+				h.serverError(w, r, s, err)
+				return
+			}
+			if found {
+				contact = id
+			}
+		}
+		if contact != uuid.Nil && h.Forms.Allow("billing-contact:"+contact.String(), 10*time.Minute) {
+			if err := h.Earn.SendBillingLink(ctx, s.ws, contact, pl.Labels.Lang()); err != nil {
+				h.log().WarnContext(ctx, "send a billing link", "err", err)
+			}
+		}
+	}
+	l := pl.Labels.Lang()
+	head := earn.TextIn(l, "portal.sentTitle", nil)
+	h.messageIn(w, r, s, pl, http.StatusOK, h.earnTitle(s, head), messageBody{Icon: "mail", Heading: head,
+		Text: earn.TextIn(l, "portal.sentText", i18n.Args{"email": email})}, true)
+}
+
 // earnMessage is a one-message Earn page in its language: heading and text
 // are internal/earn's messages.
 func (h *Handler) earnMessage(w http.ResponseWriter, r *http.Request, s *site, pl pageLang, status int, heading, text string) {
@@ -299,7 +410,7 @@ func (h *Handler) EarnRender(ctx context.Context, ws *store.Workspace, page stri
 		// default language).
 		uv, _ := data.(earn.UpgradeView)
 		pl := h.fixedLang(ctx, s, string(uv.Lang.Locale), func(string) bool { return true })
-		v = h.earnView(nil, s, h.earnTitle(s, uv.Headline), upgradeBody{View: uv, Action: "#", ArchiveHref: s.links.Archive(), TermsURL: uv.TermsURL,
+		v = h.earnView(nil, s, h.earnTitle(s, uv.Headline), upgradeBody{View: uv, Action: "#", BillingAction: "#", ArchiveHref: s.links.Archive(), TermsURL: uv.TermsURL,
 			Upgrading: earn.TextIn(uv.Lang, "page.upgrading", nil)}, pl)
 	default:
 		return "", errors.New("publicpages: no Earn page " + page)

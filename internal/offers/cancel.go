@@ -89,6 +89,13 @@ func freeName(t *earn.CancelTarget) string {
 	return ""
 }
 
+// ExpiredView is the page of a cancel or billing link that no longer
+// works: past its time, or signed with an earlier instance key. It asks
+// for the member's address to email a new one.
+func ExpiredView(ctx context.Context) CancelView {
+	return CancelView{State: "expired", Heading: page(ctx, "cancel.expiredTitle", nil), Text: page(ctx, "cancel.expiredText", nil), Words: words(ctx)}
+}
+
 // CancelPage is the page for a cancel link. done is the return from the
 // provider's portal. Each visit is counted once per half hour.
 func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token string, done bool) (CancelView, error) {
@@ -98,8 +105,7 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 	case errors.Is(err, earn.ErrLinkInvalid):
 		return v, err
 	case errors.Is(err, earn.ErrLinkExpired):
-		v.State, v.Heading, v.Text = "expired", page(ctx, "cancel.expiredTitle", nil), page(ctx, "cancel.expiredText", nil)
-		return v, nil
+		return ExpiredView(ctx), nil
 	case errors.Is(err, earn.ErrNoSubscription):
 		v.State, v.Heading, v.Text = "none", page(ctx, "cancel.noneTitle", nil), page(ctx, "cancel.noneText", nil)
 		return v, nil
@@ -147,7 +153,9 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 	v.Continue, v.Note = page(ctx, "cancel.continue", nil), page(ctx, "cancel.note", nil)
 	switch {
 	case t.Sub.Status == "past_due":
-		v.PastDue, v.BillingURL = true, s.Earn.BillingURL(ctx, ws, t.Contact.ID)
+		// The cancel link is itself a member's link that expires: a
+		// billing link from its page needs only to work while it's open.
+		v.PastDue, v.BillingURL = true, s.Earn.BillingURL(ctx, ws, t.Contact.ID, earn.LinkValidAsked)
 		v.Lead = page(ctx, "cancel.leadPastDue", a)
 	case end != nil && freeName(t) != "":
 		v.Lead = page(ctx, "cancel.lead", a)

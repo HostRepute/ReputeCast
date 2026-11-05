@@ -38,6 +38,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -53,7 +54,8 @@ var msgs = i18n.MustLoad(messagesFS, "earn")
 
 // Link token kinds of the Earn pages (numbered after the workstream so
 // parallel kinds never collide): a reader's personal upgrade link, the
-// link that opens their billing portal, and their cancel page.
+// link that opens their billing portal, and their cancel page. Billing
+// and cancel links expire (billinglinks.go).
 const (
 	TokenUpgrade linktoken.Kind = 160
 	TokenBilling linktoken.Kind = 161
@@ -185,6 +187,9 @@ type Service struct {
 	// Mailer sends member emails (nil: none are sent; they are logged as
 	// not sent).
 	Mailer Mailer
+	// Mail sends System mail: the billing link a member asks for
+	// (SendBillingLink; nil: none is sent).
+	Mail func() mailer.Sender
 	// Signup joins lists with consent; Confirmations sends double opt-in.
 	Signup        Signup
 	Confirmations Confirmations

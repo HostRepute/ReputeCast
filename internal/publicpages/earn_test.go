@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -22,8 +23,9 @@ func TestEarnPages(t *testing.T) {
 	insider := one[uuid.UUID](t, env, `SELECT id FROM earn_tiers WHERE workspace_id = $1 AND name = 'Weekly Digest Insider'`, ids.ws)
 	free := one[uuid.UUID](t, env, `SELECT c.id FROM contacts c JOIN list_memberships m ON m.contact_id = c.id AND m.list_id = $2 AND m.status = 'subscribed'
 		WHERE c.workspace_id = $1 AND c.status = 'active' AND NOT EXISTS (SELECT 1 FROM paid_subscriptions p WHERE p.contact_id = c.id) ORDER BY c.email LIMIT 1`, ids.ws, ids.digest)
+	// Personal links, the billing and cancel ones working for an hour.
 	earnToken := func(kind linktoken.Kind, contact uuid.UUID) string {
-		return env.App.Links.Sign(linktoken.Claims{Kind: kind, WorkspaceID: ids.ws, ContactID: contact})
+		return env.App.Links.Sign(linktoken.Claims{Kind: kind, WorkspaceID: ids.ws, ContactID: contact, Link: linktoken.UntilMinute(time.Now().Add(time.Hour))})
 	}
 
 	// The upgrade page, for anyone; checkout is Stripe's page.
@@ -51,8 +53,11 @@ func TestEarnPages(t *testing.T) {
 	r = do(t, env, http.MethodPost, "/p/"+wsSlug+"/upgrade/checkout", url.Values{"tier": {uuid.NewString()}, "period": {"year"}}, nil)
 	must(t, r, http.StatusServiceUnavailable, "Payments aren’t available right now", "Nothing was charged")
 
-	// The welcome page after checkout.
-	must(t, get(t, env, "/p/"+wsSlug+"/upgrade/welcome?session=cs_live_demoSamRiveraFALL26"), 200, "Sam", "What's included", "Read past issues")
+	// The welcome page after checkout. Its address names the checkout for
+	// good: past the hour after paying, it doesn't open the portal.
+	r = get(t, env, "/p/"+wsSlug+"/upgrade/welcome?session=cs_live_demoSamRiveraFALL26")
+	must(t, r, 200, "Sam", "What's included", "Read past issues")
+	lacks(t, r, "/billing/")
 	must(t, get(t, env, "/p/"+wsSlug+"/upgrade/welcome?session=cs_live_nobodyEverPaid"), 404)
 
 	// Billing: Sam's link opens Stripe's portal; a free reader has nothing to manage.

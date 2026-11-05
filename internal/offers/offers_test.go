@@ -210,7 +210,7 @@ func TestOneRetentionOfferIn12Months(t *testing.T) {
 		ORDER BY s.started_at LIMIT 1`, s.ws.ID, s.insider).Scan(&sub.ID, &contact); err != nil {
 		t.Fatal(err)
 	}
-	link := s.env.App.Earn().CancelURL(ctx, &s.ws, contact)
+	link := s.env.App.Earn().CancelURL(ctx, &s.ws, contact, earn.LinkValidInEmail)
 	path := "/p/acme-newsletter/cancel/" + link[strings.LastIndex(link, "/cancel/")+len("/cancel/"):]
 	reader := s.env.Client()
 	page := reader.Do(http.MethodGet, path, nil).MustStatus(t, 200)
@@ -287,6 +287,23 @@ func TestOneRetentionOfferIn12Months(t *testing.T) {
 	if gone.Status != http.StatusGone || !strings.Contains(string(gone.Body), "This link has expired") || !strings.Contains(string(gone.Body), "Email me my link") {
 		t.Fatalf("expired: %d", gone.Status)
 	}
+	// So has a link past its time (30 days for one in an email), and a
+	// link from before links had one: they open neither the page nor the
+	// portal, and their page emails a new link.
+	unlimited := s.env.App.Links.Sign(linktoken.Claims{Kind: earn.TokenCancel, WorkspaceID: s.ws.ID, ContactID: contact})
+	*s.clock = time.Now().Add(earn.LinkValidInEmail + time.Minute)
+	for _, p := range []string{path, "/p/acme-newsletter/cancel/" + unlimited} {
+		late := reader.Do(http.MethodGet, p, nil)
+		if body := string(late.Body); late.Status != http.StatusGone || !strings.Contains(body, "This link has expired") || !strings.Contains(body, `/p/acme-newsletter/billing"`) ||
+			strings.Contains(body, "Continue to cancel") {
+			t.Errorf("past its time: %d", late.Status)
+		}
+		form = url.Values{"decision": {"continue"}}
+		if res := reader.DoRaw(http.MethodPost, p, "application/x-www-form-urlencoded", strings.NewReader(form.Encode())); strings.HasPrefix(res.Header.Get("Location"), "https://billing.stripe.com/") {
+			t.Error("a link past its time opened the portal")
+		}
+	}
+	*s.clock = time.Now()
 	reader.Do(http.MethodGet, "/p/acme-newsletter/cancel/not-a-token", nil).MustStatus(t, http.StatusNotFound)
 	form = url.Values{"decision": {"continue"}}
 	if res := reader.DoRaw(http.MethodPost, "/p/acme-newsletter/cancel/not-a-token", "application/x-www-form-urlencoded", strings.NewReader(form.Encode())); res.Status != http.StatusNotFound {

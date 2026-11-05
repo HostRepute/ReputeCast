@@ -153,8 +153,9 @@ type CancelTarget struct {
 	Lists   []string
 }
 
-// ErrLinkExpired means a personal link no longer verifies: its signature
-// doesn't match (an earlier instance key) or its reader is gone.
+// ErrLinkExpired means a personal link no longer works: it's past its
+// time (billinglinks.go), its signature doesn't match (an earlier
+// instance key) or its reader is gone.
 var ErrLinkExpired = errors.New("earn: the personal link expired")
 
 // ErrLinkInvalid means a personal link isn't one: malformed, another kind of
@@ -162,9 +163,9 @@ var ErrLinkExpired = errors.New("earn: the personal link expired")
 var ErrLinkInvalid = errors.New("earn: not a personal link")
 
 // CancelTargetOf reads a cancel link (TokenCancel): ErrLinkInvalid when it
-// isn't one, ErrLinkExpired when it no longer verifies, ErrNoSubscription
-// when the reader has no subscription to cancel (complimentary and gift
-// access end on their own).
+// isn't one, ErrLinkExpired when it's past its time or no longer
+// verifies, ErrNoSubscription when the reader has no subscription to
+// cancel (complimentary and gift access end on their own).
 func (s *Service) CancelTargetOf(ctx context.Context, ws *store.Workspace, token string) (*CancelTarget, error) {
 	if token == "" || s.Links == nil || len(token) > 200 {
 		return nil, ErrLinkInvalid
@@ -175,6 +176,8 @@ func (s *Service) CancelTargetOf(ctx context.Context, ws *store.Workspace, token
 		return nil, ErrLinkExpired
 	case err != nil || c.WorkspaceID != ws.ID || c.ContactID == uuid.Nil:
 		return nil, ErrLinkInvalid
+	case s.linkExpired(c):
+		return nil, ErrLinkExpired
 	}
 	ct, err := s.Q.EarnContactBrief(ctx, store.EarnContactBriefParams{ID: c.ContactID, WorkspaceID: ws.ID})
 	if err != nil {

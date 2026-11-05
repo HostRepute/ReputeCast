@@ -326,12 +326,6 @@ func (s *Service) tierShortName(ctx context.Context, q *store.Queries, wsID uuid
 	return shortTier(t.Name, names)
 }
 
-// BillingURL is a paid member's personal link to their billing portal.
-func (s *Service) BillingURL(ctx context.Context, ws *store.Workspace, contact uuid.UUID) string {
-	tok := s.Links.Sign(linktoken.Claims{Kind: TokenBilling, WorkspaceID: ws.ID, ContactID: contact})
-	return s.pageURL(ctx, ws, "billing/"+tok)
-}
-
 // UpgradeURL is a reader's personal upgrade link: the page knows them and
 // credits the email it came from.
 func (s *Service) UpgradeURL(ctx context.Context, ws *store.Workspace, contact, message uuid.UUID) string {
@@ -428,7 +422,7 @@ func (s *Service) sendMemberEmail(ctx context.Context, ws *store.Workspace, mode
 	if c.FirstName != "" {
 		data["first_name"] = c.FirstName
 	}
-	data["manage_subscription_url"] = s.BillingURL(ctx, ws, c.ID)
+	data["manage_subscription_url"] = s.BillingURL(ctx, ws, c.ID, LinkValidInEmail)
 	data["upgrade_url"] = s.UpgradeURL(ctx, ws, c.ID, uuid.Nil)
 	if _, ok := data["next_issue_line"]; !ok && m.email == EmailWelcome {
 		data["next_issue_line"] = ""
