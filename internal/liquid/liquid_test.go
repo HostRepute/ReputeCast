@@ -1,11 +1,13 @@
 package liquid
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/osteele/liquid/parser"
 	"github.com/osteele/liquid/render"
 )
 
@@ -96,12 +98,24 @@ func TestTemplatesCantReadFiles(t *testing.T) {
 
 	// The template store holds nothing, so even a tag that asks for a file
 	// gets none.
-	e := NewEngine()
-	e.RegisterTag("probe", func(ctx render.Context) (string, error) {
-		return ctx.RenderFile("x", nil)
+	r := newRenderer()
+	r.cfg.AddTag("probe", func(string) (func(io.Writer, render.Context) error, error) {
+		return func(w io.Writer, ctx render.Context) error {
+			out, err := ctx.RenderFile("x", nil)
+			if err != nil {
+				return err
+			}
+			_, err = io.WriteString(w, out)
+			return err
+		}, nil
 	})
-	if out, err := e.ParseAndRenderString(`{% probe %}`, nil); err == nil || strings.Contains(out, secret) {
-		t.Fatalf("a tag read a file: %q, %v", out, err)
+	node, perr := r.cfg.Compile(`{% probe %}`, parser.SourceLoc{})
+	if perr != nil {
+		t.Fatal(perr)
+	}
+	var out strings.Builder
+	if err := render.Render(node, &out, map[string]any{}, r.cfg); err == nil || strings.Contains(out.String(), secret) {
+		t.Fatalf("a tag read a file: %q, %v", out.String(), err)
 	}
 }
 
