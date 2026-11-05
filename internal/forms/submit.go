@@ -601,6 +601,7 @@ func (s *Service) solveChallenge(ctx context.Context, ws *store.Workspace, set *
 		s.recordReject(ctx, ws, c, "turnstile", h.Origin)
 		return Outcome{Status: OutcomeRejected, Message: l.Text("error.verifyFailed", nil)}, c.ShownLanguage()
 	}
+	s.turnstileWorks(ctx, set)
 	sub := h.Sub
 	if h.IP != "" {
 		if a, err := netip.ParseAddr(h.IP); err == nil {

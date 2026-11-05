@@ -562,11 +562,30 @@ type PublicTurnstile struct {
 	Status    string     `json:"status" enum:"off,ok,error"`
 	Error     string     `json:"error" doc:"Why Cloudflare rejected the keys, with its error code"`
 	CheckedAt *time.Time `json:"checkedAt,omitempty"`
+	// Reported is the error visitors' browsers reported last from challenge
+	// pages, while no widget answer has been accepted since. Turnstile stays
+	// on: a browser's report never turns it off.
+	Reported *PublicTurnstileReport `json:"reported,omitempty"`
+}
+
+// PublicTurnstileReport is an error the Turnstile widget showed visitors, as
+// their browsers reported it since the keys were saved.
+type PublicTurnstileReport struct {
+	Code  string `json:"code" example:"110200" doc:"The widget's error code"`
+	Error string `json:"error" doc:"What the code means, in the reader's language"`
+	// Count is how many reports came in since the keys were saved.
+	Count  int       `json:"count"`
+	LastAt time.Time `json:"lastAt"`
 }
 
 func (s *Settings) turnstile(l i18n.Lang) PublicTurnstile {
-	return PublicTurnstile{SiteKey: s.row.TurnstileSiteKey, HasSecret: len(s.row.TurnstileSecretEnc) > 0, Status: s.row.TurnstileStatus,
+	out := PublicTurnstile{SiteKey: s.row.TurnstileSiteKey, HasSecret: len(s.row.TurnstileSecretEnc) > 0, Status: s.row.TurnstileStatus,
 		Error: keptIn(l, s.row.Texts, "turnstile_error", s.row.TurnstileError), CheckedAt: s.row.TurnstileCheckedAt}
+	if s.row.TurnstileReportedCount > 0 && s.row.TurnstileReportedAt != nil {
+		out.Reported = &PublicTurnstileReport{Code: s.row.TurnstileReportedCode, Error: textIn(l, turnstileErrorWords(s.row.TurnstileReportedCode)),
+			Count: int(s.row.TurnstileReportedCount), LastAt: *s.row.TurnstileReportedAt}
+	}
+	return out
 }
 
 // PublicCustomDomain is the custom domain and its DNS check.

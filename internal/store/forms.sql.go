@@ -1448,7 +1448,7 @@ func (q *Queries) PublicSettingsEnsure(ctx context.Context, workspaceID uuid.UUI
 }
 
 const publicSettingsGet = `-- name: PublicSettingsGet :one
-SELECT workspace_id, hosted_form_id, pages, custom_domain, domain_status, domain_detail, domain_checked_at, domain_verified_at, turnstile_site_key, turnstile_secret_enc, turnstile_status, turnstile_error, turnstile_checked_at, logo, logo_type, updated_by, updated_at, copy_language, texts FROM public_page_settings WHERE workspace_id = $1
+SELECT workspace_id, hosted_form_id, pages, custom_domain, domain_status, domain_detail, domain_checked_at, domain_verified_at, turnstile_site_key, turnstile_secret_enc, turnstile_status, turnstile_error, turnstile_checked_at, logo, logo_type, updated_by, updated_at, copy_language, texts, turnstile_reported_code, turnstile_reported_at, turnstile_reported_count FROM public_page_settings WHERE workspace_id = $1
 `
 
 func (q *Queries) PublicSettingsGet(ctx context.Context, workspaceID uuid.UUID) (PublicPageSetting, error) {
@@ -1474,6 +1474,9 @@ func (q *Queries) PublicSettingsGet(ctx context.Context, workspaceID uuid.UUID) 
 		&i.UpdatedAt,
 		&i.CopyLanguage,
 		&i.Texts,
+		&i.TurnstileReportedCode,
+		&i.TurnstileReportedAt,
+		&i.TurnstileReportedCount,
 	)
 	return i, err
 }
@@ -1601,6 +1604,7 @@ const publicSettingsSetTurnstile = `-- name: PublicSettingsSetTurnstile :exec
 UPDATE public_page_settings
 SET turnstile_site_key = $1, turnstile_secret_enc = $2, turnstile_status = $3, turnstile_error = $4,
     turnstile_checked_at = $5, updated_by = $6, updated_at = $7,
+    turnstile_reported_code = '', turnstile_reported_at = NULL, turnstile_reported_count = 0,
     texts = (texts - 'turnstile_error') || coalesce($8::jsonb, '{}')
 WHERE workspace_id = $9
 `
@@ -1617,7 +1621,8 @@ type PublicSettingsSetTurnstileParams struct {
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
 }
 
-// texts is the error's kept message ({"turnstile_error": …}), or NULL.
+// texts is the error's kept message ({"turnstile_error": …}), or NULL. New
+// keys start without the reports of the old ones.
 func (q *Queries) PublicSettingsSetTurnstile(ctx context.Context, arg PublicSettingsSetTurnstileParams) error {
 	_, err := q.db.Exec(ctx, publicSettingsSetTurnstile,
 		arg.SiteKey,
@@ -1661,8 +1666,8 @@ type PublicSettingsTurnstileErrorParams struct {
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
 }
 
-// The widget on a challenge page reported an error (wrong site key, domain
-// not allowed): spam protection falls back until someone fixes the key.
+// Cloudflare refused the secret key: spam protection falls back to the
+// honeypot and timing check until someone saves working keys.
 func (q *Queries) PublicSettingsTurnstileError(ctx context.Context, arg PublicSettingsTurnstileErrorParams) error {
 	_, err := q.db.Exec(ctx, publicSettingsTurnstileError,
 		arg.Error,
@@ -1671,4 +1676,38 @@ func (q *Queries) PublicSettingsTurnstileError(ctx context.Context, arg PublicSe
 		arg.WorkspaceID,
 	)
 	return err
+}
+
+const publicSettingsTurnstileReport = `-- name: PublicSettingsTurnstileReport :exec
+UPDATE public_page_settings
+SET turnstile_reported_code = $1, turnstile_reported_at = $2, turnstile_reported_count = turnstile_reported_count + 1
+WHERE workspace_id = $3 AND turnstile_site_key <> ''
+`
+
+type PublicSettingsTurnstileReportParams struct {
+	Code        string     `json:"code"`
+	At          *time.Time `json:"at"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+// A visitor's browser reported an error of the widget on a challenge page:
+// kept for the publisher to see. It never changes turnstile_status.
+func (q *Queries) PublicSettingsTurnstileReport(ctx context.Context, arg PublicSettingsTurnstileReportParams) error {
+	_, err := q.db.Exec(ctx, publicSettingsTurnstileReport, arg.Code, arg.At, arg.WorkspaceID)
+	return err
+}
+
+const publicSettingsTurnstileWorks = `-- name: PublicSettingsTurnstileWorks :execrows
+UPDATE public_page_settings SET turnstile_reported_code = '', turnstile_reported_at = NULL, turnstile_reported_count = 0
+WHERE workspace_id = $1 AND turnstile_reported_count > 0
+`
+
+// Cloudflare accepted a widget's answer: the widget runs, so what browsers
+// reported before is over.
+func (q *Queries) PublicSettingsTurnstileWorks(ctx context.Context, workspaceID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, publicSettingsTurnstileWorks, workspaceID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

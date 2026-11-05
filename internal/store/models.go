@@ -3077,25 +3077,28 @@ type ProviderSuppressionSync struct {
 }
 
 type PublicPageSetting struct {
-	WorkspaceID        uuid.UUID       `json:"workspaceId"`
-	HostedFormID       *uuid.UUID      `json:"hostedFormId"`
-	Pages              json.RawMessage `json:"pages"`
-	CustomDomain       *string         `json:"customDomain"`
-	DomainStatus       string          `json:"domainStatus"`
-	DomainDetail       string          `json:"domainDetail"`
-	DomainCheckedAt    *time.Time      `json:"domainCheckedAt"`
-	DomainVerifiedAt   *time.Time      `json:"domainVerifiedAt"`
-	TurnstileSiteKey   string          `json:"turnstileSiteKey"`
-	TurnstileSecretEnc []byte          `json:"turnstileSecretEnc"`
-	TurnstileStatus    string          `json:"turnstileStatus"`
-	TurnstileError     string          `json:"turnstileError"`
-	TurnstileCheckedAt *time.Time      `json:"turnstileCheckedAt"`
-	Logo               []byte          `json:"logo"`
-	LogoType           string          `json:"logoType"`
-	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
-	UpdatedAt          time.Time       `json:"updatedAt"`
-	CopyLanguage       string          `json:"copyLanguage"`
-	Texts              json.RawMessage `json:"texts"`
+	WorkspaceID            uuid.UUID       `json:"workspaceId"`
+	HostedFormID           *uuid.UUID      `json:"hostedFormId"`
+	Pages                  json.RawMessage `json:"pages"`
+	CustomDomain           *string         `json:"customDomain"`
+	DomainStatus           string          `json:"domainStatus"`
+	DomainDetail           string          `json:"domainDetail"`
+	DomainCheckedAt        *time.Time      `json:"domainCheckedAt"`
+	DomainVerifiedAt       *time.Time      `json:"domainVerifiedAt"`
+	TurnstileSiteKey       string          `json:"turnstileSiteKey"`
+	TurnstileSecretEnc     []byte          `json:"turnstileSecretEnc"`
+	TurnstileStatus        string          `json:"turnstileStatus"`
+	TurnstileError         string          `json:"turnstileError"`
+	TurnstileCheckedAt     *time.Time      `json:"turnstileCheckedAt"`
+	Logo                   []byte          `json:"logo"`
+	LogoType               string          `json:"logoType"`
+	UpdatedBy              *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt              time.Time       `json:"updatedAt"`
+	CopyLanguage           string          `json:"copyLanguage"`
+	Texts                  json.RawMessage `json:"texts"`
+	TurnstileReportedCode  string          `json:"turnstileReportedCode"`
+	TurnstileReportedAt    *time.Time      `json:"turnstileReportedAt"`
+	TurnstileReportedCount int32           `json:"turnstileReportedCount"`
 }
 
 type PushCampaign struct {

@@ -57254,6 +57254,9 @@
           "hasSecret": {
             "type": "boolean"
           },
+          "reported": {
+            "$ref": "#/components/schemas/PublicTurnstileReport"
+          },
           "siteKey": {
             "type": "string"
           },
@@ -57293,6 +57296,37 @@
         },
         "required": [
           "siteKey"
+        ],
+        "type": "object"
+      },
+      "PublicTurnstileReport": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "The widget's error code",
+            "examples": [
+              "110200"
+            ],
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "error": {
+            "description": "What the code means, in the reader's language",
+            "type": "string"
+          },
+          "lastAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "error",
+          "count",
+          "lastAt"
         ],
         "type": "object"
       },

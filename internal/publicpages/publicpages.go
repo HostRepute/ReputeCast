@@ -795,6 +795,10 @@ func (h *Handler) logo(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, "logo", at, bytes.NewReader(data))
 }
 
+// turnstileError takes a Turnstile widget error a challenge page reports:
+// kept for the publisher to see, never a reason to turn Turnstile off
+// (forms.ReportTurnstileError). Three reports a minute per address (an IPv6
+// /64) are read; the rest are dropped.
 func (h *Handler) turnstileError(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.siteOr404(w, r)
 	if !ok {
@@ -802,7 +806,7 @@ func (h *Handler) turnstileError(w http.ResponseWriter, r *http.Request) {
 	}
 	ip := "unknown"
 	if a := clientIP(r); a != nil {
-		ip = a.String()
+		ip = forms.ClientKey(*a)
 	}
 	if h.Forms.AllowPerMinute("turnstile-error:"+ip, 3) && h.parseForm(w, r, 4<<10) {
 		if err := h.Forms.ReportTurnstileError(r.Context(), s.ws, r.PostForm.Get("challenge"), r.PostForm.Get("code")); err != nil {

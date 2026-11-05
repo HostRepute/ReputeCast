@@ -34800,6 +34800,7 @@ export interface components {
             /** @description Why Cloudflare rejected the keys, with its error code */
             error: string;
             hasSecret: boolean;
+            reported?: components["schemas"]["PublicTurnstileReport"];
             siteKey: string;
             /** @enum {string} */
             status: "off" | "ok" | "error";
@@ -34809,6 +34810,19 @@ export interface components {
             secret?: string;
             /** @example 0x4AAAAAAA… */
             siteKey: string;
+        };
+        PublicTurnstileReport: {
+            /**
+             * @description The widget's error code
+             * @example 110200
+             */
+            code: string;
+            /** Format: int64 */
+            count: number;
+            /** @description What the code means, in the reader's language */
+            error: string;
+            /** Format: date-time */
+            lastAt: string;
         };
         PublicURLManualHook: {
             provider: string;

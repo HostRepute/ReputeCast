@@ -2882,12 +2882,19 @@ type Querier interface {
 	PublicSettingsSetHostedForm(ctx context.Context, arg PublicSettingsSetHostedFormParams) error
 	PublicSettingsSetLogo(ctx context.Context, arg PublicSettingsSetLogoParams) error
 	PublicSettingsSetPages(ctx context.Context, arg PublicSettingsSetPagesParams) error
-	// texts is the error's kept message ({"turnstile_error": …}), or NULL.
+	// texts is the error's kept message ({"turnstile_error": …}), or NULL. New
+	// keys start without the reports of the old ones.
 	PublicSettingsSetTurnstile(ctx context.Context, arg PublicSettingsSetTurnstileParams) error
 	PublicSettingsTouch(ctx context.Context, arg PublicSettingsTouchParams) error
-	// The widget on a challenge page reported an error (wrong site key, domain
-	// not allowed): spam protection falls back until someone fixes the key.
+	// Cloudflare refused the secret key: spam protection falls back to the
+	// honeypot and timing check until someone saves working keys.
 	PublicSettingsTurnstileError(ctx context.Context, arg PublicSettingsTurnstileErrorParams) error
+	// A visitor's browser reported an error of the widget on a challenge page:
+	// kept for the publisher to see. It never changes turnstile_status.
+	PublicSettingsTurnstileReport(ctx context.Context, arg PublicSettingsTurnstileReportParams) error
+	// Cloudflare accepted a widget's answer: the widget runs, so what browsers
+	// reported before is over.
+	PublicSettingsTurnstileWorks(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	// The unsubscribe page tab: departures and answers in the last 30 days.
 	PublicUnsubscribeStats(ctx context.Context, arg PublicUnsubscribeStatsParams) (PublicUnsubscribeStatsRow, error)
 	PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error

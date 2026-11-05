@@ -188,10 +188,18 @@ func (s *Service) RemoveTurnstile(ctx context.Context, ws *store.Workspace) (Pub
 	return s.PublicPages(ctx, ws)
 }
 
-// ReportTurnstileError records an error the widget showed on a challenge
-// page (a site key Cloudflare doesn't accept for this domain). Reports count
-// only from the page of a submission still held for its check, so nobody can
-// switch Turnstile off from outside.
+// turnstileCheckEvery is how often a widget error report may have the
+// server ask Cloudflare whether the stored secret still works.
+const turnstileCheckEvery = 15 * time.Minute
+
+// ReportTurnstileError records an error the widget showed a visitor on a
+// challenge page (a site key Cloudflare doesn't accept for this domain), for
+// the publisher to see beside the keys. Reports count only from the page of
+// a submission still held for its check. Any browser can send one (its
+// challenge id comes from the sender's own suspicious signup), so a report
+// never turns Turnstile off: at most it has this server ask Cloudflare
+// whether the stored secret still works, once every 15 minutes, and only
+// Cloudflare refusing the secret turns it off.
 func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace, challengeID, code string) error {
 	code = strings.TrimSpace(code)
 	if len(code) < 3 || len(code) > 12 || strings.Trim(code, "0123456789") != "" {
@@ -209,12 +217,89 @@ func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace,
 	if err != nil || !live {
 		return err
 	}
-	return s.turnstileFailed(ctx, ws, turnstileErrorWords(code), map[string]any{"widgetError": code})
+	if err := s.turnstileReported(ctx, ws, code); err != nil {
+		return err
+	}
+	return s.checkTurnstileSecret(ctx, ws, code)
+}
+
+// turnstileReported keeps a browser's report and writes it to the audit log
+// when its code is new.
+func (s *Service) turnstileReported(ctx context.Context, ws *store.Workspace, code string) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		before, err := q.PublicSettingsGet(ctx, ws.ID)
+		if err != nil {
+			return err
+		}
+		if before.TurnstileSiteKey == "" {
+			return nil
+		}
+		if err := q.PublicSettingsTurnstileReport(ctx, store.PublicSettingsTurnstileReportParams{WorkspaceID: ws.ID, Code: code, At: ptrTime(s.now())}); err != nil {
+			return err
+		}
+		if before.TurnstileReportedCode == code {
+			return nil // already in the audit log
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "public_pages.turnstile_report", TargetType: "workspace", TargetID: ws.ID.String(),
+			TargetName: ws.Name, Actor: &audit.Actor{Type: authz.ActorSystem, Name: "Cloudflare Turnstile"},
+			Before: map[string]any{"reportedCode": before.TurnstileReportedCode}, After: map[string]any{"reportedCode": code, "status": before.TurnstileStatus},
+			Metadata: map[string]any{"widgetError": code, "error": english(turnstileErrorWords(code))}})
+	})
+}
+
+// checkTurnstileSecret asks Cloudflare, after a report, whether the stored
+// secret still works (a deleted widget takes its keys with it), and marks
+// the keys failing only when Cloudflare refuses the secret.
+func (s *Service) checkTurnstileSecret(ctx context.Context, ws *store.Workspace, code string) error {
+	if s.Turnstile == nil || !s.Allow("turnstile-check:"+ws.ID.String(), turnstileCheckEvery) {
+		return nil
+	}
+	set, err := s.settings(ctx, ws)
+	if err != nil {
+		return err
+	}
+	secret, ok := s.turnstileSecret(set)
+	if !ok {
+		return nil
+	}
+	// A real secret answers "invalid-input-response" to a made-up token.
+	res, err := s.Turnstile.Verify(ctx, secret, "reputecast-key-check", "", "")
+	switch {
+	case err != nil:
+		s.log().WarnContext(ctx, "turnstile key check", "err", err)
+	case res.SecretRejected():
+		return s.turnstileFailed(ctx, ws, secretRejected(res.Codes), map[string]any{"codes": res.Codes, "widgetError": code})
+	}
+	return nil
+}
+
+// turnstileWorks forgets what browsers reported once Cloudflare accepts a
+// widget's answer: the widget runs with these keys after all.
+func (s *Service) turnstileWorks(ctx context.Context, set *Settings) {
+	ws := set.Workspace
+	if ws == nil || set.row.TurnstileReportedCount == 0 {
+		return
+	}
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		n, err := q.PublicSettingsTurnstileWorks(ctx, ws.ID)
+		if err != nil || n == 0 {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "public_pages.turnstile_report_cleared", TargetType: "workspace", TargetID: ws.ID.String(),
+			TargetName: ws.Name, Actor: &audit.Actor{Type: authz.ActorSystem, Name: "Cloudflare Turnstile"},
+			Before: map[string]any{"reportedCode": set.row.TurnstileReportedCode, "reports": set.row.TurnstileReportedCount}, After: map[string]any{"reports": 0}})
+	})
+	if err != nil {
+		s.log().WarnContext(ctx, "clear turnstile reports", "err", err)
+	}
 }
 
 // turnstileFailed marks the Turnstile keys as failing (spam protection
 // falls back to the honeypot and timing check) and writes it to the audit
-// log as Cloudflare's doing, once per change of the message.
+// log as Cloudflare's doing, once per change of the message. Only
+// Cloudflare's answers to this server lead here, never a browser's report.
 func (s *Service) turnstileFailed(ctx context.Context, ws *store.Workspace, problem i18n.Text, meta map[string]any) error {
 	words := english(problem)
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
