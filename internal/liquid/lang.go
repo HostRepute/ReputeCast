@@ -4,6 +4,8 @@ import (
 	"embed"
 	"strconv"
 
+	"github.com/osteele/liquid/parser"
+
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
@@ -59,7 +61,7 @@ func ValidateIn(l i18n.Lang, src string) []LiquidProblem {
 	if r, ok := longRange(p); ok {
 		out = append(out, LiquidProblem{Message: mProblemLoop.Text(l, i18n.Args{"max": strconv.Itoa(MaxRange), "from": r.from, "to": r.to, "count": strconv.Itoa(r.n)})})
 	}
-	if _, err := engine.ParseString(p); err != nil {
+	if _, err := parseCfg.Compile(p, parser.SourceLoc{}); err != nil {
 		out = append(out, problem(l, err, p))
 	}
 	return out

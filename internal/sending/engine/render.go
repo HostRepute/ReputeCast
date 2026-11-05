@@ -3,12 +3,9 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
-
-	osteele "github.com/osteele/liquid"
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/linkrule"
@@ -38,12 +35,12 @@ type TrackedLink struct {
 // Rendering a recipient only fills in variables. A Template is safe for
 // concurrent use.
 type Template struct {
-	subject *osteele.Template
-	text    *osteele.Template
+	subject *liquid.Template
+	text    *liquid.Template
 	// tracked has our pixel and click redirects; plain is the same email
 	// without them, for providers whose own tracking the workspace keeps.
-	tracked *osteele.Template
-	plain   *osteele.Template
+	tracked *liquid.Template
+	plain   *liquid.Template
 	// Links lists the tracked links in position order.
 	Links []TrackedLink
 	// Opens and Clicks say what the tracked variant tracks.
@@ -68,13 +65,7 @@ const (
 	varLink    = "rc_link_"
 )
 
-var (
-	// Not osteele.NewEngine: the plain-text part derived from the HTML is
-	// parsed here without liquid.Validate, so this engine can't load
-	// templates or files either.
-	engine     = liquid.NewEngine()
-	bodyCloseR = regexp.MustCompile(`(?i)</body\s*>`)
-)
+var bodyCloseR = regexp.MustCompile(`(?i)</body\s*>`)
 
 // ErrRender wraps personalization errors in an email.
 var ErrRender = errors.New("the email's personalization doesn't render")
@@ -148,8 +139,12 @@ func stripMarkers(html string) string {
 
 var markerRe = regexp.MustCompile(`<!--rc:(?:if|fi) [a-z0-9]{1,24}-->`)
 
-func parse(src string) (*osteele.Template, error) {
-	tpl, err := engine.ParseString(liquid.Prepare(src))
+// parse goes through liquid.Parse, like every Liquid the product renders:
+// the plain-text part derived from the HTML is parsed here without
+// liquid.Validate, and each recipient's render still runs on a budget and
+// can't load templates or files.
+func parse(src string) (*liquid.Template, error) {
+	tpl, err := liquid.Parse(src)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrRender, err.Error())
 	}
@@ -187,29 +182,14 @@ type Rendered struct {
 	Text    string
 }
 
-// maxOutput bounds one rendered part (liquid.MaxOutput).
-const maxOutput = liquid.MaxOutput
-
-type limitWriter struct{ b strings.Builder }
-
-var errTooLarge = errors.New("the rendered email is larger than 4 MB")
-
-func (w *limitWriter) Write(p []byte) (int, error) {
-	if w.b.Len()+len(p) > maxOutput {
-		return 0, errTooLarge
-	}
-	return w.b.Write(p)
-}
-
-func renderOne(t *osteele.Template, vars map[string]any) (string, error) {
-	w := &limitWriter{}
-	if err := t.FRender(io.Writer(w), osteele.Bindings(vars)); err != nil {
-		if strings.Contains(err.Error(), errTooLarge.Error()) {
-			return "", fmt.Errorf("%w: %s", ErrRender, errTooLarge.Error())
-		}
+// renderOne renders one part for one recipient (at most liquid.MaxOutput
+// bytes, within the render budget).
+func renderOne(t *liquid.Template, vars map[string]any) (string, error) {
+	out, err := t.Render(vars)
+	if err != nil {
 		return "", fmt.Errorf("%w: %s", ErrRender, err.Error())
 	}
-	return w.b.String(), nil
+	return out, nil
 }
 
 // Render fills in one recipient. vars come from liquid.Vars plus the
