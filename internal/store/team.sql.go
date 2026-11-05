@@ -845,6 +845,47 @@ func (q *Queries) TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvita
 	return result.RowsAffected(), nil
 }
 
+const teamRevokeInvitationsBy = `-- name: TeamRevokeInvitationsBy :many
+UPDATE invitations i SET revoked_at = now()
+FROM roles r
+WHERE r.id = i.role_id AND i.workspace_id = $1 AND i.invited_by = $2
+  AND i.accepted_at IS NULL AND i.revoked_at IS NULL
+RETURNING i.id, i.email, r.name AS role_name
+`
+
+type TeamRevokeInvitationsByParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      *uuid.UUID `json:"userId"`
+}
+
+type TeamRevokeInvitationsByRow struct {
+	ID       uuid.UUID `json:"id"`
+	Email    string    `json:"email"`
+	RoleName string    `json:"roleName"`
+}
+
+// The invitations a member sent that nobody accepted end when the member is
+// deactivated or removed: nobody vouches for those people any more.
+func (q *Queries) TeamRevokeInvitationsBy(ctx context.Context, arg TeamRevokeInvitationsByParams) ([]TeamRevokeInvitationsByRow, error) {
+	rows, err := q.db.Query(ctx, teamRevokeInvitationsBy, arg.WorkspaceID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TeamRevokeInvitationsByRow{}
+	for rows.Next() {
+		var i TeamRevokeInvitationsByRow
+		if err := rows.Scan(&i.ID, &i.Email, &i.RoleName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const teamRevokeKeysCreatedBy = `-- name: TeamRevokeKeysCreatedBy :many
 UPDATE api_keys SET revoked_at = now()
 WHERE workspace_id = $1 AND created_by = $2 AND revoked_at IS NULL AND integration_id IS NULL

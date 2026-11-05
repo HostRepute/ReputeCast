@@ -4511,6 +4511,9 @@ type Querier interface {
 	TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsParams) ([]string, error)
 	TeamPendingInviteEmails(ctx context.Context, arg TeamPendingInviteEmailsParams) ([]string, error)
 	TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvitationParams) (int64, error)
+	// The invitations a member sent that nobody accepted end when the member is
+	// deactivated or removed: nobody vouches for those people any more.
+	TeamRevokeInvitationsBy(ctx context.Context, arg TeamRevokeInvitationsByParams) ([]TeamRevokeInvitationsByRow, error)
 	// Integrations' keys stay: deactivating takes them over or disconnects them.
 	TeamRevokeKeysCreatedBy(ctx context.Context, arg TeamRevokeKeysCreatedByParams) ([]TeamRevokeKeysCreatedByRow, error)
 	TeamRevokeUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)

@@ -46,6 +46,8 @@
   "audit.keysRevoked": "{count, plural, one {se revocó {last}} other {se revocaron {names} y {last}}}",
   "audit.keysKept": "{count, plural, one {se conservó {last}} other {se conservaron {names} y {last}}}",
   "audit.creatorDeactivated": "se desactivó a quien la creó: {name}",
+  "audit.inviterDeactivated": "enviada por {name}, cuyo acceso se desactivó",
+  "audit.inviterRemoved": "enviada por {name}, que ya no forma parte del espacio de trabajo",
   "audit.sessionsEnded": "{count, plural, one {# sesión cerrada} other {# sesiones cerradas}}",
   "audit.twoFactorRequired": "verificación en dos pasos obligatoria en el próximo inicio de sesión",
   "audit.inviteRole": "rol {role}",

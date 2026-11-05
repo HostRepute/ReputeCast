@@ -46,6 +46,8 @@
   "audit.keysRevoked": "{count, plural, one {{last} widerrufen} other {{names} und {last} widerrufen}}",
   "audit.keysKept": "{count, plural, one {{last} behalten} other {{names} und {last} behalten}}",
   "audit.creatorDeactivated": "erstellende Person {name} deaktiviert",
+  "audit.inviterDeactivated": "gesendet von {name}, inzwischen deaktiviert",
+  "audit.inviterRemoved": "gesendet von {name}, inzwischen aus dem Arbeitsbereich entfernt",
   "audit.sessionsEnded": "{count, plural, one {# Sitzung beendet} other {# Sitzungen beendet}}",
   "audit.twoFactorRequired": "2FA bei der nächsten Anmeldung erforderlich",
   "audit.inviteRole": "Rolle {role}",
