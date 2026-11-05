@@ -26,6 +26,7 @@
   "problem.privateHost": { "message": "{host} is a private address. An instance admin can allow private addresses.", "note": "host: 10.0.4.12, localhost" },
   "problem.badAddress": { "message": "Use the server's full address, like {example}.", "note": "example: http://ollama.acme.internal:11434/v1" },
   "problem.keyNeeded": { "message": "Paste the API key from your {provider} account.", "note": "provider: Anthropic, OpenAI, Google Gemini, Azure OpenAI" },
+  "problem.keyAgain": { "message": "The address changed: paste the API key again. ReputeCast doesn't send a saved key to a new address.", "note": "the model server's address (an Azure OpenAI endpoint or an OpenAI-compatible server) changed while the key was left blank" },
   "problem.azureNeeds": "Paste your Azure OpenAI endpoint (like https://acme.openai.azure.com) and the deployment's name.",
   "problem.modelNeeded": "Pick a model, or type its name.",
   "problem.oneModel": { "message": "One model per workspace: disconnect {provider} first to switch provider.", "note": "provider: the connected one" },

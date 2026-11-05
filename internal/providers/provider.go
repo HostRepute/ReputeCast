@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/mail"
+	"strings"
 	"sync"
 	"time"
 
@@ -371,9 +372,26 @@ type Field struct {
 	Required bool     `json:"required"`
 	Options  []string `json:"options,omitempty"`
 	Help     string   `json:"help,omitempty"`
+	// Endpoint marks a setting that says where the adapter's requests go: a
+	// server's URL, an API endpoint or a host. Saved secrets are sent only
+	// to the address they were entered for, so a form that changes it needs
+	// them typed again.
+	Endpoint bool `json:"-"`
 	// LabelText and HelpText are the messages Label and Help come from.
 	LabelText i18n.Text `json:"-"`
 	HelpText  i18n.Text `json:"-"`
+}
+
+// AddressKey reports whether a setting's key names an address (a URL, an
+// endpoint, a host or a server), as Endpoint settings are named. The
+// contract suite holds adapters to it.
+func AddressKey(key string) bool {
+	for _, w := range []string{"url", "endpoint", "host", "server"} {
+		if strings.Contains(key, w) {
+			return true
+		}
+	}
+	return false
 }
 
 // The registry holds built-in adapters (registered from init) and runtime

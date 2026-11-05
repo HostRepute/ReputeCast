@@ -3,6 +3,7 @@ package apptest
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"net"
 	"strings"
 	"sync"
@@ -11,15 +12,35 @@ import (
 
 // SMTPSink is a minimal SMTP server for tests: it accepts EHLO, AUTH PLAIN
 // or LOGIN (any credentials unless Reject is set), MAIL, RCPT and DATA, and
-// keeps every message it received.
+// keeps every message it received and every password it was given.
 type SMTPSink struct {
 	Addr string
 	// Reject makes AUTH fail with 535.
 	Reject bool
 
-	mu       sync.Mutex
-	messages []SinkMessage
-	ln       net.Listener
+	mu        sync.Mutex
+	messages  []SinkMessage
+	passwords []string
+	ln        net.Listener
+}
+
+// Passwords returns the passwords clients logged in with so far, in order.
+func (s *SMTPSink) Passwords() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.passwords...)
+}
+
+func (s *SMTPSink) login(password string) {
+	s.mu.Lock()
+	s.passwords = append(s.passwords, password)
+	s.mu.Unlock()
+}
+
+// b64 decodes a base64 line of the AUTH exchange ("" when it isn't one).
+func b64(line string) string {
+	b, _ := base64.StdEncoding.DecodeString(strings.TrimSpace(line))
+	return string(b)
 }
 
 // SinkMessage is one message the sink received.
@@ -85,7 +106,13 @@ func (s *SMTPSink) handle(c net.Conn) {
 				w("334 VXNlcm5hbWU6")
 				_, _ = r.ReadString('\n')
 				w("334 UGFzc3dvcmQ6")
-				_, _ = r.ReadString('\n')
+				pass, _ := r.ReadString('\n')
+				s.login(b64(pass))
+			} else if f := strings.Fields(strings.TrimSpace(line)); len(f) == 3 {
+				// AUTH PLAIN with its initial response: authzid NUL user NUL password.
+				if parts := strings.Split(b64(f[2]), "\x00"); len(parts) == 3 {
+					s.login(parts[2])
+				}
 			}
 			w("235 2.7.0 Authentication successful")
 		case strings.HasPrefix(cmd, "MAIL FROM:"):

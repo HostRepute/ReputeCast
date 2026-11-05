@@ -173,6 +173,15 @@ func Run(t *testing.T, s Suite) {
 			if (strings.Contains(f.Key, "password") || strings.Contains(f.Key, "token") || strings.Contains(f.Key, "secret") || strings.HasSuffix(f.Key, "api_key")) && !f.Secret {
 				t.Fatalf("field %q looks secret but is not marked Secret", f.Key)
 			}
+			// A setting that says where requests go makes the connection form
+			// ask for the saved secrets again when it changes; a list of
+			// options (a region) only picks among the provider's own hosts.
+			if !f.Secret && len(f.Options) == 0 && providers.AddressKey(f.Key) && !f.Endpoint {
+				t.Fatalf("field %q looks like an address but is not marked Endpoint", f.Key)
+			}
+			if f.Endpoint && f.Secret {
+				t.Fatalf("field %q is both a secret and an Endpoint", f.Key)
+			}
 		}
 		checkCapabilities(t, d.Capabilities)
 	})

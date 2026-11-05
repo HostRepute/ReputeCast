@@ -39,6 +39,29 @@ func TestCheck(t *testing.T) {
 	}
 }
 
+// Saved secrets follow SameAddress: only case, spaces and a final slash or
+// dot may differ.
+func TestSameAddress(t *testing.T) {
+	for _, c := range []struct {
+		a, b string
+		same bool
+	}{
+		{"https://mta.acme.io", "https://mta.acme.io/", true},
+		{"HTTPS://MTA.acme.io", " https://mta.acme.io ", true},
+		{"smtp.acme.io.", "SMTP.acme.io", true},
+		{"https://mta.acme.io", "https://mta.acme.io.evil.example", false},
+		{"https://mta.acme.io", "http://mta.acme.io", false},
+		{"https://mta.acme.io", "https://mta.acme.io@evil.example", false},
+		{"https://mta.acme.io:8443", "https://mta.acme.io", false},
+		{"https://idp.acme.io/realms/acme", "https://idp.acme.io/realms/other", false},
+		{"", "https://mta.acme.io", false},
+	} {
+		if got := SameAddress(c.a, c.b); got != c.same {
+			t.Errorf("SameAddress(%q, %q) = %v", c.a, c.b, got)
+		}
+	}
+}
+
 func TestValidateURL(t *testing.T) {
 	p := Policy{}
 	for _, bad := range []string{"ftp://example.com/x", "https://user:pw@example.com/", "https://127.0.0.1/hook", "http://localhost:8080/", "https://169.254.169.254/latest", "not a url"} {

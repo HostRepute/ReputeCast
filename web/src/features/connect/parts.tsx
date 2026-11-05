@@ -7,6 +7,7 @@ import { t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useSetupAction, type Setup, type SetupStep } from './api'
 import { m } from './messages'
+import { Ticks } from './text'
 
 /** What every step gets from the wizard. */
 export interface StepProps {
@@ -96,6 +97,37 @@ export function problemMessage(e: unknown): string {
 /** Shows a failed action as an error toast. */
 export function failed(title: string, retry?: () => void) {
   return (e: unknown) => toast({ kind: 'error', title, detail: problemMessage(e), retry })
+}
+
+/**
+ * The field messages of a 422 whose location starts with prefix, by field:
+ * "body.values.api_key" is api_key for the prefix "body.values.". They go
+ * next to their fields rather than into a toast.
+ */
+export function fieldErrors(e: unknown, prefix: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (e instanceof ApiError && e.status === 422) {
+    for (const x of e.problem.errors ?? []) {
+      const key = x.location?.startsWith(prefix) ? x.location.slice(prefix.length) : ''
+      if (key && x.message && !out[key]) out[key] = x.message
+    }
+  }
+  return out
+}
+
+/** A field's error under its input, for aria-describedby. */
+export function FieldError({ id, message }: { id: string; message: string }) {
+  return (
+    <span id={id} role="alert" className="mt-1 flex items-start gap-2 font-medium text-bad-fg">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="var(--bad-strong)" strokeWidth="1.8" aria-hidden="true" className="mt-px flex-none">
+        <circle cx="10" cy="10" r="8" />
+        <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
+      </svg>
+      <span>
+        <Ticks text={message} />
+      </span>
+    </span>
+  )
 }
 
 /** What `copy` copies: the zone file, the webhook secret or URL, or a record's value. */

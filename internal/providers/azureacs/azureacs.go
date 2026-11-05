@@ -116,7 +116,7 @@ func Descriptor() providers.Descriptor {
 		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
 			{Key: "connection_string", Secret: true},
-			{Key: "endpoint"},
+			{Key: "endpoint", Endpoint: true},
 			{Key: "tenant_id"},
 			{Key: "client_id"},
 			{Key: "client_secret", Secret: true},

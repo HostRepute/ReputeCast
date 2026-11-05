@@ -81,7 +81,7 @@ func Descriptor() providers.Descriptor {
 		Maintainer: "HostRepute",
 		Terms:      []providers.Terms{{Bulk: providers.BulkYourPolicy, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "server_url", Required: true},
+			{Key: "server_url", Required: true, Endpoint: true},
 			{Key: "api_key", Secret: true, Required: true},
 		},
 		New: New,

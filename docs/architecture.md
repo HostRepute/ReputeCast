@@ -62,7 +62,10 @@ The stack and the reasons behind each choice are in
   per-email lockout and per-IP rate limits.
 - Provider credentials, OIDC client secrets, HostRepute tokens and TOTP seeds
   are encrypted with AES-256-GCM bound to their row, are write-only and are
-  never returned by the API. Keys can be rotated.
+  never returned by the API. Keys can be rotated. A form that keeps a saved
+  secret when its field is left blank keeps it only while the address it
+  goes to stays the same: a new server URL, host, model endpoint or OIDC
+  issuer needs the secret typed again.
 - Cross-site request protection (Go's `CrossOriginProtection`), a strict
   Content Security Policy, `X-Frame-Options: DENY`, HSTS on https, and client
   IPs taken from forwarded headers only behind trusted proxies.

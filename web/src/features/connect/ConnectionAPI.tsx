@@ -12,7 +12,7 @@ import { clock, clockSeconds } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { mn } from './connection.messages'
 import { m } from './messages'
-import { copy, failed, StatusRow, useSetupActions, type StepProps } from './parts'
+import { copy, failed, FieldError, fieldErrors, StatusRow, useSetupActions, type StepProps } from './parts'
 import { Ticks } from './text'
 import { continueClass, StepHeading, WizardFooter } from './Wizard'
 
@@ -32,12 +32,16 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
   // Required fields left empty, found when the form is sent: the button
   // stays available and the errors appear next to the fields.
   const [missing, setMissing] = useState<string[]>([])
+  // What the server refused about a field (a secret to type again after the
+  // provider's address changed), by field.
+  const [refused, setRefused] = useState<Record<string, string>>({})
   const failedKey = c.status === 'failed' ? c.error : undefined
   const connected = c.status === 'connected'
   const connect = (e?: FormEvent) => {
     e?.preventDefault()
     const empty = fields.filter((f) => f.required && !(values[f.key] ?? '').trim() && !(f.secret && f.set)).map((f) => f.key)
     setMissing(empty)
+    setRefused({})
     if (empty.length) {
       document.getElementById(`cn-field-${empty[0]}`)?.focus()
       return
@@ -48,11 +52,25 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
       // A stored secret stays when its field is left empty.
       if (v || !f.secret) body[f.key] = v
     }
-    a.connect.mutate({ values: body }, { onError: failed(t(mn.keyCheckFailed, { provider: info.short }), () => connect()) })
+    a.connect.mutate(
+      { values: body },
+      {
+        onError: (err) => {
+          const byField = fieldErrors(err, 'body.values.')
+          const first = fields.find((f) => byField[f.key])
+          if (!first) return failed(t(mn.keyCheckFailed, { provider: info.short }), () => connect())(err)
+          setRefused(byField)
+          document.getElementById(`cn-field-${first.key}`)?.focus()
+        },
+      },
+    )
   }
   const change = (key: string, v: string) => {
     setValues((s) => ({ ...s, [key]: v }))
-    if (v.trim()) setMissing((m) => m.filter((k) => k !== key))
+    if (v.trim()) {
+      setMissing((m) => m.filter((k) => k !== key))
+      setRefused((r) => (key in r ? Object.fromEntries(Object.entries(r).filter(([k]) => k !== key)) : r))
+    }
   }
   // The key, the required fields and the selects come first; optional
   // fields (allowances, signing keys, alternatives) fold away.
@@ -61,6 +79,7 @@ export function ConnectionAPI({ setup, go, saveLater, reason }: StepProps) {
   const extra = fields.filter((f) => !main.includes(f))
   const errorFor = (f: Schemas['ConnectField']): Schemas['ConnectError'] | undefined => {
     if (missing.includes(f.key)) return { field: f.key, code: 'missing', message: t(mn.fieldMissing, { field: lowerFirstInSentence(f.label) }) }
+    if (refused[f.key]) return { field: f.key, code: 'refused', message: refused[f.key]! }
     return failedKey && (failedKey.field === f.key || (!failedKey.field && f.key === firstSecret)) ? failedKey : undefined
   }
   const extraOpen = extra.some((f) => errorFor(f) || (f.secret ? f.set : Boolean(f.value)))
@@ -193,15 +212,7 @@ function KeyField({
         spellCheck={false}
       />
       {error ? (
-        <span id={errId} role="alert" className="mt-1 flex items-start gap-2 font-medium text-bad-fg">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="var(--bad-strong)" strokeWidth="1.8" aria-hidden="true" className="mt-px flex-none">
-            <circle cx="10" cy="10" r="8" />
-            <path d="M10 6v5M10 13.5v.5" strokeLinecap="round" />
-          </svg>
-          <span>
-            <Ticks text={error.message} />
-          </span>
-        </span>
+        <FieldError id={errId} message={error.message} />
       ) : f.help ? (
         <span className="k font-medium">{f.help}</span>
       ) : null}

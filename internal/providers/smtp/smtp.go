@@ -87,7 +87,7 @@ func Descriptor() providers.Descriptor {
 		Maintainer: "HostRepute",
 		Terms:      []providers.Terms{{Bulk: providers.BulkYourPolicy, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "host", Required: true},
+			{Key: "host", Required: true, Endpoint: true},
 			{Key: "port", Required: true, Options: []string{"587", "465", "25", "2525"}},
 			{Key: "tls", Required: true, Options: []string{"starttls", "tls", "none"}},
 			{Key: "username"},
