@@ -1317,17 +1317,19 @@ FROM automation_runs r
 JOIN contacts c ON c.id = r.contact_id
 WHERE r.automation_id = $1 AND r.node_id = $2 AND r.status IN ('active', 'waiting')
   AND (NOT $3::boolean OR (r.node_entered_at, r.id) < ($4::timestamptz, $5::uuid))
+  AND (cardinality($6::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY($6::uuid[])))
 ORDER BY r.node_entered_at DESC, r.id DESC
-LIMIT $6
+LIMIT $7
 `
 
 type AutomationRunsAtNodeParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	NodeID       string    `json:"nodeId"`
-	After        bool      `json:"after"`
-	AfterAt      time.Time `json:"afterAt"`
-	AfterID      uuid.UUID `json:"afterId"`
-	Lim          int32     `json:"lim"`
+	AutomationID uuid.UUID   `json:"automationId"`
+	NodeID       string      `json:"nodeId"`
+	After        bool        `json:"after"`
+	AfterAt      time.Time   `json:"afterAt"`
+	AfterID      uuid.UUID   `json:"afterId"`
+	ScopeLists   []uuid.UUID `json:"scopeLists"`
+	Lim          int32       `json:"lim"`
 }
 
 type AutomationRunsAtNodeRow struct {
@@ -1344,7 +1346,8 @@ type AutomationRunsAtNodeRow struct {
 }
 
 // The contacts at a step, the latest to arrive first, after a cursor
-// (review 2026-11 AT-2).
+// (review 2026-11 AT-2); for a caller limited to some lists, only the
+// contacts on them (empty scope_lists: everyone).
 func (q *Queries) AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAtNodeParams) ([]AutomationRunsAtNodeRow, error) {
 	rows, err := q.db.Query(ctx, automationRunsAtNode,
 		arg.AutomationID,
@@ -1352,6 +1355,7 @@ func (q *Queries) AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAt
 		arg.After,
 		arg.AfterAt,
 		arg.AfterID,
+		arg.ScopeLists,
 		arg.Lim,
 	)
 	if err != nil {
@@ -2192,17 +2196,19 @@ func (q *Queries) CountAutomationInFlowByNode(ctx context.Context, automationID 
 }
 
 const countAutomationRunsAtNode = `-- name: CountAutomationRunsAtNode :one
-SELECT count(*)::bigint FROM automation_runs
-WHERE automation_id = $1 AND node_id = $2 AND status IN ('active', 'waiting')
+SELECT count(*)::bigint FROM automation_runs r
+WHERE r.automation_id = $1 AND r.node_id = $2 AND r.status IN ('active', 'waiting')
+  AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY($3::uuid[])))
 `
 
 type CountAutomationRunsAtNodeParams struct {
-	AutomationID uuid.UUID `json:"automationId"`
-	NodeID       string    `json:"nodeId"`
+	AutomationID uuid.UUID   `json:"automationId"`
+	NodeID       string      `json:"nodeId"`
+	ScopeLists   []uuid.UUID `json:"scopeLists"`
 }
 
 func (q *Queries) CountAutomationRunsAtNode(ctx context.Context, arg CountAutomationRunsAtNodeParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countAutomationRunsAtNode, arg.AutomationID, arg.NodeID)
+	row := q.db.QueryRow(ctx, countAutomationRunsAtNode, arg.AutomationID, arg.NodeID, arg.ScopeLists)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err

@@ -244,7 +244,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			e, err := s.ExportPollAnswers(ctx, api.WorkspaceFrom(ctx), id)
+			e, err := s.ExportPollAnswers(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			if err != nil {
 				return nil, err
 			}
@@ -414,7 +414,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			e, err := s.ExportSurveyAnswers(ctx, api.WorkspaceFrom(ctx), id)
+			e, err := s.ExportSurveyAnswers(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			if err != nil {
 				return nil, err
 			}

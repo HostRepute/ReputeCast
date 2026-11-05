@@ -86,7 +86,9 @@ LIMIT 1;
 UPDATE routing_rules SET splits = @splits, updated_at = now() WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: McpContact :one
--- One contact for get_contact (review 2026-11 IN-3), by id or address.
+-- One contact for get_contact (review 2026-11 IN-3), by id or address; an
+-- agent limited to some lists finds only the contacts on them, as
+-- search_contacts (empty scope_lists: everyone).
 SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.consent, c.language, c.timezone, c.source, c.tags,
        c.created_at, c.last_open_at, c.last_human_open_at,
        coalesce((SELECT array_agg(l.name ORDER BY l.name) FROM list_memberships m JOIN lists l ON l.id = m.list_id AND l.deleted_at IS NULL
@@ -94,6 +96,8 @@ SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.consent, c.
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL
   AND (c.id = sqlc.narg(id)::uuid OR lower(c.email) = lower(@email::text))
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (
+        SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY(@scope_lists::uuid[])))
 LIMIT 1;
 
 -- name: McpLists :many

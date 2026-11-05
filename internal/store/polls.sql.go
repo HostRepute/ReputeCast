@@ -712,25 +712,30 @@ func (q *Queries) PollCampaignContent(ctx context.Context, arg PollCampaignConte
 const pollComments = `-- name: PollComments :many
 SELECT a.id, a.kind, a.answer, a.comment, coalesce(a.commented_at, a.updated_at) AS at, a.contact_id,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email,
-       count(*) OVER ()::bigint AS total
+       count(*) OVER ()::bigint AS total,
+       (cardinality($1::uuid[]) = 0 OR EXISTS (
+          SELECT 1 FROM list_memberships sm WHERE sm.contact_id = a.contact_id AND sm.list_id = ANY($1::uuid[])))::boolean AS in_scope
 FROM poll_answers a
 LEFT JOIN contacts c ON c.id = a.contact_id
-WHERE a.poll_id = $1 AND a.kind <> 'test' AND a.comment <> ''
-  AND (a.answer >= $2::int AND a.answer <= $3::int)
-  AND ($4::text = '' OR a.comment ILIKE '%' || $4::text || '%'
-       OR ($5::boolean AND coalesce(c.first_name || ' ' || c.last_name, '') ILIKE '%' || $4::text || '%'))
+WHERE a.poll_id = $2 AND a.kind <> 'test' AND a.comment <> ''
+  AND (a.answer >= $3::int AND a.answer <= $4::int)
+  AND ($5::text = '' OR a.comment ILIKE '%' || $5::text || '%'
+       OR ($6::boolean AND coalesce(c.first_name || ' ' || c.last_name, '') ILIKE '%' || $5::text || '%'
+           AND (cardinality($1::uuid[]) = 0 OR EXISTS (
+                 SELECT 1 FROM list_memberships sm WHERE sm.contact_id = a.contact_id AND sm.list_id = ANY($1::uuid[])))))
 ORDER BY coalesce(a.commented_at, a.updated_at) DESC, a.id DESC
-LIMIT $7 OFFSET $6
+LIMIT $8 OFFSET $7
 `
 
 type PollCommentsParams struct {
-	PollID    uuid.UUID `json:"pollId"`
-	MinAnswer int32     `json:"minAnswer"`
-	MaxAnswer int32     `json:"maxAnswer"`
-	Search    string    `json:"search"`
-	Names     bool      `json:"names"`
-	Off       int32     `json:"off"`
-	Lim       int32     `json:"lim"`
+	ScopeLists []uuid.UUID `json:"scopeLists"`
+	PollID     uuid.UUID   `json:"pollId"`
+	MinAnswer  int32       `json:"minAnswer"`
+	MaxAnswer  int32       `json:"maxAnswer"`
+	Search     string      `json:"search"`
+	Names      bool        `json:"names"`
+	Off        int32       `json:"off"`
+	Lim        int32       `json:"lim"`
 }
 
 type PollCommentsRow struct {
@@ -744,13 +749,17 @@ type PollCommentsRow struct {
 	LastName  string     `json:"lastName"`
 	Email     string     `json:"email"`
 	Total     int64      `json:"total"`
+	InScope   bool       `json:"inScope"`
 }
 
 // Comments, newest first, with the contact's name (the caller leaves it
 // out for people without subscribers:view, whose search doesn't match
-// names either).
+// names either). For a caller limited to some lists, in_scope says whether
+// the contact is on one of them: only those are named, and only their
+// names match a search (empty scope_lists: everyone).
 func (q *Queries) PollComments(ctx context.Context, arg PollCommentsParams) ([]PollCommentsRow, error) {
 	rows, err := q.db.Query(ctx, pollComments,
+		arg.ScopeLists,
 		arg.PollID,
 		arg.MinAnswer,
 		arg.MaxAnswer,
@@ -777,6 +786,7 @@ func (q *Queries) PollComments(ctx context.Context, arg PollCommentsParams) ([]P
 			&i.LastName,
 			&i.Email,
 			&i.Total,
+			&i.InScope,
 		); err != nil {
 			return nil, err
 		}
@@ -949,8 +959,15 @@ SELECT a.kind, a.answer, a.first_answer, a.changes, a.comment, a.answered_at, a.
 FROM poll_answers a
 LEFT JOIN contacts c ON c.id = a.contact_id
 WHERE a.poll_id = $1 AND a.kind <> 'test'
+  AND (cardinality($2::uuid[]) = 0 OR EXISTS (
+        SELECT 1 FROM list_memberships sm WHERE sm.contact_id = a.contact_id AND sm.list_id = ANY($2::uuid[])))
 ORDER BY a.answered_at, a.id
 `
+
+type PollExportAnswersParams struct {
+	PollID     uuid.UUID   `json:"pollId"`
+	ScopeLists []uuid.UUID `json:"scopeLists"`
+}
 
 type PollExportAnswersRow struct {
 	Kind        string    `json:"kind"`
@@ -965,8 +982,11 @@ type PollExportAnswersRow struct {
 	LastName    string    `json:"lastName"`
 }
 
-func (q *Queries) PollExportAnswers(ctx context.Context, pollID uuid.UUID) ([]PollExportAnswersRow, error) {
-	rows, err := q.db.Query(ctx, pollExportAnswers, pollID)
+// Every answer with its contact. A caller limited to some lists exports
+// only the answers of the contacts on them, as Audience exports only those
+// contacts (empty scope_lists: every answer).
+func (q *Queries) PollExportAnswers(ctx context.Context, arg PollExportAnswersParams) ([]PollExportAnswersRow, error) {
+	rows, err := q.db.Query(ctx, pollExportAnswers, arg.PollID, arg.ScopeLists)
 	if err != nil {
 		return nil, err
 	}
@@ -1449,8 +1469,15 @@ SELECT r.id, r.kind, r.answers, r.source, r.started_at, r.completed_at, r.update
 FROM survey_responses r
 LEFT JOIN contacts c ON c.id = r.contact_id
 WHERE r.survey_id = $1 AND r.kind <> 'test'
+  AND (cardinality($2::uuid[]) = 0 OR EXISTS (
+        SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY($2::uuid[])))
 ORDER BY r.started_at, r.id
 `
+
+type SurveyAllResponsesParams struct {
+	SurveyID   uuid.UUID   `json:"surveyId"`
+	ScopeLists []uuid.UUID `json:"scopeLists"`
+}
 
 type SurveyAllResponsesRow struct {
 	ID          uuid.UUID       `json:"id"`
@@ -1466,9 +1493,11 @@ type SurveyAllResponsesRow struct {
 	Email       string          `json:"email"`
 }
 
-// Every response, for the results and the exports.
-func (q *Queries) SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([]SurveyAllResponsesRow, error) {
-	rows, err := q.db.Query(ctx, surveyAllResponses, surveyID)
+// Every response with its contact, for the answers export. A caller
+// limited to some lists exports only the responses of the contacts on them
+// (empty scope_lists: every response).
+func (q *Queries) SurveyAllResponses(ctx context.Context, arg SurveyAllResponsesParams) ([]SurveyAllResponsesRow, error) {
+	rows, err := q.db.Query(ctx, surveyAllResponses, arg.SurveyID, arg.ScopeLists)
 	if err != nil {
 		return nil, err
 	}
@@ -2022,18 +2051,21 @@ func (q *Queries) SurveyResponseUpdate(ctx context.Context, arg SurveyResponseUp
 
 const surveyResponses = `-- name: SurveyResponses :many
 SELECT r.id, r.kind, r.answers, r.source, r.started_at, r.completed_at, r.updated_at, r.contact_id,
-       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email
+       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email,
+       (cardinality($1::uuid[]) = 0 OR EXISTS (
+          SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY($1::uuid[])))::boolean AS in_scope
 FROM survey_responses r
 LEFT JOIN contacts c ON c.id = r.contact_id
-WHERE r.survey_id = $1 AND r.kind <> 'test' AND r.completed_at IS NOT NULL
+WHERE r.survey_id = $2 AND r.kind <> 'test' AND r.completed_at IS NOT NULL
 ORDER BY r.completed_at DESC, r.id DESC
-LIMIT $3 OFFSET $2
+LIMIT $4 OFFSET $3
 `
 
 type SurveyResponsesParams struct {
-	SurveyID uuid.UUID `json:"surveyId"`
-	Off      int32     `json:"off"`
-	Lim      int32     `json:"lim"`
+	ScopeLists []uuid.UUID `json:"scopeLists"`
+	SurveyID   uuid.UUID   `json:"surveyId"`
+	Off        int32       `json:"off"`
+	Lim        int32       `json:"lim"`
 }
 
 type SurveyResponsesRow struct {
@@ -2048,10 +2080,18 @@ type SurveyResponsesRow struct {
 	FirstName   string          `json:"firstName"`
 	LastName    string          `json:"lastName"`
 	Email       string          `json:"email"`
+	InScope     bool            `json:"inScope"`
 }
 
+// A page of completed responses; in_scope says whether a caller limited to
+// some lists may see who answered (empty scope_lists: everyone).
 func (q *Queries) SurveyResponses(ctx context.Context, arg SurveyResponsesParams) ([]SurveyResponsesRow, error) {
-	rows, err := q.db.Query(ctx, surveyResponses, arg.SurveyID, arg.Off, arg.Lim)
+	rows, err := q.db.Query(ctx, surveyResponses,
+		arg.ScopeLists,
+		arg.SurveyID,
+		arg.Off,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2071,6 +2111,7 @@ func (q *Queries) SurveyResponses(ctx context.Context, arg SurveyResponsesParams
 			&i.FirstName,
 			&i.LastName,
 			&i.Email,
+			&i.InScope,
 		); err != nil {
 			return nil, err
 		}
@@ -2153,22 +2194,25 @@ func (q *Queries) SurveyTextAnswerCount(ctx context.Context, arg SurveyTextAnswe
 
 const surveyTextAnswers = `-- name: SurveyTextAnswers :many
 SELECT r.id, r.completed_at, (r.answers ->> $1::text)::text AS answer, r.contact_id,
-       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email
+       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email,
+       (cardinality($2::uuid[]) = 0 OR EXISTS (
+          SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY($2::uuid[])))::boolean AS in_scope
 FROM survey_responses r
 LEFT JOIN contacts c ON c.id = r.contact_id
-WHERE r.survey_id = $2 AND r.kind <> 'test' AND r.completed_at IS NOT NULL
+WHERE r.survey_id = $3 AND r.kind <> 'test' AND r.completed_at IS NOT NULL
   AND jsonb_typeof(r.answers -> $1::text) = 'string' AND (r.answers ->> $1::text) <> ''
-  AND ($3::text = '' OR strpos(lower(r.answers ->> $1::text), lower($3::text)) > 0)
+  AND ($4::text = '' OR strpos(lower(r.answers ->> $1::text), lower($4::text)) > 0)
 ORDER BY r.completed_at DESC, r.id DESC
-LIMIT $5 OFFSET $4
+LIMIT $6 OFFSET $5
 `
 
 type SurveyTextAnswersParams struct {
-	QuestionKey string    `json:"questionKey"`
-	SurveyID    uuid.UUID `json:"surveyId"`
-	Search      string    `json:"search"`
-	Off         int32     `json:"off"`
-	Lim         int32     `json:"lim"`
+	QuestionKey string      `json:"questionKey"`
+	ScopeLists  []uuid.UUID `json:"scopeLists"`
+	SurveyID    uuid.UUID   `json:"surveyId"`
+	Search      string      `json:"search"`
+	Off         int32       `json:"off"`
+	Lim         int32       `json:"lim"`
 }
 
 type SurveyTextAnswersRow struct {
@@ -2179,12 +2223,15 @@ type SurveyTextAnswersRow struct {
 	FirstName   string     `json:"firstName"`
 	LastName    string     `json:"lastName"`
 	Email       string     `json:"email"`
+	InScope     bool       `json:"inScope"`
 }
 
-// A page of a text question's answers, newest first, optionally searched.
+// A page of a text question's answers, newest first, optionally searched;
+// in_scope as in SurveyResponses.
 func (q *Queries) SurveyTextAnswers(ctx context.Context, arg SurveyTextAnswersParams) ([]SurveyTextAnswersRow, error) {
 	rows, err := q.db.Query(ctx, surveyTextAnswers,
 		arg.QuestionKey,
+		arg.ScopeLists,
 		arg.SurveyID,
 		arg.Search,
 		arg.Off,
@@ -2205,6 +2252,7 @@ func (q *Queries) SurveyTextAnswers(ctx context.Context, arg SurveyTextAnswersPa
 			&i.FirstName,
 			&i.LastName,
 			&i.Email,
+			&i.InScope,
 		); err != nil {
 			return nil, err
 		}

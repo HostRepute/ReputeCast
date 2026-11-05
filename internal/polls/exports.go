@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -148,8 +149,9 @@ func (s *Service) ExportPollResults(ctx context.Context, ws *store.Workspace, p 
 }
 
 // ExportPollAnswers writes every answer with its contact (subscribers:export,
-// audited).
-func (s *Service) ExportPollAnswers(ctx context.Context, ws *store.Workspace, pollID uuid.UUID) (Export, error) {
+// audited). A member, key or agent limited to some lists exports only the
+// answers of the contacts on them, as Audience exports only those contacts.
+func (s *Service) ExportPollAnswers(ctx context.Context, ws *store.Workspace, p *authz.Principal, pollID uuid.UUID) (Export, error) {
 	r, err := s.Q.PollByID(ctx, store.PollByIDParams{WorkspaceID: ws.ID, ID: pollID})
 	if err != nil {
 		return Export{}, api.MapError(err, "Poll")
@@ -159,7 +161,7 @@ func (s *Service) ExportPollAnswers(ctx context.Context, ws *store.Workspace, po
 	for _, a := range answers {
 		label[a.Key] = a.Label
 	}
-	rows, err := s.Q.PollExportAnswers(ctx, r.ID)
+	rows, err := s.Q.PollExportAnswers(ctx, store.PollExportAnswersParams{PollID: r.ID, ScopeLists: access.ScopeLists(p)})
 	if err != nil {
 		return Export{}, err
 	}
@@ -223,13 +225,14 @@ func (s *Service) ExportSurveyResults(ctx context.Context, ws *store.Workspace, 
 }
 
 // ExportSurveyAnswers writes every response with its contact
-// (subscribers:export, audited).
-func (s *Service) ExportSurveyAnswers(ctx context.Context, ws *store.Workspace, id uuid.UUID) (Export, error) {
+// (subscribers:export, audited): only the responses of the contacts on
+// their lists for a caller limited to some.
+func (s *Service) ExportSurveyAnswers(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (Export, error) {
 	sv, err := s.GetSurvey(ctx, ws, id)
 	if err != nil {
 		return Export{}, err
 	}
-	rows, err := s.Q.SurveyAllResponses(ctx, id)
+	rows, err := s.Q.SurveyAllResponses(ctx, store.SurveyAllResponsesParams{SurveyID: id, ScopeLists: access.ScopeLists(p)})
 	if err != nil {
 		return Export{}, err
 	}

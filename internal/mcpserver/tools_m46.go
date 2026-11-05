@@ -59,7 +59,9 @@ func (s *Service) addM46Tools(srv *mcp.Server) {
 	tool(s, srv, "get_contact", authz.SubscribersView, func(ctx context.Context, c *agentCall, in contactIn) (any, entry, error) {
 		e := entry{action: "contact.read", targetType: "contact"}
 		ref := strings.TrimSpace(in.Contact)
-		p := store.McpContactParams{WorkspaceID: c.Workspace.ID, Email: ref}
+		// An agent limited to some lists finds only the contacts on them, as
+		// search_contacts does.
+		p := store.McpContactParams{WorkspaceID: c.Workspace.ID, Email: ref, ScopeLists: access.ScopeLists(c.Principal)}
 		if id, err := uuid.Parse(ref); err == nil {
 			p.ID, p.Email = &id, ""
 		}

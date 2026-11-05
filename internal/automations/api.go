@@ -429,7 +429,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.StepContacts(ctx, api.WorkspaceFrom(ctx), id, in.Node, in.Cursor, in.Limit)
+			out, err := s.StepContacts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Node, in.Cursor, in.Limit)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "remove-automation-contact", Path: "/workspaces/{workspace}/automations/{id}/runs/{run}/remove", Summary: "Take a contact out of a flow now (needs a reason, logged)",
@@ -459,7 +459,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.ContactRuns(ctx, api.WorkspaceFrom(ctx), id)
+			out, err := s.ContactRuns(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "preview-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}/preview", Summary: "Render an email as a contact gets it",

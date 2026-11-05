@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -477,7 +478,8 @@ type PollCommentsFilter struct {
 }
 
 // Comments are a poll's comments, newest first, with names for people
-// with subscribers:view.
+// with subscribers:view: for a member, key or agent limited to some lists,
+// only the names of the contacts on them.
 func (s *Service) Comments(ctx context.Context, ws *store.Workspace, p *authz.Principal, pollID uuid.UUID, f PollCommentsFilter) (PollCommentList, error) {
 	r, err := s.Q.PollByID(ctx, store.PollByIDParams{WorkspaceID: ws.ID, ID: pollID})
 	if err != nil {
@@ -515,7 +517,8 @@ func (s *Service) Comments(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		limit = 20
 	}
 	search := strings.TrimSpace(f.Search)
-	rows, err := s.Q.PollComments(ctx, store.PollCommentsParams{PollID: r.ID, MinAnswer: lo, MaxAnswer: hi, Search: search, Names: names, Lim: int32(limit), Off: int32(max(f.Offset, 0))})
+	rows, err := s.Q.PollComments(ctx, store.PollCommentsParams{PollID: r.ID, MinAnswer: lo, MaxAnswer: hi, Search: search, Names: names, ScopeLists: access.ScopeLists(p),
+		Lim: int32(limit), Off: int32(max(f.Offset, 0))})
 	if err != nil {
 		return out, err
 	}
@@ -532,7 +535,7 @@ func (s *Service) Comments(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	for _, c := range rows {
 		item := PollComment{ID: c.ID.String(), Answer: int(c.Answer), Label: label[int(c.Answer)], Group: groupOf(r.Kind, int(c.Answer)), Comment: c.Comment, At: c.At,
 			NonContact: c.Kind == AnswererNonContact}
-		if names && c.ContactID != nil {
+		if names && c.ContactID != nil && c.InScope {
 			item.Contact = strings.TrimSpace(c.FirstName + " " + c.LastName)
 			if item.Contact == "" {
 				item.Contact = c.Email

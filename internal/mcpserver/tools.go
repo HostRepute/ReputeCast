@@ -363,7 +363,9 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if limit <= 0 || limit > 100 {
 			limit = 20
 		}
-		rows, err := s.Q.McpSearchContacts(ctx, store.McpSearchContactsParams{WorkspaceID: c.Workspace.ID, Q: q, Lists: c.Principal.Scope.Lists, Lim: int32(limit)})
+		// The scope as an empty array, never NULL, for an agent not limited
+		// to some lists: NULL matched no contact at all.
+		rows, err := s.Q.McpSearchContacts(ctx, store.McpSearchContactsParams{WorkspaceID: c.Workspace.ID, Q: q, Lists: access.ScopeLists(c.Principal), Lim: int32(limit)})
 		if err != nil {
 			return nil, e, err
 		}
