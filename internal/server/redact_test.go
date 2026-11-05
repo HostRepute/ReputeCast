@@ -54,6 +54,33 @@ func TestRedactPath(t *testing.T) {
 		"/signin":                              "/signin",
 		"/p/acme-newsletter/products/the-book": "/p/acme-newsletter/products/the-book",
 		"/gift":                                "/gift",
+		// Webhooks: SMS adapters name themselves before the token.
+		"/hooks/sms/twilio/whtok":   "/hooks/sms/twilio/{token}",
+		"/hooks/stripe/whtok":       "/hooks/stripe/{token}",
+		"/hooks/shopify/whtok":      "/hooks/shopify/{token}",
+		"/hooks/woocommerce/whtok":  "/hooks/woocommerce/{token}",
+		"/hooks/whatsapp/acme-news": "/hooks/whatsapp/{token}",
+		// Push notification clicks and SMS short links, on the instance's
+		// host and at the root of a short-link domain.
+		"/t/p/AbC.def":   "/t/p/{token}",
+		"/t/p/AbC.def/2": "/t/p/{token}/2",
+		"/t/s/Xk7Pq2":    "/t/s/{token}",
+		"/Xk7Pq2":        "/{token}",
+		"/xk7pq2":        "/{token}",
+		"/readyz":        "/readyz",
+		"/healthz":       "/healthz",
+		"/sign-in":       "/sign-in",
+		"/setup":         "/setup",
+		"/Xk7Pq2/x":      "/Xk7Pq2/x",
+		// The rest of the links with a token in them.
+		"/p/acme-newsletter/l/tok":                     "/p/acme-newsletter/l/{token}",
+		"/p/acme-newsletter/cancel/tok":                "/p/acme-newsletter/cancel/{token}",
+		"/p/acme-newsletter/referrals/tok/address/rw1": "/p/acme-newsletter/referrals/{token}/address/rw1",
+		"/billing/tok":                                 "/billing/{token}",
+		"/rewards/tok":                                 "/rewards/{token}",
+		"/recommends/tok":                              "/recommends/{token}",
+		"/api/v1/invitations/tok/request":              "/api/v1/invitations/{token}/request",
+		"/api/v1/auth/password-reset":                  "/api/v1/auth/password-reset",
 	} {
 		if got := RedactPath(in); got != want {
 			t.Errorf("RedactPath(%q) = %q, want %q", in, got, want)
