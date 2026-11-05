@@ -4,7 +4,9 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"net/textproto"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -159,8 +161,7 @@ func (h *Handler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	if a := clientIP(r); a != nil {
 		ip = a.String()
 	}
-	count := r.Method == http.MethodGet && rangeFromStart(r.Header.Get("Range"))
-	f, file, state, err := h.Products.OpenFile(r.Context(), s.ws, token, fileID, ip, count)
+	f, file, state, err := h.Products.OpenFile(r.Context(), s.ws, token, fileID, ip, resumesFor(r))
 	switch {
 	case errors.Is(err, products.ErrNoDownload):
 		h.notFound(w, r, s)
@@ -177,11 +178,56 @@ func (h *Handler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	serveDownloadFile(w, r, f, file)
 }
 
-// rangeFromStart reports whether a request downloads a file from its
-// start (a resumed download counts once).
-func rangeFromStart(rng string) bool {
-	rng = strings.TrimSpace(rng)
-	return rng == "" || strings.HasPrefix(rng, "bytes=0-")
+// resumesFor asks, once the file is known, whether a request resumes a
+// download (a resumed download counts once).
+func resumesFor(r *http.Request) products.Resumes {
+	return func(size int64, modtime time.Time) bool { return resumesDownload(r, size, modtime) }
+}
+
+// resumesDownload reports whether http.ServeContent answers a request with
+// the rest of a file rather than the file: one byte range, satisfiable,
+// from past the first byte, with If-Range absent or naming the file's
+// time. Anything else gets the file from its start, so it is a download
+// and counts: no Range, bytes=0-…, several ranges (which ServeContent
+// sends whole when together they're longer than the file, as in
+// "bytes=1-,0-", or when there are too many), a range it can't satisfy,
+// an If-Range that doesn't match. Taking those for resumes let a used-up
+// or expired link send its whole file, uncounted.
+func resumesDownload(r *http.Request, size int64, modtime time.Time) bool {
+	const unit = "bytes="
+	rng := r.Header.Get("Range")
+	if r.Method != http.MethodGet || !strings.HasPrefix(rng, unit) || strings.Contains(rng, ",") {
+		return false
+	}
+	if ir := r.Header.Get("If-Range"); ir != "" {
+		// ServeContent honours the range only for the file's own time (it
+		// sends no ETag).
+		t, err := http.ParseTime(ir)
+		if err != nil || modtime.IsZero() || t.Unix() != modtime.Unix() {
+			return false
+		}
+	}
+	first, last, ok := strings.Cut(rng[len(unit):], "-")
+	if !ok {
+		return false
+	}
+	first, last = textproto.TrimString(first), textproto.TrimString(last)
+	if first == "" {
+		// The last n bytes: from past the first when n is under the size.
+		n, err := strconv.ParseInt(last, 10, 64)
+		return err == nil && n > 0 && n < size
+	}
+	from, err := strconv.ParseInt(first, 10, 64)
+	if err != nil || from <= 0 || from >= size {
+		return false
+	}
+	if last != "" {
+		to, err := strconv.ParseInt(last, 10, 64)
+		if err != nil || to < from {
+			return false
+		}
+	}
+	return true
 }
 
 // serveDownloadFile sends a file as an attachment, resumable, with the
@@ -241,8 +287,7 @@ func (h *Handler) leadMagnetFile(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
-	count := r.Method == http.MethodGet && rangeFromStart(r.Header.Get("Range"))
-	f, file, err := h.Products.OpenLeadMagnet(r.Context(), s.ws, chi.URLParam(r, "token"), count)
+	f, file, err := h.Products.OpenLeadMagnet(r.Context(), s.ws, chi.URLParam(r, "token"), resumesFor(r))
 	switch {
 	case errors.Is(err, products.ErrLinkExpired):
 		pl := h.visitorLang(w, r, s, nil)

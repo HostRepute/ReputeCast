@@ -2,6 +2,7 @@ package products_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,12 +15,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// open opens a link's file as the download route does: count is false for a
-// download resumed from the middle (a Range request). served says the file
-// came with it.
+// open opens a link's file as the download route does: count is false for
+// the rest of a download (a Range request from past the first byte).
+// served says the file came with it.
 func (s *shop) open(token string, file uuid.UUID, count bool) (state string, served bool, err error) {
 	s.t.Helper()
-	_, f, state, err := s.svc.OpenFile(s.ctx, &s.ws, token, file, "198.51.100.7", count)
+	_, f, state, err := s.svc.OpenFile(s.ctx, &s.ws, token, file, "198.51.100.7", func(int64, time.Time) bool { return !count })
 	if f != nil {
 		b, _ := io.ReadAll(f)
 		_ = f.Close()
@@ -156,6 +157,76 @@ func TestDownloadLimitAndExpiry(t *testing.T) {
 	}
 	if st, served, _ := s.open(s.token(o2.ID, fresh.ID), file, true); st != products.DownloadOK || !served {
 		t.Errorf("downloading from the new link: %s %v", st, served)
+	}
+}
+
+// The rest of a download comes uncounted only within ResumeWindow of the
+// link's last counted download, and never once the link has expired,
+// used up or not: a request that only looked like a resume used to get a
+// used-up or expired link's file, for ever.
+func TestResumedDownloads(t *testing.T) {
+	s := newShop(t)
+	fg := s.liveOf(s.fieldGuide)
+	allowed := int(fg.LinkDownloads)
+	file := s.firstFile(s.fieldGuide)
+	used := func(order uuid.UUID) int32 { return s.link(order).DownloadsUsed }
+
+	o, _ := s.buy(s.fieldGuide, buyer{Email: "frankie@example.com"})
+	tok := s.token(o.ID, s.link(o.ID).ID)
+	// Nothing counted yet: a resume is a download.
+	if st, served, err := s.open(tok, file, false); st != products.DownloadOK || !served || err != nil {
+		t.Fatalf("a first request from the middle: %s %v %v", st, served, err)
+	}
+	if n := used(o.ID); n != 1 {
+		t.Fatalf("a first request from the middle counted %d", n)
+	}
+	// Within the window it isn't counted again.
+	s.clock.add(time.Hour)
+	if st, served, _ := s.open(tok, file, false); st != products.DownloadOK || !served || used(o.ID) != 1 {
+		t.Fatalf("resumed within the window: %s %v, %d counted", st, served, used(o.ID))
+	}
+	// Past it, the link still has downloads: it counts like a new one.
+	s.clock.add(products.ResumeWindow)
+	if st, served, _ := s.open(tok, file, false); st != products.DownloadOK || !served || used(o.ID) != 2 {
+		t.Fatalf("resumed past the window: %s %v, %d counted", st, served, used(o.ID))
+	}
+	for used(o.ID) < int32(allowed) {
+		if st, _, _ := s.open(tok, file, true); st != products.DownloadOK {
+			t.Fatalf("download %d: %s", used(o.ID)+1, st)
+		}
+	}
+	// Used up: the rest of the last download comes within the window…
+	s.clock.add(products.ResumeWindow - time.Minute)
+	if st, served, _ := s.open(tok, file, false); st != products.DownloadOK || !served {
+		t.Errorf("used up, within the window: %s %v", st, served)
+	}
+	// …and not after it.
+	s.clock.add(2 * time.Minute)
+	if st, served, _ := s.open(tok, file, false); st != products.DownloadUsedUp || served {
+		t.Errorf("used up, past the window: %s %v", st, served)
+	}
+	if n := used(o.ID); n != int32(allowed) {
+		t.Errorf("%d downloads counted, want %d", n, allowed)
+	}
+
+	// Expired, used up or not, even right after a counted download.
+	for _, useUp := range []bool{false, true} {
+		o, _ := s.buy(s.fieldGuide, buyer{Email: fmt.Sprintf("gale%v@example.com", useUp)})
+		tok := s.token(o.ID, s.link(o.ID).ID)
+		s.clock.add(time.Duration(fg.LinkDays)*24*time.Hour - 10*time.Minute)
+		n := 1
+		if useUp {
+			n = allowed
+		}
+		for range n {
+			if st, _, _ := s.open(tok, file, true); st != products.DownloadOK {
+				t.Fatalf("before expiry: %s", st)
+			}
+		}
+		s.clock.add(20 * time.Minute)
+		if st, served, _ := s.open(tok, file, false); st == products.DownloadOK || served {
+			t.Errorf("resuming an expired link (used up: %v): %s %v", useUp, st, served)
+		}
 	}
 }
 

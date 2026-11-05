@@ -15,11 +15,11 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// openLead opens a lead magnet's file as /l/{token} does; served says the
-// file came.
+// openLead opens a lead magnet's file as /l/{token} does: count is false
+// for the rest of a download. served says the file came.
 func (s *shop) openLead(w *store.Workspace, token string, count bool) (bool, error) {
 	s.t.Helper()
-	_, f, err := s.svc.OpenLeadMagnet(s.ctx, w, token, count)
+	_, f, err := s.svc.OpenLeadMagnet(s.ctx, w, token, func(int64, time.Time) bool { return !count })
 	if f == nil {
 		return false, err
 	}

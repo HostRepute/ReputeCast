@@ -133,8 +133,10 @@ func (s *Service) LeadMagnetFor(ctx context.Context, ws *store.Workspace, base s
 // ErrLinkExpired is a lead magnet link past its days.
 var ErrLinkExpired = errors.New("products: the download link expired")
 
-// OpenLeadMagnet counts a lead magnet's download and opens its file.
-func (s *Service) OpenLeadMagnet(ctx context.Context, ws *store.Workspace, token string, count bool) (store.DownloadFile, *os.File, error) {
+// OpenLeadMagnet counts a lead magnet's download and opens its file. The
+// rest of a download (resumes, as OpenFile's) isn't counted again; the
+// link has no limit, only its days.
+func (s *Service) OpenLeadMagnet(ctx context.Context, ws *store.Workspace, token string, resumes Resumes) (store.DownloadFile, *os.File, error) {
 	if s.Links == nil {
 		return store.DownloadFile{}, nil, ErrNoDownload
 	}
@@ -153,14 +155,16 @@ func (s *Service) OpenLeadMagnet(ctx context.Context, ws *store.Workspace, token
 	if err != nil || f.RemovedAt != nil {
 		return store.DownloadFile{}, nil, ErrNoDownload
 	}
-	if count {
-		if err := s.Q.LeadMagnetLinkUse(ctx, link.ID); err != nil {
-			return f, nil, err
-		}
-	}
+	// The file first: a download that can't be sent isn't counted.
 	file, err := s.Files.Open(f.StorageKey)
 	if err != nil {
 		return f, nil, err
+	}
+	if !resumesOf(resumes, file, f.UploadedAt) {
+		if err := s.Q.LeadMagnetLinkUse(ctx, link.ID); err != nil {
+			_ = file.Close()
+			return f, nil, err
+		}
 	}
 	return f, file, nil
 }

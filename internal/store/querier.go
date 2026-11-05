@@ -2737,6 +2737,9 @@ type Querier interface {
 	ProductOrderLinkGet(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
 	// Links
 	ProductOrderLinkInsert(ctx context.Context, arg ProductOrderLinkInsertParams) error
+	// When a link's last counted download began: the rest of it can be asked
+	// for (a Range request) without counting again for a while.
+	ProductOrderLinkLastDownload(ctx context.Context, arg ProductOrderLinkLastDownloadParams) (time.Time, error)
 	ProductOrderLinkLock(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
 	ProductOrderLinkUse(ctx context.Context, id uuid.UUID) error
 	ProductOrderLinks(ctx context.Context, orderID uuid.UUID) ([]ProductOrderLinksRow, error)
