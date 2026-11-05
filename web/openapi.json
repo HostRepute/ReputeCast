@@ -86772,11 +86772,17 @@
             "format": "int64",
             "type": "integer"
           },
+          "sessionsShared": {
+            "type": "boolean"
+          },
           "signInMethods": {
             "items": {
               "$ref": "#/components/schemas/MemberSignInMethod"
             },
             "type": "array"
+          },
+          "signOutReason": {
+            "type": "string"
           },
           "ssoDomain": {
             "type": "string"
@@ -86791,6 +86797,7 @@
           "approvalsRequested",
           "canApprove",
           "sessions",
+          "sessionsShared",
           "scheduledCampaigns",
           "signInMethods",
           "activity",
@@ -153232,7 +153239,7 @@
             "session": []
           }
         ],
-        "summary": "Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys",
+        "summary": "Deactivate a member: keeps history, closes the workspace to them, keeps or revokes their API keys",
         "tags": [
           "Team"
         ],
@@ -153351,7 +153358,7 @@
             "session": []
           }
         ],
-        "summary": "End every session of a member",
+        "summary": "End every session of a member (only an instance admin can for someone in other workspaces)",
         "tags": [
           "Team"
         ],

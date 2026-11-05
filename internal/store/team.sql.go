@@ -798,6 +798,26 @@ func (q *Queries) TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsPara
 	return items, nil
 }
 
+const teamOtherActiveMemberships = `-- name: TeamOtherActiveMemberships :one
+SELECT count(*) FROM workspace_members m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.user_id = $1 AND m.workspace_id <> $2 AND m.status = 'active'
+`
+
+type TeamOtherActiveMembershipsParams struct {
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// The other workspaces a person is an active member of: their sessions
+// serve those too.
+func (q *Queries) TeamOtherActiveMemberships(ctx context.Context, arg TeamOtherActiveMembershipsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, teamOtherActiveMemberships, arg.UserID, arg.WorkspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const teamPendingInviteEmails = `-- name: TeamPendingInviteEmails :many
 SELECT email FROM invitations
 WHERE workspace_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now() AND email = ANY($2::text[])

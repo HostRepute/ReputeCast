@@ -324,6 +324,13 @@ type TeamMemberDetail struct {
 	ApprovalsRequested []TeamMemberApproval `json:"approvalsRequested"`
 	CanApprove         bool                 `json:"canApprove"`
 	Sessions           int64                `json:"sessions"`
+	// SessionsShared: the person also belongs to other workspaces or is an
+	// instance admin, so their sessions serve more than this workspace and
+	// deactivating them here leaves those sessions alone.
+	SessionsShared bool `json:"sessionsShared"`
+	// SignOutReason says why the caller can't end the person's sessions from
+	// here (only an instance admin can); empty when they can.
+	SignOutReason string `json:"signOutReason,omitempty"`
 	// ScheduledCampaigns counts scheduled sends the member created (they keep their schedule).
 	ScheduledCampaigns int64 `json:"scheduledCampaigns"`
 	// SSODomain is the email domain used with SSO ("acme.io").
@@ -425,6 +432,12 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 	}
 	if out.Sessions, err = s.Q.TeamActiveSessionCount(ctx, r.UserID); err != nil {
 		return TeamMemberDetail{}, err
+	}
+	if out.SessionsShared, err = sessionsShared(ctx, s.Q, ws, r.UserID, r.IsInstanceAdmin); err != nil {
+		return TeamMemberDetail{}, err
+	}
+	if out.SessionsShared && !p.IsInstanceAdmin && r.UserID != p.UserID {
+		out.SignOutReason = signOutReason(l, m.Name, r.IsInstanceAdmin)
 	}
 	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM campaigns WHERE workspace_id = $1 AND created_by = $2 AND status = 'scheduled' AND deleted_at IS NULL`,
 		ws.ID, r.UserID).Scan(&out.ScheduledCampaigns); err != nil {

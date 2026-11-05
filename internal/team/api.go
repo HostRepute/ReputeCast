@@ -87,7 +87,7 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, api.MapError(s.ChangeRole(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body), "Member")
 		})
 
-	api.Post(h, api.Op{ID: "deactivate-member", Path: base + "/members/{memberId}/deactivate", Summary: "Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
+	api.Post(h, api.Op{ID: "deactivate-member", Path: base + "/members/{memberId}/deactivate", Summary: "Deactivate a member: keeps history, closes the workspace to them, keeps or revokes their API keys", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
 		func(ctx context.Context, in *struct {
 			MemberPathInput
 			Body TeamDeactivateInput
@@ -118,7 +118,7 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, api.MapError(s.Remove(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id), "Member")
 		})
 
-	api.Post(h, api.Op{ID: "sign-out-member", Path: base + "/members/{memberId}/sign-out", Summary: "End every session of a member", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
+	api.Post(h, api.Op{ID: "sign-out-member", Path: base + "/members/{memberId}/sign-out", Summary: "End every session of a member (only an instance admin can for someone in other workspaces)", Tags: tags, Access: api.WorkspaceHuman(authz.TeamManage)},
 		func(ctx context.Context, in *MemberPathInput) (*api.Body[TeamSignOutResult], error) {
 			id, err := in.id()
 			if err != nil {

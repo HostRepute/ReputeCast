@@ -31,6 +31,8 @@
   "problem.alreadyActive": "{name} is already active.",
   "problem.accountDeactivated": "{name}'s account is deactivated on this instance. Ask an instance admin to reactivate the account first.",
   "problem.removeSelf": "You can't remove yourself. Leave the workspace from Account & security instead.",
+  "problem.signOutElsewhere": {"message": "{name} also belongs to other workspaces on this instance, so only an instance admin can end their sessions. To close this workspace to them, deactivate or remove them here: that takes effect at once.", "note": "why a workspace admin can't sign a member out of every session; name: Marcus Chen"},
+  "problem.signOutInstanceAdmin": {"message": "{name} is an instance admin, so only an instance admin can end their sessions. To close this workspace to them, deactivate or remove them here: that takes effect at once.", "note": "name: Linh Nguyen"},
   "problem.unknownMember": "Unknown member.",
   "problem.pickRole": "Pick the role to give.",
 
@@ -43,6 +45,7 @@
   "audit.roleChange": { "message": "{from} → {to}", "note": "an audit summary: a member's role before and after (the roles' names)" },
   "audit.scopeChange": { "message": "scope {fromKind, select, all {all lists} list {{from} list only} only {{from} only} other {{from}}} → {toKind, select, all {all lists} list {{to} list only} only {{to} only} other {{to}}}", "note": "from, to: a list's name or a sender domain; other: a list of them already written" },
   "audit.signedOut": "signed out of {count, plural, one {# session} other {# sessions}}",
+  "audit.sessionsKept": {"message": "still signed in elsewhere on the instance", "note": "an audit summary part: a deactivated member's sessions weren't ended because they also use other workspaces or administer the instance"},
   "audit.keysRevoked": { "message": "{count, plural, one {revoked {last}} other {revoked {names} and {last}}}", "note": "names: the keys' names in quotes, joined with commas; last: the last one" },
   "audit.keysKept": { "message": "{count, plural, one {kept {last}} other {kept {names} and {last}}}", "note": "names: the keys' names in quotes, joined with commas; last: the last one" },
   "audit.creatorDeactivated": "creator {name} deactivated",

@@ -400,7 +400,7 @@ function SessionsCard({ d, manageReason }: { d: Detail; manageReason?: string })
                 {t(mm.sessionsActive, { count: count(d.sessions) })} ·{' '}
                 <Button
                   size="sm"
-                  disabledReason={manageReason ?? (d.sessions === 0 ? t(mm.noActiveSessions) : undefined)}
+                  disabledReason={manageReason ?? d.signOutReason ?? (d.sessions === 0 ? t(mm.noActiveSessions) : undefined)}
                   loading={signOut.isPending}
                   onClick={() =>
                     signOut.mutate(

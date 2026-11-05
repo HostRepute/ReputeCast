@@ -17,6 +17,8 @@ export default translate(m, {
   failedOne: '{name} konnte nicht deaktiviert werden',
   failedMany: '{count, plural, one {# Mitglied konnte} other {# Mitglieder konnten}} nicht deaktiviert werden',
   signedOutEverywhere: '{count, plural, one {Sofort überall abgemeldet (# Sitzung)} other {Sofort überall abgemeldet (# Sitzungen)}}',
+  staysSignedInOne: 'Bleibt anderswo auf dieser Instanz angemeldet',
+  staysSignedInMany: '{count, plural, one {# davon bleibt anderswo auf dieser Instanz angemeldet} other {# davon bleiben anderswo auf dieser Instanz angemeldet}}',
   cantSignIn: 'Kann sich nicht bei {workspace} anmelden; andere Arbeitsbereiche sind nicht betroffen',
   scheduled: '{count, plural, one {# geplante Kampagne behält ihren Zeitplan und läuft unter dem Arbeitsbereich weiter} other {# geplante Kampagnen behalten ihren Zeitplan und laufen unter dem Arbeitsbereich weiter}}',
   approvals: '{count, plural, one {# ausstehende Freigabeanfrage bleibt für freigebende Personen offen} other {# ausstehende Freigabeanfragen bleiben für freigebende Personen offen}}',

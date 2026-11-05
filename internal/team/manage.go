@@ -191,8 +191,9 @@ type TeamDeactivateResult struct {
 	KeysRevoked     []string `json:"keysRevoked"`
 }
 
-// Deactivate keeps the member's history, signs them out everywhere and
-// keeps or revokes the API keys they created.
+// Deactivate keeps the member's history, closes the workspace to them at
+// once, signs them out unless their sessions serve other workspaces too
+// (sessionsShared) and keeps or revokes the API keys they created.
 func (s *Service) Deactivate(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID, in TeamDeactivateInput) (TeamDeactivateResult, error) {
 	var res TeamDeactivateResult
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -236,8 +237,14 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	if err != nil {
 		return res, err
 	}
-	if res.SessionsRevoked, err = q.TeamRevokeUserSessions(ctx, m.UserID); err != nil {
+	shared, err := sessionsShared(ctx, q, ws, m.UserID, m.IsInstanceAdmin)
+	if err != nil {
 		return res, err
+	}
+	if !shared {
+		if res.SessionsRevoked, err = q.TeamRevokeUserSessions(ctx, m.UserID); err != nil {
+			return res, err
+		}
 	}
 	kept := []string{}
 	if in.RevokeKeys {
@@ -266,6 +273,9 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	}
 	// "signed out of 2 sessions · revoked “Zapier” and “CI”"
 	parts := []any{msgs.M("audit.signedOut").Keep(i18n.Args{"count": res.SessionsRevoked})}
+	if shared {
+		parts[0] = msgs.M("audit.sessionsKept").Keep(nil)
+	}
 	if len(res.KeysRevoked) > 0 {
 		parts = append(parts, msgs.M("audit.keysRevoked").Keep(listArgs(quoteAll(res.KeysRevoked))))
 	} else if len(kept) > 0 {
@@ -277,6 +287,29 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept, "invitations_revoked": invites},
 		Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}, parts...),
 	})
+}
+
+// sessionsShared reports whether a person's sessions serve more than this
+// workspace. Sessions belong to the instance: ending them from here would
+// also sign the person out of the other workspaces they belong to, or an
+// instance admin out of the instance, so a workspace leaves them alone.
+// Deactivating or removing the person closes this workspace at once
+// anyway, since membership is checked on every request.
+func sessionsShared(ctx context.Context, q *store.Queries, ws *store.Workspace, userID uuid.UUID, instanceAdmin bool) (bool, error) {
+	if instanceAdmin {
+		return true, nil
+	}
+	n, err := q.TeamOtherActiveMemberships(ctx, store.TeamOtherActiveMembershipsParams{UserID: userID, WorkspaceID: ws.ID})
+	return n > 0, err
+}
+
+// signOutReason says why only an instance admin can end the sessions of
+// someone whose sessions other workspaces, or the instance, use too.
+func signOutReason(l i18n.Lang, name string, instanceAdmin bool) string {
+	if instanceAdmin {
+		return msgs.M("problem.signOutInstanceAdmin").Text(l, i18n.Args{"name": name})
+	}
+	return msgs.M("problem.signOutElsewhere").Text(l, i18n.Args{"name": name})
 }
 
 // revokeInvitationsBy ends the invitations a member sent that nobody has
@@ -403,7 +436,9 @@ type TeamSignOutResult struct {
 	SessionsRevoked int64 `json:"sessionsRevoked"`
 }
 
-// SignOut ends every session of the member.
+// SignOut ends every session of the member. When their sessions serve other
+// workspaces too (sessionsShared), only an instance admin can; the member
+// can always sign themselves out.
 func (s *Service) SignOut(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID uuid.UUID) (TeamSignOutResult, error) {
 	var res TeamSignOutResult
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -415,6 +450,15 @@ func (s *Service) SignOut(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		name := displayName(m.UserName, m.Email)
 		if ok, missing := outranks(p, m.RoleKey, m.RoleBuiltin, m.RolePermissions); !ok && m.UserID != p.UserID {
 			return outrankError(ctx, name, missing)
+		}
+		if m.UserID != p.UserID && !p.IsInstanceAdmin {
+			shared, err := sessionsShared(ctx, q, ws, m.UserID, m.IsInstanceAdmin)
+			if err != nil {
+				return err
+			}
+			if shared {
+				return api.Err(http.StatusForbidden, api.CodePermissionDenied, signOutReason(i18n.LangFrom(ctx), name, m.IsInstanceAdmin))
+			}
 		}
 		if res.SessionsRevoked, err = q.TeamRevokeUserSessions(ctx, m.UserID); err != nil {
 			return err
