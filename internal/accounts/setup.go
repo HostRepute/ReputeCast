@@ -27,8 +27,16 @@ import (
 
 // ChangePassword replaces the caller's password. A temporary password from
 // `reputecast install` is replaced the same way (current = the temporary one).
+// An account without a password gets its first one only where no SSO
+// provider manages it, and only from a session that signed in moments ago:
+// there is no current password to ask for, and a password would otherwise
+// let someone holding a stolen session cookie, or a person the IdP has
+// since turned off, keep signing in.
 func (s *Service) ChangePassword(ctx context.Context, current, next string) error {
-	u := api.UserFrom(ctx)
+	u, err := currentUser(ctx)
+	if err != nil {
+		return err
+	}
 	pol, err := s.policy(ctx)
 	if err != nil {
 		return err
@@ -37,6 +45,16 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 		ok, err := authn.VerifyPassword(current, *u.PasswordHash)
 		if err != nil || !ok {
 			return api.Invalid("body.current", say(ctx, msgs.M("problem.currentPassword")))
+		}
+	} else {
+		if p, err := s.managingProvider(ctx, *u); err != nil {
+			return err
+		} else if p != nil {
+			return api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSONoPassword, "domain", emailDomain(u.Email), "provider", p.Name)).
+				WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+		}
+		if !s.signedInRecently(ctx) {
+			return reauthRequired(ctx)
 		}
 	}
 	if p := authn.PasswordProblemIn(i18n.LangFrom(ctx), next, int(pol.PasswordMinLength)); p != "" {
@@ -86,7 +104,10 @@ type TOTPSetup struct {
 
 // BeginTOTP creates a pending authenticator secret (not active until confirmed).
 func (s *Service) BeginTOTP(ctx context.Context) (TOTPSetup, error) {
-	u := api.UserFrom(ctx)
+	u, err := currentUser(ctx)
+	if err != nil {
+		return TOTPSetup{}, err
+	}
 	st, err := s.policy(ctx)
 	if err != nil {
 		return TOTPSetup{}, err
@@ -118,7 +139,10 @@ type RecoveryCodes struct {
 // ConfirmTOTP activates the authenticator after a correct code and returns
 // fresh recovery codes.
 func (s *Service) ConfirmTOTP(ctx context.Context, challenge, code string) (RecoveryCodes, error) {
-	u := api.UserFrom(ctx)
+	u, err := currentUser(ctx)
+	if err != nil {
+		return RecoveryCodes{}, err
+	}
 	ch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(challenge), Kind: "totp_setup"})
 	if err != nil || ch.UserID == nil || *ch.UserID != u.ID {
 		return RecoveryCodes{}, api.Err(http.StatusBadRequest, "challenge_expired", say(ctx, msgs.M("problem.setupExpired")))
@@ -160,14 +184,17 @@ func (s *Service) ConfirmTOTP(ctx context.Context, challenge, code string) (Reco
 
 // RegenerateRecoveryCodes replaces every recovery code.
 func (s *Service) RegenerateRecoveryCodes(ctx context.Context) (RecoveryCodes, error) {
-	u := api.UserFrom(ctx)
+	u, err := currentUser(ctx)
+	if err != nil {
+		return RecoveryCodes{}, err
+	}
 	if u.TotpEnabledAt == nil {
 		if pk, _ := s.Q.ListPasskeys(ctx, u.ID); len(pk) == 0 {
 			return RecoveryCodes{}, api.Conflict(say(ctx, msgs.M("problem.noSecondFactor")))
 		}
 	}
 	codes := authn.NewRecoveryCodes(10)
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := replaceRecoveryCodes(ctx, q, u.ID, codes); err != nil {
 			return err
@@ -416,7 +443,10 @@ type CreatedWorkspace struct {
 
 // CreateWorkspace makes a new workspace with the caller as Owner.
 func (s *Service) CreateWorkspace(ctx context.Context, name, timezone string) (CreatedWorkspace, error) {
-	u := api.UserFrom(ctx)
+	u, err := currentUser(ctx)
+	if err != nil {
+		return CreatedWorkspace{}, err
+	}
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return CreatedWorkspace{}, api.Invalid("body.name", say(ctx, msgs.M("problem.workspaceName")))
@@ -437,7 +467,7 @@ func (s *Service) CreateWorkspace(ctx context.Context, name, timezone string) (C
 		return CreatedWorkspace{}, api.Invalid("body.timezone", say(ctx, msgs.M("problem.timezone")))
 	}
 	var ws store.Workspace
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
 		ws, err = workspaces.Create(ctx, tx, workspaces.CreateParams{Name: name, Timezone: timezone, Owner: u.ID, Source: "self"})
 		if err != nil {

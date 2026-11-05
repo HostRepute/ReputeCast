@@ -380,7 +380,9 @@ type AccountEmailChangeStarted struct {
 const emailChangeTTL = 24 * time.Hour
 
 // RequestEmailChange sends a verification link to the new address; the
-// change applies when the person opens it.
+// change applies when the person opens it. An account an SSO provider
+// manages keeps its email at a domain the provider enforces, and an
+// account without a password confirms the change with a recent sign-in.
 func (s *Service) RequestEmailChange(ctx context.Context, in AccountEmailChangeInput) (AccountEmailChangeStarted, error) {
 	u, err := currentUser(ctx)
 	if err != nil {
@@ -390,11 +392,18 @@ func (s *Service) RequestEmailChange(ctx context.Context, in AccountEmailChangeI
 	if email == u.Email {
 		return AccountEmailChangeStarted{}, api.Invalid("body.email", say(ctx, msgs.M("problem.sameEmail")))
 	}
+	if p, err := s.leavesSSO(ctx, *u, email); err != nil {
+		return AccountEmailChangeStarted{}, err
+	} else if p != nil {
+		return AccountEmailChangeStarted{}, api.Invalid("body.email", say(ctx, mSSOEmailStays, "domain", emailDomain(u.Email), "provider", p.Name))
+	}
 	if u.PasswordHash != nil {
 		ok, err := authn.VerifyPassword(in.Password, *u.PasswordHash)
 		if err != nil || !ok {
 			return AccountEmailChangeStarted{}, api.Invalid("body.password", say(ctx, msgs.M("problem.currentPassword")))
 		}
+	} else if !s.signedInRecently(ctx) {
+		return AccountEmailChangeStarted{}, reauthRequired(ctx)
 	}
 	if taken, err := s.Q.EmailTaken(ctx, store.EmailTakenParams{Email: email, UserID: u.ID}); err != nil {
 		return AccountEmailChangeStarted{}, err
@@ -476,6 +485,13 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (Account
 		ch, err = q.ConsumeEmailChange(ctx, store.ConsumeEmailChangeParams{TokenHash: authn.HashToken(token), UserID: u.ID})
 		if err != nil {
 			return api.Err(http.StatusGone, "email_change_expired", say(ctx, msgs.M("problem.emailLinkExpired")))
+		}
+		// Single sign-on may have been turned on for the domain since the
+		// change was asked for.
+		if p, err := s.leavesSSO(ctx, *u, ch.NewEmail); err != nil {
+			return err
+		} else if p != nil {
+			return api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSOEmailStays, "domain", emailDomain(u.Email), "provider", p.Name))
 		}
 		if taken, err := q.EmailTaken(ctx, store.EmailTakenParams{Email: ch.NewEmail, UserID: u.ID}); err != nil {
 			return err
