@@ -17,6 +17,9 @@ export default translate(m, {
   failedOne: 'Impossible de désactiver {name}',
   failedMany: 'Impossible de désactiver {count, plural, one {# membre} other {# membres}}',
   signedOutEverywhere: '{count, plural, one {Déconnexion partout, immédiatement (# session)} other {Déconnexion partout, immédiatement (# sessions)}}',
+  staysSignedInOne: 'Garde ses sessions ouvertes ailleurs sur cette instance',
+  staysSignedInMany:
+    '{count, plural, one {# d’entre eux garde ses sessions ouvertes ailleurs sur cette instance} other {# d’entre eux gardent leurs sessions ouvertes ailleurs sur cette instance}}',
   cantSignIn: 'Ne peut plus se connecter à {workspace}\u202F; les autres espaces de travail ne sont pas concernés',
   scheduled: '{count, plural, one {# campagne programmée conserve sa programmation et part au nom de l’espace de travail} other {# campagnes programmées conservent leur programmation et partent au nom de l’espace de travail}}',
   approvals: '{count, plural, one {# demande d’approbation en attente reste ouverte pour les approbateurs} other {# demandes d’approbation en attente restent ouvertes pour les approbateurs}}',

@@ -11404,7 +11404,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys */
+        /** Deactivate a member: keeps history, closes the workspace to them, keeps or revokes their API keys */
         post: operations["deactivate-member"];
         delete?: never;
         options?: never;
@@ -11438,7 +11438,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** End every session of a member */
+        /** End every session of a member (only an instance admin can for someone in other workspaces) */
         post: operations["sign-out-member"];
         delete?: never;
         options?: never;
@@ -43183,7 +43183,9 @@ export interface components {
             scheduledCampaigns: number;
             /** Format: int64 */
             sessions: number;
+            sessionsShared: boolean;
             signInMethods: components["schemas"]["MemberSignInMethod"][];
+            signOutReason?: string;
             ssoDomain?: string;
         };
         TeamMemberList: {

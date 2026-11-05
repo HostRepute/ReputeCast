@@ -4509,6 +4509,9 @@ type Querier interface {
 	TeamMemberAPIKeys(ctx context.Context, arg TeamMemberAPIKeysParams) ([]TeamMemberAPIKeysRow, error)
 	TeamMemberActivity(ctx context.Context, arg TeamMemberActivityParams) ([]TeamMemberActivityRow, error)
 	TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsParams) ([]string, error)
+	// The other workspaces a person is an active member of: their sessions
+	// serve those too.
+	TeamOtherActiveMemberships(ctx context.Context, arg TeamOtherActiveMembershipsParams) (int64, error)
 	TeamPendingInviteEmails(ctx context.Context, arg TeamPendingInviteEmailsParams) ([]string, error)
 	TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvitationParams) (int64, error)
 	// The invitations a member sent that nobody accepted end when the member is

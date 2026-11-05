@@ -22,6 +22,9 @@ export const m = defineMessages('team.deactivate', {
 
   // What changes.
   signedOutEverywhere: '{count, plural, one {Signed out everywhere, now (# session)} other {Signed out everywhere, now (# sessions)}}',
+  // Someone who also uses other workspaces, or administers the instance, keeps their sessions there.
+  staysSignedInOne: 'Stays signed in elsewhere on this instance',
+  staysSignedInMany: '{count, plural, one {# of them stays signed in elsewhere on this instance} other {# of them stay signed in elsewhere on this instance}}',
   cantSignIn: "Can't sign in to {workspace}; other workspaces are unaffected",
   scheduled:
     '{count, plural, one {Their # scheduled campaign keeps its schedule and run under the workspace} other {Their # scheduled campaigns keep their schedule and run under the workspace}}',

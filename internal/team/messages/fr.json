@@ -31,6 +31,8 @@
   "problem.alreadyActive": "Le membre {name} est déjà actif.",
   "problem.accountDeactivated": "{name}\u00A0: le compte est désactivé sur cette instance. Demandez d’abord à un admin de l’instance de réactiver le compte.",
   "problem.removeSelf": "Vous ne pouvez pas vous retirer vous-même. Quittez plutôt l’espace de travail depuis Compte et sécurité.",
+  "problem.signOutElsewhere": "{name} fait aussi partie d’autres espaces de travail de cette instance\u202F; seul un admin de l’instance peut donc mettre fin à ses sessions. Pour lui fermer cet espace, désactivez ce membre ou retirez-le ici\u00A0: c’est immédiat.",
+  "problem.signOutInstanceAdmin": "{name} est admin de l’instance\u202F; seul un admin de l’instance peut donc mettre fin à ses sessions. Pour lui fermer cet espace, désactivez ce membre ou retirez-le ici\u00A0: c’est immédiat.",
   "problem.unknownMember": "Membre inconnu.",
   "problem.pickRole": "Choisissez le rôle à attribuer.",
 
@@ -43,6 +45,7 @@
   "audit.roleChange": "{from} → {to}",
   "audit.scopeChange": "portée {fromKind, select, all {toutes les listes} list {liste {from} uniquement} only {{from} uniquement} other {{from}}} → {toKind, select, all {toutes les listes} list {liste {to} uniquement} only {{to} uniquement} other {{to}}}",
   "audit.signedOut": "{count, plural, one {déconnexion de # session} other {déconnexion de # sessions}}",
+  "audit.sessionsKept": "sessions toujours ouvertes ailleurs sur l’instance",
   "audit.keysRevoked": "{count, plural, one {clé révoquée\u00A0: {last}} other {clés révoquées\u00A0: {names} et {last}}}",
   "audit.keysKept": "{count, plural, one {clé conservée\u00A0: {last}} other {clés conservées\u00A0: {names} et {last}}}",
   "audit.creatorDeactivated": "créateur désactivé\u00A0: {name}",

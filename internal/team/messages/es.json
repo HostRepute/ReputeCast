@@ -31,6 +31,8 @@
   "problem.alreadyActive": "{name} ya está en estado Activo.",
   "problem.accountDeactivated": "La cuenta de {name} está desactivada en esta instancia. Pide primero a quien administra la instancia que reactive la cuenta.",
   "problem.removeSelf": "No puedes quitarte del equipo. Sal del espacio de trabajo desde Cuenta y seguridad.",
+  "problem.signOutElsewhere": "{name} también forma parte de otros espacios de trabajo de esta instancia, así que solo quien administra la instancia puede cerrar sus sesiones. Para cerrarle este espacio de trabajo, desactívalo o quítalo aquí: tiene efecto al instante.",
+  "problem.signOutInstanceAdmin": "{name} administra la instancia, así que solo quien administra la instancia puede cerrar sus sesiones. Para cerrarle este espacio de trabajo, desactívalo o quítalo aquí: tiene efecto al instante.",
   "problem.unknownMember": "Miembro desconocido.",
   "problem.pickRole": "Elige el rol que quieres dar.",
 
@@ -43,6 +45,7 @@
   "audit.roleChange": "{from} → {to}",
   "audit.scopeChange": "ámbito {fromKind, select, all {todas las listas} list {solo la lista {from}} only {solo {from}} other {{from}}} → {toKind, select, all {todas las listas} list {solo la lista {to}} only {solo {to}} other {{to}}}",
   "audit.signedOut": "{count, plural, one {se cerró # sesión} other {se cerraron # sesiones}}",
+  "audit.sessionsKept": "sigue con la sesión iniciada en otras partes de la instancia",
   "audit.keysRevoked": "{count, plural, one {se revocó {last}} other {se revocaron {names} y {last}}}",
   "audit.keysKept": "{count, plural, one {se conservó {last}} other {se conservaron {names} y {last}}}",
   "audit.creatorDeactivated": "se desactivó a quien la creó: {name}",
