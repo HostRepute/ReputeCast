@@ -205,6 +205,9 @@ func (s *Service) errorRedirect(ctx context.Context, providerName string, provid
 	if email != "" {
 		q.Set("email", email)
 	}
+	if next := safeNext(fe.Next); next != "" {
+		q.Set("next", next)
+	}
 	return Redirect{Location: "/sign-in?" + q.Encode()}
 }
 
@@ -375,12 +378,8 @@ func (s *Service) callbackSSO(ctx context.Context, slug, state string, query url
 		if id.EmailVerified != nil && !*id.EmailVerified {
 			return fail(failure("email_not_verified", "flow.notVerified", i18n.Args{"name": p.Name, "email": id.Email}), id.Email)
 		}
-		res, err := s.Accounts.AcceptInvitationExternal(ctx, token, accounts.ExternalIdentity{Kind: "sso", ProviderID: &p.ID, ProviderName: p.Name,
-			Subject: id.Subject, Email: id.Email, Name: id.Name, Username: id.Username, MFA: mfaNote, Metadata: meta})
-		if err != nil {
-			return fail(asFlowError(err), id.Email)
-		}
-		return s.finishSession(res, id.Email, p.Name, fs.Next)
+		return s.acceptInvitation(ctx, token, accounts.ExternalIdentity{Kind: "sso", ProviderID: &p.ID, ProviderName: p.Name, Subject: id.Subject,
+			Email: id.Email, EmailVerified: emailVouched(p, id), Name: id.Name, Username: id.Username, MFA: mfaNote, Metadata: meta}, fs.Next, fail)
 	}
 	var u store.User
 	var pl signInPlan
@@ -409,6 +408,42 @@ func (s *Service) callbackSSO(ctx context.Context, slug, state string, query url
 		return fail(asFlowError(err), id.Email)
 	}
 	return s.finishSession(res, u.Email, p.Name, fs.Next)
+}
+
+// acceptInvitation joins an invitation's workspace with an identity the IdP
+// confirmed (accounts.AcceptInvitationExternal decides). When the invited
+// domain signs in with single sign-on, the browser goes on to that provider
+// with the invitation, as a social sign-in at such a domain does. When an
+// account already uses the invited email, the error page asks the person
+// to sign in to it, then opens the invitation again.
+func (s *Service) acceptInvitation(ctx context.Context, token string, id accounts.ExternalIdentity, next string, fail func(*flowError, string) Redirect) Redirect {
+	res, err := s.Accounts.AcceptInvitationExternal(ctx, token, id)
+	if err == nil {
+		return s.finishSession(res, id.Email, id.ProviderName, next)
+	}
+	var p *api.Problem
+	if errors.As(err, &p) && p.Code == "sso_required" {
+		if enforcer, ok := p.Meta["providerId"].(string); ok {
+			if pid, err := uuid.Parse(enforcer); err == nil {
+				return s.StartSSO(ctx, pid, StartRequest{LoginHint: id.Email, Invite: token, Next: next})
+			}
+		}
+	}
+	fe := asFlowError(err)
+	if fe.Code == "invite_sign_in" {
+		fe.Next = "/invite/" + url.PathEscape(token)
+	}
+	return fail(fe, id.Email)
+}
+
+// emailVouched reports whether an SSO provider vouches for an identity's
+// email, as sign-in takes it (plan): email_verified when the IdP sends it,
+// otherwise only at the provider's own domains.
+func emailVouched(p store.SsoProvider, id identity) bool {
+	if id.EmailVerified != nil {
+		return *id.EmailVerified
+	}
+	return len(p.AllowedDomains) > 0 && slices.Contains(p.AllowedDomains, emailDomain(id.Email))
 }
 
 // finishSession sends the browser on after the session exists, or to the

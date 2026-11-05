@@ -91,6 +91,9 @@ export const m = defineMessages('auth.signIn', {
   idpEmailNotVerified: "{provider} didn't confirm that your email address is verified.",
   idpInviteWrongAccount: 'This invitation is for another email address than your {provider} account.',
   idpIdentityInUse: 'This {provider} account is already linked to another ReputeCast account.',
+  // An invitation for an email that already has an account, which doesn't sign in with this provider yet.
+  idpInviteSignIn: "An account already uses this email address, and {provider} isn't one of its sign-ins yet. Sign in to it first; the invitation opens again.",
+  signInToAccept: 'Sign in to accept',
   idpAlreadyLinked: 'Your account already has a {provider} sign-in.',
   idpReturned: '{provider} returned <mono>{code}</mono> while exchanging your sign-in.',
   idpReturnedError: '{provider} returned an error while exchanging your sign-in.',
