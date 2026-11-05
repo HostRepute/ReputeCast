@@ -3,7 +3,6 @@ package demo
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 )
 
@@ -109,15 +109,15 @@ func audImportReports(ctx context.Context, s *Seeder, a *audSeed) error {
 			blocked = append(blocked, x)
 		}
 	}
-	report := func(write func(w *csv.Writer)) []byte {
+	report := func(write func(w *csvexport.Writer)) []byte {
 		var b bytes.Buffer
-		w := csv.NewWriter(&b)
+		w := csvexport.NewWriter(&b)
 		_ = w.Write([]string{"row", "email", "source_status", "outcome", "reason"})
 		write(w)
 		w.Flush()
 		return b.Bytes()
 	}
-	mc := report(func(w *csv.Writer) {
+	mc := report(func(w *csvexport.Writer) {
 		for i, e := range pending {
 			_ = w.Write([]string{fmt.Sprint(i + 1), e, "pending", "pending", ""})
 		}
@@ -142,7 +142,7 @@ func audImportReports(ctx context.Context, s *Seeder, a *audSeed) error {
 		return "redacted"
 	}
 	row := 0
-	brevoReport := report(func(w *csv.Writer) {
+	brevoReport := report(func(w *csvexport.Writer) {
 		for _, x := range blocked {
 			row++
 			_ = w.Write([]string{fmt.Sprint(row), x.email, statusOf[x.reason], "suppressed", x.reason})
@@ -161,7 +161,7 @@ func audImportReports(ctx context.Context, s *Seeder, a *audSeed) error {
 		}
 	})
 	var skipped bytes.Buffer
-	w := csv.NewWriter(&skipped)
+	w := csvexport.NewWriter(&skipped)
 	_ = w.Write([]string{"row", "value", "source_status", "reason"})
 	for i := 0; i < 214; i++ {
 		_ = w.Write([]string{fmt.Sprint(len(blocked) + i + 1), skippedValue(i), "subscribed", skippedReason(i)})

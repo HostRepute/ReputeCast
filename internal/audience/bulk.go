@@ -3,7 +3,6 @@ package audience
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -381,7 +381,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, in ContactExp
 	}
 	defer rows.Close()
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	header := []string{"email", "first_name", "last_name", "company", "country", "timezone", "language", "lists", "tier", "consent",
 		"mailbox_provider", "source", "joined_at", "last_open_at", "last_click_at", "tags"}
 	for _, f := range fields {
@@ -405,7 +405,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, in ContactExp
 		for _, f := range fields {
 			rec = append(rec, attrString(a[f.Key]))
 		}
-		_ = w.Write(csvSafe(rec...))
+		_ = w.Write(rec)
 		n++
 	}
 	if err := rows.Err(); err != nil {

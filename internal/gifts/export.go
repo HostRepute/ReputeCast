@@ -3,13 +3,13 @@ package gifts
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -20,7 +20,7 @@ const exportMax = 100_000
 // hold buyers' and recipients' addresses, so the export is audited.
 func (s *Service) Export(ctx context.Context, ws *store.Workspace, filter, search string) ([]byte, int, error) {
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"bought_at", "buyer", "buyer_email", "in_person", "recipient", "recipient_email", "tier", "months", "amount", "currency", "status"})
 	rows := 0
 	for page := 1; rows < exportMax; page++ {

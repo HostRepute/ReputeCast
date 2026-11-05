@@ -3,7 +3,6 @@ package reports
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -63,18 +63,6 @@ func fileStem(name string) string {
 	return s
 }
 
-// csvSafe neutralizes values a spreadsheet would run as a formula.
-func csvSafe(vals ...string) []string {
-	out := make([]string, len(vals))
-	for i, v := range vals {
-		if v != "" && strings.ContainsRune("=+-@\t\r", rune(v[0])) {
-			v = "'" + v
-		}
-		out[i] = v
-	}
-	return out
-}
-
 func pctText(v *float64, digits int) string {
 	if v == nil {
 		return ""
@@ -87,8 +75,8 @@ func num(n int64) string { return strconv.FormatInt(n, 10) }
 // reportCSV writes every table of the report, one section after another.
 func reportCSV(r CampaignReport, loc *time.Location) []byte {
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-	row := func(vals ...string) { _ = w.Write(csvSafe(vals...)) }
+	w := csvexport.NewWriter(&buf)
+	row := func(vals ...string) { _ = w.Write(vals) }
 	c := r.Campaign
 	row("Campaign report", c.Name)
 	if c.Audience != "" {

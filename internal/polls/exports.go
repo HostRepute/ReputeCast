@@ -3,7 +3,6 @@ package polls
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"regexp"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -40,18 +40,6 @@ func fileStem(name, fallback string) string {
 	return s
 }
 
-// csvSafe neutralizes values a spreadsheet would run as a formula.
-func csvSafe(vals ...string) []string {
-	out := make([]string, len(vals))
-	for i, v := range vals {
-		if v != "" && strings.ContainsRune("=+-@\t\r", rune(v[0])) {
-			v = "'" + v
-		}
-		out[i] = v
-	}
-	return out
-}
-
 func num(n int64) string { return strconv.FormatInt(n, 10) }
 
 func pct(v float64) string { return strconv.FormatFloat(v, 'f', 1, 64) + "%" }
@@ -73,8 +61,8 @@ func (s *Service) ExportPollResults(ctx context.Context, ws *store.Workspace, p 
 	}
 	loc := state.Location(ws.Timezone)
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-	row := func(vals ...string) { _ = w.Write(csvSafe(vals...)) }
+	w := csvexport.NewWriter(&buf)
+	row := func(vals ...string) { _ = w.Write(vals) }
 	row("Poll", r.Question)
 	row("Campaign", r.Campaign)
 	status := "Open"
@@ -167,8 +155,8 @@ func (s *Service) ExportPollAnswers(ctx context.Context, ws *store.Workspace, p 
 	}
 	loc := state.Location(ws.Timezone)
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-	row := func(vals ...string) { _ = w.Write(csvSafe(vals...)) }
+	w := csvexport.NewWriter(&buf)
+	row := func(vals ...string) { _ = w.Write(vals) }
 	row("email", "first_name", "last_name", "answer", "answer_label", "first_answer", "changes", "comment", "answered_at", "updated_at", "contact")
 	for _, a := range rows {
 		who := "contact"
@@ -198,8 +186,8 @@ func (s *Service) ExportSurveyResults(ctx context.Context, ws *store.Workspace, 
 		return Export{}, err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-	row := func(vals ...string) { _ = w.Write(csvSafe(vals...)) }
+	w := csvexport.NewWriter(&buf)
+	row := func(vals ...string) { _ = w.Write(vals) }
 	row("Survey", sv.Name)
 	row("Started", num(res.Started))
 	row("Completed", num(res.Completed), pct(res.CompletionPercent))
@@ -238,8 +226,8 @@ func (s *Service) ExportSurveyAnswers(ctx context.Context, ws *store.Workspace, 
 	}
 	loc := state.Location(ws.Timezone)
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
-	row := func(vals ...string) { _ = w.Write(csvSafe(vals...)) }
+	w := csvexport.NewWriter(&buf)
+	row := func(vals ...string) { _ = w.Write(vals) }
 	head := []string{"email", "first_name", "last_name", "started_at", "completed_at", "source"}
 	for _, q := range sv.Questions {
 		head = append(head, q.Key+" "+q.Text)

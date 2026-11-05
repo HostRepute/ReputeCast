@@ -3,7 +3,6 @@ package sponsors
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"strconv"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -62,7 +62,7 @@ func (s *Service) ExportBookings(ctx context.Context, ws *store.Workspace) ([]by
 	}
 	defer rows.Close()
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"slot", "issue", "issue_on", "sponsor", "status", "price", "currency", "payment", "paid_on", "paid", "sent_at", "campaign", "sent_to"})
 	n := 0
 	for rows.Next() {
@@ -78,8 +78,8 @@ func (s *Service) ExportBookings(ctx context.Context, ws *store.Workspace) ([]by
 		if sentAt != nil {
 			sent = sentAt.UTC().Format(time.RFC3339)
 		}
-		_ = w.Write([]string{csvSafe(slot), strconv.Itoa(int(issue)), issueOn.Format(time.DateOnly), csvSafe(sponsor), status, csvMoney(price), currency, payment,
-			day(paidOn), csvMoney(paid), sent, csvSafe(campaign), strconv.FormatInt(sentTo, 10)})
+		_ = w.Write([]string{slot, strconv.Itoa(int(issue)), issueOn.Format(time.DateOnly), sponsor, status, csvMoney(price), currency, payment,
+			day(paidOn), csvMoney(paid), sent, campaign, strconv.FormatInt(sentTo, 10)})
 		n++
 	}
 	if err := rows.Err(); err != nil {
@@ -99,7 +99,7 @@ func (s *Service) ExportReport(ctx context.Context, ws *store.Workspace, id uuid
 		return nil, r, err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	sent := ""
 	if r.SentAt != nil {
 		sent = r.SentAt.UTC().Format(time.RFC3339)
@@ -107,11 +107,11 @@ func (s *Service) ExportReport(ctx context.Context, ws *store.Workspace, id uuid
 	pct := func(f float64) string { return strconv.FormatFloat(f*100, 'f', 1, 64) }
 	for _, row := range [][]string{
 		{"metric", "value"},
-		{"sponsor", csvSafe(r.Sponsor)},
-		{"slot", csvSafe(r.SlotName)},
+		{"sponsor", r.Sponsor},
+		{"slot", r.SlotName},
 		{"issue", strconv.Itoa(r.Issue)},
 		{"issue_on", r.IssueOn.Format(time.DateOnly)},
-		{"list", csvSafe(r.ListName)},
+		{"list", r.ListName},
 		{"sent_at", sent},
 		{"final", strconv.FormatBool(r.Final)},
 		{"delivered", strconv.FormatInt(r.Delivered, 10)},
@@ -127,18 +127,10 @@ func (s *Service) ExportReport(ctx context.Context, ws *store.Workspace, id uuid
 	_ = w.Write(nil)
 	_ = w.Write([]string{"link", "kind", "clicks", "share_percent"})
 	for _, l := range r.Links {
-		_ = w.Write([]string{csvSafe(l.Label), l.Kind, strconv.FormatInt(l.Clicks, 10), pct(l.Share)})
+		_ = w.Write([]string{l.Label, l.Kind, strconv.FormatInt(l.Clicks, 10), pct(l.Share)})
 	}
 	w.Flush()
 	err = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "sponsor.report_exported", TargetType: "sponsor_booking", TargetID: id.String(),
 		TargetName: fmt.Sprintf("%s · #%d", r.Sponsor, r.Issue), Metadata: map[string]any{"summary": "Exported a sponsor report as CSV"}})
 	return buf.Bytes(), r, err
-}
-
-// csvSafe keeps a spreadsheet from reading a cell as a formula.
-func csvSafe(v string) string {
-	if v != "" && (v[0] == '=' || v[0] == '+' || v[0] == '-' || v[0] == '@' || v[0] == '\t' || v[0] == '\r') {
-		return "'" + v
-	}
-	return v
 }

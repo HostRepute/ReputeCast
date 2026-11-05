@@ -2,7 +2,6 @@ package referrals
 
 import (
 	"context"
-	"encoding/csv"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -456,7 +456,7 @@ func (s *Service) ExportReferrers(ctx context.Context, ws *store.Workspace, prog
 		return nil, err
 	}
 	var b strings.Builder
-	w := csv.NewWriter(&b)
+	w := csvexport.NewWriter(&b)
 	_ = w.Write([]string{"name", "email", "counted", "in_hold", "held", "not_counted", "milestones", "rewards_sent", "link", "link_status", "last_referral"})
 	page := 1
 	links, _ := s.pages(ctx, ws)
@@ -504,7 +504,7 @@ func (s *Service) ExportToFulfill(ctx context.Context, ws *store.Workspace, prog
 		return nil, err
 	}
 	var b strings.Builder
-	w := csv.NewWriter(&b)
+	w := csvexport.NewWriter(&b)
 	_ = w.Write([]string{"referrer", "email", "milestone", "reward", "reached", "name", "address", "city", "country"})
 	for _, r := range rows {
 		rec := []string{displayName(r.FirstName, r.LastName, r.Email), r.Email, formatInt(int64(r.MilestoneCount)), r.RewardName, r.ReachedAt.UTC().Format(time.RFC3339), "", "", "", ""}
