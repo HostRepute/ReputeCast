@@ -53,3 +53,30 @@ func TestTag(t *testing.T) {
 		t.Fatal("Slug")
 	}
 }
+
+// A click token isn't a hidden link's token, nor the other way round:
+// they used to share a kind, so a store link's rc= worked at /t/h/.
+// Tokens of that kind already in store links still credit orders.
+func TestNotTheHiddenLink(t *testing.T) {
+	s, err := linktoken.NewSigner(bytes.Repeat([]byte{7}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := Click{WorkspaceID: uuid.New(), MessageID: uuid.New(), ContactID: uuid.New(), At: time.Date(2026, 11, 3, 9, 41, 0, 0, time.UTC)}
+	if Kind == linktoken.Honeypot {
+		t.Fatal("the click token has the hidden link's kind")
+	}
+	if _, err := s.Verify(Sign(s, c), linktoken.Honeypot); err == nil {
+		t.Fatal("a click token verified as the hidden link's")
+	}
+	legacy := s.Sign(linktoken.Claims{Kind: linktoken.Honeypot, WorkspaceID: c.WorkspaceID, MessageID: c.MessageID, ContactID: c.ContactID,
+		Link: uint32(c.At.Sub(epoch) / time.Minute)})
+	got, err := Verify(s, legacy)
+	if err != nil || got.MessageID != c.MessageID || !got.At.Equal(c.At) {
+		t.Fatalf("a click token from before: %+v %v", got, err)
+	}
+	hidden := s.Sign(linktoken.Claims{Kind: linktoken.Honeypot, WorkspaceID: c.WorkspaceID, MessageID: c.MessageID, ContactID: c.ContactID})
+	if _, err := Verify(s, hidden); err == nil {
+		t.Fatal("a hidden link's token verified as a click token")
+	}
+}

@@ -27,7 +27,17 @@ const Param = "rc"
 const ConversionParam = "rc_click"
 
 // Kind is the token's linktoken kind (X20's range, 200–209).
-const Kind linktoken.Kind = 200
+const Kind linktoken.Kind = 201
+
+// legacyKind is the kind click tokens had before they got their own: the
+// hidden link's (linktoken.Honeypot), so anyone who saw a store link's
+// rc= could open it as the email's hidden link and make the reader's real
+// click settle as a bot's. Tokens already in store links still credit
+// orders: a click token's Link is the minute of its click, never 0 as
+// the hidden link's is, so the two can't be taken for each other. They
+// matter only within a store's attribution window (30 days at most)
+// after the upgrade; then this can go.
+const legacyKind = linktoken.Honeypot
 
 // epoch is where the click minute counts from (fits 8,000 years in 32 bits).
 var epoch = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -58,8 +68,14 @@ func Verify(s *linktoken.Signer, token string) (Click, error) {
 	if s == nil || strings.TrimSpace(token) == "" {
 		return Click{}, ErrInvalid
 	}
-	c, err := s.Verify(strings.TrimSpace(token), Kind)
-	if err != nil || c.MessageID == uuid.Nil {
+	token = strings.TrimSpace(token)
+	c, err := s.Verify(token, Kind)
+	if err != nil {
+		if c, err = s.Verify(token, legacyKind); err != nil || c.Link == 0 {
+			return Click{}, ErrInvalid
+		}
+	}
+	if c.MessageID == uuid.Nil {
 		return Click{}, ErrInvalid
 	}
 	return Click{WorkspaceID: c.WorkspaceID, MessageID: c.MessageID, ContactID: c.ContactID, At: epoch.Add(time.Duration(c.Link) * time.Minute)}, nil

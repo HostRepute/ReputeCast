@@ -21,7 +21,10 @@ import (
 // Kind is what a token is for; a token for one purpose never works for another.
 type Kind byte
 
-// Token kinds.
+// Token kinds. Packages declare their own kinds next to the code that signs
+// them (earn 160–163, revenue 170, products 190–192, publicpages 194,
+// clicktoken 201, push 220); every kind is used once, which
+// TestKindsAreUnique checks across the source. Pick an unused number.
 const (
 	Open        Kind = 1
 	Click       Kind = 2
@@ -45,7 +48,8 @@ const (
 	Recommendations Kind = 151
 	RewardDownload  Kind = 152
 	// Review 2026-10 (R05: 200–209): the hidden link of tracked emails,
-	// which only machines follow (bot clicks, review AN-2).
+	// which only machines follow (bot clicks, review AN-2). Its Link is
+	// always 0.
 	Honeypot Kind = 200
 )
 
