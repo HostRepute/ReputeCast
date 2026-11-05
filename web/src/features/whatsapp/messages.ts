@@ -232,4 +232,8 @@ export const m = defineMessages('whatsapp', {
   noEvents: 'No events yet. They appear here when Meta posts to the webhook.',
   loadMore: 'Load more',
   eventsLoadFailed: "Couldn't load the events",
+  rejectedDeliveries:
+    "{count, plural, one {# delivery was} other {# deliveries were}} refused because the signature didn't match the app secret. Refused deliveries aren't kept. The last one came {ago}.",
+  otherAccountEvents:
+    '{count, plural, one {# event was} other {# events were}} for another WhatsApp Business Account or number and ignored: Meta sends them here when another account uses the same Meta app. The last one came {ago}.',
 })

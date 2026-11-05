@@ -15,41 +15,45 @@ import (
 
 const whatsAppAccount = `-- name: WhatsAppAccount :one
 
-SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, coalesce(u.name, '')::text AS connected_by_name
+SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, a.rejected_deliveries, a.rejected_at, a.other_account_events, a.other_account_at, coalesce(u.name, '')::text AS connected_by_name
 FROM whatsapp_accounts a LEFT JOIN users u ON u.id = a.connected_by
 WHERE a.workspace_id = $1 AND a.removed_at IS NULL
 `
 
 type WhatsAppAccountRow struct {
-	ID                uuid.UUID  `json:"id"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	CredentialsEnc    []byte     `json:"credentialsEnc"`
-	BusinessHint      string     `json:"businessHint"`
-	BusinessName      string     `json:"businessName"`
-	PhoneNumber       string     `json:"phoneNumber"`
-	DisplayName       string     `json:"displayName"`
-	NameStatus        string     `json:"nameStatus"`
-	PhoneStatus       string     `json:"phoneStatus"`
-	Quality           string     `json:"quality"`
-	PreviousQuality   string     `json:"previousQuality"`
-	QualityChangedAt  *time.Time `json:"qualityChangedAt"`
-	MessagingLimit    int32      `json:"messagingLimit"`
-	PreviousLimit     int32      `json:"previousLimit"`
-	LimitChangedAt    *time.Time `json:"limitChangedAt"`
-	VerifyToken       string     `json:"verifyToken"`
-	VerifiedAt        *time.Time `json:"verifiedAt"`
-	LastEventAt       *time.Time `json:"lastEventAt"`
-	Status            string     `json:"status"`
-	StatusDetail      string     `json:"statusDetail"`
-	StatusSince       *time.Time `json:"statusSince"`
-	TemplatesSyncedAt *time.Time `json:"templatesSyncedAt"`
-	CheckedAt         *time.Time `json:"checkedAt"`
-	Demo              bool       `json:"demo"`
-	ConnectedBy       *uuid.UUID `json:"connectedBy"`
-	ConnectedAt       time.Time  `json:"connectedAt"`
-	RemovedAt         *time.Time `json:"removedAt"`
-	RemovedBy         *uuid.UUID `json:"removedBy"`
-	ConnectedByName   string     `json:"connectedByName"`
+	ID                 uuid.UUID  `json:"id"`
+	WorkspaceID        uuid.UUID  `json:"workspaceId"`
+	CredentialsEnc     []byte     `json:"credentialsEnc"`
+	BusinessHint       string     `json:"businessHint"`
+	BusinessName       string     `json:"businessName"`
+	PhoneNumber        string     `json:"phoneNumber"`
+	DisplayName        string     `json:"displayName"`
+	NameStatus         string     `json:"nameStatus"`
+	PhoneStatus        string     `json:"phoneStatus"`
+	Quality            string     `json:"quality"`
+	PreviousQuality    string     `json:"previousQuality"`
+	QualityChangedAt   *time.Time `json:"qualityChangedAt"`
+	MessagingLimit     int32      `json:"messagingLimit"`
+	PreviousLimit      int32      `json:"previousLimit"`
+	LimitChangedAt     *time.Time `json:"limitChangedAt"`
+	VerifyToken        string     `json:"verifyToken"`
+	VerifiedAt         *time.Time `json:"verifiedAt"`
+	LastEventAt        *time.Time `json:"lastEventAt"`
+	Status             string     `json:"status"`
+	StatusDetail       string     `json:"statusDetail"`
+	StatusSince        *time.Time `json:"statusSince"`
+	TemplatesSyncedAt  *time.Time `json:"templatesSyncedAt"`
+	CheckedAt          *time.Time `json:"checkedAt"`
+	Demo               bool       `json:"demo"`
+	ConnectedBy        *uuid.UUID `json:"connectedBy"`
+	ConnectedAt        time.Time  `json:"connectedAt"`
+	RemovedAt          *time.Time `json:"removedAt"`
+	RemovedBy          *uuid.UUID `json:"removedBy"`
+	RejectedDeliveries int64      `json:"rejectedDeliveries"`
+	RejectedAt         *time.Time `json:"rejectedAt"`
+	OtherAccountEvents int64      `json:"otherAccountEvents"`
+	OtherAccountAt     *time.Time `json:"otherAccountAt"`
+	ConnectedByName    string     `json:"connectedByName"`
 }
 
 // WhatsApp (internal/whatsapp): the account, templates, the rate card,
@@ -87,13 +91,17 @@ func (q *Queries) WhatsAppAccount(ctx context.Context, workspaceID uuid.UUID) (W
 		&i.ConnectedAt,
 		&i.RemovedAt,
 		&i.RemovedBy,
+		&i.RejectedDeliveries,
+		&i.RejectedAt,
+		&i.OtherAccountEvents,
+		&i.OtherAccountAt,
 		&i.ConnectedByName,
 	)
 	return i, err
 }
 
 const whatsAppAccountByID = `-- name: WhatsAppAccountByID :one
-SELECT id, workspace_id, credentials_enc, business_hint, business_name, phone_number, display_name, name_status, phone_status, quality, previous_quality, quality_changed_at, messaging_limit, previous_limit, limit_changed_at, verify_token, verified_at, last_event_at, status, status_detail, status_since, templates_synced_at, checked_at, demo, connected_by, connected_at, removed_at, removed_by FROM whatsapp_accounts WHERE id = $1
+SELECT id, workspace_id, credentials_enc, business_hint, business_name, phone_number, display_name, name_status, phone_status, quality, previous_quality, quality_changed_at, messaging_limit, previous_limit, limit_changed_at, verify_token, verified_at, last_event_at, status, status_detail, status_since, templates_synced_at, checked_at, demo, connected_by, connected_at, removed_at, removed_by, rejected_deliveries, rejected_at, other_account_events, other_account_at FROM whatsapp_accounts WHERE id = $1
 `
 
 func (q *Queries) WhatsAppAccountByID(ctx context.Context, id uuid.UUID) (WhatsappAccount, error) {
@@ -128,12 +136,16 @@ func (q *Queries) WhatsAppAccountByID(ctx context.Context, id uuid.UUID) (Whatsa
 		&i.ConnectedAt,
 		&i.RemovedAt,
 		&i.RemovedBy,
+		&i.RejectedDeliveries,
+		&i.RejectedAt,
+		&i.OtherAccountEvents,
+		&i.OtherAccountAt,
 	)
 	return i, err
 }
 
 const whatsAppAccountBySlug = `-- name: WhatsAppAccountBySlug :one
-SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
+SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, a.rejected_deliveries, a.rejected_at, a.other_account_events, a.other_account_at FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
 WHERE w.slug = $1 AND a.removed_at IS NULL
 `
 
@@ -170,6 +182,10 @@ func (q *Queries) WhatsAppAccountBySlug(ctx context.Context, slug string) (Whats
 		&i.ConnectedAt,
 		&i.RemovedAt,
 		&i.RemovedBy,
+		&i.RejectedDeliveries,
+		&i.RejectedAt,
+		&i.OtherAccountEvents,
+		&i.OtherAccountAt,
 	)
 	return i, err
 }
@@ -201,6 +217,43 @@ func (q *Queries) WhatsAppAccountInsert(ctx context.Context, arg WhatsAppAccount
 		arg.Demo,
 		arg.ConnectedBy,
 	)
+	return err
+}
+
+const whatsAppAccountOtherAccount = `-- name: WhatsAppAccountOtherAccount :exec
+UPDATE whatsapp_accounts SET other_account_events = other_account_events + $1::bigint,
+    other_account_at = greatest(coalesce(other_account_at, $2::timestamptz), $2::timestamptz)
+WHERE id = $3
+`
+
+type WhatsAppAccountOtherAccountParams struct {
+	Events int64     `json:"events"`
+	At     time.Time `json:"at"`
+	ID     uuid.UUID `json:"id"`
+}
+
+// Events for another WhatsApp Business Account or number, in a delivery
+// signed with the app secret: counted and dropped.
+func (q *Queries) WhatsAppAccountOtherAccount(ctx context.Context, arg WhatsAppAccountOtherAccountParams) error {
+	_, err := q.db.Exec(ctx, whatsAppAccountOtherAccount, arg.Events, arg.At, arg.ID)
+	return err
+}
+
+const whatsAppAccountRejected = `-- name: WhatsAppAccountRejected :exec
+UPDATE whatsapp_accounts SET rejected_deliveries = rejected_deliveries + 1,
+    rejected_at = greatest(coalesce(rejected_at, $1::timestamptz), $1::timestamptz)
+WHERE id = $2
+`
+
+type WhatsAppAccountRejectedParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+// A delivery whose signature didn't match the app secret: counted, never
+// stored.
+func (q *Queries) WhatsAppAccountRejected(ctx context.Context, arg WhatsAppAccountRejectedParams) error {
+	_, err := q.db.Exec(ctx, whatsAppAccountRejected, arg.At, arg.ID)
 	return err
 }
 
@@ -343,7 +396,7 @@ func (q *Queries) WhatsAppAccountVerified(ctx context.Context, arg WhatsAppAccou
 }
 
 const whatsAppAccountsAll = `-- name: WhatsAppAccountsAll :many
-SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
+SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, a.rejected_deliveries, a.rejected_at, a.other_account_events, a.other_account_at FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
 WHERE a.removed_at IS NULL ORDER BY a.id
 `
 
@@ -386,6 +439,10 @@ func (q *Queries) WhatsAppAccountsAll(ctx context.Context) ([]WhatsappAccount, e
 			&i.ConnectedAt,
 			&i.RemovedAt,
 			&i.RemovedBy,
+			&i.RejectedDeliveries,
+			&i.RejectedAt,
+			&i.OtherAccountEvents,
+			&i.OtherAccountAt,
 		); err != nil {
 			return nil, err
 		}

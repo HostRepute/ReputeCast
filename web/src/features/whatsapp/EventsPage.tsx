@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { useT, type MessageDescriptor } from '@/i18n'
-import { clock, clockSeconds, dayMonthDate } from '@/lib/format'
+import { ago, clock, clockSeconds, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { useWhatsApp, WhatsAppFrame } from './AccountPage'
-import { throwIfForbidden } from './common'
+import { throwIfForbidden, type Account } from './common'
 import { m } from './messages'
 
 type Event = Schemas['WhatsAppEvent']
@@ -30,12 +30,12 @@ export function WhatsAppEventsPage() {
   const overview = useWhatsApp()
   return (
     <WhatsAppFrame doc={t(m.docTitleEvents)} data={overview.data}>
-      <EventLog />
+      <EventLog account={overview.data?.account} />
     </WhatsAppFrame>
   )
 }
 
-function EventLog() {
+function EventLog({ account }: { account?: Account }) {
   const t = useT()
   const { slug } = useWorkspace()
   const [cursors, setCursors] = useState<(string | undefined)[]>([undefined])
@@ -56,6 +56,13 @@ function EventLog() {
             {t(m.eventsTitle)}
           </h2>
           <span className="k">{t(m.eventsIntro)}</span>
+          {/* Deliveries ReputeCast refused or left out aren't in the list: their counts are. */}
+          {account?.rejectedDeliveries ? (
+            <p className="k">{t(m.rejectedDeliveries, { count: account.rejectedDeliveries, ago: ago(account.rejectedAt) })}</p>
+          ) : null}
+          {account?.otherAccountEvents ? (
+            <p className="k">{t(m.otherAccountEvents, { count: account.otherAccountEvents, ago: ago(account.otherAccountAt) })}</p>
+          ) : null}
         </div>
       </div>
       <Table aria-label={t(m.eventsTitle)} className="px-events">

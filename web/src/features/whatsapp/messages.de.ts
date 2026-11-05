@@ -200,4 +200,6 @@ export default translate(m, {
   noEvents: 'Noch keine Ereignisse. Sie erscheinen hier, sobald Meta an den Webhook sendet.',
   loadMore: 'Mehr laden',
   eventsLoadFailed: 'Die Ereignisse konnten nicht geladen werden',
+  rejectedDeliveries: '{count, plural, one {# Zustellung} other {# Zustellungen}} abgelehnt, weil die Signatur nicht zum App-Geheimcode passte. Abgelehnte Zustellungen werden nicht gespeichert. Die letzte kam {ago}.',
+  otherAccountEvents: '{count, plural, one {# Ereignis} other {# Ereignisse}} für einen anderen WhatsApp Business Account oder eine andere Nummer ignoriert: Meta sendet solche Ereignisse hierher, wenn ein anderes Konto dieselbe Meta-App nutzt. Das letzte kam {ago}.',
 })

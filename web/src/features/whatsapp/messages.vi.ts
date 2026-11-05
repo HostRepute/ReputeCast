@@ -239,4 +239,6 @@ export default translate(m, {
   noEvents: 'Chưa có sự kiện nào. Sự kiện hiện ở đây khi Meta gửi đến webhook.',
   loadMore: 'Tải thêm',
   eventsLoadFailed: 'Không tải được sự kiện',
+  rejectedDeliveries: '{count, plural, other {# lần gửi}} bị từ chối vì chữ ký không khớp với khóa bí mật ứng dụng. Các lần gửi bị từ chối không được lưu lại. Lần gần nhất: {ago}.',
+  otherAccountEvents: '{count, plural, other {# sự kiện}} dành cho WhatsApp Business Account hoặc số điện thoại khác đã bị bỏ qua: Meta gửi chúng tới đây khi một tài khoản khác dùng chung ứng dụng Meta. Lần gần nhất: {ago}.',
 })

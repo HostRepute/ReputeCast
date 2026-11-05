@@ -46738,6 +46738,10 @@ export interface components {
             messagingLimit: number;
             nameStatus: string;
             number: string;
+            /** Format: date-time */
+            otherAccountAt?: string;
+            /** Format: int64 */
+            otherAccountEvents: number;
             phoneStatus: string;
             /** Format: int64 */
             previousLimit?: number;
@@ -46746,6 +46750,10 @@ export interface components {
             quality: "high" | "medium" | "low" | "unknown";
             /** Format: date-time */
             qualityChangedAt?: string;
+            /** Format: date-time */
+            rejectedAt?: string;
+            /** Format: int64 */
+            rejectedDeliveries: number;
             /** @enum {string} */
             status: "waiting" | "connected" | "token_rejected";
             statusDetail?: string;

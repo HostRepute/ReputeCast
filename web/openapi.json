@@ -99175,6 +99175,14 @@
           "number": {
             "type": "string"
           },
+          "otherAccountAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "otherAccountEvents": {
+            "format": "int64",
+            "type": "integer"
+          },
           "phoneStatus": {
             "type": "string"
           },
@@ -99197,6 +99205,14 @@
           "qualityChangedAt": {
             "format": "date-time",
             "type": "string"
+          },
+          "rejectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "rejectedDeliveries": {
+            "format": "int64",
+            "type": "integer"
           },
           "status": {
             "enum": [
@@ -99243,6 +99259,8 @@
           "connectedBy",
           "webhookUrl",
           "demo",
+          "rejectedDeliveries",
+          "otherAccountEvents",
           "held",
           "heldCount"
         ],
