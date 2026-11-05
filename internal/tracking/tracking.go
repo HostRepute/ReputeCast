@@ -260,7 +260,7 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 // bot's, and the clicks around it settle as the same scanner's.
 func (s *Service) honeypot(w http.ResponseWriter, r *http.Request) {
 	noStore(w.Header())
-	if c, err := s.Links.Verify(chi.URLParam(r, "token"), linktoken.Honeypot); err == nil && c.MessageID != uuid.Nil {
+	if c, ok := honeypotClaims(s.Links, chi.URLParam(r, "token")); ok {
 		ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: HoneypotLink, UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
 		ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
 		if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
@@ -269,6 +269,18 @@ func (s *Service) honeypot(w http.ResponseWriter, r *http.Request) {
 		cancel()
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// honeypotClaims reads a hidden link's token. Click tokens on store links
+// had the hidden link's kind before they got their own, and those links
+// are still around: a click token's Link is the minute of its click, the
+// hidden link's is always 0, so anything with a Link isn't one.
+func honeypotClaims(links *linktoken.Signer, token string) (linktoken.Claims, bool) {
+	c, err := links.Verify(token, linktoken.Honeypot)
+	if err != nil || c.MessageID == uuid.Nil || c.Link != 0 {
+		return linktoken.Claims{}, false
+	}
+	return c, true
 }
 
 // gone answers a tracked link that no longer works, in the language the

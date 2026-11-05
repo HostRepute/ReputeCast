@@ -2,6 +2,10 @@ package linktoken
 
 import (
 	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -99,5 +103,47 @@ func TestPreviousKeysStillVerify(t *testing.T) {
 	dropped, _ := NewSigner(newKey)
 	if _, err := dropped.Verify(sent, Unsubscribe); !errors.Is(err, ErrSignature) {
 		t.Fatalf("once the old key is dropped: %v", err)
+	}
+}
+
+// Every token kind is declared once across the source: the click token
+// and the hidden link once shared 200, so one worked as the other. Kinds
+// are declared in this package's const block and as `linktoken.Kind = N`
+// elsewhere.
+func TestKindsAreUnique(t *testing.T) {
+	own := regexp.MustCompile(`(?m)^\s*(\w+)\s+Kind\s*=\s*(\d+)\b`)
+	other := regexp.MustCompile(`(\w+)\s+linktoken\.Kind\s*=\s*(\d+)\b`)
+	seen := map[string]string{}
+	found := 0
+	err := filepath.WalkDir("..", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		re := other
+		if filepath.Base(filepath.Dir(path)) == "linktoken" {
+			re = own
+		}
+		for _, m := range re.FindAllStringSubmatch(string(b), -1) {
+			found++
+			name := path + ": " + m[1]
+			if prev, ok := seen[m[2]]; ok {
+				t.Errorf("kind %s is both %s and %s", m[2], prev, name)
+			}
+			seen[m[2]] = name
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found < 20 {
+		t.Fatalf("found %d kinds; the patterns are out of date", found)
 	}
 }

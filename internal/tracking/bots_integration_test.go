@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/counters"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -158,20 +159,35 @@ func TestBotClicks(t *testing.T) {
 		t.Fatal(err)
 	}
 	token := f.Env.App.Links.Sign(linktoken.Claims{Kind: linktoken.Honeypot, WorkspaceID: f.WS, MessageID: ids[5], ContactID: contact})
-	resp, err := http.Get(f.Env.Server.URL + "/t/h/" + token) //nolint:noctx // a test request
-	if err != nil {
-		t.Fatal(err)
+	hit := func(token string) {
+		t.Helper()
+		resp, err := http.Get(f.Env.Server.URL + "/t/h/" + token) //nolint:noctx // a test request
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("hidden link: %d", resp.StatusCode)
+		}
 	}
-	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusNoContent {
-		t.Fatalf("hidden link: %d", resp.StatusCode)
-	}
+	// A store link's click token (rc=) isn't the hidden link, whether
+	// signed now or with the kind click tokens had before: the reader's
+	// real click stays a person's.
+	clickedAt := time.Now()
+	hit(clicktoken.Sign(f.Env.App.Links, clicktoken.Click{WorkspaceID: f.WS, MessageID: ids[5], ContactID: contact, At: clickedAt}))
+	hit(f.Env.App.Links.Sign(linktoken.Claims{Kind: linktoken.Honeypot, WorkspaceID: f.WS, MessageID: ids[5], ContactID: contact,
+		Link: uint32(clickedAt.Sub(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)) / time.Minute)}))
+	hit(token)
+	hidden := `SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'click' AND class = 'bot' AND link = -1`
 	deadline := time.Now().Add(5 * time.Second)
-	for f.Count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'click' AND class = 'bot' AND link = -1`, ids[5]) != 1 {
+	for f.Count(hidden, ids[5]) == 0 {
 		if time.Now().After(deadline) {
 			t.Fatal("the hidden link's click wasn't recorded as a bot's")
 		}
 		time.Sleep(50 * time.Millisecond)
+	}
+	if n := f.Count(hidden, ids[5]); n != 1 {
+		t.Fatalf("%d hidden-link clicks: click tokens counted as the hidden link", n)
 	}
 
 	// The counters can be rebuilt from these events: the same numbers.
