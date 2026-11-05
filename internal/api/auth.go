@@ -369,13 +369,20 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, tok
 		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, mKeyExpired.Text(i18n.LangFrom(ctx), i18n.Args{"date": *k.ExpiresAt}))
 	}
 	perms := authz.ParseSet(k.Permissions)
+	var scope authz.Scope
+	_ = json.Unmarshal(k.Scope, &scope)
 	// A key never exceeds what its creator can do right now: nothing once
-	// they have left the workspace, and no answer while that can't be read.
+	// they have left the workspace, no list their own scope no longer
+	// reaches (narrowing a person narrows their keys at once), and no
+	// answer while that can't be read.
 	if k.CreatedBy != nil {
 		m, err := a.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: k.WorkspaceID, UserID: *k.CreatedBy})
 		switch {
 		case err == nil && m.Status == "active":
 			perms = perms.Intersect(authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions))
+			var theirs authz.Scope
+			_ = json.Unmarshal(m.Scope, &theirs)
+			scope = scope.Intersect(theirs)
 		case err == nil || errors.Is(err, pgx.ErrNoRows):
 			if ik != nil {
 				return refuse(Err(http.StatusForbidden, CodeOwnerDeactivated, mOwnerLeft.Text(i18n.LangFrom(ctx), i18n.Args{"integration": ik.Name})))
@@ -385,8 +392,6 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, tok
 			return caller{}, a.unavailable(ctx, "API key creator", err)
 		}
 	}
-	var scope authz.Scope
-	_ = json.Unmarshal(k.Scope, &scope)
 	typ := authz.ActorAPIKey
 	if k.Kind == "mcp_agent" {
 		typ = authz.ActorMCPAgent

@@ -33,7 +33,7 @@ SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.created_at,
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL
   AND (c.email ILIKE '%' || @q::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || @q::text || '%')
-  AND (cardinality(@lists::uuid[]) = 0 OR EXISTS (
+  AND (coalesce(cardinality(@lists::uuid[]), 0) = 0 OR EXISTS (
         SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id AND lm.list_id = ANY(@lists::uuid[])))
 ORDER BY c.email
 LIMIT @lim;

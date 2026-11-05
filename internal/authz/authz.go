@@ -29,12 +29,23 @@ type Scope struct {
 	SenderDomains []string    `json:"senderDomains,omitempty"`
 }
 
+// NoList and NoSenderDomain fill a scope that allows no list, or no sender
+// domain, at all: what is left when two scopes share none (Intersect). An
+// empty Lists means every list, so "none" has to be a value: no list has
+// the nil id and no sender domain is ".", so every check and every query
+// that reads a non-empty Lists as a restriction lets nothing through, and
+// the value survives JSON (a background job's actor keeps it).
+var NoList = uuid.Nil
+
+// NoSenderDomain: see NoList.
+const NoSenderDomain = "."
+
 // IsZero reports whether the scope places no restriction.
 func (s Scope) IsZero() bool { return len(s.Lists) == 0 && len(s.SenderDomains) == 0 }
 
 // AllowsList reports whether the scope includes the list.
 func (s Scope) AllowsList(id uuid.UUID) bool {
-	return len(s.Lists) == 0 || slices.Contains(s.Lists, id)
+	return len(s.Lists) == 0 || (id != NoList && slices.Contains(s.Lists, id))
 }
 
 // AllowsLists reports whether the scope includes every list in ids.
@@ -52,18 +63,19 @@ func (s Scope) AllowsSenderDomain(domain string) bool {
 	if len(s.SenderDomains) == 0 {
 		return true
 	}
-	return slices.ContainsFunc(s.SenderDomains, func(d string) bool { return strings.EqualFold(d, domain) })
+	return domain != NoSenderDomain && slices.ContainsFunc(s.SenderDomains, func(d string) bool { return strings.EqualFold(d, domain) })
 }
 
 // Within reports whether s is at most as broad as parent (used so API keys
-// never get a wider scope than their creator).
+// never get a wider scope than their creator). A scope that allows nothing
+// is within any other.
 func (s Scope) Within(parent Scope) bool {
 	if len(parent.Lists) > 0 {
 		if len(s.Lists) == 0 {
 			return false
 		}
 		for _, l := range s.Lists {
-			if !slices.Contains(parent.Lists, l) {
+			if l != NoList && !slices.Contains(parent.Lists, l) {
 				return false
 			}
 		}
@@ -73,12 +85,48 @@ func (s Scope) Within(parent Scope) bool {
 			return false
 		}
 		for _, d := range s.SenderDomains {
-			if !parent.AllowsSenderDomain(d) {
+			if d != NoSenderDomain && !parent.AllowsSenderDomain(d) {
 				return false
 			}
 		}
 	}
 	return true
+}
+
+// Intersect returns what both scopes allow: an API key's or an agent's own
+// scope narrowed to what its creator may reach right now, since the scope
+// checked at creation goes stale when the creator is narrowed later. Empty
+// means everything, so an empty side keeps the other; two lists of lists
+// that share none leave NoList, never an empty list.
+func (s Scope) Intersect(o Scope) Scope {
+	return Scope{
+		Lists:         intersect(s.Lists, o.Lists, NoList, func(a, b uuid.UUID) bool { return a == b }),
+		SenderDomains: intersect(s.SenderDomains, o.SenderDomains, NoSenderDomain, strings.EqualFold),
+	}
+}
+
+// intersect is one dimension of Intersect: the values of a that b holds
+// too, in a's order, or none when they share nothing.
+func intersect[T comparable](a, b []T, none T, eq func(T, T) bool) []T {
+	switch {
+	case len(a) == 0:
+		return slices.Clone(b)
+	case len(b) == 0:
+		return slices.Clone(a)
+	}
+	var out []T
+	for _, v := range a {
+		if v == none || !slices.ContainsFunc(b, func(w T) bool { return eq(v, w) }) {
+			continue
+		}
+		if !slices.ContainsFunc(out, func(w T) bool { return eq(v, w) }) {
+			out = append(out, v)
+		}
+	}
+	if len(out) == 0 {
+		return []T{none}
+	}
+	return out
 }
 
 // Principal is an authenticated actor acting inside one workspace (or at
