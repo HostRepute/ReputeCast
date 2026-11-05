@@ -732,6 +732,34 @@ func TestPreferenceCenter(t *testing.T) {
 			t.Errorf("a foreign link changed the preferences: %s", f)
 		}
 	})
+	t.Run("only the lists the page shows", func(t *testing.T) {
+		// Posting a private list's id (a VIP or beta list) doesn't join
+		// it; a private list the contact is on can still be left.
+		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE lists SET public = false WHERE id = ANY($1)`, []uuid.UUID{ids.beta, ids.updates}); err != nil {
+			t.Fatal(err)
+		}
+		r := get(t, env, path)
+		must(t, r, 200, "Weekly Digest", "Product Updates")
+		lacks(t, r, "Beta Program")
+		var eng uuid.UUID
+		if err := env.App.Pool.QueryRow(context.Background(), `SELECT id FROM lists WHERE workspace_id = $1 LIMIT 1`, ids.eng).Scan(&eng); err != nil {
+			t.Fatal(err)
+		}
+		all := []string{ids.digest.String(), ids.updates.String(), ids.beta.String(), eng.String()}
+		r = do(t, env, http.MethodPost, path, url.Values{"shown": {strings.Join(all, ",")}, "list": {ids.digest.String(), ids.beta.String(), eng.String()}}, nil)
+		if r.Status != 303 {
+			t.Fatalf("save: %d\n%s", r.Status, clip(r.Body))
+		}
+		if st := membership(t, env, ids.sam, ids.beta); st == "subscribed" || st == "pending" {
+			t.Errorf("joined a private list the page doesn't show: %s", st)
+		}
+		if st := membership(t, env, ids.sam, eng); st != "none" {
+			t.Errorf("joined another workspace's list: %s", st)
+		}
+		if membership(t, env, ids.sam, ids.updates) != "unsubscribed" || membership(t, env, ids.sam, ids.digest) != "subscribed" {
+			t.Error("leaving a private list the contact was on, keeping Weekly Digest")
+		}
+	})
 }
 
 // fakeMail is a System-stream sender that keeps what it sends.

@@ -539,6 +539,60 @@ func TestSiteAccount(t *testing.T) {
 	}
 }
 
+// The account page's newsletters are the public lists and those the
+// member is on: posting a private list's id doesn't join it, and a private
+// list the member is on can still be left.
+func TestSiteAccountNewsletters(t *testing.T) {
+	env, box := demoOn(t)
+	ctx := context.Background()
+	c := env.Client()
+	form(c, "/signin", url.Values{"email": {"a.murphy@icloud.com"}}).MustStatus(t, http.StatusOK)
+	token, _ := linkOf(t, box.to("a.murphy@icloud.com")[0])
+	form(c, "/signin/link/"+token, url.Values{}).MustStatus(t, http.StatusSeeOther)
+	ws := workspaceID(t, env)
+	var alex uuid.UUID
+	if err := env.App.Pool.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND email = 'a.murphy@icloud.com'`, ws).Scan(&alex); err != nil {
+		t.Fatal(err)
+	}
+	list := func(name string) uuid.UUID {
+		t.Helper()
+		var id uuid.UUID
+		if err := env.App.Pool.QueryRow(ctx, `SELECT id FROM lists WHERE workspace_id = $1 AND name = $2 AND deleted_at IS NULL`, ws, name).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	status := func(l uuid.UUID) string {
+		var st string
+		_ = env.App.Pool.QueryRow(ctx, `SELECT status FROM list_memberships WHERE contact_id = $1 AND list_id = $2`, alex, l).Scan(&st)
+		return st
+	}
+	private := func(l uuid.UUID) {
+		t.Helper()
+		if _, err := env.App.Pool.Exec(ctx, `UPDATE lists SET public = false WHERE id = $1`, l); err != nil {
+			t.Fatal(err)
+		}
+	}
+	digest, beta := list("Weekly Digest"), list("Beta Program")
+	private(beta)
+	if st := status(beta); st == "subscribed" || st == "pending" {
+		t.Fatalf("Alex is on the Beta Program already: %s", st)
+	}
+	both := url.Values{"shown": {digest.String(), beta.String()}, "list": {digest.String(), beta.String()}}
+	form(c, "/account/newsletters", both).MustStatus(t, http.StatusSeeOther)
+	if st := status(beta); st == "subscribed" || st == "pending" {
+		t.Errorf("joined a private list from the account page: %s", st)
+	}
+	if st := status(digest); st != "subscribed" {
+		t.Fatalf("Weekly Digest: %q", st)
+	}
+	private(digest)
+	form(c, "/account/newsletters", url.Values{"shown": {digest.String()}}).MustStatus(t, http.StatusSeeOther)
+	if st := status(digest); st != "unsubscribed" {
+		t.Errorf("leaving a private list the member is on: %q", st)
+	}
+}
+
 // The preference center links a member signed in on the site to their
 // account page; a visitor and another member's session don't get the line.
 func TestPreferencesAccountLink(t *testing.T) {
