@@ -200,4 +200,6 @@ export default translate(m, {
   noEvents: 'Aún no hay eventos. Aparecen aquí cuando Meta envía algo al webhook.',
   loadMore: 'Cargar más',
   eventsLoadFailed: 'No se pudieron cargar los eventos',
+  rejectedDeliveries: '{count, plural, one {Se rechazó # entrega} other {Se rechazaron # entregas}} porque la firma no coincidía con la clave secreta de la app. Las entregas rechazadas no se guardan. La última llegó {ago}.',
+  otherAccountEvents: '{count, plural, one {Se ignoró # evento} other {Se ignoraron # eventos}} de otra WhatsApp Business Account u otro número: Meta los envía aquí cuando otra cuenta usa la misma app de Meta. El último llegó {ago}.',
 })

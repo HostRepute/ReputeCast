@@ -47,6 +47,16 @@ type WhatsAppAccount struct {
 	LastEventAt       *time.Time `json:"lastEventAt,omitempty"`
 	TemplatesSyncedAt *time.Time `json:"templatesSyncedAt,omitempty"`
 	Demo              bool       `json:"demo"`
+	// RejectedDeliveries counts the deliveries refused because their
+	// signature didn't match the app secret: anyone can post to the
+	// address, so they aren't stored.
+	RejectedDeliveries int64      `json:"rejectedDeliveries"`
+	RejectedAt         *time.Time `json:"rejectedAt,omitempty"`
+	// OtherAccountEvents counts the events of another WhatsApp Business
+	// Account or number that came signed with the app secret (accounts
+	// sharing one Meta app): dropped.
+	OtherAccountEvents int64      `json:"otherAccountEvents"`
+	OtherAccountAt     *time.Time `json:"otherAccountAt,omitempty"`
 	// Held are the sends waiting for a new token: names and how many.
 	Held      []string `json:"held"`
 	HeldCount int64    `json:"heldCount"`
@@ -128,7 +138,8 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		BusinessHint: a.BusinessHint, Number: phone.Display(a.PhoneNumber), DisplayName: a.DisplayName, NameStatus: a.NameStatus, PhoneStatus: a.PhoneStatus,
 		Quality: a.Quality, PreviousQuality: a.PreviousQuality, QualityChangedAt: a.QualityChangedAt, MessagingLimit: int(a.MessagingLimit),
 		PreviousLimit: int(a.PreviousLimit), LimitChangedAt: a.LimitChangedAt, ConnectedAt: a.ConnectedAt, ConnectedBy: a.ConnectedByName, CheckedAt: a.CheckedAt,
-		WebhookURL: s.webhookURL(ws), VerifiedAt: a.VerifiedAt, LastEventAt: a.LastEventAt, TemplatesSyncedAt: a.TemplatesSyncedAt, Demo: a.Demo, Held: []string{}}
+		WebhookURL: s.webhookURL(ws), VerifiedAt: a.VerifiedAt, LastEventAt: a.LastEventAt, TemplatesSyncedAt: a.TemplatesSyncedAt, Demo: a.Demo,
+		RejectedDeliveries: a.RejectedDeliveries, RejectedAt: a.RejectedAt, OtherAccountEvents: a.OtherAccountEvents, OtherAccountAt: a.OtherAccountAt, Held: []string{}}
 	if out.CanManage {
 		acct.VerifyToken = a.VerifyToken
 	}

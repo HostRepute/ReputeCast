@@ -53,6 +53,20 @@ WHERE id = @id;
 -- name: WhatsAppAccountTouchEvent :exec
 UPDATE whatsapp_accounts SET last_event_at = greatest(coalesce(last_event_at, @at::timestamptz), @at::timestamptz) WHERE id = @id;
 
+-- name: WhatsAppAccountRejected :exec
+-- A delivery whose signature didn't match the app secret: counted, never
+-- stored.
+UPDATE whatsapp_accounts SET rejected_deliveries = rejected_deliveries + 1,
+    rejected_at = greatest(coalesce(rejected_at, @at::timestamptz), @at::timestamptz)
+WHERE id = @id;
+
+-- name: WhatsAppAccountOtherAccount :exec
+-- Events for another WhatsApp Business Account or number, in a delivery
+-- signed with the app secret: counted and dropped.
+UPDATE whatsapp_accounts SET other_account_events = other_account_events + @events::bigint,
+    other_account_at = greatest(coalesce(other_account_at, @at::timestamptz), @at::timestamptz)
+WHERE id = @id;
+
 -- name: WhatsAppAccountSynced :exec
 UPDATE whatsapp_accounts SET templates_synced_at = @at WHERE id = @id;
 

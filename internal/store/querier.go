@@ -5239,6 +5239,12 @@ type Querier interface {
 	// The account a webhook request is for: /hooks/whatsapp/{workspace}.
 	WhatsAppAccountBySlug(ctx context.Context, slug string) (WhatsappAccount, error)
 	WhatsAppAccountInsert(ctx context.Context, arg WhatsAppAccountInsertParams) error
+	// Events for another WhatsApp Business Account or number, in a delivery
+	// signed with the app secret: counted and dropped.
+	WhatsAppAccountOtherAccount(ctx context.Context, arg WhatsAppAccountOtherAccountParams) error
+	// A delivery whose signature didn't match the app secret: counted, never
+	// stored.
+	WhatsAppAccountRejected(ctx context.Context, arg WhatsAppAccountRejectedParams) error
 	WhatsAppAccountRemove(ctx context.Context, arg WhatsAppAccountRemoveParams) error
 	WhatsAppAccountSetCredentials(ctx context.Context, arg WhatsAppAccountSetCredentialsParams) error
 	// What Meta reported for the number and the business account.
