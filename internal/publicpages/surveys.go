@@ -243,7 +243,7 @@ func (h *Handler) surveyView(s *site, p *polls.SurveyPage, token string) surveyB
 					}
 					ov.Label = s.faceLabel(faces, o.Key)
 					ov.Aria = ov.Label
-					ov.Face = s.links.Static(FacePath(faces, o.Key, accentHex(s)))
+					ov.Face = s.links.Static(h.facePath(faces, o.Key, accentHex(s)))
 				}
 				qv.Options = append(qv.Options, ov)
 			}
