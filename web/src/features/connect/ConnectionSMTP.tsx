@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -8,7 +8,7 @@ import { common } from '@/i18n/common'
 import { clock } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { mn, msmtp } from './connection.messages'
-import { failed, StateBadge, StatusRow, useSetupActions, type StepProps } from './parts'
+import { failed, FieldError, fieldErrors, StateBadge, StatusRow, useSetupActions, type StepProps } from './parts'
 import { Ticks } from './text'
 import { continueClass, StepHeading, WizardFooter } from './Wizard'
 
@@ -68,13 +68,27 @@ export function ConnectionSMTP({ setup, go, saveLater, reason }: StepProps) {
   const [password, setPassword] = useState('')
   const [maxRate, setMaxRate] = useState(f?.maxRate ?? '')
   const [dailyCap, setDailyCap] = useState(f?.dailyCap ?? '')
+  // What the server refused about the host or the password (a saved
+  // password isn't sent to a new server), shown under the field.
+  const [refused, setRefused] = useState<Record<string, string>>({})
+  const ids = { host: useId(), password: useId() }
   const connected = c.status === 'connected'
   const err = c.status === 'failed' ? c.error : undefined
   const test = (e?: FormEvent) => {
     e?.preventDefault()
+    setRefused({})
     a.connect.mutate(
       { smtp: { host: host.trim(), port, tls, username: username.trim() || undefined, password: password || undefined, maxRate: maxRate.trim() || undefined, dailyCap: dailyCap.trim() || undefined } },
-      { onSuccess: () => setPassword(''), onError: failed(t(msmtp.testFailed), () => test()) },
+      {
+        onSuccess: () => setPassword(''),
+        onError: (e) => {
+          const byField = fieldErrors(e, 'body.smtp.')
+          const first = (['host', 'password'] as const).find((k) => byField[k])
+          if (!first) return failed(t(msmtp.testFailed), () => test())(e)
+          setRefused(byField)
+          document.getElementById(ids[first])?.focus()
+        },
+      },
     )
   }
   const probe = c.smtp
@@ -90,7 +104,20 @@ export function ConnectionSMTP({ setup, go, saveLater, reason }: StepProps) {
         <form id="smtp-server" className={gridClass} style={grid} onSubmit={test}>
           <label className="lbl col-span-2 max-md:col-span-full">
             {t(msmtp.host)}
-            <input className="in mono" value={host} onChange={(e) => setHost(e.target.value)} aria-invalid={err?.field === 'host' || undefined} disabled={Boolean(reason)} autoComplete="off" />
+            <input
+              id={ids.host}
+              className="in mono"
+              value={host}
+              onChange={(e) => {
+                setHost(e.target.value)
+                setRefused((r) => ({ ...r, host: '' }))
+              }}
+              aria-invalid={err?.field === 'host' || Boolean(refused.host) || undefined}
+              aria-describedby={refused.host ? `${ids.host}-err` : undefined}
+              disabled={Boolean(reason)}
+              autoComplete="off"
+            />
+            {refused.host ? <FieldError id={`${ids.host}-err`} message={refused.host} /> : null}
           </label>
           <label className="lbl">
             {t(msmtp.port)}
@@ -128,15 +155,21 @@ export function ConnectionSMTP({ setup, go, saveLater, reason }: StepProps) {
           <label className="lbl">
             {t(msmtp.password)}
             <input
+              id={ids.password}
               className="in"
               type="password"
               placeholder={t(msmtp.passwordPlaceholder)}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-invalid={err?.field === 'password' || undefined}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (e.target.value) setRefused((r) => ({ ...r, password: '' }))
+              }}
+              aria-invalid={err?.field === 'password' || Boolean(refused.password) || undefined}
+              aria-describedby={refused.password ? `${ids.password}-err` : undefined}
               disabled={Boolean(reason)}
               autoComplete="new-password"
             />
+            {refused.password ? <FieldError id={`${ids.password}-err`} message={refused.password} /> : null}
           </label>
           <label className="lbl">
             {t(msmtp.maxRate)}
@@ -238,8 +271,13 @@ function MailboxCard({ setup, reason, connected }: { setup: Schemas['ConnectSetu
     : MAILBOX_PORTS[protocol]
   const tls = ports.find((p) => p.port === port)?.tls ?? f?.mailboxTls ?? 'tls'
   const mb = setup.connection.mailbox
+  // The password the server asks for (a saved one isn't sent to a new
+  // server), shown under the field.
+  const [refused, setRefused] = useState('')
+  const passwordId = useId()
   const test = (e?: FormEvent) => {
     e?.preventDefault()
+    setRefused('')
     a.mailbox.mutate(
       {
         address: address.trim(),
@@ -253,7 +291,15 @@ function MailboxCard({ setup, reason, connected }: { setup: Schemas['ConnectSetu
         pollEvery,
         afterProcessing: after,
       },
-      { onSuccess: () => setPassword(''), onError: failed(t(msmtp.mailboxFailed), () => test()) },
+      {
+        onSuccess: () => setPassword(''),
+        onError: (e) => {
+          const message = fieldErrors(e, 'body.')['password']
+          if (!message) return failed(t(msmtp.mailboxFailed), () => test())(e)
+          setRefused(message)
+          document.getElementById(passwordId)?.focus()
+        },
+      },
     )
   }
   return (
@@ -306,7 +352,22 @@ function MailboxCard({ setup, reason, connected }: { setup: Schemas['ConnectSetu
         </label>
         <label className="lbl">
           {t(msmtp.password)}
-          <input className="in" type="password" placeholder={t(msmtp.storedPlaceholder)} value={password} onChange={(e) => setPassword(e.target.value)} disabled={Boolean(reason)} autoComplete="new-password" />
+          <input
+            id={passwordId}
+            className="in"
+            type="password"
+            placeholder={t(msmtp.storedPlaceholder)}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (e.target.value) setRefused('')
+            }}
+            aria-invalid={refused ? true : undefined}
+            aria-describedby={refused ? `${passwordId}-err` : undefined}
+            disabled={Boolean(reason)}
+            autoComplete="new-password"
+          />
+          {refused ? <FieldError id={`${passwordId}-err`} message={refused} /> : null}
         </label>
         <label className="lbl">
           {t(msmtp.folder)}

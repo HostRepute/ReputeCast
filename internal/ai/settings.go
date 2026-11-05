@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -411,6 +412,22 @@ func (s *Service) validCandidate(ctx context.Context, c *candidate) error {
 	return nil
 }
 
+// savedKey is the key a form left blank stands for: the saved one, for the
+// same provider at the same server address (Change model, Test connection,
+// saving other settings). A saved key is never sent to an address it wasn't
+// saved with, so a new address needs the key pasted again.
+func (s *Service) savedKey(ctx context.Context, ws *store.Workspace, cur *connection, c candidate) (string, error) {
+	if c.key != "" || !cur.connected() || cur.Provider != c.provider || len(cur.KeySealed) == 0 {
+		return c.key, nil
+	}
+	// Only Azure OpenAI and OpenAI-compatible servers are reached at an
+	// address of the workspace's choosing; the others have their own.
+	if (c.provider == llm.Azure || c.provider == llm.Compatible) && !netguard.SameAddress(c.baseURL, cur.BaseUrl) {
+		return "", invalid(ctx, "body.apiKey", mKeyAgain, nil)
+	}
+	return s.Box.OpenString(cur.KeySealed, keyAD(ws.ID))
+}
+
 // AITestResult is Test connection: the fixed prompt, the answer and the time.
 type AITestResult struct {
 	OK           bool      `json:"ok"`
@@ -539,12 +556,8 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return res, nil
 	}
 	c := candidate{provider: in.Provider, baseURL: in.BaseURL, deployment: in.Deployment, apiVersion: in.APIVersion, key: in.APIKey, model: in.Model}
-	// The saved key stands in for an empty one when the provider is the same
-	// (Change model, a new address).
-	if c.key == "" && cur.connected() && cur.Provider == c.provider && len(cur.KeySealed) > 0 {
-		if c.key, err = s.Box.OpenString(cur.KeySealed, keyAD(ws.ID)); err != nil {
-			return AITestResult{}, err
-		}
+	if c.key, err = s.savedKey(ctx, ws, cur, c); err != nil {
+		return AITestResult{}, err
 	}
 	if err := s.validCandidate(ctx, &c); err != nil {
 		return AITestResult{}, err
@@ -607,10 +620,8 @@ func (s *Service) Models(ctx context.Context, ws *store.Workspace, in AIModelsIn
 	if err != nil {
 		return out, err
 	}
-	if c.key == "" && cur.connected() && cur.Provider == c.provider && len(cur.KeySealed) > 0 {
-		if c.key, err = s.Box.OpenString(cur.KeySealed, keyAD(ws.ID)); err != nil {
-			return out, err
-		}
+	if c.key, err = s.savedKey(ctx, ws, cur, c); err != nil {
+		return out, err
 	}
 	if cur.connected() && cur.Demo && cur.Provider == c.provider && in.APIKey == "" {
 		return out, nil
@@ -799,8 +810,8 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if cur.connected() && cur.Provider != c.provider {
 		return AISettings{}, problem(ctx, http.StatusConflict, codeOneModel, mOneModel, i18n.Args{"provider": cur.providerName()})
 	}
-	if c.key == "" && cur.connected() && cur.Provider == c.provider && len(cur.KeySealed) > 0 && !cur.Demo {
-		if c.key, err = s.Box.OpenString(cur.KeySealed, keyAD(ws.ID)); err != nil {
+	if cur.connected() && !cur.Demo {
+		if c.key, err = s.savedKey(ctx, ws, cur, c); err != nil {
 			return AISettings{}, err
 		}
 	}

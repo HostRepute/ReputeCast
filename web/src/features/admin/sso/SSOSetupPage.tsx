@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useId, useState, type ReactNode } from 'react'
-import { $api, errorMessage, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonAnchor } from '@/components/ui/Button'
@@ -167,6 +167,9 @@ function SetupForm({ d }: { d: Detail }) {
   const [returned, setReturned] = useState<{ from: Detail; value: Detail }>()
   const setSaved = (value: Detail) => setReturned({ from: d, value })
   const [error, setError] = useState<string>()
+  // The client secret the server asks for again (a saved one isn't sent to
+  // a new issuer), shown under the secret field.
+  const [secretError, setSecretError] = useState<string>()
   const save = $api.useMutation('put', '/api/v1/admin/sso/{providerId}')
   const enable = $api.useMutation('post', '/api/v1/admin/sso/{providerId}/enable')
   const startTest = $api.useMutation('post', '/api/v1/admin/sso/{providerId}/test')
@@ -180,6 +183,7 @@ function SetupForm({ d }: { d: Detail }) {
 
   const persist = async (form: Form = f): Promise<Detail> => {
     setError(undefined)
+    setSecretError(undefined)
     const r = await save.mutateAsync({ ...path, body: toInput(current, form) })
     setF(toForm(r))
     setSaved(r)
@@ -190,6 +194,12 @@ function SetupForm({ d }: { d: Detail }) {
     try {
       await what()
     } catch (e) {
+      const aboutSecret = e instanceof ApiError && e.status === 422 ? e.problem.errors?.find((x) => x.location === 'body.clientSecret')?.message : undefined
+      if (aboutSecret) {
+        setSecretError(aboutSecret)
+        set({ replacing: true })
+        return
+      }
       setError(errorMessage(e))
     }
   }
@@ -203,7 +213,25 @@ function SetupForm({ d }: { d: Detail }) {
   return (
     <>
       <PresetCard d={current} f={f} set={set} />
-      <ConnectionCard d={current} f={f} set={set} preset={presetInfo} onDiscovered={(r) => { setSaved(r); set({ issuerUrl: r.issuer }) }} />
+      <ConnectionCard
+        d={current}
+        f={f}
+        set={(patch) => {
+          if (patch.clientSecret) setSecretError(undefined)
+          set(patch)
+        }}
+        preset={presetInfo}
+        secretError={secretError}
+        onDiscovered={(r) => {
+          setSaved(r)
+          // With a client secret saved, a new issuer that works is tested but
+          // not saved: it is saved with the secret pasted again, so the form
+          // keeps it and asks for the secret.
+          const typed = f.issuerUrl.trim()
+          if (r.discovery?.ok && typed && r.issuer !== typed) set({ replacing: true })
+          else set({ issuerUrl: r.issuer })
+        }}
+      />
       <ClaimsCard d={current} f={f} set={set} preset={presetInfo} />
       <AccessCard d={current} f={f} set={set} preset={presetInfo} onEnforce={() => setEnforcing(true)} onUnenforce={() => setUnenforcing(true)} />
       <TestCard
@@ -335,7 +363,7 @@ function dateOnly(iso: string) {
   return Number.isNaN(d.getTime()) ? iso : calendarDate(d.toISOString().slice(0, 10), 'date')
 }
 
-function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { preset: Preset; onDiscovered: (d: Detail) => void }) {
+function ConnectionCard({ d, f, set, preset, secretError, onDiscovered }: CardProps & { preset: Preset; secretError?: string; onDiscovered: (d: Detail) => void }) {
   const t = useT()
   const id = useId()
   const discover = $api.useMutation('post', '/api/v1/admin/sso/{providerId}/discovery')
@@ -495,6 +523,8 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
                   value={f.clientSecret}
                   placeholder={d.secret.set ? t(ss.newSecret) : t(ss.pasteSecret)}
                   autoComplete="new-password"
+                  aria-invalid={secretError ? true : undefined}
+                  aria-describedby={secretError ? `${id}-sec-err` : undefined}
                   onChange={(e) => set({ clientSecret: e.target.value })}
                 />
                 {d.secret.set ? <Button onClick={() => set({ replacing: false, clientSecret: '' })}>{t(ss.keepSecret)}</Button> : null}
@@ -511,6 +541,11 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
                   {t(ss.secretExpiresLabel)}
                 </label>
                 <input id={`${id}-exp`} className="in h-[30px]" type="date" value={f.secretExpiresOn} onChange={(e) => set({ secretExpiresOn: e.target.value })} />
+              </span>
+            ) : null}
+            {secretError ? (
+              <span className="err" role="alert" id={`${id}-sec-err`}>
+                {secretError}
               </span>
             ) : null}
             <span className="k font-medium" id={`${id}-sec-hint`}>

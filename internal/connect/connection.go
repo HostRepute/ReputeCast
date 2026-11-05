@@ -11,10 +11,12 @@ import (
 	"net/netip"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
@@ -422,11 +424,15 @@ func newAdapter(d providers.Descriptor, providerID, wsID uuid.UUID, b built, web
 }
 
 // apiConfig splits the generic form into settings and credentials, keeping
-// stored secrets the person didn't replace.
+// stored secrets the person didn't replace while the provider's address
+// stays the same.
 func (s *Service) apiConfig(l i18n.Lang, d providers.Descriptor, prov *store.Provider, values map[string]string) (built, error) {
 	values = clean(values)
 	b := built{settings: currentSettings(prov), creds: s.currentCreds(prov)}
 	delete(b.settings, "demo")
+	if err := secretsForAddress(l, d, currentSettings(prov), b.creds, values); err != nil {
+		return b, err
+	}
 	// "Enter the API key.": the field's label inside the sentence.
 	enter := func(f providers.Field) error {
 		field := strings.ToLower(f.Label)
@@ -466,6 +472,53 @@ func (s *Service) apiConfig(l i18n.Lang, d providers.Descriptor, prov *store.Pro
 	}
 	b.label = labelOf(func(k string) string { return stringOf(b.settings[k]) })
 	return b, nil
+}
+
+// secretsForAddress refuses to keep saved secrets for a new address: when a
+// setting that says where the provider's requests go (an Endpoint) changes,
+// each saved secret the form leaves blank must be typed again. Kept, it
+// would go to a server the person who saved it never chose.
+func secretsForAddress(l i18n.Lang, d providers.Descriptor, stored, creds map[string]any, values map[string]string) error {
+	moved := slices.ContainsFunc(d.Fields, func(f providers.Field) bool {
+		return f.Endpoint && values[f.Key] != "" && !netguard.SameAddress(values[f.Key], stringOf(stored[f.Key]))
+	})
+	if !moved {
+		return nil
+	}
+	var p *api.Problem
+	for _, f := range d.Fields {
+		if !f.Secret || values[f.Key] != "" || stringOf(creds[f.Key]) == "" {
+			continue
+		}
+		loc, msg := "body.values."+f.Key, mProblemSecretAgain.Text(l, i18n.Args{"field": labelInSentence(l, f)})
+		if p == nil {
+			p = api.Invalid(loc, msg)
+			continue
+		}
+		p.Errors = append(p.Errors, &huma.ErrorDetail{Location: loc, Message: msg})
+	}
+	if p == nil {
+		return nil
+	}
+	return p
+}
+
+// sameServer reports whether a mail server's host and port are the saved
+// ones (saved holds them as "host" and "port"): another listener on the
+// same host is another server.
+func sameServer(saved map[string]any, host string, port int) bool {
+	return netguard.SameAddress(host, stringOf(saved["host"])) && stringOf(saved["port"]) == strconv.Itoa(port)
+}
+
+// labelInSentence is a field's label inside a sentence in l: "the API key",
+// "the connection string" (acronyms keep their capitals, and so does every
+// noun in a language that writes them so).
+func labelInSentence(l i18n.Lang, f providers.Field) string {
+	label := f.In(l).Label
+	if i18n.KeepsCapitals(l.Locale) {
+		return label
+	}
+	return lowerFirst(label)
 }
 
 // fieldNumber is the form type of a field that holds a whole number.
@@ -615,6 +668,11 @@ func (s *Service) smtpConfig(l i18n.Lang, prov *store.Provider, in ConnectSMTPIn
 	host := strings.ToLower(strings.TrimSpace(in.Host))
 	if strings.ContainsAny(host, " /:@") || host == "" {
 		return b, api.Invalid("body.smtp.host", mProblemSMTPHost.Text(l, nil))
+	}
+	// The connection test logs in with the password: a saved one goes only
+	// to the server it was entered for.
+	if in.Password == "" && stringOf(b.creds["password"]) != "" && !sameServer(b.settings, host, in.Port) {
+		return b, api.Invalid("body.smtp.password", mProblemPasswordAgain.Text(l, nil))
 	}
 	b.settings["host"], b.settings["port"], b.settings["tls"] = host, in.Port, in.TLS
 	b.settings["username"] = strings.TrimSpace(in.Username)
@@ -1380,6 +1438,12 @@ func (s *Service) ConnectMailbox(ctx context.Context, ws *store.Workspace, rawID
 	address := strings.ToLower(strings.TrimSpace(in.Address))
 	mb := map[string]any{"protocol": in.Protocol, "host": strings.ToLower(strings.TrimSpace(in.Host)), "port": in.Port, "tls": in.TLS,
 		"username": strings.TrimSpace(in.Username), "folder": folder, "address": address, "poll_every": in.PollEvery, "after_processing": in.AfterProcessing}
+	// The mailbox test logs in with the password: a saved one goes only to
+	// the server it was entered for.
+	saved, _ := cfg["bounce_mailbox"].(map[string]any)
+	if in.Password == "" && stringOf(creds["bounce_password"]) != "" && !sameServer(saved, stringOf(mb["host"]), in.Port) {
+		return ConnectSetup{}, api.Invalid("body.password", mProblemMailboxPasswordAgain.Text(l, nil))
+	}
 	cfg["bounce_mailbox"] = mb
 	if address != "" {
 		cfg["return_path"] = address

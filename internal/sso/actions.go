@@ -37,6 +37,22 @@ func (s *Service) TestDiscovery(ctx context.Context, id uuid.UUID, in SSODiscove
 		return SSOProviderDetail{}, api.Invalid("body.issuerUrl", say(ctx, "problem.issuerFirst", i18n.Args{"pattern": PresetFor(p.Preset).IssuerPattern}))
 	}
 	d := s.discover(ctx, issuer)
+	if secretStays(p, issuer) {
+		// Another issuer than the saved client secret's is tested, not saved:
+		// it is saved with the secret entered again (Save).
+		err := s.Audit.Log(ctx, audit.Event{Action: "sso.provider.discovery_tested", TargetType: "sso_provider", TargetID: id.String(), TargetName: p.Name,
+			Metadata: audit.KeepSummary(map[string]any{"url": d.URL, "status": d.Status, "ms": d.Millis, "ok": d.OK, "issuer": issuer},
+				append([]any{keep("audit.issuerTested", nil)}, discoverySummary(d, false)...)...)})
+		if err != nil {
+			return SSOProviderDetail{}, err
+		}
+		out, err := s.detail(ctx, p)
+		if err != nil {
+			return SSOProviderDetail{}, err
+		}
+		out.Discovery = discoveryResult(i18n.LangFrom(ctx), d)
+		return out, nil
+	}
 	if p.Status == "enabled" && !d.OK {
 		// A live provider keeps its issuer: a typo here mustn't lock people out.
 		issuer = p.IssuerUrl

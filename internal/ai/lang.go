@@ -74,6 +74,7 @@ var (
 	mPrivateHost          = msgs.M("problem.privateHost")
 	mBadAddress           = msgs.M("problem.badAddress")
 	mKeyNeeded            = msgs.M("problem.keyNeeded")
+	mKeyAgain             = msgs.M("problem.keyAgain")
 	mAzureNeeds           = msgs.M("problem.azureNeeds")
 	mModelNeeded          = msgs.M("problem.modelNeeded")
 	mOneModel             = msgs.M("problem.oneModel")

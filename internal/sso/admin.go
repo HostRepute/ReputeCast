@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -449,18 +450,7 @@ func (s *Service) detail(ctx context.Context, p store.SsoProvider) (SSOProviderD
 		}
 	}
 	if disc := discoveryOf(p); disc != nil {
-		res := &SSODiscoveryResult{OK: disc.OK, CheckedAt: disc.CheckedAt, URL: disc.URL, Status: disc.Status, Millis: disc.Millis,
-			Error: textIn(disc.ErrorText, l, disc.Error), Endpoints: []string{}, Keys: disc.Keys}
-		for _, e := range []struct{ name, url string }{{"authorization", disc.AuthURL}, {"token", disc.TokenURL}, {"userinfo", disc.UserInfo}, {"JWKS", disc.JWKSURL}} {
-			if e.url != "" {
-				res.Endpoints = append(res.Endpoints, e.name)
-			}
-		}
-		if disc.OK && len(res.Endpoints) == 0 {
-			// Discovery recorded before endpoints were kept (demo, upgrades).
-			res.Endpoints = []string{"authorization", "token", "userinfo", "JWKS"}
-		}
-		d.Discovery = res
+		d.Discovery = discoveryResult(l, *disc)
 	}
 	for _, m := range mappingsOf(p) {
 		lists := []string{}
@@ -498,6 +488,31 @@ func (s *Service) detail(ctx context.Context, p store.SsoProvider) (SSOProviderD
 		d.Rejections = append(d.Rejections, SSORejection{At: e.OccurredAt, Email: e.TargetName, Reason: audit.In(audit.KeptIn(e.Metadata).Reason, l, e.Reason), Reference: meta.Reference})
 	}
 	return d, nil
+}
+
+// discoveryResult is a discovery test as the setup shows it, in a language.
+func discoveryResult(l i18n.Lang, disc discovery) *SSODiscoveryResult {
+	res := &SSODiscoveryResult{OK: disc.OK, CheckedAt: disc.CheckedAt, URL: disc.URL, Status: disc.Status, Millis: disc.Millis,
+		Error: textIn(disc.ErrorText, l, disc.Error), Endpoints: []string{}, Keys: disc.Keys}
+	for _, e := range []struct{ name, url string }{{"authorization", disc.AuthURL}, {"token", disc.TokenURL}, {"userinfo", disc.UserInfo}, {"JWKS", disc.JWKSURL}} {
+		if e.url != "" {
+			res.Endpoints = append(res.Endpoints, e.name)
+		}
+	}
+	if disc.OK && len(res.Endpoints) == 0 {
+		// Discovery recorded before endpoints were kept (demo, upgrades).
+		res.Endpoints = []string{"authorization", "token", "userinfo", "JWKS"}
+	}
+	return res
+}
+
+// secretStays reports whether the saved client secret must stay with the
+// saved issuer: the secret goes to the issuer's token endpoint, so it is
+// sent only to the issuer it was saved with. Another issuer is saved with
+// the secret entered again. A secret saved before any issuer was set goes
+// with the first one.
+func secretStays(p store.SsoProvider, issuer string) bool {
+	return len(p.ClientSecretEnc) > 0 && p.IssuerUrl != "" && !netguard.SameAddress(issuer, p.IssuerUrl)
 }
 
 // blockers lists what's missing before a provider can be enabled, in a
@@ -770,6 +785,9 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 	params, changes, err := s.validate(ctx, admin, before, in)
 	if err != nil {
 		return SSOProviderDetail{}, err
+	}
+	if strings.TrimSpace(in.ClientSecret) == "" && secretStays(before, params.IssuerUrl) {
+		return SSOProviderDetail{}, api.Invalid("body.clientSecret", say(ctx, "problem.secretAgain", nil))
 	}
 	if switchPreset {
 		pre := PresetFor(in.Preset)

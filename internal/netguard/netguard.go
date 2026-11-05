@@ -155,6 +155,15 @@ func (p Policy) Client(timeout time.Duration) *http.Client {
 // IsBlocked reports whether err comes from the address policy.
 func IsBlocked(err error) bool { return errors.Is(err, ErrBlocked) }
 
+// SameAddress reports whether two addresses people typed, URLs or host
+// names, are the same place: letter case, surrounding spaces and a final
+// slash or dot don't count. Forms that keep a saved secret when its field
+// is left blank keep it only for the address it was entered for.
+func SameAddress(a, b string) bool {
+	norm := func(s string) string { return strings.TrimRight(strings.ToLower(strings.TrimSpace(s)), "/.") }
+	return norm(a) == norm(b)
+}
+
 // Describe turns a transport error into a short sentence for delivery logs.
 func Describe(ctx context.Context, err error) string {
 	if err == nil {

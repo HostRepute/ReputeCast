@@ -2,6 +2,7 @@ package connect
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,8 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 )
 
@@ -110,5 +113,40 @@ func TestSelfTestGuardsTheAddress(t *testing.T) {
 
 	if st = SelfTest(context.Background(), internal.URL+"/hooks/postal/tok", "tok", now, true); !st.OK {
 		t.Fatalf("allowed private receiver: %+v", st)
+	}
+}
+
+// A new address for the provider needs every saved secret the form leaves
+// blank typed again, each one named next to its field; the same address
+// (in another case, with a final slash) or another setting keeps them.
+func TestSecretsForAddress(t *testing.T) {
+	d := providers.Descriptor{Fields: []providers.Field{
+		{Key: "server_url", Label: "Server URL", Endpoint: true},
+		{Key: "api_key", Label: "API key", Secret: true},
+		{Key: "signing_key", Label: "Signing key", Secret: true},
+		{Key: "region", Label: "Region", Options: []string{"us", "eu"}},
+	}}
+	stored := map[string]any{"server_url": "https://mta.acme.io", "region": "us"}
+	creds := map[string]any{"api_key": "k1", "signing_key": "s1"}
+	en := i18n.Default
+	for _, v := range []map[string]string{{}, {"server_url": "HTTPS://mta.acme.io/"}, {"region": "eu"},
+		{"server_url": "https://evil.example", "api_key": "k2", "signing_key": "s2"}} {
+		if err := secretsForAddress(en, d, stored, creds, v); err != nil {
+			t.Errorf("%v: %v", v, err)
+		}
+	}
+	if err := secretsForAddress(en, d, stored, map[string]any{}, map[string]string{"server_url": "https://evil.example"}); err != nil {
+		t.Errorf("nothing saved to keep: %v", err)
+	}
+	var p *api.Problem
+	err := secretsForAddress(en, d, stored, creds, map[string]string{"server_url": "https://evil.example", "api_key": "k2"})
+	if !errors.As(err, &p) || len(p.Errors) != 1 || p.Errors[0].Location != "body.values.signing_key" ||
+		p.Errors[0].Message != "The address changed: enter the signing key again. ReputeCast doesn't send a saved secret to a new address." {
+		t.Fatalf("one secret left blank: %v", err)
+	}
+	err = secretsForAddress(en, d, stored, creds, map[string]string{"server_url": "https://evil.example"})
+	if !errors.As(err, &p) || p.Status != 422 || len(p.Errors) != 2 || p.Errors[0].Location != "body.values.api_key" || p.Errors[1].Location != "body.values.signing_key" ||
+		!strings.HasPrefix(p.Detail, "The address changed: enter the API key again.") {
+		t.Fatalf("both left blank: %v", err)
 	}
 }
