@@ -82,6 +82,11 @@ type Querier interface {
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).
 	// The member's latest request for this role in the last day (one a day).
 	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
+	// Scope checks shared by every domain (internal/access): a member, API key
+	// or agent limited to some lists sees only the contacts on them.
+	// Whether one of a scoped caller's lists has the contact, in any status, as
+	// Audience's list and search count it.
+	AccessScopeContact(ctx context.Context, arg AccessScopeContactParams) (bool, error)
 	AccessibilityCampaign(ctx context.Context, arg AccessibilityCampaignParams) (AccessibilityCampaignRow, error)
 	// Automations with a draft version that isn't live yet.
 	AccessibilityDraftAutomations(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityDraftAutomationsRow, error)
@@ -507,7 +512,8 @@ type Querier interface {
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
 	// The contacts at a step, the latest to arrive first, after a cursor
-	// (review 2026-11 AT-2).
+	// (review 2026-11 AT-2); for a caller limited to some lists, only the
+	// contacts on them (empty scope_lists: everyone).
 	AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAtNodeParams) ([]AutomationRunsAtNodeRow, error)
 	// A refund makes the contact leave the "Bought a product" flows of that
 	// product (or of any product) they're in, whichever of the flow's triggers
@@ -2244,7 +2250,9 @@ type Querier interface {
 	McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (McpCampaignTotalsRow, error)
 	// A text, push or WhatsApp campaign an agent proposes to send.
 	McpChannelCampaign(ctx context.Context, arg McpChannelCampaignParams) (McpChannelCampaignRow, error)
-	// One contact for get_contact (review 2026-11 IN-3), by id or address.
+	// One contact for get_contact (review 2026-11 IN-3), by id or address; an
+	// agent limited to some lists finds only the contacts on them, as
+	// search_contacts (empty scope_lists: everyone).
 	McpContact(ctx context.Context, arg McpContactParams) (McpContactRow, error)
 	McpCreateSegment(ctx context.Context, arg McpCreateSegmentParams) (McpCreateSegmentRow, error)
 	McpDefaultRoutingRule(ctx context.Context, arg McpDefaultRoutingRuleParams) (McpDefaultRoutingRuleRow, error)
@@ -2607,7 +2615,9 @@ type Querier interface {
 	PollCampaignContent(ctx context.Context, arg PollCampaignContentParams) (PollCampaignContentRow, error)
 	// Comments, newest first, with the contact's name (the caller leaves it
 	// out for people without subscribers:view, whose search doesn't match
-	// names either).
+	// names either). For a caller limited to some lists, in_scope says whether
+	// the contact is on one of them: only those are named, and only their
+	// names match a search (empty scope_lists: everyone).
 	PollComments(ctx context.Context, arg PollCommentsParams) ([]PollCommentsRow, error)
 	PollCommentsCount(ctx context.Context, pollID uuid.UUID) ([]PollCommentsCountRow, error)
 	PollContact(ctx context.Context, id uuid.UUID) (PollContactRow, error)
@@ -2615,7 +2625,10 @@ type Querier interface {
 	// a field came from).
 	PollContactAnswers(ctx context.Context, arg PollContactAnswersParams) ([]PollContactAnswersRow, error)
 	PollDelivered(ctx context.Context, campaignID uuid.UUID) (PollDeliveredRow, error)
-	PollExportAnswers(ctx context.Context, pollID uuid.UUID) ([]PollExportAnswersRow, error)
+	// Every answer with its contact. A caller limited to some lists exports
+	// only the answers of the contacts on them, as Audience exports only those
+	// contacts (empty scope_lists: every answer).
+	PollExportAnswers(ctx context.Context, arg PollExportAnswersParams) ([]PollExportAnswersRow, error)
 	// The message a signed answer link names: when it was sent and to whom.
 	PollMessage(ctx context.Context, id uuid.UUID) (PollMessageRow, error)
 	PollSetClosed(ctx context.Context, arg PollSetClosedParams) error
@@ -4397,8 +4410,10 @@ type Querier interface {
 	SuppressionUploadGet(ctx context.Context, arg SuppressionUploadGetParams) (SuppressionUpload, error)
 	SuppressionUploadInsert(ctx context.Context, arg SuppressionUploadInsertParams) error
 	SuppressionUploadRemoved(ctx context.Context, arg SuppressionUploadRemovedParams) error
-	// Every response, for the results and the exports.
-	SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([]SurveyAllResponsesRow, error)
+	// Every response with its contact, for the answers export. A caller
+	// limited to some lists exports only the responses of the contacts on them
+	// (empty scope_lists: every response).
+	SurveyAllResponses(ctx context.Context, arg SurveyAllResponsesParams) ([]SurveyAllResponsesRow, error)
 	// How many completed responses answered each question.
 	SurveyAnsweredCounts(ctx context.Context, surveyID uuid.UUID) ([]SurveyAnsweredCountsRow, error)
 	SurveyByNumber(ctx context.Context, number int64) (SurveyByNumberRow, error)
@@ -4419,11 +4434,14 @@ type Querier interface {
 	// A survey's responses in numbers (review 2026-11 AP-2: counted in SQL).
 	SurveyResponseTotals(ctx context.Context, surveyID uuid.UUID) (SurveyResponseTotalsRow, error)
 	SurveyResponseUpdate(ctx context.Context, arg SurveyResponseUpdateParams) error
+	// A page of completed responses; in_scope says whether a caller limited to
+	// some lists may see who answered (empty scope_lists: everyone).
 	SurveyResponses(ctx context.Context, arg SurveyResponsesParams) ([]SurveyResponsesRow, error)
 	SurveySetStatus(ctx context.Context, arg SurveySetStatusParams) error
 	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
 	SurveyTextAnswerCount(ctx context.Context, arg SurveyTextAnswerCountParams) (int64, error)
-	// A page of a text question's answers, newest first, optionally searched.
+	// A page of a text question's answers, newest first, optionally searched;
+	// in_scope as in SurveyResponses.
 	SurveyTextAnswers(ctx context.Context, arg SurveyTextAnswersParams) ([]SurveyTextAnswersRow, error)
 	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
 	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)

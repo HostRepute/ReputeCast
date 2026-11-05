@@ -10,8 +10,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -48,26 +50,29 @@ type stepCursor struct {
 	ID uuid.UUID `json:"i"`
 }
 
-// StepContacts lists the contacts at a step, the latest to arrive first.
-func (s *Service) StepContacts(ctx context.Context, ws *store.Workspace, id uuid.UUID, node, cursor string, limit int) (AutomationStepContacts, error) {
+// StepContacts lists the contacts at a step, the latest to arrive first. A
+// caller limited to some lists sees, and counts, only the contacts on them,
+// as in Audience.
+func (s *Service) StepContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, node, cursor string, limit int) (AutomationStepContacts, error) {
 	out := AutomationStepContacts{Items: []AutomationStepContact{}}
 	if _, err := s.Q.GetAutomation(ctx, store.GetAutomationParams{WorkspaceID: ws.ID, ID: id}); err != nil {
 		return out, api.MapError(err, "Automation")
 	}
-	p := store.AutomationRunsAtNodeParams{AutomationID: id, NodeID: node, Lim: int32(limit + 1)}
+	scope := access.ScopeLists(p)
+	page := store.AutomationRunsAtNodeParams{AutomationID: id, NodeID: node, Lim: int32(limit + 1), ScopeLists: scope}
 	if cursor != "" {
 		raw, err := base64.RawURLEncoding.DecodeString(cursor)
 		var c stepCursor
 		if err != nil || json.Unmarshal(raw, &c) != nil {
 			return out, api.Invalid("cursor", say(langOf(ctx), txt(mProblemCursor)))
 		}
-		p.After, p.AfterAt, p.AfterID = true, c.At, c.ID
+		page.After, page.AfterAt, page.AfterID = true, c.At, c.ID
 	}
-	rows, err := s.Q.AutomationRunsAtNode(ctx, p)
+	rows, err := s.Q.AutomationRunsAtNode(ctx, page)
 	if err != nil {
 		return out, err
 	}
-	if out.Total, err = s.Q.CountAutomationRunsAtNode(ctx, store.CountAutomationRunsAtNodeParams{AutomationID: id, NodeID: node}); err != nil {
+	if out.Total, err = s.Q.CountAutomationRunsAtNode(ctx, store.CountAutomationRunsAtNodeParams{AutomationID: id, NodeID: node, ScopeLists: scope}); err != nil {
 		return out, err
 	}
 	for i, r := range rows {
@@ -109,9 +114,15 @@ type AutomationContactRuns struct {
 }
 
 // ContactRuns lists the flows a contact is in or went through, the ones in
-// progress first.
-func (s *Service) ContactRuns(ctx context.Context, ws *store.Workspace, contact uuid.UUID) (AutomationContactRuns, error) {
+// progress first. A contact off the caller's lists is not found, as their
+// profile isn't.
+func (s *Service) ContactRuns(ctx context.Context, ws *store.Workspace, p *authz.Principal, contact uuid.UUID) (AutomationContactRuns, error) {
 	out := AutomationContactRuns{Items: []AutomationContactRun{}}
+	if ok, err := access.ContactInScope(ctx, s.Q, p, contact); err != nil {
+		return out, err
+	} else if !ok {
+		return out, api.NotFound("Contact")
+	}
 	rows, err := s.Q.ContactAutomationRuns(ctx, store.ContactAutomationRunsParams{ContactID: contact, WorkspaceID: ws.ID})
 	if err != nil {
 		return out, err

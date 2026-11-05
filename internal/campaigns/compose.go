@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -471,14 +472,6 @@ func audienceLists(raw json.RawMessage) []uuid.UUID {
 	return out
 }
 
-// scopeLists is the caller's list scope; empty means every contact.
-func scopeLists(p *authz.Principal) []uuid.UUID {
-	if p == nil || len(p.Scope.Lists) == 0 {
-		return []uuid.UUID{}
-	}
-	return p.Scope.Lists
-}
-
 // previewContact picks the contact to personalize for. Without
 // subscribers:view only the synthetic samples are available.
 func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *authz.Principal, audience json.RawMessage, in ComposerPreviewRequest) (*ComposerPreviewContact, map[string]any, error) {
@@ -503,14 +496,14 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 		if perr != nil {
 			return nil, nil, api.NotFound("Contact")
 		}
-		row, err = s.Q.ComposerPreviewContactByID(ctx, store.ComposerPreviewContactByIDParams{WorkspaceID: ws.ID, ID: cid, ScopeLists: scopeLists(p)})
+		row, err = s.Q.ComposerPreviewContactByID(ctx, store.ComposerPreviewContactByIDParams{WorkspaceID: ws.ID, ID: cid, ScopeLists: access.ScopeLists(p)})
 	case in.Sample == "random":
 		var r store.ComposerRandomContactRow
-		r, err = s.Q.ComposerRandomContact(ctx, store.ComposerRandomContactParams{WorkspaceID: ws.ID, ScopeLists: scopeLists(p)})
+		r, err = s.Q.ComposerRandomContact(ctx, store.ComposerRandomContactParams{WorkspaceID: ws.ID, ScopeLists: access.ScopeLists(p)})
 		row = store.ComposerPreviewContactByIDRow(r)
 	default:
 		var rows []store.ComposerPreviewContactsRow
-		rows, err = s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: "", Lists: audienceLists(audience), ScopeLists: scopeLists(p), Lim: 1})
+		rows, err = s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: "", Lists: audienceLists(audience), ScopeLists: access.ScopeLists(p), Lim: 1})
 		if err == nil && len(rows) == 0 {
 			err = pgx.ErrNoRows
 		}
@@ -548,7 +541,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *a
 	if err != nil {
 		return ComposerPreviewContactList{}, api.MapError(err, "Campaign")
 	}
-	rows, err := s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: strings.TrimSpace(query), Lists: audienceLists(c.Audience), ScopeLists: scopeLists(p), Lim: 20})
+	rows, err := s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: strings.TrimSpace(query), Lists: audienceLists(c.Audience), ScopeLists: access.ScopeLists(p), Lim: 20})
 	if err != nil {
 		return ComposerPreviewContactList{}, err
 	}
