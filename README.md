@@ -91,8 +91,9 @@ seat or workspace limit.
 - **Content in several languages.** Language versions of campaigns,
   automation emails and transactional templates; forms and public pages per
   language; each contact's language, checked in Send Readiness.
-- **The app in your language.** English and Vietnamese, with each member's own
-  language and region format ([add a language](docs/i18n/translating.md)).
+- **The app in your language.** English, French, German, Spanish and
+  Vietnamese, with each member's own language and region format
+  ([add a language](docs/i18n/translating.md)).
 - **Accessibility checks.** In the composer with one-click fixes, in the
   color picker, and in Send Readiness with a workspace policy.
 - **Deliverability.** Domain and IP health, provider account health,
