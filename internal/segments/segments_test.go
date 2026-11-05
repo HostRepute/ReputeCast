@@ -2,11 +2,16 @@ package segments_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/segments"
 )
 
 const ws = "/workspaces/acme-newsletter"
@@ -167,6 +172,41 @@ func TestSegmentsDemo(t *testing.T) {
 		// 48,213 and the summit's 338 new registrants (X21, brief §8.12).
 		if n != 48551 {
 			t.Fatalf("contacts changed to %d", n)
+		}
+	})
+
+	t.Run("a session lock never outlives the query", func(t *testing.T) {
+		// A session advisory lock survives the rollback: a segment could
+		// fill Postgres's shared lock table, or hold the sending loop's
+		// locks, with a lock that stayed on the pooled connection.
+		r := c.Do(http.MethodPost, ws+"/segments/preview", map[string]any{"mode": "sql", "sql": "SELECT c.id FROM contacts c WHERE pg_advisory_lock(4242) IS NOT NULL"})
+		if r.Status != 422 || !strings.Contains(string(r.Body), "pg_advisory_lock") {
+			t.Fatalf("status %d, want 422 naming the function: %s", r.Status, r.Body)
+		}
+		// Whatever a query's session takes is released before the
+		// connection goes back to the pool.
+		ctx := context.Background()
+		var wsID uuid.UUID
+		if err := env.App.Pool.QueryRow(ctx, `SELECT id FROM workspaces WHERE slug = 'acme-newsletter'`).Scan(&wsID); err != nil {
+			t.Fatal(err)
+		}
+		runner := &segments.SQLRunner{Pool: env.App.Pool}
+		err := runner.Run(ctx, wsID, func(tx pgx.Tx) error {
+			_, err := tx.Exec(ctx, "SELECT pg_advisory_lock(4242)")
+			return err
+		})
+		if errors.Is(err, segments.ErrSQLDisabled) {
+			t.Skip("SQL segments are turned off on this database")
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		var held int
+		if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND objid = 4242`).Scan(&held); err != nil {
+			t.Fatal(err)
+		}
+		if held != 0 {
+			t.Fatalf("%d advisory locks outlived the query", held)
 		}
 	})
 

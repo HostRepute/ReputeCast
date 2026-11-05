@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,7 +101,42 @@ func CheckSQL(src string) (string, error) {
 	if first != "select" && first != "with" {
 		return "", sqlProblem(says(mSQLSelect), 0)
 	}
+	if err := checkFunctions(toks); err != nil {
+		return "", err
+	}
 	return s, nil
+}
+
+// refusedFunctions are functions a segment may not call, read-only as its
+// transaction is. Advisory locks: a session lock outlives the rollback, so
+// one query could fill Postgres's shared lock table ("out of shared
+// memory" for every other session) or hold the locks the sending loop and
+// migrations take. And the functions that run SQL given as a string
+// (query_to_xml, ts_stat…): with them a query could build any function's
+// name out of pieces, past this check.
+var refusedFunctions = regexp.MustCompile(`^(pg_(try_)?advisory_.*|(query|cursor|table|schema|database)_to_xml.*|ts_stat|ts_rewrite|dblink.*)$`)
+
+// checkFunctions refuses names of refusedFunctions, plain, quoted or
+// schema-qualified, and identifiers written with Unicode escapes
+// (U&"\0070g_…"), which could spell any name.
+func checkFunctions(toks []token) error {
+	for i, t := range toks {
+		if t.kind != tokWord {
+			continue
+		}
+		name := strings.ToLower(t.text)
+		if strings.HasPrefix(t.text, `"`) {
+			name = strings.ReplaceAll(t.text[1:len(t.text)-1], `""`, `"`)
+		}
+		if refusedFunctions.MatchString(name) {
+			return sqlProblem(sayf(mSQLFunction, i18n.Args{"name": name}), t.pos+1)
+		}
+		if (name == "u") && i+2 < len(toks) && toks[i+1].text == "&" && toks[i+1].pos == t.pos+1 &&
+			toks[i+2].pos == t.pos+2 && strings.HasPrefix(toks[i+2].text, `"`) {
+			return sqlProblem(says(mSQLUnicode), t.pos+1)
+		}
+	}
+	return nil
 }
 
 type tokKind int
@@ -270,13 +306,23 @@ func (r *SQLRunner) timeout() time.Duration {
 // Run executes fn in a READ ONLY transaction where the segment views exist
 // for workspace ws and reputecast_sql.segment_ids can read them. Everything
 // is rolled back. fn should select from reputecast_sql.segment_ids($n).
+//
+// The query runs on a connection of its own, which goes back to the pool
+// only once every advisory lock its session holds is released: a rollback
+// doesn't release session locks, and a lock a person's SQL took would
+// otherwise stay with the pooled connection for up to an hour.
 func (r *SQLRunner) Run(ctx context.Context, ws uuid.UUID, fn func(pgx.Tx) error) error {
 	if !r.Available(ctx) {
 		return ErrSQLDisabled
 	}
 	ctx, cancel := context.WithTimeout(ctx, r.timeout()+5*time.Second)
 	defer cancel()
-	tx, err := r.Pool.Begin(ctx)
+	conn, err := r.Pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer releaseClean(conn)
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -300,6 +346,19 @@ func (r *SQLRunner) Run(ctx context.Context, ws uuid.UUID, fn func(pgx.Tx) error
 		return err
 	}
 	return mapSQLError(fn(tx))
+}
+
+// releaseClean releases every advisory lock of the connection's session and
+// hands it back to the pool; a connection that can't be cleaned is closed
+// instead of reused.
+func releaseClean(conn *pgxpool.Conn) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := conn.Exec(ctx, "SELECT pg_advisory_unlock_all()"); err != nil {
+		_ = conn.Hijack().Close(ctx)
+		return
+	}
+	conn.Release()
 }
 
 // mapSQLError turns Postgres errors from user SQL into explanations.

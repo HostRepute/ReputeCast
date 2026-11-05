@@ -195,5 +195,7 @@
   "sql.idColumnUUID": "Die Abfrage muss die Kontakt-ID (eine UUID) in einer Spalte namens id zurückgeben, zum Beispiel SELECT c.id FROM contacts c.",
   "sql.idColumn": "Die Abfrage muss die Kontakt-ID in einer Spalte namens id zurückgeben, zum Beispiel SELECT c.id FROM contacts c.",
   "sql.readOnly": "SQL-Segmente sind schreibgeschützt und können keine Daten ändern.",
-  "sql.roles": "SQL-Segmente können keine Rollen oder Sitzungseinstellungen ändern."
+  "sql.roles": "SQL-Segmente können keine Rollen oder Sitzungseinstellungen ändern.",
+  "sql.function": "SQL-Segmente können {name} nicht aufrufen.",
+  "sql.unicodeIdentifier": "SQL-Segmente können keine U&\"…\"-Bezeichner verwenden: Schreiben Sie den Namen so, wie er ist."
 }

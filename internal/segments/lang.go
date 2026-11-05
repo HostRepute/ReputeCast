@@ -81,6 +81,8 @@ var (
 	mSQLID         = msgs.M("sql.idColumn")
 	mSQLReadOnly   = msgs.M("sql.readOnly")
 	mSQLRoles      = msgs.M("sql.roles")
+	mSQLFunction   = msgs.M("sql.function")
+	mSQLUnicode    = msgs.M("sql.unicodeIdentifier")
 	mNoLanguage    = msgs.M("option.language.none")
 	mTierAndAbove  = msgs.M("option.paid_tier.andAbove")
 	mAnyPushSite   = msgs.M("option.push_site.any")

@@ -301,6 +301,10 @@ func (s *Service) count(ctx context.Context, ws *store.Workspace, compiled *Comp
 		})
 		err = mapSQLError(err)
 	} else {
+		// SQL saved before a check was added is checked again before it runs.
+		if userSQL, err = CheckSQL(userSQL); err != nil {
+			return out, err
+		}
 		err = s.SQL.Run(ctx, ws.ID, func(tx pgx.Tx) error {
 			return scan(tx.QueryRow(ctx, "SELECT "+tierCounts+"\nFROM public.contacts x WHERE x.workspace_id = $1 AND x.erased_at IS NULL AND x.id IN (SELECT reputecast_sql.segment_ids($2))", ws.ID, userSQL))
 		})
@@ -563,7 +567,11 @@ func (s *Service) ids(ctx context.Context, ws uuid.UUID, compiled *Compiled, use
 		})
 		return out, mapSQLError(err)
 	}
-	err := s.SQL.Run(ctx, ws, func(tx pgx.Tx) error {
+	userSQL, err := CheckSQL(userSQL)
+	if err != nil {
+		return out, err
+	}
+	err = s.SQL.Run(ctx, ws, func(tx pgx.Tx) error {
 		return collect(tx.Query(ctx, "SELECT DISTINCT x.id FROM public.contacts x WHERE x.workspace_id = $1 AND x.erased_at IS NULL AND x.id IN (SELECT reputecast_sql.segment_ids($2))", ws, userSQL))
 	})
 	return out, err

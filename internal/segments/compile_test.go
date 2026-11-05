@@ -143,6 +143,9 @@ func TestCheckSQL(t *testing.T) {
 		"SELECT id FROM contacts WHERE note = $$x;y$$":               "SELECT id FROM contacts WHERE note = $$x;y$$",
 		"SELECT id /* ; /* nested ; */ */ FROM contacts":             "SELECT id /* ; /* nested ; */ */ FROM contacts",
 		`SELECT "id" FROM contacts WHERE email = E'it\'s;'`:          `SELECT "id" FROM contacts WHERE email = E'it\'s;'`,
+		// The names of refused functions as data, or in other names.
+		"SELECT id FROM contacts WHERE note = 'pg_advisory_lock(1)'":  "SELECT id FROM contacts WHERE note = 'pg_advisory_lock(1)'",
+		"SELECT u.id FROM contacts u WHERE u.tier = 'advisory_board'": "SELECT u.id FROM contacts u WHERE u.tier = 'advisory_board'",
 	}
 	for in, want := range ok {
 		got, err := CheckSQL(in)
@@ -153,6 +156,16 @@ func TestCheckSQL(t *testing.T) {
 	for _, in := range []string{
 		"", "DELETE FROM contacts", "SELECT 1; DROP TABLE contacts", "UPDATE contacts SET tier = 'x'",
 		"SELECT 'unterminated", "SELECT /* open", "SET ROLE reputecast; SELECT 1", strings.Repeat("x", MaxSQLLength+1),
+		// Session advisory locks outlive the rollback; functions that run
+		// SQL from a string could spell any name.
+		"SELECT c.id FROM contacts c WHERE pg_advisory_lock(1) IS NOT NULL",
+		"SELECT c.id FROM contacts c WHERE PG_TRY_ADVISORY_LOCK(1)",
+		"SELECT c.id FROM contacts c, pg_catalog.pg_advisory_xact_lock_shared(1)",
+		`SELECT c.id FROM contacts c WHERE "pg_advisory_lock"(1) IS NULL`,
+		`SELECT c.id FROM contacts c WHERE U&"\0070g_advisory_lock"(1) IS NULL`,
+		"SELECT c.id FROM contacts c WHERE query_to_xml('select 1', true, true, '') IS NOT NULL",
+		"SELECT c.id FROM contacts c WHERE ts_stat('select 1') IS NOT NULL",
+		"WITH x AS (SELECT * FROM dblink('x', 'y') AS t(id uuid)) SELECT id FROM x",
 	} {
 		var se *SQLError
 		if _, err := CheckSQL(in); !errors.As(err, &se) {
