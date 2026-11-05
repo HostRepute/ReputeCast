@@ -196,6 +196,8 @@
   "page.missing": "Diese Seite existiert nicht.",
   "oneClick.locked": "Konto-E-Mails können nicht deaktiviert werden.",
   "oneClick.changeFailed": "Die Änderung ist gerade nicht möglich; versuchen Sie es in einer Minute erneut.",
+  "category.askHeading": "{category} nicht mehr erhalten?",
+  "category.askText": "{email} erhält E-Mails zu {category} von {product}.",
   "placement.heading": "Kopie eines Platzierungstests",
   "placement.text": "Dies ist die Kopie eines Platzierungstests. Niemand wurde abgemeldet.",
   "badLink.heading": "Dieser Link funktioniert nicht mehr",

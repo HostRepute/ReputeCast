@@ -75,14 +75,29 @@ func TestCategoryOptOuts(t *testing.T) {
 	if n, _, _ := optedOut(); n != 0 {
 		t.Fatal("HEAD turned the category off")
 	}
-	// The link turns off just that category, and says so.
+	// Opening the link changes nothing either: mail gateways open every
+	// link with GET. Its page's button turns off just that category, and
+	// says so.
 	code, body := s.page(http.MethodGet, u.Path, nil)
+	if code != 200 || !strings.Contains(body, "Stop getting Product updates?") || !strings.Contains(body, "ops@contoso.example gets product updates emails from Acme Cloud.") ||
+		!strings.Contains(body, "Account and billing emails still arrive") || !strings.Contains(body, `<input type="hidden" name="action" value="off">`) ||
+		!strings.Contains(body, "Turn Product updates off") {
+		t.Fatalf("category page %d:\n%s", code, body)
+	}
+	if n, _, _ := optedOut(); n != 0 {
+		t.Fatal("opening the link turned the category off")
+	}
+	code, body = s.page(http.MethodPost, u.Path, url.Values{"action": {"off"}})
 	if code != 200 || !strings.Contains(body, "You won't get Product updates anymore") || !strings.Contains(body, "ops@contoso.example is off product updates emails from Acme Cloud.") ||
 		!strings.Contains(body, "Account and billing emails still arrive") || !strings.Contains(body, "Turn Product updates back on") {
-		t.Fatalf("category page %d:\n%s", code, body)
+		t.Fatalf("turned off %d:\n%s", code, body)
 	}
 	if n, source, _ := optedOut(); n != 1 || source != "unsubscribe_link" {
 		t.Fatalf("opt-out %d %s", n, source)
+	}
+	// Opened again, the link says it's off.
+	if _, body = s.page(http.MethodGet, u.Path, nil); !strings.Contains(body, "You won't get Product updates anymore") || strings.Contains(body, "Stop getting") {
+		t.Fatalf("the link once off:\n%s", body)
 	}
 	// Sending to the address again is refused.
 	p := s.call(secret, "/messages", "", trial("ops@contoso.example")).MustStatus(t, 422).Problem(t)

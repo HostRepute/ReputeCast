@@ -196,6 +196,8 @@
   "page.missing": "Esta página no existe.",
   "oneClick.locked": "Los correos de cuenta no se pueden desactivar.",
   "oneClick.changeFailed": "No se pudo cambiar en este momento; vuelve a intentarlo en un minuto.",
+  "category.askHeading": "¿Dejar de recibir {category}?",
+  "category.askText": "{email} recibe los correos de {category} de {product}.",
   "placement.heading": "Copia de prueba de ubicación",
   "placement.text": "Esta es una copia de una prueba de ubicación. No se dio de baja a nadie.",
   "badLink.heading": "Este enlace ya no funciona",

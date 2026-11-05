@@ -196,6 +196,8 @@
   "page.missing": { "message": "This page doesn't exist.", "note": "the plain-text answer to an address of no workspace" },
   "oneClick.locked": { "message": "Account emails can't be turned off.", "note": "the plain-text answer to a mail app's one-click unsubscribe of an email that can't be turned off" },
   "oneClick.changeFailed": "Couldn't change it right now; try again in a minute.",
+  "category.askHeading": { "message": "Stop getting {category}?", "note": "the page a transactional email's unsubscribe link opens; its button (Turn Product updates off) turns the category off. category: one kind of a product's notifications, as the product names it (Product updates)" },
+  "category.askText": { "message": "{email} gets {category} emails from {product}.", "note": "under it; category in lower case in English (product updates); product: the product sending them (Acme Cloud)" },
   "placement.heading": { "message": "Placement test copy", "note": "the page a placement test copy's links open (only the workspace's own seed mailboxes get them)" },
   "placement.text": "This is a placement test copy. Nobody was unsubscribed.",
   "badLink.heading": { "message": "This link doesn't work anymore", "note": "a poll's or a survey's broken link" },

@@ -196,6 +196,8 @@
   "page.missing": "Trang này không tồn tại.",
   "oneClick.locked": "Không thể tắt email tài khoản.",
   "oneClick.changeFailed": "Không thay đổi được lúc này; hãy thử lại sau một phút.",
+  "category.askHeading": "Ngừng nhận {category}?",
+  "category.askText": "{email} đang nhận email {category} từ {product}.",
   "placement.heading": "Bản sao kiểm tra vị trí hộp thư",
   "placement.text": "Đây là bản sao kiểm tra vị trí hộp thư. Không ai bị hủy đăng ký.",
   "badLink.heading": "Liên kết này không còn hoạt động",
