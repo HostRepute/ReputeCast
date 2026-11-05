@@ -177,7 +177,34 @@ func (s *Service) config(p store.SmsProvider) (sms.Config, error) {
 	if p.Demo && s.Demo != nil {
 		cfg.HTTP, cfg.BaseURL = s.Demo(p.Adapter)
 	}
+	cfg.Pin = func(ctx context.Context, key, value string) (string, error) { return s.PinSetting(ctx, p, key, value) }
 	return cfg, nil
+}
+
+// PinSetting keeps a setting an adapter learned from the provider, only
+// while the provider has none (sms.Config.Pin: the SNS topic of webhooks set
+// up by hand, trusted on first use), and returns the value kept: the one
+// another request kept first, if any. Audited when it keeps one.
+func (s *Service) PinSetting(ctx context.Context, p store.SmsProvider, key, value string) (string, error) {
+	kept := value
+	err := s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
+		n, err := q.SmsProviderPinSetting(ctx, store.SmsProviderPinSettingParams{ID: p.ID, Key: key, Value: value})
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			// Kept already: by another request, or before this one read
+			// the provider.
+			kept, err = q.SmsProviderSetting(ctx, store.SmsProviderSettingParams{ID: p.ID, Key: key})
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &p.WorkspaceID, Action: "sms_provider.settings_updated", TargetType: "sms_provider",
+			TargetID: p.ID.String(), TargetName: p.Name, Actor: systemActor, After: map[string]any{key: value}})
+	})
+	if err != nil {
+		return "", err
+	}
+	return kept, nil
 }
 
 // open opens a stored provider's adapter.

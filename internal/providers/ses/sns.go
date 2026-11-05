@@ -27,8 +27,13 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
 )
 
-// snsHost matches the hosts SNS signs from and sends subscription links on.
-var snsHost = regexp.MustCompile(`^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$`)
+// snsHost matches the hosts SNS signs from and sends subscription links on:
+// a regional SNS endpoint, sns.<region>.amazonaws.com (.com.cn in China).
+// The region is spelled out because other amazonaws.com hosts of that shape
+// belong to customers: an S3 bucket named sns answers at
+// sns.s3.amazonaws.com and sns.s3-external-1.amazonaws.com, and whoever
+// owns it could serve a certificate and sign any message.
+var snsHost = regexp.MustCompile(`^sns\.[a-z]{2}(-gov|-iso[a-z]*)?-[a-z]+-\d+\.amazonaws\.com(\.cn)?$`)
 
 // Envelope is an SNS HTTP(S) message.
 type Envelope struct {
@@ -80,10 +85,13 @@ func (e Envelope) StringToSign() string {
 // certCache keeps SNS signing certificates by URL until they expire.
 var certCache sync.Map // url → *x509.Certificate
 
-// ValidCertURL reports whether u may host an SNS signing certificate.
+// ValidCertURL reports whether u may host an SNS signing certificate: a
+// .pem file on a regional SNS endpoint, over HTTPS, with nothing else in
+// the address.
 func ValidCertURL(u string) bool {
 	pu, err := url.Parse(u)
-	return err == nil && pu.Scheme == "https" && snsHost.MatchString(pu.Hostname()) && pu.Port() == "" && strings.HasSuffix(pu.Path, ".pem")
+	return err == nil && pu.Scheme == "https" && pu.User == nil && snsHost.MatchString(pu.Hostname()) && pu.Port() == "" &&
+		pu.RawQuery == "" && pu.Fragment == "" && strings.HasSuffix(pu.Path, ".pem")
 }
 
 func (p *Provider) cert(ctx context.Context, certURL string) (*x509.Certificate, error) {
@@ -124,10 +132,14 @@ func (p *Provider) cert(ctx context.Context, certURL string) (*x509.Certificate,
 	return c, nil
 }
 
-// verify checks an envelope's signature and topic.
+// verify checks an envelope's topic and signature. SNS signs the messages of
+// every AWS account's topics alike, so the signature only proves SNS sent
+// it: the topic has to be one provisioning created for this connection.
+// While none is saved, nothing is accepted (provisioning saves the topic
+// before it subscribes the webhook).
 func (p *Provider) verify(ctx context.Context, e Envelope) error {
-	if len(p.s.TopicARNs) > 0 && !slices.Contains(p.s.TopicARNs, e.TopicArn) {
-		return providers.ErrBadSignature
+	if !slices.Contains(p.s.TopicARNs, e.TopicArn) {
+		return fmt.Errorf("%w: SNS topic %q isn't this connection's", providers.ErrBadSignature, e.TopicArn)
 	}
 	sig, err := base64.StdEncoding.DecodeString(e.Signature)
 	if err != nil || len(sig) == 0 {
@@ -176,7 +188,8 @@ func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []by
 }
 
 // Handshake implements providers.WebhookHandshaker: it confirms SNS
-// subscriptions to the provider's topic by visiting SubscribeURL.
+// subscriptions to the provider's own topics by visiting SubscribeURL, and
+// refuses every other topic's.
 func (p *Provider) Handshake(ctx context.Context, _ *http.Request, body []byte) (bool, []byte, error) {
 	e, err := parseEnvelope(body)
 	if err != nil || e.Type == "Notification" {

@@ -20,7 +20,7 @@ This guide covers three things:
 
 | Adapter | Key | Batch per call | Webhook authentication | Domain setup | Suppression sync |
 |---|---|---|---|---|---|
-| Amazon SES | `ses` | 50, in parallel | SNS signature (RSA, signing certificate) | API | Two-way |
+| Amazon SES | `ses` | 50, in parallel | SNS signature (RSA, certificate from the regional SNS endpoint), from the connection's own SNS topics only | API | Two-way |
 | Postmark | `postmark` | 500 | Basic auth | API (account token) | Two-way, per stream |
 | Postal (self-hosted) | `postal` | 1 | RSA signature (server JWKS) | Manual DNS | Local only |
 | Mailgun | `mailgun` | 1 | HMAC-SHA256 over timestamp + token, account signing key; 12-hour window, each token bound to its event | API | Two-way |
@@ -288,6 +288,19 @@ see `azureacs.token`.
   signs a token, not the event, so `webhookauth.Replay` also ties each token
   to the event it came with. A redelivery of the same event passes, and
   ingest's dedupe drops it.
+- SNS (SES, and AWS End User Messaging for texts) signs the messages of
+  every AWS account's topics alike, so a valid signature only proves SNS
+  sent the message. The signing certificate must come from a regional SNS
+  endpoint, `sns.<region>.amazonaws.com` (`.com.cn` in China): other
+  `amazonaws.com` hosts of that shape are S3 buckets anyone can own. And the
+  message must come from the connection's own topic: none is trusted while
+  none is saved. SES provisioning saves the topic before it subscribes the
+  webhook, because SNS asks for the confirmation at once and doesn't retry
+  one refused with a 4xx. AWS End User Messaging does the same when it
+  registers its webhooks; webhooks set up by hand in AWS keep the topic of
+  the first subscription confirmation SNS signed (trust on first use) and
+  refuse every other topic from then on. To trust another topic, register
+  the webhooks again or connect the provider again.
 - **Normalize:**
   - Map every delivery-relevant event to `delivered`, `deferred`,
     `hard_bounce`, `soft_bounce`, `complaint`, `rejected` or `unsubscribe`.

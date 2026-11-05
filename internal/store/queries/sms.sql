@@ -44,6 +44,21 @@ WHERE id = @id;
 UPDATE sms_providers SET webhook_secret_enc = coalesce(sqlc.narg(webhook_secret_enc), webhook_secret_enc), config = @config, webhooks = @webhooks
 WHERE id = @id;
 
+-- name: SmsProviderMergeConfig :exec
+-- Merges settings into a provider's, key by key (the SNS topic registering
+-- the webhooks keeps before it subscribes to it).
+UPDATE sms_providers SET config = config || @patch::jsonb WHERE id = @id;
+
+-- name: SmsProviderPinSetting :execrows
+-- Keeps a setting an adapter learned from the provider only while the
+-- provider has none (the SNS topic of webhooks set up by hand, trusted on
+-- first use): of two requests at once, one keeps it.
+UPDATE sms_providers SET config = config || jsonb_build_object(@key::text, @value::text)
+WHERE id = @id AND coalesce(config ->> sqlc.arg(key)::text, '') = '';
+
+-- name: SmsProviderSetting :one
+SELECT coalesce(config ->> sqlc.arg(key)::text, '')::text FROM sms_providers WHERE id = @id;
+
 -- name: SmsProviderSetHealth :exec
 UPDATE sms_providers SET status = @status, status_detail = @status_detail,
     status_since = CASE WHEN status = @status THEN status_since ELSE @at::timestamptz END,

@@ -129,7 +129,18 @@ func (s *Service) provisionInput(ctx context.Context, p store.Provider, st State
 	if ws, err := s.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
 		in.Tenant = ws.Slug
 	}
+	in.Save = func(ctx context.Context, settings map[string]any) error { return s.mergeSettings(ctx, p.ID, settings) }
 	return in
+}
+
+// mergeSettings merges settings a provisioning step made into the
+// provider's, key by key: the ones it saved while it ran stay.
+func (s *Service) mergeSettings(ctx context.Context, id uuid.UUID, settings map[string]any) error {
+	b, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+	return s.Q.ConnectMergeProviderConfig(ctx, store.ConnectMergeProviderConfigParams{ID: id, Patch: b})
 }
 
 // queueProvisioning queues provisioning and the region scan of a setup.
@@ -363,12 +374,7 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 			})
 		}
 		if len(res.Settings) > 0 {
-			cfg := currentSettings(&p)
-			for k, v := range res.Settings {
-				cfg[k] = v
-			}
-			b, _ := json.Marshal(cfg)
-			if err := s.Q.ConnectSetProviderConfig(ctx, store.ConnectSetProviderConfigParams{ID: p.ID, Config: b}); err != nil {
+			if err := s.mergeSettings(ctx, p.ID, res.Settings); err != nil {
 				return false, err
 			}
 		}

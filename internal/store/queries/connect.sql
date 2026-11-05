@@ -62,6 +62,12 @@ RETURNING *;
 -- name: ConnectSetProviderConfig :exec
 UPDATE providers SET config = @config WHERE id = @id;
 
+-- name: ConnectMergeProviderConfig :exec
+-- Merges settings a provisioning step made into the provider's settings,
+-- key by key, in one statement: a step saves some while it runs (the SNS
+-- topic, before the webhook subscribes to it) and the rest when it ends.
+UPDATE providers SET config = config || @patch::jsonb WHERE id = @id;
+
 -- name: ConnectSetWebhookSecret :exec
 UPDATE providers SET webhook_secret_enc = @webhook_secret_enc WHERE id = @id;
 

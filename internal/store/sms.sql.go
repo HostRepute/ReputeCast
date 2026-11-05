@@ -1938,6 +1938,44 @@ func (q *Queries) SmsProviderInsert(ctx context.Context, arg SmsProviderInsertPa
 	return err
 }
 
+const smsProviderMergeConfig = `-- name: SmsProviderMergeConfig :exec
+UPDATE sms_providers SET config = config || $1::jsonb WHERE id = $2
+`
+
+type SmsProviderMergeConfigParams struct {
+	Patch json.RawMessage `json:"patch"`
+	ID    uuid.UUID       `json:"id"`
+}
+
+// Merges settings into a provider's, key by key (the SNS topic registering
+// the webhooks keeps before it subscribes to it).
+func (q *Queries) SmsProviderMergeConfig(ctx context.Context, arg SmsProviderMergeConfigParams) error {
+	_, err := q.db.Exec(ctx, smsProviderMergeConfig, arg.Patch, arg.ID)
+	return err
+}
+
+const smsProviderPinSetting = `-- name: SmsProviderPinSetting :execrows
+UPDATE sms_providers SET config = config || jsonb_build_object($1::text, $2::text)
+WHERE id = $3 AND coalesce(config ->> $1::text, '') = ''
+`
+
+type SmsProviderPinSettingParams struct {
+	Key   string    `json:"key"`
+	Value string    `json:"value"`
+	ID    uuid.UUID `json:"id"`
+}
+
+// Keeps a setting an adapter learned from the provider only while the
+// provider has none (the SNS topic of webhooks set up by hand, trusted on
+// first use): of two requests at once, one keeps it.
+func (q *Queries) SmsProviderPinSetting(ctx context.Context, arg SmsProviderPinSettingParams) (int64, error) {
+	result, err := q.db.Exec(ctx, smsProviderPinSetting, arg.Key, arg.Value, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const smsProviderRegistrationsRead = `-- name: SmsProviderRegistrationsRead :exec
 UPDATE sms_providers SET registrations_read_at = $1 WHERE id = $2
 `
@@ -2039,6 +2077,22 @@ func (q *Queries) SmsProviderSetWebhooks(ctx context.Context, arg SmsProviderSet
 		arg.ID,
 	)
 	return err
+}
+
+const smsProviderSetting = `-- name: SmsProviderSetting :one
+SELECT coalesce(config ->> $1::text, '')::text FROM sms_providers WHERE id = $2
+`
+
+type SmsProviderSettingParams struct {
+	Key string    `json:"key"`
+	ID  uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SmsProviderSetting(ctx context.Context, arg SmsProviderSettingParams) (string, error) {
+	row := q.db.QueryRow(ctx, smsProviderSetting, arg.Key, arg.ID)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const smsProviderTouchInbound = `-- name: SmsProviderTouchInbound :exec
