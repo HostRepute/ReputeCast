@@ -314,6 +314,13 @@ jobs:
         working-directory: site
       - run: pnpm test
         working-directory: site
+      - name: GitHub star count (main)
+        if: github.event_name == 'push'
+        run: |
+          stars=$(gh api "repos/$GITHUB_REPOSITORY" --jq .stargazers_count 2>/dev/null || true)
+          if [ -n "$stars" ]; then echo "SITE_GITHUB_STARS=$stars" >> "$GITHUB_ENV"; fi
+        env:
+          GH_TOKEN: ${{ github.token }}
       # Prerendered build; no network (the GitHub star count is optional).
       - run: pnpm build
         working-directory: site
@@ -329,6 +336,36 @@ jobs:
         with:
           name: site-dist
           path: site/dist
+
+  # Deploys reputecast.com (Cloudflare Pages, project reputecast-site) from
+  # main; needs the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets.
+  site-deploy:
+    name: Site · deploy reputecast.com
+    needs: site
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Secrets are missing
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "::notice title=reputecast.com was not deployed::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets to deploy the site from main."
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: actions/download-artifact@v8
+        with:
+          name: site-dist
+          path: dist
+      - name: Deploy to Cloudflare Pages
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.151.3"
+          command: pages deploy dist --project-name=reputecast-site --branch=main --commit-hash=${{ github.sha }}
 
   # The integration apps (integrations/): each checks its requests and
   # mocked answers against web/openapi.json, so an API change that breaks
