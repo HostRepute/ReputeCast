@@ -195,5 +195,7 @@
   "sql.idColumnUUID": "La requête doit renvoyer l’ID du contact (un uuid) dans une colonne nommée id, par exemple SELECT c.id FROM contacts c.",
   "sql.idColumn": "La requête doit renvoyer l’ID du contact dans une colonne nommée id, par exemple SELECT c.id FROM contacts c.",
   "sql.readOnly": "Les segments SQL sont en lecture seule\u00A0: ils ne peuvent pas modifier les données.",
-  "sql.roles": "Les segments SQL ne peuvent pas modifier les rôles ni les paramètres de session."
+  "sql.roles": "Les segments SQL ne peuvent pas modifier les rôles ni les paramètres de session.",
+  "sql.function": "Les segments SQL ne peuvent pas appeler {name}.",
+  "sql.unicodeIdentifier": "Les segments SQL ne peuvent pas utiliser d’identifiants U&\"…\"\u00A0: écrivez le nom tel quel."
 }
