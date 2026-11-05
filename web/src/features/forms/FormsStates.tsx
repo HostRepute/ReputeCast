@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { toast } from '@/components/ui/Toast'
-import { count } from '@/lib/format'
+import { ago, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { t as tt, useT } from '@/i18n'
 import { useInvalidateForms } from './common'
@@ -102,6 +102,8 @@ export function BlockedOriginAlert({ form, blocked }: { form: Schemas['SignupFor
 /**
  * "Cloudflare rejected the site key (error 110200)": spam protection fell
  * back to the honeypot; paste the right key. The secret stays as stored.
+ * The same card shows an error visitors' browsers reported from challenge
+ * pages, while Turnstile stays on: a browser's report never turns it off.
  */
 export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnstile'] }) {
   const t = useT()
@@ -111,6 +113,7 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/public-pages/turnstile')
   const [key, setKey] = useState('')
   const [error, setError] = useState<string>()
+  const reported = turnstile.status === 'error' ? undefined : turnstile.reported
   const submit = async () => {
     const siteKey = key.trim()
     if (!siteKey || save.isPending) return
@@ -120,7 +123,7 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
       await invalidate()
       if (out.turnstile.status === 'ok') {
         setKey('')
-        toast({ kind: 'success', title: tt(m.turnstileSaved), detail: tt(m.turnstileAccepted) })
+        toast({ kind: 'success', title: tt(m.turnstileSaved), detail: reported ? undefined : tt(m.turnstileAccepted) })
       } else {
         setError(tt(m.checkKey, { error: out.turnstile.error ?? '' }))
       }
@@ -132,9 +135,11 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
     <div role="alert" className="card fb-alert alert-warn">
       <div className="flex items-center gap-2.5 max-md:flex-wrap">
         <Badge tone="warn">{'Turnstile'}</Badge>
-        <span className="font-semibold">{turnstile.error || t(m.turnstileRejected)}</span>
+        <span className="font-semibold">{reported ? reported.error : turnstile.error || t(m.turnstileRejected)}</span>
       </div>
-      <span className="k">{t(m.turnstileFellBack)}</span>
+      <span className="k">
+        {reported ? t(m.turnstileReported, { n: reported.count, count: count(reported.count), ago: ago(reported.lastAt) }) : t(m.turnstileFellBack)}
+      </span>
       <label className="lbl">
         {t(m.siteKey)}
         <input

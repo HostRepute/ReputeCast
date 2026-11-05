@@ -294,7 +294,9 @@ func TestTurnstileChallenge(t *testing.T) {
 		if actor != "system" || !strings.Contains(after, "invalid-input-secret") {
 			t.Errorf("audit entry by %s: %s", actor, after)
 		}
-		// A widget error reported from a held check is recorded the same way, once.
+		// A widget error reported from a held check is kept for the publisher,
+		// once in the audit log, and leaves Turnstile on: any browser can
+		// report one (turnstile_report_test.go).
 		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE public_page_settings SET turnstile_status = 'ok', turnstile_error = '' WHERE workspace_id = $1`, ids.ws); err != nil {
 			t.Fatal(err)
 		}
@@ -304,11 +306,15 @@ func TestTurnstileChallenge(t *testing.T) {
 				t.Fatalf("report: %d", r.Status)
 			}
 		}
-		if e := one[string](t, env, `SELECT turnstile_error FROM public_page_settings WHERE workspace_id = $1`, ids.ws); e != "Cloudflare rejected the site key (error 110200)" {
-			t.Errorf("Turnstile error %q", e)
+		if st := one[string](t, env, `SELECT turnstile_status || ' ' || turnstile_reported_code || ' ' || turnstile_reported_count FROM public_page_settings WHERE workspace_id = $1`,
+			ids.ws); st != "ok 110200 2" {
+			t.Errorf("Turnstile after two reports: %q", st)
 		}
-		if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'public_pages.turnstile_error' AND workspace_id = $1`, ids.ws); n != 2 {
-			t.Errorf("%d Turnstile error entries, want one per change (2)", n)
+		if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'public_pages.turnstile_error' AND workspace_id = $1`, ids.ws); n != 1 {
+			t.Errorf("%d Turnstile error entries, want only Cloudflare's refusal (1)", n)
+		}
+		if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'public_pages.turnstile_report' AND workspace_id = $1`, ids.ws); n != 1 {
+			t.Errorf("%d report entries, want one per new code (1)", n)
 		}
 		if _, err := env.App.Pool.Exec(context.Background(), `UPDATE public_page_settings SET turnstile_status = 'ok', turnstile_error = '' WHERE workspace_id = $1`, ids.ws); err != nil {
 			t.Fatal(err)

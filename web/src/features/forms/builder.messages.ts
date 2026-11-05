@@ -216,4 +216,7 @@ export const m = defineMessages('forms.builder', {
   checkKey: '{error}. Check the key in the Cloudflare dashboard.',
   turnstileRejected: 'Cloudflare rejected the Turnstile keys',
   turnstileFellBack: 'Spam protection fell back to the honeypot and timing check. Paste the key from the Cloudflare dashboard; the secret key is stored encrypted.',
+  // A widget error visitors' browsers reported; ago is "2 min ago", "yesterday".
+  turnstileReported:
+    "{n, plural, one {A visitor's browser reported this {ago}.} other {Visitors' browsers reported this {count} times, last {ago}.}} Turnstile stays on: check the site key and its hostnames in the Cloudflare dashboard, or paste another key.",
 })

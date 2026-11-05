@@ -186,4 +186,6 @@ export default translate(m, {
   checkKey: '{error}. Comprueba la clave en el panel de Cloudflare.',
   turnstileRejected: 'Cloudflare rechazó las claves de Turnstile',
   turnstileFellBack: 'La protección contra spam volvió al campo trampa y la comprobación de tiempo. Pega la clave del panel de Cloudflare; la clave secreta se guarda cifrada.',
+  turnstileReported:
+    '{n, plural, one {El navegador de un visitante lo notificó {ago}.} other {Los navegadores de los visitantes lo notificaron {count} veces, la última {ago}.}} Turnstile sigue activo: revisa la clave del sitio y sus nombres de host en el panel de Cloudflare, o pega otra clave.',
 })

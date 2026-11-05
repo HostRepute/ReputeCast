@@ -186,4 +186,6 @@ export default translate(m, {
   checkKey: '{error}. Prüfen Sie den Schlüssel im Cloudflare-Dashboard.',
   turnstileRejected: 'Cloudflare hat die Turnstile-Schlüssel abgelehnt',
   turnstileFellBack: 'Der Spamschutz ist auf Honeypot und Zeitprüfung zurückgefallen. Fügen Sie den Schlüssel aus dem Cloudflare-Dashboard ein; der geheime Schlüssel wird verschlüsselt gespeichert.',
+  turnstileReported:
+    '{n, plural, one {Der Browser eines Besuchers hat das {ago} gemeldet.} other {Browser von Besuchern haben das {count}-mal gemeldet, zuletzt {ago}.}} Turnstile bleibt aktiv: Prüfen Sie den Website-Schlüssel und seine Hostnamen im Cloudflare-Dashboard oder fügen Sie einen anderen Schlüssel ein.',
 })
