@@ -128,6 +128,7 @@
   "problem.fallbackRegistered": "Ein Ersatzabsender muss für dieselben Länder registriert sein; {sender} fehlt die Registrierung für: {country}.",
   "problem.otherRoute": "Wählen Sie die Route für alle anderen Länder.",
   "problem.domain": "Geben Sie einen Domainnamen ein, etwa go.acme.io.",
+  "problem.domainTaken": "{domain} wird bereits von einem anderen Arbeitsbereich dieser ReputeCast-Instanz genutzt, für seine Seiten oder seine Links. Entfernen Sie die Domain zuerst dort.",
   "problem.carriersAsk": "Netzbetreiber verlangen diesen Abschnitt: Er darf nicht leer sein.",
 
   "check.quietWait": "Ruhezeiten: Versand {window} in der Zeitzone jedes Kontakts; außerhalb des Versandfensters warten SMS",

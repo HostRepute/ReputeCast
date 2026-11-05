@@ -59,6 +59,7 @@
   "problem.domainFormat": "Enter a domain like news.acme.io.",
   "problem.alreadyDomain": "{domain} is already a sending domain of this workspace.",
   "problem.subdomain": "Use a subdomain of {domain}, for example go.{domain}.",
+  "problem.trackingTaken": { "message": "{domain} is already used by another workspace on this ReputeCast, for its pages or its links. Remove it there first.", "note": "the tracking domain is another workspace's public pages, short links, link tracking or push site" },
   "problem.sendersUse": "{count, plural, one {# sender uses} other {# senders use}} {domain}. Delete them first, so no campaign loses its From address.",
   "problem.providerAdd": { "message": "{provider} didn't add {domain}: {error}", "note": "error: the provider's own answer, in English" },
   "problem.cloudflareToken": "Cloudflare rejected this token. Use an API token with Zone › DNS › Edit permission on {domain}'s zone.",

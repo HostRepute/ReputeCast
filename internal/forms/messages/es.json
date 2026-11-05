@@ -21,7 +21,7 @@
   "problem.pickMode": "Elige page, browser o fixed.",
   "problem.domainName": "Usa un nombre de dominio como news.acme.io, sin https:// ni ruta.",
   "problem.domainOwn": "Esa es la dirección de esta instancia de ReputeCast. Usa un dominio de tu boletín, como news.acme.io.",
-  "problem.domainTaken": "{domain} ya sirve las páginas de otro espacio de trabajo. Quítalo allí primero.",
+  "problem.domainTaken": "{domain} ya lo usa otro espacio de trabajo de esta instancia de ReputeCast, para sus páginas o sus enlaces. Quítalo allí primero.",
   "problem.nameForm": "Ponle un nombre al formulario.",
   "problem.notContactField": "{key} no es un campo del contacto. Añádelo primero en Audiencia › Campos.",
   "problem.notFieldKey": "Eso no es una clave de campo.",
@@ -62,6 +62,9 @@
   "domain.noAnswer": "El DNS no respondió para {domain}. Volveremos a comprobarlo en unos minutos.",
   "domain.noCname": "Aún no hay ningún CNAME de {domain} a {target}. Los cambios de DNS pueden tardar hasta una hora en verse.",
   "domain.lastFailed": "La última comprobación falló: {detail} Volveremos a comprobarlo pronto.",
+  "domain.own": "{domain} es una de las direcciones de esta instancia de ReputeCast. Usa un dominio de tu boletín en su lugar.",
+  "domain.inUse": "Otro espacio de trabajo de esta instancia de ReputeCast ya usa {domain}, así que su CNAME y sus direcciones no demuestran que es tuyo.",
+  "domain.underOwn": "{domain} está bajo {target}, la dirección de esta instancia de ReputeCast, así que su CNAME y sus direcciones no demuestran que es tuyo.",
 
   "turnstile.siteRejected": "Cloudflare rechazó la clave del sitio (error {code})",
   "turnstile.siteUnknown": "Cloudflare no reconoce esta clave del sitio (error {code})",

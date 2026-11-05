@@ -59,6 +59,7 @@
   "problem.domainFormat": "Saisissez un domaine comme news.acme.io.",
   "problem.alreadyDomain": "{domain} est déjà un domaine d’envoi de cet espace de travail.",
   "problem.subdomain": "Utilisez un sous-domaine du domaine {domain}, par exemple go.{domain}.",
+  "problem.trackingTaken": "{domain} est déjà utilisé par un autre espace de travail de cette instance ReputeCast, pour ses pages ou ses liens. Retirez-le d’abord de cet autre espace.",
   "problem.sendersUse": "{count, plural, one {# expéditeur utilise} other {# expéditeurs utilisent}} {domain}. Supprimez-{count, plural, one {le} other {les}} d’abord, pour qu’aucune campagne ne perde son adresse d’expédition.",
   "problem.providerAdd": "{provider} n’a pas ajouté {domain}\u00A0: {error}",
   "problem.cloudflareToken": "Cloudflare a refusé ce jeton. Utilisez un jeton d’API avec l’autorisation Zone › DNS › Edit sur la zone du domaine {domain}.",

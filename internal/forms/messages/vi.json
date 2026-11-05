@@ -21,7 +21,7 @@
   "problem.pickMode": "Hãy chọn page, browser hoặc fixed.",
   "problem.domainName": "Hãy dùng một tên miền như news.acme.io, không kèm https:// hay đường dẫn.",
   "problem.domainOwn": "Đó là địa chỉ của chính máy chủ ReputeCast này. Hãy dùng một tên miền của bản tin, ví dụ news.acme.io.",
-  "problem.domainTaken": "{domain} đang phục vụ các trang của một không gian làm việc khác. Hãy gỡ tên miền ở đó trước.",
+  "problem.domainTaken": "{domain} đã được một không gian làm việc khác trên máy chủ ReputeCast này dùng cho các trang hoặc liên kết của nó. Hãy gỡ tên miền ở đó trước.",
   "problem.nameForm": "Hãy đặt tên cho biểu mẫu.",
   "problem.notContactField": "{key} không phải là trường liên hệ. Hãy thêm trường này trong Người đăng ký › Trường trước.",
   "problem.notFieldKey": "Đó không phải là khóa trường.",
@@ -62,6 +62,9 @@
   "domain.noAnswer": "DNS không phản hồi cho {domain}. ReputeCast sẽ kiểm tra lại sau vài phút.",
   "domain.noCname": "Chưa có CNAME từ {domain} đến {target}. Thay đổi DNS có thể mất tới một giờ mới hiện.",
   "domain.lastFailed": "Lần kiểm tra gần nhất thất bại: {detail} Sẽ sớm kiểm tra lại.",
+  "domain.own": "{domain} là một địa chỉ của chính máy chủ ReputeCast này. Hãy dùng một tên miền của bản tin thay vào đó.",
+  "domain.inUse": "Một không gian làm việc khác trên máy chủ ReputeCast này đã dùng {domain}, nên CNAME và địa chỉ của nó không chứng minh được tên miền là của bạn.",
+  "domain.underOwn": "{domain} nằm dưới {target}, địa chỉ của chính máy chủ ReputeCast này, nên CNAME và địa chỉ của nó không chứng minh được tên miền là của bạn.",
 
   "turnstile.siteRejected": "Cloudflare đã từ chối khóa site (lỗi {code})",
   "turnstile.siteUnknown": "Cloudflare không nhận ra khóa site này (lỗi {code})",

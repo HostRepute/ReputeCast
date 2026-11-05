@@ -128,6 +128,7 @@
   "problem.fallbackRegistered": "Người gửi dự phòng phải được đăng ký cho cùng các quốc gia: {sender} không nhắn tin được đến {country}.",
   "problem.otherRoute": "Hãy chọn tuyến cho mọi quốc gia khác.",
   "problem.domain": "Hãy nhập tên miền, ví dụ go.acme.io.",
+  "problem.domainTaken": "{domain} đã được một không gian làm việc khác trên máy chủ ReputeCast này dùng cho các trang hoặc liên kết của nó. Hãy gỡ tên miền ở đó trước.",
   "problem.carriersAsk": "Nhà mạng yêu cầu mục này: không được để trống.",
 
   "check.quietWait": "Giờ yên lặng: tin nhắn được gửi trong khung {window} theo múi giờ của từng liên hệ; ngoài khung giờ đó, tin nhắn phải chờ",

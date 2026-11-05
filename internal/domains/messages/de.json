@@ -59,6 +59,7 @@
   "problem.domainFormat": "Geben Sie eine Domain wie news.acme.io ein.",
   "problem.alreadyDomain": "{domain} ist bereits eine Versand-Domain dieses Arbeitsbereichs.",
   "problem.subdomain": "Verwenden Sie eine Subdomain von {domain}, z. B. go.{domain}.",
+  "problem.trackingTaken": "{domain} wird bereits von einem anderen Arbeitsbereich dieser ReputeCast-Instanz genutzt, für seine Seiten oder seine Links. Entfernen Sie die Domain zuerst dort.",
   "problem.sendersUse": "{count, plural, one {# Absender verwendet} other {# Absender verwenden}} {domain}. Löschen Sie diese zuerst, damit keine Kampagne ihre Absenderadresse verliert.",
   "problem.providerAdd": "{provider} hat {domain} nicht hinzugefügt: {error}",
   "problem.cloudflareToken": "Cloudflare hat dieses Token abgelehnt. Verwenden Sie ein API-Token mit der Berechtigung Zone › DNS › Edit für die Zone von {domain}.",

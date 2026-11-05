@@ -219,9 +219,6 @@ SET custom_domain = @custom_domain, domain_status = @domain_status, domain_detai
     texts = (texts - 'domain_detail') || coalesce(sqlc.narg(texts)::jsonb, '{}')
 WHERE workspace_id = @workspace_id;
 
--- name: PublicSettingsDomainTaken :one
-SELECT EXISTS (SELECT 1 FROM public_page_settings WHERE custom_domain = @domain AND workspace_id <> @workspace_id)::boolean;
-
 -- name: PublicSettingsDomainsToCheck :many
 -- Domains waiting for DNS (every run) and verified ones (once a day).
 SELECT workspace_id, custom_domain::text AS custom_domain, domain_status
