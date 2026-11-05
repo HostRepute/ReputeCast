@@ -351,12 +351,13 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	// Unsaved edits belong to the version the composer has open. Only
 	// people who can edit the email preview what they typed: rendering
-	// Liquid runs on the server, so anyone else sees the saved email.
+	// Liquid runs on the server, so anyone else sees the saved email. The
+	// server's own previews (a review link's version) render what they pass.
 	edited := in.Editing
 	if edited == "" {
 		edited = src
 	}
-	if (src == "" || lang == edited) && p.Can(authz.CampaignsEdit) {
+	if (src == "" || lang == edited) && (in.synthetic || p.Can(authz.CampaignsEdit)) {
 		if in.Subject != nil {
 			subject = *in.Subject
 		}
