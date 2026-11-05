@@ -89,6 +89,12 @@ var (
 	mPasskeyUnreadableLeft = msgs.M("problem.passkeyUnreadableLeft")
 	mPasskeyWrongLeft      = msgs.M("problem.passkeyWrongLeft")
 
+	// Changes an account without a password confirms with a recent sign-in,
+	// and the ones single sign-on doesn't allow.
+	mReauthRequired = msgs.M("problem.reauthRequired")
+	mSSONoPassword  = msgs.M("problem.ssoNoPassword")
+	mSSOEmailStays  = msgs.M("problem.ssoEmailStays")
+
 	// Account & security's texts from the server: why a button is off,
 	// the notes after an identity and the session policy.
 	mUnlinkFirst    = msgs.M("account.unlinkFirst")

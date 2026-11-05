@@ -182,6 +182,53 @@ func (s *Service) enforcingProvider(ctx context.Context, email string) (*store.S
 	return nil, rows.Err()
 }
 
+// recentSignIn is how long after signing in a session may add a first
+// password, or move an account without a password to another email.
+const recentSignIn = 15 * time.Minute
+
+// signedInRecently reports whether the current session began within
+// recentSignIn. An account without a password has nothing else to confirm
+// such a change with, and a stolen session cookie shouldn't be enough to
+// give its holder a way in that outlives the session.
+func (s *Service) signedInRecently(ctx context.Context) bool {
+	sess := api.SessionFrom(ctx)
+	return sess != nil && s.now().Sub(sess.CreatedAt) <= recentSignIn
+}
+
+// reauthRequired asks the person to sign in again first.
+func reauthRequired(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusForbidden, "reauth_required", say(ctx, mReauthRequired, "minutes", int(recentSignIn/time.Minute)))
+}
+
+// managingProvider returns the SSO provider that manages an account: the
+// one enforcing its email's domain, unless the account is a break-glass
+// Owner's, which keeps its own sign-in (as PasswordSignIn allows).
+func (s *Service) managingProvider(ctx context.Context, u store.User) (*store.SsoProvider, error) {
+	if u.BreakGlass {
+		return nil, nil
+	}
+	return s.enforcingProvider(ctx, u.Email)
+}
+
+// leavesSSO reports the provider an email change would take the account
+// away from: enforcement follows the email's domain, so a new address at a
+// domain the managing provider doesn't enforce would end its hold on the
+// account (and its memberships would survive being disabled at the IdP).
+func (s *Service) leavesSSO(ctx context.Context, u store.User, email string) (*store.SsoProvider, error) {
+	from, err := s.managingProvider(ctx, u)
+	if err != nil || from == nil {
+		return nil, err
+	}
+	to, err := s.enforcingProvider(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	if to != nil && to.ID == from.ID {
+		return nil, nil
+	}
+	return from, nil
+}
+
 // ssoStart builds the link that starts single sign-on with a provider. The
 // OIDC flow itself lives in the SSO domain.
 func ssoStart(p *store.SsoProvider, loginHint string) SSOStart {
