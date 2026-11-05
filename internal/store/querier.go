@@ -1125,6 +1125,21 @@ type Querier interface {
 	CustomFieldRestore(ctx context.Context, arg CustomFieldRestoreParams) (CustomField, error)
 	// A deleted field waits 30 days (review 2026-11 AU-11).
 	CustomFieldSetAside(ctx context.Context, arg CustomFieldSetAsideParams) error
+	// The uses of host other than workspace_id's, whatever their status: other
+	// workspaces' (a deleted workspace keeps its hosts until it's purged, as
+	// the custom domain's unique index does) and the instance's own SMTP relay
+	// (purpose "instance"). verified says whether the use was proven there,
+	// and since when (NULL when nobody recorded it). A publication website's
+	// push site is its pages' host, verified when it was added.
+	CustomHostClaims(ctx context.Context, arg CustomHostClaimsParams) ([]CustomHostClaimsRow, error)
+	// Hosts the instance serves for a workspace: the public pages and website
+	// domain, the SMS short-link domain, a link tracking domain and the push
+	// site of a publication website. A CNAME or matching addresses only show
+	// that a host points at this server, not whose host it is, so a host
+	// belongs to one workspace: the first to use it.
+	// Saving a host takes this lock before CustomHostClaims, so two workspaces
+	// saving the same host at once can't both find it free.
+	CustomHostLock(ctx context.Context, host string) error
 	DeleteAutomationStepSecret(ctx context.Context, arg DeleteAutomationStepSecretParams) (int64, error)
 	DeleteAvatar(ctx context.Context, userID uuid.UUID) (int64, error)
 	DeleteChallenge(ctx context.Context, id uuid.UUID) error
@@ -2857,7 +2872,6 @@ type Querier interface {
 	// Upcoming sends, for "Next issue: Tuesday 14 October" on the confirmation page.
 	PublicScheduledCampaigns(ctx context.Context, arg PublicScheduledCampaignsParams) ([]PublicScheduledCampaignsRow, error)
 	PublicSettingsByDomain(ctx context.Context, domain *string) (PublicSettingsByDomainRow, error)
-	PublicSettingsDomainTaken(ctx context.Context, arg PublicSettingsDomainTakenParams) (bool, error)
 	// Domains waiting for DNS (every run) and verified ones (once a day).
 	PublicSettingsDomainsToCheck(ctx context.Context, before *time.Time) ([]PublicSettingsDomainsToCheckRow, error)
 	PublicSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error

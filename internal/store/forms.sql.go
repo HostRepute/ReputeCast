@@ -1404,22 +1404,6 @@ func (q *Queries) PublicSettingsByDomain(ctx context.Context, domain *string) (P
 	return i, err
 }
 
-const publicSettingsDomainTaken = `-- name: PublicSettingsDomainTaken :one
-SELECT EXISTS (SELECT 1 FROM public_page_settings WHERE custom_domain = $1 AND workspace_id <> $2)::boolean
-`
-
-type PublicSettingsDomainTakenParams struct {
-	Domain      *string   `json:"domain"`
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-}
-
-func (q *Queries) PublicSettingsDomainTaken(ctx context.Context, arg PublicSettingsDomainTakenParams) (bool, error) {
-	row := q.db.QueryRow(ctx, publicSettingsDomainTaken, arg.Domain, arg.WorkspaceID)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const publicSettingsDomainsToCheck = `-- name: PublicSettingsDomainsToCheck :many
 SELECT workspace_id, custom_domain::text AS custom_domain, domain_status
 FROM public_page_settings

@@ -21,7 +21,7 @@
   "problem.pickMode": "Choisissez page, browser ou fixed.",
   "problem.domainName": "Utilisez un nom de domaine comme news.acme.io, sans https:// ni chemin.",
   "problem.domainOwn": "C’est l’adresse de cette instance ReputeCast. Utilisez un domaine de votre newsletter, comme news.acme.io.",
-  "problem.domainTaken": "{domain} sert déjà les pages d’un autre espace de travail. Retirez-le d’abord de cet autre espace.",
+  "problem.domainTaken": "{domain} est déjà utilisé par un autre espace de travail de cette instance ReputeCast, pour ses pages ou ses liens. Retirez-le d’abord de cet autre espace.",
   "problem.nameForm": "Donnez un nom au formulaire.",
   "problem.notContactField": "{key} n’est pas un champ de contact. Ajoutez-le d’abord dans Audience › Champs.",
   "problem.notFieldKey": "Ce n’est pas une clé de champ.",
@@ -62,6 +62,9 @@
   "domain.noAnswer": "Le DNS n’a pas répondu pour {domain}. Nous vérifierons de nouveau dans quelques minutes.",
   "domain.noCname": "Aucun CNAME de {domain} vers {target} pour l’instant. Les modifications DNS peuvent mettre jusqu’à une heure à apparaître.",
   "domain.lastFailed": "Échec de la dernière vérification\u00A0: {detail} Nouvelle vérification bientôt.",
+  "domain.own": "{domain} est l’une des adresses de cette instance ReputeCast. Utilisez plutôt un domaine de votre newsletter.",
+  "domain.inUse": "Un autre espace de travail de cette instance ReputeCast utilise déjà {domain}, donc son CNAME et ses adresses ne prouvent pas qu’il vous appartient.",
+  "domain.underOwn": "{domain} se trouve sous {target}, l’adresse de cette instance ReputeCast, donc son CNAME et ses adresses ne prouvent pas qu’il vous appartient.",
 
   "turnstile.siteRejected": "Cloudflare a refusé la clé de site (erreur {code})",
   "turnstile.siteUnknown": "Cloudflare ne connaît pas cette clé de site (erreur {code})",

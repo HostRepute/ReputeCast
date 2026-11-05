@@ -128,6 +128,7 @@
   "problem.fallbackRegistered": "Un expéditeur de secours doit être enregistré pour les mêmes pays\u202F; {sender} ne peut pas envoyer de SMS vers ce pays\u00A0: {country}.",
   "problem.otherRoute": "Choisissez la route qu’empruntent tous les autres pays.",
   "problem.domain": "Saisissez un nom de domaine, comme go.acme.io.",
+  "problem.domainTaken": "{domain} est déjà utilisé par un autre espace de travail de cette instance ReputeCast, pour ses pages ou ses liens. Retirez-le d’abord de cet autre espace.",
   "problem.carriersAsk": "Les opérateurs exigent cette section\u00A0: elle ne peut pas être vide.",
 
   "check.quietWait": "Heures de silence\u00A0: les SMS partent sur la plage {window} dans le fuseau horaire de chaque contact\u202F; en dehors, ils attendent",

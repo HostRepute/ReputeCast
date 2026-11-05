@@ -21,7 +21,7 @@
   "problem.pickMode": "Wählen Sie page, browser oder fixed.",
   "problem.domainName": "Verwenden Sie einen Domainnamen wie news.acme.io, ohne https:// oder Pfad.",
   "problem.domainOwn": "Das ist die eigene Adresse dieser ReputeCast-Instanz. Verwenden Sie eine Domain Ihres Newsletters, etwa news.acme.io.",
-  "problem.domainTaken": "{domain} liefert bereits die Seiten eines anderen Arbeitsbereichs aus. Entfernen Sie die Domain zuerst dort.",
+  "problem.domainTaken": "{domain} wird bereits von einem anderen Arbeitsbereich dieser ReputeCast-Instanz genutzt, für seine Seiten oder seine Links. Entfernen Sie die Domain zuerst dort.",
   "problem.nameForm": "Benennen Sie das Formular.",
   "problem.notContactField": "{key} ist kein Kontaktfeld. Fügen Sie es zuerst unter Zielgruppe › Felder hinzu.",
   "problem.notFieldKey": "Das ist kein Feldschlüssel.",
@@ -62,6 +62,9 @@
   "domain.noAnswer": "DNS hat für {domain} nicht geantwortet. Wir prüfen in ein paar Minuten erneut.",
   "domain.noCname": "Noch kein CNAME von {domain} auf {target}. Es kann bis zu einer Stunde dauern, bis DNS-Änderungen sichtbar sind.",
   "domain.lastFailed": "Letzte Prüfung fehlgeschlagen: {detail} Wird bald erneut geprüft.",
+  "domain.own": "{domain} ist eine der eigenen Adressen dieser ReputeCast-Instanz. Verwenden Sie stattdessen eine Domain Ihres Newsletters.",
+  "domain.inUse": "Ein anderer Arbeitsbereich dieser ReputeCast-Instanz nutzt {domain} bereits, daher belegen CNAME und Adressen nicht, dass die Domain Ihnen gehört.",
+  "domain.underOwn": "{domain} liegt unter {target}, der eigenen Adresse dieser ReputeCast-Instanz, daher belegen CNAME und Adressen nicht, dass die Domain Ihnen gehört.",
 
   "turnstile.siteRejected": "Cloudflare hat den Website-Schlüssel abgelehnt (Fehler {code})",
   "turnstile.siteUnknown": "Cloudflare kennt diesen Website-Schlüssel nicht (Fehler {code})",

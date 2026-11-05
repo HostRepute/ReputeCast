@@ -167,6 +167,7 @@ var (
 	mFallbackRegistered    = msgs.M("problem.fallbackRegistered")
 	mOtherRoute            = msgs.M("problem.otherRoute")
 	mDomain                = msgs.M("problem.domain")
+	mDomainTaken           = msgs.M("problem.domainTaken")
 	mCarriersAsk           = msgs.M("problem.carriersAsk")
 )
 

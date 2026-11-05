@@ -85,6 +85,14 @@ and archive at the root of its own domain, for example
 3. Give the proxy a certificate for the domain, and keep the original `Host`
    header. The pages answer on the domain once the DNS check passes.
 
+A `CNAME` or matching addresses only show that a domain points at this
+server, not which workspace it belongs to. So a domain another workspace
+already uses (for its pages, its SMS short links or its link tracking) can't
+be added, and a domain under the public URL's own host (such as
+`acme.reputecast.example.com` beside `reputecast.example.com`, where a
+wildcard record points every name at the server) verifies only with its TXT
+record, whose value is different for each workspace.
+
 With Caddy's on-demand TLS, certificates are issued only for domains that
 ReputeCast has verified (`/p/_/tls-check` answers 200 for them):
 

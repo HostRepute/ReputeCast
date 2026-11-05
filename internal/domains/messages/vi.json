@@ -59,6 +59,7 @@
   "problem.domainFormat": "Hãy nhập một tên miền như news.acme.io.",
   "problem.alreadyDomain": "{domain} đã là tên miền gửi thư của không gian làm việc này.",
   "problem.subdomain": "Hãy dùng một tên miền phụ của {domain}, ví dụ go.{domain}.",
+  "problem.trackingTaken": "{domain} đã được một không gian làm việc khác trên máy chủ ReputeCast này dùng cho các trang hoặc liên kết của nó. Hãy gỡ tên miền ở đó trước.",
   "problem.sendersUse": "{count, plural, other {# người gửi}} đang dùng {domain}. Hãy xóa họ trước, để không chiến dịch nào mất địa chỉ người gửi.",
   "problem.providerAdd": "{provider} không thêm được {domain}: {error}",
   "problem.cloudflareToken": "Cloudflare đã từ chối token này. Hãy dùng một token API có quyền Zone › DNS › Edit trên zone của {domain}.",

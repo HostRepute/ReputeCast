@@ -21,7 +21,7 @@
   "problem.pickMode": { "message": "Pick page, browser or fixed.", "note": "page, browser and fixed are the API's values" },
   "problem.domainName": "Use a domain name like news.acme.io, without https:// or a path.",
   "problem.domainOwn": "That's this ReputeCast's own address. Use a domain of your newsletter, like news.acme.io.",
-  "problem.domainTaken": "{domain} already serves another workspace's pages. Remove it there first.",
+  "problem.domainTaken": { "message": "{domain} is already used by another workspace on this ReputeCast, for its pages or its links. Remove it there first.", "note": "the custom domain is another workspace's pages, short links, link tracking or push site" },
   "problem.nameForm": "Name the form.",
   "problem.notContactField": { "message": "{key} isn't a contact field. Add it under Audience › Fields first.", "note": "key: a field key, like plan" },
   "problem.notFieldKey": "That isn't a field key.",
@@ -62,6 +62,9 @@
   "domain.noAnswer": "DNS didn't answer for {domain}. We'll check again in a few minutes.",
   "domain.noCname": "No CNAME from {domain} to {target} yet. DNS changes can take up to an hour to show.",
   "domain.lastFailed": { "message": "Last check failed: {detail} Checking again soon.", "note": "detail: one of the domain.* findings" },
+  "domain.own": { "message": "{domain} is one of this ReputeCast's own addresses. Use a domain of your newsletter instead.", "note": "the custom domain's check: the domain is the instance's own host or its SMTP relay's" },
+  "domain.inUse": { "message": "Another workspace on this ReputeCast uses {domain} already, so its CNAME and addresses don't show it's yours.", "note": "the custom domain's check; the app adds \"Or add the TXT record …\" after it, the one proof that still counts" },
+  "domain.underOwn": { "message": "{domain} is under {target}, this ReputeCast's own address, so its CNAME and addresses don't show it's yours.", "note": "the custom domain's check; target: the instance's host name; the app adds \"Or add the TXT record …\" after it, the one proof that counts" },
 
   "turnstile.siteRejected": { "message": "Cloudflare rejected the site key (error {code})", "note": "code: Cloudflare's error code, like 110200" },
   "turnstile.siteUnknown": "Cloudflare doesn't know this site key (error {code})",

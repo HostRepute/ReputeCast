@@ -836,6 +836,20 @@ func (s *Service) SetShortDomain(ctx context.Context, ws *store.Workspace, p *au
 		if err := s.ensureRules(ctx, q, ws); err != nil {
 			return err
 		}
+		if domain != "" && domain != r.ShortDomain {
+			// Its CNAME only shows the host points at this server: another
+			// workspace's pages or links stay theirs.
+			if err := q.CustomHostLock(ctx, domain); err != nil {
+				return err
+			}
+			claims, err := q.CustomHostClaims(ctx, store.CustomHostClaimsParams{Host: domain, WorkspaceID: ws.ID})
+			if err != nil {
+				return err
+			}
+			if len(claims) > 0 {
+				return api.Conflict(say(ctx, mDomainTaken, i18n.Args{"domain": domain}))
+			}
+		}
 		if err := q.SmsSettingsShortDomain(ctx, store.SmsSettingsShortDomainParams{ShortDomain: domain, ShortDomainStatus: status, ShortDomainTarget: instanceHost(s.URLs.Base()),
 			WorkspaceID: ws.ID}); err != nil {
 			return err

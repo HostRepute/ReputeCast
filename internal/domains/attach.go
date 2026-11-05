@@ -349,6 +349,18 @@ func (s *Service) UpdateDomain(ctx context.Context, ws *store.Workspace, rawID s
 			status := ""
 			if tracking != "" {
 				status = StatusPending
+				// Its CNAME only shows the host points at this server:
+				// another workspace's pages or links stay theirs.
+				if err := q.CustomHostLock(ctx, tracking); err != nil {
+					return err
+				}
+				claims, err := q.CustomHostClaims(ctx, store.CustomHostClaimsParams{Host: tracking, WorkspaceID: ws.ID})
+				if err != nil {
+					return err
+				}
+				if len(claims) > 0 {
+					return api.Conflict(say(ctx, "problem.trackingTaken", i18n.Args{"domain": tracking}))
+				}
 			}
 			if err := q.DomUpdateTracking(ctx, store.DomUpdateTrackingParams{ID: d.ID, TrackingDomain: tracking, TrackingStatus: status, UpdatedAt: s.now()}); err != nil {
 				return err
