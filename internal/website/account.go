@@ -138,7 +138,9 @@ func (s *Service) Account(ctx context.Context, ws *store.Workspace, sess *Sessio
 		out.Tiers = append(out.Tiers, t.Name)
 	}
 	if e := s.earn(); e != nil {
-		if plan, err := e.PreferencesPaid(ctx, ws, pc.ID, l); err == nil {
+		// The member is signed in on the site: the plan's links open the
+		// portal and the cancel page (for an hour).
+		if plan, err := e.PreferencesPaid(ctx, ws, pc.ID, l, true); err == nil {
 			out.Plan = plan
 		} else {
 			s.log().WarnContext(ctx, "account plan", "err", err)

@@ -8,8 +8,12 @@
     {{with .Tier}}<p class="nm">{{.}}</p>{{end}}
     {{with .Price}}<p>{{.}}</p>{{end}}
     {{with .Renews}}<p class="t13">{{.}}</p>{{end}}
-    {{with .Manage}}<a class="btn-sm start" href="{{.}}">{{$v.Paid.Button}}</a>{{end}}
+    {{if .Manage}}<form method="post" action="{{$.Body.BillingAction}}">
+      <input type="hidden" name="t" value="{{$.Body.Token}}"><input type="hidden" name="_lang" value="{{$.Lang}}">
+      <button class="btn-sm" type="submit"{{if $.Preview}} disabled{{end}}>{{$v.Paid.Button}}</button>
+    </form>{{end}}
     {{with .Note}}<p class="t13">{{.}}</p>{{end}}
+    {{with .Emailed}}<p class="t13">{{.}}</p>{{end}}
   </section>
   {{else}}<header class="ea-head">
     <h1 class="h30">{{$v.Headline}}</h1>

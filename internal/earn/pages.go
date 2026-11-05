@@ -61,7 +61,11 @@ type PreferencesPaid struct {
 	Price   string
 	Line    string
 	// Manage opens the billing portal, Cancel the cancel step, Upgrade the
-	// upgrade page (free readers, and gifts to keep going).
+	// upgrade page (free readers, and gifts to keep going). Billing says
+	// the member pays through Stripe: Manage and Cancel are set only when
+	// asked for direct links; otherwise the page has the member ask for
+	// them by email, under their labels.
+	Billing      bool
 	Manage       string
 	ManageLabel  string
 	Cancel       string
@@ -72,7 +76,12 @@ type PreferencesPaid struct {
 }
 
 // PreferencesPaid builds the section for a contact (nil: none to show).
-func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, contact uuid.UUID, l i18n.Lang) (*PreferencesPaid, error) {
+// direct mints Manage and Cancel, links that open the portal and the
+// cancel page for an hour: for the account page of a member signed in on
+// the website. The preference center's own link never expires and
+// travels in forwarded emails (every "view online" page links to it), so
+// it doesn't open the portal: it asks for the links by email.
+func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, contact uuid.UUID, l i18n.Lang, direct bool) (*PreferencesPaid, error) {
 	acc, err := s.accessOf(ctx, ws, contact, "")
 	if err != nil {
 		return nil, err
@@ -114,9 +123,15 @@ func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, cont
 		case acc.CurrentPeriodEnd != nil:
 			out.Line = s.t(l, "page.renewsMonthly", i18n.Args{"date": longDateIn(l, ws, *acc.CurrentPeriodEnd)})
 		}
-		out.Manage, out.ManageLabel = s.BillingURL(ctx, ws, contact), s.t(l, "prefs.manageBilling", nil)
+		out.Billing, out.ManageLabel = true, s.t(l, "prefs.manageBilling", nil)
 		if acc.CancelAt == nil {
-			out.Cancel, out.CancelLabel = s.CancelURL(ctx, ws, contact), s.t(l, "prefs.cancel", nil)
+			out.CancelLabel = s.t(l, "prefs.cancel", nil)
+		}
+		if direct {
+			out.Manage = s.BillingURL(ctx, ws, contact, LinkValidAsked)
+			if acc.CancelAt == nil {
+				out.Cancel = s.CancelURL(ctx, ws, contact, LinkValidAsked)
+			}
 		}
 	}
 	return out, nil
@@ -168,10 +183,11 @@ func dateOrNone(l i18n.Lang, t *time.Time, loc *time.Location) string {
 }
 
 // UnsubscribePaid is the paid member's note on the unsubscribe page:
-// unsubscribing doesn't cancel the subscription.
+// unsubscribing doesn't cancel the subscription. CancelLabel is the
+// button that emails the member a cancel link (the page's own link never
+// expires, as the preference center's).
 type UnsubscribePaid struct {
 	Text        string
-	Cancel      string
 	CancelLabel string
 }
 
@@ -184,7 +200,7 @@ func (s *Service) UnsubscribePaid(ctx context.Context, ws *store.Workspace, cont
 	short := s.tierShortName(ctx, s.Q, ws.ID, acc.TierID)
 	out := &UnsubscribePaid{Text: s.t(l, "unsub.paid", i18n.Args{"tier": firstNonEmpty(short, "none"), "article": article(short)})}
 	if acc.Kind == "stripe" && acc.CancelAt == nil {
-		out.Cancel, out.CancelLabel = s.CancelURL(ctx, ws, contact), s.t(l, "prefs.cancel", nil)
+		out.CancelLabel = s.t(l, "prefs.cancel", nil)
 	}
 	return out, nil
 }

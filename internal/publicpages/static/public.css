@@ -332,6 +332,9 @@ fieldset.qb > legend { display: contents; }
 .ea-mine-t { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--pub-text); }
 .ea-mine .btns { align-items: center; margin-top: 6px; }
 .ea-cancel { font-weight: 600; }
+/* Billing links come by email, so "Cancel subscription" is a button: it reads as the link it was. */
+button.ea-cancel { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--pub-text); text-align: start; cursor: pointer; }
+button.ea-cancel:hover { color: var(--pub-hover); }
 @media (max-width: 560px) {
   .ea-free .btn-out { width: 100%; min-width: 0; }
   .ea-head .h30 { font-size: 26px; }

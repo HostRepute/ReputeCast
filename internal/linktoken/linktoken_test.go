@@ -78,6 +78,19 @@ func TestExpired(t *testing.T) {
 	}
 }
 
+// A link that works until a time carries it to the minute; one signed
+// without (Link 0) stopped long ago.
+func TestUntil(t *testing.T) {
+	end := time.Date(2026, 11, 5, 15, 4, 59, 0, time.UTC)
+	c := Claims{Kind: Preferences, Link: UntilMinute(end)}
+	if got := Until(c); !got.Equal(end.Truncate(time.Minute)) {
+		t.Fatalf("until %v, want %v", got, end.Truncate(time.Minute))
+	}
+	if !Until(Claims{}).Before(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)) || UntilMinute(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)) != 0 {
+		t.Fatal("no time is long ago")
+	}
+}
+
 // After a key rotation, links in emails already sent still verify: the
 // previous key checks them, while new links are signed with the new key.
 func TestPreviousKeysStillVerify(t *testing.T) {

@@ -237,8 +237,10 @@ type preferencesBody struct {
 	// stands in for it when there are none.
 	Notifications *notificationsView
 	Note          string
-	// Paid is "Your paid subscription" (Earn), nil when there's nothing to show.
-	Paid *earn.PreferencesPaid
+	// Paid is "Your paid subscription" (Earn), nil when there's nothing to
+	// show; Billing asks for its links by email.
+	Paid    *earn.PreferencesPaid
+	Billing *billingForm
 	// Account links a member signed in on the website to their account page.
 	Account *prefsAccount
 	// Invite is Grow's "Invite friends" card (grow_recommends.go).
@@ -359,8 +361,11 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		return b, err
 	}
 	if h.Earn != nil {
-		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, l.Lang()); err != nil {
+		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, l.Lang(), false); err != nil {
 			return b, err
+		}
+		if b.Paid != nil && b.Paid.Billing {
+			b.Billing = h.billingFormFor(s, pc.ID, pc.Email, l.Lang())
 		}
 	}
 	if p.Frequency {
@@ -661,8 +666,10 @@ type unsubscribeBody struct {
 	Fewer                                                           bool
 	FewerTitle, FewerText, FewerButton                              string
 	Reasons                                                         []reasonView
-	// Paid tells a paid member that unsubscribing doesn't cancel (Earn).
-	Paid *earn.UnsubscribePaid
+	// Paid tells a paid member that unsubscribing doesn't cancel (Earn);
+	// Billing asks for the cancel link by email.
+	Paid    *earn.UnsubscribePaid
+	Billing *billingForm
 }
 
 type doneBody struct {
@@ -778,6 +785,9 @@ func (h *Handler) unsubscribeBody(ctx context.Context, s *site, pc audience.Publ
 		var err error
 		if b.Paid, err = h.Earn.UnsubscribePaid(ctx, s.ws, pc.ID, l.Lang()); err != nil {
 			return b, err
+		}
+		if b.Paid != nil && b.Paid.CancelLabel != "" {
+			b.Billing = h.billingFormFor(s, pc.ID, pc.Email, l.Lang())
 		}
 	}
 	return b, nil

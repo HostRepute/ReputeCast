@@ -181,6 +181,21 @@ func IssuedOn(day uint32) time.Time { return issueEpoch.Add(time.Duration(day) *
 // when it was sent for one signup, the form submission in MessageID.
 const ConfirmValid = 30 * 24 * time.Hour
 
+// UntilMinute is the Link of a token that works until t, to the minute,
+// for links whose life depends on where they're sent (a paid member's
+// billing link: an hour when asked for, 30 days in an email).
+func UntilMinute(t time.Time) uint32 {
+	m := t.UTC().Sub(issueEpoch) / time.Minute
+	if m < 0 {
+		return 0
+	}
+	return uint32(m)
+}
+
+// Until is when a token made with UntilMinute stops working. A token
+// signed without one (Link 0) stopped long ago.
+func Until(c Claims) time.Time { return issueEpoch.Add(time.Duration(c.Link) * time.Minute) }
+
 // Expired reports whether a token issued on the day in c.Link is older than
 // valid at now. The issue day counts whole, so a link gets a day's grace.
 func Expired(c Claims, valid time.Duration, now time.Time) bool {
