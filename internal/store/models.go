@@ -5375,6 +5375,13 @@ type WebhookDelivery struct {
 	DeliveredAt   *time.Time      `json:"deliveredAt"`
 }
 
+type WebhookToken struct {
+	Scope       string    `json:"scope"`
+	TokenHash   []byte    `json:"tokenHash"`
+	PayloadHash []byte    `json:"payloadHash"`
+	ExpiresAt   time.Time `json:"expiresAt"`
+}
+
 type WebsiteMember struct {
 	ContactID     uuid.UUID `json:"contactId"`
 	WorkspaceID   uuid.UUID `json:"workspaceId"`

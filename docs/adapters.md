@@ -286,8 +286,10 @@ see `azureacs.token`.
   first attempt's signature for hours, the window spans the retries
   (`webhookauth.Within`): 26 hours for SendGrid, 12 for Mailgun. Mailgun
   signs a token, not the event, so `webhookauth.Replay` also ties each token
-  to the event it came with. A redelivery of the same event passes, and
-  ingest's dedupe drops it.
+  to the event it came with, in Postgres (`webhook_tokens`, through
+  `providers.Config.Tokens`) so that every process and every restart sees
+  the tie, for as long as the signature can be accepted. A redelivery of
+  the same event passes, and ingest's dedupe drops it.
 - SNS (SES, and AWS End User Messaging for texts) signs the messages of
   every AWS account's topics alike, so a valid signature only proves SNS
   sent the message. The signing certificate must come from a regional SNS

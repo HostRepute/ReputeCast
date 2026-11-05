@@ -318,6 +318,21 @@ type Config struct {
 	// Dialer opens raw connections (SMTP, IMAP, POP3) through the same
 	// address guard as HTTPClient; nil dials directly.
 	Dialer *net.Dialer
+	// Tokens keeps the one-time tokens of webhook signatures that cover a
+	// token but not the event (Mailgun's) where every process and every
+	// restart sees them; nil keeps them in this process's memory only.
+	Tokens TokenStore
+}
+
+// TokenStore ties the one-time token of a webhook signature to the payload
+// it first came with, for schemes whose signature covers a token but not
+// the payload (Mailgun's), in ReputeCast's database.
+type TokenStore interface {
+	// BindToken ties token to payload within scope (the adapter) until
+	// expires, unless the token is tied already and the tie is current,
+	// and returns the payload the token is tied to. Both are hashes:
+	// neither the token nor the payload is kept.
+	BindToken(ctx context.Context, scope string, token, payload [32]byte, now, expires time.Time) ([32]byte, error)
 }
 
 // Descriptor describes an adapter in the catalog (setup wizard, Adapters tab).
