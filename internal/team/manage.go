@@ -232,6 +232,10 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	if err := q.TeamSetMemberStatus(ctx, store.TeamSetMemberStatusParams{ID: m.ID, WorkspaceID: ws.ID, Status: "deactivated"}); err != nil {
 		return res, err
 	}
+	invites, err := s.revokeInvitationsBy(ctx, q, ws, m.UserID, msgs.M("audit.inviterDeactivated").Keep(i18n.Args{"name": name}))
+	if err != nil {
+		return res, err
+	}
 	if res.SessionsRevoked, err = q.TeamRevokeUserSessions(ctx, m.UserID); err != nil {
 		return res, err
 	}
@@ -270,9 +274,29 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	return res, s.Audit.LogWith(ctx, q, audit.Event{
 		WorkspaceID: &ws.ID, Action: "member.deactivated", TargetType: "member", TargetID: m.ID.String(), TargetName: name, Reason: strings.TrimSpace(in.Reason),
 		Before:   map[string]any{"status": "active", "role": m.RoleName},
-		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept},
+		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept, "invitations_revoked": invites},
 		Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}, parts...),
 	})
+}
+
+// revokeInvitationsBy ends the invitations a member sent that nobody has
+// accepted yet, once the member is deactivated or removed: nobody vouches
+// for those people any more (accepting checks the inviter again anyway).
+// Each is logged as a revocation, saying why.
+func (s *Service) revokeInvitationsBy(ctx context.Context, q *store.Queries, ws *store.Workspace, userID uuid.UUID, why i18n.Text) ([]string, error) {
+	rows, err := q.TeamRevokeInvitationsBy(ctx, store.TeamRevokeInvitationsByParams{WorkspaceID: ws.ID, UserID: &userID})
+	if err != nil {
+		return nil, err
+	}
+	emails := make([]string, 0, len(rows))
+	for _, r := range rows {
+		emails = append(emails, r.Email)
+		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "team.invite_revoked", TargetType: "invitation", TargetID: r.ID.String(), TargetName: r.Email,
+			Before: map[string]any{"email": r.Email, "role": r.RoleName}, Reason: why.In(i18n.Default), Metadata: audit.KeepText(nil, "summary", why)}); err != nil {
+			return nil, err
+		}
+	}
+	return emails, nil
 }
 
 func keyAction(kind string) string {
@@ -360,12 +384,16 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		for _, k := range revoked {
 			names = append(names, k.Name)
 		}
+		invites, err := s.revokeInvitationsBy(ctx, q, ws, m.UserID, msgs.M("audit.inviterRemoved").Keep(i18n.Args{"name": name}))
+		if err != nil {
+			return err
+		}
 		if _, err := q.TeamDeleteMember(ctx, store.TeamDeleteMemberParams{ID: m.ID, WorkspaceID: ws.ID}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "member.removed", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
 			Before:   map[string]any{"email": m.Email, "role": m.RoleName, "status": m.Status},
-			After:    map[string]any{"keys_revoked": names},
+			After:    map[string]any{"keys_revoked": names, "invitations_revoked": invites},
 			Metadata: map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}})
 	})
 }

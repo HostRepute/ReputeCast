@@ -117,8 +117,9 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 	if err != nil {
 		return ExternalResult{}, err
 	}
-	now := s.now()
-	if status := inviteStatus(inv, now); status != "pending" {
+	if status, err := s.invitationStatus(ctx, s.Q, inv); err != nil {
+		return ExternalResult{}, err
+	} else if status != "pending" {
 		return ExternalResult{}, inviteClosed(langOf(ctx), status, inv)
 	}
 	if !strings.EqualFold(strings.TrimSpace(id.Email), inv.Email) {

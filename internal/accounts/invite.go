@@ -105,6 +105,50 @@ func inviteStatus(inv store.GetInvitationViewRow, now time.Time) string {
 	return "pending"
 }
 
+// inviterVouches reports whether the person who sent an invitation could
+// still send it: an active member of the workspace whose role holds every
+// permission of the invited role, with a scope at least as broad, as Team
+// asks of an inviter. An invitation lasts no longer than that, so someone
+// removed, deactivated or demoted can't go on letting people in with links
+// they handed out before.
+func inviterVouches(ctx context.Context, q *store.Queries, inv store.GetInvitationViewRow) (bool, error) {
+	if inv.InvitedBy == nil || inv.InvitedByStatus != "active" || inv.RoleBuiltin && inv.RoleKey == authz.RoleOwner {
+		return false, nil
+	}
+	m, err := q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: inv.WorkspaceID, UserID: *inv.InvitedBy})
+	if isNoRows(err) {
+		return false, nil
+	}
+	if err != nil || m.Status != "active" {
+		return false, err
+	}
+	held := authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions)
+	if len(held.Missing(authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions))) > 0 {
+		return false, nil
+	}
+	var want, has authz.Scope
+	_ = json.Unmarshal(inv.Scope, &want)
+	_ = json.Unmarshal(m.Scope, &has)
+	return want.Within(has), nil
+}
+
+// invitationStatus is inviteStatus, except that a pending invitation whose
+// inviter no longer vouches for it reads, and answers, as revoked.
+func (s *Service) invitationStatus(ctx context.Context, q *store.Queries, inv store.GetInvitationViewRow) (string, error) {
+	status := inviteStatus(inv, s.now())
+	if status != "pending" {
+		return status, nil
+	}
+	ok, err := inviterVouches(ctx, q, inv)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "revoked", nil
+	}
+	return status, nil
+}
+
 // Invitation describes an invitation for its link.
 func (s *Service) Invitation(ctx context.Context, token string) (InvitationView, error) {
 	inv, err := s.loadInvitation(ctx, token)
@@ -115,14 +159,17 @@ func (s *Service) Invitation(ctx context.Context, token string) (InvitationView,
 	if err != nil {
 		return InvitationView{}, err
 	}
-	now := s.now()
+	status, err := s.invitationStatus(ctx, s.Q, inv)
+	if err != nil {
+		return InvitationView{}, err
+	}
 	l := langOf(ctx)
 	sent := inv.CreatedAt
 	if inv.LastSentAt != nil {
 		sent = *inv.LastSentAt
 	}
 	v := InvitationView{
-		Status: inviteStatus(inv, now), Email: inv.Email, WorkspaceName: inv.WorkspaceName, WorkspaceSlug: inv.WorkspaceSlug,
+		Status: status, Email: inv.Email, WorkspaceName: inv.WorkspaceName, WorkspaceSlug: inv.WorkspaceSlug,
 		InviterName: inv.InvitedByName, RoleKey: inv.RoleKey, RoleName: api.RoleName(l, inv.RoleKey, inv.RoleName), Message: inv.Message,
 		SentAt: sent, ExpiresAt: inv.ExpiresAt, RevokedAt: inv.RevokedAt, AcceptedAt: inv.AcceptedAt,
 		PasswordAllowed: methodAllowed(st, "password"),
@@ -250,7 +297,9 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 	}
 	now := s.now()
 	l := langOf(ctx)
-	if status := inviteStatus(inv, now); status != "pending" {
+	if status, err := s.invitationStatus(ctx, s.Q, inv); err != nil {
+		return InvitationAccepted{}, nil, err
+	} else if status != "pending" {
 		return InvitationAccepted{}, nil, inviteClosed(l, status, inv)
 	}
 	st, err := s.policy(ctx)
@@ -365,6 +414,13 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 // when the role needs it, the audit entry and the inviter's notification.
 func (s *Service) joinWorkspace(ctx context.Context, tx pgx.Tx, inv store.GetInvitationViewRow, user store.User, newAccount, twoFactorRequired bool) error {
 	q := store.New(tx)
+	// Checked again in the transaction that accepts it, whichever way the
+	// invitee joins (password, passkey or an identity provider).
+	if ok, err := inviterVouches(ctx, q, inv); err != nil {
+		return err
+	} else if !ok {
+		return inviteClosed(langOf(ctx), "revoked", inv)
+	}
 	n, err := q.AcceptPendingInvitation(ctx, store.AcceptPendingInvitationParams{ID: inv.ID, AcceptedBy: &user.ID})
 	if err != nil {
 		return err

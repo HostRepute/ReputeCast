@@ -46,6 +46,8 @@
   "audit.keysRevoked": { "message": "{count, plural, one {revoked {last}} other {revoked {names} and {last}}}", "note": "names: the keys' names in quotes, joined with commas; last: the last one" },
   "audit.keysKept": { "message": "{count, plural, one {kept {last}} other {kept {names} and {last}}}", "note": "names: the keys' names in quotes, joined with commas; last: the last one" },
   "audit.creatorDeactivated": "creator {name} deactivated",
+  "audit.inviterDeactivated": {"message": "sent by {name}, who was deactivated", "note": "why an invitation was revoked: the member who sent it was deactivated; name: Sofia Rossi"},
+  "audit.inviterRemoved": {"message": "sent by {name}, who was removed from the workspace", "note": "why an invitation was revoked: the member who sent it was removed; name: Sofia Rossi"},
   "audit.sessionsEnded": "{count, plural, one {# session ended} other {# sessions ended}}",
   "audit.twoFactorRequired": "two-factor required at next sign-in",
   "audit.inviteRole": { "message": "role {role}", "note": "an invitation's audit summary: role, scope and expiry, joined with ' · '" },

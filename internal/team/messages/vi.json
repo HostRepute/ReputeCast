@@ -46,6 +46,8 @@
   "audit.keysRevoked": "{count, plural, =1 {đã thu hồi {last}} other {đã thu hồi {names} và {last}}}",
   "audit.keysKept": "{count, plural, =1 {giữ lại {last}} other {giữ lại {names} và {last}}}",
   "audit.creatorDeactivated": "người tạo {name} đã bị vô hiệu hóa",
+  "audit.inviterDeactivated": "do {name} gửi, người này đã bị vô hiệu hóa",
+  "audit.inviterRemoved": "do {name} gửi, người này đã bị xóa khỏi không gian làm việc",
   "audit.sessionsEnded": "{count, plural, other {đã kết thúc # phiên}}",
   "audit.twoFactorRequired": "bắt buộc xác thực hai lớp ở lần đăng nhập tới",
   "audit.inviteRole": "vai trò {role}",

@@ -96,6 +96,15 @@ WHERE id = @id AND workspace_id = @workspace_id;
 -- name: TeamRevokeInvitation :execrows
 UPDATE invitations SET revoked_at = now() WHERE id = @id AND workspace_id = @workspace_id AND accepted_at IS NULL AND revoked_at IS NULL;
 
+-- name: TeamRevokeInvitationsBy :many
+-- The invitations a member sent that nobody accepted end when the member is
+-- deactivated or removed: nobody vouches for those people any more.
+UPDATE invitations i SET revoked_at = now()
+FROM roles r
+WHERE r.id = i.role_id AND i.workspace_id = @workspace_id AND i.invited_by = @user_id
+  AND i.accepted_at IS NULL AND i.revoked_at IS NULL
+RETURNING i.id, i.email, r.name AS role_name;
+
 -- name: TeamPendingInviteEmails :many
 SELECT email FROM invitations
 WHERE workspace_id = @workspace_id AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now() AND email = ANY(@emails::text[]);
