@@ -27,6 +27,8 @@
   "lastOwner": "{name} ist der letzte Inhaber von {workspace}. Übertragen Sie die Inhaberschaft zuerst an jemand anderen.",
   "outranks": "{name} hat in {workspace} mehr Rechte als Sie, daher können Sie den Zugriff dieser Person dort nicht ändern.",
   "unassignSelf": "Sie können Ihre eigene Zuweisung nicht entfernen. Fragen Sie jemanden aus der Agenturleitung.",
+  "assignNotTeam": "Ihre Rolle in {workspace} erlaubt es nicht, das Team zu verwalten, daher können Sie nicht ändern, wer dort arbeitet.",
+  "deactivatedThere": "{name} ist in {workspace} deaktiviert, und eine Zuweisung aktiviert niemanden wieder. Ein Mitglied, das dort das Team verwalten kann, kann die Person auf der Seite Team wieder aktivieren.",
   "pickWorkspace": "Wählen Sie einen der Arbeitsbereiche dieser Instanz.",
   "pickTemplate": "Wählen Sie eine der Arbeitsbereichsvorlagen der Agentur.",
   "agencyNotClient": "Der eigene Arbeitsbereich der Agentur kann nicht zugleich einer ihrer Kunden sein.",

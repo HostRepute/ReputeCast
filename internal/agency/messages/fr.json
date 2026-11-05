@@ -27,6 +27,8 @@
   "lastOwner": "{name} est l’unique Propriétaire de l’espace {workspace}. Transférez d’abord la propriété à une autre personne.",
   "outranks": "{name} a plus de droits que vous dans l’espace {workspace}\u00A0: vous ne pouvez donc pas y modifier son accès.",
   "unassignSelf": "Vous ne pouvez pas supprimer votre propre affectation. Demandez à un responsable d’agence.",
+  "assignNotTeam": "Votre rôle dans l’espace {workspace} ne permet pas de gérer son équipe : vous ne pouvez donc pas changer qui y travaille.",
+  "deactivatedThere": "Le membre {name} est désactivé dans l’espace {workspace}, et une affectation ne réactive personne. Un membre qui peut gérer son équipe peut le réactiver sur la page Équipe.",
   "pickWorkspace": "Choisissez l’un des espaces de travail de cette instance.",
   "pickTemplate": "Choisissez l’un des modèles d’espace de travail de l’agence.",
   "agencyNotClient": "L’espace de travail de l’agence ne peut pas être aussi l’un de ses clients.",

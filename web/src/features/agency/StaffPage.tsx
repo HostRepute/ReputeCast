@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
+import { DisabledReason } from '@/components/ui/DisabledReason'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
@@ -241,17 +242,33 @@ function AssignmentCell({ row, member, onDenied }: { row: Row; member: Member; o
     }
   }
   if (member.invited && !role) return <span className="k">{t(m.dash)}</span>
+  const changeLabel = role ? t(sm.changeRole, { role: roleName(role), name: member.name, client: row.workspace.name }) : ''
+  const assignLabel = t(sm.assignName, { name: member.name, client: row.workspace.name })
+  if (!row.canAssign) {
+    // Who works in a client is theirs to change only with agency:manage or
+    // a role there that manages its team: the controls stay, with the reason.
+    return role ? (
+      <DisabledReason reason={row.assignReason}>
+        <button type="button" className="inline-flex items-center gap-1 border-0 bg-transparent p-0" aria-label={changeLabel}>
+          <RoleBadge role={role} />
+        </button>
+      </DisabledReason>
+    ) : (
+      <Button size="sm" disabledReason={row.assignReason} aria-label={assignLabel}>
+        {t(sm.assign)}
+      </Button>
+    )
+  }
   const trigger = role ? (
-    <button type="button" className="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0" aria-label={t(sm.changeRole, { role: roleName(role), name: member.name, client: row.workspace.name })} disabled={!row.canAssign}>
+    <button type="button" className="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0" aria-label={changeLabel}>
       <RoleBadge role={role} />
-      {row.canAssign ? <Icon name="chevronDown" size={12} className="text-ink-3" /> : null}
+      <Icon name="chevronDown" size={12} className="text-ink-3" />
     </button>
   ) : (
-    <Button size="sm" disabled={!row.canAssign} aria-label={t(sm.assignName, { name: member.name, client: row.workspace.name })}>
+    <Button size="sm" aria-label={assignLabel}>
       {t(sm.assign)}
     </Button>
   )
-  if (!row.canAssign) return role ? <RoleBadge role={role} /> : <span className="k">{t(m.dash)}</span>
   return (
     <>
       <DropdownMenu.Root modal={false}>

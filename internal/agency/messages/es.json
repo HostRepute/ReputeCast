@@ -27,6 +27,8 @@
   "lastOwner": "{name} es el único Propietario de {workspace}. Transfiere antes la propiedad a otra persona.",
   "outranks": "{name} tiene más permisos que tú en {workspace}, así que no puedes cambiar su acceso allí.",
   "unassignSelf": "No puedes quitar tu propia asignación. Pídeselo a un Responsable de agencia.",
+  "assignNotTeam": "Tu rol en {workspace} no puede gestionar su equipo, así que no puedes cambiar quién trabaja allí.",
+  "deactivatedThere": "{name} está en estado Desactivado en {workspace}, y una asignación no reactiva a nadie. Un miembro que pueda gestionar su equipo puede reactivar el acceso en la página Equipo.",
   "pickWorkspace": "Elige uno de los espacios de trabajo de esta instancia.",
   "pickTemplate": "Elige una de las plantillas de espacio de trabajo de la agencia.",
   "agencyNotClient": "El espacio de trabajo de la propia agencia no puede ser también uno de sus clientes.",

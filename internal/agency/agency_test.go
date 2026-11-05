@@ -250,8 +250,20 @@ type staffView struct {
 			ID, Key   string
 			Grantable bool
 		}
-		CanAssign bool
+		CanAssign    bool
+		AssignReason string
 	}
+}
+
+func (v staffView) row(t *testing.T, slug string) (canAssign bool, reason string) {
+	t.Helper()
+	for _, a := range v.Assignments {
+		if a.Workspace.Slug == slug {
+			return a.CanAssign, a.AssignReason
+		}
+	}
+	t.Fatalf("no row %s", slug)
+	return false, ""
 }
 
 func (v staffView) staff(t *testing.T, name string) string {
@@ -321,25 +333,67 @@ func TestAssignmentsAndTheEscalationGuard(t *testing.T) {
 		t.Fatalf("assignment audited %d times", n)
 	}
 
-	// Ravi is an Editor in Contoso: Admin isn't his to give, and trying is
-	// recorded as denied.
+	// Ravi is an account manager and an Editor in Contoso, a role that
+	// doesn't manage its team: who works there isn't his to change at all,
+	// not even as Client viewer, and trying is recorded as denied. The spec
+	// gives staff and assignments to agency:manage; a client's own team
+	// managers keep theirs.
 	var rv staffView
 	p["ravi"].Do("GET", "/agency/staff", nil).MustStatus(t, 200).JSON(t, &rv)
-	if _, ok := rv.role(t, "contoso-coffee", "admin"); ok {
-		t.Fatal("Admin is grantable for an Editor")
+	if can, reason := rv.row(t, "contoso-coffee"); can || !strings.Contains(reason, "Contoso Coffee") {
+		t.Fatalf("Ravi's Contoso row: %v %q", can, reason)
 	}
-	// Client approver approves sends (campaigns:approve), which an Editor
-	// doesn't hold; Client viewer holds nothing an Editor lacks.
-	if _, ok := rv.role(t, "contoso-coffee", "client_approver"); ok {
-		t.Fatal("Client approver is grantable for an Editor")
-	}
-	if _, ok := rv.role(t, "contoso-coffee", "client_viewer"); !ok {
-		t.Fatal("Client viewer isn't grantable for an Editor")
-	}
-	r := p["ravi"].Do("PUT", "/agency/assignments", map[string]any{"staffId": ella, "workspaceId": contoso, "roleId": admin})
+	viewer, _ := v.role(t, "contoso-coffee", "client_viewer")
+	r := p["ravi"].Do("PUT", "/agency/assignments", map[string]any{"staffId": ella, "workspaceId": contoso, "roleId": viewer})
 	r.MustStatus(t, 403)
+	if pr := r.Problem(t); pr["code"] != "permission_denied" || pr["permission"] != "agency:manage" || !strings.Contains(pr["detail"].(string), "Contoso Coffee") {
+		t.Fatalf("Ravi assigns in Contoso: %v", pr)
+	}
 	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'agency.assignment_changed' AND result = 'denied' AND workspace_id = $1`, contoso); n != 2 {
 		// The sample's attempt and this one.
+		t.Fatalf("denied attempts audited: %d", n)
+	}
+	p["ravi"].Do("POST", "/agency/assignments/remove", map[string]any{"staffId": ella, "workspaceId": contoso}).MustStatus(t, 403)
+	p["ravi"].Do("GET", "/agency/assignments/keys?staffId="+ella+"&workspaceId="+contoso, nil).MustStatus(t, 403)
+	if n := count(t, env, `SELECT count(*) FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE u.email = 'ella@northwind.studio' AND m.workspace_id = $1 AND m.status = 'active'`, contoso); n != 1 {
+		t.Fatal("Ella's assignment stays")
+	}
+
+	// With a role that manages Contoso's team, Ravi assigns there, within
+	// what he holds: Admin isn't his to give, and trying is recorded too.
+	if _, err := env.App.Pool.Exec(context.Background(), `WITH lead AS (
+			INSERT INTO roles (id, workspace_id, key, name, builtin, permissions)
+			VALUES (gen_random_uuid(), $1, 'team-lead', 'Team lead', false,
+			        '{team:manage,campaigns:view,templates:view,automations:view,reports:view,deliverability:view,subscribers:view}')
+			RETURNING id)
+		UPDATE workspace_members m SET role_id = (SELECT id FROM lead) FROM users u
+		WHERE u.id = m.user_id AND u.email = 'ravi@northwind.studio' AND m.workspace_id = $1`, contoso); err != nil {
+		t.Fatal(err)
+	}
+	var lead staffView
+	p["ravi"].Do("GET", "/agency/staff", nil).MustStatus(t, 200).JSON(t, &lead)
+	if can, reason := lead.row(t, "contoso-coffee"); !can || reason != "" {
+		t.Fatalf("Ravi as Team lead in Contoso: %v %q", can, reason)
+	}
+	if _, ok := lead.role(t, "contoso-coffee", "admin"); ok {
+		t.Fatal("Admin is grantable for a Team lead")
+	}
+	// Client approver approves sends (campaigns:approve), which a Team lead
+	// doesn't hold; Client viewer holds nothing a Team lead lacks.
+	if _, ok := lead.role(t, "contoso-coffee", "client_approver"); ok {
+		t.Fatal("Client approver is grantable for a Team lead")
+	}
+	if _, ok := lead.role(t, "contoso-coffee", "client_viewer"); !ok {
+		t.Fatal("Client viewer isn't grantable for a Team lead")
+	}
+	if can, _ := lead.row(t, "fabrikam-outdoors"); can {
+		t.Fatal("Ravi is still an Editor in Fabrikam")
+	}
+	r = p["ravi"].Do("PUT", "/agency/assignments", map[string]any{"staffId": ella, "workspaceId": contoso, "roleId": admin})
+	if pr := r.MustStatus(t, 403).Problem(t); pr["code"] != "escalation_denied" {
+		t.Fatalf("the escalation guard: %v", pr)
+	}
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'agency.assignment_changed' AND result = 'denied' AND workspace_id = $1`, contoso); n != 3 {
 		t.Fatalf("denied attempts audited: %d", n)
 	}
 
@@ -363,6 +417,31 @@ func TestAssignmentsAndTheEscalationGuard(t *testing.T) {
 	}
 	// Nobody removes their own assignment from here.
 	p["tomas"].Do("POST", "/agency/assignments/remove", map[string]any{"staffId": v.staff(t, "Tomás Herrera"), "workspaceId": contoso}).MustStatus(t, 409)
+
+	// Someone a client deactivated stays deactivated: an assignment never
+	// brings them back (with the keys they made); the client's Team page does.
+	fabrikam := ""
+	for _, a := range v.Assignments {
+		if a.Workspace.Slug == "fabrikam-outdoors" {
+			fabrikam = a.Workspace.ID
+		}
+	}
+	fabEditor, _ := v.role(t, "fabrikam-outdoors", "editor")
+	fabViewer, _ := v.role(t, "fabrikam-outdoors", "viewer")
+	p["tomas"].Do("PUT", "/agency/assignments", map[string]any{"staffId": ella, "workspaceId": fabrikam, "roleId": fabEditor}).MustStatus(t, 204)
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE workspace_members m SET status = 'deactivated', deactivated_at = now() FROM users u
+		WHERE u.id = m.user_id AND u.email = 'ella@northwind.studio' AND m.workspace_id = $1`, fabrikam); err != nil {
+		t.Fatal(err)
+	}
+	r = p["tomas"].Do("PUT", "/agency/assignments", map[string]any{"staffId": ella, "workspaceId": fabrikam, "roleId": fabViewer})
+	if pr := r.MustStatus(t, 409).Problem(t); !strings.Contains(pr["detail"].(string), "Team page") {
+		t.Fatalf("assigning someone deactivated: %v", pr)
+	}
+	var status, roleKey string
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT m.status, r.key FROM workspace_members m JOIN users u ON u.id = m.user_id JOIN roles r ON r.id = m.role_id
+		WHERE u.email = 'ella@northwind.studio' AND m.workspace_id = $1`, fabrikam).Scan(&status, &roleKey); err != nil || status != "deactivated" || roleKey != "editor" {
+		t.Fatalf("Ella in Fabrikam: %s %s %v", status, roleKey, err)
+	}
 	_ = ravi
 }
 

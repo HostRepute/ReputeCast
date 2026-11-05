@@ -4953,6 +4953,9 @@
       "AgencyAssignmentRow": {
         "additionalProperties": false,
         "properties": {
+          "assignReason": {
+            "type": "string"
+          },
           "canAssign": {
             "type": "boolean"
           },
@@ -105666,7 +105669,7 @@
             "session": []
           }
         ],
-        "summary": "Assign a staff member to a workspace with a role (only roles whose permissions you hold there)",
+        "summary": "Assign a staff member to a workspace with a role (agency:manage, or team:manage there; only roles whose permissions you hold there)",
         "tags": [
           "Agency"
         ],
@@ -105765,7 +105768,7 @@
             "session": []
           }
         ],
-        "summary": "Remove an assignment: the membership goes; the keys they made are kept or revoked",
+        "summary": "Remove an assignment (agency:manage, or team:manage there): the membership goes; the keys they made are kept or revoked",
         "tags": [
           "Agency"
         ],

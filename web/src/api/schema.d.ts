@@ -747,7 +747,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Assign a staff member to a workspace with a role (only roles whose permissions you hold there) */
+        /** Assign a staff member to a workspace with a role (agency:manage, or team:manage there; only roles whose permissions you hold there) */
         put: operations["assign-agency-staff"];
         post?: never;
         delete?: never;
@@ -782,7 +782,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Remove an assignment: the membership goes; the keys they made are kept or revoked */
+        /** Remove an assignment (agency:manage, or team:manage there): the membership goes; the keys they made are kept or revoked */
         post: operations["unassign-agency-staff"];
         delete?: never;
         options?: never;
@@ -19819,6 +19819,7 @@ export interface components {
             keys: components["schemas"]["AgencyKeyRef"][];
         };
         AgencyAssignmentRow: {
+            assignReason?: string;
             canAssign: boolean;
             cells: components["schemas"]["AgencyAssignmentCell"][];
             roles: components["schemas"]["AgencyAssignableRole"][];

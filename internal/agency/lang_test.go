@@ -20,6 +20,8 @@ func TestRefusalsInPlainWords(t *testing.T) {
 		{mCopyNeeds.Text(vi, i18n.Args{"kind": KindTransactional, "workspace": "Contoso Coffee"}), "Vai trò của bạn trong Contoso Coffee không thể sửa mẫu giao dịch."},
 		{mCopyNeedsHere.Text(en, i18n.Args{"kind": KindTemplate}), "Your role can't edit templates here."},
 		{mCopyNeedsHere.Text(vi, i18n.Args{"kind": KindSMS}), "Vai trò của bạn ở đây không thể sửa chiến dịch."},
+		{mAssignNotTeam.Text(en, i18n.Args{"workspace": "Contoso Coffee"}), "Your role in Contoso Coffee can't manage its team, so you can't change who works there."},
+		{mAssignNotTeam.Text(vi, i18n.Args{"workspace": "Contoso Coffee"}), "Vai trò của bạn trong Contoso Coffee không thể quản lý nhóm, nên bạn không thay đổi được ai làm việc ở đó."},
 	} {
 		if c.got != c.want {
 			t.Errorf("got %q, want %q", c.got, c.want)

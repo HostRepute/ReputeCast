@@ -27,6 +27,8 @@
   "lastOwner": "{name} is the last Owner of {workspace}. Transfer ownership to someone else first.",
   "outranks": "{name} holds more in {workspace} than you do, so you can't change their access there.",
   "unassignSelf": "You can't remove your own assignment. Ask an agency manager.",
+  "assignNotTeam": { "message": "Your role in {workspace} can't manage its team, so you can't change who works there.", "note": "why an account manager can't assign, change or remove someone in a client; workspace: a client's name" },
+  "deactivatedThere": { "message": "{name} is deactivated in {workspace}, and an assignment doesn't reactivate anyone. A member who can manage its team can reactivate them on its Team page.", "note": "name: a person's name; workspace: a client's name; Team page: Settings › Team" },
   "pickWorkspace": "Pick one of this instance's workspaces.",
   "pickTemplate": "Pick one of the agency's workspace templates.",
   "agencyNotClient": "The agency's own workspace can't be one of its clients too.",
