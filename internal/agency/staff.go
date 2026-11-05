@@ -127,9 +127,11 @@ type AgencyAssignmentRow struct {
 	Cells     []AgencyAssignmentCell `json:"cells"`
 	// Roles are the workspace's roles, each with whether you can assign it.
 	Roles []AgencyAssignableRole `json:"roles"`
-	// CanAssign: you can change assignments here (agency:manage, or an
-	// assignment of your own in this client).
+	// CanAssign: you can change who works here and their roles: you hold
+	// agency:manage, or a role here that manages its team (team:manage).
 	CanAssign bool `json:"canAssign"`
+	// AssignReason says why you can't, for the controls kept disabled.
+	AssignReason string `json:"assignReason,omitempty"`
 	// YourRole is your own role here, for "Your role here".
 	YourRole string `json:"yourRole,omitempty"`
 }
@@ -289,7 +291,10 @@ func (s *Service) StaffView(ctx context.Context) (AgencyStaffView, error) {
 		mine := set.permsIn(w.ID)
 		row := AgencyAssignmentRow{Workspace: wsRef(w), Cells: []AgencyAssignmentCell{}, Roles: []AgencyAssignableRole{}}
 		_, assigned := set.mine[w.ID]
-		row.CanAssign = me.Can(authz.AgencyManage) || assigned
+		row.CanAssign = mayChangeTeam(me, set, w.ID)
+		if !row.CanAssign {
+			row.AssignReason = cantChangeTeam(l, w, assigned, out.Helpers)
+		}
 		if m, ok := set.mine[w.ID]; ok {
 			row.YourRole = m.RoleKey
 		}
@@ -353,6 +358,43 @@ func roleDescription(key string, builtin bool, name string) string {
 		}
 	}
 	return name
+}
+
+// mayChangeTeam reports whether a staff member may change who works in a
+// workspace and their roles: agency managers everywhere, others only where
+// their own role manages the team. Being assigned isn't enough: an
+// assignment gives its person the client's contacts, and removing one
+// takes them away.
+func mayChangeTeam(me *Staff, set workspaceSet, wsID uuid.UUID) bool {
+	return me.Can(authz.AgencyManage) || set.permsIn(wsID).Has(authz.TeamManage)
+}
+
+// cantChangeTeam says why a staff member can't change who works in a
+// workspace: no role there (only agency managers could), or a role that
+// can't manage its team.
+func cantChangeTeam(l i18n.Lang, w store.AgencyWorkspacesRow, assigned bool, helpers []string) string {
+	if !assigned {
+		args := i18n.Args{"what": deniedWhat(l, authz.AgencyManage)}
+		if len(helpers) == 0 {
+			return mDenied.Text(l, args)
+		}
+		args["helpers"] = i18n.OrList(l.Locale, helpers)
+		return mDeniedAsk.Text(l, args)
+	}
+	msg := mAssignNotTeam.Text(l, i18n.Args{"workspace": w.Name})
+	if len(helpers) > 0 {
+		msg += " " + mAsk.Text(l, i18n.Args{"helpers": i18n.OrList(l.Locale, helpers)})
+	}
+	return msg
+}
+
+// teamDenied is cantChangeTeam as a problem, naming the agency managers.
+func (s *Service) teamDenied(ctx context.Context, w store.AgencyWorkspacesRow, set workspaceSet) *api.Problem {
+	helpers := s.managerNames(ctx, 2)
+	_, assigned := set.mine[w.ID]
+	p := api.Err(http.StatusForbidden, api.CodePermissionDenied, cantChangeTeam(i18n.LangFrom(ctx), w, assigned, helpers))
+	p.Permission, p.Helpers = string(authz.AgencyManage), helpers
+	return p
 }
 
 // canAssign is the escalation guard: you can assign only roles whose
@@ -801,15 +843,16 @@ type AgencyAssignInput struct {
 }
 
 // Assign gives a staff member a role in one of the agency's workspaces: a
-// new membership, or another role for an existing one. You can assign only
-// roles whose permissions you hold there.
+// new membership, or another role for an existing one. It takes
+// agency:manage, or a role there that manages its team, and you can assign
+// only roles whose permissions you hold there.
 func (s *Service) Assign(ctx context.Context, in AgencyAssignInput) error {
 	me, _, err := s.require(ctx, authz.AgencyView)
 	if err != nil {
 		return err
 	}
 	l := i18n.LangFrom(ctx)
-	w, target, set, err := s.assignmentTarget(ctx, me, in.StaffID, in.WorkspaceID)
+	w, target, set, err := s.changeTarget(ctx, me, in.StaffID, in.WorkspaceID, "agency.assignment_changed")
 	if err != nil {
 		return err
 	}
@@ -872,9 +915,11 @@ func (s *Service) escalation(ctx context.Context, w store.AgencyWorkspacesRow, m
 	return p
 }
 
-// assignmentTarget resolves the workspace and the staff member of an
-// assignment, and checks the caller may change assignments there.
-func (s *Service) assignmentTarget(ctx context.Context, me *Staff, staffID, wsID string) (store.AgencyWorkspacesRow, store.User, workspaceSet, error) {
+// changeTarget resolves the workspace and the staff member of an
+// assignment, and checks the caller may change who works there
+// (mayChangeTeam). action names a refused change for the audit log, where
+// it is recorded as denied; reads leave it empty.
+func (s *Service) changeTarget(ctx context.Context, me *Staff, staffID, wsID, action string) (store.AgencyWorkspacesRow, store.User, workspaceSet, error) {
 	l := i18n.LangFrom(ctx)
 	set, err := s.workspacesOf(ctx, s.Q, me)
 	if err != nil {
@@ -893,26 +938,41 @@ func (s *Service) assignmentTarget(ctx context.Context, me *Staff, staffID, wsID
 	if w == nil {
 		return store.AgencyWorkspacesRow{}, store.User{}, set, api.NotFound("Workspace")
 	}
-	if _, assigned := set.mine[w.ID]; !me.Can(authz.AgencyManage) && !assigned {
-		return *w, store.User{}, set, s.denied(ctx, authz.AgencyManage)
-	}
 	people, err := s.people(ctx)
 	if err != nil {
 		return *w, store.User{}, set, err
 	}
-	for _, p := range people {
-		if p.key() == staffID {
-			if p.UserID == nil {
-				return *w, store.User{}, set, api.Conflict(mNoAccountYet.Text(l, i18n.Args{"email": p.Email}))
-			}
-			u, err := s.Q.GetUser(ctx, *p.UserID)
-			if err != nil {
-				return *w, store.User{}, set, err
-			}
-			return *w, u, set, nil
+	var p *person
+	for i := range people {
+		if people[i].key() == staffID {
+			p = &people[i]
 		}
 	}
-	return *w, store.User{}, set, api.NotFound("Staff member")
+	if !mayChangeTeam(me, set, w.ID) {
+		if action != "" {
+			name := ""
+			if p != nil {
+				name = p.Name
+			}
+			wid := w.ID
+			_, assigned := set.mine[w.ID]
+			_ = s.Audit.Log(ctx, audit.Event{WorkspaceID: &wid, Action: action, Result: audit.Denied, TargetType: "membership", TargetName: name,
+				Reason: "the assigner can't manage the team there", Metadata: map[string]any{"permission": string(authz.AgencyManage),
+					"summary": cantChangeTeam(i18n.Default, *w, assigned, nil)}})
+		}
+		return *w, store.User{}, set, s.teamDenied(ctx, *w, set)
+	}
+	if p == nil {
+		return *w, store.User{}, set, api.NotFound("Staff member")
+	}
+	if p.UserID == nil {
+		return *w, store.User{}, set, api.Conflict(mNoAccountYet.Text(l, i18n.Args{"email": p.Email}))
+	}
+	u, err := s.Q.GetUser(ctx, *p.UserID)
+	if err != nil {
+		return *w, store.User{}, set, err
+	}
+	return *w, u, set, nil
 }
 
 // assignTx creates or changes a staff member's membership in a workspace.
@@ -938,7 +998,13 @@ func (s *Service) assignTx(ctx context.Context, q *store.Queries, tx pgx.Tx, w s
 	case err != nil:
 		return err
 	}
-	if m.RoleID == role.ID && m.Status == "active" {
+	// Someone the client deactivated stays deactivated: an assignment would
+	// give back their access and the keys they made. Reactivating them is
+	// for those who manage the client's team, on its Team page.
+	if m.Status != "active" {
+		return api.Conflict(mDeactivatedThere.Text(l, i18n.Args{"name": name, "workspace": w.Name}))
+	}
+	if m.RoleID == role.ID {
 		return nil
 	}
 	if m.RoleBuiltin && m.RoleKey == authz.RoleOwner {
@@ -960,11 +1026,6 @@ func (s *Service) assignTx(ctx context.Context, q *store.Queries, tx pgx.Tx, w s
 	}
 	if _, err := q.UpdateMemberRole(ctx, store.UpdateMemberRoleParams{ID: m.ID, WorkspaceID: w.ID, RoleID: role.ID, Scope: m.Scope}); err != nil {
 		return err
-	}
-	if m.Status != "active" {
-		if err := q.TeamSetMemberStatus(ctx, store.TeamSetMemberStatusParams{ID: m.ID, WorkspaceID: w.ID, Status: "active"}); err != nil {
-			return err
-		}
 	}
 	if authz.Effective(role.Key, role.Builtin, role.Permissions).HasSensitive() {
 		if err := workspaces.EnsureTwoFAGrace(ctx, tx, u.ID); err != nil {
@@ -1028,7 +1089,7 @@ func (s *Service) AssignmentKeys(ctx context.Context, staffID, wsID string) (Age
 	if err != nil {
 		return AgencyAssignmentKeys{}, err
 	}
-	w, u, _, err := s.assignmentTarget(ctx, me, staffID, wsID)
+	w, u, _, err := s.changeTarget(ctx, me, staffID, wsID, "")
 	if err != nil {
 		return AgencyAssignmentKeys{}, err
 	}
@@ -1046,14 +1107,15 @@ func (s *Service) AssignmentKeys(ctx context.Context, staffID, wsID string) (Age
 }
 
 // Unassign removes a staff member's membership in a workspace and keeps or
-// revokes the keys they created there, as deactivating does.
+// revokes the keys they created there, as deactivating does. It takes what
+// assigning there takes.
 func (s *Service) Unassign(ctx context.Context, in AgencyUnassignInput) error {
 	me, _, err := s.require(ctx, authz.AgencyView)
 	if err != nil {
 		return err
 	}
 	l := i18n.LangFrom(ctx)
-	w, u, set, err := s.assignmentTarget(ctx, me, in.StaffID, in.WorkspaceID)
+	w, u, set, err := s.changeTarget(ctx, me, in.StaffID, in.WorkspaceID, "agency.unassigned")
 	if err != nil {
 		return err
 	}

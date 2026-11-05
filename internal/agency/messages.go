@@ -35,6 +35,8 @@ var (
 	mLastOwner         = msgs.M("lastOwner")
 	mOutranks          = msgs.M("outranks")
 	mUnassignSelf      = msgs.M("unassignSelf")
+	mAssignNotTeam     = msgs.M("assignNotTeam")
+	mDeactivatedThere  = msgs.M("deactivatedThere")
 
 	// Agency mode.
 	mPickWorkspace   = msgs.M("pickWorkspace")
