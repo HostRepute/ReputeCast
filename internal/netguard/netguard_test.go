@@ -27,6 +27,14 @@ func TestCheck(t *testing.T) {
 		{"::ffff:127.0.0.1", false, true},  // IPv4-mapped loopback
 		{"64:ff9b::a00:1", false, true},    // NAT64 to 10.0.0.1
 		{"64:ff9b::5db8:d822", true, true}, // NAT64 to a public address
+		// Tunnels to IPv4 hosts the check can't see: never dialed.
+		{"2002:a00:1::1", false, false},                        // 6to4 for 10.0.0.1
+		{"2002:5db8:d822::1", false, false},                    // 6to4 for a public address
+		{"2001:0:4136:e378:8000:63bf:3fff:fdd2", false, false}, // Teredo
+		{"64:ff9b:1::a00:1", false, false},                     // NAT64, local-use prefix
+		{"::a00:1", false, false},                              // IPv4-compatible 10.0.0.1
+		{"::5db8:d822", false, false},                          // IPv4-compatible public address
+		{"2001:4860:4860::8888", true, true},                   // 2001:4860::/32 is no Teredo
 	}
 	for _, c := range cases {
 		ip := netip.MustParseAddr(c.ip)
