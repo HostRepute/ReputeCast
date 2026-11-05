@@ -101,3 +101,19 @@ WHERE e.workspace_id = @workspace_id
   AND (sqlc.narg(provider_id)::uuid IS NULL OR e.provider_id = sqlc.narg(provider_id)::uuid)
   AND (@type::text = '' OR e.type = @type::text)
   AND (@query::text = '' OR e.recipient ILIKE '%' || @query::text || '%' OR e.provider_message_id = @query::text);
+
+-- name: IngestBindToken :one
+-- Ties the one-time token of a webhook signature to the payload it first
+-- came with (both hashed), and returns the payload it is tied to: the one
+-- already there while it is current, this one otherwise. In one statement,
+-- so of two requests with the same token at once, the second gets the
+-- first one's payload.
+INSERT INTO webhook_tokens AS w (scope, token_hash, payload_hash, expires_at)
+VALUES (@scope, @token_hash, @payload_hash, @expires_at)
+ON CONFLICT (scope, token_hash) DO UPDATE SET
+    payload_hash = CASE WHEN w.expires_at < @now::timestamptz THEN excluded.payload_hash ELSE w.payload_hash END,
+    expires_at   = CASE WHEN w.expires_at < @now::timestamptz THEN excluded.expires_at ELSE w.expires_at END
+RETURNING payload_hash;
+
+-- name: IngestPurgeTokens :execrows
+DELETE FROM webhook_tokens WHERE expires_at < @before;

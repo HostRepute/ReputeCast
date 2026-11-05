@@ -90,7 +90,7 @@ func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []by
 	if err != nil {
 		return err
 	}
-	return replays.Check(pl.Signature.Token, canonical(pl.EventData), now())
+	return replays.Check(ctx, p.cfg.Tokens, "mailgun", pl.Signature.Token, canonical(pl.EventData), now())
 }
 
 // canonical re-encodes JSON with sorted keys and no spacing, so a

@@ -1818,6 +1818,12 @@ type Querier interface {
 	ImportRowsAfter(ctx context.Context, arg ImportRowsAfterParams) ([]ImportRow, error)
 	ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([]ImportStatusCountsRow, error)
 	IngestAddSuppression(ctx context.Context, arg IngestAddSuppressionParams) (uuid.UUID, error)
+	// Ties the one-time token of a webhook signature to the payload it first
+	// came with (both hashed), and returns the payload it is tied to: the one
+	// already there while it is current, this one otherwise. In one statement,
+	// so of two requests with the same token at once, the second gets the
+	// first one's payload.
+	IngestBindToken(ctx context.Context, arg IngestBindTokenParams) ([]byte, error)
 	// The provider event log: provider events (not ReputeCast's own opens and
 	// clicks), newest first, retained 90 days.
 	// The message's kind and automation step write its source label in a
@@ -1837,6 +1843,7 @@ type Querier interface {
 	IngestMessageByID(ctx context.Context, arg IngestMessageByIDParams) (IngestMessageByIDRow, error)
 	IngestMessageByProviderID(ctx context.Context, arg IngestMessageByProviderIDParams) (IngestMessageByProviderIDRow, error)
 	IngestPurgeRaw(ctx context.Context, before time.Time) (int64, error)
+	IngestPurgeTokens(ctx context.Context, before time.Time) (int64, error)
 	IngestSetContactStatus(ctx context.Context, arg IngestSetContactStatusParams) error
 	// Verified payloads the normalization job never finished (recovery sweep).
 	IngestStaleRaw(ctx context.Context, arg IngestStaleRawParams) ([]uuid.UUID, error)

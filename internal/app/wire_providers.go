@@ -35,7 +35,12 @@ func (a *App) providerFactory() *manage.Factory {
 	// the SSRF guard (metadata and link-local addresses are always refused).
 	// (The OpenAPI command registers operations on an App without config.)
 	guard := netguard.Policy{AllowPrivate: a.Cfg != nil && a.Cfg.Providers.AllowPrivateNetworks}
-	return &manage.Factory{Box: a.Secrets, HTTP: guard.Client(30 * time.Second), Dialer: guard.Dialer(15 * time.Second)}
+	f := &manage.Factory{Box: a.Secrets, HTTP: guard.Client(30 * time.Second), Dialer: guard.Dialer(15 * time.Second)}
+	if a.Q != nil {
+		// Webhook signatures' one-time tokens, where every process sees them.
+		f.Tokens = ingest.Tokens{Q: a.Q}
+	}
+	return f
 }
 
 func (a *App) providersService() *manage.Service {

@@ -27,6 +27,9 @@ type Factory struct {
 	HTTP *http.Client
 	// Dialer is the guarded dialer for raw connections (SMTP, IMAP, POP3).
 	Dialer *net.Dialer
+	// Tokens keeps webhook signatures' one-time tokens where every process
+	// sees them (providers.Config.Tokens); nil keeps them in memory.
+	Tokens providers.TokenStore
 }
 
 // CredentialsAD is the associated data sealing a provider's credentials.
@@ -45,7 +48,8 @@ func (f *Factory) Open(_ context.Context, p store.Provider) (providers.Provider,
 	if err != nil {
 		return nil, err
 	}
-	cfg := providers.Config{ProviderID: p.ID, WorkspaceID: p.WorkspaceID, Settings: p.Config, Credentials: creds, HTTPClient: f.client(), Dialer: f.Dialer}
+	cfg := providers.Config{ProviderID: p.ID, WorkspaceID: p.WorkspaceID, Settings: p.Config, Credentials: creds, HTTPClient: f.client(), Dialer: f.Dialer,
+		Tokens: f.Tokens}
 	if len(p.WebhookSecretEnc) > 0 {
 		s, err := f.Box.OpenString(p.WebhookSecretEnc, WebhookSecretAD(p))
 		if err != nil {
@@ -62,7 +66,8 @@ func (f *Factory) OpenWith(p store.Provider, creds json.RawMessage) (providers.P
 	if !ok || d.New == nil {
 		return nil, fmt.Errorf("adapter %q is not available in this build", p.Adapter)
 	}
-	cfg := providers.Config{ProviderID: p.ID, WorkspaceID: p.WorkspaceID, Settings: p.Config, Credentials: creds, HTTPClient: f.client(), Dialer: f.Dialer}
+	cfg := providers.Config{ProviderID: p.ID, WorkspaceID: p.WorkspaceID, Settings: p.Config, Credentials: creds, HTTPClient: f.client(), Dialer: f.Dialer,
+		Tokens: f.Tokens}
 	if len(p.WebhookSecretEnc) > 0 {
 		if s, err := f.Box.OpenString(p.WebhookSecretEnc, WebhookSecretAD(p)); err == nil {
 			cfg.WebhookSecret = s
