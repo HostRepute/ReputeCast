@@ -146,6 +146,14 @@ type Config struct {
 	HTTP *http.Client
 	// Now overrides the clock (tests).
 	Now func() time.Time
+	// Pin keeps a setting the adapter learned from the provider, only while
+	// the provider has none, and returns the value kept: the one already
+	// there when another request kept one first. AWS End User Messaging
+	// keeps the SNS topic of webhooks set up by hand this way, from the
+	// first subscription confirmation (trust on first use). Nil where
+	// nothing can be kept (the connection check, tests): the adapter then
+	// trusts nothing new.
+	Pin func(ctx context.Context, key, value string) (string, error)
 }
 
 // Value returns a setting or credential by key.
@@ -332,6 +340,13 @@ type SenderLister interface {
 type Webhooks struct {
 	StatusURL  string
 	InboundURL string
+	// Save keeps settings with the saved provider at once, while
+	// RegisterWebhooks runs, for what the webhook relies on before it
+	// returns: SNS asks the webhook to confirm a subscription as soon as it
+	// is made, and the webhook accepts only the topic already kept. Nil
+	// while connecting, before the provider is saved; WebhookSetup.Settings
+	// are kept with it either way.
+	Save func(ctx context.Context, settings map[string]string) error
 }
 
 // WebhookSetup is what registering webhooks produced.

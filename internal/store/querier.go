@@ -958,6 +958,10 @@ type Querier interface {
 	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error)
 	ConnectInsertProvider(ctx context.Context, arg ConnectInsertProviderParams) (Provider, error)
 	ConnectListNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Merges settings a provisioning step made into the provider's settings,
+	// key by key, in one statement: a step saves some while it runs (the SNS
+	// topic, before the webhook subscribes to it) and the rest when it ends.
+	ConnectMergeProviderConfig(ctx context.Context, arg ConnectMergeProviderConfigParams) error
 	ConnectMessage(ctx context.Context, arg ConnectMessageParams) (Message, error)
 	ConnectMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]DeliveryEvent, error)
 	ConnectProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
@@ -4283,11 +4287,19 @@ type Querier interface {
 	// The provider a webhook request is for.
 	SmsProviderByToken(ctx context.Context, arg SmsProviderByTokenParams) (SmsProvider, error)
 	SmsProviderInsert(ctx context.Context, arg SmsProviderInsertParams) error
+	// Merges settings into a provider's, key by key (the SNS topic registering
+	// the webhooks keeps before it subscribes to it).
+	SmsProviderMergeConfig(ctx context.Context, arg SmsProviderMergeConfigParams) error
+	// Keeps a setting an adapter learned from the provider only while the
+	// provider has none (the SNS topic of webhooks set up by hand, trusted on
+	// first use): of two requests at once, one keeps it.
+	SmsProviderPinSetting(ctx context.Context, arg SmsProviderPinSettingParams) (int64, error)
 	SmsProviderRegistrationsRead(ctx context.Context, arg SmsProviderRegistrationsReadParams) error
 	SmsProviderRemove(ctx context.Context, arg SmsProviderRemoveParams) error
 	SmsProviderSetCredentials(ctx context.Context, arg SmsProviderSetCredentialsParams) error
 	SmsProviderSetHealth(ctx context.Context, arg SmsProviderSetHealthParams) error
 	SmsProviderSetWebhooks(ctx context.Context, arg SmsProviderSetWebhooksParams) error
+	SmsProviderSetting(ctx context.Context, arg SmsProviderSettingParams) (string, error)
 	SmsProviderTouchInbound(ctx context.Context, arg SmsProviderTouchInboundParams) error
 	SmsProviderTouchReceipt(ctx context.Context, arg SmsProviderTouchReceiptParams) error
 	// SMS (internal/texting): providers, senders and their registrations,

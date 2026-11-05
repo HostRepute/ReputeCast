@@ -144,6 +144,23 @@ func (p *Provider) provisionTopic(ctx context.Context, in providers.ProvisionInp
 	if err != nil {
 		return providers.ProvisionResult{}, err
 	}
+	arns := append([]string{}, p.s.TopicARNs...)
+	if !contains(arns, topicARN) {
+		arns = append(arns, topicARN)
+	}
+	settings := map[string]any{"topic_arns": arns, "topic_arn": topicARN}
+	// SNS asks the webhook to confirm the subscription as soon as it is
+	// made, and the webhook trusts only the topics in the settings: the
+	// topic is saved first. (SNS doesn't retry a confirmation refused with
+	// a 4xx, so saving it with the step's result would come too late.)
+	if !contains(p.s.TopicARNs, topicARN) {
+		if in.Save == nil {
+			return providers.ProvisionResult{}, errors.New("ses: the SNS topic has to be saved before the webhook subscribes to it")
+		}
+		if err := in.Save(ctx, settings); err != nil {
+			return providers.ProvisionResult{}, err
+		}
+	}
 	proto := "https"
 	if strings.HasPrefix(in.WebhookURL, "http://") {
 		proto = "http"
@@ -153,11 +170,8 @@ func (p *Provider) provisionTopic(ctx context.Context, in providers.ProvisionInp
 		return providers.ProvisionResult{}, callError("sns:Subscribe", err)
 	}
 	p.dropSubscription(ctx, aws.ToString(sub.SubscriptionArn))
-	arns := append([]string{}, p.s.TopicARNs...)
-	if !contains(arns, topicARN) {
-		arns = append(arns, topicARN)
-	}
-	res := providers.ProvisionResult{Settings: map[string]any{"topic_arns": arns, "topic_arn": topicARN, "subscription_arn": aws.ToString(sub.SubscriptionArn)}}
+	settings["subscription_arn"] = aws.ToString(sub.SubscriptionArn)
+	res := providers.ProvisionResult{Settings: settings}
 	res.Done, res.DoneText = say(mDoneTopic, i18n.Args{"topic": name, "url": in.WebhookURL})
 	return res, nil
 }

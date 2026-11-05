@@ -112,6 +112,17 @@ monthly partitions if it isn't already; on a very large table run
 `reputecast migrate partition-events` first, at a quiet hour
 ([partitioning](partitioning.md)).
 
+SNS messages are trusted only from a provider's own topic, because SNS
+signs every AWS account's messages alike. Amazon SES connections have had
+theirs saved since they were connected. An AWS End User Messaging (SMS)
+provider whose webhook was set up by hand in AWS keeps, at the upgrade, the
+topic its verified events came from. If they came from several topics, or
+none came yet, its receipts and replies are refused until SNS confirms the
+subscription again: in the SNS console, delete the HTTPS subscription to
+ReputeCast's address and create it again (or use Register again on the
+provider, when its API can register webhooks). The first confirmation
+keeps its topic.
+
 A process whose database is missing migrations it needs serves read-only:
 pages and the API read as usual with a banner ("ReputeCast is being
 upgraded"), writes answer 503 `maintenance`, provider webhooks are still

@@ -379,6 +379,15 @@ func (p *Provider) RegisterWebhooks(ctx context.Context, hooks sms.Webhooks, sen
 		return sms.WebhookSetup{}, mapErr("topic", err)
 	}
 	arn := aws.ToString(topic.TopicArn)
+	// SNS asks the webhook to confirm the subscription as soon as it is
+	// made, and the webhook accepts only the topic kept with the provider:
+	// it is kept first. (SNS doesn't retry a confirmation refused with a
+	// 4xx.)
+	if hooks.Save != nil {
+		if err := hooks.Save(ctx, map[string]string{"topic_arn": arn}); err != nil {
+			return sms.WebhookSetup{}, err
+		}
+	}
 	if _, err := p.sns.Subscribe(ctx, &sns.SubscribeInput{TopicArn: aws.String(arn), Protocol: aws.String("https"), Endpoint: aws.String(hooks.StatusURL)}); err != nil {
 		return sms.WebhookSetup{}, mapErr("subscribe", err)
 	}

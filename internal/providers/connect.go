@@ -121,6 +121,12 @@ type ProvisionInput struct {
 	// Tenant names the workspace's own tenant at the provider when it has
 	// them (SES tenants, PR-11); empty for none.
 	Tenant string
+	// Save merges settings into the provider's settings at once, while the
+	// step runs, for what the provider relies on before the step ends: SNS
+	// asks the webhook to confirm a subscription as soon as it is made, and
+	// the webhook accepts only a topic already saved. A step's
+	// ProvisionResult.Settings are saved when it returns, as before.
+	Save func(ctx context.Context, settings map[string]any) error
 }
 
 // EventsQueue is ProvisionInput.Events for events that come through a

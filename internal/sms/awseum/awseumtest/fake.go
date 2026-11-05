@@ -81,6 +81,9 @@ func (f *Fake) Handler() http.Handler { return http.HandlerFunc(f.serve) }
 // Client serves the fake in process.
 func (f *Fake) Client() *http.Client { return smsfake.Client(f.Handler()) }
 
+// Requests lists the requests the fake received, in order.
+func (f *Fake) Requests() []smsfake.Recorded { return f.rec.Requests() }
+
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/x-amz-json-1.0")
 	w.WriteHeader(status)
@@ -239,7 +242,13 @@ func Notification(hookURL string, message any, at time.Time) (*http.Request, []b
 // SubscriptionConfirmation is SNS asking to confirm ReputeCast's
 // subscription; its link is answered by this fake.
 func SubscriptionConfirmation(hookURL string, at time.Time) (*http.Request, []byte) {
-	return post(hookURL, sign(awseum.Envelope{Type: "SubscriptionConfirmation", MessageID: "sub-1", Token: "tok", TopicArn: TopicARN,
+	return SubscriptionConfirmationOf(hookURL, TopicARN, at)
+}
+
+// SubscriptionConfirmationOf is SNS asking to confirm a subscription to
+// another topic, signed by SNS all the same.
+func SubscriptionConfirmationOf(hookURL, topicARN string, at time.Time) (*http.Request, []byte) {
+	return post(hookURL, sign(awseum.Envelope{Type: "SubscriptionConfirmation", MessageID: "sub-1", Token: "tok", TopicArn: topicARN,
 		Message: "You have chosen to subscribe to the topic.", SubscribeURL: "https://sns.us-east-1.amazonaws.com/confirm?Action=ConfirmSubscription&Token=tok",
 		Timestamp: at.UTC().Format("2006-01-02T15:04:05.000Z")}))
 }
