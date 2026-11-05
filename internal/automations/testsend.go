@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -40,12 +41,12 @@ type AutomationEmailPreview struct {
 
 // PreviewEmail renders an automation email as a contact gets it, its links
 // pointing nowhere.
-func (s *Service) PreviewEmail(ctx context.Context, ws *store.Workspace, id uuid.UUID, in AutomationEmailPreviewInput) (AutomationEmailPreview, error) {
+func (s *Service) PreviewEmail(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in AutomationEmailPreviewInput) (AutomationEmailPreview, error) {
 	links := map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"}
-	return s.renderEmail(ctx, ws, id, in, links)
+	return s.renderEmail(ctx, ws, p, id, in, links)
 }
 
-func (s *Service) renderEmail(ctx context.Context, ws *store.Workspace, id uuid.UUID, in AutomationEmailPreviewInput, links map[string]string) (AutomationEmailPreview, error) {
+func (s *Service) renderEmail(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in AutomationEmailPreviewInput, links map[string]string) (AutomationEmailPreview, error) {
 	out := AutomationEmailPreview{Problems: []string{}}
 	content, err := s.Email(ctx, ws, id, in.Version)
 	if err != nil {
@@ -54,12 +55,24 @@ func (s *Service) renderEmail(ctx context.Context, ws *store.Workspace, id uuid.
 	first, last, email := "", "", ""
 	var attrs map[string]any
 	if in.ContactID != "" {
+		// The email as a real contact gets it shows their name, address and
+		// fields: that needs subscribers:view, and a contact on the
+		// caller's lists when they're limited to some, as the campaign
+		// preview does. Without a contact the fallbacks show.
+		if !p.Can(authz.SubscribersView) {
+			return out, api.Forbidden(authz.SubscribersView, access.Helpers(ctx, s.Q, ws.ID, authz.SubscribersView))
+		}
 		cid, err := uuid.Parse(in.ContactID)
 		if err != nil {
 			return out, api.NotFound("Contact")
 		}
 		if _, err := s.Q.AutomationContactInWorkspace(ctx, store.AutomationContactInWorkspaceParams{WorkspaceID: ws.ID, ID: cid}); err != nil {
 			return out, api.MapError(err, "Contact")
+		}
+		if ok, err := access.ContactInScope(ctx, s.Q, p, cid); err != nil {
+			return out, err
+		} else if !ok {
+			return out, api.NotFound("Contact")
 		}
 		c, err := s.Q.AutomationContact(ctx, cid)
 		if err != nil {
@@ -129,7 +142,7 @@ func (s *Service) TestEmail(ctx context.Context, ws *store.Workspace, p *authz.P
 		"preferences_url":     s.URLs.Preferences(ws.Slug, "test"),
 		"view_in_browser_url": s.URLs.ViewOnline(ws.Slug, "test"),
 	}
-	pv, err := s.renderEmail(ctx, ws, id, in.AutomationEmailPreviewInput, links)
+	pv, err := s.renderEmail(ctx, ws, p, id, in.AutomationEmailPreviewInput, links)
 	if err != nil {
 		return AutomationEmailTestResult{}, err
 	}

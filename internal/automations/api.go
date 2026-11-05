@@ -473,7 +473,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.PreviewEmail(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			out, err := s.PreviewEmail(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "test-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}/test", Summary: "Send an email as a test through the System route (logged)",
