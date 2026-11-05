@@ -23,7 +23,7 @@ export function HostRepute() {
           <a href={links.hostrepute} className="btn">
             About HostRepute
           </a>
-          <a href={links.demoWithoutHostRepute} className="btn">
+          <a href={links.withoutHostRepute} className="btn">
             See what works without it
           </a>
         </div>

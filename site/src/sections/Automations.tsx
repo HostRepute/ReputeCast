@@ -17,8 +17,8 @@ export function Automations() {
           Automations you can watch.
         </h2>
         <p className="lead">
-          Build flows on a canvas: triggers, delays, emails, branches, A/B splits and goals. Every step shows live numbers from real events, and every email goes
-          through the same readiness checks and guarded routes as a campaign.
+          Build flows on a canvas: up to three triggers, delays, emails, texts, push and WhatsApp messages, branches, A/B splits and goals. Every step shows live
+          numbers from real events, and every email goes through the same readiness checks and guarded routes as a campaign.
         </p>
       </div>
       <div className="flex flex-wrap items-stretch gap-6">
@@ -35,11 +35,11 @@ export function Automations() {
             ))}
           </ol>
           <div className="mt-auto flex flex-wrap gap-2.5 pt-1.5">
-            <a href={links.demoFlowEditor} className="btn pri min-h-10">
-              Open the flow editor
+            <a href={links.flowEditor} className="btn pri min-h-10">
+              See the flow editor
             </a>
-            <a href={links.demoAutomations} className="btn min-h-10">
-              See automations
+            <a href="#install" className="btn min-h-10">
+              Install and try it
             </a>
           </div>
         </div>

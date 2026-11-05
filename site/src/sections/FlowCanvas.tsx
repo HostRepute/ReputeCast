@@ -18,9 +18,6 @@ const edges: Edge[] = [
   { id: 'e10', left: 601, top: 627, width: 2, height: 18 },
 ]
 
-/** Pulses p5 and p8 run along the horizontal branch edge. */
-const pulses = ['p1', 'p2', 'p3', 'p4', 'p5 h', 'p6', 'p7', 'p8 h', 'p9', 'p10', 'p11']
-
 function Node({
   id,
   left,
@@ -65,8 +62,8 @@ function Node({
 
 /**
  * The landing flow canvas: nodes draw in when the canvas scrolls into view
- * (or after 3.5 s), numbers count up, then one contact pulses through the
- * steps on an 11 s loop. The 760px stage scales to its card in CSS.
+ * (or after 3.5 s), numbers count up, then one contact moves through the
+ * steps on a 15 s loop. The 760px stage scales to its card in CSS.
  */
 export function FlowCanvas() {
   const wrap = useRef<HTMLDivElement>(null)
@@ -119,9 +116,7 @@ export function FlowCanvas() {
           aria-label="Animated automation flow: joined list, delay, welcome email, branch on opens, two follow-ups, goal and exit"
         >
           <div className={`flowstage${go ? ' go' : ''}`}>
-            {pulses.map((cls) => (
-              <span key={cls} className={`pu ${cls}`} aria-hidden="true" />
-            ))}
+            <span className="pu" aria-hidden="true" />
             {edges.map((e) => (
               <div key={e.id} className={`fe ${e.id}${e.h ? ' h' : ''}`} style={{ left: e.left, top: e.top, width: e.width, height: e.height }} />
             ))}

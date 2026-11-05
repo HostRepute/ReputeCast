@@ -1,9 +1,18 @@
+/// <reference types="node" />
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { act, StrictMode } from 'react'
 import { hydrateRoot } from 'react-dom/client'
 import { render as renderToString } from './entry-server'
 import { App } from './App'
+import { links } from './content/links'
+import { APP_LANGUAGE_NAMES } from './sections/AllFeatures'
 import { PLATFORMS } from './sections/Compare'
+import { HERO_COMMAND } from './sections/Hero'
+import { INSTALLED_LINE } from './sections/Install'
 import { formatStars } from './content/stars'
+
+const repoFile = (path: string) => readFileSync(join(import.meta.dirname, '../..', path), 'utf8')
 
 function prerendered(): HTMLDivElement {
   const root = document.createElement('div')
@@ -35,6 +44,42 @@ describe('the prerendered page', () => {
     const text = prerendered().textContent ?? ''
     expect(text).toContain('One command. Postgres and the app.')
     expect(text).not.toMatch(/redis/i)
+  })
+
+  it('gives install commands that run: Compose reads no compose file over HTTPS, so they download it first', () => {
+    const page = prerendered()
+    expect(page.textContent).not.toMatch(/docker compose -f https?:/)
+    expect(page.querySelector('pre.term')?.textContent).toBe(HERO_COMMAND.join('\n'))
+    expect(HERO_COMMAND[0]).toBe(`curl -fsSLO ${links.composeUrl} &&`)
+    expect(HERO_COMMAND[1]?.trim()).toBe('docker compose up -d')
+    const lines = [...page.querySelectorAll<HTMLElement>('pre.term .ln')]
+    expect(lines).toHaveLength(HERO_COMMAND.length)
+    for (const line of lines) {
+      expect(Number(line.style.getPropertyValue('--chars'))).toBe(line.querySelector('.typed')?.textContent?.length)
+    }
+    expect(page.querySelector('#install pre')?.textContent?.split('\n')[0]).toBe(`curl -fsSLO ${links.composeUrl}`)
+  })
+
+  it('finds the temporary password with the line the server prints after installing', () => {
+    expect(repoFile('internal/cli/install.go')).toContain(`"  ${INSTALLED_LINE}."`)
+    expect(prerendered().querySelector('#install pre')?.textContent).toContain(`docker compose logs app | grep -A4 "${INSTALLED_LINE}"`)
+  })
+
+  it('names every language the app ships in (web/src/i18n/languages.ts)', () => {
+    const source = repoFile('web/src/i18n/languages.ts')
+    const list = /export const APP_LANGUAGES[^=]*=\s*\[([\s\S]*?)\n\]/.exec(source)?.[1] ?? ''
+    const codes = [...list.matchAll(/code: '([a-z]+)'/g)].map((m) => m[1]!)
+    expect(codes.length).toBeGreaterThan(1)
+    const english = new Intl.DisplayNames('en', { type: 'language' })
+    expect([...APP_LANGUAGE_NAMES].sort()).toEqual(codes.map((c) => english.of(c)).sort())
+    expect(prerendered().textContent).toContain(`the app itself in ${APP_LANGUAGE_NAMES.slice(0, -1).join(', ')} and ${APP_LANGUAGE_NAMES.at(-1)}.`)
+  })
+
+  it('links only to the repository, the docs and HostRepute (there is no hosted demo or Discord server)', () => {
+    const page = prerendered()
+    const hosts = [...page.querySelectorAll('a[href^="http"]')].map((a) => new URL(a.getAttribute('href')!).host)
+    expect([...new Set(hosts)].sort()).toEqual(['docs.reputecast.com', 'github.com', 'hostrepute.com'])
+    for (const a of page.querySelectorAll('a[href^="#"]')) expect(page.querySelector(a.getAttribute('href')!)).not.toBeNull()
   })
 
   it('compares with paid platforms only, with the list-price caveat', () => {

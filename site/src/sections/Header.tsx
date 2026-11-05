@@ -35,8 +35,8 @@ export function Header() {
             <span className="when-playing">Pause motion</span>
             <span className="when-paused">Play motion</span>
           </button>
-          <a href={links.discord} className="btn min-h-10">
-            Discord
+          <a href={links.discussions} className="btn min-h-10">
+            Discussions
           </a>
           <a href={links.repo} className="btn dark min-h-10">
             <GitHubMark />

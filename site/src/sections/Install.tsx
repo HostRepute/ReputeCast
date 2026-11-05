@@ -2,26 +2,31 @@ import { useRef } from 'react'
 import { links } from '../content/links'
 import { useScrollable } from '../lib/scrollable'
 
-const commands = `curl -fsSL ${links.composeUrl} -o compose.yml
-docker compose up -d
-# open http://localhost:8080 `
+export const INSTALLED_LINE = 'ReputeCast is installed'
+
+const commands = `curl -fsSLO ${links.composeUrl}
+REPUTECAST_ADMIN_EMAIL=you@example.com docker compose up -d
+docker compose logs app | grep -A4 "${INSTALLED_LINE}"`
 
 /** The dark install band: one command, four steps, requirements. */
 export function Install() {
   const term = useRef<HTMLPreElement>(null)
   const scrollable = useScrollable(term)
   return (
-    <section className="bg-ink text-white" aria-labelledby="install-h">
+    <section className="bg-ink text-white" id="install" aria-labelledby="install-h">
       <div className="wrap flex flex-wrap items-center gap-10 pt-16 pb-16">
         <div className="reveal flex flex-[1_1_380px] flex-col gap-3.5">
           <h2 className="sec text-white" id="install-h">
             Install in one command
           </h2>
           {/* The compose file runs Postgres and the app; there is no Redis (River queues jobs in Postgres). */}
-          <p className="m-0 text-[17px] text-dark-muted">Docker Compose brings up Postgres, the app and the workers. Upgrades are one pull away. Backups are a pg_dump.</p>
+          <p className="m-0 text-[17px] text-dark-muted">
+            Docker Compose brings up Postgres, the app and the workers. Upgrades are one pull away. Back up with a pg_dump and the app&apos;s data volume, which
+            holds the secret key and uploads.
+          </p>
           <ol className="m-0 flex flex-col gap-1.5 pl-5 text-[15px] text-dark-text">
-            <li>Run the compose command.</li>
-            <li>Open localhost:8080 and create the owner account.</li>
+            <li>Download the compose file and start it with your email for the first Owner.</li>
+            <li>Open localhost:8080 and sign in with the temporary password from the logs.</li>
             <li>
               Connect a sending provider: most take 10–15 minutes, DNS included. Amazon SES takes longer when ReputeCast doesn&apos;t run on AWS, and a new AWS
               account can wait up to 24 hours for production access.
@@ -48,7 +53,10 @@ export function Install() {
               Releases
             </a>
           </div>
-          <span className="text-[13px] text-ink-4">Requirements: Docker 24+, 2 vCPU, 4 GB RAM, a domain you control. Helm chart and bare-metal guides in the docs.</span>
+          <span className="text-[13px] text-ink-4">
+            Requirements: Docker 24+ with Compose and a domain you control. Load-tested with a million contacts on 4 vCPUs; the docs cover the binary, TLS,
+            Postgres, backups and scaling.
+          </span>
         </div>
       </div>
     </section>

@@ -27,8 +27,9 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
   full-page state, sidebar / icon rail / phone tab bar, top bar with tools
   (bell, user menu), workspace switcher.
 - Motion: entrance rise, badge pop, bar grow, counters, auto-pause pulse,
-  live pulse, flow "pulse through steps" (automations, landing), landing
-  hero typing/marquee/scan; all disabled by `prefers-reduced-motion`.
+  live pulse, flow "pulse through steps" (automations), the landing's
+  contact moving step to step, landing hero typing/marquee/scan; all
+  disabled by `prefers-reduced-motion`.
 
 ## Boards by page
 
@@ -576,6 +577,14 @@ These boards changed or are new; the canvas carries them.
 | `InstanceBotFilter`, `InstanceBotFilterDialogs`, `InstanceBotFilterPhone`, `InstanceBotFilterTablet` (new); a Bot filter tab on `AuditInstance`, `InstanceAuth`, `InstanceSettings`, `InstanceUserDialogs`, `InstanceUsers`, `SSOSetup`, `SSOStates` | Instance admins edit the bot filter's user agents and networks; built-in entries are folded under one line; an added user agent is a machine (a scanner) or a person's device | R5.L2 |
 
 Deliberate differences are #556 onwards below.
+
+### Landing refresh after 1.4.0
+
+The landing page caught up with releases 1.1 to 1.4, and the board with it.
+
+| Boards | Change |
+|---|---|
+| `Landing`, `LandingTablet`, `LandingPhone` | The hero's command downloads the compose file and then starts it, on two lines typed one after the other (Docker Compose can't read a compose file over HTTPS, so `docker compose -f https://…` never ran); the hero note and the install steps say the first Owner signs in with the temporary password from the logs; GitHub Discussions instead of a Discord invite that doesn't exist, the README's screenshots and the documentation site (docs.reputecast.com) instead of a hosted demo that doesn't exist, and the documentation site for Docs, the install guide and the adapter SDK; sixteen feature cards (transactional email, SMS, web push and WhatsApp, grow and earn, the website and shop, languages, privacy, teams and agencies, API, MCP and integrations); the pillars say eight built-in blocklists (84 with HostRepute); the comparison no longer says ReputeCast has no SMS or push; the requirements drop the Helm chart, which doesn't exist; the flow canvas's pulse became one contact that hops from handle to handle while the step it is in glows, down Yes and then (lighter) down No |
 
 ## Conflicts between the design and the spec
 
@@ -1186,3 +1195,4 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 613 | Post titles in the site's lists and a post's own headings | The boards draw the archive's and a tag's post titles as h3, and show a post's body as written | Same look | The archive, a tag and the "gone" page give their post titles h2, under the page's h1 (the home page keeps h3 under its sections' h2). A post's headings follow the page's outline from h2 without skipping a level; one whose level changed keeps the author's size (`data-h`). |
 | 614 | A poll on a post's web version | The boards don't draw an email's poll on the web | — | Left out, as the footer and the view-online line are: each answer is the recipient's own link. The Web checks list it as "Poll (answered from the email)". |
 | 615 | The erase dialog's note on suppressions (review 2026-11 DP-1) | `Dialogs` (Erase 3 contacts?) said erased addresses stay on the suppression list, so an erased contact is never emailed again | DP-1 and the M41 plan keep the suppressions an address already has and add none: adding one would keep the address of someone who asked to be erased, and a form refuses a suppressed address | The board and the dialog now say that addresses already on the suppression list stay there, so a contact who unsubscribed, bounced or complained is still never emailed after an erase. |
+| 616 | Landing calls to action | GitHub Discussions in the header, the hero and the footer | Spec §8: GitHub and Discord calls to action | ReputeCast has no Discord server (the invite never existed), and SUPPORT.md sends questions to Discussions. The site and the board link to Discussions until there is a server. |

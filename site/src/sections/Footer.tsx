@@ -3,7 +3,7 @@ import { links } from '../content/links'
 
 const footerLinks = [
   { href: links.repo, label: 'GitHub' },
-  { href: links.discord, label: 'Discord' },
+  { href: links.discussions, label: 'Discussions' },
   { href: links.docs, label: 'Docs' },
   { href: links.adapterSdk, label: 'Adapter SDK' },
   { href: links.hostrepute, label: 'HostRepute' },

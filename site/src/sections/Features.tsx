@@ -2,17 +2,17 @@ const pillars = [
   {
     badge: 'Before you send',
     title: 'Send Readiness',
-    text: "Blocklists across 80+ sources, SPF/DKIM/DMARC/BIMI against each provider's required records, spam triggers, Gmail's clipping limit, broken and blocklisted links, one-click unsubscribe, audience quality and routing health. Every check is Pass, Warn or Block, with a fix.",
+    text: "Eight major blocklists built in (84 with HostRepute), SPF/DKIM/DMARC/BIMI against each provider's required records, spam triggers, Gmail's clipping limit, broken links and link domains looked up live, Gmail and Yahoo sender rules, one-click unsubscribe, audience quality and routing health. Every check is Pass, Warn or Block, with a fix.",
   },
   {
     badge: 'While you send',
     title: 'Guarded sending',
-    text: 'Live delivered, bounced and complained counts per mailbox provider and per sending provider. Bounces or complaints over your thresholds pause the campaign, or just one route, and ReputeCast explains what happened and offers resume, adjust, fail over or cancel.',
+    text: 'Live delivered, bounced and complained counts per mailbox provider and per sending provider. Bounces, deferrals or complaints over your thresholds slow or pause the campaign, or just one route, and ReputeCast explains what happened and offers resume, adjust, fail over or cancel. New domains and IPs start with a canary.',
   },
   {
     badge: 'Any provider, several at once',
     title: 'Pluggable sending providers',
-    text: 'Built-in adapters for SES, Mailgun, SendGrid, Postmark, Resend, SparkPost, Mailjet, Brevo, Azure, Postal and SMTP. Weighted splits for warm-up and migration, automatic failover, one shared suppression list, and an adapter SDK for anything else.',
+    text: 'Built-in adapters for SES, Mailgun, SendGrid, Postmark, Resend, SparkPost, Mailjet, Brevo, Azure, Postal and SMTP. Weighted splits, warm-up caps enforced as mail goes out, failover only to a provider that passes its checks, one shared suppression list, and an adapter SDK for anything else.',
   },
 ]
 
