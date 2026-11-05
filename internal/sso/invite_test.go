@@ -33,9 +33,9 @@ func memberOf(t *testing.T, env *apptest.Env, email, slug string) int {
 }
 
 // An invitation for an email that already has an account can't be taken
-// over with someone's identity provider account (review 2026-11 H3): the
-// IdP's email proves nothing about the account (Microsoft's isn't even
-// verified). The person signs in first, then accepts.
+// over with someone's identity provider account: the IdP's email proves
+// nothing about the account (Microsoft's isn't even verified). The person
+// signs in first, then accepts.
 func TestInvitationForAnExistingAccountNeedsItsOwnSignIn(t *testing.T) {
 	env, admin := setup(t)
 	google, ms := socialInvites(t, admin)
