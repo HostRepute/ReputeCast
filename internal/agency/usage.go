@@ -2,7 +2,6 @@ package agency
 
 import (
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -560,7 +560,7 @@ func (s *Service) ExportUsage(ctx context.Context, month string, w io.Writer) er
 // writeUsageCSV writes one row per client and channel; the rate and what
 // to rebill are the client's and repeat on each of its rows.
 func writeUsageCSV(w io.Writer, view AgencyUsageView) error {
-	cw := csv.NewWriter(w)
+	cw := csvexport.NewWriter(w)
 	if err := cw.Write([]string{"client", "workspace", "month", "partial", "channel", "units", "unit", "provider_cost_usd", "rebill_rate", "to_rebill_usd"}); err != nil {
 		return err
 	}

@@ -3,13 +3,13 @@ package revenue
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -20,7 +20,7 @@ const exportMax = 100_000
 // (review 2026-11 EA-2). Audited.
 func (s *Service) ExportConversions(ctx context.Context, ws *store.Workspace) ([]byte, int, error) {
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"received_at", "occurred_at", "name", "value", "currency", "matched_by", "credited_kind", "credited_to", "key", "test"})
 	rows := 0
 	q := ConversionsQuery{Limit: 200}

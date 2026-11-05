@@ -2,7 +2,6 @@ package verification
 
 import (
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -1069,7 +1069,7 @@ func (s *Service) ResultsCSV(ctx context.Context, ws *store.Workspace, id uuid.U
 		return nil, "", err
 	}
 	var b strings.Builder
-	w := csv.NewWriter(&b)
+	w := csvexport.NewWriter(&b)
 	_ = w.Write([]string{"email", "result", "reason", "service_code", "checked_at"})
 	for _, r := range rows {
 		at := ""

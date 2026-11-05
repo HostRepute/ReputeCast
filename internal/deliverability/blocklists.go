@@ -3,12 +3,12 @@ package deliverability
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -126,7 +126,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace) ([]byte, erro
 		return nil, err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"section", "asset", "check", "status", "detail", "since", "checked_at"})
 	ts := func(t *time.Time) string {
 		if t == nil {

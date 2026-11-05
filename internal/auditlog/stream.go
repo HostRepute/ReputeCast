@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +18,7 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
@@ -76,9 +76,9 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, f Filter, for
 	p.Lim = 1000
 	p.CursorAt, p.CursorID = nil, nil
 	bw := bufio.NewWriterSize(w, 64<<10)
-	var cw *csv.Writer
+	var cw *csvexport.Writer
 	if format == "csv" {
-		cw = csv.NewWriter(bw)
+		cw = csvexport.NewWriter(bw)
 		_ = cw.Write([]string{"occurred_at", "actor_type", "actor_name", "actor_id", "action", "target_type", "target_id", "target_name", "result", "reason", "summary", "ip", "user_agent", "request_id", "before", "after"})
 	} else {
 		_, _ = bw.WriteString("[\n")

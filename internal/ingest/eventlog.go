@@ -3,7 +3,6 @@ package ingest
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"strconv"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -157,7 +157,7 @@ func (e *EventLog) Export(ctx context.Context, ws *store.Workspace, f LogFilter)
 		return nil, err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"received_at", "occurred_at", "sending_provider", "raw_event", "normalized", "original_code", "diagnostic", "bounce_class", "recipient", "provider_message_id", "source"})
 	for _, r := range rows {
 		ev := eventOf(i18n.Default, r, !full)

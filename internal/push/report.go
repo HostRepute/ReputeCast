@@ -3,7 +3,6 @@ package push
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"slices"
 	"strconv"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -218,7 +218,7 @@ func (s *Service) ReportCSV(ctx context.Context, ws *store.Workspace, id uuid.UU
 		return nil, "", err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"group", "name", "sent", "shown", "shown_rate", "clicks"})
 	for _, b := range r.ByBrowser {
 		_ = w.Write([]string{"browser", b.Browser, strconv.FormatInt(b.Sent, 10), strconv.FormatInt(b.Shown, 10), strconv.FormatFloat(b.ShownPct, 'f', 1, 64),

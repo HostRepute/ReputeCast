@@ -3,7 +3,6 @@ package earn
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/payments"
@@ -787,7 +787,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	names := s.listNamer(ctx, ws.ID)
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"email", "name", "tier", "period", "price", "currency", "status", "cancels_on", "member_since", "renews_or_ends", "lifetime_value", "source", "test"})
 	n := 0
 	for rows.Next() {

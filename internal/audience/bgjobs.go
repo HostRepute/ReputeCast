@@ -3,7 +3,6 @@ package audience
 import (
 	"bufio"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/segments"
@@ -346,7 +346,7 @@ func (s *Service) runExport(ctx context.Context, ws *store.Workspace, row store.
 	}
 	defer func() { _ = f.Close() }()
 	buf := bufio.NewWriterSize(f, 64<<10)
-	w := csv.NewWriter(buf)
+	w := csvexport.NewWriter(buf)
 	if row.AfterID == nil {
 		_ = w.Write(exportHeader(fields))
 	}
@@ -408,7 +408,7 @@ func exportHeader(fields []store.CustomField) []string {
 }
 
 // writeExportRows writes the contacts ids as CSV rows, in id order.
-func (s *Service) writeExportRows(ctx context.Context, w *csv.Writer, fields []store.CustomField, ids []uuid.UUID) (int, error) {
+func (s *Service) writeExportRows(ctx context.Context, w *csvexport.Writer, fields []store.CustomField, ids []uuid.UUID) (int, error) {
 	rows, err := s.Pool.Query(ctx, `SELECT c.email, c.first_name, c.last_name, c.company, c.country, c.timezone, c.language, c.tier, c.consent,
 		c.mailbox_provider, c.source, c.created_at, c.last_open_at, c.last_click_at, c.tags, c.attributes,
 		coalesce((SELECT string_agg(l.name, '; ' ORDER BY l.created_at) FROM list_memberships lm JOIN lists l ON l.id = lm.list_id
@@ -435,7 +435,7 @@ func (s *Service) writeExportRows(ctx context.Context, w *csv.Writer, fields []s
 		for _, f := range fields {
 			rec = append(rec, attrString(a[f.Key]))
 		}
-		if err := w.Write(csvSafe(rec...)); err != nil {
+		if err := w.Write(rec); err != nil {
 			return n, err
 		}
 		n++

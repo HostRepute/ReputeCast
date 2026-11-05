@@ -17,6 +17,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -690,7 +691,7 @@ func (s *Service) ExportSuppressions(ctx context.Context, ws *store.Workspace) (
 	}
 	defer rows.Close()
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"email", "reason", "scope", "source", "source_provider", "original_code", "campaign_or_flow", "suppressed_at"})
 	n := 0
 	for rows.Next() {
@@ -699,7 +700,7 @@ func (s *Service) ExportSuppressions(ctx context.Context, ws *store.Workspace) (
 		if err := rows.Scan(&email, &reason, &scope, &source, &prov, &code, &ctxName, &at); err != nil {
 			return nil, 0, err
 		}
-		_ = w.Write(csvSafe(email, reason, scope, source, prov, code, ctxName, at.UTC().Format(time.RFC3339)))
+		_ = w.Write([]string{email, reason, scope, source, prov, code, ctxName, at.UTC().Format(time.RFC3339)})
 		n++
 	}
 	if err := rows.Err(); err != nil {
@@ -708,18 +709,6 @@ func (s *Service) ExportSuppressions(ctx context.Context, ws *store.Workspace) (
 	w.Flush()
 	err = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "suppressions.export", TargetType: "suppression_list", Metadata: map[string]any{"rows": n}})
 	return buf.Bytes(), n, err
-}
-
-// csvSafe neutralizes values a spreadsheet would run as a formula.
-func csvSafe(vals ...string) []string {
-	out := make([]string, len(vals))
-	for i, v := range vals {
-		if v != "" && strings.ContainsRune("=+-@\t\r", rune(v[0])) {
-			v = "'" + v
-		}
-		out[i] = v
-	}
-	return out
 }
 
 // SuppressionUploadResult reports a CSV upload of addresses.

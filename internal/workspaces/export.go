@@ -3,7 +3,6 @@ package workspaces
 import (
 	"archive/zip"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -112,7 +112,7 @@ func (s *Service) csvFile(ctx context.Context, zw *zip.Writer, name string, head
 	if err != nil {
 		return err
 	}
-	cw := csv.NewWriter(f)
+	cw := csvexport.NewWriter(f)
 	if err := cw.Write(header); err != nil {
 		return err
 	}

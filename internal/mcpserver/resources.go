@@ -3,7 +3,6 @@ package mcpserver
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -83,7 +83,7 @@ func (s *Service) addResources(srv *mcp.Server) {
 			}
 			defer rows.Close()
 			var buf bytes.Buffer
-			w := csv.NewWriter(&buf)
+			w := csvexport.NewWriter(&buf)
 			_ = w.Write([]string{"sending_provider", "mailbox_provider", "sent", "delivered", "human_opens", "machine_opens", "clicks", "bounces", "complaints", "unsubscribes"})
 			for rows.Next() {
 				var prov, box string
