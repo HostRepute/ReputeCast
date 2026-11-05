@@ -1,7 +1,9 @@
 package authz
 
 import (
+	"encoding/json"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/google/uuid"
@@ -188,5 +190,57 @@ func TestScopeWithin(t *testing.T) {
 	}
 	if !(Scope{Lists: []uuid.UUID{weekly}}).Within(Scope{}) {
 		t.Fatal("anything is within an unscoped parent")
+	}
+}
+
+// A key's scope at request time is the narrower of its own and its
+// creator's. Empty means every list or domain; two scopes that share
+// nothing leave nothing, never everything.
+func TestScopeIntersect(t *testing.T) {
+	beta, weekly, digest := uuid.New(), uuid.New(), uuid.New()
+	cases := []struct {
+		name      string
+		key, mine Scope
+		lists     []uuid.UUID
+		domains   []string
+	}{
+		{"both unrestricted", Scope{}, Scope{}, nil, nil},
+		{"the creator was narrowed", Scope{}, Scope{Lists: []uuid.UUID{beta}}, []uuid.UUID{beta}, nil},
+		{"the key is narrower", Scope{Lists: []uuid.UUID{beta}}, Scope{}, []uuid.UUID{beta}, nil},
+		{"they share one list", Scope{Lists: []uuid.UUID{beta, weekly}}, Scope{Lists: []uuid.UUID{weekly, digest}}, []uuid.UUID{weekly}, nil},
+		{"they share no list", Scope{Lists: []uuid.UUID{beta}}, Scope{Lists: []uuid.UUID{digest}}, []uuid.UUID{NoList}, nil},
+		{"nothing stays nothing", Scope{Lists: []uuid.UUID{NoList}}, Scope{}, []uuid.UUID{NoList}, nil},
+		{"nothing within a list", Scope{Lists: []uuid.UUID{NoList}}, Scope{Lists: []uuid.UUID{beta}}, []uuid.UUID{NoList}, nil},
+		{"domains, whatever their case", Scope{SenderDomains: []string{"news.acme.io", "acme.io"}}, Scope{SenderDomains: []string{"ACME.io"}}, nil, []string{"acme.io"}},
+		{"no domain in common", Scope{SenderDomains: []string{"news.acme.io"}}, Scope{SenderDomains: []string{"acme.io"}}, nil, []string{NoSenderDomain}},
+		{"lists and domains apart", Scope{Lists: []uuid.UUID{beta}}, Scope{SenderDomains: []string{"acme.io"}}, []uuid.UUID{beta}, []string{"acme.io"}},
+	}
+	for _, c := range cases {
+		got := c.key.Intersect(c.mine)
+		if !slices.Equal(got.Lists, c.lists) || !slices.Equal(got.SenderDomains, c.domains) {
+			t.Errorf("%s: got %+v", c.name, got)
+		}
+		if back := c.mine.Intersect(c.key); back.IsZero() != got.IsZero() || len(back.Lists) != len(got.Lists) || len(back.SenderDomains) != len(got.SenderDomains) {
+			t.Errorf("%s: the other way round: %+v", c.name, back)
+		}
+	}
+	// What nothing allows: no list and no domain. It is within any scope,
+	// and it is never mistaken for everything.
+	none := Scope{Lists: []uuid.UUID{beta}}.Intersect(Scope{Lists: []uuid.UUID{digest}})
+	if none.IsZero() || none.AllowsList(beta) || none.AllowsList(digest) || none.AllowsList(NoList) || !none.Within(Scope{Lists: []uuid.UUID{weekly}}) {
+		t.Fatalf("nothing: %+v", none)
+	}
+	if (Scope{}).Within(none) || (Scope{Lists: []uuid.UUID{beta}}).Within(none) {
+		t.Fatal("only nothing is within nothing")
+	}
+	noDomain := Scope{SenderDomains: []string{"a.io"}}.Intersect(Scope{SenderDomains: []string{"b.io"}})
+	if noDomain.AllowsSenderDomain("a.io") || noDomain.AllowsSenderDomain(NoSenderDomain) || noDomain.AllowsSenderDomain("") {
+		t.Fatalf("no domain: %+v", noDomain)
+	}
+	// It survives JSON, as a background job's actor stores it.
+	b, _ := json.Marshal(none)
+	var back Scope
+	if err := json.Unmarshal(b, &back); err != nil || back.IsZero() || back.AllowsList(beta) {
+		t.Fatalf("round trip: %s %+v %v", b, back, err)
 	}
 }

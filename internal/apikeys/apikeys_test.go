@@ -183,6 +183,96 @@ func TestKeyEscalation(t *testing.T) {
 	v.Do("GET", ws+"/api-keys", nil).MustStatus(t, 403)
 }
 
+// A key's lists are its own scope narrowed to its creator's as it is now:
+// Eve made a key, then was narrowed to Beta Program only, and the key reads
+// Beta Program only. Narrowed to a list the key never had, it reads no
+// contact at all, not every contact.
+func TestKeyScopeFollowsItsCreator(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+	linh.Do("POST", ws+"/roles", map[string]any{"name": "Key maker", "permissions": []string{"apikeys:manage", "subscribers:view"}}).MustStatus(t, 201)
+	role, err := env.App.Q.GetRoleByKey(ctx, store.GetRoleByKeyParams{WorkspaceID: w.ID, Key: "key-maker"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u := env.CreateUser(apptest.UserOpts{Email: "eve@acme.io", Name: "Eve Keys"})
+	if _, err := env.App.Q.CreateMember(ctx, store.CreateMemberParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: w.ID, UserID: u.ID, RoleID: role.ID, Scope: json.RawMessage(`{}`), Source: "invite"}); err != nil {
+		t.Fatal(err)
+	}
+	lists := map[string]string{}
+	rows, err := env.App.Q.TeamWorkspaceLists(ctx, w.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range rows {
+		lists[l.Name] = l.ID.String()
+	}
+	beta, digest := lists["Beta Program"], lists["Weekly Digest"]
+	if beta == "" || digest == "" {
+		t.Fatalf("lists: %v", lists)
+	}
+	narrow := func(list string) {
+		t.Helper()
+		scope := `{}`
+		if list != "" {
+			scope = `{"lists":["` + list + `"]}`
+		}
+		if _, err := env.App.Pool.Exec(ctx, `UPDATE workspace_members SET scope = $2 WHERE user_id = $1`, u.ID, scope); err != nil {
+			t.Fatal(err)
+		}
+	}
+	type page struct {
+		Total int64
+		Items []struct{ Email string }
+	}
+	total := func(c *apptest.Client, query string) int64 {
+		t.Helper()
+		var p page
+		c.Do("GET", ws+"/contacts?pageSize=1&exact=true"+query, nil).MustStatus(t, 200).JSON(t, &p)
+		return p.Total
+	}
+	all := total(linh, "")
+	eve := env.Client()
+	eve.SignInDemo("eve@acme.io")
+	var k, scoped created
+	eve.Do("POST", ws+"/api-keys", map[string]any{"name": "Eve's reader", "permissions": []string{"subscribers:view"}}).MustStatus(t, 201).JSON(t, &k)
+	eve.Do("POST", ws+"/api-keys", map[string]any{"name": "Eve's digest reader", "permissions": []string{"subscribers:view"}, "lists": []string{digest}}).MustStatus(t, 201).JSON(t, &scoped)
+	key, digestKey := env.Client(), env.Client()
+	key.Bearer, digestKey.Bearer = k.Secret, scoped.Secret
+	if got := total(key, ""); got != all {
+		t.Fatalf("before: the key reads %d contacts, want %d", got, all)
+	}
+
+	// Narrowed, Eve reads Beta Program's contacts, and so does her key.
+	narrow(beta)
+	inBeta := total(eve, "")
+	if inBeta == 0 || inBeta >= all {
+		t.Fatalf("Eve narrowed to Beta Program reads %d of %d contacts", inBeta, all)
+	}
+	if got := total(key, ""); got != inBeta {
+		t.Fatalf("Eve narrowed to Beta Program: the key reads %d contacts, want %d", got, inBeta)
+	}
+	// The digest key and Eve share no list now: it reads nothing.
+	if got := total(digestKey, ""); got != 0 {
+		t.Fatalf("no list in common: the key reads %d contacts, want 0", got)
+	}
+	// Widening Eve again gives the keys back what they had.
+	narrow("")
+	if got := total(key, ""); got != all {
+		t.Fatalf("Eve widened again: %d, want %d", got, all)
+	}
+	if got := total(digestKey, ""); got == 0 || got >= all {
+		t.Fatalf("Eve widened again: the digest key reads %d of %d contacts", got, all)
+	}
+}
+
 func TestClientLabel(t *testing.T) {
 	for ua, want := range map[string]string{
 		"GitHub-Actions-Runner/2.319": "GitHub Actions runner",

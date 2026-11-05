@@ -241,6 +241,56 @@ func TestAgentOfDeactivatedCreator(t *testing.T) {
 	}
 }
 
+// An agent's lists are its own scope narrowed to its creator's as it is
+// now: Linh narrowed to Beta Program only, and her agent finds Beta
+// Program's contacts only.
+func TestAgentScopeFollowsItsCreator(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var agent struct{ Secret string }
+	c.Do("POST", ws+"/mcp-agents", map[string]any{"name": "Contact finder", "permissions": []string{"subscribers:view"}}).MustStatus(t, 201).JSON(t, &agent)
+	ctx := context.Background()
+	var beta, inBeta, outside string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT l.id::text FROM lists l JOIN workspaces w ON w.id = l.workspace_id WHERE w.slug = 'acme-newsletter' AND l.name = 'Beta Program'`).Scan(&beta); err != nil {
+		t.Fatal(err)
+	}
+	if err := env.App.Pool.QueryRow(ctx, `SELECT c.email FROM contacts c JOIN list_memberships lm ON lm.contact_id = c.id
+		WHERE lm.list_id = $1 AND c.erased_at IS NULL ORDER BY c.email LIMIT 1`, beta).Scan(&inBeta); err != nil {
+		t.Fatal(err)
+	}
+	if err := env.App.Pool.QueryRow(ctx, `SELECT c.email FROM contacts c JOIN workspaces w ON w.id = c.workspace_id
+		WHERE w.slug = 'acme-newsletter' AND c.erased_at IS NULL AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id)
+		  AND NOT EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id AND lm.list_id = $1) ORDER BY c.email LIMIT 1`, beta).Scan(&outside); err != nil {
+		t.Fatal(err)
+	}
+	found := func(email string) bool {
+		t.Helper()
+		// Each connection checks the token again, so a new session sees changes.
+		cs, err := connect(t, env, agent.Secret)
+		if err != nil {
+			t.Fatalf("connect: %v", err)
+		}
+		defer func() { _ = cs.Close() }()
+		res, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "search_contacts", Arguments: map[string]any{"query": email}})
+		if err != nil || res.IsError {
+			t.Fatalf("search %s: %v %s", email, err, text(res))
+		}
+		return strings.Contains(strings.ToLower(text(res)), strings.ToLower(email))
+	}
+	if !found(inBeta) || !found(outside) {
+		t.Fatalf("before: the agent finds contacts on every list (%s, %s)", inBeta, outside)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE workspace_members m SET scope = jsonb_build_object('lists', jsonb_build_array($1::text))
+		FROM users u WHERE u.id = m.user_id AND u.email = 'linh@acme.io'`, beta); err != nil {
+		t.Fatal(err)
+	}
+	if !found(inBeta) || found(outside) {
+		t.Fatal("Linh narrowed to Beta Program: her agent finds Beta Program's contacts only")
+	}
+}
+
 // create_segment validates the definition before storing it.
 func TestCreateSegmentValidatesDefinition(t *testing.T) {
 	env := apptest.New(t)

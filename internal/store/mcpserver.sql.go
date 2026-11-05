@@ -838,7 +838,7 @@ SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.created_at,
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.erased_at IS NULL
   AND (c.email ILIKE '%' || $2::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || $2::text || '%')
-  AND (cardinality($3::uuid[]) = 0 OR EXISTS (
+  AND (coalesce(cardinality($3::uuid[]), 0) = 0 OR EXISTS (
         SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id AND lm.list_id = ANY($3::uuid[])))
 ORDER BY c.email
 LIMIT $4
