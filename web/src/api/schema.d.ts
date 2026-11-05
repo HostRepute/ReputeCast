@@ -45762,6 +45762,7 @@ export interface components {
         WebhookDeliveryDetail: {
             delivery: components["schemas"]["WebhookDeliveryView"];
             payload: unknown;
+            payloadHidden?: string;
             /** @description First kilobyte of the endpoint's last response */
             response: string;
         };
@@ -45862,6 +45863,7 @@ export interface components {
             lastStatus?: number;
             managedBy?: components["schemas"]["WebhookManagedBy"];
             name: string;
+            pausedReason?: string;
             /** Format: date-time */
             previousSecretUntil?: string;
             /**

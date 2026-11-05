@@ -95653,6 +95653,9 @@
             "$ref": "#/components/schemas/WebhookDeliveryView"
           },
           "payload": {},
+          "payloadHidden": {
+            "type": "string"
+          },
           "response": {
             "description": "First kilobyte of the endpoint's last response",
             "type": "string"
@@ -95988,6 +95991,9 @@
             "$ref": "#/components/schemas/WebhookManagedBy"
           },
           "name": {
+            "type": "string"
+          },
+          "pausedReason": {
             "type": "string"
           },
           "previousSecretUntil": {

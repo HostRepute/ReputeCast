@@ -44,7 +44,17 @@
   "problem.unknownEndpoint": "Endpoint desconocido.",
   "problem.unknownEvent": "Evento desconocido: {event}.",
   "problem.onlyFailed": "Solo se pueden reintentar las entregas fallidas.",
+  "problem.eventNeeds": "{event} lleva datos que no puedes ver en ReputeCast: necesita “{permission}”.{ask, select, yes { Pídeselo a {helpers}.} other {}}",
+  "problem.patternNeeds": "{pattern} incluye {event}, que lleva datos que no puedes ver en ReputeCast: necesita “{permission}”.{ask, select, yes { Pídeselo a {helpers}.} other {}}",
+  "problem.eventScope": "{event} lleva contactos de todas las listas, y tu acceso está limitado a algunas listas.",
+  "problem.patternScope": "{pattern} incluye {event}, que lleva contactos de todas las listas, y tu acceso está limitado a algunas listas.",
+
+  "paused.left": "ReputeCast pausó este endpoint: {name}, que lo configuró, ya no es un miembro activo, y el endpoint enviaba sus eventos en su nombre. Reanúdalo para enviarlos en tu nombre.",
+  "paused.lacks": "ReputeCast pausó este endpoint: {name}, que lo configuró, ya no puede ver lo que lleva {event} (“{permission}”). Reanúdalo para enviar sus eventos en tu nombre.",
+  "paused.scoped": "ReputeCast pausó este endpoint: el acceso de {name}, que lo configuró, ahora está limitado a algunas listas, y {event} lleva contactos de todas las listas. Reanúdalo para enviar sus eventos en tu nombre.",
 
   "delivery.demo": "Endpoint de demostración: ReputeCast nunca envía datos de demostración. Apúntalo a tu propia URL para recibir eventos.",
-  "delivery.invalidUrl": "URL no válida"
+  "delivery.invalidUrl": "URL no válida",
+  "delivery.payloadNeeds": "Esta entrega lleva datos que no puedes ver en ReputeCast, así que su contenido y la respuesta del endpoint quedan ocultos: necesita “{permission}”.",
+  "delivery.payloadScope": "Esta entrega lleva contactos de todas las listas, y tu acceso está limitado a algunas listas, así que su contenido y la respuesta del endpoint quedan ocultos."
 }

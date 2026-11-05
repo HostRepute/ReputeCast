@@ -1742,6 +1742,9 @@ type Querier interface {
 	// hour of failures, or when a delivery is given up on (review 2026-11
 	// IN-2). No row when there is nothing to tell.
 	HooksAlertFailing(ctx context.Context, arg HooksAlertFailingParams) (HooksAlertFailingRow, error)
+	// ReputeCast pauses a running endpoint whose events the person it sends
+	// for can no longer see; no row when it was paused already.
+	HooksAutoPause(ctx context.Context, arg HooksAutoPauseParams) (HooksAutoPauseRow, error)
 	// Endpoints with email.* events waiting to be folded into a batch (review
 	// 2026-11 EN-8), whether or not they still batch: a switched-off setting
 	// still sends what was waiting.
@@ -1774,6 +1777,8 @@ type Querier interface {
 	HooksReleaseHeld(ctx context.Context, webhookID uuid.UUID) ([]uuid.UUID, error)
 	// Retry now / Retry all failed / Replay: back to pending for an immediate attempt.
 	HooksRequeue(ctx context.Context, arg HooksRequeueParams) ([]uuid.UUID, error)
+	// A person pausing or resuming replaces ReputeCast's reason; a resumed
+	// endpoint sends for the person who resumed it (created_by).
 	HooksSetEnabled(ctx context.Context, arg HooksSetEnabledParams) error
 	// The new secret signs at once; the one it replaces keeps signing beside
 	// it until previous_until, so receivers can switch (review 2026-11 IN-1).
@@ -1783,8 +1788,12 @@ type Querier interface {
 	// Takes an endpoint's oldest waiting events, up to @lim, for one batch.
 	// RETURNING doesn't keep the order: the caller sorts by created_at, id.
 	HooksTakeBatch(ctx context.Context, arg HooksTakeBatchParams) ([]HooksTakeBatchRow, error)
-	// A demo endpoint stays one only while its address is unchanged.
+	// A demo endpoint stays one only while its address is unchanged. The
+	// endpoint sends for whoever set its events (created_by), so a reason
+	// ReputeCast paused it for no longer applies.
 	HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webhook, error)
+	// A claimed delivery that can't go waits with the endpoint's other events.
+	HooksWithhold(ctx context.Context, id uuid.UUID) error
 	// The sending domains an asset list is built from (with the records their
 	// providers require). Connected providers come from ProvListActive.
 	HostReputeAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeAssetSourcesRow, error)
@@ -2034,6 +2043,11 @@ type Querier interface {
 	// The webhooks a connection manages, with 24-hour delivery counts.
 	IntegrationWebhooks(ctx context.Context, integrationID uuid.UUID) ([]IntegrationWebhooksRow, error)
 	IntegrationWebhooksDeleteAll(ctx context.Context, integrationID uuid.UUID) ([]IntegrationWebhooksDeleteAllRow, error)
+	// The connection's managed endpoints send for the key's new owner too.
+	// Those ReputeCast paused because the old owner could no longer see their
+	// events run again: what waited is due at once, and the next delivery
+	// checks the new owner. Returns how many ran again.
+	IntegrationWebhooksTakeOver(ctx context.Context, arg IntegrationWebhooksTakeOverParams) (IntegrationWebhooksTakeOverRow, error)
 	IntegrationWorkflow(ctx context.Context, arg IntegrationWorkflowParams) (IntegrationWorkflow, error)
 	IntegrationWorkflowSeen(ctx context.Context, arg IntegrationWorkflowSeenParams) error
 	IntegrationWorkflows(ctx context.Context, arg IntegrationWorkflowsParams) ([]IntegrationWorkflow, error)

@@ -189,7 +189,9 @@ var Defs = described([]Def{
 	{Key: TeamManage, Group: g("team"), Sensitive: true, Implies: []Permission{TeamView, TeamInvite}},
 
 	{Key: APIKeysManage, Group: g("developer"), Sensitive: true},
-	{Key: WebhooksManage, Group: g("developer")},
+	// Like a key or an agent, an endpoint sends what its maker can see out
+	// of the workspace, every time it happens.
+	{Key: WebhooksManage, Group: g("developer"), Sensitive: true},
 	{Key: MCPManage, Group: g("developer"), Sensitive: true},
 
 	{Key: IntegrationsView, Group: g("integrations")},

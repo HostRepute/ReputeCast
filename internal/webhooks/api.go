@@ -73,7 +73,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Update(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			out, err := s.Update(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
 
@@ -102,7 +102,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			return api.NoContent, s.SetEnabled(ctx, api.WorkspaceFrom(ctx), id, false)
+			return api.NoContent, s.SetEnabled(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, false)
 		})
 
 	api.Post(h, api.Op{ID: "resume-webhook", Path: base + "/{webhookId}/resume", Summary: "Resume an endpoint and deliver what queued, in order", Tags: tags, Access: access, Status: 204},
@@ -111,7 +111,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			return api.NoContent, s.SetEnabled(ctx, api.WorkspaceFrom(ctx), id, true)
+			return api.NoContent, s.SetEnabled(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, true)
 		})
 
 	api.Post(h, api.Op{ID: "test-webhook", Path: base + "/{webhookId}/test", Summary: "Send a webhook.test event now and return the result", Tags: tags, Access: access},
