@@ -88,6 +88,11 @@ func (s *Service) Subscribe(ctx context.Context, ws *store.Workspace, p *authz.P
 			return IntegrationHook{}, api.Forbidden(need, access.Helpers(ctx, s.Q, ws.ID, need))
 		}
 	}
+	// A key limited to some lists can't take an event that carries every
+	// list's contacts.
+	if pr := webhooks.CheckEvents(ctx, s.Q, ws.ID, p, []string{event}); pr != nil {
+		return IntegrationHook{}, pr
+	}
 	u, err := s.policy().ValidateURL(in.URL)
 	if err != nil {
 		return IntegrationHook{}, s.refuseURL(ctx, err)

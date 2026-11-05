@@ -20,7 +20,9 @@ export function DeliveryDialog({ id, onClose }: { id: string; onClose: () => voi
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/webhooks/deliveries/{deliveryId}', { params: { path: { workspace: slug, deliveryId: id } } })
   const d = q.data?.delivery
-  const body = q.data ? JSON.stringify(q.data.payload, null, 2) : ''
+  // The server leaves out what the reader can't see in ReputeCast, and says why.
+  const hidden = q.data?.payloadHidden
+  const body = q.data && !hidden ? JSON.stringify(q.data.payload, null, 2) : ''
   const resp = d ? responseBadge(d) : undefined
   return (
     <Dialog
@@ -34,7 +36,7 @@ export function DeliveryDialog({ id, onClose }: { id: string; onClose: () => voi
         <>
           <Button
             className="mr-auto"
-            disabledReason={q.data ? undefined : t(common.loading)}
+            disabledReason={q.data ? hidden : t(common.loading)}
             onClick={async () => {
               const ok = await copyText(body)
               toast({ kind: ok ? 'success' : 'error', title: ok ? tt(m.payloadCopied) : tt(m.copyFailed) })
@@ -69,7 +71,7 @@ export function DeliveryDialog({ id, onClose }: { id: string; onClose: () => voi
             ]}
           />
           <span className="text-[12px] font-semibold text-ink-2">{t(m.payloadLabel)}</span>
-          <pre className="pre max-h-[320px]">{body}</pre>
+          {hidden ? <Note tone="neutral">{hidden}</Note> : <pre className="pre max-h-[320px]">{body}</pre>}
           {q.data.response ? (
             <>
               <span className="text-[12px] font-semibold text-ink-2">{t(m.responseBody)}</span>

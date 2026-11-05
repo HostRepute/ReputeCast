@@ -44,7 +44,17 @@
   "problem.unknownEndpoint": "Endpoint không xác định.",
   "problem.unknownEvent": "Sự kiện {event} không xác định.",
   "problem.onlyFailed": "Chỉ lần gửi bị lỗi mới thử lại được.",
+  "problem.eventNeeds": "{event} mang dữ liệu bạn không xem được trong ReputeCast: cần quyền “{permission}”.{ask, select, yes { Hãy nhờ {helpers}.} other {}}",
+  "problem.patternNeeds": "{pattern} gồm cả {event}, sự kiện mang dữ liệu bạn không xem được trong ReputeCast: cần quyền “{permission}”.{ask, select, yes { Hãy nhờ {helpers}.} other {}}",
+  "problem.eventScope": "{event} mang liên hệ của mọi danh sách, còn quyền truy cập của bạn chỉ áp dụng cho một số danh sách.",
+  "problem.patternScope": "{pattern} gồm cả {event}, sự kiện mang liên hệ của mọi danh sách, còn quyền truy cập của bạn chỉ áp dụng cho một số danh sách.",
+
+  "paused.left": "ReputeCast đã tạm dừng endpoint này: {name}, người thiết lập nó, không còn là thành viên đang hoạt động, và endpoint gửi sự kiện thay mặt người đó. Hãy tiếp tục endpoint để gửi sự kiện thay mặt bạn.",
+  "paused.lacks": "ReputeCast đã tạm dừng endpoint này: {name}, người thiết lập nó, không còn xem được dữ liệu {event} mang (“{permission}”). Hãy tiếp tục endpoint để gửi sự kiện thay mặt bạn.",
+  "paused.scoped": "ReputeCast đã tạm dừng endpoint này: quyền truy cập của {name}, người thiết lập nó, nay chỉ áp dụng cho một số danh sách, còn {event} mang liên hệ của mọi danh sách. Hãy tiếp tục endpoint để gửi sự kiện thay mặt bạn.",
 
   "delivery.demo": "Endpoint mẫu: ReputeCast không bao giờ gửi dữ liệu mẫu. Hãy trỏ endpoint đến URL của bạn để nhận sự kiện.",
-  "delivery.invalidUrl": "URL không hợp lệ"
+  "delivery.invalidUrl": "URL không hợp lệ",
+  "delivery.payloadNeeds": "Lần gửi này mang dữ liệu bạn không xem được trong ReputeCast, nên nội dung và phản hồi của endpoint được ẩn: cần quyền “{permission}”.",
+  "delivery.payloadScope": "Lần gửi này mang liên hệ của mọi danh sách, còn quyền truy cập của bạn chỉ áp dụng cho một số danh sách, nên nội dung và phản hồi của endpoint được ẩn."
 }

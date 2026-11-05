@@ -5321,27 +5321,28 @@ type WarmupPlan struct {
 }
 
 type Webhook struct {
-	ID                  uuid.UUID  `json:"id"`
-	WorkspaceID         uuid.UUID  `json:"workspaceId"`
-	Name                string     `json:"name"`
-	Url                 string     `json:"url"`
-	Events              []string   `json:"events"`
-	SecretEnc           []byte     `json:"secretEnc"`
-	Enabled             bool       `json:"enabled"`
-	CreatedBy           *uuid.UUID `json:"createdBy"`
-	CreatedAt           time.Time  `json:"createdAt"`
-	LastStatus          *int32     `json:"lastStatus"`
-	LastDeliveryAt      *time.Time `json:"lastDeliveryAt"`
-	FailingSince        *time.Time `json:"failingSince"`
-	Description         string     `json:"description"`
-	SecretRotatedAt     *time.Time `json:"secretRotatedAt"`
-	PausedAt            *time.Time `json:"pausedAt"`
-	UpdatedAt           time.Time  `json:"updatedAt"`
-	Demo                bool       `json:"demo"`
-	PreviousSecretEnc   []byte     `json:"previousSecretEnc"`
-	PreviousSecretUntil *time.Time `json:"previousSecretUntil"`
-	AlertedAt           *time.Time `json:"alertedAt"`
-	BatchEmail          bool       `json:"batchEmail"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Name                string          `json:"name"`
+	Url                 string          `json:"url"`
+	Events              []string        `json:"events"`
+	SecretEnc           []byte          `json:"secretEnc"`
+	Enabled             bool            `json:"enabled"`
+	CreatedBy           *uuid.UUID      `json:"createdBy"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	LastStatus          *int32          `json:"lastStatus"`
+	LastDeliveryAt      *time.Time      `json:"lastDeliveryAt"`
+	FailingSince        *time.Time      `json:"failingSince"`
+	Description         string          `json:"description"`
+	SecretRotatedAt     *time.Time      `json:"secretRotatedAt"`
+	PausedAt            *time.Time      `json:"pausedAt"`
+	UpdatedAt           time.Time       `json:"updatedAt"`
+	Demo                bool            `json:"demo"`
+	PreviousSecretEnc   []byte          `json:"previousSecretEnc"`
+	PreviousSecretUntil *time.Time      `json:"previousSecretUntil"`
+	AlertedAt           *time.Time      `json:"alertedAt"`
+	BatchEmail          bool            `json:"batchEmail"`
+	PausedReason        json.RawMessage `json:"pausedReason"`
 }
 
 type WebhookContactEvent struct {

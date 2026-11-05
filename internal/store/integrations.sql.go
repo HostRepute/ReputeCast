@@ -2298,6 +2298,48 @@ func (q *Queries) IntegrationWebhooksDeleteAll(ctx context.Context, integrationI
 	return items, nil
 }
 
+const integrationWebhooksTakeOver = `-- name: IntegrationWebhooksTakeOver :one
+WITH hooks AS (
+    SELECT h.id, h.paused_reason IS NOT NULL AS paused
+    FROM webhooks h JOIN integration_webhooks iw ON iw.webhook_id = h.id
+    WHERE iw.integration_id = $1
+    FOR UPDATE OF h
+), released AS (
+    UPDATE webhook_deliveries d SET state = 'pending', next_attempt_at = now(), enqueued_at = NULL
+    FROM hooks WHERE d.webhook_id = hooks.id AND hooks.paused AND d.state = 'held'
+    RETURNING d.id
+), moved AS (
+    UPDATE webhooks h SET created_by = $2, enabled = h.enabled OR hooks.paused,
+        paused_at = CASE WHEN hooks.paused THEN NULL ELSE h.paused_at END, paused_reason = NULL, updated_at = now()
+    FROM hooks WHERE h.id = hooks.id
+    RETURNING h.id
+)
+SELECT (SELECT count(*) FROM hooks WHERE paused)::bigint AS resumed, (SELECT count(*) FROM released)::bigint AS released,
+       (SELECT count(*) FROM moved)::bigint AS moved
+`
+
+type IntegrationWebhooksTakeOverParams struct {
+	IntegrationID uuid.UUID  `json:"integrationId"`
+	Owner         *uuid.UUID `json:"owner"`
+}
+
+type IntegrationWebhooksTakeOverRow struct {
+	Resumed  int64 `json:"resumed"`
+	Released int64 `json:"released"`
+	Moved    int64 `json:"moved"`
+}
+
+// The connection's managed endpoints send for the key's new owner too.
+// Those ReputeCast paused because the old owner could no longer see their
+// events run again: what waited is due at once, and the next delivery
+// checks the new owner. Returns how many ran again.
+func (q *Queries) IntegrationWebhooksTakeOver(ctx context.Context, arg IntegrationWebhooksTakeOverParams) (IntegrationWebhooksTakeOverRow, error) {
+	row := q.db.QueryRow(ctx, integrationWebhooksTakeOver, arg.IntegrationID, arg.Owner)
+	var i IntegrationWebhooksTakeOverRow
+	err := row.Scan(&i.Resumed, &i.Released, &i.Moved)
+	return i, err
+}
+
 const integrationWorkflow = `-- name: IntegrationWorkflow :one
 SELECT integration_id, key, external_id, name, uses, first_seen_at, last_seen_at FROM integration_workflows WHERE integration_id = $1 AND key = $2
 `

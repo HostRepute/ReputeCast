@@ -44,7 +44,17 @@
   "problem.unknownEndpoint": "Endpoint inconnu.",
   "problem.unknownEvent": "Événement inconnu\u00A0: {event}.",
   "problem.onlyFailed": "Seules les livraisons en échec peuvent être relancées.",
+  "problem.eventNeeds": "{event} contient des données que vous ne pouvez pas voir dans ReputeCast : il faut « {permission} ».{ask, select, yes { Demandez à {helpers}.} other {}}",
+  "problem.patternNeeds": "{pattern} comprend {event}, qui contient des données que vous ne pouvez pas voir dans ReputeCast : il faut « {permission} ».{ask, select, yes { Demandez à {helpers}.} other {}}",
+  "problem.eventScope": "{event} contient des contacts de toutes les listes, et votre accès est limité à certaines listes.",
+  "problem.patternScope": "{pattern} comprend {event}, qui contient des contacts de toutes les listes, et votre accès est limité à certaines listes.",
+
+  "paused.left": "ReputeCast a mis cet endpoint en pause : {name}, qui l’a configuré, n’est plus un membre actif, et l’endpoint envoyait ses événements en son nom. Reprenez-le pour les envoyer en votre nom.",
+  "paused.lacks": "ReputeCast a mis cet endpoint en pause : {name}, qui l’a configuré, ne peut plus voir ce que contient {event} (« {permission} »). Reprenez-le pour envoyer ses événements en votre nom.",
+  "paused.scoped": "ReputeCast a mis cet endpoint en pause : l’accès de {name}, qui l’a configuré, est désormais limité à certaines listes, et {event} contient des contacts de toutes les listes. Reprenez-le pour envoyer ses événements en votre nom.",
 
   "delivery.demo": "Endpoint de démonstration\u00A0: ReputeCast n’envoie jamais de données de démonstration. Indiquez votre propre URL pour recevoir des événements.",
-  "delivery.invalidUrl": "URL non valide"
+  "delivery.invalidUrl": "URL non valide",
+  "delivery.payloadNeeds": "Cette livraison contient des données que vous ne pouvez pas voir dans ReputeCast : son contenu et la réponse de l’endpoint restent masqués. Il faut « {permission} ».",
+  "delivery.payloadScope": "Cette livraison contient des contacts de toutes les listes, et votre accès est limité à certaines listes : son contenu et la réponse de l’endpoint restent masqués."
 }

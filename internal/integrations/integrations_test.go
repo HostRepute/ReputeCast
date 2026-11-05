@@ -511,6 +511,68 @@ func TestTakeOver(t *testing.T) {
 	}
 }
 
+// A workflow's endpoint sends for the key's owner: when Marcus leaves, it
+// stops sending contacts and waits; once Daniel takes the key over, it
+// sends again on his behalf, what waited first.
+func TestManagedEndpointFollowsTheKeysOwner(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	publicURL(env)
+	env.App.Cfg.Webhooks.AllowPrivateNetworks = true
+	m := env.Client()
+	m.SignInDemo("marcus@acme.io")
+	made := connect(t, m, "make", map[string]any{"items": []string{"contact.unsubscribed", "upsert_contact"}})
+	srv := newHookServer(t)
+	var hook struct{ ID string }
+	call(t, env, made.Secret, "POST", ws+"/integration/hooks", map[string]any{"event": "contact.unsubscribed", "url": srv.URL + "/hook"}, nil).MustStatus(t, 201).JSON(t, &hook)
+	ctx := context.Background()
+	w, _ := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	hookID := uuid.MustParse(hook.ID)
+	state := func() (enabled bool, delivery uuid.UUID, st string) {
+		t.Helper()
+		if err := env.App.Pool.QueryRow(ctx, `SELECT h.enabled, d.id, d.state FROM webhooks h JOIN webhook_deliveries d ON d.webhook_id = h.id
+			WHERE h.id = $1 ORDER BY d.created_at DESC LIMIT 1`, hookID).Scan(&enabled, &delivery, &st); err != nil {
+			t.Fatal(err)
+		}
+		return enabled, delivery, st
+	}
+
+	exec(t, env, `UPDATE workspace_members SET status = 'deactivated', deactivated_at = now() WHERE user_id = (SELECT id FROM users WHERE email = 'marcus@acme.io')`)
+	if _, err := webhooks.Emit(ctx, env.App.Pool, w.ID, w.Slug, "contact.unsubscribed", map[string]any{"email": "rob@example.net"}); err != nil {
+		t.Fatal(err)
+	}
+	_, delivery, _ := state()
+	if _, err := webhookService(env).Attempt(ctx, delivery); err != nil {
+		t.Fatal(err)
+	}
+	if enabled, _, st := state(); enabled || st != "held" || srv.hits.Load() != 0 {
+		t.Fatalf("Marcus left: enabled %v, %s, %d sent", enabled, st, srv.hits.Load())
+	}
+
+	exec(t, env, `UPDATE roles SET permissions = permissions || '{integrations:manage,subscribers:view,webhooks:manage}' WHERE key = 'content-writer'`)
+	d := env.Client()
+	d.SignInDemo("daniel@acme.io")
+	d.Do("POST", ws+"/integrations/connections/"+made.IntegrationID+"/take-over", nil).MustStatus(t, 200)
+	enabled, _, st := state()
+	if !enabled || st != "pending" {
+		t.Fatalf("taken over: enabled %v, %s", enabled, st)
+	}
+	var owner string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT u.email FROM webhooks h JOIN users u ON u.id = h.created_by WHERE h.id = $1`, hookID).Scan(&owner); err != nil || owner != "daniel@acme.io" {
+		t.Fatalf("it sends for %q (%v)", owner, err)
+	}
+	if _, err := webhookService(env).Attempt(ctx, delivery); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, st := state(); st != "delivered" || srv.hits.Load() != 1 {
+		t.Fatalf("after the take-over: %s, %d sent", st, srv.hits.Load())
+	}
+	var summary string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT metadata->>'summary' FROM audit_events WHERE action = 'integration.taken_over'`).Scan(&summary); err != nil || !strings.Contains(summary, "1 paused endpoint resumed") {
+		t.Fatalf("the take-over's audit entry: %q %v", summary, err)
+	}
+}
+
 func TestActionsKeepConsent(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()

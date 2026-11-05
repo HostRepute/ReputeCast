@@ -64,6 +64,32 @@ func (q *Queries) HooksAlertFailing(ctx context.Context, arg HooksAlertFailingPa
 	return i, err
 }
 
+const hooksAutoPause = `-- name: HooksAutoPause :one
+UPDATE webhooks SET enabled = false, paused_at = now(), paused_reason = $1, updated_at = now()
+WHERE id = $2 AND enabled
+RETURNING id, workspace_id, url
+`
+
+type HooksAutoPauseParams struct {
+	Reason json.RawMessage `json:"reason"`
+	ID     uuid.UUID       `json:"id"`
+}
+
+type HooksAutoPauseRow struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Url         string    `json:"url"`
+}
+
+// ReputeCast pauses a running endpoint whose events the person it sends
+// for can no longer see; no row when it was paused already.
+func (q *Queries) HooksAutoPause(ctx context.Context, arg HooksAutoPauseParams) (HooksAutoPauseRow, error) {
+	row := q.db.QueryRow(ctx, hooksAutoPause, arg.Reason, arg.ID)
+	var i HooksAutoPauseRow
+	err := row.Scan(&i.ID, &i.WorkspaceID, &i.Url)
+	return i, err
+}
+
 const hooksBatching = `-- name: HooksBatching :many
 SELECT h.id, h.enabled, w.slug FROM webhooks h
 JOIN workspaces w ON w.id = h.workspace_id
@@ -106,7 +132,7 @@ FROM webhooks h
 WHERE d.id = $1 AND h.id = d.webhook_id AND h.enabled
   AND d.state IN ('pending','retrying') AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= now() + interval '5 seconds')
 RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id, h.demo,
-          h.previous_secret_enc, h.previous_secret_until
+          h.previous_secret_enc, h.previous_secret_until, h.created_by
 `
 
 type HooksClaimDeliveryRow struct {
@@ -123,6 +149,7 @@ type HooksClaimDeliveryRow struct {
 	Demo                bool            `json:"demo"`
 	PreviousSecretEnc   []byte          `json:"previousSecretEnc"`
 	PreviousSecretUntil *time.Time      `json:"previousSecretUntil"`
+	CreatedBy           *uuid.UUID      `json:"createdBy"`
 }
 
 // Takes a due delivery for one attempt. Returns no row when someone else has it.
@@ -143,6 +170,7 @@ func (q *Queries) HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksCl
 		&i.Demo,
 		&i.PreviousSecretEnc,
 		&i.PreviousSecretUntil,
+		&i.CreatedBy,
 	)
 	return i, err
 }
@@ -150,7 +178,7 @@ func (q *Queries) HooksClaimDelivery(ctx context.Context, id uuid.UUID) (HooksCl
 const hooksCreate = `-- name: HooksCreate :one
 INSERT INTO webhooks (id, workspace_id, name, description, url, events, batch_email, secret_enc, enabled, created_by, secret_rotated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, now())
-RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email
+RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email, paused_reason
 `
 
 type HooksCreateParams struct {
@@ -200,6 +228,7 @@ func (q *Queries) HooksCreate(ctx context.Context, arg HooksCreateParams) (Webho
 		&i.PreviousSecretUntil,
 		&i.AlertedAt,
 		&i.BatchEmail,
+		&i.PausedReason,
 	)
 	return i, err
 }
@@ -425,7 +454,7 @@ func (q *Queries) HooksFinishDelivery(ctx context.Context, arg HooksFinishDelive
 }
 
 const hooksGet = `-- name: HooksGet :one
-SELECT id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email FROM webhooks WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email, paused_reason FROM webhooks WHERE id = $1 AND workspace_id = $2
 `
 
 type HooksGetParams struct {
@@ -458,6 +487,7 @@ func (q *Queries) HooksGet(ctx context.Context, arg HooksGetParams) (Webhook, er
 		&i.PreviousSecretUntil,
 		&i.AlertedAt,
 		&i.BatchEmail,
+		&i.PausedReason,
 	)
 	return i, err
 }
@@ -556,6 +586,7 @@ const hooksList = `-- name: HooksList :many
 
 SELECT h.id, h.workspace_id, h.name, h.description, h.url, h.events, h.enabled, h.created_by, h.created_at,
        h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at, h.previous_secret_until, h.batch_email,
+       h.paused_reason,
        coalesce(s.total, 0)::bigint AS total_24h, coalesce(s.ok, 0)::bigint AS ok_24h,
        coalesce(q.queued, 0)::bigint AS queued
 FROM webhooks h
@@ -573,25 +604,26 @@ ORDER BY h.created_at
 `
 
 type HooksListRow struct {
-	ID                  uuid.UUID  `json:"id"`
-	WorkspaceID         uuid.UUID  `json:"workspaceId"`
-	Name                string     `json:"name"`
-	Description         string     `json:"description"`
-	Url                 string     `json:"url"`
-	Events              []string   `json:"events"`
-	Enabled             bool       `json:"enabled"`
-	CreatedBy           *uuid.UUID `json:"createdBy"`
-	CreatedAt           time.Time  `json:"createdAt"`
-	LastStatus          *int32     `json:"lastStatus"`
-	LastDeliveryAt      *time.Time `json:"lastDeliveryAt"`
-	FailingSince        *time.Time `json:"failingSince"`
-	SecretRotatedAt     *time.Time `json:"secretRotatedAt"`
-	PausedAt            *time.Time `json:"pausedAt"`
-	PreviousSecretUntil *time.Time `json:"previousSecretUntil"`
-	BatchEmail          bool       `json:"batchEmail"`
-	Total24h            int64      `json:"total24h"`
-	Ok24h               int64      `json:"ok24h"`
-	Queued              int64      `json:"queued"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Name                string          `json:"name"`
+	Description         string          `json:"description"`
+	Url                 string          `json:"url"`
+	Events              []string        `json:"events"`
+	Enabled             bool            `json:"enabled"`
+	CreatedBy           *uuid.UUID      `json:"createdBy"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	LastStatus          *int32          `json:"lastStatus"`
+	LastDeliveryAt      *time.Time      `json:"lastDeliveryAt"`
+	FailingSince        *time.Time      `json:"failingSince"`
+	SecretRotatedAt     *time.Time      `json:"secretRotatedAt"`
+	PausedAt            *time.Time      `json:"pausedAt"`
+	PreviousSecretUntil *time.Time      `json:"previousSecretUntil"`
+	BatchEmail          bool            `json:"batchEmail"`
+	PausedReason        json.RawMessage `json:"pausedReason"`
+	Total24h            int64           `json:"total24h"`
+	Ok24h               int64           `json:"ok24h"`
+	Queued              int64           `json:"queued"`
 }
 
 // Outgoing webhooks and their delivery log.
@@ -621,6 +653,7 @@ func (q *Queries) HooksList(ctx context.Context, workspaceID uuid.UUID) ([]Hooks
 			&i.PausedAt,
 			&i.PreviousSecretUntil,
 			&i.BatchEmail,
+			&i.PausedReason,
 			&i.Total24h,
 			&i.Ok24h,
 			&i.Queued,
@@ -788,18 +821,27 @@ func (q *Queries) HooksRequeue(ctx context.Context, arg HooksRequeueParams) ([]u
 }
 
 const hooksSetEnabled = `-- name: HooksSetEnabled :exec
-UPDATE webhooks SET enabled = $1, paused_at = CASE WHEN $1::boolean THEN NULL ELSE now() END, updated_at = now()
-WHERE id = $2 AND workspace_id = $3
+UPDATE webhooks SET enabled = $1, paused_at = CASE WHEN $1::boolean THEN NULL ELSE now() END, paused_reason = NULL,
+    created_by = CASE WHEN $1::boolean THEN coalesce($2::uuid, created_by) ELSE created_by END, updated_at = now()
+WHERE id = $3 AND workspace_id = $4
 `
 
 type HooksSetEnabledParams struct {
-	Enabled     bool      `json:"enabled"`
-	ID          uuid.UUID `json:"id"`
-	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Enabled     bool       `json:"enabled"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
 }
 
+// A person pausing or resuming replaces ReputeCast's reason; a resumed
+// endpoint sends for the person who resumed it (created_by).
 func (q *Queries) HooksSetEnabled(ctx context.Context, arg HooksSetEnabledParams) error {
-	_, err := q.db.Exec(ctx, hooksSetEnabled, arg.Enabled, arg.ID, arg.WorkspaceID)
+	_, err := q.db.Exec(ctx, hooksSetEnabled,
+		arg.Enabled,
+		arg.CreatedBy,
+		arg.ID,
+		arg.WorkspaceID,
+	)
 	return err
 }
 
@@ -886,22 +928,25 @@ func (q *Queries) HooksTakeBatch(ctx context.Context, arg HooksTakeBatchParams) 
 
 const hooksUpdate = `-- name: HooksUpdate :one
 UPDATE webhooks SET name = $1, description = $2, url = $3, events = $4, batch_email = $5,
-    demo = demo AND url = $3, updated_at = now()
-WHERE id = $6 AND workspace_id = $7
-RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email
+    demo = demo AND url = $3, created_by = coalesce($6::uuid, created_by), paused_reason = NULL, updated_at = now()
+WHERE id = $7 AND workspace_id = $8
+RETURNING id, workspace_id, name, url, events, secret_enc, enabled, created_by, created_at, last_status, last_delivery_at, failing_since, description, secret_rotated_at, paused_at, updated_at, demo, previous_secret_enc, previous_secret_until, alerted_at, batch_email, paused_reason
 `
 
 type HooksUpdateParams struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Url         string    `json:"url"`
-	Events      []string  `json:"events"`
-	BatchEmail  bool      `json:"batchEmail"`
-	ID          uuid.UUID `json:"id"`
-	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	Url         string     `json:"url"`
+	Events      []string   `json:"events"`
+	BatchEmail  bool       `json:"batchEmail"`
+	CreatedBy   *uuid.UUID `json:"createdBy"`
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
 }
 
-// A demo endpoint stays one only while its address is unchanged.
+// A demo endpoint stays one only while its address is unchanged. The
+// endpoint sends for whoever set its events (created_by), so a reason
+// ReputeCast paused it for no longer applies.
 func (q *Queries) HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webhook, error) {
 	row := q.db.QueryRow(ctx, hooksUpdate,
 		arg.Name,
@@ -909,6 +954,7 @@ func (q *Queries) HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webho
 		arg.Url,
 		arg.Events,
 		arg.BatchEmail,
+		arg.CreatedBy,
 		arg.ID,
 		arg.WorkspaceID,
 	)
@@ -935,6 +981,18 @@ func (q *Queries) HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webho
 		&i.PreviousSecretUntil,
 		&i.AlertedAt,
 		&i.BatchEmail,
+		&i.PausedReason,
 	)
 	return i, err
+}
+
+const hooksWithhold = `-- name: HooksWithhold :exec
+UPDATE webhook_deliveries SET state = 'held', enqueued_at = NULL
+WHERE id = $1 AND state = 'delivering'
+`
+
+// A claimed delivery that can't go waits with the endpoint's other events.
+func (q *Queries) HooksWithhold(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, hooksWithhold, id)
+	return err
 }

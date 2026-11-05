@@ -314,6 +314,9 @@ type WebhookView struct {
 	// ManagedBy is set for endpoints an integration created: their URL,
 	// events and secret change only in the integration.
 	ManagedBy *WebhookManagedBy `json:"managedBy,omitempty"`
+	// PausedReason says why ReputeCast paused the endpoint: the person it
+	// sent for can no longer see what its events carry.
+	PausedReason string `json:"pausedReason,omitempty"`
 }
 
 // WebhookList is the outgoing webhooks card.
@@ -378,6 +381,9 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (WebhookList, e
 			}
 			v.ManagedBy = &m
 		}
+		if !r.Enabled {
+			v.PausedReason = pausedIn(i18n.LangFrom(ctx), r.PausedReason)
+		}
 		out.Items = append(out.Items, v)
 	}
 	return out, nil
@@ -407,7 +413,10 @@ type WebhookCreated struct {
 	Secret  string      `json:"secret" doc:"The signing secret. Shown only in this response."`
 }
 
-func (s *Service) validate(l i18n.Lang, in WebhookInput) (string, []string, error) {
+// validate checks the address and the events, which the caller must be
+// able to see in ReputeCast (access.go).
+func (s *Service) validate(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WebhookInput) (string, []string, error) {
+	l := i18n.LangFrom(ctx)
 	u, err := s.policy().ValidateURL(in.URL)
 	if err != nil {
 		msg := err.Error()
@@ -423,12 +432,16 @@ func (s *Service) validate(l i18n.Lang, in WebhookInput) (string, []string, erro
 			events = append(events, e)
 		}
 	}
+	if err := s.checkEvents(ctx, ws, p, events); err != nil {
+		return "", nil, err
+	}
 	return u.String(), events, nil
 }
 
-// Create registers an endpoint and returns its signing secret once.
+// Create registers an endpoint and returns its signing secret once. It
+// sends its events on the creator's behalf (a key's creator for a key).
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WebhookInput) (WebhookCreated, error) {
-	u, events, err := s.validate(i18n.LangFrom(ctx), in)
+	u, events, err := s.validate(ctx, ws, p, in)
 	if err != nil {
 		return WebhookCreated{}, err
 	}
@@ -444,10 +457,9 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return WebhookCreated{}, err
 	}
 	var out WebhookCreated
-	creator := p.UserID
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		h, err := q.HooksCreate(ctx, store.HooksCreateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events, BatchEmail: in.BatchEmail, SecretEnc: enc, CreatedBy: &creator})
+		h, err := q.HooksCreate(ctx, store.HooksCreateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events, BatchEmail: in.BatchEmail, SecretEnc: enc, CreatedBy: sendsFor(p)})
 		if err != nil {
 			return err
 		}
@@ -458,8 +470,9 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	return out, err
 }
 
-// Update changes an endpoint's URL, name or events.
-func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID, in WebhookInput) (WebhookView, error) {
+// Update changes an endpoint's URL, name or events. From then on it sends
+// its events on behalf of the person who saved them.
+func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in WebhookInput) (WebhookView, error) {
 	old, err := s.Q.HooksGet(ctx, store.HooksGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
 		return WebhookView{}, api.MapError(err, "Webhook")
@@ -467,7 +480,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err := s.refuseManaged(ctx, id); err != nil {
 		return WebhookView{}, err
 	}
-	u, events, err := s.validate(i18n.LangFrom(ctx), in)
+	u, events, err := s.validate(ctx, ws, p, in)
 	if err != nil {
 		return WebhookView{}, err
 	}
@@ -478,7 +491,8 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	var out WebhookView
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		h, err := q.HooksUpdate(ctx, store.HooksUpdateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events, BatchEmail: in.BatchEmail})
+		h, err := q.HooksUpdate(ctx, store.HooksUpdateParams{ID: id, WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), Url: u, Events: events, BatchEmail: in.BatchEmail,
+			CreatedBy: sendsFor(p)})
 		if err != nil {
 			return err
 		}
@@ -549,8 +563,10 @@ func (s *Service) RotateSecret(ctx context.Context, ws *store.Workspace, id uuid
 }
 
 // SetEnabled pauses or resumes an endpoint. Events keep queuing while it is
-// paused and are delivered in order when it resumes.
-func (s *Service) SetEnabled(ctx context.Context, ws *store.Workspace, id uuid.UUID, enabled bool) error {
+// paused and are delivered in order when it resumes, on behalf of the
+// person who resumed it: they must be able to see what its events carry,
+// as when setting them.
+func (s *Service) SetEnabled(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, enabled bool) error {
 	old, err := s.Q.HooksGet(ctx, store.HooksGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
 		return api.MapError(err, "Webhook")
@@ -561,10 +577,15 @@ func (s *Service) SetEnabled(ctx context.Context, ws *store.Workspace, id uuid.U
 	if old.Enabled == enabled {
 		return nil
 	}
+	if enabled {
+		if pr := CheckEvents(ctx, s.Q, ws.ID, p, old.Events); pr != nil {
+			return pr
+		}
+	}
 	var released []uuid.UUID
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.HooksSetEnabled(ctx, store.HooksSetEnabledParams{ID: id, WorkspaceID: ws.ID, Enabled: enabled}); err != nil {
+		if err := q.HooksSetEnabled(ctx, store.HooksSetEnabledParams{ID: id, WorkspaceID: ws.ID, Enabled: enabled, CreatedBy: sendsFor(p)}); err != nil {
 			return err
 		}
 		if enabled {
@@ -576,8 +597,12 @@ func (s *Service) SetEnabled(ctx context.Context, ws *store.Workspace, id uuid.U
 		if enabled {
 			verb = "resumed"
 		}
+		before := map[string]any{"enabled": old.Enabled}
+		if why := pausedIn(i18n.Default, old.PausedReason); why != "" {
+			before["paused_reason"] = why
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "webhook." + verb, TargetType: "webhook", TargetID: id.String(), TargetName: old.Url,
-			Before: map[string]any{"enabled": old.Enabled}, After: map[string]any{"enabled": enabled}, Metadata: map[string]any{"permission": string(authz.WebhooksManage)}})
+			Before: before, After: map[string]any{"enabled": enabled}, Metadata: map[string]any{"permission": string(authz.WebhooksManage)}})
 	})
 	if err == nil && len(released) > 0 {
 		s.kick(ctx, released)
@@ -687,6 +712,9 @@ type WebhookDeliveryDetail struct {
 	Delivery WebhookDeliveryView `json:"delivery"`
 	Payload  json.RawMessage     `json:"payload"`
 	Response string              `json:"response" doc:"First kilobyte of the endpoint's last response"`
+	// PayloadHidden says why the payload and the response are left out: the
+	// reader can't see what the event carries in ReputeCast.
+	PayloadHidden string `json:"payloadHidden,omitempty"`
 }
 
 // Delivery returns one delivery with its payload.
@@ -712,10 +740,16 @@ func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUI
 			}
 		}
 	}
-	return WebhookDeliveryDetail{
+	out := WebhookDeliveryDetail{
 		Delivery: deliveryView(i18n.LangFrom(ctx), d.ID, d.WebhookID, url, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
 		Payload:  d.Payload, Response: d.Response,
-	}, nil
+	}
+	// The log shows a delivery's data only to those who could see it in
+	// ReputeCast: webhooks:manage alone doesn't read contacts here either.
+	if why := payloadHidden(i18n.LangFrom(ctx), api.PrincipalFrom(ctx), d.Event); why != "" {
+		out.Payload, out.Response, out.PayloadHidden = json.RawMessage(`null`), "", why
+	}
+	return out, nil
 }
 
 // WebhookRetryResult counts the deliveries queued again.
@@ -805,6 +839,13 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 		// the endpoint's health is left as the demo shows it.
 		return nil, s.Q.HooksFinishDelivery(ctx, store.HooksFinishDeliveryParams{ID: d.ID, State: "dead",
 			Error: mDemoEndpoint.Text(i18n.Default, nil)})
+	}
+	// Nothing goes out that the person the endpoint sends for can't see now.
+	if why, err := s.withheld(ctx, d); err != nil || why != nil {
+		if err == nil {
+			err = s.withhold(ctx, d, *why)
+		}
+		return nil, err
 	}
 	secret, err := s.Box.OpenString(d.SecretEnc, secretAD(d.WebhookID))
 	if err != nil {
