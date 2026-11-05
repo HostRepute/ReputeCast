@@ -84,6 +84,9 @@ export default translate(m, {
   idpEmailNotVerified: '{provider} hat nicht bestätigt, dass Ihre E-Mail-Adresse verifiziert ist.',
   idpInviteWrongAccount: 'Diese Einladung gilt für eine andere E-Mail-Adresse als Ihr Konto bei {provider}.',
   idpIdentityInUse: 'Dieses Konto bei {provider} ist bereits mit einem anderen ReputeCast-Konto verknüpft.',
+  idpInviteSignIn:
+    'Für diese E-Mail-Adresse gibt es bereits ein Konto, und {provider} gehört noch nicht zu seinen Anmeldungen. Melden Sie sich zuerst dort an; danach öffnet sich die Einladung erneut.',
+  signInToAccept: 'Zum Annehmen anmelden',
   idpAlreadyLinked: 'Ihr Konto hat bereits eine Anmeldung über {provider}.',
   idpReturned: '{provider} hat beim Austausch Ihrer Anmeldung <mono>{code}</mono> zurückgegeben.',
   idpReturnedError: '{provider} hat beim Austausch Ihrer Anmeldung einen Fehler zurückgegeben.',

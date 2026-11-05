@@ -89,17 +89,27 @@ type ExternalIdentity struct {
 	ProviderName string
 	Subject      string
 	Email        string
-	Name         string
-	Username     string
-	Details      json.RawMessage
-	MFA          bool
-	Metadata     map[string]any
+	// EmailVerified: the IdP vouches for Email the way its sign-in takes it
+	// (internal/sso decides for each provider). Only then may joining create
+	// an account for the email.
+	EmailVerified bool
+	Name          string
+	Username      string
+	Details       json.RawMessage
+	MFA           bool
+	Metadata      map[string]any
 }
 
 // AcceptInvitationExternal joins the workspace of a pending invitation with
-// an identity an IdP verified: the invitation link proved the invitee owns
-// the invited email, and the identity's email must be the same. New people
-// get an account without a password; the identity is linked either way.
+// an identity an IdP verified, whose email must be the invited one. An
+// invitation link is easy to come by (anyone can create a workspace and
+// invite any address), so the IdP's word counts only as far as sign-in
+// takes it: a new account needs an email the IdP vouches for, and an
+// account that already uses the email accepts only with an identity it
+// already signs in with. Otherwise the person signs in first and accepts
+// while signed in, as with a password. Domains under single sign-on join
+// through their provider, as they sign in. New people get an account
+// without a password and the identity linked.
 func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id ExternalIdentity) (ExternalResult, error) {
 	inv, err := s.loadInvitation(ctx, token)
 	if err != nil {
@@ -124,7 +134,33 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 	if err != nil && !newAccount {
 		return ExternalResult{}, err
 	}
-	if !newAccount {
+	linked, err := s.Q.GetIdentity(ctx, store.GetIdentityParams{Kind: id.Kind, SsoProviderID: id.ProviderID, Subject: id.Subject})
+	known := err == nil
+	if err != nil && !isNoRows(err) {
+		return ExternalResult{}, err
+	}
+	// Only the enforcing provider joins people of its domains; break-glass
+	// Owners keep their other sign-ins, as on the sign-in page.
+	if p, err := s.enforcingProvider(ctx, inv.Email); err != nil {
+		return ExternalResult{}, err
+	} else if p != nil && (id.Kind != "sso" || id.ProviderID == nil || *id.ProviderID != p.ID) && (newAccount || !user.BreakGlass) {
+		return ExternalResult{}, api.Err(http.StatusForbidden, "sso_required", say(ctx, mSSORequiredWith, "domain", emailDomain(inv.Email), "provider", p.Name)).
+			WithMeta("providerId", p.ID.String(), "provider", p.Name, "preset", p.Preset)
+	}
+	if newAccount {
+		if known {
+			return ExternalResult{}, api.Err(http.StatusConflict, "identity_in_use", say(ctx, mIdentityInUse, "provider", id.ProviderName))
+		}
+		if !id.EmailVerified {
+			return ExternalResult{}, api.Err(http.StatusForbidden, "email_not_verified", say(ctx, mInviteUnverified, "provider", id.ProviderName, "email", inv.Email))
+		}
+	} else {
+		// Whoever controls this IdP account hasn't shown they own the
+		// account yet: they sign in to it first. Deactivation is said only
+		// to them, after that.
+		if !known || linked.UserID != user.ID {
+			return ExternalResult{}, api.Err(http.StatusConflict, "invite_sign_in", say(ctx, mInviteSignIn, "email", inv.Email)).WithMeta("email", inv.Email)
+		}
 		if user.Status != "active" {
 			return ExternalResult{}, api.Err(http.StatusForbidden, "account_deactivated", say(ctx, mDeactivated))
 		}
@@ -155,14 +191,10 @@ func (s *Service) AcceptInvitationExternal(ctx context.Context, token string, id
 				return err
 			}
 			user = created
-		}
-		if _, err := q.GetIdentity(ctx, store.GetIdentityParams{Kind: id.Kind, SsoProviderID: id.ProviderID, Subject: id.Subject}); isNoRows(err) {
 			if _, err := q.SSOCreateIdentity(ctx, store.SSOCreateIdentityParams{ID: uuid.Must(uuid.NewV7()), UserID: user.ID, Kind: id.Kind, SsoProviderID: id.ProviderID,
 				Subject: id.Subject, Email: strings.ToLower(id.Email), Username: id.Username, Details: details}); err != nil {
 				return err
 			}
-		} else if err != nil {
-			return err
 		}
 		return s.joinWorkspace(ctx, tx, inv, user, newAccount, inviteTwoFactor(langOf(ctx), st, perms).Required)
 	})

@@ -266,6 +266,10 @@ type flowError struct {
 	// of the IdP error page.
 	NoAccount bool
 	Email     string
+	// Next is where the error page continues once the person signs in
+	// another way: an invitation that an existing account accepts while
+	// signed in.
+	Next string
 }
 
 func (e *flowError) Error() string { return e.Detail }

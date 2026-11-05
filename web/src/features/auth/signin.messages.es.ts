@@ -84,6 +84,9 @@ export default translate(m, {
   idpEmailNotVerified: '{provider} no confirmó que tu dirección de correo esté verificada.',
   idpInviteWrongAccount: 'Esta invitación es para una dirección de correo distinta de la de tu cuenta de {provider}.',
   idpIdentityInUse: 'Esta cuenta de {provider} ya está vinculada a otra cuenta de ReputeCast.',
+  idpInviteSignIn:
+    'Ya hay una cuenta con esta dirección de correo, y {provider} todavía no es una de sus formas de iniciar sesión. Inicia sesión en ella primero; después la invitación se abrirá de nuevo.',
+  signInToAccept: 'Iniciar sesión para aceptar',
   idpAlreadyLinked: 'Tu cuenta ya tiene un inicio de sesión con {provider}.',
   idpReturned: '{provider} devolvió <mono>{code}</mono> al procesar tu inicio de sesión.',
   idpReturnedError: '{provider} devolvió un error al procesar tu inicio de sesión.',

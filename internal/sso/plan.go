@@ -219,17 +219,12 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 		pl.Reject = failure("domain_not_allowed", "flow.domain", i18n.Args{"name": p.Name}).noAccount(id.Email)
 		return pl, nil
 	}
-	verified := false
-	if id.EmailVerified != nil {
-		verified = *id.EmailVerified
-		if !verified {
-			pl.Reject = failure("email_not_verified", "flow.notVerified", i18n.Args{"name": p.Name, "email": id.Email}).about(id.Email)
-			return pl, nil
-		}
-	} else {
-		// Missing email_verified: trusted only for the provider's own domains.
-		verified = len(p.AllowedDomains) > 0 && slices.Contains(p.AllowedDomains, domain)
+	if id.EmailVerified != nil && !*id.EmailVerified {
+		pl.Reject = failure("email_not_verified", "flow.notVerified", i18n.Args{"name": p.Name, "email": id.Email}).about(id.Email)
+		return pl, nil
 	}
+	// Missing email_verified: trusted only for the provider's own domains.
+	verified := emailVouched(p, id)
 
 	ident, err := q.GetIdentity(ctx, store.GetIdentityParams{Kind: "sso", SsoProviderID: &p.ID, Subject: id.Subject})
 	switch {

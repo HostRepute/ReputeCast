@@ -140,7 +140,12 @@ export function SignInPage({ search }: { search: SignInSearch }) {
     void navigate({ to: '/sign-in', search: safeNext(search.next) ? { next: search.next } : {} })
   }
 
-  if (search.error === 'idp') return <IdpError provider={search.provider} code={search.code} reference={search.ref} email={search.email} />
+  if (search.error === 'idp') {
+    // An invitation an existing account accepts while signed in: the
+    // sign-in for its email, then the invitation (search.next) again.
+    const invited = search.code === 'invite_sign_in' && search.email && safeNext(search.next) ? search.email : undefined
+    return <IdpError provider={search.provider} code={search.code} reference={search.ref} email={search.email} onSignIn={invited ? () => identify(invited) : undefined} />
+  }
   if (search.error === 'no_account') return <NoAccount email={search.email ?? ''} onRetry={identify} />
 
   switch (step.kind) {
@@ -728,11 +733,26 @@ function LastCodeStep({ step }: { step: Extract<Step, { kind: 'last_code' }> }) 
   )
 }
 
-function IdpError({ provider: given, code, reference, email }: { provider?: string; code?: string; reference?: string; email?: string }) {
+function IdpError({
+  provider: given,
+  code,
+  reference,
+  email,
+  onSignIn,
+}: {
+  provider?: string
+  code?: string
+  reference?: string
+  email?: string
+  /** Signs in to the account that already uses the invited email; the invitation opens next. */
+  onSignIn?: () => Promise<void>
+}) {
   const t = useT()
   const provider = given ?? t(m.idpDefaultProvider)
   const { data: meta } = useInstanceMeta()
   const [copied, setCopied] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string>()
   const navigate = useNavigate()
   const retry = meta?.sso.find((s) => s.name === provider)
   const social = (['google', 'microsoft', 'github'] as const).find((k) => k === provider.toLowerCase() && meta?.social.includes(k))
@@ -759,8 +779,31 @@ function IdpError({ provider: given, code, reference, email }: { provider?: stri
           </Button>
         </div>
       ) : null}
+      {error ? (
+        <span className="err" role="alert">
+          {error}
+        </span>
+      ) : null}
       <div className="tiles">
-        {retry || social ? (
+        {onSignIn ? (
+          <Button
+            variant="primary"
+            loading={busy}
+            onClick={async () => {
+              setBusy(true)
+              setError(undefined)
+              try {
+                await onSignIn()
+              } catch (e) {
+                setError(errorMessage(e))
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            {t(m.signInToAccept)}
+          </Button>
+        ) : retry || social ? (
           <a className="btn pri" href={retry ? retry.startUrl + (email ? `?login_hint=${encodeURIComponent(email)}` : '') : `/api/v1/auth/social/${social}/start`}>
             {t(m.tryAgain)}
           </a>
@@ -788,6 +831,7 @@ const idpMessages: Record<string, MessageDescriptor> = {
   org_restricted: m.idpOrgRestricted,
   email_not_verified: m.idpEmailNotVerified,
   invite_wrong_account: m.idpInviteWrongAccount,
+  invite_sign_in: m.idpInviteSignIn,
   identity_in_use: m.idpIdentityInUse,
   already_linked: m.idpAlreadyLinked,
 }

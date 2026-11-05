@@ -91,6 +91,8 @@ export default translate(m, {
   idpEmailNotVerified: '{provider} không xác nhận rằng địa chỉ email của bạn đã được xác minh.',
   idpInviteWrongAccount: 'Lời mời này dành cho một địa chỉ email khác với tài khoản {provider} của bạn.',
   idpIdentityInUse: 'Tài khoản {provider} này đã được liên kết với một tài khoản ReputeCast khác.',
+  idpInviteSignIn: 'Địa chỉ email này đã có tài khoản, và {provider} chưa phải là cách đăng nhập của tài khoản đó. Hãy đăng nhập vào tài khoản đó trước; lời mời sẽ mở lại sau đó.',
+  signInToAccept: 'Đăng nhập để chấp nhận',
   idpAlreadyLinked: 'Tài khoản của bạn đã có đăng nhập bằng {provider}.',
   idpReturned: '{provider} trả về <mono>{code}</mono> khi trao đổi thông tin đăng nhập.',
   idpReturnedError: '{provider} trả về lỗi khi trao đổi thông tin đăng nhập.',
