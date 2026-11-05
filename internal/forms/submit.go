@@ -51,7 +51,8 @@ type Submission struct {
 	Honeypot string `json:"-"`
 	// Token is the timestamp token rendered with the form.
 	Token string `json:"-"`
-	// Plain is a post of the copied plain HTML form, which has no token.
+	// Plain is a post of the copied plain HTML form, which has no token. The
+	// post says so itself, so it makes the checks stricter, never looser.
 	Plain bool `json:"-"`
 	// Origin is the host the browser says the form was on.
 	Origin    string      `json:"-"`
@@ -171,10 +172,17 @@ func (s *Service) RecordView(ctx context.Context, ws *store.Workspace, c Config,
 
 // Submit runs a public submission through the form's checks and, when it
 // passes, subscribes the contact through the audience package. A filled
-// honeypot is dropped silently, so bots see a success. Copied plain HTML
-// forms can't carry a timestamp token and rely on the origin allowlist. A
-// submission that fails only the token checks goes to a Turnstile challenge
-// when Turnstile is set up.
+// honeypot is dropped silently, so bots see a success. A submission that
+// fails only the token checks goes to a Turnstile challenge when Turnstile
+// is set up.
+//
+// A copied plain HTML form can't carry a timestamp token, and any script
+// can say its post is one, so a plain post always looks automated: it gets
+// the Turnstile check when the workspace has keys, whatever the form says.
+// Without keys it goes through on a small budget of its own and always
+// confirms by email; past the budget the visitor sends the form again from
+// its hosted page, which has a token. SMS consent never comes from a plain
+// post: the plain form has no box for it.
 func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
 	c = s.localize(ctx, ws, set, c, sub.Language)
 	out := s.submit(ctx, ws, set, c, sub)
@@ -186,6 +194,9 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 	l := c.Labels
 	if c.Status != StatusLive {
 		return Outcome{Status: OutcomeClosed, Message: l.Text("error.closed", nil)}
+	}
+	if sub.Plain {
+		sub.SmsConsent = false
 	}
 	now := s.now()
 	limits := s.rates()
@@ -217,7 +228,7 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 		return Outcome{Status: OutcomeSubscribed}
 	}
-	suspicious, expired := flood, false
+	suspicious, expired := flood || sub.Plain, false
 	if !sub.Plain {
 		age, ok := s.tokenAge(formKey(c), sub.Token, now)
 		switch {
@@ -245,7 +256,7 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 	}
 	if suspicious {
-		if (c.Spam.Turnstile || flood) && set.TurnstileSiteKey() != "" {
+		if (c.Spam.Turnstile || flood || sub.Plain) && set.TurnstileSiteKey() != "" {
 			id, err := s.holdForChallenge(ctx, ws, c, sub)
 			if err != nil {
 				s.log().ErrorContext(ctx, "hold submission for turnstile", "err", err)
@@ -253,11 +264,19 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 			}
 			return Outcome{Status: OutcomeChallenge, ChallengeID: id, Message: l.Text("error.challenge", nil)}
 		}
-		s.recordReject(ctx, ws, c, "timing", sub.Origin)
-		if expired {
-			return Outcome{Status: OutcomeInvalid, Message: l.Text("error.expired", nil)}
+		if !sub.Plain {
+			s.recordReject(ctx, ws, c, "timing", sub.Origin)
+			if expired {
+				return Outcome{Status: OutcomeInvalid, Message: l.Text("error.expired", nil)}
+			}
+			return Outcome{Status: OutcomeInvalid, Message: l.Text("error.tooFast", nil)}
 		}
-		return Outcome{Status: OutcomeInvalid, Message: l.Text("error.tooFast", nil)}
+		// Past its budget, a plain post asks for one more step: the hosted
+		// page shows the form filled in, with a token, to send again.
+		if !limits.plainAllowed(ws.ID.String(), formKey(c), ip, now) {
+			s.recordReject(ctx, ws, c, "rate_limit", sub.Origin)
+			return Outcome{Status: OutcomeInvalid, Message: l.Text("error.challenge", nil)}
+		}
 	}
 	return s.accept(ctx, ws, set, c, sub, lists)
 }
@@ -367,8 +386,9 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 	}
 	var res audience.SignupResult
 	var submissionID uuid.UUID
-	// A signup through a referral link always confirms by email.
-	doubleOptIn := c.DoubleOptIn || s.forceDouble(ctx, ws, sub)
+	// A signup through a referral link always confirms by email, and so does
+	// a plain post nothing checked: anyone could have sent it.
+	doubleOptIn := c.DoubleOptIn || s.forceDouble(ctx, ws, sub) || sub.Plain
 	confirmTexts := false
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
