@@ -466,7 +466,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	var ab json.RawMessage
 	var audience json.RawMessage = []byte(`{}`)
 	var count *int64
-	sender := s.defaultSender(ctx, ws)
+	sender := s.defaultSender(ctx, ws, p)
 	source := "create"
 	switch {
 	case in.TemplateID != "":
@@ -506,7 +506,10 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if len(p.Scope.Lists) > 0 && s.checkAudience(ctx, s.Q, ws, p, audienceFromDB(c.Audience)) != nil {
 			audience, count = []byte(`{}`), nil
 		}
-		if c.SenderID != nil {
+		// And its sender only if they could pick it: a member limited to
+		// some sender domains starts from one of theirs instead, as a new
+		// draft does.
+		if c.SenderID != nil && s.senderInScope(ctx, ws, p, *c.SenderID) {
 			sender = c.SenderID
 		}
 		if in.Name == "" {
@@ -536,17 +539,35 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 }
 
 // defaultSender is the sender a new draft starts with: the workspace's
-// default, or its first sender.
-func (s *Service) defaultSender(ctx context.Context, ws *store.Workspace) *uuid.UUID {
+// default, or its first sender, among those its author's scope allows.
+// None when it allows none: a member limited to some sender domains never
+// starts with a From address they couldn't pick, or send from.
+func (s *Service) defaultSender(ctx context.Context, ws *store.Workspace, p *authz.Principal) *uuid.UUID {
 	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
-		if u, err := uuid.Parse(def.SenderID); err == nil {
+		if u, err := uuid.Parse(def.SenderID); err == nil && s.senderInScope(ctx, ws, p, u) {
 			return &u
 		}
 	}
-	if senders, err := s.Q.ListComposerSenders(ctx, ws.ID); err == nil && len(senders) > 0 {
-		return &senders[0].ID
+	if senders, err := s.Q.ListComposerSenders(ctx, ws.ID); err == nil {
+		for _, sn := range senders {
+			if p == nil || p.Scope.AllowsSenderDomain(sn.Domain) {
+				id := sn.ID
+				return &id
+			}
+		}
 	}
 	return nil
+}
+
+// senderInScope reports whether the caller may send from a sender: they
+// aren't limited to some sender domains, or its sending domain is one of
+// theirs.
+func (s *Service) senderInScope(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) bool {
+	if p == nil || len(p.Scope.SenderDomains) == 0 {
+		return true
+	}
+	snd, err := s.Q.GetComposerSender(ctx, store.GetComposerSenderParams{WorkspaceID: ws.ID, ID: id})
+	return err == nil && p.Scope.AllowsSenderDomain(snd.Domain)
 }
 
 // draftRow is a new draft as it's first stored: its content, audience and

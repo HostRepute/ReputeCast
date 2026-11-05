@@ -141,6 +141,17 @@ func (s *Service) Bypass(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	return s.send(ctx, ws, p, c, in.ReviewSendInput, sendMode{bypass: reason})
 }
 
+// sendScope refuses to start, schedule or move a campaign's send outside
+// the caller's scope: its audience on their lists, and the domain it sends
+// from one of their sender domains.
+func sendScope(ctx context.Context, p *authz.Principal, c store.ReadinessCampaignRow) error {
+	a := readiness.ParseAudience(c.Audience)
+	if msg := access.SendScopeProblem(i18n.LangFrom(ctx), p.Scope, access.ParseLists(a.Lists), len(a.Segments), c.SenderDomain, c.SenderEmail); msg != "" {
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, msg)
+	}
+	return nil
+}
+
 func digits(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -165,9 +176,13 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadySending, nil))
 	}
-	// A scoped member sends only within their lists, whoever built the audience.
-	if a := readiness.ParseAudience(c.Audience); !access.AudienceInScope(p.Scope, access.ParseLists(a.Lists), len(a.Segments)) {
-		return ReviewSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(i18n.LangFrom(ctx)))
+	// A scoped member sends only to their lists and from their sender
+	// domains, whoever built the audience or picked the sender. Scheduling
+	// an approved campaign is a send by the person who schedules it, its
+	// author or a member with campaigns:send: their scope applies, since an
+	// approval itself sends nothing.
+	if err := sendScope(ctx, p, c); err != nil {
+		return ReviewSendResult{}, err
 	}
 	// The campaign as the person reviewed it, before a new schedule.
 	reviewed := c
@@ -537,6 +552,11 @@ func (s *Service) Reschedule(ctx context.Context, ws *store.Workspace, p *authz.
 			to.Local, to.LocalDate, to.LocalMinute = true, time.Date(wall.Year(), wall.Month(), wall.Day(), 0, 0, 0, 0, time.UTC), wall.Hour()*60+wall.Minute()
 		}
 		return hook.MoveScheduled(ctx, ws, p, c.ID, to)
+	}
+	// Moving an email's send schedules it again, on the mover's behalf:
+	// within their scope, as when it was first scheduled.
+	if err := sendScope(ctx, p, c); err != nil {
+		return err
 	}
 	sb, _ := json.Marshal(sched)
 	if err := s.starter().Cancel(ctx, c.ID, p.UserID); err != nil && !errors.Is(err, sending.ErrUnavailable) {

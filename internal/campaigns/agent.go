@@ -110,7 +110,7 @@ func (s *Service) CreateForAgent(ctx context.Context, ws *store.Workspace, p *au
 		html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, compiled)
 	}
 	id, err := s.insertDraft(ctx, ws, p, draftRow{name: name, subject: subject, preheader: preheader, mjml: src, html: html,
-		label: mVersionAgentCreated.Text(i18n.Default, nil), source: "api", audience: []byte(`{}`), sender: s.defaultSender(ctx, ws)}, nil)
+		label: mVersionAgentCreated.Text(i18n.Default, nil), source: "api", audience: []byte(`{}`), sender: s.defaultSender(ctx, ws, p)}, nil)
 	if err != nil {
 		return ComposerCampaign{}, err
 	}
