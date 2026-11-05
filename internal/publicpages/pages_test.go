@@ -633,9 +633,10 @@ func TestEmbeddedForm(t *testing.T) {
 		}
 	})
 	t.Run("the plain HTML copy posts to the hosted page", func(t *testing.T) {
+		// Without a token it gets the Turnstile check (plain_post_test.go).
 		f := url.Values{"_plain": {"1"}, "email": {"plain@fastmail.com"}, "list": {ids.digest.String()}, "consent": {"1"}, "website": {""}}
 		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe/newsletter-signup", f, hdr{"Origin": "https://blog.acme.io"})
-		must(t, r, 200, "Check your inbox", "plain@fastmail.com")
+		must(t, r, 200, "One more step", `name="challenge"`)
 	})
 }
 
