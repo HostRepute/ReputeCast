@@ -149,13 +149,15 @@ func SecurityHeaders(httpsOnly bool) func(http.Handler) http.Handler {
 }
 
 // secretSegments match paths whose last part is a bearer secret: tracking
-// and email links (opens, clicks and the hidden link), shared reports,
-// provider webhooks, invitations, password resets and composer review
-// links (API and app routes).
+// and email links (opens, clicks and the hidden link), push notification
+// clicks, SMS short links, shared reports, provider webhooks, invitations,
+// password resets and composer review links (API and app routes).
 var secretSegments = []*regexp.Regexp{
-	regexp.MustCompile(`^(/t/[och]/)[^/]+`),
+	regexp.MustCompile(`^(/t/[ochps]/)[^/]+`),
 	regexp.MustCompile(`^(/p/[^/]+/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),
 	regexp.MustCompile(`^(/r/)[^/]+`),
+	// SMS webhooks name their adapter before the token.
+	regexp.MustCompile(`^(/hooks/sms/[^/]+/)[^/]+`),
 	regexp.MustCompile(`^(/hooks/[^/]+/)[^/]+`),
 	regexp.MustCompile(`^(/(?:invite|reset-password|review)/)[^/]+`),
 	regexp.MustCompile(`^(/api/v1/(?:auth/password-reset|invitations|shared-reports|review)/)[^/]+`),
@@ -172,11 +174,21 @@ var secretSegments = []*regexp.Regexp{
 	// under /p/{workspace}/ and at a custom domain's root.
 	regexp.MustCompile(`^(/p/[^/]+/(?:signin/link|d|l|billing|cancel|gift/redeem|poll)/)[^/]+`),
 	regexp.MustCompile(`^(/(?:signin/link|d|l|billing|cancel|gift/redeem|poll)/)[^/]+`),
+	// An SMS short link's code at the root of a short-link domain
+	// (go.acme.io/Xk7Pq2).
+	regexp.MustCompile(`^(/)[A-Za-z0-9]{6}$`),
 }
+
+// rootWords are the instance's own six-letter paths at the root, which a
+// short link's code would otherwise look like.
+var rootWords = map[string]bool{"/readyz": true, "/signin": true}
 
 // RedactPath replaces the secret part of a path with {token}, so logs never
 // hold a working link.
 func RedactPath(p string) string {
+	if rootWords[p] {
+		return p
+	}
 	for _, re := range secretSegments {
 		if m := re.FindStringSubmatchIndex(p); m != nil {
 			return p[:m[3]] + "{token}" + p[m[1]:]
