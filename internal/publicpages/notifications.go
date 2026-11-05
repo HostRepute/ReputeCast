@@ -188,13 +188,26 @@ func initialOf(name string) string {
 
 type categoryBody struct {
 	Heading, Email, Text, Status, Action, PrefsHref, Category, Others string
-	Off                                                               bool
-	Reasons                                                           []reasonView
+	// Ask is the page the link opens: its button turns the category off.
+	Ask, Off bool
+	Reasons  []reasonView
 }
 
-// categoryPage answers a category's unsubscribe link: the category is off
-// (or back on), and the page says what still arrives.
-func (h *Handler) categoryPage(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims, m NotificationMessage, token string, off, thanks bool) {
+// The category page's states.
+const (
+	// categoryAsk is the page the link opens; nothing has changed yet.
+	categoryAsk = "ask"
+	// categoryOff: turned off, with "turn it back on" and "why".
+	categoryOff = "off"
+	// categoryThanks: off, and the reason was given.
+	categoryThanks = "thanks"
+	// categoryOn: turned back on.
+	categoryOn = "on"
+)
+
+// categoryPage answers a category's unsubscribe link: what its button
+// does, or that the category is off (or back on); and what still arrives.
+func (h *Handler) categoryPage(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims, m NotificationMessage, token, state string) {
 	pl := h.messageLang(w, r, s, c)
 	l := pl.Labels
 	name := m.CategoryName
@@ -205,22 +218,36 @@ func (h *Handler) categoryPage(w http.ResponseWriter, r *http.Request, s *site, 
 		inText = strings.ToLower(name)
 	}
 	args := i18n.Args{"email": m.Email, "category": inText, "product": m.Product}
-	b := categoryBody{Email: m.Email, Action: s.links.Unsubscribe(token), Category: name, Off: off,
+	b := categoryBody{Email: m.Email, Action: s.links.Unsubscribe(token), Category: name,
 		PrefsHref: s.links.Preferences(h.sign(s, linktoken.Preferences, c.ContactID, c.MessageID))}
-	if thanks {
-		b.Status = l.Text("category.thanks", nil)
+	set, err := h.Notifications.For(r.Context(), s.ws, m.Email)
+	if state == categoryAsk && err == nil {
+		// Turned off already (an earlier click): the page says so.
+		for _, nc := range set.Categories {
+			if m.CategoryID != nil && nc.ID == *m.CategoryID && !nc.On {
+				state = categoryOff
+			}
+		}
 	}
-	if off {
+	switch state {
+	case categoryAsk:
+		b.Ask = true
+		b.Heading = growText(l.Lang(), "category.askHeading", "category", name)
+		b.Text = growText(l.Lang(), "category.askText", "email", m.Email, "category", inText, "product", m.Product)
+	case categoryOff, categoryThanks:
+		b.Off = true
 		b.Heading = l.Text("category.off.heading", i18n.Args{"category": name})
 		b.Text = l.Text("category.off.text", args)
-		if !thanks {
+		if state == categoryThanks {
+			b.Status = l.Text("category.thanks", nil)
+		} else {
 			b.Reasons = notificationReasonsIn(l)
 		}
-	} else {
+	default:
 		b.Heading = l.Text("category.on.heading", i18n.Args{"category": name})
 		b.Text = l.Text("category.on.text", args)
 	}
-	if set, err := h.Notifications.For(r.Context(), s.ws, m.Email); err == nil {
+	if err == nil {
 		var on []string
 		for _, nc := range set.Categories {
 			if nc.On && (m.CategoryID == nil || nc.ID != *m.CategoryID) {
@@ -238,8 +265,12 @@ func (h *Handler) categoryPage(w http.ResponseWriter, r *http.Request, s *site, 
 }
 
 // categoryUnsubscribe handles the unsubscribe link of a transactional
-// message (GET turns its Optional category off; HEAD, what link scanners
-// send, never does). It reports whether the request was one.
+// message: a page whose button turns its Optional category off. Opening
+// the link changes nothing, as the newsletter's unsubscribe page: mail
+// gateways (Safe Links, Proofpoint, Mimecast) open every link of an
+// email with GET, and used to turn recipients' categories off. The
+// button and RFC 8058 one-click are POSTs (categoryPost). It reports
+// whether the request was one.
 func (h *Handler) categoryUnsubscribe(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims) bool {
 	m, ok, err := h.transactionalMessage(r.Context(), s, c)
 	if err != nil {
@@ -258,14 +289,7 @@ func (h *Handler) categoryUnsubscribe(w http.ResponseWriter, r *http.Request, s 
 			Actions: []action{{Label: l.Text("page.preferences", nil), Href: s.links.Preferences(h.sign(s, linktoken.Preferences, c.ContactID, c.MessageID))}}}, true)
 		return true
 	}
-	err = db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
-		return h.Notifications.TurnOff(r.Context(), tx, s.ws, m.Email, *m.CategoryID, "unsubscribe_link", c.MessageID)
-	})
-	if err != nil {
-		h.serverError(w, r, s, err)
-		return true
-	}
-	h.categoryPage(w, r, s, c, m, token, true, false)
+	h.categoryPage(w, r, s, c, m, token, categoryAsk)
 	return true
 }
 
@@ -312,19 +336,20 @@ func (h *Handler) categoryPost(w http.ResponseWriter, r *http.Request, s *site, 
 	case "on":
 		err = db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error { return h.Notifications.TurnOn(r.Context(), tx, s.ws, m.Email, cat) })
 		if err == nil {
-			h.categoryPage(w, r, s, c, m, token, false, false)
+			h.categoryPage(w, r, s, c, m, token, categoryOn)
 		}
 	case "reason":
 		err = h.Notifications.Reason(r.Context(), s.ws, m.Email, cat, f.Get("reason"))
 		if err == nil {
-			h.categoryPage(w, r, s, c, m, token, true, true)
+			h.categoryPage(w, r, s, c, m, token, categoryThanks)
 		}
 	default:
+		// The page's button.
 		err = db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
 			return h.Notifications.TurnOff(r.Context(), tx, s.ws, m.Email, cat, "unsubscribe_link", c.MessageID)
 		})
 		if err == nil {
-			h.categoryPage(w, r, s, c, m, token, true, false)
+			h.categoryPage(w, r, s, c, m, token, categoryOff)
 		}
 	}
 	if err != nil {
