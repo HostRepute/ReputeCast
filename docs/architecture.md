@@ -71,7 +71,11 @@ The stack and the reasons behind each choice are in
   IPs taken from forwarded headers only behind trusted proxies.
 - User-written SQL segments run in a read-only transaction with a statement
   timeout, as a role that can only read a per-query view of one workspace's
-  contacts.
+  contacts. They can't take advisory locks or run SQL given as a string,
+  and their connection releases every session lock before it is reused.
+- Liquid renders on a budget of steps, work, value sizes and time, so a
+  template anyone who can preview an email writes can't stall the server or
+  exhaust its memory; templates can't load files or other templates.
 - Outgoing webhooks are signed (HMAC-SHA256) and blocked from private
   networks.
 - The audit log records allowed and denied actions and cannot be edited from
