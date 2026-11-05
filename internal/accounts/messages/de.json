@@ -37,6 +37,7 @@
   "problem.tooManyCodes": "Zu viele falsche Codes. Beginnen Sie erneut mit Ihrer E-Mail-Adresse.",
   "problem.wrongCode": "Dieser Code hat nicht funktioniert. Noch {left, plural, one {# Versuch} other {# Versuche}}.",
   "problem.wrongTotp": "Dieser Code hat nicht funktioniert. Codes ändern sich alle 30 Sekunden; prüfen Sie, ob die Uhr Ihres Telefons automatisch gestellt wird. Noch {left, plural, one {# Versuch} other {# Versuche}}.",
+  "problem.totpReused": "Dieser Code wurde bereits verwendet. Warten Sie auf den nächsten in Ihrer Authenticator-App. Noch {left, plural, one {# Versuch} other {# Versuche}}.",
   "problem.wrongRecovery": "Dieser Wiederherstellungscode ist ungültig oder wurde bereits verwendet. Noch {left, plural, one {# Versuch} other {# Versuche}}.",
   "problem.resetExpired": "Dieser Link zum Zurücksetzen ist älter als 15 Minuten oder wurde bereits verwendet. Fordern Sie einen neuen an; Ihr aktuelles Passwort funktioniert, bis Sie es ändern.",
   "problem.breached": "Dieses Passwort taucht in bekannten Datenlecks auf. Wählen Sie ein anderes.",

@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -355,7 +356,6 @@ func (s *Service) PasskeySignIn(ctx context.Context, challenge string, credentia
 	if err := s.Q.UpdatePasskeyAfterUse(ctx, store.UpdatePasskeyAfterUseParams{ID: pk.ID, Credential: mustJSON(cred), SignCount: int64(cred.Authenticator.SignCount), BackupState: cred.Flags.BackupState}); err != nil {
 		return SignInResult{}, nil, err
 	}
-	_ = s.Q.ClearSignInThrottle(ctx, u.Email)
 	pid := pk.ID
 	cookie, err := s.completeSignIn(ctx, u, "passkey", true, remember, &pid)
 	if err != nil {
@@ -421,22 +421,29 @@ func (s *Service) TwoFactorPasskey(ctx context.Context, challenge, passkeyChalle
 	if err != nil {
 		return SignInResult{}, nil, err
 	}
+	attempt, err := s.countAttempt(ctx, ch)
+	if err != nil {
+		return SignInResult{}, nil, err
+	}
+	wrong := func(m i18n.Msg) error { return s.failTwoFactor(ctx, ch, attempt, u, data.Method+"+passkey", false, m) }
 	parsed, err := protocol.ParseCredentialRequestResponseBytes(credential)
 	if err != nil {
-		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mPasskeyUnreadableLeft)
+		return SignInResult{}, nil, wrong(mPasskeyUnreadableLeft)
 	}
 	cred, err := wa.ValidateLogin(w, cer.Session, parsed)
 	if err != nil {
-		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mPasskeyWrongLeft)
+		return SignInResult{}, nil, wrong(mPasskeyWrongLeft)
 	}
 	pk, ok := w.key(cred.ID)
 	if !ok {
-		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mPasskeyWrongLeft)
+		return SignInResult{}, nil, wrong(mPasskeyWrongLeft)
 	}
 	if err := s.Q.UpdatePasskeyAfterUse(ctx, store.UpdatePasskeyAfterUseParams{ID: pk.ID, Credential: mustJSON(cred), SignCount: int64(cred.Authenticator.SignCount), BackupState: cred.Flags.BackupState}); err != nil {
 		return SignInResult{}, nil, err
 	}
-	_ = s.Q.DeleteChallenge(ctx, ch.ID)
+	if err := s.takeChallenge(ctx, ch); err != nil {
+		return SignInResult{}, nil, err
+	}
 	pid := pk.ID
 	cookie, err := s.completeSignInWith(ctx, u, data.Method+"+passkey", true, data.Remember, &pid, data.Extra)
 	if err != nil {

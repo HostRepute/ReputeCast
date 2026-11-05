@@ -37,6 +37,7 @@
   "problem.tooManyCodes": "Demasiados códigos incorrectos. Vuelve a empezar con tu correo.",
   "problem.wrongCode": "Ese código no funcionó. {left, plural, one {Queda # intento} other {Quedan # intentos}}.",
   "problem.wrongTotp": "Ese código no funcionó. Los códigos cambian cada 30 segundos; comprueba que la hora de tu móvil se ajusta automáticamente. {left, plural, one {Queda # intento} other {Quedan # intentos}}.",
+  "problem.totpReused": "Ese código ya se usó. Espera al siguiente en tu aplicación de autenticación. {left, plural, one {Queda # intento} other {Quedan # intentos}}.",
   "problem.wrongRecovery": "Ese código de recuperación no es válido o ya se usó. {left, plural, one {Queda # intento} other {Quedan # intentos}}.",
   "problem.resetExpired": "Este enlace para restablecer la contraseña tiene más de 15 minutos o ya se usó. Solicita uno nuevo; tu contraseña actual sigue funcionando hasta que la cambies.",
   "problem.breached": "Esta contraseña aparece en filtraciones de datos conocidas. Elige otra.",

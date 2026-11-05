@@ -1,37 +1,15 @@
-import { createHmac } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { signIn as demoSignIn } from '../scripts/lib/demo-auth.ts'
 
 // The smoke test (review 2026-11 FE-8): the demo's owner signs in and the
 // main screens load without an error, and ⌘K finds a campaign. Needs a
 // server seeded with `reputecast seed`.
 
-const TOTP_SECRET = 'JBSWY3DPEHPK3PXP'
-
-function base32(s: string): Buffer {
-  const a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-  let bits = ''
-  for (const c of s) bits += a.indexOf(c).toString(2).padStart(5, '0')
-  const out: number[] = []
-  for (let i = 0; i + 8 <= bits.length; i += 8) out.push(parseInt(bits.slice(i, i + 8), 2))
-  return Buffer.from(out)
-}
-
-function totp(secret: string): string {
-  const counter = Buffer.alloc(8)
-  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)))
-  const h = createHmac('sha1', base32(secret)).update(counter).digest()
-  const o = h[h.length - 1]! & 0xf
-  const n = ((h[o]! & 0x7f) << 24) | (h[o + 1]! << 16) | (h[o + 2]! << 8) | h[o + 3]!
-  return String(n % 1e6).padStart(6, '0')
-}
-
+// The server accepts each authenticator code once, so the shared sign-in
+// waits for the next code when a test before already used this one.
 async function signIn(page: Page) {
-  const r = await page.request.post('/api/v1/auth/password', { data: { email: 'linh@acme.io', password: 'reputecast-demo', remember: true } })
-  const body = await r.json()
-  if (body.status === 'two_factor') {
-    const r2 = await page.request.post('/api/v1/auth/two-factor', { data: { challenge: body.challenge, method: 'totp', code: totp(TOTP_SECRET) } })
-    expect(r2.ok()).toBeTruthy()
-  }
+  test.setTimeout(120_000)
+  await demoSignIn(page.context(), '', 'linh@acme.io')
 }
 
 const screens: [string, RegExp][] = [

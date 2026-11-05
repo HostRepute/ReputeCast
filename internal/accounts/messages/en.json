@@ -37,6 +37,7 @@
   "problem.tooManyCodes": "Too many wrong codes. Start again with your email.",
   "problem.wrongCode": "That code didn't work. {left, plural, one {# attempt} other {# attempts}} left.",
   "problem.wrongTotp": "That code didn't work. Codes change every 30 seconds; check that your phone's clock is set automatically. {left, plural, one {# attempt} other {# attempts}} left.",
+  "problem.totpReused": {"message": "That code was already used. Wait for the next one in your authenticator app. {left, plural, one {# attempt} other {# attempts}} left.", "note": "an authenticator code works once; left: attempts left"},
   "problem.wrongRecovery": "That recovery code isn't valid or was already used. {left, plural, one {# attempt} other {# attempts}} left.",
   "problem.resetExpired": "This reset link is older than 15 minutes or was already used. Request a new one; your current password still works until you change it.",
   "problem.breached": "This password appears in known data breaches. Choose another one.",

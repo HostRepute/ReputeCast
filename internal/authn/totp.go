@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/hotp"
 	"github.com/pquerna/otp/totp"
 )
 
@@ -42,17 +43,39 @@ func GroupSecret(secret string) string {
 	return b.String()
 }
 
-// VerifyTOTP checks a 6-digit code, allowing one 30-second step of clock skew.
-// Spaces in pasted codes ("123 456") are ignored.
-func VerifyTOTP(secret, code string, now time.Time) bool {
+// totpPeriod is how long an authenticator code lasts, in seconds.
+const totpPeriod = 30
+
+// MatchTOTP checks a 6-digit code, allowing one 30-second step of clock
+// skew either way, and returns the time step (Unix time / 30 s) the code
+// belongs to. A caller that accepts each step once makes every code single
+// use. Spaces in pasted codes ("123 456") are ignored.
+func MatchTOTP(secret, code string, now time.Time) (int64, bool) {
 	code = strings.ReplaceAll(strings.TrimSpace(code), " ", "")
-	ok, err := totp.ValidateCustom(code, secret, now, totp.ValidateOpts{
-		Period:    30,
-		Skew:      1,
-		Digits:    otp.DigitsSix,
-		Algorithm: otp.AlgorithmSHA1,
-	})
-	return err == nil && ok
+	opts := hotp.ValidateOpts{Digits: otp.DigitsSix, Algorithm: otp.AlgorithmSHA1}
+	step := now.Unix() / totpPeriod
+	// The current step first, as the otp package checks them.
+	for _, s := range []int64{step, step + 1, step - 1} {
+		if s < 0 {
+			continue
+		}
+		ok, err := hotp.ValidateCustom(code, uint64(s), secret, opts)
+		if err != nil {
+			return 0, false
+		}
+		if ok {
+			return s, true
+		}
+	}
+	return 0, false
+}
+
+// VerifyTOTP checks a 6-digit code, allowing one 30-second step of clock skew.
+// Spaces in pasted codes ("123 456") are ignored. It doesn't say which step
+// matched: sign-in uses MatchTOTP so that a code works once.
+func VerifyTOTP(secret, code string, now time.Time) bool {
+	_, ok := MatchTOTP(secret, code, now)
+	return ok
 }
 
 // recoveryAlphabet avoids look-alike letters (no i, l, o, u).

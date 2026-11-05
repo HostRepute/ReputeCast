@@ -23,10 +23,10 @@
  * (see internal/demo). Uses the installed Google Chrome, so no browser
  * download is needed.
  */
-import { createHmac } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { chromium, type BrowserContext } from '@playwright/test'
+import { signIn as demoSignIn } from './lib/demo-auth.ts'
 
 const args = process.argv.slice(2)
 function opt(name: string, def?: string) {
@@ -53,35 +53,10 @@ const user = opt('user', 'linh@acme.io')!
 const extraWait = Number(opt('wait', '400'))
 const fullPage = !flag('viewport-only')
 
-const DEMO_PASSWORD = 'reputecast-demo'
-const DEMO_TOTP = 'JBSWY3DPEHPK3PXP'
-
-function base32(s: string) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-  let bits = ''
-  for (const c of s.replace(/=+$/, '').toUpperCase()) bits += alphabet.indexOf(c).toString(2).padStart(5, '0')
-  const bytes: number[] = []
-  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i + 8), 2))
-  return Buffer.from(bytes)
-}
-
-function totp(secret: string, now = Date.now()) {
-  const counter = Buffer.alloc(8)
-  counter.writeBigUInt64BE(BigInt(Math.floor(now / 1000 / 30)))
-  const h = createHmac('sha1', base32(secret)).update(counter).digest()
-  const o = h[h.length - 1]! & 0xf
-  const n = ((h[o]! & 0x7f) << 24) | (h[o + 1]! << 16) | (h[o + 2]! << 8) | h[o + 3]!
-  return String(n % 1_000_000).padStart(6, '0')
-}
-
+// The shared sign-in waits for the next code when this half-minute's was
+// already used: the server accepts each authenticator code once.
 async function signIn(ctx: BrowserContext) {
-  const r = await ctx.request.post(`${app}/api/v1/auth/password`, { data: { email: user, password: DEMO_PASSWORD, remember: true } })
-  if (!r.ok()) throw new Error(`sign-in failed: ${r.status()} ${await r.text()}`)
-  const body = (await r.json()) as { status: string; challenge?: string }
-  if (body.status === 'two_factor') {
-    const r2 = await ctx.request.post(`${app}/api/v1/auth/two-factor`, { data: { challenge: body.challenge, method: 'totp', code: totp(DEMO_TOTP) } })
-    if (!r2.ok()) throw new Error(`two-factor failed: ${r2.status()} ${await r2.text()}`)
-  }
+  await demoSignIn(ctx, app, user)
 }
 
 function slug(s: string) {

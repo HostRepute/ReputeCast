@@ -157,7 +157,8 @@ func (s *Service) ConfirmTOTP(ctx context.Context, challenge, code string) (Reco
 	if err != nil {
 		return RecoveryCodes{}, err
 	}
-	if !authn.VerifyTOTP(secret, code, s.now()) {
+	step, ok := authn.MatchTOTP(secret, code, s.now())
+	if !ok {
 		return RecoveryCodes{}, api.Invalid("body.code", say(ctx, msgs.M("problem.wrongSetupCode")))
 	}
 	enc, err := s.Box.SealString(secret, totpAD(u.ID))
@@ -169,6 +170,10 @@ func (s *Service) ConfirmTOTP(ctx context.Context, challenge, code string) (Reco
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.SetUserTOTP(ctx, store.SetUserTOTPParams{ID: u.ID, TotpSecretEnc: enc, TotpEnabledAt: &now}); err != nil {
+			return err
+		}
+		// Like a code that signs in, the confirming code works once.
+		if err := q.AccountsSetTOTPStep(ctx, store.AccountsSetTOTPStepParams{ID: u.ID, Step: step}); err != nil {
 			return err
 		}
 		if err := replaceRecoveryCodes(ctx, q, u.ID, codes); err != nil {

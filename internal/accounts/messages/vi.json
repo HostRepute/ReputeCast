@@ -37,6 +37,7 @@
   "problem.tooManyCodes": "Nhập sai mã quá nhiều lần. Hãy bắt đầu lại bằng email của bạn.",
   "problem.wrongCode": "Mã không đúng. Còn {left} lần thử.",
   "problem.wrongTotp": "Mã không đúng. Mã đổi sau mỗi 30 giây; hãy kiểm tra đồng hồ điện thoại được đặt tự động. Còn {left} lần thử.",
+  "problem.totpReused": "Mã này đã được dùng. Hãy chờ mã tiếp theo trong ứng dụng xác thực. Còn {left} lần thử.",
   "problem.wrongRecovery": "Mã khôi phục không hợp lệ hoặc đã được dùng. Còn {left} lần thử.",
   "problem.resetExpired": "Liên kết đặt lại này đã quá 15 phút hoặc đã được dùng. Hãy yêu cầu liên kết mới; mật khẩu hiện tại vẫn dùng được cho đến khi bạn đổi.",
   "problem.breached": "Mật khẩu này có trong các vụ lộ dữ liệu đã biết. Hãy chọn mật khẩu khác.",

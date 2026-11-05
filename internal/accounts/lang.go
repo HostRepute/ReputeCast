@@ -61,6 +61,7 @@ var (
 	mTooManyCodes          = msgs.M("problem.tooManyCodes")
 	mWrongCode             = msgs.M("problem.wrongCode")
 	mWrongTOTP             = msgs.M("problem.wrongTotp")
+	mTOTPReused            = msgs.M("problem.totpReused")
 	mWrongRecovery         = msgs.M("problem.wrongRecovery")
 	mResetExpired          = msgs.M("problem.resetExpired")
 	mBreached              = msgs.M("problem.breached")

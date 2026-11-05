@@ -31,6 +31,77 @@ func (q *Queries) AcceptPendingInvitation(ctx context.Context, arg AcceptPending
 	return result.RowsAffected(), nil
 }
 
+const accountsCountChallengeAttempt = `-- name: AccountsCountChallengeAttempt :one
+UPDATE auth_challenges SET attempts = attempts + 1
+WHERE id = $1 AND attempts < $2::int AND expires_at > now()
+RETURNING attempts
+`
+
+type AccountsCountChallengeAttemptParams struct {
+	ID          uuid.UUID `json:"id"`
+	MaxAttempts int32     `json:"maxAttempts"`
+}
+
+// Counts an attempt at a two-factor challenge before its code is checked,
+// and only while attempts are left: parallel guesses can't go over the
+// limit. No row means none are left (or the challenge is gone).
+func (q *Queries) AccountsCountChallengeAttempt(ctx context.Context, arg AccountsCountChallengeAttemptParams) (int32, error) {
+	row := q.db.QueryRow(ctx, accountsCountChallengeAttempt, arg.ID, arg.MaxAttempts)
+	var attempts int32
+	err := row.Scan(&attempts)
+	return attempts, err
+}
+
+const accountsSetTOTPStep = `-- name: AccountsSetTOTPStep :exec
+UPDATE users SET totp_last_step = GREATEST(coalesce(totp_last_step, 0), $1::bigint) WHERE id = $2
+`
+
+type AccountsSetTOTPStepParams struct {
+	Step int64     `json:"step"`
+	ID   uuid.UUID `json:"id"`
+}
+
+// The step of the code that confirmed a new authenticator: that code can't
+// sign in afterwards.
+func (q *Queries) AccountsSetTOTPStep(ctx context.Context, arg AccountsSetTOTPStepParams) error {
+	_, err := q.db.Exec(ctx, accountsSetTOTPStep, arg.Step, arg.ID)
+	return err
+}
+
+const accountsTakeChallenge = `-- name: AccountsTakeChallenge :execrows
+DELETE FROM auth_challenges WHERE id = $1
+`
+
+// Uses up a challenge: of two requests with a right answer, only the one
+// that deletes it goes on.
+func (q *Queries) AccountsTakeChallenge(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, accountsTakeChallenge, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const accountsUseTOTPStep = `-- name: AccountsUseTOTPStep :execrows
+UPDATE users SET totp_last_step = $1::bigint
+WHERE id = $2 AND (totp_last_step IS NULL OR totp_last_step < $1::bigint)
+`
+
+type AccountsUseTOTPStepParams struct {
+	Step int64     `json:"step"`
+	ID   uuid.UUID `json:"id"`
+}
+
+// Accepts an authenticator code's time step once: the step only moves
+// forward, so a code that signed in can't be replayed.
+func (q *Queries) AccountsUseTOTPStep(ctx context.Context, arg AccountsUseTOTPStepParams) (int64, error) {
+	result, err := q.db.Exec(ctx, accountsUseTOTPStep, arg.Step, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const clearUserLockout = `-- name: ClearUserLockout :exec
 UPDATE users SET failed_attempts = 0, locked_until = NULL, updated_at = now() WHERE id = $1
 `
@@ -442,7 +513,7 @@ func (q *Queries) GetUsablePasswordReset(ctx context.Context, tokenHash []byte) 
 }
 
 const getUserByWebAuthnID = `-- name: GetUserByWebAuthnID :one
-SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at FROM users WHERE webauthn_id = $1
+SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at, totp_last_step FROM users WHERE webauthn_id = $1
 `
 
 func (q *Queries) GetUserByWebAuthnID(ctx context.Context, webauthnID []byte) (User, error) {
@@ -479,6 +550,7 @@ func (q *Queries) GetUserByWebAuthnID(ctx context.Context, webauthnID []byte) (U
 		&i.HourCycle,
 		&i.WeekStart,
 		&i.LanguagePromptedAt,
+		&i.TotpLastStep,
 	)
 	return i, err
 }

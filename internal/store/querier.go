@@ -108,6 +108,19 @@ type Querier interface {
 	AccessibilityTemplates(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityTemplatesRow, error)
 	AccessibilityUpsertLinkTitle(ctx context.Context, arg AccessibilityUpsertLinkTitleParams) error
 	AccessibilityUpsertPolicy(ctx context.Context, arg AccessibilityUpsertPolicyParams) error
+	// Counts an attempt at a two-factor challenge before its code is checked,
+	// and only while attempts are left: parallel guesses can't go over the
+	// limit. No row means none are left (or the challenge is gone).
+	AccountsCountChallengeAttempt(ctx context.Context, arg AccountsCountChallengeAttemptParams) (int32, error)
+	// The step of the code that confirmed a new authenticator: that code can't
+	// sign in afterwards.
+	AccountsSetTOTPStep(ctx context.Context, arg AccountsSetTOTPStepParams) error
+	// Uses up a challenge: of two requests with a right answer, only the one
+	// that deletes it goes on.
+	AccountsTakeChallenge(ctx context.Context, id uuid.UUID) (int64, error)
+	// Accepts an authenticator code's time step once: the step only moves
+	// forward, so a code that signed in can't be replayed.
+	AccountsUseTOTPStep(ctx context.Context, arg AccountsUseTOTPStepParams) (int64, error)
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	// Adds the keys the workspace's branding doesn't have; never overwrites.
