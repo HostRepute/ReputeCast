@@ -132,10 +132,34 @@ func (s *Service) linkState(link store.ProductOrderLink, o store.ProductOrder) s
 	return DownloadOK
 }
 
+// ResumeWindow is how long after a link's last counted download the rest
+// of a download can be asked for without counting again: as long as one
+// download may take (the download route's write deadline). Later, a
+// resumed download counts like a new one.
+const ResumeWindow = 3 * time.Hour
+
+// Resumes reports, for a file's size and upload time, whether a request
+// asks for the rest of a download (one byte range from past its first
+// byte) rather than the file.
+type Resumes func(size int64, modtime time.Time) bool
+
+// resumesOf asks resumes about an open file; nil, or a file that can't
+// be measured, is a download from the start.
+func resumesOf(resumes Resumes, file *os.File, modtime time.Time) bool {
+	if resumes == nil {
+		return false
+	}
+	st, err := file.Stat()
+	return err == nil && resumes(st.Size(), modtime)
+}
+
 // OpenFile counts a download and opens the file to send. The caller
-// closes it. A download resumed from the middle (a Range request) doesn't
-// count again: count is false for it.
-func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token string, fileID uuid.UUID, ip string, count bool) (store.DownloadFile, *os.File, string, error) {
+// closes it. The rest of a download (resumes) isn't counted again within
+// ResumeWindow of the link's last counted download, even once the link
+// is used up; never once the link has expired, was replaced or revoked.
+// (A request that only looked like a resume used to get a used-up or
+// expired link's whole file, for ever.)
+func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token string, fileID uuid.UUID, ip string, resumes Resumes) (store.DownloadFile, *os.File, string, error) {
 	link, o, err := s.resolve(ctx, ws, token)
 	if err != nil {
 		return store.DownloadFile{}, nil, "", err
@@ -149,6 +173,7 @@ func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token strin
 	if err != nil {
 		return f, nil, "", err
 	}
+	resume := resumesOf(resumes, file, f.UploadedAt)
 	state := DownloadOK
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -157,15 +182,18 @@ func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token strin
 			return err
 		}
 		state = s.linkState(l, o)
-		if !count && state == DownloadUsedUp {
-			// The rest of a download already counted.
-			state = DownloadOK
-			return nil
+		if resume {
+			ok, err := s.resumable(ctx, q, l, state)
+			if err != nil {
+				return err
+			}
+			if ok {
+				// The rest of a download counted moments ago.
+				state = DownloadOK
+				return nil
+			}
 		}
 		if state != DownloadOK {
-			return nil
-		}
-		if !count {
 			return nil
 		}
 		if err := q.ProductOrderLinkUse(ctx, l.ID); err != nil {
@@ -179,6 +207,24 @@ func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token strin
 		return f, nil, state, err
 	}
 	return f, file, DownloadOK, nil
+}
+
+// resumable reports whether the rest of a download can come without
+// counting: the link still works or is only used up, hasn't expired (used
+// up or not), and its last counted download began within ResumeWindow.
+func (s *Service) resumable(ctx context.Context, q *store.Queries, l store.ProductOrderLink, state string) (bool, error) {
+	now := s.now()
+	if (state != DownloadOK && state != DownloadUsedUp) || !now.Before(l.ExpiresAt) {
+		return false, nil
+	}
+	last, err := q.ProductOrderLinkLastDownload(ctx, store.ProductOrderLinkLastDownloadParams{OrderID: l.OrderID, LinkID: l.ID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return now.Sub(last) <= ResumeWindow, nil
 }
 
 // ErrTooManyLinks is a buyer asking for new links too often.

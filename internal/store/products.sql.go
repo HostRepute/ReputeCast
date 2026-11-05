@@ -1785,6 +1785,24 @@ func (q *Queries) ProductOrderLinkInsert(ctx context.Context, arg ProductOrderLi
 	return err
 }
 
+const productOrderLinkLastDownload = `-- name: ProductOrderLinkLastDownload :one
+SELECT at FROM product_order_downloads WHERE order_id = $1 AND link_id = $2 ORDER BY at DESC LIMIT 1
+`
+
+type ProductOrderLinkLastDownloadParams struct {
+	OrderID uuid.UUID `json:"orderId"`
+	LinkID  uuid.UUID `json:"linkId"`
+}
+
+// When a link's last counted download began: the rest of it can be asked
+// for (a Range request) without counting again for a while.
+func (q *Queries) ProductOrderLinkLastDownload(ctx context.Context, arg ProductOrderLinkLastDownloadParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, productOrderLinkLastDownload, arg.OrderID, arg.LinkID)
+	var at time.Time
+	err := row.Scan(&at)
+	return at, err
+}
+
 const productOrderLinkLock = `-- name: ProductOrderLinkLock :one
 SELECT id, order_id, reason, created_by, created_at, expires_at, downloads_allowed, downloads_used, message_id, delivery, delivery_error, superseded_at FROM product_order_links WHERE id = $1 FOR UPDATE
 `
