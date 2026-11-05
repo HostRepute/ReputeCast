@@ -37,6 +37,7 @@
   "problem.tooManyCodes": "Trop de codes erronés. Recommencez avec votre adresse e-mail.",
   "problem.wrongCode": "Ce code n’a pas fonctionné. {left, plural, one {# tentative restante} other {# tentatives restantes}}.",
   "problem.wrongTotp": "Ce code n’a pas fonctionné. Les codes changent toutes les 30 secondes\u202F; vérifiez que l’horloge de votre téléphone est réglée automatiquement. {left, plural, one {# tentative restante} other {# tentatives restantes}}.",
+  "problem.totpReused": "Ce code a déjà été utilisé. Attendez le suivant dans votre application d’authentification. {left, plural, one {# tentative restante} other {# tentatives restantes}}.",
   "problem.wrongRecovery": "Ce code de récupération n’est pas valide ou a déjà été utilisé. {left, plural, one {# tentative restante} other {# tentatives restantes}}.",
   "problem.resetExpired": "Ce lien de réinitialisation date de plus de 15 minutes ou a déjà été utilisé. Demandez-en un nouveau\u202F; votre mot de passe actuel reste valable tant que vous ne le changez pas.",
   "problem.breached": "Ce mot de passe figure dans des fuites de données connues. Choisissez-en un autre.",

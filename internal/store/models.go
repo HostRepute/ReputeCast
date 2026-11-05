@@ -5099,6 +5099,7 @@ type User struct {
 	HourCycle            *string    `json:"hourCycle"`
 	WeekStart            *string    `json:"weekStart"`
 	LanguagePromptedAt   *time.Time `json:"languagePromptedAt"`
+	TotpLastStep         *int64     `json:"totpLastStep"`
 }
 
 type UserAvatar struct {

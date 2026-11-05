@@ -203,6 +203,7 @@ export function SignInPage({ search }: { search: SignInSearch }) {
           onDone={finish}
           onExpired={(message) => setStep({ kind: 'password', email: step.email, error: message })}
           onError={(error) => setStep({ ...step, error })}
+          onProblem={(e) => special(step.email, e)}
         />
       )
     case 'last_code':
@@ -520,6 +521,7 @@ function TwoFactorStep({
   onDone,
   onExpired,
   onError,
+  onProblem,
 }: {
   step: Extract<Step, { kind: 'two_factor' }>
   onBack: () => void
@@ -527,6 +529,8 @@ function TwoFactorStep({
   onDone: (r: Schemas['SignInResult']) => Promise<void>
   onExpired: (message: string) => void
   onError: (message: string) => void
+  /** The lockout and deactivation screens; true when one took over. */
+  onProblem: (e: unknown) => boolean
 }) {
   const t = useT()
   const [code, setCode] = useState('')
@@ -536,7 +540,10 @@ function TwoFactorStep({
   const error = localError ?? step.error
   const has = (m: string) => step.methods.includes(m)
 
+  // Wrong codes count toward the email's lockout like wrong passwords, so
+  // the lock can start here; it gets its own screen.
   const fail = (e: unknown) => {
+    if (onProblem(e)) return
     if (e instanceof ApiError && e.code === 'challenge_expired') onExpired(e.message)
     else onError(errorMessage(e))
   }

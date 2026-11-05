@@ -55,7 +55,9 @@ func (s *Service) CompleteExternalSignIn(ctx context.Context, in ExternalSignIn)
 	if u.Status != "active" {
 		return ExternalResult{}, api.Err(http.StatusForbidden, "account_deactivated", say(ctx, mDeactivated))
 	}
-	_ = s.Q.ClearSignInThrottle(ctx, u.Email)
+	// The email's sign-in failures clear once the session exists
+	// (completeSignInWith), not while the person's own second factor is
+	// still to come: wrong codes there count toward the lockout.
 	if !in.MFA {
 		methods, hint := s.secondFactors(ctx, u)
 		if len(methods) > 0 {
