@@ -55,7 +55,8 @@ type AccessScopeContactParams struct {
 }
 
 // Scope checks shared by every domain (internal/access): a member, API key
-// or agent limited to some lists sees only the contacts on them.
+// or agent limited to some lists sees only the contacts on them, and one
+// limited to some sender domains sends only from those.
 // Whether one of a scoped caller's lists has the contact, in any status, as
 // Audience's list and search count it.
 func (q *Queries) AccessScopeContact(ctx context.Context, arg AccessScopeContactParams) (bool, error) {
