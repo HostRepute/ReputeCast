@@ -1,10 +1,13 @@
-import { useRef } from 'react'
+import { Fragment, useRef, type CSSProperties } from 'react'
 import { Count } from '../components/Count'
 import { links } from '../content/links'
 import { useProgress } from '../lib/motion'
 
 const RECIPIENTS = 31_192
 const SENT = 19_594
+
+/** Compose can't read a compose file over HTTPS, so the command downloads it first. */
+export const HERO_COMMAND = [`curl -fsSLO ${links.composeUrl} &&`, '  docker compose up -d']
 
 /**
  * Milliseconds until `offset` ms after the element's CSS animation started,
@@ -22,7 +25,7 @@ const checks: { tone: 'ok' | 'warn'; label: string; text: string; action?: strin
   { tone: 'ok', label: 'Pass', text: 'news.acme.io clean on 84 of 84 blocklists' },
   { tone: 'ok', label: 'Pass', text: 'SPF, DKIM, DMARC aligned on SES and Postal' },
   { tone: 'ok', label: 'Pass', text: "64 KB, under Gmail's 102 KB clipping limit" },
-  { tone: 'warn', label: 'Warn', text: '412 unengaged contacts in the audience', action: 'Exclude' },
+  { tone: 'warn', label: 'Warn', text: '2 of 14 links have no utm_campaign tag', action: 'Add it' },
   { tone: 'ok', label: 'Pass', text: 'Route SES 90% / Postal 10%, both healthy' },
 ]
 
@@ -49,20 +52,30 @@ export function Hero() {
           </p>
           <div className="rise d4 flex flex-col gap-2.5">
             <pre className="term">
-              <span className="typed">docker compose -f {links.composeUrl} up -d</span>
-              <span className="cursor" aria-hidden="true" />
+              {HERO_COMMAND.map((line, i) => (
+                <Fragment key={line}>
+                  {i > 0 ? '\n' : null}
+                  <span className="ln" style={{ '--chars': line.length, '--after': HERO_COMMAND.slice(0, i).join('').length } as CSSProperties}>
+                    <span className="typed">{line}</span>
+                    <span className="cursor" aria-hidden="true" />
+                  </span>
+                </Fragment>
+              ))}
             </pre>
-            <span className="k">One command. Postgres and the app. Then open localhost:8080 and connect a provider: most take 10–15 minutes.</span>
+            <span className="k">
+              One command. Postgres and the app. Then open localhost:8080, sign in with the temporary password from the app&apos;s logs and connect a provider:
+              most take 10–15 minutes.
+            </span>
           </div>
           <div className="rise d5 flex flex-wrap gap-2.5">
             <a href={links.repo} className="btn pri">
               Star on GitHub
             </a>
-            <a href={links.discord} className="btn">
-              Join the Discord
+            <a href={links.discussions} className="btn">
+              Join the discussion
             </a>
-            <a href={links.demo} className="btn">
-              Try the live demo
+            <a href={links.screenshots} className="btn">
+              See screenshots
             </a>
           </div>
         </div>

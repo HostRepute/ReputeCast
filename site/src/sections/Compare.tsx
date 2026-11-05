@@ -68,12 +68,12 @@ const rows: Row[] = [
   {
     label: "Where it's better than ReputeCast",
     cells: [
-      { k: 'Younger project; you run the server; no SMS or push' },
+      { k: 'Younger project; you run and update the server; a smaller template and integration library' },
       { k: 'Huge template and integration library, nothing to host' },
-      { k: 'Email, SMS, chat and CRM in one place' },
-      { k: 'Creator tools: paid newsletters, recommendations, a creator network' },
+      { k: 'Live chat and a sales CRM next to email and SMS' },
+      { k: "A creator network that recommends you to other creators' readers" },
       { k: 'Simple, affordable, polished editor' },
-      { k: 'Built for growth: referrals, boosts, an ad network' },
+      { k: 'Boosts and an ad network that bring readers and sponsors to you' },
     ],
   },
   {

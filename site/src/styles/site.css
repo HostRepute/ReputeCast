@@ -526,7 +526,7 @@
     opacity: 0;
   }
 }
-/* 62 characters typed one per step; the cursor rides on the last one. */
+/* Typed one character per step; the cursor rides on the last one. */
 @keyframes typing {
   from {
     clip-path: inset(0 100% 0 0);
@@ -537,10 +537,18 @@
 }
 @keyframes typing-cursor {
   from {
-    transform: translateX(-62ch);
+    transform: translateX(calc(var(--chars) * -1ch));
   }
   to {
     transform: none;
+  }
+}
+@keyframes cursor-turn {
+  from {
+    visibility: var(--turn-from, visible);
+  }
+  to {
+    visibility: var(--turn-to, visible);
   }
 }
 @keyframes marquee {
@@ -633,13 +641,28 @@
     animation: scan 3.2s ease-in-out 0.6s 1 both;
     pointer-events: none;
   }
+  /* Each hero line types after the ones before it; only the last keeps its cursor. */
+  .ln {
+    --type-time: calc(var(--chars) * 35ms);
+    --type-start: calc(0.5s + var(--after, 0) * 35ms);
+  }
+  .ln:not(:last-child) {
+    --turn: calc(var(--type-start) + var(--type-time));
+    --turn-from: visible;
+    --turn-to: hidden;
+  }
+  .ln:not(:first-child) {
+    --turn: var(--type-start);
+    --turn-from: hidden;
+    --turn-to: visible;
+  }
   .typed {
     display: inline-block;
     max-width: 100%;
-    white-space: nowrap;
+    white-space: pre;
     overflow: hidden;
     vertical-align: bottom;
-    animation: typing 2.2s steps(62, end) 0.5s both;
+    animation: typing var(--type-time) steps(var(--chars), end) var(--type-start) both;
   }
   .cursor {
     display: inline-block;
@@ -653,7 +676,8 @@
   .typed + .cursor {
     animation:
       blink 1s step-end infinite,
-      typing-cursor 2.2s steps(62, end) 0.5s both;
+      typing-cursor var(--type-time) steps(var(--chars), end) var(--type-start) both,
+      cursor-turn var(--turn, 0s) step-end both;
   }
   .grow i {
     animation: grow 1.2s var(--ease-out-soft) both;
@@ -855,6 +879,7 @@
     background: #fff;
     border: 2px solid #6b7280;
     transform: translateX(-50%);
+    z-index: 1;
   }
   .fn .hb.i {
     top: -6px;
@@ -876,6 +901,7 @@
   }
   .flab {
     position: absolute;
+    z-index: 4;
     padding: 1px 7px;
     border-radius: 999px;
     background: #fff;
@@ -980,69 +1006,39 @@
   /* Flow pulse: a contact moving through the flow; each step lights up as it arrives. */
   .pu {
     position: absolute;
-    z-index: 1;
-    width: 4px;
-    height: 18px;
-    border-radius: 3px;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 6px 1px rgba(15, 118, 110, 0.6);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2);
     opacity: 0;
     pointer-events: none;
-  }
-  .pu.h {
-    width: 18px;
-    height: 4px;
   }
   .fn::after {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -1px;
     border-radius: inherit;
     pointer-events: none;
     opacity: 0;
     box-shadow:
-      inset 0 0 0 2px var(--accent),
-      0 0 0 4px rgba(15, 118, 110, 0.22),
-      0 8px 18px rgba(15, 118, 110, 0.18);
+      inset 0 0 0 1.5px var(--accent),
+      0 0 0 4px rgba(15, 118, 110, 0.14);
   }
-  .go .pu.p1 { animation: pu1 11s linear 3.2s infinite; }
-  .go .pu.p2 { animation: pu2 11s linear 3.2s infinite; }
-  .go .pu.p3 { animation: pu3 11s linear 3.2s infinite; }
-  .go .pu.p4 { animation: pu4 11s linear 3.2s infinite; }
-  .go .pu.p5 { animation: pu5 11s linear 3.2s infinite; }
-  .go .pu.p6 { animation: pu6 11s linear 3.2s infinite; }
-  .go .pu.p7 { animation: pu7 11s linear 3.2s infinite; }
-  .go .pu.p8 { animation: pu8 11s linear 3.2s infinite; }
-  .go .pu.p9 { animation: pu9 11s linear 3.2s infinite; }
-  .go .pu.p10 { animation: pu10 11s linear 3.2s infinite; }
-  .go .pu.p11 { animation: pu11 11s linear 3.2s infinite; }
-  .go .f1::after { animation: hit-f1 11s linear 3.2s infinite; }
-  .go .f1 .hb.i { animation: hin-f1 11s linear 3.2s infinite; }
-  .go .f1 .hb.o { animation: hout-f1 11s linear 3.2s infinite; }
-  .go .f2::after { animation: hit-f2 11s linear 3.2s infinite; }
-  .go .f2 .hb.i { animation: hin-f2 11s linear 3.2s infinite; }
-  .go .f2 .hb.o { animation: hout-f2 11s linear 3.2s infinite; }
-  .go .f3::after { animation: hit-f3 11s linear 3.2s infinite; }
-  .go .f3 .hb.i { animation: hin-f3 11s linear 3.2s infinite; }
-  .go .f3 .hb.o { animation: hout-f3 11s linear 3.2s infinite; }
-  .go .f4::after { animation: hit-f4 11s linear 3.2s infinite; }
-  .go .f4 .hb.i { animation: hin-f4 11s linear 3.2s infinite; }
-  .go .f4 .hb.o { animation: hout-f4 11s linear 3.2s infinite; }
-  .go .f5::after { animation: hit-f5 11s linear 3.2s infinite; }
-  .go .f5 .hb.i { animation: hin-f5 11s linear 3.2s infinite; }
-  .go .f5 .hb.o { animation: hout-f5 11s linear 3.2s infinite; }
-  .go .f6::after { animation: hit-f6 11s linear 3.2s infinite; }
-  .go .f6 .hb.i { animation: hin-f6 11s linear 3.2s infinite; }
-  .go .f6 .hb.o { animation: hout-f6 11s linear 3.2s infinite; }
-  .go .f7::after { animation: hit-f7 11s linear 3.2s infinite; }
-  .go .f7 .hb.i { animation: hin-f7 11s linear 3.2s infinite; }
-  .go .f7 .hb.o { animation: hout-f7 11s linear 3.2s infinite; }
-  .go .f8::after { animation: hit-f8 11s linear 3.2s infinite; }
-  .go .f8 .hb.i { animation: hin-f8 11s linear 3.2s infinite; }
-  .go .f8 .hb.o { animation: hout-f8 11s linear 3.2s infinite; }
-  .go .f9::after { animation: hit-f9 11s linear 3.2s infinite; }
-  .go .f9 .hb.i { animation: hin-f9 11s linear 3.2s infinite; }
-  .go .f9 .hb.o { animation: hout-f9 11s linear 3.2s infinite; }
+  .go .pu { animation: flow-contact 15s linear 3.2s infinite; }
+  .go .f1::after { animation: flow-step-f1 15s linear 3.2s infinite; }
+  .go .f2::after { animation: flow-step-f2 15s linear 3.2s infinite; }
+  .go .f3::after { animation: flow-step-f3 15s linear 3.2s infinite; }
+  .go .f4::after { animation: flow-step-f4 15s linear 3.2s infinite; }
+  .go .f5::after { animation: flow-step-f5 15s linear 3.2s infinite; }
+  .go .f6::after { animation: flow-step-f6 15s linear 3.2s infinite; }
+  .go .f7::after { animation: flow-step-f7 15s linear 3.2s infinite; }
+  .go .f8::after { animation: flow-step-f8 15s linear 3.2s infinite; }
+  .go .f9::after { animation: flow-step-f9 15s linear 3.2s infinite; }
 }
 @keyframes flow-fallback {
   to {
@@ -1070,10 +1066,13 @@
     }
     .typed {
       animation: none;
-      white-space: normal;
+      white-space: pre-wrap;
     }
     .typed + .cursor {
       animation: blink 1s step-end infinite;
+    }
+    .ln:not(:last-child) > .cursor {
+      display: none;
     }
     /* The prototype's phone rules for every screen: long words break, badges
        and buttons may wrap. Badges and buttons inside a row keep their word
@@ -1144,8 +1143,8 @@
   .fn::after {
     display: none !important;
   }
-  .fn .hb {
-    animation: none !important;
+  .ln:not(:last-child) > .cursor {
+    display: none;
   }
 }
 
@@ -1177,6 +1176,9 @@
 }
 [data-settled] .typed + .cursor {
   animation: blink 1s step-end infinite;
+}
+[data-settled] .ln:not(:last-child) > .cursor {
+  display: none;
 }
 [data-settled] .flowstage :is(.fn, .fe, .flab) {
   animation: none !important;
