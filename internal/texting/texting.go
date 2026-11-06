@@ -27,6 +27,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -43,6 +44,10 @@ type Service struct {
 	Box   *secrets.Box
 	Log   *slog.Logger
 	URLs  publicurl.Builder
+	// Hosts says whose host a request came to: /t/s/ answers on a host a
+	// workspace holds for that workspace's codes only (nil: on a
+	// short-link domain only, as its root does).
+	Hosts *customhost.Hosts
 	// Jobs enqueues River jobs (read at call time: the client is built after
 	// the services).
 	Jobs func() *jobs.Client

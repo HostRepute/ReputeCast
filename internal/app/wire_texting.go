@@ -136,6 +136,8 @@ func (a *App) texting() *texting.Service {
 	}
 	s := &texting.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log, URLs: a.URLs, Now: a.now,
+		// A host a workspace holds carries only its short links.
+		Hosts:    a.customHosts(),
 		Jobs:     func() *jobs.Client { return a.Jobs },
 		HTTP:     guard.Client(30 * time.Second),
 		DNS:      resolver,
