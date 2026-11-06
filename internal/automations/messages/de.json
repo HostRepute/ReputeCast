@@ -237,6 +237,8 @@
   "problem.pauseReason": "Halten Sie den Grund unter 200 Zeichen.",
   "problem.pauseNotLive": "Nur eine Live-Automation kann pausiert werden.",
   "problem.resumeNotPaused": "Nur eine pausierte Automation kann fortgesetzt werden.",
+  "problem.triggerScope": "Ihr Zugriff ist auf einige Listen beschränkt: Ein Ablauf, den Sie veröffentlichen oder fortsetzen, darf nur starten, wenn ein Kontakt einer dieser Listen beitritt. Verwenden Sie den Auslöser „Liste beigetreten“ mit einer Ihrer Listen oder fragen Sie jemanden mit Zugriff auf alle Listen.",
+  "problem.senderScope": "Ihr Zugriff ist auf einige Absender-Domains beschränkt, und die E-Mails dieses Ablaufs werden von {domain} gesendet, dem Standardabsender des Arbeitsbereichs. Bitten Sie jemanden, der von {domain} senden darf, den Ablauf zu veröffentlichen oder fortzusetzen.",
 
   "check.routeHealthy": "Route Automationen fehlerfrei · {providers}",
   "check.routeFallback": "Route Automationen nutzt den Ersatz · {provider}",

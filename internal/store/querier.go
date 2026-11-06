@@ -464,6 +464,11 @@ type Querier interface {
 	// Live flows' date triggers, one row per trigger, whichever of the flow's
 	// triggers it is (review 2026-11 AT-14).
 	AutomationDateTriggers(ctx context.Context) ([]AutomationDateTriggersRow, error)
+	// Where a flow's emails go out from, as the outbox picks their From
+	// (SendingAutomationSender): the email's own sender, else the workspace's
+	// default. The sender's sending domain, and its address for a sender whose
+	// domain is gone; empty for none.
+	AutomationEmailSenders(ctx context.Context, arg AutomationEmailSendersParams) ([]AutomationEmailSendersRow, error)
 	// Whether the contact opened or clicked any email of this flow since a time
 	// (a person's settled clicks only, review AN-2).
 	AutomationEngaged(ctx context.Context, arg AutomationEngagedParams) (bool, error)

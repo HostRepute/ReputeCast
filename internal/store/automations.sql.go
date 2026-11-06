@@ -515,6 +515,49 @@ func (q *Queries) AutomationDateTriggers(ctx context.Context) ([]AutomationDateT
 	return items, nil
 }
 
+const automationEmailSenders = `-- name: AutomationEmailSenders :many
+SELECT DISTINCT coalesce(d.domain, '')::text AS sender_domain, coalesce(s.email, '')::text AS sender_email
+FROM workspaces w
+LEFT JOIN automation_emails e ON e.workspace_id = w.id AND e.id = ANY($1::uuid[])
+LEFT JOIN senders s ON s.id = coalesce(e.sender_id, w.default_sender_id)
+LEFT JOIN sending_domains d ON d.id = s.domain_id
+WHERE w.id = $2
+`
+
+type AutomationEmailSendersParams struct {
+	EmailIds    []uuid.UUID `json:"emailIds"`
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+}
+
+type AutomationEmailSendersRow struct {
+	SenderDomain string `json:"senderDomain"`
+	SenderEmail  string `json:"senderEmail"`
+}
+
+// Where a flow's emails go out from, as the outbox picks their From
+// (SendingAutomationSender): the email's own sender, else the workspace's
+// default. The sender's sending domain, and its address for a sender whose
+// domain is gone; empty for none.
+func (q *Queries) AutomationEmailSenders(ctx context.Context, arg AutomationEmailSendersParams) ([]AutomationEmailSendersRow, error) {
+	rows, err := q.db.Query(ctx, automationEmailSenders, arg.EmailIds, arg.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationEmailSendersRow{}
+	for rows.Next() {
+		var i AutomationEmailSendersRow
+		if err := rows.Scan(&i.SenderDomain, &i.SenderEmail); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationEngaged = `-- name: AutomationEngaged :one
 SELECT EXISTS (
     SELECT 1 FROM delivery_events de

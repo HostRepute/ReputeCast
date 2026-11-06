@@ -226,8 +226,8 @@ func (s *Service) checkEmail(ctx context.Context, q *store.Queries, wsID uuid.UU
 	return i18n.Text{}
 }
 
-// PublishPreview prepares the publish dialog.
-func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (AutomationPublishPreview, error) {
+// PublishPreview prepares the publish dialog for p, who would publish.
+func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (AutomationPublishPreview, error) {
 	a, err := s.Q.GetAutomation(ctx, store.GetAutomationParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return AutomationPublishPreview{}, api.MapError(err, "Automation")
@@ -286,6 +286,16 @@ func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uu
 	} else if out.CanPublish && st.live != nil && out.Changes == 0 {
 		out.CanPublish = false
 		out.Blocker = say(l, txt(mBlockerOnlyMoves, "version", itoaPlain(int(*a.LiveVersion))))
+	}
+	// What Publish would refuse for the viewer's lists or sender domains.
+	if out.CanPublish {
+		problem, err := s.flowScopeProblem(ctx, s.Q, ws.ID, p, st.a, st.a.DraftVersion, st.draft, l)
+		if err != nil {
+			return out, err
+		}
+		if problem != "" {
+			out.CanPublish, out.Blocker = false, problem
+		}
 	}
 	return out, nil
 }
@@ -519,8 +529,10 @@ type AutomationPublishResult struct {
 	Message    string `json:"message,omitempty"`
 }
 
-// Publish makes the draft the live version, after the approval gate.
-func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID, id uuid.UUID, version int, migration string) (AutomationPublishResult, error) {
+// Publish makes the draft the live version, after the approval gate. A
+// flow beyond the lists or sender domains of p, who publishes, goes neither
+// live nor to approval; by is who the version is recorded under.
+func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Principal, by uuid.UUID, id uuid.UUID, version int, migration string) (AutomationPublishResult, error) {
 	if migration == "" {
 		migration = MigrationFinish
 	}
@@ -550,6 +562,11 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID
 			return err
 		} else if v.Blocked {
 			return api.Err(http.StatusConflict, CodeAccessibilityBlocked, v.Blocker)
+		}
+		if problem, err := s.flowScopeProblem(ctx, q, ws.ID, p, a, a.DraftVersion, st.draft, l); err != nil {
+			return err
+		} else if problem != "" {
+			return api.Err(http.StatusForbidden, api.CodePermissionDenied, problem)
 		}
 		req := PublishRequest{WorkspaceID: ws.ID, AutomationID: id, Name: a.Name, Version: version, Migration: migration, By: by, Changes: st.items,
 			Missing: missingPermissions(ctx, st.draft)}
@@ -848,8 +865,9 @@ type ResumeInput struct {
 	SpreadHours int    `json:"spreadHours,omitempty" minimum:"0" maximum:"72"`
 }
 
-// Resume restarts a paused flow.
-func (s *Service) Resume(ctx context.Context, ws *store.Workspace, by uuid.UUID, id uuid.UUID, in ResumeInput) error {
+// Resume restarts a paused flow for p, recorded under by: only one that
+// stays within p's lists and sender domains.
+func (s *Service) Resume(ctx context.Context, ws *store.Workspace, p *authz.Principal, by uuid.UUID, id uuid.UUID, in ResumeInput) error {
 	l := langOf(ctx)
 	switch in.Overdue {
 	case "", "send", "skip":
@@ -868,6 +886,17 @@ func (s *Service) Resume(ctx context.Context, ws *store.Workspace, by uuid.UUID,
 		}
 		if a.Status != StatusPaused {
 			return api.Conflict(say(l, txt(mProblemResumeNot)))
+		}
+		if a.LiveVersion != nil {
+			lv, err := q.GetAutomationVersion(ctx, store.GetAutomationVersionParams{AutomationID: id, Version: *a.LiveVersion})
+			if err != nil {
+				return err
+			}
+			if problem, err := s.flowScopeProblem(ctx, q, ws.ID, p, a, *a.LiveVersion, s.graphOf(lv.Graph), l); err != nil {
+				return err
+			} else if problem != "" {
+				return api.Err(http.StatusForbidden, api.CodePermissionDenied, problem)
+			}
 		}
 		now := s.now()
 		var overdue int64

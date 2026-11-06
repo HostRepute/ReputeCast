@@ -237,6 +237,8 @@
   "problem.pauseReason": "Hãy giữ lý do dưới 200 ký tự.",
   "problem.pauseNotLive": "Chỉ có thể tạm dừng tự động hóa đang chạy.",
   "problem.resumeNotPaused": "Chỉ có thể tiếp tục tự động hóa đang tạm dừng.",
+  "problem.triggerScope": "Quyền truy cập của bạn chỉ áp dụng cho một số danh sách: quy trình bạn xuất bản hoặc tiếp tục chỉ được bắt đầu khi một liên hệ tham gia một trong các danh sách đó. Hãy dùng trình kích hoạt Tham gia danh sách với một danh sách của bạn, hoặc nhờ người có quyền truy cập mọi danh sách.",
+  "problem.senderScope": "Quyền truy cập của bạn chỉ áp dụng cho một số tên miền người gửi, còn email của quy trình này gửi từ {domain}, người gửi mặc định của không gian làm việc. Hãy nhờ người có thể gửi từ {domain} xuất bản hoặc tiếp tục quy trình này.",
 
   "check.routeHealthy": "Tuyến Tự động hóa ổn định · {providers}",
   "check.routeFallback": "Tuyến Tự động hóa đang dùng dự phòng · {provider}",
