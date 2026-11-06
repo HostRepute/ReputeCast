@@ -106,8 +106,8 @@ func setInfo(ctx context.Context, q *store.Queries, id uuid.UUID, in info, at ti
 }
 
 // Connect seals the credentials, checks them with Meta and shows the
-// webhook to paste in Meta's app settings. Nothing is sent until Meta
-// verifies the webhook.
+// webhook to paste in Meta's app settings: the account's callback URL, with
+// its own token. Nothing is sent until Meta verifies the webhook.
 func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WhatsAppConnectInput) error {
 	l := langOf(ctx)
 	if _, err := s.account(ctx, s.Q, ws); err == nil {
@@ -138,10 +138,15 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return err
 	}
+	callbackHash, callbackSealed, err := s.newCallback(id)
+	if err != nil {
+		return err
+	}
 	now := s.now()
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
 		if err := q.WhatsAppAccountInsert(ctx, store.WhatsAppAccountInsertParams{ID: id, WorkspaceID: ws.ID, CredentialsEnc: sealed,
-			BusinessHint: hint(creds.BusinessAccountID), VerifyToken: randomToken(), ConnectedAt: &now, ConnectedBy: uuidPtr(p.UserID)}); err != nil {
+			BusinessHint: hint(creds.BusinessAccountID), VerifyToken: randomToken(), CallbackTokenHash: callbackHash, CallbackTokenEnc: callbackSealed,
+			ConnectedAt: &now, ConnectedBy: uuidPtr(p.UserID)}); err != nil {
 			if strings.Contains(err.Error(), "whatsapp_accounts_live_idx") {
 				return api.Conflict(mAlreadyConnected.Text(l, nil))
 			}
@@ -273,22 +278,6 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, p *authz.
 			TargetName: a.BusinessName, Before: map[string]any{"number": a.PhoneNumber, "business_account": a.BusinessHint},
 			Metadata: map[string]any{"cancelled": tag.RowsAffected()}})
 	})
-}
-
-// Verify answers Meta's verification request for a workspace's webhook:
-// the challenge when the verify token matches.
-func (s *Service) Verify(ctx context.Context, slug, mode, token, challenge string) (string, bool) {
-	a, err := s.Q.WhatsAppAccountBySlug(ctx, slug)
-	if err != nil || mode != "subscribe" || token == "" {
-		return "", false
-	}
-	if !constantEqual(token, a.VerifyToken) {
-		return "", false
-	}
-	if err := s.Q.WhatsAppAccountVerified(ctx, store.WhatsAppAccountVerifiedParams{At: s.now(), ID: a.ID}); err != nil {
-		s.log().WarnContext(ctx, "whatsapp verified", "err", err)
-	}
-	return challenge, true
 }
 
 // Check reads the account from Meta now (the card's numbers, "Check

@@ -98,6 +98,7 @@ var Columns = []Column{
 	{Table: "webhooks", Column: "secret_enc", Key: ids("id:uuid"), AD: `'webhook:' || id::text || ':secret'`},
 	{Table: "webhooks", Column: "previous_secret_enc", Key: ids("id:uuid"), AD: `'webhook:' || id::text || ':secret'`},
 	{Table: "whatsapp_accounts", Column: "credentials_enc", Key: ids("id:uuid"), AD: `'whatsapp_account:' || id::text || ':credentials'`},
+	{Table: "whatsapp_accounts", Column: "callback_token_enc", Key: ids("id:uuid"), AD: `'whatsapp_account:' || id::text || ':callback_token'`},
 	{Table: "workspaces", Column: "audit_stream_secret_enc", Key: ids("id:uuid"), AD: `'workspace:' || id::text || ':audit_stream_secret'`},
 }
 

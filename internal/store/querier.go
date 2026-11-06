@@ -5243,8 +5243,16 @@ type Querier interface {
 	// Meta's raw webhook events.
 	WhatsAppAccount(ctx context.Context, workspaceID uuid.UUID) (WhatsAppAccountRow, error)
 	WhatsAppAccountByID(ctx context.Context, id uuid.UUID) (WhatsappAccount, error)
-	// The account a webhook request is for: /hooks/whatsapp/{workspace}.
+	// The account a webhook request is for: /hooks/whatsapp/{workspace}/{token},
+	// or the old address without the token.
 	WhatsAppAccountBySlug(ctx context.Context, slug string) (WhatsappAccount, error)
+	// Meta called the account's callback URL: from now on the old address
+	// refuses the account's deliveries.
+	WhatsAppAccountCallbackMoved(ctx context.Context, arg WhatsAppAccountCallbackMovedParams) (int64, error)
+	// Gives an account connected before callback tokens its token, once.
+	WhatsAppAccountCallbackToken(ctx context.Context, arg WhatsAppAccountCallbackTokenParams) (int64, error)
+	// A new account starts at its callback URL: the old address, without the
+	// token, never takes its deliveries.
 	WhatsAppAccountInsert(ctx context.Context, arg WhatsAppAccountInsertParams) error
 	// Events for another WhatsApp Business Account or number, in a delivery
 	// signed with the app secret: counted and dropped.
@@ -5253,6 +5261,9 @@ type Querier interface {
 	// stored.
 	WhatsAppAccountRejected(ctx context.Context, arg WhatsAppAccountRejectedParams) error
 	WhatsAppAccountRemove(ctx context.Context, arg WhatsAppAccountRemoveParams) error
+	// A new callback token: the previous one stops working at once, and Meta
+	// has to verify the new address, as when the account connected.
+	WhatsAppAccountRotateCallback(ctx context.Context, arg WhatsAppAccountRotateCallbackParams) error
 	WhatsAppAccountSetCredentials(ctx context.Context, arg WhatsAppAccountSetCredentialsParams) error
 	// What Meta reported for the number and the business account.
 	WhatsAppAccountSetInfo(ctx context.Context, arg WhatsAppAccountSetInfoParams) error
@@ -5260,6 +5271,9 @@ type Querier interface {
 	WhatsAppAccountSynced(ctx context.Context, arg WhatsAppAccountSyncedParams) error
 	WhatsAppAccountTouchEvent(ctx context.Context, arg WhatsAppAccountTouchEventParams) error
 	WhatsAppAccountVerified(ctx context.Context, arg WhatsAppAccountVerifiedParams) error
+	// A delivery to the old address once the account moved, or to a wrong
+	// token: counted, never stored.
+	WhatsAppAccountWrongAddress(ctx context.Context, arg WhatsAppAccountWrongAddressParams) error
 	// Every connected account, for the hourly sync.
 	WhatsAppAccountsAll(ctx context.Context) ([]WhatsappAccount, error)
 	WhatsAppCampaign(ctx context.Context, arg WhatsAppCampaignParams) (WhatsAppCampaignRow, error)

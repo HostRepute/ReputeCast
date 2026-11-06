@@ -358,7 +358,9 @@ func accountOf(a store.WhatsAppAccountRow) store.WhatsappAccount {
 		LimitChangedAt: a.LimitChangedAt, VerifyToken: a.VerifyToken, VerifiedAt: a.VerifiedAt, LastEventAt: a.LastEventAt, Status: a.Status,
 		StatusDetail: a.StatusDetail, StatusSince: a.StatusSince, TemplatesSyncedAt: a.TemplatesSyncedAt, CheckedAt: a.CheckedAt, Demo: a.Demo,
 		ConnectedBy: a.ConnectedBy, ConnectedAt: a.ConnectedAt, RemovedAt: a.RemovedAt, RemovedBy: a.RemovedBy,
-		RejectedDeliveries: a.RejectedDeliveries, RejectedAt: a.RejectedAt, OtherAccountEvents: a.OtherAccountEvents, OtherAccountAt: a.OtherAccountAt}
+		RejectedDeliveries: a.RejectedDeliveries, RejectedAt: a.RejectedAt, OtherAccountEvents: a.OtherAccountEvents, OtherAccountAt: a.OtherAccountAt,
+		CallbackTokenHash: a.CallbackTokenHash, CallbackTokenEnc: a.CallbackTokenEnc, CallbackMovedAt: a.CallbackMovedAt,
+		WrongAddressDeliveries: a.WrongAddressDeliveries, WrongAddressAt: a.WrongAddressAt}
 }
 
 // Templates lists the account's templates.

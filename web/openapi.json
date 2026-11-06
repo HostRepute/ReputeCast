@@ -99175,6 +99175,9 @@
           "number": {
             "type": "string"
           },
+          "oldAddress": {
+            "type": "boolean"
+          },
           "otherAccountAt": {
             "format": "date-time",
             "type": "string"
@@ -99242,6 +99245,14 @@
           },
           "webhookUrl": {
             "type": "string"
+          },
+          "wrongAddressAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "wrongAddressDeliveries": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
@@ -99258,9 +99269,11 @@
           "connectedAt",
           "connectedBy",
           "webhookUrl",
+          "oldAddress",
           "demo",
           "rejectedDeliveries",
           "otherAccountEvents",
+          "wrongAddressDeliveries",
           "held",
           "heldCount"
         ],
@@ -185063,7 +185076,7 @@
         "x-permission": "providers:manage"
       },
       "post": {
-        "description": "Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings. Nothing is sent until Meta verifies it.",
+        "description": "Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings: the account's callback URL, with its own token. Nothing is sent until Meta verifies it.",
         "operationId": "connect-whatsapp",
         "parameters": [
           {
@@ -185119,6 +185132,61 @@
           }
         ],
         "summary": "Connect a WhatsApp Business Account (logged)",
+        "tags": [
+          "WhatsApp"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/whatsapp/account/callback-url/rotate": {
+      "post": {
+        "description": "The account then waits for Meta's verification request at the new URL, as when it connected.",
+        "operationId": "rotate-whatsapp-callback-url",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppOverview"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Make a new callback URL: the current one stops working at once (logged)",
         "tags": [
           "WhatsApp"
         ],

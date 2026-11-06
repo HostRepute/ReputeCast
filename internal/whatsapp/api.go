@@ -54,7 +54,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "connect-whatsapp", Path: "/workspaces/{workspace}/whatsapp/account", Summary: "Connect a WhatsApp Business Account (logged)",
-		Description: "Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings. Nothing is sent until Meta verifies it.",
+		Description: "Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings: the account's callback URL, with its own token. Nothing is sent until Meta verifies it.",
 		Tags:        wtags, Access: human, Status: http.StatusCreated},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
@@ -76,6 +76,17 @@ func Register(h huma.API, s *Service) {
 		}) (*api.Body[WhatsAppOverview], error) {
 			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)
 			if err := s.ReplaceCredentials(ctx, ws, p, in.Body); err != nil {
+				return nil, err
+			}
+			out, err := s.Overview(ctx, ws, p)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "rotate-whatsapp-callback-url", Path: "/workspaces/{workspace}/whatsapp/account/callback-url/rotate",
+		Summary:     "Make a new callback URL: the current one stops working at once (logged)",
+		Description: "The account then waits for Meta's verification request at the new URL, as when it connected.", Tags: wtags, Access: human},
+		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[WhatsAppOverview], error) {
+			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)
+			if err := s.RotateCallback(ctx, ws); err != nil {
 				return nil, err
 			}
 			out, err := s.Overview(ctx, ws, p)
