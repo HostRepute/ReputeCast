@@ -14,8 +14,9 @@ SELECT pg_advisory_xact_lock(hashtextextended('custom_host:' || @host::text, 0))
 -- workspaces' (a deleted workspace keeps its hosts until it's purged, as
 -- the custom domain's unique index does) and the instance's own SMTP relay
 -- (purpose "instance"). verified says whether the use was proven there,
--- and since when (NULL when nobody recorded it). A publication website's
--- push site is its pages' host, verified when it was added.
+-- and since when (NULL when nobody recorded it, as for tracking domains
+-- verified before migration 03446). A publication website's push site is
+-- its pages' host, verified when it was added.
 SELECT 'pages'::text AS purpose, (s.domain_status = 'verified')::boolean AS verified,
        s.domain_verified_at AS since
 FROM public_page_settings s
@@ -25,7 +26,7 @@ SELECT 'sms_links', m.short_domain_status = 'verified', m.short_domain_verified_
 FROM sms_settings m
 WHERE lower(m.short_domain) = @host::text AND m.workspace_id <> @workspace_id
 UNION ALL
-SELECT 'link_tracking', d.tracking_status = 'verified', NULL::timestamptz
+SELECT 'link_tracking', d.tracking_status = 'verified', d.tracking_verified_at
 FROM sending_domains d
 WHERE lower(d.tracking_domain) = @host::text AND d.workspace_id <> @workspace_id
 UNION ALL

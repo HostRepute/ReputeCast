@@ -39832,11 +39832,14 @@ export interface components {
             usedBy: string[];
         };
         SendingDomainTracking: {
+            detail: string;
             domain: string;
             /** @enum {string} */
-            status: "none" | "pending" | "verified" | "wrong_value" | "missing" | "error";
+            status: "none" | "pending" | "verified" | "wrong_value" | "missing" | "error" | "refused";
             suggested: string;
             target: string;
+            txtName: string;
+            txtValue: string;
         };
         SendingRule: {
             /** Format: date-time */

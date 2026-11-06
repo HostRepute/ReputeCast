@@ -56,7 +56,8 @@ export default translate(md, {
     'Hiển thị logo của bạn trong Gmail, Yahoo và Apple Mail. Cần DMARC ở mức quarantine hoặc reject và một logo SVG Tiny PS; chứng chỉ Verified Mark Certificate là không bắt buộc với Gmail.',
   trackingTitle: 'Tên miền theo dõi tùy chỉnh',
   trackingLine:
-    '{state, select, verified {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: đã xác minh, liên kết và pixel đếm lượt mở dùng tên miền của bạn.} pending {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: đang chờ DNS.} wrong_value {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: đang trỏ đến nơi khác.} missing {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: hãy thêm bản ghi CNAME ở nhà cung cấp DNS của bạn.} suggested {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>, để liên kết và pixel đếm lượt mở dùng tên miền của bạn.} other {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>.}}',
+    '{state, select, verified {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: đã xác minh, liên kết và pixel đếm lượt mở dùng tên miền của bạn.} pending {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: đang chờ DNS.} wrong_value {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: đang trỏ đến nơi khác.} missing {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: hãy thêm bản ghi CNAME ở nhà cung cấp DNS của bạn.} suggested {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>, để liên kết và pixel đếm lượt mở dùng tên miền của bạn.} refused {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>: không được dùng.} other {<mono>{domain}</mono> CNAME đến <mono>{target}</mono>.}}',
+  trackingTxt: 'Hãy thêm bản ghi TXT <mono>{name}</mono> với giá trị <mono>{value}</mono> để chứng minh tên miền là của bạn.',
   addTracking: 'Thêm tên miền theo dõi',
 
   // ── Cloudflare ───────────────────────────────────────────────────────

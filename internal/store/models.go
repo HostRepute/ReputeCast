@@ -3826,23 +3826,24 @@ type Sender struct {
 }
 
 type SendingDomain struct {
-	ID             uuid.UUID       `json:"id"`
-	WorkspaceID    uuid.UUID       `json:"workspaceId"`
-	Domain         string          `json:"domain"`
-	DnsRecords     json.RawMessage `json:"dnsRecords"`
-	AuthSummary    json.RawMessage `json:"authSummary"`
-	Status         string          `json:"status"`
-	LastCheckedAt  *time.Time      `json:"lastCheckedAt"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	Note           string          `json:"note"`
-	TrackingDomain string          `json:"trackingDomain"`
-	TrackingStatus string          `json:"trackingStatus"`
-	DnsHost        string          `json:"dnsHost"`
-	Nameservers    []string        `json:"nameservers"`
-	AuthDetail     json.RawMessage `json:"authDetail"`
-	CreatedBy      *uuid.UUID      `json:"createdBy"`
-	UpdatedAt      time.Time       `json:"updatedAt"`
-	Transactional  bool            `json:"transactional"`
+	ID                 uuid.UUID       `json:"id"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Domain             string          `json:"domain"`
+	DnsRecords         json.RawMessage `json:"dnsRecords"`
+	AuthSummary        json.RawMessage `json:"authSummary"`
+	Status             string          `json:"status"`
+	LastCheckedAt      *time.Time      `json:"lastCheckedAt"`
+	CreatedAt          time.Time       `json:"createdAt"`
+	Note               string          `json:"note"`
+	TrackingDomain     string          `json:"trackingDomain"`
+	TrackingStatus     string          `json:"trackingStatus"`
+	DnsHost            string          `json:"dnsHost"`
+	Nameservers        []string        `json:"nameservers"`
+	AuthDetail         json.RawMessage `json:"authDetail"`
+	CreatedBy          *uuid.UUID      `json:"createdBy"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	Transactional      bool            `json:"transactional"`
+	TrackingVerifiedAt *time.Time      `json:"trackingVerifiedAt"`
 }
 
 type SendingMailboxWindow struct {
