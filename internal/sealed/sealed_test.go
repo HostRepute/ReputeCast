@@ -33,9 +33,10 @@ var notSealed = map[string]string{
 	"user_avatars.data": "image", "media_assets.data": "image", "referral_file_chunks.data": "file", "earn_import_files.data": "file",
 	"public_page_settings.logo": "image",
 	"provider_raw_events.body":  "raw webhook", "store_events.body": "raw webhook", "sms_raw_events.body": "raw webhook",
-	"whatsapp_raw_events.body": "raw webhook",
-	"website_view_salts.salt":  "random salt",
-	"river_job.unique_key":     "the job queue's dedupe hash",
+	"whatsapp_raw_events.body":  "raw webhook",
+	"website_view_salts.salt":   "random salt",
+	"river_job.unique_key":      "the job queue's dedupe hash",
+	"webhook_tokens.token_hash": "hash", "webhook_tokens.payload_hash": "hash",
 }
 
 // Every bytea column is either a known sealed column or known not to be
