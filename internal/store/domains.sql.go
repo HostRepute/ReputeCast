@@ -16,7 +16,7 @@ import (
 const domCreate = `-- name: DomCreate :one
 INSERT INTO sending_domains (id, workspace_id, domain, note, dns_records, status, created_by, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $7)
-RETURNING id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional
+RETURNING id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional, tracking_verified_at
 `
 
 type DomCreateParams struct {
@@ -58,6 +58,7 @@ func (q *Queries) DomCreate(ctx context.Context, arg DomCreateParams) (SendingDo
 		&i.CreatedBy,
 		&i.UpdatedAt,
 		&i.Transactional,
+		&i.TrackingVerifiedAt,
 	)
 	return i, err
 }
@@ -119,7 +120,7 @@ func (q *Queries) DomDue(ctx context.Context, arg DomDueParams) ([]uuid.UUID, er
 }
 
 const domGet = `-- name: DomGet :one
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional, tracking_verified_at FROM sending_domains
 WHERE workspace_id = $1 AND id = $2
 `
 
@@ -149,12 +150,13 @@ func (q *Queries) DomGet(ctx context.Context, arg DomGetParams) (SendingDomain, 
 		&i.CreatedBy,
 		&i.UpdatedAt,
 		&i.Transactional,
+		&i.TrackingVerifiedAt,
 	)
 	return i, err
 }
 
 const domGetAny = `-- name: DomGetAny :one
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains WHERE id = $1
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional, tracking_verified_at FROM sending_domains WHERE id = $1
 `
 
 func (q *Queries) DomGetAny(ctx context.Context, id uuid.UUID) (SendingDomain, error) {
@@ -178,12 +180,13 @@ func (q *Queries) DomGetAny(ctx context.Context, id uuid.UUID) (SendingDomain, e
 		&i.CreatedBy,
 		&i.UpdatedAt,
 		&i.Transactional,
+		&i.TrackingVerifiedAt,
 	)
 	return i, err
 }
 
 const domGetByName = `-- name: DomGetByName :one
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional, tracking_verified_at FROM sending_domains
 WHERE workspace_id = $1 AND domain = $2
 `
 
@@ -213,13 +216,14 @@ func (q *Queries) DomGetByName(ctx context.Context, arg DomGetByNameParams) (Sen
 		&i.CreatedBy,
 		&i.UpdatedAt,
 		&i.Transactional,
+		&i.TrackingVerifiedAt,
 	)
 	return i, err
 }
 
 const domList = `-- name: DomList :many
 
-SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional FROM sending_domains
+SELECT id, workspace_id, domain, dns_records, auth_summary, status, last_checked_at, created_at, note, tracking_domain, tracking_status, dns_host, nameservers, auth_detail, created_by, updated_at, transactional, tracking_verified_at FROM sending_domains
 WHERE workspace_id = $1
 ORDER BY created_at, domain
 `
@@ -254,6 +258,7 @@ func (q *Queries) DomList(ctx context.Context, workspaceID uuid.UUID) ([]Sending
 			&i.CreatedBy,
 			&i.UpdatedAt,
 			&i.Transactional,
+			&i.TrackingVerifiedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -265,39 +270,50 @@ func (q *Queries) DomList(ctx context.Context, workspaceID uuid.UUID) ([]Sending
 	return items, nil
 }
 
-const domSaveCheck = `-- name: DomSaveCheck :exec
+const domSaveCheck = `-- name: DomSaveCheck :one
 UPDATE sending_domains
 SET dns_records = $1, auth_summary = $2, auth_detail = $3, status = $4,
-    tracking_status = $5, dns_host = $6, nameservers = $7::text[], last_checked_at = $8
-WHERE id = $9
+    tracking_status = CASE WHEN tracking_domain = $5::text THEN $6::text ELSE tracking_status END,
+    tracking_verified_at = CASE WHEN tracking_domain = $5::text THEN $7::timestamptz ELSE tracking_verified_at END,
+    dns_host = $8, nameservers = $9::text[], last_checked_at = $10
+WHERE id = $11
+RETURNING (tracking_domain = $5::text)::boolean AS tracking_saved
 `
 
 type DomSaveCheckParams struct {
-	DnsRecords     json.RawMessage `json:"dnsRecords"`
-	AuthSummary    json.RawMessage `json:"authSummary"`
-	AuthDetail     json.RawMessage `json:"authDetail"`
-	Status         string          `json:"status"`
-	TrackingStatus string          `json:"trackingStatus"`
-	DnsHost        string          `json:"dnsHost"`
-	Nameservers    []string        `json:"nameservers"`
-	CheckedAt      *time.Time      `json:"checkedAt"`
-	ID             uuid.UUID       `json:"id"`
+	DnsRecords         json.RawMessage `json:"dnsRecords"`
+	AuthSummary        json.RawMessage `json:"authSummary"`
+	AuthDetail         json.RawMessage `json:"authDetail"`
+	Status             string          `json:"status"`
+	TrackingDomain     string          `json:"trackingDomain"`
+	TrackingStatus     string          `json:"trackingStatus"`
+	TrackingVerifiedAt *time.Time      `json:"trackingVerifiedAt"`
+	DnsHost            string          `json:"dnsHost"`
+	Nameservers        []string        `json:"nameservers"`
+	CheckedAt          *time.Time      `json:"checkedAt"`
+	ID                 uuid.UUID       `json:"id"`
 }
 
-// The result of a live DNS check.
-func (q *Queries) DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) error {
-	_, err := q.db.Exec(ctx, domSaveCheck,
+// The result of a live DNS check. The tracking domain's part is kept only
+// while the tracking domain is still the one checked (tracking_saved): one
+// set during the check keeps its own state.
+func (q *Queries) DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) (bool, error) {
+	row := q.db.QueryRow(ctx, domSaveCheck,
 		arg.DnsRecords,
 		arg.AuthSummary,
 		arg.AuthDetail,
 		arg.Status,
+		arg.TrackingDomain,
 		arg.TrackingStatus,
+		arg.TrackingVerifiedAt,
 		arg.DnsHost,
 		arg.Nameservers,
 		arg.CheckedAt,
 		arg.ID,
 	)
-	return err
+	var tracking_saved bool
+	err := row.Scan(&tracking_saved)
+	return tracking_saved, err
 }
 
 const domUpdateNote = `-- name: DomUpdateNote :exec
@@ -331,7 +347,7 @@ func (q *Queries) DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsPara
 }
 
 const domUpdateTracking = `-- name: DomUpdateTracking :exec
-UPDATE sending_domains SET tracking_domain = $1, tracking_status = $2, updated_at = $3
+UPDATE sending_domains SET tracking_domain = $1, tracking_status = $2, tracking_verified_at = NULL, updated_at = $3
 WHERE id = $4
 `
 
@@ -342,6 +358,7 @@ type DomUpdateTrackingParams struct {
 	ID             uuid.UUID `json:"id"`
 }
 
+// A new tracking domain starts unverified.
 func (q *Queries) DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error {
 	_, err := q.db.Exec(ctx, domUpdateTracking,
 		arg.TrackingDomain,

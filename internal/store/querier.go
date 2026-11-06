@@ -1163,8 +1163,9 @@ type Querier interface {
 	// workspaces' (a deleted workspace keeps its hosts until it's purged, as
 	// the custom domain's unique index does) and the instance's own SMTP relay
 	// (purpose "instance"). verified says whether the use was proven there,
-	// and since when (NULL when nobody recorded it). A publication website's
-	// push site is its pages' host, verified when it was added.
+	// and since when (NULL when nobody recorded it, as for tracking domains
+	// verified before migration 03446). A publication website's push site is
+	// its pages' host, verified when it was added.
 	CustomHostClaims(ctx context.Context, arg CustomHostClaimsParams) ([]CustomHostClaimsRow, error)
 	// Hosts the instance serves for a workspace: the public pages and website
 	// domain, the SMS short-link domain, a link tracking domain and the push
@@ -1348,10 +1349,13 @@ type Querier interface {
 	// domain step of Connect a sending provider, system mail). Query names start
 	// with Dom or Sender so they never collide with other domains.
 	DomList(ctx context.Context, workspaceID uuid.UUID) ([]SendingDomain, error)
-	// The result of a live DNS check.
-	DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) error
+	// The result of a live DNS check. The tracking domain's part is kept only
+	// while the tracking domain is still the one checked (tracking_saved): one
+	// set during the check keeps its own state.
+	DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) (bool, error)
 	DomUpdateNote(ctx context.Context, arg DomUpdateNoteParams) error
 	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
+	// A new tracking domain starts unverified.
 	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
 	DownloadFileGet(ctx context.Context, arg DownloadFileGetParams) (DownloadFile, error)
 	// Whether any file, removed or not, still keeps these bytes on disk.

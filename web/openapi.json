@@ -75015,6 +75015,9 @@
       "SendingDomainTracking": {
         "additionalProperties": false,
         "properties": {
+          "detail": {
+            "type": "string"
+          },
           "domain": {
             "type": "string"
           },
@@ -75025,7 +75028,8 @@
               "verified",
               "wrong_value",
               "missing",
-              "error"
+              "error",
+              "refused"
             ],
             "type": "string"
           },
@@ -75034,13 +75038,22 @@
           },
           "target": {
             "type": "string"
+          },
+          "txtName": {
+            "type": "string"
+          },
+          "txtValue": {
+            "type": "string"
           }
         },
         "required": [
           "domain",
           "suggested",
           "target",
-          "status"
+          "status",
+          "detail",
+          "txtName",
+          "txtValue"
         ],
         "type": "object"
       },

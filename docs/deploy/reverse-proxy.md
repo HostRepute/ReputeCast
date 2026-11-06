@@ -98,7 +98,11 @@ that another workspace stored and verified first (before this rule existed),
 or one under the public URL's own host, needs the `_reputecast.<domain>` TXT
 record shown in Routing & rules besides its `CNAME`. Until then texts with
 links don't use it, and a short-link domain only ever carries its own
-workspace's links.
+workspace's links. A link tracking domain, checked every 30 minutes, works
+the same way, with the TXT record on its sending domain's records page;
+until then links and the open pixel use the public URL. Nobody recorded when
+a tracking domain was verified before this rule, so one that two workspaces
+verified then needs the TXT record of whichever keeps it.
 
 With Caddy's on-demand TLS, certificates are issued only for domains that
 ReputeCast has verified (`/p/_/tls-check` answers 200 for them):
