@@ -43,6 +43,36 @@ func TestRoundTripAndTamper(t *testing.T) {
 
 // A well-formed token signed with another key fails as a signature
 // mismatch (an earlier instance key); a malformed one doesn't.
+// A token works only as it was issued: changing only the bits of its last
+// character that no byte uses once left a link working (the poll page's
+// "broken link" test failed about once in 256 runs).
+func TestTokensAreCanonical(t *testing.T) {
+	s, err := NewSigner(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+	checked := 0
+	for _, link := range []uint32{1, 300, 1 << 15} {
+		tok := s.Sign(Claims{Kind: Click, WorkspaceID: uuid.New(), MessageID: uuid.New(), ContactID: uuid.New(), Link: link})
+		if _, err := s.Verify(tok, Click); err != nil {
+			t.Fatalf("link %d: %v", link, err)
+		}
+		if len(tok)%4 == 0 {
+			continue // every bit of the last character is used
+		}
+		last := strings.IndexByte(alphabet, tok[len(tok)-1])
+		alt := tok[:len(tok)-1] + string(alphabet[last^1])
+		if _, err := s.Verify(alt, Click); err == nil {
+			t.Errorf("link %d: %s verified with unused bits changed", link, alt)
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Fatal("no token had unused bits to change")
+	}
+}
+
 func TestSignatureMismatch(t *testing.T) {
 	a, err := NewSigner([]byte(strings.Repeat("a", 32)))
 	if err != nil {
