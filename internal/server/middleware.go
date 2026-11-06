@@ -156,8 +156,10 @@ var secretSegments = []*regexp.Regexp{
 	regexp.MustCompile(`^(/t/[ochps]/)[^/]+`),
 	regexp.MustCompile(`^(/p/[^/]+/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),
 	regexp.MustCompile(`^(/r/)[^/]+`),
-	// SMS webhooks name their adapter before the token.
+	// SMS webhooks name their adapter before the token, WhatsApp's the
+	// workspace.
 	regexp.MustCompile(`^(/hooks/sms/[^/]+/)[^/]+`),
+	regexp.MustCompile(`^(/hooks/whatsapp/[^/]+/)[^/]+`),
 	regexp.MustCompile(`^(/hooks/[^/]+/)[^/]+`),
 	regexp.MustCompile(`^(/(?:invite|reset-password|review)/)[^/]+`),
 	regexp.MustCompile(`^(/api/v1/(?:auth/password-reset|invitations|shared-reports|review)/)[^/]+`),
