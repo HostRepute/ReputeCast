@@ -63,6 +63,9 @@ function EventLog({ account }: { account?: Account }) {
           {account?.otherAccountEvents ? (
             <p className="k">{t(m.otherAccountEvents, { count: account.otherAccountEvents, ago: ago(account.otherAccountAt) })}</p>
           ) : null}
+          {account?.wrongAddressDeliveries ? (
+            <p className="k">{t(m.wrongAddressDeliveries, { count: account.wrongAddressDeliveries, ago: ago(account.wrongAddressAt) })}</p>
+          ) : null}
         </div>
       </div>
       <Table aria-label={t(m.eventsTitle)} className="px-events">
