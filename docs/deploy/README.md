@@ -123,6 +123,23 @@ ReputeCast's address and create it again (or use Register again on the
 provider, when its API can register webhooks). The first confirmation
 keeps its topic.
 
+WhatsApp's callback URL ends with a token of the account's own,
+`<public URL>/hooks/whatsapp/<workspace>/<token>`, so nobody can post to it
+from the workspace's name alone. A WhatsApp account connected from this
+release on has only that address. One connected before keeps its old
+address, `<public URL>/hooks/whatsapp/<workspace>`, until Meta calls the new
+one, so nothing stops at the upgrade. To move it, open Sending providers ›
+WhatsApp as someone who can manage providers: a note shows the new callback
+URL to copy. In Meta for Developers › your app › WhatsApp › Configuration,
+paste it as the Callback URL (the verify token stays the same) and click
+Verify and save. From Meta's first call to the new URL, its verification
+request or a signed delivery, the old address refuses the account's
+deliveries and the Events tab counts them. New callback URL, on the
+Connection card, replaces the token if a URL leaked: the previous one stops
+at once, and the account waits for Meta's verification request at the new
+one. Rolling back to an earlier release after the move needs the old
+address pasted in Meta again: earlier releases don't know the new one.
+
 A process whose database is missing migrations it needs serves read-only:
 pages and the API read as usual with a banner ("ReputeCast is being
 upgraded"), writes answer 503 `maintenance`, provider webhooks are still
