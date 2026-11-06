@@ -7,7 +7,8 @@ import { WhatsAppAccountPage } from './AccountPage'
 
 const path = '/w/acme-newsletter/providers/whatsapp'
 const base = 'https://reputecast.acme.io/hooks/whatsapp/acme-newsletter/'
-const callback = base + 'kP3x9Qm2LrT7vW4yZ8aB1cD5eF6gH0jK2nM4pQ6sU8w'
+const token = 'kP3x9Qm2LrT7vW4yZ8aB1cD5eF6gH0jK2nM4pQ6sU8w'
+const callback = base + token
 
 function account(patch: Partial<Schemas['WhatsAppAccount']> = {}): Schemas['WhatsAppAccount'] {
   return {
@@ -116,7 +117,8 @@ describe('WhatsApp › Account: the callback URL', () => {
     })
     expect(await screen.findByText(/Read-only/)).toBeInTheDocument()
     expect(screen.queryByText('Paste the new callback URL in your Meta app')).not.toBeInTheDocument()
-    expect(screen.queryByText((text) => text.includes(base))).not.toBeInTheDocument()
+    // The callback URL's token appears nowhere on a read-only page.
+    expect(screen.queryByText((text) => text.includes(token))).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'New callback URL' })).not.toBeInTheDocument()
   })
 
