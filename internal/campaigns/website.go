@@ -20,13 +20,11 @@ import (
 // publication website ("Send as a campaign", design expansion phase 7):
 // the post's title as the subject, its excerpt as the preheader, its
 // blocks as the email. The audience is left for the person to pick.
+//
+// Like a new draft in the composer, it starts from a sender the person may
+// send from: the workspace's default when it's within their scope.
 func (s *Service) DraftFromPost(ctx context.Context, ws *store.Workspace, p *authz.Principal, name, subject, preheader, src string) (uuid.UUID, error) {
-	var sender *uuid.UUID
-	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
-		if u, err := uuid.Parse(def.SenderID); err == nil {
-			sender = &u
-		}
-	}
+	sender := DefaultSender(ctx, s.Q, ws, p)
 	html := ""
 	if src != "" {
 		html = mjml.Compile(mjml.PrepareCompile(src)).HTML
