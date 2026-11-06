@@ -422,6 +422,11 @@ func (s *Service) Release(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if issue.Status != "held" || issue.CampaignID == nil {
 		return DigestIssues{}, api.Conflict(mReleaseNotHeld.Text(l, nil))
 	}
+	// Releasing lets the issue go out: within the releaser's lists and
+	// sender domains, as Review & send's send would be.
+	if err := sendScope(ctx, s.Q, ws, p, *issue.CampaignID); err != nil {
+		return DigestIssues{}, err
+	}
 	ch := s.checks()
 	if ch == nil {
 		return DigestIssues{}, api.Err(http.StatusServiceUnavailable, "readiness_unavailable", mReadinessUnavailable.Text(l, nil))
