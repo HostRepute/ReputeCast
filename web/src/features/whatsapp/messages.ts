@@ -81,6 +81,12 @@ export const m = defineMessages('whatsapp', {
   copyUrl: 'Copy the callback URL',
   copyToken: 'Copy the verify token',
   copied: 'Copied',
+  newCallbackUrl: 'New callback URL',
+
+  // Meta still calls the old address, without the token (accounts connected before callback URLs had one)
+  oldAddressTitle: 'Paste the new callback URL in your Meta app',
+  oldAddressText:
+    "Callback URLs now end with a secret, so nobody can post to one from the workspace's name. Meta still calls the old URL: in Meta for Developers › your app › WhatsApp › Configuration, paste this one, then click Verify and save. The old URL keeps working until Meta calls the new one.",
 
   // Settings card
   rulesTitle: 'Quiet hours and costs',
@@ -183,6 +189,15 @@ export const m = defineMessages('whatsapp', {
     "The credentials are deleted and queued WhatsApp messages are cancelled. Consent, templates' history and reports stay. Connecting again needs all four values.",
   disconnected: 'WhatsApp disconnected',
 
+  // New callback URL
+  rotateBadge: 'New callback URL',
+  rotateTitle: 'Make a new callback URL?',
+  rotateText:
+    "The current callback URL stops working at once: Meta's deliveries to it are refused. Paste the new one in Meta for Developers › your app › WhatsApp › Configuration, then click Verify and save; the account waits for Meta's verification request, as when it was connected. Make a new URL only if the current one may have leaked.",
+  rotateConfirm: 'Make a new URL',
+  rotating: 'Making…',
+  rotated: 'New callback URL made. Paste it in Meta next.',
+
   // Test dialog
   testTitle: 'Send a test message',
   testText: "Pick an approved template and a member's number. The test waits for Meta's delivery report.",
@@ -236,4 +251,6 @@ export const m = defineMessages('whatsapp', {
     "{count, plural, one {# delivery was} other {# deliveries were}} refused because the signature didn't match the app secret. Refused deliveries aren't kept. The last one came {ago}.",
   otherAccountEvents:
     '{count, plural, one {# event was} other {# events were}} for another WhatsApp Business Account or number and ignored: Meta sends them here when another account uses the same Meta app. The last one came {ago}.',
+  wrongAddressDeliveries:
+    "{count, plural, one {# delivery was} other {# deliveries were}} refused because of an old or wrong callback URL. If Meta still uses one, paste the callback URL from the Account tab in your Meta app. Refused deliveries aren't kept. The last one came {ago}.",
 })
