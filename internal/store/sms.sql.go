@@ -3131,16 +3131,33 @@ func (q *Queries) SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) 
 	return err
 }
 
-const smsShortDomainWorkspace = `-- name: SmsShortDomainWorkspace :one
-SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower($1) AND short_domain_status = 'verified'
+const smsShortDomainHolders = `-- name: SmsShortDomainHolders :many
+SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower($1::text) AND short_domain_status = 'verified'
+ORDER BY workspace_id
 `
 
-// The workspace whose verified short-link domain a request came to.
-func (q *Queries) SmsShortDomainWorkspace(ctx context.Context, host string) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, smsShortDomainWorkspace, host)
-	var workspace_id uuid.UUID
-	err := row.Scan(&workspace_id)
-	return workspace_id, err
+// The workspaces whose verified short-link domain a request came to: only
+// their codes answer there, so a workspace's domain never carries another
+// workspace's links. Two workspaces that stored the same host before it
+// had to be free each answer for their own codes there.
+func (q *Queries) SmsShortDomainHolders(ctx context.Context, host string) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, smsShortDomainHolders, host)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var workspace_id uuid.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const smsTermsInsert = `-- name: SmsTermsInsert :exec

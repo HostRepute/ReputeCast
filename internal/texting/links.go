@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -55,11 +56,8 @@ func (s *Service) LinkRoutes(r chi.Router, spa http.Handler) {
 	r.Get("/t/s/{code}", s.serveLink)
 	r.Head("/t/s/{code}", s.serveLink)
 	root := func(w http.ResponseWriter, r *http.Request) {
-		host := strings.ToLower(r.Host)
-		if h, _, err := net.SplitHostPort(host); err == nil {
-			host = h
-		}
-		if _, err := s.Q.SmsShortDomainWorkspace(r.Context(), host); err != nil {
+		holders, err := s.Q.SmsShortDomainHolders(r.Context(), requestHost(r))
+		if err != nil || len(holders) == 0 {
 			if spa != nil {
 				spa.ServeHTTP(w, r)
 				return
@@ -67,13 +65,30 @@ func (s *Service) LinkRoutes(r chi.Router, spa http.Handler) {
 			http.NotFound(w, r)
 			return
 		}
-		s.serveLink(w, r)
+		s.redirect(w, r, holders)
 	}
 	r.Get("/{code:[A-Za-z0-9]{6}}", root)
 	r.Head("/{code:[A-Za-z0-9]{6}}", root)
 }
 
+// serveLink answers /t/s/{code}. That path answers on every host, so on a
+// short-link domain it answers as the root does there.
 func (s *Service) serveLink(w http.ResponseWriter, r *http.Request) {
+	holders, err := s.Q.SmsShortDomainHolders(r.Context(), requestHost(r))
+	if err != nil {
+		w.Header().Set("Cache-Control", "no-store")
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	s.redirect(w, r, holders)
+}
+
+// redirect sends the visitor of a short link on. On a short-link domain,
+// holders are the workspaces whose verified domain it is, and only their
+// codes answer: a workspace's domain carries its own links, never another
+// workspace's (which could otherwise send people anywhere under its name).
+// Elsewhere (no holders) every code answers.
+func (s *Service) redirect(w http.ResponseWriter, r *http.Request, holders []uuid.UUID) {
 	code := chi.URLParam(r, "code")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
@@ -83,12 +98,21 @@ func (s *Service) serveLink(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	l, err := s.Q.SmsLink(ctx, code)
-	if err != nil || !l.ExpiresAt.After(s.now()) {
+	if err != nil || !l.ExpiresAt.After(s.now()) || (len(holders) > 0 && !slices.Contains(holders, l.WorkspaceID)) {
 		expired(w, r)
 		return
 	}
 	s.recordClick(ctx, l, r)
 	http.Redirect(w, r, l.Target, http.StatusFound)
+}
+
+// requestHost is the host a request came to, without its port.
+func requestHost(r *http.Request) string {
+	host := strings.ToLower(r.Host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	return host
 }
 
 // expired answers a short link that no longer works, in the language the
