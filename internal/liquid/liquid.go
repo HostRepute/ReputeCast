@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"maps"
 	"net/url"
 	"regexp"
 	"sort"
@@ -349,10 +350,10 @@ func (t *Template) Render(vars map[string]any) (string, error) {
 		r.b = nil
 		renderers.Put(r)
 	}()
-	scope := make(map[string]any, len(vars)+1)
-	for k, v := range vars {
-		scope[k] = v
-	}
+	// A copy: the budget's binding mustn't reach the caller's map, which
+	// renders of other recipients share.
+	scope := make(map[string]any, len(vars))
+	maps.Copy(scope, vars)
 	scope[budgetVar] = b
 	err := render.Render(t.root, io.Writer(w), scope, r.cfg)
 	if b.err != nil {
