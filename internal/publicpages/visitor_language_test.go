@@ -306,8 +306,15 @@ func TestNotificationPagesLanguage(t *testing.T) {
 		t.Fatal(err)
 	}
 	unsub := "/p/acme-newsletter/unsubscribe/" + sign(env, linktoken.Unsubscribe, ids.ws, uuid.Nil, msg)
+	// Opening the link only asks (mail gateways open every link), in the
+	// message's language.
 	r := get(t, env, unsub)
-	// German ships with ReputeCast: its own labels, which say Sie.
+	must(t, r, 200, `<html lang="de" dir="ltr">`, "nicht mehr erhalten?", `<input type="hidden" name="action" value="off">`,
+		`<nav class="langs" aria-label="Sprache">`, `aria-current="true">Deutsch</a>`)
+	lacks(t, r, "Stop getting", "Versehentlich deaktiviert?")
+	// Its button turns the category off. German ships with ReputeCast: its
+	// own labels, which say Sie.
+	r = do(t, env, http.MethodPost, unsub, url.Values{"action": {"off"}}, nil)
 	must(t, r, 200, `<html lang="de" dir="ltr">`, "nicht mehr", "Konto- und Rechnungs-E-Mails wie Passwort-Zurücksetzungen", "Versehentlich deaktiviert?",
 		"wieder aktivieren", "Warum haben Sie das deaktiviert?", "Zu häufig", "Andere Benachrichtigungen: ", "Der Abmelde-Button in Ihrer E-Mail-App bewirkt dasselbe.",
 		`<nav class="langs" aria-label="Sprache">`, `aria-current="true">Deutsch</a>`)
