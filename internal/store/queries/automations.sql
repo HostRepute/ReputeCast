@@ -265,6 +265,18 @@ FROM automation_emails e
 JOIN automation_email_versions v ON v.email_id = e.id
 WHERE e.workspace_id = @workspace_id AND e.id = @id AND v.version = @version;
 
+-- name: AutomationEmailSenders :many
+-- Where a flow's emails go out from, as the outbox picks their From
+-- (SendingAutomationSender): the email's own sender, else the workspace's
+-- default. The sender's sending domain, and its address for a sender whose
+-- domain is gone; empty for none.
+SELECT DISTINCT coalesce(d.domain, '')::text AS sender_domain, coalesce(s.email, '')::text AS sender_email
+FROM workspaces w
+LEFT JOIN automation_emails e ON e.workspace_id = w.id AND e.id = ANY(@email_ids::uuid[])
+LEFT JOIN senders s ON s.id = coalesce(e.sender_id, w.default_sender_id)
+LEFT JOIN sending_domains d ON d.id = s.domain_id
+WHERE w.id = @workspace_id;
+
 -- name: InsertAutomationEvent :exec
 INSERT INTO automation_events (workspace_id, kind, contact_id, ref, payload, occurred_at)
 VALUES (@workspace_id, @kind, @contact_id, @ref, @payload, @occurred_at);

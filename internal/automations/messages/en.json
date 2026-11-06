@@ -237,6 +237,8 @@
   "problem.pauseReason": "Keep the reason under 200 characters.",
   "problem.pauseNotLive": "Only a live automation can be paused.",
   "problem.resumeNotPaused": "Only a paused automation can be resumed.",
+  "problem.triggerScope": {"message": "Your access is limited to some lists: a flow you publish or resume can start only when a contact joins one of them. Use a Joined list trigger on one of your lists, or ask someone with access to all lists.", "note": "a member, API key or agent limited to some lists tried to publish or resume a flow that starts another way (another list, a segment, a tag, a form, a date…); Joined list: the trigger's name (trigger.joinedList)"},
+  "problem.senderScope": {"message": "Your access is limited to some sender domains, and this flow's emails go out from {domain}, the workspace's default sender. Ask someone who can send from {domain} to publish or resume it.", "note": "a member, API key or agent limited to some sender domains tried to publish or resume a flow with emails; domain: a sending domain such as news.acme.io, never translated"},
 
   "check.routeHealthy": {"message": "Automations route healthy · {providers}", "note": "Publish dialog badges. providers: SES, Postmark"},
   "check.routeFallback": "Automations route on its fallback · {provider}",
