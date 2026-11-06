@@ -551,9 +551,8 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return SmsSendResult{}, api.Conflict(say(ctx, mAlreadyWentOut, nil))
 	}
-	// A scoped member sends only within their lists, whoever built the audience.
-	if a := parseAudience(c.Audience); !access.AudienceInScope(p.Scope, access.ParseLists(a.Lists), len(a.Segments)) {
-		return SmsSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(i18n.LangFrom(ctx)))
+	if err := audienceScope(ctx, p, c); err != nil {
+		return SmsSendResult{}, err
 	}
 	rv, err := s.buildReview(ctx, ws, c)
 	if err != nil {
@@ -585,6 +584,16 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 	}
 	return s.schedule2(ctx, ws, p, rv, approval)
+}
+
+// audienceScope refuses to send, move or resume a campaign's texts beyond
+// a scoped member's lists, whoever built the audience: its lists only, no
+// segment, as for an email.
+func audienceScope(ctx context.Context, p *authz.Principal, c store.SmsCampaignRow) error {
+	if a := parseAudience(c.Audience); !access.AudienceInScope(p.Scope, access.ParseLists(a.Lists), len(a.Segments)) {
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(i18n.LangFrom(ctx)))
+	}
+	return nil
 }
 
 // schedule2 writes the send: a message per recipient, the send row, the
@@ -802,6 +811,10 @@ func (s *Service) Act(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		}
 		if snd.Phase != "paused" {
 			return api.Conflict(say(ctx, mResumeOnly, nil))
+		}
+		// Resuming lets the rest of the texts go: a send of the resumer's.
+		if err := audienceScope(ctx, p, c); err != nil {
+			return err
 		}
 		// Texts held past their window wait for the next one.
 		if _, err := s.Pool.Exec(ctx, `UPDATE channel_messages SET status = 'queued', reason = '', updated_at = $2

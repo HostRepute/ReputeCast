@@ -34,6 +34,10 @@ func (s *Service) MoveScheduled(ctx context.Context, ws *store.Workspace, p *aut
 	if err != nil {
 		return err
 	}
+	// Moving a send schedules it again, on the mover's behalf.
+	if err := audienceScope(l, p, c); err != nil {
+		return err
+	}
 	now := s.now()
 	if !to.At.After(now) {
 		return api.Invalid("body.time", mProblemFutureTime.Text(l, nil))

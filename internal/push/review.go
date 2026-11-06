@@ -688,6 +688,16 @@ type PushSendResult struct {
 	Recipients  int64     `json:"recipients"`
 }
 
+// audienceScope refuses to send or move a push campaign beyond a scoped
+// member's lists, whoever built the audience: it must narrow the sites'
+// subscribers to their lists (without a list it reaches every subscriber).
+func audienceScope(l i18n.Lang, p *authz.Principal, c store.PushCampaignRow) error {
+	if len(p.Scope.Lists) > 0 && (len(c.Lists) == 0 || !access.AudienceInScope(p.Scope, c.Lists, len(c.Segments))) {
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(l))
+	}
+	return nil
+}
+
 // Send sends the campaign now or schedules it, after the checks and the
 // approval rules. Sending needs campaigns:send and push:send.
 func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in PushSendInput) (PushSendResult, error) {
@@ -708,9 +718,8 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return PushSendResult{}, api.Conflict(mProblemAlreadySent.Text(l, i18n.Args{"status": c.Status}))
 	}
-	// A scoped member must narrow the sites' subscribers to their lists.
-	if len(p.Scope.Lists) > 0 && (len(c.Lists) == 0 || !access.AudienceInScope(p.Scope, c.Lists, len(c.Segments))) {
-		return PushSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(l))
+	if err := audienceScope(l, p, c); err != nil {
+		return PushSendResult{}, err
 	}
 	if in.Version != int(c.Version) {
 		return PushSendResult{}, api.Err(409, "stale_version", mProblemChanged.Text(l, i18n.Args{"version": strconv.Itoa(int(c.Version))}))
