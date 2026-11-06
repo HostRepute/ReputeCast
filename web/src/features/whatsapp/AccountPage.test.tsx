@@ -116,7 +116,7 @@ describe('WhatsApp › Account: the callback URL', () => {
     })
     expect(await screen.findByText(/Read-only/)).toBeInTheDocument()
     expect(screen.queryByText('Paste the new callback URL in your Meta app')).not.toBeInTheDocument()
-    expect(screen.queryByText(new RegExp(base))).not.toBeInTheDocument()
+    expect(screen.queryByText((text) => text.includes(base))).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'New callback URL' })).not.toBeInTheDocument()
   })
 
