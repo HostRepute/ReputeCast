@@ -2,8 +2,6 @@ package forms
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"net/netip"
 	"slices"
@@ -14,6 +12,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -24,16 +23,6 @@ import (
 type PublicDomainInput struct {
 	Domain string `json:"domain" maxLength:"253" example:"news.acme.io" doc:"Empty removes the custom domain"`
 }
-
-// domainToken is the value of the TXT record that proves a workspace owns a
-// domain, for domains that can't point a CNAME at the instance (apexes).
-func (s *Service) domainToken(ws *store.Workspace, domain string) string {
-	sum := sha256.Sum256([]byte("reputecast-domain:" + ws.ID.String() + ":" + domain))
-	return "reputecast-verify=" + hex.EncodeToString(sum[:12])
-}
-
-// Purposes of CustomHostClaims that the domain check tells apart.
-const claimInstance = "instance"
 
 // SetDomain stores the custom domain and checks its DNS right away. A host
 // another workspace uses already (for its pages, short links, link tracking
@@ -101,19 +90,12 @@ func (s *Service) SetDomain(ctx context.Context, ws *store.Workspace, in PublicD
 // one another workspace uses. It locks the host for the rest of q's
 // transaction first, so two workspaces saving it at once can't both have it.
 func (s *Service) claimHost(ctx context.Context, q *store.Queries, ws *store.Workspace, host string) error {
-	if err := q.CustomHostLock(ctx, host); err != nil {
+	switch use, err := customhost.Claim(ctx, q, ws.ID, host); {
+	case err != nil:
 		return err
-	}
-	claims, err := q.CustomHostClaims(ctx, store.CustomHostClaimsParams{Host: host, WorkspaceID: ws.ID})
-	if err != nil {
-		return err
-	}
-	for _, c := range claims {
-		if c.Purpose == claimInstance {
-			return api.Invalid("body.domain", say(ctx, mDomainOwn, nil))
-		}
-	}
-	if len(claims) > 0 {
+	case use == customhost.Instance:
+		return api.Invalid("body.domain", say(ctx, mDomainOwn, nil))
+	case use == customhost.Taken:
 		return api.Conflict(say(ctx, mDomainTaken, i18n.Args{"domain": host}))
 	}
 	return nil
@@ -209,64 +191,35 @@ type domainCheck struct {
 // this server, not whose host it is, so they count only for a host that is
 // plainly this workspace's. Another workspace's host (held first) and the
 // hosts under the instance's own need the TXT record, whose value is this
-// workspace's alone; the instance's own hosts are never a workspace's.
+// workspace's alone; the instance's own hosts are never a workspace's
+// (internal/customhost draws these lines for every use of a host).
 // held is since when the workspace has had the domain verified (nil while
 // it hasn't): a use another workspace made later doesn't take it away.
 func (s *Service) verifyDomain(ctx context.Context, ws *store.Workspace, domain string, held *time.Time) (domainCheck, error) {
 	target := instanceHost(s.URLs)
-	own := domainCheck{detail: mDomainIsOwn.Keep(i18n.Args{"domain": domain}), refused: true}
-	if domain == target {
-		return own, nil
-	}
-	claims, err := s.Q.CustomHostClaims(ctx, store.CustomHostClaimsParams{Host: domain, WorkspaceID: ws.ID})
+	proof, err := customhost.ProofFor(ctx, s.Q, ws.ID, domain, target, held)
 	if err != nil {
 		return domainCheck{}, err
 	}
-	// why says why only the TXT record counts, when it's the only proof.
-	var why i18n.Text
-	for _, c := range claims {
-		switch {
-		case c.Purpose == claimInstance:
-			return own, nil
-		case takenBefore(c, held):
-			why = mDomainInUse.Keep(i18n.Args{"domain": domain})
-		}
-	}
-	if why.IsZero() && target != "" && strings.HasSuffix(domain, "."+target) {
-		why = mDomainUnderOwn.Keep(i18n.Args{"domain": domain, "target": target})
-	}
-	if s.DNS == nil {
+	switch {
+	case proof == customhost.Never:
+		return domainCheck{detail: mDomainIsOwn.Keep(i18n.Args{"domain": domain}), refused: true}, nil
+	case s.DNS == nil:
 		return domainCheck{detail: mDomainUnavailable.Keep(nil)}, nil
-	}
-	if why.IsZero() {
+	case !proof.TXTOnly():
 		ok, detail := s.verifyDomainDNS(ctx, ws, domain)
 		return domainCheck{ok: ok, detail: detail}, nil
 	}
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	txts, err := s.DNS.TXT(cctx, "_reputecast."+domain)
-	switch {
-	case err == nil && slices.Contains(txts, s.domainToken(ws, domain)):
+	switch found, answered := customhost.HasToken(ctx, s.DNS, ws.ID, domain); {
+	case found:
 		return domainCheck{ok: true, detail: mDomainTXT.Keep(nil)}, nil
-	case err != nil && !dnscheck.IsNotFound(err):
+	case !answered:
 		// No answer isn't a refusal: a verified domain gets its second check.
 		return domainCheck{detail: mDomainNoAnswer.Keep(i18n.Args{"domain": domain})}, nil
+	case proof == customhost.UnderInstance:
+		return domainCheck{detail: mDomainUnderOwn.Keep(i18n.Args{"domain": domain, "target": target}), refused: true}, nil
 	}
-	return domainCheck{detail: why, refused: true}, nil
-}
-
-// takenBefore reports whether another workspace's use of a host keeps this
-// workspace from it: any use while this workspace hasn't verified the host
-// (held is nil), and afterwards one proven before this workspace's or at a
-// time nobody recorded. A use proven later, or never, came second.
-func takenBefore(c store.CustomHostClaimsRow, held *time.Time) bool {
-	if held == nil {
-		return true
-	}
-	if !c.Verified {
-		return false
-	}
-	return c.Since == nil || !c.Since.After(*held)
+	return domainCheck{detail: mDomainInUse.Keep(i18n.Args{"domain": domain}), refused: true}, nil
 }
 
 // verifyDomainDNS checks the domain's records.
@@ -278,8 +231,7 @@ func (s *Service) verifyDomainDNS(ctx context.Context, ws *store.Workspace, doma
 	if err == nil && strings.EqualFold(strings.TrimSuffix(cname, "."), target) {
 		return true, mDomainCNAME.Keep(i18n.Args{"target": target})
 	}
-	token := s.domainToken(ws, domain)
-	if txts, err := s.DNS.TXT(ctx, "_reputecast."+domain); err == nil && slices.Contains(txts, token) {
+	if found, _ := customhost.HasToken(ctx, s.DNS, ws.ID, domain); found {
 		return true, mDomainTXT.Keep(nil)
 	}
 	// Apex domains can point A/AAAA records at the instance instead.
