@@ -94,6 +94,12 @@ func (b *budget) step() error {
 	return nil
 }
 
+// stopped reports whether the render has failed and stops at its next step.
+func (b *budget) stopped() bool { return b.err != nil }
+
+// spend counts n bytes of work and reports whether the budget allows it.
+func (b *budget) spend(n int) bool { return b.charge(n) == nil }
+
 // charge counts n bytes of work.
 func (b *budget) charge(n int) error {
 	if b.err != nil {
@@ -259,14 +265,14 @@ type captureWriter struct {
 }
 
 func (w *captureWriter) Write(p []byte) (int, error) {
-	if w.b.err != nil {
+	if w.b.stopped() {
 		return len(p), nil
 	}
 	if w.s.Len()+len(p) > MaxValue {
 		_ = w.b.fail(ErrTooMuchWork)
 		return len(p), nil
 	}
-	if w.b.charge(len(p)) != nil {
+	if !w.b.spend(len(p)) {
 		return len(p), nil
 	}
 	return w.s.Write(p)
@@ -368,7 +374,7 @@ func instrument(nodes []render.Node) error {
 			if b.Name == "for" || b.Name == "tablerow" {
 				b.Body = append([]render.Node{tick()}, b.Body...)
 			}
-			nodes[i] = ticked(b)
+			nodes[i] = ticked(b) //nolint:gosec // G602: i comes from ranging over nodes
 		}
 	}
 	return nil
