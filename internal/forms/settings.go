@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -607,7 +608,7 @@ func (s *Settings) domain(l i18n.Lang, urls publicurl.Builder) PublicCustomDomai
 		VerifiedAt: s.row.DomainVerifiedAt, Target: instanceHost(urls)}
 	if s.row.CustomDomain != nil {
 		out.Domain = *s.row.CustomDomain
-		out.TXTName = "_reputecast." + out.Domain
+		out.TXTName = customhost.TXTName(out.Domain)
 	}
 	return out
 }
@@ -664,7 +665,7 @@ func (s *Service) PublicPages(ctx context.Context, ws *store.Workspace) (PublicP
 	l := i18n.LangFrom(ctx)
 	dom := set.domain(l, s.URLs)
 	if dom.Domain != "" {
-		dom.TXTValue = s.domainToken(ws, dom.Domain)
+		dom.TXTValue = customhost.Token(ws.ID, dom.Domain)
 	}
 	// The pages' text is in their own language, defaults included.
 	out := PublicPagesSettings{Domain: dom, Pages: set.Pages.withDefaultsIn(set.CopyLanguage()), Forms: []SignupFormSummary{}, Lists: []PublicPageList{},
