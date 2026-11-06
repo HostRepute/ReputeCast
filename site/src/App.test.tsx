@@ -6,13 +6,19 @@ import { hydrateRoot } from 'react-dom/client'
 import { render as renderToString } from './entry-server'
 import { App } from './App'
 import { links } from './content/links'
-import { APP_LANGUAGE_NAMES } from './sections/AllFeatures'
-import { PLATFORMS } from './sections/Compare'
+import { APP_LANGUAGE_NAMES, groups } from './sections/AllFeatures'
+import { PLATFORMS, RIVALS, rows, slug } from './sections/Compare'
 import { HERO_COMMAND } from './sections/Hero'
 import { INSTALLED_LINE } from './sections/Install'
 import { formatStars } from './content/stars'
 
 const repoFile = (path: string) => readFileSync(join(import.meta.dirname, '../..', path), 'utf8')
+
+function spoken(el: Element): string {
+  const copy = el.cloneNode(true) as Element
+  for (const hidden of copy.querySelectorAll('[aria-hidden="true"]')) hidden.remove()
+  return copy.textContent?.trim() ?? ''
+}
 
 function prerendered(): HTMLDivElement {
   const root = document.createElement('div')
@@ -72,7 +78,7 @@ describe('the prerendered page', () => {
     expect(codes.length).toBeGreaterThan(1)
     const english = new Intl.DisplayNames('en', { type: 'language' })
     expect([...APP_LANGUAGE_NAMES].sort()).toEqual(codes.map((c) => english.of(c)).sort())
-    expect(prerendered().textContent).toContain(`the app itself in ${APP_LANGUAGE_NAMES.slice(0, -1).join(', ')} and ${APP_LANGUAGE_NAMES.at(-1)}.`)
+    expect(prerendered().textContent).toContain(`The app itself in ${APP_LANGUAGE_NAMES.slice(0, -1).join(', ')} and ${APP_LANGUAGE_NAMES.at(-1)}`)
   })
 
   it('links only to the repository, the docs and HostRepute (there is no hosted demo or Discord server)', () => {
@@ -84,12 +90,49 @@ describe('the prerendered page', () => {
 
   it('compares with paid platforms only, with the list-price caveat', () => {
     const page = prerendered()
-    const heads = [...page.querySelectorAll('#compare thead th')].map((th) => th.textContent?.trim()).filter(Boolean)
+    const heads = [...page.querySelectorAll('#compare [role="columnheader"]')].map(spoken)
     expect(heads).toEqual(['Feature', ...PLATFORMS])
-    const table = page.querySelector('#compare table')?.textContent ?? ''
+    const table = page.querySelector('#compare [role="table"]')?.textContent ?? ''
     for (const oss of ['listmonk', 'Keila', 'Notifuse', 'Mautic', 'Plunk']) expect(table).not.toContain(oss)
     expect(page.querySelector('#compare')?.textContent).toContain('List prices change often, so check each provider')
     expect(page.querySelector('#cost')?.textContent).toContain('so check each provider')
+  })
+
+  it('picks the rival and the view with radio buttons, so the comparison works without JavaScript', () => {
+    const page = prerendered()
+    const radios = (name: string) => [...page.querySelectorAll<HTMLInputElement>(`#compare input[type="radio"][name="${name}"]`)]
+    expect(radios('cmp-rival').map((r) => r.value)).toEqual(RIVALS.map(slug))
+    expect(radios('cmp-view').map((r) => r.value)).toEqual(['vs', 'all'])
+    for (const name of ['cmp-rival', 'cmp-view']) {
+      expect(radios(name).filter((r) => r.defaultChecked).map((r) => r.value)).toEqual([name === 'cmp-rival' ? 'mailchimp' : 'vs'])
+      for (const r of radios(name)) expect(page.querySelector(`label[for="${r.id}"]`)?.textContent).toBeTruthy()
+    }
+    const rowsShown = page.querySelectorAll('#compare [role="rowgroup"]:last-child [role="row"]')
+    expect(rowsShown).toHaveLength(rows.length)
+    for (const row of rowsShown) {
+      expect(row.querySelectorAll('[role="rowheader"]')).toHaveLength(1)
+      expect([...row.querySelectorAll('[role="cell"]')].map((c) => c.getAttribute('data-p'))).toEqual(PLATFORMS.map(slug))
+    }
+  })
+
+  it('lists every feature on a $0 receipt whose lines are radio buttons, each followed by its card', () => {
+    const page = prerendered()
+    const features = groups.flatMap((g) => g.features)
+    const radios = [...page.querySelectorAll<HTMLInputElement>('.fx input[type="radio"][name="feature"]')]
+    expect(radios.map((r) => r.value)).toEqual(features.map((f) => f.id))
+    expect(radios.filter((r) => r.defaultChecked).map((r) => r.value)).toEqual([features[0]!.id])
+    for (const [i, r] of radios.entries()) {
+      // CSS shows a card with .fx-row:has(input:checked) + .fx-detail.
+      const label = r.parentElement
+      const card = label?.nextElementSibling
+      expect(label?.matches(`label.fx-row[for="${r.id}"]`)).toBe(true)
+      expect(label?.querySelector('.fx-name')?.textContent).toBe(features[i]!.line)
+      expect(card?.matches('.fx-detail')).toBe(true)
+      expect(card?.querySelector('h3')?.textContent).toBe(features[i]!.title)
+      expect(card?.querySelectorAll('li')).toHaveLength(features[i]!.items.length)
+      expect(card?.querySelector('a')?.getAttribute('href')).toMatch(/^https:\/\/docs\.reputecast\.com\/.+\/$/)
+    }
+    expect(page.querySelector('.fx-total')?.textContent).toContain(`$0.00A month, for all ${features.length}.`)
   })
 
   it('names every link and keeps decorative graphics out of the accessibility tree', () => {

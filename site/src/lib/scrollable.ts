@@ -15,6 +15,7 @@ export function useScrollable(ref: RefObject<HTMLElement | null>): boolean {
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(check)
     ro.observe(el)
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
     return () => ro.disconnect()
   }, [ref])
   return scrollable

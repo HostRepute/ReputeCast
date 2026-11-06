@@ -747,7 +747,7 @@
   },
   "Landing.dc.html": {
    "expand": "fill",
-   "h": 7197,
+   "h": 6594,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page",
@@ -756,22 +756,22 @@
    "y": 0
   },
   "LandingPhone.dc.html": {
-   "h": 13883,
+   "h": 12285,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · phone",
    "w": 390,
    "x": 0,
-   "y": 18073
+   "y": 16397
   },
   "LandingTablet.dc.html": {
-   "h": 10269,
+   "h": 9196,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · tablet",
    "w": 834,
    "x": 0,
-   "y": 7474
+   "y": 6871
   },
   "ListHealth.dc.html": {
    "expand": "fill",
