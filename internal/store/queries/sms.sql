@@ -173,9 +173,13 @@ UPDATE sms_settings SET short_domain = @short_domain, short_domain_status = @sho
     short_domain_checked_at = sqlc.narg(checked_at), short_domain_verified_at = sqlc.narg(verified_at), short_domain_detail = @short_domain_detail
 WHERE workspace_id = @workspace_id;
 
--- name: SmsShortDomainWorkspace :one
--- The workspace whose verified short-link domain a request came to.
-SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower(@host) AND short_domain_status = 'verified';
+-- name: SmsShortDomainHolders :many
+-- The workspaces whose verified short-link domain a request came to: only
+-- their codes answer there, so a workspace's domain never carries another
+-- workspace's links. Two workspaces that stored the same host before it
+-- had to be free each answer for their own codes there.
+SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower(@host::text) AND short_domain_status = 'verified'
+ORDER BY workspace_id;
 
 -- name: SmsTestNumbers :many
 SELECT t.*, coalesce(u.name, '')::text AS user_name, coalesce(r.name, '')::text AS role_name, coalesce(u.avatar_color, '')::text AS user_color

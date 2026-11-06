@@ -4351,8 +4351,11 @@ type Querier interface {
 	SmsSetup(ctx context.Context, arg SmsSetupParams) (SmsSetup, error)
 	SmsSetupInsert(ctx context.Context, arg SmsSetupInsertParams) error
 	SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) error
-	// The workspace whose verified short-link domain a request came to.
-	SmsShortDomainWorkspace(ctx context.Context, host string) (uuid.UUID, error)
+	// The workspaces whose verified short-link domain a request came to: only
+	// their codes answer there, so a workspace's domain never carries another
+	// workspace's links. Two workspaces that stored the same host before it
+	// had to be free each answer for their own codes there.
+	SmsShortDomainHolders(ctx context.Context, host string) ([]uuid.UUID, error)
 	SmsTermsInsert(ctx context.Context, arg SmsTermsInsertParams) error
 	SmsTermsLatest(ctx context.Context, workspaceID uuid.UUID) (SmsTermsVersion, error)
 	SmsTestNumberDelete(ctx context.Context, arg SmsTestNumberDeleteParams) error
