@@ -60,6 +60,8 @@ func TestRedactPath(t *testing.T) {
 		"/hooks/shopify/whtok":      "/hooks/shopify/{token}",
 		"/hooks/woocommerce/whtok":  "/hooks/woocommerce/{token}",
 		"/hooks/whatsapp/acme-news": "/hooks/whatsapp/{token}",
+		// WhatsApp's callback URL names the workspace before the token.
+		"/hooks/whatsapp/acme-news/whtok": "/hooks/whatsapp/acme-news/{token}",
 		// Push notification clicks and SMS short links, on the instance's
 		// host and at the root of a short-link domain.
 		"/t/p/AbC.def":   "/t/p/{token}",
