@@ -332,6 +332,20 @@ jobs:
           grep -q 'The newsletter platform that protects your inbox placement.</h1>' dist/index.html
           grep -q '"@type": "SoftwareApplication"' dist/index.html
           test -f dist/sitemap.xml && test -f dist/robots.txt && test -f dist/og.png
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: site
+      # axe from 320 to 1440 px, the keyboard, the pickers without JavaScript,
+      # reflow and forced colours, against the build above.
+      - name: Browser checks
+        run: pnpm e2e
+        working-directory: site
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: site-e2e
+          path: |
+            site/playwright-report
+            site/test-results
       - uses: actions/upload-artifact@v7
         with:
           name: site-dist

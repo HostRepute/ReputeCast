@@ -66,6 +66,7 @@ providers are all demo providers.
 | Production build (web app embedded in `bin/reputecast`) | `make build` |
 | Docker image | `make docker` |
 | Landing site: build, or live reload on :5288 | `make site`, `make site-dev` |
+| Landing site in a browser: axe, keyboard, no JavaScript, reflow (after `make site`) | `cd site && pnpm e2e` |
 | Adapter SDK and template: build, test, run through the Go runtime | `make sdk` |
 | Compare a screen with its design board at 1440/834/390 | `cd web && pnpm shot --path /w/acme-newsletter/campaigns --design Campaigns` |
 | Side-by-side QA of boards and screens, with a difference score (`scripts/qa-map.ts` maps boards to routes) | `cd web && pnpm qa --only Report,Campaigns` |
