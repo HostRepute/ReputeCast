@@ -53,11 +53,11 @@ export function Providers() {
         </div>
       </div>
       <div className="card reveal flex flex-wrap items-center gap-6 p-[22px]">
-        <div className="flex flex-[1_1_300px] flex-col gap-1.5">
+        <div className="flex flex-[1_1_260px] flex-col gap-1.5">
           <h3 className="m-0 text-[17px] font-bold">Route each kind of mail where it belongs</h3>
           <span className="k">Broadcasts, Automations and System mail each get a primary, a fallback, conditions and weighted splits.</span>
         </div>
-        <div className="flex flex-[2_1_420px] flex-col gap-2.5 text-[14px]">
+        <div className="flex flex-[2.4_1_480px] flex-col gap-2.5 text-[14px]">
           {routes.map((r) => (
             <div key={r.kind} className="flex items-center gap-3 max-md:flex-wrap">
               <span className="w-[110px] font-semibold">{r.kind}</span>
@@ -66,7 +66,7 @@ export function Providers() {
                   <i key={i} className="block" style={{ width: s.width, background: s.color }} />
                 ))}
               </div>
-              <span className="k w-[200px] max-md:w-auto">{r.note}</span>
+              <span className="k w-[220px] max-md:w-auto">{r.note}</span>
             </div>
           ))}
         </div>

@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 
+import { RIVALS, slug } from '../sections/Compare'
+
 const keyframes = (css: string) => new Set([...css.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]!))
 const read = (name: string) => readFileSync(join(import.meta.dirname, name), 'utf8')
 
@@ -21,6 +23,11 @@ describe('the site stylesheet', () => {
     expect(css).toMatch(/\[data-motion='paused'\] \*,[\s\S]*animation-play-state: paused !important/)
     // Pausing must never leave scroll reveals invisible.
     expect(css).toMatch(/\[data-motion='paused'\] :is\(\.reveal, \.grow i\)/)
+  })
+
+  it("shows each rival's column when its radio is picked", () => {
+    const css = read('site.css')
+    for (const r of RIVALS.map(slug)) expect(css).toContain(`.cmp:has(#cmp-${r}:checked) .cmp-cell[data-p='${r}']`)
   })
 
   it('does not load a border-box reset (the board uses the browser default)', () => {

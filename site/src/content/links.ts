@@ -11,6 +11,7 @@ export const links = {
   docs: `${docs}/`,
   adapterSdk: `${docs}/adapters/community/`,
   releases: `${repo}/releases`,
+  newIssue: `${repo}/issues/new/choose`,
   installGuide: `${docs}/self-hosting/docker/`,
   screenshots: `${repo}#screenshots`,
   flowEditor: `${docs}/automations/overview/`,

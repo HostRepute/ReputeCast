@@ -43,7 +43,7 @@ export function Header() {
             {stars ? (
               <span>
                 GitHub <span aria-hidden="true">·</span> {stars}
-                <span className="vh"> stars</span>
+                <span className="vh"> {stars === '1' ? 'star' : 'stars'}</span>
               </span>
             ) : (
               'GitHub'

@@ -42,7 +42,7 @@ export function HostRepute() {
             <span className="n">{c.value}</span>
           </div>
         ))}
-        <div className="row">
+        <div className="row flex-wrap">
           <span className="flex-1">Postal IP 203.0.113.25</span>
           <span className="badge warn">Listed on 1 · delisting requested</span>
         </div>
