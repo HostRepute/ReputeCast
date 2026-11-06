@@ -304,7 +304,7 @@ type limitWriter struct {
 }
 
 func (w *limitWriter) Write(p []byte) (int, error) {
-	if w.budget.err != nil {
+	if w.budget.stopped() {
 		return len(p), nil
 	}
 	if w.s.Len()+len(p) > MaxOutput {
