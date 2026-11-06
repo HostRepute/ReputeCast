@@ -112,6 +112,8 @@ func (a *App) publicPages() *publicpages.Handler {
 	}
 	h := &publicpages.Handler{
 		Pool: a.Pool, Q: a.Q, Forms: fs, Audience: a.audience(), Tokens: a.Links, URLs: a.URLs, Log: a.Log,
+		// A host a workspace holds carries only its pages under /p/.
+		Hosts: a.customHosts(),
 		// An unsubscribe from an automation email counts on its step.
 		MessageUnsubscribed: func(ctx context.Context, q *store.Queries, id uuid.UUID, at time.Time) error {
 			return (&automations.Service{Q: a.Q, Log: a.Log}).RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: id, Type: "unsubscribed", At: at})

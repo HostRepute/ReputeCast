@@ -37,3 +37,27 @@ UNION ALL
 SELECT 'instance', true, NULL::timestamptz
 FROM smtp_relay r
 WHERE r.hostname <> '' AND lower(r.hostname) = @host::text;
+
+-- name: CustomHostHolders :many
+-- The workspaces a request's host belongs to: whose verified custom
+-- domain, short-link domain or link tracking domain it is, or whose
+-- publication website's push site. Only their links and pages answer on
+-- it. A deleted workspace keeps its hosts until it's purged, as in
+-- CustomHostClaims; two workspaces that verified one host before a host
+-- had to be free both hold it.
+SELECT h.workspace_id, w.slug
+FROM (
+    SELECT s.workspace_id FROM public_page_settings s
+    WHERE s.custom_domain = @host::text AND s.domain_status = 'verified'
+    UNION
+    SELECT m.workspace_id FROM sms_settings m
+    WHERE lower(m.short_domain) = @host::text AND m.short_domain_status = 'verified'
+    UNION
+    SELECT d.workspace_id FROM sending_domains d
+    WHERE lower(d.tracking_domain) = @host::text AND d.tracking_status = 'verified'
+    UNION
+    SELECT p.workspace_id FROM push_sites p
+    WHERE p.kind = 'publication' AND p.removed_at IS NULL AND lower(p.host) = @host::text
+) h
+JOIN workspaces w ON w.id = h.workspace_id
+ORDER BY h.workspace_id;

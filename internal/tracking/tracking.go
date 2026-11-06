@@ -33,6 +33,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
@@ -54,6 +55,10 @@ type Service struct {
 	Links       *linktoken.Signer
 	Log         *slog.Logger
 	Automations *automations.Service
+	// Hosts says whose host a request came to: a host a workspace holds
+	// carries only that workspace's links (nil: every host carries every
+	// workspace's).
+	Hosts *customhost.Hosts
 	// Transactional resolves the tracked links of transactional messages
 	// and fires their message.opened and message.clicked webhook events.
 	Transactional TransactionalTracking
@@ -202,7 +207,7 @@ func (s *Service) open(w http.ResponseWriter, r *http.Request) {
 	noStore(h)
 	h.Set("Content-Type", "image/gif")
 	token := strings.TrimSuffix(chi.URLParam(r, "token"), ".gif")
-	if c, err := s.Links.Verify(token, linktoken.Open); err == nil && c.MessageID != uuid.Nil {
+	if c, err := s.Links.Verify(token, linktoken.Open); err == nil && c.MessageID != uuid.Nil && s.carries(r, c.WorkspaceID) {
 		ev := sending.Engagement{MessageID: c.MessageID, UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
 		ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
 		if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
@@ -222,7 +227,7 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 	noStore(w.Header())
 	token := chi.URLParam(r, "token")
 	c, err := s.Links.Verify(token, linktoken.Click)
-	if err != nil || c.MessageID == uuid.Nil {
+	if err != nil || c.MessageID == uuid.Nil || !s.carries(r, c.WorkspaceID) {
 		gone(w, r)
 		return
 	}
@@ -260,7 +265,7 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 // bot's, and the clicks around it settle as the same scanner's.
 func (s *Service) honeypot(w http.ResponseWriter, r *http.Request) {
 	noStore(w.Header())
-	if c, ok := honeypotClaims(s.Links, chi.URLParam(r, "token")); ok {
+	if c, ok := honeypotClaims(s.Links, chi.URLParam(r, "token")); ok && s.carries(r, c.WorkspaceID) {
 		ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: HoneypotLink, UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
 		ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
 		if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
@@ -281,6 +286,18 @@ func honeypotClaims(links *linktoken.Signer, token string) (linktoken.Claims, bo
 		return linktoken.Claims{}, false
 	}
 	return c, true
+}
+
+// carries reports whether the host a request came to may carry
+// workspace's links: one of its own hosts, the instance's, or one nobody
+// holds. A link on another workspace's host would look as if that
+// workspace sent it, so it neither redirects nor counts there.
+func (s *Service) carries(r *http.Request, workspace uuid.UUID) bool {
+	ok, err := s.Hosts.Carries(r.Context(), r.Host, workspace)
+	if err != nil {
+		s.log().WarnContext(r.Context(), "tracking host", "err", err)
+	}
+	return ok
 }
 
 // gone answers a tracked link that no longer works, in the language the

@@ -76,6 +76,11 @@ The stack and the reasons behind each choice are in
 - Liquid renders on a budget of steps, work, value sizes and time, so a
   template anyone who can preview an email writes can't stall the server or
   exhaust its memory; templates can't load files or other templates.
+- A host belongs to one workspace (`internal/customhost`): one that another
+  workspace verified first, or one under the instance's address, needs the
+  workspace's TXT record. A host a workspace holds carries only that
+  workspace's tracked links, short links, push clicks and `/p/{workspace}`
+  pages; the instance's own host carries every workspace's.
 - Outgoing webhooks are signed (HMAC-SHA256) and blocked from private
   networks.
 - The audit log records allowed and denied actions and cannot be edited from

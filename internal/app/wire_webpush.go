@@ -75,6 +75,8 @@ func (a *App) Push() *push.Service {
 	}
 	s := &push.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log, URLs: a.URLs, Links: a.Links,
+		// A host a workspace holds carries only its push clicks and pages.
+		Hosts:    a.customHosts(),
 		Jobs:     func() *jobs.Client { return a.Jobs },
 		HTTP:     client,
 		Demo:     a.PushFake,
@@ -233,7 +235,12 @@ func init() {
 		s.PublicRoutes(r, server.NewSPA(web.Dist()))
 		r.Route("/p/{ws}/push", func(r chi.Router) {
 			s.PageRoutes(r, func(req *http.Request) (*store.Workspace, bool) {
-				w, err := a.Q.GetWorkspaceBySlug(req.Context(), chi.URLParam(req, "ws"))
+				slug := chi.URLParam(req, "ws")
+				// Another workspace's host carries none of these.
+				if ok, err := a.customHosts().CarriesSlug(req.Context(), req.Host, slug); err != nil || !ok {
+					return nil, false
+				}
+				w, err := a.Q.GetWorkspaceBySlug(req.Context(), slug)
 				if err != nil {
 					return nil, false
 				}

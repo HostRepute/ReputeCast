@@ -73,6 +73,56 @@ func (q *Queries) CustomHostClaims(ctx context.Context, arg CustomHostClaimsPara
 	return items, nil
 }
 
+const customHostHolders = `-- name: CustomHostHolders :many
+SELECT h.workspace_id, w.slug
+FROM (
+    SELECT s.workspace_id FROM public_page_settings s
+    WHERE s.custom_domain = $1::text AND s.domain_status = 'verified'
+    UNION
+    SELECT m.workspace_id FROM sms_settings m
+    WHERE lower(m.short_domain) = $1::text AND m.short_domain_status = 'verified'
+    UNION
+    SELECT d.workspace_id FROM sending_domains d
+    WHERE lower(d.tracking_domain) = $1::text AND d.tracking_status = 'verified'
+    UNION
+    SELECT p.workspace_id FROM push_sites p
+    WHERE p.kind = 'publication' AND p.removed_at IS NULL AND lower(p.host) = $1::text
+) h
+JOIN workspaces w ON w.id = h.workspace_id
+ORDER BY h.workspace_id
+`
+
+type CustomHostHoldersRow struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Slug        string    `json:"slug"`
+}
+
+// The workspaces a request's host belongs to: whose verified custom
+// domain, short-link domain or link tracking domain it is, or whose
+// publication website's push site. Only their links and pages answer on
+// it. A deleted workspace keeps its hosts until it's purged, as in
+// CustomHostClaims; two workspaces that verified one host before a host
+// had to be free both hold it.
+func (q *Queries) CustomHostHolders(ctx context.Context, host string) ([]CustomHostHoldersRow, error) {
+	rows, err := q.db.Query(ctx, customHostHolders, host)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CustomHostHoldersRow{}
+	for rows.Next() {
+		var i CustomHostHoldersRow
+		if err := rows.Scan(&i.WorkspaceID, &i.Slug); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const customHostLock = `-- name: CustomHostLock :exec
 
 SELECT pg_advisory_xact_lock(hashtextextended('custom_host:' || $1::text, 0))

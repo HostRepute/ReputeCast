@@ -50,8 +50,8 @@ func machineClick(r *http.Request) bool {
 }
 
 // LinkRoutes mounts the short links: the root of the verified short-link
-// domain, and /t/s/{code} on the instance's own host. Requests for other
-// hosts at the root fall through to spa.
+// domain, and /t/s/{code} on every host. Requests for other hosts at the
+// root fall through to spa.
 func (s *Service) LinkRoutes(r chi.Router, spa http.Handler) {
 	r.Get("/t/s/{code}", s.serveLink)
 	r.Head("/t/s/{code}", s.serveLink)
@@ -72,9 +72,11 @@ func (s *Service) LinkRoutes(r chi.Router, spa http.Handler) {
 }
 
 // serveLink answers /t/s/{code}. That path answers on every host, so on a
-// short-link domain it answers as the root does there.
+// host a workspace holds (its short-link domain, and its pages, website or
+// tracking domain too) only that workspace's codes answer, as at the root
+// of a short-link domain.
 func (s *Service) serveLink(w http.ResponseWriter, r *http.Request) {
-	holders, err := s.Q.SmsShortDomainHolders(r.Context(), requestHost(r))
+	holders, err := s.linkHolders(r)
 	if err != nil {
 		w.Header().Set("Cache-Control", "no-store")
 		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
@@ -83,9 +85,27 @@ func (s *Service) serveLink(w http.ResponseWriter, r *http.Request) {
 	s.redirect(w, r, holders)
 }
 
-// redirect sends the visitor of a short link on. On a short-link domain,
-// holders are the workspaces whose verified domain it is, and only their
-// codes answer: a workspace's domain carries its own links, never another
+// linkHolders are the workspaces whose codes /t/s/ answers for on the
+// request's host: none (every workspace's) on the instance's own host and
+// on a host nobody holds.
+func (s *Service) linkHolders(r *http.Request) ([]uuid.UUID, error) {
+	if s.Hosts == nil {
+		return s.Q.SmsShortDomainHolders(r.Context(), requestHost(r))
+	}
+	list, err := s.Hosts.Holders(r.Context(), r.Host)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uuid.UUID, len(list))
+	for i, h := range list {
+		ids[i] = h.ID
+	}
+	return ids, nil
+}
+
+// redirect sends the visitor of a short link on. On a host a workspace
+// holds, holders are the workspaces whose host it is, and only their codes
+// answer: a workspace's domain carries its own links, never another
 // workspace's (which could otherwise send people anywhere under its name).
 // Elsewhere (no holders) every code answers.
 func (s *Service) redirect(w http.ResponseWriter, r *http.Request, holders []uuid.UUID) {

@@ -1167,6 +1167,13 @@ type Querier interface {
 	// verified before migration 03446). A publication website's push site is
 	// its pages' host, verified when it was added.
 	CustomHostClaims(ctx context.Context, arg CustomHostClaimsParams) ([]CustomHostClaimsRow, error)
+	// The workspaces a request's host belongs to: whose verified custom
+	// domain, short-link domain or link tracking domain it is, or whose
+	// publication website's push site. Only their links and pages answer on
+	// it. A deleted workspace keeps its hosts until it's purged, as in
+	// CustomHostClaims; two workspaces that verified one host before a host
+	// had to be free both hold it.
+	CustomHostHolders(ctx context.Context, host string) ([]CustomHostHoldersRow, error)
 	// Hosts the instance serves for a workspace: the public pages and website
 	// domain, the SMS short-link domain, a link tracking domain and the push
 	// site of a publication website. A CNAME or matching addresses only show
