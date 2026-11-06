@@ -225,10 +225,14 @@ var (
 	mDomainOther            = msgs.M("domain.other")
 	mDomainNoAnswer         = msgs.M("domain.noAnswer")
 	mDomainNone             = msgs.M("domain.none")
+	mDomainTXT              = msgs.M("domain.txt")
+	mDomainOwn              = msgs.M("domain.own")
+	mDomainInUse            = msgs.M("domain.inUse")
+	mDomainUnderOwn         = msgs.M("domain.underOwn")
 	mCodeProviderList       = msgs.M("code.providerList")
 	contextTexts            = []i18n.Msg{mContextConfirmation, mContextTest}
 	answerTexts             = []i18n.Msg{mAnswerNone, mAnswerUnauthorized}
-	domainTexts             = []i18n.Msg{mDomainUnavailable, mDomainPoints, mDomainOther, mDomainNoAnswer, mDomainNone}
+	domainTexts             = []i18n.Msg{mDomainUnavailable, mDomainPoints, mDomainOther, mDomainNoAnswer, mDomainNone, mDomainTXT, mDomainOwn, mDomainInUse, mDomainUnderOwn}
 	providerListTexts       = []i18n.Msg{mCodeProviderList}
 	storedPatterns          = map[string]*regexp.Regexp{}
 	storedPatternArgs       = map[string][]string{}

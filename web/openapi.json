@@ -81898,6 +81898,12 @@
           "target": {
             "type": "string"
           },
+          "txtName": {
+            "type": "string"
+          },
+          "txtValue": {
+            "type": "string"
+          },
           "verifiedAt": {
             "format": "date-time",
             "type": "string"
@@ -81906,7 +81912,9 @@
         "required": [
           "domain",
           "status",
-          "target"
+          "target",
+          "txtName",
+          "txtValue"
         ],
         "type": "object"
       },

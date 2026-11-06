@@ -41766,6 +41766,8 @@ export interface components {
             /** @enum {string} */
             status: "none" | "pending" | "verified" | "failed";
             target: string;
+            txtName: string;
+            txtValue: string;
             /** Format: date-time */
             verifiedAt?: string;
         };

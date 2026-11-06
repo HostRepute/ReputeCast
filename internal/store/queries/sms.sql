@@ -173,6 +173,12 @@ UPDATE sms_settings SET short_domain = @short_domain, short_domain_status = @sho
     short_domain_checked_at = sqlc.narg(checked_at), short_domain_verified_at = sqlc.narg(verified_at), short_domain_detail = @short_domain_detail
 WHERE workspace_id = @workspace_id;
 
+-- name: SmsShortDomainChecked :execrows
+-- A check's finding, kept only while the domain is still the one checked.
+UPDATE sms_settings SET short_domain_status = @short_domain_status, short_domain_target = @short_domain_target,
+    short_domain_checked_at = @checked_at::timestamptz, short_domain_verified_at = sqlc.narg(verified_at), short_domain_detail = @short_domain_detail
+WHERE workspace_id = @workspace_id AND short_domain = @short_domain;
+
 -- name: SmsShortDomainHolders :many
 -- The workspaces whose verified short-link domain a request came to: only
 -- their codes answer there, so a workspace's domain never carries another
@@ -180,6 +186,17 @@ WHERE workspace_id = @workspace_id;
 -- had to be free each answer for their own codes there.
 SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower(@host::text) AND short_domain_status = 'verified'
 ORDER BY workspace_id;
+
+-- name: SmsShortDomainsToCheck :many
+-- Verified short-link domains due a check (the periodic re-check): last
+-- checked before @before, or never, as migration 03445 leaves them.
+SELECT m.workspace_id
+FROM sms_settings m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.short_domain <> '' AND m.short_domain_status = 'verified'
+  AND (m.short_domain_checked_at IS NULL OR m.short_domain_checked_at < @before::timestamptz)
+ORDER BY m.short_domain_checked_at NULLS FIRST, m.workspace_id
+LIMIT 200;
 
 -- name: SmsTestNumbers :many
 SELECT t.*, coalesce(u.name, '')::text AS user_name, coalesce(r.name, '')::text AS role_name, coalesce(u.avatar_color, '')::text AS user_color

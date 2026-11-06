@@ -93,6 +93,13 @@ be added, and a domain under the public URL's own host (such as
 wildcard record points every name at the server) verifies only with its TXT
 record, whose value is different for each workspace.
 
+The same goes for an SMS short-link domain, checked again every day: a domain
+that another workspace stored and verified first (before this rule existed),
+or one under the public URL's own host, needs the `_reputecast.<domain>` TXT
+record shown in Routing & rules besides its `CNAME`. Until then texts with
+links don't use it, and a short-link domain only ever carries its own
+workspace's links.
+
 With Caddy's on-demand TLS, certificates are issued only for domains that
 ReputeCast has verified (`/p/_/tls-check` answers 200 for them):
 

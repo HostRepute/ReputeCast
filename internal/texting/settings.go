@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
@@ -90,6 +91,12 @@ type SmsShortDomain struct {
 	CheckedAt  *time.Time `json:"checkedAt,omitempty"`
 	VerifiedAt *time.Time `json:"verifiedAt,omitempty"`
 	Detail     string     `json:"detail,omitempty"`
+	// TXTName and TXTValue are the TXT record the domain needs besides its
+	// CNAME when the CNAME alone doesn't show it's this workspace's: another
+	// workspace used it first, or it's under this ReputeCast's own address.
+	// Both are empty otherwise.
+	TXTName  string `json:"txtName"`
+	TXTValue string `json:"txtValue"`
 }
 
 // SmsMemberOption is a member who can get test texts.
@@ -200,6 +207,15 @@ func (s *Service) Rules(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		CanManage: p.Can(authz.ProvidersManage), Helpers: []string{}, Timezone: ws.Timezone}
 	if !out.CanManage {
 		out.Helpers = access.Helpers(ctx, s.Q, ws.ID, authz.ProvidersManage)
+	}
+	if r.ShortDomain != "" {
+		proof, err := customhost.ProofFor(ctx, s.Q, ws.ID, r.ShortDomain, instanceHost(s.URLs.Base()), shortHeld(r))
+		if err != nil {
+			return out, err
+		}
+		if proof.TXTOnly() {
+			out.ShortDomain.TXTName, out.ShortDomain.TXTValue = customhost.TXTName(r.ShortDomain), customhost.Token(ws.ID, r.ShortDomain)
+		}
 	}
 	if !r.UpdatedAt.IsZero() {
 		t := r.UpdatedAt
@@ -839,14 +855,11 @@ func (s *Service) SetShortDomain(ctx context.Context, ws *store.Workspace, p *au
 		if domain != "" && domain != r.ShortDomain {
 			// Its CNAME only shows the host points at this server: another
 			// workspace's pages or links stay theirs.
-			if err := q.CustomHostLock(ctx, domain); err != nil {
-				return err
-			}
-			claims, err := q.CustomHostClaims(ctx, store.CustomHostClaimsParams{Host: domain, WorkspaceID: ws.ID})
+			use, err := customhost.Claim(ctx, q, ws.ID, domain)
 			if err != nil {
 				return err
 			}
-			if len(claims) > 0 {
+			if use != customhost.Free {
 				return api.Conflict(say(ctx, mDomainTaken, i18n.Args{"domain": domain}))
 			}
 		}
@@ -874,6 +887,9 @@ func (s *Service) CheckShortDomain(ctx context.Context, ws *store.Workspace, p *
 	return s.Rules(ctx, ws, p)
 }
 
+// checkShortDomain checks the short-link domain and stores what it found.
+// A domain that fails stops carrying links at once, whatever the reason:
+// texts with links wait until it's verified again.
 func (s *Service) checkShortDomain(ctx context.Context, ws *store.Workspace, p *authz.Principal) (string, error) {
 	r, err := s.rules(ctx, s.Q, ws)
 	if err != nil {
@@ -883,23 +899,9 @@ func (s *Service) checkShortDomain(ctx context.Context, ws *store.Workspace, p *
 		return "none", nil
 	}
 	target := instanceHost(s.URLs.Base())
-	// The detail is stored in English and read in each reader's language
-	// (shortDetailIn).
-	ok, detail := false, shortDetail(mDomainUnavailable, nil)
-	if s.DNS != nil {
-		cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		cname, err := s.DNS.CNAME(cctx, r.ShortDomain)
-		cancel()
-		switch {
-		case err == nil && strings.EqualFold(strings.TrimSuffix(cname, "."), target):
-			ok, detail = true, shortDetail(mDomainPoints, i18n.Args{"target": target})
-		case err == nil && cname != "":
-			detail = shortDetail(mDomainOther, i18n.Args{"domain": r.ShortDomain, "cname": strings.TrimSuffix(cname, "."), "target": target})
-		case err != nil && !dnscheck.IsNotFound(err):
-			detail = shortDetail(mDomainNoAnswer, i18n.Args{"domain": r.ShortDomain})
-		default:
-			detail = shortDetail(mDomainNone, nil)
-		}
+	ok, detail, err := s.verifyShortDomain(ctx, ws, r, target)
+	if err != nil {
+		return "", err
 	}
 	now := s.now()
 	status, verifiedAt := "failed", (*time.Time)(nil)
@@ -912,12 +914,12 @@ func (s *Service) checkShortDomain(ctx context.Context, ws *store.Workspace, p *
 		status = "pending"
 	}
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
-		if err := q.SmsSettingsShortDomain(ctx, store.SmsSettingsShortDomainParams{ShortDomain: r.ShortDomain, ShortDomainStatus: status, ShortDomainTarget: target,
-			CheckedAt: &now, VerifiedAt: verifiedAt, ShortDomainDetail: detail, WorkspaceID: ws.ID}); err != nil {
+		// The periodic check runs while people work: a domain saved during
+		// its DNS lookups keeps its own state.
+		n, err := q.SmsShortDomainChecked(ctx, store.SmsShortDomainCheckedParams{ShortDomain: r.ShortDomain, ShortDomainStatus: status, ShortDomainTarget: target,
+			CheckedAt: now, VerifiedAt: verifiedAt, ShortDomainDetail: detail, WorkspaceID: ws.ID})
+		if err != nil || n == 0 || status == r.ShortStatus {
 			return err
-		}
-		if status == r.ShortStatus {
-			return nil
 		}
 		ev := audit.Event{WorkspaceID: &ws.ID, Action: "sms_short_domain.checked", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
 			Before: map[string]any{"status": r.ShortStatus}, After: map[string]any{"status": status, "domain": r.ShortDomain}}
@@ -927,6 +929,61 @@ func (s *Service) checkShortDomain(ctx context.Context, ws *store.Workspace, p *
 		return s.Audit.LogWith(ctx, q, ev)
 	})
 	return status, err
+}
+
+// shortHeld is since when the workspace has had its short-link domain
+// verified (nil while it hasn't).
+func shortHeld(r Rules) *time.Time {
+	if r.ShortStatus != "verified" {
+		return nil
+	}
+	return r.ShortVerifiedAt
+}
+
+// verifyShortDomain checks that the short-link domain may be this
+// workspace's, then its CNAME. The finding is stored in English and read
+// in each reader's language (shortDetailIn). A CNAME only shows that a host
+// points at this server, not whose host it is: a host another workspace
+// verified first, or one under the instance's own address, also needs this
+// workspace's TXT record, and the instance's own hosts are never a
+// workspace's (internal/customhost).
+func (s *Service) verifyShortDomain(ctx context.Context, ws *store.Workspace, r Rules, target string) (bool, string, error) {
+	domain := r.ShortDomain
+	proof, err := customhost.ProofFor(ctx, s.Q, ws.ID, domain, target, shortHeld(r))
+	if err != nil {
+		return false, "", err
+	}
+	switch {
+	case proof == customhost.Never:
+		return false, shortDetail(mDomainOwn, i18n.Args{"domain": domain}), nil
+	case s.DNS == nil:
+		return false, shortDetail(mDomainUnavailable, nil), nil
+	}
+	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	cname, err := s.DNS.CNAME(cctx, domain)
+	cancel()
+	switch {
+	case err == nil && strings.EqualFold(strings.TrimSuffix(cname, "."), target):
+		// It points here; whether that's enough comes next.
+	case err == nil && cname != "":
+		return false, shortDetail(mDomainOther, i18n.Args{"domain": domain, "cname": strings.TrimSuffix(cname, "."), "target": target}), nil
+	case err != nil && !dnscheck.IsNotFound(err):
+		return false, shortDetail(mDomainNoAnswer, i18n.Args{"domain": domain}), nil
+	default:
+		return false, shortDetail(mDomainNone, nil), nil
+	}
+	if !proof.TXTOnly() {
+		return true, shortDetail(mDomainPoints, i18n.Args{"target": target}), nil
+	}
+	switch found, answered := customhost.HasToken(ctx, s.DNS, ws.ID, domain); {
+	case found:
+		return true, shortDetail(mDomainTXT, i18n.Args{"target": target}), nil
+	case !answered:
+		return false, shortDetail(mDomainNoAnswer, i18n.Args{"domain": customhost.TXTName(domain)}), nil
+	case proof == customhost.UnderInstance:
+		return false, shortDetail(mDomainUnderOwn, i18n.Args{"domain": domain, "target": target}), nil
+	}
+	return false, shortDetail(mDomainInUse, i18n.Args{"domain": domain}), nil
 }
 
 func parsePhone(raw string) (phone.Number, error) { return phone.Parse(raw, "") }
