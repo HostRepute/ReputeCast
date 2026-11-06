@@ -125,7 +125,10 @@ func (s *Signer) Sign(c Claims) string {
 
 // Verify checks a token and returns its claims; want limits the accepted kind.
 func (s *Signer) Verify(token string, want Kind) (Claims, error) {
-	raw, err := base64.RawURLEncoding.DecodeString(token)
+	// Strict: a token works only as it was issued. Its last character can
+	// carry bits no byte uses, and a link with those bits changed decoded
+	// to the same token, so changing a link's end could leave it working.
+	raw, err := base64.RawURLEncoding.Strict().DecodeString(token)
 	if err != nil || len(raw) < 2+48+1+16 || raw[0] != version || Kind(raw[1]) != want {
 		return Claims{}, ErrInvalid
 	}
