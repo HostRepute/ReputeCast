@@ -1230,7 +1230,7 @@ function ShortDomain({ data, ro }: { data: Rules; ro: boolean }) {
       {d.domain && d.status !== 'verified' ? (
         <div className="pad flex flex-col gap-3 border-t border-line-2">
           <Note tone="warn" role="note">
-            {t(m.cnameNote, { domain: d.domain, target: d.target })}
+            {t(d.txtValue ? m.cnameTxtNote : m.cnameNote, { domain: d.domain, target: d.target })}
           </Note>
           <Table caption={t(m.dnsRecord)}>
             <thead>
@@ -1246,6 +1246,13 @@ function ShortDomain({ data, ro }: { data: Rules; ro: boolean }) {
                 <td className="mono">{sub}</td>
                 <td className="mono">{d.target}</td>
               </tr>
+              {d.txtValue ? (
+                <tr>
+                  <td className="mono">{'TXT'}</td>
+                  <td className="mono">{`_reputecast.${sub}`}</td>
+                  <td className="mono">{d.txtValue}</td>
+                </tr>
+              ) : null}
             </tbody>
           </Table>
           {d.checkedAt ? <span className="k">{t(m.lastCheck, { time: clock(d.checkedAt), detail: d.detail ?? '' })}</span> : null}

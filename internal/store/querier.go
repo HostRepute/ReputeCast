@@ -4351,11 +4351,16 @@ type Querier interface {
 	SmsSetup(ctx context.Context, arg SmsSetupParams) (SmsSetup, error)
 	SmsSetupInsert(ctx context.Context, arg SmsSetupInsertParams) error
 	SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) error
+	// A check's finding, kept only while the domain is still the one checked.
+	SmsShortDomainChecked(ctx context.Context, arg SmsShortDomainCheckedParams) (int64, error)
 	// The workspaces whose verified short-link domain a request came to: only
 	// their codes answer there, so a workspace's domain never carries another
 	// workspace's links. Two workspaces that stored the same host before it
 	// had to be free each answer for their own codes there.
 	SmsShortDomainHolders(ctx context.Context, host string) ([]uuid.UUID, error)
+	// Verified short-link domains due a check (the periodic re-check): last
+	// checked before @before, or never, as migration 03445 leaves them.
+	SmsShortDomainsToCheck(ctx context.Context, before time.Time) ([]uuid.UUID, error)
 	SmsTermsInsert(ctx context.Context, arg SmsTermsInsertParams) error
 	SmsTermsLatest(ctx context.Context, workspaceID uuid.UUID) (SmsTermsVersion, error)
 	SmsTestNumberDelete(ctx context.Context, arg SmsTestNumberDeleteParams) error

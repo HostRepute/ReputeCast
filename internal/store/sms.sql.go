@@ -3131,6 +3131,39 @@ func (q *Queries) SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) 
 	return err
 }
 
+const smsShortDomainChecked = `-- name: SmsShortDomainChecked :execrows
+UPDATE sms_settings SET short_domain_status = $1, short_domain_target = $2,
+    short_domain_checked_at = $3::timestamptz, short_domain_verified_at = $4, short_domain_detail = $5
+WHERE workspace_id = $6 AND short_domain = $7
+`
+
+type SmsShortDomainCheckedParams struct {
+	ShortDomainStatus string     `json:"shortDomainStatus"`
+	ShortDomainTarget string     `json:"shortDomainTarget"`
+	CheckedAt         time.Time  `json:"checkedAt"`
+	VerifiedAt        *time.Time `json:"verifiedAt"`
+	ShortDomainDetail string     `json:"shortDomainDetail"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	ShortDomain       string     `json:"shortDomain"`
+}
+
+// A check's finding, kept only while the domain is still the one checked.
+func (q *Queries) SmsShortDomainChecked(ctx context.Context, arg SmsShortDomainCheckedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, smsShortDomainChecked,
+		arg.ShortDomainStatus,
+		arg.ShortDomainTarget,
+		arg.CheckedAt,
+		arg.VerifiedAt,
+		arg.ShortDomainDetail,
+		arg.WorkspaceID,
+		arg.ShortDomain,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const smsShortDomainHolders = `-- name: SmsShortDomainHolders :many
 SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower($1::text) AND short_domain_status = 'verified'
 ORDER BY workspace_id
@@ -3142,6 +3175,38 @@ ORDER BY workspace_id
 // had to be free each answer for their own codes there.
 func (q *Queries) SmsShortDomainHolders(ctx context.Context, host string) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, smsShortDomainHolders, host)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var workspace_id uuid.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const smsShortDomainsToCheck = `-- name: SmsShortDomainsToCheck :many
+SELECT m.workspace_id
+FROM sms_settings m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.short_domain <> '' AND m.short_domain_status = 'verified'
+  AND (m.short_domain_checked_at IS NULL OR m.short_domain_checked_at < $1::timestamptz)
+ORDER BY m.short_domain_checked_at NULLS FIRST, m.workspace_id
+LIMIT 200
+`
+
+// Verified short-link domains due a check (the periodic re-check): last
+// checked before @before, or never, as migration 03445 leaves them.
+func (q *Queries) SmsShortDomainsToCheck(ctx context.Context, before time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, smsShortDomainsToCheck, before)
 	if err != nil {
 		return nil, err
 	}

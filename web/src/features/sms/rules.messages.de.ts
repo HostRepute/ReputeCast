@@ -185,6 +185,8 @@ export default translate(m, {
   domainPlaceholder: 'go.example.com',
   domainSaved: 'Kurzlink-Domain festgelegt',
   cnameNote: 'Fügen Sie einen CNAME für {domain} hinzu, der auf {target} zeigt. Ein Zertifikat von Let’s Encrypt folgt automatisch.',
+  cnameTxtNote:
+    'Fügen Sie einen CNAME für {domain} hinzu, der auf {target} zeigt, und den TXT-Eintrag unten: Sein Wert gehört nur zu diesem Arbeitsbereich. Ein Zertifikat von Let’s Encrypt folgt automatisch.',
   dnsRecord: 'DNS-Eintrag',
   type: 'Typ',
   name: 'Name',
