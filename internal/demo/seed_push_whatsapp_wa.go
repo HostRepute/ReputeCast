@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/whatsapp"
 	"github.com/hostrepute/reputecast/internal/whatsapp/meta"
 	"github.com/hostrepute/reputecast/internal/whatsapp/meta/metatest"
@@ -32,12 +33,20 @@ func whatsAppAccount(ctx context.Context, s *Seeder, st *pwState) error {
 	if err != nil {
 		return err
 	}
+	// Meta verified the callback URL, with the account's own token, when
+	// Marcus connected it: the old address never took its deliveries.
+	callback, callbackHash := authn.NewToken()
+	callbackSealed, err := s.Box.SealString(callback, "whatsapp_account:"+st.account.String()+":callback_token")
+	if err != nil {
+		return err
+	}
 	synced := s.pushDay(15, 8, 0)
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO whatsapp_accounts (id, workspace_id, credentials_enc, business_hint, business_name, phone_number, display_name, name_status,
 			phone_status, quality, messaging_limit, verify_token, verified_at, last_event_at, status, status_since, templates_synced_at, checked_at, demo,
-			connected_by, connected_at)
-		VALUES ($1,$2,$3,'…4410','Acme Inc','+13125550110','Acme','approved','connected','high',1000,'rc-wa-7Q2mX9vKp4',$4,$5,'connected',$4,$6,$7,true,$8,$9)`,
-		st.account, ws.ID, sealed, verified, s.Ago(4*time.Minute), synced, s.Ago(4*time.Minute), marcus.ID, connected); err != nil {
+			connected_by, connected_at, callback_token_hash, callback_token_enc, callback_moved_at)
+		VALUES ($1,$2,$3,'…4410','Acme Inc','+13125550110','Acme','approved','connected','high',1000,'rc-wa-7Q2mX9vKp4',$4,$5,'connected',$4,$6,$7,true,$8,$9,
+			$10,$11,$4)`,
+		st.account, ws.ID, sealed, verified, s.Ago(4*time.Minute), synced, s.Ago(4*time.Minute), marcus.ID, connected, callbackHash, callbackSealed); err != nil {
 		return err
 	}
 	type tv struct{ key, label, example string }

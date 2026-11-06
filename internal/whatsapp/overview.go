@@ -16,7 +16,8 @@ import (
 // Sending providers › WhatsApp (brief §5.13, board WhatsAppChannel): the
 // account card, the connection (write-only credentials, the webhook),
 // the stats, the templates, the events and the states (not connected,
-// waiting for Meta's verification request, the token expired, read-only).
+// waiting for Meta's verification request, the token expired, read-only,
+// Meta still calling the old address).
 
 // WhatsAppAccount is the account card. Credentials are never returned.
 type WhatsAppAccount struct {
@@ -39,7 +40,14 @@ type WhatsAppAccount struct {
 	ConnectedAt      time.Time  `json:"connectedAt"`
 	ConnectedBy      string     `json:"connectedBy"`
 	CheckedAt        *time.Time `json:"checkedAt,omitempty"`
-	WebhookURL       string     `json:"webhookUrl"`
+	// WebhookURL is the callback URL to paste in Meta's app settings. It
+	// ends with the account's token, so only people who can manage
+	// providers get it; it's empty for everyone else, keys and agents too.
+	WebhookURL string `json:"webhookUrl"`
+	// OldAddress is true while the old address, without a token, still
+	// takes the account's deliveries: an account connected before callback
+	// URLs had tokens, until Meta first calls its callback URL.
+	OldAddress bool `json:"oldAddress"`
 	// VerifyToken is shown to who can manage providers, for Meta's app
 	// settings.
 	VerifyToken       string     `json:"verifyToken,omitempty"`
@@ -57,6 +65,11 @@ type WhatsAppAccount struct {
 	// sharing one Meta app): dropped.
 	OtherAccountEvents int64      `json:"otherAccountEvents"`
 	OtherAccountAt     *time.Time `json:"otherAccountAt,omitempty"`
+	// WrongAddressDeliveries counts the deliveries refused for their
+	// address: a wrong token, or the old address once Meta moved off it.
+	// They aren't stored.
+	WrongAddressDeliveries int64      `json:"wrongAddressDeliveries"`
+	WrongAddressAt         *time.Time `json:"wrongAddressAt,omitempty"`
 	// Held are the sends waiting for a new token: names and how many.
 	Held      []string `json:"held"`
 	HeldCount int64    `json:"heldCount"`
@@ -83,7 +96,9 @@ type WhatsAppOverview struct {
 	// SameWindowAsSMS is true once the workspace has SMS rules: the
 	// window is theirs.
 	SameWindowAsSMS bool `json:"sameWindowAsSms"`
-	// WebhookURL is where Meta posts (shown before connecting too).
+	// WebhookURL is the account's callback URL, where Meta posts, as on
+	// the account: empty before connecting, and for anyone but people who
+	// can manage providers.
 	WebhookURL string `json:"webhookUrl"`
 	// TestNumbers are the member's numbers for tests.
 	TestNumbers []string `json:"testNumbers"`
@@ -95,7 +110,7 @@ type WhatsAppOverview struct {
 // Overview is Sending providers › WhatsApp.
 func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Principal) (WhatsAppOverview, error) {
 	out := WhatsAppOverview{Templates: []WhatsAppTemplate{}, ConsentLists: []WhatsAppListConsent{}, TestNumbers: []string{}, Helpers: []string{},
-		CanManage: p.Can(authz.ProvidersManage), CanSend: canSend(p), WebhookURL: s.webhookURL(ws)}
+		CanManage: p.Can(authz.ProvidersManage), CanSend: canSend(p)}
 	if !out.CanManage {
 		out.Helpers = s.helpers(ctx, ws, authz.ProvidersManage)
 	}
@@ -128,6 +143,9 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		}
 	}
 	a, err := s.account(ctx, s.Q, ws)
+	if err == nil {
+		a, err = s.withCallback(ctx, ws, a)
+	}
 	if errors.Is(err, errNoAccount) {
 		return out, nil
 	}
@@ -138,10 +156,20 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		BusinessHint: a.BusinessHint, Number: phone.Display(a.PhoneNumber), DisplayName: a.DisplayName, NameStatus: a.NameStatus, PhoneStatus: a.PhoneStatus,
 		Quality: a.Quality, PreviousQuality: a.PreviousQuality, QualityChangedAt: a.QualityChangedAt, MessagingLimit: int(a.MessagingLimit),
 		PreviousLimit: int(a.PreviousLimit), LimitChangedAt: a.LimitChangedAt, ConnectedAt: a.ConnectedAt, ConnectedBy: a.ConnectedByName, CheckedAt: a.CheckedAt,
-		WebhookURL: s.webhookURL(ws), VerifiedAt: a.VerifiedAt, LastEventAt: a.LastEventAt, TemplatesSyncedAt: a.TemplatesSyncedAt, Demo: a.Demo,
-		RejectedDeliveries: a.RejectedDeliveries, RejectedAt: a.RejectedAt, OtherAccountEvents: a.OtherAccountEvents, OtherAccountAt: a.OtherAccountAt, Held: []string{}}
+		OldAddress: a.CallbackMovedAt == nil, VerifiedAt: a.VerifiedAt, LastEventAt: a.LastEventAt, TemplatesSyncedAt: a.TemplatesSyncedAt, Demo: a.Demo,
+		RejectedDeliveries: a.RejectedDeliveries, RejectedAt: a.RejectedAt, OtherAccountEvents: a.OtherAccountEvents, OtherAccountAt: a.OtherAccountAt,
+		WrongAddressDeliveries: a.WrongAddressDeliveries, WrongAddressAt: a.WrongAddressAt, Held: []string{}}
 	if out.CanManage {
 		acct.VerifyToken = a.VerifyToken
+	}
+	// The callback URL's token lets anyone post to it: it goes only to
+	// people who can manage providers, who paste it in Meta, never to a key
+	// or an agent.
+	if out.CanManage && p.IsHuman() {
+		if acct.WebhookURL, err = s.callbackURL(ws, a.ID, a.CallbackTokenEnc); err != nil {
+			return out, err
+		}
+		out.WebhookURL = acct.WebhookURL
 	}
 	if a.Status == "token_rejected" {
 		acct.Held = s.heldNames(ctx, s.Pool, ws)

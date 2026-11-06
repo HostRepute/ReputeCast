@@ -18157,11 +18157,31 @@ export interface paths {
         put?: never;
         /**
          * Connect a WhatsApp Business Account (logged)
-         * @description Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings. Nothing is sent until Meta verifies it.
+         * @description Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings: the account's callback URL, with its own token. Nothing is sent until Meta verifies it.
          */
         post: operations["connect-whatsapp"];
         /** Disconnect WhatsApp: waiting messages are cancelled (logged) */
         delete: operations["disconnect-whatsapp"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/account/callback-url/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a new callback URL: the current one stops working at once (logged)
+         * @description The account then waits for Meta's verification request at the new URL, as when it connected.
+         */
+        post: operations["rotate-whatsapp-callback-url"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -46738,6 +46758,7 @@ export interface components {
             messagingLimit: number;
             nameStatus: string;
             number: string;
+            oldAddress: boolean;
             /** Format: date-time */
             otherAccountAt?: string;
             /** Format: int64 */
@@ -46765,6 +46786,10 @@ export interface components {
             verifiedAt?: string;
             verifyToken?: string;
             webhookUrl: string;
+            /** Format: date-time */
+            wrongAddressAt?: string;
+            /** Format: int64 */
+            wrongAddressDeliveries: number;
         };
         WhatsAppAudience: {
             /** Format: int64 */
@@ -89526,6 +89551,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-whatsapp-callback-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOverview"];
+                };
             };
             /** @description Error */
             default: {
