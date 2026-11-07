@@ -8,7 +8,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 
 | Component | Version | Notes |
 |---|---|---|
-| Go | **1.27.2** | `go 1.27` in go.mod. CI also tests 1.26. |
+| Go | **1.27.3** | `go 1.27.3` in go.mod: the first release with the fix for GO-2026-6809 in crypto/x509, which passkey sign-in reaches. CI, the release build and the Docker image use the latest 1.27.x. |
 | PostgreSQL | **18.6** (default) | Supported: **16, 17 and 18**, with all three in the CI matrix. Postgres is the only database. See "Postgres 18 notes". |
 | Docker image (app) | `gcr.io/distroless/static-debian13:nonroot` | CGO is disabled, so the binary is static. |
 | Docker image (DB) | `postgres:18-alpine` or `postgres:18-trixie` | Mount the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`; the path changed in 18. |

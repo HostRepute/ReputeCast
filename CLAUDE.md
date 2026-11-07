@@ -13,7 +13,7 @@ The license is AGPL-3.0. Every feature in this repo is free. Never add paywalls,
 
 ## Stack (decided; do not change without asking)
 Exact versions and the reasons behind them are in `docs/TECH_STACK.md`. Read it before adding or upgrading a dependency.
-- **Backend:** Go 1.27.2. It ships as a single binary, `cmd/reputecast`, with cobra commands: serve, worker, install, migrate, user.
+- **Backend:** Go 1.27.3. It ships as a single binary, `cmd/reputecast`, with cobra commands: serve, worker, install, migrate, user.
   - Router: chi v5. API: Huma v2, OpenAPI 3.1, errors in RFC 9457 format.
   - Postgres only: 18 by default, 16–18 supported and tested in CI. Don't use 18-only SQL syntax, because sqlc's parser follows the PG17 grammar. UUIDv7 keys are generated in Go. Use pgx v5, sqlc (queries in `internal/store/queries/*.sql`) and goose migrations in `migrations/`.
   - Background jobs: River (pre-1.0; pin the minor version).
