@@ -3,28 +3,28 @@ module github.com/hostrepute/reputecast
 go 1.27.2
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.47.3
-	github.com/aws/aws-sdk-go-v2/config v1.33.9
-	github.com/aws/aws-sdk-go-v2/credentials v1.20.9
-	github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 v1.42.1
-	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.79.2
-	github.com/aws/aws-sdk-go-v2/service/sns v1.47.5
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.4
-	github.com/aws/aws-sdk-go-v2/service/sts v1.51.4
-	github.com/aws/smithy-go v1.28.6
+	github.com/aws/aws-sdk-go-v2 v1.47.5
+	github.com/aws/aws-sdk-go-v2/config v1.33.13
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.13
+	github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 v1.42.4
+	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.79.5
+	github.com/aws/aws-sdk-go-v2/service/sns v1.47.7
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.8
+	github.com/aws/aws-sdk-go-v2/service/sts v1.51.6
+	github.com/aws/smithy-go v1.28.7
 	github.com/coreos/go-oidc/v3 v3.21.0
-	github.com/danielgtaylor/huma/v2 v2.39.1
+	github.com/danielgtaylor/huma/v2 v2.40.0
 	github.com/emersion/go-imap/v2 v2.0.0-beta.8
 	github.com/emersion/go-message v0.18.2
 	github.com/emersion/go-msgauth v0.7.0
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.25.0
-	github.com/fxamacker/cbor/v2 v2.9.6
+	github.com/fxamacker/cbor/v2 v2.10.0
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/httprate v0.16.1
 	github.com/go-webauthn/webauthn v0.18.2
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.11.0
+	github.com/jackc/pgx/v5 v5.12.0
 	github.com/knadh/koanf/parsers/yaml v1.1.1
 	github.com/knadh/koanf/providers/env/v2 v2.0.2
 	github.com/knadh/koanf/providers/file v1.2.1
@@ -43,7 +43,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.49.0
 	github.com/riverqueue/river/rivertype v0.49.0
 	github.com/spf13/cobra v1.10.2
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
 	github.com/wneessen/go-mail v0.8.1
@@ -69,15 +69,15 @@ require (
 	github.com/air-verse/air v1.67.4 // indirect
 	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.3 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.21 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.10.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.38.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.4 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.5 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.8 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.8 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.23 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.12.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.39.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
@@ -132,13 +132,13 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
-	github.com/klauspost/compress v1.20.2 // indirect
-	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
-	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/mfridman/xflag v0.1.0 // indirect
@@ -165,7 +165,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/pganalyze/pg_query_go/v6 v6.2.2 // indirect
-	github.com/philhofer/fwd v1.2.0 // indirect
+	github.com/philhofer/fwd v1.2.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
@@ -197,7 +197,7 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/tinylib/msgp v1.6.4 // indirect
+	github.com/tinylib/msgp v1.6.5 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/tursodatabase/libsql-client-go v0.0.0-20260528064733-9d5d30a29a60 // indirect
