@@ -327,7 +327,7 @@ func stripVolatile(body string) string {
 	return volatileTo.ReplaceAllString(body, `"$1":"now"`)
 }
 
-var volatileTo = regexp.MustCompile(`"(to|at)":"[^"]*\.[0-9]+Z"`)
+var volatileTo = regexp.MustCompile(`"(to|at)":"[^"]*\.[0-9]+(Z|[+-][0-9]{2}:[0-9]{2})"`)
 
 // tableColumns lists every base table's columns.
 func tableColumns(t *testing.T, env *apptest.Env) map[string][]string {
