@@ -9,7 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/customhost"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
@@ -91,15 +96,40 @@ func (s *Service) Check(ctx context.Context, d store.SendingDomain) (store.Sendi
 			sum.SPF = dnscheck.StatusFail
 		}
 	}
-	trackingStatus := ""
+	trackingStatus, trackingSince := "", (*time.Time)(nil)
 	if d.TrackingDomain != "" {
-		trackingStatus = s.verifyTracking(ctx, d.TrackingDomain)
+		if trackingStatus, err = s.verifyTracking(ctx, d); err != nil {
+			return d, err
+		}
+		if trackingStatus == StatusVerified {
+			trackingSince = &now
+			if d.TrackingStatus == StatusVerified && d.TrackingVerifiedAt != nil {
+				trackingSince = d.TrackingVerifiedAt
+			}
+		}
 	}
 	ns, host := s.nameservers(ctx, d.Domain)
 	sumJSON, _ := json.Marshal(sum)
 	detJSON, _ := json.Marshal(det)
-	if err := s.Q.DomSaveCheck(ctx, store.DomSaveCheckParams{ID: d.ID, DnsRecords: EncodeRecords(recs), AuthSummary: sumJSON, AuthDetail: detJSON,
-		Status: overallStatus(recs), TrackingStatus: trackingStatus, DnsHost: host, Nameservers: ns, CheckedAt: &now}); err != nil {
+	save := func(q *store.Queries) error {
+		saved, err := q.DomSaveCheck(ctx, store.DomSaveCheckParams{ID: d.ID, DnsRecords: EncodeRecords(recs), AuthSummary: sumJSON, AuthDetail: detJSON,
+			Status: overallStatus(recs), TrackingDomain: d.TrackingDomain, TrackingStatus: trackingStatus, TrackingVerifiedAt: trackingSince, DnsHost: host,
+			Nameservers: ns, CheckedAt: &now})
+		if err != nil || !saved || trackingStatus == d.TrackingStatus || s.Audit == nil {
+			return err
+		}
+		// Whether links and the open pixel use the tracking domain follows
+		// its status, so a check that changes it is on record.
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &d.WorkspaceID, Action: "domain.tracking_check", TargetType: "sending_domain", TargetID: d.ID.String(),
+			TargetName: d.Domain, Before: map[string]any{"status": d.TrackingStatus}, After: map[string]any{"status": trackingStatus, "tracking_domain": d.TrackingDomain},
+			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}})
+	}
+	if s.Pool != nil {
+		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error { return save(store.New(tx)) })
+	} else {
+		err = save(s.Q) // the demo seeds through a service on its own transaction
+	}
+	if err != nil {
 		return d, err
 	}
 	if err := s.refreshSenders(ctx, d.ID, recs, provs); err != nil {
@@ -238,9 +268,36 @@ func (s *Service) verifyRecord(ctx context.Context, domain string, r Record) Rec
 	return r
 }
 
-// verifyTracking checks a custom tracking domain's CNAME.
-func (s *Service) verifyTracking(ctx context.Context, tracking string) string {
-	target := s.trackingTarget()
+// verifyTracking checks that a custom tracking domain may be the
+// workspace's, then its CNAME. A CNAME only shows that a host points at
+// this server, not whose host it is: a host another workspace verified
+// first, or one under the instance's own address, also needs the
+// workspace's TXT record, and the instance's own hosts are never a
+// workspace's (internal/customhost). Such a domain is refused at once,
+// so links and the open pixel stop using it.
+func (s *Service) verifyTracking(ctx context.Context, d store.SendingDomain) (string, error) {
+	tracking, target := d.TrackingDomain, s.trackingTarget()
+	proof, err := customhost.ProofFor(ctx, s.Q, d.WorkspaceID, tracking, target, trackingHeld(d))
+	if err != nil {
+		return "", err
+	}
+	if proof == customhost.Never {
+		return StatusRefused, nil
+	}
+	if status := s.trackingCNAME(ctx, tracking, target); status != StatusVerified || !proof.TXTOnly() {
+		return status, nil
+	}
+	switch found, answered := customhost.HasToken(ctx, s.DNS, d.WorkspaceID, tracking); {
+	case found:
+		return StatusVerified, nil
+	case !answered:
+		return StatusError, nil
+	}
+	return StatusRefused, nil
+}
+
+// trackingCNAME checks a custom tracking domain's CNAME.
+func (s *Service) trackingCNAME(ctx context.Context, tracking, target string) string {
 	got, err := s.DNS.CNAME(ctx, tracking)
 	switch {
 	case err != nil && dnscheck.IsNotFound(err):
@@ -251,6 +308,15 @@ func (s *Service) verifyTracking(ctx context.Context, tracking string) string {
 		return StatusVerified
 	}
 	return StatusWrong
+}
+
+// trackingHeld is since when the workspace has had its tracking domain
+// verified (nil while it hasn't, or when nobody recorded it).
+func trackingHeld(d store.SendingDomain) *time.Time {
+	if d.TrackingStatus != StatusVerified {
+		return nil
+	}
+	return d.TrackingVerifiedAt
 }
 
 func overallStatus(recs []Record) string {

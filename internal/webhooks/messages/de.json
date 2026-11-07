@@ -44,7 +44,17 @@
   "problem.unknownEndpoint": "Unbekannter Endpunkt.",
   "problem.unknownEvent": "Unbekanntes Ereignis {event}.",
   "problem.onlyFailed": "Nur fehlgeschlagene Zustellungen können wiederholt werden.",
+  "problem.eventNeeds": "{event} enthält Daten, die Sie in ReputeCast nicht sehen können: Dafür ist „{permission}“ nötig.{ask, select, yes { Fragen Sie {helpers}.} other {}}",
+  "problem.patternNeeds": "{pattern} umfasst {event}, das Daten enthält, die Sie in ReputeCast nicht sehen können: Dafür ist „{permission}“ nötig.{ask, select, yes { Fragen Sie {helpers}.} other {}}",
+  "problem.eventScope": "{event} enthält Kontakte aus allen Listen, und Ihr Zugriff ist auf einige Listen beschränkt.",
+  "problem.patternScope": "{pattern} umfasst {event}, das Kontakte aus allen Listen enthält, und Ihr Zugriff ist auf einige Listen beschränkt.",
+
+  "paused.left": "ReputeCast hat diesen Endpunkt pausiert: Er hat seine Ereignisse im Namen von {name} gesendet, der Person, die ihn eingerichtet hat, und sie ist kein aktives Mitglied mehr. Setzen Sie ihn fort, um seine Ereignisse in Ihrem Namen zu senden.",
+  "paused.lacks": "ReputeCast hat diesen Endpunkt pausiert: {name}, die Person, die ihn eingerichtet hat, kann nicht mehr sehen, was {event} enthält („{permission}“). Setzen Sie ihn fort, um seine Ereignisse in Ihrem Namen zu senden.",
+  "paused.scoped": "ReputeCast hat diesen Endpunkt pausiert: Der Zugriff von {name}, der Person, die ihn eingerichtet hat, ist jetzt auf einige Listen beschränkt, und {event} enthält Kontakte aus allen Listen. Setzen Sie ihn fort, um seine Ereignisse in Ihrem Namen zu senden.",
 
   "delivery.demo": "Demo-Endpunkt: ReputeCast sendet nie Demodaten. Richten Sie ihn auf Ihre eigene URL, um Ereignisse zu empfangen.",
-  "delivery.invalidUrl": "Ungültige URL"
+  "delivery.invalidUrl": "Ungültige URL",
+  "delivery.payloadNeeds": "Diese Zustellung enthält Daten, die Sie in ReputeCast nicht sehen können, daher bleiben ihre Nutzdaten und die Antwort des Endpunkts verborgen: Dafür ist „{permission}“ nötig.",
+  "delivery.payloadScope": "Diese Zustellung enthält Kontakte aus allen Listen, und Ihr Zugriff ist auf einige Listen beschränkt, daher bleiben ihre Nutzdaten und die Antwort des Endpunkts verborgen."
 }

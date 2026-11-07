@@ -93,6 +93,9 @@ var (
 	mDomainNoAnswer    = msgs.M("domain.noAnswer")
 	mDomainNoCNAME     = msgs.M("domain.noCname")
 	mDomainLastFailed  = msgs.M("domain.lastFailed")
+	mDomainIsOwn       = msgs.M("domain.own")
+	mDomainInUse       = msgs.M("domain.inUse")
+	mDomainUnderOwn    = msgs.M("domain.underOwn")
 
 	mTurnstileSiteRejected   = msgs.M("turnstile.siteRejected")
 	mTurnstileSiteUnknown    = msgs.M("turnstile.siteUnknown")

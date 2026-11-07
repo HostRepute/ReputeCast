@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -1273,7 +1273,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, f LogFilter) 
 		return nil, 0, err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"accepted_at", "message_id", "recipient", "template", "version", "subject", "provider", "status", "detail", "key", "idempotency_key", "tags", "metadata"})
 	for _, r := range rows {
 		it := logItem(r)

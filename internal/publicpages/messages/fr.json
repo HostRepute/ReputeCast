@@ -196,6 +196,8 @@
   "page.missing": "Cette page n’existe pas.",
   "oneClick.locked": "Les e-mails liés au compte ne peuvent pas être désactivés.",
   "oneClick.changeFailed": "Impossible de modifier ce réglage pour le moment\u202F; réessayez dans une minute.",
+  "category.askHeading": "Ne plus recevoir les e-mails «\u00A0{category}\u00A0»\u202F?",
+  "category.askText": "{email} reçoit les e-mails «\u00A0{category}\u00A0» envoyés par {product}.",
   "placement.heading": "Copie de test de placement",
   "placement.text": "Ceci est une copie de test de placement. Personne n’a été désabonné.",
   "badLink.heading": "Ce lien ne fonctionne plus",

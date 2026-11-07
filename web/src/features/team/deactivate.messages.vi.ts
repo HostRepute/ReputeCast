@@ -18,6 +18,8 @@ export default translate(m, {
   failedMany: '{count, plural, other {Không vô hiệu hóa được # thành viên}}',
 
   signedOutEverywhere: '{count, plural, other {Bị đăng xuất khỏi mọi nơi ngay lập tức (# phiên)}}',
+  staysSignedInOne: 'Vẫn đăng nhập ở nơi khác trên hệ thống này',
+  staysSignedInMany: '{count, plural, other {# người trong số này vẫn đăng nhập ở nơi khác trên hệ thống này}}',
   cantSignIn: 'Không đăng nhập được vào {workspace}; các không gian làm việc khác không bị ảnh hưởng',
   scheduled: '{count, plural, other {# chiến dịch đã lên lịch của họ vẫn giữ lịch và chạy dưới danh nghĩa không gian làm việc}}',
   approvals: '{count, plural, other {# yêu cầu phê duyệt đang chờ vẫn mở cho người phê duyệt}}',

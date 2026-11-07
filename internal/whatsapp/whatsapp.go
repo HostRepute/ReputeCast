@@ -18,8 +18,9 @@
 //     template, the quality rating, the messaging limit and the cost from
 //     Meta's rate card), and the report.
 //   - The Send WhatsApp automation step.
-//   - Meta's webhooks: verified with the app secret, stored raw, answered
-//     200 at once and normalized by a River job.
+//   - Meta's webhooks, at a callback URL with the account's own token:
+//     verified with the app secret, stored raw, answered 200 at once and
+//     normalized by a River job.
 //
 // WhatsApp builds on X21's channel model: campaigns carry channel
 // 'whatsapp', each message is a row of the message log (90 days, never the
@@ -214,11 +215,6 @@ func hint(id string) string {
 		return id
 	}
 	return "…" + id[len(id)-4:]
-}
-
-// webhookURL is the address Meta posts to.
-func (s *Service) webhookURL(ws *store.Workspace) string {
-	return strings.TrimRight(s.URLs.Base(), "/") + "/hooks/whatsapp/" + ws.Slug
 }
 
 func location(tz string) *time.Location {

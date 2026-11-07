@@ -1371,7 +1371,12 @@ func (s *Service) RegisterWebhooks(ctx context.Context, ws *store.Workspace, p *
 			senders = append(senders, sms.Sender{Kind: sn.Kind, Value: sn.Value, Countries: sn.Countries, ProviderRef: sn.ProviderRef})
 		}
 	}
-	setup, err := reg.RegisterWebhooks(ctx, sms.Webhooks{StatusURL: out.URL, InboundURL: out.URL}, senders)
+	// What the webhook relies on before registering ends (the SNS topic) is
+	// kept with the provider at once.
+	save := func(ctx context.Context, settings map[string]string) error {
+		return s.Q.SmsProviderMergeConfig(ctx, store.SmsProviderMergeConfigParams{ID: prov.ID, Patch: jsonOf(settings)})
+	}
+	setup, err := reg.RegisterWebhooks(ctx, sms.Webhooks{StatusURL: out.URL, InboundURL: out.URL, Save: save}, senders)
 	if err != nil {
 		return out, api.Err(http.StatusBadGateway, "provider_unreachable",
 			say(ctx, mWebhooksFailed, i18n.Args{"provider": prov.Name, "answer": answerIn(i18n.LangFrom(ctx), answerOf(err))}))

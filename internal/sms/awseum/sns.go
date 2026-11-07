@@ -23,8 +23,13 @@ import (
 	"github.com/hostrepute/reputecast/internal/sms"
 )
 
-// snsHost matches the hosts SNS signs from and sends subscription links on.
-var snsHost = regexp.MustCompile(`^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$`)
+// snsHost matches the hosts SNS signs from and sends subscription links on:
+// a regional SNS endpoint, sns.<region>.amazonaws.com (.com.cn in China).
+// The region is spelled out because other amazonaws.com hosts of that shape
+// belong to customers: an S3 bucket named sns answers at
+// sns.s3.amazonaws.com and sns.s3-external-1.amazonaws.com, and whoever
+// owns it could serve a certificate and sign any message.
+var snsHost = regexp.MustCompile(`^sns\.[a-z]{2}(-gov|-iso[a-z]*)?-[a-z]+-\d+\.amazonaws\.com(\.cn)?$`)
 
 // Envelope is an SNS HTTP(S) message.
 type Envelope struct {
@@ -82,10 +87,13 @@ func ParseEnvelope(body []byte) (Envelope, error) {
 	return e, nil
 }
 
-// ValidCertURL reports whether u may host an SNS signing certificate.
+// ValidCertURL reports whether u may host an SNS signing certificate: a
+// .pem file on a regional SNS endpoint, over HTTPS, with nothing else in
+// the address.
 func ValidCertURL(u string) bool {
 	pu, err := url.Parse(u)
-	return err == nil && pu.Scheme == "https" && snsHost.MatchString(pu.Hostname()) && pu.Port() == "" && strings.HasSuffix(pu.Path, ".pem")
+	return err == nil && pu.Scheme == "https" && pu.User == nil && snsHost.MatchString(pu.Hostname()) && pu.Port() == "" &&
+		pu.RawQuery == "" && pu.Fragment == "" && strings.HasSuffix(pu.Path, ".pem")
 }
 
 var certCache sync.Map // url → *x509.Certificate
@@ -127,12 +135,28 @@ func (p *Provider) cert(ctx context.Context, certURL string) (*x509.Certificate,
 	return c, nil
 }
 
-// verify checks an envelope's signature and that it comes from the topic
-// ReputeCast created (once it knows it).
+// verify checks that an envelope comes from the provider's topic, and its
+// signature. SNS signs the messages of every AWS account's topics alike, so
+// the signature only proves SNS sent it; while no topic is kept, nothing is
+// accepted.
 func (p *Provider) verify(ctx context.Context, e Envelope) error {
-	if topic := p.cfg.Value("topic_arn"); topic != "" && e.TopicArn != topic {
-		return sms.ErrBadSignature
+	if err := ownTopic(p.cfg.Value("topic_arn"), e); err != nil {
+		return err
 	}
+	return p.verifySignature(ctx, e)
+}
+
+// ownTopic refuses an envelope from another topic than the one kept, and
+// every envelope while none is.
+func ownTopic(topic string, e Envelope) error {
+	if topic == "" || e.TopicArn != topic {
+		return fmt.Errorf("%w: SNS topic %q isn't this provider's", sms.ErrBadSignature, e.TopicArn)
+	}
+	return nil
+}
+
+// verifySignature checks that SNS signed the envelope.
+func (p *Provider) verifySignature(ctx context.Context, e Envelope) error {
 	sig, err := base64.StdEncoding.DecodeString(e.Signature)
 	if err != nil || len(sig) == 0 {
 		return sms.ErrBadSignature
@@ -171,14 +195,28 @@ func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []by
 	return p.verify(ctx, e)
 }
 
-// Handshake implements sms.WebhookHandshaker: it confirms the topic's
-// subscription by visiting SubscribeURL.
+// Handshake implements sms.WebhookHandshaker: it confirms the subscription
+// of the provider's topic by visiting SubscribeURL. Registering the
+// webhooks keeps the topic ReputeCast created before subscribing to it.
+// Webhooks set up by hand in AWS have none kept: the first subscription
+// confirmation SNS signed keeps its topic (trust on first use), and every
+// other topic is refused from then on.
 func (p *Provider) Handshake(ctx context.Context, _ *http.Request, body []byte) (bool, error) {
 	e, err := ParseEnvelope(body)
 	if err != nil || e.Type == "Notification" {
 		return false, nil
 	}
-	if err := p.verify(ctx, e); err != nil {
+	if err := p.verifySignature(ctx, e); err != nil {
+		return true, err
+	}
+	topic := p.cfg.Value("topic_arn")
+	if topic == "" && e.Type == "SubscriptionConfirmation" && p.cfg.Pin != nil {
+		// Two confirmations at once keep one topic: the other is refused.
+		if topic, err = p.cfg.Pin(ctx, "topic_arn", e.TopicArn); err != nil {
+			return true, err
+		}
+	}
+	if err := ownTopic(topic, e); err != nil {
 		return true, err
 	}
 	if e.Type != "SubscriptionConfirmation" {

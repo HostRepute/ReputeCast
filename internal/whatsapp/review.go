@@ -361,6 +361,16 @@ type WhatsAppSendResult struct {
 	Later       int64     `json:"later"`
 }
 
+// audienceScope refuses to send or move a campaign beyond a scoped
+// member's lists, whoever built the audience: its lists only, no segment,
+// as for an email.
+func audienceScope(l i18n.Lang, p *authz.Principal, c store.WhatsAppCampaignRow) error {
+	if lists, segments := audienceOf(c.Audience); !access.AudienceInScope(p.Scope, lists, len(segments)) {
+		return api.Err(403, api.CodePermissionDenied, access.AudienceScopeProblem(l))
+	}
+	return nil
+}
+
 // Send sends or schedules the campaign after the checks and the approval
 // rules (logged).
 func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in WhatsAppSendInput) (WhatsAppSendResult, error) {
@@ -377,9 +387,8 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return WhatsAppSendResult{}, api.Conflict(mAlreadyStatus.Text(l, i18n.Args{"status": c.Status}))
 	}
-	// A scoped member sends only within their lists, whoever built the audience.
-	if lists, segments := audienceOf(c.Audience); !access.AudienceInScope(p.Scope, lists, len(segments)) {
-		return WhatsAppSendResult{}, api.Err(403, api.CodePermissionDenied, access.AudienceScopeProblem(l))
+	if err := audienceScope(l, p, c); err != nil {
+		return WhatsAppSendResult{}, err
 	}
 	if in.Version != int(c.Version) {
 		return WhatsAppSendResult{}, api.Err(409, "stale_version", mStaleReviewed.Text(l, i18n.Args{"version": itoa(int(c.Version))}))

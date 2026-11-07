@@ -14,6 +14,7 @@ import (
 	"slices"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/webhooks"
 )
 
 // Kinds of connections.
@@ -84,16 +85,17 @@ const (
 var hookOps = []string{OpSubscribe, OpUnsubscribe, OpGetHook, OpSample}
 
 // platformItems are the triggers and actions of Zapier, Make and n8n
-// (brief 3.2), in the order of the boards.
+// (brief 3.2), in the order of the boards. A trigger needs what its event
+// needs anywhere: the view permission of the data it carries (webhooks).
 var platformItems = []Item{
-	{Key: "contact.subscribed", Kind: ItemTrigger, Event: "contact.subscribed", Permissions: []authz.Permission{authz.SubscribersView}, Operations: hookOps},
-	{Key: "contact.unsubscribed", Kind: ItemTrigger, Event: "contact.unsubscribed", Permissions: []authz.Permission{authz.SubscribersView}, Operations: hookOps},
-	{Key: "contact.updated", Kind: ItemTrigger, Event: "contact.updated", Permissions: []authz.Permission{authz.SubscribersView}, Operations: hookOps},
+	{Key: "contact.subscribed", Kind: ItemTrigger, Event: "contact.subscribed", Permissions: webhooks.Permissions("contact.subscribed"), Operations: hookOps},
+	{Key: "contact.unsubscribed", Kind: ItemTrigger, Event: "contact.unsubscribed", Permissions: webhooks.Permissions("contact.unsubscribed"), Operations: hookOps},
+	{Key: "contact.updated", Kind: ItemTrigger, Event: "contact.updated", Permissions: webhooks.Permissions("contact.updated"), Operations: hookOps},
 	// The forms list fills the apps' "Form" filter of this trigger.
-	{Key: "form.submitted", Kind: ItemTrigger, Event: "form.submitted", Permissions: []authz.Permission{authz.SubscribersView},
+	{Key: "form.submitted", Kind: ItemTrigger, Event: "form.submitted", Permissions: webhooks.Permissions("form.submitted"),
 		Operations: []string{OpSubscribe, OpUnsubscribe, OpGetHook, OpSample, OpForms}, New: true},
-	{Key: "campaign.completed", Kind: ItemTrigger, Event: "campaign.completed", Permissions: []authz.Permission{authz.CampaignsView}, Operations: hookOps},
-	{Key: "message.bounced", Kind: ItemTrigger, Event: "message.bounced", Permissions: []authz.Permission{authz.TransactionalView}, Operations: hookOps},
+	{Key: "campaign.completed", Kind: ItemTrigger, Event: "campaign.completed", Permissions: webhooks.Permissions("campaign.completed"), Operations: hookOps},
+	{Key: "message.bounced", Kind: ItemTrigger, Event: "message.bounced", Permissions: webhooks.Permissions("message.bounced"), Operations: hookOps},
 	{Key: "upsert_contact", Kind: ItemAction, Permissions: []authz.Permission{authz.SubscribersCreate, authz.SubscribersEdit}, Operations: []string{OpUpsert, OpLists, OpFields}},
 	{Key: "add_to_list", Kind: ItemAction, Permissions: []authz.Permission{authz.SubscribersEdit}, Operations: []string{OpAddToList, OpLists}},
 	{Key: "add_tag", Kind: ItemAction, Permissions: []authz.Permission{authz.SubscribersEdit}, Operations: []string{OpTag}},

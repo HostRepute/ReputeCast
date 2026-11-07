@@ -186,4 +186,6 @@ export default translate(m, {
   checkKey: '{error}. Vérifiez la clé dans le tableau de bord Cloudflare.',
   turnstileRejected: 'Cloudflare a refusé les clés Turnstile',
   turnstileFellBack: 'La protection anti-spam est revenue au champ piège et au contrôle du délai. Collez la clé depuis le tableau de bord Cloudflare\u202F; la clé secrète est stockée chiffrée.',
+  turnstileReported:
+    '{n, plural, one {Le navigateur d’un visiteur l’a signalé {ago}.} other {Des navigateurs de visiteurs l’ont signalé {count} fois, la dernière {ago}.}} Turnstile reste actif\u00A0: vérifiez la clé de site et ses noms d’hôte dans le tableau de bord Cloudflare, ou collez une autre clé.',
 })

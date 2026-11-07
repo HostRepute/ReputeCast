@@ -14,6 +14,7 @@
   "cell.none": "Ninguno",
   "cell.trackingNotPointed": "{domain} · aún sin apuntar",
   "cell.trackingPending": "{domain} · pendiente",
+  "cell.trackingRefused": "{domain} · sin usar",
   "cell.set": "Configurado",
   "cell.notSet": "Sin configurar",
 
@@ -59,6 +60,10 @@
   "problem.domainFormat": "Escribe un dominio como news.acme.io.",
   "problem.alreadyDomain": "{domain} ya es un dominio de envío de este espacio de trabajo.",
   "problem.subdomain": "Usa un subdominio de {domain}, por ejemplo go.{domain}.",
+  "problem.trackingTaken": "{domain} ya lo usa otro espacio de trabajo de esta instancia de ReputeCast, para sus páginas o sus enlaces. Quítalo allí primero.",
+  "tracking.inUse": "Otro espacio de trabajo de esta instancia de ReputeCast ya usa {domain}, así que su CNAME no demuestra que es tuyo.",
+  "tracking.underOwn": "{domain} está bajo {target}, la dirección de esta instancia de ReputeCast, así que su CNAME no demuestra que es tuyo.",
+  "tracking.own": "{domain} es una de las direcciones de esta instancia de ReputeCast. Usa un subdominio de tu dominio de envío en su lugar.",
   "problem.sendersUse": "{count, plural, one {# remitente usa {domain}. Elimínalo primero} other {# remitentes usan {domain}. Elimínalos primero}} para que ninguna campaña pierda su dirección From.",
   "problem.providerAdd": "{provider} no añadió {domain}: {error}",
   "problem.cloudflareToken": "Cloudflare rechazó este token. Usa un token de API con el permiso Zone › DNS › Edit en la zona de {domain}.",

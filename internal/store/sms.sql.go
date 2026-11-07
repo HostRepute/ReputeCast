@@ -1938,6 +1938,44 @@ func (q *Queries) SmsProviderInsert(ctx context.Context, arg SmsProviderInsertPa
 	return err
 }
 
+const smsProviderMergeConfig = `-- name: SmsProviderMergeConfig :exec
+UPDATE sms_providers SET config = config || $1::jsonb WHERE id = $2
+`
+
+type SmsProviderMergeConfigParams struct {
+	Patch json.RawMessage `json:"patch"`
+	ID    uuid.UUID       `json:"id"`
+}
+
+// Merges settings into a provider's, key by key (the SNS topic registering
+// the webhooks keeps before it subscribes to it).
+func (q *Queries) SmsProviderMergeConfig(ctx context.Context, arg SmsProviderMergeConfigParams) error {
+	_, err := q.db.Exec(ctx, smsProviderMergeConfig, arg.Patch, arg.ID)
+	return err
+}
+
+const smsProviderPinSetting = `-- name: SmsProviderPinSetting :execrows
+UPDATE sms_providers SET config = config || jsonb_build_object($1::text, $2::text)
+WHERE id = $3 AND coalesce(config ->> $1::text, '') = ''
+`
+
+type SmsProviderPinSettingParams struct {
+	Key   string    `json:"key"`
+	Value string    `json:"value"`
+	ID    uuid.UUID `json:"id"`
+}
+
+// Keeps a setting an adapter learned from the provider only while the
+// provider has none (the SNS topic of webhooks set up by hand, trusted on
+// first use): of two requests at once, one keeps it.
+func (q *Queries) SmsProviderPinSetting(ctx context.Context, arg SmsProviderPinSettingParams) (int64, error) {
+	result, err := q.db.Exec(ctx, smsProviderPinSetting, arg.Key, arg.Value, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const smsProviderRegistrationsRead = `-- name: SmsProviderRegistrationsRead :exec
 UPDATE sms_providers SET registrations_read_at = $1 WHERE id = $2
 `
@@ -2039,6 +2077,22 @@ func (q *Queries) SmsProviderSetWebhooks(ctx context.Context, arg SmsProviderSet
 		arg.ID,
 	)
 	return err
+}
+
+const smsProviderSetting = `-- name: SmsProviderSetting :one
+SELECT coalesce(config ->> $1::text, '')::text FROM sms_providers WHERE id = $2
+`
+
+type SmsProviderSettingParams struct {
+	Key string    `json:"key"`
+	ID  uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SmsProviderSetting(ctx context.Context, arg SmsProviderSettingParams) (string, error) {
+	row := q.db.QueryRow(ctx, smsProviderSetting, arg.Key, arg.ID)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const smsProviderTouchInbound = `-- name: SmsProviderTouchInbound :exec
@@ -3077,16 +3131,98 @@ func (q *Queries) SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) 
 	return err
 }
 
-const smsShortDomainWorkspace = `-- name: SmsShortDomainWorkspace :one
-SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower($1) AND short_domain_status = 'verified'
+const smsShortDomainChecked = `-- name: SmsShortDomainChecked :execrows
+UPDATE sms_settings SET short_domain_status = $1, short_domain_target = $2,
+    short_domain_checked_at = $3::timestamptz, short_domain_verified_at = $4, short_domain_detail = $5
+WHERE workspace_id = $6 AND short_domain = $7
 `
 
-// The workspace whose verified short-link domain a request came to.
-func (q *Queries) SmsShortDomainWorkspace(ctx context.Context, host string) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, smsShortDomainWorkspace, host)
-	var workspace_id uuid.UUID
-	err := row.Scan(&workspace_id)
-	return workspace_id, err
+type SmsShortDomainCheckedParams struct {
+	ShortDomainStatus string     `json:"shortDomainStatus"`
+	ShortDomainTarget string     `json:"shortDomainTarget"`
+	CheckedAt         time.Time  `json:"checkedAt"`
+	VerifiedAt        *time.Time `json:"verifiedAt"`
+	ShortDomainDetail string     `json:"shortDomainDetail"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	ShortDomain       string     `json:"shortDomain"`
+}
+
+// A check's finding, kept only while the domain is still the one checked.
+func (q *Queries) SmsShortDomainChecked(ctx context.Context, arg SmsShortDomainCheckedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, smsShortDomainChecked,
+		arg.ShortDomainStatus,
+		arg.ShortDomainTarget,
+		arg.CheckedAt,
+		arg.VerifiedAt,
+		arg.ShortDomainDetail,
+		arg.WorkspaceID,
+		arg.ShortDomain,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const smsShortDomainHolders = `-- name: SmsShortDomainHolders :many
+SELECT workspace_id FROM sms_settings WHERE lower(short_domain) = lower($1::text) AND short_domain_status = 'verified'
+ORDER BY workspace_id
+`
+
+// The workspaces whose verified short-link domain a request came to: only
+// their codes answer there, so a workspace's domain never carries another
+// workspace's links. Two workspaces that stored the same host before it
+// had to be free each answer for their own codes there.
+func (q *Queries) SmsShortDomainHolders(ctx context.Context, host string) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, smsShortDomainHolders, host)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var workspace_id uuid.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const smsShortDomainsToCheck = `-- name: SmsShortDomainsToCheck :many
+SELECT m.workspace_id
+FROM sms_settings m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.short_domain <> '' AND m.short_domain_status = 'verified'
+  AND (m.short_domain_checked_at IS NULL OR m.short_domain_checked_at < $1::timestamptz)
+ORDER BY m.short_domain_checked_at NULLS FIRST, m.workspace_id
+LIMIT 200
+`
+
+// Verified short-link domains due a check (the periodic re-check): last
+// checked before @before, or never, as migration 03445 leaves them.
+func (q *Queries) SmsShortDomainsToCheck(ctx context.Context, before time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, smsShortDomainsToCheck, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var workspace_id uuid.UUID
+		if err := rows.Scan(&workspace_id); err != nil {
+			return nil, err
+		}
+		items = append(items, workspace_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const smsTermsInsert = `-- name: SmsTermsInsert :exec

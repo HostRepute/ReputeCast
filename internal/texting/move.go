@@ -31,6 +31,10 @@ func (s *Service) MoveScheduled(ctx context.Context, ws *store.Workspace, p *aut
 	if c.Status != "scheduled" {
 		return api.Conflict(say(ctx, mUnscheduleOnly, nil))
 	}
+	// Moving a send schedules it again, on the mover's behalf.
+	if err := audienceScope(ctx, p, c); err != nil {
+		return err
+	}
 	r, err := s.rules(ctx, s.Q, ws)
 	if err != nil {
 		return err

@@ -214,4 +214,6 @@ export default translate(m, {
   checkKey: '{error}. Hãy kiểm tra khóa trong bảng điều khiển Cloudflare.',
   turnstileRejected: 'Cloudflare đã từ chối các khóa Turnstile',
   turnstileFellBack: 'Việc chống spam đã quay về trường honeypot và kiểm tra thời gian. Hãy dán khóa từ bảng điều khiển Cloudflare; khóa bí mật được lưu mã hóa.',
+  turnstileReported:
+    '{n, plural, other {Trình duyệt của khách truy cập đã báo lỗi này {count} lần, lần gần nhất: {ago}.}} Turnstile vẫn bật: hãy kiểm tra khóa site và các tên máy chủ của nó trong bảng điều khiển Cloudflare, hoặc dán một khóa khác.',
 })

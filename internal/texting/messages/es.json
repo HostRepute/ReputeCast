@@ -128,6 +128,7 @@
   "problem.fallbackRegistered": "Un respaldo debe estar registrado para los mismos países: {sender} no puede enviar SMS a {country}.",
   "problem.otherRoute": "Elige la ruta que siguen todos los demás países.",
   "problem.domain": "Escribe un nombre de dominio, como go.acme.io.",
+  "problem.domainTaken": "{domain} ya lo usa otro espacio de trabajo de esta instancia de ReputeCast, para sus páginas o sus enlaces. Quítalo allí primero.",
   "problem.carriersAsk": "Los operadores piden esta sección: no puede estar vacía.",
 
   "check.quietWait": "Horas de silencio: los SMS salen {window} en la zona horaria de cada contacto; fuera de esa franja, esperan",
@@ -180,6 +181,10 @@
   "domain.other": "{domain} es un CNAME de {cname}, no de {target}.",
   "domain.noAnswer": "El DNS no respondió para {domain}.",
   "domain.none": "No se encontró ningún CNAME. El DNS puede tardar hasta una hora.",
+  "domain.txt": "Se encontró el registro TXT y el CNAME apunta a {target}.",
+  "domain.own": "{domain} es una de las direcciones de esta instancia de ReputeCast. Usa un dominio tuyo en su lugar.",
+  "domain.inUse": "Otro espacio de trabajo de esta instancia de ReputeCast ya usa {domain}, así que su CNAME no demuestra que es tuyo.",
+  "domain.underOwn": "{domain} está bajo {target}, la dirección de esta instancia de ReputeCast, así que su CNAME no demuestra que es tuyo.",
   "code.providerList": "Lista de bajas de {provider}",
   "approval.scheduleNow": "Ahora, reteniendo a quien esté fuera de su franja",
   "approval.scheduleAt": "{at, date} a las {at, time} para todos",

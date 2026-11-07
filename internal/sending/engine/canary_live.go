@@ -93,6 +93,9 @@ func registerCanary(h huma.API, e *Engine, base string, tags []string) {
 			if err != nil {
 				return nil, err
 			}
+			if err := e.inScope(ctx, id); err != nil {
+				return nil, err
+			}
 			if err := e.ContinueCanary(ctx, id, by); err != nil {
 				return nil, mapErr(ctx, err)
 			}

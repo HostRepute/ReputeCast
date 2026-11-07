@@ -41,6 +41,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/gifts"
@@ -79,6 +80,10 @@ type Handler struct {
 	Tokens              *linktoken.Signer
 	URLs                publicurl.Builder
 	Log                 *slog.Logger
+	// Hosts says whose host a request came to: on a host a workspace
+	// holds, /p/{workspace} answers for that workspace only (nil: every
+	// host answers for every workspace).
+	Hosts *customhost.Hosts
 	// SPA answers root paths on hosts that aren't a custom domain.
 	SPA http.Handler
 	// LandingURL is where "Sent with ReputeCast" points.
@@ -181,7 +186,10 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Get("/p/_/faces/{file}", h.face)
 	r.Get("/p/_/tls-check", h.tlsCheck)
 	r.Get("/p/_/{file}", h.static)
-	r.Route("/p/{ws}", func(r chi.Router) { h.pageRoutes(r) })
+	r.Route("/p/{ws}", func(r chi.Router) {
+		r.Use(h.ownHost)
+		h.pageRoutes(r)
+	})
 	// A shared sponsor report (X17); other /r/ links are the web app's.
 	h.sharedReportRoutes(r)
 	// On a verified custom domain the same pages answer at the root.
@@ -216,6 +224,23 @@ func (h *Handler) Routes(r chi.Router) {
 	for _, p := range sellRootPaths {
 		r.Handle(p, custom)
 	}
+}
+
+// ownHost answers /p/{workspace} on the instance's own host, on the
+// workspace's own hosts and on hosts nobody holds, never on another
+// workspace's: its pages would look as if that workspace published them.
+func (h *Handler) ownHost(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ok, err := h.Hosts.CarriesSlug(r.Context(), r.Host, chi.URLParam(r, "ws"))
+		switch {
+		case err != nil:
+			h.serverError(w, r, nil, err)
+		case !ok:
+			h.notFound(w, r, nil)
+		default:
+			next.ServeHTTP(w, r)
+		}
+	})
 }
 
 func (h *Handler) pageRoutes(r chi.Router) {
@@ -795,6 +820,10 @@ func (h *Handler) logo(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, "logo", at, bytes.NewReader(data))
 }
 
+// turnstileError takes a Turnstile widget error a challenge page reports:
+// kept for the publisher to see, never a reason to turn Turnstile off
+// (forms.ReportTurnstileError). Three reports a minute per address (an IPv6
+// /64) are read; the rest are dropped.
 func (h *Handler) turnstileError(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.siteOr404(w, r)
 	if !ok {
@@ -802,7 +831,7 @@ func (h *Handler) turnstileError(w http.ResponseWriter, r *http.Request) {
 	}
 	ip := "unknown"
 	if a := clientIP(r); a != nil {
-		ip = a.String()
+		ip = forms.ClientKey(*a)
 	}
 	if h.Forms.AllowPerMinute("turnstile-error:"+ip, 3) && h.parseForm(w, r, 4<<10) {
 		if err := h.Forms.ReportTurnstileError(r.Context(), s.ws, r.PostForm.Get("challenge"), r.PostForm.Get("code")); err != nil {

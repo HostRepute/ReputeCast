@@ -61,6 +61,7 @@ var (
 	mTooManyCodes          = msgs.M("problem.tooManyCodes")
 	mWrongCode             = msgs.M("problem.wrongCode")
 	mWrongTOTP             = msgs.M("problem.wrongTotp")
+	mTOTPReused            = msgs.M("problem.totpReused")
 	mWrongRecovery         = msgs.M("problem.wrongRecovery")
 	mResetExpired          = msgs.M("problem.resetExpired")
 	mBreached              = msgs.M("problem.breached")
@@ -79,12 +80,21 @@ var (
 	mInviteWrongAccount    = msgs.M("problem.inviteWrongAccount")
 	mInviteWrongIdentity   = msgs.M("problem.inviteWrongIdentity")
 	mInviteSignIn          = msgs.M("problem.inviteSignIn")
+	mSSORequiredWith       = msgs.M("problem.ssoRequiredWith")
+	mInviteUnverified      = msgs.M("problem.inviteUnverified")
+	mIdentityInUse         = msgs.M("problem.identityInUse")
 	mInviteName            = msgs.M("problem.inviteName")
 	mAlreadyMember         = msgs.M("problem.alreadyMember")
 	mMembershipDeactivated = msgs.M("problem.membershipDeactivated")
 	mInviteNoNeed          = msgs.M("problem.inviteNoNeed")
 	mPasskeyUnreadableLeft = msgs.M("problem.passkeyUnreadableLeft")
 	mPasskeyWrongLeft      = msgs.M("problem.passkeyWrongLeft")
+
+	// Changes an account without a password confirms with a recent sign-in,
+	// and the ones single sign-on doesn't allow.
+	mReauthRequired = msgs.M("problem.reauthRequired")
+	mSSONoPassword  = msgs.M("problem.ssoNoPassword")
+	mSSOEmailStays  = msgs.M("problem.ssoEmailStays")
 
 	// Account & security's texts from the server: why a button is off,
 	// the notes after an identity and the session policy.

@@ -355,7 +355,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.PublishPreview(ctx, api.WorkspaceFrom(ctx), id)
+			out, err := s.PublishPreview(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "publish-automation", Path: "/workspaces/{workspace}/automations/{id}/publish", Summary: "Publish the draft as the live version (may need approval)", Tags: tags, Access: publish},
@@ -364,7 +364,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Publish(ctx, api.WorkspaceFrom(ctx), actorID(ctx), id, in.Body.Version, in.Body.Migration)
+			out, err := s.Publish(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), actorID(ctx), id, in.Body.Version, in.Body.Migration)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "pause-automation", Path: "/workspaces/{workspace}/automations/{id}/pause", Summary: "Pause a live automation", Tags: tags, Access: publish},
@@ -394,7 +394,7 @@ func Register(h huma.API, s *Service) {
 			if in.Body != nil {
 				body = *in.Body
 			}
-			if err := s.Resume(ctx, ws, actorID(ctx), id, body); err != nil {
+			if err := s.Resume(ctx, ws, api.PrincipalFrom(ctx), actorID(ctx), id, body); err != nil {
 				return nil, err
 			}
 			out, err := s.Get(ctx, ws, id)
@@ -429,7 +429,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.StepContacts(ctx, api.WorkspaceFrom(ctx), id, in.Node, in.Cursor, in.Limit)
+			out, err := s.StepContacts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Node, in.Cursor, in.Limit)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "remove-automation-contact", Path: "/workspaces/{workspace}/automations/{id}/runs/{run}/remove", Summary: "Take a contact out of a flow now (needs a reason, logged)",
@@ -459,7 +459,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.ContactRuns(ctx, api.WorkspaceFrom(ctx), id)
+			out, err := s.ContactRuns(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "preview-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}/preview", Summary: "Render an email as a contact gets it",
@@ -473,7 +473,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.PreviewEmail(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			out, err := s.PreviewEmail(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "test-automation-email", Path: "/workspaces/{workspace}/automation-emails/{id}/test", Summary: "Send an email as a test through the System route (logged)",

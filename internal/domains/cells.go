@@ -215,6 +215,8 @@ func trackingCell(l i18n.Lang, domain, status string) SenderDomainCell {
 		return cell(domain, "ok")
 	case status == StatusMissing || status == StatusWrong:
 		return cellIn(l, "cell.trackingNotPointed", "warn", i18n.Args{"domain": domain})
+	case status == StatusRefused:
+		return cellIn(l, "cell.trackingRefused", "warn", i18n.Args{"domain": domain})
 	}
 	return cellIn(l, "cell.trackingPending", "warn", i18n.Args{"domain": domain})
 }

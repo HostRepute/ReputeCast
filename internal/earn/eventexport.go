@@ -3,13 +3,13 @@ package earn
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -18,7 +18,7 @@ import (
 // members' addresses, so it is audited.
 func (s *Service) ExportEvents(ctx context.Context, ws *store.Workspace, p *authz.Principal, f EarnEventFilter) ([]byte, int, error) {
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"received_at", "occurred_at", "type", "event_id", "mode", "source", "status", "outcome", "amount", "currency", "member", "member_email"})
 	rows := 0
 	f.PageSize = 100

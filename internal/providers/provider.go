@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/mail"
+	"strings"
 	"sync"
 	"time"
 
@@ -317,6 +318,21 @@ type Config struct {
 	// Dialer opens raw connections (SMTP, IMAP, POP3) through the same
 	// address guard as HTTPClient; nil dials directly.
 	Dialer *net.Dialer
+	// Tokens keeps the one-time tokens of webhook signatures that cover a
+	// token but not the event (Mailgun's) where every process and every
+	// restart sees them; nil keeps them in this process's memory only.
+	Tokens TokenStore
+}
+
+// TokenStore ties the one-time token of a webhook signature to the payload
+// it first came with, for schemes whose signature covers a token but not
+// the payload (Mailgun's), in ReputeCast's database.
+type TokenStore interface {
+	// BindToken ties token to payload within scope (the adapter) until
+	// expires, unless the token is tied already and the tie is current,
+	// and returns the payload the token is tied to. Both are hashes:
+	// neither the token nor the payload is kept.
+	BindToken(ctx context.Context, scope string, token, payload [32]byte, now, expires time.Time) ([32]byte, error)
 }
 
 // Descriptor describes an adapter in the catalog (setup wizard, Adapters tab).
@@ -371,9 +387,26 @@ type Field struct {
 	Required bool     `json:"required"`
 	Options  []string `json:"options,omitempty"`
 	Help     string   `json:"help,omitempty"`
+	// Endpoint marks a setting that says where the adapter's requests go: a
+	// server's URL, an API endpoint or a host. Saved secrets are sent only
+	// to the address they were entered for, so a form that changes it needs
+	// them typed again.
+	Endpoint bool `json:"-"`
 	// LabelText and HelpText are the messages Label and Help come from.
 	LabelText i18n.Text `json:"-"`
 	HelpText  i18n.Text `json:"-"`
+}
+
+// AddressKey reports whether a setting's key names an address (a URL, an
+// endpoint, a host or a server), as Endpoint settings are named. The
+// contract suite holds adapters to it.
+func AddressKey(key string) bool {
+	for _, w := range []string{"url", "endpoint", "host", "server"} {
+		if strings.Contains(key, w) {
+			return true
+		}
+	}
+	return false
 }
 
 // The registry holds built-in adapters (registered from init) and runtime

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -304,7 +305,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return SmsPreview{}, api.Invalid("body.contactId", say(ctx, mPickContact, nil))
 		}
 		row := s.Pool.QueryRow(ctx, `SELECT id, phone, phone_country, timezone, first_name, last_name, email FROM contacts c WHERE id = $1 AND workspace_id = $2
-			AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($3)))`, cid, ws.ID, scopeLists(p))
+			AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($3)))`, cid, ws.ID, access.ScopeLists(p))
 		if err := row.Scan(&r.ContactID, &r.Phone, &r.Country, &r.Zone, &r.FirstName, &r.LastName, &r.Email); err != nil {
 			return SmsPreview{}, api.MapError(err, "Contact")
 		}
@@ -477,17 +478,9 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *a
 	return out, nil
 }
 
-// scopeLists is the caller's list scope; empty means every contact.
-func scopeLists(p *authz.Principal) []uuid.UUID {
-	if p == nil || len(p.Scope.Lists) == 0 {
-		return []uuid.UUID{}
-	}
-	return p.Scope.Lists
-}
-
 // inScope keeps the recipients on the caller's scope lists.
 func (s *Service) inScope(ctx context.Context, p *authz.Principal, rs []Recipient) ([]Recipient, error) {
-	lists := scopeLists(p)
+	lists := access.ScopeLists(p)
 	if len(lists) == 0 || len(rs) == 0 {
 		return rs, nil
 	}

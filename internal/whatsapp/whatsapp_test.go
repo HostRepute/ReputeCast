@@ -2,12 +2,12 @@ package whatsapp_test
 
 // WhatsApp over the API on a workspace of its own (never the demo's),
 // against the in-process Graph API: connecting (credentials sealed and
-// never returned), Meta's verification request, the template sync and its
-// statuses, webhook signatures (X-Hub-Signature-256), WhatsApp consent with
-// its evidence, a campaign through review, the dispatcher and Meta's
-// statuses, the 24-hour customer service window and a reply, the keywords,
-// the messaging limit, and an expired token holding the sends until
-// Reconnect. Nothing reaches Meta.
+// never returned), Meta's verification request at the account's callback
+// URL, the template sync and its statuses, webhook signatures
+// (X-Hub-Signature-256), WhatsApp consent with its evidence, a campaign
+// through review, the dispatcher and Meta's statuses, the 24-hour customer
+// service window and a reply, the keywords, the messaging limit, and an
+// expired token holding the sends until Reconnect. Nothing reaches Meta.
 
 import (
 	"bytes"
@@ -45,6 +45,8 @@ type fixture struct {
 	ws    store.Workspace
 	path  string
 	fake  *metatest.Fake
+	// callback is the path of the account's callback URL, once connected.
+	callback string
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -60,20 +62,38 @@ func newFixture(t *testing.T) *fixture {
 var creds = map[string]any{"businessAccountId": demo.WhatsAppBusinessID, "phoneNumberId": demo.WhatsAppPhoneID, "accessToken": demo.WhatsAppToken,
 	"appSecret": demo.WhatsAppAppSecret}
 
-// connect connects the account and answers Meta's verification request.
+// connect connects the account and answers Meta's verification request at
+// its callback URL.
 func (f *fixture) connect(t *testing.T) whatsapp.WhatsAppOverview {
 	t.Helper()
 	var ov whatsapp.WhatsAppOverview
 	f.owner.Do(http.MethodPost, f.path+"/whatsapp/account", creds).MustStatus(t, 201).JSON(t, &ov)
-	if ov.Account == nil || ov.Account.VerifyToken == "" {
+	if ov.Account == nil || ov.Account.VerifyToken == "" || ov.Account.WebhookURL == "" {
 		t.Fatalf("connect: %+v", ov.Account)
 	}
-	q := url.Values{"hub.mode": {"subscribe"}, "hub.verify_token": {ov.Account.VerifyToken}, "hub.challenge": {"1158201444"}}
-	if code, _ := f.get(t, "/hooks/whatsapp/"+f.ws.Slug+"?"+q.Encode()); code != http.StatusOK {
+	f.callback = pathOf(t, ov.Account.WebhookURL)
+	if code, _ := f.verify(t, f.callback, ov.Account.VerifyToken, "1158201444"); code != http.StatusOK {
 		t.Fatalf("verification: %d", code)
 	}
 	f.owner.Do(http.MethodGet, f.path+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &ov)
 	return ov
+}
+
+// pathOf is a callback URL's path, to call on the test server.
+func pathOf(t *testing.T, raw string) string {
+	t.Helper()
+	u, err := url.Parse(raw)
+	if err != nil || u.Path == "" {
+		t.Fatalf("not a URL: %q", raw)
+	}
+	return u.Path
+}
+
+// verify sends Meta's verification request to an address.
+func (f *fixture) verify(t *testing.T, path, verifyToken, challenge string) (int, string) {
+	t.Helper()
+	q := url.Values{"hub.mode": {"subscribe"}, "hub.verify_token": {verifyToken}, "hub.challenge": {challenge}}
+	return f.get(t, path+"?"+q.Encode())
 }
 
 func (f *fixture) get(t *testing.T, path string) (int, string) {
@@ -88,10 +108,17 @@ func (f *fixture) get(t *testing.T, path string) (int, string) {
 	return r.StatusCode, string(b)
 }
 
-// hook posts a webhook as Meta does and normalizes it as the job would.
-func (f *fixture) hook(t *testing.T, body []byte, sig string) int {
+// post sends a delivery to the account's callback URL and returns the
+// answer's status.
+func (f *fixture) post(t *testing.T, body []byte, sig string) int {
 	t.Helper()
-	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, f.env.Server.URL+"/hooks/whatsapp/"+f.ws.Slug, bytes.NewReader(body))
+	return f.postTo(t, f.callback, body, sig)
+}
+
+// postTo sends a delivery to an address, as Meta does.
+func (f *fixture) postTo(t *testing.T, path string, body []byte, sig string) int {
+	t.Helper()
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, f.env.Server.URL+path, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	if sig != "" {
 		req.Header.Set("X-Hub-Signature-256", sig)
@@ -101,13 +128,20 @@ func (f *fixture) hook(t *testing.T, body []byte, sig string) int {
 		t.Fatal(err)
 	}
 	defer func() { _ = r.Body.Close() }()
-	if r.StatusCode == http.StatusOK {
+	return r.StatusCode
+}
+
+// hook posts a delivery and, once it is stored, normalizes it.
+func (f *fixture) hook(t *testing.T, body []byte, sig string) int {
+	t.Helper()
+	status := f.post(t, body, sig)
+	if status == http.StatusOK {
 		id := one[uuid.UUID](t, f.env, `SELECT id FROM whatsapp_raw_events WHERE workspace_id = $1 ORDER BY received_at DESC, id DESC LIMIT 1`, f.ws.ID)
 		if err := f.env.App.WhatsApp().Normalize(context.Background(), id); err != nil {
 			t.Fatal(err)
 		}
 	}
-	return r.StatusCode
+	return status
 }
 
 func (f *fixture) run(t *testing.T) {
@@ -146,7 +180,8 @@ func TestWhatsAppConnectTemplatesAndVerification(t *testing.T) {
 
 	var ov whatsapp.WhatsAppOverview
 	c.Do(http.MethodGet, p+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &ov)
-	if ov.Account != nil || !strings.HasSuffix(ov.WebhookURL, "/hooks/whatsapp/"+f.ws.Slug) || !ov.CanManage {
+	// The callback URL comes with the account: its token is made then.
+	if ov.Account != nil || ov.WebhookURL != "" || !ov.CanManage {
 		t.Fatalf("before: %+v", ov)
 	}
 	// Meta refuses a wrong token; ids are numbers.
@@ -164,6 +199,13 @@ func TestWhatsAppConnectTemplatesAndVerification(t *testing.T) {
 		a.MessagingLimit != 1000 || a.BusinessName != "Acme Inc" || a.BusinessHint != "…4410" || !strings.HasPrefix(a.VerifyToken, "rc-wa-") {
 		t.Fatalf("account: %+v", a)
 	}
+	// The callback URL ends with the account's own token (256 bits), and a
+	// new account never had the old address.
+	prefix := env.Server.URL + "/hooks/whatsapp/" + f.ws.Slug + "/"
+	if token, ok := strings.CutPrefix(a.WebhookURL, prefix); !ok || len(token) != 43 || strings.Contains(token, "/") || ov.WebhookURL != a.WebhookURL || a.OldAddress {
+		t.Fatalf("callback URL: %q (overview %q, old address %v)", a.WebhookURL, ov.WebhookURL, a.OldAddress)
+	}
+	callback := pathOf(t, a.WebhookURL)
 	// Credentials are write-only.
 	for _, b := range [][]byte{r.Body, c.Do(http.MethodGet, p+"/whatsapp", nil).MustStatus(t, 200).Body} {
 		for _, secret := range []string{demo.WhatsAppToken, demo.WhatsAppAppSecret, demo.WhatsAppBusinessID, demo.WhatsAppPhoneID} {
@@ -198,12 +240,10 @@ func TestWhatsAppConnectTemplatesAndVerification(t *testing.T) {
 		t.Fatalf("rejected-template notifications: %d", n)
 	}
 	// Meta's verification request: the wrong token gets nothing.
-	q := url.Values{"hub.mode": {"subscribe"}, "hub.verify_token": {"rc-wa-wrong00000"}, "hub.challenge": {"42"}}
-	if code, _ := f.get(t, "/hooks/whatsapp/"+f.ws.Slug+"?"+q.Encode()); code != http.StatusForbidden {
+	if code, _ := f.verify(t, callback, "rc-wa-wrong00000", "42"); code != http.StatusForbidden {
 		t.Fatalf("wrong verify token: %d", code)
 	}
-	q.Set("hub.verify_token", a.VerifyToken)
-	if code, body := f.get(t, "/hooks/whatsapp/"+f.ws.Slug+"?"+q.Encode()); code != http.StatusOK || body != "42" {
+	if code, body := f.verify(t, callback, a.VerifyToken, "42"); code != http.StatusOK || body != "42" {
 		t.Fatalf("verification: %d %q", code, body)
 	}
 	c.Do(http.MethodGet, p+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &ov)
@@ -222,15 +262,20 @@ func TestWhatsAppConnectTemplatesAndVerification(t *testing.T) {
 		t.Fatalf("sync: %+v", sync)
 	}
 
-	// A viewer sees the account but no verify token, and changes nothing.
+	// A viewer sees the account but neither the verify token nor the
+	// callback URL (its token is a secret too), and changes nothing.
 	viewer := env.CreateUser(apptest.UserOpts{Email: "viewer@x22wa.test", Name: "Vic Viewer"})
 	env.AddMember(f.ws, viewer.ID, "viewer")
 	vc := env.Client()
 	vc.SignInDemo(viewer.Email)
 	ov = whatsapp.WhatsAppOverview{}
-	vc.Do(http.MethodGet, p+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &ov)
-	if ov.Account == nil || ov.Account.VerifyToken != "" || ov.CanManage || len(ov.Helpers) == 0 {
+	vr := vc.Do(http.MethodGet, p+"/whatsapp", nil).MustStatus(t, 200)
+	vr.JSON(t, &ov)
+	if ov.Account == nil || ov.Account.VerifyToken != "" || ov.Account.WebhookURL != "" || ov.WebhookURL != "" || ov.CanManage || len(ov.Helpers) == 0 {
 		t.Fatalf("viewer: %+v", ov)
+	}
+	if bytes.Contains(vr.Body, []byte(strings.TrimPrefix(a.WebhookURL, prefix))) {
+		t.Fatal("the callback token is in a viewer's answer")
 	}
 	vc.Do(http.MethodPost, p+"/whatsapp/templates/sync", nil).MustStatus(t, 403)
 	vc.Do(http.MethodDelete, p+"/whatsapp/account", nil).MustStatus(t, 403)
@@ -259,9 +304,9 @@ func TestWhatsAppWebhooks(t *testing.T) {
 	f := newFixture(t)
 	env := f.env
 	f.connect(t)
-	ctx := context.Background()
 
-	// A body signed with another secret is refused and kept for diagnosis.
+	// A body signed with another secret is refused. Anyone can post to the
+	// address, so a refused delivery is only counted, never stored.
 	body, _ := metatest.TemplateWebhook("not-the-secret", demo.WhatsAppBusinessID, "1290033512244412", "summit_venue_change", "en_US", "APPROVED", "NONE", "")
 	if st := f.hook(t, body, meta.Sign("not-the-secret", body)); st != 401 {
 		t.Fatalf("bad signature: %d", st)
@@ -269,11 +314,16 @@ func TestWhatsAppWebhooks(t *testing.T) {
 	if st := f.hook(t, body, ""); st != 401 {
 		t.Fatalf("no signature: %d", st)
 	}
-	if n := one[int64](t, env, `SELECT count(*) FROM whatsapp_raw_events WHERE workspace_id = $1 AND NOT signature_ok`, f.ws.ID); n != 2 {
-		t.Fatalf("refused events kept: %d", n)
-	}
 	if st := f.hook(t, body, "sha256=00"); st != 401 {
 		t.Fatalf("malformed signature: %d", st)
+	}
+	if n := one[int64](t, env, `SELECT count(*) FROM whatsapp_raw_events WHERE workspace_id = $1`, f.ws.ID); n != 0 {
+		t.Fatalf("refused deliveries kept: %d", n)
+	}
+	var refused whatsapp.WhatsAppOverview
+	f.owner.Do(http.MethodGet, f.path+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &refused)
+	if refused.Account.RejectedDeliveries != 3 || refused.Account.RejectedAt == nil || refused.Account.OtherAccountEvents != 0 {
+		t.Fatalf("refused deliveries counted: %+v", refused.Account)
 	}
 	// Signed with the app secret: stored, 200, normalized.
 	body, sig := metatest.TemplateWebhook(demo.WhatsAppAppSecret, demo.WhatsAppBusinessID, "1290033512244412", "summit_venue_change", "en_US", "APPROVED", "NONE", "")
@@ -292,7 +342,8 @@ func TestWhatsAppWebhooks(t *testing.T) {
 	}
 	var evs whatsapp.WhatsAppEventList
 	f.owner.Do(http.MethodGet, f.path+"/whatsapp/events", nil).MustStatus(t, 200).JSON(t, &evs)
-	if len(evs.Items) != 5 || evs.Items[0].Kind != "template" || !evs.Items[0].SignatureOK || evs.Items[0].NormalizedAt == nil || evs.Items[4].SignatureOK {
+	// The refused deliveries aren't listed, only counted.
+	if len(evs.Items) != 2 || evs.Items[0].Kind != "template" || !evs.Items[0].SignatureOK || evs.Items[0].NormalizedAt == nil || !evs.Items[1].SignatureOK {
 		t.Fatalf("events: %+v", evs.Items)
 	}
 
@@ -310,16 +361,87 @@ func TestWhatsAppWebhooks(t *testing.T) {
 	if n := one[int64](t, env, `SELECT count(*) FROM notifications WHERE workspace_id = $1 AND kind = 'whatsapp_attention' AND title LIKE '%quality%'`, f.ws.ID); n != 1 {
 		t.Fatalf("quality notifications: %d", n)
 	}
-	// An unknown address.
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, env.Server.URL+"/hooks/whatsapp/no-such-workspace", bytes.NewReader(body))
-	req.Header.Set("X-Hub-Signature-256", sig)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
+	// An unknown workspace, with or without the account's token.
+	token := strings.TrimPrefix(f.callback, "/hooks/whatsapp/"+f.ws.Slug+"/")
+	for _, path := range []string{"/hooks/whatsapp/no-such-workspace", "/hooks/whatsapp/no-such-workspace/" + token} {
+		if st := f.postTo(t, path, body, sig); st != http.StatusNotFound {
+			t.Fatalf("unknown workspace (%s): %d", path, st)
+		}
+	}
+}
+
+// joined is one delivery carrying the entries of both.
+func joined(t *testing.T, a, b []byte) []byte {
+	t.Helper()
+	var x, y struct {
+		Object string            `json:"object"`
+		Entry  []json.RawMessage `json:"entry"`
+	}
+	if json.Unmarshal(a, &x) != nil || json.Unmarshal(b, &y) != nil {
+		t.Fatal("not webhooks")
+	}
+	x.Entry = append(x.Entry, y.Entry...)
+	out, _ := json.Marshal(x)
+	return out
+}
+
+// Workspaces whose accounts share one Meta app get each other's
+// deliveries, signed with the same app secret: only the events of the
+// connected WhatsApp Business Account and number are kept, the others are
+// counted on the account and dropped, also from deliveries stored before.
+func TestWhatsAppWebhookKeepsItsOwnAccount(t *testing.T) {
+	f := newFixture(t)
+	env := f.env
+	ctx := context.Background()
+	f.connect(t)
+	at := time.Now()
+	const otherAccount, otherNumber = "999000111222333", "777000111222333"
+	// Another account's opt-out, then another number's in this account:
+	// answered 200, so Meta doesn't send them again, and not stored.
+	body, sig := metatest.MessageWebhook(demo.WhatsAppAppSecret, otherAccount, otherNumber, "+13125550123", "Sam", "STOP", at)
+	if st := f.post(t, body, sig); st != http.StatusOK {
+		t.Fatalf("another account: %d", st)
+	}
+	body, sig = metatest.MessageWebhook(demo.WhatsAppAppSecret, demo.WhatsAppBusinessID, otherNumber, "+13125550123", "Sam", "STOP", at)
+	if st := f.post(t, body, sig); st != http.StatusOK {
+		t.Fatalf("another number: %d", st)
+	}
+	if n := one[int64](t, env, `SELECT count(*) FROM whatsapp_raw_events WHERE workspace_id = $1`, f.ws.ID); n != 0 {
+		t.Fatalf("stored: %d", n)
+	}
+	// A delivery with both keeps only the account's own event.
+	mine, _ := metatest.TemplateWebhook(demo.WhatsAppAppSecret, demo.WhatsAppBusinessID, "1290033512244412", "summit_venue_change", "en_US", "APPROVED", "NONE", "")
+	theirs, _ := metatest.MessageWebhook(demo.WhatsAppAppSecret, otherAccount, otherNumber, "+13125550124", "Ana", "STOP", at)
+	mixed := joined(t, mine, theirs)
+	if st := f.hook(t, mixed, meta.Sign(demo.WhatsAppAppSecret, mixed)); st != http.StatusOK {
+		t.Fatalf("mixed: %d", st)
+	}
+	var stored []byte
+	var events int32
+	if err := env.App.Pool.QueryRow(ctx, `SELECT body, events FROM whatsapp_raw_events WHERE workspace_id = $1`, f.ws.ID).Scan(&stored, &events); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("unknown workspace: %d", resp.StatusCode)
+	if events != 1 || strings.Contains(string(stored), otherAccount) || strings.Contains(string(stored), "STOP") {
+		t.Fatalf("kept %d events: %s", events, stored)
+	}
+	var ov whatsapp.WhatsAppOverview
+	f.owner.Do(http.MethodGet, f.path+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &ov)
+	if ov.Account.OtherAccountEvents != 3 || ov.Account.OtherAccountAt == nil || ov.Account.RejectedDeliveries != 0 {
+		t.Fatalf("counts: %+v", ov.Account)
+	}
+
+	// What was stored before events were matched to the account is matched
+	// when it's normalized.
+	id := uuid.Must(uuid.NewV7())
+	if _, err := env.App.Pool.Exec(ctx, `INSERT INTO whatsapp_raw_events (id, workspace_id, account_id, received_at, body, signature_ok)
+		SELECT $1, workspace_id, id, now(), $2, true FROM whatsapp_accounts WHERE workspace_id = $3`, id, theirs, f.ws.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := env.App.WhatsApp().Normalize(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if n := one[int32](t, env, `SELECT events FROM whatsapp_raw_events WHERE id = $1 AND normalized_at IS NOT NULL`, id); n != 0 {
+		t.Fatalf("another account's events applied: %d", n)
 	}
 }
 

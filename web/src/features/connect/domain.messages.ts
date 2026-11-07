@@ -64,7 +64,9 @@ export const md = defineMessages('connect.domain', {
   trackingTitle: 'Custom tracking domain',
   /** {domain} is the tracking domain and {target} the host its CNAME points to. */
   trackingLine:
-    '{state, select, verified {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: verified, links and the open pixel use your domain.} pending {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: waiting for DNS.} wrong_value {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: points somewhere else.} missing {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: add the CNAME at your DNS host.} suggested {<mono>{domain}</mono> CNAME to <mono>{target}</mono>, so links and the open pixel use your domain.} other {<mono>{domain}</mono> CNAME to <mono>{target}</mono>.}}',
+    '{state, select, verified {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: verified, links and the open pixel use your domain.} pending {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: waiting for DNS.} wrong_value {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: points somewhere else.} missing {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: add the CNAME at your DNS host.} suggested {<mono>{domain}</mono> CNAME to <mono>{target}</mono>, so links and the open pixel use your domain.} refused {<mono>{domain}</mono> CNAME to <mono>{target}</mono>: not used.} other {<mono>{domain}</mono> CNAME to <mono>{target}</mono>.}}',
+  /** After a tracking domain whose CNAME alone doesn't show it's this workspace's (another workspace used it first): the record that does. */
+  trackingTxt: 'Add the TXT record <mono>{name}</mono> with <mono>{value}</mono> to show the domain is yours.',
   addTracking: 'Add tracking domain',
 
   // ── Cloudflare ───────────────────────────────────────────────────────

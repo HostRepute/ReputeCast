@@ -60,7 +60,11 @@ func (w *SweepWorker) Work(ctx context.Context, _ *river.Job[SweepArgs]) error {
 			return err
 		}
 	}
-	_, err = w.N.Q.IngestPurgeRaw(ctx, now.AddDate(0, 0, -RetentionDays))
+	if _, err := w.N.Q.IngestPurgeRaw(ctx, now.AddDate(0, 0, -RetentionDays)); err != nil {
+		return err
+	}
+	// A webhook token is kept only while its signature can be accepted.
+	_, err = w.N.Q.IngestPurgeTokens(ctx, now)
 	return err
 }
 

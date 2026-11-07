@@ -150,7 +150,8 @@ func (s *Service) PasswordSignIn(ctx context.Context, email, password string, re
 		return SignInResult{}, nil, api.Err(http.StatusForbidden, "account_deactivated", say(ctx, mDeactivated)).
 			WithMeta("deactivatedAt", u.DeactivatedAt)
 	}
-	_ = s.Q.ClearSignInThrottle(ctx, email)
+	// The email's failures stay until the whole sign-in succeeds
+	// (completeSignInWith): wrong second-factor codes count with them.
 	// The audit log shows "Password · after 3 failed attempts".
 	if failedBefore > 0 {
 		if extra == nil {
@@ -247,13 +248,20 @@ func (s *Service) completeSignInWith(ctx context.Context, u store.User, method s
 		if err := q.RecordSignInSuccess(ctx, u.ID); err != nil {
 			return err
 		}
+		// Only a whole sign-in clears the email's failures: a right password
+		// followed by wrong codes still counts toward the lockout.
+		if err := q.ClearSignInThrottle(ctx, u.Email); err != nil {
+			return err
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "signin.succeeded", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
 			Metadata: meta})
 	})
 	return cookie, err
 }
 
-// loadTwoFactor finds a pending two-factor sign-in.
+// loadTwoFactor finds a pending two-factor sign-in. While the email's
+// sign-in is locked, no challenge goes on, whenever it was made: the
+// lockout counts wrong codes as well as wrong passwords.
 func (s *Service) loadTwoFactor(ctx context.Context, challenge string) (store.AuthChallenge, store.User, twoFactorChallenge, error) {
 	expired := api.Err(http.StatusUnauthorized, "challenge_expired", say(ctx, mSignInExpired))
 	ch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(challenge), Kind: "two_factor"})
@@ -264,6 +272,10 @@ func (s *Service) loadTwoFactor(ctx context.Context, challenge string) (store.Au
 	if err != nil || u.Status != "active" {
 		return store.AuthChallenge{}, store.User{}, twoFactorChallenge{}, expired
 	}
+	if th, err := s.Q.GetSignInThrottle(ctx, u.Email); err == nil && th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
+		_ = s.Q.DeleteChallenge(ctx, ch.ID)
+		return store.AuthChallenge{}, store.User{}, twoFactorChallenge{}, lockMessage(ctx, *th.LockedUntil, th.Failures)
+	}
 	var data twoFactorChallenge
 	_ = json.Unmarshal(ch.Data, &data)
 	return ch, u, data, nil
@@ -271,11 +283,45 @@ func (s *Service) loadTwoFactor(ctx context.Context, challenge string) (store.Au
 
 const maxTwoFactorAttempts = 5
 
-// failTwoFactor counts a wrong second factor; after five the sign-in ends.
-func (s *Service) failTwoFactor(ctx context.Context, ch store.AuthChallenge, u store.User, wrong i18n.Msg) error {
-	n, _ := s.Q.BumpChallengeAttempts(ctx, ch.ID)
-	left := maxTwoFactorAttempts - int(n)
-	if left <= 0 {
+// countAttempt counts an attempt at a challenge before its answer is
+// checked, so parallel guesses can't go over maxTwoFactorAttempts, and
+// returns the attempt's number. Once none are left the challenge ends.
+func (s *Service) countAttempt(ctx context.Context, ch store.AuthChallenge) (int32, error) {
+	n, err := s.Q.AccountsCountChallengeAttempt(ctx, store.AccountsCountChallengeAttemptParams{ID: ch.ID, MaxAttempts: maxTwoFactorAttempts})
+	if isNoRows(err) {
+		_ = s.Q.DeleteChallenge(ctx, ch.ID)
+		return 0, api.Err(http.StatusUnauthorized, "challenge_expired", say(ctx, mTooManyCodes))
+	}
+	return n, err
+}
+
+// failTwoFactor answers a wrong second factor, attempt number attempt of
+// the challenge, which ends after maxTwoFactorAttempts. A wrong code (not
+// a passkey, which can't be guessed) also counts like a wrong password
+// toward the email's sign-in lockout, which outlasts every challenge: a
+// known password doesn't buy fresh guesses with each new sign-in.
+func (s *Service) failTwoFactor(ctx context.Context, ch store.AuthChallenge, attempt int32, u store.User, method string, code bool, wrong i18n.Msg) error {
+	left := maxTwoFactorAttempts - int(attempt)
+	if code {
+		pol, err := s.policy(ctx)
+		if err != nil {
+			return err
+		}
+		th, err := s.Q.RecordSignInThrottleFailure(ctx, store.RecordSignInThrottleFailureParams{Email: u.Email, MaxAttempts: pol.LockoutAttempts, LockMinutes: pol.LockoutMinutes})
+		if err != nil {
+			return err
+		}
+		_, _ = s.Q.RecordSignInFailure(ctx, store.RecordSignInFailureParams{ID: u.ID, MaxAttempts: pol.LockoutAttempts, LockMinutes: pol.LockoutMinutes})
+		_ = s.Audit.Log(ctx, audit.Event{Action: "signin.failed", Result: audit.Denied, Reason: "wrong second-factor code", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u),
+			Metadata: map[string]any{"method": method, "failures": th.Failures, "max_attempts": pol.LockoutAttempts}})
+		if th.LockedUntil != nil && th.LockedUntil.After(s.now()) {
+			_ = s.Q.DeleteChallenge(ctx, ch.ID)
+			_ = s.Audit.Log(ctx, audit.Event{Action: "auth.two_factor", Result: audit.Denied, Reason: "too many wrong codes, sign-in locked", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u)})
+			return lockMessage(ctx, *th.LockedUntil, th.Failures)
+		}
+		left = min(left, int(pol.LockoutAttempts-th.Failures))
+	}
+	if int(attempt) >= maxTwoFactorAttempts {
 		_ = s.Q.DeleteChallenge(ctx, ch.ID)
 		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.two_factor", Result: audit.Denied, Reason: "too many wrong codes", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u)})
 		return api.Err(http.StatusUnauthorized, "challenge_expired", say(ctx, mTooManyCodes))
@@ -283,37 +329,68 @@ func (s *Service) failTwoFactor(ctx context.Context, ch store.AuthChallenge, u s
 	return api.Err(http.StatusUnauthorized, "invalid_code", say(ctx, wrong, "left", left)).WithMeta("attemptsLeft", left)
 }
 
+// takeChallenge uses up a challenge after a right answer: of two requests
+// with one, only the first goes on to a session.
+func (s *Service) takeChallenge(ctx context.Context, ch store.AuthChallenge) error {
+	n, err := s.Q.AccountsTakeChallenge(ctx, ch.ID)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return api.Err(http.StatusUnauthorized, "challenge_expired", say(ctx, mSignInExpired))
+	}
+	return nil
+}
+
 // TwoFactor completes a sign-in with an authenticator code or a recovery code.
 func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string) (SignInResult, *http.Cookie, error) {
+	if method != "totp" && method != "recovery" {
+		return SignInResult{}, nil, api.BadRequest(say(ctx, msgs.M("problem.unknownMethod")))
+	}
 	ch, u, data, err := s.loadTwoFactor(ctx, challenge)
 	if err != nil {
 		return SignInResult{}, nil, err
+	}
+	attempt, err := s.countAttempt(ctx, ch)
+	if err != nil {
+		return SignInResult{}, nil, err
+	}
+	wrong := func(m i18n.Msg) (SignInResult, *http.Cookie, error) {
+		return SignInResult{}, nil, s.failTwoFactor(ctx, ch, attempt, u, data.Method+"+"+method, true, m)
 	}
 	var left, total *int
 	switch method {
 	case "totp":
 		if u.TotpSecretEnc == nil {
-			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mWrongCode)
+			return wrong(mWrongCode)
 		}
 		secret, err := s.Box.OpenString(u.TotpSecretEnc, totpAD(u.ID))
 		if err != nil {
 			return SignInResult{}, nil, err
 		}
-		if !authn.VerifyTOTP(secret, code, s.now()) {
-			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mWrongTOTP)
+		step, ok := authn.MatchTOTP(secret, code, s.now())
+		if !ok {
+			return wrong(mWrongTOTP)
+		}
+		// A code works once: its time step must come after the last one
+		// accepted, so a code someone saw can't be replayed in its 30 s.
+		if n, err := s.Q.AccountsUseTOTPStep(ctx, store.AccountsUseTOTPStepParams{ID: u.ID, Step: step}); err != nil {
+			return SignInResult{}, nil, err
+		} else if n == 0 {
+			return wrong(mTOTPReused)
 		}
 	case "recovery":
 		if _, err := s.Q.UseRecoveryCode(ctx, store.UseRecoveryCodeParams{UserID: u.ID, CodeHash: hashRecovery(code)}); err != nil {
-			return SignInResult{}, nil, s.failTwoFactor(ctx, ch, u, mWrongRecovery)
+			return wrong(mWrongRecovery)
 		}
 		rc, _ := s.Q.RecoveryCodeStats(ctx, u.ID)
 		v, tot := int(rc.Remaining), int(rc.Total)
 		left, total = &v, &tot
 		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.recovery_code_used", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u), Metadata: map[string]any{"remaining": v}})
-	default:
-		return SignInResult{}, nil, api.BadRequest(say(ctx, msgs.M("problem.unknownMethod")))
 	}
-	_ = s.Q.DeleteChallenge(ctx, ch.ID)
+	if err := s.takeChallenge(ctx, ch); err != nil {
+		return SignInResult{}, nil, err
+	}
 	cookie, err := s.completeSignInWith(ctx, u, data.Method+"+"+method, true, data.Remember, nil, data.Extra)
 	if err != nil {
 		return SignInResult{}, nil, err

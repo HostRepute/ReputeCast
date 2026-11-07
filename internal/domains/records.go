@@ -55,13 +55,18 @@ const (
 	PurposeVerification = "verification"
 )
 
-// Record statuses.
+// Record statuses, which the tracking domain shares.
 const (
 	StatusVerified = "verified"
 	StatusPending  = "pending"
 	StatusWrong    = "wrong_value"
 	StatusMissing  = "missing"
 	StatusError    = "error"
+	// StatusRefused is a tracking domain that points here but isn't the
+	// workspace's to use (internal/customhost): another workspace verified
+	// it first, or it's under the instance's own address, and its TXT
+	// record is missing; or it's one of the instance's own hosts.
+	StatusRefused = "refused"
 )
 
 // DecodeRecords reads sending_domains.dns_records.

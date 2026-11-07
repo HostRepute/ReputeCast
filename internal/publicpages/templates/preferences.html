@@ -9,6 +9,11 @@
     {{with .Price}}<p>{{.}}</p>{{end}}
     {{with .Line}}<p class="t13">{{.}}</p>{{end}}
     {{if or .Manage .Cancel .Upgrade}}<div class="btns">{{with .Manage}}<a class="btn-ghost" href="{{.}}">{{$.Body.Paid.ManageLabel}}</a>{{end}}{{with .Upgrade}}<a class="btn-ghost" href="{{.}}">{{$.Body.Paid.UpgradeLabel}}</a>{{end}}{{with .Cancel}}<a class="u ea-cancel" href="{{.}}">{{$.Body.Paid.CancelLabel}}</a>{{end}}</div>{{end}}
+    {{with $.Body.Billing}}<form class="btns" method="post" action="{{.Action}}">
+      <input type="hidden" name="t" value="{{.Token}}"><input type="hidden" name="_lang" value="{{$.Lang}}">
+      <button class="btn-ghost" type="submit"{{if $.Preview}} disabled{{end}}>{{$.Body.Paid.ManageLabel}}</button>{{with $.Body.Paid.CancelLabel}}<button class="u ea-cancel" type="submit"{{if $.Preview}} disabled{{end}}>{{.}}</button>{{end}}
+    </form>
+    <p class="t13">{{.Note}}</p>{{end}}
   </section>
   {{end}}
   {{with .Alert}}<div class="alert" role="alert">{{.}}</div>{{end}}

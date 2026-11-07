@@ -294,13 +294,16 @@ SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.consent, c.
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.erased_at IS NULL
   AND (c.id = $2::uuid OR lower(c.email) = lower($3::text))
+  AND (cardinality($4::uuid[]) = 0 OR EXISTS (
+        SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($4::uuid[])))
 LIMIT 1
 `
 
 type McpContactParams struct {
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	ID          *uuid.UUID `json:"id"`
-	Email       string     `json:"email"`
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	ID          *uuid.UUID  `json:"id"`
+	Email       string      `json:"email"`
+	ScopeLists  []uuid.UUID `json:"scopeLists"`
 }
 
 type McpContactRow struct {
@@ -321,9 +324,16 @@ type McpContactRow struct {
 	Lists           []string   `json:"lists"`
 }
 
-// One contact for get_contact (review 2026-11 IN-3), by id or address.
+// One contact for get_contact (review 2026-11 IN-3), by id or address; an
+// agent limited to some lists finds only the contacts on them, as
+// search_contacts (empty scope_lists: everyone).
 func (q *Queries) McpContact(ctx context.Context, arg McpContactParams) (McpContactRow, error) {
-	row := q.db.QueryRow(ctx, mcpContact, arg.WorkspaceID, arg.ID, arg.Email)
+	row := q.db.QueryRow(ctx, mcpContact,
+		arg.WorkspaceID,
+		arg.ID,
+		arg.Email,
+		arg.ScopeLists,
+	)
 	var i McpContactRow
 	err := row.Scan(
 		&i.ID,
@@ -828,7 +838,7 @@ SELECT c.id, c.email, c.first_name, c.last_name, c.status, c.tier, c.created_at,
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.erased_at IS NULL
   AND (c.email ILIKE '%' || $2::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || $2::text || '%')
-  AND (cardinality($3::uuid[]) = 0 OR EXISTS (
+  AND (coalesce(cardinality($3::uuid[]), 0) = 0 OR EXISTS (
         SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id AND lm.list_id = ANY($3::uuid[])))
 ORDER BY c.email
 LIMIT $4

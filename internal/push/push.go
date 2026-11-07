@@ -40,6 +40,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -57,6 +58,10 @@ type Service struct {
 	Log   *slog.Logger
 	URLs  publicurl.Builder
 	Links *linktoken.Signer
+	// Hosts says whose host a request came to: a host a workspace holds
+	// carries only that workspace's clicks (nil: every host carries every
+	// workspace's).
+	Hosts *customhost.Hosts
 	// Jobs enqueues River jobs (read at call time: the client is built
 	// after the services).
 	Jobs func() *jobs.Client

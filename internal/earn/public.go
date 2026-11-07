@@ -127,7 +127,10 @@ type TierCardView struct {
 	Period    string
 }
 
-// PaidView is the "already a paid member" card.
+// PaidView is the "already a paid member" card. Its personal link never
+// expires and travels in forwarded emails, so Manage doesn't open the
+// portal: its button emails the member a link (SendBillingLink), as
+// Emailed says.
 type PaidView struct {
 	Heading string
 	Email   string
@@ -135,9 +138,10 @@ type PaidView struct {
 	Tier    string
 	Price   string
 	Renews  string
-	Manage  string
+	Manage  bool
 	Button  string
 	Note    string
+	Emailed string
 }
 
 func (s *Service) t(l i18n.Lang, key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }
@@ -485,8 +489,8 @@ func (s *Service) previewReader(ctx context.Context, ws *store.Workspace, as str
 
 // paidView is the card a reader with paid access gets instead of the tiers.
 func (s *Service) paidView(ctx context.Context, ws *store.Workspace, l i18n.Lang, reader store.EarnContactBriefRow, acc *access) *PaidView {
-	v := &PaidView{Email: reader.Email, NotYou: s.pageURL(ctx, ws, "upgrade"), Manage: s.BillingURL(ctx, ws, reader.ID),
-		Button: s.t(l, "page.manage", nil), Note: s.t(l, "page.manageNote", nil)}
+	v := &PaidView{Email: reader.Email, NotYou: s.pageURL(ctx, ws, "upgrade"), Manage: true, Button: s.t(l, "page.manage", nil),
+		Note: s.t(l, "page.manageNote", nil), Emailed: s.t(l, "portal.emailed", i18n.Args{"email": reader.Email})}
 	if acc == nil {
 		v.Heading = s.t(l, "page.youreMember", i18n.Args{"tier": "none"})
 		return v
@@ -508,7 +512,7 @@ func (s *Service) paidView(ctx context.Context, ws *store.Workspace, l i18n.Lang
 		v.Renews = s.t(l, "page.endsOn", i18n.Args{"date": longDateIn(l, ws, *end)})
 	}
 	if acc.Kind != "stripe" {
-		v.Button, v.Manage = "", ""
+		v.Button, v.Manage, v.Emailed = "", false, ""
 	}
 	return v
 }
@@ -778,7 +782,12 @@ func (s *Service) Welcome(ctx context.Context, ws *store.Workspace, session stri
 	if chk.ContactID != nil {
 		if ct, err := s.Q.EarnContactBrief(ctx, store.EarnContactBriefParams{ID: *chk.ContactID, WorkspaceID: ws.ID}); err == nil {
 			first = ct.FirstName
-			v.Manage = s.BillingURL(ctx, ws, ct.ID)
+			// The page's address names the checkout for good: it opens the
+			// portal only while the checkout is fresh (the reader just
+			// paid); "Welcome to …" brings a link that lasts.
+			if chk.CompletedAt != nil && s.now().Sub(*chk.CompletedAt) <= LinkValidAsked {
+				v.Manage = s.BillingURL(ctx, ws, ct.ID, LinkValidAsked)
+			}
 		}
 	}
 	short := ""
@@ -871,11 +880,18 @@ func (s *Service) completeFromReturn(ctx context.Context, ws *store.Workspace, c
 }
 
 // Portal returns the billing portal of a personal link's paid member;
-// cancel opens it on the cancel step of their subscription.
+// cancel opens it on the cancel step of their subscription. Only a link
+// still within its time does: ErrLinkExpired otherwise, and for a link
+// signed with an earlier instance key.
 func (s *Service) Portal(ctx context.Context, ws *store.Workspace, token string, kind linktoken.Kind) (string, error) {
 	c, err := s.Links.Verify(token, kind)
-	if err != nil || c.WorkspaceID != ws.ID || c.ContactID == uuid.Nil {
+	switch {
+	case errors.Is(err, linktoken.ErrSignature):
+		return "", ErrLinkExpired
+	case err != nil || c.WorkspaceID != ws.ID || c.ContactID == uuid.Nil:
 		return "", ErrBadLink
+	case s.linkExpired(c):
+		return "", ErrLinkExpired
 	}
 	acc, err := s.accessOf(ctx, ws, c.ContactID, "")
 	if err != nil {
@@ -912,10 +928,3 @@ var ErrNoSubscription = errors.New("earn: no paid subscription")
 
 // ErrBadLink means a personal link isn't valid: altered, or for another workspace.
 var ErrBadLink = errors.New("earn: the link isn't valid")
-
-// CancelURL is a paid member's link to cancel (the cancel page, X17;
-// until then the portal's cancel step).
-func (s *Service) CancelURL(ctx context.Context, ws *store.Workspace, contact uuid.UUID) string {
-	tok := s.Links.Sign(linktoken.Claims{Kind: TokenCancel, WorkspaceID: ws.ID, ContactID: contact})
-	return s.pageURL(ctx, ws, "cancel/"+tok)
-}

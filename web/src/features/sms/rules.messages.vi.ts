@@ -211,6 +211,8 @@ export default translate(m, {
   domainPlaceholder: 'go.example.com',
   domainSaved: 'Đã đặt tên miền liên kết rút gọn',
   cnameNote: 'Hãy thêm bản ghi CNAME cho {domain} trỏ đến {target}. Chứng chỉ từ Let’s Encrypt sẽ tự động có sau đó.',
+  cnameTxtNote:
+    'Hãy thêm bản ghi CNAME cho {domain} trỏ đến {target}, và bản ghi TXT bên dưới: giá trị của bản ghi này chỉ thuộc về không gian làm việc này. Chứng chỉ từ Let’s Encrypt sẽ tự động có sau đó.',
   dnsRecord: 'Bản ghi DNS',
   type: 'Loại',
   name: 'Tên',

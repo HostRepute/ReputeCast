@@ -195,5 +195,7 @@
   "sql.idColumnUUID": "La consulta debe devolver el ID del contacto (un uuid) en una columna llamada id, por ejemplo SELECT c.id FROM contacts c.",
   "sql.idColumn": "La consulta debe devolver el ID del contacto en una columna llamada id, por ejemplo SELECT c.id FROM contacts c.",
   "sql.readOnly": "Los segmentos SQL son de solo lectura: no pueden cambiar datos.",
-  "sql.roles": "Los segmentos SQL no pueden cambiar roles ni la configuración de la sesión."
+  "sql.roles": "Los segmentos SQL no pueden cambiar roles ni la configuración de la sesión.",
+  "sql.function": "Los segmentos SQL no pueden llamar a {name}.",
+  "sql.unicodeIdentifier": "Los segmentos SQL no pueden usar identificadores U&\"…\": escribe el nombre tal cual."
 }

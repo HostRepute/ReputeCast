@@ -27,13 +27,25 @@ export function totp(secret: string, now = Date.now()) {
   return String(n % 1_000_000).padStart(6, '0')
 }
 
+/**
+ * answerTOTP answers a two-factor challenge with the demo authenticator. The
+ * server accepts each code once, so a second sign-in within the same 30
+ * seconds waits for the next code (twice at most: each wrong code counts
+ * toward the sign-in lockout).
+ */
+export async function answerTOTP(ctx: BrowserContext, app: string, challenge: string, email: string) {
+  for (let tries = 0; ; tries++) {
+    const r = await ctx.request.post(`${app}/api/v1/auth/two-factor`, { data: { challenge, method: 'totp', code: totp(DEMO_TOTP) } })
+    if (r.ok()) return
+    if (tries >= 2 || r.status() !== 401) throw new Error(`two-factor for ${email} failed: ${r.status()} ${await r.text()}`)
+    await new Promise((done) => setTimeout(done, 30_000 - (Date.now() % 30_000) + 500))
+  }
+}
+
 /** signIn signs ctx in as email through the API, answering the TOTP challenge. */
 export async function signIn(ctx: BrowserContext, app: string, email: string) {
   const r = await ctx.request.post(`${app}/api/v1/auth/password`, { data: { email, password: DEMO_PASSWORD, remember: true } })
   if (!r.ok()) throw new Error(`sign-in as ${email} failed: ${r.status()} ${await r.text()}`)
   const body = (await r.json()) as { status: string; challenge?: string }
-  if (body.status === 'two_factor') {
-    const r2 = await ctx.request.post(`${app}/api/v1/auth/two-factor`, { data: { challenge: body.challenge, method: 'totp', code: totp(DEMO_TOTP) } })
-    if (!r2.ok()) throw new Error(`two-factor for ${email} failed: ${r2.status()} ${await r2.text()}`)
-  }
+  if (body.status === 'two_factor') await answerTOTP(ctx, app, body.challenge!, email)
 }

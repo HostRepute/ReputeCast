@@ -192,7 +192,7 @@ func (h *Handler) pollView(s *site, token string, p *polls.AnswerPage, posted bo
 		case polls.KindEmoji:
 			v.Label = s.faceLabel(c.Faces, a.Key)
 			v.Aria = v.Label
-			v.Face = s.links.Static(FacePath(c.Faces, a.Key, accentHex(s)))
+			v.Face = s.links.Static(h.facePath(c.Faces, a.Key, accentHex(s)))
 		}
 		b.Answers = append(b.Answers, v)
 	}

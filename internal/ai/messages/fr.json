@@ -26,6 +26,7 @@
   "problem.privateHost": "{host} est une adresse privée. Un admin de l’instance peut autoriser les adresses privées.",
   "problem.badAddress": "Utilisez l’adresse complète du serveur, par exemple {example}.",
   "problem.keyNeeded": "Collez la clé API de votre compte {provider}.",
+  "problem.keyAgain": "L’adresse a changé : collez à nouveau la clé API. ReputeCast n’envoie pas de clé enregistrée à une nouvelle adresse.",
   "problem.azureNeeds": "Collez votre endpoint Azure OpenAI (par exemple https://acme.openai.azure.com) et le nom du déploiement.",
   "problem.modelNeeded": "Choisissez un modèle, ou saisissez son nom.",
   "problem.oneModel": "Un seul modèle par espace de travail\u00A0: déconnectez d’abord {provider} pour changer de fournisseur.",

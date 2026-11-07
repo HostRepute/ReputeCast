@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
@@ -46,6 +47,7 @@ func earnService(a *App) *earn.Service {
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Links: a.Links, URLs: a.URLs, Log: a.Log,
 		Jobs:          func() *jobs.Client { return a.Jobs },
 		Mailer:        earnMailer{a},
+		Mail:          func() mailer.Sender { return a.Mail },
 		Signup:        earnSignup{a},
 		Confirmations: earnConfirmations{a},
 		PageBase:      func(ctx context.Context, ws *store.Workspace) string { return earnPageBase(ctx, a, ws) },

@@ -409,11 +409,14 @@ func (m Manifest) LabelsIn(l i18n.Lang) []string {
 	return out
 }
 
-// Fields is the connection form.
+// Fields is the connection form. A setting the adapter may reach the host
+// of ("settings:<key>" in permissions.network) says where its requests go:
+// it is an Endpoint.
 func (m Manifest) Fields() []providers.Field {
 	out := make([]providers.Field, 0, len(m.Config))
 	for _, f := range m.Config {
-		out = append(out, providers.Field{Key: f.Key, Label: f.Label, Secret: f.Secret, Required: f.Required, Options: slices.Clone(f.Options), Help: f.Help})
+		out = append(out, providers.Field{Key: f.Key, Label: f.Label, Secret: f.Secret, Required: f.Required, Options: slices.Clone(f.Options), Help: f.Help,
+			Endpoint: slices.Contains(m.Permissions.Network, "settings:"+f.Key)})
 	}
 	return out
 }

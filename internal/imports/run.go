@@ -3,7 +3,6 @@ package imports
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -195,9 +195,9 @@ type runState struct {
 	progress  ImportProgress
 	newSupp   []string
 	pending   []uuid.UUID
-	report    *csv.Writer
+	report    *csvexport.Writer
 	reportBuf bytes.Buffer
-	skipped   *csv.Writer
+	skipped   *csvexport.Writer
 	skipBuf   bytes.Buffer
 	actor     *uuid.UUID
 	actorName string
@@ -226,8 +226,8 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 	st.cm = parseConsentMap(imp.ConsentMap, st.opts)
 	st.stats = ImportStats{SuppressedBy: map[string]int64{}, Reasons: map[string]int64{}, Lists: []ImportListAfter{}, PushedTo: []string{}}
 	_ = json.Unmarshal(imp.Progress, &st.progress)
-	st.report = csv.NewWriter(&st.reportBuf)
-	st.skipped = csv.NewWriter(&st.skipBuf)
+	st.report = csvexport.NewWriter(&st.reportBuf)
+	st.skipped = csvexport.NewWriter(&st.skipBuf)
 	_ = st.report.Write([]string{"row", "email", "source_status", "outcome", "reason"})
 	_ = st.skipped.Write([]string{"row", "value", "source_status", "reason"})
 	// Audit entries and consent history name the person who started the import.
@@ -393,13 +393,13 @@ func (s *Service) importBatch(ctx context.Context, st *runState, b batch) error 
 			if v.Class == classTrap {
 				email = "redacted"
 			}
-			_ = st.report.Write([]string{fmt.Sprint(r.RowNo), formulaSafe(email), r.Status, oc, reason})
+			_ = st.report.Write([]string{fmt.Sprint(r.RowNo), email, r.Status, oc, reason})
 			if oc == "skipped" {
 				raw := r.Raw
 				if v.Class == classTrap {
 					raw = "redacted"
 				}
-				_ = st.skipped.Write([]string{fmt.Sprint(r.RowNo), formulaSafe(raw), r.Status, reason})
+				_ = st.skipped.Write([]string{fmt.Sprint(r.RowNo), raw, r.Status, reason})
 			}
 		}
 		rows := make([]int32, len(outs))

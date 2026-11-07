@@ -264,7 +264,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(r), err
 		})
 
-	api.Post(h, api.Op{ID: "change-password", Path: "/me/password", Summary: "Change your password (or replace the temporary one)", Tags: me, Access: api.Pending, Status: http.StatusNoContent},
+	api.Post(h, api.Op{ID: "change-password", Path: "/me/password", Summary: "Change your password (or replace the temporary one)", Tags: me, Access: pending, Status: http.StatusNoContent},
 		func(ctx context.Context, in *struct {
 			Body struct {
 				Current  string `json:"current,omitempty" maxLength:"1024"`
@@ -274,13 +274,13 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.ChangePassword(ctx, in.Body.Current, in.Body.Password)
 		})
 
-	api.Post(h, api.Op{ID: "totp-begin", Path: "/me/totp", Summary: "Start setting up an authenticator app", Tags: me, Access: api.Pending},
+	api.Post(h, api.Op{ID: "totp-begin", Path: "/me/totp", Summary: "Start setting up an authenticator app", Tags: me, Access: pending},
 		func(ctx context.Context, _ *struct{}) (*api.Body[TOTPSetup], error) {
 			r, err := s.BeginTOTP(ctx)
 			return api.OK(r), err
 		})
 
-	api.Post(h, api.Op{ID: "totp-confirm", Path: "/me/totp/confirm", Summary: "Confirm the authenticator with a code; returns recovery codes once", Tags: me, Access: api.Pending},
+	api.Post(h, api.Op{ID: "totp-confirm", Path: "/me/totp/confirm", Summary: "Confirm the authenticator with a code; returns recovery codes once", Tags: me, Access: pending},
 		func(ctx context.Context, in *struct {
 			Body struct {
 				Challenge string `json:"challenge" minLength:"10" maxLength:"200"`
@@ -291,7 +291,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(r), err
 		})
 
-	api.Post(h, api.Op{ID: "recovery-codes-regenerate", Path: "/me/recovery-codes", Summary: "Replace all recovery codes; the new ones are shown once", Tags: me, Access: api.Pending},
+	api.Post(h, api.Op{ID: "recovery-codes-regenerate", Path: "/me/recovery-codes", Summary: "Replace all recovery codes; the new ones are shown once", Tags: me, Access: pending},
 		func(ctx context.Context, _ *struct{}) (*api.Body[RecoveryCodes], error) {
 			r, err := s.RegenerateRecoveryCodes(ctx)
 			return api.OK(r), err

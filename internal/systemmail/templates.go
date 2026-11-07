@@ -32,13 +32,14 @@ type Brand struct {
 
 // subscriberKinds go to subscribers: they carry the publisher's brand, never
 // ReputeCast's teal (public pages belong to the publisher).
-var subscriberKinds = map[string]bool{"double_opt_in": true, "preference_link": true}
+var subscriberKinds = map[string]bool{"double_opt_in": true, "preference_link": true, "billing_link": true}
 
 // reasons says why subscribers' messages were sent, under the body. Team
 // mail says why in the member's language (internal/membermail).
 var reasons = map[string]string{
 	"double_opt_in":   "You get this email because this address was used to subscribe. If it wasn't you, ignore it and you won't hear from us again.",
 	"preference_link": "You get this email because someone asked for a link to manage this address's subscriptions.",
+	"billing_link":    "You get this email because someone asked for a link to manage this address's paid subscription.",
 }
 
 // Rendered is a message ready for a provider.

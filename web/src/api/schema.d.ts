@@ -747,7 +747,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Assign a staff member to a workspace with a role (only roles whose permissions you hold there) */
+        /** Assign a staff member to a workspace with a role (agency:manage, or team:manage there; only roles whose permissions you hold there) */
         put: operations["assign-agency-staff"];
         post?: never;
         delete?: never;
@@ -782,7 +782,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Remove an assignment: the membership goes; the keys they made are kept or revoked */
+        /** Remove an assignment (agency:manage, or team:manage there): the membership goes; the keys they made are kept or revoked */
         post: operations["unassign-agency-staff"];
         delete?: never;
         options?: never;
@@ -11404,7 +11404,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Deactivate a member: keeps history, signs out everywhere, keeps or revokes their API keys */
+        /** Deactivate a member: keeps history, closes the workspace to them, keeps or revokes their API keys */
         post: operations["deactivate-member"];
         delete?: never;
         options?: never;
@@ -11438,7 +11438,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** End every session of a member */
+        /** End every session of a member (only an instance admin can for someone in other workspaces) */
         post: operations["sign-out-member"];
         delete?: never;
         options?: never;
@@ -18157,11 +18157,31 @@ export interface paths {
         put?: never;
         /**
          * Connect a WhatsApp Business Account (logged)
-         * @description Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings. Nothing is sent until Meta verifies it.
+         * @description Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings: the account's callback URL, with its own token. Nothing is sent until Meta verifies it.
          */
         post: operations["connect-whatsapp"];
         /** Disconnect WhatsApp: waiting messages are cancelled (logged) */
         delete: operations["disconnect-whatsapp"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/account/callback-url/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a new callback URL: the current one stops working at once (logged)
+         * @description The account then waits for Meta's verification request at the new URL, as when it connected.
+         */
+        post: operations["rotate-whatsapp-callback-url"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -19819,6 +19839,7 @@ export interface components {
             keys: components["schemas"]["AgencyKeyRef"][];
         };
         AgencyAssignmentRow: {
+            assignReason?: string;
             canAssign: boolean;
             cells: components["schemas"]["AgencyAssignmentCell"][];
             roles: components["schemas"]["AgencyAssignableRole"][];
@@ -34800,6 +34821,7 @@ export interface components {
             /** @description Why Cloudflare rejected the keys, with its error code */
             error: string;
             hasSecret: boolean;
+            reported?: components["schemas"]["PublicTurnstileReport"];
             siteKey: string;
             /** @enum {string} */
             status: "off" | "ok" | "error";
@@ -34809,6 +34831,19 @@ export interface components {
             secret?: string;
             /** @example 0x4AAAAAAA… */
             siteKey: string;
+        };
+        PublicTurnstileReport: {
+            /**
+             * @description The widget's error code
+             * @example 110200
+             */
+            code: string;
+            /** Format: int64 */
+            count: number;
+            /** @description What the code means, in the reader's language */
+            error: string;
+            /** Format: date-time */
+            lastAt: string;
         };
         PublicURLManualHook: {
             provider: string;
@@ -39797,11 +39832,14 @@ export interface components {
             usedBy: string[];
         };
         SendingDomainTracking: {
+            detail: string;
             domain: string;
             /** @enum {string} */
-            status: "none" | "pending" | "verified" | "wrong_value" | "missing" | "error";
+            status: "none" | "pending" | "verified" | "wrong_value" | "missing" | "error" | "refused";
             suggested: string;
             target: string;
+            txtName: string;
+            txtValue: string;
         };
         SendingRule: {
             /** Format: date-time */
@@ -41731,6 +41769,8 @@ export interface components {
             /** @enum {string} */
             status: "none" | "pending" | "verified" | "failed";
             target: string;
+            txtName: string;
+            txtValue: string;
             /** Format: date-time */
             verifiedAt?: string;
         };
@@ -43169,7 +43209,9 @@ export interface components {
             scheduledCampaigns: number;
             /** Format: int64 */
             sessions: number;
+            sessionsShared: boolean;
             signInMethods: components["schemas"]["MemberSignInMethod"][];
+            signOutReason?: string;
             ssoDomain?: string;
         };
         TeamMemberList: {
@@ -45746,6 +45788,7 @@ export interface components {
         WebhookDeliveryDetail: {
             delivery: components["schemas"]["WebhookDeliveryView"];
             payload: unknown;
+            payloadHidden?: string;
             /** @description First kilobyte of the endpoint's last response */
             response: string;
         };
@@ -45846,6 +45889,7 @@ export interface components {
             lastStatus?: number;
             managedBy?: components["schemas"]["WebhookManagedBy"];
             name: string;
+            pausedReason?: string;
             /** Format: date-time */
             previousSecretUntil?: string;
             /**
@@ -46719,6 +46763,11 @@ export interface components {
             messagingLimit: number;
             nameStatus: string;
             number: string;
+            oldAddress: boolean;
+            /** Format: date-time */
+            otherAccountAt?: string;
+            /** Format: int64 */
+            otherAccountEvents: number;
             phoneStatus: string;
             /** Format: int64 */
             previousLimit?: number;
@@ -46727,6 +46776,10 @@ export interface components {
             quality: "high" | "medium" | "low" | "unknown";
             /** Format: date-time */
             qualityChangedAt?: string;
+            /** Format: date-time */
+            rejectedAt?: string;
+            /** Format: int64 */
+            rejectedDeliveries: number;
             /** @enum {string} */
             status: "waiting" | "connected" | "token_rejected";
             statusDetail?: string;
@@ -46738,6 +46791,10 @@ export interface components {
             verifiedAt?: string;
             verifyToken?: string;
             webhookUrl: string;
+            /** Format: date-time */
+            wrongAddressAt?: string;
+            /** Format: int64 */
+            wrongAddressDeliveries: number;
         };
         WhatsAppAudience: {
             /** Format: int64 */
@@ -89499,6 +89556,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-whatsapp-callback-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOverview"];
+                };
             };
             /** @description Error */
             default: {

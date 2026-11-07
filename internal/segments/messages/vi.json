@@ -195,5 +195,7 @@
   "sql.idColumnUUID": "Truy vấn phải trả về id liên hệ (kiểu uuid) trong một cột tên là id, ví dụ SELECT c.id FROM contacts c.",
   "sql.idColumn": "Truy vấn phải trả về id liên hệ trong một cột tên là id, ví dụ SELECT c.id FROM contacts c.",
   "sql.readOnly": "Phân khúc SQL chỉ đọc: chúng không thể thay đổi dữ liệu.",
-  "sql.roles": "Phân khúc SQL không thể thay đổi vai trò hoặc cài đặt phiên."
+  "sql.roles": "Phân khúc SQL không thể thay đổi vai trò hoặc cài đặt phiên.",
+  "sql.function": "Phân khúc SQL không thể gọi {name}.",
+  "sql.unicodeIdentifier": "Phân khúc SQL không thể dùng định danh U&\"…\": hãy viết tên như bình thường."
 }

@@ -45,7 +45,11 @@ export function DeactivateDialog({
   const [busy, setBusy] = useState(false)
   const loaded = details.every((d) => d.data)
   const data = details.map((d) => d.data).filter(Boolean) as Schemas['TeamMemberDetail'][]
-  const sessions = data.reduce((n, d) => n + d.sessions, 0)
+  // Sessions belong to the instance: someone who also uses other workspaces,
+  // or administers the instance, stays signed in there.
+  const ending = data.filter((d) => !d.sessionsShared)
+  const staying = data.length - ending.length
+  const sessions = ending.reduce((n, d) => n + d.sessions, 0)
   const scheduled = data.reduce((n, d) => n + d.scheduledCampaigns, 0)
   const approvals = data.reduce((n, d) => n + d.approvalsRequested.filter((a) => a.status === 'pending').length, 0)
   const keys = data.flatMap((d) => d.apiKeys.filter((k) => k.status === 'active'))
@@ -68,7 +72,7 @@ export function DeactivateDialog({
       }
       toast({
         title: name !== undefined ? t(md.doneOne, { name }) : t(md.doneMany, { count: members.length }),
-        detail: t(md.doneDetail, { count: sessions }),
+        detail: sessions > 0 ? t(md.doneDetail, { count: sessions }) : undefined,
       })
       void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
       void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members/{memberId}'] })
@@ -107,7 +111,8 @@ export function DeactivateDialog({
         </div>
       ) : (
         <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
-          <li>{t(md.signedOutEverywhere, { count: sessions })}</li>
+          {ending.length > 0 ? <li>{t(md.signedOutEverywhere, { count: sessions })}</li> : null}
+          {staying > 0 ? <li>{one ? t(md.staysSignedInOne) : t(md.staysSignedInMany, { count: staying })}</li> : null}
           <li>{t(md.cantSignIn, { workspace: me.workspace.name })}</li>
           {scheduled > 0 ? <li>{t(md.scheduled, { count: scheduled })}</li> : null}
           {approvals > 0 ? <li>{t(md.approvals, { count: approvals })}</li> : null}

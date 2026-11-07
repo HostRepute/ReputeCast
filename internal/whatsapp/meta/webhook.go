@@ -39,6 +39,18 @@ func Sign(appSecret string, body []byte) string {
 	return "sha256=" + hex.EncodeToString(m.Sum(nil))
 }
 
+// SignatureShape reports whether an X-Hub-Signature-256 value can be a
+// signature at all ("sha256=" and 64 hex digits): one that can't is refused
+// before the body is read.
+func SignatureShape(header string) bool {
+	got, ok := strings.CutPrefix(strings.TrimSpace(header), "sha256=")
+	if !ok || len(got) != sha256.Size*2 {
+		return false
+	}
+	_, err := hex.DecodeString(got)
+	return err == nil
+}
+
 // VerifySignature checks X-Hub-Signature-256 over the raw body, in constant
 // time.
 func VerifySignature(appSecret string, body []byte, header string) bool {
@@ -272,6 +284,80 @@ func ParseWebhook(body []byte) ([]Event, error) {
 		}
 	}
 	return out, nil
+}
+
+// For returns the part of a webhook body that is for one connected account:
+// the entries of its WhatsApp Business Account (entry.id), and of those the
+// changes that name its number (value.metadata.phone_number_id) or none.
+// Workspaces whose accounts share one Meta app get each other's deliveries,
+// signed with the same app secret. It returns body itself when all of it is
+// for the account, and how many events it left out.
+func For(body []byte, businessID, phoneNumberID string) ([]byte, int, error) {
+	all, err := ParseWebhook(body)
+	if err != nil {
+		return nil, 0, err
+	}
+	var top map[string]json.RawMessage
+	var entries []map[string]json.RawMessage
+	if json.Unmarshal(body, &top) != nil || json.Unmarshal(top["entry"], &entries) != nil {
+		return nil, 0, ErrWebhook
+	}
+	kept := make([]map[string]json.RawMessage, 0, len(entries))
+	cut := false
+	for _, e := range entries {
+		var id string
+		if json.Unmarshal(e["id"], &id) != nil || id == "" || id != businessID {
+			cut = true
+			continue
+		}
+		var changes []json.RawMessage
+		if raw, ok := e["changes"]; ok && json.Unmarshal(raw, &changes) != nil {
+			return nil, 0, ErrWebhook
+		}
+		mine := make([]json.RawMessage, 0, len(changes))
+		for _, c := range changes {
+			var ch struct {
+				Value struct {
+					Metadata struct {
+						PhoneNumberID string `json:"phone_number_id"`
+					} `json:"metadata"`
+				} `json:"value"`
+			}
+			if json.Unmarshal(c, &ch) != nil {
+				return nil, 0, ErrWebhook
+			}
+			if n := ch.Value.Metadata.PhoneNumberID; n != "" && n != phoneNumberID {
+				cut = true
+				continue
+			}
+			mine = append(mine, c)
+		}
+		if len(mine) != len(changes) {
+			b, err := json.Marshal(mine)
+			if err != nil {
+				return nil, 0, err
+			}
+			e["changes"] = b
+		}
+		kept = append(kept, e)
+	}
+	if !cut {
+		return body, 0, nil
+	}
+	b, err := json.Marshal(kept)
+	if err != nil {
+		return nil, 0, err
+	}
+	top["entry"] = b
+	out, err := json.Marshal(top)
+	if err != nil {
+		return nil, 0, err
+	}
+	left, err := ParseWebhook(out)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, len(all) - len(left), nil
 }
 
 // plus writes a WhatsApp id as E.164.

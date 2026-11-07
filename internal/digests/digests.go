@@ -99,7 +99,8 @@ var (
 
 // Create makes a digest from the type picker: off, in draft mode for a
 // member without campaigns:send, with the Blog digest template, the
-// workspace's default sender and its time zone.
+// workspace's default sender (or its first one the creator's sender
+// domains allow) and its time zone.
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, in DigestCreateInput) (DigestDetail, error) {
 	l := i18n.LangFrom(ctx)
 	src, siteID, feedURL, err := s.resolveSource(ctx, ws, l, in.Source, in.SiteID, in.FeedURL)
@@ -134,17 +135,9 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	preheader := starterPreheaderIn(el, hostOf(feedURL))
 	html := mjml.Compile(mjmlSrc).HTML
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
-	var sender *uuid.UUID
-	if def, err := s.Q.ComposerDefaultSender(ctx, ws.ID); err == nil && def.SenderID != "" {
-		if u, err := uuid.Parse(def.SenderID); err == nil {
-			sender = &u
-		}
-	}
-	if sender == nil {
-		if senders, err := s.Q.ListComposerSenders(ctx, ws.ID); err == nil && len(senders) > 0 {
-			sender = &senders[0].ID
-		}
-	}
+	// The sender a new campaign draft would start with: a member limited to
+	// some sender domains starts from one of theirs.
+	sender := campaigns.DefaultSender(ctx, s.Q, ws, p)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.DigestInsert(ctx, store.DigestInsertParams{ID: id, WorkspaceID: ws.ID, Name: name, Mode: mode, Source: src, FeedUrl: feedURL, SiteID: siteID,
@@ -352,6 +345,12 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 				Thresholds: thresholds, Now: now}); err != nil {
 				return err
 			}
+			// The issues go out to this audience from this sender, and saving
+			// moves the issue being collected: checked as saved, so a sender
+			// kept from someone else counts too.
+			if err := sendScope(ctx, q, ws, p, tpl.ID); err != nil {
+				return err
+			}
 		}
 		after := settingsAudit(store.Digest{Name: name, Mode: in.Mode, Source: src, FeedUrl: feedURL, SiteID: siteID, Categories: cats, Tags: tags, MaxAgeDays: maxAge,
 			StartMode: startMode, StartLatest: int32(startLatest), Schedule: schedJSON, PrepareHours: int32(in.PrepareHours), LateHours: int32(in.LateHours),
@@ -541,6 +540,11 @@ func (s *Service) TurnOn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	if string(tpl.Audience) == "{}" || len(tpl.Audience) == 0 {
 		return DigestDetail{}, api.Err(http.StatusConflict, "digest_needs_audience", mOnNeedsAud.Text(l, nil))
+	}
+	// Its issues will go out on this person's authority, whoever set the
+	// audience and the sender up.
+	if err := sendScope(ctx, s.Q, ws, p, tpl.ID); err != nil {
+		return DigestDetail{}, err
 	}
 	if d.FeedStatus == "unread" || d.LastOkAt == nil {
 		return DigestDetail{}, api.Err(http.StatusConflict, "digest_feed_unread", mOnNeedsFeed.Text(l, nil))

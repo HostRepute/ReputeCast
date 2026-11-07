@@ -198,6 +198,8 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
                         {w.previousSecretUntil ? ` · ${t(m.bothSecrets, { until: `${dayMonthDate(w.previousSecretUntil)}, ${clock(w.previousSecretUntil)}` })}` : ''}
                       </div>
                     )}
+                    {/* Why ReputeCast paused it, in the server's words. */}
+                    {w.pausedReason ? <div className="k max-w-[420px] whitespace-normal">{w.pausedReason}</div> : null}
                   </Td>
                   <Td>
                     <span className="inline-flex flex-wrap gap-x-1.5 gap-y-1 align-middle">

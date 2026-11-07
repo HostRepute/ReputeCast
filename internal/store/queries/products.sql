@@ -371,6 +371,11 @@ UPDATE product_order_links SET message_id = sqlc.narg(message_id), delivery = @d
 -- name: ProductOrderLinkUse :exec
 UPDATE product_order_links SET downloads_used = downloads_used + 1 WHERE id = @id;
 
+-- name: ProductOrderLinkLastDownload :one
+-- When a link's last counted download began: the rest of it can be asked
+-- for (a Range request) without counting again for a while.
+SELECT at FROM product_order_downloads WHERE order_id = @order_id AND link_id = @link_id ORDER BY at DESC LIMIT 1;
+
 -- name: ProductOrderDownloadInsert :exec
 INSERT INTO product_order_downloads (id, order_id, link_id, file_id, ip_hash, at) VALUES (@id, @order_id, @link_id, @file_id, @ip_hash, @at);
 

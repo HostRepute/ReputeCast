@@ -86,6 +86,10 @@ export default translate(m, {
   copyUrl: 'Sao chép URL callback',
   copyToken: 'Sao chép mã xác minh',
   copied: 'Đã sao chép',
+  newCallbackUrl: 'URL callback mới',
+  oldAddressTitle: 'Dán URL callback mới vào ứng dụng Meta của bạn',
+  oldAddressText:
+    'URL callback giờ kết thúc bằng một mã bí mật, nên không ai có thể gửi tới đó chỉ nhờ biết tên không gian làm việc. Meta vẫn gọi URL cũ: trong Meta for Developers › ứng dụng của bạn › WhatsApp › Configuration, hãy dán URL này, rồi nhấp Verify and save. URL cũ vẫn hoạt động cho đến khi Meta gọi URL mới.',
 
   // Settings card
   rulesTitle: 'Giờ yên lặng và chi phí',
@@ -188,6 +192,13 @@ export default translate(m, {
   disconnectText:
     'Thông tin xác thực bị xóa và các tin nhắn WhatsApp đang chờ gửi bị hủy. Sự đồng ý, lịch sử mẫu và báo cáo vẫn được giữ. Kết nối lại cần đủ cả bốn giá trị.',
   disconnected: 'Đã ngắt kết nối WhatsApp',
+  rotateBadge: 'URL callback mới',
+  rotateTitle: 'Tạo URL callback mới?',
+  rotateText:
+    'URL callback hiện tại ngừng hoạt động ngay: các lần gửi của Meta tới đó sẽ bị từ chối. Hãy dán URL mới vào Meta for Developers › ứng dụng của bạn › WhatsApp › Configuration, rồi nhấp Verify and save; tài khoản sẽ chờ yêu cầu xác minh của Meta, như lúc mới kết nối. Chỉ tạo URL mới khi URL hiện tại có thể đã bị lộ.',
+  rotateConfirm: 'Tạo URL mới',
+  rotating: 'Đang tạo…',
+  rotated: 'Đã tạo URL callback mới. Tiếp theo, hãy dán nó vào Meta.',
 
   // Test dialog
   testTitle: 'Gửi tin nhắn thử',
@@ -239,4 +250,7 @@ export default translate(m, {
   noEvents: 'Chưa có sự kiện nào. Sự kiện hiện ở đây khi Meta gửi đến webhook.',
   loadMore: 'Tải thêm',
   eventsLoadFailed: 'Không tải được sự kiện',
+  rejectedDeliveries: '{count, plural, other {# lần gửi}} bị từ chối vì chữ ký không khớp với khóa bí mật ứng dụng. Các lần gửi bị từ chối không được lưu lại. Lần gần nhất: {ago}.',
+  otherAccountEvents: '{count, plural, other {# sự kiện}} dành cho WhatsApp Business Account hoặc số điện thoại khác đã bị bỏ qua: Meta gửi chúng tới đây khi một tài khoản khác dùng chung ứng dụng Meta. Lần gần nhất: {ago}.',
+  wrongAddressDeliveries: '{count, plural, other {# lần gửi}} bị từ chối vì đến URL callback cũ hoặc sai. Nếu Meta vẫn dùng URL đó, hãy dán URL callback trong thẻ Tài khoản vào ứng dụng Meta của bạn. Các lần gửi bị từ chối không được lưu lại. Lần gần nhất: {ago}.',
 })

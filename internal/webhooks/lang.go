@@ -24,6 +24,17 @@ var (
 	mOnlyFailed      = msgs.M("problem.onlyFailed")
 	mDemoEndpoint    = msgs.M("delivery.demo")
 	mInvalidURL      = msgs.M("delivery.invalidUrl")
+
+	// What an event carries decides who may receive it (access.go).
+	mEventNeeds   = msgs.M("problem.eventNeeds")
+	mPatternNeeds = msgs.M("problem.patternNeeds")
+	mEventScope   = msgs.M("problem.eventScope")
+	mPatternScope = msgs.M("problem.patternScope")
+	mPausedLeft   = msgs.M("paused.left")
+	mPausedLacks  = msgs.M("paused.lacks")
+	mPausedScoped = msgs.M("paused.scoped")
+	mPayloadNeeds = msgs.M("delivery.payloadNeeds")
+	mPayloadScope = msgs.M("delivery.payloadScope")
 )
 
 // deliveryErrorIn is a delivery's stored failure for a reader: the fixed

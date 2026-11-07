@@ -237,6 +237,8 @@
   "problem.pauseReason": "La raison doit faire moins de 200 caractères.",
   "problem.pauseNotLive": "Seule une automatisation en ligne peut être mise en pause.",
   "problem.resumeNotPaused": "Seule une automatisation en pause peut être reprise.",
+  "problem.triggerScope": "Votre accès est limité à certaines listes\u00A0: un scénario que vous publiez ou reprenez ne peut démarrer que lorsqu’un contact s’inscrit à l’une d’elles. Utilisez le déclencheur «\u00A0S’inscrit à une liste\u00A0» sur l’une de vos listes, ou demandez à quelqu’un qui a accès à toutes les listes.",
+  "problem.senderScope": "Votre accès est limité à certains domaines d’expédition, et les e-mails de ce scénario partent de {domain}, l’expéditeur par défaut de l’espace de travail. Demandez à quelqu’un qui peut envoyer depuis {domain} de le publier ou de le reprendre.",
 
   "check.routeHealthy": "Route Automatisations opérationnelle · {providers}",
   "check.routeFallback": "Route Automatisations sur son secours · {provider}",

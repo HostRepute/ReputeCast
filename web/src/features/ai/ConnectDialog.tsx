@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { $api, errorMessage, http } from '@/api/client'
+import { useId, useRef, useState } from 'react'
+import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -98,6 +98,10 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
   const [test, setTest] = useState<{ running: boolean; result?: AITest } | null>(null)
   const [priv, setPriv] = useState<Private | null>(null)
   const [problem, setProblem] = useState<string>()
+  // What the server says about the key (paste one, or paste it again for a
+  // new address), under the key field.
+  const [keyError, setKeyError] = useState<string>()
+  const keyErrorId = useId()
   const [saving, setSaving] = useState(false)
   const keyRef = useRef<HTMLInputElement>(null)
   const name = t(aiEntryName[provider])
@@ -120,6 +124,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
     setTest(null)
     setPriv(null)
     setProblem(undefined)
+    setKeyError(undefined)
   }
 
   const effective = model || defaultModel(models, entry?.defaultModel)
@@ -139,6 +144,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
     setTest(null)
     setPriv(null)
     setProblem(undefined)
+    setKeyError(undefined)
   }
   const candidate = { provider, baseUrl: baseUrl.trim() || undefined, deployment: deployment.trim() || undefined, apiVersion: apiVersion.trim() || undefined, apiKey: key.trim() || undefined, model: modelId || undefined }
 
@@ -157,6 +163,12 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
         return
       }
     }
+    const aboutKey = e instanceof ApiError && e.status === 422 ? e.problem.errors?.find((x) => x.location === 'body.apiKey')?.message : undefined
+    if (aboutKey) {
+      setKeyError(aboutKey)
+      keyRef.current?.focus()
+      return
+    }
     setProblem(errorMessage(e))
   }
 
@@ -164,6 +176,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
     setTest({ running: true })
     setPriv(null)
     setProblem(undefined)
+    setKeyError(undefined)
     try {
       const res = await http.POST(`${aiBase}/test`, { params: { path: { workspace: slug } }, body: candidate })
       setTest({ running: false, result: res.data })
@@ -176,6 +189,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
   async function connect() {
     setSaving(true)
     setProblem(undefined)
+    setKeyError(undefined)
     setPriv(null)
     try {
       await http.PUT(`${aiBase}/connection`, {
@@ -306,10 +320,18 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
                   stale()
                 }}
                 onBlur={() => key.trim() && void ask({ apiKey: key.trim(), baseUrl: baseUrl.trim() || undefined, deployment: deployment.trim() || undefined })}
+                aria-invalid={keyError ? true : undefined}
+                aria-describedby={keyError ? keyErrorId : undefined}
                 autoComplete="off"
                 spellCheck={false}
               />
-              <span className="k font-medium">{compatible ? t(m.apiKeyLocal) : t(m.apiKeyHint)}</span>
+              {keyError ? (
+                <span className="err" role="alert" id={keyErrorId}>
+                  {keyError}
+                </span>
+              ) : (
+                <span className="k font-medium">{compatible ? t(m.apiKeyLocal) : t(m.apiKeyHint)}</span>
+              )}
             </label>
             {azure ? (
               <label className="lbl">

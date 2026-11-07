@@ -173,3 +173,27 @@ JOIN providers p ON p.id = (r.splits -> 0 ->> 'provider_id')::uuid AND p.disconn
 WHERE r.workspace_id = @workspace_id AND r.stream = 'system' AND r.enabled AND r.conditions = '{}'::jsonb
 ORDER BY r.priority
 LIMIT 1;
+
+-- name: AccountsCountChallengeAttempt :one
+-- Counts an attempt at a two-factor challenge before its code is checked,
+-- and only while attempts are left: parallel guesses can't go over the
+-- limit. No row means none are left (or the challenge is gone).
+UPDATE auth_challenges SET attempts = attempts + 1
+WHERE id = @id AND attempts < @max_attempts::int AND expires_at > now()
+RETURNING attempts;
+
+-- name: AccountsTakeChallenge :execrows
+-- Uses up a challenge: of two requests with a right answer, only the one
+-- that deletes it goes on.
+DELETE FROM auth_challenges WHERE id = @id;
+
+-- name: AccountsUseTOTPStep :execrows
+-- Accepts an authenticator code's time step once: the step only moves
+-- forward, so a code that signed in can't be replayed.
+UPDATE users SET totp_last_step = @step::bigint
+WHERE id = @id AND (totp_last_step IS NULL OR totp_last_step < @step::bigint);
+
+-- name: AccountsSetTOTPStep :exec
+-- The step of the code that confirmed a new authenticator: that code can't
+-- sign in afterwards.
+UPDATE users SET totp_last_step = GREATEST(coalesce(totp_last_step, 0), @step::bigint) WHERE id = @id;

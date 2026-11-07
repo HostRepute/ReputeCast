@@ -5,8 +5,10 @@
 // entities, so Prepare decodes entities inside {{ … }} and {% … %} before
 // parsing. The composer's short form {{ first_name | "there" }} is accepted
 // and read as default: "there". Rendering is bounded: no include or render
-// (templates can't load other templates or files), ranges of at most 1,000
-// items and at most 4 MB of output.
+// (templates can't load other templates or files), literal ranges of at
+// most 1,000 items, at most 4 MB of output, and a budget of steps, work and
+// time for every render (budget.go), so a template someone can preview
+// can't stall or exhaust the server.
 //
 // One filter of ReputeCast's own: with_query sets a query parameter on a
 // link, {{ upgrade_url | with_query: "offer", "FALL26" }}, whether or not
@@ -18,6 +20,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"maps"
 	"net/url"
 	"regexp"
 	"sort"
@@ -26,6 +29,8 @@ import (
 	"sync"
 
 	osteele "github.com/osteele/liquid"
+	"github.com/osteele/liquid/parser"
+	"github.com/osteele/liquid/render"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
@@ -204,25 +209,6 @@ type LiquidProblem struct {
 	Message string `json:"message"`
 }
 
-// NewEngine returns a Liquid engine that can't read files. Every package
-// that parses Liquid uses it.
-//
-// osteele/liquid's include and render tags load other templates from the
-// engine's template store, which by default reads files under the working
-// directory: an email could print the server's files, and a template that
-// renders itself recursed until the stack overflowed, killing the process.
-// Both tags are removed, so using one is a parse error with its line, and
-// the store holds no templates, so a tag added later can't read files
-// either.
-func NewEngine() *osteele.Engine {
-	e := osteele.NewEngine()
-	e.UnregisterTag("include")
-	e.UnregisterTag("render")
-	e.RegisterTemplateStore(noTemplates{})
-	e.RegisterFilter("with_query", WithQuery)
-	return e
-}
-
 // WithQuery is the with_query filter: the link with the query parameter
 // name set to value. Anything that isn't a web link comes back as it is.
 func WithQuery(link, name, value string) string {
@@ -242,8 +228,6 @@ type noTemplates struct{}
 func (noTemplates) ReadTemplate(name string) ([]byte, error) {
 	return nil, fmt.Errorf("templates can't load other templates (%q)", name)
 }
-
-var engine = NewEngine()
 
 // numberRange is a literal range of a for loop: (1..5000).
 type numberRange struct {
@@ -311,37 +295,86 @@ func sentence(s string) string {
 // ErrTooLarge is returned when rendering exceeds MaxOutput.
 var ErrTooLarge = errors.New("the rendered email is larger than 4 MB")
 
+// limitWriter keeps at most MaxOutput bytes. Past that it records
+// ErrTooLarge in the budget and drops the rest instead of failing the
+// write: osteele/liquid's tablerow panics when a write fails, and the
+// render stops at its next step anyway.
 type limitWriter struct {
-	b strings.Builder
+	s      strings.Builder
+	budget *budget
 }
 
 func (w *limitWriter) Write(p []byte) (int, error) {
-	if w.b.Len()+len(p) > MaxOutput {
-		return 0, ErrTooLarge
+	if w.budget.stopped() {
+		return len(p), nil
 	}
-	return w.b.Write(p)
+	if w.s.Len()+len(p) > MaxOutput {
+		_ = w.budget.fail(ErrTooLarge)
+		return len(p), nil
+	}
+	return w.s.Write(p)
 }
 
+// Template is parsed Liquid, ready to render many times (an email, once
+// per recipient). Every render runs on its own budget (budget.go).
+type Template struct {
+	root render.Node
+	src  string
+}
+
+// Parse prepares and parses src. Every package that parses Liquid uses it,
+// so no template renders without a budget or reads files.
+func Parse(src string) (*Template, error) {
+	p := Prepare(src)
+	if err := checkRanges(p); err != nil {
+		return nil, err
+	}
+	root, err := parseCfg.Compile(p, parser.SourceLoc{})
+	if err != nil {
+		return nil, errors.New(problem(i18n.Default, err, p).Message)
+	}
+	if err := instrument([]render.Node{root}); err != nil {
+		return nil, err
+	}
+	return &Template{root: root, src: p}, nil
+}
+
+// Render fills the template in with vars. The result is at most MaxOutput
+// bytes; a template that goes over its budget fails with ErrTooMuchWork.
+func (t *Template) Render(vars map[string]any) (string, error) {
+	b := newBudget()
+	w := &limitWriter{budget: b}
+	r, _ := renderers.Get().(*renderer)
+	r.b = b
+	defer func() {
+		r.b = nil
+		renderers.Put(r)
+	}()
+	// A copy: the budget's binding mustn't reach the caller's map, which
+	// renders of other recipients share.
+	scope := make(map[string]any, len(vars))
+	maps.Copy(scope, vars)
+	scope[budgetVar] = b
+	err := render.Render(t.root, io.Writer(w), scope, r.cfg)
+	if b.err != nil {
+		return "", b.err
+	}
+	if err != nil {
+		return "", errors.New(problem(i18n.Default, err, t.src).Message)
+	}
+	return w.s.String(), nil
+}
+
+// Render parses and renders src once.
 func Render(src string, vars map[string]any) (string, error) {
 	if !strings.Contains(src, "{{") && !strings.Contains(src, "{%") {
 		return src, nil
 	}
-	p := Prepare(src)
-	if err := checkRanges(p); err != nil {
+	t, err := Parse(src)
+	if err != nil {
 		return "", err
 	}
-	tpl, err := engine.ParseString(p)
-	if err != nil {
-		return "", errors.New(problem(i18n.Default, err, p).Message)
-	}
-	w := &limitWriter{}
-	if err := tpl.FRender(io.Writer(w), osteele.Bindings(vars)); err != nil {
-		if errors.Is(err, ErrTooLarge) || strings.Contains(err.Error(), ErrTooLarge.Error()) {
-			return "", ErrTooLarge
-		}
-		return "", errors.New(problem(i18n.Default, err, p).Message)
-	}
-	return w.b.String(), nil
+	return t.Render(vars)
 }
 
 // Use is a variable a template prints, with its fallback.

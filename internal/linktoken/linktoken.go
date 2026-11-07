@@ -21,7 +21,10 @@ import (
 // Kind is what a token is for; a token for one purpose never works for another.
 type Kind byte
 
-// Token kinds.
+// Token kinds. Packages declare their own kinds next to the code that signs
+// them (earn 160–163, revenue 170, products 190–192, publicpages 194,
+// clicktoken 201, push 220); every kind is used once, which
+// TestKindsAreUnique checks across the source. Pick an unused number.
 const (
 	Open        Kind = 1
 	Click       Kind = 2
@@ -45,7 +48,8 @@ const (
 	Recommendations Kind = 151
 	RewardDownload  Kind = 152
 	// Review 2026-10 (R05: 200–209): the hidden link of tracked emails,
-	// which only machines follow (bot clicks, review AN-2).
+	// which only machines follow (bot clicks, review AN-2). Its Link is
+	// always 0.
 	Honeypot Kind = 200
 )
 
@@ -121,7 +125,10 @@ func (s *Signer) Sign(c Claims) string {
 
 // Verify checks a token and returns its claims; want limits the accepted kind.
 func (s *Signer) Verify(token string, want Kind) (Claims, error) {
-	raw, err := base64.RawURLEncoding.DecodeString(token)
+	// Strict: a token works only as it was issued. Its last character can
+	// carry bits no byte uses, and a link with those bits changed decoded
+	// to the same token, so changing a link's end could leave it working.
+	raw, err := base64.RawURLEncoding.Strict().DecodeString(token)
 	if err != nil || len(raw) < 2+48+1+16 || raw[0] != version || Kind(raw[1]) != want {
 		return Claims{}, ErrInvalid
 	}
@@ -176,6 +183,21 @@ func IssuedOn(day uint32) time.Time { return issueEpoch.Add(time.Duration(day) *
 // 2026-11 DP-3). A Confirm token carries the day it was issued in Link and,
 // when it was sent for one signup, the form submission in MessageID.
 const ConfirmValid = 30 * 24 * time.Hour
+
+// UntilMinute is the Link of a token that works until t, to the minute,
+// for links whose life depends on where they're sent (a paid member's
+// billing link: an hour when asked for, 30 days in an email).
+func UntilMinute(t time.Time) uint32 {
+	m := t.UTC().Sub(issueEpoch) / time.Minute
+	if m < 0 {
+		return 0
+	}
+	return uint32(m)
+}
+
+// Until is when a token made with UntilMinute stops working. A token
+// signed without one (Link 0) stopped long ago.
+func Until(c Claims) time.Time { return issueEpoch.Add(time.Duration(c.Link) * time.Minute) }
 
 // Expired reports whether a token issued on the day in c.Link is older than
 // valid at now. The issue day counts whole, so a link gets a day's grace.

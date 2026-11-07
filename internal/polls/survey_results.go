@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -139,7 +140,7 @@ func (s *Service) Responses(ctx context.Context, ws *store.Workspace, p *authz.P
 	}
 	names := p.Can(authz.SubscribersView)
 	out := SurveyResponseList{Items: []SurveyResponse{}, Total: sv.Completed, Names: names}
-	rows, err := s.Q.SurveyResponses(ctx, store.SurveyResponsesParams{SurveyID: sv.ID, Lim: int32(limit), Off: int32(max(offset, 0))})
+	rows, err := s.Q.SurveyResponses(ctx, store.SurveyResponsesParams{SurveyID: sv.ID, ScopeLists: access.ScopeLists(p), Lim: int32(limit), Off: int32(max(offset, 0))})
 	if err != nil {
 		return out, err
 	}
@@ -147,7 +148,9 @@ func (s *Service) Responses(ctx context.Context, ws *store.Workspace, p *authz.P
 		var answers map[string]any
 		_ = json.Unmarshal(r.Answers, &answers)
 		item := SurveyResponse{ID: r.ID.String(), CompletedAt: r.CompletedAt, NonContact: r.Kind == AnswererNonContact, Answers: make([]string, 0, len(qs))}
-		if names && r.ContactID != nil {
+		// Named only when the contact is on one of the caller's lists, for a
+		// member, key or agent limited to some.
+		if names && r.ContactID != nil && r.InScope {
 			item.Contact = strings.TrimSpace(r.FirstName + " " + r.LastName)
 			if item.Contact == "" {
 				item.Contact = r.Email
@@ -202,7 +205,7 @@ func (s *Service) TextAnswers(ctx context.Context, ws *store.Workspace, p *authz
 	if err != nil {
 		return out, err
 	}
-	rows, err := s.Q.SurveyTextAnswers(ctx, store.SurveyTextAnswersParams{SurveyID: sv.ID, QuestionKey: key, Search: needle, Lim: int32(limit), Off: int32(offset)})
+	rows, err := s.Q.SurveyTextAnswers(ctx, store.SurveyTextAnswersParams{SurveyID: sv.ID, QuestionKey: key, Search: needle, ScopeLists: access.ScopeLists(p), Lim: int32(limit), Off: int32(offset)})
 	if err != nil {
 		return out, err
 	}
@@ -212,7 +215,7 @@ func (s *Service) TextAnswers(ctx context.Context, ws *store.Workspace, p *authz
 		if r.CompletedAt != nil {
 			a.At = *r.CompletedAt
 		}
-		if names && r.ContactID != nil {
+		if names && r.ContactID != nil && r.InScope {
 			a.Contact = strings.TrimSpace(r.FirstName + " " + r.LastName)
 			if a.Contact == "" {
 				a.Contact = r.Email

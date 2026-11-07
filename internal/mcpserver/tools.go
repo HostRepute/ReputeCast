@@ -320,6 +320,13 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if cp.Status != "paused" {
 			return nil, e, fmt.Errorf("%q isn't paused (it is %s)", cp.Name, cp.Status)
 		}
+		// Resuming sends: only a campaign within the agent's lists and
+		// sender domains, as for a person in ReputeCast.
+		if msg, err := access.CampaignSendProblem(ctx, s.Q, i18n.Default, c.Principal, c.Workspace.ID, cp.ID); err != nil {
+			return nil, e, err
+		} else if msg != "" {
+			return nil, e, errors.New(msg)
+		}
 		if err := s.Sending.Resume(ctx, cp.ID, c.Principal.ID); err != nil {
 			if errors.Is(err, sending.ErrUnavailable) {
 				return nil, e, errors.New("the sending engine isn't running in this process; resume the send in ReputeCast")
@@ -363,7 +370,9 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if limit <= 0 || limit > 100 {
 			limit = 20
 		}
-		rows, err := s.Q.McpSearchContacts(ctx, store.McpSearchContactsParams{WorkspaceID: c.Workspace.ID, Q: q, Lists: c.Principal.Scope.Lists, Lim: int32(limit)})
+		// The scope as an empty array, never NULL, for an agent not limited
+		// to some lists: NULL matched no contact at all.
+		rows, err := s.Q.McpSearchContacts(ctx, store.McpSearchContactsParams{WorkspaceID: c.Workspace.ID, Q: q, Lists: access.ScopeLists(c.Principal), Lim: int32(limit)})
 		if err != nil {
 			return nil, e, err
 		}

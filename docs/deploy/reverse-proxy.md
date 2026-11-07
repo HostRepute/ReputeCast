@@ -85,6 +85,25 @@ and archive at the root of its own domain, for example
 3. Give the proxy a certificate for the domain, and keep the original `Host`
    header. The pages answer on the domain once the DNS check passes.
 
+A `CNAME` or matching addresses only show that a domain points at this
+server, not which workspace it belongs to. So a domain another workspace
+already uses (for its pages, its SMS short links or its link tracking) can't
+be added, and a domain under the public URL's own host (such as
+`acme.reputecast.example.com` beside `reputecast.example.com`, where a
+wildcard record points every name at the server) verifies only with its TXT
+record, whose value is different for each workspace.
+
+The same goes for an SMS short-link domain, checked again every day: a domain
+that another workspace stored and verified first (before this rule existed),
+or one under the public URL's own host, needs the `_reputecast.<domain>` TXT
+record shown in Routing & rules besides its `CNAME`. Until then texts with
+links don't use it, and a short-link domain only ever carries its own
+workspace's links. A link tracking domain, checked every 30 minutes, works
+the same way, with the TXT record on its sending domain's records page;
+until then links and the open pixel use the public URL. Nobody recorded when
+a tracking domain was verified before this rule, so one that two workspaces
+verified then needs the TXT record of whichever keeps it.
+
 With Caddy's on-demand TLS, certificates are issued only for domains that
 ReputeCast has verified (`/p/_/tls-check` answers 200 for them):
 

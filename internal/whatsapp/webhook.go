@@ -21,12 +21,22 @@ import (
 	"github.com/hostrepute/reputecast/internal/whatsapp/meta"
 )
 
-// Meta's webhooks (brief §3.9): /hooks/whatsapp/{workspace}. Meta's
-// verification request is a GET with the verify token; every POST is
-// checked with the app secret (X-Hub-Signature-256), stored raw, answered
-// 200 at once and normalized by a River job into delivered, read, failed
-// and reply events. Statuses, replies and keywords are kept in the message
-// log and on the contact's timeline, never in the audit log.
+// Meta's webhooks (brief §3.9): the account's callback URL,
+// /hooks/whatsapp/{workspace}/{token} (callback.go). Meta's verification
+// request is a GET with the verify token; every POST is checked with the
+// app secret (X-Hub-Signature-256), stored raw, answered 200 at once and
+// normalized by a River job into delivered, read, failed and reply events.
+// Statuses, replies and keywords are kept in the message log and on the
+// contact's timeline, never in the audit log.
+//
+// The address is checked first: a request to a wrong token, or to the old
+// address once the account has moved off it, is counted on the account
+// and refused unread. A POST whose signature fails is only counted too,
+// never stored, and its body isn't read when the signature header is
+// missing or malformed. And since workspaces whose accounts share one Meta
+// app get each other's deliveries, signed with the same app secret, only
+// the events of the connected WhatsApp Business Account and number are
+// kept; the others are counted and dropped.
 
 // MaxHookBody is the largest webhook accepted.
 const MaxHookBody = 1 << 20
@@ -43,50 +53,78 @@ func init() {
 	)
 }
 
-// HookRoutes mounts Meta's webhook address.
+// HookRoutes mounts Meta's webhook: each account's callback URL, and the
+// old address for the accounts Meta hasn't called there yet.
 func (s *Service) HookRoutes(r chi.Router) {
-	r.Get("/hooks/whatsapp/{workspace}", s.serveVerify)
-	r.Post("/hooks/whatsapp/{workspace}", s.serveHook)
+	r.Get("/hooks/whatsapp/{workspace}/{token}", s.serveVerify(false))
+	r.Post("/hooks/whatsapp/{workspace}/{token}", s.serveHook(false))
+	r.Get("/hooks/whatsapp/{workspace}", s.serveVerify(true))
+	r.Post("/hooks/whatsapp/{workspace}", s.serveHook(true))
 }
 
-func (s *Service) serveVerify(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	q := r.URL.Query()
-	challenge, ok := s.Verify(r.Context(), chi.URLParam(r, "workspace"), q.Get("hub.mode"), q.Get("hub.verify_token"), q.Get("hub.challenge"))
-	if !ok {
-		w.WriteHeader(http.StatusForbidden)
-		return
+// addressOf is the address a request came to; old is the address without
+// a token.
+func addressOf(r *http.Request, old bool) hookAddress {
+	if old {
+		return hookAddress{slug: chi.URLParam(r, "workspace"), old: true}
 	}
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(clip(challenge, 200)))
+	return hookAddress{slug: chi.URLParam(r, "workspace"), token: chi.URLParam(r, "token")}
 }
 
-func (s *Service) serveHook(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	body, err := io.ReadAll(io.LimitReader(r.Body, MaxHookBody+1))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+func (s *Service) serveVerify(old bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		q := r.URL.Query()
+		challenge, ok := s.verify(r.Context(), addressOf(r, old), q.Get("hub.mode"), q.Get("hub.verify_token"), q.Get("hub.challenge"))
+		if !ok {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(clip(challenge, 200)))
 	}
-	if len(body) > MaxHookBody {
-		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		return
-	}
-	status := s.Ingest(r.Context(), chi.URLParam(r, "workspace"), r.Header, body)
-	if status == http.StatusTooManyRequests {
-		w.Header().Set("Retry-After", "30")
-	}
-	w.WriteHeader(status)
 }
 
-// Ingest verifies one webhook, stores it raw and queues its normalization:
-// 200 at once, 401 when the signature fails (the payload is kept, cut
-// short, for diagnosis), 404 for an unknown address, 429 to retry.
-func (s *Service) Ingest(ctx context.Context, slug string, h http.Header, body []byte) int {
-	a, err := s.Q.WhatsAppAccountBySlug(ctx, slug)
+func (s *Service) serveHook(old bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		status := s.receive(r.Context(), addressOf(r, old), r)
+		if status == http.StatusTooManyRequests {
+			w.Header().Set("Retry-After", "30")
+		}
+		w.WriteHeader(status)
+	}
+}
+
+// verify answers Meta's verification request: the challenge when the
+// request came to the account's address and the verify token matches.
+// The first one at the callback URL moves the account off the old address.
+func (s *Service) verify(ctx context.Context, at hookAddress, mode, token, challenge string) (string, bool) {
+	a, ok, err := s.hookAccount(ctx, at)
+	if err != nil || !ok || mode != "subscribe" || token == "" {
+		return "", false
+	}
+	if !constantEqual(token, a.VerifyToken) {
+		return "", false
+	}
+	if err := s.Q.WhatsAppAccountVerified(ctx, store.WhatsAppAccountVerifiedParams{At: s.now(), ID: a.ID}); err != nil {
+		s.log().WarnContext(ctx, "whatsapp verified", "err", err)
+	}
+	if !at.old {
+		s.moved(ctx, a, "verification")
+	}
+	return challenge, true
+}
+
+// receive answers one POST: the address (the callback token, or whether
+// the old address still takes the account's deliveries) and the signature
+// header's shape are checked before the body is read, so a request to a
+// wrong address or one that can't be signed costs no read of its body.
+func (s *Service) receive(ctx context.Context, at hookAddress, r *http.Request) int {
+	a, ok, err := s.hookAccount(ctx, at)
 	if err != nil {
 		if notFound(err) {
 			return http.StatusNotFound
@@ -94,31 +132,72 @@ func (s *Service) Ingest(ctx context.Context, slug string, h http.Header, body [
 		s.log().ErrorContext(ctx, "whatsapp webhook lookup", "err", err)
 		return http.StatusTooManyRequests
 	}
+	if !ok {
+		return s.wrongAddress(ctx, a)
+	}
+	if !meta.SignatureShape(r.Header.Get("X-Hub-Signature-256")) {
+		return s.rejected(ctx, a)
+	}
+	if r.ContentLength > MaxHookBody {
+		return http.StatusRequestEntityTooLarge
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, MaxHookBody+1))
+	if err != nil {
+		return http.StatusBadRequest
+	}
+	if len(body) > MaxHookBody {
+		return http.StatusRequestEntityTooLarge
+	}
+	status := s.Ingest(ctx, a, r.Header, body)
+	if status == http.StatusOK && !at.old {
+		// Ingest answers 200 only once the signature is valid: Meta itself
+		// called the callback URL.
+		s.moved(ctx, a, "delivery")
+	}
+	return status
+}
+
+// Ingest verifies one webhook for an account, stores it raw and queues its
+// normalization: 200 at once, and only for a valid signature; 401 when the
+// signature fails, counted on the account and not stored; 429 to retry.
+// Events for another WhatsApp Business Account or number are counted and
+// left out of what is stored, and a delivery with nothing for this account
+// is answered 200 and not stored at all.
+func (s *Service) Ingest(ctx context.Context, a store.WhatsappAccount, h http.Header, body []byte) int {
 	creds, err := s.credentials(a.ID, a.CredentialsEnc)
 	if err != nil {
 		s.log().ErrorContext(ctx, "whatsapp webhook credentials", "account", a.ID, "err", err)
 		return http.StatusTooManyRequests
 	}
-	sigOK := meta.VerifySignature(creds.AppSecret, body, h.Get("X-Hub-Signature-256"))
-	stored := body
-	if !sigOK && len(stored) > 2048 {
-		stored = stored[:2048]
+	if !meta.VerifySignature(creds.AppSecret, body, h.Get("X-Hub-Signature-256")) {
+		return s.rejected(ctx, a)
+	}
+	now := s.now()
+	stored, summary, other := body, "", 0
+	if own, n, err := meta.For(body, creds.BusinessAccountID, creds.PhoneNumberID); err == nil {
+		evs, _ := meta.ParseWebhook(own)
+		if n > 0 && len(evs) == 0 {
+			// Signed with the app secret, but nothing in it is this
+			// account's: count it, and don't make Meta send it again.
+			if err := s.Q.WhatsAppAccountOtherAccount(ctx, store.WhatsAppAccountOtherAccountParams{Events: int64(n), At: now, ID: a.ID}); err != nil {
+				s.log().ErrorContext(ctx, "whatsapp webhook for another account", "account", a.ID, "err", err)
+				return http.StatusTooManyRequests
+			}
+			s.log().WarnContext(ctx, "whatsapp webhook for another account", "account", a.ID, "events", n)
+			return http.StatusOK
+		}
+		stored, summary, other = own, summarize(evs), n
 	}
 	id := uuid.Must(uuid.NewV7())
-	now := s.now()
-	summary := ""
-	if sigOK {
-		if evs, err := meta.ParseWebhook(body); err == nil {
-			summary = summarize(evs)
-		}
-	}
 	err = s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if err := q.WhatsAppRawEventInsert(ctx, store.WhatsAppRawEventInsertParams{ID: id, WorkspaceID: a.WorkspaceID, AccountID: &a.ID, ReceivedAt: now,
-			Headers: hookHeaders(h), Body: stored, SignatureOk: sigOK, Summary: summary}); err != nil {
+			Headers: hookHeaders(h), Body: stored, SignatureOk: true, Summary: summary}); err != nil {
 			return err
 		}
-		if !sigOK {
-			return nil
+		if other > 0 {
+			if err := q.WhatsAppAccountOtherAccount(ctx, store.WhatsAppAccountOtherAccountParams{Events: int64(other), At: now, ID: a.ID}); err != nil {
+				return err
+			}
 		}
 		if err := q.WhatsAppAccountTouchEvent(ctx, store.WhatsAppAccountTouchEventParams{At: now, ID: a.ID}); err != nil {
 			return err
@@ -134,11 +213,23 @@ func (s *Service) Ingest(ctx context.Context, slug string, h http.Header, body [
 		s.log().ErrorContext(ctx, "store whatsapp webhook", "account", a.ID, "err", err)
 		return http.StatusTooManyRequests
 	}
-	if !sigOK {
-		s.log().WarnContext(ctx, "whatsapp webhook signature", "account", a.ID)
-		return http.StatusUnauthorized
-	}
 	return http.StatusOK
+}
+
+// rejected counts a delivery whose signature is missing or doesn't match the
+// app secret. Nothing of it is stored: anyone can post to the address.
+func (s *Service) rejected(ctx context.Context, a store.WhatsappAccount) int {
+	if err := s.Q.WhatsAppAccountRejected(ctx, store.WhatsAppAccountRejectedParams{At: s.now(), ID: a.ID}); err != nil {
+		s.log().ErrorContext(ctx, "whatsapp webhook rejected", "account", a.ID, "err", err)
+	}
+	s.log().WarnContext(ctx, "whatsapp webhook signature", "account", a.ID)
+	return http.StatusUnauthorized
+}
+
+// ofAccount reports whether an event is for the connected account: its
+// WhatsApp Business Account and, when the event names one, its number.
+func ofAccount(c meta.Credentials, e meta.Event) bool {
+	return c.BusinessAccountID != "" && e.BusinessID == c.BusinessAccountID && (e.PhoneNumberID == "" || e.PhoneNumberID == c.PhoneNumberID)
 }
 
 // hookHeaders keeps the headers diagnosis may need: never credentials.
@@ -198,8 +289,12 @@ func (s *Service) Normalize(ctx context.Context, rawID uuid.UUID) error {
 		return err
 	}
 	var a store.WhatsappAccount
+	var creds meta.Credentials
 	if raw.AccountID != nil {
 		if a, err = s.Q.WhatsAppAccountByID(ctx, *raw.AccountID); err != nil {
+			return err
+		}
+		if creds, err = s.credentials(a.ID, a.CredentialsEnc); err != nil {
 			return err
 		}
 	}
@@ -208,6 +303,12 @@ func (s *Service) Normalize(ctx context.Context, rawID uuid.UUID) error {
 	errs := []string{}
 	if perr == nil {
 		for _, e := range evs {
+			// Ingest keeps only the account's events; this also holds for
+			// what was stored before it did, and after its credentials
+			// changed.
+			if !ofAccount(creds, e) {
+				continue
+			}
 			var err error
 			switch e.Kind {
 			case meta.EventStatus:

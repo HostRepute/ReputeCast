@@ -11,7 +11,8 @@ WHERE a.workspace_id = @workspace_id AND a.removed_at IS NULL;
 SELECT * FROM whatsapp_accounts WHERE id = @id;
 
 -- name: WhatsAppAccountBySlug :one
--- The account a webhook request is for: /hooks/whatsapp/{workspace}.
+-- The account a webhook request is for: /hooks/whatsapp/{workspace}/{token},
+-- or the old address without the token.
 SELECT a.* FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
 WHERE w.slug = @slug AND a.removed_at IS NULL;
 
@@ -21,8 +22,12 @@ SELECT a.* FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id A
 WHERE a.removed_at IS NULL ORDER BY a.id;
 
 -- name: WhatsAppAccountInsert :exec
-INSERT INTO whatsapp_accounts (id, workspace_id, credentials_enc, business_hint, verify_token, status, status_since, demo, connected_by, connected_at)
-VALUES (@id, @workspace_id, @credentials_enc, @business_hint, @verify_token, 'waiting', @connected_at, @demo, sqlc.narg(connected_by), @connected_at);
+-- A new account starts at its callback URL: the old address, without the
+-- token, never takes its deliveries.
+INSERT INTO whatsapp_accounts (id, workspace_id, credentials_enc, business_hint, verify_token, callback_token_hash, callback_token_enc, callback_moved_at,
+    status, status_since, demo, connected_by, connected_at)
+VALUES (@id, @workspace_id, @credentials_enc, @business_hint, @verify_token, @callback_token_hash, @callback_token_enc, @connected_at,
+    'waiting', @connected_at, @demo, sqlc.narg(connected_by), @connected_at);
 
 -- name: WhatsAppAccountSetCredentials :exec
 UPDATE whatsapp_accounts SET credentials_enc = @credentials_enc, business_hint = @business_hint WHERE id = @id;
@@ -52,6 +57,45 @@ WHERE id = @id;
 
 -- name: WhatsAppAccountTouchEvent :exec
 UPDATE whatsapp_accounts SET last_event_at = greatest(coalesce(last_event_at, @at::timestamptz), @at::timestamptz) WHERE id = @id;
+
+-- name: WhatsAppAccountRejected :exec
+-- A delivery whose signature didn't match the app secret: counted, never
+-- stored.
+UPDATE whatsapp_accounts SET rejected_deliveries = rejected_deliveries + 1,
+    rejected_at = greatest(coalesce(rejected_at, @at::timestamptz), @at::timestamptz)
+WHERE id = @id;
+
+-- name: WhatsAppAccountOtherAccount :exec
+-- Events for another WhatsApp Business Account or number, in a delivery
+-- signed with the app secret: counted and dropped.
+UPDATE whatsapp_accounts SET other_account_events = other_account_events + @events::bigint,
+    other_account_at = greatest(coalesce(other_account_at, @at::timestamptz), @at::timestamptz)
+WHERE id = @id;
+
+-- name: WhatsAppAccountCallbackToken :execrows
+-- Gives an account connected before callback tokens its token, once.
+UPDATE whatsapp_accounts SET callback_token_hash = @callback_token_hash, callback_token_enc = @callback_token_enc
+WHERE id = @id AND callback_token_hash IS NULL;
+
+-- name: WhatsAppAccountRotateCallback :exec
+-- A new callback token: the previous one stops working at once, and Meta
+-- has to verify the new address, as when the account connected.
+UPDATE whatsapp_accounts SET callback_token_hash = @callback_token_hash, callback_token_enc = @callback_token_enc, verified_at = NULL,
+    status_since = CASE WHEN status = 'connected' THEN @at::timestamptz ELSE status_since END,
+    status = CASE WHEN status = 'connected' THEN 'waiting' ELSE status END
+WHERE id = @id;
+
+-- name: WhatsAppAccountCallbackMoved :execrows
+-- Meta called the account's callback URL: from now on the old address
+-- refuses the account's deliveries.
+UPDATE whatsapp_accounts SET callback_moved_at = @at WHERE id = @id AND callback_moved_at IS NULL;
+
+-- name: WhatsAppAccountWrongAddress :exec
+-- A delivery to the old address once the account moved, or to a wrong
+-- token: counted, never stored.
+UPDATE whatsapp_accounts SET wrong_address_deliveries = wrong_address_deliveries + 1,
+    wrong_address_at = greatest(coalesce(wrong_address_at, @at::timestamptz), @at::timestamptz)
+WHERE id = @id;
 
 -- name: WhatsAppAccountSynced :exec
 UPDATE whatsapp_accounts SET templates_synced_at = @at WHERE id = @id;

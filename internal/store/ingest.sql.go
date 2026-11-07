@@ -49,6 +49,41 @@ func (q *Queries) IngestAddSuppression(ctx context.Context, arg IngestAddSuppres
 	return id, err
 }
 
+const ingestBindToken = `-- name: IngestBindToken :one
+INSERT INTO webhook_tokens AS w (scope, token_hash, payload_hash, expires_at)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (scope, token_hash) DO UPDATE SET
+    payload_hash = CASE WHEN w.expires_at < $5::timestamptz THEN excluded.payload_hash ELSE w.payload_hash END,
+    expires_at   = CASE WHEN w.expires_at < $5::timestamptz THEN excluded.expires_at ELSE w.expires_at END
+RETURNING payload_hash
+`
+
+type IngestBindTokenParams struct {
+	Scope       string    `json:"scope"`
+	TokenHash   []byte    `json:"tokenHash"`
+	PayloadHash []byte    `json:"payloadHash"`
+	ExpiresAt   time.Time `json:"expiresAt"`
+	Now         time.Time `json:"now"`
+}
+
+// Ties the one-time token of a webhook signature to the payload it first
+// came with (both hashed), and returns the payload it is tied to: the one
+// already there while it is current, this one otherwise. In one statement,
+// so of two requests with the same token at once, the second gets the
+// first one's payload.
+func (q *Queries) IngestBindToken(ctx context.Context, arg IngestBindTokenParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, ingestBindToken,
+		arg.Scope,
+		arg.TokenHash,
+		arg.PayloadHash,
+		arg.ExpiresAt,
+		arg.Now,
+	)
+	var payload_hash []byte
+	err := row.Scan(&payload_hash)
+	return payload_hash, err
+}
+
 const ingestEventLog = `-- name: IngestEventLog :many
 SELECT e.id, e.received_at, e.occurred_at, e.type, e.original_type, e.original_code, e.diagnostic, e.bounce_class,
        e.recipient, e.provider_message_id, e.source, e.provider_id, e.campaign_id,
@@ -567,6 +602,18 @@ DELETE FROM provider_raw_events WHERE received_at < $1
 
 func (q *Queries) IngestPurgeRaw(ctx context.Context, before time.Time) (int64, error) {
 	result, err := q.db.Exec(ctx, ingestPurgeRaw, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const ingestPurgeTokens = `-- name: IngestPurgeTokens :execrows
+DELETE FROM webhook_tokens WHERE expires_at < $1
+`
+
+func (q *Queries) IngestPurgeTokens(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, ingestPurgeTokens, before)
 	if err != nil {
 		return 0, err
 	}

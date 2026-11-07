@@ -2,6 +2,8 @@ package publicpages
 
 import (
 	"bytes"
+	"crypto/subtle"
+	"encoding/hex"
 	"image"
 	"image/color"
 	"image/png"
@@ -19,7 +21,13 @@ import (
 // mail clients don't show SVG, drawn from the composer's 16-unit icons at
 // twice their 28 px size, in the email's accent colour (?c=0f766e).
 //
-//	/p/_/faces/{faces}-{key}.png    faces 3 or 5, key 1…faces
+//	/p/_/faces/{faces}-{key}.png?c={colour}[&k={signature}]    faces 3 or 5, key 1…faces
+//
+// Emails use the default colour; the poll and survey pages use the
+// publisher's accent, which the instance signs (facePath). Any other
+// colour is drawn in the default one: an image is drawn once and kept, so
+// a colour anyone could pick would let anyone fill the memory, one colour
+// at a time.
 
 type point struct{ x, y float64 }
 
@@ -111,14 +119,74 @@ func drawFace(faces, key, size int, ink color.NRGBA) *image.NRGBA {
 }
 
 var (
-	faceFile  = regexp.MustCompile(`^([35])-([1-5])\.png$`)
-	hexColor  = regexp.MustCompile(`^[0-9a-fA-F]{6}$`)
-	faceCache sync.Map // "5-1-0f766e" → []byte
+	faceFile = regexp.MustCompile(`^([35])-([1-5])\.png$`)
+	hexColor = regexp.MustCompile(`^[0-9a-f]{6}$`)
 )
 
-// FacePath is a face image's path under /p/_/ with its colour ("0f766e").
-func FacePath(faces, key int, hex string) string {
-	return "faces/" + strconv.Itoa(faces) + "-" + strconv.Itoa(key) + ".png?c=" + strings.ToLower(strings.TrimPrefix(hex, "#"))
+// faceDefault is the faces' colour in emails, and of any colour the
+// instance didn't sign.
+const faceDefault = "0f766e"
+
+// faceCacheMax bounds the drawn images kept: eight faces for each accent
+// in use. Past it, an image is drawn for each request instead.
+const faceCacheMax = 512
+
+// faceCache keeps the drawn images ("5-1-0f766e" → PNG).
+var faceCache = struct {
+	sync.Mutex
+	m map[string][]byte
+}{m: map[string][]byte{}}
+
+func faceCached(key string) ([]byte, bool) {
+	faceCache.Lock()
+	defer faceCache.Unlock()
+	b, ok := faceCache.m[key]
+	return b, ok
+}
+
+func faceKeep(key string, b []byte) {
+	faceCache.Lock()
+	defer faceCache.Unlock()
+	if len(faceCache.m) < faceCacheMax {
+		faceCache.m[key] = b
+	}
+}
+
+// faceSignature signs a colour for the faces' addresses.
+func (h *Handler) faceSignature(colour string) string {
+	if h.Tokens == nil {
+		return ""
+	}
+	return hex.EncodeToString(h.Tokens.Digest([]byte("publicpages/face"), []byte(colour))[:8])
+}
+
+// facePath is a face image's path under /p/_/ in a colour ("#4338CA"),
+// signed unless it's the default.
+func (h *Handler) facePath(faces, key int, colour string) string {
+	p := "faces/" + strconv.Itoa(faces) + "-" + strconv.Itoa(key) + ".png?c="
+	c := strings.ToLower(strings.TrimPrefix(colour, "#"))
+	sig := ""
+	if c != faceDefault && hexColor.MatchString(c) {
+		sig = h.faceSignature(c)
+	}
+	if sig == "" {
+		return p + faceDefault
+	}
+	return p + c + "&k=" + sig
+}
+
+// faceColour is the colour a face is drawn in: the one asked for when the
+// instance signed it, else the default.
+func (h *Handler) faceColour(c, sig string) string {
+	c = strings.ToLower(c)
+	if c == faceDefault || !hexColor.MatchString(c) {
+		return faceDefault
+	}
+	want := h.faceSignature(c)
+	if want == "" || subtle.ConstantTimeCompare([]byte(want), []byte(sig)) != 1 {
+		return faceDefault
+	}
+	return c
 }
 
 func (h *Handler) face(w http.ResponseWriter, r *http.Request) {
@@ -133,26 +201,25 @@ func (h *Handler) face(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	hex := strings.ToLower(r.URL.Query().Get("c"))
-	if !hexColor.MatchString(hex) {
-		hex = "0f766e"
-	}
-	ck := m[1] + "-" + m[2] + "-" + hex
-	data, ok := faceCache.Load(ck)
+	q := r.URL.Query()
+	colour := h.faceColour(q.Get("c"), q.Get("k"))
+	ck := m[1] + "-" + m[2] + "-" + colour
+	data, ok := faceCached(ck)
 	if !ok {
-		v, _ := strconv.ParseUint(hex, 16, 32)
+		v, _ := strconv.ParseUint(colour, 16, 32)
 		ink := color.NRGBA{R: uint8(v >> 16), G: uint8(v >> 8), B: uint8(v), A: 255}
 		var buf bytes.Buffer
 		if err := png.Encode(&buf, drawFace(faces, key, 56, ink)); err != nil {
 			http.Error(w, "The image couldn't be drawn.", http.StatusInternalServerError)
 			return
 		}
-		data, _ = faceCache.LoadOrStore(ck, buf.Bytes())
+		data = buf.Bytes()
+		faceKeep(ck, data)
 	}
 	hd := w.Header()
 	hd.Set("Content-Type", "image/png")
 	hd.Set("X-Content-Type-Options", "nosniff")
 	hd.Set("Cross-Origin-Resource-Policy", "cross-origin")
 	hd.Set("Cache-Control", "public, max-age=31536000, immutable")
-	http.ServeContent(w, r, "face.png", staticTime, bytes.NewReader(data.([]byte)))
+	http.ServeContent(w, r, "face.png", staticTime, bytes.NewReader(data))
 }

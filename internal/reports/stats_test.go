@@ -138,7 +138,9 @@ func TestFileStem(t *testing.T) {
 	if got := fileStem("!!!"); got != "campaign" {
 		t.Fatal(got)
 	}
-	if got := csvSafe("=HYPERLINK(1)", "ok")[0]; got != "'=HYPERLINK(1)" {
-		t.Fatal(got)
+	// A campaign named like a formula stays text in a spreadsheet.
+	out := string(reportCSV(CampaignReport{Campaign: ReportCampaignInfo{Name: "=HYPERLINK(1)"}}, time.UTC))
+	if !strings.HasPrefix(out, "Campaign report,'=HYPERLINK(1)\n") {
+		t.Fatal(out)
 	}
 }

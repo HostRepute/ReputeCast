@@ -135,7 +135,7 @@ UPDATE users
 SET language = $1, region_format = $2,
     hour_cycle = $3, week_start = $4, updated_at = now()
 WHERE id = $5
-RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at
+RETURNING id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at, totp_last_step
 `
 
 type AppLangSetUserParams struct {
@@ -188,6 +188,7 @@ func (q *Queries) AppLangSetUser(ctx context.Context, arg AppLangSetUserParams) 
 		&i.HourCycle,
 		&i.WeekStart,
 		&i.LanguagePromptedAt,
+		&i.TotpLastStep,
 	)
 	return i, err
 }

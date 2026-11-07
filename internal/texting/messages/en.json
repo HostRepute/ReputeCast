@@ -128,6 +128,7 @@
   "problem.fallbackRegistered": {"message": "A fallback must be registered for the same countries: {sender} can't text {country}.", "note": "sender: a phone number or a sender ID; country: a country's name in the reader's language"},
   "problem.otherRoute": "Pick the route every other country takes.",
   "problem.domain": {"message": "Enter a domain name, like go.acme.io.", "note": "go.acme.io is an example domain: keep it"},
+  "problem.domainTaken": { "message": "{domain} is already used by another workspace on this ReputeCast, for its pages or its links. Remove it there first.", "note": "the short-link domain is another workspace's public pages, short links, link tracking or push site" },
   "problem.carriersAsk": "Carriers ask for this section: it can't be empty.",
 
   "check.quietWait": {"message": "Quiet hours: texts go out {window} in each contact’s time zone; outside it they wait", "note": "a badge in an automation's publish dialog; window: the hours texts may go out in, 09:00–20:00"},
@@ -180,6 +181,10 @@
   "domain.other": {"message": "{domain} is a CNAME for {cname}, not {target}.", "note": "domain: the short-link domain; cname: where its CNAME points; target: where it should point"},
   "domain.noAnswer": {"message": "DNS didn't answer for {domain}.", "note": "domain: the short-link domain, go.acme.io"},
   "domain.none": "No CNAME found. DNS can take up to an hour.",
+  "domain.txt": {"message": "TXT record found, and the CNAME points at {target}.", "note": "the short-link domain's last check: the TXT record _reputecast.<domain> shows the domain is this workspace's; target: the instance's host name"},
+  "domain.own": {"message": "{domain} is one of this ReputeCast's own addresses. Use a domain of your own instead.", "note": "the short-link domain's last check: the domain is the instance's own host or its SMTP relay's"},
+  "domain.inUse": {"message": "Another workspace on this ReputeCast uses {domain} already, so its CNAME doesn't show it's yours.", "note": "the short-link domain's last check; the app shows the TXT record to add next to it, the one proof that still counts"},
+  "domain.underOwn": {"message": "{domain} is under {target}, this ReputeCast's own address, so its CNAME doesn't show it's yours.", "note": "the short-link domain's last check; target: the instance's host name; the app shows the TXT record to add next to it, the one proof that counts"},
   "code.providerList": {"message": "{provider} opt-out list", "note": "why a number is on the SMS suppression list: the provider's own opt-out list; provider: an SMS provider's name"},
   "approval.scheduleNow": { "message": "Now, holding whoever is outside their window", "note": "an SMS campaign's schedule on its approval: kept with the request, read in each approver's language" },
   "approval.scheduleAt": "{at, date} {at, time} for everyone",

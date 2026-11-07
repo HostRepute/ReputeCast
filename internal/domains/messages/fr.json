@@ -14,6 +14,7 @@
   "cell.none": "Aucun",
   "cell.trackingNotPointed": "{domain} · pas encore pointé",
   "cell.trackingPending": "{domain} · en attente",
+  "cell.trackingRefused": "{domain} · non utilisé",
   "cell.set": "Défini",
   "cell.notSet": "Non défini",
 
@@ -59,6 +60,10 @@
   "problem.domainFormat": "Saisissez un domaine comme news.acme.io.",
   "problem.alreadyDomain": "{domain} est déjà un domaine d’envoi de cet espace de travail.",
   "problem.subdomain": "Utilisez un sous-domaine du domaine {domain}, par exemple go.{domain}.",
+  "problem.trackingTaken": "{domain} est déjà utilisé par un autre espace de travail de cette instance ReputeCast, pour ses pages ou ses liens. Retirez-le d’abord de cet autre espace.",
+  "tracking.inUse": "Un autre espace de travail de cette instance ReputeCast utilise déjà {domain}, donc son CNAME ne prouve pas qu’il vous appartient.",
+  "tracking.underOwn": "{domain} se trouve sous {target}, l’adresse de cette instance ReputeCast, donc son CNAME ne prouve pas qu’il vous appartient.",
+  "tracking.own": "{domain} est l’une des adresses de cette instance ReputeCast. Utilisez plutôt un sous-domaine de votre domaine d’envoi.",
   "problem.sendersUse": "{count, plural, one {# expéditeur utilise} other {# expéditeurs utilisent}} {domain}. Supprimez-{count, plural, one {le} other {les}} d’abord, pour qu’aucune campagne ne perde son adresse d’expédition.",
   "problem.providerAdd": "{provider} n’a pas ajouté {domain}\u00A0: {error}",
   "problem.cloudflareToken": "Cloudflare a refusé ce jeton. Utilisez un jeton d’API avec l’autorisation Zone › DNS › Edit sur la zone du domaine {domain}.",

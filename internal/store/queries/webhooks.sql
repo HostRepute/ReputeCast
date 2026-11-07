@@ -3,6 +3,7 @@
 -- name: HooksList :many
 SELECT h.id, h.workspace_id, h.name, h.description, h.url, h.events, h.enabled, h.created_by, h.created_at,
        h.last_status, h.last_delivery_at, h.failing_since, h.secret_rotated_at, h.paused_at, h.previous_secret_until, h.batch_email,
+       h.paused_reason,
        coalesce(s.total, 0)::bigint AS total_24h, coalesce(s.ok, 0)::bigint AS ok_24h,
        coalesce(q.queued, 0)::bigint AS queued
 FROM webhooks h
@@ -27,9 +28,11 @@ VALUES (@id, @workspace_id, @name, @description, @url, @events, @batch_email, @s
 RETURNING *;
 
 -- name: HooksUpdate :one
--- A demo endpoint stays one only while its address is unchanged.
+-- A demo endpoint stays one only while its address is unchanged. The
+-- endpoint sends for whoever set its events (created_by), so a reason
+-- ReputeCast paused it for no longer applies.
 UPDATE webhooks SET name = @name, description = @description, url = @url, events = @events, batch_email = @batch_email,
-    demo = demo AND url = @url, updated_at = now()
+    demo = demo AND url = @url, created_by = coalesce(sqlc.narg(created_by)::uuid, created_by), paused_reason = NULL, updated_at = now()
 WHERE id = @id AND workspace_id = @workspace_id
 RETURNING *;
 
@@ -41,8 +44,23 @@ UPDATE webhooks SET previous_secret_enc = secret_enc, previous_secret_until = sq
 WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: HooksSetEnabled :exec
-UPDATE webhooks SET enabled = @enabled, paused_at = CASE WHEN @enabled::boolean THEN NULL ELSE now() END, updated_at = now()
+-- A person pausing or resuming replaces ReputeCast's reason; a resumed
+-- endpoint sends for the person who resumed it (created_by).
+UPDATE webhooks SET enabled = @enabled, paused_at = CASE WHEN @enabled::boolean THEN NULL ELSE now() END, paused_reason = NULL,
+    created_by = CASE WHEN @enabled::boolean THEN coalesce(sqlc.narg(created_by)::uuid, created_by) ELSE created_by END, updated_at = now()
 WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: HooksAutoPause :one
+-- ReputeCast pauses a running endpoint whose events the person it sends
+-- for can no longer see; no row when it was paused already.
+UPDATE webhooks SET enabled = false, paused_at = now(), paused_reason = @reason, updated_at = now()
+WHERE id = @id AND enabled
+RETURNING id, workspace_id, url;
+
+-- name: HooksWithhold :exec
+-- A claimed delivery that can't go waits with the endpoint's other events.
+UPDATE webhook_deliveries SET state = 'held', enqueued_at = NULL
+WHERE id = @id AND state = 'delivering';
 
 -- name: HooksDelete :execrows
 DELETE FROM webhooks WHERE id = @id AND workspace_id = @workspace_id;
@@ -105,7 +123,7 @@ FROM webhooks h
 WHERE d.id = @id AND h.id = d.webhook_id AND h.enabled
   AND d.state IN ('pending','retrying') AND (d.next_attempt_at IS NULL OR d.next_attempt_at <= now() + interval '5 seconds')
 RETURNING d.id, d.webhook_id, d.event, d.event_id, d.payload, d.attempt, d.max_attempts, h.url, h.secret_enc, h.workspace_id, h.demo,
-          h.previous_secret_enc, h.previous_secret_until;
+          h.previous_secret_enc, h.previous_secret_until, h.created_by;
 
 -- name: HooksFinishDelivery :exec
 UPDATE webhook_deliveries

@@ -128,6 +128,7 @@
   "problem.fallbackRegistered": "Ein Ersatzabsender muss für dieselben Länder registriert sein; {sender} fehlt die Registrierung für: {country}.",
   "problem.otherRoute": "Wählen Sie die Route für alle anderen Länder.",
   "problem.domain": "Geben Sie einen Domainnamen ein, etwa go.acme.io.",
+  "problem.domainTaken": "{domain} wird bereits von einem anderen Arbeitsbereich dieser ReputeCast-Instanz genutzt, für seine Seiten oder seine Links. Entfernen Sie die Domain zuerst dort.",
   "problem.carriersAsk": "Netzbetreiber verlangen diesen Abschnitt: Er darf nicht leer sein.",
 
   "check.quietWait": "Ruhezeiten: Versand {window} in der Zeitzone jedes Kontakts; außerhalb des Versandfensters warten SMS",
@@ -180,6 +181,10 @@
   "domain.other": "{domain} ist ein CNAME für {cname}, nicht für {target}.",
   "domain.noAnswer": "DNS hat für {domain} nicht geantwortet.",
   "domain.none": "Kein CNAME gefunden. DNS kann bis zu einer Stunde brauchen.",
+  "domain.txt": "TXT-Eintrag gefunden, und der CNAME zeigt auf {target}.",
+  "domain.own": "{domain} ist eine der eigenen Adressen dieser ReputeCast-Instanz. Verwenden Sie stattdessen eine eigene Domain.",
+  "domain.inUse": "Ein anderer Arbeitsbereich dieser ReputeCast-Instanz nutzt {domain} bereits, daher belegt der CNAME nicht, dass die Domain Ihnen gehört.",
+  "domain.underOwn": "{domain} liegt unter {target}, der eigenen Adresse dieser ReputeCast-Instanz, daher belegt der CNAME nicht, dass die Domain Ihnen gehört.",
   "code.providerList": "Abmeldeliste von {provider}",
   "approval.scheduleNow": "Jetzt; zurückgehalten wird, wer außerhalb des Versandfensters ist",
   "approval.scheduleAt": "{at, date}, {at, time} für alle",

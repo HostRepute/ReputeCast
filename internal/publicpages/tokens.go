@@ -237,8 +237,10 @@ type preferencesBody struct {
 	// stands in for it when there are none.
 	Notifications *notificationsView
 	Note          string
-	// Paid is "Your paid subscription" (Earn), nil when there's nothing to show.
-	Paid *earn.PreferencesPaid
+	// Paid is "Your paid subscription" (Earn), nil when there's nothing to
+	// show; Billing asks for its links by email.
+	Paid    *earn.PreferencesPaid
+	Billing *billingForm
 	// Account links a member signed in on the website to their account page.
 	Account *prefsAccount
 	// Invite is Grow's "Invite friends" card (grow_recommends.go).
@@ -339,14 +341,10 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 	}
 	shown := []string{}
 	for _, pl2 := range lists {
-		offered := pl2.Public
-		if len(p.Lists) > 0 {
-			offered = slices.Contains(p.Lists, pl2.ID.String())
-		}
-		st := pc.Lists[pl2.ID]
-		if !offered && st != "subscribed" && st != "pending" {
+		if !prefsShows(p.Lists, pl2, pc) {
 			continue
 		}
+		st := pc.Lists[pl2.ID]
 		text, name := pl2.Description, pl2.Name
 		if cp != nil {
 			text, name = cp.ListDescription(pl.Code, pl2), cp.ListName(pl.Code, pl2)
@@ -363,8 +361,11 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		return b, err
 	}
 	if h.Earn != nil {
-		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, l.Lang()); err != nil {
+		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, l.Lang(), false); err != nil {
 			return b, err
+		}
+		if b.Paid != nil && b.Paid.Billing {
+			b.Billing = h.billingFormFor(s, pc.ID, pc.Email, l.Lang())
 		}
 	}
 	if p.Frequency {
@@ -396,6 +397,46 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 	}
 	b.Invite = h.growInvite(ctx, s, pc.ID)
 	return b, nil
+}
+
+// prefsShows reports whether the preference center shows a list: one it
+// offers (the lists the publisher picked for it, else every public one),
+// or one the contact is on, so they can leave it.
+func prefsShows(offered []string, l audience.PublicList, pc audience.PublicContact) bool {
+	if st := pc.Lists[l.ID]; st == "subscribed" || st == "pending" {
+		return true
+	}
+	if len(offered) > 0 {
+		return slices.Contains(offered, l.ID.String())
+	}
+	return l.Public
+}
+
+// prefsLists keeps the lists of a preference center submission (those it
+// showed, those left checked) that its page shows: a contact can't join a
+// list it doesn't offer, a private one (VIP, beta, a paid tier's) or
+// another workspace's, by posting its id.
+func (h *Handler) prefsLists(ctx context.Context, s *site, contact uuid.UUID, in *audience.PreferencesInput) error {
+	pc, err := h.Audience.LoadPublicContact(ctx, h.Q, s.ws, contact)
+	if err != nil {
+		return err
+	}
+	lists, err := h.Audience.PublicLists(ctx, h.Q, s.ws)
+	if err != nil {
+		return err
+	}
+	keep := func(ids []uuid.UUID) []uuid.UUID {
+		out := make([]uuid.UUID, 0, len(ids))
+		for _, id := range ids {
+			i := slices.IndexFunc(lists, func(l audience.PublicList) bool { return l.ID == id })
+			if i >= 0 && prefsShows(s.set.Pages.Preferences.Lists, lists[i], pc) && !slices.Contains(out, id) {
+				out = append(out, id)
+			}
+		}
+		return out
+	}
+	in.Shown, in.Subscribed = keep(in.Shown), keep(in.Subscribed)
+	return nil
 }
 
 func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
@@ -451,6 +492,15 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 			in.Subscribed = append(in.Subscribed, id)
 		}
 	}
+	err := h.prefsLists(r.Context(), s, c.ContactID, &in)
+	switch {
+	case errors.Is(err, audience.ErrContactGone):
+		h.notFound(w, r, s)
+		return
+	case err != nil:
+		h.serverError(w, r, s, err)
+		return
+	}
 	switch f.Get("pause") {
 	case "0":
 		in.PauseDays = 0
@@ -464,7 +514,7 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 		in.FirstName = &name
 	}
 	var confirmTexts []uuid.UUID
-	err := db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
+	err = db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
 		_, err := h.Audience.SavePreferences(r.Context(), tx, s.ws, c.ContactID, in, h.evidence(r, audience.SourcePreferences))
 		if err != nil {
 			return err
@@ -616,8 +666,10 @@ type unsubscribeBody struct {
 	Fewer                                                           bool
 	FewerTitle, FewerText, FewerButton                              string
 	Reasons                                                         []reasonView
-	// Paid tells a paid member that unsubscribing doesn't cancel (Earn).
-	Paid *earn.UnsubscribePaid
+	// Paid tells a paid member that unsubscribing doesn't cancel (Earn);
+	// Billing asks for the cancel link by email.
+	Paid    *earn.UnsubscribePaid
+	Billing *billingForm
 }
 
 type doneBody struct {
@@ -733,6 +785,9 @@ func (h *Handler) unsubscribeBody(ctx context.Context, s *site, pc audience.Publ
 		var err error
 		if b.Paid, err = h.Earn.UnsubscribePaid(ctx, s.ws, pc.ID, l.Lang()); err != nil {
 			return b, err
+		}
+		if b.Paid != nil && b.Paid.CancelLabel != "" {
+			b.Billing = h.billingFormFor(s, pc.ID, pc.Email, l.Lang())
 		}
 	}
 	return b, nil

@@ -818,12 +818,20 @@ func (s *Service) TakeOver(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		if err := q.IntegrationKeyTakeOver(ctx, store.IntegrationKeyTakeOverParams{IntegrationID: &conn.ID, Owner: &p.UserID}); err != nil {
 			return err
 		}
+		// Its endpoints send for the new owner too.
+		hooks, err := q.IntegrationWebhooksTakeOver(ctx, store.IntegrationWebhooksTakeOverParams{IntegrationID: conn.ID, Owner: &p.UserID})
+		if err != nil {
+			return err
+		}
 		if err := q.IntegrationSetAttention(ctx, store.IntegrationSetAttentionParams{ID: conn.ID, Attention: []byte(`[]`), Notified: []string{}}); err != nil {
 			return err
 		}
 		summary := fmt.Sprintf("%s now owns %s; the key keeps its value", p.Name, prev.Key.Masked)
 		if len(prev.Missing) > 0 {
 			summary += " · lost " + strings.Join(prev.Missing, ", ")
+		}
+		if hooks.Resumed > 0 {
+			summary += fmt.Sprintf(" · %d paused %s resumed", hooks.Resumed, map[bool]string{true: "endpoint", false: "endpoints"}[hooks.Resumed == 1])
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "integration.taken_over", TargetType: "integration", TargetID: conn.ID.String(),
 			TargetName: Name(conn.Kind) + " · " + conn.Label,

@@ -102,7 +102,8 @@ func OriginAllowed(host string, allowed, own []string) bool {
 }
 
 // limiter keeps a token bucket per key (client address, form) in this
-// process. Idle buckets are dropped after ten minutes.
+// process. Idle buckets are dropped after ten minutes, or once they would
+// be full again when that takes longer.
 type limiter struct {
 	mu        sync.Mutex
 	buckets   map[string]*bucket
@@ -112,6 +113,8 @@ type limiter struct {
 type bucket struct {
 	lim  *rate.Limiter
 	seen time.Time
+	// full is how long the bucket takes to fill up from empty.
+	full time.Duration
 }
 
 func (s *Service) rates() *limiter {
@@ -124,11 +127,17 @@ func (l *limiter) allow(key string, perMinute int, now time.Time) bool {
 	if perMinute <= 0 {
 		return true
 	}
+	return l.take(key, time.Minute/time.Duration(perMinute), perMinute, now)
+}
+
+// take takes one token from key's bucket of burst tokens, which gets one
+// back every interval.
+func (l *limiter) take(key string, every time.Duration, burst int, now time.Time) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if now.Sub(l.lastSweep) > time.Minute || len(l.buckets) > 200_000 {
 		for k, b := range l.buckets {
-			if now.Sub(b.seen) > 10*time.Minute {
+			if idle := now.Sub(b.seen); idle > 10*time.Minute && idle > b.full {
 				delete(l.buckets, k)
 			}
 		}
@@ -139,7 +148,7 @@ func (l *limiter) allow(key string, perMinute int, now time.Time) bool {
 	}
 	b := l.buckets[key]
 	if b == nil {
-		b = &bucket{lim: rate.NewLimiter(rate.Limit(float64(perMinute)/60), perMinute)}
+		b = &bucket{lim: rate.NewLimiter(rate.Every(every), burst), full: every * time.Duration(burst)}
 		l.buckets[key] = b
 	}
 	b.seen = now
@@ -166,6 +175,24 @@ const (
 	prefLinksPerMinute   = 3   // preference links asked from one address
 )
 
+// A post of a copied plain HTML form carries no timing token, and any
+// script can say its post is one. While the workspace has no Turnstile to
+// check them, such posts have a small budget of their own, per address and
+// per form.
+const (
+	plainPerAddress      = 3                // posts from one address at once…
+	plainAddressInterval = 20 * time.Minute // …and one more every 20 minutes
+	plainPerForm         = 30               // posts to one form from every address at once…
+	plainFormInterval    = 2 * time.Minute  // …and one more every 2 minutes
+)
+
+// plainAllowed takes a plain post from client (ClientKey) to a form
+// (formKey) of workspace ws from both budgets.
+func (l *limiter) plainAllowed(ws, form, client string, now time.Time) bool {
+	return l.take("plain-ip:"+ws+":"+client, plainAddressInterval, plainPerAddress, now) &&
+		l.take("plain-form:"+ws+":"+form, plainFormInterval, plainPerForm, now)
+}
+
 // isBot reports user agents that are crawlers or link previews, which
 // shouldn't count as form views.
 func isBot(ua string) bool {
@@ -184,17 +211,7 @@ func isBot(ua string) bool {
 // Allow takes one request from key's bucket, which refills once every
 // interval (one preference link per address every ten minutes).
 func (s *Service) Allow(key string, every time.Duration) bool {
-	l := s.rates()
-	now := s.now()
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	b := l.buckets[key]
-	if b == nil {
-		b = &bucket{lim: rate.NewLimiter(rate.Every(every), 1)}
-		l.buckets[key] = b
-	}
-	b.seen = now
-	return b.lim.AllowN(now, 1)
+	return s.rates().take(key, every, 1, s.now())
 }
 
 // AllowPerMinute takes one request from key's bucket of n a minute.

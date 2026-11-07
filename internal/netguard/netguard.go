@@ -51,6 +51,17 @@ var privateRanges = []netip.Prefix{
 
 var nat64 = netip.MustParsePrefix("64:ff9b::/96")
 
+// tunnels are IPv6 ranges that carry or reach an IPv4 address the check
+// can't see past: 6to4, Teredo, NAT64's local-use prefix and the old
+// IPv4-compatible form (::a.b.c.d), which some stacks still tunnel. They
+// are never dialed, whatever the instance allows; ::1 is the loopback.
+var tunnels = []netip.Prefix{
+	netip.MustParsePrefix("2002::/16"),
+	netip.MustParsePrefix("2001::/32"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("::/96"),
+}
+
 // Policy decides which addresses may be dialed.
 type Policy struct {
 	// AllowPrivate allows loopback and RFC 1918 addresses (self-hosted receivers).
@@ -71,6 +82,11 @@ func (p Policy) Check(ip netip.Addr) error {
 	for _, r := range alwaysBlocked {
 		if r.Contains(ip) {
 			return fmt.Errorf("%w: %s is a link-local, metadata or multicast address", ErrBlocked, ip)
+		}
+	}
+	for _, r := range tunnels {
+		if r.Contains(ip) && !ip.IsLoopback() {
+			return fmt.Errorf("%w: %s is a 6to4, Teredo, NAT64 or IPv4-compatible address", ErrBlocked, ip)
 		}
 	}
 	if !p.AllowPrivate {
@@ -154,6 +170,15 @@ func (p Policy) Client(timeout time.Duration) *http.Client {
 
 // IsBlocked reports whether err comes from the address policy.
 func IsBlocked(err error) bool { return errors.Is(err, ErrBlocked) }
+
+// SameAddress reports whether two addresses people typed, URLs or host
+// names, are the same place: letter case, surrounding spaces and a final
+// slash or dot don't count. Forms that keep a saved secret when its field
+// is left blank keep it only for the address it was entered for.
+func SameAddress(a, b string) bool {
+	norm := func(s string) string { return strings.TrimRight(strings.ToLower(strings.TrimSpace(s)), "/.") }
+	return norm(a) == norm(b)
+}
 
 // Describe turns a transport error into a short sentence for delivery logs.
 func Describe(ctx context.Context, err error) string {

@@ -138,7 +138,9 @@ func (s *Service) Account(ctx context.Context, ws *store.Workspace, sess *Sessio
 		out.Tiers = append(out.Tiers, t.Name)
 	}
 	if e := s.earn(); e != nil {
-		if plan, err := e.PreferencesPaid(ctx, ws, pc.ID, l); err == nil {
+		// The member is signed in on the site: the plan's links open the
+		// portal and the cancel page (for an hour).
+		if plan, err := e.PreferencesPaid(ctx, ws, pc.ID, l, true); err == nil {
 			out.Plan = plan
 		} else {
 			s.log().WarnContext(ctx, "account plan", "err", err)
@@ -163,12 +165,11 @@ func (s *Service) Account(ctx context.Context, ws *store.Workspace, sess *Sessio
 		return out, err
 	}
 	for _, li := range lists {
-		st := pc.Lists[li.ID]
-		if !li.Public && st != "subscribed" && st != "pending" {
+		if !accountShows(li, pc) {
 			continue
 		}
 		out.Lists = append(out.Lists, AccountList{ID: li.ID, Name: li.Name, Description: li.Description, Subscribed: pc.Subscribed(li.ID),
-			Pending: st == "pending"})
+			Pending: pc.Lists[li.ID] == "pending"})
 	}
 	sessions, err := s.Q.WebsiteSessionsActive(ctx, store.WebsiteSessionsActiveParams{WorkspaceID: ws.ID, ContactID: pc.ID, Now: s.now()})
 	if err != nil {
@@ -260,12 +261,40 @@ func (s *Service) ChangeEmail(ctx context.Context, ws *store.Workspace, sess *Se
 	return out, err
 }
 
+// accountShows reports whether the account page shows a list: a public
+// one, or one the member is on, so they can leave it.
+func accountShows(l audience.PublicList, pc audience.PublicContact) bool {
+	st := pc.Lists[l.ID]
+	return l.Public || st == "subscribed" || st == "pending"
+}
+
 // SaveNewsletters applies the account page's newsletters, as the
 // preference center does: joining needs no confirmation (the member's
-// session proves the address), leaving is immediate.
+// session proves the address), leaving is immediate. Only the lists the
+// page shows count: a member can't join a private list (VIP, beta, a paid
+// tier's) by posting its id.
 func (s *Service) SaveNewsletters(ctx context.Context, ws *store.Workspace, sess *Session, in audience.PreferencesInput, ev audience.PublicEvidence) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		_, err := s.Audience.SavePreferences(ctx, tx, ws, sess.ContactID, in, ev)
+		q := store.New(tx)
+		pc, err := s.Audience.LoadPublicContact(ctx, q, ws, sess.ContactID)
+		if err != nil {
+			return err
+		}
+		lists, err := s.Audience.PublicLists(ctx, q, ws)
+		if err != nil {
+			return err
+		}
+		shown := func(ids []uuid.UUID) []uuid.UUID {
+			out := make([]uuid.UUID, 0, len(ids))
+			for _, id := range ids {
+				if i := slices.IndexFunc(lists, func(l audience.PublicList) bool { return l.ID == id }); i >= 0 && accountShows(lists[i], pc) && !slices.Contains(out, id) {
+					out = append(out, id)
+				}
+			}
+			return out
+		}
+		in.Shown, in.Subscribed = shown(in.Shown), shown(in.Subscribed)
+		_, err = s.Audience.SavePreferences(ctx, tx, ws, sess.ContactID, in, ev)
 		return err
 	})
 }

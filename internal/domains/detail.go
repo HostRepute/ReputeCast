@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -52,7 +53,17 @@ type SendingDomainTracking struct {
 	Suggested string `json:"suggested"`
 	// Target is what the CNAME must point to (ReputeCast's public host).
 	Target string `json:"target"`
-	Status string `json:"status" enum:"none,pending,verified,wrong_value,missing,error"`
+	// Status refused: the CNAME points here, but the domain isn't shown to
+	// be this workspace's (Detail says why).
+	Status string `json:"status" enum:"none,pending,verified,wrong_value,missing,error,refused"`
+	// Detail says why a refused domain isn't used, in the reader's language.
+	Detail string `json:"detail"`
+	// TXTName and TXTValue are the TXT record the domain needs besides its
+	// CNAME when the CNAME alone doesn't show it's this workspace's: another
+	// workspace used it first, or it's under this ReputeCast's own address.
+	// Both are empty otherwise.
+	TXTName  string `json:"txtName"`
+	TXTValue string `json:"txtValue"`
 }
 
 // SendingDomainDetail is a domain's records page (and the domain step).
@@ -201,10 +212,8 @@ func (s *Service) detailOf(ctx context.Context, ws *store.Workspace, d store.Sen
 	sum := decodeSummary(d.AuthSummary)
 	out.BIMI = sum.BIMI
 	out.DMARCTip = dmarcTip(l, d.Domain, kept, det, out.Providers)
-	target := s.trackingTarget()
-	out.Tracking = SendingDomainTracking{Domain: d.TrackingDomain, Suggested: "go." + d.Domain, Target: target, Status: d.TrackingStatus}
-	if out.Tracking.Status == "" {
-		out.Tracking.Status = "none"
+	if out.Tracking, err = s.trackingOf(ctx, l, d); err != nil {
+		return SendingDomainDetail{}, err
 	}
 	senders, err := s.Q.SenderListByDomain(ctx, d.ID)
 	if err != nil {
@@ -221,6 +230,40 @@ func (s *Service) detailOf(ctx context.Context, ws *store.Workspace, d store.Sen
 		out.CanManage = pr.Can(authz.DomainsManage)
 	}
 	out.Helpers = s.helpers(ctx, ws.ID, out.CanManage)
+	return out, nil
+}
+
+// trackingOf is the tracking domain as the records page shows it: with the
+// TXT record to add when the CNAME alone doesn't show the host is this
+// workspace's, and why a refused domain isn't used. Whose the host is is
+// looked at as the page is read, which checks a stale domain first.
+func (s *Service) trackingOf(ctx context.Context, l i18n.Lang, d store.SendingDomain) (SendingDomainTracking, error) {
+	target := s.trackingTarget()
+	out := SendingDomainTracking{Domain: d.TrackingDomain, Suggested: "go." + d.Domain, Target: target, Status: d.TrackingStatus}
+	if out.Status == "" {
+		out.Status = "none"
+	}
+	if d.TrackingDomain == "" {
+		return out, nil
+	}
+	proof, err := customhost.ProofFor(ctx, s.Q, d.WorkspaceID, d.TrackingDomain, target, trackingHeld(d))
+	if err != nil {
+		return out, err
+	}
+	if proof.TXTOnly() {
+		out.TXTName, out.TXTValue = customhost.TXTName(d.TrackingDomain), customhost.Token(d.WorkspaceID, d.TrackingDomain)
+	}
+	if d.TrackingStatus != StatusRefused {
+		return out, nil
+	}
+	switch proof {
+	case customhost.Never:
+		out.Detail = text(l, "tracking.own", i18n.Args{"domain": d.TrackingDomain})
+	case customhost.UnderInstance:
+		out.Detail = text(l, "tracking.underOwn", i18n.Args{"domain": d.TrackingDomain, "target": target})
+	case customhost.InUse:
+		out.Detail = text(l, "tracking.inUse", i18n.Args{"domain": d.TrackingDomain})
+	}
 	return out, nil
 }
 

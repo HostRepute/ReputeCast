@@ -185,6 +185,8 @@ export function WebhookDialog({
           </div>
         </div>
       ) : null}
+      {/* ReputeCast paused it: the person it sent for can't see its events now. */}
+      {webhook?.pausedReason ? <Note tone="warn">{webhook.pausedReason}</Note> : null}
       <div className="grid grid-cols-[2fr_1fr] gap-3.5 max-md:grid-cols-1">
         <label className="lbl">
           {t(m.urlLabel)}

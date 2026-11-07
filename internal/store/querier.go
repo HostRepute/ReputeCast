@@ -82,6 +82,17 @@ type Querier interface {
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).
 	// The member's latest request for this role in the last day (one a day).
 	AccessRequestsLatest(ctx context.Context, arg AccessRequestsLatestParams) (time.Time, error)
+	// A campaign's audience and the domain it sends from, to check that a send,
+	// a schedule or a resume stays within the caller's lists and sender
+	// domains. Its sender's sending domain, and its address for a sender whose
+	// domain is gone.
+	AccessScopeCampaign(ctx context.Context, arg AccessScopeCampaignParams) (AccessScopeCampaignRow, error)
+	// Scope checks shared by every domain (internal/access): a member, API key
+	// or agent limited to some lists sees only the contacts on them, and one
+	// limited to some sender domains sends only from those.
+	// Whether one of a scoped caller's lists has the contact, in any status, as
+	// Audience's list and search count it.
+	AccessScopeContact(ctx context.Context, arg AccessScopeContactParams) (bool, error)
 	AccessibilityCampaign(ctx context.Context, arg AccessibilityCampaignParams) (AccessibilityCampaignRow, error)
 	// Automations with a draft version that isn't live yet.
 	AccessibilityDraftAutomations(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityDraftAutomationsRow, error)
@@ -97,6 +108,19 @@ type Querier interface {
 	AccessibilityTemplates(ctx context.Context, workspaceID uuid.UUID) ([]AccessibilityTemplatesRow, error)
 	AccessibilityUpsertLinkTitle(ctx context.Context, arg AccessibilityUpsertLinkTitleParams) error
 	AccessibilityUpsertPolicy(ctx context.Context, arg AccessibilityUpsertPolicyParams) error
+	// Counts an attempt at a two-factor challenge before its code is checked,
+	// and only while attempts are left: parallel guesses can't go over the
+	// limit. No row means none are left (or the challenge is gone).
+	AccountsCountChallengeAttempt(ctx context.Context, arg AccountsCountChallengeAttemptParams) (int32, error)
+	// The step of the code that confirmed a new authenticator: that code can't
+	// sign in afterwards.
+	AccountsSetTOTPStep(ctx context.Context, arg AccountsSetTOTPStepParams) error
+	// Uses up a challenge: of two requests with a right answer, only the one
+	// that deletes it goes on.
+	AccountsTakeChallenge(ctx context.Context, id uuid.UUID) (int64, error)
+	// Accepts an authenticator code's time step once: the step only moves
+	// forward, so a code that signed in can't be replayed.
+	AccountsUseTOTPStep(ctx context.Context, arg AccountsUseTOTPStepParams) (int64, error)
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	// Adds the keys the workspace's branding doesn't have; never overwrites.
@@ -440,6 +464,11 @@ type Querier interface {
 	// Live flows' date triggers, one row per trigger, whichever of the flow's
 	// triggers it is (review 2026-11 AT-14).
 	AutomationDateTriggers(ctx context.Context) ([]AutomationDateTriggersRow, error)
+	// Where a flow's emails go out from, as the outbox picks their From
+	// (SendingAutomationSender): the email's own sender, else the workspace's
+	// default. The sender's sending domain, and its address for a sender whose
+	// domain is gone; empty for none.
+	AutomationEmailSenders(ctx context.Context, arg AutomationEmailSendersParams) ([]AutomationEmailSendersRow, error)
 	// Whether the contact opened or clicked any email of this flow since a time
 	// (a person's settled clicks only, review AN-2).
 	AutomationEngaged(ctx context.Context, arg AutomationEngagedParams) (bool, error)
@@ -507,7 +536,8 @@ type Querier interface {
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
 	// The contacts at a step, the latest to arrive first, after a cursor
-	// (review 2026-11 AT-2).
+	// (review 2026-11 AT-2); for a caller limited to some lists, only the
+	// contacts on them (empty scope_lists: everyone).
 	AutomationRunsAtNode(ctx context.Context, arg AutomationRunsAtNodeParams) ([]AutomationRunsAtNodeRow, error)
 	// A refund makes the contact leave the "Bought a product" flows of that
 	// product (or of any product) they're in, whichever of the flow's triggers
@@ -933,6 +963,10 @@ type Querier interface {
 	ConnectFirstWebhook(ctx context.Context, arg ConnectFirstWebhookParams) (ConnectFirstWebhookRow, error)
 	ConnectInsertProvider(ctx context.Context, arg ConnectInsertProviderParams) (Provider, error)
 	ConnectListNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Merges settings a provisioning step made into the provider's settings,
+	// key by key, in one statement: a step saves some while it runs (the SNS
+	// topic, before the webhook subscribes to it) and the rest when it ends.
+	ConnectMergeProviderConfig(ctx context.Context, arg ConnectMergeProviderConfigParams) error
 	ConnectMessage(ctx context.Context, arg ConnectMessageParams) (Message, error)
 	ConnectMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]DeliveryEvent, error)
 	ConnectProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
@@ -1125,6 +1159,29 @@ type Querier interface {
 	CustomFieldRestore(ctx context.Context, arg CustomFieldRestoreParams) (CustomField, error)
 	// A deleted field waits 30 days (review 2026-11 AU-11).
 	CustomFieldSetAside(ctx context.Context, arg CustomFieldSetAsideParams) error
+	// The uses of host other than workspace_id's, whatever their status: other
+	// workspaces' (a deleted workspace keeps its hosts until it's purged, as
+	// the custom domain's unique index does) and the instance's own SMTP relay
+	// (purpose "instance"). verified says whether the use was proven there,
+	// and since when (NULL when nobody recorded it, as for tracking domains
+	// verified before migration 03446). A publication website's push site is
+	// its pages' host, verified when it was added.
+	CustomHostClaims(ctx context.Context, arg CustomHostClaimsParams) ([]CustomHostClaimsRow, error)
+	// The workspaces a request's host belongs to: whose verified custom
+	// domain, short-link domain or link tracking domain it is, or whose
+	// publication website's push site. Only their links and pages answer on
+	// it. A deleted workspace keeps its hosts until it's purged, as in
+	// CustomHostClaims; two workspaces that verified one host before a host
+	// had to be free both hold it.
+	CustomHostHolders(ctx context.Context, host string) ([]CustomHostHoldersRow, error)
+	// Hosts the instance serves for a workspace: the public pages and website
+	// domain, the SMS short-link domain, a link tracking domain and the push
+	// site of a publication website. A CNAME or matching addresses only show
+	// that a host points at this server, not whose host it is, so a host
+	// belongs to one workspace: the first to use it.
+	// Saving a host takes this lock before CustomHostClaims, so two workspaces
+	// saving the same host at once can't both find it free.
+	CustomHostLock(ctx context.Context, host string) error
 	DeleteAutomationStepSecret(ctx context.Context, arg DeleteAutomationStepSecretParams) (int64, error)
 	DeleteAvatar(ctx context.Context, userID uuid.UUID) (int64, error)
 	DeleteChallenge(ctx context.Context, id uuid.UUID) error
@@ -1299,10 +1356,13 @@ type Querier interface {
 	// domain step of Connect a sending provider, system mail). Query names start
 	// with Dom or Sender so they never collide with other domains.
 	DomList(ctx context.Context, workspaceID uuid.UUID) ([]SendingDomain, error)
-	// The result of a live DNS check.
-	DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) error
+	// The result of a live DNS check. The tracking domain's part is kept only
+	// while the tracking domain is still the one checked (tracking_saved): one
+	// set during the check keeps its own state.
+	DomSaveCheck(ctx context.Context, arg DomSaveCheckParams) (bool, error)
 	DomUpdateNote(ctx context.Context, arg DomUpdateNoteParams) error
 	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
+	// A new tracking domain starts unverified.
 	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
 	DownloadFileGet(ctx context.Context, arg DownloadFileGetParams) (DownloadFile, error)
 	// Whether any file, removed or not, still keeps these bytes on disk.
@@ -1702,6 +1762,9 @@ type Querier interface {
 	// hour of failures, or when a delivery is given up on (review 2026-11
 	// IN-2). No row when there is nothing to tell.
 	HooksAlertFailing(ctx context.Context, arg HooksAlertFailingParams) (HooksAlertFailingRow, error)
+	// ReputeCast pauses a running endpoint whose events the person it sends
+	// for can no longer see; no row when it was paused already.
+	HooksAutoPause(ctx context.Context, arg HooksAutoPauseParams) (HooksAutoPauseRow, error)
 	// Endpoints with email.* events waiting to be folded into a batch (review
 	// 2026-11 EN-8), whether or not they still batch: a switched-off setting
 	// still sends what was waiting.
@@ -1734,6 +1797,8 @@ type Querier interface {
 	HooksReleaseHeld(ctx context.Context, webhookID uuid.UUID) ([]uuid.UUID, error)
 	// Retry now / Retry all failed / Replay: back to pending for an immediate attempt.
 	HooksRequeue(ctx context.Context, arg HooksRequeueParams) ([]uuid.UUID, error)
+	// A person pausing or resuming replaces ReputeCast's reason; a resumed
+	// endpoint sends for the person who resumed it (created_by).
 	HooksSetEnabled(ctx context.Context, arg HooksSetEnabledParams) error
 	// The new secret signs at once; the one it replaces keeps signing beside
 	// it until previous_until, so receivers can switch (review 2026-11 IN-1).
@@ -1743,8 +1808,12 @@ type Querier interface {
 	// Takes an endpoint's oldest waiting events, up to @lim, for one batch.
 	// RETURNING doesn't keep the order: the caller sorts by created_at, id.
 	HooksTakeBatch(ctx context.Context, arg HooksTakeBatchParams) ([]HooksTakeBatchRow, error)
-	// A demo endpoint stays one only while its address is unchanged.
+	// A demo endpoint stays one only while its address is unchanged. The
+	// endpoint sends for whoever set its events (created_by), so a reason
+	// ReputeCast paused it for no longer applies.
 	HooksUpdate(ctx context.Context, arg HooksUpdateParams) (Webhook, error)
+	// A claimed delivery that can't go waits with the endpoint's other events.
+	HooksWithhold(ctx context.Context, id uuid.UUID) error
 	// The sending domains an asset list is built from (with the records their
 	// providers require). Connected providers come from ProvListActive.
 	HostReputeAssetSources(ctx context.Context, workspaceID uuid.UUID) ([]HostReputeAssetSourcesRow, error)
@@ -1765,6 +1834,12 @@ type Querier interface {
 	ImportRowsAfter(ctx context.Context, arg ImportRowsAfterParams) ([]ImportRow, error)
 	ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([]ImportStatusCountsRow, error)
 	IngestAddSuppression(ctx context.Context, arg IngestAddSuppressionParams) (uuid.UUID, error)
+	// Ties the one-time token of a webhook signature to the payload it first
+	// came with (both hashed), and returns the payload it is tied to: the one
+	// already there while it is current, this one otherwise. In one statement,
+	// so of two requests with the same token at once, the second gets the
+	// first one's payload.
+	IngestBindToken(ctx context.Context, arg IngestBindTokenParams) ([]byte, error)
 	// The provider event log: provider events (not ReputeCast's own opens and
 	// clicks), newest first, retained 90 days.
 	// The message's kind and automation step write its source label in a
@@ -1784,6 +1859,7 @@ type Querier interface {
 	IngestMessageByID(ctx context.Context, arg IngestMessageByIDParams) (IngestMessageByIDRow, error)
 	IngestMessageByProviderID(ctx context.Context, arg IngestMessageByProviderIDParams) (IngestMessageByProviderIDRow, error)
 	IngestPurgeRaw(ctx context.Context, before time.Time) (int64, error)
+	IngestPurgeTokens(ctx context.Context, before time.Time) (int64, error)
 	IngestSetContactStatus(ctx context.Context, arg IngestSetContactStatusParams) error
 	// Verified payloads the normalization job never finished (recovery sweep).
 	IngestStaleRaw(ctx context.Context, arg IngestStaleRawParams) ([]uuid.UUID, error)
@@ -1994,6 +2070,11 @@ type Querier interface {
 	// The webhooks a connection manages, with 24-hour delivery counts.
 	IntegrationWebhooks(ctx context.Context, integrationID uuid.UUID) ([]IntegrationWebhooksRow, error)
 	IntegrationWebhooksDeleteAll(ctx context.Context, integrationID uuid.UUID) ([]IntegrationWebhooksDeleteAllRow, error)
+	// The connection's managed endpoints send for the key's new owner too.
+	// Those ReputeCast paused because the old owner could no longer see their
+	// events run again: what waited is due at once, and the next delivery
+	// checks the new owner. Returns how many ran again.
+	IntegrationWebhooksTakeOver(ctx context.Context, arg IntegrationWebhooksTakeOverParams) (IntegrationWebhooksTakeOverRow, error)
 	IntegrationWorkflow(ctx context.Context, arg IntegrationWorkflowParams) (IntegrationWorkflow, error)
 	IntegrationWorkflowSeen(ctx context.Context, arg IntegrationWorkflowSeenParams) error
 	IntegrationWorkflows(ctx context.Context, arg IntegrationWorkflowsParams) ([]IntegrationWorkflow, error)
@@ -2229,7 +2310,9 @@ type Querier interface {
 	McpCampaignTotals(ctx context.Context, campaignID uuid.UUID) (McpCampaignTotalsRow, error)
 	// A text, push or WhatsApp campaign an agent proposes to send.
 	McpChannelCampaign(ctx context.Context, arg McpChannelCampaignParams) (McpChannelCampaignRow, error)
-	// One contact for get_contact (review 2026-11 IN-3), by id or address.
+	// One contact for get_contact (review 2026-11 IN-3), by id or address; an
+	// agent limited to some lists finds only the contacts on them, as
+	// search_contacts (empty scope_lists: everyone).
 	McpContact(ctx context.Context, arg McpContactParams) (McpContactRow, error)
 	McpCreateSegment(ctx context.Context, arg McpCreateSegmentParams) (McpCreateSegmentRow, error)
 	McpDefaultRoutingRule(ctx context.Context, arg McpDefaultRoutingRuleParams) (McpDefaultRoutingRuleRow, error)
@@ -2592,7 +2675,9 @@ type Querier interface {
 	PollCampaignContent(ctx context.Context, arg PollCampaignContentParams) (PollCampaignContentRow, error)
 	// Comments, newest first, with the contact's name (the caller leaves it
 	// out for people without subscribers:view, whose search doesn't match
-	// names either).
+	// names either). For a caller limited to some lists, in_scope says whether
+	// the contact is on one of them: only those are named, and only their
+	// names match a search (empty scope_lists: everyone).
 	PollComments(ctx context.Context, arg PollCommentsParams) ([]PollCommentsRow, error)
 	PollCommentsCount(ctx context.Context, pollID uuid.UUID) ([]PollCommentsCountRow, error)
 	PollContact(ctx context.Context, id uuid.UUID) (PollContactRow, error)
@@ -2600,7 +2685,10 @@ type Querier interface {
 	// a field came from).
 	PollContactAnswers(ctx context.Context, arg PollContactAnswersParams) ([]PollContactAnswersRow, error)
 	PollDelivered(ctx context.Context, campaignID uuid.UUID) (PollDeliveredRow, error)
-	PollExportAnswers(ctx context.Context, pollID uuid.UUID) ([]PollExportAnswersRow, error)
+	// Every answer with its contact. A caller limited to some lists exports
+	// only the answers of the contacts on them, as Audience exports only those
+	// contacts (empty scope_lists: every answer).
+	PollExportAnswers(ctx context.Context, arg PollExportAnswersParams) ([]PollExportAnswersRow, error)
 	// The message a signed answer link names: when it was sent and to whom.
 	PollMessage(ctx context.Context, id uuid.UUID) (PollMessageRow, error)
 	PollSetClosed(ctx context.Context, arg PollSetClosedParams) error
@@ -2690,6 +2778,9 @@ type Querier interface {
 	ProductOrderLinkGet(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
 	// Links
 	ProductOrderLinkInsert(ctx context.Context, arg ProductOrderLinkInsertParams) error
+	// When a link's last counted download began: the rest of it can be asked
+	// for (a Range request) without counting again for a while.
+	ProductOrderLinkLastDownload(ctx context.Context, arg ProductOrderLinkLastDownloadParams) (time.Time, error)
 	ProductOrderLinkLock(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
 	ProductOrderLinkUse(ctx context.Context, id uuid.UUID) error
 	ProductOrderLinks(ctx context.Context, orderID uuid.UUID) ([]ProductOrderLinksRow, error)
@@ -2857,7 +2948,6 @@ type Querier interface {
 	// Upcoming sends, for "Next issue: Tuesday 14 October" on the confirmation page.
 	PublicScheduledCampaigns(ctx context.Context, arg PublicScheduledCampaignsParams) ([]PublicScheduledCampaignsRow, error)
 	PublicSettingsByDomain(ctx context.Context, domain *string) (PublicSettingsByDomainRow, error)
-	PublicSettingsDomainTaken(ctx context.Context, arg PublicSettingsDomainTakenParams) (bool, error)
 	// Domains waiting for DNS (every run) and verified ones (once a day).
 	PublicSettingsDomainsToCheck(ctx context.Context, before *time.Time) ([]PublicSettingsDomainsToCheckRow, error)
 	PublicSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
@@ -2868,12 +2958,19 @@ type Querier interface {
 	PublicSettingsSetHostedForm(ctx context.Context, arg PublicSettingsSetHostedFormParams) error
 	PublicSettingsSetLogo(ctx context.Context, arg PublicSettingsSetLogoParams) error
 	PublicSettingsSetPages(ctx context.Context, arg PublicSettingsSetPagesParams) error
-	// texts is the error's kept message ({"turnstile_error": …}), or NULL.
+	// texts is the error's kept message ({"turnstile_error": …}), or NULL. New
+	// keys start without the reports of the old ones.
 	PublicSettingsSetTurnstile(ctx context.Context, arg PublicSettingsSetTurnstileParams) error
 	PublicSettingsTouch(ctx context.Context, arg PublicSettingsTouchParams) error
-	// The widget on a challenge page reported an error (wrong site key, domain
-	// not allowed): spam protection falls back until someone fixes the key.
+	// Cloudflare refused the secret key: spam protection falls back to the
+	// honeypot and timing check until someone saves working keys.
 	PublicSettingsTurnstileError(ctx context.Context, arg PublicSettingsTurnstileErrorParams) error
+	// A visitor's browser reported an error of the widget on a challenge page:
+	// kept for the publisher to see. It never changes turnstile_status.
+	PublicSettingsTurnstileReport(ctx context.Context, arg PublicSettingsTurnstileReportParams) error
+	// Cloudflare accepted a widget's answer: the widget runs, so what browsers
+	// reported before is over.
+	PublicSettingsTurnstileWorks(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	// The unsubscribe page tab: departures and answers in the last 30 days.
 	PublicUnsubscribeStats(ctx context.Context, arg PublicUnsubscribeStatsParams) (PublicUnsubscribeStatsRow, error)
 	PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error
@@ -4213,11 +4310,19 @@ type Querier interface {
 	// The provider a webhook request is for.
 	SmsProviderByToken(ctx context.Context, arg SmsProviderByTokenParams) (SmsProvider, error)
 	SmsProviderInsert(ctx context.Context, arg SmsProviderInsertParams) error
+	// Merges settings into a provider's, key by key (the SNS topic registering
+	// the webhooks keeps before it subscribes to it).
+	SmsProviderMergeConfig(ctx context.Context, arg SmsProviderMergeConfigParams) error
+	// Keeps a setting an adapter learned from the provider only while the
+	// provider has none (the SNS topic of webhooks set up by hand, trusted on
+	// first use): of two requests at once, one keeps it.
+	SmsProviderPinSetting(ctx context.Context, arg SmsProviderPinSettingParams) (int64, error)
 	SmsProviderRegistrationsRead(ctx context.Context, arg SmsProviderRegistrationsReadParams) error
 	SmsProviderRemove(ctx context.Context, arg SmsProviderRemoveParams) error
 	SmsProviderSetCredentials(ctx context.Context, arg SmsProviderSetCredentialsParams) error
 	SmsProviderSetHealth(ctx context.Context, arg SmsProviderSetHealthParams) error
 	SmsProviderSetWebhooks(ctx context.Context, arg SmsProviderSetWebhooksParams) error
+	SmsProviderSetting(ctx context.Context, arg SmsProviderSettingParams) (string, error)
 	SmsProviderTouchInbound(ctx context.Context, arg SmsProviderTouchInboundParams) error
 	SmsProviderTouchReceipt(ctx context.Context, arg SmsProviderTouchReceiptParams) error
 	// SMS (internal/texting): providers, senders and their registrations,
@@ -4257,8 +4362,16 @@ type Querier interface {
 	SmsSetup(ctx context.Context, arg SmsSetupParams) (SmsSetup, error)
 	SmsSetupInsert(ctx context.Context, arg SmsSetupInsertParams) error
 	SmsSetupUpdate(ctx context.Context, arg SmsSetupUpdateParams) error
-	// The workspace whose verified short-link domain a request came to.
-	SmsShortDomainWorkspace(ctx context.Context, host string) (uuid.UUID, error)
+	// A check's finding, kept only while the domain is still the one checked.
+	SmsShortDomainChecked(ctx context.Context, arg SmsShortDomainCheckedParams) (int64, error)
+	// The workspaces whose verified short-link domain a request came to: only
+	// their codes answer there, so a workspace's domain never carries another
+	// workspace's links. Two workspaces that stored the same host before it
+	// had to be free each answer for their own codes there.
+	SmsShortDomainHolders(ctx context.Context, host string) ([]uuid.UUID, error)
+	// Verified short-link domains due a check (the periodic re-check): last
+	// checked before @before, or never, as migration 03445 leaves them.
+	SmsShortDomainsToCheck(ctx context.Context, before time.Time) ([]uuid.UUID, error)
 	SmsTermsInsert(ctx context.Context, arg SmsTermsInsertParams) error
 	SmsTermsLatest(ctx context.Context, workspaceID uuid.UUID) (SmsTermsVersion, error)
 	SmsTestNumberDelete(ctx context.Context, arg SmsTestNumberDeleteParams) error
@@ -4376,8 +4489,10 @@ type Querier interface {
 	SuppressionUploadGet(ctx context.Context, arg SuppressionUploadGetParams) (SuppressionUpload, error)
 	SuppressionUploadInsert(ctx context.Context, arg SuppressionUploadInsertParams) error
 	SuppressionUploadRemoved(ctx context.Context, arg SuppressionUploadRemovedParams) error
-	// Every response, for the results and the exports.
-	SurveyAllResponses(ctx context.Context, surveyID uuid.UUID) ([]SurveyAllResponsesRow, error)
+	// Every response with its contact, for the answers export. A caller
+	// limited to some lists exports only the responses of the contacts on them
+	// (empty scope_lists: every response).
+	SurveyAllResponses(ctx context.Context, arg SurveyAllResponsesParams) ([]SurveyAllResponsesRow, error)
 	// How many completed responses answered each question.
 	SurveyAnsweredCounts(ctx context.Context, surveyID uuid.UUID) ([]SurveyAnsweredCountsRow, error)
 	SurveyByNumber(ctx context.Context, number int64) (SurveyByNumberRow, error)
@@ -4398,11 +4513,14 @@ type Querier interface {
 	// A survey's responses in numbers (review 2026-11 AP-2: counted in SQL).
 	SurveyResponseTotals(ctx context.Context, surveyID uuid.UUID) (SurveyResponseTotalsRow, error)
 	SurveyResponseUpdate(ctx context.Context, arg SurveyResponseUpdateParams) error
+	// A page of completed responses; in_scope says whether a caller limited to
+	// some lists may see who answered (empty scope_lists: everyone).
 	SurveyResponses(ctx context.Context, arg SurveyResponsesParams) ([]SurveyResponsesRow, error)
 	SurveySetStatus(ctx context.Context, arg SurveySetStatusParams) error
 	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
 	SurveyTextAnswerCount(ctx context.Context, arg SurveyTextAnswerCountParams) (int64, error)
-	// A page of a text question's answers, newest first, optionally searched.
+	// A page of a text question's answers, newest first, optionally searched;
+	// in_scope as in SurveyResponses.
 	SurveyTextAnswers(ctx context.Context, arg SurveyTextAnswersParams) ([]SurveyTextAnswersRow, error)
 	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
 	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)
@@ -4451,8 +4569,14 @@ type Querier interface {
 	TeamMemberAPIKeys(ctx context.Context, arg TeamMemberAPIKeysParams) ([]TeamMemberAPIKeysRow, error)
 	TeamMemberActivity(ctx context.Context, arg TeamMemberActivityParams) ([]TeamMemberActivityRow, error)
 	TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsParams) ([]string, error)
+	// The other workspaces a person is an active member of: their sessions
+	// serve those too.
+	TeamOtherActiveMemberships(ctx context.Context, arg TeamOtherActiveMembershipsParams) (int64, error)
 	TeamPendingInviteEmails(ctx context.Context, arg TeamPendingInviteEmailsParams) ([]string, error)
 	TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvitationParams) (int64, error)
+	// The invitations a member sent that nobody accepted end when the member is
+	// deactivated or removed: nobody vouches for those people any more.
+	TeamRevokeInvitationsBy(ctx context.Context, arg TeamRevokeInvitationsByParams) ([]TeamRevokeInvitationsByRow, error)
 	// Integrations' keys stay: deactivating takes them over or disconnects them.
 	TeamRevokeKeysCreatedBy(ctx context.Context, arg TeamRevokeKeysCreatedByParams) ([]TeamRevokeKeysCreatedByRow, error)
 	TeamRevokeUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -5143,10 +5267,27 @@ type Querier interface {
 	// Meta's raw webhook events.
 	WhatsAppAccount(ctx context.Context, workspaceID uuid.UUID) (WhatsAppAccountRow, error)
 	WhatsAppAccountByID(ctx context.Context, id uuid.UUID) (WhatsappAccount, error)
-	// The account a webhook request is for: /hooks/whatsapp/{workspace}.
+	// The account a webhook request is for: /hooks/whatsapp/{workspace}/{token},
+	// or the old address without the token.
 	WhatsAppAccountBySlug(ctx context.Context, slug string) (WhatsappAccount, error)
+	// Meta called the account's callback URL: from now on the old address
+	// refuses the account's deliveries.
+	WhatsAppAccountCallbackMoved(ctx context.Context, arg WhatsAppAccountCallbackMovedParams) (int64, error)
+	// Gives an account connected before callback tokens its token, once.
+	WhatsAppAccountCallbackToken(ctx context.Context, arg WhatsAppAccountCallbackTokenParams) (int64, error)
+	// A new account starts at its callback URL: the old address, without the
+	// token, never takes its deliveries.
 	WhatsAppAccountInsert(ctx context.Context, arg WhatsAppAccountInsertParams) error
+	// Events for another WhatsApp Business Account or number, in a delivery
+	// signed with the app secret: counted and dropped.
+	WhatsAppAccountOtherAccount(ctx context.Context, arg WhatsAppAccountOtherAccountParams) error
+	// A delivery whose signature didn't match the app secret: counted, never
+	// stored.
+	WhatsAppAccountRejected(ctx context.Context, arg WhatsAppAccountRejectedParams) error
 	WhatsAppAccountRemove(ctx context.Context, arg WhatsAppAccountRemoveParams) error
+	// A new callback token: the previous one stops working at once, and Meta
+	// has to verify the new address, as when the account connected.
+	WhatsAppAccountRotateCallback(ctx context.Context, arg WhatsAppAccountRotateCallbackParams) error
 	WhatsAppAccountSetCredentials(ctx context.Context, arg WhatsAppAccountSetCredentialsParams) error
 	// What Meta reported for the number and the business account.
 	WhatsAppAccountSetInfo(ctx context.Context, arg WhatsAppAccountSetInfoParams) error
@@ -5154,6 +5295,9 @@ type Querier interface {
 	WhatsAppAccountSynced(ctx context.Context, arg WhatsAppAccountSyncedParams) error
 	WhatsAppAccountTouchEvent(ctx context.Context, arg WhatsAppAccountTouchEventParams) error
 	WhatsAppAccountVerified(ctx context.Context, arg WhatsAppAccountVerifiedParams) error
+	// A delivery to the old address once the account moved, or to a wrong
+	// token: counted, never stored.
+	WhatsAppAccountWrongAddress(ctx context.Context, arg WhatsAppAccountWrongAddressParams) error
 	// Every connected account, for the hourly sync.
 	WhatsAppAccountsAll(ctx context.Context) ([]WhatsappAccount, error)
 	WhatsAppCampaign(ctx context.Context, arg WhatsAppCampaignParams) (WhatsAppCampaignRow, error)

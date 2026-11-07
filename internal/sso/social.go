@@ -370,12 +370,8 @@ func (s *Service) callbackSocial(ctx context.Context, kind, state string, query 
 		if err != nil {
 			return fail(failure("state_expired", "flow.openInvitation", nil), id.Email)
 		}
-		res, err := s.Accounts.AcceptInvitationExternal(ctx, token, accounts.ExternalIdentity{Kind: kind, ProviderName: name, Subject: id.Subject,
-			Email: id.Email, Name: id.Name, Username: id.Username, Details: mustJSON(id.Details), Metadata: meta})
-		if err != nil {
-			return fail(asFlowError(err), id.Email)
-		}
-		return s.finishSession(res, id.Email, name, fs.Next)
+		return s.acceptInvitation(ctx, token, accounts.ExternalIdentity{Kind: kind, ProviderName: name, Subject: id.Subject, Email: id.Email,
+			EmailVerified: socialEmailVouched(kind, id), Name: id.Name, Username: id.Username, Details: mustJSON(id.Details), Metadata: meta}, fs.Next, fail)
 	}
 	// Sign in: an identity already linked, or an account with this
 	// verified email (the identity is linked on the way).
@@ -431,6 +427,19 @@ func (s *Service) callbackSocial(ctx context.Context, kind, state string, query 
 	return s.finishSession(res, u.Email, name, fs.Next)
 }
 
+// socialEmailVouched reports whether a social provider vouches for an
+// identity's email the way sign-in takes it: Google's email_verified, and
+// GitHub's primary verified email (githubIdentity reads only that one).
+// Microsoft's email claim is whatever the account's owner typed, so it
+// counts only when it is the sign-in name (preferred_username): a work
+// account's UPN is at a domain its tenant verified.
+func socialEmailVouched(kind string, id identity) bool {
+	if kind == "microsoft" {
+		return id.Email != "" && strings.EqualFold(strings.TrimSpace(id.Username), id.Email)
+	}
+	return id.EmailVerified != nil && *id.EmailVerified
+}
+
 // enforcer returns the enabled SSO provider that enforces the email's domain.
 func (s *Service) enforcer(ctx context.Context, email string) *store.SsoProvider {
 	d := emailDomain(email)
@@ -473,7 +482,8 @@ func (s *Service) oidcSocialIdentity(kind string, c map[string]any) (identity, e
 			id.Email = strings.ToLower(id.Username)
 		}
 		// Microsoft's email claim isn't verified: it never links an account
-		// by email (an invitation link or Account › Link does).
+		// by email (Account › Link does), and creates one from an invitation
+		// only when it is the sign-in name (socialEmailVouched).
 		id.Details["tid"] = tid
 	}
 	if id.Subject == "" {

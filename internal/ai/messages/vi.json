@@ -26,6 +26,7 @@
   "problem.privateHost": "{host} là một địa chỉ nội bộ. Quản trị viên hệ thống có thể cho phép địa chỉ nội bộ.",
   "problem.badAddress": "Hãy dùng địa chỉ đầy đủ của máy chủ, ví dụ {example}.",
   "problem.keyNeeded": "Hãy dán khóa API từ tài khoản {provider} của bạn.",
+  "problem.keyAgain": "Địa chỉ đã thay đổi: hãy dán lại khóa API. ReputeCast không gửi khóa đã lưu đến một địa chỉ mới.",
   "problem.azureNeeds": "Hãy dán endpoint Azure OpenAI của bạn (ví dụ https://acme.openai.azure.com) và tên của bản triển khai.",
   "problem.modelNeeded": "Hãy chọn một mô hình, hoặc nhập tên của nó.",
   "problem.oneModel": "Mỗi không gian làm việc dùng một mô hình: hãy ngắt kết nối {provider} trước khi đổi nhà cung cấp.",

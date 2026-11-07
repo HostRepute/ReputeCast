@@ -163,12 +163,15 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.RemoveStaff(ctx, in.StaffID, in.Body)
 		})
 
-	api.Put(h, api.Op{ID: "assign-agency-staff", Path: "/agency/assignments", Summary: "Assign a staff member to a workspace with a role (only roles whose permissions you hold there)", Tags: tags, Access: view, Status: http.StatusNoContent},
+	// Who works in a client is the agency managers' (agency:manage) or the
+	// client's own team managers' (team:manage there) to change: the
+	// service checks it, as it is per workspace.
+	api.Put(h, api.Op{ID: "assign-agency-staff", Path: "/agency/assignments", Summary: "Assign a staff member to a workspace with a role (agency:manage, or team:manage there; only roles whose permissions you hold there)", Tags: tags, Access: view, Status: http.StatusNoContent},
 		func(ctx context.Context, in *struct{ Body AgencyAssignInput }) (*api.Empty, error) {
 			return api.NoContent, s.Assign(ctx, in.Body)
 		})
 
-	api.Post(h, api.Op{ID: "unassign-agency-staff", Path: "/agency/assignments/remove", Summary: "Remove an assignment: the membership goes; the keys they made are kept or revoked", Tags: tags, Access: view, Status: http.StatusNoContent},
+	api.Post(h, api.Op{ID: "unassign-agency-staff", Path: "/agency/assignments/remove", Summary: "Remove an assignment (agency:manage, or team:manage there): the membership goes; the keys they made are kept or revoked", Tags: tags, Access: view, Status: http.StatusNoContent},
 		func(ctx context.Context, in *struct{ Body AgencyUnassignInput }) (*api.Empty, error) {
 			return api.NoContent, s.Unassign(ctx, in.Body)
 		})

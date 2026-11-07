@@ -62,13 +62,25 @@ The stack and the reasons behind each choice are in
   per-email lockout and per-IP rate limits.
 - Provider credentials, OIDC client secrets, HostRepute tokens and TOTP seeds
   are encrypted with AES-256-GCM bound to their row, are write-only and are
-  never returned by the API. Keys can be rotated.
+  never returned by the API. Keys can be rotated. A form that keeps a saved
+  secret when its field is left blank keeps it only while the address it
+  goes to stays the same: a new server URL, host, model endpoint or OIDC
+  issuer needs the secret typed again.
 - Cross-site request protection (Go's `CrossOriginProtection`), a strict
   Content Security Policy, `X-Frame-Options: DENY`, HSTS on https, and client
   IPs taken from forwarded headers only behind trusted proxies.
 - User-written SQL segments run in a read-only transaction with a statement
   timeout, as a role that can only read a per-query view of one workspace's
-  contacts.
+  contacts. They can't take advisory locks or run SQL given as a string,
+  and their connection releases every session lock before it is reused.
+- Liquid renders on a budget of steps, work, value sizes and time, so a
+  template anyone who can preview an email writes can't stall the server or
+  exhaust its memory; templates can't load files or other templates.
+- A host belongs to one workspace (`internal/customhost`): one that another
+  workspace verified first, or one under the instance's address, needs the
+  workspace's TXT record. A host a workspace holds carries only that
+  workspace's tracked links, short links, push clicks and `/p/{workspace}`
+  pages; the instance's own host carries every workspace's.
 - Outgoing webhooks are signed (HMAC-SHA256) and blocked from private
   networks.
 - The audit log records allowed and denied actions and cannot be edited from

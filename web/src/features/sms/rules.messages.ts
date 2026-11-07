@@ -198,6 +198,9 @@ export const m = defineMessages('smsRules', {
   domainPlaceholder: 'go.example.com',
   domainSaved: 'Short-link domain set',
   cnameNote: 'Add a CNAME for {domain} pointing to {target}. A certificate from Let’s Encrypt follows on its own.',
+  /** When the CNAME alone doesn't show the domain is this workspace's (another workspace used it first); the last check says why. */
+  cnameTxtNote:
+    'Add a CNAME for {domain} pointing to {target}, and the TXT record below: its value is this workspace’s alone. A certificate from Let’s Encrypt follows on its own.',
   dnsRecord: 'DNS record',
   type: 'Type',
   name: 'Name',

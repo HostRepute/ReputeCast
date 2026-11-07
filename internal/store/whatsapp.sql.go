@@ -15,41 +15,50 @@ import (
 
 const whatsAppAccount = `-- name: WhatsAppAccount :one
 
-SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, coalesce(u.name, '')::text AS connected_by_name
+SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, a.rejected_deliveries, a.rejected_at, a.other_account_events, a.other_account_at, a.callback_token_hash, a.callback_token_enc, a.callback_moved_at, a.wrong_address_deliveries, a.wrong_address_at, coalesce(u.name, '')::text AS connected_by_name
 FROM whatsapp_accounts a LEFT JOIN users u ON u.id = a.connected_by
 WHERE a.workspace_id = $1 AND a.removed_at IS NULL
 `
 
 type WhatsAppAccountRow struct {
-	ID                uuid.UUID  `json:"id"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	CredentialsEnc    []byte     `json:"credentialsEnc"`
-	BusinessHint      string     `json:"businessHint"`
-	BusinessName      string     `json:"businessName"`
-	PhoneNumber       string     `json:"phoneNumber"`
-	DisplayName       string     `json:"displayName"`
-	NameStatus        string     `json:"nameStatus"`
-	PhoneStatus       string     `json:"phoneStatus"`
-	Quality           string     `json:"quality"`
-	PreviousQuality   string     `json:"previousQuality"`
-	QualityChangedAt  *time.Time `json:"qualityChangedAt"`
-	MessagingLimit    int32      `json:"messagingLimit"`
-	PreviousLimit     int32      `json:"previousLimit"`
-	LimitChangedAt    *time.Time `json:"limitChangedAt"`
-	VerifyToken       string     `json:"verifyToken"`
-	VerifiedAt        *time.Time `json:"verifiedAt"`
-	LastEventAt       *time.Time `json:"lastEventAt"`
-	Status            string     `json:"status"`
-	StatusDetail      string     `json:"statusDetail"`
-	StatusSince       *time.Time `json:"statusSince"`
-	TemplatesSyncedAt *time.Time `json:"templatesSyncedAt"`
-	CheckedAt         *time.Time `json:"checkedAt"`
-	Demo              bool       `json:"demo"`
-	ConnectedBy       *uuid.UUID `json:"connectedBy"`
-	ConnectedAt       time.Time  `json:"connectedAt"`
-	RemovedAt         *time.Time `json:"removedAt"`
-	RemovedBy         *uuid.UUID `json:"removedBy"`
-	ConnectedByName   string     `json:"connectedByName"`
+	ID                     uuid.UUID  `json:"id"`
+	WorkspaceID            uuid.UUID  `json:"workspaceId"`
+	CredentialsEnc         []byte     `json:"credentialsEnc"`
+	BusinessHint           string     `json:"businessHint"`
+	BusinessName           string     `json:"businessName"`
+	PhoneNumber            string     `json:"phoneNumber"`
+	DisplayName            string     `json:"displayName"`
+	NameStatus             string     `json:"nameStatus"`
+	PhoneStatus            string     `json:"phoneStatus"`
+	Quality                string     `json:"quality"`
+	PreviousQuality        string     `json:"previousQuality"`
+	QualityChangedAt       *time.Time `json:"qualityChangedAt"`
+	MessagingLimit         int32      `json:"messagingLimit"`
+	PreviousLimit          int32      `json:"previousLimit"`
+	LimitChangedAt         *time.Time `json:"limitChangedAt"`
+	VerifyToken            string     `json:"verifyToken"`
+	VerifiedAt             *time.Time `json:"verifiedAt"`
+	LastEventAt            *time.Time `json:"lastEventAt"`
+	Status                 string     `json:"status"`
+	StatusDetail           string     `json:"statusDetail"`
+	StatusSince            *time.Time `json:"statusSince"`
+	TemplatesSyncedAt      *time.Time `json:"templatesSyncedAt"`
+	CheckedAt              *time.Time `json:"checkedAt"`
+	Demo                   bool       `json:"demo"`
+	ConnectedBy            *uuid.UUID `json:"connectedBy"`
+	ConnectedAt            time.Time  `json:"connectedAt"`
+	RemovedAt              *time.Time `json:"removedAt"`
+	RemovedBy              *uuid.UUID `json:"removedBy"`
+	RejectedDeliveries     int64      `json:"rejectedDeliveries"`
+	RejectedAt             *time.Time `json:"rejectedAt"`
+	OtherAccountEvents     int64      `json:"otherAccountEvents"`
+	OtherAccountAt         *time.Time `json:"otherAccountAt"`
+	CallbackTokenHash      []byte     `json:"callbackTokenHash"`
+	CallbackTokenEnc       []byte     `json:"callbackTokenEnc"`
+	CallbackMovedAt        *time.Time `json:"callbackMovedAt"`
+	WrongAddressDeliveries int64      `json:"wrongAddressDeliveries"`
+	WrongAddressAt         *time.Time `json:"wrongAddressAt"`
+	ConnectedByName        string     `json:"connectedByName"`
 }
 
 // WhatsApp (internal/whatsapp): the account, templates, the rate card,
@@ -87,13 +96,22 @@ func (q *Queries) WhatsAppAccount(ctx context.Context, workspaceID uuid.UUID) (W
 		&i.ConnectedAt,
 		&i.RemovedAt,
 		&i.RemovedBy,
+		&i.RejectedDeliveries,
+		&i.RejectedAt,
+		&i.OtherAccountEvents,
+		&i.OtherAccountAt,
+		&i.CallbackTokenHash,
+		&i.CallbackTokenEnc,
+		&i.CallbackMovedAt,
+		&i.WrongAddressDeliveries,
+		&i.WrongAddressAt,
 		&i.ConnectedByName,
 	)
 	return i, err
 }
 
 const whatsAppAccountByID = `-- name: WhatsAppAccountByID :one
-SELECT id, workspace_id, credentials_enc, business_hint, business_name, phone_number, display_name, name_status, phone_status, quality, previous_quality, quality_changed_at, messaging_limit, previous_limit, limit_changed_at, verify_token, verified_at, last_event_at, status, status_detail, status_since, templates_synced_at, checked_at, demo, connected_by, connected_at, removed_at, removed_by FROM whatsapp_accounts WHERE id = $1
+SELECT id, workspace_id, credentials_enc, business_hint, business_name, phone_number, display_name, name_status, phone_status, quality, previous_quality, quality_changed_at, messaging_limit, previous_limit, limit_changed_at, verify_token, verified_at, last_event_at, status, status_detail, status_since, templates_synced_at, checked_at, demo, connected_by, connected_at, removed_at, removed_by, rejected_deliveries, rejected_at, other_account_events, other_account_at, callback_token_hash, callback_token_enc, callback_moved_at, wrong_address_deliveries, wrong_address_at FROM whatsapp_accounts WHERE id = $1
 `
 
 func (q *Queries) WhatsAppAccountByID(ctx context.Context, id uuid.UUID) (WhatsappAccount, error) {
@@ -128,16 +146,26 @@ func (q *Queries) WhatsAppAccountByID(ctx context.Context, id uuid.UUID) (Whatsa
 		&i.ConnectedAt,
 		&i.RemovedAt,
 		&i.RemovedBy,
+		&i.RejectedDeliveries,
+		&i.RejectedAt,
+		&i.OtherAccountEvents,
+		&i.OtherAccountAt,
+		&i.CallbackTokenHash,
+		&i.CallbackTokenEnc,
+		&i.CallbackMovedAt,
+		&i.WrongAddressDeliveries,
+		&i.WrongAddressAt,
 	)
 	return i, err
 }
 
 const whatsAppAccountBySlug = `-- name: WhatsAppAccountBySlug :one
-SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
+SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, a.rejected_deliveries, a.rejected_at, a.other_account_events, a.other_account_at, a.callback_token_hash, a.callback_token_enc, a.callback_moved_at, a.wrong_address_deliveries, a.wrong_address_at FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
 WHERE w.slug = $1 AND a.removed_at IS NULL
 `
 
-// The account a webhook request is for: /hooks/whatsapp/{workspace}.
+// The account a webhook request is for: /hooks/whatsapp/{workspace}/{token},
+// or the old address without the token.
 func (q *Queries) WhatsAppAccountBySlug(ctx context.Context, slug string) (WhatsappAccount, error) {
 	row := q.db.QueryRow(ctx, whatsAppAccountBySlug, slug)
 	var i WhatsappAccount
@@ -170,26 +198,80 @@ func (q *Queries) WhatsAppAccountBySlug(ctx context.Context, slug string) (Whats
 		&i.ConnectedAt,
 		&i.RemovedAt,
 		&i.RemovedBy,
+		&i.RejectedDeliveries,
+		&i.RejectedAt,
+		&i.OtherAccountEvents,
+		&i.OtherAccountAt,
+		&i.CallbackTokenHash,
+		&i.CallbackTokenEnc,
+		&i.CallbackMovedAt,
+		&i.WrongAddressDeliveries,
+		&i.WrongAddressAt,
 	)
 	return i, err
 }
 
+const whatsAppAccountCallbackMoved = `-- name: WhatsAppAccountCallbackMoved :execrows
+UPDATE whatsapp_accounts SET callback_moved_at = $1 WHERE id = $2 AND callback_moved_at IS NULL
+`
+
+type WhatsAppAccountCallbackMovedParams struct {
+	At *time.Time `json:"at"`
+	ID uuid.UUID  `json:"id"`
+}
+
+// Meta called the account's callback URL: from now on the old address
+// refuses the account's deliveries.
+func (q *Queries) WhatsAppAccountCallbackMoved(ctx context.Context, arg WhatsAppAccountCallbackMovedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, whatsAppAccountCallbackMoved, arg.At, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const whatsAppAccountCallbackToken = `-- name: WhatsAppAccountCallbackToken :execrows
+UPDATE whatsapp_accounts SET callback_token_hash = $1, callback_token_enc = $2
+WHERE id = $3 AND callback_token_hash IS NULL
+`
+
+type WhatsAppAccountCallbackTokenParams struct {
+	CallbackTokenHash []byte    `json:"callbackTokenHash"`
+	CallbackTokenEnc  []byte    `json:"callbackTokenEnc"`
+	ID                uuid.UUID `json:"id"`
+}
+
+// Gives an account connected before callback tokens its token, once.
+func (q *Queries) WhatsAppAccountCallbackToken(ctx context.Context, arg WhatsAppAccountCallbackTokenParams) (int64, error) {
+	result, err := q.db.Exec(ctx, whatsAppAccountCallbackToken, arg.CallbackTokenHash, arg.CallbackTokenEnc, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const whatsAppAccountInsert = `-- name: WhatsAppAccountInsert :exec
-INSERT INTO whatsapp_accounts (id, workspace_id, credentials_enc, business_hint, verify_token, status, status_since, demo, connected_by, connected_at)
-VALUES ($1, $2, $3, $4, $5, 'waiting', $6, $7, $8, $6)
+INSERT INTO whatsapp_accounts (id, workspace_id, credentials_enc, business_hint, verify_token, callback_token_hash, callback_token_enc, callback_moved_at,
+    status, status_since, demo, connected_by, connected_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+    'waiting', $8, $9, $10, $8)
 `
 
 type WhatsAppAccountInsertParams struct {
-	ID             uuid.UUID  `json:"id"`
-	WorkspaceID    uuid.UUID  `json:"workspaceId"`
-	CredentialsEnc []byte     `json:"credentialsEnc"`
-	BusinessHint   string     `json:"businessHint"`
-	VerifyToken    string     `json:"verifyToken"`
-	ConnectedAt    *time.Time `json:"connectedAt"`
-	Demo           bool       `json:"demo"`
-	ConnectedBy    *uuid.UUID `json:"connectedBy"`
+	ID                uuid.UUID  `json:"id"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	CredentialsEnc    []byte     `json:"credentialsEnc"`
+	BusinessHint      string     `json:"businessHint"`
+	VerifyToken       string     `json:"verifyToken"`
+	CallbackTokenHash []byte     `json:"callbackTokenHash"`
+	CallbackTokenEnc  []byte     `json:"callbackTokenEnc"`
+	ConnectedAt       *time.Time `json:"connectedAt"`
+	Demo              bool       `json:"demo"`
+	ConnectedBy       *uuid.UUID `json:"connectedBy"`
 }
 
+// A new account starts at its callback URL: the old address, without the
+// token, never takes its deliveries.
 func (q *Queries) WhatsAppAccountInsert(ctx context.Context, arg WhatsAppAccountInsertParams) error {
 	_, err := q.db.Exec(ctx, whatsAppAccountInsert,
 		arg.ID,
@@ -197,10 +279,49 @@ func (q *Queries) WhatsAppAccountInsert(ctx context.Context, arg WhatsAppAccount
 		arg.CredentialsEnc,
 		arg.BusinessHint,
 		arg.VerifyToken,
+		arg.CallbackTokenHash,
+		arg.CallbackTokenEnc,
 		arg.ConnectedAt,
 		arg.Demo,
 		arg.ConnectedBy,
 	)
+	return err
+}
+
+const whatsAppAccountOtherAccount = `-- name: WhatsAppAccountOtherAccount :exec
+UPDATE whatsapp_accounts SET other_account_events = other_account_events + $1::bigint,
+    other_account_at = greatest(coalesce(other_account_at, $2::timestamptz), $2::timestamptz)
+WHERE id = $3
+`
+
+type WhatsAppAccountOtherAccountParams struct {
+	Events int64     `json:"events"`
+	At     time.Time `json:"at"`
+	ID     uuid.UUID `json:"id"`
+}
+
+// Events for another WhatsApp Business Account or number, in a delivery
+// signed with the app secret: counted and dropped.
+func (q *Queries) WhatsAppAccountOtherAccount(ctx context.Context, arg WhatsAppAccountOtherAccountParams) error {
+	_, err := q.db.Exec(ctx, whatsAppAccountOtherAccount, arg.Events, arg.At, arg.ID)
+	return err
+}
+
+const whatsAppAccountRejected = `-- name: WhatsAppAccountRejected :exec
+UPDATE whatsapp_accounts SET rejected_deliveries = rejected_deliveries + 1,
+    rejected_at = greatest(coalesce(rejected_at, $1::timestamptz), $1::timestamptz)
+WHERE id = $2
+`
+
+type WhatsAppAccountRejectedParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+// A delivery whose signature didn't match the app secret: counted, never
+// stored.
+func (q *Queries) WhatsAppAccountRejected(ctx context.Context, arg WhatsAppAccountRejectedParams) error {
+	_, err := q.db.Exec(ctx, whatsAppAccountRejected, arg.At, arg.ID)
 	return err
 }
 
@@ -216,6 +337,32 @@ type WhatsAppAccountRemoveParams struct {
 
 func (q *Queries) WhatsAppAccountRemove(ctx context.Context, arg WhatsAppAccountRemoveParams) error {
 	_, err := q.db.Exec(ctx, whatsAppAccountRemove, arg.At, arg.RemovedBy, arg.ID)
+	return err
+}
+
+const whatsAppAccountRotateCallback = `-- name: WhatsAppAccountRotateCallback :exec
+UPDATE whatsapp_accounts SET callback_token_hash = $1, callback_token_enc = $2, verified_at = NULL,
+    status_since = CASE WHEN status = 'connected' THEN $3::timestamptz ELSE status_since END,
+    status = CASE WHEN status = 'connected' THEN 'waiting' ELSE status END
+WHERE id = $4
+`
+
+type WhatsAppAccountRotateCallbackParams struct {
+	CallbackTokenHash []byte    `json:"callbackTokenHash"`
+	CallbackTokenEnc  []byte    `json:"callbackTokenEnc"`
+	At                time.Time `json:"at"`
+	ID                uuid.UUID `json:"id"`
+}
+
+// A new callback token: the previous one stops working at once, and Meta
+// has to verify the new address, as when the account connected.
+func (q *Queries) WhatsAppAccountRotateCallback(ctx context.Context, arg WhatsAppAccountRotateCallbackParams) error {
+	_, err := q.db.Exec(ctx, whatsAppAccountRotateCallback,
+		arg.CallbackTokenHash,
+		arg.CallbackTokenEnc,
+		arg.At,
+		arg.ID,
+	)
 	return err
 }
 
@@ -342,8 +489,26 @@ func (q *Queries) WhatsAppAccountVerified(ctx context.Context, arg WhatsAppAccou
 	return err
 }
 
+const whatsAppAccountWrongAddress = `-- name: WhatsAppAccountWrongAddress :exec
+UPDATE whatsapp_accounts SET wrong_address_deliveries = wrong_address_deliveries + 1,
+    wrong_address_at = greatest(coalesce(wrong_address_at, $1::timestamptz), $1::timestamptz)
+WHERE id = $2
+`
+
+type WhatsAppAccountWrongAddressParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+// A delivery to the old address once the account moved, or to a wrong
+// token: counted, never stored.
+func (q *Queries) WhatsAppAccountWrongAddress(ctx context.Context, arg WhatsAppAccountWrongAddressParams) error {
+	_, err := q.db.Exec(ctx, whatsAppAccountWrongAddress, arg.At, arg.ID)
+	return err
+}
+
 const whatsAppAccountsAll = `-- name: WhatsAppAccountsAll :many
-SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
+SELECT a.id, a.workspace_id, a.credentials_enc, a.business_hint, a.business_name, a.phone_number, a.display_name, a.name_status, a.phone_status, a.quality, a.previous_quality, a.quality_changed_at, a.messaging_limit, a.previous_limit, a.limit_changed_at, a.verify_token, a.verified_at, a.last_event_at, a.status, a.status_detail, a.status_since, a.templates_synced_at, a.checked_at, a.demo, a.connected_by, a.connected_at, a.removed_at, a.removed_by, a.rejected_deliveries, a.rejected_at, a.other_account_events, a.other_account_at, a.callback_token_hash, a.callback_token_enc, a.callback_moved_at, a.wrong_address_deliveries, a.wrong_address_at FROM whatsapp_accounts a JOIN workspaces w ON w.id = a.workspace_id AND w.deleted_at IS NULL
 WHERE a.removed_at IS NULL ORDER BY a.id
 `
 
@@ -386,6 +551,15 @@ func (q *Queries) WhatsAppAccountsAll(ctx context.Context) ([]WhatsappAccount, e
 			&i.ConnectedAt,
 			&i.RemovedAt,
 			&i.RemovedBy,
+			&i.RejectedDeliveries,
+			&i.RejectedAt,
+			&i.OtherAccountEvents,
+			&i.OtherAccountAt,
+			&i.CallbackTokenHash,
+			&i.CallbackTokenEnc,
+			&i.CallbackMovedAt,
+			&i.WrongAddressDeliveries,
+			&i.WrongAddressAt,
 		); err != nil {
 			return nil, err
 		}

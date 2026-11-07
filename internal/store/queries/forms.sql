@@ -219,9 +219,6 @@ SET custom_domain = @custom_domain, domain_status = @domain_status, domain_detai
     texts = (texts - 'domain_detail') || coalesce(sqlc.narg(texts)::jsonb, '{}')
 WHERE workspace_id = @workspace_id;
 
--- name: PublicSettingsDomainTaken :one
-SELECT EXISTS (SELECT 1 FROM public_page_settings WHERE custom_domain = @domain AND workspace_id <> @workspace_id)::boolean;
-
 -- name: PublicSettingsDomainsToCheck :many
 -- Domains waiting for DNS (every run) and verified ones (once a day).
 SELECT workspace_id, custom_domain::text AS custom_domain, domain_status
@@ -230,19 +227,34 @@ WHERE custom_domain IS NOT NULL
   AND (domain_status IN ('pending','failed') OR domain_checked_at IS NULL OR domain_checked_at < @before);
 
 -- name: PublicSettingsSetTurnstile :exec
--- texts is the error's kept message ({"turnstile_error": …}), or NULL.
+-- texts is the error's kept message ({"turnstile_error": …}), or NULL. New
+-- keys start without the reports of the old ones.
 UPDATE public_page_settings
 SET turnstile_site_key = @site_key, turnstile_secret_enc = @secret_enc, turnstile_status = @status, turnstile_error = @error,
     turnstile_checked_at = @checked_at, updated_by = @updated_by, updated_at = @at,
+    turnstile_reported_code = '', turnstile_reported_at = NULL, turnstile_reported_count = 0,
     texts = (texts - 'turnstile_error') || coalesce(sqlc.narg(texts)::jsonb, '{}')
 WHERE workspace_id = @workspace_id;
 
 -- name: PublicSettingsTurnstileError :exec
--- The widget on a challenge page reported an error (wrong site key, domain
--- not allowed): spam protection falls back until someone fixes the key.
+-- Cloudflare refused the secret key: spam protection falls back to the
+-- honeypot and timing check until someone saves working keys.
 UPDATE public_page_settings SET turnstile_status = 'error', turnstile_error = @error, turnstile_checked_at = @at,
     texts = (texts - 'turnstile_error') || coalesce(sqlc.narg(texts)::jsonb, '{}')
 WHERE workspace_id = @workspace_id AND turnstile_site_key <> '';
+
+-- name: PublicSettingsTurnstileReport :exec
+-- A visitor's browser reported an error of the widget on a challenge page:
+-- kept for the publisher to see. It never changes turnstile_status.
+UPDATE public_page_settings
+SET turnstile_reported_code = @code, turnstile_reported_at = @at, turnstile_reported_count = turnstile_reported_count + 1
+WHERE workspace_id = @workspace_id AND turnstile_site_key <> '';
+
+-- name: PublicSettingsTurnstileWorks :execrows
+-- Cloudflare accepted a widget's answer: the widget runs, so what browsers
+-- reported before is over.
+UPDATE public_page_settings SET turnstile_reported_code = '', turnstile_reported_at = NULL, turnstile_reported_count = 0
+WHERE workspace_id = @workspace_id AND turnstile_reported_count > 0;
 
 -- name: PublicSettingsSetLogo :exec
 UPDATE public_page_settings SET logo = @logo, logo_type = @logo_type, updated_by = @updated_by, updated_at = @at

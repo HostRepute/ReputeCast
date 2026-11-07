@@ -29,6 +29,11 @@ func TestWhatsAppDemo(t *testing.T) {
 		a.VerifyToken != "rc-wa-7Q2mX9vKp4" {
 		t.Fatalf("account: %+v", a)
 	}
+	// Meta verified the callback URL, with the account's own token: the
+	// old address never took its deliveries.
+	if !strings.Contains(a.WebhookURL, "/hooks/whatsapp/acme-newsletter/") || len(a.WebhookURL[strings.LastIndex(a.WebhookURL, "/")+1:]) != 43 || a.OldAddress {
+		t.Fatalf("callback URL: %q, old address %v", a.WebhookURL, a.OldAddress)
+	}
 	if ov.Consent != 214 || ov.TemplateCounts.Approved != 2 || ov.TemplateCounts.Pending != 1 || ov.TemplateCounts.Rejected != 1 ||
 		ov.RatesAsOf.Format("2006-01-02") != "2026-10-01" {
 		t.Fatalf("overview: consent %d, templates %+v, rates %v", ov.Consent, ov.TemplateCounts, ov.RatesAsOf)
@@ -121,12 +126,12 @@ func TestWhatsAppDemo(t *testing.T) {
 		t.Fatalf("step estimate without a list: %+v", est)
 	}
 
-	// A viewer sees it all, without the verify token.
+	// A viewer sees it all, without the verify token or the callback URL.
 	aisha := env.Client()
 	aisha.SignInDemo("aisha@acme.io")
 	ov = whatsapp.WhatsAppOverview{}
 	aisha.Do(http.MethodGet, demoWS+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &ov)
-	if ov.Account == nil || ov.Account.VerifyToken != "" || ov.CanManage {
+	if ov.Account == nil || ov.Account.VerifyToken != "" || ov.Account.WebhookURL != "" || ov.WebhookURL != "" || ov.CanManage {
 		t.Fatalf("Aisha: %+v", ov.Account)
 	}
 }

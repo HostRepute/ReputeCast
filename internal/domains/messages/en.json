@@ -14,6 +14,7 @@
   "cell.none": { "message": "None", "note": "the Tracking cell: no custom tracking domain" },
   "cell.trackingNotPointed": { "message": "{domain} · not pointed yet", "note": "the Tracking cell: the tracking domain's CNAME doesn't point to ReputeCast yet" },
   "cell.trackingPending": "{domain} · pending",
+  "cell.trackingRefused": { "message": "{domain} · not used", "note": "the Tracking cell: the tracking domain points to ReputeCast, but nothing shows it's this workspace's (another workspace used it first), so links don't use it" },
   "cell.set": { "message": "Set", "note": "the BIMI cell: a BIMI record is published" },
   "cell.notSet": "Not set",
 
@@ -59,6 +60,10 @@
   "problem.domainFormat": "Enter a domain like news.acme.io.",
   "problem.alreadyDomain": "{domain} is already a sending domain of this workspace.",
   "problem.subdomain": "Use a subdomain of {domain}, for example go.{domain}.",
+  "problem.trackingTaken": { "message": "{domain} is already used by another workspace on this ReputeCast, for its pages or its links. Remove it there first.", "note": "the tracking domain is another workspace's public pages, short links, link tracking or push site" },
+  "tracking.inUse": { "message": "Another workspace on this ReputeCast uses {domain} already, so its CNAME doesn't show it's yours.", "note": "why a tracking domain isn't used; the app shows the TXT record to add next to it, the one proof that still counts" },
+  "tracking.underOwn": { "message": "{domain} is under {target}, this ReputeCast's own address, so its CNAME doesn't show it's yours.", "note": "why a tracking domain isn't used; target: the instance's host name; the app shows the TXT record to add next to it" },
+  "tracking.own": { "message": "{domain} is one of this ReputeCast's own addresses. Use a subdomain of your sending domain instead.", "note": "why a tracking domain isn't used: it's the instance's own host or its SMTP relay's" },
   "problem.sendersUse": "{count, plural, one {# sender uses} other {# senders use}} {domain}. Delete them first, so no campaign loses its From address.",
   "problem.providerAdd": { "message": "{provider} didn't add {domain}: {error}", "note": "error: the provider's own answer, in English" },
   "problem.cloudflareToken": "Cloudflare rejected this token. Use an API token with Zone › DNS › Edit permission on {domain}'s zone.",

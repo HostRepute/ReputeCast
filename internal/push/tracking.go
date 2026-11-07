@@ -112,13 +112,6 @@ func (s *Service) clickTarget(ctx context.Context, id uuid.UUID, tok string, act
 	return m, withUTM(target, c.UTM), nil
 }
 
-// ClickTarget is where a click goes, without counting it: link previews
-// and HEAD requests aren't readers.
-func (s *Service) ClickTarget(ctx context.Context, id uuid.UUID, tok string, action int) (string, error) {
-	_, target, err := s.clickTarget(ctx, id, tok, action)
-	return target, err
-}
-
 // Click records a click on a notification (action 0) or one of its buttons
 // (1, 2) and returns where it goes, with UTM parameters. Only the
 // notification's own links are ever a target.
@@ -127,12 +120,19 @@ func (s *Service) Click(ctx context.Context, id uuid.UUID, tok string, action in
 	if err != nil {
 		return "", err
 	}
+	s.recordClick(ctx, m, id, action, target, userAgent)
+	return target, nil
+}
+
+// recordClick counts a click on message m going to target. The reader
+// goes on to the page whatever happens here: a click that can't be
+// recorded is only logged.
+func (s *Service) recordClick(ctx context.Context, m store.PushMessageRow, id uuid.UUID, action int, target, userAgent string) {
 	now := s.now()
 	ws, err := s.Q.GetWorkspace(ctx, m.WorkspaceID)
 	if err != nil {
-		// The reader still gets the page; the click isn't counted.
 		s.log().WarnContext(ctx, "push click workspace", "err", err)
-		return target, nil //nolint:nilerr // see above
+		return
 	}
 	err = s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if err := q.PushClickInsert(ctx, store.PushClickInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: m.WorkspaceID, MessageID: id, Action: int32(action),
@@ -174,7 +174,6 @@ func (s *Service) Click(ctx context.Context, id uuid.UUID, tok string, action in
 	if err != nil {
 		s.log().WarnContext(ctx, "push click", "message", id, "err", err)
 	}
-	return target, nil
 }
 
 // ParseClick reads a click link's last part: "<id>.<token>".

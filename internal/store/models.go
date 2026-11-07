@@ -3077,25 +3077,28 @@ type ProviderSuppressionSync struct {
 }
 
 type PublicPageSetting struct {
-	WorkspaceID        uuid.UUID       `json:"workspaceId"`
-	HostedFormID       *uuid.UUID      `json:"hostedFormId"`
-	Pages              json.RawMessage `json:"pages"`
-	CustomDomain       *string         `json:"customDomain"`
-	DomainStatus       string          `json:"domainStatus"`
-	DomainDetail       string          `json:"domainDetail"`
-	DomainCheckedAt    *time.Time      `json:"domainCheckedAt"`
-	DomainVerifiedAt   *time.Time      `json:"domainVerifiedAt"`
-	TurnstileSiteKey   string          `json:"turnstileSiteKey"`
-	TurnstileSecretEnc []byte          `json:"turnstileSecretEnc"`
-	TurnstileStatus    string          `json:"turnstileStatus"`
-	TurnstileError     string          `json:"turnstileError"`
-	TurnstileCheckedAt *time.Time      `json:"turnstileCheckedAt"`
-	Logo               []byte          `json:"logo"`
-	LogoType           string          `json:"logoType"`
-	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
-	UpdatedAt          time.Time       `json:"updatedAt"`
-	CopyLanguage       string          `json:"copyLanguage"`
-	Texts              json.RawMessage `json:"texts"`
+	WorkspaceID            uuid.UUID       `json:"workspaceId"`
+	HostedFormID           *uuid.UUID      `json:"hostedFormId"`
+	Pages                  json.RawMessage `json:"pages"`
+	CustomDomain           *string         `json:"customDomain"`
+	DomainStatus           string          `json:"domainStatus"`
+	DomainDetail           string          `json:"domainDetail"`
+	DomainCheckedAt        *time.Time      `json:"domainCheckedAt"`
+	DomainVerifiedAt       *time.Time      `json:"domainVerifiedAt"`
+	TurnstileSiteKey       string          `json:"turnstileSiteKey"`
+	TurnstileSecretEnc     []byte          `json:"turnstileSecretEnc"`
+	TurnstileStatus        string          `json:"turnstileStatus"`
+	TurnstileError         string          `json:"turnstileError"`
+	TurnstileCheckedAt     *time.Time      `json:"turnstileCheckedAt"`
+	Logo                   []byte          `json:"logo"`
+	LogoType               string          `json:"logoType"`
+	UpdatedBy              *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt              time.Time       `json:"updatedAt"`
+	CopyLanguage           string          `json:"copyLanguage"`
+	Texts                  json.RawMessage `json:"texts"`
+	TurnstileReportedCode  string          `json:"turnstileReportedCode"`
+	TurnstileReportedAt    *time.Time      `json:"turnstileReportedAt"`
+	TurnstileReportedCount int32           `json:"turnstileReportedCount"`
 }
 
 type PushCampaign struct {
@@ -3823,23 +3826,24 @@ type Sender struct {
 }
 
 type SendingDomain struct {
-	ID             uuid.UUID       `json:"id"`
-	WorkspaceID    uuid.UUID       `json:"workspaceId"`
-	Domain         string          `json:"domain"`
-	DnsRecords     json.RawMessage `json:"dnsRecords"`
-	AuthSummary    json.RawMessage `json:"authSummary"`
-	Status         string          `json:"status"`
-	LastCheckedAt  *time.Time      `json:"lastCheckedAt"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	Note           string          `json:"note"`
-	TrackingDomain string          `json:"trackingDomain"`
-	TrackingStatus string          `json:"trackingStatus"`
-	DnsHost        string          `json:"dnsHost"`
-	Nameservers    []string        `json:"nameservers"`
-	AuthDetail     json.RawMessage `json:"authDetail"`
-	CreatedBy      *uuid.UUID      `json:"createdBy"`
-	UpdatedAt      time.Time       `json:"updatedAt"`
-	Transactional  bool            `json:"transactional"`
+	ID                 uuid.UUID       `json:"id"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Domain             string          `json:"domain"`
+	DnsRecords         json.RawMessage `json:"dnsRecords"`
+	AuthSummary        json.RawMessage `json:"authSummary"`
+	Status             string          `json:"status"`
+	LastCheckedAt      *time.Time      `json:"lastCheckedAt"`
+	CreatedAt          time.Time       `json:"createdAt"`
+	Note               string          `json:"note"`
+	TrackingDomain     string          `json:"trackingDomain"`
+	TrackingStatus     string          `json:"trackingStatus"`
+	DnsHost            string          `json:"dnsHost"`
+	Nameservers        []string        `json:"nameservers"`
+	AuthDetail         json.RawMessage `json:"authDetail"`
+	CreatedBy          *uuid.UUID      `json:"createdBy"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+	Transactional      bool            `json:"transactional"`
+	TrackingVerifiedAt *time.Time      `json:"trackingVerifiedAt"`
 }
 
 type SendingMailboxWindow struct {
@@ -5096,6 +5100,7 @@ type User struct {
 	HourCycle            *string    `json:"hourCycle"`
 	WeekStart            *string    `json:"weekStart"`
 	LanguagePromptedAt   *time.Time `json:"languagePromptedAt"`
+	TotpLastStep         *int64     `json:"totpLastStep"`
 }
 
 type UserAvatar struct {
@@ -5317,27 +5322,28 @@ type WarmupPlan struct {
 }
 
 type Webhook struct {
-	ID                  uuid.UUID  `json:"id"`
-	WorkspaceID         uuid.UUID  `json:"workspaceId"`
-	Name                string     `json:"name"`
-	Url                 string     `json:"url"`
-	Events              []string   `json:"events"`
-	SecretEnc           []byte     `json:"secretEnc"`
-	Enabled             bool       `json:"enabled"`
-	CreatedBy           *uuid.UUID `json:"createdBy"`
-	CreatedAt           time.Time  `json:"createdAt"`
-	LastStatus          *int32     `json:"lastStatus"`
-	LastDeliveryAt      *time.Time `json:"lastDeliveryAt"`
-	FailingSince        *time.Time `json:"failingSince"`
-	Description         string     `json:"description"`
-	SecretRotatedAt     *time.Time `json:"secretRotatedAt"`
-	PausedAt            *time.Time `json:"pausedAt"`
-	UpdatedAt           time.Time  `json:"updatedAt"`
-	Demo                bool       `json:"demo"`
-	PreviousSecretEnc   []byte     `json:"previousSecretEnc"`
-	PreviousSecretUntil *time.Time `json:"previousSecretUntil"`
-	AlertedAt           *time.Time `json:"alertedAt"`
-	BatchEmail          bool       `json:"batchEmail"`
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Name                string          `json:"name"`
+	Url                 string          `json:"url"`
+	Events              []string        `json:"events"`
+	SecretEnc           []byte          `json:"secretEnc"`
+	Enabled             bool            `json:"enabled"`
+	CreatedBy           *uuid.UUID      `json:"createdBy"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	LastStatus          *int32          `json:"lastStatus"`
+	LastDeliveryAt      *time.Time      `json:"lastDeliveryAt"`
+	FailingSince        *time.Time      `json:"failingSince"`
+	Description         string          `json:"description"`
+	SecretRotatedAt     *time.Time      `json:"secretRotatedAt"`
+	PausedAt            *time.Time      `json:"pausedAt"`
+	UpdatedAt           time.Time       `json:"updatedAt"`
+	Demo                bool            `json:"demo"`
+	PreviousSecretEnc   []byte          `json:"previousSecretEnc"`
+	PreviousSecretUntil *time.Time      `json:"previousSecretUntil"`
+	AlertedAt           *time.Time      `json:"alertedAt"`
+	BatchEmail          bool            `json:"batchEmail"`
+	PausedReason        json.RawMessage `json:"pausedReason"`
 }
 
 type WebhookContactEvent struct {
@@ -5368,6 +5374,13 @@ type WebhookDelivery struct {
 	EnqueuedAt    *time.Time      `json:"enqueuedAt"`
 	LastAttemptAt *time.Time      `json:"lastAttemptAt"`
 	DeliveredAt   *time.Time      `json:"deliveredAt"`
+}
+
+type WebhookToken struct {
+	Scope       string    `json:"scope"`
+	TokenHash   []byte    `json:"tokenHash"`
+	PayloadHash []byte    `json:"payloadHash"`
+	ExpiresAt   time.Time `json:"expiresAt"`
 }
 
 type WebsiteMember struct {
@@ -5612,34 +5625,43 @@ type WelcomePromptDismissal struct {
 }
 
 type WhatsappAccount struct {
-	ID                uuid.UUID  `json:"id"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	CredentialsEnc    []byte     `json:"credentialsEnc"`
-	BusinessHint      string     `json:"businessHint"`
-	BusinessName      string     `json:"businessName"`
-	PhoneNumber       string     `json:"phoneNumber"`
-	DisplayName       string     `json:"displayName"`
-	NameStatus        string     `json:"nameStatus"`
-	PhoneStatus       string     `json:"phoneStatus"`
-	Quality           string     `json:"quality"`
-	PreviousQuality   string     `json:"previousQuality"`
-	QualityChangedAt  *time.Time `json:"qualityChangedAt"`
-	MessagingLimit    int32      `json:"messagingLimit"`
-	PreviousLimit     int32      `json:"previousLimit"`
-	LimitChangedAt    *time.Time `json:"limitChangedAt"`
-	VerifyToken       string     `json:"verifyToken"`
-	VerifiedAt        *time.Time `json:"verifiedAt"`
-	LastEventAt       *time.Time `json:"lastEventAt"`
-	Status            string     `json:"status"`
-	StatusDetail      string     `json:"statusDetail"`
-	StatusSince       *time.Time `json:"statusSince"`
-	TemplatesSyncedAt *time.Time `json:"templatesSyncedAt"`
-	CheckedAt         *time.Time `json:"checkedAt"`
-	Demo              bool       `json:"demo"`
-	ConnectedBy       *uuid.UUID `json:"connectedBy"`
-	ConnectedAt       time.Time  `json:"connectedAt"`
-	RemovedAt         *time.Time `json:"removedAt"`
-	RemovedBy         *uuid.UUID `json:"removedBy"`
+	ID                     uuid.UUID  `json:"id"`
+	WorkspaceID            uuid.UUID  `json:"workspaceId"`
+	CredentialsEnc         []byte     `json:"credentialsEnc"`
+	BusinessHint           string     `json:"businessHint"`
+	BusinessName           string     `json:"businessName"`
+	PhoneNumber            string     `json:"phoneNumber"`
+	DisplayName            string     `json:"displayName"`
+	NameStatus             string     `json:"nameStatus"`
+	PhoneStatus            string     `json:"phoneStatus"`
+	Quality                string     `json:"quality"`
+	PreviousQuality        string     `json:"previousQuality"`
+	QualityChangedAt       *time.Time `json:"qualityChangedAt"`
+	MessagingLimit         int32      `json:"messagingLimit"`
+	PreviousLimit          int32      `json:"previousLimit"`
+	LimitChangedAt         *time.Time `json:"limitChangedAt"`
+	VerifyToken            string     `json:"verifyToken"`
+	VerifiedAt             *time.Time `json:"verifiedAt"`
+	LastEventAt            *time.Time `json:"lastEventAt"`
+	Status                 string     `json:"status"`
+	StatusDetail           string     `json:"statusDetail"`
+	StatusSince            *time.Time `json:"statusSince"`
+	TemplatesSyncedAt      *time.Time `json:"templatesSyncedAt"`
+	CheckedAt              *time.Time `json:"checkedAt"`
+	Demo                   bool       `json:"demo"`
+	ConnectedBy            *uuid.UUID `json:"connectedBy"`
+	ConnectedAt            time.Time  `json:"connectedAt"`
+	RemovedAt              *time.Time `json:"removedAt"`
+	RemovedBy              *uuid.UUID `json:"removedBy"`
+	RejectedDeliveries     int64      `json:"rejectedDeliveries"`
+	RejectedAt             *time.Time `json:"rejectedAt"`
+	OtherAccountEvents     int64      `json:"otherAccountEvents"`
+	OtherAccountAt         *time.Time `json:"otherAccountAt"`
+	CallbackTokenHash      []byte     `json:"callbackTokenHash"`
+	CallbackTokenEnc       []byte     `json:"callbackTokenEnc"`
+	CallbackMovedAt        *time.Time `json:"callbackMovedAt"`
+	WrongAddressDeliveries int64      `json:"wrongAddressDeliveries"`
+	WrongAddressAt         *time.Time `json:"wrongAddressAt"`
 }
 
 type WhatsappCampaign struct {

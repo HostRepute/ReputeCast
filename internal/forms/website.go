@@ -67,6 +67,9 @@ func (s *Service) TurnstileVerifier(ctx context.Context, set *Settings, remoteIP
 			s.log().WarnContext(ctx, "turnstile verify", "err", err)
 			return false
 		}
+		if res.Success {
+			s.turnstileWorks(ctx, set)
+		}
 		return res.Success
 	}
 }

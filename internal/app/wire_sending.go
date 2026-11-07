@@ -83,6 +83,8 @@ func sendingTracker(a *App) *tracking.Service {
 		return v.(*tracking.Service)
 	}
 	t := &tracking.Service{Pool: a.Pool, Q: a.Q, Links: a.Links, Log: a.Log,
+		// A host a workspace holds carries only its links.
+		Hosts:         a.customHosts(),
 		Automations:   &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
 		Transactional: transactionalService(a),
 		Placement:     a.placement(),

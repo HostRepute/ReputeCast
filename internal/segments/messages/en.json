@@ -195,5 +195,7 @@
   "sql.idColumnUUID": "The query must return the contact id (a uuid) in a column named id, for example SELECT c.id FROM contacts c.",
   "sql.idColumn": "The query must return the contact id in a column named id, for example SELECT c.id FROM contacts c.",
   "sql.readOnly": "SQL segments are read-only: they can't change data.",
-  "sql.roles": "SQL segments can't change roles or session settings."
+  "sql.roles": "SQL segments can't change roles or session settings.",
+  "sql.function": { "message": "SQL segments can't call {name}.", "note": "name: a Postgres function, like pg_advisory_lock" },
+  "sql.unicodeIdentifier": "SQL segments can't use U&\"…\" identifiers: write the name as it is."
 }

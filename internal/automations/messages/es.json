@@ -237,6 +237,8 @@
   "problem.pauseReason": "El motivo debe tener menos de 200 caracteres.",
   "problem.pauseNotLive": "Solo se puede pausar una automatización publicada.",
   "problem.resumeNotPaused": "Solo se puede reanudar una automatización en pausa.",
+  "problem.triggerScope": "Tu acceso está limitado a algunas listas: un recorrido que publiques o reanudes solo puede empezar cuando un contacto se une a una de ellas. Usa el disparador “Se une a una lista” con una de tus listas o pídeselo a alguien con acceso a todas las listas.",
+  "problem.senderScope": "Tu acceso está limitado a algunos dominios de remitente, y los correos de este recorrido se envían desde {domain}, el remitente predeterminado del espacio de trabajo. Pide a alguien que pueda enviar desde {domain} que lo publique o lo reanude.",
 
   "check.routeHealthy": "Ruta Automatizaciones operativa · {providers}",
   "check.routeFallback": "Ruta Automatizaciones con su respaldo · {provider}",

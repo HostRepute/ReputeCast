@@ -16,5 +16,6 @@
   "notHoldable.placementManage": "Không dành cho tác tử: mật khẩu và token của hộp thư mẫu đọc được toàn bộ hộp thư",
   "notHoldable.agents": "Tác tử MCP không thể có {permission}. Hãy cấp quyền này cho một khóa API hoặc một người.",
 
-  "problem.audienceScope": "Quyền truy cập của bạn chỉ áp dụng cho một số danh sách: chỉ gửi tới các danh sách đó, không gửi tới danh sách khác hay một phân khúc."
+  "problem.audienceScope": "Quyền truy cập của bạn chỉ áp dụng cho một số danh sách: chỉ gửi tới các danh sách đó, không gửi tới danh sách khác hay một phân khúc.",
+  "problem.senderScope": "Quyền truy cập của bạn chỉ áp dụng cho một số tên miền người gửi, còn chiến dịch này gửi từ {domain}. Hãy chọn một địa chỉ Người gửi trên tên miền của bạn trong trình soạn thảo, hoặc nhờ người có thể gửi từ {domain}."
 }

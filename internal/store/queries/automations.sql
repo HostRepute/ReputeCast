@@ -265,6 +265,18 @@ FROM automation_emails e
 JOIN automation_email_versions v ON v.email_id = e.id
 WHERE e.workspace_id = @workspace_id AND e.id = @id AND v.version = @version;
 
+-- name: AutomationEmailSenders :many
+-- Where a flow's emails go out from, as the outbox picks their From
+-- (SendingAutomationSender): the email's own sender, else the workspace's
+-- default. The sender's sending domain, and its address for a sender whose
+-- domain is gone; empty for none.
+SELECT DISTINCT coalesce(d.domain, '')::text AS sender_domain, coalesce(s.email, '')::text AS sender_email
+FROM workspaces w
+LEFT JOIN automation_emails e ON e.workspace_id = w.id AND e.id = ANY(@email_ids::uuid[])
+LEFT JOIN senders s ON s.id = coalesce(e.sender_id, w.default_sender_id)
+LEFT JOIN sending_domains d ON d.id = s.domain_id
+WHERE w.id = @workspace_id;
+
 -- name: InsertAutomationEvent :exec
 INSERT INTO automation_events (workspace_id, kind, contact_id, ref, payload, occurred_at)
 VALUES (@workspace_id, @kind, @contact_id, @ref, @payload, @occurred_at);
@@ -656,7 +668,8 @@ UPDATE automation_alerts SET notified_at = @at WHERE id = @id;
 
 -- name: AutomationRunsAtNode :many
 -- The contacts at a step, the latest to arrive first, after a cursor
--- (review 2026-11 AT-2).
+-- (review 2026-11 AT-2); for a caller limited to some lists, only the
+-- contacts on them (empty scope_lists: everyone).
 SELECT r.id, r.contact_id, r.status, r.node_entered_at, r.entered_at, r.next_at,
        coalesce(r.state ->> 'wait', '')::text AS wait,
        c.email, c.first_name, c.last_name
@@ -664,12 +677,14 @@ FROM automation_runs r
 JOIN contacts c ON c.id = r.contact_id
 WHERE r.automation_id = @automation_id AND r.node_id = @node_id AND r.status IN ('active', 'waiting')
   AND (NOT @after::boolean OR (r.node_entered_at, r.id) < (@after_at::timestamptz, @after_id::uuid))
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])))
 ORDER BY r.node_entered_at DESC, r.id DESC
 LIMIT @lim;
 
 -- name: CountAutomationRunsAtNode :one
-SELECT count(*)::bigint FROM automation_runs
-WHERE automation_id = @automation_id AND node_id = @node_id AND status IN ('active', 'waiting');
+SELECT count(*)::bigint FROM automation_runs r
+WHERE r.automation_id = @automation_id AND r.node_id = @node_id AND r.status IN ('active', 'waiting')
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])));
 
 -- name: ContactAutomationRuns :many
 -- The flows a contact is in or went through, the latest run of each, the

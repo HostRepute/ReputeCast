@@ -214,7 +214,9 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
   }, [draft.kind, draft.allowedOrigins, form.hostedUrl])
 
   const blocked = form.blockedOrigins
-  const turnstileBroken = draft.spam.turnstile && overview.turnstile.status === 'error'
+  // Cloudflare refused the keys, or visitors' browsers reported the widget
+  // failing on challenge pages (Turnstile stays on then).
+  const turnstileBroken = draft.spam.turnstile && (overview.turnstile.status === 'error' || (overview.turnstile.status === 'ok' && Boolean(overview.turnstile.reported)))
 
   return (
     <Page

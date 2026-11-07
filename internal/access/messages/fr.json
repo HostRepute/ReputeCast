@@ -16,5 +16,6 @@
   "notHoldable.placementManage": "Non proposée aux agents\u00A0: les mots de passe et jetons des boîtes témoins donnent accès à des boîtes de réception entières",
   "notHoldable.agents": "Les agents MCP ne peuvent pas détenir l’autorisation {permission}. Accordez-la à une clé API ou à une personne.",
 
-  "problem.audienceScope": "Votre accès est limité à certaines listes\u00A0: envoyez uniquement à ces listes, pas à d’autres listes ni à un segment."
+  "problem.audienceScope": "Votre accès est limité à certaines listes\u00A0: envoyez uniquement à ces listes, pas à d’autres listes ni à un segment.",
+  "problem.senderScope": "Votre accès est limité à certains domaines d’expédition, et cette campagne est envoyée depuis {domain}. Dans l’éditeur, choisissez une adresse d’expéditeur sur l’un de vos domaines, ou demandez à quelqu’un qui peut envoyer depuis {domain}."
 }

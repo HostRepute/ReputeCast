@@ -26,6 +26,7 @@
   "problem.privateHost": "{host} ist eine private Adresse. Ein Instanz-Admin kann private Adressen erlauben.",
   "problem.badAddress": "Verwenden Sie die vollständige Adresse des Servers, etwa {example}.",
   "problem.keyNeeded": "Fügen Sie den API-Schlüssel aus Ihrem Konto bei {provider} ein.",
+  "problem.keyAgain": "Die Adresse hat sich geändert: Fügen Sie den API-Schlüssel erneut ein. ReputeCast sendet einen gespeicherten Schlüssel nicht an eine neue Adresse.",
   "problem.azureNeeds": "Fügen Sie Ihren Azure-OpenAI-Endpunkt (etwa https://acme.openai.azure.com) und den Namen der Bereitstellung ein.",
   "problem.modelNeeded": "Wählen Sie ein Modell oder geben Sie seinen Namen ein.",
   "problem.oneModel": "Ein Modell pro Arbeitsbereich: Trennen Sie zuerst {provider}, um den Anbieter zu wechseln.",

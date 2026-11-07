@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
+import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor } from '@/components/ui/Button'
@@ -112,6 +113,7 @@ export function WhatsAppAccountPage() {
           {data.canManage ? null : <ReadOnlyNote helpers={data.helpers} />}
           {data.account.status === 'token_rejected' ? <TokenRejected data={data} account={data.account} /> : null}
           {data.account.status === 'waiting' ? <Waiting data={data} account={data.account} /> : null}
+          {data.account.oldAddress && data.account.verifiedAt && data.account.webhookUrl ? <OldAddress account={data.account} /> : null}
           <Tiles data={data} account={data.account} />
           <div className="px-grid">
             <AccountCard data={data} account={data.account} />
@@ -305,7 +307,11 @@ function Masked({ label }: { label: ReactNode }) {
 
 function ConnectionCard({ data, account: a }: { data: Overview; account: Account }) {
   const t = useT()
+  const { slug } = useWorkspace()
+  const invalidate = useInvalidateWhatsApp()
   const [replacing, setReplacing] = useState(false)
+  const [rotating, setRotating] = useState(false)
+  const rotate = $api.useMutation('post', '/api/v1/workspaces/{workspace}/whatsapp/account/callback-url/rotate')
   return (
     <section className="card">
       <div className="px-head">
@@ -317,6 +323,9 @@ function ConnectionCard({ data, account: a }: { data: Overview; account: Account
           <div>
             <Button size="sm" onClick={() => setReplacing(true)}>
               {t(m.replaceCredentials)}
+            </Button>
+            <Button size="sm" onClick={() => setRotating(true)}>
+              {t(m.newCallbackUrl)}
             </Button>
           </div>
         ) : null}
@@ -338,7 +347,8 @@ function ConnectionCard({ data, account: a }: { data: Overview; account: Account
           </dd>
           <dt>{t(m.webhook)}</dt>
           <dd className="flex flex-col gap-0.5">
-            <span className="mono break-all">{a.webhookUrl}</span>
+            {/* The URL carries the account's token: only who can manage providers gets it. */}
+            {a.webhookUrl ? <CallbackURL url={a.webhookUrl} /> : null}
             <span className="k">
               {a.verifiedAt
                 ? a.lastEventAt
@@ -351,7 +361,54 @@ function ConnectionCard({ data, account: a }: { data: Overview; account: Account
         <span className="k text-ink-nav">{t(m.webhookNote)}</span>
       </div>
       {replacing ? <ReplaceDialog onClose={() => setReplacing(false)} /> : null}
+      <ConfirmDialog
+        open={rotating}
+        onOpenChange={setRotating}
+        tone="warn"
+        badge={t(m.rotateBadge)}
+        title={t(m.rotateTitle)}
+        description={t(m.rotateText)}
+        confirmLabel={t(m.rotateConfirm)}
+        busyLabel={t(m.rotating)}
+        onConfirm={async () => {
+          await rotate.mutateAsync({ params: { path: { workspace: slug } } })
+          toast({ kind: 'success', title: t(m.rotated) })
+          void invalidate()
+        }}
+      />
     </section>
+  )
+}
+
+/** The callback URL and its copy button. */
+function CallbackURL({ url }: { url: string }) {
+  const t = useT()
+  const copy = () => void copyText(url).then((ok) => ok && toast({ kind: 'success', title: t(m.copied) }))
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <span className="mono break-all">{url}</span>
+      <Button size="sm" iconOnly icon="copy" aria-label={t(m.copyUrl)} onClick={copy} />
+    </span>
+  )
+}
+
+/** Meta still calls the old address, without the token: the callback URL to paste in Meta instead. */
+function OldAddress({ account: a }: { account: Account }) {
+  const t = useT()
+  return (
+    <div className="note w" role="note">
+      <Icon name="alertCircle" size={16} className="mt-px flex-none text-warn-bar" />
+      <div className="px-note-body">
+        <b>{t(m.oldAddressTitle)}</b>
+        <div>{t(m.oldAddressText)}</div>
+        <CallbackURL url={a.webhookUrl} />
+        <div className="px-note-acts">
+          <ButtonAnchor size="sm" icon="external" href={DEVELOPERS_URL}>
+            {t(m.openMetaDevelopers)}
+          </ButtonAnchor>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -374,22 +431,24 @@ function Waiting({ data, account: a }: { data: Overview; account: Account }) {
         <span className="k">{t(m.waitingSince, { time: mins ? t(m.waitedMinutes, { min: mins, s: secs }) : t(m.waitedSeconds, { s: secs }) })}</span>
       </div>
       <span className="text-ink-nav">{t(m.waitingSteps)}</span>
-      <dl className="kv items-center">
-        <dt>{t(m.callbackUrl)}</dt>
-        <dd className="flex flex-wrap items-center gap-2">
-          <span className="mono break-all">{a.webhookUrl}</span>
-          <Button size="sm" iconOnly icon="copy" aria-label={t(m.copyUrl)} onClick={() => copy(a.webhookUrl)} />
-        </dd>
-        {a.verifyToken ? (
-          <>
-            <dt>{t(m.verifyToken)}</dt>
-            <dd className="flex flex-wrap items-center gap-2">
-              <span className="mono">{a.verifyToken}</span>
-              <Button size="sm" iconOnly icon="copy" aria-label={t(m.copyToken)} onClick={() => copy(a.verifyToken!)} />
-            </dd>
-          </>
-        ) : null}
-      </dl>
+      {/* Both values are secrets: only who can manage providers gets them. */}
+      {a.webhookUrl ? (
+        <dl className="kv items-center">
+          <dt>{t(m.callbackUrl)}</dt>
+          <dd>
+            <CallbackURL url={a.webhookUrl} />
+          </dd>
+          {a.verifyToken ? (
+            <>
+              <dt>{t(m.verifyToken)}</dt>
+              <dd className="flex flex-wrap items-center gap-2">
+                <span className="mono">{a.verifyToken}</span>
+                <Button size="sm" iconOnly icon="copy" aria-label={t(m.copyToken)} onClick={() => copy(a.verifyToken!)} />
+              </dd>
+            </>
+          ) : null}
+        </dl>
+      ) : null}
       {data.canManage ? (
         <div className="flex flex-wrap gap-2">
           <Button

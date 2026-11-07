@@ -9,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/netguard"
 )
 
 // Webhook steps call URLs that workspace members type in, so the HTTP client
@@ -20,14 +22,15 @@ import (
 // loopback, link-local or otherwise internal address.
 var ErrBlockedAddress = errors.New("the address is private or internal")
 
+// blockedPrefixes are what webhook steps refuse beyond netguard's ranges
+// (private, loopback, link-local, metadata, multicast and IPv4 tunnels):
+// documentation and benchmarking ranges, the 6to4 relay, discard, the old
+// site-local range, and NAT64's well-known prefix even to a public host.
 var blockedPrefixes = func() []netip.Prefix {
 	var out []netip.Prefix
 	for _, s := range []string{
-		"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16",
-		"172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24", "192.88.99.0/24", "192.168.0.0/16",
-		"198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24", "224.0.0.0/4", "240.0.0.0/4",
-		"::/128", "::1/128", "64:ff9b::/96", "64:ff9b:1::/48", "100::/64", "2001::/32", "2001:db8::/32",
-		"2002::/16", "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
+		"192.0.2.0/24", "192.88.99.0/24", "198.51.100.0/24", "203.0.113.0/24",
+		"64:ff9b::/96", "100::/64", "2001:db8::/32", "fec0::/10",
 	} {
 		out = append(out, netip.MustParsePrefix(s))
 	}
@@ -40,6 +43,9 @@ func blockedIP(ip netip.Addr) bool {
 		return true
 	}
 	ip = ip.Unmap()
+	if (netguard.Policy{}).Check(ip) != nil {
+		return true
+	}
 	if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() ||
 		ip.IsLinkLocalMulticast() || ip.IsInterfaceLocalMulticast() || ip.IsMulticast() || !ip.IsGlobalUnicast() {
 		return true

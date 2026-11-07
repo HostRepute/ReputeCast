@@ -3,7 +3,6 @@ package products
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -18,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/payments"
@@ -731,7 +731,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return nil, 0, err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"order", "paid_at", "buyer_email", "product", "amount", "currency", "pay_what_you_want", "status", "refunded", "dispute", "test", "source", "list_offer_ticked", "contact"})
 	for _, r := range rows {
 		o := r.ProductOrder

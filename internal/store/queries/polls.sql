@@ -164,16 +164,22 @@ ORDER BY 1;
 -- name: PollComments :many
 -- Comments, newest first, with the contact's name (the caller leaves it
 -- out for people without subscribers:view, whose search doesn't match
--- names either).
+-- names either). For a caller limited to some lists, in_scope says whether
+-- the contact is on one of them: only those are named, and only their
+-- names match a search (empty scope_lists: everyone).
 SELECT a.id, a.kind, a.answer, a.comment, coalesce(a.commented_at, a.updated_at) AS at, a.contact_id,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email,
-       count(*) OVER ()::bigint AS total
+       count(*) OVER ()::bigint AS total,
+       (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (
+          SELECT 1 FROM list_memberships sm WHERE sm.contact_id = a.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])))::boolean AS in_scope
 FROM poll_answers a
 LEFT JOIN contacts c ON c.id = a.contact_id
 WHERE a.poll_id = @poll_id AND a.kind <> 'test' AND a.comment <> ''
   AND (a.answer >= @min_answer::int AND a.answer <= @max_answer::int)
   AND (@search::text = '' OR a.comment ILIKE '%' || @search::text || '%'
-       OR (@names::boolean AND coalesce(c.first_name || ' ' || c.last_name, '') ILIKE '%' || @search::text || '%'))
+       OR (@names::boolean AND coalesce(c.first_name || ' ' || c.last_name, '') ILIKE '%' || @search::text || '%'
+           AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (
+                 SELECT 1 FROM list_memberships sm WHERE sm.contact_id = a.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])))))
 ORDER BY coalesce(a.commented_at, a.updated_at) DESC, a.id DESC
 LIMIT @lim OFFSET @off;
 
@@ -184,11 +190,16 @@ WHERE a.poll_id = @poll_id AND a.kind <> 'test' AND a.comment <> ''
 GROUP BY a.answer;
 
 -- name: PollExportAnswers :many
+-- Every answer with its contact. A caller limited to some lists exports
+-- only the answers of the contacts on them, as Audience exports only those
+-- contacts (empty scope_lists: every answer).
 SELECT a.kind, a.answer, a.first_answer, a.changes, a.comment, a.answered_at, a.updated_at,
        coalesce(c.email, '')::text AS email, coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name
 FROM poll_answers a
 LEFT JOIN contacts c ON c.id = a.contact_id
 WHERE a.poll_id = @poll_id AND a.kind <> 'test'
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (
+        SELECT 1 FROM list_memberships sm WHERE sm.contact_id = a.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])))
 ORDER BY a.answered_at, a.id;
 
 -- name: PollDelivered :one
@@ -296,8 +307,12 @@ UPDATE survey_responses SET answers = @answers, completed_at = coalesce(sqlc.nar
 WHERE id = @id;
 
 -- name: SurveyResponses :many
+-- A page of completed responses; in_scope says whether a caller limited to
+-- some lists may see who answered (empty scope_lists: everyone).
 SELECT r.id, r.kind, r.answers, r.source, r.started_at, r.completed_at, r.updated_at, r.contact_id,
-       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email
+       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email,
+       (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (
+          SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])))::boolean AS in_scope
 FROM survey_responses r
 LEFT JOIN contacts c ON c.id = r.contact_id
 WHERE r.survey_id = @survey_id AND r.kind <> 'test' AND r.completed_at IS NOT NULL
@@ -305,12 +320,16 @@ ORDER BY r.completed_at DESC, r.id DESC
 LIMIT @lim OFFSET @off;
 
 -- name: SurveyAllResponses :many
--- Every response, for the results and the exports.
+-- Every response with its contact, for the answers export. A caller
+-- limited to some lists exports only the responses of the contacts on them
+-- (empty scope_lists: every response).
 SELECT r.id, r.kind, r.answers, r.source, r.started_at, r.completed_at, r.updated_at, r.contact_id,
        coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email
 FROM survey_responses r
 LEFT JOIN contacts c ON c.id = r.contact_id
 WHERE r.survey_id = @survey_id AND r.kind <> 'test'
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (
+        SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])))
 ORDER BY r.started_at, r.id;
 
 -- name: SurveyContactResponses :many
@@ -390,9 +409,12 @@ WHERE r.survey_id = @survey_id AND r.kind <> 'test' AND r.completed_at IS NOT NU
 GROUP BY 1, 2;
 
 -- name: SurveyTextAnswers :many
--- A page of a text question's answers, newest first, optionally searched.
+-- A page of a text question's answers, newest first, optionally searched;
+-- in_scope as in SurveyResponses.
 SELECT r.id, r.completed_at, (r.answers ->> @question_key::text)::text AS answer, r.contact_id,
-       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email
+       coalesce(c.first_name, '')::text AS first_name, coalesce(c.last_name, '')::text AS last_name, coalesce(c.email, '')::text AS email,
+       (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (
+          SELECT 1 FROM list_memberships sm WHERE sm.contact_id = r.contact_id AND sm.list_id = ANY(@scope_lists::uuid[])))::boolean AS in_scope
 FROM survey_responses r
 LEFT JOIN contacts c ON c.id = r.contact_id
 WHERE r.survey_id = @survey_id AND r.kind <> 'test' AND r.completed_at IS NOT NULL

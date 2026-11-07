@@ -798,6 +798,26 @@ func (q *Queries) TeamMemberEmails(ctx context.Context, arg TeamMemberEmailsPara
 	return items, nil
 }
 
+const teamOtherActiveMemberships = `-- name: TeamOtherActiveMemberships :one
+SELECT count(*) FROM workspace_members m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.user_id = $1 AND m.workspace_id <> $2 AND m.status = 'active'
+`
+
+type TeamOtherActiveMembershipsParams struct {
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// The other workspaces a person is an active member of: their sessions
+// serve those too.
+func (q *Queries) TeamOtherActiveMemberships(ctx context.Context, arg TeamOtherActiveMembershipsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, teamOtherActiveMemberships, arg.UserID, arg.WorkspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const teamPendingInviteEmails = `-- name: TeamPendingInviteEmails :many
 SELECT email FROM invitations
 WHERE workspace_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now() AND email = ANY($2::text[])
@@ -843,6 +863,47 @@ func (q *Queries) TeamRevokeInvitation(ctx context.Context, arg TeamRevokeInvita
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const teamRevokeInvitationsBy = `-- name: TeamRevokeInvitationsBy :many
+UPDATE invitations i SET revoked_at = now()
+FROM roles r
+WHERE r.id = i.role_id AND i.workspace_id = $1 AND i.invited_by = $2
+  AND i.accepted_at IS NULL AND i.revoked_at IS NULL
+RETURNING i.id, i.email, r.name AS role_name
+`
+
+type TeamRevokeInvitationsByParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      *uuid.UUID `json:"userId"`
+}
+
+type TeamRevokeInvitationsByRow struct {
+	ID       uuid.UUID `json:"id"`
+	Email    string    `json:"email"`
+	RoleName string    `json:"roleName"`
+}
+
+// The invitations a member sent that nobody accepted end when the member is
+// deactivated or removed: nobody vouches for those people any more.
+func (q *Queries) TeamRevokeInvitationsBy(ctx context.Context, arg TeamRevokeInvitationsByParams) ([]TeamRevokeInvitationsByRow, error) {
+	rows, err := q.db.Query(ctx, teamRevokeInvitationsBy, arg.WorkspaceID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TeamRevokeInvitationsByRow{}
+	for rows.Next() {
+		var i TeamRevokeInvitationsByRow
+		if err := rows.Scan(&i.ID, &i.Email, &i.RoleName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const teamRevokeKeysCreatedBy = `-- name: TeamRevokeKeysCreatedBy :many

@@ -3,7 +3,6 @@ package texting
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -62,7 +62,7 @@ func (s *Service) ReportCSV(ctx context.Context, ws *store.Workspace, p *authz.P
 		return nil, err
 	}
 	var b bytes.Buffer
-	w := csv.NewWriter(&b)
+	w := csvexport.NewWriter(&b)
 	_ = w.Write([]string{"country", "sender", "sent", "delivered", "delivered_pct", "failed", "clicks", "click_pct", "opt_outs", "skipped", "skip_reason", "cost_usd"})
 	f := func(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 	n := func(v int64) string { return strconv.FormatInt(v, 10) }

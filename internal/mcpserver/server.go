@@ -80,13 +80,16 @@ func (s *Service) verify(ctx context.Context, token string, r *http.Request) (*a
 		return nil, fmt.Errorf("%w: the MCP server is off in %s", auth.ErrInvalidToken, k.WorkspaceName)
 	}
 	// An agent never does more than its creator can do right now: nothing
-	// once they have left or been deactivated in the workspace (as for API
-	// keys in api.Authenticator).
+	// once they have left or been deactivated in the workspace, and no list
+	// their own scope no longer reaches (as for API keys in
+	// api.Authenticator).
 	perms := authz.ParseSet(k.Permissions)
+	scope := access.ParseScope(k.Scope)
 	if k.CreatedBy == nil {
 		perms = authz.Set{}
 	} else if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: k.WorkspaceID, UserID: *k.CreatedBy}); err == nil && m.Status == "active" {
 		perms = perms.Intersect(authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions))
+		scope = scope.Intersect(access.ParseScope(m.Scope))
 	} else {
 		perms = authz.Set{}
 	}
@@ -100,7 +103,7 @@ func (s *Service) verify(ctx context.Context, token string, r *http.Request) (*a
 	}
 	masked := k.Prefix
 	p := &authz.Principal{Type: authz.ActorMCPAgent, ID: k.ID, Name: k.Name, UserID: creator, WorkspaceID: k.WorkspaceID,
-		Permissions: perms.HoldableBy(authz.ActorMCPAgent), Scope: access.ParseScope(k.Scope), MFAVerified: true}
+		Permissions: perms.HoldableBy(authz.ActorMCPAgent), Scope: scope, MFAVerified: true}
 	return &auth.TokenInfo{
 		UserID: k.ID.String(),
 		Extra:  map[string]any{callKey: &agentCall{Principal: p, Workspace: ws, Masked: masked, Request: req, Settings: st}},

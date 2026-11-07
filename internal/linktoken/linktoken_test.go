@@ -2,6 +2,10 @@ package linktoken
 
 import (
 	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -39,6 +43,36 @@ func TestRoundTripAndTamper(t *testing.T) {
 
 // A well-formed token signed with another key fails as a signature
 // mismatch (an earlier instance key); a malformed one doesn't.
+// A token works only as it was issued: changing only the bits of its last
+// character that no byte uses once left a link working (the poll page's
+// "broken link" test failed about once in 256 runs).
+func TestTokensAreCanonical(t *testing.T) {
+	s, err := NewSigner(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+	checked := 0
+	for _, link := range []uint32{1, 300, 1 << 15} {
+		tok := s.Sign(Claims{Kind: Click, WorkspaceID: uuid.New(), MessageID: uuid.New(), ContactID: uuid.New(), Link: link})
+		if _, err := s.Verify(tok, Click); err != nil {
+			t.Fatalf("link %d: %v", link, err)
+		}
+		if len(tok)%4 == 0 {
+			continue // every bit of the last character is used
+		}
+		last := strings.IndexByte(alphabet, tok[len(tok)-1])
+		alt := tok[:len(tok)-1] + string(alphabet[last^1])
+		if _, err := s.Verify(alt, Click); err == nil {
+			t.Errorf("link %d: %s verified with unused bits changed", link, alt)
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Fatal("no token had unused bits to change")
+	}
+}
+
 func TestSignatureMismatch(t *testing.T) {
 	a, err := NewSigner([]byte(strings.Repeat("a", 32)))
 	if err != nil {
@@ -74,6 +108,19 @@ func TestExpired(t *testing.T) {
 	}
 }
 
+// A link that works until a time carries it to the minute; one signed
+// without (Link 0) stopped long ago.
+func TestUntil(t *testing.T) {
+	end := time.Date(2026, 11, 5, 15, 4, 59, 0, time.UTC)
+	c := Claims{Kind: Preferences, Link: UntilMinute(end)}
+	if got := Until(c); !got.Equal(end.Truncate(time.Minute)) {
+		t.Fatalf("until %v, want %v", got, end.Truncate(time.Minute))
+	}
+	if !Until(Claims{}).Before(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)) || UntilMinute(time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)) != 0 {
+		t.Fatal("no time is long ago")
+	}
+}
+
 // After a key rotation, links in emails already sent still verify: the
 // previous key checks them, while new links are signed with the new key.
 func TestPreviousKeysStillVerify(t *testing.T) {
@@ -99,5 +146,47 @@ func TestPreviousKeysStillVerify(t *testing.T) {
 	dropped, _ := NewSigner(newKey)
 	if _, err := dropped.Verify(sent, Unsubscribe); !errors.Is(err, ErrSignature) {
 		t.Fatalf("once the old key is dropped: %v", err)
+	}
+}
+
+// Every token kind is declared once across the source: the click token
+// and the hidden link once shared 200, so one worked as the other. Kinds
+// are declared in this package's const block and as `linktoken.Kind = N`
+// elsewhere.
+func TestKindsAreUnique(t *testing.T) {
+	own := regexp.MustCompile(`(?m)^\s*(\w+)\s+Kind\s*=\s*(\d+)\b`)
+	other := regexp.MustCompile(`(\w+)\s+linktoken\.Kind\s*=\s*(\d+)\b`)
+	seen := map[string]string{}
+	found := 0
+	err := filepath.WalkDir("..", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		re := other
+		if filepath.Base(filepath.Dir(path)) == "linktoken" {
+			re = own
+		}
+		for _, m := range re.FindAllStringSubmatch(string(b), -1) {
+			found++
+			name := path + ": " + m[1]
+			if prev, ok := seen[m[2]]; ok {
+				t.Errorf("kind %s is both %s and %s", m[2], prev, name)
+			}
+			seen[m[2]] = name
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found < 20 {
+		t.Fatalf("found %d kinds; the patterns are out of date", found)
 	}
 }

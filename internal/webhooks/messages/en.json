@@ -44,7 +44,17 @@
   "problem.unknownEndpoint": "Unknown endpoint.",
   "problem.unknownEvent": { "message": "Unknown event {event}.", "note": "event: what was sent, in quotes" },
   "problem.onlyFailed": "Only failed deliveries can be retried.",
+  "problem.eventNeeds": { "message": "{event} carries data you can't see in ReputeCast: it needs “{permission}”.{ask, select, yes { Ask {helpers}.} other {}}", "note": "why an endpoint can't take an event; event: an event name such as contact.updated, never translated; permission: a permission's name as the role editor shows it (View contacts); helpers: names joined as 'A or B'" },
+  "problem.patternNeeds": { "message": "{pattern} includes {event}, which carries data you can't see in ReputeCast: it needs “{permission}”.{ask, select, yes { Ask {helpers}.} other {}}", "note": "pattern: what was picked, such as contact.* or *; event and permission as in problem.eventNeeds" },
+  "problem.eventScope": { "message": "{event} carries contacts from every list, and your access is limited to some lists.", "note": "why an endpoint can't take an event; event: an event name such as contact.updated, never translated" },
+  "problem.patternScope": { "message": "{pattern} includes {event}, which carries contacts from every list, and your access is limited to some lists.", "note": "pattern: what was picked, such as contact.* or *; event: an event name, never translated" },
+
+  "paused.left": { "message": "ReputeCast paused this endpoint: {name}, who set it up, is no longer an active member, and it sent its events on their behalf. Resume it to send them on yours.", "note": "why an endpoint is paused, under it in Settings › Webhooks; name: a member's name" },
+  "paused.lacks": { "message": "ReputeCast paused this endpoint: {name}, who set it up, can no longer see what {event} carries (“{permission}”). Resume it to send its events on your behalf.", "note": "name: a member's name; event: an event name, never translated; permission: a permission's name as the role editor shows it" },
+  "paused.scoped": { "message": "ReputeCast paused this endpoint: the access of {name}, who set it up, is now limited to some lists, and {event} carries contacts from every list. Resume it to send its events on your behalf.", "note": "name: a member's name; event: an event name, never translated" },
 
   "delivery.demo": { "message": "Demo endpoint: ReputeCast never sends demo data. Point it at your own URL to receive events.", "note": "why a demo endpoint's delivery failed, in the delivery log" },
-  "delivery.invalidUrl": { "message": "Invalid URL", "note": "why a delivery failed: its address can't be requested" }
+  "delivery.invalidUrl": { "message": "Invalid URL", "note": "why a delivery failed: its address can't be requested" },
+  "delivery.payloadNeeds": { "message": "This delivery carries data you can't see in ReputeCast, so its payload and the endpoint's answer stay hidden: it needs “{permission}”.", "note": "in the delivery log, instead of a delivery's JSON; permission: a permission's name as the role editor shows it" },
+  "delivery.payloadScope": { "message": "This delivery carries contacts from every list, and your access is limited to some lists, so its payload and the endpoint's answer stay hidden.", "note": "in the delivery log, instead of a delivery's JSON" }
 }

@@ -192,13 +192,61 @@ func (s *Service) Sweep(ctx context.Context) error {
 	return err
 }
 
+// ShortDomainsArgs checks verified short-link domains again once a day:
+// one that no longer points here, or that another workspace verified
+// first, stops carrying links. Domains waiting for DNS are checked when
+// someone asks ("Check now").
+type ShortDomainsArgs struct{}
+
+// Kind implements river.JobArgs.
+func (ShortDomainsArgs) Kind() string { return "sms.short_domains" }
+
+// InsertOpts implements river.JobArgsWithInsertOpts.
+func (ShortDomainsArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{Queue: jobs.QueueMaintenance, UniqueOpts: river.UniqueOpts{ByPeriod: 9 * time.Minute}}
+}
+
+// ShortDomainsWorker runs ShortDomainsArgs.
+type ShortDomainsWorker struct {
+	river.WorkerDefaults[ShortDomainsArgs]
+	S *Service
+}
+
+// Timeout bounds one pass.
+func (w *ShortDomainsWorker) Timeout(*river.Job[ShortDomainsArgs]) time.Duration {
+	return 5 * time.Minute
+}
+
+// Work implements river.Worker.
+func (w *ShortDomainsWorker) Work(ctx context.Context, _ *river.Job[ShortDomainsArgs]) error {
+	due, err := w.S.Q.SmsShortDomainsToCheck(ctx, w.S.now().Add(-24*time.Hour))
+	if err != nil {
+		return err
+	}
+	for _, id := range due {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		ws, err := w.S.Q.GetWorkspace(ctx, id)
+		if err != nil {
+			continue
+		}
+		if _, err := w.S.checkShortDomain(ctx, &ws, nil); err != nil {
+			w.S.log().WarnContext(ctx, "short-link domain check", "workspace", id, "err", err)
+		}
+	}
+	return nil
+}
+
 // RegisterJobs adds the SMS workers and their schedules.
 func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &DispatchWorker{S: s})
 	river.AddWorker(reg.Workers, &NormalizeWorker{S: s})
 	river.AddWorker(reg.Workers, &HealthWorker{S: s})
 	river.AddWorker(reg.Workers, &SweepWorker{S: s})
+	river.AddWorker(reg.Workers, &ShortDomainsWorker{S: s})
 	reg.Every(30*time.Second, func() (river.JobArgs, *river.InsertOpts) { return DispatchArgs{}, nil }, true)
 	reg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return HealthArgs{}, nil }, false)
 	reg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return SweepArgs{}, nil }, false)
+	reg.Every(10*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ShortDomainsArgs{}, nil }, true)
 }

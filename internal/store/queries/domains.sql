@@ -27,18 +27,24 @@ RETURNING *;
 UPDATE sending_domains SET note = @note, updated_at = @updated_at WHERE id = @id;
 
 -- name: DomUpdateTracking :exec
-UPDATE sending_domains SET tracking_domain = @tracking_domain, tracking_status = @tracking_status, updated_at = @updated_at
+-- A new tracking domain starts unverified.
+UPDATE sending_domains SET tracking_domain = @tracking_domain, tracking_status = @tracking_status, tracking_verified_at = NULL, updated_at = @updated_at
 WHERE id = @id;
 
 -- name: DomUpdateRecords :exec
 UPDATE sending_domains SET dns_records = @dns_records, updated_at = @updated_at WHERE id = @id;
 
--- name: DomSaveCheck :exec
--- The result of a live DNS check.
+-- name: DomSaveCheck :one
+-- The result of a live DNS check. The tracking domain's part is kept only
+-- while the tracking domain is still the one checked (tracking_saved): one
+-- set during the check keeps its own state.
 UPDATE sending_domains
 SET dns_records = @dns_records, auth_summary = @auth_summary, auth_detail = @auth_detail, status = @status,
-    tracking_status = @tracking_status, dns_host = @dns_host, nameservers = @nameservers::text[], last_checked_at = @checked_at
-WHERE id = @id;
+    tracking_status = CASE WHEN tracking_domain = @tracking_domain::text THEN @tracking_status::text ELSE tracking_status END,
+    tracking_verified_at = CASE WHEN tracking_domain = @tracking_domain::text THEN sqlc.narg(tracking_verified_at)::timestamptz ELSE tracking_verified_at END,
+    dns_host = @dns_host, nameservers = @nameservers::text[], last_checked_at = @checked_at
+WHERE id = @id
+RETURNING (tracking_domain = @tracking_domain::text)::boolean AS tracking_saved;
 
 -- name: DomDelete :exec
 DELETE FROM sending_domains WHERE id = @id;

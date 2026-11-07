@@ -225,7 +225,13 @@ export function DomainOptional({ workspace, detail, reason }: { workspace: strin
           <span className="text-[13px] font-semibold">{t(md.trackingTitle)}</span>
           <span className="k">
             <T msg={md.trackingLine} values={{ state: tr.domain ? tr.status : 'suggested', domain: tr.domain || tr.suggested, target: tr.target, mono }} />
+            {tr.detail ? ` ${tr.detail}` : null}
           </span>
+          {tr.txtValue && tr.status !== 'verified' ? (
+            <span className="k">
+              <T msg={md.trackingTxt} values={{ name: tr.txtName, value: tr.txtValue, mono }} />
+            </span>
+          ) : null}
         </div>
         {tr.domain ? null : (
           <Button size="sm" className="self-start" onClick={addTracking} loading={add.isPending} disabledReason={reason}>

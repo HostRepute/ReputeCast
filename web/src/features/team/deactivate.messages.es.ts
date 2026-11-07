@@ -17,6 +17,9 @@ export default translate(m, {
   failedOne: 'No se pudo desactivar a {name}',
   failedMany: 'No se pudo desactivar a {count, plural, one {# miembro} other {# miembros}}',
   signedOutEverywhere: '{count, plural, one {Sesión cerrada en todas partes, ahora (# sesión)} other {Sesiones cerradas en todas partes, ahora (# sesiones)}}',
+  staysSignedInOne: 'Mantiene la sesión iniciada en otras partes de esta instancia',
+  staysSignedInMany:
+    '{count, plural, one {# de ellos mantiene la sesión iniciada en otras partes de esta instancia} other {# de ellos mantienen la sesión iniciada en otras partes de esta instancia}}',
   cantSignIn: 'No puede iniciar sesión en {workspace}; los demás espacios de trabajo no se ven afectados',
   scheduled: '{count, plural, one {Su # campaña programada mantiene su programación y se envía en nombre del espacio de trabajo} other {Sus # campañas programadas mantienen su programación y se envían en nombre del espacio de trabajo}}',
   approvals: '{count, plural, one {# solicitud de aprobación pendiente sigue abierta para los aprobadores} other {# solicitudes de aprobación pendientes siguen abiertas para los aprobadores}}',

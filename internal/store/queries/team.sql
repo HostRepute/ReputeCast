@@ -59,6 +59,13 @@ WHERE id = ANY(@user_ids::uuid[]) AND totp_enabled_at IS NULL
 -- name: TeamRevokeUserSessions :execrows
 UPDATE sessions SET revoked_at = now() WHERE user_id = @user_id AND revoked_at IS NULL;
 
+-- name: TeamOtherActiveMemberships :one
+-- The other workspaces a person is an active member of: their sessions
+-- serve those too.
+SELECT count(*) FROM workspace_members m
+JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+WHERE m.user_id = @user_id AND m.workspace_id <> @workspace_id AND m.status = 'active';
+
 -- name: TeamCountActiveOwners :one
 SELECT count(*) FROM workspace_members m JOIN roles r ON r.id = m.role_id
 WHERE m.workspace_id = @workspace_id AND r.key = 'owner' AND r.builtin AND m.status = 'active';
@@ -95,6 +102,15 @@ WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: TeamRevokeInvitation :execrows
 UPDATE invitations SET revoked_at = now() WHERE id = @id AND workspace_id = @workspace_id AND accepted_at IS NULL AND revoked_at IS NULL;
+
+-- name: TeamRevokeInvitationsBy :many
+-- The invitations a member sent that nobody accepted end when the member is
+-- deactivated or removed: nobody vouches for those people any more.
+UPDATE invitations i SET revoked_at = now()
+FROM roles r
+WHERE r.id = i.role_id AND i.workspace_id = @workspace_id AND i.invited_by = @user_id
+  AND i.accepted_at IS NULL AND i.revoked_at IS NULL
+RETURNING i.id, i.email, r.name AS role_name;
 
 -- name: TeamPendingInviteEmails :many
 SELECT email FROM invitations

@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -349,6 +350,15 @@ func (s *Service) UpdateDomain(ctx context.Context, ws *store.Workspace, rawID s
 			status := ""
 			if tracking != "" {
 				status = StatusPending
+				// Its CNAME only shows the host points at this server:
+				// another workspace's pages or links stay theirs.
+				use, err := customhost.Claim(ctx, q, ws.ID, tracking)
+				if err != nil {
+					return err
+				}
+				if use != customhost.Free {
+					return api.Conflict(say(ctx, "problem.trackingTaken", i18n.Args{"domain": tracking}))
+				}
 			}
 			if err := q.DomUpdateTracking(ctx, store.DomUpdateTrackingParams{ID: d.ID, TrackingDomain: tracking, TrackingStatus: status, UpdatedAt: s.now()}); err != nil {
 				return err

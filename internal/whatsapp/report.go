@@ -3,7 +3,6 @@ package whatsapp
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"sort"
 	"strconv"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -186,7 +186,7 @@ func (s *Service) ReportCSV(ctx context.Context, ws *store.Workspace, id uuid.UU
 		return nil, "", err
 	}
 	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+	w := csvexport.NewWriter(&buf)
 	_ = w.Write([]string{"country", "sent", "delivered", "read", "failed", "cost_usd"})
 	for _, c := range r.ByCountry {
 		_ = w.Write([]string{c.Country, strconv.FormatInt(c.Sent, 10), strconv.FormatInt(c.Delivered, 10), strconv.FormatInt(c.Read, 10),

@@ -16,5 +16,6 @@
   "notHoldable.placementManage": "No disponible para agentes: las contraseñas y los tokens de los buzones de prueba permiten leer buzones enteros",
   "notHoldable.agents": "Los agentes MCP no pueden tener {permission}. Asígnalo a una clave de API o a una persona.",
 
-  "problem.audienceScope": "Tu acceso está limitado a algunas listas: envía solo a esas listas, no a otras listas ni a un segmento."
+  "problem.audienceScope": "Tu acceso está limitado a algunas listas: envía solo a esas listas, no a otras listas ni a un segmento.",
+  "problem.senderScope": "Tu acceso está limitado a algunos dominios de remitente, y esta campaña se envía desde {domain}. Elige en el editor una dirección de remitente de uno de tus dominios o pídeselo a alguien que pueda enviar desde {domain}."
 }

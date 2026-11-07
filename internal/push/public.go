@@ -189,21 +189,32 @@ func (s *Service) serveClick(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
-	var target string
-	var err error
-	if r.Method == http.MethodHead {
-		// Link checkers and previews aren't readers: nothing is counted.
-		target, err = s.ClickTarget(ctx, id, tok, action)
-	} else {
-		target, err = s.Click(ctx, id, tok, action, r.UserAgent())
+	m, target, err := s.clickTarget(ctx, id, tok, action)
+	if err == nil && !s.carries(r, m.WorkspaceID) {
+		err = ErrUnknownNotification
 	}
 	if err != nil || target == "" {
 		gone(w, r)
 		return
 	}
+	// Link checkers and previews aren't readers: nothing is counted.
+	if r.Method != http.MethodHead {
+		s.recordClick(ctx, m, id, action, target, r.UserAgent())
+	}
 	// target is one of the notification's own links (from its content or
 	// its campaign), an http(s) URL: never a URL taken from the request.
 	http.Redirect(w, r, target, http.StatusFound) //nolint:gosec // G710: see target
+}
+
+// carries reports whether the host a request came to may carry
+// workspace's push clicks: one of its own hosts, the instance's, or one
+// nobody holds (customhost.Hosts).
+func (s *Service) carries(r *http.Request, workspace uuid.UUID) bool {
+	ok, err := s.Hosts.Carries(r.Context(), r.Host, workspace)
+	if err != nil {
+		s.log().WarnContext(r.Context(), "push click host", "err", err)
+	}
+	return ok
 }
 
 // gone answers a click on a link that isn't (or no longer is) a

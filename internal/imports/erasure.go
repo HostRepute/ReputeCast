@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -130,7 +131,7 @@ func dropRows(data []byte, erased map[string]bool) ([]byte, bool) {
 	r.FieldsPerRecord = -1
 	r.LazyQuotes = true
 	var out bytes.Buffer
-	w := csv.NewWriter(&out)
+	w := csvexport.NewWriter(&out)
 	cut := false
 	for {
 		rec, err := r.Read()
@@ -197,7 +198,7 @@ func fileNames(kind string, data []byte, erased map[string]bool) bool {
 }
 
 // normalAddress is a cell as an address to compare: trimmed, lower-cased,
-// without the quote formulaSafe puts before a leading "=+-@".
+// without the quote csvexport puts before a leading "=+-@".
 func normalAddress(v string) string {
 	v = strings.TrimPrefix(strings.TrimSpace(v), "'")
 	return strings.ToLower(v)

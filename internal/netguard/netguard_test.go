@@ -27,6 +27,14 @@ func TestCheck(t *testing.T) {
 		{"::ffff:127.0.0.1", false, true},  // IPv4-mapped loopback
 		{"64:ff9b::a00:1", false, true},    // NAT64 to 10.0.0.1
 		{"64:ff9b::5db8:d822", true, true}, // NAT64 to a public address
+		// Tunnels to IPv4 hosts the check can't see: never dialed.
+		{"2002:a00:1::1", false, false},                        // 6to4 for 10.0.0.1
+		{"2002:5db8:d822::1", false, false},                    // 6to4 for a public address
+		{"2001:0:4136:e378:8000:63bf:3fff:fdd2", false, false}, // Teredo
+		{"64:ff9b:1::a00:1", false, false},                     // NAT64, local-use prefix
+		{"::a00:1", false, false},                              // IPv4-compatible 10.0.0.1
+		{"::5db8:d822", false, false},                          // IPv4-compatible public address
+		{"2001:4860:4860::8888", true, true},                   // 2001:4860::/32 is no Teredo
 	}
 	for _, c := range cases {
 		ip := netip.MustParseAddr(c.ip)
@@ -35,6 +43,29 @@ func TestCheck(t *testing.T) {
 		}
 		if got := open.Check(ip) == nil; got != c.open {
 			t.Errorf("private allowed %s: allowed=%v want %v", c.ip, got, c.open)
+		}
+	}
+}
+
+// Saved secrets follow SameAddress: only case, spaces and a final slash or
+// dot may differ.
+func TestSameAddress(t *testing.T) {
+	for _, c := range []struct {
+		a, b string
+		same bool
+	}{
+		{"https://mta.acme.io", "https://mta.acme.io/", true},
+		{"HTTPS://MTA.acme.io", " https://mta.acme.io ", true},
+		{"smtp.acme.io.", "SMTP.acme.io", true},
+		{"https://mta.acme.io", "https://mta.acme.io.evil.example", false},
+		{"https://mta.acme.io", "http://mta.acme.io", false},
+		{"https://mta.acme.io", "https://mta.acme.io@evil.example", false},
+		{"https://mta.acme.io:8443", "https://mta.acme.io", false},
+		{"https://idp.acme.io/realms/acme", "https://idp.acme.io/realms/other", false},
+		{"", "https://mta.acme.io", false},
+	} {
+		if got := SameAddress(c.a, c.b); got != c.same {
+			t.Errorf("SameAddress(%q, %q) = %v", c.a, c.b, got)
 		}
 	}
 }

@@ -40,7 +40,10 @@ func TestContract(t *testing.T) {
 			fake.Mode = env.Mode
 			return fake.Handler()
 		},
-		New:  func(t *testing.T, _ *contracttest.Env) sms.Provider { return open(t, fake, nil) },
+		// With the topic registering the webhooks kept: events come from it.
+		New: func(t *testing.T, _ *contracttest.Env) sms.Provider {
+			return open(t, fake, map[string]string{"topic_arn": awseumtest.TopicARN})
+		},
 		From: "+18885550160",
 		Webhooks: []contracttest.Webhook{
 			{Name: "delivered", Request: func(_ *testing.T, _ *contracttest.Env, u string) (*http.Request, []byte) {
@@ -68,7 +71,7 @@ func TestContract(t *testing.T) {
 
 func TestEventsCarryReputeCastsMessageID(t *testing.T) {
 	f := awseumtest.New()
-	p := open(t, f, nil)
+	p := open(t, f, map[string]string{"topic_arn": awseumtest.TopicARN})
 	id := uuid.Must(uuid.NewV7())
 	r, body := awseumtest.Event("https://h/hooks/sms/aws_eum/x", "TEXT_DELIVERED", "m-9", "+13125550123", "+18885550160", id.String(), now)
 	if err := p.VerifyWebhook(context.Background(), r, body); err != nil {
