@@ -4,4 +4,4 @@
 // their installed dependencies: some npm packages ship Go files.
 module github.com/hostrepute/reputecast/integrations
 
-go 1.27.2
+go 1.27.3
