@@ -3,6 +3,7 @@ package app
 import (
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -39,6 +40,32 @@ func registeredOperations(t *testing.T) []*huma.Operation {
 	}
 	sort.Slice(ops, func(i, j int) bool { return ops[i].OperationID < ops[j].OperationID })
 	return ops
+}
+
+// Every raw upload (a body of bytes, not JSON or a multipart form) may
+// take as long as the server's read timeout to arrive, not the 5 s Huma
+// gives a body: api.Register sets it.
+func TestRawUploadsHaveTheReadTimeout(t *testing.T) {
+	n := 0
+	for _, op := range registeredOperations(t) {
+		if op.RequestBody == nil {
+			continue
+		}
+		raw := false
+		for ct, mt := range op.RequestBody.Content {
+			raw = raw || (!strings.HasPrefix(ct, "multipart/") && mt.Schema != nil && mt.Schema.Format == "binary")
+		}
+		if !raw {
+			continue
+		}
+		n++
+		if op.BodyReadTimeout != api.UploadReadTimeout {
+			t.Errorf("%s %s (%s) takes a raw upload but reads it for %s, not %s", op.Method, op.Path, op.OperationID, op.BodyReadTimeout, api.UploadReadTimeout)
+		}
+	}
+	if n == 0 {
+		t.Fatal("no raw upload found: upload-import-file takes one")
+	}
 }
 
 var pathParam = regexp.MustCompile(`\{([^}]+)\}`)

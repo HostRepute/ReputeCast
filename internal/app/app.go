@@ -293,7 +293,7 @@ func (a *App) Handler() http.Handler {
 		if a.Cfg.HasRole(config.RoleWeb) {
 			hapi := humachi.New(r, NewHumaConfig())
 			hapi.UseMiddleware(a.Auth.Middleware(hapi))
-			registerAPI(a, hapi)
+			registerAPI(a, api.WithReadTimeout(hapi, a.Cfg.HTTP.ReadTimeout))
 			// The API reference of this instance (review 2026-11 IN-4).
 			r.Get("/api/reference", referenceHandler(hapi))
 			r.Handle("/api/*", http.HandlerFunc(apiNotFound))

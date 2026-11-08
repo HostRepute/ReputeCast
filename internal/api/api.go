@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -144,8 +145,53 @@ func (o Op) operation() huma.Operation {
 
 // Register adds an operation with a typed handler.
 func Register[I, O any](a huma.API, o Op, h func(context.Context, *I) (*O, error)) {
-	checkInput(reflect.TypeFor[I](), o.ID)
-	huma.Register(a, o.operation(), h)
+	in := reflect.TypeFor[I]()
+	checkInput(in, o.ID)
+	op := o.operation()
+	if rawBody(in) {
+		op.BodyReadTimeout = uploadReadTimeout(a)
+	}
+	huma.Register(a, op, h)
+}
+
+// UploadReadTimeout is how long the body of a raw upload (an input with
+// RawBody []byte: an import, a CSV, a DMARC report, a file's chunk) may
+// take to arrive on an API not wrapped by WithReadTimeout. It is
+// http.read_timeout's default. Since v2.40 Huma reads raw bodies with the
+// 5 s deadline it gives JSON ones, unless the operation sets its own.
+const UploadReadTimeout = 30 * time.Second
+
+// WithReadTimeout returns a, registering raw uploads with d, the server's
+// read timeout, to read their body.
+func WithReadTimeout(a huma.API, d time.Duration) huma.API {
+	if d <= 0 {
+		return a
+	}
+	return readTimeoutAPI{API: a, d: d}
+}
+
+type readTimeoutAPI struct {
+	huma.API
+	d time.Duration
+}
+
+func uploadReadTimeout(a huma.API) time.Duration {
+	if r, ok := a.(readTimeoutAPI); ok {
+		return r.d
+	}
+	return UploadReadTimeout
+}
+
+// rawBody reports whether an input takes its body as raw bytes.
+func rawBody(t reflect.Type) bool {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+	f, ok := t.FieldByName("RawBody")
+	return ok && f.Type.Kind() == reflect.Slice && f.Type.Elem().Kind() == reflect.Uint8
 }
 
 // Get, Post, Put, Patch and Delete are shorthands for Register.
