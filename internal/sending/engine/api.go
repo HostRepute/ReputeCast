@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -200,7 +201,7 @@ func Register(h huma.API, e *Engine) {
 				s = s.In(lang)
 				s.Resumed = resumed
 				resumed = false
-				if err := send(sse.Message{ID: int(s.Version), Data: s}); err != nil {
+				if err := send(sse.Message{IDString: strconv.FormatInt(s.Version, 10), Data: s}); err != nil {
 					return
 				}
 			case <-heartbeat.C:
