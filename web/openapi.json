@@ -122535,7 +122535,14 @@
                           },
                           "id": {
                             "description": "The event ID.",
-                            "type": "integer"
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
                           },
                           "retry": {
                             "description": "The retry time in milliseconds.",
@@ -122561,7 +122568,14 @@
                           },
                           "id": {
                             "description": "The event ID.",
-                            "type": "integer"
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
                           },
                           "retry": {
                             "description": "The retry time in milliseconds.",
