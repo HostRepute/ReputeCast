@@ -23,7 +23,7 @@ export function ThemeMenuItem() {
       <DropdownMenu.Label className="k" id={label}>
         {t(m.menuLabel)}
       </DropdownMenu.Label>
-      <DropdownMenu.RadioGroup value={choice} onValueChange={(v) => isThemeChoice(v) && void save(v)} aria-labelledby={label}>
+      <DropdownMenu.RadioGroup value={choice} onValueChange={(v) => isThemeChoice(v) && save(v)} aria-labelledby={label}>
         {THEME_CHOICES.map((c) => (
           <DropdownMenu.RadioItem key={c} value={c} aria-label={t(themeLabel[c])} title={t(themeLabel[c])} onSelect={(e) => e.preventDefault()}>
             <Icon name={themeIcon[c]} size={16} />

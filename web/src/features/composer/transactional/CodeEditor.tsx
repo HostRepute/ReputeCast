@@ -3,6 +3,7 @@ import { EditorState, type Extension } from '@codemirror/state'
 import { Decoration, EditorView, lineNumbers, MatchDecorator, ViewPlugin, type DecorationSet, type ViewUpdate } from '@codemirror/view'
 import { minimalSetup } from 'codemirror'
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEditorTheme } from '@/features/appearance/editorTheme'
 
 const marks = {
   key: Decoration.mark({ class: 'tx-k' }),
@@ -63,6 +64,8 @@ const dark = EditorView.theme(
   { dark: true },
 )
 
+// The light editor sits on a card: CodeMirror's light or dark base (caret,
+// selection) follows the app's theme there (useEditorTheme).
 const light = EditorView.theme({
   '&': { color: 'var(--ink)', backgroundColor: 'transparent', height: '100%' },
   '.cm-content': { padding: '10px 0' },
@@ -95,6 +98,7 @@ export default function CodeEditor({
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const cb = useRef(onChange)
+  const appTheme = useEditorTheme(view)
   useLayoutEffect(() => {
     cb.current = onChange
   })
@@ -105,7 +109,7 @@ export default function CodeEditor({
     const ext: Extension[] = [
       minimalSetup,
       lineNumbers(),
-      theme === 'dark' ? dark : light,
+      theme === 'dark' ? dark : [light, appTheme],
       EditorView.lineWrapping,
       EditorView.contentAttributes.of(attrs),
       EditorView.updateListener.of((u) => {

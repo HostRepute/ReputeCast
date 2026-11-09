@@ -8,6 +8,7 @@ import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
+import { useEditorTheme } from '@/features/appearance/editorTheme'
 import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
 import { mk } from './code.messages'
 import { useComposer } from './context'
@@ -60,6 +61,8 @@ const darkTheme = EditorView.theme(
   { dark: true },
 )
 
+// The compiled HTML pane sits on a card: CodeMirror's light or dark base
+// (caret, selection) follows the app's theme there (useEditorTheme).
 const lightTheme = EditorView.theme({
   '&': { color: 'var(--ink-nav)', backgroundColor: 'transparent', height: '100%' },
   '.cm-content': { padding: 0 },
@@ -72,6 +75,7 @@ function Code({ value, onChange, readOnly, dark, label, onCursor, jumpTo }: { va
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const cb = useRef({ onChange, onCursor })
+  const appTheme = useEditorTheme(view)
   useLayoutEffect(() => {
     cb.current = { onChange, onCursor }
   })
@@ -80,7 +84,7 @@ function Code({ value, onChange, readOnly, dark, label, onCursor, jumpTo }: { va
     const ext: Extension[] = [
       minimalSetup,
       lineNumbers(),
-      dark ? darkTheme : lightTheme,
+      dark ? darkTheme : [lightTheme, appTheme],
       // A tab stop on the content in every mode: read-only content isn't
       // contenteditable, and the scroller itself is tabindex -1.
       EditorView.contentAttributes.of({ 'aria-label': label, tabindex: '0' }),

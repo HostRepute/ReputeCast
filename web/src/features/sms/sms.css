@@ -908,7 +908,7 @@
     color: var(--on-strong);
   }
   .sms-fchip.on b {
-    color: var(--inverse-muted);
+    color: var(--line-hover);
   }
   .sms-filters {
     display: flex;

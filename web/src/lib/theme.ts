@@ -11,7 +11,8 @@
  * (generated from the design tokens) holds the dark values. Before that
  * attribute is set, CSS follows the device on its own.
  *
- * Kept free of React and the API client, so src/early.ts can import it.
+ * Kept free of React and the API client. src/early.ts can't import it (it
+ * runs as a classic script) and repeats its storage key and media query.
  */
 
 export type ThemeChoice = 'system' | 'light' | 'dark'

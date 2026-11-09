@@ -1,10 +1,10 @@
 import { PostgreSQL, sql } from '@codemirror/lang-sql'
-import { Compartment, EditorState } from '@codemirror/state'
+import { EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers, placeholder } from '@codemirror/view'
 import { minimalSetup } from 'codemirror'
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { ScrollPre } from '@/components/ui/ScrollPre'
-import { useTheme } from '@/features/appearance/useTheme'
+import { useEditorTheme } from '@/features/appearance/editorTheme'
 
 const keywords = new Set(
   'SELECT FROM WHERE AND OR NOT EXISTS IN IS NULL TRUE FALSE INTERVAL AS ON JOIN LEFT INNER GROUP BY ORDER LIMIT DISTINCT CASE WHEN THEN ELSE END LIKE ILIKE ANY BETWEEN UNION ALL WITH HAVING'.split(
@@ -56,9 +56,8 @@ export function SqlEditor({ value, onChange, label, invalid }: { value: string; 
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const changed = useRef(onChange)
-  // Dark theme: CodeMirror's caret and selection colours for dark grounds.
-  const dark = useTheme().theme === 'dark'
-  const darkMode = useRef(new Compartment())
+  // The dark theme: CodeMirror's caret and selection colours for dark grounds.
+  const appTheme = useEditorTheme(view)
   useEffect(() => {
     changed.current = onChange
   }, [onChange])
@@ -73,7 +72,7 @@ export function SqlEditor({ value, onChange, label, invalid }: { value: string; 
           minimalSetup,
           sql({ dialect: PostgreSQL, upperCaseKeywords: true }),
           theme,
-          darkMode.current.of(EditorView.darkTheme.of(dark)),
+          appTheme,
           placeholder('SELECT c.id FROM contacts c WHERE …'),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true', ...(invalid ? { 'aria-invalid': 'true' } : {}) }),
@@ -91,8 +90,5 @@ export function SqlEditor({ value, onChange, label, invalid }: { value: string; 
     // The document is seeded once; later edits come from the editor itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  useEffect(() => {
-    view.current?.dispatch({ effects: darkMode.current.reconfigure(EditorView.darkTheme.of(dark)) })
-  }, [dark])
   return <div ref={host} className={invalid ? 'sqled invalid' : 'sqled'} />
 }

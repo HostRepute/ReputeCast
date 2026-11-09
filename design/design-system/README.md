@@ -45,7 +45,7 @@ Validated for colour-vision deficiency with the dataviz palette checks. Assign i
 |---|---|
 | Mailbox providers (categorical) | `chart-gmail`, `chart-outlook`, `chart-yahoo`, `chart-icloud`, `chart-other` |
 | Sending providers (categorical) | `chart-ses`, `chart-postal`, `chart-postmark` |
-| Engagement tiers (ordinal) | `chart-tier-1` Active → `chart-tier-4` Sunset |
+| Engagement tiers (ordinal) | `chart-tier-1` Active → `chart-tier-4` Sunset; their badges use `badge-tier-3-fg` on At risk and `badge-tier-4-bg` for Sunset, which differ in dark |
 | Opens | `chart-human` (ink) for human opens, `chart-machine` for Apple Mail prefetches |
 | Tracks | `chart-track` behind every bar |
 | Contact score bands (ordinal) | `chart-score-1` Cool → `chart-score-3` Hot |

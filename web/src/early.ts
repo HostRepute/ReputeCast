@@ -1,9 +1,10 @@
 /**
  * The app's first questions, asked while its scripts load: who is signed in
- * (/me) and, on a workspace's address, their place in it. Its own tiny entry
- * in index.html with no imports, so it runs as soon as the page is parsed;
- * the app asked only once its scripts had loaded and run, a second or more
- * later on a slow phone, and the screen's data waited behind both answers.
+ * (/me) and, on a workspace's address, their place in it. Its own tiny entry,
+ * first in index.html's head (vite.config.ts, earlyEntry): in the build a
+ * classic script the parser waits for, so it can't import anything. The app
+ * asked only once its scripts had loaded and run, a second or more later on a
+ * slow phone, and the screen's data waited behind both answers.
  *
  * Only a 200 is kept (lib/early.ts hands it to the app once); for anything
  * else the app asks again through its API client, which handles a signed-out
@@ -12,9 +13,8 @@
 import type { EarlyAnswers } from './lib/early'
 
 // The theme first, before anything is drawn: the member's choice kept in
-// this browser (lib/theme, which this mirrors without importing it: an
-// import would pull the app's shared chunk into this entry), else the
-// device's setting. styles/themes.css reads html[data-theme].
+// this browser (lib/theme, which this mirrors without importing it), else
+// the device's setting. styles/themes.css reads html[data-theme].
 try {
   const kept = localStorage.getItem('rc.theme')
   const dark = kept === 'dark' || (kept !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)

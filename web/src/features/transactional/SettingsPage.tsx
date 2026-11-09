@@ -243,7 +243,8 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
               <span className="k" style={{ color: 'var(--ink-nav)' }}>
                 {t(mg.previewCaption)}
               </span>
-              <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--side)' }} aria-hidden="true">
+              {/* What recipients see: the preference center is light only, so its preview is too. */}
+              <div className="keep-light flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--side)' }} aria-hidden="true">
                 <span className="font-bold">{t(mg.previewHeading, { product: s.productName })}</span>
                 {optional.length === 0 ? <span className="k">{t(mg.previewNoOptional)}</span> : null}
                 {optional.map((c) => (

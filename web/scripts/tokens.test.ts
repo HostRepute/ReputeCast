@@ -67,6 +67,11 @@ const pairs: [string, string][] = [
   ['dark-text', 'code-bg'],
   ['dark-muted', 'code-bg'],
   ['dark-text', 'dark-surface'],
+  // The engagement tier badges (audience.css).
+  ['on-strong', 'chart-tier-1'],
+  ['on-strong', 'chart-tier-2'],
+  ['badge-tier-3-fg', 'chart-tier-3'],
+  ['ink', 'badge-tier-4-bg'],
 ]
 // Things that aren't text but must be seen (WCAG 1.4.11): control borders,
 // the focus ring, bars, the switch, icons on inverse.

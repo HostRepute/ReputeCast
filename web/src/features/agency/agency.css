@@ -133,7 +133,7 @@
     color: var(--on-strong);
   }
   .ag-fchip[aria-pressed='true'] b {
-    color: var(--inverse-muted);
+    color: var(--line-hover);
   }
 
   /* Number tiles (Usage). */

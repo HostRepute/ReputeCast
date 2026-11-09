@@ -76,11 +76,19 @@ function layerOrder(): Plugin {
 const earlySrc = fileURLToPath(new URL('./src/early.ts', import.meta.url))
 
 /**
- * src/early.ts asks for the session while the app's scripts load, so it is
- * an entry of its own: listed in index.html, the build would merge it into
- * the app's entry, which runs only once every startup script is in. This
- * adds it as an input and puts its script in the page's head (the source
- * file in development).
+ * src/early.ts applies the theme and asks for the session while the app's
+ * scripts load, so it is an entry of its own: listed in index.html, the build
+ * would merge it into the app's entry, which runs only once every startup
+ * script is in. This adds it as an input and puts its script first in the
+ * page's head.
+ *
+ * In the build it is a classic script without async or defer: the parser
+ * waits for it (a few hundred bytes, fetched beside the stylesheets), so the
+ * theme is set before the first paint and a chosen theme never flashes the
+ * device's. Ahead of the stylesheets, it doesn't wait for them. A classic
+ * script can't import, and its top-level names would be globals, so the
+ * chunk must stand alone and is wrapped in a function. The dev server keeps
+ * a module script: the source is TypeScript.
  */
 function earlyEntry(): Plugin {
   let build = false
@@ -89,16 +97,20 @@ function earlyEntry(): Plugin {
     configResolved(c) {
       build = c.command === 'build'
     },
+    renderChunk(code, chunk) {
+      if (!chunk.isEntry || chunk.name !== 'early') return null
+      if (chunk.imports.length || chunk.dynamicImports.length || chunk.exports.length) {
+        throw new Error('src/early.ts runs as a classic script: it must not import or export anything')
+      }
+      return { code: `(()=>{${code}\n})();\n`, map: null }
+    },
     transformIndexHtml: {
       order: 'post',
       handler(_html, ctx) {
-        let src = '/src/early.ts'
-        if (build) {
-          const chunk = Object.values(ctx.bundle ?? {}).find((c) => c.type === 'chunk' && c.isEntry && c.name === 'early')
-          if (!chunk) throw new Error('the early entry (src/early.ts) is missing from the build')
-          src = `/${chunk.fileName}`
-        }
-        return [{ tag: 'script', attrs: { type: 'module', src, async: true }, injectTo: 'head' }]
+        if (!build) return [{ tag: 'script', attrs: { type: 'module', src: '/src/early.ts', async: true }, injectTo: 'head-prepend' }]
+        const chunk = Object.values(ctx.bundle ?? {}).find((c) => c.type === 'chunk' && c.isEntry && c.name === 'early')
+        if (!chunk) throw new Error('the early entry (src/early.ts) is missing from the build')
+        return [{ tag: 'script', attrs: { src: `/${chunk.fileName}` }, injectTo: 'head-prepend' }]
       },
     },
   }

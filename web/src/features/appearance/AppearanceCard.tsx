@@ -69,7 +69,7 @@ export function AppearanceCard() {
               <ThemePicture choice={c} />
               <span className="theme-opt-t">
                 {/* The whole card is the target; the radio is named by its title and described by its sentence. */}
-                <input type="radio" name={name} value={c} checked={choice === c} onChange={() => void save(c)} aria-labelledby={`${name}-${c}-t`} aria-describedby={`${name}-${c}-d`} />
+                <input type="radio" name={name} value={c} checked={choice === c} onChange={() => save(c)} aria-labelledby={`${name}-${c}-t`} aria-describedby={`${name}-${c}-d`} />
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <b className="text-[13.5px]" id={`${name}-${c}-t`}>
                     {t(themeLabel[c])}

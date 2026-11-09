@@ -99,6 +99,8 @@
   --chart-tier-2: #256abf;
   --chart-tier-3: #5598e7;
   --chart-tier-4: #86b6ef;
+  --badge-tier-3-fg: var(--ink);
+  --badge-tier-4-bg: var(--chart-tier-4);
   --chart-human: var(--ink);
   --chart-machine: #b4bac5;
   --chart-score-1: #ec8eb1;

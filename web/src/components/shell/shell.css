@@ -24,12 +24,13 @@
     color: var(--accent);
   }
 
-  /* The sheet, above the tab bar. */
+  /* The sheet, above the tab bar. Its backdrop is lighter than a dialog's
+     scrim (ShellMore board: .32), as the other sheets' are. */
   .sheet-scrim {
     position: fixed;
     inset: 0;
     z-index: 55;
-    background: var(--scrim);
+    background: rgb(var(--shadow-rgb) / 0.32);
     animation: rc-sheet-fade var(--duration-base) var(--ease-out-soft) both;
   }
   .sheet {

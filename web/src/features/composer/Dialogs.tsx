@@ -351,7 +351,7 @@ function AltStep({ component, picked, onDone }: { component: Component; picked: 
           src={src}
           alt=""
           className="shrink-0 rounded-md border border-line"
-          style={{ width: 120, height: 80, objectFit: 'contain', background: 'repeating-conic-gradient(var(--ground) 0 25%, #fff 0 50%) 0 0/12px 12px' }}
+          style={{ width: 120, height: 80, objectFit: 'contain', background: 'repeating-conic-gradient(var(--ground) 0 25%, var(--surface) 0 50%) 0 0/12px 12px' }}
         />
         <div className="flex min-w-0 flex-col items-start gap-1">
           <span className="max-w-full truncate font-semibold" title={name}>
@@ -517,7 +517,7 @@ function AssetsDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))' }}>
             {q.data.items.map((a) => (
               <div key={a.id} className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-surface" style={{ padding: 8 }}>
-                <button type="button" className="overflow-hidden rounded-md border border-line" style={{ height: 90, padding: 0, background: 'repeating-conic-gradient(var(--ground) 0 25%, #fff 0 50%) 0 0/12px 12px', cursor: 'pointer' }} onClick={() => choose(a.url, a)} disabled={!target} aria-label={t(md.useImage, { name: a.fileName })}>
+                <button type="button" className="overflow-hidden rounded-md border border-line" style={{ height: 90, padding: 0, background: 'repeating-conic-gradient(var(--ground) 0 25%, var(--surface) 0 50%) 0 0/12px 12px', cursor: 'pointer' }} onClick={() => choose(a.url, a)} disabled={!target} aria-label={t(md.useImage, { name: a.fileName })}>
                   <img src={a.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" />
                 </button>
                 <span className="truncate text-[12px] font-semibold" title={a.fileName}>
