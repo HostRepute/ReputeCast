@@ -350,7 +350,7 @@ Spec GS-8 · **Done**
 segment on the progress bar.
 Spec GS-10 · **Done in M40**
 - Code: `internal/sending/engine/canary.go`; the live monitor's canary segment
-  (`web/src/features/live/Canary.tsx`). M40: a dedicated IP that has never sent for the workspace
+  (`web/src/features/live/CanaryView.tsx`). M40: a dedicated IP that has never sent for the workspace
   starts a canary. Each send records the IPs of a dedicated provider once per run
   (`workspace_sending_ips`, migration 03313), and Review & send and the live monitor name the IP
   and its provider. A provider's dedicated IPs come from its own API (SES, SendGrid, Mailgun,
