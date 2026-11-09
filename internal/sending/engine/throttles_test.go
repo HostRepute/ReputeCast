@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 )
@@ -26,8 +27,10 @@ func testSharedThrottles(t *testing.T, s *sendtest.Suite) {
 	}
 	a := fixture("GS-8 a")
 	b := fixture("GS-8 b")
+	// The steady demo transport, so a call throttled at random (about one in
+	// a thousand) can't halve a route's rate and take the count under the floor.
 	for _, f := range []*sendtest.Fixture{a, b} {
-		f.StartSend(engine.StartOptions{})
+		f.StartSend(engine.StartOptions{Scenario: simulator.ScenarioSteady})
 	}
 	at := a.Start
 	for range 20 {
