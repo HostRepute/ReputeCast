@@ -41,7 +41,7 @@
   "src/features/grow/composer/blocks.ts": 19,
   "src/features/imports/PreviewStep.tsx": 3,
   "src/features/keys/CreateKeyDialog.tsx": 2,
-  "src/features/live/Canary.tsx": 1,
+  "src/features/live/CanaryView.tsx": 1,
   "src/features/overview/words.ts": 1,
   "src/features/pages/builder/BlockTab.tsx": 12,
   "src/features/pages/builder/Canvas.tsx": 7,
