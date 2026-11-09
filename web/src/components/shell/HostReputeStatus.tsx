@@ -13,7 +13,7 @@ export function useHostReputeLine(): { color: string; title: string; line: strin
     return { color: 'var(--ok-bar)', title: t(m.hostReputeConnected), line: t(m.hostReputeSynced, { team: hr.teamName, ago: ago(hr.lastSyncAt) }) }
   }
   if (hr) return { color: 'var(--warn-bar)', title: t(m.hostReputeAttention), line: t(m.hostReputeReconnect) }
-  return { color: 'var(--color-muted-ink)', title: t(m.hostReputeConnect), line: t(m.hostReputeOptional) }
+  return { color: 'var(--muted-ink)', title: t(m.hostReputeConnect), line: t(m.hostReputeOptional) }
 }
 
 /** The sidebar footer's HostRepute card ("HostRepute connected · Acme Inc · synced 4 min ago"). */
@@ -24,7 +24,7 @@ export function HostReputeStatus() {
     <Link
       to="/w/$workspace/settings/integrations/hostrepute"
       params={{ workspace: slug }}
-      className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-2 text-ink hover:text-ink"
+      className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2 text-ink hover:text-ink"
     >
       <span className="dot" style={{ color: hr.color }} aria-hidden="true" />
       <div className="flex flex-col leading-[1.25]">

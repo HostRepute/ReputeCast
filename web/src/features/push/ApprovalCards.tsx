@@ -69,7 +69,7 @@ export function WhatsAppApprovalCard({ wa }: { wa: Schemas['ApprovalWhatsAppSnap
         </div>
       </div>
       <div className="pad flex flex-wrap items-start gap-5">
-        <div className="wa-chat flex-[1_1_300px]">
+        <div className="wa-chat keep-light flex-[1_1_300px]">
           <div className="hd">
             <span className="wa-mark" aria-hidden="true">
               {(wa.business || 'A').charAt(0).toUpperCase()}

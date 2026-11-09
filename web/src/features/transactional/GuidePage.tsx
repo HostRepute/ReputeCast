@@ -762,7 +762,7 @@ function TemplateStep({ onBack, onNext }: { onBack: () => void; onNext: (key: st
                 type="button"
                 role="radio"
                 aria-checked={on}
-                className={cn('flex flex-col items-start gap-1 rounded-[10px] p-3.5 text-left', on ? 'border-2 border-accent' : 'border border-line bg-white')}
+                className={cn('flex flex-col items-start gap-1 rounded-[10px] p-3.5 text-left', on ? 'border-2 border-accent' : 'border border-line bg-field')}
                 style={on ? { background: 'var(--accent-tint)' } : undefined}
                 onClick={() => setPicked(s.key)}
               >

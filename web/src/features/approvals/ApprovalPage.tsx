@@ -480,7 +480,7 @@ function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boole
           ) : preview.isError ? (
             <span className="k block py-6 text-center">{t(mr.previewUnavailable, { error: errorMessage(preview.error) })}</span>
           ) : (
-            <div className="ap-preview-mail flex flex-col gap-2 p-3.5" aria-hidden="true">
+            <div className="ap-preview-mail keep-light flex flex-col gap-2 p-3.5" aria-hidden="true">
               <Skeleton w="40%" h={10} />
               <Skeleton w="100%" h={90} r={4} />
               <Skeleton w="80%" h={12} />
@@ -500,7 +500,7 @@ function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boole
       </div>
       {open && preview.data ? (
         <Dialog open onOpenChange={setOpen} size="lg" title={preview.data.subject || d.name} description={preview.data.preheader || t(mr.versionNumber, { version: preview.data.version })}>
-          <iframe title={t(mr.fullPreviewTitle, { name: d.name })} sandbox="allow-same-origin" srcDoc={withAppFonts(preview.data.html)} className="h-[70vh] w-full rounded-lg border border-line bg-white" />
+          <iframe title={t(mr.fullPreviewTitle, { name: d.name })} sandbox="allow-same-origin" srcDoc={withAppFonts(preview.data.html)} className="keep-light h-[70vh] w-full rounded-lg border border-line bg-white" />
         </Dialog>
       ) : null}
     </Sec>
@@ -565,7 +565,7 @@ function EmailThumb({ html, title }: { html: string; title: string }) {
   }
   const visible = Math.min(340, height * THUMB_SCALE)
   return (
-    <div ref={box} className="ap-preview-mail" style={{ height: visible }}>
+    <div ref={box} className="ap-preview-mail keep-light" style={{ height: visible }}>
       <iframe
         ref={frame}
         title={title}

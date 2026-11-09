@@ -645,7 +645,7 @@ function syncColor(state: SyncState['state']): string {
       return 'var(--ok-bar)'
     case 'importing':
     case 'connecting':
-      return 'var(--color-info-strong)'
+      return 'var(--info-strong)'
     case 'disconnected':
       return 'var(--bad-strong)'
   }

@@ -999,7 +999,7 @@ function ScopePicker({ lists, value, group, onChange }: { lists: Schemas['SSOLis
       <div className="flex flex-col gap-1 p-1">
         <span className="mh">{t(ss.listsHeading)}</span>
         {lists.map((l) => (
-          <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
+          <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-[var(--hover)]">
             <input type="checkbox" checked={value.includes(l.id)} onChange={() => toggle(l.id)} />
             <span className="flex-1">{l.name}</span>
           </label>

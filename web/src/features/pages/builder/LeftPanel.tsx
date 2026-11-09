@@ -166,7 +166,7 @@ function Layers() {
   const focusKey = on || rows[0]?.key || ''
   const theme = (label: string) => (
     <div className="pb-lyr th" role="treeitem" aria-level={1} aria-selected={false} aria-disabled="true" tabIndex={-1} title={t(m.themeRowHint)}>
-      <BlockIcon name="theme" size={14} color="#5B6472" />
+      <BlockIcon name="theme" size={14} color="var(--ink-3)" />
       <span className="n">{label}</span>
       <span className="k">{t(m.themeTag)}</span>
     </div>
@@ -202,7 +202,7 @@ function Layers() {
                 }
               }}
             >
-              <BlockIcon name={rowIcon(r)} size={14} color={selected ? '#1D4ED8' : '#5B6472'} />
+              <BlockIcon name={rowIcon(r)} size={14} color={selected ? 'var(--info-strong)' : 'var(--ink-3)'} />
               <span className="n">{name(r)}</span>
               {tag(r) ? <span className="k">{tag(r)}</span> : null}
             </div>

@@ -112,7 +112,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
         <span className="mt-2 grid grid-cols-2 gap-2 max-md:grid-cols-1">
           {/* Disabled until picked, but white as on the board. */}
           <input
-            className="in mono min-w-0 bg-white"
+            className="in mono min-w-0 bg-field"
             placeholder={'AKIA…'}
             aria-label={t(mses.keyIdLabel)}
             aria-invalid={err?.field === 'access_key_id' || undefined}
@@ -122,7 +122,7 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             autoComplete="off"
           />
           <input
-            className="in mono min-w-0 bg-white"
+            className="in mono min-w-0 bg-field"
             type="password"
             placeholder={t(mses.secretPlaceholder)}
             aria-label={t(mses.secretLabel)}

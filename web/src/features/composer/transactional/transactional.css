@@ -210,9 +210,9 @@
   white-space: nowrap;
 }
 .txe-fchip.on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  background: var(--inverse);
+  border-color: var(--inverse);
+  color: var(--on-strong);
 }
 
 /* Dark code boxes (test data JSON, the API call) */
@@ -220,7 +220,7 @@
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--dark-line);
-  background: var(--ink);
+  background: var(--code-bg);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -280,7 +280,7 @@
   margin: 0;
   font-family: var(--font-family-mono);
   font-size: 12px;
-  background: var(--ink);
+  background: var(--code-bg);
   color: var(--dark-text);
   border-radius: 8px;
   padding: 10px 12px;

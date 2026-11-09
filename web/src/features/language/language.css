@@ -69,7 +69,7 @@
 
 .lopt:hover,
 .lopt[data-highlighted] {
-  background: var(--ground);
+  background: var(--hover);
 }
 
 .lopt[data-state='checked'] {
@@ -104,8 +104,8 @@
   gap: 12px;
   align-items: flex-start;
   flex-wrap: wrap;
-  border-color: #bfdbfe;
-  background: #f8fbff;
+  border-color: var(--info-line);
+  background: color-mix(in srgb, var(--info-tint) 45%, var(--surface));
 }
 
 .lang-suggest > svg {

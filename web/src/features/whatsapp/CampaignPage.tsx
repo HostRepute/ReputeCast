@@ -453,7 +453,7 @@ function Preview({ data, tpl }: { data: Campaign; tpl?: Template }) {
   return (
     <div className="wa-col">
       <span className="t">{p ? t(m.previewAs, { name: p.contact }) : t(m.previewNoContact)}</span>
-      <div className="wa-chat">
+      <div className="wa-chat keep-light">
         <div className="hd">
           <span className="wa-mark" aria-hidden="true">
             {(b?.displayName ?? 'A').charAt(0).toUpperCase()}

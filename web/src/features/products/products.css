@@ -68,7 +68,7 @@
     flex: none;
     border-radius: 4px;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(11, 18, 32, 0.18);
+    box-shadow: 0 1px 2px rgb(var(--shadow-rgb) / 0.18);
     background: #ede9fe;
     color: #4338ca;
     box-sizing: border-box;
@@ -115,7 +115,7 @@
     cursor: pointer;
   }
   .pr-tbl tbody tr.pr-click:hover td {
-    background: var(--ground-3);
+    background: var(--hover-soft);
   }
   .pr-tbl tbody tr.pr-click.pr-sel:hover td {
     background: var(--accent-tint);
@@ -153,36 +153,36 @@
     flex: none;
   }
   .pr-dlc.ok {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
-    color: #14532d;
+    background: var(--ok-tint);
+    border-color: var(--ok-line);
+    color: var(--ok-ink);
   }
   .pr-dlc.ok svg {
-    color: #15803d;
+    color: var(--ok-bar);
   }
   .pr-dlc.neutral {
-    background: #f3f4f6;
-    border-color: #e3e6eb;
-    color: #374151;
+    background: var(--ground);
+    border-color: var(--line);
+    color: var(--ink-nav);
   }
   .pr-dlc.neutral svg {
-    color: #6b7280;
+    color: var(--muted-ink);
   }
   .pr-dlc.warn {
-    background: #fffbeb;
-    border-color: #fcd34d;
-    color: #78350f;
+    background: var(--warn-tint);
+    border-color: var(--warn-line-strong);
+    color: var(--warn-ink);
   }
   .pr-dlc.warn svg {
-    color: #b45309;
+    color: var(--warn-bar);
   }
   .pr-dlc.bad {
-    background: #fff5f5;
-    border-color: #fca5a5;
-    color: #7f1d1d;
+    background: var(--bad-tint);
+    border-color: var(--bad-line);
+    color: var(--bad-ink);
   }
   .pr-dlc.bad svg {
-    color: #b91c1c;
+    color: var(--bad-strong);
   }
 
   /* Wide tables above 1100 px, cards below (the boards' wide-only and narrow-only). */
@@ -199,7 +199,7 @@
     text-decoration: none;
   }
   .pr-pcard:hover {
-    background: var(--ground-3);
+    background: var(--hover-soft);
     color: var(--ink);
   }
   .pr-pcard .bd {
@@ -223,7 +223,7 @@
     padding: 12px 16px;
     border: 0;
     border-top: 1px solid var(--line-2);
-    background: #fff;
+    background: var(--surface);
     color: var(--ink);
     font: inherit;
     text-align: left;
@@ -231,7 +231,7 @@
     cursor: pointer;
   }
   .pr-ocard:hover {
-    background: var(--ground-3);
+    background: var(--hover-soft);
   }
   .pr-ocard[aria-current='true'] {
     background: var(--accent-tint);
@@ -269,7 +269,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     max-width: 340px;
     min-width: 0;
     color: var(--ink-3);
@@ -366,12 +366,12 @@
     font-weight: 700;
   }
   .pr-note.pur {
-    background: #f5f3ff;
-    border: 1px solid #ddd6fe;
-    color: #374151;
+    background: var(--purple-tint);
+    border: 1px solid var(--purple-line);
+    color: var(--ink-nav);
   }
   .pr-note.pur .ttl {
-    color: #5b21b6;
+    color: var(--purple-fg);
   }
   .pr-note .acts {
     display: flex;
@@ -457,7 +457,7 @@
   .pr-ovl {
     position: fixed;
     inset: 0;
-    background: rgba(11, 18, 32, 0.32);
+    background: rgb(var(--shadow-rgb) / 0.32);
     z-index: 58;
   }
   .pr-sheet {
@@ -466,9 +466,9 @@
     right: 0;
     bottom: 0;
     width: min(600px, 100vw);
-    background: #fff;
+    background: var(--raised);
     border-left: 1px solid var(--line);
-    box-shadow: -18px 0 40px rgba(11, 18, 32, 0.18);
+    box-shadow: -18px 0 40px rgb(var(--shadow-rgb) / 0.18);
     z-index: 59;
     display: flex;
     flex-direction: column;
@@ -566,7 +566,7 @@
     flex-wrap: wrap;
     padding: 14px 22px;
     border-top: 1px solid var(--line-2);
-    background: #fbfbfc;
+    background: var(--side);
     margin-top: auto;
   }
   .pr-opacts > .note {
@@ -592,24 +592,24 @@
     flex: none;
   }
   .pr-ev .ic.ok {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--ok-bg);
+    color: var(--ok-fg);
   }
   .pr-ev .ic.info {
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--info-bg);
+    color: var(--info-fg);
   }
   .pr-ev .ic.mut {
-    background: #eef0f3;
-    color: #4b5563;
+    background: var(--neutral-bg);
+    color: var(--neutral-fg);
   }
   .pr-ev .ic.bad {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--bad-bg);
+    color: var(--bad-fg);
   }
   .pr-ev .ic.warn {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--warn-bg);
+    color: var(--warn-fg);
   }
   .pr-ev .tx {
     display: flex;
@@ -701,9 +701,9 @@
     align-items: center;
     gap: 6px;
     padding: 20px;
-    border: 1.5px dashed #c9ced6;
+    border: 1.5px dashed var(--line-hover);
     border-radius: 10px;
-    background: #fbfbfc;
+    background: var(--side);
     text-align: center;
   }
   .pr-dz.on {
@@ -736,7 +736,7 @@
     width: 36px;
     height: 36px;
     border-radius: 9px;
-    background: #f3f4f6;
+    background: var(--ground);
     border: 1px solid var(--line);
     display: inline-flex;
     align-items: center;
@@ -765,11 +765,11 @@
     gap: 6px;
     align-items: center;
     font-size: 12px;
-    color: #166534;
+    color: var(--ok-fg);
     font-weight: 600;
   }
   .pr-frow .stop {
-    color: #991b1b;
+    color: var(--bad-fg);
     font-weight: 600;
   }
   .pr-upbar {
@@ -786,10 +786,10 @@
     border-radius: 3px;
   }
   .pr-upbar.bad {
-    background: #fee2e2;
+    background: var(--bad-bg);
   }
   .pr-upbar.bad i {
-    background: #b91c1c;
+    background: var(--bad-strong);
   }
   .pr-money {
     display: flex;
@@ -797,7 +797,7 @@
     border: 1px solid var(--line-input);
     border-radius: 8px;
     overflow: hidden;
-    background: #fff;
+    background: var(--field);
     height: 36px;
     max-width: 200px;
     box-sizing: border-box;
@@ -807,7 +807,7 @@
     outline-offset: 1px;
   }
   .pr-money.err {
-    border-color: #b91c1c;
+    border-color: var(--bad-strong);
   }
   .pr-money span {
     padding: 0 10px;
@@ -844,7 +844,7 @@
     min-width: 0;
   }
   .pr-ferr {
-    color: #b91c1c;
+    color: var(--bad-strong);
     font-size: 12px;
     font-weight: 600;
   }
@@ -927,13 +927,13 @@
     margin-top: 6px;
   }
   .pr-ckl.is-ok > svg {
-    color: #15803d;
+    color: var(--ok-bar);
   }
   .pr-ckl.is-bad > svg {
-    color: #b91c1c;
+    color: var(--bad-strong);
   }
   .pr-ckl.is-warn > svg {
-    color: var(--color-warn-fg);
+    color: var(--warn-fg);
   }
   .pr-mail {
     width: 200px;
@@ -1182,7 +1182,7 @@
   .pr-pagebox {
     display: flex;
     justify-content: center;
-    background: #f3f4f6;
+    background: var(--ground);
     border-radius: 8px;
     padding: 12px;
     overflow: hidden;

@@ -86,7 +86,7 @@ export function FormPreview({
     const confirm = form.doubleOptIn
     const after = c.afterSubmitText
     return (
-      <div className="pf" style={style} role="status" lang={L?.lang}>
+      <div className="pf keep-light" style={style} role="status" lang={L?.lang}>
         <div className="pf-brand">
           <PublisherMark branding={b} className="pf-mark" logoClassName="logo" />
           <span className="text-[16px] font-bold">{c.heading || b.publisherName}</span>
@@ -113,7 +113,7 @@ export function FormPreview({
     )
   }
   return (
-    <div className="pf" style={style} lang={L?.lang}>
+    <div className="pf keep-light" style={style} lang={L?.lang}>
       <div className="pf-brand">
         <PublisherMark branding={b} className="pf-mark" logoClassName="logo" />
         <span className="text-[16px] font-bold">{c.heading || b.publisherName}</span>

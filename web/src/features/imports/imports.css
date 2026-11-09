@@ -15,7 +15,7 @@
     gap: 14px;
     flex-wrap: wrap;
     padding: 14px 28px;
-    background: #fff;
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
   .mig > header h1 {
@@ -59,7 +59,7 @@
     padding: 14px 16px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fff;
+    background: var(--surface);
     cursor: pointer;
     text-align: left;
     font: inherit;
@@ -70,7 +70,7 @@
   }
   .src.on {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px #ccfbf1;
+    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 
   /* Tiles and tables as on the migration boards */
@@ -95,7 +95,7 @@
   }
   .mig .opt-on {
     border-color: var(--accent);
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
   /* Board-specific control sizes: 34px controls (fields, consent, preview),
      full-width selects (fields, consent), 8px cells (fields). */
@@ -110,20 +110,20 @@
   }
   /* Read-only values (the detected data center) stay white, as on the board. */
   .mig .in[readonly] {
-    background: #fff;
+    background: var(--field);
   }
   .mig .in.fit {
     width: var(--fitw, auto);
     max-width: 100%;
   }
   .mig tr.newf td {
-    background: #eff6ff;
+    background: var(--info-tint);
   }
   .mig tr.skipf td {
-    color: #6b7280;
+    color: var(--muted-ink);
   }
   .mig tr.supf td {
-    background: #fff5f5;
+    background: var(--bad-tint);
   }
 
   /* Live log */
@@ -140,7 +140,7 @@
   }
   .btn.stop {
     color: var(--bad-fg);
-    border-color: #fca5a5;
+    border-color: var(--bad-line);
   }
   /* The step's main action: 40px, as on the boards. */
   .btn.wnext {
@@ -156,7 +156,7 @@
     align-items: center;
     text-align: center;
     gap: 10px;
-    border: 2px dashed #c9ced6;
+    border: 2px dashed var(--line-hover);
   }
   .migdrop.over {
     border-color: var(--accent);

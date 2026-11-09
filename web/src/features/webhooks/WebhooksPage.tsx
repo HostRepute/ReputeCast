@@ -330,7 +330,7 @@ function DeliveryLog({
         </h2>
         <div className="flex gap-2">
           <select
-            className="h-[30px] rounded-[8px] border border-line-strong bg-white px-2 text-[12px]"
+            className="h-[30px] rounded-[8px] border border-line-strong bg-field px-2 text-[12px]"
             aria-label={t(m.filterEndpoint)}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}

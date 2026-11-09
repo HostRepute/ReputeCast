@@ -253,7 +253,7 @@ export function WhatsAppStepProps({ data: d, lists, editable, onChange }: { data
           <span className="k">{t(m.previewText)}</span>
         ) : est?.preview && tpl ? (
           <>
-            <div className="wa-chat">
+            <div className="wa-chat keep-light">
               <div className="hd">
                 <span className="wa-mark" aria-hidden="true">
                   {(est.business?.displayName || 'A').charAt(0).toUpperCase()}

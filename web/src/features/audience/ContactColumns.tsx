@@ -59,7 +59,7 @@ export function ColumnChooser({ columns, onChange, onReset }: { columns: ColumnI
   const fields = $api.useQuery('get', '/api/v1/workspaces/{workspace}/fields', { params: { path: { workspace: slug } } })
   const toggle = (c: ColumnId, on: boolean) => onChange(on ? [...columns, c] : columns.filter((x) => x !== c))
   const box = (c: ColumnId, label: string) => (
-    <label key={c} className="flex min-h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] hover:bg-ground">
+    <label key={c} className="flex min-h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] hover:bg-hover">
       <input type="checkbox" checked={columns.includes(c)} onChange={(e) => toggle(c, e.target.checked)} />
       {label}
     </label>

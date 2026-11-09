@@ -7,7 +7,7 @@ import { download, slugify } from './format'
 import { m } from './messages'
 
 function Card({ tone, badge, title, children, actions }: { tone: 'bad' | 'warn' | 'ok'; badge: string; title: string; children: ReactNode; actions: ReactNode }) {
-  const border = tone === 'bad' ? '#FCA5A5' : tone === 'warn' ? '#FCD34D' : '#86EFAC'
+  const border = tone === 'bad' ? 'var(--bad-line)' : tone === 'warn' ? 'var(--warn-line-strong)' : 'var(--ok-line-strong)'
   return (
     <div role={tone === 'ok' ? 'status' : 'alert'} className="card flex flex-col" style={{ padding: '16px 18px', gap: 10, borderColor: border }}>
       {/* As on ComposerStates: a long title breaks beside the badge; phones wrap the row. */}

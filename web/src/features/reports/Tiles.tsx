@@ -278,12 +278,12 @@ export function MeasurableDisclosure({ r }: { r: CampaignReport }) {
         <div className="flex flex-col gap-1.5">
           <span className="k">{t(m.ofDeliveredCount, { count: values.delivered })}</span>
           <div className="rep-stk" role="img" aria-label={t(m.stackLabel, values)}>
-            <i style={{ width: `${share(h.humanOpens)}%`, background: 'var(--ink)' }} />
+            <i style={{ width: `${share(h.humanOpens)}%`, background: 'var(--chart-human)' }} />
             <i style={{ width: `${share(h.privacyOpens)}%`, background: 'var(--chart-machine)' }} />
           </div>
           <div className="rep-leg" aria-hidden="true">
             <span>
-              <span className="rep-sw" style={{ background: 'var(--ink)' }} />
+              <span className="rep-sw" style={{ background: 'var(--chart-human)' }} />
               {t(m.stackHuman, { count: values.human, rate: pct1(share(h.humanOpens)) })}
             </span>
             <span>

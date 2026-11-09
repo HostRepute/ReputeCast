@@ -29,7 +29,7 @@ export type PlanProvider = Schemas['PlacementProviderOption']
 export const base = '/api/v1/workspaces/{workspace}/placement' as const
 
 /** Where copies land, as the boards colour them. */
-export const FOLDER = { inbox: 'var(--ok-bar)', tab: 'var(--color-info-soft)', spam: 'var(--color-bad-ink)', notArrived: 'var(--line-input)' } as const
+export const FOLDER = { inbox: 'var(--ok-bar)', tab: 'var(--info-soft)', spam: 'var(--chart-spam)', notArrived: 'var(--line-input)' } as const
 
 /** A sending provider's chart colour (tokens --chart-ses, …). */
 export function providerColor(adapter: string | undefined): string {
@@ -189,10 +189,10 @@ export function barLabel(c: Counts, waiting?: boolean): string {
 /** Inbox, tab, spam and not-arrived segments (and the copies still on their way). */
 export function PBar({ counts: c, lg, waiting }: { counts: Counts; lg?: boolean; waiting?: boolean }) {
   const segs: [number, string, string][] = [
-    [c.inbox, FOLDER.inbox, 'var(--surface)'],
+    [c.inbox, FOLDER.inbox, 'var(--on-strong)'],
     [c.tab, FOLDER.tab, 'var(--ink)'],
-    [c.spam, FOLDER.spam, 'var(--surface)'],
-    [c.notArrived, FOLDER.notArrived, 'var(--ink)'],
+    [c.spam, FOLDER.spam, 'var(--on-strong)'],
+    [c.notArrived, FOLDER.notArrived, 'var(--on-light)'],
   ]
   return (
     <div className={lg ? 'pl-pbar lg' : 'pl-pbar'} role="img" aria-label={barLabel(c, waiting)}>

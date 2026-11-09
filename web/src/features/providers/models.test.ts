@@ -170,7 +170,7 @@ describe('provider card helpers', () => {
     expect(rateColor(0.9, 2)).toBe('var(--ok-bar)')
     expect(rateColor(0.05, 0.1)).toBe('var(--warn-bar)')
     expect(rateColor(3, 2)).toBe('var(--bad-bar)')
-    expect(rateColor(0.9, 2, true)).toBe('var(--color-muted-line)')
+    expect(rateColor(0.9, 2, true)).toBe('var(--muted-line)')
   })
 
   it('words the status badge', () => {

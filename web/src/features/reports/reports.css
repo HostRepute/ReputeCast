@@ -37,7 +37,7 @@
   width: 100%;
   max-width: 340px;
   margin: 0 auto;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   overflow: hidden;
 }
@@ -59,11 +59,11 @@
   height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--inverse);
+  color: var(--on-strong);
   font-size: 11.5px;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(11, 18, 32, 0.25);
+  box-shadow: 0 2px 6px rgb(var(--shadow-rgb) / 0.25);
   white-space: nowrap;
   z-index: 1;
 }
@@ -72,7 +72,7 @@
 }
 /* Where bot clicks landed: grey, dashed (the board's Bot clicks view). */
 .rep-ck.bot {
-  border: 1px dashed #8b94a3;
+  border: 1px dashed var(--line-input);
   background: var(--line-2);
   color: var(--ink-2);
   box-shadow: none;
@@ -94,7 +94,7 @@
   padding: 0 8px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-strong);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -149,10 +149,10 @@
   font-weight: 600;
 }
 .rep-cmp.pos {
-  color: #166534;
+  color: var(--ok-fg);
 }
 .rep-cmp.neg {
-  color: #991b1b;
+  color: var(--bad-fg);
 }
 .rep-cmp.neu {
   color: var(--ink-3);
@@ -235,7 +235,7 @@ details.rep-opx[open] > summary .chev {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f9fafb;
+  background: var(--ground-3);
   font-size: 13px;
   color: var(--ink-2);
 }
@@ -251,9 +251,9 @@ details.rep-opx[open] > summary .chev {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--info-line);
   border-radius: 10px;
-  background: #dbeafe;
+  background: var(--info-bg);
   font-size: 13.5px;
 }
 
@@ -298,7 +298,7 @@ details.rep-opx[open] > summary .chev {
   padding: 12px 14px;
   border: 1px solid var(--line-2);
   border-radius: 8px;
-  background: #f9fafb;
+  background: var(--ground-3);
 }
 .rep-lnk {
   display: inline-flex;
@@ -350,7 +350,7 @@ details.rep-opx[open] > summary .chev {
   position: absolute;
   top: 4px;
   padding: 0 4px;
-  background: #fff;
+  background: var(--surface);
   font-size: 11.5px;
   font-weight: 600;
   line-height: 16px;
@@ -412,7 +412,7 @@ details.rep-opx[open] > summary .chev {
 .rep-panes > * {
   min-width: 0;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--surface);
 }
 .rep-pane {
   display: flex;
@@ -505,7 +505,7 @@ details.rep-opx[open] > summary .chev {
 
 /* The states board's grey blocks (6px corners, no shimmer on the strip). */
 .rep-sk {
-  background: #e9ecf0;
+  background: var(--skeleton);
   border-radius: 6px;
   display: inline-block;
 }

@@ -225,7 +225,7 @@ function CompareCard({ list }: { list: RoleList }) {
                 <button
                   key={r.id}
                   type="button"
-                  className={on ? 'chip box-content border-line-strong! bg-white! text-ink! hover:bg-ground!' : 'chip box-content border-dashed! text-ink-3! line-through'}
+                  className={on ? 'chip box-content border-line-strong! bg-surface! text-ink! hover:bg-[var(--hover)]!' : 'chip box-content border-dashed! text-ink-3! line-through'}
                   aria-pressed={on}
                   title={on ? tr(m.hideColumn, { name: r.name }) : tr(m.showColumn, { name: r.name })}
                   onClick={() => setHidden((cur) => (on ? (shown.length > 1 ? [...cur, r.id] : cur) : cur.filter((x) => x !== r.id)))}

@@ -83,7 +83,7 @@ export function StreamLostBanner({ title, body, onReconnect, busy }: { title: st
   return (
     <div className="flex flex-wrap items-center gap-4 rounded-[12px] border border-bad-line bg-bad-wash px-5 py-4">
       <svg width="32" height="32" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-        <circle cx="20" cy="20" r="19" fill="var(--color-bad-soft)" />
+        <circle cx="20" cy="20" r="19" fill="var(--bad-soft)" />
         <path d="M20 11v11M20 27v1" stroke="var(--bad-fg)" strokeWidth="3" strokeLinecap="round" />
       </svg>
       <div role="alert" className="flex flex-col gap-0.5 max-md:min-w-[120px]" style={{ flex: '1 1 300px' }}>

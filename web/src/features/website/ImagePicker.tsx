@@ -97,7 +97,7 @@ export function ImagePickerDialog({ open, onClose, onPick, title, description }:
                 onClick={() => choose(a.url)}
                 aria-label={t(mh.imageUse, { name: a.fileName })}
               >
-                <span className="overflow-hidden rounded-md border border-line" style={{ height: 90, background: 'repeating-conic-gradient(var(--ground) 0 25%, #fff 0 50%) 0 0/12px 12px' }}>
+                <span className="overflow-hidden rounded-md border border-line" style={{ height: 90, background: 'repeating-conic-gradient(var(--ground) 0 25%, var(--surface) 0 50%) 0 0/12px 12px' }}>
                   <img src={a.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" />
                 </span>
                 <span className="truncate text-[12px] font-semibold" title={a.fileName}>

@@ -44,6 +44,8 @@ const liquidColors = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 )
 
+// The dark editor keeps the board's light-theme code colours in both themes: its
+// host has .keep-light, so these tokens read their light values on the dark pane.
 const dark = EditorView.theme(
   {
     '&': { color: 'var(--dark-text)', backgroundColor: 'transparent', height: '100%' },
@@ -53,18 +55,18 @@ const dark = EditorView.theme(
     '.cm-activeLine': { backgroundColor: 'rgba(255,255,255,.04)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'rgba(147,197,253,.28) !important' },
     '.cm-cursor': { borderLeftColor: 'var(--ground-3)' },
-    '.tx-k': { color: 'var(--color-info-soft)' },
-    '.tx-s': { color: 'var(--color-ok-line-strong)' },
-    '.tx-l': { color: 'var(--color-warn-line-strong)' },
+    '.tx-k': { color: 'var(--info-soft)' },
+    '.tx-s': { color: 'var(--ok-line-strong)' },
+    '.tx-l': { color: 'var(--warn-line-strong)' },
     '.tx-q': { color: '#C4B5FD' },
   },
   { dark: true },
 )
 
 const light = EditorView.theme({
-  '&': { color: 'var(--dark-line)', backgroundColor: 'transparent', height: '100%' },
+  '&': { color: 'var(--ink)', backgroundColor: 'transparent', height: '100%' },
   '.cm-content': { padding: '10px 0' },
-  '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--color-muted-ink)', border: 0 },
+  '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--muted-ink)', border: 0 },
   '.cm-lineNumbers .cm-gutterElement': { minWidth: '24px', padding: '0 12px 0 8px', textAlign: 'right' },
   '.tx-q': { color: 'var(--purple-fg)', backgroundColor: 'var(--purple-bg)', borderRadius: '3px' },
 })
@@ -127,5 +129,5 @@ export default function CodeEditor({
     const v = view.current
     if (v && v.state.doc.toString() !== value) v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: value } })
   }, [value])
-  return <div ref={host} className="txe-cm" />
+  return <div ref={host} className={theme === 'dark' ? 'txe-cm keep-light' : 'txe-cm'} />
 }

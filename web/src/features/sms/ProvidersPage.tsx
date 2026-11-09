@@ -411,7 +411,7 @@ function HealthCard({ card, canManage, onCredentials }: { card: Card; canManage:
   const countries = card.held.length ? regionLabel(card.held) : card.countries.length ? regionLabel(card.countries) : 'none'
   const silent = card.status === 'degraded'
   return (
-    <section className="card min-w-0" style={{ borderColor: silent ? 'var(--color-warn-line-strong)' : 'var(--bad-line)' }}>
+    <section className="card min-w-0" style={{ borderColor: silent ? 'var(--warn-line-strong)' : 'var(--bad-line)' }}>
       <div className="sec">
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="text-[16px] font-bold">{card.name}</span>
@@ -735,7 +735,7 @@ function RoutingSummary({ data, order }: { data: Overview; order: string[] }) {
             <div
               key={r.id}
               className="flex min-w-0 flex-[1_1_230px] flex-col gap-1.5 px-5 py-4"
-              style={{ borderTop: '1px solid var(--line-2)', background: r.skipped ? 'var(--color-warn-tint)' : undefined }}
+              style={{ borderTop: '1px solid var(--line-2)', background: r.skipped ? 'var(--warn-tint)' : undefined }}
             >
               <span className="font-semibold">{regionLabel(r.countries)}</span>
               <span className="inline-flex items-center gap-2 text-[13px]">

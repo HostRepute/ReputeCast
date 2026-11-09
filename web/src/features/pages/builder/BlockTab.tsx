@@ -64,7 +64,7 @@ function BlockHead({ c, onRemove }: { c: Component; onRemove?: () => void }) {
   return (
     <Prop row>
       <span className="flex items-center gap-2">
-        <BlockIcon name={kind as BlockIconName} size={18} color="#0F766E" />
+        <BlockIcon name={kind as BlockIconName} size={18} color="var(--accent)" />
         <span className="flex flex-col">
           <span className="t">{col ? t(m.columnTitle, { n: col }) : kindName(t, kind)}</span>
           <span className="k">{col ? t(m.columnHint) : kindDescription(t, kind)}</span>
@@ -149,7 +149,7 @@ function StripeNote() {
     return (
       <div className="pb-pbody">
         <div className="note w" role="note">
-          <UiIcon name="info" size={16} color="#B45309" />
+          <UiIcon name="info" size={16} color="var(--warn-bar)" />
           <div className="flex min-w-0 flex-col gap-2">
             <span>{t(m.stripeMissing)}</span>
             <Link to="/w/$workspace/earn/settings" params={{ workspace: b.slug }} className="btn sm self-start">
@@ -162,7 +162,7 @@ function StripeNote() {
   return (
     <div className="pb-pbody">
       <div className="note n" role="note">
-        <UiIcon name="info" size={16} color="#4B5563" />
+        <UiIcon name="info" size={16} color="var(--ink-2)" />
         <div>
           <T msg={m.stripeNote} values={{ account: st.account ?? '', mode: st.mode === 'test' ? t(m.modeTest) : t(m.modeLive), b: (c) => <b>{c}</b> }} />
         </div>
@@ -406,7 +406,7 @@ function CountdownPanel({ c }: { c: Component }) {
       </Prop>
       <div className="pb-pbody">
         <div className="note n" role="note">
-          <UiIcon name="info" size={16} color="#4B5563" />
+          <UiIcon name="info" size={16} color="var(--ink-2)" />
           <div>
             {end === 'reveal'
               ? t(m.cdNoteReveal, { target: mainBlock && liveTagOf(mainBlock) === 'rc-product' ? t(m.cdTargetBuy) : t(m.cdTargetBlock, { name: mainBlock ? attrOf(mainBlock, 'data-pb-name') || kindName(t, kindOf(mainBlock)) : '' }), date: w.day, time: w.time })
@@ -440,7 +440,7 @@ function ReminderCard() {
     return (
       <div className="pb-pbody">
         <div className="note i" role="note">
-          <UiIcon name="info" size={16} color="#1D4ED8" />
+          <UiIcon name="info" size={16} color="var(--info-strong)" />
           <div className="flex min-w-0 flex-col gap-2">
             <span>{t(m.remExisting, { name: r.automation.name, status: r.automation.status })}</span>
             <Link to="/w/$workspace/automations/$automationId" params={{ workspace: b.slug, automationId: r.automation.id }} className="btn sm self-start">
@@ -476,7 +476,7 @@ function ReminderCard() {
   return (
     <div className="pb-pbody">
       <div className="note i" role="note">
-        <UiIcon name="info" size={16} color="#1D4ED8" />
+        <UiIcon name="info" size={16} color="var(--info-strong)" />
         <div>
           <b>{t(m.remTitle)}</b>
           <br />
@@ -591,7 +591,7 @@ function FormPanel({ c }: { c: Component }) {
         ) : null}
         {f && f.status !== 'live' ? (
           <div className="note b" role="note">
-            <UiIcon name="alert" size={16} color="#B91C1C" />
+            <UiIcon name="alert" size={16} color="var(--bad-strong)" />
             <div className="flex min-w-0 flex-col gap-2">
               <span>{t(m.formPausedNote, { name: f.name })}</span>
               {canResume && b.canEdit ? (
@@ -700,7 +700,7 @@ function StorePanel() {
   return (
     <div className="pb-pbody">
       <div className="note n" role="note">
-        <UiIcon name="info" size={16} color="#4B5563" />
+        <UiIcon name="info" size={16} color="var(--ink-2)" />
         <div className="flex min-w-0 flex-col gap-2">
           <span>{t(m.storeNote)}</span>
           <Link to="/w/$workspace/settings/integrations" params={{ workspace: b.slug }} className="btn sm self-start">

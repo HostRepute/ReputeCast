@@ -64,7 +64,7 @@ export function DeliverabilityPage() {
           <span className="vh" role="status">
             {t(m.loadingStatus)}
           </span>
-          <div className="flex items-center gap-3 rounded-[10px] border border-line bg-white px-4 py-3">
+          <div className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-4 py-3">
             <Skeleton w={16} h={16} r={999} />
             <Skeleton w={260} h={14} />
             <Skeleton w={200} h={12} />
@@ -223,7 +223,7 @@ function Progress({ o }: { o: Overview }) {
   const r = o.checks.running!
   const names = r.assets.length ? r.assets : o.assets.map((a) => a.asset)
   return (
-    <div className="flex items-center gap-3 rounded-[10px] border border-line bg-white px-4 py-3 max-md:flex-wrap" role="status" aria-live="polite">
+    <div className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-4 py-3 max-md:flex-wrap" role="status" aria-live="polite">
       <span className="spin" aria-hidden="true" />
       <span className="font-semibold">{t(m.checking, { assets: andList(names) })}</span>
       <span className="k">{t(m.checkingProgress, { answered: count(r.answered), total: count(r.total), eta: eta(r, now.getTime()) })}</span>
@@ -331,8 +331,8 @@ function ConnectInvite({ canConnect }: { canConnect: boolean }) {
     <section className="card flex flex-wrap items-center gap-5 border-accent-line bg-accent-tint px-5.5 py-5" aria-labelledby="h-invite">
       <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
         <rect width="44" height="44" rx="11" fill="var(--accent)" />
-        <path d="M22 9 33 13.5v8c0 6-4.6 10.6-11 13-6.4-2.4-11-7-11-13v-8z" fill="none" stroke="var(--surface)" strokeWidth="2" strokeLinejoin="round" />
-        <path d="m16.5 22 3.6 3.6 7.4-7.6" fill="none" stroke="var(--surface)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M22 9 33 13.5v8c0 6-4.6 10.6-11 13-6.4-2.4-11-7-11-13v-8z" fill="none" stroke="var(--on-strong)" strokeWidth="2" strokeLinejoin="round" />
+        <path d="m16.5 22 3.6 3.6 7.4-7.6" fill="none" stroke="var(--on-strong)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div className="flex flex-[1_1_360px] flex-col gap-1">
         <h2 className="m-0 text-[16px] font-bold" id="h-invite">

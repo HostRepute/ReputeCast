@@ -820,7 +820,7 @@ function PostHead({ post, title, excerpt, cover, alt, phone }: { post: Post; tit
   // A tag that only repeats the paid label is left to the label, as on the site.
   const tags = post.tags.filter((x) => !(post.visibility === 'paid' && x.name.trim().toLowerCase() === paid.trim().toLowerCase()))
   return (
-    <div className={`pc-posthead${phone ? ' phone' : ''}`} aria-label={t(mc.postHead)} role="group">
+    <div className={`pc-posthead keep-light${phone ? ' phone' : ''}`} aria-label={t(mc.postHead)} role="group">
       {tags.length || post.visibility === 'paid' ? (
         <div className="tags">
           {tags.map((x) => (

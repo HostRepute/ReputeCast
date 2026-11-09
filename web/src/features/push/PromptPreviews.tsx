@@ -44,7 +44,7 @@ export function SiteFrame({
   const desktop = device === 'desktop'
   const url = `${look.host}${path}`
   return (
-    <div className={desktop ? 'pp-site' : `pp-site ${device}`}>
+    <div className={desktop ? 'pp-site keep-light' : `pp-site keep-light ${device}`}>
       <div className="pp-chrome">
         {desktop ? (
           <span className="dots" aria-hidden="true">
@@ -247,7 +247,7 @@ export function BrowserPrompts({ look, stats }: { look: SiteLook; stats: { grant
             <b>{t(m.chrome)}</b>
             <span className="k">{t(m.chromeSub)}</span>
           </figcaption>
-          <div className="px-pvstage">
+          <div className="px-pvstage keep-light">
             <div className="pp-bp">
               <div className="flex items-center justify-between">
                 <b>{t(m.chromeWants, { host: look.host })}</b>
@@ -276,7 +276,7 @@ export function BrowserPrompts({ look, stats }: { look: SiteLook; stats: { grant
             <b>{t(m.safariMac)}</b>
             <span className="k">{t(m.safariSub)}</span>
           </figcaption>
-          <div className="px-pvstage">
+          <div className="px-pvstage keep-light">
             <div className="pp-bp safari">
               <Mark look={look} size={40} radius={9} font={17} />
               <b className="text-[13.5px]">{t(m.safariWants, { host: look.host })}</b>

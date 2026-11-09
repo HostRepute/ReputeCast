@@ -77,14 +77,14 @@
   padding: 0 8px 0 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
   font-size: 12px;
 }
 .bk .dsw i {
   width: 20px;
   height: 20px;
   border-radius: 5px;
-  box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.12);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
   display: block;
 }
 .bk .lgrid {
@@ -131,7 +131,7 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.12);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
   display: block;
 }
 .bk .cname {
@@ -174,7 +174,7 @@
   height: 36px;
   padding: 0 14px;
   border: 0;
-  background: #ffffff;
+  background: var(--surface);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -185,8 +185,8 @@
   border-left: 1px solid var(--line);
 }
 .bk .segm button[aria-pressed='true'] {
-  background: #0b1220;
-  color: #ffffff;
+  background: var(--inverse);
+  color: var(--on-strong);
 }
 .bk .segm button:focus-visible {
   outline: 2px solid var(--accent);

@@ -670,7 +670,7 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
               <button
                 key={t.key}
                 type="button"
-                className="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left hover:bg-ground"
+                className="flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left hover:bg-hover"
                 style={{ border: 0, background: 'none', font: 'inherit', cursor: 'pointer' }}
                 onClick={() => {
                   restoreRange()
@@ -848,7 +848,7 @@ export function CanvasArea({
             <div ref={setContainer} role="region" aria-label={t(mc.canvasRegion, { device: c.device })} />
             {ed ? null : (
               // ComposerStates: "Compiling Weekly Digest #142 from MJML · Version 15 · 212 lines".
-              <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }} aria-busy="true" role="status">
+              <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgb(var(--shadow-rgb) / .12)' }} aria-busy="true" role="status">
                 <span className="spin" style={{ width: 24, height: 24 }} aria-hidden="true" />
                 <div className="flex flex-col">
                   <span className="font-semibold">{c.name ? t(mc.compilingName, { name: c.name }) : t(mc.compilingCampaign)}</span>

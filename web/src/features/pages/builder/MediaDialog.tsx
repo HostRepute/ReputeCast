@@ -94,7 +94,7 @@ export function MediaDialog({ open, onClose, pick }: { open: boolean; onClose: (
                 onClick={() => choose(asset.url)}
                 aria-label={t(m.useImage, { name: asset.fileName })}
               >
-                <span className="overflow-hidden rounded-md border border-line" style={{ height: 90, background: 'repeating-conic-gradient(var(--ground) 0 25%, #fff 0 50%) 0 0/12px 12px', display: 'block' }}>
+                <span className="overflow-hidden rounded-md border border-line" style={{ height: 90, background: 'repeating-conic-gradient(var(--ground) 0 25%, var(--surface) 0 50%) 0 0/12px 12px', display: 'block' }}>
                   <img src={asset.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" />
                 </span>
                 <span className="truncate text-[12px] font-semibold">{asset.fileName}</span>

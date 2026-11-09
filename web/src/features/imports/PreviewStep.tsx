@@ -88,11 +88,11 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
     }
   }
   const tiles: [string, number, string, string?][] = [
-    [t(m.tileWillImport), p.willImport, checked?.willImport ?? t(m.tileWillImportNote), '#86EFAC'],
+    [t(m.tileWillImport), p.willImport, checked?.willImport ?? t(m.tileWillImportNote), 'var(--ok-line-strong)'],
     [t(m.tileMergedExisting), p.merged, t(m.tileMergedNote)],
-    [t(m.tileSuppressed), p.suppressed, t(m.tileSuppressedNote), '#FCA5A5'],
+    [t(m.tileSuppressed), p.suppressed, t(m.tileSuppressedNote), 'var(--bad-line)'],
     [t(m.tileInvalid), p.invalid, checked?.invalid ?? t(m.tileInvalidNote)],
-    [t(m.tileRisky), p.risky, checked?.risky ?? t(m.tileRiskyNote), '#FCD34D'],
+    [t(m.tileRisky), p.risky, checked?.risky ?? t(m.tileRiskyNote), 'var(--warn-line-strong)'],
   ]
   if (p.notImported > 0) tiles.push([t(m.tileNotImported), p.notImported, t(m.tileNotImportedNote)])
   return (

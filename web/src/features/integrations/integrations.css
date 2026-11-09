@@ -38,7 +38,7 @@
     font-size: 11px;
     font-weight: 600;
     border: 1px solid var(--line);
-    background: #f9fafb;
+    background: var(--ground-3);
     color: var(--ink-nav);
     white-space: nowrap;
   }
@@ -51,7 +51,7 @@
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: #f3f4f6;
+    background: var(--ground);
     border: 1px solid var(--line);
     display: inline-flex;
     align-items: center;
@@ -206,7 +206,7 @@
     padding: 0 11px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font: inherit;
     font-size: 12.5px;
     font-weight: 600;
@@ -215,12 +215,12 @@
     white-space: nowrap;
   }
   .ih-chip:hover {
-    background: #f3f4f6;
+    background: var(--hover);
   }
   .ih-chip[aria-pressed='true'] {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .ih-search {
     display: flex;
@@ -230,7 +230,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     box-sizing: border-box;
     width: 300px;
     max-width: 100%;
@@ -260,9 +260,9 @@
     border-radius: 10px;
     font-size: 13.5px;
     line-height: 1.45;
-    border: 1px solid #fcd34d;
-    background: #fffbeb;
-    color: #78350f;
+    border: 1px solid var(--warn-line-strong);
+    background: var(--warn-tint);
+    color: var(--warn-ink);
     flex-wrap: wrap;
   }
   .ih-banner .ih-bi {
@@ -283,10 +283,10 @@
   .ih-banner.b {
     border-color: var(--bad-line);
     background: var(--bad-tint);
-    color: #7f1d1d;
+    color: var(--bad-ink);
   }
   .ih-banner .btn {
-    background: #fff;
+    background: var(--surface);
   }
 
   /* "Managed by n8n": the badge on Keys & MCP and Webhooks rows. */
@@ -313,7 +313,7 @@
     width: 16px;
     height: 16px;
     border-radius: 5px;
-    background: #fff;
+    background: var(--surface);
     border: 1px solid var(--line-strong);
     display: inline-flex;
     align-items: center;
@@ -389,7 +389,7 @@
     font-weight: 500;
   }
   .ih-prow.lk {
-    background: #f9fafb;
+    background: var(--ground-3);
     margin: 0 -12px;
     padding: 9px 12px;
     border-radius: 8px;
@@ -438,7 +438,7 @@
     padding: 12px 14px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #f9fafb;
+    background: var(--ground-3);
   }
 
   /* The public URL check and the connect steps. */
@@ -662,7 +662,7 @@
     background: var(--accent-tint);
   }
   .tbl tr.ih-xp td {
-    background: #fbfbfc;
+    background: var(--side);
   }
   .ih-explain {
     display: flex;
@@ -671,7 +671,7 @@
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
     white-space: normal;
   }
   .ih-explain .ih-ind {
@@ -689,7 +689,7 @@
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--dark-line);
-    background: var(--ink);
+    background: var(--code-bg);
     min-width: 0;
   }
   .ih-cbh {
@@ -698,9 +698,9 @@
     gap: 2px;
     padding: 6px 8px;
     border-bottom: 1px solid var(--dark-line);
-    background: #111827;
+    background: var(--dark-surface);
     flex-wrap: wrap;
-    color: var(--line-hover);
+    color: #c9ced6;
     font-size: 12px;
     font-weight: 600;
   }
@@ -713,7 +713,7 @@
     font-family: var(--font-family-mono);
     font-size: 12.5px;
     line-height: 1.6;
-    color: #e5e7eb;
+    color: var(--dark-text);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
@@ -875,14 +875,14 @@
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
     flex-wrap: wrap;
   }
   .ih-preview {
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
-    background: #f3f4f6;
+    background: var(--ground);
   }
 
   /* Responsive: tables become lists below 1100px (calls) or 768px (the rest). */

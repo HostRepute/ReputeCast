@@ -103,7 +103,7 @@ export function OutageAlert({ outage }: { outage: Outage }) {
   return (
     <section role="alert" className="card flex flex-col border-bad-line">
       <div className="flex flex-wrap items-start gap-[18px] rounded-t-[10px] bg-bad-wash px-[22px] py-5">
-        <AlertMark fill="var(--color-bad-soft)" stroke="var(--bad-fg)" />
+        <AlertMark fill="var(--bad-soft)" stroke="var(--bad-fg)" />
         <div className="flex flex-[1_1_320px] flex-col gap-1">
           <span className="text-[20px] font-bold tracking-[-0.01em] text-bad-ink">
             {t(mi.outageTitle, { provider: outage.provider, time: clock(outage.since), since: sinceText(outage.since) })}
@@ -480,7 +480,7 @@ export function SilentAlert({ silent }: { silent: Silent }) {
         </ol>
       </Dialog>
       <div className="flex flex-wrap items-start gap-[18px] rounded-t-[10px] bg-warn-tint px-[22px] py-5">
-        <AlertMark fill="var(--color-warn-line)" stroke="var(--warn-fg)" />
+        <AlertMark fill="var(--warn-line)" stroke="var(--warn-fg)" />
         <div className="flex flex-[1_1_320px] flex-col gap-1">
           <span className="text-[20px] font-bold tracking-[-0.01em] text-warn-ink">
             {hours >= 1 ? t(mi.silentForHours, { provider: silent.short, hours }) : t(mi.silentFor, { provider: silent.short, duration: duration(minutes) })}

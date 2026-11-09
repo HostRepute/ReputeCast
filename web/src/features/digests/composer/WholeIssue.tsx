@@ -75,7 +75,7 @@ export function WholeIssue() {
   return (
     <div className="flex min-h-full flex-wrap items-stretch bg-surface">
       <div className="flex flex-[1_0_auto] justify-center bg-ground-2" style={{ padding: '24px 20px', maxWidth: width * WHOLE_ZOOM + 200 }}>
-        <div className="shrink-0 overflow-hidden bg-surface shadow-[0_1px_3px_rgba(11,18,32,.12)]" style={{ width: width * WHOLE_ZOOM, height: height * WHOLE_ZOOM }}>
+        <div className="keep-light shrink-0 overflow-hidden bg-surface shadow-[0_1px_3px_rgba(11,18,32,.12)]" style={{ width: width * WHOLE_ZOOM, height: height * WHOLE_ZOOM }}>
           {html ? (
             <iframe
               title={t(dc.wholeIssue, { count: r.count })}
@@ -130,9 +130,9 @@ export function WholeIssue() {
                   <div key={s.posts} className="grid items-center gap-2.5 text-[12.5px]" style={{ gridTemplateColumns: '64px minmax(0,1fr) 64px' }}>
                     <span className={s.posts === ch.maxPosts ? 'font-bold' : 'font-medium'}>{t(dc.sizesPosts, { count: s.posts })}</span>
                     <div className="bar" style={{ height: 8 }} role="img" aria-label={kb(s.bytes)}>
-                      <i style={{ width: `${Math.min(100, (s.bytes / biggest) * 100).toFixed(1)}%`, background: big ? '#C2410C' : 'var(--accent)' }} />
+                      <i style={{ width: `${Math.min(100, (s.bytes / biggest) * 100).toFixed(1)}%`, background: big ? 'var(--warn-bar)' : 'var(--accent)' }} />
                     </div>
-                    <span className={cn('num text-right font-semibold', big ? 'text-[#C2410C]' : 'text-ink')}>{kb(s.bytes)}</span>
+                    <span className={cn('num text-right font-semibold', big ? 'text-warn-bar' : 'text-ink')}>{kb(s.bytes)}</span>
                   </div>
                 )
               })}

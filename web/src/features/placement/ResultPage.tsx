@@ -387,7 +387,7 @@ function ProviderCard({ p, live, warn }: { p: ProviderResult; live: boolean; war
   const failed = [a.spf.fail ? 'SPF' : '', a.dkim.fail ? 'DKIM' : '', a.dmarc.fail ? 'DMARC' : ''].filter(Boolean)
   const res = (x: { pass: number; fail: number }) => (x.fail ? 'fail' : x.pass ? 'pass' : undefined)
   return (
-    <section className="card min-w-0" style={{ borderColor: warn ? 'var(--color-warn-line-strong)' : undefined }}>
+    <section className="card min-w-0" style={{ borderColor: warn ? 'var(--warn-line-strong)' : undefined }}>
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-[3px]">
           <h2 className="h2 flex items-center gap-2">
@@ -583,8 +583,8 @@ function GuidanceCard({ g, d }: { g: Guidance; d: TestDetail }) {
       )
   }
   return (
-    <section className="card min-w-0" style={{ borderColor: 'var(--color-warn-line-strong)' }} aria-label={t(m.guidanceLabel)}>
-      <div className="sec" style={{ background: 'var(--color-warn-tint)', borderRadius: '10px 10px 0 0', borderBottomColor: 'var(--color-warn-line)' }}>
+    <section className="card min-w-0" style={{ borderColor: 'var(--warn-line-strong)' }} aria-label={t(m.guidanceLabel)}>
+      <div className="sec" style={{ background: 'var(--warn-tint)', borderRadius: '10px 10px 0 0', borderBottomColor: 'var(--warn-line)' }}>
         <div className="flex min-w-0 flex-nowrap items-start gap-2.5">
           <span className="mt-0.5 inline-flex flex-none">
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="var(--warn-bar)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -598,14 +598,14 @@ function GuidanceCard({ g, d }: { g: Guidance; d: TestDetail }) {
                 ? t(m.guidanceTitleAt, { provider: g.providerName, spam: g.spam, copies: g.copies, places: andList(g.at) })
                 : t(m.guidanceTitle, { provider: g.providerName, spam: g.spam, copies: g.copies })}
             </h2>
-            <span className="k" style={{ color: 'var(--color-warn-ink)' }}>
+            <span className="k" style={{ color: 'var(--warn-ink)' }}>
               {t(m.guidanceRules)}
             </span>
           </div>
         </div>
       </div>
       <div className="pad flex flex-col gap-3.5">
-        <p className="m-0 max-w-[880px] text-[14px] leading-[1.55] text-dark-line">{cause}</p>
+        <p className="m-0 max-w-[880px] text-[14px] leading-[1.55] text-ink">{cause}</p>
         <div className="flex flex-col gap-1">
           <span className="k font-semibold text-ink-nav!">{t(m.lookAt)}</span>
           <div className="pl-chk2">

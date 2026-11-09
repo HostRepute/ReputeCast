@@ -41,7 +41,7 @@ export function HtmlView() {
         </div>
         <div className="card txe-pane">
           <span className="font-semibold">{tx.previewWith ? t(m.htmlRenderedWith, { name: tx.previewWith }) : t(m.htmlRenderedSamples)}</span>
-          <iframe className="txe-frame" title={t(m.htmlRendered)} sandbox="" srcDoc={tx.preview?.html ?? ''} />
+          <iframe className="txe-frame keep-light" title={t(m.htmlRendered)} sandbox="" srcDoc={tx.preview?.html ?? ''} />
         </div>
       </div>
     </section>

@@ -75,7 +75,7 @@ export function PreviewDialog({ page, program, onClose }: { page: PreviewPage; p
       ) : (
         <div className="flex flex-col gap-2">
           {d.url ? <span className="k">{t(m.previewAt, { url: d.url.replace(/^https?:\/\//, '') })}</span> : null}
-          <div className="overflow-hidden rounded-[10px] border border-line">
+          <div className="keep-light overflow-hidden rounded-[10px] border border-line bg-surface">
             <iframe ref={frame} title={t(m.previewFrame, { page: name })} srcDoc={d.html} sandbox="allow-same-origin" className="block w-full border-0" style={{ height }} onLoad={onLoad} />
           </div>
         </div>

@@ -393,7 +393,7 @@ export function BlockPreview({ creative, sponsor, initials, logo, label, waiting
   const t = useT()
   if (waiting) {
     return (
-      <div className="sp-prev">
+      <div className="sp-prev keep-light">
         <div className="sp-block wait">
           <Initials initials={initials} logo={logo} size="xl" />
           <div className="tx">
@@ -406,7 +406,7 @@ export function BlockPreview({ creative, sponsor, initials, logo, label, waiting
   }
   const img = creative.image
   return (
-    <div className="sp-prev">
+    <div className="sp-prev keep-light">
       <div className={`sp-block${img ? ' top' : ''}`}>
         {img ? <img className="img" src={img} alt={sponsor} /> : <Initials initials={initials} logo={creative.logo || logo} size="xl" />}
         <div className="tx">

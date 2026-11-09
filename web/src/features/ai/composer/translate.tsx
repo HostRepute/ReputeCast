@@ -67,7 +67,7 @@ export function TranslateMenuItems({ data, current, close }: { data: Langs; curr
             ca.translate(v.language)
           }}
         >
-          <Sparkle color={blocked ? '#9CA3AF' : 'var(--accent)'} />
+          <Sparkle color={blocked ? 'var(--ink-4)' : 'var(--accent)'} />
           <span className="flex min-w-0 flex-col items-start">
             <span>{t(ms.translateWith, { language: v.name })}</span>
             {blocked ? (
@@ -351,7 +351,7 @@ export function AITranslateView() {
   return (
     <div className="lng-cmp-wrap" id="main">
       <div className="card lng-cmp">
-        <section aria-label={t(ms.translateTitle, { language: name })} className="flex min-w-0 flex-1 flex-col bg-white">
+        <section aria-label={t(ms.translateTitle, { language: name })} className="flex min-w-0 flex-1 flex-col bg-surface">
           <div className="lng-cmp-head">
             <h2 className="m-0 flex flex-wrap items-center gap-2" style={{ fontSize: 16, fontWeight: 700 }}>
               <T msg={ms.compareWith} values={{ source, k: (x) => <span className="k" style={{ fontSize: 13 }}>{x}</span> }} />

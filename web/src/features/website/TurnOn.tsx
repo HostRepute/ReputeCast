@@ -72,7 +72,7 @@ export function LayoutThumbs({ value, onChange, disabled, label }: { value: Layo
     <div className="ws-thumbs" role="radiogroup" aria-label={label}>
       {items.map((it) => (
         <button key={it.v} type="button" role="radio" aria-checked={value === it.v} className="ws-thumb" disabled={disabled} onClick={() => onChange(it.v)}>
-          <span className="tv" aria-hidden="true">
+          <span className="tv keep-light" aria-hidden="true">
             {it.wf}
           </span>
           <span className="lb">

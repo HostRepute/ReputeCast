@@ -14,7 +14,7 @@ export interface SavedCard {
 }
 
 function Card({ tone, badge, title, children, actions }: { tone: 'bad' | 'warn' | 'ok'; badge: string; title: string; children: ReactNode; actions: ReactNode }) {
-  const border = tone === 'bad' ? 'var(--bad-line)' : tone === 'warn' ? '#FCD34D' : '#86EFAC'
+  const border = tone === 'bad' ? 'var(--bad-line)' : tone === 'warn' ? 'var(--warn-line-strong)' : 'var(--ok-line-strong)'
   return (
     <div role={tone === 'ok' ? 'status' : 'alert'} className="card flex flex-col" style={{ padding: '16px 18px', gap: 10, borderColor: border }}>
       <div className="flex items-center gap-2.5 max-md:flex-wrap">

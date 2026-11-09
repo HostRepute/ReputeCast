@@ -176,9 +176,9 @@
     font-variant-numeric: tabular-nums;
   }
   .gf-fchip[aria-pressed='true'] {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .gf-fchip[aria-pressed='true'] b {
     color: var(--line-hover);
@@ -251,7 +251,7 @@
     flex-direction: column;
   }
   .gf-look.gf-look-warn {
-    border-color: #fcd34d;
+    border-color: var(--warn-line-strong);
   }
   .gf-look-h {
     display: flex;

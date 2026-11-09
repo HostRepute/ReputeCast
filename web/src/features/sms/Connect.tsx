@@ -123,7 +123,7 @@ export function SmsCatalogPage() {
               </button>
             )
           })}
-          <div className="card flex min-w-0 flex-col gap-2.5 px-4 py-3.5" style={{ borderStyle: 'dashed', background: 'var(--color-side)' }}>
+          <div className="card flex min-w-0 flex-col gap-2.5 px-4 py-3.5" style={{ borderStyle: 'dashed', background: 'var(--side)' }}>
             <span className="text-[15px] font-bold">{t(m.another)}</span>
             <span className="k text-ink-2">{t(m.anotherText)}</span>
             <ButtonLink size="sm" className="self-start" to="/w/$workspace/providers/adapters" params={{ workspace: slug }}>

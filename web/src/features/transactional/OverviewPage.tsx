@@ -747,7 +747,7 @@ function FailoverCard({ o }: { o: Overview }) {
   const f = o.failover!
   const since = clock(f.since)
   return (
-    <section className="card flex flex-col gap-3" style={{ padding: '16px 18px', borderColor: 'var(--color-info-line)', background: '#F8FBFF' }} role="status">
+    <section className="card flex flex-col gap-3" style={{ padding: '16px 18px', borderColor: 'var(--info-line)', background: 'var(--info-tint)' }} role="status">
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <span className="inline-flex items-center gap-2 font-bold">
           <Icon name="alertCircle" size={16} />
@@ -765,7 +765,7 @@ function FailoverCard({ o }: { o: Overview }) {
         <span className="arw" aria-hidden="true">
           →
         </span>
-        <span className="tx-pill" style={{ borderColor: 'var(--color-ok-line-strong)', background: 'var(--ok-tint)' }}>
+        <span className="tx-pill" style={{ borderColor: 'var(--ok-line-strong)', background: 'var(--ok-tint)' }}>
           <span className="dot" style={{ color: 'var(--ok-bar)' }} />
           {t(mo.failoverTo, { to: f.to.name })}
         </span>

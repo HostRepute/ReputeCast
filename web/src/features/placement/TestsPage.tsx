@@ -288,8 +288,8 @@ function ReadOnlyNote({ helpers }: { helpers: string[] }) {
 function Envelopes() {
   return (
     <svg width="72" height="56" viewBox="0 0 72 56" aria-hidden="true">
-      <rect x="4" y="12" width="30" height="22" rx="3" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
-      <path d="m5 14 14 10 14-10" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
+      <rect x="4" y="12" width="30" height="22" rx="3" fill="none" stroke="var(--muted-line)" strokeWidth="2" />
+      <path d="m5 14 14 10 14-10" fill="none" stroke="var(--muted-line)" strokeWidth="2" />
       <rect x="38" y="22" width="30" height="22" rx="3" fill="none" stroke="var(--accent)" strokeWidth="2" />
       <path d="m39 24 14 10 14-10" fill="none" stroke="var(--accent)" strokeWidth="2" />
     </svg>

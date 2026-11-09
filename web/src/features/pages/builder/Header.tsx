@@ -291,7 +291,7 @@ export function PermissionNote() {
     return (
       <div className="pb-band">
         <div className="note n" role="note">
-          <UiIcon name="info" size={16} color="#4B5563" />
+          <UiIcon name="info" size={16} color="var(--ink-2)" />
           <div className="flex min-w-0 flex-col gap-1">
             <span className="font-bold">{t(m.readOnlyTitle, { name: me, role })}</span>
             <div>
@@ -307,7 +307,7 @@ export function PermissionNote() {
   return (
     <div className="pb-band">
       <div className="note n" role="note">
-        <UiIcon name="info" size={16} color="#4B5563" />
+        <UiIcon name="info" size={16} color="var(--ink-2)" />
         <div className="flex min-w-0 flex-col gap-1">
           <span className="font-bold">{t(m.cantPublishTitle, { name: me })}</span>
           <div>

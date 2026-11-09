@@ -390,7 +390,7 @@ function Paused({ r }: { r: Report }) {
   const p = r.pause!
   const pctText = (v: number) => pct(v)
   return (
-    <section className="card flex min-w-0 flex-col" style={{ borderColor: 'var(--color-warn-line-strong)' }}>
+    <section className="card flex min-w-0 flex-col" style={{ borderColor: 'var(--warn-line-strong)' }}>
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2">{p.kind === 'auto' ? t(m.autoPausedTitle, { metric: p.metric || 'other' }) : p.kind === 'budget' ? t(m.budgetPaused, { held: p.held }) : t(m.pausedBy, { name: p.by ?? '', time: p.at ? clock(p.at) : '' })}</h2>
@@ -746,7 +746,7 @@ function ByCountry({ r }: { r: Report }) {
           <tbody>
             {r.countries.map((c) =>
               c.skipped && !c.sent ? (
-                <tr key={c.country} style={{ background: 'var(--color-warn-tint)' }}>
+                <tr key={c.country} style={{ background: 'var(--warn-tint)' }}>
                   <td className="nw">
                     <CountryName code={c.country} />
                   </td>
@@ -812,7 +812,7 @@ function ByCountry({ r }: { r: Report }) {
       </div>
       <div className="sms-only-phone">
         {r.countries.map((c) => (
-          <div key={c.country} className="flex flex-col gap-1 border-t border-line-2 px-4 py-3" style={c.skipped && !c.sent ? { background: 'var(--color-warn-tint)' } : undefined}>
+          <div key={c.country} className="flex flex-col gap-1 border-t border-line-2 px-4 py-3" style={c.skipped && !c.sent ? { background: 'var(--warn-tint)' } : undefined}>
             <span className="flex items-center justify-between gap-2">
               <CountryName code={c.country} />
               {c.skipped && !c.sent ? <Badge tone="warn">{t(m.skipped, { count: count(c.skipped) })}</Badge> : <span className="n">{money(c.cost)}</span>}

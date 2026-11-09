@@ -73,9 +73,9 @@
     font-variant-numeric: tabular-nums;
   }
   .sp-fchip[aria-selected='true'] {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .sp-fchip[aria-selected='true'] b {
     color: var(--line-hover);
@@ -251,7 +251,7 @@
     cursor: pointer;
   }
   .sp-lst:hover {
-    background: var(--ground-3);
+    background: var(--hover-soft);
   }
   .sp-lst-top {
     display: flex;

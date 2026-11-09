@@ -258,7 +258,7 @@ export function RejectionExplain({ it, actions }: { it: Pick<LogItem, 'rejection
   if (!why) return null
   const { title, detail } = why
   return (
-    <div className="flex flex-wrap items-start gap-3.5 rounded-lg border border-line bg-white px-3.5 py-3">
+    <div className="flex flex-wrap items-start gap-3.5 rounded-lg border border-line bg-surface px-3.5 py-3">
       <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-1">
         <span className="font-semibold">{title}</span>
         <span className="k" style={{ color: 'var(--ink-nav)' }}>

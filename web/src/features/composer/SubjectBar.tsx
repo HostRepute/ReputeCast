@@ -82,7 +82,7 @@ export function SubjectBar() {
               readOnly={!c.canEdit}
               maxLength={998}
               aria-invalid={(spam && editingA) || undefined}
-              style={spam && editingA ? { borderColor: '#F59E0B', background: 'var(--color-warn-tint)' } : digest ? { fontSize: 12 } : undefined}
+              style={spam && editingA ? { borderColor: '#F59E0B', background: 'var(--warn-tint)' } : digest ? { fontSize: 12 } : undefined}
             />
             {digest ? null : <IdeasButton />}
           </span>
@@ -141,13 +141,13 @@ export function SubjectBar() {
               : t(mh.inboxPreviewOn, { mobile: mobile ? 'yes' : 'no' })}
         </span>
         {empty ? (
-          <div className="gmail empty" aria-labelledby="inbox-label">
+          <div className="gmail empty keep-light" aria-labelledby="inbox-label">
             <span className="gf">{sender}</span>
             <span className="gs">{t(m.inboxEmpty)}</span>
             <span className="gt">{time}</span>
           </div>
         ) : mobile ? (
-          <div className="gmail phone" aria-labelledby="inbox-label">
+          <div className="gmail phone keep-light" aria-labelledby="inbox-label">
             <span className="gf">{sender}</span>
             <span className="gt">{time}</span>
             <span className="gs">
@@ -156,7 +156,7 @@ export function SubjectBar() {
             </span>
           </div>
         ) : (
-          <div className="gmail" aria-labelledby="inbox-label">
+          <div className="gmail keep-light" aria-labelledby="inbox-label">
             <span className="gf">{sender}</span>
             <span className="gs">
               <b>{shown.subject}</b>

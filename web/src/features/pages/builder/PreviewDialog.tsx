@@ -52,7 +52,7 @@ export function PreviewFrame({ html, width, title }: { html: string; width: numb
   const scale = Math.min(1, avail / width)
   return (
     <div ref={setHost} className="pb-prevhost">
-      <div className="pb-prevbox" style={{ width: Math.floor(width * scale), height: Math.ceil(height * scale) }}>
+      <div className="pb-prevbox keep-light" style={{ width: Math.floor(width * scale), height: Math.ceil(height * scale) }}>
         <iframe
           ref={ref}
           title={title}

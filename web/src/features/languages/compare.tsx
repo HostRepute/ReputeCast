@@ -231,7 +231,7 @@ export function CompareView({
   return (
     <div className="lng-cmp-wrap" id="main">
       <div className="card lng-cmp">
-        <section aria-label={t(mz.compareTitle, { source }).replace(/<\/?span>/g, '') + ' ' + name} className="flex min-w-0 flex-1 flex-col bg-white">
+        <section aria-label={t(mz.compareTitle, { source }).replace(/<\/?span>/g, '') + ' ' + name} className="flex min-w-0 flex-1 flex-col bg-surface">
           <div className="lng-cmp-head">
             <h2 className="m-0 flex flex-wrap items-center gap-2" style={{ fontSize: 16, fontWeight: 700 }}>
               <T msg={mz.compareTitle} values={{ source, span: (s) => <span className="k" style={{ fontSize: 13 }}>{s}</span> }} />

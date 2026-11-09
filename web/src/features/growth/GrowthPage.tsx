@@ -746,7 +746,7 @@ function UtmCard({ d }: { d: Data }) {
           {since && tab === 'utm' ? (
             <div className="pad pb-0">
               <div className="note i" role="note">
-                <span className="sc-note-ic" style={{ color: 'var(--color-info-strong)' }}>
+                <span className="sc-note-ic" style={{ color: 'var(--info-strong)' }}>
                   <Icon name="info" size={16} strokeWidth={1.8} />
                 </span>
                 <div className="min-w-0 flex-[1_1_320px]">{t(m.utmCaptureNote, { when, day: dayMonthDate(since) })}</div>

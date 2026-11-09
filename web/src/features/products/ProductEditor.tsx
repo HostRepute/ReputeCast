@@ -756,7 +756,7 @@ function MailPreview({ detail, form, template }: { detail: ProductDetail; form: 
   const product = form.name.trim() || detail.draft.name
   return (
     <div
-      className="pr-mail"
+      className="pr-mail keep-light"
       role="img"
       aria-label={template && template.version > 0 ? t(pe.mailLabel, { template: template.key, version: template.version }) : t(pe.mailLabelNoVersion)}
     >

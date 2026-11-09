@@ -172,7 +172,7 @@ export function AgencySearchBox({ initial = '', width = 260 }: { initial?: strin
   return (
     <form role="search" onSubmit={submit} className="max-md:w-full">
       <label
-        className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5 max-md:w-full!"
+        className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-field px-2.5 max-md:w-full!"
         style={{ width, maxWidth: '100%', boxSizing: 'border-box' }}
       >
         <Icon name="search" size={15} className="text-ink-3" />

@@ -74,14 +74,14 @@
     color: var(--ink);
   }
   .er-tipbox {
-    background: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    color: var(--on-strong);
     font-size: 12px;
     line-height: 1.45;
     padding: 8px 11px;
     border-radius: 7px;
     max-width: 340px;
-    box-shadow: 0 12px 30px rgba(11, 18, 32, 0.25);
+    box-shadow: 0 12px 30px rgb(var(--shadow-rgb) / 0.25);
     z-index: 80;
   }
 
@@ -168,8 +168,8 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    color: var(--on-strong);
     font-size: 11px;
     font-weight: 700;
     flex: none;
@@ -266,7 +266,7 @@
     font-weight: 600;
   }
   .er-tbl tr.total td {
-    background: #fbfbfc;
+    background: var(--side);
   }
 
   /* Recent activity. */
@@ -314,7 +314,7 @@
     align-items: center;
     text-align: center;
     gap: 8px;
-    background: #fbfbfc;
+    background: var(--side);
   }
 
   /* A card that failed. */
@@ -350,7 +350,7 @@
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: #fff;
+    background: var(--surface);
     border: 1px solid var(--accent-line);
     color: var(--accent);
     display: inline-flex;

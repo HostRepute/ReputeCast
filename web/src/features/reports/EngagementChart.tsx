@@ -29,7 +29,7 @@ export function seriesPath(points: Point[], key: Series, delivered: number, yMax
 const SERIES: { key: Series; color: string; dash?: string }[] = [
   { key: 'privacyOpens', color: 'var(--chart-machine)', dash: '6 4' },
   { key: 'clicks', color: 'var(--accent)' },
-  { key: 'humanOpens', color: 'var(--ink)' },
+  { key: 'humanOpens', color: 'var(--chart-human)' },
 ]
 
 /** The hours the table shows: when the winner went out, then 6, 24, 48 and 72 hours. */
@@ -65,7 +65,7 @@ export function EngagementChart({ e, startedAt, final, remaining }: { e: Schemas
     <div className="rep-leg">
       <span>
         <svg width="16" height="4" aria-hidden="true">
-          <line x1="0" y1="2" x2="16" y2="2" stroke="var(--ink)" strokeWidth="2.5" />
+          <line x1="0" y1="2" x2="16" y2="2" stroke="var(--chart-human)" strokeWidth="2.5" />
         </svg>
         {t(m.seriesHuman)}
       </span>

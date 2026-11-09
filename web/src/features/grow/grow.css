@@ -13,7 +13,7 @@
     padding: 0 11px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font: inherit;
     font-size: 12.5px;
     font-weight: 600;
@@ -27,9 +27,9 @@
     font-variant-numeric: tabular-nums;
   }
   .rr-fchip.on {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .rr-fchip.on b {
     color: var(--line-hover);
@@ -203,9 +203,9 @@
     display: block;
   }
   .gw-mtile.me {
-    background: var(--ink);
-    color: #fff;
-    border-color: var(--ink);
+    background: var(--inverse);
+    color: var(--on-strong);
+    border-color: var(--inverse);
   }
 
   /* The program's sub-sections. */
@@ -224,14 +224,14 @@
     padding: 0 12px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font-size: 12.5px;
     font-weight: 500;
     color: var(--ink-nav);
     white-space: nowrap;
   }
   .gw-subnav a:hover {
-    background: var(--ground);
+    background: var(--hover);
     color: var(--ink);
   }
   .gw-subnav a.on {
@@ -317,14 +317,14 @@
     height: 16px;
     margin: -8px 0 0 -8px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--surface);
     border: 2px solid var(--line-hover);
     box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 0 2px #fff;
-    color: #fff;
+    box-shadow: 0 0 0 2px var(--surface);
+    color: var(--on-strong);
   }
   .gw-mt-rail .d.done,
   .gw-mt-rail .d.agg {
@@ -343,8 +343,8 @@
     height: 22px;
     padding: 0 8px;
     border-radius: 6px;
-    background: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    color: var(--on-strong);
     font-size: 11.5px;
     font-weight: 600;
     white-space: nowrap;
@@ -356,7 +356,7 @@
     top: 100%;
     margin-left: -5px;
     border: 5px solid transparent;
-    border-top-color: var(--ink);
+    border-top-color: var(--inverse);
   }
   .gw-mt-here.r {
     transform: translateX(-100%);
@@ -433,7 +433,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--surface);
     border: 1px solid var(--line);
     display: inline-flex;
     align-items: center;
@@ -488,7 +488,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: #fff;
+    background: var(--surface);
     min-width: 0;
   }
   .gw-chk {
@@ -519,7 +519,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     cursor: pointer;
-    background: #fff;
+    background: var(--field);
   }
   .gw-radio:has(input:checked),
   .gw-radio.on {
@@ -625,10 +625,10 @@
     flex-direction: column;
     gap: 10px;
     padding: 14px 18px;
-    background: #fff;
+    background: var(--raised);
     border: 1px solid var(--accent);
     border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+    box-shadow: 0 12px 32px rgb(var(--shadow-rgb) / 0.16);
   }
 
   /* Tables. */
@@ -682,7 +682,7 @@
   .gw-sheet-ovl {
     position: fixed;
     inset: 0;
-    background: rgba(11, 18, 32, 0.32);
+    background: rgb(var(--shadow-rgb) / 0.32);
     z-index: 60;
   }
   .gw-sheet {
@@ -691,9 +691,9 @@
     right: 0;
     bottom: 0;
     width: min(600px, 100vw);
-    background: #fff;
+    background: var(--raised);
     border-left: 1px solid var(--line);
-    box-shadow: -18px 0 40px rgba(11, 18, 32, 0.18);
+    box-shadow: -18px 0 40px rgb(var(--shadow-rgb) / 0.18);
     z-index: 61;
     display: flex;
     flex-direction: column;
@@ -776,8 +776,8 @@
     gap: 8px;
     padding: 12px;
     color: var(--ink);
-    background: var(--publisher-ground);
-    border-color: #ddd6fe;
+    background: var(--purple-tint);
+    border-color: var(--purple-line);
   }
   .gw-pv > .mock {
     display: flex;
@@ -821,7 +821,7 @@
     padding: 0;
   }
   .gw-handle:hover {
-    background: var(--ground);
+    background: var(--hover);
     color: var(--ink-2);
   }
   .gw-handle:disabled {

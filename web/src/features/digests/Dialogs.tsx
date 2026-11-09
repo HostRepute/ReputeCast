@@ -234,7 +234,7 @@ export function PreviewDialog({ digest, onOpenChange }: { digest: Digest; onOpen
       ) : !q.data ? (
         <Skeleton w="100%" h={420} />
       ) : (
-        <iframe title={q.data.subject} srcDoc={q.data.html} sandbox="" className="h-[70vh] w-full rounded-md border border-line bg-white" />
+        <iframe title={q.data.subject} srcDoc={q.data.html} sandbox="" className="keep-light h-[70vh] w-full rounded-md border border-line bg-white" />
       )}
     </Dialog>
   )

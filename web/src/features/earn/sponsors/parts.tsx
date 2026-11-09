@@ -153,7 +153,7 @@ export function price(b: BookingBrief | undefined, currency: string): string {
 
 /** The note icon of the boards: an alert for warnings, an i otherwise. */
 export function NoteIcon({ tone }: { tone: 'warn' | 'info' | 'neutral' }) {
-  const color = tone === 'warn' ? 'var(--warn-bar)' : tone === 'info' ? 'var(--color-info-strong)' : 'var(--ink-2)'
+  const color = tone === 'warn' ? 'var(--warn-bar)' : tone === 'info' ? 'var(--info-strong)' : 'var(--ink-2)'
   return (
     <span style={{ color, display: 'inline-flex', flex: 'none', marginTop: 1 }}>
       <Icon name={tone === 'warn' ? 'alertCircle' : 'info'} size={16} />

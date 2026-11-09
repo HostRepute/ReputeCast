@@ -747,7 +747,7 @@ function Preview({ view, cfg, look, path, data }: { view: View; cfg: PushPromptC
         </figure>
         <div className="flex min-w-0 max-w-[560px] flex-[1_1_320px] flex-col gap-3.5">
           <div className="note i" role="note">
-            <InfoIcon color="#1E40AF" />
+            <InfoIcon color="var(--info-fg)" />
             <div className="px-note-body">
               <b>{t(m.iosNoteTitle)}</b>
               <div>{t(cfg.ios === 'steps' ? m.iosNoteSteps : m.iosNoteHidden)}</div>
@@ -786,7 +786,7 @@ function Preview({ view, cfg, look, path, data }: { view: View; cfg: PushPromptC
         </div>
         <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-2">
           <span className="k font-semibold text-ink-nav">{t(m.accountExplains)}</span>
-          <div className="pp-account">
+          <div className="pp-account keep-light">
             <div>
               <span className="text-[15px] font-bold">{t(m.accountTitle)}</span>
               <div className="flex items-center justify-between gap-3">
@@ -838,7 +838,7 @@ function Preview({ view, cfg, look, path, data }: { view: View; cfg: PushPromptC
   )
 }
 
-function InfoIcon({ color = '#4B5563' }: { color?: string }) {
+function InfoIcon({ color = 'var(--ink-2)' }: { color?: string }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="8" cy="8" r="6.2" />

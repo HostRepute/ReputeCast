@@ -8,7 +8,7 @@
   padding: 0 10px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   font: inherit;
   font-size: 13px;
@@ -17,7 +17,7 @@
   white-space: nowrap;
 }
 .chbtn:hover {
-  background: #f3f4f6;
+  background: var(--hover);
 }
 .chbtn .chv {
   color: var(--ink-3);
@@ -83,7 +83,7 @@
   padding: 0 11px;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--surface);
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -92,9 +92,9 @@
   white-space: nowrap;
 }
 .ch-filter button.on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  background: var(--inverse);
+  border-color: var(--inverse);
+  color: var(--on-strong);
 }
 .ch-filter svg {
   flex: none;
@@ -126,7 +126,7 @@
   min-height: 34px !important;
   padding: 0 12px;
   border: 0;
-  background: #fff;
+  background: var(--surface);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -147,8 +147,8 @@
   }
 }
 .ch-seg .on {
-  background: var(--ink);
-  color: #fff;
+  background: var(--inverse);
+  color: var(--on-strong);
 }
 
 /* The channels a flow sends on, beside its name in the automations list. */

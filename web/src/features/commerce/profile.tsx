@@ -58,7 +58,7 @@ function ConsentLine({ s }: { s: Store }) {
   const ok = s.marketing === 'subscribed'
   return (
     <span className="flex items-start gap-1.5 text-[12px] font-medium text-ink-nav">
-      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ok ? 'var(--ok-bar)' : 'var(--color-muted-ink)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 flex-none">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ok ? 'var(--ok-bar)' : 'var(--muted-ink)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 flex-none">
         {ok ? <path d="m3 8 3.5 3.5L13 5" /> : <path d="M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM4.5 11.5l7-7" />}
       </svg>
       <span>{text}</span>
@@ -74,7 +74,7 @@ function OrderRow({ o }: { o: Order }) {
   return (
     <div className="flex items-start gap-2.5">
       <span className="cm-merch" style={{ width: 36, height: 36 }} role="img" aria-label={item || o.name}>
-        <svg width="20" height="14" viewBox="0 0 40 28" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="20" height="14" viewBox="0 0 40 28" fill="none" stroke="var(--muted-line)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M13 4l-8 5 3 5 4-2v14h16V12l4 2 3-5-8-5c-1 2-3 3-7 3s-6-1-7-3z" />
         </svg>
       </span>

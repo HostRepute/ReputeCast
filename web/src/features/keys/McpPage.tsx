@@ -140,7 +140,7 @@ function ConnectCard({ o }: { o: Overview }) {
         <span className="text-[13px] text-ink-2">{t(m.connectBody)}</span>
         <label className="lbl">
           {t(m.endpoint)}
-          <input className="in mono bg-white" value={o.endpoint} readOnly onFocus={(e) => e.currentTarget.select()} />
+          <input className="in mono bg-field" value={o.endpoint} readOnly onFocus={(e) => e.currentTarget.select()} />
         </label>
         {cards ? (
           <div className="lbl">
@@ -365,7 +365,7 @@ function ToolsCard({ o }: { o: Overview }) {
         {limits.map((line) => (
           <li key={line} className="flex items-start gap-2.5">
             {/* Placed like the board's checked checkbox (16px, 3px 3px 3px 4px margins). */}
-            <span className="m-[3px_3px_3px_4px] inline-flex size-4 flex-none items-center justify-center rounded-[3px] bg-accent text-[11px] font-bold text-white" aria-hidden="true">
+            <span className="m-[3px_3px_3px_4px] inline-flex size-4 flex-none items-center justify-center rounded-[3px] bg-accent text-[11px] font-bold text-on-strong" aria-hidden="true">
               ✓
             </span>
             <span>{line}</span>

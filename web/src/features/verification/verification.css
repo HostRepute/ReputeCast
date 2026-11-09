@@ -16,7 +16,7 @@
     padding: 0 10px;
     border-radius: 8px;
     border: 1px solid var(--line);
-    background: #f9fafb;
+    background: var(--ground-3);
     font-size: 12.5px;
     font-weight: 600;
     white-space: nowrap;
@@ -148,7 +148,7 @@
     padding: 12px 14px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fbfbfc;
+    background: var(--side);
   }
   .vf-cost .big {
     font-size: 15px;

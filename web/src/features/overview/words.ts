@@ -14,7 +14,7 @@ export const scoreColors: Record<string, { ring: string; word: string }> = {
   ok: { ring: 'var(--accent)', word: 'var(--ok-fg)' },
   warn: { ring: 'var(--warn-bar)', word: 'var(--warn-fg)' },
   bad: { ring: 'var(--bad-bar)', word: 'var(--bad-fg)' },
-  neutral: { ring: 'var(--color-muted-line)', word: 'var(--ink-3)' },
+  neutral: { ring: 'var(--muted-line)', word: 'var(--ink-3)' },
 }
 
 /** Dot colours of the reasons under the score. */

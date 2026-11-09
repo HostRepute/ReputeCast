@@ -34,7 +34,7 @@ export function AgencySwitcherMenu({ agency, current }: { agency: AgencyMe; curr
     <>
       {searching ? (
         <div className="px-1.5 pt-1 pb-1.5">
-          <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5">
+          <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-field px-2.5">
             <Icon name="search" size={15} className="text-ink-3" />
             <input
               value={q}
@@ -50,7 +50,7 @@ export function AgencySwitcherMenu({ agency, current }: { agency: AgencyMe; curr
       {home && !q.trim() ? (
         <DropdownMenu.Item asChild onSelect={() => navigate({ to: '/w/$workspace/agency', params: { workspace: home } })}>
           <Link to="/w/$workspace/agency" params={{ workspace: home }} className="h-auto! py-2!" style={{ background: 'var(--accent-tint)' }}>
-            <ClientTile ws={{ initials: agency.initials, color: 'var(--ink)' }} size={28} />
+            <ClientTile ws={{ initials: agency.initials, color: 'var(--inverse)' }} size={28} style={{ color: 'var(--on-strong)' }} />
             <span className="col min-w-0 flex-1" style={{ gap: 0 }}>
               <b className="text-[13px]">{t(m.agencyEntry, { agency: agency.name })}</b>
               <span className="k">{t(m.agencyEntryLine)}</span>

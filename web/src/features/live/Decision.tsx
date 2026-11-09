@@ -417,7 +417,7 @@ function MoveEstimate({ incident }: { incident: Incident }) {
 function PauseIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill="var(--color-bad-soft)" />
+      <circle cx="20" cy="20" r="19" fill="var(--bad-soft)" />
       <path d="M15 13v14M25 13v14" stroke="var(--bad-fg)" strokeWidth="3.5" strokeLinecap="round" />
     </svg>
   )
@@ -427,7 +427,7 @@ function PauseIcon() {
 function InDoubtIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill="var(--color-warn-line)" />
+      <circle cx="20" cy="20" r="19" fill="var(--warn-line)" />
       <path d="M15.5 15.5a4.5 4.5 0 1 1 6.2 4.2c-1.1.5-1.7 1.4-1.7 2.6v.7M20 27.5v.5" stroke="var(--warn-fg)" strokeWidth="3" strokeLinecap="round" fill="none" />
     </svg>
   )
@@ -436,7 +436,7 @@ function InDoubtIcon() {
 function OutageIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill="var(--color-warn-line)" />
+      <circle cx="20" cy="20" r="19" fill="var(--warn-line)" />
       <path d="M20 11v11M20 27v1" stroke="var(--warn-fg)" strokeWidth="3" strokeLinecap="round" />
     </svg>
   )

@@ -14,19 +14,19 @@
     border: 1px solid;
   }
   .ap-mini.m-warn {
-    background: #fffbeb;
-    border-color: #fcd34d;
-    color: #78350f;
+    background: var(--warn-tint);
+    border-color: var(--warn-line-strong);
+    color: var(--warn-ink);
   }
   .ap-mini.m-ok {
     background: var(--ok-tint);
     border-color: var(--ok-line);
-    color: #14532d;
+    color: var(--ok-ink);
   }
   .ap-mini.m-bad {
     background: var(--bad-tint);
     border-color: var(--bad-line);
-    color: #7f1d1d;
+    color: var(--bad-ink);
   }
   .ap-mini-t {
     font-size: 17px;
@@ -43,7 +43,7 @@
     gap: 10px;
   }
   .ap-inner.i-warn {
-    border-color: #fcd34d;
+    border-color: var(--warn-line-strong);
   }
   .ap-foot {
     justify-content: flex-end;

@@ -39,7 +39,7 @@ export function LibraryPage() {
       title={t(m.navLibrary)}
       subtitle={lib.data && templates.data ? t(lm.subtitle, { items: total, templates: templates.data.length }) : undefined}
       actions={
-        <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5 max-md:w-full" style={{ width: 260, maxWidth: '100%' }}>
+        <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-field px-2.5 max-md:w-full" style={{ width: 260, maxWidth: '100%' }}>
           <Icon name="search" size={15} className="text-ink-3" />
           <input
             type="search"
@@ -490,7 +490,7 @@ function SharedLibrary({ filter, setFilter }: { filter: string; setFilter: (v: s
               <span className="k">{t(lm.libraryCaption, { agency: agency?.name ?? '' })}</span>
             </div>
             <div>
-              <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-white px-2.5" style={{ width: 220, maxWidth: '100%' }}>
+              <label className="flex h-9 items-center gap-2 rounded-lg border border-line-input bg-field px-2.5" style={{ width: 220, maxWidth: '100%' }}>
                 <Icon name="search" size={15} className="text-ink-3" />
                 <input
                   value={filter}

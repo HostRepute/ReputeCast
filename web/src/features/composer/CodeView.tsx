@@ -40,6 +40,8 @@ const mjmlColors = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 )
 
+// The MJML pane is dark in both themes and keeps the board's light-theme colours
+// (its root has .keep-light, so these tokens read their light values on it).
 const darkTheme = EditorView.theme(
   {
     '&': { color: '#D1D5DB', backgroundColor: 'transparent', height: '100%' },
@@ -50,9 +52,9 @@ const darkTheme = EditorView.theme(
     '.cm-activeLine': { backgroundColor: 'rgba(255,255,255,.04)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'rgba(147,197,253,.28) !important' },
     '.cm-cursor': { borderLeftColor: 'var(--ground-3)' },
-    '.mj-tg': { color: 'var(--color-info-soft)' },
-    '.mj-at': { color: 'var(--color-warn-line)' },
-    '.mj-st': { color: 'var(--color-ok-line-strong)' },
+    '.mj-tg': { color: 'var(--info-soft)' },
+    '.mj-at': { color: 'var(--warn-line)' },
+    '.mj-st': { color: 'var(--ok-line-strong)' },
     '.mj-cm': { color: 'var(--ink-4)' },
   },
   { dark: true },
@@ -61,7 +63,7 @@ const darkTheme = EditorView.theme(
 const lightTheme = EditorView.theme({
   '&': { color: 'var(--ink-nav)', backgroundColor: 'transparent', height: '100%' },
   '.cm-content': { padding: 0 },
-  '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--color-muted-ink)', border: 0 },
+  '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--muted-ink)', border: 0 },
   '.cm-lineNumbers .cm-gutterElement': { minWidth: '28px', padding: '0 16px 0 0', textAlign: 'right' },
 })
 
@@ -126,7 +128,7 @@ interface CompileState {
 function Pane({ title, aside, dark, children }: { title: string; aside: string; dark?: boolean; children: ReactNode }) {
   return (
     // Flex bases include the 18 px side padding, as the board's content-box panes: they stack below about 870 px.
-    <div className={dark ? 'cmp-code' : 'cmp-html'} style={{ flex: dark ? '1 1 456px' : '1 1 416px' }}>
+    <div className={dark ? 'cmp-code keep-light' : 'cmp-html'} style={{ flex: dark ? '1 1 456px' : '1 1 416px' }}>
       <div className="flex items-center justify-between gap-3" style={{ marginBottom: 10 }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: dark ? 'var(--ink-4)' : 'var(--ink-3)' }}>{title}</span>
         <span className={dark ? undefined : 'k'} style={dark ? { fontSize: 11, color: 'var(--ink-4)' } : undefined}>

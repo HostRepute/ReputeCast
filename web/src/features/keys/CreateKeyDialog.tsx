@@ -181,7 +181,7 @@ export function CreateKeyDialog({
                   type="button"
                   className="btn sm"
                   aria-pressed={on}
-                  style={on ? { background: 'var(--ink)', color: 'var(--surface)', borderColor: 'var(--ink)' } : undefined}
+                  style={on ? { background: 'var(--inverse)', color: 'var(--on-strong)', borderColor: 'var(--inverse)' } : undefined}
                   onClick={() => {
                     if (p.key === 'send_only') {
                       onSendOnly?.()
@@ -205,12 +205,12 @@ export function CreateKeyDialog({
         </div>
       )}
       {conversionKey ? (
-        <div className="rounded-lg border border-line bg-[#f7f8fa] px-3 py-2.5 text-[13.5px]">
+        <div className="rounded-lg border border-line bg-ground-3 px-3 py-2.5 text-[13.5px]">
           <T
             msg={m.conversionsOnly}
             values={{
               permission: 'conversions:create',
-              mono: (c) => <span className="mono rounded bg-[#eceef2] px-1.5 py-0.5 text-[12.5px]">{c}</span>,
+              mono: (c) => <span className="mono rounded bg-line-2 px-1.5 py-0.5 text-[12.5px]">{c}</span>,
             }}
           />
         </div>

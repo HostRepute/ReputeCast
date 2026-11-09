@@ -80,8 +80,8 @@ export function checkDetail(t: T, c: PageCheck): string | undefined {
 }
 
 function Mark({ status }: { status: PageCheck['status'] }) {
-  if (status === 'pass') return <UiIcon name="check" size={14} color="#15803D" />
-  return <UiIcon name="alert" size={15} color={status === 'block' ? '#B91C1C' : '#B45309'} />
+  if (status === 'pass') return <UiIcon name="check" size={14} color="var(--ok-bar)" />
+  return <UiIcon name="alert" size={15} color={status === 'block' ? 'var(--bad-strong)' : 'var(--warn-bar)'} />
 }
 
 /** Finds the first block of the page that matches. */
@@ -262,7 +262,7 @@ export function ChecksTab() {
       <div className="pb-pbody">
         {stripeMissing ? (
           <div className="note n" role="note">
-            <UiIcon name="info" size={16} color="#4B5563" />
+            <UiIcon name="info" size={16} color="var(--ink-2)" />
             <div>{t(m.checksStripeNote)}</div>
           </div>
         ) : (

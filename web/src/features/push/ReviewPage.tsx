@@ -312,10 +312,10 @@ function Verdict({
     text = t(m.readyText, { n: passed, time: at })
   }
   const colors = {
-    ok: { border: 'var(--ok-line)', bg: 'var(--ok-tint)', ring: 'var(--ok-bg)', fg: 'var(--color-ok-ink)', icon: 'var(--ok-bar)' },
-    warn: { border: 'var(--color-warn-line-strong)', bg: 'var(--color-warn-tint)', ring: 'var(--warn-bg)', fg: 'var(--color-warn-ink)', icon: 'var(--warn-bar)' },
-    bad: { border: 'var(--bad-line)', bg: 'var(--bad-tint)', ring: 'var(--bad-bg)', fg: 'var(--color-bad-ink)', icon: 'var(--bad-strong)' },
-    info: { border: 'var(--color-info-line)', bg: 'var(--color-info-tint)', ring: 'var(--info-bg)', fg: '#1E3A8A', icon: 'var(--info-fg)' },
+    ok: { border: 'var(--ok-line)', bg: 'var(--ok-tint)', ring: 'var(--ok-bg)', fg: 'var(--ok-ink)', icon: 'var(--ok-bar)' },
+    warn: { border: 'var(--warn-line-strong)', bg: 'var(--warn-tint)', ring: 'var(--warn-bg)', fg: 'var(--warn-ink)', icon: 'var(--warn-bar)' },
+    bad: { border: 'var(--bad-line)', bg: 'var(--bad-tint)', ring: 'var(--bad-bg)', fg: 'var(--bad-ink)', icon: 'var(--bad-strong)' },
+    info: { border: 'var(--info-line)', bg: 'var(--info-tint)', ring: 'var(--info-bg)', fg: 'var(--info-ink)', icon: 'var(--info-fg)' },
   }[tone]
   return (
     <section className="card flex flex-wrap items-center gap-3.5 px-5 py-4" style={{ borderColor: colors.border, background: colors.bg }} role={tone === 'bad' ? 'alert' : 'status'}>

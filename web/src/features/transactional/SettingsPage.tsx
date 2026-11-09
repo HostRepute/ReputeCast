@@ -243,7 +243,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
               <span className="k" style={{ color: 'var(--ink-nav)' }}>
                 {t(mg.previewCaption)}
               </span>
-              <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--color-side)' }} aria-hidden="true">
+              <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--side)' }} aria-hidden="true">
                 <span className="font-bold">{t(mg.previewHeading, { product: s.productName })}</span>
                 {optional.length === 0 ? <span className="k">{t(mg.previewNoOptional)}</span> : null}
                 {optional.map((c) => (
@@ -265,7 +265,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
         </div>
       </div>
       {changes.length && !ro ? (
-        <div className="card sticky bottom-3 z-10 flex flex-wrap items-center gap-3" style={{ padding: '12px 18px', boxShadow: '0 8px 24px rgba(11,18,32,.12)' }} role="status">
+        <div className="card sticky bottom-3 z-10 flex flex-wrap items-center gap-3" style={{ padding: '12px 18px', boxShadow: '0 8px 24px rgb(var(--shadow-rgb) / 0.12)' }} role="status">
           <Badge tone="warn" dot>
             {t(mg.unsaved)}
           </Badge>

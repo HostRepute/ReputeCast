@@ -315,7 +315,7 @@ function RouteBar({ data }: { data: Campaign }) {
       <span className="k">{t(m.route)}</span>
       {data.routes.map((r) =>
         r.skipped ? (
-          <span key={r.countries.join()} className="sms-pill" style={{ background: 'var(--color-warn-tint)', borderColor: 'var(--color-warn-line-strong)', color: 'var(--warn-fg)' }}>
+          <span key={r.countries.join()} className="sms-pill" style={{ background: 'var(--warn-tint)', borderColor: 'var(--warn-line-strong)', color: 'var(--warn-fg)' }}>
             {t(m.routeSkipped, { region: regionLabel(r.countries), reason: holdWord(t, r.skipped), count: count(r.recipients) })}
           </span>
         ) : (
@@ -755,7 +755,7 @@ function Phone({ p, body, data }: { p: Schemas['SmsPreview']; body: string; data
   const typed = body !== data.body
   const typedText = renderWith(body, { first_name: p.contact.split(' ')[0] ?? '' })
   return (
-    <div className="sms-phn" role="img" aria-label={t(m.phoneAria, { sender: p.sender })}>
+    <div className="sms-phn keep-light" role="img" aria-label={t(m.phoneAria, { sender: p.sender })}>
       <div className="sms-phn-h">
         <span className="sms-phn-a">{p.sender.startsWith('+') ? <Icon name="user" size={18} /> : p.sender.slice(0, 2)}</span>
         <span className="sms-phn-n">{p.sender}</span>
@@ -867,7 +867,7 @@ function CostSection({ data }: { data: Campaign }) {
       <div>
         {data.costs.map((c) =>
           c.skipped && c.skipped >= c.recipients ? (
-            <div key={c.country} className="smc-crow" style={{ background: 'var(--color-warn-tint)', margin: '0 -16px', padding: '9px 16px' }}>
+            <div key={c.country} className="smc-crow" style={{ background: 'var(--warn-tint)', margin: '0 -16px', padding: '9px 16px' }}>
               <div className="cl">
                 <CountryName code={c.country} />
                 <span className="k" style={{ color: 'var(--warn-fg)' }}>
