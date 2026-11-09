@@ -173,6 +173,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // Times in tests are written like the boards, in UTC, which is also what CI
+    // runs in; pin it so the tests pass on a laptop in any time zone.
+    env: { TZ: 'UTC' },
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     css: false,
