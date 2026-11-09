@@ -263,7 +263,7 @@ export function MailboxTable({ s, decision, rates, caption }: { s: Snapshot; dec
         <CardBar title={t(m.perMailbox)} caption={<span className="k">{decision ? t(m.perMailboxDecision) : t(m.perMailboxLive)}</span>} />
       )}
       {rates?.open ? rates.panel : null}
-      <Table density="compact" className="lv-tbl" phoneWrap>
+      <Table density="compact" className="lv-tbl">
         <thead>
           <tr>
             <Th>{t(m.colMailbox)}</Th>
@@ -368,7 +368,7 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
   return (
     <Card>
       <CardBar title={t(m.perProvider)} caption={<span className="k">{decision ? failoverCaption(s) : t(mm.whoDelivers)}</span>} />
-      <Table density="compact" className="lv-tbl" phoneWrap>
+      <Table density="compact" className="lv-tbl">
         <thead>
           <tr>
             <Th>{t(m.colProvider)}</Th>
