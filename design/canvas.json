@@ -1217,7 +1217,7 @@
   },
   "PublicArchive.dc.html": {
    "expand": "fill",
-   "h": 1259,
+   "h": 1269,
    "is_interactive": true,
    "page": "forms",
    "title": "Public · newsletter archive",
@@ -3755,7 +3755,7 @@
    "x": 4680,
    "y": 9514,
    "w": 1440,
-   "h": 8781,
+   "h": 8868,
    "title": "Public · each reader, meter, sign-in, tag and archive, unpublished",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3815,7 +3815,7 @@
    "x": 1560,
    "y": 23610,
    "w": 1440,
-   "h": 8840,
+   "h": 8918,
    "title": "Public · lead magnet, webinar, launch, shop, checkout and download",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3958,7 +3958,7 @@
    "x": 1020,
    "y": 50137,
    "w": 390,
-   "h": 4339,
+   "h": 4363,
    "title": "Public · website home · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -3967,7 +3967,7 @@
    "x": 1530,
    "y": 50137,
    "w": 390,
-   "h": 3092,
+   "h": 3107,
    "title": "Public · paid post at the paywall (visitor) · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -3976,7 +3976,7 @@
    "x": 2040,
    "y": 50137,
    "w": 390,
-   "h": 3422,
+   "h": 3482,
    "title": "Public · member account (Sam Rivera) · phone",
    "page": "p7-publish",
    "is_interactive": true
