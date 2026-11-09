@@ -375,6 +375,14 @@ mark.st-hl{background:#EDE9FE;color:#3730A3;border-radius:3px;padding:0 2px}
   .st-about{flex-direction:column;gap:14px}
   .st-side{display:none}
 }
+/* targets: 44px on touch widths, 767px and below (phones and the tablet layout), as on the site */
+@container (max-width:767px){
+  .st-chip,.st-btn,.st-btn2,.st-btn.sm,.st-btn2.sm,.st-act .st-btn,.st-act .st-btn2,.st-seg a,.st-seg button,.st-me,.st-nav a{height:44px}
+  .st-chk{min-height:44px}
+}
+@container (max-width:599px){
+  .st-menu{width:44px;height:44px}
+}
 </style>
 </helmet>
 <div style="min-height:100vh;background:#FFFFFF;position:relative">

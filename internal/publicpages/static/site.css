@@ -474,26 +474,30 @@ mark.st-hl { background: var(--pub-tint); color: var(--pub-hover); border-radius
 .st-linkbtn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 24px; }
 .st-linkbtn:disabled { opacity: 0.6; cursor: default; }
 
-/* Targets (44px on touch widths, never under 24px): chips grow on phones,
-   links in rows grow by padding inside an equal negative margin. */
+/* Targets (44px on touch widths, never under 24px): chips and buttons grow
+   on touch widths, links in rows grow by padding inside an equal negative
+   margin. */
 .st-lnk { padding-block: 3px; margin-block: -3px; }
 /* The search field's input fills its 48px box, so the whole box takes a tap. */
 .st-search input { align-self: stretch; }
 .st-tag, .st-feedl { padding-block: 2px; margin-block: -2px; }
 /* A checkbox is hit through its label; labels in a column are 8px apart. */
-@container (min-width: 600px) {
+@container (min-width: 768px) {
   .st-chk { padding-block: 2px; margin-block: -2px; }
 }
-/* Touch widths (767px and below): links set as text grow to 44px, the
-   same look; the phone layout's chips and buttons grow below. */
+/* Touch widths: 767px and below, the phone layout and the tablet one
+   (design system, Breakpoints and Targets). Links set as text and the logo
+   keep their look; chips, buttons, the period switch, checkbox rows and
+   the tablet's navigation row are 44px. */
 @container (max-width: 767px) {
   .st-lnk { padding-block: 10px; margin-block: -10px; }
   a.st-tag, .st-feedl { padding-block: 12px; margin-block: -12px; }
+  a.st-brand { padding-block: 6px; margin-block: -6px; }
+  .st-chip, .st-btn, .st-btn2, .st-btn.sm, .st-btn2.sm, .st-act .st-btn, .st-act .st-btn2, .st-seg a, .st-seg button, .st-me, .st-nav a { height: 44px; }
+  .st-chk { min-height: 44px; }
 }
 @container (max-width: 599px) {
-  .st-chip, .st-btn, .st-btn2, .st-btn.sm, .st-btn2.sm, .st-act .st-btn, .st-act .st-btn2, .st-seg a, .st-seg button, .st-me { height: 44px; }
   .st-menu > summary { width: 44px; height: 44px; }
-  .st-chk { min-height: 44px; }
 }
 /* The narrowest phones (320px): the header's actions fit beside the mark. */
 @container (max-width: 359px) {

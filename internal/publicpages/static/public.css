@@ -593,7 +593,19 @@ button.ea-cancel:hover { color: var(--pub-hover); }
    same look, a bigger target. */
 .ea-top a, .ea-q summary { padding-block: 3px; margin-block: -3px; }
 .rss, .split a.plain, .gsplit a, .ginvite a, :is(a, button).ea-cancel, .consent { padding-block: 3px; margin-block: -3px; }
+/* The archive's filter pills (22px, 8px apart) take a 24px tap through a
+   transparent border the pill's colour doesn't fill: the same look. */
+@media (min-width: 768px) {
+  .search .tag { border-block: 1px solid transparent; margin-block: -1px; background-clip: padding-box; }
+}
 @media (max-width: 767px) {
+  /* The website's header over these pages: the logo grows by padding (the
+     same look); the navigation, Sign in and the member's pill are 44px,
+     inside the bar's 58–64px. */
+  .sitebar-brand { padding-block: 5px; margin-block: -5px; }
+  .sitebar-nav a { height: 44px; }
+  .sitebar-btn, .sitebar-me { height: 42px; } /* 44px with the border */
+  .search .tag { height: 44px; min-width: 28px; justify-content: center; } /* 44px wide at least, with the padding */
   .ea-top a, .ea-q summary { padding-block: 12px; margin-block: -12px; }
   .ea-toggle a, .pills label { height: 44px; }
   .gseg a { min-height: 44px; }
