@@ -109,7 +109,8 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
           <ListSkeleton />
         ) : (
           <>
-            <AccessTable caption={t(mi.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
+            {/* Narrow screens: the time column drops the key column's 180px, so the event keeps the room. */}
+            <AccessTable className="max-[1100px]:[&_td:first-child]:min-w-0" caption={t(mi.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
               <thead>
                 <tr>
                   <Th>{t(ma.colTime)}</Th>

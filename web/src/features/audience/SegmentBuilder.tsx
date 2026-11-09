@@ -457,7 +457,7 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
           </div>
         ) : null}
       </section>
-      <aside className="flex max-w-[400px] flex-[1_1_320px] flex-col gap-4" aria-label={t(m.countAndSaved)}>
+      <aside className="flex max-w-[400px] flex-[1_1_320px] flex-col gap-4 max-[1100px]:max-w-none" aria-label={t(m.countAndSaved)}>
         <LiveCount
           preview={preview}
           name={draft.name}
@@ -765,7 +765,7 @@ function BuilderSkeleton() {
           <Skeleton w="100%" h={90} r={10} />
         </div>
       </div>
-      <div className="flex flex-[1_1_320px] flex-col gap-4 md:max-w-[400px]">
+      <div className="flex flex-[1_1_320px] flex-col gap-4 min-[1101px]:max-w-[400px]">
         <div className="card flex flex-col gap-2.5 px-5 py-4.5">
           <Skeleton w={160} h={12} />
           <Skeleton w={120} h={36} />

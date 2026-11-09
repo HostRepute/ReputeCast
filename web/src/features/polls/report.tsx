@@ -7,7 +7,7 @@ import { toast } from '@/components/ui/Toast'
 import { LoadFailed } from '@/components/ui/LoadFailed'
 import { formatList, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { useNow } from '@/lib/hooks'
+import { useMediaQuery, useNow } from '@/lib/hooks'
 import { ago, clock, count, duration, pct, shortDate } from '@/lib/format'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { saveBlob } from '@/features/audience/download'
@@ -539,6 +539,8 @@ const PAGE = 10
 function Comments({ p }: { p: PollResults }) {
   const t = useT()
   const { slug } = useWorkspace()
+  // The filter chips scroll sideways in one row on phones (report.css).
+  const phone = useMediaQuery('(max-width: 767px)')
   const [group, setGroup] = useState<Group>('all')
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
@@ -570,9 +572,9 @@ function Comments({ p }: { p: PollResults }) {
   return (
     <div className="flex min-w-0 flex-col">
       <div className="pr-sub">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="pr-chead flex flex-wrap items-center gap-x-4 gap-y-2">
           <h3 className="m-0 text-[14px] font-semibold">{t(m.comments, { count: count(counts?.all ?? p.comments) })}</h3>
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label={t(m.filterComments)}>
+          <div className="pr-fchips flex flex-wrap gap-1.5" role="group" aria-label={t(m.filterComments)} data-scroll-row={phone ? '' : undefined}>
             {groups.map((g) => (
               <button
                 key={g.key}

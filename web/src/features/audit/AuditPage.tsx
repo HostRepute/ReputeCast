@@ -75,7 +75,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
       ) : (
         <>
           <TopBar list={first} filters={filters} />
-          <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5 max-md:grid-cols-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5 max-[1100px]:grid-cols-1">
             <section className="card" aria-labelledby="ev-h">
               <div className="sec">
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -96,7 +96,8 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                 <ListSkeleton />
               ) : (
                 <>
-                  <AccessTable className="au-tbl" caption={t(m.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
+                  {/* Narrow screens: the time column drops the key column's 180px, so the event keeps the room. */}
+                  <AccessTable className="au-tbl max-[1100px]:[&_td:first-child]:min-w-0" caption={t(m.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
                     <thead>
                       <tr>
                         <Th>{t(m.colTime)}</Th>

@@ -750,7 +750,7 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
         <h2 className="h2" id="activity-h">
           {tr(m.activity)}
         </h2>
-        <div className="flex gap-1.5 max-md:flex-wrap" role="group" aria-label={tr(m.show)}>
+        <div className="afilters flex gap-1.5" role="group" aria-label={tr(m.show)} data-scroll-row>
           {(
             [
               ['all', tr(m.filterAll)],

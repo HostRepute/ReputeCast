@@ -316,7 +316,10 @@ function Explain({ call, kind, above }: { call: Call; kind: ConnectKind; above?:
       {resolved ? (
         <div className="ih-ind !pl-[23px]">
           <div className="row flex-nowrap items-start gap-2">
-            <Badge tone="ok">{t(m.resolved)}</Badge>
+            {/* min-w-min: in a .row on phones a badge may otherwise shrink below its word. */}
+            <Badge tone="ok" className="min-w-min">
+              {t(m.resolved)}
+            </Badge>
             <span className="text-ink-nav">{resolved}</span>
           </div>
         </div>

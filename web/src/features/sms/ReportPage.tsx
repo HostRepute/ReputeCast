@@ -991,7 +991,7 @@ function Replies({ r }: { r: Report }) {
       <div className="sec">
         <h2 className="h2">{t(m.replies, { count: total })}</h2>
       </div>
-      <div className="sms-fchips" role="group" aria-label={t(m.replies, { count: total })}>
+      <div className="sms-fchips" role="group" aria-label={t(m.replies, { count: total })} data-scroll-row>
         {chips.map((c) => (
           <button key={c.k} type="button" className={`sms-fchip${kind === c.k ? ' on' : ''}`} aria-pressed={kind === c.k} onClick={() => setKind(c.k)}>
             {c.label} <b>{count(c.n)}</b>

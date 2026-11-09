@@ -1458,4 +1458,15 @@
   .pr-sales {
     grid-template-columns: 1fr;
   }
+  /* The editor's side column, once it wraps under the form, takes the
+     full width, its cards two by two where they fit (a shop card drawn
+     650px wide would misstate the shop). Beside the form it still gets
+     almost nothing of the free space (the form grows 999 times faster), so
+     it stays one column there. */
+  .pr-ed-side {
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+    align-items: start;
+  }
 }

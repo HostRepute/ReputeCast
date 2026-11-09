@@ -492,7 +492,8 @@ function HistoryRow({ h, d }: { h: HistoryItem; d: Digest }) {
         <span className="font-semibold">{title}</span>
         <span className="k">{sub}</span>
       </div>
-      <time className="mono shrink-0 text-[12px] text-ink-3" dateTime={h.at} title={dateTime(h.at)}>
+      {/* As on the phone board, phones leave the time out so the line gets the width. */}
+      <time className="mono shrink-0 text-[12px] text-ink-3 max-md:hidden" dateTime={h.at} title={dateTime(h.at)}>
         {when}
       </time>
     </li>

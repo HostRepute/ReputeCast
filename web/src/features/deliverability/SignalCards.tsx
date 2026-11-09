@@ -27,7 +27,9 @@ function PanelCard({ title, id, badge, children }: { title: string; id: string; 
   )
 }
 
-const pair = 'dl-pair grid gap-x-4 gap-y-2 [grid-template-columns:repeat(2,minmax(0,1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]'
+// One label and value a line on phones: two pairs side by side squeeze the
+// labels to a word a line and break the values ("Hig/h").
+const pair = 'dl-pair grid gap-x-4 gap-y-2 [grid-template-columns:repeat(2,minmax(0,1fr))] max-md:[grid-template-columns:minmax(0,1fr)]'
 
 /** A number with up to `digits` decimals, without trailing zeros, in the region format: 100, 99.5, 0.05. */
 function num(x: number, digits: number): string {

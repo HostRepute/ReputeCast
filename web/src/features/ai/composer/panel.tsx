@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { formatList, T } from '@/i18n'
 import { ms } from '../messages'
 import { tags } from '../parts'
@@ -9,8 +9,30 @@ import { useComposerAssist } from './state'
 /** The composer's right column: the assistant's panel while one is open, else the inspector. */
 export function AssistRight({ fallback }: { fallback: ReactNode }) {
   const ca = useComposerAssist()
-  if (ca?.panel?.kind === 'ideas') return <IdeasPanel />
-  if (ca?.panel?.kind === 'rewrite') return <RewritePanel />
+  const kind = ca?.panel?.kind
+  // At 1100 px and below the right column sits under the canvas: a panel
+  // opened from the header (Subject ideas) scrolls into view instead of
+  // opening out of sight (AIComposerTablet).
+  useEffect(() => {
+    if (!kind || !window.matchMedia('(max-width: 1100px)').matches) return
+    const reveal = () => document.querySelector<HTMLElement>('.cmp .ai-panel')?.scrollIntoView?.({ block: 'start' })
+    let frame = requestAnimationFrame(reveal)
+    // The Assist menu gives focus back to its button just after, which
+    // scrolls the page back up: reveal the panel once more then.
+    const again = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(reveal)
+    }
+    document.addEventListener('focusin', again, { once: true })
+    const stop = setTimeout(() => document.removeEventListener('focusin', again), 1000)
+    return () => {
+      cancelAnimationFrame(frame)
+      clearTimeout(stop)
+      document.removeEventListener('focusin', again)
+    }
+  }, [kind])
+  if (kind === 'ideas') return <IdeasPanel />
+  if (kind === 'rewrite') return <RewritePanel />
   return <>{fallback}</>
 }
 

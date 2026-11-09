@@ -652,16 +652,19 @@ function PaywallCard({ data, draft, set, ro }: CardProps & { data: Access }) {
       <div className="ws-sub">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <b>{t(ma.previewAs)}</b>
-          <Segmented
-            value={as}
-            onChange={setAs}
-            label={t(ma.previewAs)}
-            items={[
-              { value: 'visitor', label: t(ma.asVisitor) },
-              { value: 'free', label: t(ma.asFree) },
-              { value: 'used', label: t(ma.asFreeUsed) },
-            ]}
-          />
+          {/* On phones the three views scroll sideways instead of running off the card (website.css). */}
+          <div className="ws-asrow flex" data-scroll-row="">
+            <Segmented
+              value={as}
+              onChange={setAs}
+              label={t(ma.previewAs)}
+              items={[
+                { value: 'visitor', label: t(ma.asVisitor) },
+                { value: 'free', label: t(ma.asFree) },
+                { value: 'used', label: t(ma.asFreeUsed) },
+              ]}
+            />
+          </div>
         </div>
         <div className="ws-pw-pane">
           <PaywallPreview data={data} draft={draft} as={as} tiersOK={tiersOK} />

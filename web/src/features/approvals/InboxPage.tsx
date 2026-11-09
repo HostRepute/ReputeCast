@@ -198,7 +198,8 @@ function RequestsCard({
           </div>
         </div>
       ) : (
-        <AccessTable caption={t(m.tableCaption)}>
+        // The author's address stays whole on phones ("sofia@/acme.i/o").
+        <AccessTable caption={t(m.tableCaption)} className="max-md:[&_td:nth-child(2)_.mono]:whitespace-nowrap">
           <thead>
             <tr>
               <Th>{t(m.colCampaign)}</Th>

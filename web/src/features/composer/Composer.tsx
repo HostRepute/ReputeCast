@@ -121,7 +121,9 @@ export function Composer({
   const language = versionLanguage(campaign)
   const afterSourceSave = useSourceEdits(slug, campaign.id, useLanguagesCache(campaign.id).set)
   const savedMjml = useRef(campaign.mjml)
-  const device: DeviceId = search.device ?? 'desktop'
+  // On a phone the canvas shows the email as a phone reader sees it (the
+  // ComposerPhone board); the device switch is a larger screen's tool.
+  const device: DeviceId = search.device ?? (phone ? 'mobile' : 'desktop')
   const variant = search.variant ?? 'A'
 
   const initial = useMemo(() => splitMjml(campaign.mjml), [campaign.mjml])

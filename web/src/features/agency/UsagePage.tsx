@@ -193,7 +193,7 @@ function UsageTable({ view, open, onOpen }: { view: View; open?: string; onOpen:
                     <td>
                       <button
                         type="button"
-                        className="flex cursor-pointer items-center gap-2.5 border-0 bg-transparent p-0 text-left font-semibold text-ink"
+                        className="ag-lnk flex cursor-pointer items-center gap-2.5 border-0 bg-transparent p-0 text-left font-semibold text-ink"
                         aria-expanded={view.canSeeCosts ? isOpen : undefined}
                         onClick={() => (view.canSeeCosts ? onOpen(r.workspace.id) : undefined)}
                       >

@@ -581,6 +581,18 @@
   .tscroll:focus-visible {
     outline-offset: -2px;
   }
+  /* A table wider than its card fades out at the side that has more
+     (Table's useScrollEdges), so a cut column reads as "scrolls", not as
+     lost. Only while it overflows: a table that fits is drawn as before. */
+  .tscroll[data-more='end'] {
+    mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  }
+  .tscroll[data-more='start'] {
+    mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+  }
+  .tscroll[data-more='both'] {
+    mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+  }
   /* A table taller than its scroller keeps its header in view (review
      2026-11 FE-4; TableScroll's maxHeight). */
   .tscroll.tall {
@@ -2077,9 +2089,12 @@
     padding-bottom: 2px;
     max-width: 100%;
     /* A badge alone on its line (a long state, a long language) wraps
-       inside the line instead of running past the screen's edge. */
+       inside the line instead of running past the screen's edge, between
+       its words: it never shrinks below its longest word, so a state
+       word never breaks in the middle ("Publishe/d"). */
     flex-shrink: 1;
-    min-width: 0;
+    overflow-wrap: break-word;
+    min-width: min-content;
   }
   :is(.rc-app, .ovl, .toasts, .corner) .tabs .badge,
   :is(.rc-app, .ovl, .toasts, .corner) .tbl td .badge {
@@ -2092,6 +2107,30 @@
   :is(.rc-app, .ovl, .toasts, .corner) .btn {
     white-space: normal;
     max-width: 100%;
+    /* A label wraps between its words. */
+    overflow-wrap: break-word;
+  }
+  /* The button keeps its longest word as well as the 44px touch width
+     above: that width is a floor for short labels and icons, not a size a
+     row may squeeze a long label down to ("Remo/ve"). A browser without
+     calc-size() keeps the 44px floor. */
+  @supports (min-width: calc-size(min-content, size)) {
+    :is(.rc-app, .ovl, .toasts, .corner) .btn:not(.ic) {
+      min-width: calc-size(min-content, max(44px, size));
+    }
+  }
+  /* In a row that scrolls sideways, its badges, buttons and chips keep
+     their one-line width: the row scrolls instead of squeezing them. */
+  :is(.rc-app, .ovl, .toasts, .corner) :is([data-scroll-row], .tabs.scroll-sm) > :is(.badge, .btn, .chip) {
+    flex: none;
+    max-width: none;
+    white-space: nowrap;
+  }
+  /* Tabs, segments and chips are one-line controls; their row wraps or
+     scrolls between them. */
+  :is(.rc-app, .ovl, .toasts, .corner) :is(.chip, [role='tab'], .seg button, .tabs > a, .tabs > button) {
+    overflow-wrap: normal;
+    white-space: nowrap;
   }
   :is(.rc-app, .ovl, .toasts, .corner) .side .btn,
   :is(.rc-app, .ovl, .toasts, .corner) .tbl td .btn {
@@ -2099,6 +2138,49 @@
   }
   :is(.rc-app, .ovl, .toasts, .corner) .mono {
     overflow-wrap: anywhere;
+  }
+}
+
+/* A row of tabs or chips that scrolls sideways on a narrow screen
+   (.tabs.scroll-sm, or any row marked data-scroll-row) fades at the side
+   that has more, the way tables do (Table's useScrollEdges): a phone shows
+   there is more than the screen. No script: a scroll-driven animation moves
+   the fades; a browser without one shows the row as before. Only on rows
+   that scroll, and only at phone width, where they do: a mask hides
+   whatever overflows the row (a menu, a focus ring). */
+@property --edge-l {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --edge-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes rc-edge {
+  0% {
+    --edge-l: 0px;
+    --edge-r: 32px;
+  }
+  6% {
+    --edge-l: 32px;
+  }
+  94% {
+    --edge-r: 32px;
+  }
+  100% {
+    --edge-l: 32px;
+    --edge-r: 0px;
+  }
+}
+@media (max-width: 767px) {
+  @supports (animation-timeline: scroll()) {
+    :is(.tabs.scroll-sm, [data-scroll-row]) {
+      animation: rc-edge linear both;
+      animation-timeline: scroll(self inline);
+      mask-image: linear-gradient(to right, transparent, #000 var(--edge-l), #000 calc(100% - var(--edge-r)), transparent);
+    }
   }
 }
 
@@ -2965,16 +3047,16 @@ main label:has(> input[type='search']) > input {
    margin. Not one that pads or spaces itself (a row or a card that is a
    link, or one with a padding or margin utility): this rule would replace
    its padding, and the layout would move. */
-main :is(td, th) a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-main :is(dd, h1, h2, h3, h4, h5, h6, .ws-bpg .nm, .er-lrow .lt) > a:not(.btn, .badge):first-child:where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sp-lnk, .gw-lnk, .px-lnk, .sc-sortbtn):not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])) {
+main :is(td, th) a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+main :is(dd, h1, h2, h3, h4, h5, h6, .ws-bpg .nm, .er-lrow .lt) > a:not(.btn, .badge):first-child:where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sp-lnk, .gw-lnk, .px-lnk, .sc-sortbtn, .ag-lnk):not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])) {
   padding-block: 4px;
   margin-block: -4px;
 }
 @media (max-width: 767px) {
-  main :is(.in:not(textarea), select, .seg button, .tabs button, .ch-filter button, .btn, .ibtn, .chip, .vchip, .tx-fchip, .rr-fchip, .ih-chip, .ea-schip, .pg-chip, .ws-fchip, .sp-fchip, .sms-fchip, .cal-ev, .sc-prow-main, .segrow) {
+  main :is(.in:not(textarea), select, .seg button, .tabs button, .ch-filter button, .btn, .ibtn, .chip:is(a, button, label, [role='button'], [tabindex]), .vchip, .tx-fchip, .rr-fchip, .ih-chip, .ea-schip, .pg-chip, .ws-fchip, .sp-fchip, .sms-fchip, .cal-ev, .sc-prow-main, .segrow) {
     min-height: 44px;
   }
   main :is([role='group'], [role='tablist']) > button:not(.btn, .badge),
@@ -3032,11 +3114,11 @@ main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp
     border-block-width: 12px;
     margin-block: -12px;
   }
-  main :is(td, th) a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-  main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-  main :is(dd, h1, h2, h3, h4, h5, h6, .ws-bpg .nm, .er-lrow .lt) > a:not(.btn, .badge):first-child:where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-  main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])),
-  main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sp-lnk, .gw-lnk, .px-lnk, .sc-sortbtn):not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, [style*='margin'], [style*='padding'])) {
+  main :is(td, th) a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+  main :is(.flex, .inline-flex, .grid) > a:not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+  main :is(dd, h1, h2, h3, h4, h5, h6, .ws-bpg .nm, .er-lrow .lt) > a:not(.btn, .badge):first-child:where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+  main a:not(.btn, .badge):not(:is(p, span, li, label, small, strong, b, em, dd, h1, h2, h3, h4, h5, h6) a):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])),
+  main :is(a, button):is(.underline, .gr-srcname, .ih-mby, .pl-lnk, .sms-lbtn, .sp-issue, .sp-lnk, .gw-lnk, .px-lnk, .sc-sortbtn, .ag-lnk):not(.btn, .badge):where(:not([class^='p-']:not([class~='p-0']), [class*=' p-']:not([class~='p-0']), [class*=':p-']:not([class*=':p-0']), [class^='py-']:not([class~='py-0']), [class*=' py-']:not([class~='py-0']), [class*=':py-']:not([class*=':py-0']), [class^='pt-']:not([class~='pt-0']), [class*=' pt-']:not([class~='pt-0']), [class*=':pt-']:not([class*=':pt-0']), [class^='pb-']:not([class~='pb-0']), [class*=' pb-']:not([class~='pb-0']), [class*=':pb-']:not([class*=':pb-0']), [class^='m-']:not([class~='m-0']), [class*=' m-']:not([class~='m-0']), [class*=':m-']:not([class*=':m-0']), [class^='my-']:not([class~='my-0']), [class*=' my-']:not([class~='my-0']), [class*=':my-']:not([class*=':my-0']), [class^='mt-']:not([class~='mt-0']), [class*=' mt-']:not([class~='mt-0']), [class*=':mt-']:not([class*=':mt-0']), [class^='mb-']:not([class~='mb-0']), [class*=' mb-']:not([class~='mb-0']), [class*=':mb-']:not([class*=':mb-0']), [class*='-m-'], [class*='-my-'], [class*='-mt-'], [class*='-mb-'], .gw-prow, .pg-nrow, .pr-pcard, .segrow, .pi, .sms-lbtn-under, .ag-srow, [style*='margin'], [style*='padding'])) {
     padding-block: 14px;
     margin-block: -14px;
   }

@@ -71,7 +71,8 @@ export function ManagedKeysCard() {
         }
       />
       <div className="ih-no-phone">
-        <AccessTable caption={t(m.keysTitle, { count: items.length })}>
+        {/* Narrow screens: the creator and the last use keep room for a name and a date. */}
+        <AccessTable caption={t(m.keysTitle, { count: items.length })} className="max-[1100px]:[&_td:nth-child(3)]:min-w-[140px] max-[1100px]:[&_td:nth-child(4)]:min-w-[150px]">
           <thead>
             <tr>
               <Th>{t(m.key)}</Th>
@@ -136,7 +137,8 @@ export function ManagedKeysCard() {
       <div className="ih-only-phone ih-list">
         {items.map((k) => (
           <div key={k.id} className="ih-it">
-            <div className="row justify-between gap-2">
+            {/* The pill wraps under a long name with room for its 44px target. */}
+            <div className="row justify-between gap-x-2 gap-y-3">
               <span className="font-semibold">{k.name}</span>
               <ManagedBy kind={k.kind} />
             </div>

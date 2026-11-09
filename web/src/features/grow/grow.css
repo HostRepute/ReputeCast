@@ -828,6 +828,33 @@
     cursor: default;
     opacity: 0.4;
   }
+  /* A phone card's numbers (RecommendationsPhone): three side by side. */
+  .gw-n3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--ground-3);
+    border: 1px solid var(--line-2);
+  }
+  .gw-n3 > div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .gw-n3 dt {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .gw-n3 dd {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
   .gw-code {
     font-family: var(--font-family-mono);
     font-size: 14px;
@@ -886,5 +913,41 @@
       width: 100vw;
       border-left: 0;
     }
+  }
+}
+
+/* Phones and tablets (responsive pass). Unlayered, like the target rules
+   in app.css they adjust. */
+@media (max-width: 1100px) {
+  /* Milestones: the reward and its email keep readable columns; the table
+     scrolls inside its card. */
+  .gw-tbl td.gw-rwd {
+    min-width: 230px;
+  }
+  .gw-tbl td.gw-mem {
+    min-width: 180px;
+  }
+}
+@media (max-width: 767px) {
+  /* Results · Milestones · Referrers · Review · Settings: one scrolling row
+     of 44px pills. They are links, so the target rule would grow them by
+     padding into tall ovals over the line below; their height is the
+     target. */
+  .gw-subnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .gw-subnav > a[href] {
+    flex: none;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding-block: 0;
+    margin-block: 0;
+  }
+  /* A state beside a newsletter stays one line ("Link invalid"). */
+  main .gw-lrow > .badge {
+    flex: none;
+    white-space: nowrap;
   }
 }

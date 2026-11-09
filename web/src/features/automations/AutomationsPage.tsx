@@ -208,7 +208,13 @@ function AutomationTable({ items }: { items: Item[] }) {
   )
   return (
     <section className="card" aria-label={t(m.tableLabel)}>
-      <Table phoneWrap fit className="au-list [&_td:first-child]:min-w-[150px] [&_td:nth-child(3)]:min-w-[150px] [&_td:nth-child(9)]:min-w-[150px]">
+      {/* The board's 150px trigger and goal columns, narrower on desktops: with the
+          Revenue column and the row's ⋯ menu they would push Open past the card's edge. */}
+      <Table
+        phoneWrap
+        fit
+        className="au-list [&_td:first-child]:min-w-[150px] [&_td:nth-child(3)]:min-w-[150px] [&_td:nth-child(9)]:min-w-[150px] min-[1101px]:[&_td:nth-child(3)]:min-w-[120px] min-[1101px]:[&_td:nth-child(9)]:min-w-[120px]"
+      >
         <thead>
           <tr>
             <Th>{t(m.colAutomation)}</Th>

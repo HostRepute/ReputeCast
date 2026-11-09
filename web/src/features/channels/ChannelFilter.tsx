@@ -16,7 +16,7 @@ export function ChannelFilter({ value, onChange }: { value?: Channel; onChange: 
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/channels', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
   if (!q.data?.switchShown) return null
   return (
-    <div className="ch-filter" role="group" aria-label={t(m.switchLabel)}>
+    <div className="ch-filter" role="group" aria-label={t(m.switchLabel)} data-scroll-row>
       <span className="k mr-1">{t(m.switchLabel)}</span>
       <button type="button" className={value ? undefined : 'on'} aria-pressed={!value} onClick={() => onChange(undefined)}>
         {t(m.all)}

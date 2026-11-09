@@ -1051,6 +1051,25 @@
     font-size: 0;
     gap: 6px;
   }
+  /* A digest's "Recurring digest" chip as its icon, like the web chip, and
+     the status pill gives way (an ellipsis) before the name and it run
+     under the chip (DigestComposer at 834 px). */
+  .cmp .cbar .cb-digest {
+    font-size: 0;
+    gap: 0;
+  }
+  .cmp .stchip {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .cmp .stchip > svg {
+    flex: none;
+  }
+  .cmp .stchip > .st-t {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 @media (max-width: 767px) {
   .cmp .cbar {
@@ -1079,12 +1098,13 @@
     padding: 0 4px;
     margin-left: -4px;
   }
+  /* The status stays a one-line pill: a long one ("Scheduled · saved 09:38 ·
+     v14") ends with an ellipsis (above) instead of growing a second line. */
   .cmp .stchip {
     height: auto;
     min-height: 20px;
     font-size: 11.5px;
     padding: 2px 8px;
-    white-space: normal;
     line-height: 1.25;
     max-width: 100%;
   }
@@ -1640,6 +1660,16 @@
   cursor: pointer;
   border-radius: 8px;
 }
+/* A label longer than its fifth of the bar ("Comprobaciones", "Kommentare")
+   is hyphenated and centred, instead of breaking at any letter. */
+@media (max-width: 767px) {
+  .cmp .qbar button {
+    overflow-wrap: normal;
+    hyphens: auto;
+    text-align: center;
+    line-height: 1.2;
+  }
+}
 .cmp .qbar button[aria-pressed='true'] {
   background: var(--accent-soft);
   color: var(--accent-hover);
@@ -1741,6 +1771,29 @@
   .cmp.view-visual .cmp-tools.float {
     display: none;
   }
+  /* Nor the selection's name tab and move/duplicate/delete tools: on the
+     fitted email they sat on the text above the block (ComposerPhone draws
+     none); its outline still shows what is selected. */
+  .cmp.view-visual .cmp-sel .lab,
+  .cmp.view-visual .cmp-sel .tb {
+    display: none;
+  }
+  /* The marks on the email (a check's tag, Email only, a block's
+     visibility) shrink to their icon: the email is fitted to the screen at
+     about 60%, its lines 10 px apart, and a labelled tag covered two of them.
+     The words stay for screen readers (and in a check's title); a tap
+     opens the mark as before. */
+  .cmp.view-visual .wtag,
+  .cmp.view-visual .wonly-badge,
+  .cmp.view-visual .cv-badge {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 0;
+  }
   .cmp.view-visual .cmp-tools.float + .cmp-canvas .cmp-stage,
   .cmp.view-visual .cmp-tools.float[data-extra] + .cmp-canvas .cmp-stage {
     padding-top: 12px;
@@ -1761,6 +1814,16 @@
     min-width: 0;
   }
   .cmp.view-preview .cb-end .btn {
+    width: auto;
+    padding: 0 12px;
+  }
+  /* So are a digest's ("Send test", "Check next issue"): they keep their
+     padding, and go under the modes when the two don't fit on one row. */
+  .cmp .cb-end.cb-words {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  .cmp .cb-end.cb-words .btn {
     width: auto;
     padding: 0 12px;
   }

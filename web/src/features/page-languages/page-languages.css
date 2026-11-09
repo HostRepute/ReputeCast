@@ -333,9 +333,21 @@
   .pl-stage {
     padding: 20px 12px 28px;
   }
+  /* "Copy in" scrolls sideways on one line; each chip stays whole. */
+  .pl-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
   .pl-chip {
-    white-space: normal;
-    height: auto;
-    min-height: 30px;
+    flex: none;
+  }
+}
+/* "Copy in" is a scroll row (data-scroll-row) from 1100px down, masked to
+   its box: 4px of padding, taken back by the margin, keep the chips' focus
+   rings inside. */
+@media (max-width: 1100px) {
+  .pl-chips {
+    padding: 4px;
+    margin: -4px;
   }
 }

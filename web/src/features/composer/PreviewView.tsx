@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { $api, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { clock, count, decimal } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { T, t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { useComposer } from './context'
 import { inboxTime } from './format'
@@ -236,6 +237,8 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   const [lightDoc, setLightDoc] = useState<Document | null>(null)
   const [renderDialog, setRenderDialog] = useState<'connect' | 'render' | null>(null)
   const previewAs = usePreviewAsLabel()
+  // The email clients scroll sideways in their row on phones (chrome.css).
+  const phone = useMediaQuery('(max-width: 767px)')
   const contacts = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview-contacts', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { staleTime: 60_000 })
   const media = $api.useQuery('get', '/api/v1/workspaces/{workspace}/media', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
   const slot = c.previewSlot
@@ -353,7 +356,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
       <section className="cmp-main" style={{ flex: '999 1 620px' }} aria-label={tr(mp.clientPreviews)}>
         <div className="cmp-tools">
           <PreviewingSwitch />
-          <div className="seg" role="group" aria-label={tr(mp.emailClient)}>
+          <div className="seg" role="group" aria-label={tr(mp.emailClient)} data-scroll-row={phone ? '' : undefined}>
             {CLIENTS.map((x) => (
               <button key={x.id} type="button" aria-pressed={client === x.id} onClick={() => setClient(x.id)}>
                 {x.label}

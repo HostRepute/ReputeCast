@@ -90,7 +90,10 @@ function assetStatus(a: Connection['assets'][number], sources: number) {
   if (a.listings.length) {
     return (
       <span className="row flex-nowrap gap-1.5">
-        <Badge tone="warn">{tt(m.listed)}</Badge>
+        {/* min-w-min: in a .row on phones a badge may otherwise shrink below its word. */}
+        <Badge tone="warn" className="min-w-min">
+          {tt(m.listed)}
+        </Badge>
         <span>{tt(m.listings, { count: a.listings.length, sources: a.listings.join(', ') })}</span>
       </span>
     )

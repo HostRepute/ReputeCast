@@ -777,10 +777,10 @@ function UsesCard({ v, uses, canManage }: { v: ServiceView; uses: Use[]; canMana
                       {u.by}
                     </span>
                   </td>
-                  <td>{whatOf(u, t)}</td>
+                  <td className="max-md:min-w-[180px]">{whatOf(u, t)}</td>
                   <td className="r">{count(u.addresses)}</td>
                   <td className="r">{money(u.cost)}</td>
-                  <td>{u.status === 'finished' ? resultsLine(u) : t(m.usesRunning, { status: u.status })}</td>
+                  <td className="max-md:min-w-[200px]">{u.status === 'finished' ? resultsLine(u) : t(m.usesRunning, { status: u.status })}</td>
                   {canManage ? (
                     <td className="r">
                       {u.kind === 'import' ? (

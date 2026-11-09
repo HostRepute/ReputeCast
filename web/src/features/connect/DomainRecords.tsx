@@ -11,9 +11,10 @@ import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { clockSeconds, count } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { md } from './domain.messages'
 import { copy, failed } from './parts'
-import { Ticks } from './text'
+import { Breakable, Ticks } from './text'
 import './connect.css'
 
 export type DomainDetail = Schemas['SendingDomainDetail']
@@ -96,6 +97,9 @@ export function DomainTools({
 /** The records table with the counts and the DMARC tip. */
 export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; title?: string }) {
   const t = useT()
+  // Tablets and phones break a record between its parts; the desktop table
+  // keeps its text as it was.
+  const narrow = useMediaQuery('(max-width: 1100px)')
   const n = detail.counts
   return (
     <section className="card flex flex-col" aria-labelledby={`records-${detail.id}`}>
@@ -131,10 +135,10 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
               </td>
               <td className="mono">{r.type}</td>
               <td>
-                <span className="cn-val">{r.name}</span>
+                <span className="cn-val">{narrow ? <Breakable text={r.name} /> : r.name}</span>
               </td>
               <td>
-                <span className="cn-val">{r.value}</span>
+                <span className="cn-val">{narrow ? <Breakable text={r.value} /> : r.value}</span>
                 {r.status === 'wrong_value' && r.found && !stale(r) ? (
                   <div className="k mt-1">
                     <T msg={md.found} values={{ value: r.found, mono }} />

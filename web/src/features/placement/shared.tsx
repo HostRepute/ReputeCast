@@ -320,7 +320,7 @@ export function PlacementPills({ current, tests, seeds }: { current: 'tests' | '
   const { slug } = useWorkspace()
   const t = useT()
   return (
-    <nav className="pl-pills" aria-label={t(m.pillsLabel)}>
+    <nav className="pl-pills" aria-label={t(m.pillsLabel)} data-scroll-row>
       <Link to="/w/$workspace/deliverability/placement" params={{ workspace: slug }} className={current === 'tests' ? 'on' : undefined} aria-current={current === 'tests' ? 'page' : undefined} activeOptions={{ exact: true, includeSearch: false }}>
         {t(m.pillTests)}
         {tests !== undefined ? <b>{tests}</b> : null}

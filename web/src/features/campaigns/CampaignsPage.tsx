@@ -263,7 +263,7 @@ function FiltersBar({ search, onChange }: { search: CampaignsSearch; onChange: (
       <label className="vh" htmlFor={`${id}-when`}>
         {t(mm.whenLabel)}
       </label>
-      <select id={`${id}-when`} className="in max-md:flex-1" value={search.when ?? ''} onChange={(e) => onChange({ when: (e.target.value || undefined) as CampaignWhen | undefined })}>
+      <select id={`${id}-when`} className="in max-md:min-w-[140px] max-md:flex-1" value={search.when ?? ''} onChange={(e) => onChange({ when: (e.target.value || undefined) as CampaignWhen | undefined })}>
         <option value="">{t(mm.whenAny)}</option>
         <option value="7d">{t(mm.when7)}</option>
         <option value="30d">{t(mm.when30)}</option>
@@ -289,7 +289,7 @@ function FiltersBar({ search, onChange }: { search: CampaignsSearch; onChange: (
       <label className="vh" htmlFor={`${id}-sender`}>
         {t(mm.senderLabel)}
       </label>
-      <select id={`${id}-sender`} className="in max-w-[220px] max-md:max-w-none max-md:flex-1" value={search.sender ?? ''} onChange={(e) => onChange({ sender: e.target.value || undefined })}>
+      <select id={`${id}-sender`} className="in max-w-[220px] max-md:min-w-[140px] max-md:max-w-none max-md:flex-1" value={search.sender ?? ''} onChange={(e) => onChange({ sender: e.target.value || undefined })}>
         <option value="">{t(mm.senderAny)}</option>
         {(senders.data?.senders ?? []).map((x) => (
           <option key={x.id} value={x.id}>
@@ -300,7 +300,7 @@ function FiltersBar({ search, onChange }: { search: CampaignsSearch; onChange: (
       <label className="vh" htmlFor={`${id}-list`}>
         {t(mm.listLabel)}
       </label>
-      <select id={`${id}-list`} className="in max-w-[200px] max-md:max-w-none max-md:flex-1" value={search.list ?? ''} onChange={(e) => onChange({ list: e.target.value || undefined })}>
+      <select id={`${id}-list`} className="in max-w-[200px] max-md:min-w-[140px] max-md:max-w-none max-md:flex-1" value={search.list ?? ''} onChange={(e) => onChange({ list: e.target.value || undefined })}>
         <option value="">{t(mm.listAny)}</option>
         {(lists.data?.items ?? []).map((l) => (
           <option key={l.id} value={l.id}>
@@ -313,7 +313,7 @@ function FiltersBar({ search, onChange }: { search: CampaignsSearch; onChange: (
           <label className="vh" htmlFor={`${id}-tag`}>
             {t(mm.tagLabel)}
           </label>
-          <select id={`${id}-tag`} className="in max-md:flex-1" value={search.tag ?? ''} onChange={(e) => onChange({ tag: e.target.value || undefined })}>
+          <select id={`${id}-tag`} className="in max-md:min-w-[140px] max-md:flex-1" value={search.tag ?? ''} onChange={(e) => onChange({ tag: e.target.value || undefined })}>
             <option value="">{t(mm.tagAny)}</option>
             {[...new Set([...tagList, ...(search.tag ? [search.tag] : [])])].map((tag) => (
               <option key={tag} value={tag}>
@@ -435,13 +435,15 @@ function CampaignTable({ data, page, status, search, top }: { data: Schemas['Cam
         </div>
       ) : null}
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
-          Updates") wraps too, so the actions stay in view at 1440 as on the board. */}
+          Updates") wraps too, so the actions stay in view at 1440 as on the board. On phones
+          the table scrolls and its state badges stay on one line. */}
       <Table
-        phoneWrap
         className={
           web
-            ? // With the Web column the cells sit a little closer and two headers wrap, so the actions stay in view at 1440.
-              '[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[92px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(4)]:min-w-[86px] [&_td:nth-child(4)]:whitespace-normal [&_td:nth-child(9)]:min-w-[104px] [&_td:nth-child(9)]:whitespace-normal [&_td:nth-child(9)_.badge]:my-px [&_td]:whitespace-nowrap [&_td]:!px-[7px] [&_th]:!px-[7px] [&_th:nth-child(7)]:!whitespace-normal [&_th:nth-child(9)]:!whitespace-normal'
+            ? // With the Web column, the row's checkbox and its ⋯ menu the cells sit closer, the
+              // audience wraps sooner and two headers wrap, so the actions stay whole, inset from
+              // the card's edge, at 1440.
+              '[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[92px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(4)]:min-w-[76px] [&_td:nth-child(4)]:whitespace-normal [&_td:nth-child(9)]:min-w-[104px] [&_td:nth-child(9)]:whitespace-normal [&_td:nth-child(9)_.badge]:my-px [&_td]:whitespace-nowrap [&_td]:!px-[6px] [&_th]:!px-[6px] [&_td:last-child]:!pr-3 [&_th:nth-child(7)]:!whitespace-normal [&_th:nth-child(9)]:!whitespace-normal'
             : '[&_td:first-child]:min-w-[200px] [&_td:first-child]:whitespace-normal [&_td:nth-child(3)]:min-w-[86px] [&_td:nth-child(3)]:whitespace-normal [&_td:nth-child(8)]:min-w-[120px] [&_td:nth-child(8)]:whitespace-normal [&_td:nth-child(8)_.badge]:my-px [&_td]:whitespace-nowrap'
         }
       >

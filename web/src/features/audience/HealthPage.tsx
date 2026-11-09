@@ -293,7 +293,7 @@ export function PolicyCard({ h }: { h: Health }) {
         }}
       >
         {err ? <Note tone="bad">{err}</Note> : null}
-        <div className="grid grid-cols-2 gap-2.5 max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
+        <div className="grid grid-cols-2 gap-2.5 max-md:grid-cols-1">
           <label className="lbl">
             {tr(m.activeUntil)}
             <input className="in" value={active} onChange={(e) => setActive(e.target.value)} onBlur={() => setActive(daysText(parseDays(active) || p.activeDays, true))} />
@@ -474,7 +474,7 @@ function PerList({ h }: { h: Health }) {
         </span>
       </div>
       <TableScroll label={tr(m.perList)}>
-        <table className="tbl compact first160 phone-wrap fit">
+        <table className="tbl compact first160 fit">
           <thead>
             <tr>
               <Th>{tr(m.colList)}</Th>

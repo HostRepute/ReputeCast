@@ -91,13 +91,13 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
     <>
       <section className="card flex flex-col">
         <TableScroll label={t(im.consentTable)}>
-          {/* The board lets the status badges wrap on phones ("archived with "abuse" complaint"). */}
-          <table className="tbl phone-wrap">
+          {/* Status badges stay on one line on phones; the table scrolls inside its card. */}
+          <table className="tbl">
             <thead>
               <tr>
                 <Th>{t(im.colSourceStatus, { source: d.sourceName })}</Th>
                 <Th align="right">{t(im.colContacts)}</Th>
-                <Th className="w-[360px]">{t(im.colBecomes)}</Th>
+                <Th className="w-[360px] max-[1100px]:w-[240px]">{t(im.colBecomes)}</Th>
                 <Th>{t(im.colEffect)}</Th>
               </tr>
             </thead>
@@ -124,7 +124,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
                       ))}
                     </select>
                   </td>
-                  <td className="k">{s.effect}</td>
+                  <td className="k max-[1100px]:min-w-[180px]">{s.effect}</td>
                 </tr>
               ))}
             </tbody>
@@ -137,7 +137,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
       </section>
       <section className="card flex flex-col gap-3 px-5 py-4.5">
         <h3 className="h2">{t(im.evidenceTitle)}</h3>
-        <fieldset className="mgrid m-0 grid gap-3 border-0 p-0 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+        <fieldset className="m-0 grid gap-3 border-0 p-0 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] max-md:grid-cols-1">
           <legend className="vh">{t(im.evidenceLegend)}</legend>
           <Choice
             checked={evidence === 'trust'}

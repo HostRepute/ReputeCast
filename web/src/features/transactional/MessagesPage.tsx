@@ -319,7 +319,10 @@ export function TransactionalMessagesPage({ search, onSearch }: { search: LogSea
         <section className="card" aria-label={t(ml.logLabel)}>
           <LogFilters search={search} onSearch={onSearch} filters={first?.filters} />
           <div className="tx-fchips" role="group" aria-label={t(ml.status)} style={{ alignItems: 'center' }}>
-            <StatusChips counts={first?.counts} value={search.status ?? 'all'} onChange={(st) => onSearch({ ...search, status: st === 'all' ? undefined : st })} />
+            {/* The chips' own row on phones, scrolling sideways; part of this row elsewhere. */}
+            <div className="tx-fchips-row" data-scroll-row>
+              <StatusChips counts={first?.counts} value={search.status ?? 'all'} onChange={(st) => onSearch({ ...search, status: st === 'all' ? undefined : st })} />
+            </div>
             <div className="ml-auto flex items-center gap-2.5">
               <span className={`tx-live${live ? '' : ' off'}`}>
                 <span className="dot" />

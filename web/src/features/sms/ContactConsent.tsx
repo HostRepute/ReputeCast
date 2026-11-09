@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
-import { Th } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { m as cm } from '@/features/channels/messages'
 import { hasWhatsAppColumn, WhatsAppConsentCell } from '@/features/push/ContactCards'
@@ -80,7 +80,7 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
         {d.suppressed ? (
           <Note tone="bad">{t(m.suppressed, { reason: d.suppressed.reason, reasonText: d.suppressed.reason.replace(/_/g, ' '), date: dayMonthDate(d.suppressed.at) })}</Note>
         ) : null}
-        <div className="overflow-x-auto">
+        <TableScroll label={t(m.title, { name })}>
           <table className="sms-cons">
             <thead>
               <tr>
@@ -110,7 +110,7 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
         <span className="k">{t(m.foot)}</span>
       </div>
       {editingPhone ? <PhoneDialog contactId={contactId} d={d} onClose={() => setEditingPhone(false)} /> : null}

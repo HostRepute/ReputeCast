@@ -404,9 +404,10 @@ function CalendarEvent({
       </Link>
     )
   if (!action) return link
+  // On phones Reschedule goes under a campaign whose name it would cut short.
   return (
-    <div className="flex items-center gap-2">
-      <div className="min-w-0 flex-1">{link}</div>
+    <div className="flex items-center gap-2 max-md:flex-wrap">
+      <div className="min-w-0 flex-1 max-md:min-w-[160px]">{link}</div>
       {action}
     </div>
   )

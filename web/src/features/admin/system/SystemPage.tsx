@@ -291,7 +291,7 @@ function Queues({ v }: { v: View }) {
   return (
     <section className="card" aria-labelledby="sys-queues-h">
       <CardSection title={<span id="sys-queues-h">{t(m.queuesTitle)}</span>} caption={t(m.queuesCaption)} />
-      <AccessTable caption={t(m.queuesTable)}>
+      <AccessTable caption={t(m.queuesTable)} className="max-[1100px]:[&_td:nth-child(n+3)]:whitespace-nowrap">
         <thead>
           <tr>
             <Th>{t(m.colQueue)}</Th>
@@ -328,7 +328,9 @@ function Tables({ v }: { v: View }) {
         title={<span id="sys-tables-h">{t(m.tablesTitle)}</span>}
         caption={t(m.tablesCaption, { size: byteSize(d.bytes), version: String(d.schemaVersion), current: d.schemaCurrent ? 'yes' : 'no' })}
       />
-      <AccessTable caption={t(m.tablesTable)}>
+      {/* The numbers keep one line ("16 / MB" made every row two lines on phones):
+          AccessTable's td rule outranks the cells' own whitespace-nowrap. */}
+      <AccessTable caption={t(m.tablesTable)} className="max-[1100px]:[&_td:not(:first-child)]:whitespace-nowrap">
         <thead>
           <tr>
             <Th>{t(m.colTable)}</Th>

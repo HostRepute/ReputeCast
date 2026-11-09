@@ -304,7 +304,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
         </div>
       ) : (
         <>
-          <div className="tx-fchips" role="group" aria-label={t(mo.filterLabel)}>
+          <div className="tx-fchips tx-scroll" role="group" aria-label={t(mo.filterLabel)} data-scroll-row>
             {chip(filter.kind === 'all', t(mo.filterAll), items.length, () => setFilter({ kind: 'all' }))}
             {categories.map((c) => chip(filter.kind === 'category' && filter.id === c.id, c.name, c.n, () => setFilter({ kind: 'category', id: c.id })))}
             {drafts ? chip(filter.kind === 'draft', t(mo.filterDraft), drafts, () => setFilter({ kind: 'draft' })) : null}

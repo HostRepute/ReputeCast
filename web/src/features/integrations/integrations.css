@@ -957,6 +957,17 @@
     .ih-ev .ih-tm {
       display: none;
     }
+    /* "Managed by …" keeps its 22px pill: the 44px target the touch rule
+       gives a link (padding inside a negative margin) is a transparent
+       border here, so the pill's fill doesn't grow over the title above. */
+    a.ih-mby {
+      box-sizing: content-box;
+      height: 22px;
+      padding-block: 0 !important;
+      margin-block: -11px !important;
+      border-block: 11px solid transparent;
+      background-clip: padding-box;
+    }
     .ih-cbx pre {
       font-size: 11.5px;
     }

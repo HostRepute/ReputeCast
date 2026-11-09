@@ -32,7 +32,7 @@ export function RunningList({ progress }: { progress: Schemas['ReadinessProgress
             {g.text ? ` · ${g.text}` : ''}
           </span>
           {g.status === 'running' && g.checked > 0 && g.total > 0 ? (
-            <span className="k ml-auto">{t(m.ofTotal, { checked: g.checked, total: g.total })}</span>
+            <span className="k rv-note">{t(m.ofTotal, { checked: g.checked, total: g.total })}</span>
           ) : null}
           {g.status === 'running' ? <span className="vh">{t(m.runningNow)}</span> : null}
         </div>
@@ -70,7 +70,7 @@ export function UnknownList({ run }: { run: Run }) {
         <div key={c.key} className="rv-line">
           <CheckBadge status={c.status} />
           <span>{text(c)}</span>
-          {c.status === 'unknown' && c.note ? <span className="k ml-auto">{c.note}</span> : null}
+          {c.status === 'unknown' && c.note ? <span className="k rv-note">{c.note}</span> : null}
         </div>
       ))}
     </div>

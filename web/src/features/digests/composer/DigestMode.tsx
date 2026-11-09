@@ -116,7 +116,8 @@ export function DigestBadge() {
   const c = useComposer()
   if (!c.campaign.digestId || !c.campaign.digestRole) return null
   return (
-    <span className="chip">
+    // Below 1100 px the header shows its icon only (chrome.css); the words stay for screen readers and in its title.
+    <span className="chip cb-digest" title={t(dc.recurringDigest)}>
       <Icon name="repeat" size={13} className="text-ink-3" />
       {t(dc.recurringDigest)}
     </span>

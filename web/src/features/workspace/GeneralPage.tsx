@@ -25,10 +25,12 @@ import { TransferDialog } from './TransferDialog'
 import { timezoneOptions } from './timezones'
 
 /**
- * Cards at least 460px wide; on phones the board lays them out two by two
- * (its narrow-screen rule: columns of at least 140px).
+ * Cards at least 460px wide; one column on phones. (The phone board lays
+ * them out two by two with its 140px narrow-screen rule, which squeezes a
+ * card to ~165px and breaks "Transactional" in the middle; the responsive
+ * pass stacks them instead.)
  */
-const cardGrid = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,minmax(min(460px,100%),1fr))] max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]'
+const cardGrid = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,minmax(min(460px,100%),1fr))] max-md:grid-cols-1'
 
 /** Settings › General (WorkspaceSettings, WorkspaceDialogs). */
 export function GeneralPage() {

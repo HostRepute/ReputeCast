@@ -247,7 +247,7 @@ function Summary({ d, now }: { d: Detail; now: number }) {
       {d.status === 'done' ? (
         <section className="card flex flex-col gap-3 px-5 py-4.5">
           <h3 className="h2">{tr(m.nextSteps)}</h3>
-          <div className="mgrid grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))] max-md:grid-cols-1">
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
               <span className="font-semibold">{tr(m.warmTitle)}</span>
               <span className="k">{tr(m.warmBody, { named: firstList ? 'yes' : 'no', list: firstList ?? '' })}</span>

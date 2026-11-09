@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { ManagedByCard, useClientSections, useIsClientPerson } from '@/features/agency/WorkspaceParts'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { useFirstLoadSettled, useMediaQuery } from '@/lib/hooks'
+import { useCurrentTabInView, useFirstLoadSettled, useMediaQuery } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { Icon, LogoMark } from '../icons/Icon'
@@ -46,6 +46,7 @@ function Sidebar() {
   const rail = useMediaQuery('(min-width: 768px) and (max-width: 1100px)')
   const phone = useMediaQuery('(max-width: 767px)')
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  useCurrentTabInView(pathname)
   const current = sectionOf(pathname)
   const hidden = ws.hiddenSections ?? []
   // Client people see the sections their role opens (agency accounts).

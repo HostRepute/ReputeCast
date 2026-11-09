@@ -362,3 +362,31 @@
   gap: 14px;
   padding: 18px 20px;
 }
+
+/* Phones: the score bars' counts stay whole ("12/8" was 128), and the
+   comment filters scroll sideways in one row instead of wrapping into two
+   rows of 44 px chips. */
+@media (max-width: 767px) {
+  .pr-bars {
+    gap: 4px;
+  }
+  .pr-bar .k {
+    font-size: 10.5px;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+  .pr-chead {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .pr-fchips {
+    flex: 1 1 100%;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .pr-fchips > .chip {
+    flex: none;
+  }
+}

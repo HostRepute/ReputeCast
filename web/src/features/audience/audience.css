@@ -222,6 +222,15 @@
     background: var(--inverse);
     color: var(--on-strong);
   }
+  /* The activity filters are a scroll row (data-scroll-row) from 1100px
+     down, which masks the row to its box: 4px of padding, taken back by the
+     margin, keep the focus rings inside. Phones: see the end of the file. */
+  @media (max-width: 1100px) {
+    .afilters {
+      padding: 4px;
+      margin: -4px;
+    }
+  }
 
   /* Danger-outlined small buttons in the bulk bar and on the profile. */
   .btn.dline {
@@ -359,6 +368,19 @@
     white-space: normal;
     min-width: 150px;
   }
+  /* The address wraps anywhere within 230px on a wide screen; narrower,
+     the table scrolls and the address stays whole on one line. */
+  .tbl.stbl td.saddr {
+    white-space: normal;
+    max-width: 230px;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 1100px) {
+    .tbl.stbl td.saddr {
+      white-space: nowrap;
+      max-width: none;
+    }
+  }
   .syncc {
     flex: 1 1 260px;
     padding: 14px 18px;
@@ -388,5 +410,16 @@
   .dropz:focus-within {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+}
+
+/* Phones: the activity filters scroll sideways on one line (their 44px
+   targets would otherwise wrap into a second row); as a data-scroll-row,
+   their badges keep their width (app.css). */
+@media (max-width: 767px) {
+  .afilters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: calc(100% + 8px);
   }
 }

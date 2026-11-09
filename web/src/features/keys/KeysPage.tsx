@@ -158,7 +158,9 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
       ) : !q.data ? (
         <TableSkeleton label={t(m.keysLoading)} />
       ) : (
-        <AccessTable caption={t(m.keysTable)}>
+        // Narrow screens: who created it and when it was last used keep room for
+        // a name and a date ("Oct / 18, / 2026"); the table scrolls.
+        <AccessTable caption={t(m.keysTable)} className="max-[1100px]:[&_td:nth-child(4)]:min-w-[140px] max-[1100px]:[&_td:nth-child(5)]:min-w-[150px]">
           <thead>
             <tr>
               <Th>{t(m.colKey)}</Th>
@@ -293,7 +295,9 @@ function AgentsCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => v
       ) : !q.data ? (
         <TableSkeleton rows={2} label={t(m.agentsLoading)} />
       ) : (
-        <AccessTable caption={t(m.agentsTable)}>
+        // Narrow screens: who created it and when it was last used keep room for
+        // a name and a date ("Oct / 18, / 2026"); the table scrolls.
+        <AccessTable caption={t(m.agentsTable)} className="max-[1100px]:[&_td:nth-child(4)]:min-w-[140px] max-[1100px]:[&_td:nth-child(5)]:min-w-[150px]">
           <thead>
             <tr>
               <Th>{t(m.colAgent)}</Th>
@@ -370,7 +374,8 @@ function ActionsCard() {
       ) : !q.data ? (
         <TableSkeleton rows={3} label={t(m.actionsLoading)} />
       ) : (
-        <AccessTable caption={t(m.actionsTable)}>
+        // Narrow screens: the time column drops the key column's 180px, so the tool keeps the room.
+        <AccessTable caption={t(m.actionsTable)} className="max-[1100px]:[&_td:first-child]:min-w-0">
           <thead>
             <tr>
               <Th>{t(m.colWhen)}</Th>
@@ -389,15 +394,21 @@ function ActionsCard() {
                   <Td>{logTime(a.occurredAt, now)}</Td>
                   <Td>{a.agent}</Td>
                   <Td>
-                    <span className="mono">{a.tool}</span>
+                    {/* A tool name stays whole on phones (the table scrolls), not "get/_ca/mpa/ign". */}
+                    <span className="mono max-md:whitespace-nowrap">{a.tool}</span>
                   </Td>
                   <Td>{a.target}</Td>
                   <Td>
                     <span className="row gap-1.5">
+                      {/* min-w-min: in a .row on phones a badge may otherwise shrink below its word. */}
                       {a.result === 'allowed' ? (
-                        <Badge tone="ok">{t(m.resultAllowed)}</Badge>
+                        <Badge tone="ok" className="min-w-min">
+                          {t(m.resultAllowed)}
+                        </Badge>
                       ) : (
-                        <Badge tone="bad">{a.result === 'denied' ? t(m.resultDenied) : t(m.resultError)}</Badge>
+                        <Badge tone="bad" className="min-w-min">
+                          {a.result === 'denied' ? t(m.resultDenied) : t(m.resultError)}
+                        </Badge>
                       )}
                       {a.note ? <span className="k">{a.note}</span> : null}
                     </span>

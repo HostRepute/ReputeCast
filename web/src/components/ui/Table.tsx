@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, type CSSProperties, type HTMLAttributes, type ReactNode, type TableHTMLAttributes } from 'react'
+import { useEffect, useLayoutEffect, useState, type CSSProperties, type HTMLAttributes, type ReactNode, type RefObject, type TableHTMLAttributes } from 'react'
 import { useScrollRegion } from '@/lib/hooks'
 import { cn } from '@/lib/cn'
 
@@ -48,11 +48,45 @@ export function Table({
  */
 export function TableScroll({ label, className, maxHeight, children }: { label?: string; className?: string; maxHeight?: number | string; children: ReactNode }) {
   const [ref, scroll] = useScrollRegion<HTMLDivElement>(label, maxHeight !== undefined)
+  useScrollEdges(ref)
   return (
     <div ref={ref} className={cn('tscroll', maxHeight !== undefined && 'tall', className)} style={maxHeight !== undefined ? { maxHeight } : undefined} {...scroll}>
       {children}
     </div>
   )
+}
+
+/**
+ * Marks which sides of a sideways scroller have more to see (data-more:
+ * start, end or both; none while it all fits), so the CSS fades that edge:
+ * a table cut at the card's edge says it scrolls. Set on the element, not
+ * in state, so scrolling never renders the table again.
+ */
+export function useScrollEdges(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const mark = () => {
+      const max = el.scrollWidth - el.clientWidth
+      const at = Math.abs(el.scrollLeft)
+      // A table a few pixels wider than its card only loses cell padding
+      // (a cell pads 12px): no fade then, so nothing readable is dimmed.
+      const more = max <= 12 ? '' : at <= 1 ? 'end' : at >= max - 1 ? 'start' : 'both'
+      if ((el.dataset.more ?? '') !== more) {
+        if (more) el.dataset.more = more
+        else delete el.dataset.more
+      }
+    }
+    mark()
+    el.addEventListener('scroll', mark, { passive: true })
+    const ro = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(mark)
+    ro?.observe(el)
+    if (el.firstElementChild) ro?.observe(el.firstElementChild)
+    return () => {
+      el.removeEventListener('scroll', mark)
+      ro?.disconnect()
+    }
+  }, [ref])
 }
 
 /**

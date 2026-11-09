@@ -194,6 +194,13 @@
   .rv-allc .rv-grp {
     border-top: 1px solid var(--line);
   }
+  /* Tablets: the fixes take at most half the row and wrap there, so three
+     of them don't squeeze the finding to a narrow column. */
+  @media (max-width: 1100px) {
+    .rv-srow {
+      grid-template-columns: auto minmax(0, 1fr) fit-content(50%);
+    }
+  }
   @media (max-width: 767px) {
     .rv-srow {
       grid-template-columns: auto minmax(0, 1fr);

@@ -443,8 +443,10 @@
     width: 44px;
     height: 44px;
   }
+  /* 6 px between the row's five parts leaves the name its two words
+     ("Amazon SES") on one line beside the 44 px arrows. */
   .pv-wl li {
-    gap: 8px;
+    gap: 6px;
     padding: 8px;
   }
   .pv-unsaved {
@@ -459,5 +461,25 @@
   }
   .pv-ipdlg .btn.ic {
     width: 44px;
+  }
+  /* The event log's raw type stays whole ("DeliveryDelay"); the table
+     scrolls inside its card instead of stacking it three letters a line. */
+  .pv-raw {
+    white-space: nowrap;
+  }
+  /* Its filters: the two selects share a line, then the search and Export
+     CSV, instead of one control a line. */
+  .pv-filters > select.in {
+    flex: 1 1 110px;
+    width: auto;
+    min-width: 0;
+  }
+  .pv-filters > select.in:first-child {
+    flex-basis: 180px;
+  }
+  .pv-filters > input.in {
+    flex: 1 1 160px;
+    width: auto;
+    min-width: 0;
   }
 }

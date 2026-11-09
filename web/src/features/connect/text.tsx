@@ -36,3 +36,24 @@ export function dotted(items: ReactNode[]): ReactNode {
     </Fragment>
   ))
 }
+
+/**
+ * A DNS name or value with a line-break chance after each dot, colon,
+ * semicolon and equals sign and before an at sign
+ * ("7kq2n3x.|_domainkey.|news.|acme.io"), so a narrow column breaks a record
+ * between its parts, not in the middle of "include" or "_domainkey".
+ */
+export function Breakable({ text }: { text: string }) {
+  const parts = text.split(/(?<=[.:;=])|(?=@)/)
+  if (parts.length < 2) return <>{text}</>
+  return (
+    <>
+      {parts.map((p, i) => (
+        <Fragment key={i}>
+          {i > 0 ? <wbr /> : null}
+          {p}
+        </Fragment>
+      ))}
+    </>
+  )
+}

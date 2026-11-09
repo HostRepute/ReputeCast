@@ -10,6 +10,7 @@ import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { andList, count, dayMonthYear, orList, pct, shortDate, weekdayName } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { downloadCsv } from '@/lib/download'
 import { m as dm } from '@/lib/download.messages'
@@ -155,6 +156,8 @@ function Body({
   const tab = search.tab ?? 'bookings'
   const rows = [...data.past, ...data.upcoming]
   const canManage = data.canManage
+  // On phones the sections scroll on one line (sponsors.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   if (!data.slots.length) {
     return (
       <div className="flex flex-col gap-5">
@@ -183,7 +186,7 @@ function Body({
       ) : null}
       <section className="card" aria-label={label}>
         <div className="sp-sec">
-          <div className="sp-ptabs" role="tablist" aria-label={t(msp.sectionsLabel)}>
+          <div className="sp-ptabs" role="tablist" aria-label={t(msp.sectionsLabel)} data-scroll-row={phone ? '' : undefined}>
             {tabs.map((x) => (
               <button
                 key={x.value}

@@ -9,6 +9,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Icon } from '@/components/icons/Icon'
 import { useT, type MessageDescriptor } from '@/i18n'
 import { dayMonthDate, orList } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { FormsTabs, throwIfForbidden } from '@/features/forms/common'
 import { bare, useWebsite, type Address, type Overview } from './api'
@@ -93,11 +94,13 @@ export function WebsitePage({ view, overview, actions, children, documentTitle }
     { key: 'access', to: '/w/$workspace/forms/website/access', label: t(m.viewAccess) },
   ]
   const current = views.find((v) => v.key === view)!
+  // On phones the views scroll on one line (website.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   return (
     <Page title={t(m.screenTitle)} documentTitle={documentTitle ?? `${current.label} · ${t(m.screenTitle)}`} filters={<FormsTabs />} actions={actions}>
       <div className="ws-main">
         <div className="ws-vbar">
-          <nav className="ws-vp" aria-label={t(m.viewsLabel)}>
+          <nav className="ws-vp" aria-label={t(m.viewsLabel)} data-scroll-row={phone ? '' : undefined}>
             {views.map((v) => (
               <Link key={v.key} to={v.to} params={params} className={v.key === view ? 'ws-fchip on' : 'ws-fchip'} aria-current={v.key === view ? 'page' : undefined} activeOptions={{ exact: true }}>
                 {v.label}

@@ -878,7 +878,7 @@ function ContactsTable({
   return (
     <section className="card" aria-label={tr(m.contacts)}>
       <TableScroll label={tr(m.contacts)}>
-        <table className="tbl ctbl phone-wrap">
+        <table className="tbl ctbl">
           <thead>
             <tr>
               <th scope="col">
