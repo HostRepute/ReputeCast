@@ -15,10 +15,12 @@
   --ground-3: #10161f;
   --surface: #151c27;
   --line: #283243;
-  --line-2: #1f2834;
+  --line-2: #222b38;
   --line-strong: #3a4557;
   --line-input: #717d91;
   --line-hover: #4b576b;
+  --swatch-edge: #8b95a6;
+  --swatch-ring: #8b95a6;
   --accent: #2ec4af;
   --accent-hover: #5cd8c6;
   --accent-soft: #11302d;
@@ -60,6 +62,7 @@
   --on-strong: #0c1119;
   --inverse: #e7ebf1;
   --code-bg: #0a0f16;
+  --code-edge: #717d91;
   --inverse-muted: #4b5563;
   --inverse-faint: #5b6472;
   --inverse-line: #7a8597;
@@ -81,6 +84,10 @@
   --info-soft: #2f5a92;
   --purple-line: #4a3d85;
   --purple-tint: #1d1838;
+  --pink-bg: #4a1d36;
+  --pink-fg: #f9a8d4;
+  --sky-bg: #0c3350;
+  --sky-fg: #7dd3fc;
   --dark-surface: #0a0f16;
   --dark-line: #263041;
   --chart-gmail: #4c93ea;
@@ -97,6 +104,10 @@
   --chart-score-2: #e57aa8;
   --chart-score-3: #f5b8d1;
   --chart-spam: #f87171;
+  --chart-plan: #3a6aa8;
+  --chart-tabs: #5a8fd6;
+  --chart-band: #1f5f57;
+  --chart-track: #1f2834;
   --shadow-rgb: 0 0 0;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
   --shadow-md: 0 6px 16px rgba(0,0,0,0.45);
@@ -107,7 +118,6 @@
   --shadow-dialog: 0 24px 60px rgba(0,0,0,0.6);
   --focus: var(--accent);
   --chart-human: var(--ink);
-  --chart-track: var(--line-2);
 }
 /* Before lib/theme has run (it sets data-theme), the device decides. */
 @media (prefers-color-scheme: dark) {
@@ -123,10 +133,12 @@
     --ground-3: #10161f;
     --surface: #151c27;
     --line: #283243;
-    --line-2: #1f2834;
+    --line-2: #222b38;
     --line-strong: #3a4557;
     --line-input: #717d91;
     --line-hover: #4b576b;
+    --swatch-edge: #8b95a6;
+    --swatch-ring: #8b95a6;
     --accent: #2ec4af;
     --accent-hover: #5cd8c6;
     --accent-soft: #11302d;
@@ -168,6 +180,7 @@
     --on-strong: #0c1119;
     --inverse: #e7ebf1;
     --code-bg: #0a0f16;
+    --code-edge: #717d91;
     --inverse-muted: #4b5563;
     --inverse-faint: #5b6472;
     --inverse-line: #7a8597;
@@ -189,6 +202,10 @@
     --info-soft: #2f5a92;
     --purple-line: #4a3d85;
     --purple-tint: #1d1838;
+    --pink-bg: #4a1d36;
+    --pink-fg: #f9a8d4;
+    --sky-bg: #0c3350;
+    --sky-fg: #7dd3fc;
     --dark-surface: #0a0f16;
     --dark-line: #263041;
     --chart-gmail: #4c93ea;
@@ -205,6 +222,10 @@
     --chart-score-2: #e57aa8;
     --chart-score-3: #f5b8d1;
     --chart-spam: #f87171;
+    --chart-plan: #3a6aa8;
+    --chart-tabs: #5a8fd6;
+    --chart-band: #1f5f57;
+    --chart-track: #1f2834;
     --shadow-rgb: 0 0 0;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
     --shadow-md: 0 6px 16px rgba(0,0,0,0.45);
@@ -215,7 +236,6 @@
     --shadow-dialog: 0 24px 60px rgba(0,0,0,0.6);
     --focus: var(--accent);
     --chart-human: var(--ink);
-    --chart-track: var(--line-2);
   }
 }
 /* A preview of what readers see in light (an email, a public page, a phone screen): the light values whatever the theme. */
@@ -235,6 +255,8 @@
   --line-strong: #d4d8df;
   --line-input: #8b94a3;
   --line-hover: #c9ced6;
+  --swatch-edge: #d4d8df;
+  --swatch-ring: rgba(11,18,32,0.12);
   --accent: #0f766e;
   --accent-hover: #115e59;
   --accent-soft: #e3f1ee;
@@ -276,6 +298,7 @@
   --on-strong: #ffffff;
   --inverse: #0b1220;
   --code-bg: #0b1220;
+  --code-edge: #0b1220;
   --inverse-muted: #c3c2b7;
   --inverse-faint: #9ca3af;
   --inverse-line: #4b5563;
@@ -297,6 +320,10 @@
   --info-soft: #93c5fd;
   --purple-line: #ddd6fe;
   --purple-tint: #f5f3ff;
+  --pink-bg: #fce7f3;
+  --pink-fg: #9d174d;
+  --sky-bg: #e0f2fe;
+  --sky-fg: #075985;
   --dark-surface: #111827;
   --dark-line: #1f2937;
   --chart-gmail: #2a78d6;
@@ -313,6 +340,10 @@
   --chart-score-2: #d9588e;
   --chart-score-3: #a43068;
   --chart-spam: #7f1d1d;
+  --chart-plan: #dbeafe;
+  --chart-tabs: #93c5fd;
+  --chart-band: #e3f1ee;
+  --chart-track: var(--line-2);
   --shadow-rgb: 11 18 32;
   --shadow-sm: 0 1px 2px rgba(11,18,32,0.06);
   --shadow-md: 0 6px 16px rgba(11,18,32,0.08);
@@ -323,7 +354,6 @@
   --shadow-dialog: 0 24px 60px rgba(11,18,32,0.3);
   --focus: var(--accent);
   --chart-human: var(--ink);
-  --chart-track: var(--line-2);
 }
 /* A picture of the dark theme (Appearance), whatever the theme. */
 .keep-dark {
@@ -338,10 +368,12 @@
   --ground-3: #10161f;
   --surface: #151c27;
   --line: #283243;
-  --line-2: #1f2834;
+  --line-2: #222b38;
   --line-strong: #3a4557;
   --line-input: #717d91;
   --line-hover: #4b576b;
+  --swatch-edge: #8b95a6;
+  --swatch-ring: #8b95a6;
   --accent: #2ec4af;
   --accent-hover: #5cd8c6;
   --accent-soft: #11302d;
@@ -383,6 +415,7 @@
   --on-strong: #0c1119;
   --inverse: #e7ebf1;
   --code-bg: #0a0f16;
+  --code-edge: #717d91;
   --inverse-muted: #4b5563;
   --inverse-faint: #5b6472;
   --inverse-line: #7a8597;
@@ -404,6 +437,10 @@
   --info-soft: #2f5a92;
   --purple-line: #4a3d85;
   --purple-tint: #1d1838;
+  --pink-bg: #4a1d36;
+  --pink-fg: #f9a8d4;
+  --sky-bg: #0c3350;
+  --sky-fg: #7dd3fc;
   --dark-surface: #0a0f16;
   --dark-line: #263041;
   --chart-gmail: #4c93ea;
@@ -420,6 +457,10 @@
   --chart-score-2: #e57aa8;
   --chart-score-3: #f5b8d1;
   --chart-spam: #f87171;
+  --chart-plan: #3a6aa8;
+  --chart-tabs: #5a8fd6;
+  --chart-band: #1f5f57;
+  --chart-track: #1f2834;
   --shadow-rgb: 0 0 0;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
   --shadow-md: 0 6px 16px rgba(0,0,0,0.45);
@@ -430,7 +471,6 @@
   --shadow-dialog: 0 24px 60px rgba(0,0,0,0.6);
   --focus: var(--accent);
   --chart-human: var(--ink);
-  --chart-track: var(--line-2);
 }
 /* Text inside a scope is its ink, not the colour inherited from the page around it. In
    the base layer, so a colour the element sets itself (a component, a text-* utility) wins. */
@@ -459,6 +499,8 @@
     --line-strong: #d4d8df;
     --line-input: #8b94a3;
     --line-hover: #c9ced6;
+    --swatch-edge: #d4d8df;
+    --swatch-ring: rgba(11,18,32,0.12);
     --accent: #0f766e;
     --accent-hover: #115e59;
     --accent-soft: #e3f1ee;
@@ -500,6 +542,7 @@
     --on-strong: #ffffff;
     --inverse: #0b1220;
     --code-bg: #0b1220;
+    --code-edge: #0b1220;
     --inverse-muted: #c3c2b7;
     --inverse-faint: #9ca3af;
     --inverse-line: #4b5563;
@@ -521,6 +564,10 @@
     --info-soft: #93c5fd;
     --purple-line: #ddd6fe;
     --purple-tint: #f5f3ff;
+    --pink-bg: #fce7f3;
+    --pink-fg: #9d174d;
+    --sky-bg: #e0f2fe;
+    --sky-fg: #075985;
     --dark-surface: #111827;
     --dark-line: #1f2937;
     --chart-gmail: #2a78d6;
@@ -537,6 +584,10 @@
     --chart-score-2: #d9588e;
     --chart-score-3: #a43068;
     --chart-spam: #7f1d1d;
+    --chart-plan: #dbeafe;
+    --chart-tabs: #93c5fd;
+    --chart-band: #e3f1ee;
+    --chart-track: var(--line-2);
     --shadow-rgb: 11 18 32;
     --shadow-sm: 0 1px 2px rgba(11,18,32,0.06);
     --shadow-md: 0 6px 16px rgba(11,18,32,0.08);
@@ -547,6 +598,5 @@
     --shadow-dialog: 0 24px 60px rgba(11,18,32,0.3);
     --focus: var(--accent);
     --chart-human: var(--ink);
-    --chart-track: var(--line-2);
   }
 }

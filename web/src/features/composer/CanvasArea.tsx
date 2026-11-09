@@ -413,7 +413,8 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
               {issue.tag}
             </button>
             {issue.url && issue.id.startsWith('links.') ? (
-              <span className="mono" style={{ position: 'absolute', zIndex: 2, top: box.top + box.height + 10, left: box.left - 40, width: box.width + 80, textAlign: 'center', fontSize: 11, color: tone === 'b' ? 'var(--bad-fg)' : 'var(--warn-fg)', pointerEvents: 'none' }}>
+              // Drawn on the email's white paper: the light theme's colours in both themes.
+              <span className="mono keep-light" style={{ position: 'absolute', zIndex: 2, top: box.top + box.height + 10, left: box.left - 40, width: box.width + 80, textAlign: 'center', fontSize: 11, color: tone === 'b' ? 'var(--bad-fg)' : 'var(--warn-fg)', pointerEvents: 'none' }}>
                 {issue.url.replace(/^https?:\/\//, '')}
               </span>
             ) : null}
@@ -431,7 +432,8 @@ function MissingFooter({ width }: { width: number }) {
   if (!issue) return null
   const when = c.checks?.footerRemovedAt
   return (
-    <div className="wfoot" style={{ width, marginTop: 0 }}>
+    // In place of the footer, on the email's white paper: light in both themes.
+    <div className="wfoot keep-light" style={{ width, marginTop: 0 }}>
       <button type="button" className="wtag b" style={{ top: -13, left: '50%', transform: 'translateX(-50%)' }} onClick={() => c.setRightTab('deliverability')}>
         <ToolIcon name="warn" size={12} strokeWidth={2} />
         {issue.tag || t(mc.noFooterTag)}

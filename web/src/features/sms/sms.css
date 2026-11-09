@@ -367,7 +367,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    background: var(--accent-soft);
+    background: var(--chart-band);
   }
   .sms-qh-t .win {
     position: absolute;

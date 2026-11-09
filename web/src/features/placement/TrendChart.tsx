@@ -90,7 +90,7 @@ type Seg = { value: number; fill: string; ink: string }
 function segments(c: Counts): Seg[] {
   return [
     { value: c.inbox, fill: FOLDER.inbox, ink: 'var(--on-strong)' },
-    { value: c.tab, fill: FOLDER.tab, ink: 'var(--ink)' },
+    { value: c.tab, fill: FOLDER.tab, ink: 'var(--on-light)' },
     { value: c.spam, fill: FOLDER.spam, ink: 'var(--on-strong)' },
     { value: c.notArrived, fill: FOLDER.notArrived, ink: 'var(--on-light)' },
   ].filter((s) => s.value > 0)

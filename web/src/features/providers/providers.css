@@ -141,7 +141,7 @@
   }
   .pv-col .cap {
     width: 100%;
-    background: var(--info-bg);
+    background: var(--chart-plan);
     border-radius: 3px 3px 0 0;
   }
   .pv-col .sent {
@@ -208,6 +208,8 @@
     padding: 14px 16px;
     border-radius: 8px;
     background: var(--code-bg);
+    /* On a dark card the pane is as dark as the card: its edge shows the field (WCAG 1.4.11). */
+    box-shadow: inset 0 0 0 1px var(--code-edge);
     color: var(--dark-text);
     font-family: var(--font-family-mono);
     font-size: 12px;

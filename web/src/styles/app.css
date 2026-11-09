@@ -261,6 +261,16 @@
     caret-color: var(--ink);
     box-shadow: 0 0 0 1000px var(--accent-tint) inset;
   }
+  /* In the dark theme the accent is light, so the light theme's 55% fade
+     leaves a mid teal that still looks pressable: a disabled primary button
+     there is a quiet teal-grey with a readable label instead. */
+  :root[data-theme='dark'] :is(.btn.pri:disabled, .btn.pri[aria-disabled='true']),
+  :root[data-theme='dark'] :is(.btn.pri:disabled, .btn.pri[aria-disabled='true']):hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--surface));
+    color: color-mix(in srgb, var(--ink) 62%, var(--surface));
+  }
   /* A theme change swaps every colour at once (lib/theme holds transitions for a frame). */
   [data-theme-switching] *,
   [data-theme-switching] *::before,

@@ -129,14 +129,27 @@ describe.each(themes)('%s theme contrast', (theme) => {
   })
 })
 
+describe('dark theme edges', () => {
+  // Where the light theme's edge is faint by design (a swatch on white is
+  // seen by its colour), the dark theme's must still outline the shape.
+  const p = palette(t, 'dark')
+  it('colour swatches and editable code fields are outlined at 3:1 on cards, menus and fields', () => {
+    const fails = ['swatch-edge', 'swatch-ring', 'code-edge']
+      .flatMap((e) => ['surface', 'raised', 'field'].map((b) => [e, b, contrast(p[e]!, p[b]!)] as const))
+      .filter(([, , r]) => r < 3)
+    expect(fails.map(([a, b, r]) => `${a} on ${b}: ${r.toFixed(2)}`)).toEqual([])
+  })
+})
+
 describe('dark theme charts', () => {
   // The light chart palette is the boards' (Sunset and machine opens are
   // drawn faint on purpose); the dark one was picked so every series is
   // 3:1 on cards and on its track.
   const p = palette(t, 'dark')
-  const series = ['chart-gmail', 'chart-outlook', 'chart-yahoo', 'chart-icloud', 'chart-other', 'chart-ses', 'chart-postal', 'chart-postmark', 'chart-tier-1', 'chart-tier-2', 'chart-tier-3', 'chart-tier-4', 'chart-human', 'chart-machine', 'chart-score-1', 'chart-score-2', 'chart-score-3', 'chart-spam']
+  const series = ['chart-gmail', 'chart-outlook', 'chart-yahoo', 'chart-icloud', 'chart-other', 'chart-ses', 'chart-postal', 'chart-postmark', 'chart-tier-1', 'chart-tier-2', 'chart-tier-3', 'chart-tier-4', 'chart-human', 'chart-machine', 'chart-score-1', 'chart-score-2', 'chart-score-3', 'chart-spam', 'chart-plan', 'chart-tabs']
   it('every series is 3:1 on cards and on the empty track', () => {
-    const fails = series.flatMap((s) => ['surface', 'chart-track'].map((b) => [s, b, contrast(p[s]!, p[b]!)] as const)).filter(([, , r]) => r < 3)
+    // The plan (warm-up caps) stands on the card behind the sent bars, not on a track.
+    const fails = series.flatMap((s) => (s === 'chart-plan' ? ['surface'] : ['surface', 'chart-track']).map((b) => [s, b, contrast(p[s]!, p[b]!)] as const)).filter(([, , r]) => r < 3)
     expect(fails.map(([a, b, r]) => `${a} on ${b}: ${r.toFixed(2)}`)).toEqual([])
   })
   it('the engagement tiers step from light (Active) to deep (Sunset), and the score bands from deep (Cool) to light (Hot)', () => {

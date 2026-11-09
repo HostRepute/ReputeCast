@@ -501,7 +501,7 @@ function QuietHours({
               {t(m.legendWindow, { from: form.quietFrom, to: form.quietTo })}
             </span>
             <span>
-              <span className="sms-bsw" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-line)', boxSizing: 'border-box' }} />
+              <span className="sms-bsw" style={{ background: 'var(--chart-band)', border: '1px solid var(--accent-line)', boxSizing: 'border-box' }} />
               {t(m.legendLimit)}
             </span>
             {z ? (
