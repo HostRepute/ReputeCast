@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { DropdownMenu } from 'radix-ui'
 import { http } from '@/api/client'
+import { ThemeMenuItem } from '@/features/appearance/ThemeMenuItem'
 import { LanguageMenuItem } from '@/features/language/LanguageMenuItem'
 import { T, useT } from '@/i18n'
 import { useMediaQuery } from '@/lib/hooks'
@@ -11,7 +12,7 @@ import { Avatar } from '../ui/Avatar'
 import { m } from './messages'
 import { initials, wsColor } from './WorkspaceSwitcher'
 
-/** Account menu: Account & security, notification preferences, settings, instance admin, sign out (ShellUserMenu). */
+/** Account menu: Account & security, language, theme, notification preferences, settings, instance admin, sign out (ShellUserMenu). */
 export function UserMenu() {
   const { data: me } = useMe()
   const ws = useOptionalWorkspace()
@@ -58,7 +59,7 @@ export function UserMenu() {
               {me.workspaces.map((w, i) => (
                 <DropdownMenu.Item key={w.id} asChild>
                   <Link to="/w/$workspace" params={{ workspace: w.slug }} aria-current={w.slug === slug ? 'true' : undefined}>
-                    <span className="av" style={{ width: 20, height: 20, fontSize: 9, background: wsColor(i), color: 'var(--surface)', borderRadius: 5 }} aria-hidden="true">
+                    <span className="av keep-light" style={{ width: 20, height: 20, fontSize: 9, background: wsColor(i), color: 'var(--on-fixed)', borderRadius: 5 }} aria-hidden="true">
                       {initials(w.name)}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{w.name}</span>
@@ -76,6 +77,7 @@ export function UserMenu() {
             </Link>
           </DropdownMenu.Item>
           <LanguageMenuItem slug={slug} />
+          <ThemeMenuItem />
 
           <DropdownMenu.Item asChild>
             <Link to="/w/$workspace/notifications" params={{ workspace: slug }} hash="preferences">

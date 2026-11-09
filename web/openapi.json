@@ -15913,6 +15913,24 @@
         ],
         "type": "object"
       },
+      "Choice": {
+        "additionalProperties": false,
+        "properties": {
+          "theme": {
+            "description": "system follows the device's light or dark setting",
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "type": "object"
+      },
       "CloudflareInput": {
         "additionalProperties": false,
         "properties": {
@@ -45429,6 +45447,14 @@
             "format": "int64",
             "type": "integer"
           },
+          "theme": {
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          },
           "timezone": {
             "type": "string"
           },
@@ -45451,7 +45477,8 @@
           "hasPassword",
           "totp",
           "passkeys",
-          "recoveryCodes"
+          "recoveryCodes",
+          "theme"
         ],
         "type": "object"
       },
@@ -108285,6 +108312,54 @@
           }
         ],
         "summary": "Account \u0026 security: profile, sign-in methods, two-factor, workspaces",
+        "tags": [
+          "Account"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/me/appearance": {
+      "put": {
+        "description": "Sets whether ReputeCast's interface is light or dark for you, on every browser you sign in on. \"system\" follows each device's light or dark setting. Emails, public pages and their previews keep their own colours.",
+        "operationId": "update-my-appearance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Choice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Choice"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change your theme",
         "tags": [
           "Account"
         ],

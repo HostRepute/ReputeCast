@@ -3244,7 +3244,7 @@ func (q *Queries) AgencyUsageRange(ctx context.Context, arg AgencyUsageRangePara
 }
 
 const agencyUserByEmail = `-- name: AgencyUserByEmail :one
-SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at, totp_last_step FROM users WHERE email = $1
+SELECT id, email, name, avatar_color, timezone, password_hash, password_set_at, must_change_password, is_instance_admin, break_glass, status, deactivated_at, totp_secret_enc, totp_enabled_at, twofa_grace_until, failed_attempts, locked_until, last_sign_in_at, last_active_at, created_at, updated_at, webauthn_id, totp_label, recovery_codes_saved_at, avatar_updated_at, language, region_format, hour_cycle, week_start, language_prompted_at, totp_last_step, theme FROM users WHERE email = $1
 `
 
 func (q *Queries) AgencyUserByEmail(ctx context.Context, email string) (User, error) {
@@ -3282,6 +3282,7 @@ func (q *Queries) AgencyUserByEmail(ctx context.Context, email string) (User, er
 		&i.WeekStart,
 		&i.LanguagePromptedAt,
 		&i.TotpLastStep,
+		&i.Theme,
 	)
 	return i, err
 }

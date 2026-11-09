@@ -29,7 +29,7 @@
     position: fixed;
     inset: 0;
     z-index: 55;
-    background: rgba(11, 18, 32, 0.32);
+    background: var(--scrim);
     animation: rc-sheet-fade var(--duration-base) var(--ease-out-soft) both;
   }
   .sheet {
@@ -46,9 +46,9 @@
     flex-direction: column;
     gap: 8px;
     padding: 8px 16px 14px;
-    background: #fff;
+    background: var(--raised);
     border-radius: 18px 18px 0 0;
-    box-shadow: 0 -12px 40px rgba(11, 18, 32, 0.22);
+    box-shadow: 0 -12px 40px rgb(var(--shadow-rgb) / 0.22);
     animation: rc-rise var(--duration-base) var(--ease-out-soft) both;
   }
   .sheet:focus {
@@ -102,7 +102,7 @@
     color: var(--ink);
   }
   .sheet-item:hover {
-    background: var(--ground);
+    background: var(--hover);
     color: var(--ink);
   }
   .sheet-ic {
@@ -121,7 +121,7 @@
     font-size: 15px;
   }
   .sheet-chev {
-    color: #9aa3b2;
+    color: var(--muted-line);
     flex: none;
   }
   /* The current section, as in the sidebar. */
@@ -131,7 +131,7 @@
     color: var(--accent);
   }
   .sheet-item.on .sheet-ic {
-    background: #fff;
+    background: var(--surface);
   }
   .sheet-item.on .sheet-chev {
     color: var(--accent);
@@ -151,7 +151,7 @@
     color: var(--ink);
   }
   .sheet-row:hover {
-    background: var(--ground);
+    background: var(--hover);
     color: var(--ink);
   }
   .sheet-row-t {

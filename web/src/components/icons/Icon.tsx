@@ -260,6 +260,15 @@ const icons = {
     ),
   },
   moon: { body: <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" strokeLinejoin="round" /> },
+  // The light theme (Appearance, M54).
+  sun: {
+    body: (
+      <>
+        <circle cx="8" cy="8" r="2.75" />
+        <path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06" />
+      </>
+    ),
+  },
   image: {
     body: (
       <>
@@ -479,8 +488,8 @@ export function LogoMark({ size = 26, title }: { size?: number; title?: string }
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true} focusable="false">
       <rect width="32" height="32" rx="8" fill="var(--accent)" />
-      <path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="var(--surface)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M7 12l9 7L27 8" fill="none" stroke="var(--surface)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="var(--on-strong)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 12l9 7L27 8" fill="none" stroke="var(--on-strong)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

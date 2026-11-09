@@ -8,6 +8,8 @@ import { cn } from '@/lib/cn'
 import { shortDate } from '@/lib/format'
 import { useDebounced } from '@/lib/hooks'
 import { useOptionalWorkspace } from '@/lib/session'
+import { m as ma } from '@/features/appearance/messages'
+import { useSaveTheme, useTheme } from '@/features/appearance/useTheme'
 import { settingRows } from '@/features/settings/settingsIndex'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { m } from './messages'
@@ -27,7 +29,7 @@ interface Dest {
 /** One row of the palette. */
 export interface Entry {
   key: string
-  kind: Kind | 'goto'
+  kind: Kind | 'goto' | 'action'
   title: string
   detail: string
   dest: Dest
@@ -35,6 +37,8 @@ export interface Entry {
   remember?: boolean
   /** A single setting: shown only for what is typed, not among the places to go. */
   setting?: boolean
+  /** A command (the theme): runs instead of opening dest, and is found by its title or detail. */
+  run?: () => void
 }
 
 /** The permission that opens each kind; Recent leaves out what the role can't open any more. */
@@ -58,7 +62,7 @@ const kindWord = {
   forms: mp.kindForm,
   pages: mp.kindPage,
 }
-const kindIcon: Record<Kind | 'goto', string> = { campaigns: 'C', contacts: '@', automations: 'A', lists: 'L', segments: 'S', forms: 'F', pages: 'P', goto: '→' }
+const kindIcon: Record<Kind | 'goto' | 'action', string> = { campaigns: 'C', contacts: '@', automations: 'A', lists: 'L', segments: 'S', forms: 'F', pages: 'P', goto: '→', action: '◐' }
 
 const reports = { email: 'report', sms: 'sms-report', push: 'push-report', whatsapp: 'whatsapp-report' } as const
 const editors = { sms: '/w/$workspace/campaigns/$campaignId/sms', push: '/w/$workspace/campaigns/$campaignId/push', whatsapp: '/w/$workspace/campaigns/$campaignId/whatsapp' } as const
@@ -196,6 +200,8 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
     { enabled: term.length >= 2, placeholderData: keepPreviousData, staleTime: 15_000 },
   )
   useEffect(() => input.current?.focus(), [])
+  const theme = useTheme()
+  const saveTheme = useSaveTheme()
 
   // The places the role can open: sections, New campaign and settings tabs.
   const places = useMemo<Entry[]>(() => {
@@ -249,6 +255,19 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
     if (placeHits.length) groups.push({ label: t(mp.goTo), entries: placeHits })
     const settingHits = places.filter((p) => p.setting && p.title.toLowerCase().includes(low)).slice(0, 5)
     if (settingHits.length) groups.push({ label: t(mp.settings), entries: settingHits })
+    // The theme (M54): "dark", "light", "theme" or "appearance" find the other two choices.
+    const themeHits = (['dark', 'light', 'system'] as const)
+      .filter((c) => c !== theme.choice)
+      .map<Entry>((c) => ({
+        key: `action:theme:${c}`,
+        kind: 'action',
+        title: t(c === 'dark' ? ma.useDark : c === 'light' ? ma.useLight : ma.useSystem),
+        detail: t(ma.paletteDetail),
+        dest: { to: '/w/$workspace/account', params: { workspace } },
+        run: () => void saveTheme(c, { announce: true }),
+      }))
+      .filter((e) => `${e.title} ${e.detail}`.toLowerCase().includes(low))
+    if (themeHits.length) groups.push({ label: t(ma.title), entries: themeHits })
   }
   const flat = groups.flatMap((g) => g.entries)
   // The highlight starts over on the first row whenever the rows change.
@@ -258,6 +277,11 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
   const setActive = (next: number | ((i: number) => number)) => setSel({ key: rowsKey, i: typeof next === 'function' ? next(current) : next })
 
   const go = (e: Entry) => {
+    if (e.run) {
+      close()
+      e.run()
+      return
+    }
     if (e.remember) remember(workspace, e)
     close()
     void navigate({ to: e.dest.to, params: e.dest.params, search: e.dest.search } as never)

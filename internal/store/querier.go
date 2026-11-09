@@ -305,6 +305,8 @@ type Querier interface {
 	// App languages: a member's language and region format, the instance
 	// defaults and an invitation's language (internal/applang, internal/i18n).
 	AppLangSetUser(ctx context.Context, arg AppLangSetUserParams) (User, error)
+	// Appearance (M54): the member's light or dark theme (internal/appearance).
+	AppearanceSetTheme(ctx context.Context, arg AppearanceSetThemeParams) (User, error)
 	ApprovalAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ApprovalAudienceListsRow, error)
 	ApprovalBypassCount(ctx context.Context, arg ApprovalBypassCountParams) (int64, error)
 	ApprovalCampaignVersion(ctx context.Context, arg ApprovalCampaignVersionParams) (ApprovalCampaignVersionRow, error)

@@ -5101,6 +5101,7 @@ type User struct {
 	WeekStart            *string    `json:"weekStart"`
 	LanguagePromptedAt   *time.Time `json:"languagePromptedAt"`
 	TotpLastStep         *int64     `json:"totpLastStep"`
+	Theme                *string    `json:"theme"`
 }
 
 type UserAvatar struct {

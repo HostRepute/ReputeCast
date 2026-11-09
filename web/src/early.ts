@@ -11,6 +11,18 @@
  */
 import type { EarlyAnswers } from './lib/early'
 
+// The theme first, before anything is drawn: the member's choice kept in
+// this browser (lib/theme, which this mirrors without importing it: an
+// import would pull the app's shared chunk into this entry), else the
+// device's setting. styles/themes.css reads html[data-theme].
+try {
+  const kept = localStorage.getItem('rc.theme')
+  const dark = kept === 'dark' || (kept !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+} catch {
+  // Blocked storage: themes.css follows the device until lib/theme runs.
+}
+
 function ask(path: string): Promise<unknown> {
   return fetch(path, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
     .then((r) => (r.ok ? r.json() : undefined))

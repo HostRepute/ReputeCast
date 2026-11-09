@@ -1550,6 +1550,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/appearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change your theme
+         * @description Sets whether ReputeCast's interface is light or dark for you, on every browser you sign in on. "system" follows each device's light or dark setting. Emails, public pages and their previews keep their own colours.
+         */
+        put: operations["update-my-appearance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/avatar": {
         parameters: {
             query?: never;
@@ -22950,6 +22970,13 @@ export interface components {
             /** @enum {string} */
             status: "ok" | "warn" | "bad" | "skipped";
         };
+        Choice: {
+            /**
+             * @description system follows the device's light or dark setting
+             * @enum {string}
+             */
+            theme: "system" | "light" | "dark";
+        };
         CloudflareInput: {
             /** @description A Cloudflare API token with Zone › DNS › Edit on the domain's zone. Used once, never stored. */
             token: string;
@@ -31398,6 +31425,8 @@ export interface components {
              * @description Unused recovery codes
              */
             recoveryCodes: number;
+            /** @enum {string} */
+            theme: "system" | "light" | "dark";
             timezone: string;
             totp: boolean;
             /** Format: date-time */
@@ -51260,6 +51289,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-my-appearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Choice"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Choice"];
                 };
             };
             /** @description Error */
