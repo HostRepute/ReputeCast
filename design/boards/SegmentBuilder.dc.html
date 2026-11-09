@@ -110,7 +110,7 @@ pre{margin:0;padding:14px 16px;border-radius:8px;background:#0B1220;color:#D1D5D
   .sc-host .tabs .badge{white-space:nowrap}
   .sc-host .side .btn{white-space:nowrap}
   .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
-  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"],.sc-host [style*="minmax(440px"],.sc-host [style*="minmax(460px"],.sc-host [style*="minmax(480px"],.sc-host [style*="minmax(500px"],.sc-host [style*="minmax(520px"],.sc-host [style*="minmax(560px"]{grid-template-columns:1fr!important}
   .sc-host [style*="radial-gradient"]{overflow:auto}
   .sc-host [style*="display: grid"] > *{min-width:0}
   .sc-host header > div{max-width:100%;min-width:0}
@@ -150,6 +150,8 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 
 /* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
 @media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
+/* Once the aside stacks under the builder it takes the full width. */
+@media (max-width:1100px){.sb-aside{max-width:none!important}}
 </style>
 </helmet>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
@@ -235,7 +237,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
         </div>
       </section>
 
-      <aside style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:16px">
+      <aside class="sb-aside" style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:16px">
         <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;border-color:#99F6E4">
           <span class="k">Live count · updates as you edit</span>
           <span class="n" style="font-size:36px;letter-spacing:-.02em;line-height:1">2,118</span>
