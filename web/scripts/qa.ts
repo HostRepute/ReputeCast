@@ -196,9 +196,11 @@ async function main() {
       let pathError: string | undefined
       if (e.path && !e.manual) {
         const user = e.user ?? 'linh@acme.io'
-        ctx = contexts.get(user)
+        // A dark board (theme: 'dark') is compared with the app on a dark device.
+        const key = `${user}/${e.theme ?? 'light'}`
+        ctx = contexts.get(key)
         if (!ctx) {
-          ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce' })
+          ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce', colorScheme: e.theme ?? 'light' })
           try {
             if (user !== 'anon') await signIn(ctx, app, user)
           } catch (err) {
@@ -206,7 +208,7 @@ async function main() {
             // their boards are captured design-only, with the reason.
             signInErrors.set(user, String(err).split('\n')[0]!)
           }
-          contexts.set(user, ctx)
+          contexts.set(key, ctx)
         }
         try {
           if (signInErrors.has(user)) throw new Error(signInErrors.get(user))

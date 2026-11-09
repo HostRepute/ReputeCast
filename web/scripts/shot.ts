@@ -18,6 +18,14 @@
  *   --anon             don't sign in
  *   --viewport-only    capture the viewport instead of the full page
  *   --wait <ms>        extra wait after load (default 400)
+ *   --theme <t>        light (default) or dark: the device's setting, which
+ *                      the app follows while the member hasn't chosen (M54)
+ *   --state <file>     reuse a signed-in session saved with --save-state
+ *                      instead of signing in (several sweeps at once share
+ *                      no authenticator code)
+ *   --save-state <file> sign in, save the session to <file> and stop
+ *   --board <Board>    the app screen of a board in scripts/qa-map.ts, its
+ *                      {campaign:Name}-style placeholders looked up (repeatable)
  *
  * Signs in through the API with the demo password and the demo TOTP secret
  * (see internal/demo). Uses the installed Google Chrome, so no browser
@@ -27,6 +35,8 @@ import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { chromium, type BrowserContext } from '@playwright/test'
 import { signIn as demoSignIn } from './lib/demo-auth.ts'
+import { resolvePath } from './lib/qa-paths.ts'
+import { entries } from './qa-map.ts'
 
 const args = process.argv.slice(2)
 function opt(name: string, def?: string) {
@@ -52,6 +62,9 @@ const out = resolve(opt('out', '../tmp/shots')!)
 const user = opt('user', 'linh@acme.io')!
 const extraWait = Number(opt('wait', '400'))
 const fullPage = !flag('viewport-only')
+const colorScheme = opt('theme', 'light') === 'dark' ? 'dark' : 'light'
+const state = opt('state')
+const saveState = opt('save-state')
 
 // The shared sign-in waits for the next code when this half-minute's was
 // already used: the server accepts each authenticator code once.
@@ -64,25 +77,42 @@ function slug(s: string) {
 }
 
 async function main() {
-  if (!paths.length && !designs.length) {
-    console.error('Nothing to capture: pass --path and/or --design')
+  if (saveState) {
+    const browser = await chromium.launch({ channel: 'chrome', headless: true })
+    const ctx = await browser.newContext()
+    await signIn(ctx)
+    await ctx.storageState({ path: saveState })
+    await browser.close()
+    console.log(saveState)
+    return
+  }
+  const boards = many('board')
+  if (!paths.length && !designs.length && !boards.length) {
+    console.error('Nothing to capture: pass --path, --board and/or --design')
     process.exit(2)
   }
   mkdirSync(out, { recursive: true })
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   const files: string[] = []
   try {
-    if (paths.length) {
-      const ctx = await browser.newContext({ viewport: { width: widths[0] ?? 1440, height }, deviceScaleFactor: 1, reducedMotion: 'reduce' })
-      if (!flag('anon')) await signIn(ctx)
+    if (paths.length || boards.length) {
+      const ctx = await browser.newContext({ viewport: { width: widths[0] ?? 1440, height }, deviceScaleFactor: 1, reducedMotion: 'reduce', colorScheme, storageState: state })
+      if (!flag('anon') && !state) await signIn(ctx)
       const page = await ctx.newPage()
+      for (const b of boards) {
+        const e = entries.find((x) => x.board === b)
+        if (e?.theme === 'dark' && colorScheme !== 'dark') console.error(`${b} draws the dark theme: pass --theme dark to compare`)
+        const p = e?.path ? await resolvePath(ctx, app, e.path) : undefined
+        if (!p) console.error(`${b}: no app path in qa-map.ts, or its placeholders didn't resolve`)
+        else paths.push(p.startsWith('/') ? p : `/w/acme-newsletter${p}`)
+      }
       for (const p of paths) {
         for (const w of widths) {
           await page.setViewportSize({ width: w, height })
           await page.goto(`${app}${p}`, { waitUntil: 'networkidle' })
           await page.evaluate("document.fonts.ready")
           await page.waitForTimeout(extraWait)
-          const file = `${out}/app-${slug(p)}-${w}.png`
+          const file = `${out}/app-${slug(p)}-${w}${colorScheme === 'dark' ? '-dark' : ''}.png`
           await page.screenshot({ path: file, fullPage })
           files.push(file)
         }
