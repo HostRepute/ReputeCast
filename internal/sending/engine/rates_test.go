@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 )
@@ -21,7 +22,10 @@ func testRatesDuringSend(t *testing.T, f *sendtest.Fixture) {
 		sendtest.ContactSpec{N: 400, Mailbox: "outlook", Domain: "hotmail.com", Engaged: true},
 		sendtest.ContactSpec{N: 100, Mailbox: "gmail", Domain: "gmail.com", Engaged: true},
 	)
-	f.StartSend(engine.StartOptions{})
+	// The steady demo transport: the normal one throttles about one call in a
+	// thousand at random, and a throttled call halves its route's rate for a
+	// minute, which would cut Gmail's count in a run now and then.
+	f.StartSend(engine.StartOptions{Scenario: simulator.ScenarioSteady})
 	setClock(t, f, f.Start)
 	path := "/workspaces/acme-newsletter/campaigns/" + f.Campaign.String() + "/live/rates"
 	viewer := f.Env.Client()
