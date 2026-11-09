@@ -108,7 +108,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
   .sc-host .tabs .badge{white-space:nowrap}
   .sc-host .side .btn{white-space:nowrap}
   .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
-  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"],.sc-host [style*="minmax(440px"],.sc-host [style*="minmax(460px"],.sc-host [style*="minmax(480px"],.sc-host [style*="minmax(500px"],.sc-host [style*="minmax(520px"],.sc-host [style*="minmax(560px"]{grid-template-columns:1fr!important}
   .sc-host [style*="radial-gradient"]{overflow:auto}
   .sc-host [style*="display: grid"] > *{min-width:0}
   .sc-host header > div{max-width:100%;min-width:0}
@@ -152,6 +152,8 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 
 /* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
 @media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
+/* Addresses and domains stay whole; the tables scroll in their cards. */
+@media (max-width:1100px){.sc-host table .mono{white-space:nowrap}}
 </style>
 </helmet>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
@@ -217,7 +219,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 
       <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
         <h2 class="h2">Defaults</h2>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
           <label class="lbl">Default From for new campaigns<select class="in"><option>Acme Newsletter · digest@news.acme.io</option><option>Acme · hello@news.acme.io</option></select></label>
           <label class="lbl">Default From for transactional templates<select class="in"><option>Acme Cloud · no-reply@notify.acme.io</option><option>Acme Billing · billing@notify.acme.io</option></select></label> <label class="lbl">Reply handling<select class="in"><option>Forward replies to hello@acme.io</option><option>Keep replies in ReputeCast inbox</option></select></label>
           <label class="lbl">Footer address<input class="in" value="Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105"></label>
