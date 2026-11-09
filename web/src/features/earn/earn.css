@@ -484,6 +484,35 @@
     flex-wrap: wrap;
     gap: 6px;
   }
+  @media (max-width: 767px) {
+    /* Settings' tabs and Paid members' status chips: one row that scrolls
+       sideways (data-scroll-row), never a stack of pills. */
+    .ea-pill-tabs,
+    .ea-chips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    .ea-chips {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+    .ea-pill-tabs > *,
+    .ea-chips > * {
+      flex: none;
+    }
+    /* Member emails: the email and its template id keep their lines; the
+       table scrolls inside its card. */
+    .ea-emtbl td:first-child {
+      min-width: 120px;
+    }
+    .ea-emtbl td:nth-child(2) {
+      min-width: 150px;
+    }
+    .ea-emtbl td.ea-mono {
+      white-space: nowrap;
+    }
+  }
 
   /* Earn › Overview before launch (EarnStates): the launch checklist, the
      Test mode banner and the test checkouts. */
@@ -773,12 +802,17 @@
     width: 100%;
     border: 0;
   }
-  @media (max-width: 767px) {
+  /* Under 1100 px the options stack above the preview at full width
+     (the side panel never keeps its desktop width beside an empty half). */
+  @media (max-width: 1100px) {
     .ea-editor-side {
+      flex-basis: 100%;
       max-width: none;
       border-right: 0;
       border-bottom: 1px solid var(--line);
     }
+  }
+  @media (max-width: 767px) {
     .ea-pv {
       padding: 14px 10px;
     }

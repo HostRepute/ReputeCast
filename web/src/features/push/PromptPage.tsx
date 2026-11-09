@@ -374,6 +374,7 @@ function Designer({ data }: { data: Prompt }) {
             <span className="k">{t(m.livePreview, { host })}</span>
             <Segmented
               className="ml-auto"
+              data-scroll-row=""
               label={t(m.previewLabel)}
               value={view}
               onChange={setView}

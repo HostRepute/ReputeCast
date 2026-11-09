@@ -16,6 +16,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, useT, type MessageDescriptor } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { andList, clock, count, orList, pct } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { day, money } from '@/features/earn/format'
 import { copyText, FormsTabs, hostPath } from '@/features/forms/common'
@@ -190,6 +191,8 @@ export function YourPages({ d }: { d: Overview }) {
   const rows = filterPages(sorted, filter)
   const counts = statusCounts(d.pages)
   const chips = templateChips(sorted, d.templates)
+  // On phones the template chips scroll on one line (pages.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   const set = (patch: Partial<PageFilter>) => setFilter((f) => ({ ...f, ...patch }))
   const refresh = () => qc.invalidateQueries({ queryKey: ['get', pagesPath] })
   const path = (p: PageRow) => ({ params: { path: { workspace: slug, page: p.id } } })
@@ -228,7 +231,7 @@ export function YourPages({ d }: { d: Overview }) {
           ))}
         </select>
       </div>
-      <div className="pg-chips" role="group" aria-label={t(m.templateLabel)}>
+      <div className="pg-chips" role="group" aria-label={t(m.templateLabel)} data-scroll-row={phone ? '' : undefined}>
         <button type="button" className={cn('pg-chip', !filter.template && 'on')} aria-pressed={!filter.template} onClick={() => set({ template: '' })}>
           {t(m.templateAll)} <b>{count(d.pages.length)}</b>
         </button>

@@ -167,7 +167,9 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
       {!items ? (
         <TableSkeleton label={t(m.endpointsLoading)} />
       ) : (
-        <Table phoneWrap density="dense" caption={t(m.endpointsTable)} className="[&_td:nth-child(3)]:min-w-[220px] [&_td:nth-child(3)]:whitespace-normal [&_td]:whitespace-nowrap">
+        // Phones: state badges stay on one line ("Failing · 502 since 05:43" in
+        // four lines made every row 170px tall) and the events wrap two by two.
+        <Table density="dense" caption={t(m.endpointsTable)} className="[&_td:nth-child(3)]:min-w-[220px] [&_td:nth-child(3)]:whitespace-normal [&_td]:whitespace-nowrap max-md:[&_td:nth-child(2)]:min-w-[240px]">
           <thead>
             <tr>
               <Th>{t(m.colEndpoint)}</Th>
@@ -356,7 +358,7 @@ function DeliveryLog({
       ) : !q.data ? (
         <TableSkeleton label={t(m.logLoading)} />
       ) : (
-        <Table phoneWrap density="dense" caption={t(m.logTable)} className="[&_td]:whitespace-nowrap">
+        <Table density="dense" caption={t(m.logTable)} className="[&_td]:whitespace-nowrap">
           <thead>
             <tr>
               <Th>{t(m.colTime)}</Th>

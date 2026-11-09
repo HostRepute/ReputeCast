@@ -237,17 +237,6 @@
   padding-block: 5px;
 }
 
-/* Connect wizard (rule 4): on phones the "How to fix" cards of an
-   unreachable webhook endpoint take the whole width, so their buttons
-   ("Tạm dùng hỏi định kỳ") keep to one line. English keeps the board's two
-   140 px columns. A variable, because the grid's columns are a Tailwind
-   `!` utility. */
-@media (max-width: 767px) {
-  :root:not([lang='en']) .cn-fix {
-    --cn-fix-min: 100%;
-  }
-}
-
 /* A stream card's facts: the key keeps its words on one line ("Chuyển dự
    phòng") and a long value wraps beside it. */
 :root:not([lang='en']) .cn-kv > .k {
@@ -260,15 +249,6 @@
 :root:not([lang='en']) .dl-blocklists td .btn,
 :root:not([lang='en']) .dl-blocklists td.dl-since {
   white-space: nowrap;
-}
-
-/* Postmaster and SNDS: on phones each label and its value take the card's
-   width, so a longer label ("Tỷ lệ spam, 30 ngày") doesn't push its number
-   ("0,05%") onto two lines. */
-@media (max-width: 767px) {
-  :root:not([lang='en']) .dl-pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 /* Postmaster: the spam rate chart's first and last days ("23 thg 9", "hôm

@@ -195,6 +195,13 @@
     padding: 16px;
     gap: 16px;
   }
+  /* DNS names and values break between their parts (Breakable: after a
+     dot, a colon or an equals sign), never inside a word ("incl/ude",
+     "_dom/ainkey"), as the column narrows on tablets and phones. */
+  .cn-tbl .cn-val {
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
 }
 
 /* ≤767px: the steps become one scrolling row above the content. */
@@ -243,8 +250,10 @@
     min-width: 0;
   }
   /* As on the boards: a select is as wide as its column, never as wide as
-     its longest option ("us-east-1 · N. Virginia · production access…"). */
-  .cn-main select.in {
+     its longest option ("us-east-1 · N. Virginia · production access…").
+     Not one in a row (a domain beside its local part), which shares the
+     row's width instead. */
+  .cn-main :where(:not(.row, .inline-flex, .flex:not(.flex-col))) > select.in {
     width: 0;
     min-width: 100%;
   }

@@ -165,7 +165,7 @@ function RulesBody({ data }: { data: Rules }) {
           <QuietHours data={data} form={form} set={set} ro={ro} problem={problem} />
           <Keywords data={data} form={form} set={set} ro={ro} />
         </div>
-        <div className="flex min-w-0 flex-col gap-5" style={{ flex: '1 1 340px', maxWidth: 440 }}>
+        <div className="flex min-w-0 max-w-[440px] flex-col gap-5 max-[1100px]:max-w-none" style={{ flex: '1 1 340px' }}>
           <RouteTester data={data} />
           <Budget data={data} form={form} set={set} ro={ro} budgetText={budgetText} setBudgetText={setBudgetText} budgetBad={budgetBad} />
           <TestNumbers data={data} ro={ro} />

@@ -1024,6 +1024,29 @@
     .sms-ttl {
       font-size: 19px;
     }
+    /* A row's label and a count keep their words whole ("Price",
+       "Webhooks", "76"); the value beside them takes the squeeze. */
+    .sms-dl > div > span:first-child,
+    .sms-sum > .n {
+      overflow-wrap: break-word;
+    }
+    /* The quiet-hours axis: "24:00" sits at the right end on one line. */
+    .sms-qh-x span {
+      white-space: nowrap;
+    }
+    /* The consent table scrolls inside its card; the list names keep a
+       readable column (its badges: the unlayered rule at the end). */
+    .sms-cons td:first-child {
+      min-width: 110px;
+    }
+    /* The report's reply filters scroll sideways on one line. */
+    .sms-fchips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    .sms-fchips > * {
+      flex: none;
+    }
   }
 }
 
@@ -1077,5 +1100,13 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
     border: 0;
+  }
+}
+
+/* Phones: the consent table's badges stay on one line, like those of every
+   .tbl (unlayered, as the shell's phone rule for badges is). */
+@media (max-width: 767px) {
+  .sms-cons td .badge {
+    white-space: nowrap;
   }
 }

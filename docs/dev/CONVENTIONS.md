@@ -230,7 +230,28 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
      and `white-space` as on the board. At ≤767px badges and buttons in cells
      stay on one line by default (the team and access boards have
      `.tbl td .badge, .tbl td .btn {white-space:nowrap}`); boards without that
-     rule let them wrap: pass `<Table phoneWrap>`.
+     rule let them wrap: pass `<Table phoneWrap>`. Not when the cells hold
+     state badges: a badge wrapped onto three lines reads worse than a table
+     that scrolls. A table that scrolls fades at the side that has more
+     (`<Table>`/`<TableScroll>` do it; a custom scroll box calls
+     `useScrollEdges` and has the `tscroll` class).
+   - Words stay whole. At ≤767px badges and buttons wrap only between words
+     and never shrink below their longest word; tabs, segments and chips stay
+     on one line. A word still breaking mid-word means its column is
+     squeezed: collapse the layout (`max-md:grid-cols-1`) or give the key
+     column a minimum width; long tokens (emails, ids, URLs) may break or
+     scroll.
+   - A row of tabs or filter chips that would wrap into a second row of 44px
+     ovals scrolls on one line on phones (`flex-wrap:nowrap; overflow-x:auto`,
+     its items `flex:none`) and carries `data-scroll-row`: it then fades at
+     the side with more and its current item is scrolled into view (the
+     shell's `useCurrentTabInView`). `.tabs.scroll-sm` does all of it. A pill
+     link in such a row sets `padding-block:0; margin-block:0;
+     min-height:44px`, as the phone link-target rule would otherwise pad it
+     into a tall oval.
+   - A side column that stacks under the main one at ≤1100px takes the full
+     width (`max-[1100px]:max-w-none` or `grid-cols-1`), never its desktop
+     360–450px over an empty half.
    - At ≤1100px the shell is a rail and the content padding is 16px; at ≤767px
      the bottom tab bar appears, padding is 12px and gaps 12px.
    Check every board at 1440, 834 and 390 (the canvas has Tablet/Phone boards

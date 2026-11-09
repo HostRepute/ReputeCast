@@ -253,7 +253,7 @@ function BounceTable({ b, headlineBounces, actions }: { b: Schemas['ReportBounce
   return (
     <TableCard id="rep-bt-h" title={t(rm.bouncesTitle, { count: count(headlineBounces) })} caption={t(rm.bouncesCaption)}>
       {b.rows.length ? (
-        <table className="tbl rep-tbl phone-wrap">
+        <table className="tbl rep-tbl">
           <thead>
             <tr>
               <Th>{t(rm.colType)}</Th>

@@ -51,6 +51,18 @@
     gap: 6px;
     flex-wrap: wrap;
   }
+  @media (max-width: 767px) {
+    /* Bookings · Sponsors · Slots: one row that scrolls sideways. */
+    .sp-ptabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .sp-ptabs > * {
+      flex: none;
+    }
+  }
   .sp-fchip {
     display: inline-flex;
     align-items: center;

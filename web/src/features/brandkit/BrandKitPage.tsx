@@ -335,8 +335,9 @@ function LogoCell({ logo, dark, label, onChange, canEdit, alt }: { logo?: Logo; 
       <div className={dark ? 'lprev' : 'lprev keep-light'} style={dark ? { background: '#111827', borderColor: '#111827' } : { background: '#FFFFFF' }}>
         {logo ? <img src={logo.url} alt={alt} style={{ maxWidth: '70%', maxHeight: 64 }} /> : <span className={dark ? 'text-[#C3C2B7]' : 'k'}>{t(mk.noLogo)}</span>}
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 flex-col">
+      {/* Phones: Remove and Replace drop under the name when it needs the room. */}
+      <div className="flex items-center justify-between gap-2 max-md:flex-wrap">
+        <span className="flex min-w-0 flex-col max-md:flex-[1_1_180px]">
           <span className="font-semibold">{label}</span>
           {logo ? <span className="k mono truncate">{t(mk.logoMeta, { name: logo.fileName, width: logo.width, height: logo.height })}</span> : null}
         </span>

@@ -48,7 +48,7 @@ function TrendChartInner({ tests, providers, seeds }: { tests: TestRow[]; provid
         </div>
       </div>
       <div className="pad flex flex-col gap-3.5">
-        <div className="row gap-1.5!" role="group" aria-label={t(m.trendProviders)}>
+        <div className="pl-fchips row gap-1.5!" role="group" aria-label={t(m.trendProviders)} data-scroll-row>
           <button type="button" className="pl-fchip" aria-pressed={!only} onClick={() => setOnly('')}>
             {t(m.allProviders)}
           </button>

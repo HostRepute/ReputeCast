@@ -20,6 +20,20 @@
     flex-direction: column;
     min-width: 0;
   }
+  /* The settings column wraps above the preview when the two don't fit
+     (341 + 560: tablet, phone, a narrow window) and then takes the whole
+     row. */
+  .pp-cols {
+    container-type: inline-size;
+  }
+  @container (max-width: 900.98px) {
+    .pp-left {
+      max-width: none;
+      flex-basis: 100%;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
   .pp-sec {
     min-width: 0;
     min-inline-size: 0;
@@ -594,6 +608,19 @@
     }
     .pp-style {
       flex: 1 1 96px;
+    }
+    /* The preview switch keeps its labels whole and scrolls sideways (a
+       data-scroll-row: it fades at the side with more). */
+    .pp-bar > .seg {
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    .pp-bar > .seg > button {
+      flex: none;
+    }
+    /* The site's own nav in the preview keeps its words whole. */
+    .pp-head .pp-nav > span {
+      white-space: nowrap;
     }
   }
 }

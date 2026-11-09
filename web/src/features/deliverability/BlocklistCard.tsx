@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
@@ -53,7 +53,18 @@ export function BlocklistCard({ b, connected, canConnect }: { b: Schemas['Delive
             {rows.map((r) => (
               <tr key={r.source} className={r.listed ? 'bg-warn-tint' : undefined}>
                 <Td className="font-semibold">{r.source}</Td>
-                <Td className="mono">{r.assets.join(', ')}</Td>
+                <Td className="mono">
+                  {/* Each asset stays whole with its comma; the list wraps between them. */}
+                  {r.assets.map((a, i) => (
+                    <Fragment key={a}>
+                      {i > 0 ? ' ' : null}
+                      <span className="whitespace-nowrap">
+                        {a}
+                        {i < r.assets.length - 1 ? ',' : null}
+                      </span>
+                    </Fragment>
+                  ))}
+                </Td>
                 <Td>{r.listed ? <Badge tone={r.impact === 'high' ? 'bad' : 'warn'}>{t(m.listed)}</Badge> : <Badge tone="ok">{t(m.clean)}</Badge>}</Td>
                 {viaHostRepute ? <Td className="dl-since">{r.since ? dayMonthDate(r.since) : '–'}</Td> : null}
                 {r.listed && r.delistUrl ? (

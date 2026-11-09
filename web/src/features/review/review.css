@@ -144,6 +144,23 @@
   .rv-line.l-queued {
     color: var(--muted-ink);
   }
+  /* "not checked", "3 of 13": at the line's end. */
+  .rv-line > .rv-note {
+    margin-left: auto;
+  }
+  /* Phones: the note goes under its line, instead of a column squeezed to
+     a few letters beside it ("checke/d"). */
+  @media (max-width: 767px) {
+    .rv-line {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      row-gap: 2px;
+    }
+    .rv-line > .rv-note {
+      grid-column: 2;
+      margin-left: 0;
+    }
+  }
 
   /* The aside: estimates and settings cards. */
   .rv-aside {
@@ -152,6 +169,34 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+  }
+  /* Under the checks (1100 px and below) it takes the full width, its cards
+     two by two where they fit and one by one on phones, as the board's
+     .rail does (SendReadinessTablet). */
+  @media (max-width: 1100px) {
+    .rv-aside {
+      max-width: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      align-content: start;
+      align-items: start;
+    }
+    .rv-aside > * {
+      min-width: 0;
+    }
+    .rv-aside > .rv-railend {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 767px) {
+    .rv-aside {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    /* The four tiles under the scheduled banner, one per row: two by two
+       they were 165 px wide and their values ran to four lines. */
+    .rv-tiles {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
   }
   .rv-card {
     padding: 18px 20px;
@@ -255,6 +300,16 @@
   }
   .rv-tbl tr.t-total td:first-child {
     font-weight: 600;
+  }
+  /* Narrow cards (the aside two by two, phones): "Cost" and "Duration"
+     (and their figures) keep a gap between them, and a figure stays on one
+     line ("2 h 27 min"). */
+  @media (max-width: 1100px) {
+    .rv-tbl th.r,
+    .rv-tbl td.r {
+      padding-left: 10px;
+      white-space: nowrap;
+    }
   }
 
   /* Scheduling options. */
@@ -381,5 +436,15 @@
     label.rv-chk {
       min-height: 44px;
     }
+  }
+}
+
+/* "Delivered to Gmail" stays one pill and the line beside it wraps
+   (SendReadinessPhone). Outside the layer: app.css's phone rules let badges
+   wrap, unlayered. */
+@media (max-width: 1100px) {
+  .rv-card .rv-sum > .badge {
+    flex: none;
+    white-space: nowrap;
   }
 }

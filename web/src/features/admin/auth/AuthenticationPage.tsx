@@ -131,24 +131,29 @@ function MethodRow({
   disabled?: boolean
 }) {
   return (
-    <div className="row flex-nowrap gap-3 rounded-lg border border-line px-3 py-2.5">
+    // On phones the edit button, mark and badge move together under the
+    // switch and its text once that text would get under 170px ("GitH/ub"
+    // beside "On · org restricted"), on the right as in the other rows.
+    <div className="row flex-nowrap gap-3 rounded-lg border border-line px-3 py-2.5 max-md:flex-wrap">
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
-      <label className="row min-w-0 flex-1 flex-nowrap gap-3">
+      <label className="row min-w-0 flex-1 flex-nowrap gap-3 max-md:min-w-[170px]">
         <SwitchInput checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
         <span className="col min-w-0 flex-1 gap-px">
           <span className="font-semibold">{title}</span>
           <span className="k whitespace-normal">{description}</span>
         </span>
       </label>
-      {extra}
-      {mark ? (
-        <span className="row flex-nowrap gap-1.5">
-          {mark}
-          {badge}
-        </span>
-      ) : (
-        badge
-      )}
+      <span className="row flex-nowrap gap-3 max-md:ml-auto">
+        {extra}
+        {mark ? (
+          <span className="row flex-nowrap gap-1.5">
+            {mark}
+            {badge}
+          </span>
+        ) : (
+          badge
+        )}
+      </span>
     </div>
   )
 }

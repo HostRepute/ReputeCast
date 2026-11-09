@@ -220,7 +220,7 @@ function MilestonesTable({ d, onEdit }: { d: MilestoneList; onEdit: (id: string)
                           <span className="gw-unit k">{t(m.referralUnit, { count: x.count })}</span>
                         </span>
                       </td>
-                      <td>
+                      <td className="gw-rwd">
                         <span className="flex min-w-0 items-center gap-2.5">
                           <RewardTile x={x} />
                           <span className="flex min-w-0 flex-col gap-px">
@@ -238,7 +238,7 @@ function MilestonesTable({ d, onEdit }: { d: MilestoneList; onEdit: (id: string)
                       <td>
                         <Health x={x} />
                       </td>
-                      <td>
+                      <td className="gw-mem">
                         <span className="flex flex-col items-start gap-0.5">
                           <Badge tone={x.email.on ? 'ok' : 'neutral'}>{x.email.on ? t(mm.emailOn) : t(mm.emailOff)}</Badge>
                           <span className="k">{x.email.on ? x.email.subject : t(mm.emailOffText)}</span>

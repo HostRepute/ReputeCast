@@ -25,7 +25,8 @@ export function RecentCampaigns({ items }: { items: Schemas['CampaignListItem'][
         </Link>
       </div>
       {items.length ? (
-        <Table phoneWrap>
+        // Phones: the name keeps 160px and the date one line ("Thu / 5 / Nov"); the table scrolls.
+        <Table phoneWrap className="max-md:[&_td:first-child]:min-w-[160px] max-md:[&_td:nth-child(2)]:whitespace-nowrap">
           <thead>
             <tr>
               <Th>{t(m.colCampaign)}</Th>

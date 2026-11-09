@@ -67,7 +67,7 @@ export function IncidentTimeline({ t: timeline, connected, className }: { t: Sch
         <ol className="m-0 list-none p-0">
           {timeline.items.map((it, i) => (
             <li key={it.id} className={cn('flex items-start gap-3 px-4.5 py-3 text-[13px]', i > 0 && 'border-t border-line-2')}>
-              <Badge tone={severityTone(it.severity)} className="mt-px">
+              <Badge tone={severityTone(it.severity)} className="mt-px max-md:shrink-0! max-md:whitespace-nowrap!">
                 <time dateTime={it.occurredAt}>{shortDate(it.occurredAt)}</time>
               </Badge>
               <div className="flex flex-col gap-0.5">

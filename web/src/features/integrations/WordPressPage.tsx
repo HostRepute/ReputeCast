@@ -439,7 +439,8 @@ function Drafts({ data, site: s, onRule }: { data: Data; site: Site; onRule: () 
       {r.categories.map((c, i) => (
         <span key={c.slug}>
           {i > 0 ? ' ' : null}
-          <span className="chip h-[22px]">{c.name}</span>
+          {/* Not a control: no 44px touch height on phones, so the sentence keeps its lines. */}
+          <span className="chip h-[22px] max-md:min-h-0!">{c.name}</span>
         </span>
       ))}
     </>
@@ -538,7 +539,8 @@ function RuleDialog({ data, site: s, onClose }: { data: Data; site: Site; onClos
       <div className="flex flex-col gap-2">
         <span className="lbl">{t(m.whenPublished)}</span>
         {s.categories.length ? (
-          <div className="ih-chips" role="group" aria-label={t(m.categoriesLabel)}>
+          // Scrolls sideways on phones (integrations.css), with the edge fade.
+          <div className="ih-chips" role="group" aria-label={t(m.categoriesLabel)} data-scroll-row>
             {s.categories.map((c) => {
               const on = cats.has(c.slug)
               return (

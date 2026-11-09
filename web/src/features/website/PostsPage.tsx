@@ -13,6 +13,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { count, dayMonthDate, orList } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { useCan, useWorkspace } from '@/lib/session'
 import { copyText } from '@/features/forms/common'
 import { bare, useInvalidateWebsite, WS, type Overview, type PostRow } from './api'
@@ -47,6 +48,8 @@ export function PostsPage({ overview, search, onSearch }: { overview: Overview; 
   const navigate = useNavigate()
   const canEdit = useCan('website:edit')
   const canPublish = useCan('website:publish')
+  // On phones the status chips scroll on one line (website.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   const [q, setQ] = useState(search.q ?? '')
   const [shown, setShown] = useState(search.q)
   if (shown !== search.q) {
@@ -152,7 +155,7 @@ export function PostsPage({ overview, search, onSearch }: { overview: Overview; 
             </label>
           </div>
           <div className="ws-fchips">
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label={t(mp.filterLabel)}>
+            <div className="ws-fgroup flex flex-wrap gap-1.5" role="group" aria-label={t(mp.filterLabel)} data-scroll-row={phone ? '' : undefined}>
               {(
                 [
                   [undefined, t(mp.all), d.counts.all],

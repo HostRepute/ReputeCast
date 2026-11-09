@@ -394,7 +394,8 @@ function PendingCard({ pending }: { pending: Schemas['ApprovalPendingItem'][] })
           {t(mp.approvalInbox)}
         </ButtonLink>
       </div>
-      <AccessTable caption={t(mp.pendingCaption)}>
+      {/* The author's address stays whole on phones ("daniel/@acme./io"). */}
+      <AccessTable caption={t(mp.pendingCaption)} className="max-md:[&_td:nth-child(2)_.mono]:whitespace-nowrap">
         <thead>
           <tr>
             <Th>{t(mp.colCampaign)}</Th>

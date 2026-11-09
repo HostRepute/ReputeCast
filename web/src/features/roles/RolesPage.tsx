@@ -211,12 +211,15 @@ function CompareCard({ list }: { list: RoleList }) {
   const has = (r: Role, key: string) => r.permissions.includes(key) || implied(list.permissions, r.permissions, key)
   return (
     <section className="card" aria-labelledby="cmp-h">
+      {/* Phones: the column chips scroll sideways on one line under the title
+          (the actions box takes the full width) instead of wrapping into rows. */}
       <CardSection
+        className="max-md:[&>div:last-child]:min-w-0 max-md:[&>div:last-child]:basis-full"
         title={<span id="cmp-h">{tr(m.compareTitle)}</span>}
         caption={tr(m.compareCaption)}
         actions={
-          <div className="row gap-2" role="group" aria-label={tr(m.columnsLabel)}>
-            <span className="k" aria-hidden="true">
+          <div className="row gap-2 max-md:w-full max-md:flex-nowrap max-md:overflow-x-auto max-md:pb-0.5" role="group" aria-label={tr(m.columnsLabel)} data-scroll-row>
+            <span className="k shrink-0" aria-hidden="true">
               {tr(m.columns)}
             </span>
             {list.roles.map((r) => {
@@ -225,7 +228,7 @@ function CompareCard({ list }: { list: RoleList }) {
                 <button
                   key={r.id}
                   type="button"
-                  className={on ? 'chip box-content border-line-strong! bg-surface! text-ink! hover:bg-[var(--hover)]!' : 'chip box-content border-dashed! text-ink-3! line-through'}
+                  className={on ? 'chip box-content shrink-0 border-line-strong! bg-surface! text-ink! hover:bg-[var(--hover)]!' : 'chip box-content shrink-0 border-dashed! text-ink-3! line-through'}
                   aria-pressed={on}
                   title={on ? tr(m.hideColumn, { name: r.name }) : tr(m.showColumn, { name: r.name })}
                   onClick={() => setHidden((cur) => (on ? (shown.length > 1 ? [...cur, r.id] : cur) : cur.filter((x) => x !== r.id)))}

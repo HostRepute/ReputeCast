@@ -402,7 +402,7 @@ function Table({
   return (
     <section className="card" aria-label={tr(m.tableLabel)}>
       <TableScroll label={tr(m.tableLabel)}>
-        <table className="tbl stbl phone-wrap">
+        <table className="tbl stbl">
           <thead>
             <tr>
               <Th>{tr(m.colAddress)}</Th>
@@ -418,7 +418,7 @@ function Table({
           <tbody>
             {d.items.map((it) => (
               <tr key={it.id}>
-                <td className="mono" style={{ whiteSpace: 'normal', maxWidth: 230, overflowWrap: 'anywhere' }}>
+                <td className="mono saddr">
                   {it.group ? tr(m.groupRows, { address: it.address, n: it.rows, count: count(it.rows) }) : it.address}
                 </td>
                 <td>

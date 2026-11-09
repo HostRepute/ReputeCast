@@ -40,7 +40,10 @@ export function FeedItemRow({ item, withTime, showCategory, className }: { item:
         <span className="font-semibold leading-snug">{item.title}</span>
         <span className="k">{meta}</span>
       </div>
-      <FeedItemBadge item={item} />
+      {/* The badge keeps its one line ("Left out by a filter"); the title wraps instead. */}
+      <span className="flex shrink-0">
+        <FeedItemBadge item={item} />
+      </span>
     </div>
   )
 }

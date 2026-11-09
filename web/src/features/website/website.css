@@ -235,3 +235,35 @@
 .ws-ro .hd svg { color: var(--ink-3); flex: none; }
 .ws-ro .bd { padding-left: 23px; color: var(--ink-2); line-height: 1.5; }
 .ws-ro code { font-size: 12.5px; }
+
+/* Phones and tablets (responsive pass): rows of views and chips scroll on
+   one line, stacked columns keep their content whole. */
+@media (max-width: 1100px) {
+  /* The posts list: the title wraps beside its state, which stays one word. */
+  .ws-plist .pt b { min-width: 0; }
+  .ws-plist .pt > .badge { flex: none; white-space: nowrap; }
+  /* Tags: slugs and feeds stay whole and the table scrolls; the
+     description keeps a readable column. */
+  .ws-tagtbl td.mono { white-space: nowrap; }
+  .ws-tagtbl td.ws-tdesc { min-width: 180px; }
+}
+@media (max-width: 767px) {
+  /* Posts · Home & navigation · Access: one scrolling row of 44px chips.
+     They are links, so the target rule would grow them by padding into
+     tall ovals; their own min-height is the target. */
+  .ws-vp { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; min-width: 0; }
+  .ws-vp > a.ws-fchip { flex: none; box-sizing: border-box; padding-block: 0; margin-block: 0; }
+  /* The posts' status chips: one scrolling row above the filters. */
+  .ws-fchips > .ws-fgroup { flex-wrap: nowrap; overflow-x: auto; flex: 1 1 100%; min-width: 0; }
+  .ws-fgroup > .ws-fchip { flex: none; }
+  /* Access › Preview as: the segments scroll instead of being cut; the row
+     is a data-scroll-row, so it fades at the side that has more and its
+     current view scrolls into sight (app.css rc-edge, useCurrentTabInView). */
+  .ws-asrow { max-width: 100%; min-width: 0; overflow-x: auto; }
+  .ws-asrow > .seg { flex: none; }
+  /* The paywall preview draws the site's buttons and field on one line,
+     as the site does (the app's phone rule would break "Upgrade"). */
+  .ws-pw-pane { padding: 12px; }
+  .ws-pw .up { flex: none; white-space: nowrap; overflow-wrap: normal; }
+  .ws-pw .frm > span:first-child { min-width: 0; overflow: hidden; white-space: nowrap; }
+}

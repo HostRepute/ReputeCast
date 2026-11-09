@@ -131,7 +131,7 @@ function Body({ data }: { data: Review }) {
             </div>
           </div>
         </div>
-        <aside className="flex min-w-0 flex-col gap-4" style={{ flex: '1 1 340px', maxWidth: 420 }}>
+        <aside className="flex min-w-0 max-w-[420px] flex-col gap-4 max-[1100px]:max-w-none" style={{ flex: '1 1 340px' }}>
           <AudienceCard data={data} />
           <RoutesCard data={data} />
           <CostCard data={data} />

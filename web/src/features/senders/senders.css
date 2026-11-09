@@ -24,4 +24,21 @@
   .sd-kv > :last-child {
     text-align: right;
   }
+
+  /* Narrow screens: an address or a domain stays whole and the table
+     scrolls, instead of breaking letter by letter ("digest@ne/ws.acme.i/o");
+     names and notes still wrap between words. */
+  @media (max-width: 1100px) {
+    .sd-tbl .mono,
+    table.sd-tbl.fit td.mono {
+      white-space: nowrap;
+    }
+  }
+  /* Phones: the default selects one per line; two-up, each cuts its
+     sender to a word. Outranks Grid's 140px phone tracks. */
+  @media (max-width: 767px) {
+    .sd-defaults {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+  }
 }

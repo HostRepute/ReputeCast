@@ -586,13 +586,14 @@ export function TestSendsCard({
         {t(m.testSends)}
       </h2>
       {note ? <span className="k">{note}</span> : null}
-      <div className="flex gap-2 max-md:flex-wrap">
+      <div className="flex gap-2 max-lg:flex-wrap">
         <label className="vh" htmlFor={id}>
           {t(m.testAddress)}
         </label>
         <input
           id={id}
-          className="in min-w-0 flex-1"
+          // With the language choice beside it, the address gets its own line at 1100 px and below.
+          className={cn('in min-w-0 flex-1', versions.length > 1 && 'max-lg:basis-full')}
           type="email"
           value={toOthers ? to : me}
           readOnly={!toOthers}

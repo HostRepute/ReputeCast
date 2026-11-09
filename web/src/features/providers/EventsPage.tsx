@@ -87,8 +87,8 @@ function EventLog({ search }: { search: EventsSearch }) {
           </h2>
           <span className="k">{t(me.logLine)}</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <select className="in max-md:w-full" aria-label={t(me.providerFilter)} value={search.provider ?? ''} onChange={(e) => go({ provider: e.target.value || undefined })}>
+        <div className="pv-filters flex flex-wrap gap-2">
+          <select className="in" aria-label={t(me.providerFilter)} value={search.provider ?? ''} onChange={(e) => go({ provider: e.target.value || undefined })}>
             <option value="">{t(me.allProviders)}</option>
             {providers.data?.providers.map((p) => (
               <option key={p.id} value={p.id}>
@@ -97,7 +97,7 @@ function EventLog({ search }: { search: EventsSearch }) {
             ))}
           </select>
           <select
-            className="in max-md:w-full"
+            className="in"
             aria-label={t(me.typeFilter)}
             value={search.type ?? ''}
             onChange={(e) => go({ type: (e.target.value || undefined) as EventType | undefined })}
@@ -122,7 +122,7 @@ function EventLog({ search }: { search: EventsSearch }) {
           </ErrorPanel>
         </div>
       ) : (
-        <Table className="pv-10 pv-top" phoneWrap fit aria-busy={q.isFetching || undefined}>
+        <Table className="pv-10 pv-top" fit aria-busy={q.isFetching || undefined}>
           <thead>
             <tr>
               <Th>{t(me.colReceived)}</Th>
@@ -194,7 +194,7 @@ function SearchInput({ initial, onSearch }: { initial: string; onSearch: (v: str
   }, [value, initial, onSearch])
   return (
     <input
-      className="in w-[220px] max-md:w-full"
+      className="in w-[220px]"
       type="search"
       placeholder={t(me.searchPlaceholder)}
       aria-label={t(me.searchLabel)}
@@ -323,7 +323,7 @@ function SyncCard() {
       ) : (
         <>
           {data ? <PushNote data={data} /> : null}
-          <Table className="pv-10 pv-top" phoneWrap fit caption={t(me.syncCaption)}>
+          <Table className="pv-10 pv-top" fit caption={t(me.syncCaption)}>
             <thead>
               <tr>
                 <Th>{t(me.colProvider)}</Th>

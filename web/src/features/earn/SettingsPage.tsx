@@ -12,6 +12,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { dayMonthYear, orList } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { EARN, EarnPage } from './EarnPage'
@@ -30,11 +31,13 @@ export function SettingsPage({ tab, onTab }: { tab: SettingsTab; onTab: (t: Sett
   const { slug, me: who } = useWorkspace()
   const user = useMe().data
   const pay = $api.useQuery('get', `${EARN}/payments`, { params: { path: { workspace: slug } } })
+  // On phones the tabs scroll on one line (earn.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   const labels: Record<SettingsTab, string> = { payments: t(ms.tabPayments), emails: t(ms.tabEmails), access: t(ms.tabAccess), attribution: t(ms.tabAttribution), pages: t(ms.tabPages) }
   return (
     <EarnPage tab="settings" title={labels[tab]}>
       <div className="flex flex-col gap-4">
-        <div className="ea-pill-tabs" role="tablist" aria-label={t(ms.tabsLabel)}>
+        <div className="ea-pill-tabs" role="tablist" aria-label={t(ms.tabsLabel)} data-scroll-row={phone ? '' : undefined}>
           {tabs.map((x) => (
             <button key={x} type="button" role="tab" className="ea-schip" aria-selected={tab === x} onClick={() => onTab(x)}>
               {labels[x]}
@@ -149,7 +152,7 @@ function MemberEmailsTab() {
           </Link>
         </div>
         <TableScroll label={t(ms.tabEmails)}>
-          <table className="tbl" aria-label={t(ms.tabEmails)}>
+          <table className="tbl ea-emtbl" aria-label={t(ms.tabEmails)}>
             <thead>
               <tr>
                 <th scope="col">{t(ms.colEmail)}</th>

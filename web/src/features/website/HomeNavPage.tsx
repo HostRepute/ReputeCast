@@ -10,6 +10,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select, SwitchInput, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
+import { TableScroll } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
@@ -889,8 +890,8 @@ function TagsCard({ data, overview, ro }: { data: HomeNav; overview: Overview; r
           </Button>
         )}
       </div>
-      <div className="tscroll">
-        <table className="tbl" aria-label={t(mh.tagsLabel)}>
+      <TableScroll label={t(mh.tagsLabel)}>
+        <table className="tbl ws-tagtbl" aria-label={t(mh.tagsLabel)}>
           <thead>
             <tr>
               <th scope="col">{t(mh.colTag)}</th>
@@ -920,7 +921,7 @@ function TagsCard({ data, overview, ro }: { data: HomeNav; overview: Overview; r
               <tr key={x.id}>
                 <td className="font-semibold">{x.name}</td>
                 <td className="mono">{x.slug}</td>
-                <td>{x.description}</td>
+                <td className="ws-tdesc">{x.description}</td>
                 <td className="r num">
                   {count(x.posts)}
                   {x.posts === 0 && x.unpublished ? <div className="k">{t(mh.onlyUnpublished)}</div> : null}
@@ -940,7 +941,7 @@ function TagsCard({ data, overview, ro }: { data: HomeNav; overview: Overview; r
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       {editing ? <TagDialog tag={editing === 'new' ? null : editing} host={overview.address.domain || overview.address.host} onClose={() => setEditing(null)} /> : null}
     </section>
   )

@@ -12,6 +12,7 @@ import { NavTabs, type NavTab } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, formatList, t, useT } from '@/i18n'
 import { dayMonthDate, decimal, zonedParts } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
@@ -99,6 +100,8 @@ export function ProgramNav({ current, held, programId }: { current: 'results' | 
   const detail = $api.useQuery('get', `${GROW}/referrals/{program}`, { params: { path: { workspace: slug, program: program?.id ?? '' } } }, { enabled: held === undefined && Boolean(program) })
   const heldCount = held ?? detail.data?.held
   const search = programId ? { program: programId } : {}
+  // On phones the sub-sections scroll on one line (grow.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   const items = [
     { key: 'results', label: tr(m.subResults), to: '/w/$workspace/grow/referrals' as const },
     { key: 'milestones', label: tr(m.subMilestones), to: '/w/$workspace/grow/referrals/milestones' as const },
@@ -107,9 +110,10 @@ export function ProgramNav({ current, held, programId }: { current: 'results' | 
     { key: 'settings', label: tr(m.subSettings), to: '/w/$workspace/grow/referrals/settings' as const },
   ]
   return (
-    <nav className="gw-subnav" aria-label={tr(m.programNav)}>
+    <nav className="gw-subnav" aria-label={tr(m.programNav)} data-scroll-row={phone ? '' : undefined}>
       {items.map((x) => (
-        <Link key={x.key} to={x.to} params={params} search={search as never} className={x.key === current ? 'on' : undefined} aria-current={x.key === current ? 'page' : undefined}>
+        // Exact: Results' address starts every other section's, and only the section shown is the current page.
+        <Link key={x.key} to={x.to} params={params} search={search as never} activeOptions={{ exact: true, includeSearch: false }} className={x.key === current ? 'on' : undefined} aria-current={x.key === current ? 'page' : undefined}>
           {x.label}
           {x.key === 'review' && heldCount ? <Badge tone="warn">{heldCount}</Badge> : null}
         </Link>

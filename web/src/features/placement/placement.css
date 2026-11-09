@@ -784,6 +784,26 @@
   .pl-about {
     grid-template-columns: 1fr !important;
   }
+  /* Tests · Seed mailboxes and the trend's provider chips: one line that
+     scrolls sideways (data-scroll-row) with 44 px pills, instead of pills
+     that wrap and grow into tall ovals. The pills are links: the link
+     targets rule (styles/app.css) would pad them 14 px above and below. */
+  .pl-pills,
+  .pl-fchips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  main .pl-pills > a:not(.btn) {
+    flex: none;
+    height: auto;
+    min-height: 44px;
+    padding-block: 0;
+    margin-block: 0;
+  }
+  .pl-fchips > .pl-fchip {
+    flex: none;
+  }
 }
 
 .pl-only-phone {

@@ -27,6 +27,27 @@
     display: flex;
     flex-direction: column;
   }
+  /* A side column that wraps under the others takes the whole row, at any
+     width too narrow for its columns (tablet, phone, a narrow window). The
+     thresholds are the columns' outer widths: 321 + 420 + 321 and
+     321 + 420. */
+  .fb-cols {
+    container-type: inline-size;
+  }
+  @container (max-width: 1061.98px) {
+    .fb-right {
+      max-width: none;
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+  }
+  @container (max-width: 740.98px) {
+    .fb-left {
+      max-width: none;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
   .fb-center {
     flex: 999 1 420px;
     min-width: 0;
@@ -446,14 +467,10 @@
     padding: 0;
     gap: 0;
   }
-  /* The board stacks the columns; the side columns keep their widths. */
+  /* The columns stack at the full width (the container queries above). */
   .fb-left,
   .fb-right {
-    max-width: min(340px, 100%);
     min-width: 0;
-  }
-  .fb-right {
-    max-width: min(360px, 100%);
   }
   .fb-left select.fb-in,
   .fb-left input.fb-in {

@@ -20,7 +20,7 @@ import { DeliveryDialog, OptionDialog } from './GiftDialogs'
 import { GiftIcon, giftWhen } from './parts'
 import { mg } from './messages'
 import './gifts.css'
-import { useDebounced } from '@/lib/hooks'
+import { useDebounced, useMediaQuery } from '@/lib/hooks'
 import { downloadCsv } from '@/lib/download'
 import { m as dm } from '@/lib/download.messages'
 
@@ -364,6 +364,8 @@ function GiftsTable({ v, setDialog }: { v: View; setDialog: (d: PageDialog) => v
   const [search, setSearch] = useState('')
   const q = useDebounced(search.trim(), 250)
   const canExport = useCan('subscribers:export')
+  // On phones the filter chips scroll on one line (gifts.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   // The page goes back to the first when the filter or the search changes.
   const key = `${filter}|${q}`
   const [paged, setPaged] = useState({ key, page: 1 })
@@ -404,7 +406,7 @@ function GiftsTable({ v, setDialog }: { v: View; setDialog: (d: PageDialog) => v
           </Button>
         </span>
       </div>
-      <div className="gf-fchips" role="group" aria-label={t(mg.filterLabel)}>
+      <div className="gf-fchips" role="group" aria-label={t(mg.filterLabel)} data-scroll-row={phone ? '' : undefined}>
         {filters.map((f) => (
           <button key={f.value} type="button" className="gf-fchip" aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>
             {t(mg[f.label])} <b>{l ? count(l.counts[f.count]) : '…'}</b>

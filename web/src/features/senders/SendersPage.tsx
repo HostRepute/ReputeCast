@@ -272,7 +272,8 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
       <h2 className="h2" id="defaults-h">
         {t(m.defaultsTitle)}
       </h2>
-      <Grid min={240} gap={12}>
+      {/* One select per line on phones (sd-defaults): two-up, each cuts "Acme Newsletter · …" to a word. */}
+      <Grid min={240} gap={12} className="sd-defaults">
         <label className="lbl">
           {t(m.defaultFrom)}
           <select className="in" value={senderId} onChange={(e) => setSenderId(e.target.value)} disabled={Boolean(reason)}>

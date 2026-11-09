@@ -57,7 +57,7 @@ export function CopyStatusBadge({ status, missing, size = 'row' }: { status: Cop
 export function CopySwitcher({ languages, value, onPick }: { languages: SwitcherLanguage[]; value: string; onPick: (code: string) => void }) {
   const t = useT()
   return (
-    <div className="pl-chips" role="group" aria-label={t(mf.copyIn)}>
+    <div className="pl-chips" role="group" aria-label={t(mf.copyIn)} data-scroll-row>
       {languages.map((l) => {
         const on = l.code === value
         return (

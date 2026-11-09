@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { TableScroll } from '@/components/ui/Table'
 import { useT, type MessageDescriptor } from '@/i18n'
 import { m } from './composer.messages'
 import { views, withEllipsis, type PlatformKey, type PlatformView } from './cuts'
@@ -220,7 +221,7 @@ export function Glance({ n, maxMessage }: { n: PushPreview; maxMessage: number }
             : t(m.glanceAll, { n: [...n.title].length, m: [...n.message].length, max: maxMessage })}
         </span>
       </div>
-      <div className="w-full overflow-x-auto">
+      <TableScroll label={t(m.glance)} className="w-full">
         <table className="px-gl">
           <thead>
             <tr>
@@ -247,7 +248,7 @@ export function Glance({ n, maxMessage }: { n: PushPreview; maxMessage: number }
             })}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </section>
   )
 }

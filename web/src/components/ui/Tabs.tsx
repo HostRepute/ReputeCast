@@ -1,6 +1,6 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
 import { Tabs as RTabs } from 'radix-ui'
-import type { ReactNode } from 'react'
+import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 export type NavTab = {
@@ -141,15 +141,16 @@ export function Segmented<T extends string>({
   items,
   label,
   className,
+  ...rest
 }: {
   value: T
   onChange: (v: T) => void
   items: { value: T; label: ReactNode; title?: string }[]
   label: string
   className?: string
-}) {
+} & Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'role' | 'aria-label'>) {
   return (
-    <div className={cn('seg', className)} role="group" aria-label={label}>
+    <div {...rest} className={cn('seg', className)} role="group" aria-label={label}>
       {items.map((it) => (
         <button key={it.value} type="button" aria-pressed={value === it.value} title={it.title} onClick={() => onChange(it.value)}>
           {it.label}

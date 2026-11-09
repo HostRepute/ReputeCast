@@ -16,7 +16,7 @@ import { authLine, cap, filterWord, reputationWord, shortSource, toneOf, usedBy,
 /** A label and a value on one line (the board's `.kv` on Deliverability). */
 export function KV({ label, children, labelClass, valueClass, className }: { label: ReactNode; children: ReactNode; labelClass?: string; valueClass?: string; className?: string }) {
   return (
-    <div className={cn('flex justify-between gap-2.5 text-[13px]', className)}>
+    <div className={cn('flex justify-between gap-2.5 text-[13px] max-md:[overflow-wrap:break-word]', className)}>
       <span className={labelClass}>{label}</span>
       <span className={cn('n', valueClass)}>{children}</span>
     </div>

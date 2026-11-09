@@ -115,7 +115,8 @@ export function StatusChip({ word, draft }: { word: string; draft: boolean }) {
   return (
     <span id="cstatus" role="status" className={`stchip${tone === 'bad' ? ' bad' : tone === 'warn' ? ' warn' : ''}`}>
       {tone === 'ok' ? <ToolIcon name="check" size={12} strokeWidth={2.2} /> : null}
-      {withoutVersion(text, versioned)}
+      {/* Its own box, so a narrow header can end it with an ellipsis on one line. */}
+      <span className="st-t">{withoutVersion(text, versioned)}</span>
     </span>
   )
 }
@@ -283,7 +284,7 @@ export function Header({ onReview }: { onReview: () => void }) {
             </span>
           ) : preview ? (
             <span id="cstatus" role="status" className="stchip">
-              {withoutVersion(t(m.statusVersion, { status: statusWord(word), version: status.kind === 'new' ? 1 : status.version }), Boolean(versionLanguage(campaign) || c.missingLanguage))}
+              <span className="st-t">{withoutVersion(t(m.statusVersion, { status: statusWord(word), version: status.kind === 'new' ? 1 : status.version }), Boolean(versionLanguage(campaign) || c.missingLanguage))}</span>
             </span>
           ) : (
             <StatusChip word={word} draft={campaign.status === 'draft' && !digest} />
@@ -300,7 +301,8 @@ export function Header({ onReview }: { onReview: () => void }) {
           <DeviceToggle />
         </div>
       )}
-      <div className="cb-end">
+      {/* A digest's actions are words ("Check next issue"), not icons: phones keep them whole (chrome.css). */}
+      <div className={digest || issue ? 'cb-end cb-words' : 'cb-end'}>
         {preview || digest || issue ? null : <ComposerLanguageSwitcher compact />}
         <WebChip />
         {preview ? (

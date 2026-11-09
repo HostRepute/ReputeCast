@@ -292,7 +292,7 @@ function SendsCard({ overview }: { overview: AgencyOverview }) {
               key={s.campaignId}
               to="/w/$workspace/campaigns/$campaignId/review"
               params={{ workspace: s.workspace.slug, campaignId: s.campaignId }}
-              className="items-stretch! gap-2! no-underline"
+              className="ag-srow items-stretch! gap-2! no-underline"
             >
               <span className="flex items-baseline justify-between gap-2">
                 <span className="font-bold">{sendDay(s.sendAt)}</span>

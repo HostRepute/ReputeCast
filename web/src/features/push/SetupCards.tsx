@@ -402,7 +402,7 @@ export function SitesCard({ data, addRef }: { data: PushSetup; addRef: RefObject
         </div>
       </div>
       {data.sites.length ? (
-        <Table aria-label={t(m.sitesTitle, { count: data.sites.length })}>
+        <Table aria-label={t(m.sitesTitle, { count: data.sites.length })} className="px-sites">
           <thead>
             <tr>
               <Th>{t(m.colSite)}</Th>

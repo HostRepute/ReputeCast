@@ -353,7 +353,8 @@ function FeedCard({ f, set, errors, d, sites }: CardProps & { sites: Schemas['Di
             {t(m.feedBroken, { status: fd.status })}
           </Badge>
         )}
-        <span className="min-w-0 flex-1 text-[13px]">
+        {/* On phones the line keeps a readable width and Read now goes under it. */}
+        <span className="min-w-0 flex-1 text-[13px] max-md:min-w-[160px]">
           {fd.status === 'ok' ? t(s.feedLine, { kind: fd.kind || 'rss', count: fd.items, via: fd.lastReadVia || 'setup' }) : (fd.error?.detail ?? '')}
         </span>
         <Button size="sm" icon="refresh" loading={reading} onClick={() => void read()}>

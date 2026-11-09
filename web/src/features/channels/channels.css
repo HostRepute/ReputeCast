@@ -99,6 +99,17 @@
 .ch-filter svg {
   flex: none;
 }
+/* Phones: the chips stay on one line and the row scrolls sideways (it is
+   marked data-scroll-row, so it fades at the side that has more). */
+@media (max-width: 767px) {
+  .ch-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .ch-filter > * {
+    flex: none;
+  }
+}
 
 /* A channel's tag beside a campaign's date: [SMS] Tue 14 Oct · 10:00 local time. */
 .badge.ch-tag {

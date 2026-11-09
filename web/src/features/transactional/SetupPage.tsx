@@ -144,7 +144,7 @@ function ApiCard({ s }: { s: Setup }) {
                 <td className="mono nw" style={{ fontSize: 12.5 }}>
                   {p}
                 </td>
-                <td>{w}</td>
+                <td className="tx-desc">{w}</td>
               </tr>
             ))}
           </tbody>
@@ -542,8 +542,8 @@ function ErrorsCard({ s }: { s: Setup }) {
                   <td className="mono nw" style={{ fontSize: 12.5 }}>
                     {e.code}
                   </td>
-                  <td>{when ? <T msg={when} values={values} /> : e.status}</td>
-                  <td>{todo ? <T msg={todo} values={values} /> : null}</td>
+                  <td className="tx-desc">{when ? <T msg={when} values={values} /> : e.status}</td>
+                  <td className="tx-desc">{todo ? <T msg={todo} values={values} /> : null}</td>
                 </tr>
               )
             })}

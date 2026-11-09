@@ -201,7 +201,8 @@ function Catalog({
           <span>{hub.helpers.length ? t(m.readOnlyCatalog, { helpers: helpersText(hub.helpers) }) : t(m.readOnlyCatalogAlone)}</span>
         </div>
       ) : null}
-      <div className="ih-chips" role="group" aria-label={t(m.filterLabel)}>
+      {/* Scrolls sideways on phones (integrations.css), with the edge fade. */}
+      <div className="ih-chips" role="group" aria-label={t(m.filterLabel)} data-scroll-row>
         <Chip on={filter === 'all'} onClick={() => setFilter('all')}>
           {t(m.filterAll)}
         </Chip>

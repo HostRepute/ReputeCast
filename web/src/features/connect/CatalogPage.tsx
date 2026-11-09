@@ -374,10 +374,10 @@ function CommunityCard({ items, reason }: { items: Community[]; reason?: string 
           {t(mc.manageAdapters)}
         </ButtonLink>
       </div>
-      {/* As on the phone board: two 140 px columns (the provider cards above stay one per row there, where the board breaks names letter by letter). */}
-      <div className="grid max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
+      {/* One adapter per row on phones, like the provider cards above: two 165 px columns break a version ("0./6./1") and squeeze the names. */}
+      <div className="grid max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
         {items.map((c, i) => (
-          <div key={c.id} className={cn('flex flex-col gap-1.5 px-4.5 py-3.5', i < items.length - 1 && 'border-r border-line-2')}>
+          <div key={c.id} className={cn('flex flex-col gap-1.5 px-4.5 py-3.5', i < items.length - 1 && 'border-r border-line-2 max-md:border-r-0 max-md:border-b')}>
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold">{c.name}</span>
               <span className="mono k">{c.version}</span>

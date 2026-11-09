@@ -205,3 +205,45 @@ export function useFirstLoadSettled(maxMs = 3000): boolean {
   }, [client, maxMs])
   return state === 'settled'
 }
+
+/**
+ * After each change of `key` (the route), every row of tabs or chips that
+ * scrolls sideways (a phone's tab strip) scrolls its current item into view:
+ * the tab you are on was off the edge ("Li…") when it came late in the row.
+ * Only the row moves, never the page. Rows a screen draws once its data
+ * arrives are caught for a few seconds after the change; each row is moved
+ * at most once, so a row the reader has scrolled stays where they left it.
+ */
+export function useCurrentTabInView(key: string) {
+  useEffect(() => {
+    const done = new WeakSet<HTMLElement>()
+    const current = '[aria-current="page"], [aria-selected="true"], [aria-pressed="true"], .on'
+    const reveal = () => {
+      for (const row of document.querySelectorAll<HTMLElement>('.tabs, [role="tablist"], .scroll-sm, [data-scroll-row]')) {
+        if (done.has(row) || row.scrollWidth <= row.clientWidth + 1) continue
+        // The current item, or the current button of a control in the row.
+        const item = row.querySelector<HTMLElement>(`:scope > :is(${current}), :scope > * > :is(${current})`)
+        if (!item) continue
+        done.add(row)
+        // Where the item sits along the row's scrolled content.
+        const left = item.getBoundingClientRect().left - row.getBoundingClientRect().left - row.clientLeft + row.scrollLeft
+        if (left >= row.scrollLeft && left + item.offsetWidth <= row.scrollLeft + row.clientWidth) continue
+        // Centred, unless it is wider than the row: then its start shows.
+        row.scrollLeft = item.offsetWidth >= row.clientWidth ? left : Math.max(0, left - (row.clientWidth - item.offsetWidth) / 2)
+      }
+    }
+    let frame = requestAnimationFrame(reveal)
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(reveal)
+    }
+    const watch = typeof MutationObserver === 'undefined' ? undefined : new MutationObserver(schedule)
+    watch?.observe(document.body, { childList: true, subtree: true })
+    const stop = setTimeout(() => watch?.disconnect(), 3000)
+    return () => {
+      cancelAnimationFrame(frame)
+      clearTimeout(stop)
+      watch?.disconnect()
+    }
+  }, [key])
+}

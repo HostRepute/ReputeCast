@@ -212,7 +212,7 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
   const groups = list.groups.map((g) => ({ g, rows: catalog.filter((p) => p.group === g) })).filter((x) => x.rows.length > 0)
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-md:grid-cols-1">
+    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-[1100px]:grid-cols-1">
       <div className="col gap-5">
         {saved && role && !dirty ? (
           <Note tone="ok" label={tr(m.savedBadge)}>
@@ -453,7 +453,7 @@ function ImpactValues({ role, impact, readOnly }: { role?: Role; impact?: Impact
 function EditorSkeleton() {
   const tr = useT()
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-md:grid-cols-1" aria-busy="true">
+    <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-5 max-[1100px]:grid-cols-1" aria-busy="true">
       <span className="vh" role="status">
         {tr(m.editorLoading)}
       </span>

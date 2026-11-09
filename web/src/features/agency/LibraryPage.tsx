@@ -568,7 +568,7 @@ function ItemCard({ item, selected, onSelect }: { item: Item; selected: boolean;
     >
       <LibraryThumb item={item} />
       <div className="flex flex-1 flex-col gap-1.5 px-3.5 pt-3 pb-3.5">
-        <button type="button" className="cursor-pointer border-0 bg-transparent p-0 text-left font-semibold text-ink" onClick={onSelect}>
+        <button type="button" className="ag-lnk cursor-pointer border-0 bg-transparent p-0 text-left font-semibold text-ink" onClick={onSelect}>
           {item.name}
         </button>
         <span className="flex flex-wrap items-center gap-1.5">

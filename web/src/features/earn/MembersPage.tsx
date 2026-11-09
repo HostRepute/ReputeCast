@@ -13,6 +13,7 @@ import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { lowerInSentence, T, useT } from '@/i18n'
 import { count, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { roleName } from '@/lib/roles'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
@@ -55,6 +56,8 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
   const { slug, me: who } = useWorkspace()
   const user = useMe().data
   const status = search.status ?? 'with_access'
+  // On phones the status chips scroll on one line (earn.css), and the row says so.
+  const phone = useMediaQuery('(max-width: 767px)')
   const [q, setQ] = useState(search.q ?? '')
   // The box follows the address when it changes elsewhere (Clear search, Back).
   const [shown, setShown] = useState(search.q)
@@ -189,7 +192,7 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
               </Select>
             </div>
             <div className="ea-chiprow">
-              <div className="ea-chips" role="group" aria-label={t(mm.statusLabel)}>
+              <div className="ea-chips" role="group" aria-label={t(mm.statusLabel)} data-scroll-row={phone ? '' : undefined}>
                 {statuses.map((s) => (
                   <button key={s} type="button" className="ea-schip" aria-pressed={status === s} onClick={() => set({ status: s === 'with_access' ? undefined : s })}>
                     {chipLabel(t, s)}
@@ -475,7 +478,7 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
           <button key={r.id} type="button" className="ea-mcard" onClick={() => onOpen(r.id)}>
             <span className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">{memberName(t, r)}</span>
-              <StatusBadges r={r} />
+              <StatusBadges r={r} row />
             </span>
             <span className="text-[13px]">
               {tierLine(t, r)} · {priceLine(t, r)}
@@ -490,10 +493,11 @@ function MembersTable({ list, search, onOpen, onClear, onSearchEnded }: { list: 
   )
 }
 
-export function StatusBadges({ r }: { r: MemberRow }) {
+export function StatusBadges({ r, row }: { r: MemberRow; row?: boolean }) {
   const t = useT()
   return (
-    <span className="inline-flex flex-col items-start gap-1">
+    // A phone card puts the states on the name's line, side by side (a column of them made the row tall).
+    <span className={row ? 'inline-flex flex-wrap items-center gap-1' : 'inline-flex flex-col items-start gap-1'}>
       {r.status === 'gift' ? (
         <span className="badge pur">
           <GiftIcon />

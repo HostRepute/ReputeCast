@@ -81,7 +81,10 @@ export function ExpiresCell({ k }: { k: Key }) {
   if (k.status === 'expired')
     return (
       <span className="row gap-1.5">
-        <Badge tone="bad">{t(m.expiredBadge)}</Badge>
+        {/* min-w-min: in a .row on phones a badge may otherwise shrink below its word. */}
+        <Badge tone="bad" className="min-w-min">
+          {t(m.expiredBadge)}
+        </Badge>
         {k.expiresAt ? <span className="k">{usDate(k.expiresAt)}</span> : null}
       </span>
     )

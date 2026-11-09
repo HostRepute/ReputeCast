@@ -127,7 +127,7 @@ function BuiltinCard({ data }: { data: Overview }) {
           <Badge tone="info">{t(ma.versionAvailable, { version: data.version, latest: data.latest })}</Badge>
         )}
       </div>
-      <Table className="pv-10 pv-nw" phoneWrap>
+      <Table className="pv-10 pv-nw">
         <thead>
           <tr>
             <Th>{t(ma.colAdapter)}</Th>
@@ -201,7 +201,7 @@ function CommunityCard({ data, reason, onInstall }: { data: Overview; reason?: s
           {t(ma.browseRegistry)}
         </a>
       </div>
-      <Table className="pv-10 pv-nw" phoneWrap>
+      <Table className="pv-10 pv-nw">
         <thead>
           <tr>
             <Th>{t(ma.colAdapter)}</Th>

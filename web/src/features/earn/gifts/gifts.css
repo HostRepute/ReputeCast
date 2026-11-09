@@ -154,6 +154,16 @@
     padding: 12px 18px;
     border-bottom: 1px solid var(--line-2);
   }
+  @media (max-width: 767px) {
+    /* The filter chips: one row that scrolls sideways. */
+    .gf-fchips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+    .gf-fchips > * {
+      flex: none;
+    }
+  }
   .gf-fchip {
     display: inline-flex;
     align-items: center;

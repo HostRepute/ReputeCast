@@ -195,7 +195,7 @@ export function ScheduledTiles({ review }: { review: Review }) {
     [t(m.tileScheduledBy), review.scheduled ? `${review.scheduled.by} · ${whenText(review.scheduled.at, now)}` : '—'],
   ]
   return (
-    <Grid min={220} gap={16}>
+    <Grid min={220} gap={16} className="rv-tiles">
       {tiles.map(([k, v]) => (
         <div key={k} className="card flex flex-col gap-1 px-4.5 py-4">
           <span className="k">{k}</span>

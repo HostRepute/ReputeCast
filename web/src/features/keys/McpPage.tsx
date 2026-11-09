@@ -193,8 +193,10 @@ function AgentsMatrix({ o }: { o: Overview }) {
         </div>
       </div>
       {/* The board's 240 px for the fourth column is a preferred width here, not a
-          minimum: the column gives way when a long tool name needs the room. */}
-      <Table phoneWrap fit density="dense" caption={t(m.agentsTable)} className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:w-[240px] [&_td]:whitespace-normal">
+          minimum: the column gives way when a long tool name needs the room.
+          On phones the access badges stay on one line ("Allow · provider
+          health" in three) and the table scrolls. */}
+      <Table fit density="dense" caption={t(m.agentsTable)} className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:w-[240px] [&_td]:whitespace-normal">
         <thead>
           <tr>
             <Th>{t(m.colAgent)}</Th>
@@ -293,7 +295,7 @@ function ActionsCard() {
       ) : !q.data ? (
         <TableSkeleton rows={3} label={t(m.actionsLoading)} />
       ) : (
-        <Table phoneWrap fit density="dense" caption={t(m.actionsTable)} className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(2)]:whitespace-nowrap [&_td:nth-child(4)]:min-w-[240px]">
+        <Table fit density="dense" caption={t(m.actionsTable)} className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(2)]:whitespace-nowrap [&_td:nth-child(4)]:min-w-[240px]">
           <thead>
             <tr>
               <Th>{t(m.colTime)}</Th>

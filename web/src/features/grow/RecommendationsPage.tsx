@@ -252,11 +252,12 @@ function YouRecommend({ v }: { v: View }) {
   )
 }
 
-function Handle({ it, i, onKey, draggable, onDragStart }: { it: Item; i: number; onKey: (e: KeyboardEvent, id: string) => void; draggable?: boolean; onDragStart?: () => void }) {
+function Handle({ it, i, onKey, draggable, onDragStart, stacked }: { it: Item; i: number; onKey: (e: KeyboardEvent, id: string) => void; draggable?: boolean; onDragStart?: () => void; stacked?: boolean }) {
   const t = useT()
   const canEdit = useCan('grow:edit')
   return (
-    <span className="flex items-center gap-1.5">
+    // A phone card puts the position under the handle (RecommendationsPhone), leaving the text its width.
+    <span className={stacked ? 'flex flex-none flex-col items-center gap-0.5' : 'flex items-center gap-1.5'}>
       {canEdit ? (
         <button
           type="button"
@@ -348,7 +349,7 @@ function RecCard({ it, i, onKey }: { it: Item; i: number; onKey: (e: KeyboardEve
   return (
     <div className="flex flex-col gap-2 border-t border-line-2 px-4 py-3">
       <div className="flex items-start gap-2.5">
-        <Handle it={it} i={i} onKey={onKey} />
+        <Handle it={it} i={i} onKey={onKey} stacked />
         <NewsletterTile name={it.name} initials={it.initials} logo={it.logo?.url} />
         <span className="flex min-w-0 flex-1 flex-col gap-px">
           <span className="gw-tt2">{it.name}</span>
@@ -368,7 +369,7 @@ function RecCard({ it, i, onKey }: { it: Item; i: number; onKey: (e: KeyboardEve
           {showsOn(t, it)}
         </span>
       </div>
-      <KeyValues
+      <Nums3
         items={[
           [t(mc.labelShown), count(it.shown)],
           [it.kind === 'partner' ? t(mc.labelRequests) : t(mc.labelClicks), count(it.kind === 'partner' ? it.requests : it.clicks)],
@@ -377,6 +378,20 @@ function RecCard({ it, i, onKey }: { it: Item; i: number; onKey: (e: KeyboardEve
       />
       {it.state !== 'showing' && it.state !== 'connected' ? <StateNote it={it} /> : null}
     </div>
+  )
+}
+
+/** A phone card's three numbers side by side in a tinted box, as on RecommendationsPhone. */
+function Nums3({ items }: { items: [ReactNode, ReactNode][] }) {
+  return (
+    <dl className="gw-n3">
+      {items.map(([k, v], i) => (
+        <div key={i}>
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
   )
 }
 
@@ -749,7 +764,7 @@ function RecommendingYou({ v }: { v: View }) {
                     </Badge>
                     <span className="k">{t(mc.since, { date: dayMonthYear(y.since) })}</span>
                   </span>
-                  <KeyValues
+                  <Nums3
                     items={[
                       [t(mc.labelRequests), count(y.requests)],
                       [t(mc.labelConfirmed), t(mc.confirmedRate, { count: count(y.confirmed), pct: y.requests ? pct((y.confirmed / y.requests) * 100, 0) : '–' })],
