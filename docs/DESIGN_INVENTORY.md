@@ -38,6 +38,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | Board | Screen / states | Responsive boards |
 |---|---|---|
 | `Main.dc.html` | Overview | phone, tablet |
+| `MainDark.dc.html` | Overview in the dark theme (M54) | phone, tablet |
 | `OverviewEmpty.dc.html` | Overview · first run | phone |
 | `OverviewStates.dc.html` | Overview · loading / error | — |
 
@@ -196,6 +197,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `DSAccessibility.dc.html` | Accessibility · WCAG 2.2 AA checklist and audit | — |
 | `DSCharts.dc.html` | Charts | — |
 | `DSComponents.dc.html` | Components | — |
+| `DarkTheme.dc.html` | Dark theme (M54): palette as light and dark pairs with their contrast, elevation, every component, the chart palettes, code panes and keep-light previews, the focus ring | — |
 | `DSCoverage.dc.html` | UX coverage matrix · every screen × every state | — |
 | `DSExpansion.dc.html` | Expansion patterns, phases 1–8 (not built yet) | — |
 | `DSFoundations.dc.html` | Foundations · colour, type, spacing, motion | — |
@@ -222,7 +224,8 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `InviteStates.dc.html` | Accept invitation · join, security setup, expired, revoked, wrong account | — |
 | `Notifications.dc.html` | Notification center & preferences | phone, tablet |
 | `ShellNotifications.dc.html` | App shell · notification popover | — |
-| `ShellUserMenu.dc.html` | App shell · user menu | — |
+| `ShellUserMenu.dc.html` | App shell · user menu (with the Theme row) | — |
+| `AppearanceStates.dc.html` | Account & security · appearance: each choice, the dark theme, keyboard focus, a refused save, the user menu's Theme row, ⌘K, phone | phone |
 | `SignInStates.dc.html` | Sign in · identifier first, SSO redirect, errors, lockout | — |
 | `TwoFactorStates.dc.html` | Two-factor · wrong code, passkey, recovery codes, reset fallbacks | — |
 
@@ -325,7 +328,7 @@ Brief: `docs/spec/reputecast-design-addon-connect-reach.md`. Not built yet: each
 | `ComposerLanguages.dc.html` | Composer · languages, German outdated | phone, tablet |
 | `ComposerCompare.dc.html` | Composer · compare English and German | — |
 | `LanguageStates.dc.html` | Languages · states of General, the composer, compare, and Add language | — |
-| `LanguageRegion.dc.html` | Account · language & region | phone |
+| `LanguageRegion.dc.html` | Account · language & region, appearance | phone |
 | `StressCampaignsVi.dc.html` | Stress test · Campaigns · Vietnamese | — |
 | `StressCampaignsPseudo.dc.html` | Stress test · Campaigns · pseudo-locale +40% | phone |
 | `StressReviewVi.dc.html` | Stress test · Review & send · Vietnamese | — |
@@ -596,6 +599,18 @@ For a hosting company or an IT team that runs an instance for someone else: the 
 | Boards | Change |
 |---|---|
 | `InstanceSettingsStates` (new) | Instance & updates when the server sets `http.public_url_locked` and `updates.managed_by`: the public URL is read only and says the server's operator set it (Check still runs); Version & updates names who manages upgrades instead of showing the upgrade command and the backup line, and the update check switch is off with the server configuration's sentence. The first sign-in's instance basics in the same state: the URL read only with the same sentence, and the update check turned off by the server configuration. On a narrow phone Check (Check again) moves under the address when both don't fit, so a pinned address shows whole, and the URL check's badges keep one line. |
+
+### Dark mode (M54)
+
+The app has a dark theme: Account & security › Appearance (Same as device, Light, Dark), a Theme row in the user menu and the theme commands in ⌘K. The palette is the design tokens' dark values (`design/design-system/tokens.json`, README › Dark theme).
+
+| Boards | Change |
+|---|---|
+| `LanguageRegion`, `LanguageRegionPhone` | The Appearance card follows Language & region: three option cards with a picture of the app in each theme (Same as device split light and dark), the chosen one with a doubled accent border, and the note that the choice is saved to the account. On phones the cards stack with the picture beside the words. |
+| `ShellUserMenu` | A Theme row after Language: Same as device, Light and Dark as icon radio items in a small segmented group; the chosen one is an inverted chip, and the menu stays open on a pick. 44 px items on phones. |
+| `AppearanceStates`, `AppearanceStatesPhone` (new) | Each choice on a light and a dark device, the card in the dark theme, the keyboard focus ring, a refused save (back to the previous choice, an error toast with Retry), the user menu's Theme row in both themes, ⌘K's Appearance group, and the phone layout. |
+| `DarkTheme` (new) | The dark theme's specimen: every colour token as a light and dark pair with its contrast, elevation (ground, side, surface, raised; field a step below its card; hover and hover-soft a step above), buttons, badges, fields in every state, choices and switches, tabs and segments, menus, tooltips, toasts, a dialog over the scrim, notes, a table with a hovered row, stat tiles, bars, every chart palette, an always-dark code pane, a keep-light email preview and the focus ring. |
+| `MainDark`, `MainDarkTablet`, `MainDarkPhone` (new) | The Overview in the dark theme, colour for colour as the app draws it; layout and sample data are Main's. |
 
 ## Conflicts between the design and the spec
 
