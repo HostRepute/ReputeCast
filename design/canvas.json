@@ -4406,6 +4406,16 @@
    "w": 1440,
    "x": 6120,
    "y": 0
+  },
+  "InstanceSettingsStates.dc.html": {
+   "expand": "fill",
+   "h": 1230,
+   "is_interactive": true,
+   "page": "instance",
+   "title": "Instance admin · settings the server's operator manages",
+   "w": 1440,
+   "x": 15600,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -5648,6 +5658,7 @@
   "InstanceBotFilter.dc.html",
   "InstanceBotFilterDialogs.dc.html",
   "InstanceSystem.dc.html",
+  "InstanceSettingsStates.dc.html",
   "AuditInstance.dc.html",
   "InstanceUsersTablet.dc.html",
   "SSOSetupTablet.dc.html",
