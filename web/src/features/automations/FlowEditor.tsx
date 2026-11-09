@@ -69,6 +69,7 @@ import {
   type StepType,
 } from './graph'
 import { DRAG_TYPE, draggedStepType, FlowStatsList, graphOrder, Palette, Prop, StepPanel, StepStatsPanel, type PaletteItem } from './panels'
+import { useTheme } from '@/features/appearance/useTheme'
 import { storeOfTrigger, useStoreTriggerOptions } from '@/features/commerce/automation'
 import { t as tt, T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
@@ -178,6 +179,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const qc = useQueryClient()
   const rf = useReactFlow<StepNodeType, StepEdgeType>()
   const reduced = useReducedMotion()
+  const { theme } = useTheme()
   const coarse = useMediaQuery('(pointer: coarse)')
   const canEdit = useCan('automations:edit')
   const publishReason = usePermissionReason('automations:publish')
@@ -733,6 +735,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
                 multiSelectionKeyCode={null}
                 defaultEdgeOptions={{ type: 'step' }}
                 proOptions={{ hideAttribution: true }}
+                colorMode={theme}
                 ariaLabelConfig={ariaLabels}
                 className={cn(!(animate && !reduced) && 'fe-still')}
               >

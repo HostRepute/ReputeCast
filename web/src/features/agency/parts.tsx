@@ -32,7 +32,7 @@ export function healthColors(tone: string): { dot: string; line: string } {
     case 'ok':
       return { dot: 'var(--ok-bar)', line: 'var(--accent)' }
     default:
-      return { dot: 'var(--color-muted-line)', line: 'var(--color-muted-line)' }
+      return { dot: 'var(--muted-line)', line: 'var(--muted-line)' }
   }
 }
 

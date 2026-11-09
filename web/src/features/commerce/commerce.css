@@ -76,7 +76,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: #fbfbfc;
+    background: var(--side);
     min-width: 0;
   }
   .cm-sbox h4 {
@@ -149,7 +149,7 @@
     padding: 12px 14px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fbfbfc;
+    background: var(--side);
   }
   .cm-ev-btn {
     all: unset;
@@ -175,7 +175,7 @@
     align-items: flex-start;
     padding: 9px 11px;
     border-radius: 8px;
-    background: #f3f4f6;
+    background: var(--ground);
     border: 1px solid var(--line);
     font-size: 12.5px;
   }
@@ -190,7 +190,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-strong);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     max-width: 300px;
   }
   .cm-search input {
@@ -219,8 +219,8 @@
     height: 30px;
     padding: 0 11px;
     border-radius: 999px;
-    border: 1px solid #d4d8df;
-    background: #fff;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
     font: inherit;
     font-size: 12.5px;
     font-weight: 600;
@@ -234,12 +234,12 @@
     font-variant-numeric: tabular-nums;
   }
   .cm-fchip.on {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .cm-fchip.on b {
-    color: #c9ced6;
+    color: var(--line-hover);
   }
   .cm-pp-grid {
     display: grid;
@@ -253,7 +253,7 @@
     padding: 10px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fff;
+    background: var(--field);
     font: inherit;
     text-align: left;
     cursor: pointer;
@@ -262,7 +262,7 @@
   .cm-ppc.on {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
   .cm-ppc:disabled {
     cursor: not-allowed;
@@ -285,7 +285,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    background: #f3f4f6;
+    background: var(--ground);
     border: 1px solid var(--line);
     box-sizing: border-box;
     flex: none;
@@ -322,7 +322,7 @@
   }
   .cm-choice.on {
     border-color: var(--accent);
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
   .cm-choice input[type='radio'] {
     margin-top: 3px;

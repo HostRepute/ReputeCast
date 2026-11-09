@@ -78,7 +78,7 @@ export function ReviewWebLine({ campaignId }: { campaignId: string }) {
   const vis = p.visibility === 'paid' ? t(me.visPaid) : p.visibility === 'members' ? t(me.visMembers) : t(me.visPublic)
   const when = p.publishMode === 'with_send' ? t(me.webWithSend) : p.publishMode === 'at' && p.publishAt ? t(me.webAt, { date: dateTime(p.publishAt) }) : t(me.webNow)
   return (
-    <section className="card flex items-start gap-3 px-[18px] py-3.5" style={{ borderColor: 'var(--color-info-line)', background: '#F8FBFF' }} aria-labelledby="rv-web-h">
+    <section className="card flex items-start gap-3 px-[18px] py-3.5" style={{ borderColor: 'var(--info-line)', background: 'color-mix(in srgb, var(--info-tint) 45%, var(--surface))' }} aria-labelledby="rv-web-h">
       <span className="inline-flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full bg-info-bg text-info-fg" aria-hidden="true">
         <Icon name="globe" size={15} />
       </span>

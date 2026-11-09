@@ -313,7 +313,7 @@ function MonthGrid({
                       <span
                         className={
                           d === today
-                            ? 'inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-accent font-semibold text-white'
+                            ? 'inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-accent font-semibold text-on-strong'
                             : 'font-semibold text-ink-2'
                         }
                         aria-current={d === today ? 'date' : undefined}

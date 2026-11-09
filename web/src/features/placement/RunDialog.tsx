@@ -622,7 +622,7 @@ function RouteShares({ plan }: { plan: Plan }) {
   const prov = (id: string) => plan.providers.find((o) => o.id === id)
   const seed = (id: string) => plan.seeds.find((s) => s.id === id)
   return (
-    <div className="mt-2 flex flex-col gap-3 rounded-lg border border-line bg-white p-3">
+    <div className="mt-2 flex flex-col gap-3 rounded-lg border border-line bg-surface p-3">
       {plan.route.map((r) => {
         const o = prov(r.providerId)
         return (

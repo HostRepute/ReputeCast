@@ -183,7 +183,7 @@
 }
 .cv-pick-item:hover,
 .cv-pick-item:focus-visible {
-  background: var(--ground);
+  background: var(--hover);
 }
 
 /* Canvas: each conditional block's badge, the toggle in the toolbar. */
@@ -255,8 +255,8 @@
   padding: 0 12px;
   border: 0;
   border-radius: 7px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--inverse);
+  color: var(--on-strong);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -264,7 +264,7 @@
   white-space: nowrap;
 }
 .cv-foot:hover {
-  background: #1f2937;
+  background: var(--inverse-hover);
 }
 
 /* The versions panel, docked over the bottom of the canvas. */
@@ -276,7 +276,7 @@
   max-height: min(60%, 520px);
   background: var(--surface);
   border-top: 1px solid var(--line);
-  box-shadow: 0 -12px 28px rgba(11, 18, 32, 0.1);
+  box-shadow: 0 -12px 28px rgb(var(--shadow-rgb) / 0.1);
 }
 .cv-panel-h {
   display: flex;
@@ -316,7 +316,7 @@
   background: var(--accent-tint);
 }
 .cv-tbl tr.hl td {
-  background: #fffbeb;
+  background: var(--warn-tint);
 }
 .cv-tbl tr.hl td.num.over {
   color: var(--warn-fg);
@@ -331,7 +331,7 @@
   gap: 4px 10px;
   padding: 9px 14px;
   border-bottom: 1px solid var(--line);
-  background: #eff6ff;
+  background: var(--info-tint);
   color: var(--info-fg);
   font-size: 12.5px;
 }
@@ -371,7 +371,7 @@
   background: var(--accent-tint);
 }
 .cv-versions > div.hl {
-  background: #fffbeb;
+  background: var(--warn-tint);
 }
 .cv-versions .r {
   text-align: right;

@@ -146,7 +146,7 @@ export function GuardNotes({ data, editable }: { data: Campaign; editable: boole
         <QuietCard data={data} zones={overnight} held={heldOvernight} start={start} end={end} editable={editable} onOutside={(outside) => settings({ outside })} busy={save.isPending} />
       ) : null}
       {g.overCap > 0 && !skipCap ? null : heldOvernight > 0 ? null : (
-        <div className="note n bg-white" role="note">
+        <div className="note n bg-surface" role="note">
           <InfoIcon />
           <div>{`${capLine} ${quietLine}`}</div>
         </div>

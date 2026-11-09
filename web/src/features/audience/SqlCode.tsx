@@ -1,9 +1,10 @@
 import { PostgreSQL, sql } from '@codemirror/lang-sql'
-import { EditorState } from '@codemirror/state'
+import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers, placeholder } from '@codemirror/view'
 import { minimalSetup } from 'codemirror'
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { ScrollPre } from '@/components/ui/ScrollPre'
+import { useTheme } from '@/features/appearance/useTheme'
 
 const keywords = new Set(
   'SELECT FROM WHERE AND OR NOT EXISTS IN IS NULL TRUE FALSE INTERVAL AS ON JOIN LEFT INNER GROUP BY ORDER LIMIT DISTINCT CASE WHEN THEN ELSE END LIKE ILIKE ANY BETWEEN UNION ALL WITH HAVING'.split(
@@ -40,7 +41,7 @@ export function SqlBlock({ sql: text, label }: { sql: string; label: string }) {
 }
 
 const theme = EditorView.theme({
-  '&': { backgroundColor: 'var(--surface)', color: 'var(--ink)', border: '1px solid var(--line-input)', borderRadius: '8px', fontSize: '12px' },
+  '&': { backgroundColor: 'var(--field)', color: 'var(--ink)', border: '1px solid var(--line-input)', borderRadius: '8px', fontSize: '12px' },
   '.cm-content': { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", padding: '12px 0', lineHeight: '1.55' },
   '.cm-gutters': { backgroundColor: 'var(--ground-3)', color: 'var(--ink-3)', borderRight: '1px solid var(--line-2)', borderRadius: '8px 0 0 8px' },
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--accent-tint)' },
@@ -55,6 +56,9 @@ export function SqlEditor({ value, onChange, label, invalid }: { value: string; 
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const changed = useRef(onChange)
+  // Dark theme: CodeMirror's caret and selection colours for dark grounds.
+  const dark = useTheme().theme === 'dark'
+  const darkMode = useRef(new Compartment())
   useEffect(() => {
     changed.current = onChange
   }, [onChange])
@@ -69,6 +73,7 @@ export function SqlEditor({ value, onChange, label, invalid }: { value: string; 
           minimalSetup,
           sql({ dialect: PostgreSQL, upperCaseKeywords: true }),
           theme,
+          darkMode.current.of(EditorView.darkTheme.of(dark)),
           placeholder('SELECT c.id FROM contacts c WHERE …'),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true', ...(invalid ? { 'aria-invalid': 'true' } : {}) }),
@@ -86,5 +91,8 @@ export function SqlEditor({ value, onChange, label, invalid }: { value: string; 
     // The document is seeded once; later edits come from the editor itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  useEffect(() => {
+    view.current?.dispatch({ effects: darkMode.current.reconfigure(EditorView.darkTheme.of(dark)) })
+  }, [dark])
   return <div ref={host} className={invalid ? 'sqled invalid' : 'sqled'} />
 }

@@ -74,7 +74,7 @@
     font-size: 13px;
   }
   .tx-flowr .arw {
-    color: #9aa3b2;
+    color: var(--muted-line);
   }
   .tx-pill {
     display: inline-flex;
@@ -128,9 +128,9 @@
     font-variant-numeric: tabular-nums;
   }
   .tx-fchip.on {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .tx-fchip.on b {
     color: var(--line-hover);
@@ -143,7 +143,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: var(--surface);
+    background: var(--field);
     /* The boards' 240 px content box plus padding and border. */
     width: 262px;
     max-width: 100%;
@@ -173,7 +173,7 @@
     color: var(--ok-fg);
   }
   .tx-live .dot {
-    box-shadow: 0 0 0 4px rgba(22, 101, 52, 0.15);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok-fg) 15%, transparent);
   }
   .tx-live.off {
     color: var(--ink-3);
@@ -245,7 +245,7 @@
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--dark-line);
-    background: var(--ink);
+    background: var(--code-bg);
     min-width: 0;
   }
   .tx-cbh {
@@ -375,13 +375,13 @@
     background: var(--accent-tint);
   }
   .tbl tr.tx-xp td {
-    background: #fbfbfc;
+    background: var(--side);
   }
   .tbl tr.tx-click {
     cursor: pointer;
   }
   .tbl tr.tx-click:hover td {
-    background: var(--ground-3);
+    background: var(--hover-soft);
   }
 
   /* Phones show lists instead of tables. */

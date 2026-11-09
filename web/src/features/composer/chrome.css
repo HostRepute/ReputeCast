@@ -15,14 +15,14 @@
   font-size: 13px;
 }
 .cmp .bnr.w {
-  background: #fffbeb;
-  border-bottom-color: #fcd34d;
-  color: #78350f;
+  background: var(--warn-tint);
+  border-bottom-color: var(--warn-line-strong);
+  color: var(--warn-ink);
 }
 .cmp .bnr.b {
   background: var(--bad-tint);
   border-bottom-color: var(--bad-line);
-  color: #7f1d1d;
+  color: var(--bad-ink);
 }
 .cmp .bnr .bi {
   flex: none;
@@ -115,9 +115,9 @@
   margin-top: 4px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  color: #78350f;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-line-strong);
+  color: var(--warn-ink);
 }
 .cmp .tokr .w .btn {
   align-self: flex-start;
@@ -168,8 +168,8 @@
   flex-wrap: wrap;
   padding: 9px 12px;
   background: var(--warn-bg);
-  border-bottom: 1px solid #fcd34d;
-  color: #78350f;
+  border-bottom: 1px solid var(--warn-line-strong);
+  color: var(--warn-ink);
   font-size: 12.5px;
 }
 .cmp .ckfail .t {
@@ -178,15 +178,15 @@
 }
 .cmp .ckfail .t b {
   font-weight: 600;
-  color: #78350f;
+  color: var(--warn-ink);
 }
 .cmp .ckfail.ok {
   background: var(--ok-tint);
   border-bottom-color: var(--ok-line);
-  color: #14532d;
+  color: var(--ok-ink);
 }
 .cmp .ckfail.ok .t b {
-  color: #14532d;
+  color: var(--ok-ink);
 }
 .cmp .ckfail .spin {
   width: 14px;
@@ -200,7 +200,7 @@
   z-index: 8;
   width: 320px;
   max-width: calc(100% - 24px);
-  background: var(--surface);
+  background: var(--raised);
   border: 1px solid var(--line-strong);
   border-radius: 10px;
   box-shadow: var(--shadow-menu);
@@ -252,9 +252,9 @@
   gap: 6px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  color: #78350f;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-line-strong);
+  color: var(--warn-ink);
   font-size: 12.5px;
 }
 .cmp .lqpop .w .btn {
@@ -276,9 +276,9 @@
   margin: 12px 14px 0;
   padding: 9px 12px;
   border-radius: 8px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
+  background: var(--info-tint);
+  border: 1px solid var(--info-line);
+  color: var(--info-ink);
   font-size: 12.5px;
 }
 .cmp .honest .t {
@@ -305,21 +305,21 @@
   flex-wrap: wrap;
   padding: 12px 14px;
   border-radius: 10px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
+  background: var(--info-tint);
+  border: 1px solid var(--info-line);
+  color: var(--info-ink);
 }
 .bkbanner .bki {
   width: 36px;
   height: 36px;
   border-radius: 9px;
-  background: #ffffff;
-  border: 1px solid #bfdbfe;
+  background: var(--surface);
+  border: 1px solid var(--info-line);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  color: #1e40af;
+  color: var(--info-fg);
 }
 .bkbanner .bkt {
   flex: 1 1 300px;
@@ -331,7 +331,7 @@
 }
 .bkbanner .bkt b {
   font-weight: 600;
-  color: #0b1220;
+  color: var(--ink);
 }
 @media (max-width: 640px) {
   .bkbanner .btn {
@@ -348,7 +348,7 @@
   border-bottom: 1px solid var(--line-2);
 }
 .cthr.on {
-  background: var(--accent-tint, #f0fdfa);
+  background: var(--accent-tint);
 }
 .cthr.done {
   opacity: 0.85;
@@ -371,18 +371,18 @@
   padding: 2px 8px;
   border: 0;
   border-radius: 6px;
-  background: #f3f4f6;
+  background: var(--ground);
   font: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--ink-2);
   text-align: left;
 }
 .cthr button.anc {
   cursor: pointer;
 }
 .cthr button.anc:hover {
-  background: #e5e7eb;
+  background: var(--line);
 }
 .cthr .tx {
   margin: 0;
@@ -415,8 +415,8 @@
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--surface);
-  box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+  background: var(--raised);
+  box-shadow: var(--shadow-menu);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -439,7 +439,7 @@
 }
 .mnl button:hover,
 .mnl [aria-selected='true'] button {
-  background: #f3f4f6;
+  background: var(--hover);
 }
 
 /* A thread's marker on its block (the board's pin). */
@@ -461,7 +461,7 @@
 .cpin .av {
   border-radius: 50% 50% 50% 4px !important;
   border: 2px solid #ffffff;
-  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.18);
+  box-shadow: 0 1px 3px rgb(var(--shadow-rgb) / 0.18);
   box-sizing: content-box;
 }
 
@@ -487,8 +487,8 @@
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: #15803d;
-  border: 2px solid #ffffff;
+  background: var(--ok-bar);
+  border: 2px solid var(--surface);
   box-sizing: border-box;
 }
 .cb-pres .pav + .pav {
@@ -497,7 +497,7 @@
 .cb-pres .pt {
   font-size: 12px;
   font-weight: 500;
-  color: #5b6472;
+  color: var(--ink-3);
   white-space: nowrap;
 }
 @media (max-width: 1100px) {
@@ -518,10 +518,10 @@
   right: 0;
   width: 340px;
   max-width: calc(100vw - 32px);
-  background: var(--surface);
+  background: var(--raised);
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+  box-shadow: var(--shadow-menu);
   padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
@@ -723,12 +723,12 @@
   white-space: nowrap;
 }
 .cmp .modes button:hover {
-  background: var(--ground);
+  background: var(--hover);
   color: var(--ink);
 }
 .cmp .modes button[aria-selected='true'] {
-  background: var(--ink);
-  color: #ffffff;
+  background: var(--inverse);
+  color: var(--on-strong);
 }
 .cmp .devt {
   display: inline-flex;
@@ -753,8 +753,8 @@
   border-left: 1px solid var(--line);
 }
 .cmp .devt button[aria-pressed='true'] {
-  background: var(--ink);
-  color: #ffffff;
+  background: var(--inverse);
+  color: var(--on-strong);
 }
 .cmp .devt button[aria-disabled='true'] {
   opacity: 0.55;
@@ -1249,7 +1249,7 @@
   border-color: transparent;
 }
 .cmp .ctools .btn.ic:hover {
-  background: var(--ground);
+  background: var(--hover);
 }
 .cmp .ctools select.in {
   height: 30px;
@@ -1288,7 +1288,7 @@
   outline: none;
 }
 .cmp .ck-a11y:focus-visible {
-  outline: 2px solid var(--focus, #2563eb);
+  outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
 .cmp .ck-h {
@@ -1414,8 +1414,8 @@
   border-left: 1px solid var(--line);
 }
 .cmp .seg3 button[aria-pressed='true'] {
-  background: var(--ink);
-  color: #ffffff;
+  background: var(--inverse);
+  color: var(--on-strong);
 }
 .cmp .bgr {
   display: flex;
@@ -1476,7 +1476,7 @@
 .cmp .colp .bars i {
   display: block;
   border-radius: 3px;
-  background: #d4d8df;
+  background: var(--line-strong);
 }
 .cmp .colp button[aria-pressed='true'] {
   border: 2px solid var(--accent);
@@ -1603,9 +1603,9 @@
   margin: 10px 12px 0;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
+  background: var(--info-tint);
+  border: 1px solid var(--info-line);
+  color: var(--info-ink);
   font-size: 12.5px;
   line-height: 1.45;
 }
@@ -1680,8 +1680,8 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: var(--ink);
-  color: #ffffff;
+  background: var(--inverse);
+  color: var(--on-strong);
   font-size: 12.5px;
 }
 .cmp .qedit .btn {

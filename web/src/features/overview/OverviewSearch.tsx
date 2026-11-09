@@ -127,7 +127,7 @@ export function OverviewSearch() {
                   role="option"
                   aria-selected={i === active}
                   tabIndex={-1}
-                  className={cn('flex cursor-pointer flex-col rounded-lg px-2.5 py-1.5', i === active && 'bg-ground')}
+                  className={cn('flex cursor-pointer flex-col rounded-lg px-2.5 py-1.5', i === active && 'bg-hover')}
                   onMouseEnter={() => setActive(i)}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {

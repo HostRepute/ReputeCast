@@ -629,7 +629,7 @@ function UpgradePreview({ o, d, benefits }: { o: Offer; d: Detail; benefits: str
         {a ? <span className="k">{t(mof.previewSub, { period: a.period })}</span> : null}
       </div>
       {a ? (
-        <div className="of-pv">
+        <div className="of-pv keep-light">
           <span className="of-pv-url">{t(mof.previewUrl, { link: o.linkHost ?? d.upgradeHost, period: a.period })}</span>
           <PreviewBody o={o} a={a} benefits={benefits} />
         </div>
@@ -713,7 +713,7 @@ function CancelPreview({ o, host }: { o: Offer; host: string }) {
         <h2 className="h2">{t(mof.cancelPreviewTitle)}</h2>
         <span className="k">{t(mof.cancelPreviewSub)}</span>
       </div>
-      <div className="of-pv">
+      <div className="of-pv keep-light">
         <span className="of-pv-url">{t(mof.cancelPreviewUrl, { host })}</span>
         <b className="text-[19px]">{t(mof.cancelHeading, v)}</b>
         <span className="k">{t(mof.cancelLead, v)}</span>

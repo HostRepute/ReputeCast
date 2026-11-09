@@ -127,8 +127,8 @@ function ChartSvg({ v, buckets, after, bands, desc }: { v: Variant; buckets: Buc
     <svg width="100%" viewBox={`0 0 ${v.w} ${v.h}`} role="img" aria-label={desc}>
       {ticks.map((n) => (
         <g key={n}>
-          <line x1={v.left} x2={v.right} y1={y(n)} y2={y(n)} stroke={n === 0 ? '#C9CED6' : '#EEF0F3'} strokeWidth={1} />
-          <text x={v.left - 8} y={y(n) + 4} textAnchor="end" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+          <line x1={v.left} x2={v.right} y1={y(n)} y2={y(n)} stroke={n === 0 ? 'var(--line-hover)' : 'var(--line-2)'} strokeWidth={1} />
+          <text x={v.left - 8} y={y(n) + 4} textAnchor="end" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
             {v.short ? shortCount(n) : count(n)}
           </text>
         </g>
@@ -152,14 +152,14 @@ function ChartSvg({ v, buckets, after, bands, desc }: { v: Variant; buckets: Buc
           >
             {/* The whole slot takes the pointer. */}
             <rect x={x0} y={v.top} width={slot} height={v.base - v.top} fill="transparent" />
-            {after && now ? <path d={barPath(x0 + (slot - v.bar) / 2, y(now.contacts), v.bar, v.base, v.r)} fill="#D4D8DF" /> : null}
+            {after && now ? <path d={barPath(x0 + (slot - v.bar) / 2, y(now.contacts), v.bar, v.base, v.r)} fill="var(--line-strong)" /> : null}
             {after ? (
               <path d={barPath(x0 + (slot - v.bar) / 2 + 5, y(b.contacts), v.bar - 10, v.base, v.r)} fill={bandColor[band]} />
             ) : (
               <path d={barPath(x0 + (slot - v.bar) / 2, y(b.contacts), v.bar, v.base, v.r)} fill={bandColor[band]} />
             )}
             {v.short ? null : (
-              <text x={x0 + slot / 2} y={v.base + 18} textAnchor="middle" fontSize={11} fill="#5B6472" fontFamily={FONT}>
+              <text x={x0 + slot / 2} y={v.base + 18} textAnchor="middle" fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
                 {`${b.from}–${b.to}`}
               </text>
             )}
@@ -169,21 +169,21 @@ function ChartSvg({ v, buckets, after, bands, desc }: { v: Variant; buckets: Buc
       {legend.map((l) => (
         <g key={l.band} aria-hidden="true">
           <rect x={l.x} y={9} width={8} height={8} rx={2} fill={bandColor[l.band]} />
-          <text x={l.x + l.gap} y={17} fontSize={11.5} fontWeight={600} fill="#374151" fontFamily={FONT}>
+          <text x={l.x + l.gap} y={17} fontSize={11.5} fontWeight={600} fill="var(--ink-nav)" fontFamily={FONT}>
             {l.label}
           </text>
         </g>
       ))}
       {[bands.warmFrom, bands.hotFrom].map((s) => (
         <g key={s} aria-hidden="true">
-          <line x1={xOfScore(s)} x2={xOfScore(s)} y1={v.short ? 24 : 28} y2={v.base} stroke="#374151" strokeWidth={1} />
-          <circle cx={xOfScore(s)} cy={v.short ? 24 : 28} r={2.5} fill="#374151" />
+          <line x1={xOfScore(s)} x2={xOfScore(s)} y1={v.short ? 24 : 28} y2={v.base} stroke="var(--ink-nav)" strokeWidth={1} />
+          <circle cx={xOfScore(s)} cy={v.short ? 24 : 28} r={2.5} fill="var(--ink-nav)" />
         </g>
       ))}
       {v.short ? (
         <g aria-hidden="true">
           {[0, bands.warmFrom, bands.hotFrom, 100].map((s, i, all) => (
-            <text key={s} x={xOfScore(s)} y={v.base + 16} textAnchor={i === 0 ? 'start' : i === all.length - 1 ? 'end' : 'middle'} fontSize={11} fill="#5B6472" fontFamily={FONT}>
+            <text key={s} x={xOfScore(s)} y={v.base + 16} textAnchor={i === 0 ? 'start' : i === all.length - 1 ? 'end' : 'middle'} fontSize={11} fill="var(--ink-3)" fontFamily={FONT}>
               {s}
             </text>
           ))}
@@ -191,9 +191,9 @@ function ChartSvg({ v, buckets, after, bands, desc }: { v: Variant; buckets: Buc
       ) : null}
       {tip ? (
         <g aria-hidden="true" pointerEvents="none">
-          <rect x={tip.x} y={tip.ty} width={tip.w} height={26} rx={6} fill="#0B1220" />
-          <path d={`M${tip.cx},${tip.ty + 26} l6,0 l-6,6 l-6,-6 Z`} fill="#0B1220" />
-          <text x={tip.x + tip.w / 2} y={tip.ty + 17} textAnchor="middle" fontSize={12} fontWeight={600} fill="#fff" fontFamily={FONT}>
+          <rect x={tip.x} y={tip.ty} width={tip.w} height={26} rx={6} fill="var(--inverse)" />
+          <path d={`M${tip.cx},${tip.ty + 26} l6,0 l-6,6 l-6,-6 Z`} fill="var(--inverse)" />
+          <text x={tip.x + tip.w / 2} y={tip.ty + 17} textAnchor="middle" fontSize={12} fontWeight={600} fill="var(--on-strong)" fontFamily={FONT}>
             {tip.text}
           </text>
         </g>

@@ -94,8 +94,9 @@ function ToastView({ t }: { t: ToastItem }) {
   return (
     <div className="toast" role={kind === 'error' ? 'alert' : 'status'}>
       {ic ? (
-        <span className="ti" style={{ background: ic.bg }}>
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--surface)" strokeWidth={ic.sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        // The toast is an inverted chip, so its icon keeps the light theme's strong colours (white on green/red/blue) in both themes.
+        <span className="ti keep-light" style={{ background: ic.bg }}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--on-strong)" strokeWidth={ic.sw} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d={ic.path} />
           </svg>
         </span>

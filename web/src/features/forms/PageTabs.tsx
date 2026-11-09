@@ -244,7 +244,7 @@ function PagePreview({ page, draft, form, language }: { page: PreviewPage; draft
     return <Skeleton h={520} r={10} className="fb-frame" />
   }
   return (
-    <div className="fb-frame">
+    <div className="fb-frame keep-light">
       <iframe ref={frame} title={t(m.previewOf, { page })} srcDoc={q.data.html} sandbox="allow-same-origin" style={{ height }} onLoad={onLoad} />
     </div>
   )

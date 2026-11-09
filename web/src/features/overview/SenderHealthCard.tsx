@@ -88,7 +88,7 @@ export function PendingHealthCard() {
       <div className="flex items-center gap-3.5 max-md:flex-wrap">
         <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
           <circle cx="32" cy="32" r="26" fill="none" stroke="var(--line-2)" strokeWidth="7" />
-          <text x="32" y="37" textAnchor="middle" fontFamily="IBM Plex Sans, sans-serif" fontSize="16" fontWeight="700" fill="var(--color-muted-line)">
+          <text x="32" y="37" textAnchor="middle" fontFamily="IBM Plex Sans, sans-serif" fontSize="16" fontWeight="700" fill="var(--muted-line)">
             –
           </text>
         </svg>

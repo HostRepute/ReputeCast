@@ -32,8 +32,8 @@
     font-weight: 500;
   }
   .sms-stat.hot {
-    border-color: #fca5a5;
-    background: #fff5f5;
+    border-color: var(--bad-line);
+    background: var(--bad-tint);
   }
   .sms-foot {
     display: flex;
@@ -88,7 +88,7 @@
     padding: 0 9px 0 3px;
     border-radius: 999px;
     border: 1px solid var(--line);
-    background: #fff;
+    background: var(--surface);
     font-size: 12.5px;
     font-weight: 500;
     color: var(--ink);
@@ -105,7 +105,7 @@
     padding: 0 4px;
     border-radius: 999px;
     background: var(--line-2);
-    color: #374151;
+    color: var(--ink-nav);
     font-family: var(--font-family-mono);
     font-size: 11px;
     font-weight: 600;
@@ -132,25 +132,25 @@
     font-size: 11.5px;
     font-weight: 600;
     border: 1px solid var(--line);
-    background: #f9fafb;
-    color: #374151;
+    background: var(--ground-3);
+    color: var(--ink-nav);
     white-space: nowrap;
   }
   .sms-cap.y {
-    border-color: #bbf7d0;
-    background: #f0fdf4;
-    color: #166534;
+    border-color: var(--ok-line);
+    background: var(--ok-tint);
+    color: var(--ok-fg);
   }
   .sms-cap.n {
     border-color: var(--line);
-    background: #fff;
-    color: #6b7280;
+    background: var(--surface);
+    color: var(--muted-ink);
     text-decoration: line-through;
   }
   .sms-cap.p {
-    border-color: #fde68a;
-    background: #fffbeb;
-    color: #92400e;
+    border-color: var(--warn-line);
+    background: var(--warn-tint);
+    color: var(--warn-fg);
   }
 
   /* A metric over a thin bar, and the provider card's facts. */
@@ -208,7 +208,7 @@
   }
   label.sms-rad.on {
     border-color: var(--accent);
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
 
   /* Review & send: check groups and rows, the verdict. */
@@ -218,7 +218,7 @@
     justify-content: space-between;
     gap: 10px;
     padding: 12px 16px;
-    background: #f9fafb;
+    background: var(--ground-3);
     border-top: 1px solid var(--line);
     flex-wrap: wrap;
   }
@@ -251,10 +251,10 @@
     flex: none;
   }
   .sms-chkr.w {
-    background: #fffbeb;
+    background: var(--warn-tint);
   }
   .sms-chkr.b {
-    background: #fff5f5;
+    background: var(--bad-tint);
   }
   .sms-chkr > .badge {
     margin-top: 1px;
@@ -273,19 +273,19 @@
     letter-spacing: -0.01em;
   }
   .sms-verdict.w {
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
-    color: #78350f;
+    background: var(--warn-tint);
+    border: 1px solid var(--warn-line-strong);
+    color: var(--warn-ink);
   }
   .sms-verdict.b {
-    background: #fef2f2;
-    border: 1px solid #fca5a5;
-    color: #7f1d1d;
+    background: var(--bad-wash);
+    border: 1px solid var(--bad-line);
+    color: var(--bad-ink);
   }
   .sms-verdict.g {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    color: #14532d;
+    background: var(--ok-tint);
+    border: 1px solid var(--ok-line);
+    color: var(--ok-ink);
   }
 
   /* The budget meter: used, this send, over, and the alert mark. */
@@ -314,10 +314,10 @@
     background: var(--accent);
   }
   .sms-bm-t i.s {
-    background: repeating-linear-gradient(135deg, #0f766e 0 3px, #99f6e4 3px 6px);
+    background: repeating-linear-gradient(135deg, var(--accent) 0 3px, var(--accent-line) 3px 6px);
   }
   .sms-bm-t i.o {
-    background: repeating-linear-gradient(135deg, #b91c1c 0 3px, #fca5a5 3px 6px);
+    background: repeating-linear-gradient(135deg, var(--bad-strong) 0 3px, var(--bad-line) 3px 6px);
     border-radius: 0 4px 4px 0;
   }
   .sms-bm-t .bmk {
@@ -367,14 +367,14 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    background: #e3f1ee;
+    background: var(--accent-soft);
   }
   .sms-qh-t .win {
     position: absolute;
     top: 0;
     bottom: 0;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-strong);
     font-size: 11px;
     font-weight: 700;
     display: flex;
@@ -385,7 +385,7 @@
     overflow: hidden;
   }
   .sms-qh-t .win.x {
-    background: #b91c1c;
+    background: var(--bad-strong);
   }
   .sms-qh-t .now {
     position: absolute;
@@ -447,7 +447,7 @@
     background: var(--accent);
   }
   .sms-segc-b.w span i {
-    background: #b45309;
+    background: var(--warn-bar);
   }
   .sms-segc-x {
     display: flex;
@@ -465,7 +465,7 @@
   .sms-ed {
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     padding: 12px 14px;
     font-size: 14px;
     line-height: 1.85;
@@ -478,23 +478,23 @@
     padding: 2px 7px;
     border-radius: 5px;
     background: var(--line-2);
-    color: #4b5563;
+    color: var(--ink-2);
     font-weight: 500;
     white-space: nowrap;
   }
   .sms-ed .lt {
     padding: 2px 7px;
     border-radius: 5px;
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--info-bg);
+    color: var(--info-fg);
     font-family: var(--font-family-mono);
     font-size: 12.5px;
     white-space: nowrap;
   }
   .sms-ed .lt.e {
-    background: #fee2e2;
-    color: #991b1b;
-    text-decoration: underline wavy #dc2626;
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+    text-decoration: underline wavy var(--bad-bar);
     text-underline-offset: 3px;
   }
   .sms-ed.sm {
@@ -525,17 +525,17 @@
     outline-offset: 2px;
   }
   .sms-uc {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--bad-bg);
+    color: var(--bad-fg);
     border-radius: 3px;
     padding: 0 3px;
     font-weight: 700;
-    text-decoration: underline wavy #dc2626;
+    text-decoration: underline wavy var(--bad-bar);
     text-underline-offset: 4px;
   }
   .sms-okc {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--ok-bg);
+    color: var(--ok-fg);
     border-radius: 3px;
     padding: 0 3px;
     font-weight: 700;
@@ -546,8 +546,8 @@
     gap: 4px;
     padding: 0 6px;
     border-radius: 5px;
-    background: #ede9fe;
-    color: #5b21b6;
+    background: var(--purple-bg);
+    color: var(--purple-fg);
     font-family: var(--font-family-mono);
     font-size: 0.86em;
     font-weight: 500;
@@ -563,7 +563,7 @@
     background: #fff;
     border: 1px solid var(--line-strong);
     border-radius: 18px;
-    box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12);
+    box-shadow: 0 1px 3px rgb(var(--shadow-rgb) / 0.12);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -700,7 +700,7 @@
   .sms-cbox {
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #f9fafb;
+    background: var(--ground-3);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
@@ -715,7 +715,7 @@
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
   }
   .sms-cpy .tx {
     display: flex;
@@ -731,7 +731,7 @@
     padding: 0 8px;
     border-radius: 6px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font-family: var(--font-family-mono);
     font-size: 12px;
     font-weight: 600;
@@ -791,8 +791,8 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    color: var(--on-strong);
     font-size: 11px;
     font-weight: 700;
     display: inline-flex;
@@ -889,11 +889,11 @@
     padding: 0 11px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font: inherit;
     font-size: 12.5px;
     font-weight: 600;
-    color: #374151;
+    color: var(--ink-nav);
     cursor: pointer;
     white-space: nowrap;
   }
@@ -903,12 +903,12 @@
     font-variant-numeric: tabular-nums;
   }
   .sms-fchip.on {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .sms-fchip.on b {
-    color: #c9ced6;
+    color: var(--inverse-muted);
   }
   .sms-filters {
     display: flex;
@@ -924,7 +924,7 @@
   .sms-stk td:first-child {
     position: sticky;
     left: 0;
-    background: #fff;
+    background: var(--surface);
     z-index: 1;
     box-shadow: 1px 0 0 var(--line-2);
   }
@@ -951,7 +951,7 @@
     padding: 0 10px;
     border-radius: 8px;
     border: 1px solid var(--line);
-    background: #f9fafb;
+    background: var(--ground-3);
     font-size: 12.5px;
     font-weight: 600;
     white-space: nowrap;
@@ -987,12 +987,12 @@
     overflow-wrap: anywhere;
   }
   .sms-diff .del {
-    background: #fef2f2;
-    color: #991b1b;
+    background: var(--bad-wash);
+    color: var(--bad-fg);
   }
   .sms-diff .add {
-    background: #f0fdf4;
-    color: #166534;
+    background: var(--ok-tint);
+    color: var(--ok-fg);
   }
 
   @media (max-width: 1100px) {

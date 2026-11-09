@@ -101,8 +101,8 @@
   width: min(380px, calc(100vw - 48px));
   padding: 10px 12px;
   border-radius: 8px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--inverse);
+  color: var(--on-strong);
   font-size: 12.5px;
   line-height: 1.45;
   box-shadow: var(--shadow-md);
@@ -287,9 +287,9 @@
   fill: var(--ink);
 }
 .chip.pr-on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  background: var(--inverse);
+  border-color: var(--inverse);
+  color: var(--on-strong);
 }
 /* The comment filters are the board's filter chips (PollResults, `.fchip`):
    30px tall, taller than an informational chip. */

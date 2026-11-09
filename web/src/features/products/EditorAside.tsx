@@ -69,7 +69,7 @@ export function ShopCard({ detail, p }: { detail: ProductDetail; p: Preview }) {
     <section className="card" aria-labelledby="pr-shop-h">
       <CardSection id="pr-shop-h" title={t(pe.inShop)} caption={t(pe.inShopCaption, { url: bareUrl(detail.shopUrl) })} />
       <div className="pad flex flex-col gap-2.5">
-        <div className="pr-st">
+        <div className="pr-st keep-light">
           <article className="pr-shopc">
             <div className="s-art">
               <PreviewCover p={p} size="card" />
@@ -113,7 +113,7 @@ export function DefaultPage({ detail, p }: { detail: ProductDetail; p: Preview }
       <CardSection id="pr-page-h" title={t(pe.defaultPage)} />
       <div className="pad flex flex-col gap-2.5">
         <div className="pr-pagebox" role="img" aria-label={t(pe.defaultPageLabel)}>
-          <div className="s-pg pr-st">
+          <div className="s-pg pr-st keep-light">
             <div className="s-hd">
               <div className="s-hdi">
                 <span className="s-brand">

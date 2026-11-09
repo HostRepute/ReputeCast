@@ -89,10 +89,10 @@ type Seg = { value: number; fill: string; ink: string }
 
 function segments(c: Counts): Seg[] {
   return [
-    { value: c.inbox, fill: FOLDER.inbox, ink: 'var(--surface)' },
+    { value: c.inbox, fill: FOLDER.inbox, ink: 'var(--on-strong)' },
     { value: c.tab, fill: FOLDER.tab, ink: 'var(--ink)' },
-    { value: c.spam, fill: FOLDER.spam, ink: 'var(--surface)' },
-    { value: c.notArrived, fill: FOLDER.notArrived, ink: 'var(--ink)' },
+    { value: c.spam, fill: FOLDER.spam, ink: 'var(--on-strong)' },
+    { value: c.notArrived, fill: FOLDER.notArrived, ink: 'var(--on-light)' },
   ].filter((s) => s.value > 0)
 }
 
@@ -197,9 +197,9 @@ function Tip({ bar, i, slot, bw, unit }: { bar: Bar; i: number; slot: number; bw
   return (
     <g pointerEvents="none">
       <rect x={f1(x - 3)} y={f1(top - 3)} width={f1(bw + 6)} height={f1(BASE + 2 - (top - 3))} rx={5} fill="none" stroke="var(--ink)" strokeWidth={1.5} />
-      <rect x={f1(left)} y={2} width={f1(w)} height={44} rx={6} fill="var(--ink)" />
-      <path d={`M${f1(cx - 6)},46 l6,6 l6,-6 z`} fill="var(--ink)" />
-      <text x={f1(left + 11)} y={20} fontSize={11.5} fill="var(--surface)" fontWeight={600} fontFamily={FONT}>
+      <rect x={f1(left)} y={2} width={f1(w)} height={44} rx={6} fill="var(--inverse)" />
+      <path d={`M${f1(cx - 6)},46 l6,6 l6,-6 z`} fill="var(--inverse)" />
+      <text x={f1(left + 11)} y={20} fontSize={11.5} fill="var(--on-strong)" fontWeight={600} fontFamily={FONT}>
         {title}
       </text>
       <text x={f1(left + 11)} y={36} fontSize={11.5} fill="var(--line-hover)" fontWeight={400} fontFamily={FONT}>

@@ -131,7 +131,7 @@ export function notificationDotColor(severity: string) {
     case 'ok':
       return 'var(--ok-bar)'
     default:
-      return 'var(--color-info-strong)'
+      return 'var(--info-strong)'
   }
 }
 

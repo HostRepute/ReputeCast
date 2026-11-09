@@ -227,7 +227,7 @@ function Routes({ data, ro }: { data: Rules; ro: boolean }) {
           {data.routes.map((r) => {
             const b = registrationBadge(r.registration, t)
             return (
-              <tr key={r.id} style={r.skipped ? { background: 'var(--color-warn-tint)' } : undefined}>
+              <tr key={r.id} style={r.skipped ? { background: 'var(--warn-tint)' } : undefined}>
                 <td>
                   <CountryChips codes={r.countries} named />
                 </td>
@@ -778,7 +778,7 @@ function TesterResult({ r, color }: { r: Schemas['SmsRouteTest']; color: string 
   const place = placeOf(r.zone)
   const b = registrationBadge(r.registration, t)
   return (
-    <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--color-side)' }}>
+    <div className="flex flex-col gap-3 rounded-[10px] border border-line px-4 py-3.5" style={{ background: 'var(--side)' }}>
       {r.route === 'none' ? (
         <Note tone="warn" role="note">
           {t(m.noRoute, { country: countryName(r.country) })}

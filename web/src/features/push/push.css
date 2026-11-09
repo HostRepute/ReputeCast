@@ -177,7 +177,7 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
-    background: #fbfbfc;
+    background: var(--side);
   }
   .px-add-row {
     display: flex;
@@ -211,7 +211,7 @@
     height: 24px;
     border-radius: 50%;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-strong);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -226,7 +226,7 @@
     padding: 12px 14px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #f9fafb;
+    background: var(--ground-3);
     flex-wrap: wrap;
   }
 
@@ -234,8 +234,8 @@
   .px-cbx {
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid #1f2937;
-    background: #0b1220;
+    border: 1px solid var(--dark-line);
+    background: var(--code-bg);
     min-width: 0;
   }
   .px-cbh {
@@ -243,8 +243,8 @@
     align-items: center;
     gap: 2px;
     padding: 6px 8px;
-    border-bottom: 1px solid #1f2937;
-    background: #111827;
+    border-bottom: 1px solid var(--dark-line);
+    background: var(--dark-surface);
     flex-wrap: wrap;
   }
   .px-cbh .lang {
@@ -265,7 +265,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: #e5e7eb;
+    color: var(--dark-text);
     border: 1px solid #374151;
     border-radius: 6px;
     background: none;
@@ -280,7 +280,7 @@
     font-family: var(--font-family-mono);
     font-size: 12.5px;
     line-height: 1.6;
-    color: #e5e7eb;
+    color: var(--dark-text);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
@@ -385,7 +385,7 @@
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
-    background: #fff;
+    background: var(--surface);
   }
   .px-funnel > div {
     padding: 12px 14px;
@@ -453,7 +453,7 @@
     border-color: var(--bad-line);
   }
   .card.px-site-alert.px-warn {
-    border-color: #fcd34d;
+    border-color: var(--warn-line-strong);
   }
   .px-site-alert .row1 {
     display: flex;
@@ -526,9 +526,9 @@
     min-width: 0;
   }
   .px-chk.w {
-    background: #fffbeb;
+    background: var(--warn-tint);
   }
   .px-chk.b {
-    background: #fff5f5;
+    background: var(--bad-tint);
   }
 }

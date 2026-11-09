@@ -259,7 +259,7 @@ function SettingsBody({ data }: { data: Settings }) {
             <span id="secrets-l">{t(mp.secrets)}</span>
             <div className="flex gap-2 max-md:flex-wrap">
               <input
-                className="in flex-1 bg-white max-md:w-0 max-md:min-w-full"
+                className="in flex-1 bg-field max-md:w-0 max-md:min-w-full"
                 value={data.defaults.secretsRotatedAt ? t(mp.rotatedOn, { date: dayMonthYear(data.defaults.secretsRotatedAt) }) : t(mp.notRotated)}
                 readOnly
                 aria-labelledby="secrets-l"

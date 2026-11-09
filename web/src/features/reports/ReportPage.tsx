@@ -71,8 +71,8 @@ function NotSent({ r, campaignId }: { r: CampaignReport; campaignId: string }) {
   return (
     <section className="card flex flex-col items-center gap-2.5 border-dashed px-7 py-9 text-center">
       <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
-        <rect x="6" y="12" width="36" height="26" rx="4" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
-        <path d="M12 32V22M20 32V18M28 32V26M36 32V15" stroke="var(--color-muted-line)" strokeWidth="2.5" strokeLinecap="round" />
+        <rect x="6" y="12" width="36" height="26" rx="4" fill="none" stroke="var(--muted-line)" strokeWidth="2" />
+        <path d="M12 32V22M20 32V18M28 32V26M36 32V15" stroke="var(--muted-line)" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
       <h2 className="m-0 text-[17px] font-bold">{t(m.noResults, { name: r.campaign.name })}</h2>
       <span className="max-w-[520px] text-ink-2">

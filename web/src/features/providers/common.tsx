@@ -23,7 +23,7 @@ export const providerColor: Record<ColorKey, string> = {
 }
 
 /** Text colour on a provider-coloured segment (the routing split bar). */
-export const onProviderColor: Record<ColorKey, string> = { ses: 'var(--surface)', postal: '#3F0A1F', postmark: 'var(--surface)', other: 'var(--ink)' }
+export const onProviderColor: Record<ColorKey, string> = { ses: 'var(--on-strong)', postal: '#3F0A1F', postmark: 'var(--on-strong)', other: 'var(--on-light)' }
 
 /** A stream's name in the app language (read when shown, so it follows the language). */
 export const streamName: Record<Stream, string> = {
@@ -188,7 +188,7 @@ export function Meter({
 
 /** Green below half of the limit, amber from half, red over it; grey when stale. */
 export function rateColor(value: number | undefined, limit: number, stale = false): string {
-  if (stale) return 'var(--color-muted-line)'
+  if (stale) return 'var(--muted-line)'
   if (value === undefined || limit <= 0) return 'var(--ok-bar)'
   const share = value / limit
   if (share >= 1) return 'var(--bad-bar)'

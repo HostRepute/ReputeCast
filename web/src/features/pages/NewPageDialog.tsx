@@ -278,7 +278,7 @@ export function NewPageDialog({
 function Thumbnail({ wires }: { wires: (typeof TEMPLATES)[number]['wires'] }) {
   const t = useT()
   return (
-    <span className="th" aria-hidden="true">
+    <span className="th keep-light" aria-hidden="true">
       {wires.length === 0 ? <span className="pg-blank">{t(m.blankThumb)}</span> : null}
       {wires.map(([kind, left, top, width, height], i) => (
         <span key={i} className={cn('pg-wf', kind)} style={{ left: `${left}%`, top, width: `${width}%`, height }} />

@@ -320,7 +320,7 @@ function ByCountry({ panel }: { panel: Panel }) {
                 ? t(m.setByHand, { name })
                 : readLine(panel, t)
         return (
-          <div key={i.country} className="sms-srow items-center" style={{ borderTop: n === 0 ? 0 : undefined, background: hold ? 'var(--color-warn-tint)' : undefined }}>
+          <div key={i.country} className="sms-srow items-center" style={{ borderTop: n === 0 ? 0 : undefined, background: hold ? 'var(--warn-tint)' : undefined }}>
             <div className="tx" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <CountryName code={i.country} />
               <span className="k">{sub}</span>

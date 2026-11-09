@@ -983,7 +983,7 @@ export function WriteView() {
           <T msg={mw.hint} values={{ k: (chunks: ReactNode[]) => <span className="kbd">{chunks}</span> }} />
         </p>
         <div className="wdocw">
-          <article className="wdoc" aria-label={t(mw.docLabel)}>
+          <article className="wdoc keep-light" aria-label={t(mw.docLabel)}>
             {!items.some((x) => x.kind === 'text' || x.kind === 'image' || x.kind === 'button') ? <p className="k">{t(mw.empty)}</p> : null}
             {items.map((x, i) => (
               <div key={x.key} className={x.kind === 'column' ? 'contents' : 'wb'}>

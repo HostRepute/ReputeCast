@@ -293,7 +293,7 @@ function RowDetail({ row, view }: { row: Row; view: View }) {
   const t = useT()
   const r = row.rebill
   return (
-    <div className="grid gap-5 rounded-lg border border-[#BFE5DD] bg-accent-tint px-4 py-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(200px,100%),1fr))' }}>
+    <div className="grid gap-5 rounded-lg border border-[color-mix(in_srgb,var(--accent)_20%,var(--accent-tint))] bg-accent-tint px-4 py-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(200px,100%),1fr))' }}>
       <div className="flex flex-col gap-1.5">
         <b className="text-[13px]">{t(um.byStream)}</b>
         {row.streams.length ? (
@@ -388,7 +388,7 @@ function RowDetail({ row, view }: { row: Row; view: View }) {
           </span>
         ) : null}
         {r.toRebill != null ? (
-          <span className="flex justify-between gap-3 border-t border-[#BFE5DD] pt-1.5 text-[13px] font-bold">
+          <span className="flex justify-between gap-3 border-t border-[color-mix(in_srgb,var(--accent)_20%,var(--accent-tint))] pt-1.5 text-[13px] font-bold">
             <span>{t(um.colRebill)}</span>
             <span className="num">{usd(r.toRebill)}</span>
           </span>

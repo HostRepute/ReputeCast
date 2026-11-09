@@ -111,7 +111,7 @@ const blocks: Record<BlockKind | 'columns3' | 'theme', ReactNode> = {
 export type BlockIconName = keyof typeof blocks
 
 /** A block's icon: 22 px on the palette's tiles, 14 px in the layers, 18 px in the Block tab. */
-export function BlockIcon({ name, size = 22, color = '#374151' }: { name: BlockIconName; size?: number; color?: string }) {
+export function BlockIcon({ name, size = 22, color = 'var(--ink-nav)' }: { name: BlockIconName; size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {blocks[name]}

@@ -191,7 +191,7 @@ function WhatsAppCard({ contactId }: { contactId: string }) {
               )}
             </span>
           </div>
-          <div className="bd wa-chat" style={{ border: 0, borderRadius: 0, maxWidth: 'none' }}>
+          <div className="bd wa-chat keep-light" style={{ border: 0, borderRadius: 0, maxWidth: 'none' }}>
             {d.thread.map((it, i) => {
               return (
                 <Fragment key={it.id}>

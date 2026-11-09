@@ -795,7 +795,7 @@ function LivePreview({ s, draft, selected, n }: { s: Survey; draft: Draft; selec
           <iframe
             ref={frame}
             title={t(m.previewTitle)}
-            className={cn('sv-frame', device === 'mobile' && 'mobile')}
+            className={cn('sv-frame keep-light', device === 'mobile' && 'mobile')}
             sandbox="allow-same-origin"
             srcDoc={html}
             onLoad={() => frame.current?.contentDocument?.getElementById(selected ?? '')?.scrollIntoView({ block: 'center' })}

@@ -16,7 +16,7 @@
   padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   font: inherit;
   text-align: left;
@@ -117,7 +117,7 @@
   gap: 12px;
   flex-wrap: wrap;
   padding: 10px 16px;
-  background: #fff;
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
 .fe-body {
@@ -127,7 +127,7 @@
   align-items: stretch;
 }
 .fe-panel {
-  background: #fff;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
 }
@@ -170,7 +170,7 @@
   padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   font: inherit;
   font-size: 12.5px;
@@ -181,7 +181,7 @@
 }
 .fe-pal:hover {
   border-color: var(--line-hover);
-  background: var(--ground-3);
+  background: var(--hover-soft);
 }
 .fe-pal[aria-disabled='true'] {
   cursor: not-allowed;
@@ -201,7 +201,7 @@
   gap: 10px;
   flex-wrap: wrap;
   padding: 8px 14px;
-  background: #fff;
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
 .fe-tools label {
@@ -228,6 +228,16 @@
   position: absolute;
   inset: 0;
   --xy-background-color: var(--ground);
+  /* React Flow's own colours (colorMode follows the app theme) on tokens. */
+  --xy-edge-stroke: var(--muted-line);
+  --xy-edge-stroke-selected: var(--info-strong);
+  --xy-connectionline-stroke: var(--accent);
+  --xy-node-color: var(--ink);
+  --xy-handle-background-color: var(--surface);
+  --xy-handle-border-color: var(--muted-ink);
+  --xy-selection-background-color: color-mix(in srgb, var(--info-strong) 8%, transparent);
+  --xy-selection-border: 1px dotted var(--info-strong);
+  --xy-attribution-background-color: color-mix(in srgb, var(--surface) 50%, transparent);
 }
 .fe-canvas .react-flow__pane {
   cursor: default;
@@ -243,7 +253,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: #fff;
+  background: var(--raised);
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 4px;
@@ -260,7 +270,7 @@
   z-index: 5;
   width: 160px;
   height: 110px;
-  background: #fff;
+  background: var(--raised);
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 8px;
@@ -269,7 +279,7 @@
 }
 /* The canvas while the flow loads (the board's dot grid). */
 .fe-canvas.fe-dots {
-  background-image: radial-gradient(#d4d8df 1px, transparent 1px);
+  background-image: radial-gradient(var(--line-strong) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 .fe-empty {
@@ -291,10 +301,10 @@
   flex-direction: column;
   gap: 4px;
   padding: 9px 11px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.08);
+  box-shadow: 0 1px 3px rgb(var(--shadow-rgb) / 0.08);
   color: var(--ink);
   font-size: 13px;
   line-height: 1.45;
@@ -317,12 +327,12 @@
   border-style: dashed;
 }
 .fn.sel {
-  border-color: #1d4ed8;
+  border-color: var(--info-strong);
   box-shadow: 0 0 0 3px var(--info-bg);
 }
 .fn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(11, 18, 32, 0.14);
+  box-shadow: 0 8px 20px rgb(var(--shadow-rgb) / 0.14);
 }
 .fn.issue {
   border-color: var(--bad-bar);
@@ -359,9 +369,9 @@
   pointer-events: none;
   opacity: 0;
   box-shadow:
-    inset 0 0 0 2px #0f766e,
-    0 0 0 4px rgba(15, 118, 110, 0.22),
-    0 8px 18px rgba(15, 118, 110, 0.18);
+    inset 0 0 0 2px var(--accent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 8px 18px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .fn .hd .dot.live {
   animation: fl-livepulse 1.8s ease-out 1.4s infinite;
@@ -384,8 +394,8 @@
   min-height: 0;
   box-sizing: content-box;
   border-radius: 50%;
-  background: #fff;
-  border: 2px solid #6b7280;
+  background: var(--surface);
+  border: 2px solid var(--muted-ink);
   transform: translateX(-50%);
 }
 .fe-canvas .react-flow__handle.fn-hb.i {
@@ -404,7 +414,7 @@
 
 /* Edges */
 .fe-canvas .react-flow__edge-path.fe-edge {
-  stroke: #9aa3b2;
+  stroke: var(--muted-line);
   stroke-width: 2;
   fill: none;
   /* Square lines on whole pixels, like the board's 2px bars. */
@@ -412,7 +422,7 @@
 }
 .fe-canvas .react-flow__edge.selected .fe-edge,
 .fe-canvas .react-flow__edge:focus-visible .fe-edge {
-  stroke: #1d4ed8;
+  stroke: var(--info-strong);
 }
 /* The edge a dragged step would be inserted into. */
 .fe-canvas .react-flow__edge.fe-drop .fe-edge {
@@ -434,7 +444,7 @@
   top: 0;
   padding: 1px 7px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line-strong);
   font-size: 11px;
   font-weight: 600;
@@ -447,12 +457,12 @@
 }
 .fe-elab.yes {
   background: var(--ok-bg);
-  border-color: #86efac;
+  border-color: var(--ok-line-strong);
   color: var(--ok-fg);
 }
 .fe-elab.no {
   background: var(--warn-bg);
-  border-color: var(--color-warn-line);
+  border-color: var(--warn-line);
   color: var(--warn-fg);
 }
 
@@ -465,8 +475,8 @@
   width: 4px;
   height: 18px;
   border-radius: 3px;
-  background: #0f766e;
-  box-shadow: 0 0 6px 1px rgba(15, 118, 110, 0.6);
+  background: var(--accent);
+  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--accent) 60%, transparent);
   opacity: 0;
   pointer-events: none;
 }
@@ -521,13 +531,13 @@
 }
 @keyframes fl-livepulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.5);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(15, 118, 110, 0);
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -606,7 +616,7 @@
   box-sizing: border-box;
 }
 .fe-steprow:hover {
-  background: var(--ground-3);
+  background: var(--hover-soft);
 }
 .fe-steprow[aria-current='true'] {
   background: var(--accent-tint);
@@ -623,17 +633,17 @@
   padding: 60px 16px;
   box-sizing: border-box;
   overflow-y: auto;
-  background: rgba(11, 18, 32, 0.45);
+  background: var(--scrim);
 }
 .fe-dlg {
   width: 100%;
   max-width: 760px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--raised);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 24px 60px rgba(11, 18, 32, 0.3);
+  box-shadow: var(--shadow-dialog);
   font-size: 13px;
 }
 .fe-dlg:focus {
@@ -741,7 +751,7 @@
 .fe-seqbar i {
   display: block;
   height: 100%;
-  background: #4338ca;
+  background: var(--chart-ses);
 }
 
 /* The trigger stack (review 2026-11 AT-11): each further trigger in a

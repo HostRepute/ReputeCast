@@ -54,7 +54,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: var(--surface);
+    background: var(--field);
     max-width: 360px;
     box-sizing: content-box;
     color: var(--ink-3);
@@ -116,9 +116,9 @@
     font-variant-numeric: tabular-nums;
   }
   .pg-chip.on {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .pg-chip.on b {
     color: var(--line-hover);
@@ -201,7 +201,7 @@
     border-top: 0;
   }
   .pg-nrow:hover {
-    background: var(--ground-3);
+    background: var(--hover-soft);
     color: var(--ink);
   }
   .pg-nrow .hd {

@@ -34,8 +34,8 @@
     border-bottom: 1px solid var(--line-2);
   }
   .a11y-iss.on {
-    background: #f8faff;
-    box-shadow: inset 3px 0 0 #1d4ed8;
+    background: color-mix(in srgb, var(--info-tint) 50%, var(--surface));
+    box-shadow: inset 3px 0 0 var(--info-strong);
   }
   .a11y-t {
     display: flex;
@@ -115,7 +115,7 @@
     padding: 7px 8px 7px 7px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
     font-size: 12.5px;
     min-width: 0;
   }
@@ -138,7 +138,7 @@
     justify-content: center;
     font-size: 11px;
     font-weight: 700;
-    box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.12);
+    box-shadow: inset 0 0 0 1px rgb(var(--shadow-rgb) / 0.12);
   }
   .a11y-fixed {
     display: flex;
@@ -223,8 +223,8 @@
     margin-top: 4px;
     border: 1px solid var(--line-strong);
     border-radius: 10px;
-    background: #fff;
-    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+    background: var(--raised);
+    box-shadow: var(--shadow-menu);
   }
   .a11y-sv {
     position: relative;
@@ -302,12 +302,12 @@
     align-self: flex-start;
   }
   .a11y-cchip.f {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--bad-bg);
+    color: var(--bad-fg);
   }
   .a11y-cchip.p {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--ok-bg);
+    color: var(--ok-fg);
   }
   .a11y-cchip.u {
     background: var(--line-2);
@@ -342,10 +342,10 @@
     font-weight: 600;
   }
   .a11y-pf.y {
-    color: #166534;
+    color: var(--ok-fg);
   }
   .a11y-pf.n {
-    color: #991b1b;
+    color: var(--bad-fg);
   }
   .a11y-sug-h {
     font-size: 12px;
@@ -362,7 +362,7 @@
   }
 }
 .tpl.a11y-tpl-warn {
-  border-color: #fcd34d;
+  border-color: var(--warn-line-strong);
 }
 
 /* The right panel is 360 px wide on the Accessibility boards, and whenever

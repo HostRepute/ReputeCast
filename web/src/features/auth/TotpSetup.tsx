@@ -30,7 +30,7 @@ export function QrCode({ value, size = 132, label }: { value: string; size?: num
     return { d, n }
   }, [value])
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${path.n} ${path.n}`} role="img" aria-label={label} shapeRendering="crispEdges">
+    <svg className="keep-light" width={size} height={size} viewBox={`0 0 ${path.n} ${path.n}`} role="img" aria-label={label} shapeRendering="crispEdges">
       <rect width={path.n} height={path.n} fill="var(--surface)" />
       <path d={path.d} fill="var(--ink)" />
     </svg>
@@ -112,7 +112,8 @@ export function TotpSetupForm({
   return (
     <form className="flex flex-col gap-3.5" onSubmit={submit}>
       <div className="row items-start" style={{ gap: 18 }}>
-        <div className="rounded-lg border border-line bg-white p-2">
+        {/* A QR code stays dark on light in both themes, or phones can't scan it. */}
+        <div className="keep-light rounded-lg border border-line bg-surface p-2">
           {setup ? <QrCode value={setup.url} label={t(m.qrLabel)} /> : <Skeleton w={132} h={132} r={4} />}
         </div>
         <div className="col" style={{ gap: 8, flex: '1 1 220px' }}>

@@ -108,7 +108,7 @@ export function PageApprovalCard({ detail: d }: { detail: Detail }) {
           ) : preview.isError ? (
             <span className="k block py-6 text-center">{t(m.previewUnavailable, { error: errorMessage(preview.error) })}</span>
           ) : (
-            <div className="pg-thumb flex flex-col gap-2 p-3.5" aria-hidden="true">
+            <div className="pg-thumb keep-light flex flex-col gap-2 p-3.5" aria-hidden="true">
               <Skeleton w="40%" h={10} />
               <Skeleton w="100%" h={90} r={4} />
               <Skeleton w="80%" h={12} />
@@ -124,7 +124,7 @@ export function PageApprovalCard({ detail: d }: { detail: Detail }) {
       </div>
       {open && preview.data ? (
         <Dialog open onOpenChange={setOpen} size="lg" title={p.name} description={t(m.previewCaption)}>
-          <iframe title={t(m.previewFullTitle, { name: p.name })} sandbox="allow-same-origin" srcDoc={preview.data.html} className="h-[70vh] w-full rounded-lg border border-line bg-white" />
+          <iframe title={t(m.previewFullTitle, { name: p.name })} sandbox="allow-same-origin" srcDoc={preview.data.html} className="keep-light h-[70vh] w-full rounded-lg border border-line bg-white" />
         </Dialog>
       ) : null}
     </section>
@@ -151,7 +151,7 @@ function PageThumb({ html, title }: { html: string; title: string }) {
     if (body) setHeight(Math.max(300, body.scrollHeight))
   }
   return (
-    <div ref={box} className="pg-thumb" style={{ height: Math.min(360, height * scale) }}>
+    <div ref={box} className="pg-thumb keep-light" style={{ height: Math.min(360, height * scale) }}>
       <iframe ref={frame} title={title} sandbox="allow-same-origin" srcDoc={html} tabIndex={-1} onLoad={measure} style={{ width: PAGE_WIDTH, height, transform: `scale(${scale})` }} />
     </div>
   )

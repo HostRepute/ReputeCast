@@ -157,7 +157,7 @@ function Toolbar({ zoom }: { zoom: number }) {
 }
 
 function Card({ tone, badge, title, children, actions }: { tone: 'ok' | 'warn' | 'bad'; badge: string; title: string; children: ReactNode; actions: ReactNode }) {
-  const border = tone === 'ok' ? '#BBF7D0' : tone === 'warn' ? '#FCD34D' : '#FCA5A5'
+  const border = tone === 'ok' ? 'var(--ok-line)' : tone === 'warn' ? 'var(--warn-line-strong)' : 'var(--bad-line)'
   return (
     <div className="card pb-card" role={tone === 'ok' ? 'status' : 'alert'} style={{ borderColor: border }}>
       <div className="flex flex-wrap items-start gap-2.5">

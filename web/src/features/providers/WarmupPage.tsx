@@ -309,7 +309,7 @@ function PlanSummary({ plan }: { plan: WarmupPlan }) {
       {plan.statusDetail ? <span className="text-[13px] text-warn-fg">{plan.statusDetail}</span> : null}
       <div className="flex flex-col gap-1.5">
         <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-[5px] bg-line-2" aria-hidden="true">
-          <div style={{ width: `${plan.progress}%`, background: '#1c5cab' }} />
+          <div style={{ width: `${plan.progress}%`, background: 'var(--chart-tier-2)' }} />
         </div>
         <span className="k">{t(mw.counted, { counted: plan.counted, days: plan.days })}</span>
       </div>
@@ -397,7 +397,7 @@ function RampCard({ plan }: { plan: WarmupPlan }) {
             {t(mw.legendPlanned)}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[2px] bg-[#1c5cab]" aria-hidden="true" />
+            <span className="h-2.5 w-2.5 rounded-[2px] bg-chart-tier-2" aria-hidden="true" />
             {t(mw.legendSent)}
           </span>
           <span className="flex items-center gap-1.5">

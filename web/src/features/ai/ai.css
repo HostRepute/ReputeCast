@@ -69,7 +69,7 @@
     padding: 12px 14px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fbfbfc;
+    background: var(--side);
     box-sizing: border-box;
   }
   .ai-kvp .kv {
@@ -281,7 +281,7 @@
     display: inline-flex;
     gap: 6px;
     align-items: flex-start;
-    color: #b45309;
+    color: var(--warn-bar);
     font-weight: 600;
     font-size: 12.5px;
   }
@@ -533,7 +533,7 @@
   .ai-sug {
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background: var(--surface);
     border: 1px solid var(--line-strong);
     border-radius: 10px;
     min-width: 0;
@@ -541,13 +541,14 @@
     box-sizing: border-box;
   }
   .ai-sug-float {
-    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+    background: var(--raised);
+    box-shadow: var(--shadow-menu);
   }
   .ai-sug.ai-sug-bad {
     border-color: var(--bad-line);
   }
   .ai-sug.ai-sug-warn {
-    border-color: #fcd34d;
+    border-color: var(--warn-line-strong);
   }
   .ai-sug-h {
     display: flex;
@@ -582,7 +583,7 @@
     justify-content: center;
   }
   .ai-sug-x:hover {
-    background: var(--ground);
+    background: var(--hover);
     color: var(--ink);
   }
   .ai-sug-b {
@@ -592,7 +593,7 @@
     gap: 10px;
     font-size: 13px;
     line-height: 1.55;
-    color: #1f2937;
+    color: var(--ink);
     min-width: 0;
     overflow-wrap: anywhere;
   }
@@ -637,7 +638,7 @@
     border-top: 1px solid var(--line-2);
     font-size: 12px;
     color: var(--ink-3);
-    background: #fbfbfc;
+    background: var(--side);
     line-height: 1.45;
   }
   .ai-sug-b > .ai-sug-a,
@@ -653,19 +654,19 @@
     display: block;
     height: 10px;
     border-radius: 5px;
-    background: #e9ecf0;
+    background: var(--skeleton);
   }
   .ai-del {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--bad-bg);
+    color: var(--bad-fg);
     text-decoration: line-through;
     text-decoration-thickness: 1px;
     border-radius: 3px;
     padding: 0 2px;
   }
   .ai-ins {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--ok-bg);
+    color: var(--ok-fg);
     text-decoration: none;
     border-radius: 3px;
     padding: 0 2px;
@@ -698,7 +699,7 @@
   }
   .ai-menu .ai-mi:hover:not(:disabled),
   .ai-menu .ai-mi:focus-visible {
-    background: var(--ground);
+    background: var(--hover);
   }
   .ai-menu .ai-mi > span:first-child {
     font-weight: 600;
@@ -775,8 +776,8 @@
     gap: 8px;
   }
   .ai-idea.ai-warn-card {
-    border-color: #fcd34d;
-    background: #fffbeb;
+    border-color: var(--warn-line-strong);
+    background: var(--warn-tint);
   }
   .ai-idea > b {
     font-weight: 600;
@@ -794,7 +795,7 @@
     margin-left: auto;
   }
   .ai-idea-r .ai-phrase {
-    color: #92400e;
+    color: var(--warn-fg);
     font-weight: 600;
   }
   .ai-panel-a {
@@ -810,7 +811,7 @@
     font-size: 12px;
     color: var(--ink-3);
     line-height: 1.45;
-    background: #fbfbfc;
+    background: var(--side);
   }
   .ai-ideas-btn {
     align-self: flex-end;
@@ -878,11 +879,11 @@
     color: var(--ink-nav);
   }
   .ai-sugbox {
-    border: 1px solid #86efac;
-    background: #f0fdf4;
+    border: 1px solid var(--ok-line-strong);
+    background: var(--ok-tint);
     border-radius: 8px;
     padding: 8px 10px;
-    color: #14532d;
+    color: var(--ok-ink);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
@@ -934,9 +935,9 @@
     font-size: 13px;
   }
   .scond.ai-added {
-    border-color: #86efac;
-    border-left: 4px solid #16a34a;
-    background: #f0fdf4;
+    border-color: var(--ok-line-strong);
+    border-left: 4px solid var(--ok-bar);
+    background: var(--ok-tint);
   }
   .scond.ai-removed {
     border-color: var(--bad-line);
@@ -995,10 +996,10 @@
     font-weight: 600;
   }
   .ai-numcheck.ok {
-    color: #166534;
+    color: var(--ok-fg);
   }
   .ai-numcheck.bad {
-    color: #991b1b;
+    color: var(--bad-fg);
   }
   /* Ask about this report, under the kept summary. */
   .ai-ask {
@@ -1006,7 +1007,7 @@
     flex-direction: column;
     gap: 6px;
     padding-top: 12px;
-    border-top: 1px solid #99f6e4;
+    border-top: 1px solid var(--accent-line);
   }
   .ai-kept > .ai-ask:first-child {
     padding-top: 0;
@@ -1019,7 +1020,7 @@
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
   }
   .ai-kept-hr {
     display: inline-flex;

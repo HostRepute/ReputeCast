@@ -12,8 +12,8 @@
     gap: 4px;
     padding: 0 6px;
     border-radius: 5px;
-    background: #ede9fe;
-    color: #5b21b6;
+    background: var(--purple-bg);
+    color: var(--purple-fg);
     font-family: var(--font-family-mono);
     font-size: 0.86em;
     font-weight: 500;
@@ -163,7 +163,7 @@
     min-height: 36px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     font-size: 13px;
     font-weight: 600;
   }
@@ -184,7 +184,7 @@
   .wa-checks {
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fff;
+    background: var(--surface);
     overflow: hidden;
   }
   .wa-checks .px-chk:first-child {
@@ -196,7 +196,7 @@
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
-    background: #fff;
+    background: var(--surface);
   }
   .wa-thread .hd {
     display: flex;

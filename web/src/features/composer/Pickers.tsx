@@ -91,7 +91,7 @@ export function AudiencePicker() {
       <div className="flex flex-col gap-1 p-1">
         <span className="mh">{t(mm.sendTo)}</span>
         {context.lists.map((l) => (
-          <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
+          <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-hover">
             <input type="checkbox" checked={lists.includes(l.id)} onChange={() => setLists(toggle(lists, l.id))} />
             <span className="flex-1">{l.name}</span>
             <span className="k tabular">{count(l.count ?? 0)}</span>
@@ -99,7 +99,7 @@ export function AudiencePicker() {
         ))}
         {context.segments.length ? <span className="mh">{t(mm.segments)}</span> : null}
         {context.segments.map((s) => (
-          <label key={s.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
+          <label key={s.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-hover">
             <input type="checkbox" checked={segments.includes(s.id)} onChange={() => setSegments(toggle(segments, s.id))} />
             <span className="flex-1">{s.name}</span>
             <span className="k tabular">{s.count != null ? count(s.count) : '–'}</span>
@@ -110,7 +110,7 @@ export function AudiencePicker() {
           ? context.lists
               .filter((l) => !lists.includes(l.id))
               .map((l) => (
-                <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
+                <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-hover">
                   <input type="checkbox" checked={exclude.includes(l.id)} onChange={() => setExclude(toggle(exclude, l.id))} />
                   <span className="flex-1">{t(mm.peopleOn, { list: l.name })}</span>
                 </label>
@@ -130,7 +130,7 @@ export function AudiencePicker() {
           {(['', 'announcement'] as const).map((k) => {
             const on = k === '' ? cadence !== 'announcement' : cadence === 'announcement'
             return (
-            <label key={k} className={`chk items-start rounded-lg px-2.5 py-1.5 hover:bg-ground ${on ? 'bg-accent-tint' : ''}`}>
+            <label key={k} className={`chk items-start rounded-lg px-2.5 py-1.5 hover:bg-hover ${on ? 'bg-accent-tint' : ''}`}>
               <input type="radio" name="composer-cadence" className="mt-[3px]" checked={on} onChange={() => setCadence(k)} />
               <span className="flex flex-1 flex-col font-semibold">
                 {t(k === '' ? mm.cadenceRegular : mm.cadenceAnnouncement)}
@@ -141,7 +141,7 @@ export function AudiencePicker() {
           })}
         </fieldset>
         {/* The count and Apply stay in view however many lists and segments there are. */}
-        <div className="sticky bottom-0 mt-1 flex items-center gap-2 border-t border-line-2 bg-surface px-2.5 pt-2.5 pb-1">
+        <div className="sticky bottom-0 mt-1 flex items-center gap-2 border-t border-line-2 bg-raised px-2.5 pt-2.5 pb-1">
           <span className="k flex-1" role="status" aria-live="polite">
             {nothing ? t(mm.pickAudience) : live ? t(mm.recipientsAfter, { approximate: live.approximate ? 'yes' : 'no', count: count(live.count) }) : t(mm.counting)}
           </span>

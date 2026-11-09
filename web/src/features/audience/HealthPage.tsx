@@ -165,7 +165,7 @@ function Trend({ h }: { h: Health }) {
       </div>
       <div className="flex h-[200px] items-end gap-1.5" role="img" aria-label={desc}>
         {weeks.map((w, i) => (
-          <div key={w.day} className="wk" style={i === h.policyWeek ? { outline: '1px dashed var(--color-muted-line)', outlineOffset: 2 } : undefined}>
+          <div key={w.day} className="wk" style={i === h.policyWeek ? { outline: '1px dashed var(--muted-line)', outlineOffset: 2 } : undefined}>
             <i style={{ height: Math.round(w.active * 200), background: tierColor.active }} />
             <i style={{ height: Math.round(w.cooling * 200), background: tierColor.cooling }} />
             <i style={{ height: Math.round(w.atRisk * 200), background: tierColor.at_risk }} />

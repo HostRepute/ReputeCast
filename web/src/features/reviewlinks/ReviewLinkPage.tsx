@@ -81,7 +81,7 @@ function EmailFrame({ html, title }: { html: string; title: string }) {
     doc.querySelectorAll('img').forEach((img) => img.complete || img.addEventListener('load', fit, { once: true }))
   }
   return (
-    <div ref={box} className="rv-mail" style={{ height: height * scale }}>
+    <div ref={box} className="rv-mail keep-light" style={{ height: height * scale }}>
       <iframe
         ref={frame}
         title={title}

@@ -269,7 +269,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
               <span className="k">{campaign?.heroAlt ? t(mc.coverFromHero, { alt: campaign.heroAlt }) : t(mc.coverFromHeroNoAlt)}</span>
             ) : null}
             <div className="flex items-start gap-2.5">
-              <button type="button" className="wtab-cover" disabled={ro} onClick={() => setPicking(true)} aria-label={d.coverUrl ? t(mc.coverReplace) : t(mc.coverChoose)}>
+              <button type="button" className="wtab-cover keep-light" disabled={ro} onClick={() => setPicking(true)} aria-label={d.coverUrl ? t(mc.coverReplace) : t(mc.coverChoose)}>
                 {d.coverUrl ? <img src={d.coverUrl} alt="" /> : <Icon name="image" size={18} />}
               </button>
               {d.coverUrl ? (

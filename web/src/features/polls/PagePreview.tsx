@@ -30,7 +30,7 @@ export function AnswerPagePreview({ slug, config, campaign, onClose }: { slug: s
       {error ? (
         <p role="alert">{t(m.previewFailed, { detail: error })}</p>
       ) : html ? (
-        <iframe title={t(m.previewTitle)} className="pl-preview" sandbox="" srcDoc={html} />
+        <iframe title={t(m.previewTitle)} className="pl-preview keep-light" sandbox="" srcDoc={html} />
       ) : (
         <p className="k" role="status">
           {t(m.previewLoading)}

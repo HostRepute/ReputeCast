@@ -8,7 +8,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: var(--ground, #f3f4f6);
+    background: var(--ground);
   }
   .smc-top {
     display: flex;
@@ -16,7 +16,7 @@
     gap: 12px;
     flex-wrap: wrap;
     padding: 10px 16px;
-    background: #fff;
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
   .smc-rbar {
@@ -25,14 +25,14 @@
     gap: 8px 14px;
     flex-wrap: wrap;
     padding: 8px 16px;
-    background: #fff;
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
     font-size: 12.5px;
   }
   .smc-rbar .sms-pill {
     height: 26px;
     font-size: 12px;
-    background: #fff;
+    background: var(--surface);
   }
   .smc-cols {
     display: flex;
@@ -41,7 +41,7 @@
     align-items: stretch;
   }
   .smc-panel {
-    background: #fff;
+    background: var(--surface);
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -83,7 +83,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    background: #e9ecf0;
+    background: var(--skeleton);
   }
   .smc-pvbar {
     display: flex;
@@ -91,7 +91,7 @@
     gap: 10px;
     flex-wrap: wrap;
     padding: 8px 14px;
-    background: #fff;
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
   .smc-pvbar label {
@@ -133,7 +133,7 @@
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
   }
   .smc-rcols {
     columns: 2 320px;
@@ -148,14 +148,14 @@
     gap: 14px;
     flex-wrap: wrap;
     padding: 8px 16px;
-    background: #fff;
+    background: var(--surface);
     border-top: 1px solid var(--line);
   }
   /* The editor: the locked parts and a textarea over its highlighted mirror. */
   .smc-ed {
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     padding: 12px 14px;
     font-size: 14px;
     line-height: 1.85;
@@ -170,16 +170,16 @@
     outline-offset: 2px;
   }
   .smc-ed.ro {
-    background: #f9fafb;
-    border-color: #d4d8df;
-    color: #374151;
+    background: var(--ground-3);
+    border-color: var(--line-strong);
+    color: var(--ink-nav);
   }
   .smc-ed .fx {
     align-self: flex-start;
     padding: 2px 7px;
     border-radius: 5px;
     background: var(--line-2);
-    color: #4b5563;
+    color: var(--ink-2);
     font-weight: 500;
     white-space: nowrap;
     line-height: 1.55;
@@ -209,23 +209,23 @@
     min-height: 3.7em;
   }
   .smc-mirror .lt {
-    background: #dbeafe;
+    background: var(--info-bg);
     border-radius: 4px;
-    box-shadow: 0 0 0 2px #dbeafe;
+    box-shadow: 0 0 0 2px var(--info-bg);
   }
   .smc-mirror .lt.e {
-    background: #fee2e2;
-    box-shadow: 0 0 0 2px #fee2e2;
+    background: var(--bad-bg);
+    box-shadow: 0 0 0 2px var(--bad-bg);
   }
   .smc-mirror .uc {
-    background: #fee2e2;
+    background: var(--bad-bg);
     border-radius: 3px;
-    box-shadow: 0 0 0 1px #fca5a5;
+    box-shadow: 0 0 0 1px var(--bad-line);
   }
   .smc-mirror .tk {
-    background: #ede9fe;
+    background: var(--purple-bg);
     border-radius: 4px;
-    box-shadow: 0 0 0 2px #ede9fe;
+    box-shadow: 0 0 0 2px var(--purple-bg);
   }
   .smc-wrap textarea {
     position: absolute;

@@ -332,7 +332,7 @@ function LogoCell({ logo, dark, label, onChange, canEdit, alt }: { logo?: Logo; 
   }
   return (
     <div className="lcell">
-      <div className="lprev" style={dark ? { background: '#111827', borderColor: '#111827' } : { background: '#FFFFFF' }}>
+      <div className={dark ? 'lprev' : 'lprev keep-light'} style={dark ? { background: '#111827', borderColor: '#111827' } : { background: '#FFFFFF' }}>
         {logo ? <img src={logo.url} alt={alt} style={{ maxWidth: '70%', maxHeight: 64 }} /> : <span className={dark ? 'text-[#C3C2B7]' : 'k'}>{t(mk.noLogo)}</span>}
       </div>
       <div className="flex items-center justify-between gap-2">
@@ -456,7 +456,7 @@ function FontRow({ font, onChange, label, site, sample, canEdit, heading }: { fo
           </select>
         </label>
       </div>
-      <div className="fsamp">
+      <div className="fsamp keep-light">
         <span className="k">{t(mk.sample, { font: fallbackName })}</span>
         <span style={heading ? { fontFamily: font.fallback, fontSize: 24, lineHeight: 1.2, fontWeight: 700 } : { fontFamily: font.fallback, fontSize: 15, lineHeight: 1.55 }}>{sample}</span>
       </div>
@@ -522,11 +522,11 @@ function ButtonCard({ draft, set, canEdit }: { draft: Draft; set: (p: Partial<Dr
           </label>
         </div>
         <div className="bprev">
-          <div className="bpc" style={{ background: '#FFFFFF' }}>
+          <div className="bpc keep-light" style={{ background: '#FFFFFF' }}>
             <SampleButton draft={draft} />
             <span className="k">{t(mk.onWhite)}</span>
           </div>
-          <div className="bpc" style={{ background: hexColour.test(draft.colors.background) ? draft.colors.background : '#FFFFFF' }}>
+          <div className="bpc keep-light" style={{ background: hexColour.test(draft.colors.background) ? draft.colors.background : '#FFFFFF' }}>
             <SampleButton draft={draft} />
             <span className="k">{t(mk.onBackground)}</span>
           </div>
@@ -569,7 +569,7 @@ function SyncedCard({ kit }: { kit: Kit }) {
           const named = isNamed(b.kind)
           return (
             <div key={b.kind} className="sbrow">
-              <span className="sbt" aria-hidden="true">
+              <span className="sbt keep-light" aria-hidden="true">
                 {named ? (
                   <>
                     <i style={{ height: 14, width: '80%', background: '#E3E6EB' }} />
@@ -646,7 +646,7 @@ function PreviewCard({ draft }: { draft: Draft }) {
   return (
     <section className="card bkp">
       <CardSection title={<span id="bk-prev">{t(mk.previewTitle)}</span>} caption={t(mk.previewLead)} />
-      <div className="pad" style={{ background: ok(c.background, '#F3F4F6'), borderRadius: '0 0 10px 10px' }}>
+      <div className="pad keep-light" style={{ background: ok(c.background, '#F3F4F6'), borderRadius: '0 0 10px 10px' }}>
         <div className="pmail">
           <div className="flex items-center justify-between" style={{ padding: '12px 16px', borderBottom: '1px solid #EEF0F3' }}>
             {draft.logoLight ? (

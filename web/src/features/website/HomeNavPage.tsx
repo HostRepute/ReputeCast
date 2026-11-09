@@ -155,7 +155,7 @@ function HomeNavEditor({ data, overview }: { data: HomeNav; overview: Overview }
       <TagsCard data={data} overview={overview} ro={ro} />
       <TurnOffCard overview={overview} />
       {dirty && canManage ? (
-        <div className="card sticky bottom-3 z-10 flex flex-wrap items-center gap-3 px-[18px] py-3 shadow-[0_8px_24px_rgba(11,18,32,.12)]" role="region" aria-label={t(mh.unsaved)}>
+        <div className="card sticky bottom-3 z-10 flex flex-wrap items-center gap-3 px-[18px] py-3 shadow-[0_8px_24px_rgb(var(--shadow-rgb)/0.12)]" role="region" aria-label={t(mh.unsaved)}>
           <Badge tone="warn" dot>
             {t(mh.unsaved)}
           </Badge>
@@ -828,7 +828,7 @@ function IdentityCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Sett
         </div>
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex items-center gap-3">
-            <span className="inline-flex flex-none items-center justify-center overflow-hidden rounded-[8px] border border-line bg-publisher-ground" style={{ width: 96, height: 50 }}>
+            <span className="inline-flex flex-none items-center justify-center overflow-hidden rounded-[8px] border border-line bg-publisher-ground keep-light" style={{ width: 96, height: 50 }}>
               {id.socialImage ? (
                 <img src={id.socialImage} alt={t(mh.socialImageAlt)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
@@ -844,7 +844,7 @@ function IdentityCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Sett
             </Button>
           </div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-[32px] w-[32px] flex-none items-center justify-center overflow-hidden rounded-[8px] bg-ink text-[13px] font-bold text-white">{mark}</span>
+            <span className="inline-flex h-[32px] w-[32px] flex-none items-center justify-center overflow-hidden rounded-[8px] bg-inverse text-[13px] font-bold text-on-strong">{mark}</span>
             <span className="flex min-w-0 flex-1 flex-col">
               <b>{t(mh.favicon)}</b>
               <span className="k">{t(mh.faviconText)}</span>

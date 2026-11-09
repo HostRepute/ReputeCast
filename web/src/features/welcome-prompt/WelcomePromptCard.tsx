@@ -37,7 +37,7 @@ export function WelcomePromptCard({ where, className, raised }: { where: Welcome
   }
   return (
     <section
-      className={cn('card flex flex-wrap items-center gap-3.5 border-accent-line bg-accent-tint px-4.5 py-3.5', raised && 'shadow-[0_1px_2px_rgba(11,18,32,.06)]', className)}
+      className={cn('card flex flex-wrap items-center gap-3.5 border-accent-line bg-accent-tint px-4.5 py-3.5', raised && 'shadow-[0_1px_2px_rgb(var(--shadow-rgb)/0.06)]', className)}
       aria-label={t(m.label)}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.6" aria-hidden="true" className="flex-none">

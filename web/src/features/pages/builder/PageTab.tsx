@@ -246,7 +246,7 @@ export function PageTab() {
       {error ? (
         <div className="pb-pbody">
           <div className="note b" role="alert">
-            <UiIcon name="alert" size={16} color="#B91C1C" />
+            <UiIcon name="alert" size={16} color="var(--bad-strong)" />
             <div>
               <b>{t(m.settingsFailed)}</b> {error}
             </div>

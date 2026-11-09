@@ -260,7 +260,7 @@ function EmptyDrop({ firstImport, busy, onFile, onSources }: { firstImport: bool
       }}
     >
       <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
-        <path d="M24 32V12M15 21l9-9 9 9M10 38h28" fill="none" stroke="var(--color-muted-line)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M24 32V12M15 21l9-9 9 9M10 38h28" fill="none" stroke="var(--muted-line)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span className="text-[17px] font-bold">{t(m.dropTitle)}</span>
       <span className="lead max-w-[520px]">{t(m.dropLead, { max: count(500_000) })}</span>

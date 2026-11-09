@@ -98,7 +98,7 @@ export function SyncedBlockDialog({ block, onClose }: { block: Schemas['SyncedBl
         </label>
         <div className="flex min-w-0 flex-col gap-1">
           <span className="lbl">{t(mk.preview)}</span>
-          <iframe title={t(mk.preview)} sandbox="" srcDoc={html} className="w-full rounded-md border border-line bg-white" style={{ minHeight: 240 }} />
+          <iframe title={t(mk.preview)} sandbox="" srcDoc={html} className="keep-light w-full rounded-md border border-line bg-white" style={{ minHeight: 240 }} />
         </div>
       </div>
       {problem ? (

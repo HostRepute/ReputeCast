@@ -250,10 +250,10 @@ function NoProviders() {
   return (
     <section className="card flex flex-col items-center gap-3 border-dashed px-7 py-10 text-center">
       <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
-        <rect x="8" y="10" width="40" height="15" rx="4" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
-        <rect x="8" y="31" width="40" height="15" rx="4" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
-        <circle cx="16" cy="17.5" r="2" fill="var(--color-muted-line)" />
-        <circle cx="16" cy="38.5" r="2" fill="var(--color-muted-line)" />
+        <rect x="8" y="10" width="40" height="15" rx="4" fill="none" stroke="var(--muted-line)" strokeWidth="2" />
+        <rect x="8" y="31" width="40" height="15" rx="4" fill="none" stroke="var(--muted-line)" strokeWidth="2" />
+        <circle cx="16" cy="17.5" r="2" fill="var(--muted-line)" />
+        <circle cx="16" cy="38.5" r="2" fill="var(--muted-line)" />
       </svg>
       <h2 className="m-0 text-[18px] font-bold">{t(mo.emptyTitle)}</h2>
       <span className="max-w-[520px] text-ink-2">{t(mo.emptyBody)}</span>

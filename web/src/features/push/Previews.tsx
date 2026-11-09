@@ -197,7 +197,7 @@ export function Preview({ v, n }: { v: PlatformView; n: PushPreview }) {
         <b>{t(platformNames[p.key].name)}</b>
         <span className="k">{t(platformNames[p.key].sub)}</span>
       </figcaption>
-      <div className="px-pvstage">{body}</div>
+      <div className="px-pvstage keep-light">{body}</div>
       <span className="cut">{caption}</span>
     </figure>
   )

@@ -341,7 +341,7 @@ function MapFrame({ s, view, polls }: { s: Shown; view: 'human' | 'bot'; polls?:
 
   const h = layout ? layout.height * layout.scale : 280
   return (
-    <div ref={box} className={cn('rep-map', h > 420 && 'scroll')} style={{ height: Math.min(h, 420) }}>
+    <div ref={box} className={cn('rep-map keep-light', h > 420 && 'scroll')} style={{ height: Math.min(h, 420) }}>
       <div style={{ height: h, position: 'relative' }}>
         <iframe
           ref={frame}

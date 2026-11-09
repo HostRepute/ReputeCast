@@ -668,7 +668,7 @@ function TierPreview({
           <span className="k">{yearlyMore ? t(mt.previewHintWarn) : short ? t(mt.previewHint, { tier: short, period }) : t(mt.previewHintNew)}</span>
         </div>
       </div>
-      <div className="ea-tprev" style={style}>
+      <div className="ea-tprev keep-light" style={style}>
         <span className="ea-tprev-on">{t(mt.previewOn, { host })}</span>
         {both ? (
           <div className="flex justify-center">

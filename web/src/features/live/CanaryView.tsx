@@ -164,19 +164,19 @@ function SeedDetails({ c }: { c: Canary }) {
         <div className="lv-seedbar" role="img" aria-label={t(mc.seedsBar, { seeds: c.seeds, inbox: p.inbox, promotions: p.promotions, spam: p.spam })}>
           {total > 0 ? (
             <>
-              <i style={{ flex: `${p.inbox} 1 0%`, background: 'var(--ok-strong, var(--ok-bar))' }} />
-              <i style={{ flex: `${p.promotions} 1 0%`, background: 'var(--color-info-soft)' }} />
+              <i style={{ flex: `${p.inbox} 1 0%`, background: 'var(--ok-bar)' }} />
+              <i style={{ flex: `${p.promotions} 1 0%`, background: 'var(--info-soft)' }} />
               <i style={{ flex: `${p.spam} 1 0%`, background: 'var(--bad-strong)' }} />
             </>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-ink-3">
           <span className="flex items-center gap-1.5">
-            <Dot color="var(--ok-strong, #15803d)" />
+            <Dot color="var(--ok-bar)" />
             {t(mc.seedLegendInbox, { count: p.inbox })}
           </span>
           <span className="flex items-center gap-1.5">
-            <Dot color="var(--color-info-soft)" />
+            <Dot color="var(--info-soft)" />
             {t(mc.seedLegendPromotions, { count: p.promotions })}
           </span>
           <span className="flex items-center gap-1.5">
@@ -317,7 +317,7 @@ function CanaryIcon({ phase }: { phase: Canary['phase'] }) {
   if (phase === 'held') {
     return (
       <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-        <circle cx="20" cy="20" r="19" fill="var(--color-bad-soft)" />
+        <circle cx="20" cy="20" r="19" fill="var(--bad-soft)" />
         <path d="M20 11v11M20 27v1" stroke="var(--bad-fg)" strokeWidth="3" strokeLinecap="round" />
       </svg>
     )
@@ -325,7 +325,7 @@ function CanaryIcon({ phase }: { phase: Canary['phase'] }) {
   const stopped = phase === 'stopped'
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" className="flex-none">
-      <circle cx="20" cy="20" r="19" fill={stopped ? 'var(--dark-text)' : 'var(--accent-glow)'} />
+      <circle cx="20" cy="20" r="19" fill={stopped ? 'var(--line)' : 'var(--accent-glow)'} />
       <path d="M10 20s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z" stroke={stopped ? 'var(--ink-2)' : 'var(--accent)'} strokeWidth="2.2" fill="none" strokeLinejoin="round" />
       <circle cx="20" cy="20" r="2.6" fill={stopped ? 'var(--ink-2)' : 'var(--accent)'} />
     </svg>

@@ -27,7 +27,7 @@ export function SmsApprovalCard({ sms }: { sms: Snapshot }) {
       </div>
       <div className="pad flex flex-col gap-3">
         <div className="flex flex-col" aria-label={t(m.bubble)} role="group">
-          <p className="sms-bub m-0">
+          <p className="sms-bub keep-light m-0">
             {sms.prefix ? <span className="fx">{sms.prefix} </span> : null}
             {sms.body}
             {sms.optOut ? <span className="fx"> {sms.optOut}</span> : null}

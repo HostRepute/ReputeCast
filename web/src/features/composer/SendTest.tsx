@@ -128,7 +128,7 @@ export function SendTestButton({ disabled, toMe, as }: { disabled?: boolean; toM
     >
       <span className="mh">{t(m.sendTestOf, { variant: c.variant })}</span>
       {members.map((m) => (
-        <label key={m.email} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground" aria-label={`${m.name || m.email}, ${m.email}`}>
+        <label key={m.email} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-hover" aria-label={`${m.name || m.email}, ${m.email}`}>
           <input type="checkbox" checked={picked.includes(m.email)} onChange={() => toggle(m.email)} />
           <span className="flex min-w-0 flex-1 flex-col">
             <span>{m.name || m.email}</span>

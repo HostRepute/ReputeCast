@@ -18,7 +18,7 @@
     padding: 0 10px 0 10px;
     border: 1px solid var(--line-strong);
     border-radius: 999px;
-    background: #fff;
+    background: var(--surface);
     color: var(--ink);
     font-size: 13px;
     font-weight: 500;
@@ -26,7 +26,7 @@
     text-decoration: none;
   }
   a.ea-chip:hover {
-    background: var(--ground-3);
+    background: var(--hover-soft);
     color: var(--ink);
   }
   .ea-chip:empty {
@@ -155,7 +155,7 @@
     padding: 0 12px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     color: var(--ink);
     font-size: 12.5px;
     font-weight: 600;
@@ -166,17 +166,17 @@
     font-variant-numeric: tabular-nums;
   }
   .ea-schip:hover {
-    background: var(--ground-3);
+    background: var(--hover-soft);
   }
   .ea-schip[aria-pressed='true'],
   .ea-schip[aria-selected='true'] {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .ea-schip[aria-pressed='true'] .c,
   .ea-schip[aria-selected='true'] .c {
-    color: #d1d5db;
+    color: color-mix(in srgb, var(--on-strong) 80%, var(--inverse));
   }
   .ea-filters {
     display: flex;
@@ -207,7 +207,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     flex: 1 1 240px;
     min-width: 0;
     max-width: 100%;
@@ -277,10 +277,10 @@
     cursor: pointer;
   }
   .ea-rowbtn:hover td {
-    background: var(--ground-3);
+    background: var(--hover-soft);
   }
   .ea-test {
-    background: #faf5ff;
+    background: var(--purple-tint);
   }
   .ea-cards {
     display: none;
@@ -300,7 +300,7 @@
       padding: 14px 16px;
       border-top: 1px solid var(--line-2);
       text-align: left;
-      background: #fff;
+      background: var(--surface);
       border-left: 0;
       border-right: 0;
       border-bottom: 0;
@@ -315,7 +315,7 @@
   .ea-sheet-ovl {
     position: fixed;
     inset: 0;
-    background: rgba(11, 18, 32, 0.45);
+    background: var(--scrim);
     z-index: 60;
   }
   .ea-sheet {
@@ -324,7 +324,7 @@
     right: 0;
     bottom: 0;
     width: min(600px, 100vw);
-    background: #fff;
+    background: var(--raised);
     border-left: 1px solid var(--line);
     outline: none;
     box-shadow: var(--shadow-dialog);
@@ -354,7 +354,7 @@
     gap: 8px;
     padding: 12px 20px;
     border-top: 1px solid var(--line-2);
-    background: #fff;
+    background: var(--raised);
   }
   .ea-eyebrow {
     margin: 0;
@@ -494,8 +494,8 @@
     flex-wrap: wrap;
     padding: 14px 16px;
     border-radius: 10px;
-    background: #f5f3ff;
-    border: 1px solid #ddd6fe;
+    background: var(--purple-tint);
+    border: 1px solid var(--purple-line);
   }
   .ea-testbar > .badge {
     margin-top: 1px;
@@ -580,20 +580,20 @@
     font-size: 12px;
     font-weight: 700;
     flex: none;
-    border: 2px solid #d4d8df;
+    border: 2px solid var(--line-strong);
     color: var(--ink-nav);
-    background: #fff;
+    background: var(--surface);
     box-sizing: border-box;
   }
   .ea-cstep.cur .n {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-strong);
   }
   .ea-cstep.done .n {
-    background: #dcfce7;
-    border-color: #86efac;
-    color: #166534;
+    background: var(--ok-bg);
+    border-color: var(--ok-line-strong);
+    color: var(--ok-fg);
   }
   .ea-cstep .tx {
     flex: 1 1 260px;
@@ -618,7 +618,7 @@
     width: 36px;
     height: 36px;
     border-radius: 9px;
-    background: #f3f4f6;
+    background: var(--ground);
     border: 1px solid var(--line);
     display: inline-flex;
     align-items: center;
@@ -672,7 +672,7 @@
   .ea-editor-side {
     flex: 1 1 320px;
     max-width: 360px;
-    background: #fff;
+    background: var(--surface);
     border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
@@ -739,7 +739,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    background: #e9ecf0;
+    background: var(--skeleton);
   }
   .ea-editor-bar {
     display: flex;
@@ -747,7 +747,7 @@
     gap: 10px;
     flex-wrap: wrap;
     padding: 8px 14px;
-    background: #fff;
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
   .ea-pv {
@@ -830,7 +830,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     cursor: pointer;
-    background: #fff;
+    background: var(--field);
   }
   .ea-radio input {
     margin-top: 2px;
@@ -838,7 +838,7 @@
   }
   .ea-radio.on {
     border-color: var(--accent);
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
   .ea-radio .k {
     font-weight: 500;
@@ -851,7 +851,7 @@
     padding: 0 10px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font-size: 12.5px;
     font-weight: 500;
     color: var(--ink);
@@ -904,7 +904,7 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    border: 2px solid #c9ced6;
+    border: 2px solid var(--line-hover);
     border-top-color: var(--accent);
     flex: none;
     display: inline-block;
@@ -1106,7 +1106,7 @@
   }
   .ea-picks button:hover,
   .ea-picks button:focus-visible {
-    background: var(--ground-3);
+    background: var(--hover-soft);
   }
 
   /* Two columns that stack (Settings › Member emails, Pages). */
@@ -1124,7 +1124,7 @@
     font-size: 13px;
   }
   .ea-sel td {
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
   .ea-flowr {
     display: flex;
@@ -1141,13 +1141,13 @@
     padding: 0 10px;
     border-radius: 8px;
     border: 1px solid var(--line);
-    background: #f9fafb;
+    background: var(--ground-3);
     font-size: 12.5px;
     font-weight: 600;
     white-space: nowrap;
   }
   .ea-arw {
-    color: #9aa3b2;
+    color: var(--muted-line);
   }
   .ea-always {
     list-style: none;
@@ -1175,9 +1175,9 @@
     gap: 8px;
     padding: 14px 16px;
     border-radius: 10px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    color: #1e3a8a;
+    background: var(--info-tint);
+    border: 1px solid var(--info-line);
+    color: var(--info-ink);
     font-size: 13px;
   }
 
@@ -1202,7 +1202,7 @@
     padding: 14px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fff;
+    background: var(--field);
     font: inherit;
     font-size: 14px;
     color: var(--ink);
@@ -1217,7 +1217,7 @@
   .ea-srcopt[aria-pressed='true'] {
     border: 2px solid var(--accent);
     padding: 13px;
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
 
   /* The connect wizard's provider cards (EarnConnect, step 1). */
@@ -1228,14 +1228,14 @@
     padding: 16px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fff;
+    background: var(--surface);
   }
   .ea-provider.on {
     border: 2px solid var(--accent);
     padding: 15px;
   }
   .ea-provider.off {
-    background: #f9fafb;
+    background: var(--ground-3);
   }
   .ea-cap {
     display: inline-flex;
@@ -1243,7 +1243,7 @@
     height: 22px;
     padding: 0 8px;
     border-radius: 999px;
-    background: #f3f4f6;
+    background: var(--ground);
     color: var(--ink-nav);
     font-size: 11.5px;
     font-weight: 600;
@@ -1258,8 +1258,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #dcfce7;
-    color: #166534;
+    background: var(--ok-bg);
+    color: var(--ok-fg);
   }
 
   .ea-evlink {
@@ -1289,7 +1289,7 @@
   .ea-empty .ds {
     margin: 0;
     max-width: 560px;
-    color: var(--color-ink-2);
+    color: var(--ink-2);
   }
   .ea-empty-ico {
     display: inline-flex;
@@ -1297,10 +1297,10 @@
     height: 52px;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--line);
     border-radius: 12px;
-    background: var(--color-ground);
-    color: var(--color-ink-2);
+    background: var(--ground);
+    color: var(--ink-2);
   }
 
   /* The tier chip next to a paid member's name in Contacts (EarnInAudience). */
@@ -1311,10 +1311,10 @@
     height: 20px;
     margin-left: 6px;
     padding: 0 8px;
-    border: 1px solid var(--color-line-strong);
+    border: 1px solid var(--line-strong);
     border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-ink-2);
+    background: var(--surface);
+    color: var(--ink-2);
     font-size: 11.5px;
     font-weight: 600;
     white-space: nowrap;
@@ -1327,9 +1327,9 @@
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--line);
     border-radius: 8px;
-    background: var(--color-ground);
+    background: var(--ground);
     font-size: 13px;
   }
 }

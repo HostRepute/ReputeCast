@@ -333,7 +333,7 @@ function BrandingEditor({ settings }: { settings: PublicPages }) {
         </div>
         <div className="flex flex-[0_1_280px] flex-col gap-2 max-md:flex-[1_1_100%]">
           <span className="k">{tr(m.preview)}</span>
-          <div className="fs-preview" style={{ background: ground, fontFamily: draft.font === 'system' ? 'system-ui, sans-serif' : undefined }}>
+          <div className="fs-preview keep-light" style={{ background: ground, fontFamily: draft.font === 'system' ? 'system-ui, sans-serif' : undefined }}>
             <div className="flex items-center gap-2">
               <PublisherMark branding={b} className="fs-mark" logoClassName="logo" />
               <span className="font-bold">{draft.publisherName || b.publisherName}</span>

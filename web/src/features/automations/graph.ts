@@ -155,13 +155,13 @@ export function triggerKindWord(kind: string): string {
 /** Colour of a step type: the palette swatch and the node header. */
 export const typeColors: Record<StepType, string> = {
   trigger: 'var(--accent)',
-  delay: 'var(--color-muted-ink)',
+  delay: 'var(--muted-ink)',
   email: 'var(--chart-ses)',
   branch: 'var(--warn-bar)',
   filter: 'var(--warn-bar)',
   split: 'var(--warn-bar)',
-  webhook: 'var(--color-info-strong)',
-  list: 'var(--color-info-strong)',
+  webhook: 'var(--info-strong)',
+  list: 'var(--info-strong)',
   goal: 'var(--ink)',
   exit: 'var(--ink)',
   sms: 'var(--accent)',

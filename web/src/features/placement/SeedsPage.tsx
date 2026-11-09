@@ -74,8 +74,8 @@ function SeedsBody({ d, search }: { d: SeedList; search: SeedsSearch }) {
       {d.seeds.length === 0 ? (
         <section className="card pl-empty">
           <svg width="72" height="56" viewBox="0 0 72 56" aria-hidden="true">
-            <rect x="4" y="12" width="30" height="22" rx="3" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
-            <path d="m5 14 14 10 14-10" fill="none" stroke="var(--color-muted-line)" strokeWidth="2" />
+            <rect x="4" y="12" width="30" height="22" rx="3" fill="none" stroke="var(--muted-line)" strokeWidth="2" />
+            <path d="m5 14 14 10 14-10" fill="none" stroke="var(--muted-line)" strokeWidth="2" />
             <rect x="38" y="22" width="30" height="22" rx="3" fill="none" stroke="var(--accent)" strokeWidth="2" />
             <path d="m39 24 14 10 14-10" fill="none" stroke="var(--accent)" strokeWidth="2" />
           </svg>
@@ -195,7 +195,7 @@ function since(s: SeedView, t: ReturnType<typeof useT>): string {
   return shortDate(at) === shortDate(new Date()) ? t(m.sinceToday, { time: clock(at) }) : t(m.sinceOn, { date: shortDate(at), time: clock(at) })
 }
 
-const rowTint = (s: SeedView) => (s.status === 'failed' ? 'var(--bad-tint)' : s.status === 'expired' ? 'var(--color-warn-tint)' : undefined)
+const rowTint = (s: SeedView) => (s.status === 'failed' ? 'var(--bad-tint)' : s.status === 'expired' ? 'var(--warn-tint)' : undefined)
 
 function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: () => void; onReconnect: (s: SeedView) => void; onRemove: (s: SeedView) => void }) {
   const t = useT()

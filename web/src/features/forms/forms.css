@@ -14,7 +14,7 @@
   .fb-left {
     flex: 1 1 320px;
     max-width: 340px;
-    background: #fff;
+    background: var(--surface);
     border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
@@ -22,7 +22,7 @@
   .fb-right {
     flex: 1 1 320px;
     max-width: 360px;
-    background: #fff;
+    background: var(--surface);
     border-left: 1px solid var(--line);
     display: flex;
     flex-direction: column;
@@ -32,7 +32,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    background: #e9ecf0;
+    background: var(--skeleton);
   }
   .fb-bar {
     display: flex;
@@ -40,7 +40,7 @@
     gap: 10px;
     flex-wrap: wrap;
     padding: 8px 14px;
-    background: #fff;
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
   }
   .fb-stage {
@@ -96,7 +96,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     font: inherit;
     font-size: 13px;
     color: var(--ink);
@@ -111,7 +111,7 @@
      white), not Tailwind's half-transparent text colour. */
   .fb-in::placeholder,
   .pf-field input::placeholder {
-    color: #757575;
+    color: var(--placeholder);
     opacity: 1;
   }
   .fb-in:disabled {
@@ -124,8 +124,8 @@
     resize: vertical;
   }
   .fb-in.in-warn {
-    border-color: #f59e0b;
-    background: #fffbeb;
+    border-color: var(--warn-bar);
+    background: var(--warn-tint);
   }
 
   /* Segmented control of the builder (Type, Desktop · Mobile). In a side
@@ -140,7 +140,7 @@
     height: 32px;
     padding: 0 12px;
     border: 0;
-    background: #fff;
+    background: var(--surface);
     font: inherit;
     font-size: 12.5px;
     font-weight: 600;
@@ -148,8 +148,8 @@
     cursor: pointer;
   }
   .fb-seg button[aria-pressed='true'] {
-    background: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    color: var(--on-strong);
   }
   .fb-seg button[aria-disabled='true'] {
     cursor: not-allowed;
@@ -160,7 +160,7 @@
     margin: 0;
     padding: 12px 14px;
     border-radius: 8px;
-    background: var(--ink);
+    background: var(--code-bg);
     color: #d1d5db;
     font-family: var(--font-family-mono);
     font-size: 11.5px;
@@ -299,7 +299,7 @@
     border-color: var(--bad-line);
   }
   .fb-alert.alert-warn {
-    border-color: #fcd34d;
+    border-color: var(--warn-line-strong);
   }
 
   /* FormsStates: the state strips, skeleton blocks, colour swatches. */
@@ -309,15 +309,15 @@
     gap: 10px;
     padding: 8px 12px;
     border-radius: 8px;
-    background: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    color: var(--on-strong);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
   .fs-sk {
-    background: #e9ecf0;
+    background: var(--skeleton);
     border-radius: 6px;
     display: inline-block;
   }

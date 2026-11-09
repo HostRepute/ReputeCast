@@ -754,13 +754,13 @@ function ContentPanel({ d }: { d: Detail }) {
   else if (!q.data) body = <Skeleton w="100%" h={320} />
   else if (view === 'html')
     body = (
-      <div className="flex justify-center rounded-[10px] border border-line p-4" style={{ background: 'var(--color-skeleton)' }}>
+      <div className="flex justify-center rounded-[10px] border border-line p-4" style={{ background: 'var(--skeleton)' }}>
         <iframe
           title={t(ml.renderedLabel)}
           sandbox=""
           srcDoc={marked}
-          className="block rounded bg-white"
-          style={{ width: 560, maxWidth: '100%', height: 620, border: 0, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }}
+          className="keep-light block rounded bg-white"
+          style={{ width: 560, maxWidth: '100%', height: 620, border: 0, boxShadow: '0 1px 3px rgb(var(--shadow-rgb) / 0.12)' }}
         />
       </div>
     )

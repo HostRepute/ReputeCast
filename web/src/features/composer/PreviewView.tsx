@@ -373,7 +373,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
         <div className="grid flex-1 items-start overflow-auto" style={{ padding: 24, gridTemplateColumns: 'repeat(auto-fit,minmax(min(380px,100%),1fr))', gap: 20 }}>
           <RealRendersCard />
           {error ? (
-            <div role="alert" className="card" style={{ padding: 16, borderColor: '#FCA5A5' }}>
+            <div role="alert" className="card" style={{ padding: 16, borderColor: 'var(--bad-line)' }}>
               <span className="font-semibold">{tr(mp.renderFailed)}</span> <span className="k">{error}</span>
             </div>
           ) : null}
@@ -385,7 +385,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
               </span>
               <span className="k">{preview ? tr(mr.approximatedAt, { time: clock(preview.renderedAt) }) : tr(mr.approximating)}</span>
             </div>
-            <div style={{ padding: 12, background: '#fff' }}>
+            <div className="keep-light" style={{ padding: 12, background: '#fff' }}>
               {senderLine(false)}
               {preview ? <MailFrame key={`l-${width}`} html={version.html(preview.html)} width={width} onDoc={setLightDoc} /> : <div className="sk" style={{ height: 320, width: '100%' }} />}
             </div>
@@ -429,7 +429,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
         <VersionsCard v={version} />
         <div className="flex flex-col gap-2 border-b border-line-2" style={{ padding: '14px 16px' }}>
           <h2 className="m-0 text-[14px] font-semibold">{testing ? tr(mp.inboxPreviewVariant, { key: c.variant }) : tr(mp.inboxPreview)}</h2>
-          <div className="flex flex-col gap-1 rounded-lg border border-line" style={{ padding: 10, background: 'var(--ground-3)', fontSize: 12 }}>
+          <div className="keep-light flex flex-col gap-1 rounded-lg border border-line" style={{ padding: 10, background: 'var(--ground-3)', fontSize: 12 }}>
             <div className="flex justify-between">
               <b>{preview?.fromName || c.campaign.sender?.name || tr(mp.sender)}</b>
               <span className="k">{time}</span>

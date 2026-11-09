@@ -171,6 +171,9 @@ function Composer({ data }: { data: Campaign }) {
         {t(m.skip)}
       </a>
       <header className="pc-top">
+        {/* The screen's one heading: the name is edited in the field below. It also
+            tells index.html's boot mark that the screen is up (it waits for a main or an h1). */}
+        <h1 className="vh">{draft.name || t(m.kind)}</h1>
         <ButtonLink iconOnly to="/w/$workspace/campaigns" params={{ workspace: slug }} aria-label={t(m.back)}>
           <Icon name="chevronLeft" size={16} />
         </ButtonLink>

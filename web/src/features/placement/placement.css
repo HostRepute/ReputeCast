@@ -19,7 +19,7 @@
     padding: 0 12px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font-size: 12.5px;
     font-weight: 500;
     color: var(--ink-nav);
@@ -27,7 +27,7 @@
     text-decoration: none;
   }
   .pl-pills a:hover {
-    background: var(--ground);
+    background: var(--hover);
     color: var(--ink);
   }
   .pl-pills a.on {
@@ -140,7 +140,7 @@
     color: var(--ok-fg);
   }
   .pl-live .dot {
-    box-shadow: 0 0 0 4px rgba(22, 101, 52, 0.15);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok-fg) 15%, transparent);
   }
 
   /* Filters row and footers of the cards. */
@@ -161,7 +161,7 @@
     padding: 0 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     box-sizing: border-box;
   }
   .pl-search input {
@@ -194,7 +194,7 @@
     padding: 0 11px;
     border-radius: 999px;
     border: 1px solid var(--line-strong);
-    background: #fff;
+    background: var(--surface);
     font: inherit;
     font-size: 12.5px;
     font-weight: 600;
@@ -204,9 +204,9 @@
   }
   .pl-fchip.on,
   .pl-fchip[aria-pressed='true'] {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
   }
   .pl-chk2 {
     display: flex;
@@ -336,7 +336,7 @@
     cursor: pointer;
   }
   .pl-cellbtn:hover {
-    background: rgba(15, 118, 110, 0.04);
+    background: color-mix(in srgb, var(--accent) 4%, transparent);
   }
   .pl-cl {
     display: flex;
@@ -445,7 +445,7 @@
     font-family: var(--font-family-mono);
     font-size: 11px;
     line-height: 1.6;
-    background: var(--ink);
+    background: var(--code-bg);
     color: var(--dark-text);
     border-radius: 8px;
     padding: 10px 12px;
@@ -494,7 +494,7 @@
     padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     font-size: 13px;
     cursor: pointer;
   }
@@ -553,7 +553,7 @@
     padding: 6px 10px;
     border: 1px solid var(--line-input);
     border-radius: 8px;
-    background: #fff;
+    background: var(--field);
     box-sizing: border-box;
   }
   .pl-picker .pt {
@@ -597,8 +597,8 @@
   .pl-tip {
     position: absolute;
     z-index: 5;
-    background: var(--ink);
-    color: #fff;
+    background: var(--inverse);
+    color: var(--on-strong);
     border-radius: 6px;
     padding: 6px 10px;
     font-size: 12px;
@@ -612,7 +612,7 @@
     display: block;
   }
   .pl-tip span {
-    color: #c9ced6;
+    color: var(--line-hover);
   }
 
   /* Links in card footers. */

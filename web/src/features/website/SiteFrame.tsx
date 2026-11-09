@@ -67,7 +67,7 @@ export function SiteFrame({
     ...(thumb ? { pointerEvents: 'none' } : {}),
     ...style,
   }
-  const iframe = <iframe ref={frame} title={title} srcDoc={html} sandbox="allow-same-origin" tabIndex={thumb ? -1 : undefined} onLoad={onLoad} className={scale === 1 && !fit ? className : undefined} style={frameStyle} />
+  const iframe = <iframe ref={frame} title={title} srcDoc={html} sandbox="allow-same-origin" tabIndex={thumb ? -1 : undefined} onLoad={onLoad} className={scale === 1 && !fit && className ? `keep-light ${className}` : 'keep-light'} style={frameStyle} />
   if (scale === 1 && !fit) return iframe
   return (
     <div ref={box} className={className} style={{ height: height * scale, overflow: 'hidden', position: 'relative' }}>

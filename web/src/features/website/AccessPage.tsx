@@ -164,7 +164,7 @@ function AccessEditor({ data, overview }: { data: Access; overview: Overview }) 
         </div>
       </div>
       {dirty && canManage ? (
-        <div className="card sticky bottom-3 z-10 flex flex-wrap items-center gap-3 px-[18px] py-3 shadow-[0_8px_24px_rgba(11,18,32,.12)]" role="region" aria-label={t(ma.unsaved)}>
+        <div className="card sticky bottom-3 z-10 flex flex-wrap items-center gap-3 px-[18px] py-3 shadow-[0_8px_24px_rgb(var(--shadow-rgb)/0.12)]" role="region" aria-label={t(ma.unsaved)}>
           <Badge tone="warn" dot>
             {t(ma.unsaved)}
           </Badge>
@@ -682,7 +682,7 @@ function PaywallPreview({ data, draft, as, tiersOK }: { data: Access; draft: Acc
   const signupRow = draft.signupOn && draft.signinOn
   const offered = data.lists.filter((l) => draft.lists.some((x) => x.listId === l.id))
   return (
-    <div className="ws-pw" role="img" aria-label={t(ma.previewLabel)}>
+    <div className="ws-pw keep-light" role="img" aria-label={t(ma.previewLabel)}>
       <h3>{pw.heading || t(ma.required)}</h3>
       <p className="tx">{as === 'used' ? t(ma.usedUp, { month: monthName(now, 'long'), next: `${next.getDate()} ${monthName(next, 'long')}` }) : pw.text}</p>
       {tiers.map((x, i) => (

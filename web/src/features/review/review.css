@@ -16,22 +16,22 @@
     flex-wrap: wrap;
   }
   .rv-verdict.v-warn {
-    background: #fffbeb;
-    border-color: #fcd34d;
-    color: #78350f;
+    background: var(--warn-tint);
+    border-color: var(--warn-line-strong);
+    color: var(--warn-ink);
   }
   .rv-verdict.v-bad {
-    background: #fef2f2;
-    border-color: #fca5a5;
-    color: #7f1d1d;
+    background: var(--bad-wash);
+    border-color: var(--bad-line);
+    color: var(--bad-ink);
   }
   .rv-verdict.v-ok {
-    background: #f0fdf4;
-    border-color: #86efac;
-    color: #14532d;
+    background: var(--ok-tint);
+    border-color: var(--ok-line-strong);
+    color: var(--ok-ink);
   }
   .rv-verdict.v-plain {
-    background: #fff;
+    background: var(--surface);
     border-color: var(--line);
     color: var(--ink);
   }
@@ -84,7 +84,7 @@
     justify-content: space-between;
     gap: 10px;
     padding: 12px 16px;
-    background: #f9fafb;
+    background: var(--ground-3);
     border-top: 1px solid var(--line);
   }
   .rv-grp:first-child {
@@ -92,11 +92,11 @@
     border-radius: 10px 10px 0 0;
   }
   .rv-grp.g-bad {
-    background: #fef2f2;
+    background: var(--bad-wash);
   }
   .rv-grp.g-bad .h2,
   .rv-grp.g-bad .k {
-    color: #991b1b;
+    color: var(--bad-fg);
   }
   .rv-row {
     display: flex;
@@ -106,10 +106,10 @@
     border-top: 1px solid var(--line-2);
   }
   .rv-row.r-warn {
-    background: #fffbeb;
+    background: var(--warn-tint);
   }
   .rv-row.r-bad {
-    background: #fff5f5;
+    background: var(--bad-tint);
   }
   .rv-row:last-child {
     border-radius: 0 0 10px 10px;
@@ -142,7 +142,7 @@
     border-top: 0;
   }
   .rv-line.l-queued {
-    color: #6b7280;
+    color: var(--muted-ink);
   }
 
   /* The aside: estimates and settings cards. */
@@ -272,7 +272,7 @@
   }
   label.rv-rad:has(> input:checked) {
     border-color: var(--accent);
-    background: #f0fdfa;
+    background: var(--accent-tint);
   }
   label.rv-rad:has(> input:disabled) {
     cursor: default;
@@ -293,10 +293,10 @@
     max-width: 640px;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background: var(--raised);
     border: 1px solid var(--line);
     border-radius: 10px;
-    box-shadow: 0 24px 60px rgba(11, 18, 32, 0.3);
+    box-shadow: var(--shadow-dialog);
   }
   .rv-confirm:focus {
     outline: none;

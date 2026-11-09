@@ -348,7 +348,7 @@ function PreviewFrame({ html, device, label }: { html?: string; device: 'desktop
     return () => window.clearTimeout(id)
   }, [html, device])
   return (
-    <div className="ea-pvpage" data-device={device}>
+    <div className="ea-pvpage keep-light" data-device={device}>
       {html === undefined ? (
         <div className="p-7">
           <Skeleton w="100%" h={600} />

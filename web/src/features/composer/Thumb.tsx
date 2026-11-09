@@ -78,7 +78,7 @@ export function LivePicture({ html, label, small }: { html: string; label: strin
   const doc = useMemo(() => pictureDocument(html), [html])
   const scale = size.w / EMAIL_WIDTH
   return (
-    <div className={`thumb mini live${small ? ' small' : ''}`} aria-hidden="true">
+    <div className={`thumb mini live keep-light${small ? ' small' : ''}`} aria-hidden="true">
       <span ref={box} className="mpic">
         {scale > 0 ? (
           <iframe
@@ -223,7 +223,7 @@ export function Thumb({ items, blank, small }: { items: Item[]; blank?: boolean;
   const foot = parts.find((it) => it.kind === 'footer')
   const body = parts.filter((it) => it !== head && it !== foot)
   return (
-    <div className={`thumb mini${small ? ' small' : ''}`} aria-hidden="true">
+    <div className={`thumb mini keep-light${small ? ' small' : ''}`} aria-hidden="true">
       <span className="memail">
         {blank || head ? <Part it={head ?? { kind: 'header' }} scale={scale} /> : null}
         <span className="mbody">

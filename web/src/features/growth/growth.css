@@ -146,7 +146,7 @@
     background: var(--ground-3);
   }
   .gr-flagrow td {
-    background: #fffbeb;
+    background: var(--warn-tint);
   }
   .gr-flagnote {
     flex-wrap: nowrap;
@@ -228,7 +228,7 @@
     cursor: pointer;
   }
   .gr-pills [role='tab']:hover {
-    background: var(--ground);
+    background: var(--hover);
     color: var(--ink);
   }
   .gr-pills [role='tab'][data-state='active'] {

@@ -541,7 +541,7 @@ function StepEmails({ p, onBack, onNext }: { p: Program; onBack: () => void; onN
 function PreviewCard({ title, text, page }: { title: string; text: string; page: 'invite' | 'hub' }) {
   return (
     <div className="card gw-pv">
-      <span className="mock" aria-hidden="true">
+      <span className="mock keep-light" aria-hidden="true">
         <span className="flex items-center gap-1.5">
           <i style={{ width: 16, height: 16, background: 'var(--ink)' }} />
           <i style={{ width: 60, height: 8, background: 'var(--line-hover)' }} />

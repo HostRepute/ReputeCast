@@ -231,7 +231,7 @@
 .sv-q.on .sv-num {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-strong);
 }
 .sv-q-text {
   font-size: 13px;

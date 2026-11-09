@@ -129,7 +129,7 @@ function Summary({ d, now }: { d: Detail; now: number }) {
   const flow = flows.data?.items?.find((f) => /re-?permission/i.test(f.name))
   const firstList = lists[0]?.name
   const tiles: [string, number, string, string?][] = [
-    [tr(m.tileImported), s?.imported ?? d.progress.imported, tr(m.tileImportedNote), 'var(--color-ok-line-strong)'],
+    [tr(m.tileImported), s?.imported ?? d.progress.imported, tr(m.tileImportedNote), 'var(--ok-line-strong)'],
     [tr(m.tileMerged), s?.merged ?? d.progress.merged, tr(m.tileExistingUpdated)],
     [
       tr(m.tileSuppressed),
@@ -143,7 +143,7 @@ function Summary({ d, now }: { d: Detail; now: number }) {
         .join(' · ') || tr(m.tileNeverResubscribed),
       'var(--bad-line)',
     ],
-    [tr(m.tilePending), pending, s?.confirmsSent ? tr(m.pendingSent) : tr(m.pendingWaiting), 'var(--color-warn-line-strong)'],
+    [tr(m.tilePending), pending, s?.confirmsSent ? tr(m.pendingSent) : tr(m.pendingWaiting), 'var(--warn-line-strong)'],
     [tr(m.tileSkipped), skipped, skippedParts.join(' · ') || tr(m.tileSkippedNote)],
   ]
   const headline =

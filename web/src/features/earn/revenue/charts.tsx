@@ -146,8 +146,8 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
       {marks.map(({ m, mx, my }) => (
         <g key={`${m.kind}-${m.n}`} aria-hidden="true">
           <line x1={mx} x2={mx} y1={my} y2={v.bottom} stroke="var(--line-input)" strokeDasharray="2 3" />
-          <circle cx={mx} cy={my} r={8} fill={INK} />
-          <text x={mx} y={my + 4} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--surface)" fontFamily={FONT}>
+          <circle cx={mx} cy={my} r={8} fill="var(--inverse)" />
+          <text x={mx} y={my + 4} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--on-strong)" fontFamily={FONT}>
             {m.n}
           </text>
         </g>
@@ -172,8 +172,8 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
         <g aria-hidden="true" pointerEvents="none">
           <line x1={tip.x} x2={tip.x} y1={v.top - 6} y2={v.bottom} stroke={INK} strokeWidth={1} />
           <circle cx={tip.x} cy={tip.y} r={4.5} fill={LINE} stroke="var(--surface)" strokeWidth={2} />
-          <rect x={tipX} y={Math.max(tip.y - 34, 0)} width={tipW} height={22} rx={6} fill={INK} />
-          <text x={tipX + 9} y={Math.max(tip.y - 34, 0) + 15} fontSize={11.5} fontWeight={600} fill="var(--surface)" fontFamily={FONT}>
+          <rect x={tipX} y={Math.max(tip.y - 34, 0)} width={tipW} height={22} rx={6} fill="var(--inverse)" />
+          <text x={tipX + 9} y={Math.max(tip.y - 34, 0) + 15} fontSize={11.5} fontWeight={600} fill="var(--on-strong)" fontFamily={FONT}>
             {tipText}
           </text>
         </g>

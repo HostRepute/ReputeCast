@@ -50,7 +50,7 @@ export function TxSubjectBar() {
           {label}
         </span>
         {empty ? (
-          <div className="cmp-inbox empty" aria-labelledby="tx-inbox-label">
+          <div className="cmp-inbox empty keep-light" aria-labelledby="tx-inbox-label">
             <span style={{ fontWeight: 700, width: 96 }}>{sender}</span>
             <span>{t(m.inboxEmpty)}</span>
             <span className="k" style={{ marginLeft: 'auto' }}>
@@ -58,7 +58,7 @@ export function TxSubjectBar() {
             </span>
           </div>
         ) : (
-          <div className="cmp-inbox" aria-labelledby="tx-inbox-label">
+          <div className="cmp-inbox keep-light" aria-labelledby="tx-inbox-label">
             <span style={{ fontWeight: 700, width: 96, flex: 'none', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sender}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <b style={{ fontWeight: 600 }}>{subject}</b>
