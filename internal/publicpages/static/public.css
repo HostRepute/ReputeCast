@@ -62,7 +62,7 @@ a:hover { color: var(--pub-hover); }
 input[type='checkbox'], input[type='radio'] { width: 16px; height: 16px; accent-color: var(--pub-accent); }
 h1, p { margin: 0; }
 strong { font-weight: 700; }
-.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.vh { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: absolute; left: -9999px; top: 8px; z-index: 100; background: #fff; color: var(--ink); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--pub-accent); font-weight: 600; text-decoration: none; }
 .skip:focus { left: 8px; }
 /* Links in running text are underlined (not colour alone). */
@@ -588,10 +588,20 @@ button.ea-cancel:hover { color: var(--pub-hover); }
 .cfform { display: flex; flex-direction: column; margin-top: 20px; }
 .cfnote { margin: 14px 0 0; text-align: center; font-size: 13px; color: var(--ink-3); }
 
-/* Targets (44px on touch widths, never under 24px). */
+/* Targets (44px on touch widths, never under 24px). Links and link-like
+   buttons set as text grow by padding inside an equal negative margin: the
+   same look, a bigger target. */
 .ea-top a, .ea-q summary { padding-block: 3px; margin-block: -3px; }
+.rss, .split a.plain, .gsplit a, .ginvite a, :is(a, button).ea-cancel, .consent { padding-block: 3px; margin-block: -3px; }
 @media (max-width: 767px) {
   .ea-top a, .ea-q summary { padding-block: 12px; margin-block: -12px; }
   .ea-toggle a, .pills label { height: 44px; }
   .gseg a { min-height: 44px; }
+  .rss, .split a.plain, .gsplit a, .ginvite a, .consent { padding-block: 13px; margin-block: -13px; }
+  .rss { padding-inline: 4px; margin-inline: -4px; }
+  /* Two consents (email, then SMS) share the 14px between them. */
+  .consent:has(+ .consent) { padding-bottom: 7px; margin-bottom: -7px; }
+  .consent + .consent { padding-top: 7px; margin-top: -7px; }
+  /* 10px above: "Manage billing" sits 10px over it when the row wraps. */
+  :is(a, button).ea-cancel { padding-block: 10px 12px; margin-block: -10px -12px; }
 }

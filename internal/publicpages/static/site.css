@@ -479,12 +479,20 @@ mark.st-hl { background: var(--pub-tint); color: var(--pub-hover); border-radius
 .st-lnk { padding-block: 3px; margin-block: -3px; }
 /* The search field's input fills its 48px box, so the whole box takes a tap. */
 .st-search input { align-self: stretch; }
-.st-tag { padding-block: 2px; margin-block: -2px; }
+.st-tag, .st-feedl { padding-block: 2px; margin-block: -2px; }
+/* A checkbox is hit through its label; labels in a column are 8px apart. */
+@container (min-width: 600px) {
+  .st-chk { padding-block: 2px; margin-block: -2px; }
+}
+/* Touch widths (767px and below): links set as text grow to 44px, the
+   same look; the phone layout's chips and buttons grow below. */
+@container (max-width: 767px) {
+  .st-lnk { padding-block: 10px; margin-block: -10px; }
+  a.st-tag, .st-feedl { padding-block: 12px; margin-block: -12px; }
+}
 @container (max-width: 599px) {
   .st-chip, .st-btn, .st-btn2, .st-btn.sm, .st-btn2.sm, .st-act .st-btn, .st-act .st-btn2, .st-seg a, .st-seg button, .st-me { height: 44px; }
   .st-menu > summary { width: 44px; height: 44px; }
-  .st-lnk { padding-block: 10px; margin-block: -10px; }
-  .st-tag { padding-block: 12px; margin-block: -12px; }
   .st-chk { min-height: 44px; }
 }
 /* The narrowest phones (320px): the header's actions fit beside the mark. */

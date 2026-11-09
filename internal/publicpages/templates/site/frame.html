@@ -47,8 +47,9 @@
 
 {{define "site-mark"}}{{if .Brand.Logo}}<span class="st-mark logo"><img src="{{.Brand.Logo}}" alt="" width="36" height="36"></span>{{else}}<span class="st-mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}{{end}}
 
-{{define "site-header"}}<header class="st-hd"><div class="st-w st-hdi">
-<a href="{{.Href.Home}}" class="st-brand" aria-label="{{.T "site.homeLabel" "title" .Frame.Title}}">{{template "site-mark" .}}<span class="full">{{.Frame.Title}}</span><span class="short">{{.Frame.Short}}</span></a>
+{{/* The logo link is named by what it shows (the title, or the publisher's name on phones) and "home" in hidden text (siteView.Around). */}}
+{{define "site-header"}}{{$home := .Around "site.homeLabel" "title"}}<header class="st-hd"><div class="st-w st-hdi">
+<a href="{{.Href.Home}}" class="st-brand">{{template "site-mark" .}}{{with $home.Before}}<span class="vh">{{.}}</span>{{end}}<span class="full">{{.Frame.Title}}</span><span class="short">{{.Frame.Short}}</span>{{with $home.After}}<span class="vh">{{.}}</span>{{end}}</a>
 {{- if and .Frame.On (not .Focus)}}
 <nav class="st-nav" aria-label="{{.T "site.nav"}}">{{range .Nav}}<a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>
 <div class="st-act">

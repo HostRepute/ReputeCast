@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/pagelabels"
+	"github.com/hostrepute/reputecast/internal/website"
 )
 
 var jsonLDBlock = regexp.MustCompile(`(?s)<script type="application/ld\+json">(.*?)</script>`)
@@ -378,5 +379,28 @@ func TestBodyHeadings(t *testing.T) {
 		if got := bodyHeadings(c.in); got != c.want {
 			t.Errorf("bodyHeadings(%q)\n got %q\nwant %q", c.in, got, c.want)
 		}
+	}
+}
+
+// The logo link is named by what it shows and "home" in hidden text (WCAG
+// 2.5.3, Label in Name): Around gives the words a message puts around the
+// title, in every language; a translation without {title} puts its words
+// after it.
+func TestAroundSplitsAMessageAtItsArgument(t *testing.T) {
+	for code, want := range map[string]wordsAround{
+		"en": {After: ", home"},
+		"de": {After: ", Startseite"},
+		"es": {After: ", inicio"},
+		"fr": {After: ", accueil"},
+		"vi": {After: ", trang chủ"},
+	} {
+		v := &siteView{words: website.WordsIn(pagelabels.Lang(code))}
+		if got := v.Around("site.homeLabel", "title"); got != want {
+			t.Errorf("%s: %+v, want %+v", code, got, want)
+		}
+	}
+	v := &siteView{words: website.WordsIn(pagelabels.Lang("en"))}
+	if got := v.Around("site.nav", "title"); got != (wordsAround{After: " Site"}) {
+		t.Errorf("a message without the argument: %+v", got)
 	}
 }
