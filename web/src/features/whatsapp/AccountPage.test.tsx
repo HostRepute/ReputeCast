@@ -72,6 +72,7 @@ const aisha: Me = {
     totp: false,
     passkeys: 0,
     recoveryCodes: 0,
+    theme: 'system',
   },
   workspaces: [{ id: 'ws-1', slug: 'acme-newsletter', name: 'Acme Newsletter', roleKey: 'viewer', roleName: 'Viewer', memberCount: 6, subscribers: 48213 }],
   instance: { name: 'Acme ReputeCast', publicUrl: 'https://reputecast.acme.io', version: 'v1.0.0', setupComplete: true },

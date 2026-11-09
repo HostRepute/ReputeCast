@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/appearance"
 	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -35,6 +36,9 @@ type MeUser struct {
 	// LanguageSuggestionAnswered: the member answered "Your browser prefers …",
 	// so it isn't offered again.
 	LanguageSuggestionAnswered bool `json:"languageSuggestionAnswered,omitempty"`
+	// Theme is the light or dark theme the person chose (Account & security ›
+	// Appearance); system follows the device.
+	Theme string `json:"theme" enum:"system,light,dark"`
 }
 
 // MeWorkspace is one workspace the person belongs to.
@@ -105,6 +109,7 @@ func (s *Service) Me(ctx context.Context) (Me, error) {
 		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat, Languages: applang.Languages()}
 	me.User.Preferences = applang.Choices(*u)
 	me.User.LanguageSuggestionAnswered = u.LanguagePromptedAt != nil
+	me.User.Theme = appearance.ThemeOf(*u)
 	if len(st.LatestRelease) > 0 {
 		var rel struct {
 			Tag string `json:"tag"`

@@ -16,6 +16,7 @@ const me: Me = {
     totp: true,
     passkeys: 0,
     recoveryCodes: 10,
+    theme: 'system',
   },
   workspaces: [
     { id: 'ws-1', slug: 'acme-newsletter', name: 'Acme Newsletter', roleKey: 'owner', roleName: 'Owner', memberCount: 6, subscribers: 48213 },

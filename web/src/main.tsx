@@ -7,12 +7,19 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { TooltipProvider } from './components/ui/Menu'
 import { Toaster } from './components/ui/Toast'
+import { connectTheme } from './features/appearance/useTheme'
 import { I18nRoot } from './i18n/root'
 import { applyMember, bootI18n, connectI18n, isVisitorPath } from './i18n/sync'
 import { queryClient } from './lib/query'
 import { fetchMe, meQueryKey } from './lib/session'
 import { installPreloadRecovery } from './lib/systemStatus'
+import { startTheme } from './lib/theme'
 import { preloadScreen, router } from './router'
+
+// The theme (already set by src/early.ts) follows the device and other
+// tabs from here, and the member's account once /me comes (M54).
+startTheme()
+connectTheme(queryClient)
 
 // The language and formats apply before the first render, so nothing
 // flashes in another language; /me and /meta keep them current after.
