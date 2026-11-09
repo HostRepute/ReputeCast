@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import early from '../early.ts?raw'
 import { getThemeSnapshot, resetThemeForTests, resolveTheme, setThemeChoice, startTheme, subscribeTheme } from './theme'
 
 /** A device whose light or dark setting the test flips. */
@@ -24,7 +23,11 @@ const html = () => document.documentElement
 
 describe('theme', () => {
   beforeEach(() => resetThemeForTests())
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    Reflect.deleteProperty(window, '__rcEarly')
+  })
 
   it('follows the device until the member chooses', () => {
     device(true)
@@ -80,9 +83,21 @@ describe('theme', () => {
     expect(html().dataset.theme).toBe('dark')
   })
 
-  it('src/early.ts reads the same key and query before the app loads', () => {
-    expect(early).toContain("localStorage.getItem('rc.theme')")
-    expect(early).toContain("matchMedia('(prefers-color-scheme: dark)')")
-    expect(early).toContain('document.documentElement.dataset.theme')
+  // src/early.ts runs before the app and can't import this module: it must
+  // come to the same theme from the same kept choice and device.
+  it.each([
+    ['dark', false, 'dark'],
+    ['light', true, 'light'],
+    [null, true, 'dark'],
+    [null, false, 'light'],
+  ] as const)('src/early.ts sets the theme before the app loads (kept %s, dark device %s)', async (kept, dark, want) => {
+    device(dark)
+    if (kept) localStorage.setItem('rc.theme', kept)
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(null, { status: 401 }))))
+    // early.ts does its work when it loads: a fresh import per case runs it again.
+    vi.resetModules()
+    await import('../early')
+    expect(html().dataset.theme).toBe(want)
+    expect(resolveTheme(kept ?? 'system')).toBe(want)
   })
 })

@@ -2,8 +2,11 @@ import type { Component, Editor } from 'grapesjs'
 import { Link } from '@tanstack/react-router'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { toast } from '@/components/ui/Toast'
+import { useTheme } from '@/features/appearance/useTheme'
 import { T, useT, t as tt } from '@/i18n'
+import { cn } from '@/lib/cn'
 import { andList } from '@/lib/format'
+import { useMediaQuery } from '@/lib/hooks'
 import { useComposer } from '../context'
 import { ShareReviewButton } from '../Collab'
 import { COMMENT_ATTR, NewCommentBox, ThreadCard, useComments, useMentionable } from '../Comments'
@@ -893,20 +896,29 @@ function ColumnTag({ section, n, count }: { section: string; n: number; count: n
   )
 }
 
-/** The open thread on a block, beside it (below it on narrower screens). */
+/**
+ * The open thread on a block, beside it (below it on narrower screens). It
+ * renders inside the document, which keeps the email's light theme; beside
+ * the document it sits on the app's ground and takes the app's theme back
+ * (keep-dark in the dark theme): comments are the app's, not the email's.
+ */
 function BlockThread({ comp, w }: { comp: Component; w: WriteState }) {
   const thread = useThreadFor(comp)
   const members = useMentionable()
   const c = useComposer()
+  const { theme } = useTheme()
+  // write.css puts it below the block at 1100px and under, beside the document above.
+  const beside = !useMediaQuery('(max-width: 1100px)')
+  const className = cn('wth', beside && theme === 'dark' && 'keep-dark')
   if (w.commentFor === comp)
     return (
-      <div className="wth">
+      <div className={className}>
         <NewCommentBox target={comp} members={members} onDone={() => w.setCommentFor(null)} />
       </div>
     )
   if (!thread) return null
   return (
-    <div className="wth">
+    <div className={className}>
       <ThreadCard thread={thread} members={members} focused={false} canResolve={c.campaign.access.canEdit} compact />
     </div>
   )

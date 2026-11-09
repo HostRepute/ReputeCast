@@ -211,9 +211,11 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
    `bad-strong` and the status bars, `on-fixed` for text on avatar, brand
    and chart colours, `code-bg` for code panes (with only `dark-*` and
    `code-*` tokens inside). A preview of what readers see (an email, a public
-   page, a phone screen, a QR code) gets `keep-light` on its root. Check a
-   new screen with `node scripts/shot.ts --theme dark` and
-   `node scripts/a11y.ts --theme dark`.
+   page, a phone screen, a QR code) gets `keep-light` on its root. A
+   CodeMirror editor on the app's surfaces (not a code pane) takes
+   `useEditorTheme` (`features/appearance/editorTheme.ts`), so its caret and
+   selection follow the theme. Check a new screen with
+   `node scripts/shot.ts --theme dark` and `node scripts/a11y.ts --theme dark`.
 3. Replace sample data with API data. Copy that is not data stays literal.
 4. Reproduce the responsive behaviour. The boards get it from global rules in
    their CSS; in the app use the primitives:

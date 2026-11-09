@@ -264,7 +264,7 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
         title: t(c === 'dark' ? ma.useDark : c === 'light' ? ma.useLight : ma.useSystem),
         detail: t(ma.paletteDetail),
         dest: { to: '/w/$workspace/account', params: { workspace } },
-        run: () => void saveTheme(c, { announce: true }),
+        run: () => saveTheme(c, { announce: true }),
       }))
       .filter((e) => `${e.title} ${e.detail}`.toLowerCase().includes(low))
     if (themeHits.length) groups.push({ label: t(ma.title), entries: themeHits })

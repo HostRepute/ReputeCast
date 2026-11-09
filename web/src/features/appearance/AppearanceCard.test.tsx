@@ -1,6 +1,7 @@
 import { act, fireEvent, screen } from '@testing-library/react'
 import { QueryClient } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { dismissToast } from '@/components/ui/Toast'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace } from '@/test/app'
 import { resetThemeForTests } from '@/lib/theme'
@@ -24,6 +25,8 @@ describe('Appearance', () => {
   afterEach(() => {
     unmock()
     vi.restoreAllMocks()
+    // A toast stays until it times out: the next test starts with none.
+    dismissToast()
   })
 
   it('offers Same as device, Light and Dark, following the device until one is picked', async () => {
@@ -67,6 +70,34 @@ describe('Appearance', () => {
     expect(html().dataset.theme).toBe('light')
     expect(screen.getByRole('radio', { name: 'Same as device' })).toBeChecked()
     expect(localStorage.getItem('rc.theme')).toBeNull()
+  })
+
+  it('sends a pick made while a save is on its way after it, and lets the last pick decide', async () => {
+    const bodies: unknown[] = []
+    const answers: ((r: Response) => void)[] = []
+    unmock = mockApi({
+      'PUT /api/v1/me/appearance': async (req) => {
+        bodies.push(await req.json())
+        // ES2023 lib: no Promise.withResolvers.
+        return new Promise<Response>((resolve) => answers.push(resolve))
+      },
+    })
+    await renderInWorkspace(<AppearanceCard />)
+    // The user menu stays open while the member tries each theme.
+    fireEvent.click(screen.getByRole('radio', { name: 'Dark' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Light' }))
+    expect(html().dataset.theme).toBe('light')
+    // Light waits for Dark, so the server takes them in the order picked.
+    await vi.waitFor(() => expect(bodies).toEqual([{ theme: 'dark' }]))
+    // Dark is refused while Light is still to be sent: nothing goes back.
+    await act(async () => answers[0]!(json({ status: 500, title: 'Internal Server Error' }, 500)))
+    await vi.waitFor(() => expect(bodies).toEqual([{ theme: 'dark' }, { theme: 'light' }]))
+    expect(html().dataset.theme).toBe('light')
+    expect(screen.queryByRole('alert')).toBeNull()
+    await act(async () => answers[1]!(json({ theme: 'light' })))
+    expect(screen.getByRole('radio', { name: 'Light' })).toBeChecked()
+    expect(localStorage.getItem('rc.theme')).toBe('light')
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('takes the account’s theme from /me, so a choice made elsewhere applies here', async () => {

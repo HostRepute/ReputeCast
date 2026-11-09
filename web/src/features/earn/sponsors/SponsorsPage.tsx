@@ -712,7 +712,8 @@ function Slots({ data, onEdit }: { data: Overview; onEdit: (s: SlotItem) => void
               <dd>{t(msp.slotCampaignValue)}</dd>
             </dl>
           </div>
-          <div className="sp-outline" role="img" aria-label={t(msp.slotPreview, { slot: s.name })}>
+          {/* A thumbnail of the email with the slot in it: emails keep the light theme. */}
+          <div className="sp-outline keep-light" role="img" aria-label={t(msp.slotPreview, { slot: s.name })}>
             <i className="d" style={{ width: '40%', height: 10 }} />
             <div className="flex flex-col gap-[5px]">
               <i className="d" style={{ width: '85%', height: 9 }} />

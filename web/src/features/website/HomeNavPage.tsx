@@ -844,7 +844,8 @@ function IdentityCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Sett
             </Button>
           </div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-[32px] w-[32px] flex-none items-center justify-center overflow-hidden rounded-[8px] bg-inverse text-[13px] font-bold text-on-strong">{mark}</span>
+            {/* The site's mark as browsers show it: fixed colours, like the social image's beside it. */}
+            <span className="keep-light inline-flex h-[32px] w-[32px] flex-none items-center justify-center overflow-hidden rounded-[8px] bg-inverse text-[13px] font-bold text-on-strong">{mark}</span>
             <span className="flex min-w-0 flex-1 flex-col">
               <b>{t(mh.favicon)}</b>
               <span className="k">{t(mh.faviconText)}</span>

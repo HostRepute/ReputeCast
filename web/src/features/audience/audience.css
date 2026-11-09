@@ -4,7 +4,10 @@
    rules (unlayered) still apply. */
 
 @layer components {
-  /* Tier badges: darkest blue is Active (Contacts, Segments, List health). */
+  /* Tier badges: darkest blue is Active (Contacts, Segments, List health). In
+     the dark theme the ramp runs from light (Active) to deep (Sunset), so At
+     risk and Sunset take their own tokens (badge-tier-3-fg, badge-tier-4-bg),
+     which print and .keep-light scopes put back to the light values. */
   .badge.t1 {
     background: var(--chart-tier-1);
     color: var(--on-strong);
@@ -15,20 +18,11 @@
   }
   .badge.t3 {
     background: var(--chart-tier-3);
-    color: var(--ink);
+    color: var(--badge-tier-3-fg);
   }
   .badge.t4 {
-    background: var(--chart-tier-4);
+    background: var(--badge-tier-4-bg);
     color: var(--ink);
-  }
-  /* Dark: the ramp runs from light (Active) to deep (Sunset). At risk's mid
-     blue takes dark text, and since no text reaches 4.5:1 on Sunset's deep
-     blue, its badge takes the deeper info blue under light text. */
-  :root[data-theme='dark'] .badge.t3 {
-    color: var(--on-strong);
-  }
-  :root[data-theme='dark'] .badge.t4 {
-    background: var(--info-soft);
   }
 
   /* Saved-view chips above the contacts table (30px, as on the board). */
