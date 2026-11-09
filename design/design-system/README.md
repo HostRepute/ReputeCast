@@ -21,9 +21,21 @@ Tokens are in `tokens.json`; the page's Colors view lists each with its use. Rul
 - **Surfaces**: the app sits on `ground`; cards, the sidebar and the header are `surface` with a `line` border; inset panels inside a card use `ground-3`. Row dividers are `line-2`. Secondary buttons use `line-strong`; inputs use the darker `line-input` so their boundary meets 3:1.
 - **Accent** (`accent`, `accent-hover`) is for the primary action on a screen, links, the active nav item (`accent-soft` fill) and the current wizard step. `accent-tint` and `accent-line` highlight ReputeCast's own column in comparisons and the "before you send" feature cards.
 - **Status** comes in pairs of fill and text (`ok-bg`/`ok-fg`, `warn-bg`/`warn-fg`, `bad-bg`/`bad-fg`, `info-bg`/`info-fg`, `neutral-bg`/`neutral-fg`, `purple-bg`/`purple-fg`) plus a solid bar colour (`ok-bar`, `warn-bar`, `bad-bar`). A status badge always has a dot or icon and a word; colour alone is never the message. Alert cards use `bad-tint` with a `bad-line` border; success panels `ok-tint` with `ok-line`.
-- **Dark surfaces** (`ink`, `dark-surface`, `dark-line`, `dark-text`, `dark-muted`) are reserved for code and terminal blocks and the landing page's install section. The app itself is light only in this version.
+- **Dark surfaces** (`code-bg`, `dark-surface`, `dark-line`, `dark-text`, `dark-muted`) are reserved for code and terminal blocks and the landing page's install section. They stay dark in both themes. The app has a dark theme too (see **Dark theme** below); the landing page and the publisher's public pages are light only.
 - **Public pages** belong to the publisher, not to ReputeCast: they take the workspace's brand colour (`publisher-accent`, sample Acme indigo) on a tinted ground and never show the teal.
-- **Tokens, not hex.** App screens take every colour from these tokens; the patterns check refuses a screen that gains a raw hex. The app also names the stronger and darker steps of the status families its alerts use (`warn-line-strong`, `bad-soft`, `bad-wash`, `warn-ink`, `bad-ink`, `ok-ink`, `ok-line-strong`, `info-strong`, `info-soft`, `muted-ink`). The brand kit, email and page content, third-party logos and the avatar and workspace identity palettes keep their literal colours.
+- **Tokens, not hex.** App screens take every colour from these tokens; the patterns check refuses a screen that gains a raw hex. The tokens also name the stronger and darker steps of the status families alerts use (`warn-tint`, `warn-line`, `warn-line-strong`, `warn-ink`, `bad-soft`, `bad-wash`, `bad-ink`, `ok-ink`, `ok-line-strong`, `info-tint`, `info-line`, `info-ink`, `info-strong`, `info-soft`, `purple-line`, `purple-tint`, `muted-ink`, `muted-line`). The brand kit, email and page content, third-party logos and the avatar and workspace identity palettes keep their literal colours.
+
+### Dark theme
+
+Account & security › **Appearance** offers *Same as device* (the default), *Light* and *Dark*; the user menu has the same three as a one-tap row, and ⌘K finds them ("dark", "light", "theme"). The choice is saved on the account, so it follows the member to every browser, and kept in the browser so the first paint is already right. Every colour token has a light and a dark value in `tokens.json` (`themes`: light, dark); `web/scripts/tokens.ts` writes the light values to `tokens.css` and the dark ones to `themes.css` (`html[data-theme='dark']`).
+
+- **Same tokens, both themes.** A screen never asks which theme it is in: it uses the token for the job and the theme picks the value. The rules above hold in dark too: ink on surface, a tint with its ink, a status badge with its word.
+- **Elevation by lightness.** `ground` is the darkest step; cards and bars (`surface`) sit one step up, floating things (`raised`: menus, popovers, dialogs, the jobs tray, sheets) one more, so nearer is lighter. Fields (`field`) sit a step *below* their card, so a place to type reads as a well. Borders still carry the structure; dark shadows are deeper but matter less.
+- **Strong fills flip.** `accent`, `bad-strong`, the status bars and `inverse` are light in dark, so what sits on them is `on-strong` (white in light, near-black in dark). Text on a colour that doesn't change with the theme (avatars, identity palettes, brand and chart colours) is `on-fixed`, white in both. `inverse` is the inverted chip (tooltips, toasts, the selected segment): ink-coloured in light, near-white in dark.
+- **Hover comes forward.** `hover` is the ground in light and a step *lighter* than cards in dark, so a highlighted menu item or button lifts rather than sinks; `hover-soft` (ground-3 in light) does the same for table rows, list rows and cards you can open. The boards `DarkTheme` (palette, elevation, every component) and `MainDark` (the Overview, with its tablet and phone wrappers) draw the theme.
+- **What keeps its colours.** Previews of what readers see (email bodies, public pages, signup forms, the website, phone screens, QR codes) keep the light theme: their root has `.keep-light`, which puts every light value back inside it. Code and terminal panes stay dark in both themes and use only the always-dark tokens (`dark-text`, `dark-muted`, `dark-line`, `code-*`). Publisher pages and the landing page are light only.
+- **Contrast.** Every text token is at least 4.5:1 on every surface in both themes, and control borders, the focus ring, bars and the switch at least 3:1; `web/scripts/tokens.test.ts` checks it. The dark chart palette is 3:1 on cards and on the empty track; the engagement tiers run from light (Active) to deep (Sunset), so the most engaged tier keeps the most contrast.
+- **Switching** swaps every colour in one frame (transitions are held), follows the device live while on *Same as device*, and follows another tab or another browser of the same member.
 
 ### Chart palette
 
@@ -36,6 +48,8 @@ Validated for colour-vision deficiency with the dataviz palette checks. Assign i
 | Engagement tiers (ordinal) | `chart-tier-1` Active → `chart-tier-4` Sunset |
 | Opens | `chart-human` (ink) for human opens, `chart-machine` for Apple Mail prefetches |
 | Tracks | `chart-track` behind every bar |
+| Contact score bands (ordinal) | `chart-score-1` Cool → `chart-score-3` Hot |
+| Placement: in spam | `chart-spam` |
 
 Bars are thin, rounded only at the data end, with a 2px surface gap between stacked segments. One axis per chart. Legends appear from two series up; values are labelled selectively, never on every point. Every chart has a table view.
 
@@ -108,7 +122,7 @@ Elevation: `shadow-sm` for menus, `shadow-md` for hover lifts and dragged nodes,
 
 **Switches** change at once and go back, with a message, when the server refuses; they never grey out while they save. Reordering that saves at once (Grow's recommendations) works the same way.
 
-**Code and terminal blocks**: `ink` or `dark-surface` background, `mono-code` or `mono-terminal`, tag / attribute / string colours from the `code-*` tokens, line numbers in `ink-4`.
+**Code and terminal blocks**: `code-bg` or `dark-surface` background (dark in both themes), `mono-code` or `mono-terminal`, text in `dark-text`, tag / attribute / string colours from the `code-*` tokens, line numbers in `dark-muted`.
 
 ## Patterns
 
@@ -141,7 +155,7 @@ Motion belongs on the landing page and in live screens; the rest of the app stay
 
 The prototype was audited against WCAG 2.2 AA with scripted checks on every artboard (text contrast of every text node, control boundaries, target sizes, accessible names, landmarks, reflow at 320px) and fixed where it failed. The rules that keep it that way:
 
-- **Contrast**: every text token on every surface is at least 4.5:1 (3:1 for 24px+ or 18.66px bold). `ink-4` is for placeholders and dark surfaces only. Bars and control borders meet 3:1 (`warn-bar`, `line-input`).
+- **Contrast**: every text token on every surface is at least 4.5:1 (3:1 for 24px+ or 18.66px bold), in the light and the dark theme. `ink-4` is for placeholders and dark surfaces only. Bars and control borders meet 3:1 (`warn-bar`, `line-input`). `web/scripts/tokens.test.ts` checks the pairs in both themes, and `web/scripts/a11y.ts --theme dark` runs the axe sweep in dark.
 - **Not colour alone**: badges carry a word or icon; stat deltas carry an arrow; links inside running text are underlined; errors are sentences next to the field with `aria-invalid` and `aria-describedby`.
 - **Focus**: `:focus-visible` draws a 2px `focus` ring with 2px offset on everything; it is never removed. Dialogs trap focus and return it on close.
 - **Targets**: 44px on touch widths, 36px with a mouse, never under 24px for standalone controls; inline links in sentences are exempt.

@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system, dark theme</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark}
+body{margin:0;background:#0C1119;color:#E7EBF1;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#2EC4AF;text-decoration:none}a:hover{color:#5CD8C6}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#151C27;border:1px solid #283243;border-radius:10px}
+.k{font-size:12px;color:#A2ABB9;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #3A4557;background:#151C27;color:#E7EBF1;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover,.btn.hov{background:#232D3B;color:#E7EBF1}
+.btn.pri{background:#2EC4AF;border-color:#2EC4AF;color:#0C1119}.btn.pri:hover,.btn.pri.hov{background:#5CD8C6;color:#0C1119}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover,.btn.ghost.hov{background:#1F2834}
+.btn.danger{color:#FCA5A5;border-color:#6B2A2C}.btn.danger:hover,.btn.danger.hov{background:#2A1214;color:#FCA5A5}
+.btn.danger.pri{background:#F87171;border-color:#F87171;color:#0C1119}.btn.danger.pri:hover,.btn.danger.pri.hov{background:#FCA5A5;color:#0C1119}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn[aria-disabled="true"]:hover{background:#151C27}.btn.pri[aria-disabled="true"]:hover{background:#2EC4AF}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#0F2C1D;color:#7EE2A8}.warn{background:#33260A;color:#F6C95C}.bad{background:#3B1618;color:#FCA5A5}.info{background:#13284A;color:#9CC3FB}.mut{background:#252E3B;color:#C3CAD4}.pur{background:#2B2350;color:#C9B8FD}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+
+/* fields and choices */
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#BAC2CE}
+.in{height:36px;padding:0 10px;border:1px solid #717D91;border-radius:8px;background:#0F151E;font:inherit;font-size:13px;color:#E7EBF1;box-sizing:border-box;width:100%;min-width:0}
+.in::placeholder{color:#8B95A6}
+.in[aria-invalid="true"]{border-color:#F26B6B}
+.in:disabled{background:#0C1119;color:#A2ABB9}
+.err{font-size:12.5px;color:#FCA5A5;font-weight:500}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#2EC4AF;flex:none;margin:3px 3px 3px 4px}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:#CCD3DD}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B778A;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#FFFFFF}
+input[type=checkbox].tg:checked{background:#2EC4AF}input[type=checkbox].tg:checked::after{left:18px}
+label.opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #283243;border-radius:8px;background:#0F151E;font-size:13px;cursor:pointer}
+label.opt.on{border-color:#2EC4AF;background:#0D2422}
+label.opt input{margin-top:3px}
+.fv{outline:2px solid #2EC4AF;outline-offset:2px}
+
+/* navigation */
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;color:#BAC2CE;font-weight:500;font-size:13px}
+.tabs a:hover,.tabs a.hov{background:#1F2834;color:#E7EBF1}
+.tabs a.on{background:#E7EBF1;color:#0C1119}
+.seg{display:inline-flex;border:1px solid #3A4557;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#151C27;font:inherit;font-size:12px;font-weight:600;color:#A2ABB9;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.seg button + button{border-left:1px solid #3A4557}
+.seg button.on{background:#E7EBF1;color:#0C1119}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#BAC2CE;font-weight:500}
+.nav a:hover,.nav a.hov{background:#1F2834;color:#E7EBF1}
+.nav a.on{background:#11302D;color:#2EC4AF}
+.nav svg{width:16px;height:16px;flex:none}
+
+/* menus, tooltips, toasts, dialogs */
+.menu{background:#1A2230;border:1px solid #3A4557;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:6px;width:280px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#E7EBF1;font-size:13px;font-weight:500;text-decoration:none;box-sizing:border-box}
+.menu a:hover,.menu a.hl{background:#232D3B;color:#E7EBF1}
+.menu hr{border:0;border-top:1px solid #1F2834;margin:4px 0;width:100%;height:0}
+.menu .mtheme{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 4px 2px 10px;min-height:40px}
+.menu .mtheme > span{font-size:13px;font-weight:500;color:#E7EBF1}
+.menu .mtheme .grp3{display:inline-flex;gap:2px;padding:2px;border:1px solid #3A4557;border-radius:8px;background:#10161F}
+.menu .mtheme .grp3 span{width:32px;min-height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:#BAC2CE}
+.menu .mtheme .grp3 span.on{background:#E7EBF1;color:#0C1119}
+.tip{background:#E7EBF1;color:#0C1119;font-size:12px;font-weight:500;padding:6px 8px;border-radius:6px;max-width:280px;line-height:1.35}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#E7EBF1;color:#0C1119;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.25);max-width:460px}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#4B5563}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#7A8597;color:#0C1119}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#5B6472;border-radius:6px;font-size:16px;cursor:pointer;flex:none}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.dlg{background:#1A2230;border:1px solid #283243;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.6);width:376.66px;max-width:100%;padding:20px 22px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+.dlg h4{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.dlg p{margin:0;color:#BAC2CE;font-size:13.5px}
+.dlg .drow{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.dlg .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding-top:4px}
+
+/* notes */
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 220px;min-width:0}
+.note > .badge{margin-top:1px}
+.note.i{background:#0F1D33;border:1px solid #22406B;color:#BFDBFE}
+.note.w{background:#241B08;border:1px solid #8A6A1C;color:#FCD98A}
+.note.b{background:#2A1214;border:1px solid #6B2A2C;color:#FECACA}
+.note.g{background:#0D2117;border:1px solid #1F5A3A;color:#A7F0C4}
+
+/* tables, tiles, bars */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.tbl th{text-align:left;font-weight:600;color:#A2ABB9;padding:10px 12px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;background:#151C27;box-shadow:inset 0 -1px 0 #283243}
+.tbl td{padding:12px;border-bottom:1px solid #1F2834;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbl tr.hov td{background:#1C2533}
+.tile{display:flex;flex-direction:column;gap:4px;padding:16px 18px;min-width:0}
+.tile .big{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:5px;background:#1F2834;overflow:hidden;display:flex;gap:2px}
+.bar i{display:block;height:100%}
+.sbar{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden}
+.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 14px;font-size:12.5px}
+.lg > div{display:flex;gap:8px;align-items:flex-start}
+.lg .dot{margin-top:5px}
+.lg b{font-weight:600}
+
+/* code */
+.code{background:#0A0F16;color:#E5E7EB;border-radius:8px;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.6;white-space:normal;overflow-wrap:anywhere;margin:0}
+.code > div{white-space:pre-wrap;padding-left:38px;text-indent:-38px}
+.code.term > div{padding-left:0;text-indent:0}
+.code .i1{display:inline-block;width:2ch}.code .i2{display:inline-block;width:4ch}
+.code .ln{color:#C3C2B7;display:inline-block;width:22px;text-align:right;margin-right:16px;text-indent:0;user-select:none}
+.tg{color:#7DD3FC}.at{color:#FBBF24}.st{color:#A7F3D0}
+
+/* board layout */
+.page{max-width:1380px;margin:0 auto;padding:36px 40px 60px;display:flex;flex-direction:column;gap:28px;box-sizing:border-box}
+.hero h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.hero p{margin:0;color:#BAC2CE;max-width:780px;font-size:15px}
+.sec{display:flex;flex-direction:column;gap:12px}
+.sec h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.015em}
+.sec > p{margin:0;color:#BAC2CE;max-width:860px}
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.ex{background:#151C27;border:1px solid #283243;border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ex h3{margin:0;font-size:13px;font-weight:600;color:#A2ABB9;text-transform:uppercase;letter-spacing:.05em}
+.cap{margin:0;font-size:12.5px;color:#BAC2CE;line-height:1.45}
+.rowf{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tag{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;background:#0A0F16;color:#E5E7EB;border:1px solid #263041;white-space:nowrap}
+
+/* palette */
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp h3{margin:0;font-size:13px;font-weight:600;color:#A2ABB9;text-transform:uppercase;letter-spacing:.05em}
+.sws{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.sw{background:#151C27;border:1px solid #283243;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.sw .pr{display:flex;height:44px;border-bottom:1px solid #283243}
+.sw .h{flex:1;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;position:relative}
+.sw .h + .h{border-left:1px solid #283243}
+.sw .smp::after{content:attr(data-s)}
+.sw .ln{display:block;width:60%;height:16px;border:2px solid;border-radius:4px;box-sizing:border-box}
+.sw .tb{display:flex;width:70%;height:8px;border-radius:4px;overflow:hidden}.sw .tb i{width:62%;height:100%;border-radius:0 4px 4px 0}
+.sw .b{padding:8px 10px 9px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.sw .nm{font-weight:600;font-size:12.5px}
+.sw .hx{font-size:11px;color:#A2ABB9}
+.sw .cr{font-size:11.5px;color:#BAC2CE}
+.lr{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:#BAC2CE}
+.lr .sq{display:inline-flex;width:40px;height:22px;border:1px solid #283243;border-radius:4px;overflow:hidden;vertical-align:-6px;margin-right:6px}
+.lr .sq i{flex:1}
+
+/* elevation */
+.step{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid #1F2834}
+.step:first-child{border-top:0;padding-top:0}
+.step .chip{width:44px;height:30px;border-radius:6px;border:1px solid #3A4557;flex:none}
+.step b{font-size:13.5px}
+
+/* accessibility */
+:focus-visible{outline:2px solid #2EC4AF;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#1A2230;color:#E7EBF1;padding:8px 12px;border-radius:8px;border:1px solid #2EC4AF;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+@media (max-width:767px){
+  .page{padding:16px 12px 32px!important}
+  .spec,[style*="display: grid"]{grid-template-columns:minmax(0,1fr)!important}
+  .spec > .ex{grid-column:auto!important}
+  .menu{max-width:100%}
+  .sws{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important}
+  [style*="display: grid"] > *{min-width:0}
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+</style>
+</helmet>
+<a href="#main" class="skip">Skip to content</a>
+<main class="page" id="main">
+  <div class="hero" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span class="badge mut" style="align-self:flex-start">Design system · dark theme · M54</span>
+      <h1>Dark theme</h1>
+      <p>The same tokens, a second set of values. A screen asks for the token that does the job (surface for a card, raised for a menu, field for an input) and the theme picks the value. Everything on this board is drawn with the dark values from tokens.json, as the app renders them. Previews of what readers see stay light; code stays dark in both themes.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><a href="DSComponents.dc.html" class="badge mut" style="height:32px;padding:0 12px">← Components</a><a href="MainDark.dc.html" class="badge mut" style="height:32px;padding:0 12px">Overview in dark →</a></div>
+  </div>
+
+  <section class="sec" aria-labelledby="h-pal">
+    <h2 id="h-pal">Palette</h2>
+    <p>Every colour token has a light and a dark value (tokens.json, <span class="mono" style="font-size:13px">themes</span>: light, dark). Each swatch shows the light value on the left and the dark one on the right; text, line and chart tokens give their contrast in both. Every text token is at least 4.5:1 on every surface in the dark, control borders, the focus ring and bars at least 3:1.</p>
+    <div class="lr"><span><span class="sq" aria-hidden="true"><i style="background:#FFFFFF"></i><i style="background:#151C27"></i></span>left: light · right: dark</span><span>Ratios read "light · dark:1 on" the background the token is used on.</span></div>
+<!--PALETTE-->
+<div class="grp"><h3>Text and icons</h3><p class="cap">Ratios are against surface: white in light, #151C27 in dark.</p><div class="sws">
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#0B1220" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#E7EBF1" aria-hidden="true"></span></div><div class="b"><span class="nm mono">ink</span><span class="hx mono">#0b1220 · #e7ebf1</span><span class="cr">18.7 · 14.3:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#4B5563" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#BAC2CE" aria-hidden="true"></span></div><div class="b"><span class="nm mono">ink-2</span><span class="hx mono">#4b5563 · #bac2ce</span><span class="cr">7.6 · 9.5:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#5B6472" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#A2ABB9" aria-hidden="true"></span></div><div class="b"><span class="nm mono">ink-3</span><span class="hx mono">#5b6472 · #a2abb9</span><span class="cr">6.0 · 7.4:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#9CA3AF" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#828C9C" aria-hidden="true"></span></div><div class="b"><span class="nm mono">ink-4</span><span class="hx mono">#9ca3af · #828c9c</span><span class="cr">2.5 · 5.0:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#374151" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#CCD3DD" aria-hidden="true"></span></div><div class="b"><span class="nm mono">ink-nav</span><span class="hx mono">#374151 · #ccd3dd</span><span class="cr">10.3 · 11.3:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#757575" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0F151E;color:#8B95A6" aria-hidden="true"></span></div><div class="b"><span class="nm mono">placeholder</span><span class="hx mono">#757575 · #8b95a6</span><span class="cr">4.6 · 6.1:1 on field</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#6B7280" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#9AA3B1" aria-hidden="true"></span></div><div class="b"><span class="nm mono">muted-ink</span><span class="hx mono">#6b7280 · #9aa3b1</span><span class="cr">4.8 · 6.7:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#0F766E" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#2EC4AF" aria-hidden="true"></span></div><div class="b"><span class="nm mono">accent</span><span class="hx mono">#0f766e · #2ec4af</span><span class="cr">5.5 · 7.8:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#115E59" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#5CD8C6" aria-hidden="true"></span></div><div class="b"><span class="nm mono">accent-hover</span><span class="hx mono">#115e59 · #5cd8c6</span><span class="cr">7.6 · 9.9:1 on surface</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFFFF;color:#1D4ED8" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#151C27;color:#7FB0FA" aria-hidden="true"></span></div><div class="b"><span class="nm mono">info-strong</span><span class="hx mono">#1d4ed8 · #7fb0fa</span><span class="cr">6.7 · 7.7:1 on surface</span></div></div>
+</div></div>
+<div class="grp"><h3>Grounds and surfaces</h3><p class="cap">Nearer is lighter: ground, side, surface, raised. A field sits a step below its card; hover a step above.</p><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#F3F4F6"></span><span class="h" style="background:#0C1119"></span></div><div class="b"><span class="nm mono">ground</span><span class="hx mono">#f3f4f6 · #0c1119</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F8FAFC"></span><span class="h" style="background:#0F151E"></span></div><div class="b"><span class="nm mono">ground-2</span><span class="hx mono">#f8fafc · #0f151e</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F9FAFB"></span><span class="h" style="background:#10161F"></span></div><div class="b"><span class="nm mono">ground-3</span><span class="hx mono">#f9fafb · #10161f</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FBFBFC"></span><span class="h" style="background:#111822"></span></div><div class="b"><span class="nm mono">side</span><span class="hx mono">#fbfbfc · #111822</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"></span><span class="h" style="background:#151C27"></span></div><div class="b"><span class="nm mono">surface</span><span class="hx mono">#ffffff · #151c27</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"></span><span class="h" style="background:#1A2230"></span></div><div class="b"><span class="nm mono">raised</span><span class="hx mono">#ffffff · #1a2230</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"></span><span class="h" style="background:#0F151E"></span></div><div class="b"><span class="nm mono">field</span><span class="hx mono">#ffffff · #0f151e</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F3F4F6"></span><span class="h" style="background:#232D3B"></span></div><div class="b"><span class="nm mono">hover</span><span class="hx mono">#f3f4f6 · #232d3b</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F9FAFB"></span><span class="h" style="background:#1C2533"></span></div><div class="b"><span class="nm mono">hover-soft</span><span class="hx mono">#f9fafb · #1c2533</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#E9ECF0"></span><span class="h" style="background:#232C3A"></span></div><div class="b"><span class="nm mono">skeleton</span><span class="hx mono">#e9ecf0 · #232c3a</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#CCFBF1"></span><span class="h" style="background:#1F5F57"></span></div><div class="b"><span class="nm mono">selection</span><span class="hx mono">#ccfbf1 · #1f5f57</span></div></div>
+</div></div>
+<div class="grp"><h3>Lines</h3><p class="cap">Structure is drawn with borders in both themes. Input borders meet 3:1 on their field.</p><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="ln" style="border-color:#E3E6EB"></i></span><span class="h" style="background:#151C27"><i class="ln" style="border-color:#283243"></i></span></div><div class="b"><span class="nm mono">line</span><span class="hx mono">#e3e6eb · #283243</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="ln" style="border-color:#EEF0F3"></i></span><span class="h" style="background:#151C27"><i class="ln" style="border-color:#1F2834"></i></span></div><div class="b"><span class="nm mono">line-2</span><span class="hx mono">#eef0f3 · #1f2834</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="ln" style="border-color:#D4D8DF"></i></span><span class="h" style="background:#151C27"><i class="ln" style="border-color:#3A4557"></i></span></div><div class="b"><span class="nm mono">line-strong</span><span class="hx mono">#d4d8df · #3a4557</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="ln" style="border-color:#C9CED6"></i></span><span class="h" style="background:#151C27"><i class="ln" style="border-color:#4B576B"></i></span></div><div class="b"><span class="nm mono">line-hover</span><span class="hx mono">#c9ced6 · #4b576b</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="ln" style="border-color:#8B94A3"></i></span><span class="h" style="background:#0F151E"><i class="ln" style="border-color:#717D91"></i></span></div><div class="b"><span class="nm mono">line-input</span><span class="hx mono">#8b94a3 · #717d91</span><span class="cr">3.1 · 4.4:1 on field</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="ln" style="border-color:#9AA3B2"></i></span><span class="h" style="background:#151C27"><i class="ln" style="border-color:#5F6B7E"></i></span></div><div class="b"><span class="nm mono">muted-line</span><span class="hx mono">#9aa3b2 · #5f6b7e</span><span class="cr">2.5 · 3.2:1 on surface</span></div></div>
+</div></div>
+<div class="grp"><h3>Accent</h3><p class="cap">The one brand colour turns lighter in the dark, so what sits on it turns dark (on-strong).</p><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#0F766E"></span><span class="h" style="background:#2EC4AF"></span></div><div class="b"><span class="nm mono">accent</span><span class="hx mono">#0f766e · #2ec4af</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#115E59"></span><span class="h" style="background:#5CD8C6"></span></div><div class="b"><span class="nm mono">accent-hover</span><span class="hx mono">#115e59 · #5cd8c6</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#E3F1EE"></span><span class="h" style="background:#11302D"></span></div><div class="b"><span class="nm mono">accent-soft</span><span class="hx mono">#e3f1ee · #11302d</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F0FDFA"></span><span class="h" style="background:#0D2422"></span></div><div class="b"><span class="nm mono">accent-tint</span><span class="hx mono">#f0fdfa · #0d2422</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F0FDFA"><i class="ln" style="border-color:#99F6E4"></i></span><span class="h" style="background:#0D2422"><i class="ln" style="border-color:#1F5F57"></i></span></div><div class="b"><span class="nm mono">accent-line</span><span class="hx mono">#99f6e4 · #1f5f57</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#CCFBF1"></span><span class="h" style="background:#134E48"></span></div><div class="b"><span class="nm mono">accent-glow</span><span class="hx mono">#ccfbf1 · #134e48</span></div></div>
+</div></div>
+<div class="grp"><h3>On strong fills and inverse</h3><p class="cap">on-strong flips with the fills it sits on; on-fixed stays white on colours that never change; inverse is the ink-coloured chip.</p><div class="sws">
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0F766E;color:#FFFFFF" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#2EC4AF;color:#0C1119" aria-hidden="true"></span></div><div class="b"><span class="nm mono">on-strong</span><span class="hx mono">#ffffff · #0c1119</span><span class="cr">5.5 · 8.7:1 on accent</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0F766E;color:#FFFFFF" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0F766E;color:#FFFFFF" aria-hidden="true"></span></div><div class="b"><span class="nm mono">on-fixed</span><span class="hx mono">#ffffff · same</span><span class="cr">5.5 · 5.5:1 on workspace teal</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#CFE3FD;color:#0B1220" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#CFE3FD;color:#0B1220" aria-hidden="true"></span></div><div class="b"><span class="nm mono">on-light</span><span class="hx mono">#0b1220 · same</span><span class="cr">14.3 · 14.3:1 on a light fill</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#0B1220"></span><span class="h" style="background:#E7EBF1"></span></div><div class="b"><span class="nm mono">inverse</span><span class="hx mono">#0b1220 · #e7ebf1</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0B1220;color:#C3C2B7" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#E7EBF1;color:#4B5563" aria-hidden="true"></span></div><div class="b"><span class="nm mono">inverse-muted</span><span class="hx mono">#c3c2b7 · #4b5563</span><span class="cr">10.5 · 6.3:1 on inverse</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0B1220;color:#9CA3AF" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#E7EBF1;color:#5B6472" aria-hidden="true"></span></div><div class="b"><span class="nm mono">inverse-faint</span><span class="hx mono">#9ca3af · #5b6472</span><span class="cr">7.4 · 5.0:1 on inverse</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#0B1220"><i class="ln" style="border-color:#4B5563"></i></span><span class="h" style="background:#E7EBF1"><i class="ln" style="border-color:#7A8597"></i></span></div><div class="b"><span class="nm mono">inverse-line</span><span class="hx mono">#4b5563 · #7a8597</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#1F2937"></span><span class="h" style="background:#D3D9E2"></span></div><div class="b"><span class="nm mono">inverse-hover</span><span class="hx mono">#1f2937 · #d3d9e2</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#6B7280"></span><span class="h" style="background:#6B778A"></span></div><div class="b"><span class="nm mono">switch-off</span><span class="hx mono">#6b7280 · #6b778a</span></div></div>
+</div></div>
+<div class="grp"><h3>Success</h3><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#DCFCE7"></span><span class="h" style="background:#0F2C1D"></span></div><div class="b"><span class="nm mono">ok-bg</span><span class="hx mono">#dcfce7 · #0f2c1d</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#DCFCE7;color:#166534" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0F2C1D;color:#7EE2A8" aria-hidden="true"></span></div><div class="b"><span class="nm mono">ok-fg</span><span class="hx mono">#166534 · #7ee2a8</span><span class="cr">6.5 · 9.5:1 on ok-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#15803D"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#34C46E"></i></i></span></div><div class="b"><span class="nm mono">ok-bar</span><span class="hx mono">#15803d · #34c46e</span><span class="cr">7.6:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F0FDF4"></span><span class="h" style="background:#0D2117"></span></div><div class="b"><span class="nm mono">ok-tint</span><span class="hx mono">#f0fdf4 · #0d2117</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F0FDF4"><i class="ln" style="border-color:#BBF7D0"></i></span><span class="h" style="background:#0D2117"><i class="ln" style="border-color:#1F5A3A"></i></span></div><div class="b"><span class="nm mono">ok-line</span><span class="hx mono">#bbf7d0 · #1f5a3a</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F0FDF4"><i class="ln" style="border-color:#86EFAC"></i></span><span class="h" style="background:#0D2117"><i class="ln" style="border-color:#2F7D52"></i></span></div><div class="b"><span class="nm mono">ok-line-strong</span><span class="hx mono">#86efac · #2f7d52</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#F0FDF4;color:#14532D" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0D2117;color:#A7F0C4" aria-hidden="true"></span></div><div class="b"><span class="nm mono">ok-ink</span><span class="hx mono">#14532d · #a7f0c4</span><span class="cr">8.7 · 12.8:1 on ok-tint</span></div></div>
+</div></div>
+<div class="grp"><h3>Warning</h3><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#FEF3C7"></span><span class="h" style="background:#33260A"></span></div><div class="b"><span class="nm mono">warn-bg</span><span class="hx mono">#fef3c7 · #33260a</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FEF3C7;color:#92400E" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#33260A;color:#F6C95C" aria-hidden="true"></span></div><div class="b"><span class="nm mono">warn-fg</span><span class="hx mono">#92400e · #f6c95c</span><span class="cr">6.4 · 9.4:1 on warn-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#B45309"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#F0A531"></i></i></span></div><div class="b"><span class="nm mono">warn-bar</span><span class="hx mono">#b45309 · #f0a531</span><span class="cr">8.3:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFBEB"></span><span class="h" style="background:#241B08"></span></div><div class="b"><span class="nm mono">warn-tint</span><span class="hx mono">#fffbeb · #241b08</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFBEB"><i class="ln" style="border-color:#FDE68A"></i></span><span class="h" style="background:#241B08"><i class="ln" style="border-color:#5C4613"></i></span></div><div class="b"><span class="nm mono">warn-line</span><span class="hx mono">#fde68a · #5c4613</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFBEB"><i class="ln" style="border-color:#FCD34D"></i></span><span class="h" style="background:#241B08"><i class="ln" style="border-color:#8A6A1C"></i></span></div><div class="b"><span class="nm mono">warn-line-strong</span><span class="hx mono">#fcd34d · #8a6a1c</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFFBEB;color:#78350F" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#241B08;color:#FCD98A" aria-hidden="true"></span></div><div class="b"><span class="nm mono">warn-ink</span><span class="hx mono">#78350f · #fcd98a</span><span class="cr">8.7 · 12.5:1 on warn-tint</span></div></div>
+</div></div>
+<div class="grp"><h3>Danger</h3><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#FEE2E2"></span><span class="h" style="background:#3B1618"></span></div><div class="b"><span class="nm mono">bad-bg</span><span class="hx mono">#fee2e2 · #3b1618</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FEE2E2;color:#991B1B" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#3B1618;color:#FCA5A5" aria-hidden="true"></span></div><div class="b"><span class="nm mono">bad-fg</span><span class="hx mono">#991b1b · #fca5a5</span><span class="cr">6.8 · 8.4:1 on bad-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#DC2626"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#F26B6B"></i></i></span></div><div class="b"><span class="nm mono">bad-bar</span><span class="hx mono">#dc2626 · #f26b6b</span><span class="cr">5.8:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#B91C1C"></span><span class="h" style="background:#F87171"></span></div><div class="b"><span class="nm mono">bad-strong</span><span class="hx mono">#b91c1c · #f87171</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFF5F5"></span><span class="h" style="background:#2A1214"></span></div><div class="b"><span class="nm mono">bad-tint</span><span class="hx mono">#fff5f5 · #2a1214</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFF5F5"><i class="ln" style="border-color:#FCA5A5"></i></span><span class="h" style="background:#2A1214"><i class="ln" style="border-color:#6B2A2C"></i></span></div><div class="b"><span class="nm mono">bad-line</span><span class="hx mono">#fca5a5 · #6b2a2c</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFF5F5"><i class="ln" style="border-color:#FECACA"></i></span><span class="h" style="background:#2A1214"><i class="ln" style="border-color:#5A2224"></i></span></div><div class="b"><span class="nm mono">bad-soft</span><span class="hx mono">#fecaca · #5a2224</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FEF2F2"></span><span class="h" style="background:#2A1214"></span></div><div class="b"><span class="nm mono">bad-wash</span><span class="hx mono">#fef2f2 · #2a1214</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#FFF5F5;color:#7F1D1D" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#2A1214;color:#FECACA" aria-hidden="true"></span></div><div class="b"><span class="nm mono">bad-ink</span><span class="hx mono">#7f1d1d · #fecaca</span><span class="cr">9.4 · 12.1:1 on bad-tint</span></div></div>
+</div></div>
+<div class="grp"><h3>Information, neutral and purple</h3><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#DBEAFE"></span><span class="h" style="background:#13284A"></span></div><div class="b"><span class="nm mono">info-bg</span><span class="hx mono">#dbeafe · #13284a</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#13284A;color:#9CC3FB" aria-hidden="true"></span></div><div class="b"><span class="nm mono">info-fg</span><span class="hx mono">#1e40af · #9cc3fb</span><span class="cr">7.1 · 8.1:1 on info-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#EFF6FF"></span><span class="h" style="background:#0F1D33"></span></div><div class="b"><span class="nm mono">info-tint</span><span class="hx mono">#eff6ff · #0f1d33</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#EFF6FF"><i class="ln" style="border-color:#BFDBFE"></i></span><span class="h" style="background:#0F1D33"><i class="ln" style="border-color:#22406B"></i></span></div><div class="b"><span class="nm mono">info-line</span><span class="hx mono">#bfdbfe · #22406b</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#EFF6FF"><i class="ln" style="border-color:#93C5FD"></i></span><span class="h" style="background:#0F1D33"><i class="ln" style="border-color:#2F5A92"></i></span></div><div class="b"><span class="nm mono">info-soft</span><span class="hx mono">#93c5fd · #2f5a92</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#EFF6FF;color:#1E3A8A" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0F1D33;color:#BFDBFE" aria-hidden="true"></span></div><div class="b"><span class="nm mono">info-ink</span><span class="hx mono">#1e3a8a · #bfdbfe</span><span class="cr">9.5 · 11.9:1 on info-tint</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#EEF0F3"></span><span class="h" style="background:#252E3B"></span></div><div class="b"><span class="nm mono">neutral-bg</span><span class="hx mono">#eef0f3 · #252e3b</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#EEF0F3;color:#4B5563" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#252E3B;color:#C3CAD4" aria-hidden="true"></span></div><div class="b"><span class="nm mono">neutral-fg</span><span class="hx mono">#4b5563 · #c3cad4</span><span class="cr">6.6 · 8.3:1 on neutral-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#EDE9FE"></span><span class="h" style="background:#2B2350"></span></div><div class="b"><span class="nm mono">purple-bg</span><span class="hx mono">#ede9fe · #2b2350</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#EDE9FE;color:#5B21B6" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#2B2350;color:#C9B8FD" aria-hidden="true"></span></div><div class="b"><span class="nm mono">purple-fg</span><span class="hx mono">#5b21b6 · #c9b8fd</span><span class="cr">7.6 · 8.1:1 on purple-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F5F3FF"></span><span class="h" style="background:#1D1838"></span></div><div class="b"><span class="nm mono">purple-tint</span><span class="hx mono">#f5f3ff · #1d1838</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#F5F3FF"><i class="ln" style="border-color:#DDD6FE"></i></span><span class="h" style="background:#1D1838"><i class="ln" style="border-color:#4A3D85"></i></span></div><div class="b"><span class="nm mono">purple-line</span><span class="hx mono">#ddd6fe · #4a3d85</span></div></div>
+</div></div>
+<div class="grp"><h3>Always dark: code and terminal</h3><p class="cap">The same dark values in both themes; only these tokens are used inside a code pane.</p><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#0B1220"></span><span class="h" style="background:#0A0F16"></span></div><div class="b"><span class="nm mono">code-bg</span><span class="hx mono">#0b1220 · #0a0f16</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#111827"></span><span class="h" style="background:#0A0F16"></span></div><div class="b"><span class="nm mono">dark-surface</span><span class="hx mono">#111827 · #0a0f16</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#0B1220"><i class="ln" style="border-color:#1F2937"></i></span><span class="h" style="background:#0A0F16"><i class="ln" style="border-color:#263041"></i></span></div><div class="b"><span class="nm mono">dark-line</span><span class="hx mono">#1f2937 · #263041</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0B1220;color:#E5E7EB" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0A0F16;color:#E5E7EB" aria-hidden="true"></span></div><div class="b"><span class="nm mono">dark-text</span><span class="hx mono">#e5e7eb · same</span><span class="cr">15.1 · 15.5:1 on code-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0B1220;color:#C3C2B7" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0A0F16;color:#C3C2B7" aria-hidden="true"></span></div><div class="b"><span class="nm mono">dark-muted</span><span class="hx mono">#c3c2b7 · same</span><span class="cr">10.5 · 10.7:1 on code-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#4ADE80"></span><span class="h" style="background:#4ADE80"></span></div><div class="b"><span class="nm mono">dark-cursor</span><span class="hx mono">#4ade80 · same</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0B1220;color:#7DD3FC" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0A0F16;color:#7DD3FC" aria-hidden="true"></span></div><div class="b"><span class="nm mono">code-tag</span><span class="hx mono">#7dd3fc · same</span><span class="cr">11.2 · 11.5:1 on code-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0B1220;color:#FBBF24" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0A0F16;color:#FBBF24" aria-hidden="true"></span></div><div class="b"><span class="nm mono">code-attr</span><span class="hx mono">#fbbf24 · same</span><span class="cr">11.2 · 11.5:1 on code-bg</span></div></div>
+<div class="sw"><div class="pr"><span class="h smp" data-s="Aa" style="background:#0B1220;color:#A7F3D0" aria-hidden="true"></span><span class="h smp" data-s="Aa" style="background:#0A0F16;color:#A7F3D0" aria-hidden="true"></span></div><div class="b"><span class="nm mono">code-string</span><span class="hx mono">#a7f3d0 · same</span><span class="cr">14.6 · 15.0:1 on code-bg</span></div></div>
+</div></div>
+<div class="grp"><h3>Charts</h3><p class="cap">Each series on its track over a card; ratios are against surface and meet 3:1 in the dark.</p><div class="sws">
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#2A78D6"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#4C93EA"></i></i></span></div><div class="b"><span class="nm mono">chart-gmail</span><span class="hx mono">#2a78d6 · #4c93ea</span><span class="cr">5.4:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#EB6834"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#EB6834"></i></i></span></div><div class="b"><span class="nm mono">chart-outlook</span><span class="hx mono">#eb6834 · same</span><span class="cr">5.3:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#1BAF7A"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#1BAF7A"></i></i></span></div><div class="b"><span class="nm mono">chart-yahoo</span><span class="hx mono">#1baf7a · same</span><span class="cr">6.1:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#EDA100"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#EDA100"></i></i></span></div><div class="b"><span class="nm mono">chart-icloud</span><span class="hx mono">#eda100 · same</span><span class="cr">7.9:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#8B94A3"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#8B94A3"></i></i></span></div><div class="b"><span class="nm mono">chart-other</span><span class="hx mono">#8b94a3 · same</span><span class="cr">5.6:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#4A3AA7"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#9584F2"></i></i></span></div><div class="b"><span class="nm mono">chart-ses</span><span class="hx mono">#4a3aa7 · #9584f2</span><span class="cr">5.6:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#E87BA4"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#E87BA4"></i></i></span></div><div class="b"><span class="nm mono">chart-postal</span><span class="hx mono">#e87ba4 · same</span><span class="cr">6.4:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#008300"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#3FB45A"></i></i></span></div><div class="b"><span class="nm mono">chart-postmark</span><span class="hx mono">#008300 · #3fb45a</span><span class="cr">6.4:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#104281"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#CFE3FD"></i></i></span></div><div class="b"><span class="nm mono">chart-tier-1</span><span class="hx mono">#104281 · #cfe3fd</span><span class="cr">13.1:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#256ABF"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#8FBCF5"></i></i></span></div><div class="b"><span class="nm mono">chart-tier-2</span><span class="hx mono">#256abf · #8fbcf5</span><span class="cr">8.7:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#5598E7"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#5596E8"></i></i></span></div><div class="b"><span class="nm mono">chart-tier-3</span><span class="hx mono">#5598e7 · #5596e8</span><span class="cr">5.6:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#86B6EF"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#3B78CF"></i></i></span></div><div class="b"><span class="nm mono">chart-tier-4</span><span class="hx mono">#86b6ef · #3b78cf</span><span class="cr">3.9:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#0B1220"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#E7EBF1"></i></i></span></div><div class="b"><span class="nm mono">chart-human</span><span class="hx mono">#0b1220 · #e7ebf1</span><span class="cr">14.3:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#B4BAC5"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#6B7689"></i></i></span></div><div class="b"><span class="nm mono">chart-machine</span><span class="hx mono">#b4bac5 · #6b7689</span><span class="cr">3.7:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#EC8EB1"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#C2477F"></i></i></span></div><div class="b"><span class="nm mono">chart-score-1</span><span class="hx mono">#ec8eb1 · #c2477f</span><span class="cr">3.7:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#D9588E"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#E57AA8"></i></i></span></div><div class="b"><span class="nm mono">chart-score-2</span><span class="hx mono">#d9588e · #e57aa8</span><span class="cr">6.3:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#A43068"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#F5B8D1"></i></i></span></div><div class="b"><span class="nm mono">chart-score-3</span><span class="hx mono">#a43068 · #f5b8d1</span><span class="cr">10.3:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#FFFFFF"><i class="tb" style="background:#EEF0F3"><i style="background:#7F1D1D"></i></i></span><span class="h" style="background:#151C27"><i class="tb" style="background:#1F2834"><i style="background:#F87171"></i></i></span></div><div class="b"><span class="nm mono">chart-spam</span><span class="hx mono">#7f1d1d · #f87171</span><span class="cr">6.2:1 on surface in dark</span></div></div>
+<div class="sw"><div class="pr"><span class="h" style="background:#EEF0F3"></span><span class="h" style="background:#1F2834"></span></div><div class="b"><span class="nm mono">chart-track</span><span class="hx mono">#eef0f3 · #1f2834</span></div></div>
+</div></div>
+<!--/PALETTE-->
+  </section>
+
+  <section class="sec" aria-labelledby="h-elev">
+    <h2 id="h-elev">Elevation</h2>
+    <p>In the dark, nearer is lighter. Borders still carry the structure and shadows are deeper but matter less (shadow-menu 0 12px 32px at 55% black, shadow-dialog 0 24px 60px at 60%).</p>
+    <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px">
+      <div class="ex" style="padding:0;overflow:hidden">
+        <div style="position:relative;display:flex;flex:1;min-height:380px;background:#0C1119" role="group" aria-label="Ground, sidebar, a card with a field, and a menu floating above it">
+          <div style="width:150px;flex:none;background:#111822;border-right:1px solid #283243;padding:16px 10px;display:flex;flex-direction:column;gap:6px;box-sizing:border-box">
+            <span style="display:flex;align-items:center;gap:8px;padding:4px 6px"><svg width="20" height="20" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2EC4AF"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#0C1119" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#0C1119" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><b style="font-size:13px">ReputeCast</b></span>
+            <span style="height:30px;border-radius:8px;background:#11302D;display:flex;align-items:center;padding:0 8px;color:#2EC4AF;font-size:12.5px;font-weight:500">Overview</span>
+            <span style="height:30px;display:flex;align-items:center;padding:0 8px;color:#BAC2CE;font-size:12.5px;font-weight:500">Campaigns</span>
+            <span style="height:30px;display:flex;align-items:center;padding:0 8px;color:#BAC2CE;font-size:12.5px;font-weight:500">Audience</span>
+            <span class="tag" style="align-self:flex-start;margin-top:auto">side #111822</span>
+          </div>
+          <div style="flex:1;min-width:0;padding:22px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+            <span class="tag" style="align-self:flex-start">ground #0C1119</span>
+            <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-width:340px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:14px">Sender name</b><span class="tag">surface #151C27</span></div>
+              <label class="lbl">From<input class="in" value="Acme Newsletter"></label>
+              <span class="tag" style="align-self:flex-start">field #0F151E</span>
+              <div class="rowf"><button class="btn pri sm">Save</button><button class="btn sm">Cancel</button></div>
+            </div>
+          </div>
+          <div class="menu" style="position:absolute;right:22px;top:250px;width:220px">
+            <a href="DarkTheme.dc.html">Duplicate</a>
+            <a href="DarkTheme.dc.html" class="hl">Rename<span class="tag" style="margin-left:auto">hover #232D3B</span></a>
+            <a href="DarkTheme.dc.html">Archive</a>
+            <hr>
+            <span class="tag" style="align-self:flex-start;margin:4px 6px">raised #1A2230</span>
+          </div>
+        </div>
+      </div>
+      <div class="ex">
+        <h3>Steps, darkest first</h3>
+        <div>
+          <div class="step"><span class="chip" style="background:#0C1119"></span><div><b>ground</b> <span class="k mono">#0C1119</span><div class="cap">The page behind everything and the darkest step. Banners and the content column sit on it.</div></div></div>
+          <div class="step"><span class="chip" style="background:#0F151E"></span><div><b>field</b> <span class="k mono">#0F151E</span><div class="cap">Inputs, selects, text areas and option cards: a step below their card, so a place to type reads as a well.</div></div></div>
+          <div class="step"><span class="chip" style="background:#111822"></span><div><b>side</b> <span class="k mono">#111822</span><div class="cap">The sidebar and the icon rail, half a step above the ground.</div></div></div>
+          <div class="step"><span class="chip" style="background:#151C27"></span><div><b>surface</b> <span class="k mono">#151C27</span><div class="cap">Cards, the top bar, buttons, table rows and the phone tab bar: one step up.</div></div></div>
+          <div class="step"><span class="chip" style="background:#1A2230"></span><div><b>raised</b> <span class="k mono">#1A2230</span><div class="cap">Things that float: menus, popovers, dialogs, the jobs tray and sheets, one more step up and with a deeper shadow.</div></div></div>
+          <div class="step"><span class="chip" style="background:#232D3B"></span><div><b>hover</b> <span class="k mono">#232D3B</span><div class="cap">Hover and keyboard highlight come forward: lighter than a card or a menu, so a highlighted item lifts rather than sinks.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-btn">
+    <h2 id="h-btn">Buttons and badges</h2>
+    <p>Strong fills flip: accent and bad-strong are light in the dark, so their text is on-strong (#0C1119). Badges keep a dot or icon and a state word.</p>
+    <div class="spec">
+      <div class="ex"><h3>Variants</h3><div class="rowf"><button class="btn pri">Primary</button><button class="btn">Secondary</button><button class="btn ghost">Ghost</button><button class="btn danger">Remove</button><button class="btn danger pri">Delete list</button></div><div class="rowf"><button class="btn" aria-disabled="true" title="Sending needs campaigns:send. Ask Marcus Chen or Linh Nguyen.">Disabled</button><button class="btn pri" aria-disabled="true" title="Sending needs campaigns:send. Ask Marcus Chen or Linh Nguyen.">Schedule</button><button class="btn"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg>With icon</button></div><p class="cap">Primary: accent #2EC4AF with on-strong text, 8.7:1. Destructive: bad-strong #F87171 with on-strong, 6.8:1, or the outline in bad-fg on bad-line. Disabled keeps its colours at 55% and says why.</p></div>
+      <div class="ex"><h3>Hover</h3><div class="rowf"><button class="btn pri hov">Primary</button><button class="btn hov">Secondary</button><button class="btn ghost hov">Ghost</button><button class="btn danger hov">Remove</button><button class="btn danger pri hov">Delete list</button></div><p class="cap">Primary hover is accent-hover #5CD8C6 (lighter, not darker); secondary hover is hover #232D3B; ghost hover is line-2 #1F2834; destructive outline hover is bad-wash #2A1214.</p></div>
+      <div class="ex"><h3>Badges, every tone</h3><div class="rowf"><span class="badge ok"><span class="dot"></span>Healthy</span><span class="badge warn"><span class="dot"></span>Warming up · day 9 of 21</span><span class="badge bad"><span class="dot"></span>Auto-paused</span><span class="badge info"><span class="dot"></span>Scheduled</span><span class="badge mut">Step 4 of 6</span><span class="badge pur">Automation</span></div><div class="rowf"><span class="badge ok">Pass</span><span class="badge warn">Warn</span><span class="badge bad">Block</span><span class="badge info">Sandbox</span><span class="badge mut">Open source</span><span class="badge pur">MCP agent</span></div><p class="cap">Fill and word from the same family: ok 9.5:1, warn 9.4:1, bad 8.4:1, info 8.1:1, neutral 8.3:1, purple 8.1:1.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-in">
+    <h2 id="h-in">Inputs and choices</h2>
+    <p>Fields sit on field (#0F151E) with a line-input border (#717D91, 4.4:1 on the field). The label is ink-2, helper text ink-3, an error a sentence in bad-fg next to a bad-bar border.</p>
+    <div class="spec">
+      <div class="ex"><h3>Text fields</h3>
+        <label class="lbl">Reply-to · empty<input class="in" placeholder="replies@news.acme.io"></label>
+        <label class="lbl">From · filled<input class="in" value="Acme Newsletter &lt;hello@news.acme.io&gt;"></label>
+        <label class="lbl">Subject · focused<input class="in fv" value="Weekly Digest #142"></label>
+        <label class="lbl">Reply-to · invalid<input class="in" value="replies@acme" aria-invalid="true" aria-describedby="dt-err"><span class="err" id="dt-err">Enter a full address, like replies@acme.io.</span></label>
+      </div>
+      <div class="ex"><h3>Select, helper, disabled</h3>
+        <label class="lbl">Region<select class="in"><option>us-east-1 · N. Virginia</option><option>eu-west-1 · Ireland</option></select></label>
+        <label class="lbl">Daily cap<input class="in" value="50,000" aria-describedby="dt-cap"><span class="k" id="dt-cap">SES allows 50,000 per 24 h in this region.</span></label>
+        <label class="lbl">Sign-in<input class="in" value="Managed by SSO" disabled></label>
+        <p class="cap">Placeholder #8B95A6 is 6.1:1 on the field. A disabled field takes the ground and ink-3.</p>
+      </div>
+      <div class="ex"><h3>Checkbox, radio, switch</h3>
+        <label class="chk"><input type="checkbox" checked>Exclude 412 unengaged contacts</label>
+        <label class="chk"><input type="checkbox">Send a copy to the seed inboxes</label>
+        <label class="opt on"><input type="radio" name="dt-route" checked><span><b>Weighted split</b><br><span class="k">SES 90% / Postal 10%</span></span></label>
+        <label class="opt"><input type="radio" name="dt-route"><span><b>Primary with failover</b><br><span class="k">Amazon SES, then Postmark</span></span></label>
+        <label class="chk" style="align-items:center;gap:10px"><input type="checkbox" class="tg" checked aria-label="Auto-pause on complaints over 0.10%">Auto-pause on complaints over 0.10%</label>
+        <label class="chk" style="align-items:center;gap:10px"><input type="checkbox" class="tg" aria-label="Open tracking pixel">Open tracking pixel</label>
+        <p class="cap">Checked boxes and the on switch use accent; the off switch is switch-off #6B778A (3.8:1 on surface) with an on-fixed white knob. A chosen option card is accent on accent-tint.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-nav">
+    <h2 id="h-nav">Tabs, segments, navigation</h2>
+    <p>The selected tab and segment are inverse chips: near-white #E7EBF1 with on-strong text in the dark, 15.8:1. The active nav item is accent on accent-soft.</p>
+    <div class="spec">
+      <div class="ex" style="grid-column:span 2"><h3>Top-bar tabs</h3>
+        <div style="background:#151C27;border:1px solid #283243;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><b style="font-size:16px;letter-spacing:-.01em">Campaigns</b><nav class="tabs" aria-label="Filter"><a href="DarkTheme.dc.html" class="on" aria-current="page">All · 49</a><a href="DarkTheme.dc.html" class="hov">Drafts · 2</a><a href="DarkTheme.dc.html">Scheduled · 2</a><a href="DarkTheme.dc.html">Sending · 0</a><a href="DarkTheme.dc.html">Sent · 45</a></nav></div>
+        <p class="cap">Selected: inverse with on-strong. Hover (Drafts): line-2 #1F2834 and ink. At rest: ink-2.</p>
+      </div>
+      <div class="ex"><h3>Segmented control</h3>
+        <div class="rowf"><div class="seg" role="group" aria-label="Device"><button class="on" aria-pressed="true">Desktop · 600</button><button aria-pressed="false">Mobile · 375</button></div><div class="seg" role="group" aria-label="View"><button class="on" aria-pressed="true">Visual</button><button aria-pressed="false">MJML</button><button aria-pressed="false">HTML</button><button aria-pressed="false">Text</button></div></div>
+        <p class="cap">Segments sit on surface with line-strong dividers; unselected text is ink-3 (7.4:1).</p>
+      </div>
+      <div class="ex"><h3>Sidebar</h3>
+        <div style="background:#111822;border:1px solid #283243;border-radius:8px;padding:8px;max-width:232px">
+          <nav class="nav" aria-label="Sidebar sample"><a href="MainDark.dc.html" class="on" aria-current="page"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg>Overview</a><a href="DarkTheme.dc.html" class="hov"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg>Campaigns</a><a href="DarkTheme.dc.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg>Audience</a></nav>
+        </div>
+        <p class="cap">On side #111822: active accent-soft #11302D with accent (6.5:1), hover line-2 with ink, rest ink-2.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-ov">
+    <h2 id="h-ov">Menus, tooltips, toasts, dialogs</h2>
+    <p>Floating things are raised (#1A2230) with a line-strong border; the highlighted item is hover. Tooltips and toasts are inverse chips; a toast's icon keeps the light theme's strong colours.</p>
+    <div style="display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px">
+      <div class="ex"><h3>Menu</h3>
+        <div class="menu" role="menu" aria-label="Account">
+          <div style="display:flex;gap:10px;align-items:center;padding:8px 10px 10px"><span style="width:36px;height:36px;border-radius:50%;background:#13284A;color:#9CC3FB;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none" aria-hidden="true">LN</span><span style="display:flex;flex-direction:column;min-width:0"><b style="font-size:13px">Linh Nguyen</b><span class="k mono">linh@acme.io</span></span></div>
+          <hr>
+          <a href="AccountSecurity.dc.html" role="menuitem"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="3"></circle><path d="M2.5 14a5.5 5.5 0 0 1 11 0"></path></svg>Account &amp; security</a>
+          <a href="LanguageRegion.dc.html" role="menuitem" class="hl"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M2 8h12M8 2c1.8 1.9 2.6 3.9 2.6 6S9.8 12.1 8 14C6.2 12.1 5.4 10.1 5.4 8S6.2 3.9 8 2z"></path></svg>Language: English</a>
+          <div class="mtheme"><span>Theme</span><span class="grp3" role="group" aria-label="Theme choices"><span role="menuitemradio" aria-checked="false" title="Same as device" aria-label="Same as device"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2"></rect><path d="M5.5 14h5M8 11v3"></path></svg></span><span role="menuitemradio" aria-checked="false" title="Light" aria-label="Light"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="2.75"></circle><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06"></path></svg></span><span class="on" role="menuitemradio" aria-checked="true" title="Dark" aria-label="Dark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z"></path></svg></span></span></div>
+          <a href="Notifications.dc.html" role="menuitem"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg>Notification preferences</a>
+          <a href="WorkspaceSettings.dc.html" role="menuitem"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path></svg>Workspace settings</a>
+          <hr>
+          <a href="SignInStates.dc.html" role="menuitem"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2H3v12h3M10 11l3-3-3-3M13 8H6"></path></svg>Sign out</a>
+        </div>
+        <p class="cap">Highlighted: hover #232D3B, 11.6:1 for ink. The theme row's choice is an inverse chip.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+        <div class="ex"><h3>Tooltip</h3>
+          <div class="rowf" style="align-items:center;gap:8px"><span class="btn" style="width:44px;height:44px;padding:0;border:0;background:#11302D;color:#2EC4AF" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg></span><span class="tip" role="tooltip">Campaigns</span><span class="tip" role="tooltip" style="margin-left:16px">Sending needs campaigns:send. Ask Marcus Chen or Linh Nguyen.</span></div>
+          <p class="cap">Inverse #E7EBF1 with on-strong #0C1119, 15.8:1. Rail labels and disabled reasons.</p>
+        </div>
+        <div class="ex"><h3>Toasts</h3>
+          <div class="toast" role="status"><span class="ti" style="background:#166534"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><span class="t">Saved as v17 <span class="k">· 09:41 · 2 blocks changed</span></span><button class="x" aria-label="Dismiss">×</button></div>
+          <div class="toast" role="alert"><span class="ti" style="background:#B91C1C"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4v5M8 11.5v.5"></path></svg></span><span class="t">Couldn't save v17 <span class="k">· server returned 502, your changes are still here</span></span><button class="btn">Retry</button><button class="x" aria-label="Dismiss">×</button></div>
+          <p class="cap">Body on-strong, detail inverse-muted #4B5563 (6.3:1), close inverse-faint. The icons keep light ok-fg #166534 and bad-strong #B91C1C with white, as in light.</p>
+        </div>
+      </div>
+    </div>
+    <div class="ex" style="padding:0;overflow:hidden">
+      <div style="position:relative;height:500px;display:flex;background:#0C1119">
+        <div style="width:180px;flex:none;background:#111822;border-right:1px solid #283243" aria-hidden="true"></div>
+        <div style="flex:1;display:flex;flex-direction:column" aria-hidden="true">
+          <div style="height:58px;background:#151C27;border-bottom:1px solid #283243;display:flex;align-items:center;padding:0 24px"><span style="width:90px;height:14px;border-radius:7px;background:#232C3A"></span></div>
+          <div style="padding:20px 24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+            <div class="card" style="height:150px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px"><span style="width:60%;height:12px;border-radius:6px;background:#232C3A"></span><span style="width:40%;height:10px;border-radius:5px;background:#232C3A"></span></div>
+            <div class="card" style="height:150px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px"><span style="width:60%;height:12px;border-radius:6px;background:#232C3A"></span><span style="width:40%;height:10px;border-radius:5px;background:#232C3A"></span></div>
+            <div class="card" style="height:150px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px"><span style="width:60%;height:12px;border-radius:6px;background:#232C3A"></span><span style="width:40%;height:10px;border-radius:5px;background:#232C3A"></span></div>
+          </div>
+        </div>
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,.62);display:flex;align-items:flex-start;justify-content:center;padding:36px 16px;box-sizing:border-box">
+          <div class="dlg" role="dialog" aria-labelledby="dt-d1">
+            <span class="badge bad" style="align-self:flex-start">Delete list</span>
+            <h4 id="dt-d1">Delete "Product Updates"?</h4>
+            <p>14,110 contacts are on this list. 9,802 are also on Weekly Digest and stay subscribed there; 4,308 are on no other list and will become contacts without a subscription. Suppressions are never removed.</p>
+            <div class="drow"><span class="badge warn">Affects</span><span>2 signup forms, 1 automation trigger and 3 scheduled campaigns use this list. They will pause.</span></div>
+            <label class="lbl" style="font-size:13px;gap:5px">Type the list name to confirm<input class="in" value="Product Upd"></label>
+            <div class="acts"><button class="btn">Export contacts first</button><button class="btn danger pri" aria-disabled="true" title="Type the list name to confirm">Delete list</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">The scrim is 62% black. The dialog is raised #1A2230 with a line border and shadow-dialog; its text is ink and ink-2 (8.9:1 on raised).</p>
+  </section>
+
+  <section class="sec" aria-labelledby="h-notes">
+    <h2 id="h-notes">Notes</h2>
+    <p>Each note pairs a tint, its line and its ink, all from one family; the ink is at least 11.9:1 on its tint in the dark.</p>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+      <div class="note i"><span class="badge info">Scheduled</span><span>Weekly Digest #142 sends Tuesday 14 Oct at 09:00 America/New_York to 31,192 contacts.</span></div>
+      <div class="note w"><span class="badge warn">Warn</span><span>Postal webhooks have been silent for 41 minutes. Bounces and complaints from Postal are not counted until they come back.</span></div>
+      <div class="note b"><span class="badge bad">Auto-paused</span><span>Outlook complaints hit 0.18% (limit 0.10%). 2,436 held, everything else still sending.</span></div>
+      <div class="note g"><span class="badge ok">Pass</span><span>Round trip 2.4 s. Webhooks work.</span></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-data">
+    <h2 id="h-data">Tables, stat tiles, bars</h2>
+    <p>Table rows are surface with line-2 dividers. A sticky header keeps the surface and draws its rule as an inset line; the hovered row is hover-soft, a step lighter than the card.</p>
+    <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px">
+      <div class="ex" style="padding:0;overflow:hidden;gap:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1F2834"><h4 style="margin:0;font-size:15px;font-weight:600">Contacts in Beta Program</h4><span class="k">2,115 · scrolled, the header stays</span></div>
+        <div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0">
+          <table class="tbl" style="position:relative;z-index:1"><thead><tr><th scope="col" style="width:36%">Contact</th><th scope="col" style="width:23%">Lists</th><th scope="col" style="width:11%">Score</th><th scope="col" style="width:14%">Last open</th><th scope="col" style="width:16%">Status</th></tr></thead></table>
+          <div style="flex:1;min-height:214px;overflow:hidden;position:relative">
+            <table class="tbl" style="margin-top:-22px"><tbody>
+              <tr><td style="width:36%"><b>priya.raman@fastmail.com</b></td><td style="width:23%">Beta Program</td><td style="width:11%">Warm</td><td style="width:14%">4 days ago</td><td style="width:16%"><span class="badge ok">Subscribed</span></td></tr>
+              <tr class="hov"><td><b>aaron.souza@gmail.com</b></td><td>Beta Program, Weekly</td><td>Hot</td><td>Yesterday</td><td><span class="badge ok">Subscribed</span></td></tr>
+              <tr><td><b>sam.rivera@outlook.com</b></td><td>Beta Program</td><td>Cool</td><td>41 days ago</td><td><span class="badge bad">Bounced</span></td></tr>
+              <tr><td><b>lena.fischer@icloud.com</b></td><td>Beta Program</td><td>Warm</td><td>12 days ago</td><td><span class="badge ok">Subscribed</span></td></tr>
+              <tr><td><b>kenji.w@northwind.dev</b></td><td>Beta Program</td><td>Cool</td><td>63 days ago</td><td><span class="badge mut">Unsubscribed</span></td></tr>
+              <tr><td><b>daniel.park@acme.io</b></td><td>Beta Program, Product</td><td>Hot</td><td>Today</td><td><span class="badge ok">Subscribed</span></td></tr>
+              <tr><td><b>maria.lopez@yahoo.com</b></td><td>Beta Program</td><td>Warm</td><td>6 days ago</td><td><span class="badge ok">Subscribed</span></td></tr>
+            </tbody></table>
+            <span style="position:absolute;right:3px;top:10px;width:6px;height:70px;border-radius:3px;background:#3A4557" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+          <div class="card tile"><span class="k">Delivered</span><span class="big">99.1%</span><span style="font-size:12px;color:#7EE2A8;font-weight:500">▲ 0.4 pts vs last send</span></div>
+          <div class="card tile"><span class="k">Complaints</span><span class="big">0.04%</span><span style="font-size:12px;color:#A2ABB9;font-weight:500">= same as last send</span></div>
+          <div class="card tile"><span class="k">Bounces</span><span class="big">0.6%</span><span style="font-size:12px;color:#FCA5A5;font-weight:500">▲ 0.2 pts · 288 hard</span></div>
+        </div>
+        <div class="ex"><h3>Bars on tracks</h3>
+          <div><div style="display:flex;justify-content:space-between;font-size:13px"><span>Bounce rate · limit 5%</span><b>0.6%</b></div><div class="bar" style="margin-top:4px"><i style="width:12%;background:#34C46E;border-radius:0 5px 5px 0"></i></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:13px"><span>Warm-up · day 9 of 21</span><b>43%</b></div><div class="bar" style="margin-top:4px"><i style="width:43%;background:#F0A531;border-radius:0 5px 5px 0"></i></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:13px"><span>Complaint rate · limit 0.1%</span><b>0.18%</b></div><div class="bar" style="margin-top:4px"><i style="width:100%;background:#F26B6B"></i></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:13px"><span>24 h quota · 50,000</span><b>2,140 used (4%)</b></div><div class="bar" style="margin-top:4px"><i style="width:4%;background:#2EC4AF;border-radius:0 5px 5px 0"></i></div></div>
+          <p class="cap">Track chart-track #1F2834; ok-bar 6.6:1, warn-bar 7.2:1, bad-bar 5.0:1 and accent 6.8:1 on it. Deltas carry an arrow, never colour alone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-charts">
+    <h2 id="h-charts">Chart palettes</h2>
+    <p>Assigned in fixed order and never cycled, as in light. Every dark series is at least 3:1 on a card and on the empty track; segments are separated by a 2px surface gap.</p>
+    <div class="spec" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="ex"><h3>Mailbox providers</h3>
+        <div class="sbar" role="img" aria-label="Gmail 46.2%, Outlook 21.4%, Yahoo 13.9%, iCloud 11.8%, Other 6.7%"><i style="width:46.2%;background:#4C93EA"></i><i style="width:21.4%;background:#EB6834"></i><i style="width:13.9%;background:#1BAF7A"></i><i style="width:11.8%;background:#EDA100"></i><i style="width:6.7%;background:#8B94A3"></i></div>
+        <div class="lg"><div><span class="dot" style="color:#4C93EA"></span><span><b>Gmail</b> 46.2%<br><span class="k mono">#4C93EA · 5.4:1</span></span></div><div><span class="dot" style="color:#EB6834"></span><span><b>Outlook</b> 21.4%<br><span class="k mono">#EB6834 · 5.3:1</span></span></div><div><span class="dot" style="color:#1BAF7A"></span><span><b>Yahoo</b> 13.9%<br><span class="k mono">#1BAF7A · 6.1:1</span></span></div><div><span class="dot" style="color:#EDA100"></span><span><b>iCloud</b> 11.8%<br><span class="k mono">#EDA100 · 7.9:1</span></span></div><div><span class="dot" style="color:#8B94A3"></span><span><b>Other</b> 6.7%<br><span class="k mono">#8B94A3 · 5.6:1</span></span></div></div>
+        <p class="cap">Only Gmail lightens in the dark; Outlook, Yahoo, iCloud and Other keep their light values.</p>
+      </div>
+      <div class="ex"><h3>Sending providers</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:12.5px">
+          <div><div style="display:flex;justify-content:space-between"><span>Broadcasts</span><span class="k">SES 90% · Postal 10%</span></div><div class="sbar" style="margin-top:4px" role="img" aria-label="Broadcasts: Amazon SES 90%, Postal 10%"><i style="width:90%;background:#9584F2"></i><i style="width:10%;background:#E87BA4"></i></div></div>
+          <div><div style="display:flex;justify-content:space-between"><span>Automations</span><span class="k">SES 100% · fails over to Postmark</span></div><div class="sbar" style="margin-top:4px" role="img" aria-label="Automations: Amazon SES 100%"><i style="width:100%;background:#9584F2"></i></div></div>
+          <div><div style="display:flex;justify-content:space-between"><span>System</span><span class="k">Postmark 100%</span></div><div class="sbar" style="margin-top:4px" role="img" aria-label="System: Postmark 100%"><i style="width:100%;background:#3FB45A"></i></div></div>
+        </div>
+        <div class="lg"><div><span class="dot" style="color:#9584F2"></span><span><b>Amazon SES</b><br><span class="k mono">#9584F2 · 5.6:1</span></span></div><div><span class="dot" style="color:#E87BA4"></span><span><b>Postal</b><br><span class="k mono">#E87BA4 · 6.4:1</span></span></div><div><span class="dot" style="color:#3FB45A"></span><span><b>Postmark</b><br><span class="k mono">#3FB45A · 6.4:1</span></span></div></div>
+      </div>
+      <div class="ex"><h3>Engagement tiers</h3>
+        <div class="sbar" role="img" aria-label="Engagement tiers: Active 61%, Cooling 20.5%, At risk 11%, Sunset 7.5%"><i style="width:61%;background:#CFE3FD"></i><i style="width:20.5%;background:#8FBCF5"></i><i style="width:11%;background:#5596E8"></i><i style="width:7.5%;background:#3B78CF"></i></div>
+        <div class="lg"><div><span class="dot" style="color:#CFE3FD"></span><span><b>Active</b> 61.0%<br><span class="k mono">#CFE3FD · 13.1:1</span></span></div><div><span class="dot" style="color:#8FBCF5"></span><span><b>Cooling</b> 20.5%<br><span class="k mono">#8FBCF5 · 8.7:1</span></span></div><div><span class="dot" style="color:#5596E8"></span><span><b>At risk</b> 11.0%<br><span class="k mono">#5596E8 · 5.6:1</span></span></div><div><span class="dot" style="color:#3B78CF"></span><span><b>Sunset</b> 7.5%<br><span class="k mono">#3B78CF · 3.9:1</span></span></div></div>
+        <p class="cap">In the dark the ramp runs light (Active) to deep (Sunset), so the most engaged tier keeps the most contrast.</p>
+      </div>
+      <div class="ex"><h3>Human and machine opens</h3>
+        <div class="sbar" role="img" aria-label="Human opens 41.2%, machine opens 29.4%, not opened 29.4%"><i style="width:41.2%;background:#E7EBF1"></i><i style="width:29.4%;background:#6B7689"></i><i style="width:29.4%;background:#1F2834"></i></div>
+        <div class="lg"><div><span class="dot" style="color:#E7EBF1"></span><span><b>Human</b> 19,768 · 41.2%<br><span class="k mono">ink #E7EBF1 · 14.3:1</span></span></div><div><span class="dot" style="color:#6B7689"></span><span><b>Machine</b> 14,108 · 29.4%<br><span class="k mono">#6B7689 · 3.7:1</span></span></div></div>
+        <p class="cap">Human opens are the figure (chart-human is ink, so it turns near-white); Apple Mail prefetches are the ground. The rest of the track is not opened.</p>
+      </div>
+      <div class="ex"><h3>Contact score bands</h3>
+        <div class="sbar" role="img" aria-label="Score bands: Cool 52%, Warm 31%, Hot 17%"><i style="width:52%;background:#C2477F"></i><i style="width:31%;background:#E57AA8"></i><i style="width:17%;background:#F5B8D1"></i></div>
+        <div class="lg"><div><span class="dot" style="color:#C2477F"></span><span><b>Cool</b> 25,071<br><span class="k mono">#C2477F · 3.7:1</span></span></div><div><span class="dot" style="color:#E57AA8"></span><span><b>Warm</b> 14,946<br><span class="k mono">#E57AA8 · 6.3:1</span></span></div><div><span class="dot" style="color:#F5B8D1"></span><span><b>Hot</b> 8,196<br><span class="k mono">#F5B8D1 · 10.3:1</span></span></div></div>
+        <p class="cap">Deep to light in the dark, so Hot stands out most.</p>
+      </div>
+      <div class="ex"><h3>Placement: in spam</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px">
+          <div style="display:grid;grid-template-columns:60px minmax(0,1fr) 70px;gap:10px;align-items:center"><span>Gmail</span><div class="bar"><i style="width:0%;background:#F87171"></i></div><span class="k">0 of 12</span></div>
+          <div style="display:grid;grid-template-columns:60px minmax(0,1fr) 70px;gap:10px;align-items:center"><span>Outlook</span><div class="bar"><i style="width:30%;background:#F87171;border-radius:0 5px 5px 0"></i></div><span class="k">3 of 10</span></div>
+          <div style="display:grid;grid-template-columns:60px minmax(0,1fr) 70px;gap:10px;align-items:center"><span>Yahoo</span><div class="bar"><i style="width:12.5%;background:#F87171;border-radius:0 5px 5px 0"></i></div><span class="k">1 of 8</span></div>
+          <div style="display:grid;grid-template-columns:60px minmax(0,1fr) 70px;gap:10px;align-items:center"><span>iCloud</span><div class="bar"><i style="width:0%;background:#F87171"></i></div><span class="k">0 of 6</span></div>
+        </div>
+        <div class="lg"><div><span class="dot" style="color:#F87171"></span><span><b>In spam</b> 4 of 36 seeds<br><span class="k mono">#F87171 · 6.2:1</span></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-keep">
+    <h2 id="h-keep">What keeps its colours</h2>
+    <p>Code and terminal panes are dark in both themes and use only the always-dark tokens. Previews of what readers see (email bodies, public pages, signup forms, phone screens, QR codes) keep the light theme inside the dark chrome: their root has .keep-light.</p>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+        <div class="ex"><h3>Code pane</h3>
+<div class="code" role="img" aria-label="MJML source">
+            <div><span class="ln">1</span><span class="tg">&lt;mj-section</span> <span class="at">background-color=</span><span class="st">"#ffffff"</span> <span class="at">padding=</span><span class="st">"24px"</span><span class="tg">&gt;</span></div>
+            <div><span class="ln">2</span><span class="i1"></span><span class="tg">&lt;mj-column&gt;</span></div>
+            <div><span class="ln">3</span><span class="i2"></span><span class="tg">&lt;mj-text</span> <span class="at">font-size=</span><span class="st">"16px"</span><span class="tg">&gt;</span>Three launches this month<span class="tg">&lt;/mj-text&gt;</span></div>
+            <div><span class="ln">4</span><span class="i2"></span><span class="tg">&lt;mj-button</span> <span class="at">href=</span><span class="st">"https://acme.io/changelog"</span><span class="tg">&gt;</span>See the changelog<span class="tg">&lt;/mj-button&gt;</span></div>
+            <div><span class="ln">5</span><span class="i1"></span><span class="tg">&lt;/mj-column&gt;</span></div>
+            <div><span class="ln">6</span><span class="tg">&lt;/mj-section&gt;</span></div>
+          </div>
+          <p class="cap">code-bg #0A0F16 (a well, darker than the card), dark-text #E5E7EB 15.5:1, tags #7DD3FC, attributes #FBBF24, strings #A7F3D0, line numbers dark-muted.</p>
+        </div>
+        <div class="ex"><h3>Terminal</h3>
+<div class="code term" style="background:#0A0F16;border:1px solid #263041;font-size:13px" role="img" aria-label="Install commands">
+            <div>curl -fsSL https://get.reputecast.com/compose.yml -o compose.yml</div>
+            <div>docker compose up -d</div>
+            <div># open http://localhost:8080 <span style="display:inline-block;width:8px;height:15px;background:#4ADE80;vertical-align:-2px"></span></div>
+          </div>
+          <p class="cap">dark-surface with a dark-line border and the dark-cursor.</p>
+        </div>
+    </div>
+    <div class="ex" style="padding:0;overflow:hidden;gap:0;background:#0C1119">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:#151C27;border-bottom:1px solid #283243">
+          <span class="k">Preview</span><b style="font-size:15px">Weekly Digest #142</b><span class="badge info">Scheduled · v14</span>
+          <div class="seg" role="group" aria-label="Device" style="margin-left:auto"><button class="on" aria-pressed="true">Desktop · 600</button><button aria-pressed="false">Mobile · 375</button></div>
+          <button class="btn sm">Send test</button>
+        </div>
+        <div style="display:flex;gap:20px;padding:24px 20px;background:#0C1119;align-items:flex-start;justify-content:center">
+          <div class="keep-light" style="flex:1;min-width:0;max-width:600px;background:#FFFFFF;color:#0B1220;border:1px solid #E3E6EB;border-radius:6px;overflow:hidden;font-family:Georgia,'Times New Roman',serif" role="group" aria-label="Email preview, light as readers see it">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid #E3E6EB;font-family:'IBM Plex Sans',system-ui,sans-serif"><b style="font-size:16px;letter-spacing:-.01em">Acme</b><span style="font-size:11.5px;color:#4B5563">Blog · Docs · Changelog</span></div>
+            <div style="padding:20px 22px;display:flex;flex-direction:column;gap:10px">
+              <div style="height:92px;border-radius:4px;background:#E9ECF0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Q4 roadmap illustration</div>
+              <h4 style="margin:0;font-size:22px;line-height:1.2;font-weight:700">Three launches, one deprecation, and the roadmap for Q4</h4>
+              <p style="margin:0;font-size:14px;line-height:1.5;color:#374151">Hi Aaron, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed.</p>
+              <span style="align-self:flex-start;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;padding:8px 14px;border-radius:4px">See the changelog</span>
+            </div>
+          </div>
+          <div class="keep-light" style="width:250px;flex:none;background:#FFFFFF;color:#0B1220;border:1px solid #E3E6EB;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;font-size:12.5px" role="group" aria-label="Inbox preview, light">
+            <div style="display:flex;justify-content:space-between;gap:8px"><b>Acme Newsletter</b><span style="color:#5B6472">9:00 AM</span></div>
+            <b style="font-weight:600">Three launches, one deprecation, and the roadmap for Q4</b>
+            <span style="color:#4B5563">Feature flags are GA, audit log exports, and what we're retiring in November.</span>
+          </div>
+        </div>
+        <p class="cap" style="padding:0 20px 18px">The chrome (header, segments, stage) is dark; the email and the inbox card are drawn with the light values, so the reader's view is what you check.</p>
+      </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-focus">
+    <h2 id="h-focus">Focus ring</h2>
+    <p>:focus-visible draws a 2px focus ring (accent, #2EC4AF) with a 2px offset on everything and is never removed: 7.8:1 against a card, 8.7:1 against the ground, 7.3:1 against a raised menu.</p>
+    <div class="spec">
+      <div class="ex"><h3>On a card</h3><div class="rowf" style="gap:16px"><button class="btn pri fv">Schedule</button><button class="btn fv">Edit campaign</button><a href="DarkTheme.dc.html" class="fv" style="font-size:13px;font-weight:500">Deliverability details</a><input type="checkbox" class="tg fv" checked aria-label="Auto-pause"><input type="checkbox" class="fv" checked aria-label="Exclude unengaged"></div><label class="lbl">Subject<input class="in fv" value="Weekly Digest #142"></label></div>
+      <div class="ex" style="background:#0C1119"><h3>On the ground</h3><div class="rowf" style="gap:16px"><nav class="tabs" aria-label="Focus sample"><a href="DarkTheme.dc.html" class="on">All · 49</a><a href="DarkTheme.dc.html" class="fv">Drafts · 2</a></nav><button class="btn sm fv">Retry now</button></div><p class="cap">A banner's action and a top-bar tab, as they sit on the content column.</p></div>
+      <div class="ex"><h3>In a menu</h3><div class="menu" role="menu" aria-label="Campaign actions" style="width:100%;max-width:260px"><a href="DarkTheme.dc.html" role="menuitem">Duplicate</a><a href="DarkTheme.dc.html" role="menuitem" class="hl">Rename</a><div class="mtheme"><span>Theme</span><span class="grp3" role="group" aria-label="Theme choices"><span role="menuitemradio" aria-checked="false" title="Same as device" aria-label="Same as device"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2"></rect><path d="M5.5 14h5M8 11v3"></path></svg></span><span role="menuitemradio" aria-checked="false" title="Light" aria-label="Light" style="background:#232D3B;color:#E7EBF1;outline:2px solid #2EC4AF;outline-offset:1px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="2.75"></circle><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06"></path></svg></span><span class="on" role="menuitemradio" aria-checked="true" title="Dark" aria-label="Dark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z"></path></svg></span></span></div></div><p class="cap">A menu item shows the keyboard highlight with the hover fill (Rename); the theme row's choices add the ring with a 1px offset (Light).</p></div>
+    </div>
+  </section>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":8958}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

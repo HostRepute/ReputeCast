@@ -202,6 +202,18 @@ handlers. Never hand-write API types; derive them: `type Item = Schemas['Campaig
    `app.css`). A board link with an inline `color` is a name, not running
    text, and has no underline (and no hover colour): add `no-underline` and
    the colour class (`text-ink`).
+   **Themes:** the boards are drawn in the light theme; the app also has a
+   dark one (M54, design system README › Dark theme). Take colours from the
+   token for the *job*, never from how it looks in light: `surface` for
+   cards and bars, `raised` for menus, popovers and dialogs, `field` for
+   inputs and option cards, `hover` for hover fills, `inverse` with
+   `on-strong` for an ink-coloured chip, `on-strong` for text on `accent`,
+   `bad-strong` and the status bars, `on-fixed` for text on avatar, brand
+   and chart colours, `code-bg` for code panes (with only `dark-*` and
+   `code-*` tokens inside). A preview of what readers see (an email, a public
+   page, a phone screen, a QR code) gets `keep-light` on its root. Check a
+   new screen with `node scripts/shot.ts --theme dark` and
+   `node scripts/a11y.ts --theme dark`.
 3. Replace sample data with API data. Copy that is not data stays literal.
 4. Reproduce the responsive behaviour. The boards get it from global rules in
    their CSS; in the app use the primitives:
