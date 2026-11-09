@@ -9,6 +9,7 @@ import { useComposer } from '@/features/composer/context'
 import { useAccessibility } from '@/features/accessibility/composer/state'
 import { useCampaignLanguages } from '@/features/languages/composer'
 import { versionLanguage } from '@/features/languages/composerParts'
+import { useMediaQuery } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { m, ms } from '../messages'
 import { NotConfigured, Sparkle, usageLine } from '../suggest'
@@ -41,6 +42,9 @@ export function AssistMenu() {
   const ideasInput = useIdeasInput()
   const rewriteSelected = useRewriteSelected()
   const langs = useCampaignLanguages(c.campaign.id)
+  // Quick review on a phone has no inspector: alt text and the accessibility
+  // fixes open there, so they say where they work instead of doing nothing.
+  const quickReview = useMediaQuery('(max-width: 767px)') && c.view === 'visual'
   if (!ca || !ca.assist.can || c.kind === 'transactional' || !c.canEdit) return null
   const a = ca.assist
   const s = a.status
@@ -147,9 +151,9 @@ export function AssistMenu() {
                 first.getEl()?.scrollIntoView({ block: 'center', behavior: 'smooth' })
               }
             : undefined,
-          offText('alt_text'),
+          quickReview ? t(ms.largerScreen) : offText('alt_text'),
         )}
-        {item(t(ms.assistA11y), t(ms.assistA11ySub, { count: fixable }), fixable ? () => c.setRightTab('accessibility') : undefined, offText('accessibility_fix'))}
+        {item(t(ms.assistA11y), t(ms.assistA11ySub, { count: fixable }), fixable ? () => c.setRightTab('accessibility') : undefined, quickReview ? t(ms.largerScreen) : offText('accessibility_fix'))}
         <div className="ai-mf">{usageLine(t, s)}</div>
       </div>
     </Popover>

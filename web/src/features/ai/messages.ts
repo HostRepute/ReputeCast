@@ -409,6 +409,7 @@ export const ms = defineMessages('ai.suggest', {
   assistA11ySub: '{count, plural, =0 {No issues the assistant can help with} one {# issue the assistant can help with} other {# issues the assistant can help with}}',
   featureOff: 'Turned off for this workspace',
   noImageModel: "The model doesn't read images",
+  largerScreen: 'Works on larger screens',
   keyRejectedMenu: "{provider} rejected the workspace's key. {helpers} can replace it in Settings › Integrations · AI assistant.",
   keyRejectedMenuAlone: "{provider} rejected the workspace's key. Someone who can manage integrations can replace it in Settings › Integrations · AI assistant.",
   capMenu: "This month's AI budget is used up. AI features return on {date}, or {helpers} can raise the cap.",

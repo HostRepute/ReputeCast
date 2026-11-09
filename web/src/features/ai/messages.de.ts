@@ -384,6 +384,7 @@ export default {
     assistA11ySub: '{count, plural, =0 {Keine Probleme, bei denen der Assistent helfen kann} one {# Problem, bei dem der Assistent helfen kann} other {# Probleme, bei denen der Assistent helfen kann}}',
     featureOff: 'Für diesen Arbeitsbereich deaktiviert',
     noImageModel: 'Das Modell liest keine Bilder',
+    largerScreen: 'Auf größeren Bildschirmen',
     keyRejectedMenu: '{provider} hat den Schlüssel des Arbeitsbereichs abgelehnt. {helpers} kann ihn unter Einstellungen › Integrationen · KI-Assistent ersetzen.',
     keyRejectedMenuAlone: '{provider} hat den Schlüssel des Arbeitsbereichs abgelehnt. Wer Integrationen verwalten darf, kann ihn unter Einstellungen › Integrationen · KI-Assistent ersetzen.',
     capMenu: 'Das KI-Budget dieses Monats ist aufgebraucht. Die KI-Funktionen stehen ab {date} wieder zur Verfügung, oder {helpers} erhöht das Limit.',

@@ -384,6 +384,7 @@ export default {
     assistA11ySub: '{count, plural, =0 {Aucun problème que l’assistant peut aider à corriger} one {# problème que l’assistant peut aider à corriger} other {# problèmes que l’assistant peut aider à corriger}}',
     featureOff: 'Désactivé pour cet espace de travail',
     noImageModel: 'Le modèle ne lit pas les images',
+    largerScreen: 'Fonctionne sur les écrans plus grands',
     keyRejectedMenu: '{provider} a refusé la clé de l’espace de travail. Demandez à {helpers} de la remplacer dans Paramètres › Intégrations · Assistant IA.',
     keyRejectedMenuAlone: '{provider} a refusé la clé de l’espace de travail. Une personne qui peut gérer les intégrations peut la remplacer dans Paramètres › Intégrations · Assistant IA.',
     capMenu: 'Le budget IA du mois est épuisé. Les fonctionnalités IA reviennent le {date}, ou demandez à {helpers} de relever le plafond.',
