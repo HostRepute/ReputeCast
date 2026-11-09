@@ -1751,8 +1751,9 @@
     display: none;
   }
   /* The top bar on phones (ComposerPhone, ComposerWritePhone): the modes,
-     then the language as its globe and Preview as its eye on the same row;
-     the web version and the assistant wait for a larger screen. */
+     then the language as its globe, Preview as its eye and the assistant as
+     its sparkle on the same row (spec 5.11: the assistant on phones, its
+     card under the canvas); the web version waits for a larger screen. */
   .cmp .cbar .lng-sw {
     justify-content: center;
     font-size: 0;
@@ -1760,9 +1761,21 @@
   .cmp .cbar .lng-sw > :not(:first-child) {
     display: none;
   }
-  .cmp .cbar .wchip,
-  .cmp .cbar .ai-assist {
+  .cmp .cbar .wchip {
     display: none;
+  }
+  .cmp .cbar .btn.ai-assist {
+    width: 44px;
+    padding: 0;
+    flex: none;
+  }
+  .cmp .cbar .btn.ai-assist > svg:last-child {
+    display: none;
+  }
+  /* The assistant's card (subject ideas, a rewrite) stacks under the email
+     in quick review, where the other side panels wait for a larger screen. */
+  .cmp.view-visual .cpanel.right.ai-panel {
+    display: flex;
   }
   .cmp .cb-end {
     flex: none;

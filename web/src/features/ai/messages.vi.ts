@@ -415,6 +415,7 @@ export default {
     assistA11ySub: '{count, plural, =0 {Không có lỗi nào trợ lý giúp được} other {# lỗi trợ lý giúp được}}',
     featureOff: 'Đã tắt cho không gian làm việc này',
     noImageModel: 'Mô hình không đọc được hình ảnh',
+    largerScreen: 'Có trên màn hình lớn hơn',
     keyRejectedMenu: '{provider} đã từ chối khóa của không gian làm việc. {helpers} có thể thay khóa trong Cài đặt › Tích hợp · Trợ lý AI.',
     keyRejectedMenuAlone: '{provider} đã từ chối khóa của không gian làm việc. Người quản lý tích hợp có thể thay khóa trong Cài đặt › Tích hợp · Trợ lý AI.',
     capMenu: 'Ngân sách AI tháng này đã dùng hết. Các tính năng AI sẽ trở lại vào {date}, hoặc {helpers} có thể tăng hạn mức.',
