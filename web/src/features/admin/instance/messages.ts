@@ -18,6 +18,7 @@ export const m = defineMessages('admin.instance', {
   check: 'Check',
   publicUrlHint:
     'Used for provider webhooks, SSO redirect URIs and public pages. Changing it re-registers webhooks at every provider that supports it and warns about the rest.',
+  publicUrlLocked: "Set by the server's operator (<mono>{setting}</mono>). Links in sent emails, passkeys and provider webhooks depend on it, so only they can change it.",
   serverSetting: 'Server setting',
   serverSettingBody:
     'The server was started with {setting} = <mono>{url}</mono>. Links, public pages and webhooks use the address above; set {env} to it as well, since HTTPS-only cookies and HSTS follow the server setting.',
@@ -73,6 +74,7 @@ export const m = defineMessages('admin.instance', {
   upgradeTitle: 'Upgrade on the server',
   backupNote:
     'Back up Postgres first: <mono>{command}</mono>. Rollback: pin the image to {release, select, yes {{version}} other {the version you ran before}} and restart.',
+  upgradeManaged: 'Upgrades are managed by <b>{name}</b>. They choose when this instance moves to a new release; ask them about timing or a specific version.',
   updateCheckOn: 'Update check on',
   updateCheckOff: 'Update check off',
   updateCheckOnDetail: 'checks github.com once a day',

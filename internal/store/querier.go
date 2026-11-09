@@ -1966,6 +1966,10 @@ type Querier interface {
 	InstanceAuditStreamState(ctx context.Context) (InstanceAuditStreamStateRow, error)
 	// Workspaces that stream their own log, for "Streaming" on the instance view.
 	InstanceAuditWorkspaceStreams(ctx context.Context) ([]InstanceAuditWorkspaceStreamsRow, error)
+	// The server locks the public URL (http.public_url_locked): it becomes the
+	// saved one, once, when another address was saved. The last URL check
+	// described the old address.
+	InstancePinPublicURL(ctx context.Context, arg InstancePinPublicURLParams) (int64, error)
 	IntegrationActiveByKind(ctx context.Context, arg IntegrationActiveByKindParams) (IntegrationActiveByKindRow, error)
 	IntegrationCallCounts(ctx context.Context, arg IntegrationCallCountsParams) (IntegrationCallCountsRow, error)
 	IntegrationCallGet(ctx context.Context, arg IntegrationCallGetParams) (IntegrationCallGetRow, error)

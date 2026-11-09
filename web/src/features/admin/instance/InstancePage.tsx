@@ -95,6 +95,8 @@ function InstanceForm({
   const [region, setRegion] = useState(s.defaultRegionFormat ?? 'standard')
   const [error, setError] = useState<{ field?: 'name' | 'url' | 'tz'; message: string }>()
   const [check, setCheck] = useState(s.urlCheck)
+  // The server's operator can pin the public URL (http.public_url_locked).
+  const locked = s.publicUrlLocked
   const zones = useMemo(() => timezoneOptions(tz), [tz])
   const save = $api.useMutation('put', '/api/v1/admin/instance')
   const checkUrl = $api.useMutation('post', '/api/v1/admin/instance/check-url')
@@ -134,11 +136,15 @@ function InstanceForm({
       <InstanceLanguageFields language={language} region={region} onLanguage={setLanguage} onRegion={setRegion} />
       <label className="lbl">
         {t(m.publicUrlLabel)}
-        <div className="row flex-nowrap gap-2">
+        {/* The address keeps room for about 20 characters; on a narrow
+            phone Check moves under it rather than hiding a pinned one. */}
+        <div className="row flex-wrap gap-2">
           <input
-            className="in mono flex-1"
+            className="in mono min-w-[180px] flex-1"
+            title={locked ? url : undefined}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+            readOnly={locked}
             inputMode="url"
             autoComplete="off"
             spellCheck={false}
@@ -161,7 +167,7 @@ function InstanceForm({
           </Button>
         </div>
         <span className="k font-medium" id="inst-url-hint">
-          {t(m.publicUrlHint)}
+          {locked ? <T msg={m.publicUrlLocked} values={{ setting: 'http.public_url_locked', mono }} /> : t(m.publicUrlHint)}
         </span>
       </label>
       {s.configPublicUrl && trimSlash(url) !== trimSlash(s.configPublicUrl) ? (
@@ -450,25 +456,37 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
           </span>
         </div>
       ) : null}
-      <div className="col gap-1.5">
-        <span className="text-[12px] font-semibold text-ink-2">{t(m.upgradeTitle)}</span>
-        <pre className="code">{v.upgradeCommand}</pre>
-        <span className="k">
-          <T
-            msg={m.backupNote}
-            values={{
-              command: 'docker compose exec postgres pg_dump -U reputecast -Fc reputecast > reputecast.dump',
-              release: v.release ? 'yes' : 'no',
-              version: v.installed,
-              mono,
-            }}
-          />
-        </span>
-      </div>
+      {v.managedBy ? (
+        // The server's operator runs upgrades (updates.managed_by): the
+        // docker compose command and the backup line don't apply.
+        <div className="note i">
+          <span>
+            <T msg={m.upgradeManaged} values={{ name: v.managedBy, b: (c) => <b>{c}</b> }} />
+          </span>
+        </div>
+      ) : (
+        <div className="col gap-1.5">
+          <span className="text-[12px] font-semibold text-ink-2">{t(m.upgradeTitle)}</span>
+          <pre className="code">{v.upgradeCommand}</pre>
+          <span className="k">
+            <T
+              msg={m.backupNote}
+              values={{
+                command: 'docker compose exec postgres pg_dump -U reputecast -Fc reputecast > reputecast.dump',
+                release: v.release ? 'yes' : 'no',
+                version: v.installed,
+                mono,
+              }}
+            />
+          </span>
+        </div>
+      )}
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
       <label className="row flex-nowrap gap-3 border-t border-line-2 pt-1.5">
         <SwitchInput
-          checked={v.checkEnabled}
+          // Off whenever the server configuration turns the check off,
+          // whatever the instance switch says.
+          checked={v.checkEnabled && v.checkAllowed}
           disabled={!v.checkAllowed || toggle.isPending}
           onChange={async (e) => {
             try {

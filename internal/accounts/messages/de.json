@@ -103,6 +103,7 @@
   "problem.wrongSetupCode": "Dieser Code hat nicht funktioniert. Codes ändern sich alle 30 Sekunden; prüfen Sie, ob die Uhr Ihres Telefons automatisch gestellt wird.",
   "problem.noSecondFactor": "Richten Sie zuerst eine Authenticator-App oder einen Passkey ein; Wiederherstellungscodes sichern einen zweiten Faktor ab.",
   "problem.instanceURL": "Verwenden Sie die vollständige Adresse, die Personen öffnen, etwa https://reputecast.acme.io.",
+  "problem.publicURLLocked": "Der Betreiber des Servers hat die öffentliche URL festgelegt ({setting}); hier lässt sie sich nicht ändern.",
   "problem.instanceName": "Geben Sie der Instanz einen Namen, etwa Acme ReputeCast.",
   "problem.language": "Wählen Sie eine Sprache, in die ReputeCast übersetzt ist.",
   "problem.checkURL": "Verwenden Sie die vollständige Adresse, etwa https://reputecast.acme.io.",

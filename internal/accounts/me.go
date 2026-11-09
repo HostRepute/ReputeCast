@@ -8,6 +8,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
 	"github.com/hostrepute/reputecast/internal/workspaces"
@@ -100,7 +101,7 @@ func (s *Service) Me(ctx context.Context) (Me, error) {
 	if err != nil {
 		return Me{}, err
 	}
-	me.Instance = MeInstance{Name: st.Name, PublicURL: st.PublicUrl, Version: version.Get().Version, SetupComplete: st.SetupCompletedAt != nil,
+	me.Instance = MeInstance{Name: st.Name, PublicURL: publicurl.Setting(st.PublicUrl, s.Cfg.HTTP.PublicURL, s.publicURLLocked()), Version: version.Get().Version, SetupComplete: st.SetupCompletedAt != nil,
 		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat, Languages: applang.Languages()}
 	me.User.Preferences = applang.Choices(*u)
 	me.User.LanguageSuggestionAnswered = u.LanguagePromptedAt != nil

@@ -14,6 +14,7 @@ export default translate(m, {
   check: 'Kiểm tra',
   publicUrlHint:
     'Dùng cho webhook của nhà cung cấp, URI chuyển hướng SSO và các trang công khai. Khi đổi URL này, webhook được đăng ký lại ở mọi nhà cung cấp hỗ trợ việc đó, và bạn được cảnh báo về các nhà cung cấp còn lại.',
+  publicUrlLocked: 'Do người vận hành máy chủ đặt (<mono>{setting}</mono>). Liên kết trong email đã gửi, khóa truy cập và webhook của nhà cung cấp đều phụ thuộc vào nó, nên chỉ họ mới đổi được.',
   serverSetting: 'Cài đặt máy chủ',
   serverSettingBody:
     'Máy chủ được khởi động với {setting} = <mono>{url}</mono>. Liên kết, trang công khai và webhook dùng địa chỉ ở trên; hãy đặt cả {env} thành địa chỉ đó, vì cookie chỉ dùng HTTPS và HSTS tuân theo cài đặt máy chủ.',
@@ -69,6 +70,7 @@ export default translate(m, {
   upgradeTitle: 'Nâng cấp trên máy chủ',
   backupNote:
     'Hãy sao lưu Postgres trước: <mono>{command}</mono>. Để quay lại bản cũ: ghim image ở {release, select, yes {{version}} other {phiên bản bạn đã chạy trước đó}} rồi khởi động lại.',
+  upgradeManaged: 'Việc nâng cấp do <b>{name}</b> quản lý. Họ quyết định khi nào hệ thống này lên bản phát hành mới; hãy hỏi họ về thời điểm hoặc một phiên bản cụ thể.',
   updateCheckOn: 'Đã bật kiểm tra cập nhật',
   updateCheckOff: 'Đã tắt kiểm tra cập nhật',
   updateCheckOnDetail: 'kiểm tra github.com mỗi ngày một lần',

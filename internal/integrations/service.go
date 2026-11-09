@@ -76,6 +76,10 @@ func (s *Service) base() string {
 	return strings.TrimRight(s.PublicURL(), "/")
 }
 
+// publicURLLocked reports whether the server pins the public URL
+// (http.public_url_locked), so the saved address doesn't apply.
+func (s *Service) publicURLLocked() bool { return s.Cfg != nil && s.Cfg.HTTP.PublicURLLocked }
+
 func (s *Service) allowPrivate() bool { return s.AllowPrivate != nil && s.AllowPrivate() }
 
 func (s *Service) policy() netguard.Policy { return netguard.Policy{AllowPrivate: s.allowPrivate()} }

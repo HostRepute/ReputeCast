@@ -4,6 +4,7 @@
   "problem.language": "Pick a language ReputeCast is translated into, and one of the region formats.",
   "problem.publicURL": "Use the full address people open, like https://reputecast.acme.io.",
   "problem.noPublicURL": "Enter the public URL first.",
+  "problem.publicURLLocked": "The server's operator set the public URL ({setting}), so it can't be changed here.",
   "problem.logoUnreadable": "The file couldn't be read. Upload an SVG or PNG.",
   "problem.pngLarge": "The PNG is larger than 512 KB. Use a smaller, square image.",
   "problem.pngDecode": "That PNG couldn't be decoded.",

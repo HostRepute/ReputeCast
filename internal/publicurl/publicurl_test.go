@@ -46,13 +46,58 @@ func TestSourceFollowsChanges(t *testing.T) {
 }
 
 func TestEffective(t *testing.T) {
-	for _, c := range []struct{ saved, configured, want string }{
-		{"https://news.acme.io/", "http://localhost:8080", "https://news.acme.io"},
-		{"  ", "http://localhost:8080/", "http://localhost:8080"},
-		{"", "", ""},
+	for _, c := range []struct {
+		saved, configured string
+		locked            bool
+		want              string
+	}{
+		{"https://news.acme.io/", "http://localhost:8080", false, "https://news.acme.io"},
+		{"  ", "http://localhost:8080/", false, "http://localhost:8080"},
+		{"", "", false, ""},
+		// The server's operator pins the address (http.public_url_locked):
+		// what an admin saved is ignored.
+		{"https://news.acme.io", "https://reputecast.acme.io/", true, "https://reputecast.acme.io"},
+		{"", "https://reputecast.acme.io", true, "https://reputecast.acme.io"},
 	} {
-		if got := Effective(c.saved, c.configured); got != c.want {
-			t.Errorf("Effective(%q, %q) = %q, want %q", c.saved, c.configured, got, c.want)
+		if got := Effective(c.saved, c.configured, c.locked); got != c.want {
+			t.Errorf("Effective(%q, %q, %v) = %q, want %q", c.saved, c.configured, c.locked, got, c.want)
+		}
+	}
+}
+
+func TestSetting(t *testing.T) {
+	for _, c := range []struct {
+		saved, configured string
+		locked            bool
+		want              string
+	}{
+		{"https://news.acme.io", "http://localhost:8080", false, "https://news.acme.io"},
+		// Nothing saved reads as nothing saved, as before.
+		{"", "http://localhost:8080", false, ""},
+		{"https://news.acme.io", "https://reputecast.acme.io/", true, "https://reputecast.acme.io"},
+	} {
+		if got := Setting(c.saved, c.configured, c.locked); got != c.want {
+			t.Errorf("Setting(%q, %q, %v) = %q, want %q", c.saved, c.configured, c.locked, got, c.want)
+		}
+	}
+}
+
+func TestSame(t *testing.T) {
+	for _, c := range []struct {
+		a, b string
+		want bool
+	}{
+		{"https://news.acme.io", "https://NEWS.acme.io/", true},
+		{" https://news.acme.io/rc/ ", "https://news.acme.io/rc", true},
+		{"https://news.acme.io?x=1", "https://news.acme.io", true},
+		{"https://news.acme.io", "http://news.acme.io", false},
+		{"https://news.acme.io:8443", "https://news.acme.io", false},
+		{"https://news.acme.io/rc", "https://news.acme.io", false},
+		{"not a url", "https://news.acme.io", false},
+		{"", "", true},
+	} {
+		if got := Same(c.a, c.b); got != c.want {
+			t.Errorf("Same(%q, %q) = %v, want %v", c.a, c.b, got, c.want)
 		}
 	}
 }

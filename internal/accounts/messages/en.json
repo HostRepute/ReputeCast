@@ -103,6 +103,7 @@
   "problem.wrongSetupCode": "That code didn't work. Codes change every 30 seconds; check that your phone's clock is set automatically.",
   "problem.noSecondFactor": "Set up an authenticator app or a passkey first; recovery codes back up a second factor.",
   "problem.instanceURL": "Use the full address people open, like https://reputecast.acme.io.",
+  "problem.publicURLLocked": "The server's operator set the public URL ({setting}), so it can't be changed here.",
   "problem.instanceName": "Give the instance a name, like Acme ReputeCast.",
   "problem.language": "Pick a language ReputeCast is translated into.",
   "problem.checkURL": "Use the full address, like https://reputecast.acme.io.",

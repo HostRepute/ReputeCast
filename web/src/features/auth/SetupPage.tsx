@@ -531,7 +531,11 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
   const saved = s.steps.find((x) => x.key === 'instance')?.done
   const [tz, setTz] = useState(() => (!saved && (!s.instance.timezone || s.instance.timezone === 'UTC') ? browserTimezone() : s.instance.timezone) || 'UTC')
   const [url, setUrl] = useState(s.instance.publicUrl)
-  const [updateCheck, setUpdateCheck] = useState(s.instance.updateCheck)
+  // The server's operator can pin the public URL (http.public_url_locked)
+  // and turn the update check off (updates.check = false).
+  const locked = s.instance.publicUrlLocked
+  const checkAllowed = s.instance.updateCheckAllowed
+  const [updateCheck, setUpdateCheck] = useState(s.instance.updateCheck && checkAllowed)
   const { inst } = useMemberLanguage()
   const [language, setLanguage] = useState(inst.defaultLanguage)
   const [check, setCheck] = useState<Schemas['URLCheck']>()
@@ -630,8 +634,20 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
       <InstanceLanguageFields language={language} region="" onLanguage={setLanguage} onRegion={() => {}} showRegion={false} />
       <div className="lbl">
         <label htmlFor={ids.url}>{t(m.publicUrl)}</label>
-        <div className="flex gap-2">
-          <input id={ids.url} className={cn('in mono flex-1', errors.url && 'err')} value={url} onChange={(e) => setUrl(e.target.value)} inputMode="url" aria-invalid={errors.url ? true : undefined} />
+        {/* As in Instance admin: Check again moves under a pinned address
+            on a narrow phone rather than hiding it. */}
+        <div className="flex flex-wrap gap-2">
+          <input
+            id={ids.url}
+            className={cn('in mono min-w-[180px] flex-1', errors.url && 'err')}
+            title={locked ? url : undefined}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            readOnly={locked}
+            inputMode="url"
+            aria-invalid={errors.url ? true : undefined}
+            aria-describedby={`${ids.url}-hint`}
+          />
           <Button loading={checking} onClick={() => runCheck(url.trim())}>
             {t(m.checkAgain)}
           </Button>
@@ -641,7 +657,9 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
             {errors.url}
           </span>
         ) : null}
-        <span className="k font-medium">{t(m.publicUrlHint)}</span>
+        <span className="k font-medium" id={`${ids.url}-hint`}>
+          {locked ? <T msg={m.publicUrlLocked} values={{ setting: 'http.public_url_locked', mono: (c) => <span className="mono">{c}</span> }} /> : t(m.publicUrlHint)}
+        </span>
       </div>
       {check ? (
         <div className="card flex flex-col gap-2 bg-ground-3 px-3.5 py-3" role="status" aria-label={t(m.urlCheckLabel)}>
@@ -662,13 +680,21 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
         </div>
       ) : null}
       <div className="chk-row items-start">
-        <input type="checkbox" id={ids.upd} className="m-[2px_3px_3px_4px] cursor-pointer" checked={updateCheck} onChange={(e) => setUpdateCheck(e.target.checked)} aria-describedby={`${ids.upd}-hint`} />
+        <input
+          type="checkbox"
+          id={ids.upd}
+          className={cn('m-[2px_3px_3px_4px]', checkAllowed ? 'cursor-pointer' : 'cursor-not-allowed')}
+          checked={updateCheck}
+          disabled={!checkAllowed}
+          onChange={(e) => setUpdateCheck(e.target.checked)}
+          aria-describedby={`${ids.upd}-hint`}
+        />
         <span className="flex flex-col gap-0.5">
-          <label htmlFor={ids.upd} className="cursor-pointer font-semibold">
+          <label htmlFor={ids.upd} className={checkAllowed ? 'cursor-pointer font-semibold' : 'cursor-not-allowed font-semibold text-ink-3'}>
             {t(m.updateCheck)}
           </label>
           <span className="k" id={`${ids.upd}-hint`}>
-            {t(m.updateCheckHint)}
+            {checkAllowed ? t(m.updateCheckHint) : t(m.updateCheckDisallowed, { setting: 'updates.check = false' })}
           </span>
         </span>
       </div>

@@ -6,7 +6,10 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // An instance admin can save a public URL (Instance admin › Instance &
@@ -24,9 +27,10 @@ func init() {
 	})
 }
 
-// effectivePublicURL is the saved public URL, else http.public_url.
+// effectivePublicURL is the saved public URL, else http.public_url (always
+// http.public_url when the server locks it).
 func (a *App) effectivePublicURL(saved string) string {
-	return publicurl.Effective(saved, a.Cfg.HTTP.PublicURL)
+	return publicurl.Effective(saved, a.Cfg.HTTP.PublicURL, a.Cfg.HTTP.PublicURLLocked)
 }
 
 // loadPublicURL applies the saved public URL and reports whether it changed.
@@ -50,8 +54,11 @@ func (a *App) setPublicURL(saved string) bool {
 }
 
 // followPublicURL re-reads the saved public URL until ctx ends, so the
-// processes that didn't save it (workers, other web processes) follow.
+// processes that didn't save it (workers, other web processes) follow. It
+// first records an address the server locks (PinPublicURL), and tries again
+// at each refresh until that works (a schema not migrated yet).
 func (a *App) followPublicURL(ctx context.Context) {
+	pinned := a.pin(ctx)
 	t := time.NewTicker(publicURLRefresh)
 	defer t.Stop()
 	for {
@@ -59,9 +66,65 @@ func (a *App) followPublicURL(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+			if !pinned {
+				pinned = a.pin(ctx)
+			}
 			a.loadPublicURL(ctx)
 		}
 	}
+}
+
+func (a *App) pin(ctx context.Context) bool {
+	if err := a.PinPublicURL(ctx); err != nil {
+		a.Log.WarnContext(ctx, "record the locked public URL", "err", err)
+		return false
+	}
+	return true
+}
+
+// PinPublicURL makes the address the server locks (http.public_url_locked)
+// the saved public URL when another one is saved, and moves provider
+// webhooks to it when an admin had saved another address. So turning the
+// lock on, or the operator changing the locked address, takes effect at the
+// next start without anyone saving it in Instance admin. One process wins
+// the update, so webhooks move once; the change is audited as the server
+// configuration's.
+func (a *App) PinPublicURL(ctx context.Context) error {
+	if !a.Cfg.HTTP.PublicURLLocked {
+		return nil
+	}
+	to := publicurl.Effective("", a.Cfg.HTTP.PublicURL, true)
+	st, err := a.Q.GetInstanceSettings(ctx)
+	if err != nil {
+		return err
+	}
+	if publicurl.Same(st.PublicUrl, to) {
+		return nil
+	}
+	n, err := a.Q.InstancePinPublicURL(ctx, store.InstancePinPublicURLParams{ToUrl: to, FromUrl: st.PublicUrl})
+	if err != nil || n == 0 {
+		return err // n == 0: another process recorded it
+	}
+	a.setPublicURL(to)
+	ev := audit.Event{Action: "instance.public_url_pinned", TargetType: "instance", TargetName: st.Name,
+		Actor:  &audit.Actor{Type: authz.ActorSystem, Name: "Server configuration"},
+		Reason: "http.public_url_locked", Before: map[string]any{"public_url": st.PublicUrl}, After: map[string]any{"public_url": to}}
+	if st.PublicUrl != "" {
+		// Links used the saved address until now: webhooks move with them.
+		mv, err := a.providersService().PublicURLMoved(ctx, to)
+		manual := make([]string, 0, len(mv.Manual))
+		for _, m := range mv.Manual {
+			manual = append(manual, m.Workspace+" › "+m.Provider+": "+m.URL)
+		}
+		ev.Metadata = map[string]any{"webhooks_reregistering": mv.Reregistering, "webhooks_manual": manual}
+		if err != nil {
+			a.Log.WarnContext(ctx, "move provider webhooks to the locked public URL", "err", err)
+		}
+		if len(manual) > 0 {
+			a.Log.WarnContext(ctx, "provider webhooks to change by hand for the locked public URL", "url", to, "webhooks", manual)
+		}
+	}
+	return a.Audit.Log(ctx, ev)
 }
 
 // currentPublicURL reads the public URL from the database, for work that

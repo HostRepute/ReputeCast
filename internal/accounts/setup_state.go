@@ -9,6 +9,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -70,6 +71,12 @@ type SetupInstance struct {
 	UpdateCheck bool   `json:"updateCheck"`
 	Confirmed   bool   `json:"confirmed"`
 	Version     string `json:"version"`
+	// PublicURLLocked: the server pins the public URL
+	// (http.public_url_locked); PublicURL is the configured address.
+	PublicURLLocked bool `json:"publicUrlLocked"`
+	// UpdateCheckAllowed is false when the server configuration turns the
+	// update check off (updates.check = false).
+	UpdateCheckAllowed bool `json:"updateCheckAllowed"`
 }
 
 // Setup returns the setup steps for the signed-in person.
@@ -96,12 +103,10 @@ func (s *Service) Setup(ctx context.Context) (SetupState, error) {
 		Password:      SetupPassword{MustChange: u.MustChangePassword, MinLength: int(st.PasswordMinLength), BreachedCheck: st.BreachedCheck},
 		SecondFactor:  SetupSecondFactor{TOTP: u.TotpEnabledAt != nil, Passkeys: []string{}},
 		RecoveryCodes: SetupRecoveryCodes{Remaining: int(codes), SavedAt: u.RecoveryCodesSavedAt},
-		Instance: SetupInstance{Name: st.Name, PublicURL: st.PublicUrl, Timezone: st.DefaultTimezone, UpdateCheck: st.UpdateCheck,
-			Confirmed: st.BasicsConfirmedAt != nil, Version: version.Get().Version},
+		Instance: SetupInstance{Name: st.Name, PublicURL: publicurl.Effective(st.PublicUrl, s.Cfg.HTTP.PublicURL, s.publicURLLocked()), Timezone: st.DefaultTimezone, UpdateCheck: st.UpdateCheck,
+			Confirmed: st.BasicsConfirmedAt != nil, Version: version.Get().Version,
+			PublicURLLocked: s.publicURLLocked(), UpdateCheckAllowed: s.updateCheckAllowed()},
 		Steps: []SetupStep{},
-	}
-	if out.Instance.PublicURL == "" {
-		out.Instance.PublicURL = s.publicURL(ctx)
 	}
 	for _, k := range keys {
 		out.SecondFactor.Passkeys = append(out.SecondFactor.Passkeys, k.Name)

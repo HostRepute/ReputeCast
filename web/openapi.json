@@ -39030,6 +39030,9 @@
           "publicUrl": {
             "type": "string"
           },
+          "publicUrlLocked": {
+            "type": "boolean"
+          },
           "urlCheck": {
             "$ref": "#/components/schemas/URLCheck"
           },
@@ -39040,7 +39043,8 @@
         "required": [
           "name",
           "publicUrl",
-          "defaultTimezone"
+          "defaultTimezone",
+          "publicUrlLocked"
         ],
         "type": "object"
       },
@@ -39435,6 +39439,9 @@
           },
           "latest": {
             "$ref": "#/components/schemas/InstanceRelease"
+          },
+          "managedBy": {
+            "type": "string"
           },
           "release": {
             "type": "boolean"
@@ -75600,10 +75607,16 @@
           "publicUrl": {
             "type": "string"
           },
+          "publicUrlLocked": {
+            "type": "boolean"
+          },
           "timezone": {
             "type": "string"
           },
           "updateCheck": {
+            "type": "boolean"
+          },
+          "updateCheckAllowed": {
             "type": "boolean"
           },
           "version": {
@@ -75616,7 +75629,9 @@
           "timezone",
           "updateCheck",
           "confirmed",
-          "version"
+          "version",
+          "publicUrlLocked",
+          "updateCheckAllowed"
         ],
         "type": "object"
       },
@@ -92582,6 +92597,9 @@
           },
           "tls": {
             "$ref": "#/components/schemas/CheckLine"
+          },
+          "url": {
+            "type": "string"
           }
         },
         "required": [

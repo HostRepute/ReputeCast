@@ -32,7 +32,7 @@ func init() {
 var agencyChannels = func(*App) []agency.ChannelUsage { return agency.MessageChannels() }
 
 func agencyService(a *App) *agency.Service {
-	return &agency.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Deps: func() agency.Deps {
+	return &agency.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Cfg: a.Cfg, Deps: func() agency.Deps {
 		_, dl := deliverabilityServices(a)
 		ov := &overview.Service{Pool: a.Pool, Q: a.Q, Deliverability: dl, Providers: a.providersService(),
 			Campaigns: &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}, Audience: overview.AudienceCards{Service: a.audience(), Q: a.Q}}

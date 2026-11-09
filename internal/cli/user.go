@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/logging"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -69,10 +71,7 @@ func newUserCmd(o *rootOpts) *cobra.Command {
 					if err != nil {
 						return err
 					}
-					base := cfgPublicURL(cmd, o)
-					if st, err := q.GetInstanceSettings(ctx); err == nil && st.PublicUrl != "" {
-						base = st.PublicUrl
-					}
+					base := cliPublicURL(ctx, cmd, o, q)
 					_ = al.Log(ctx, audit.Event{Action: "user.password_reset_link", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: cli, Reason: "reset link from the server CLI"})
 					fmt.Fprintf(out, "One-time password reset link for %s (works once, until %s):\n\n  %s\n\n", u.Email, expires.Format("15:04 MST"), accounts.ResetLink(base, token))
 					fmt.Fprintln(out, "Send it to them privately. Their current password keeps working until they use it.")
@@ -167,11 +166,17 @@ func newUserCmd(o *rootOpts) *cobra.Command {
 	return cmd
 }
 
-// cfgPublicURL is the configured public URL (used before instance settings exist).
-func cfgPublicURL(cmd *cobra.Command, o *rootOpts) string {
+// cliPublicURL is the address the server's links use: the one saved in
+// Instance admin, else http.public_url, which wins whenever the server
+// locks it (http.public_url_locked).
+func cliPublicURL(ctx context.Context, cmd *cobra.Command, o *rootOpts, q *store.Queries) string {
 	cfg, _, err := o.load(cmd)
 	if err != nil {
 		return ""
 	}
-	return cfg.HTTP.PublicURL
+	saved := ""
+	if st, err := q.GetInstanceSettings(ctx); err == nil {
+		saved = st.PublicUrl
+	}
+	return publicurl.Effective(saved, cfg.HTTP.PublicURL, cfg.HTTP.PublicURLLocked)
 }

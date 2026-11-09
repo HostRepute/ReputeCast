@@ -49,6 +49,9 @@ const (
 	CodeProviderUnavailable = "provider_unavailable"
 	CodeUnavailable         = "unavailable"
 	CodeInternal            = "internal_error"
+	// CodeOperatorLocked refuses a change to a setting the server's
+	// configuration pins (http.public_url_locked).
+	CodeOperatorLocked = "operator_locked"
 )
 
 func init() {

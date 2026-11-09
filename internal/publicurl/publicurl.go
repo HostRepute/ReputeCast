@@ -32,12 +32,40 @@ const (
 
 // Effective is the instance's public URL: the address saved in the instance
 // settings, else the server's http.public_url, without a trailing slash.
-// Every reader of the setting goes through it, so they all agree.
-func Effective(saved, configured string) string {
-	if s := strings.TrimSpace(saved); s != "" {
+// When the server locks it (http.public_url_locked) the configured address
+// wins whatever was saved. Every reader of the setting goes through it, so
+// they all agree.
+func Effective(saved, configured string, locked bool) string {
+	if s := strings.TrimSpace(saved); s != "" && !locked {
 		return strings.TrimRight(s, "/")
 	}
 	return strings.TrimRight(strings.TrimSpace(configured), "/")
+}
+
+// Setting is the public URL as the instance settings report it: the saved
+// address (empty when none was saved), or the configured one when the server
+// locks it (http.public_url_locked). Effective is what links use.
+func Setting(saved, configured string, locked bool) string {
+	if locked {
+		return strings.TrimRight(strings.TrimSpace(configured), "/")
+	}
+	return saved
+}
+
+// Same reports whether two public URLs name the same address: the same
+// scheme, host and port (in any case) and path (with or without a trailing
+// slash). A query, fragment or user info doesn't count; an address that
+// doesn't parse is compared as written.
+func Same(a, b string) bool {
+	norm := func(s string) string {
+		s = strings.TrimSpace(s)
+		u, err := url.Parse(s)
+		if err != nil || u.Host == "" {
+			return strings.ToLower(strings.TrimRight(s, "/"))
+		}
+		return strings.ToLower(u.Scheme) + "://" + strings.ToLower(u.Host) + strings.TrimRight(u.EscapedPath(), "/")
+	}
+	return norm(a) == norm(b)
 }
 
 // Source is the instance's public URL as it is now: the server's
