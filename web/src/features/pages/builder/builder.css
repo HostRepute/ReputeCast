@@ -282,6 +282,7 @@
   height: 12px;
   border-radius: 3px;
   display: inline-block;
+  box-shadow: inset 0 0 0 1px var(--swatch-ring);
 }
 /*
  * The canvas grows with the page and the window scrolls. The zoomed frame
@@ -478,7 +479,7 @@
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--swatch-edge);
   display: inline-block;
 }
 .pb-swb[aria-pressed='true'] {

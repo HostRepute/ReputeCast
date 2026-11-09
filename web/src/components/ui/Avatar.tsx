@@ -9,10 +9,10 @@ const palettes = {
   bad: { bg: 'var(--bad-bg)', fg: 'var(--bad-fg)' },
   accent: { bg: 'var(--accent)', fg: 'var(--on-strong)' },
   // Team boards: Marcus Chen's avatar, and muted rows (deactivated members, invitees, the system).
-  pink: { bg: '#FCE7F3', fg: '#9D174D' },
+  pink: { bg: 'var(--pink-bg)', fg: 'var(--pink-fg)' },
   muted: { bg: 'var(--line-2)', fg: 'var(--ink-3)' },
   // Kenji Watanabe on InstanceUsers.
-  sky: { bg: '#E0F2FE', fg: '#075985' },
+  sky: { bg: 'var(--sky-bg)', fg: 'var(--sky-fg)' },
 } as const
 
 export type AvatarColor = keyof typeof palettes

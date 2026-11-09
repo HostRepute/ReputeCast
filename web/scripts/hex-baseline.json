@@ -1,7 +1,6 @@
 {
   "src/components/icons/Icon.tsx": 8,
   "src/components/shell/WorkspaceSwitcher.tsx": 3,
-  "src/components/ui/Avatar.tsx": 4,
   "src/features/accessibility/composer/ColorPicker.tsx": 2,
   "src/features/accessibility/composer/contrastSpec.ts": 3,
   "src/features/accessibility/contrast.ts": 2,

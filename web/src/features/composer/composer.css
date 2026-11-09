@@ -360,7 +360,7 @@
   width: 22px;
   height: 22px;
   border-radius: 5px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--swatch-edge);
   flex: none;
   box-sizing: content-box;
   padding: 0;
@@ -1117,4 +1117,11 @@ label.tg {
   height: 18px;
   background: rgba(255, 255, 255, 0.24);
   margin: 0 2px;
+}
+
+/* Dashed "nothing here yet" outlines (the gallery's import tile, empty inbox
+   lines and thumbnails) are drawn in line colours that fade on dark cards:
+   in the dark theme they take line-hover, so the dashes still read. */
+:root[data-theme='dark'] :is(.tpl[style*='dashed'], .cmp-inbox.empty, .cmp .gmail.empty, .thumb.mini .mempty) {
+  border-color: var(--line-hover);
 }
