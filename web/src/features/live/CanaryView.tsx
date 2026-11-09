@@ -351,7 +351,7 @@ function CanaryMailboxTable({ s, rates }: { s: Snapshot; rates?: RatesControl })
         ) : null}
       </div>
       {rates?.open ? rates.panel : null}
-      <Table density="compact" className="lv-tbl" phoneWrap>
+      <Table density="compact" className="lv-tbl">
         <thead>
           <tr>
             <Th>{t(m.colMailbox)}</Th>
@@ -427,7 +427,7 @@ function CanaryProviderTable({ s }: { s: Snapshot }) {
         <h2 className="h2">{t(m.perProvider)}</h2>
         <span className="k">{t(mm.whoDelivers)}</span>
       </div>
-      <Table density="compact" className="lv-tbl" phoneWrap>
+      <Table density="compact" className="lv-tbl">
         <thead>
           <tr>
             <Th>{t(m.colProvider)}</Th>
