@@ -33,6 +33,15 @@ func TestDoctor(t *testing.T) {
 		}
 	}
 
+	// A locked public URL only this machine reaches.
+	locked := cfg
+	locked.HTTP.PublicURL, locked.HTTP.PublicURLLocked = "http://localhost:8080", true
+	out.Reset()
+	_ = printChecks(&out, runDoctor(ctx, &locked, right))
+	if !strings.Contains(out.String(), "[warn] Public URL") || !strings.Contains(out.String(), "http.public_url_locked") {
+		t.Fatalf("locked localhost:\n%s", out.String())
+	}
+
 	// Restored with another key: the sealed values don't open.
 	k := make([]byte, 32)
 	_, _ = rand.Read(k)

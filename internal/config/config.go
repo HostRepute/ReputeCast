@@ -136,6 +136,11 @@ type HTTPConfig struct {
 	// PublicURL is the externally reachable base URL. It is used for provider
 	// webhooks, SSO redirects, passkeys (relying party) and public pages.
 	PublicURL string `koanf:"public_url"`
+	// PublicURLLocked pins the public URL to PublicURL: an address saved in
+	// Instance admin is ignored and can't be changed there. For an operator
+	// who runs the instance for someone else and owns its DNS and TLS
+	// (REPUTECAST_HTTP__PUBLIC_URL_LOCKED).
+	PublicURLLocked bool `koanf:"public_url_locked"`
 	// TrustedProxies lists CIDRs whose X-Forwarded-For header is trusted.
 	TrustedProxies []string `koanf:"trusted_proxies"`
 	// RateLimitAuth and RateLimitAPI are requests per minute: sign-in
@@ -198,6 +203,10 @@ type WorkerConfig struct {
 type UpdatesConfig struct {
 	Check bool   `koanf:"check"`
 	Repo  string `koanf:"repo"`
+	// ManagedBy names who upgrades this instance when the server's operator
+	// does (a hosting company, an IT team). Version & updates then says so
+	// instead of showing the docker compose upgrade command.
+	ManagedBy string `koanf:"managed_by"`
 }
 
 // MetricsConfig configures the Prometheus endpoint. By default /metrics is

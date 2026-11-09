@@ -107,14 +107,14 @@ func (s *Service) social() SocialEndpoints {
 // publicURL is where people open ReputeCast (instance settings, then
 // config), without a trailing slash. Redirect URIs are built from it.
 func (s *Service) publicURL(ctx context.Context) string {
-	saved, configured := "", ""
+	saved, configured, locked := "", "", false
 	if st, err := s.Q.GetInstanceSettings(ctx); err == nil {
 		saved = st.PublicUrl
 	}
 	if s.Cfg != nil {
-		configured = s.Cfg.HTTP.PublicURL
+		configured, locked = s.Cfg.HTTP.PublicURL, s.Cfg.HTTP.PublicURLLocked
 	}
-	return publicurl.Effective(saved, configured)
+	return publicurl.Effective(saved, configured, locked)
 }
 
 // SSOPreset describes an identity provider family: the issuer pattern, scopes,

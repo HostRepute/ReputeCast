@@ -24,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -974,10 +975,12 @@ func (s *Service) Reachability(ctx context.Context) IntegrationReachability {
 		out.DNS = accounts.CheckLine{Status: "bad", Detail: text(ctx, "check.noPublicURL", nil)}
 		return out
 	}
-	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && len(st.PublicUrlCheck) > 0 && string(st.PublicUrlCheck) != "null" &&
-		strings.TrimRight(st.PublicUrl, "/") == strings.TrimRight(out.URL, "/") {
+	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && len(st.PublicUrlCheck) > 0 && string(st.PublicUrlCheck) != "null" {
 		var c accounts.URLCheck
-		if json.Unmarshal(st.PublicUrlCheck, &c) == nil {
+		// The kept check counts when it is this address's: the one it names,
+		// or (kept before checks named it) the saved one, unless locked.
+		if json.Unmarshal(st.PublicUrlCheck, &c) == nil && (publicurl.Same(c.URL, out.URL) ||
+			(c.URL == "" && !s.publicURLLocked() && strings.TrimRight(st.PublicUrl, "/") == strings.TrimRight(out.URL, "/"))) {
 			c = c.In(lang(ctx))
 			out.DNS, out.TLS, out.Reach = c.DNS, c.TLS, c.Reachable
 			out.CheckedAt = st.PublicUrlCheckedAt
@@ -1007,7 +1010,7 @@ func (s *Service) CheckReachability(ctx context.Context) (IntegrationReachabilit
 	if err != nil {
 		return IntegrationReachability{}, err
 	}
-	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && (strings.TrimRight(st.PublicUrl, "/") == s.base() || st.PublicUrl == "") {
+	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && (s.publicURLLocked() || strings.TrimRight(st.PublicUrl, "/") == s.base() || st.PublicUrl == "") {
 		b, _ := json.Marshal(res)
 		_ = s.Q.InstanceAdminSetURLCheck(ctx, b)
 	}

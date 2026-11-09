@@ -11,6 +11,7 @@ import (
 	"image"
 	"image/png"
 	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -24,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -46,6 +48,9 @@ type InstanceSettings struct {
 	// webhook; the command line and the HTTPS-only cookie setting still read
 	// it.
 	ConfigPublicURL string `json:"configPublicUrl,omitempty"`
+	// PublicURLLocked: the server pins the public URL (http.public_url_locked).
+	// PublicURL is then the configured address and a save can't change it.
+	PublicURLLocked bool `json:"publicUrlLocked"`
 	// Webhooks is set on a save that moved the public URL.
 	Webhooks *PublicURLWebhooks `json:"webhooks,omitempty"`
 }
@@ -73,12 +78,15 @@ func (s *Service) Settings(ctx context.Context) (InstanceSettings, error) {
 	if s.Cfg != nil {
 		out.ConfigPublicURL = s.Cfg.HTTP.PublicURL
 	}
+	if s.publicURLLocked() {
+		out.PublicURL, out.PublicURLLocked = s.publicURL(st), true
+	}
 	if st.LogoSvg != nil {
 		out.LogoSVG = *st.LogoSvg
 	}
 	if len(st.PublicUrlCheck) > 0 && string(st.PublicUrlCheck) != "null" {
 		var c accounts.URLCheck
-		if json.Unmarshal(st.PublicUrlCheck, &c) == nil {
+		if json.Unmarshal(st.PublicUrlCheck, &c) == nil && s.checkDescribes(c, st) {
 			if st.PublicUrlCheckedAt != nil {
 				c.CheckedAt = *st.PublicUrlCheckedAt
 			}
@@ -110,7 +118,7 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 	if name == "" {
 		return InstanceSettings{}, api.Invalid("body.name", say(ctx, "problem.instanceName", nil))
 	}
-	pub, err := normalizePublicURL(ctx, in.PublicURL)
+	pub, err := s.publicURLToSave(ctx, before, in.PublicURL)
 	if err != nil {
 		return InstanceSettings{}, err
 	}
@@ -181,6 +189,29 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 	return out, nil
 }
 
+// checkDescribes reports whether a kept URL check is about the public URL
+// people open now. Checks kept before they named their address are taken
+// as the saved address's, unless the server locks another one.
+func (s *Service) checkDescribes(c accounts.URLCheck, st store.InstanceSetting) bool {
+	if c.URL != "" {
+		return publicurl.Same(c.URL, s.publicURL(st))
+	}
+	return !s.publicURLLocked()
+}
+
+// publicURLToSave is the public URL a save stores. When the server locks it
+// the stored value stays as it is (the configured address is used anyway),
+// and asking for another address is refused.
+func (s *Service) publicURLToSave(ctx context.Context, before store.InstanceSetting, raw string) (string, error) {
+	if !s.publicURLLocked() {
+		return normalizePublicURL(ctx, raw)
+	}
+	if strings.TrimSpace(raw) != "" && !publicurl.Same(raw, s.publicURL(before)) {
+		return "", api.Err(http.StatusConflict, api.CodeOperatorLocked, say(ctx, "problem.publicURLLocked", i18n.Args{"setting": "http.public_url_locked"}))
+	}
+	return before.PublicUrl, nil
+}
+
 func normalizePublicURL(ctx context.Context, raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	u, err := url.Parse(raw)
@@ -219,7 +250,13 @@ func (s *Service) CheckURL(ctx context.Context, in InstanceURLCheckInput) (Insta
 	if err != nil {
 		return out, err
 	}
-	if target == strings.TrimRight(st.PublicUrl, "/") || st.PublicUrl == "" {
+	// The kept check is the public URL's: under the lock only the pinned
+	// address's.
+	keep := target == strings.TrimRight(st.PublicUrl, "/") || st.PublicUrl == ""
+	if s.publicURLLocked() {
+		keep = publicurl.Same(target, s.publicURL(st))
+	}
+	if keep {
 		if err := s.Q.InstanceAdminSetURLCheck(ctx, mustJSON(res)); err != nil {
 			return out, err
 		}

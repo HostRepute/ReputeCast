@@ -103,6 +103,7 @@
   "problem.wrongSetupCode": "Ese código no funcionó. Los códigos cambian cada 30 segundos; comprueba que la hora de tu móvil se ajusta automáticamente.",
   "problem.noSecondFactor": "Configura antes una aplicación de autenticación o una llave de acceso; los códigos de recuperación son la copia de seguridad de un segundo factor.",
   "problem.instanceURL": "Usa la dirección completa que abren las personas, como https://reputecast.acme.io.",
+  "problem.publicURLLocked": "Quien gestiona el servidor fijó la URL pública ({setting}), así que no se puede cambiar aquí.",
   "problem.instanceName": "Ponle un nombre a la instancia, como Acme ReputeCast.",
   "problem.language": "Elige un idioma al que esté traducido ReputeCast.",
   "problem.checkURL": "Usa la dirección completa, como https://reputecast.acme.io.",

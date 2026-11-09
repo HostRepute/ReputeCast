@@ -69,6 +69,9 @@ type InstanceVersion struct {
 	UpdateAvailable bool             `json:"updateAvailable"`
 	UpgradeCommand  string           `json:"upgradeCommand"`
 	ReleasesURL     string           `json:"releasesUrl"`
+	// ManagedBy names who upgrades this instance when the server's operator
+	// does (updates.managed_by); UpgradeCommand doesn't apply then.
+	ManagedBy string `json:"managedBy,omitempty"`
 }
 
 func (s *Service) repo() string {
@@ -90,6 +93,9 @@ func (s *Service) Version(ctx context.Context) (InstanceVersion, error) {
 	out := InstanceVersion{Installed: v.Version, Commit: v.Commit, Release: semver(v.Version) != nil, CheckEnabled: st.UpdateCheck, CheckAllowed: s.checkAllowed(),
 		CheckedAt: st.UpdateCheckedAt, CheckError: checkErrorIn(i18n.LangFrom(ctx), st.UpdateCheckError), UpgradeCommand: UpgradeCommand,
 		ReleasesURL: "https://github.com/" + s.repo() + "/releases"}
+	if s.Cfg != nil {
+		out.ManagedBy = strings.TrimSpace(s.Cfg.Updates.ManagedBy)
+	}
 	if out.CheckedAt == nil {
 		out.CheckedAt = st.LatestReleaseAt
 	}

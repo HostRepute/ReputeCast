@@ -73,8 +73,16 @@ func (s *Service) publicURL(ctx context.Context) string {
 	if st, err := s.policy(ctx); err == nil {
 		saved = st.PublicUrl
 	}
-	return publicurl.Effective(saved, s.Cfg.HTTP.PublicURL)
+	return publicurl.Effective(saved, s.Cfg.HTTP.PublicURL, s.Cfg.HTTP.PublicURLLocked)
 }
+
+// publicURLLocked reports whether the server pins the public URL
+// (http.public_url_locked), so the first sign-in shows it read only.
+func (s *Service) publicURLLocked() bool { return s.Cfg != nil && s.Cfg.HTTP.PublicURLLocked }
+
+// updateCheckAllowed is false when the server configuration turns the
+// update check off (updates.check = false).
+func (s *Service) updateCheckAllowed() bool { return s.Cfg == nil || s.Cfg.Updates.Check }
 
 // methodAllowed reports whether the instance allows a sign-in method
 // (password, passkey, social, sso).

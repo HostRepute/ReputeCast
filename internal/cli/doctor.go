@@ -119,7 +119,9 @@ func runDoctor(ctx context.Context, cfg *config.Config, openBox func(*config.Con
 	out = append(out, segmentsRoleCheck(ctx, pool))
 	if u, err := url.Parse(cfg.HTTP.PublicURL); err != nil || u.Host == "" {
 		add("Public URL", checkFail, "http.public_url isn't a URL: %q", cfg.HTTP.PublicURL)
-	} else if u.Scheme != "https" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" {
+	} else if local := u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1"; local && cfg.HTTP.PublicURLLocked {
+		add("Public URL", checkWarn, "%s is locked (http.public_url_locked) but only this machine reaches it: set REPUTECAST_PUBLIC_URL to the address people open", cfg.HTTP.PublicURL)
+	} else if u.Scheme != "https" && !local {
 		add("Public URL", checkWarn, "%s isn't https: links in emails and sign-in cookies need it", cfg.HTTP.PublicURL)
 	} else {
 		add("Public URL", checkOK, "%s", cfg.HTTP.PublicURL)

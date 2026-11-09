@@ -4,6 +4,7 @@
   "problem.language": "Hãy chọn một ngôn ngữ mà ReputeCast đã được dịch sang, và một định dạng khu vực.",
   "problem.publicURL": "Hãy dùng địa chỉ đầy đủ mà mọi người mở, như https://reputecast.acme.io.",
   "problem.noPublicURL": "Hãy nhập URL công khai trước.",
+  "problem.publicURLLocked": "Người vận hành máy chủ đã đặt URL công khai ({setting}) nên không thể đổi ở đây.",
   "problem.logoUnreadable": "Không đọc được tệp. Hãy tải lên tệp SVG hoặc PNG.",
   "problem.pngLarge": "Ảnh PNG lớn hơn 512 KB. Hãy dùng ảnh vuông nhỏ hơn.",
   "problem.pngDecode": "Không giải mã được ảnh PNG đó.",

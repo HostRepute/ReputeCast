@@ -34,6 +34,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -50,6 +51,8 @@ type Service struct {
 	Q     *store.Queries
 	Audit *audit.Logger
 	Now   func() time.Time
+	// Cfg is the server configuration (the public URL it may pin).
+	Cfg *config.Config
 	// Deps are the domain services the agency drives (invitations, copies
 	// into clients, sender health, deleting a client). Built lazily by the
 	// wiring so the services that reference each other can be constructed.
@@ -106,6 +109,9 @@ func (s *Service) settings(ctx context.Context, q *store.Queries) (settings, err
 	}
 	st := settings{Enabled: r.Enabled, Name: strings.TrimSpace(r.Name), DefaultTemplateID: r.DefaultTemplateID, EnabledBy: r.EnabledBy,
 		EnabledByName: r.EnabledByName, EnabledAt: r.EnabledAt, InstanceName: r.InstanceName, PublicURL: r.InstancePublicUrl}
+	if s.Cfg != nil {
+		st.PublicURL = publicurl.Setting(r.InstancePublicUrl, s.Cfg.HTTP.PublicURL, s.Cfg.HTTP.PublicURLLocked)
+	}
 	if st.Name == "" {
 		st.Name = r.InstanceName
 	}
@@ -114,7 +120,7 @@ func (s *Service) settings(ctx context.Context, q *store.Queries) (settings, err
 
 // host is the instance's address without the scheme ("app.northwind.studio").
 func host(publicURL string) string {
-	h := strings.TrimPrefix(strings.TrimPrefix(publicurl.Effective(publicURL, ""), "https://"), "http://")
+	h := strings.TrimPrefix(strings.TrimPrefix(publicurl.Effective(publicURL, "", false), "https://"), "http://")
 	return strings.TrimRight(h, "/")
 }
 

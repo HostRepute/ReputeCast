@@ -15,6 +15,14 @@ SET name = @name, logo_svg = @logo_svg, public_url = @public_url,
 WHERE id
 RETURNING *;
 
+-- name: InstancePinPublicURL :execrows
+-- The server locks the public URL (http.public_url_locked): it becomes the
+-- saved one, once, when another address was saved. The last URL check
+-- described the old address.
+UPDATE instance_settings
+SET public_url = @to_url, public_url_check = NULL, public_url_checked_at = NULL, updated_at = now()
+WHERE id AND public_url = @from_url;
+
 -- name: UpdateAuthPolicy :one
 UPDATE instance_settings
 SET allowed_methods = @allowed_methods, password_min_length = @password_min_length,

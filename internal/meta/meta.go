@@ -11,6 +11,8 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/applang"
+	"github.com/hostrepute/reputecast/internal/config"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -46,7 +48,8 @@ type InstanceInfo struct {
 
 // Service reads the instance settings.
 type Service struct {
-	Q *store.Queries
+	Q   *store.Queries
+	Cfg *config.Config
 }
 
 // Get returns the public instance description.
@@ -64,6 +67,9 @@ func (s *Service) Get(ctx context.Context) (InstanceInfo, error) {
 		SSO:           []SSOOption{},
 
 		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat, Languages: applang.Languages(),
+	}
+	if s.Cfg != nil {
+		info.PublicURL = publicurl.Setting(st.PublicUrl, s.Cfg.HTTP.PublicURL, s.Cfg.HTTP.PublicURLLocked)
 	}
 	if st.LogoSvg != nil {
 		info.LogoSVG = *st.LogoSvg

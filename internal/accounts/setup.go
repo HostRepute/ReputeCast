@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/passwordreuse"
+	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
@@ -235,9 +236,17 @@ type InstanceBasics struct {
 // SaveInstanceBasics stores the instance name, public URL, timezone and
 // update check, and marks the setup step done.
 func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) error {
-	u, err := url.Parse(strings.TrimRight(in.PublicURL, "/"))
-	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-		return api.Invalid("body.publicUrl", say(ctx, msgs.M("problem.instanceURL")))
+	before, err := s.policy(ctx)
+	if err != nil {
+		return err
+	}
+	pub, err := s.basicsPublicURL(ctx, before, in.PublicURL)
+	if err != nil {
+		return err
+	}
+	if !s.updateCheckAllowed() {
+		// The server configuration has it off; the stored switch stays.
+		in.UpdateCheck = before.UpdateCheck
 	}
 	if strings.TrimSpace(in.Name) == "" {
 		return api.Invalid("body.name", say(ctx, msgs.M("problem.instanceName")))
@@ -245,7 +254,6 @@ func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) err
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
 		return api.Invalid("body.timezone", say(ctx, msgs.M("problem.timezone")))
 	}
-	before, _ := s.policy(ctx)
 	lang, region := before.DefaultLanguage, before.DefaultRegionFormat
 	if in.DefaultLanguage != "" && in.DefaultLanguage != lang {
 		l, ok := i18n.ParseLocale(in.DefaultLanguage)
@@ -257,7 +265,7 @@ func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) err
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.UpdateInstanceBasics(ctx, store.UpdateInstanceBasicsParams{
-			Name: strings.TrimSpace(in.Name), LogoSvg: before.LogoSvg, PublicUrl: u.String(), DefaultTimezone: in.Timezone, UpdateCheck: in.UpdateCheck,
+			Name: strings.TrimSpace(in.Name), LogoSvg: before.LogoSvg, PublicUrl: pub, DefaultTimezone: in.Timezone, UpdateCheck: in.UpdateCheck,
 		}); err != nil {
 			return err
 		}
@@ -270,20 +278,40 @@ func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) err
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.settings_update", TargetType: "instance", TargetName: in.Name,
 			Before: map[string]any{"name": before.Name, "public_url": before.PublicUrl, "timezone": before.DefaultTimezone, "update_check": before.UpdateCheck,
 				"default_language": before.DefaultLanguage, "default_region_format": before.DefaultRegionFormat},
-			After: map[string]any{"name": in.Name, "public_url": u.String(), "timezone": in.Timezone, "update_check": in.UpdateCheck,
+			After: map[string]any{"name": in.Name, "public_url": pub, "timezone": in.Timezone, "update_check": in.UpdateCheck,
 				"default_language": lang, "default_region_format": region}})
 	})
 	if err == nil && s.OnPolicyChange != nil {
 		s.OnPolicyChange()
 	}
-	if err == nil && s.OnPublicURL != nil && before.PublicUrl != u.String() {
-		s.OnPublicURL(ctx, before.PublicUrl, u.String())
+	if err == nil && s.OnPublicURL != nil && before.PublicUrl != pub {
+		s.OnPublicURL(ctx, before.PublicUrl, pub)
 	}
 	return err
 }
 
+// basicsPublicURL is the public URL the instance basics store. When the
+// server locks it (http.public_url_locked) the stored value stays as it is,
+// since the configured address is used anyway, and another address is
+// refused.
+func (s *Service) basicsPublicURL(ctx context.Context, before store.InstanceSetting, raw string) (string, error) {
+	if s.publicURLLocked() {
+		if strings.TrimSpace(raw) != "" && !publicurl.Same(raw, s.Cfg.HTTP.PublicURL) {
+			return "", api.Err(http.StatusConflict, api.CodeOperatorLocked, say(ctx, msgs.M("problem.publicURLLocked"), "setting", "http.public_url_locked"))
+		}
+		return before.PublicUrl, nil
+	}
+	u, err := url.Parse(strings.TrimRight(raw, "/"))
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+		return "", api.Invalid("body.publicUrl", say(ctx, msgs.M("problem.instanceURL")))
+	}
+	return u.String(), nil
+}
+
 // URLCheck reports whether the public URL resolves, has valid TLS and answers.
 type URLCheck struct {
+	// URL is the address checked (empty in checks kept before it was recorded).
+	URL       string    `json:"url,omitempty"`
 	CheckedAt time.Time `json:"checkedAt"`
 	DNS       CheckLine `json:"dns"`
 	TLS       CheckLine `json:"tls"`
@@ -355,7 +383,7 @@ func (c *CheckLine) UnmarshalJSON(b []byte) error {
 // /healthz. The lines are in English with their messages kept; callers
 // answer with URLCheck.In.
 func (s *Service) CheckPublicURL(ctx context.Context, raw string) (URLCheck, error) {
-	res := URLCheck{CheckedAt: s.now()}
+	res := URLCheck{CheckedAt: s.now(), URL: strings.TrimRight(strings.TrimSpace(raw), "/")}
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" {
 		return res, api.Invalid("body.url", say(ctx, msgs.M("problem.checkURL")))

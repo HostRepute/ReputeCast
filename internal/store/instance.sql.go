@@ -126,6 +126,28 @@ func (q *Queries) GetInstanceSettings(ctx context.Context) (InstanceSetting, err
 	return i, err
 }
 
+const instancePinPublicURL = `-- name: InstancePinPublicURL :execrows
+UPDATE instance_settings
+SET public_url = $1, public_url_check = NULL, public_url_checked_at = NULL, updated_at = now()
+WHERE id AND public_url = $2
+`
+
+type InstancePinPublicURLParams struct {
+	ToUrl   string `json:"toUrl"`
+	FromUrl string `json:"fromUrl"`
+}
+
+// The server locks the public URL (http.public_url_locked): it becomes the
+// saved one, once, when another address was saved. The last URL check
+// described the old address.
+func (q *Queries) InstancePinPublicURL(ctx context.Context, arg InstancePinPublicURLParams) (int64, error) {
+	result, err := q.db.Exec(ctx, instancePinPublicURL, arg.ToUrl, arg.FromUrl)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const setLatestRelease = `-- name: SetLatestRelease :exec
 UPDATE instance_settings SET latest_release = $1, latest_release_at = now() WHERE id
 `

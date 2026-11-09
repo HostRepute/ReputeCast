@@ -37,7 +37,7 @@ var (
 
 // registerAPI adds every domain's Huma operations.
 func registerAPI(a *App, h huma.API) {
-	meta.Register(h, &meta.Service{Q: a.Q})
+	meta.Register(h, &meta.Service{Q: a.Q, Cfg: a.Cfg})
 	accounts.Register(h, &accounts.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Cfg: a.Cfg, Mail: a.Mail, Log: a.Log,
 		Breach: authn.NewBreachChecker(), OnPolicyChange: a.InvalidatePolicy,

@@ -103,6 +103,7 @@
   "problem.wrongSetupCode": "Mã không đúng. Mã đổi sau mỗi 30 giây; hãy kiểm tra đồng hồ điện thoại được đặt tự động.",
   "problem.noSecondFactor": "Hãy thiết lập ứng dụng xác thực hoặc khóa truy cập trước; mã khôi phục là phương án dự phòng cho lớp xác thực thứ hai.",
   "problem.instanceURL": "Hãy dùng địa chỉ đầy đủ mà mọi người mở, như https://reputecast.acme.io.",
+  "problem.publicURLLocked": "Người vận hành máy chủ đã đặt URL công khai ({setting}) nên không thể đổi ở đây.",
   "problem.instanceName": "Hãy đặt tên cho hệ thống, như Acme ReputeCast.",
   "problem.language": "Hãy chọn một ngôn ngữ mà ReputeCast đã được dịch sang.",
   "problem.checkURL": "Hãy dùng địa chỉ đầy đủ, như https://reputecast.acme.io.",

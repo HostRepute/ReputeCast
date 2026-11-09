@@ -29525,6 +29525,7 @@ export interface components {
             logoSvg?: string;
             name: string;
             publicUrl: string;
+            publicUrlLocked: boolean;
             urlCheck?: components["schemas"]["URLCheck"];
             webhooks?: components["schemas"]["PublicURLWebhooks"];
         };
@@ -29632,6 +29633,7 @@ export interface components {
             /** @example v1.4.2 */
             installed: string;
             latest?: components["schemas"]["InstanceRelease"];
+            managedBy?: string;
             release: boolean;
             releasesUrl: string;
             updateAvailable: boolean;
@@ -40008,8 +40010,10 @@ export interface components {
             confirmed: boolean;
             name: string;
             publicUrl: string;
+            publicUrlLocked: boolean;
             timezone: string;
             updateCheck: boolean;
+            updateCheckAllowed: boolean;
             version: string;
         };
         SetupPassword: {
@@ -44893,6 +44897,7 @@ export interface components {
             dns: components["schemas"]["CheckLine"];
             reachable: components["schemas"]["CheckLine"];
             tls: components["schemas"]["CheckLine"];
+            url?: string;
         };
         UnsubscribePage: {
             /** @description Offer the monthly best-of instead */

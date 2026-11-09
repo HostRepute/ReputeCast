@@ -84,6 +84,7 @@ export const m = defineMessages('auth.setup', {
   checkAgain: 'Check again',
   publicUrlHint:
     'Used for provider webhooks, SSO redirect URIs, public pages and the links in every email. Changing it later breaks existing webhooks until they are re-registered.',
+  publicUrlLocked: "Set by the server's operator (<mono>{setting}</mono>). Links in sent emails, passkeys and provider webhooks depend on it, so only they can change it.",
   urlCheckLabel: 'URL check result',
   checkReachable: 'Reachable',
   checking: 'Checking…',
@@ -93,6 +94,7 @@ export const m = defineMessages('auth.setup', {
   checkingHost: 'Checking {host}…',
   updateCheck: 'Check GitHub for new releases once a day',
   updateCheckHint: 'Only the version number is fetched. ReputeCast never sends usage data anywhere. You can turn this off for offline installs.',
+  updateCheckDisallowed: 'Turned off in the server configuration ({setting}).',
   saveCreateWorkspace: 'Save and create the first workspace',
 
   // ── First workspace ──────────────────────────────────────────────────

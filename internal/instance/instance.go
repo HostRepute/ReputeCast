@@ -99,8 +99,12 @@ func (s *Service) publicURL(st store.InstanceSetting) string {
 	if s.Cfg != nil {
 		configured = s.Cfg.HTTP.PublicURL
 	}
-	return publicurl.Effective(st.PublicUrl, configured)
+	return publicurl.Effective(st.PublicUrl, configured, s.publicURLLocked())
 }
+
+// publicURLLocked reports whether the server pins the public URL
+// (http.public_url_locked): Instance admin shows it read only.
+func (s *Service) publicURLLocked() bool { return s.Cfg != nil && s.Cfg.HTTP.PublicURLLocked }
 
 func displayName(name, email string) string {
 	if strings.TrimSpace(name) != "" {

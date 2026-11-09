@@ -80,6 +80,7 @@ export default translate(m, {
   checkAgain: 'Kiểm tra lại',
   publicUrlHint:
     'Dùng cho webhook của nhà cung cấp, URI chuyển hướng SSO, trang công khai và liên kết trong mọi email. Nếu đổi sau này, các webhook hiện có sẽ lỗi cho đến khi được đăng ký lại.',
+  publicUrlLocked: 'Do người vận hành máy chủ đặt (<mono>{setting}</mono>). Liên kết trong email đã gửi, khóa truy cập và webhook của nhà cung cấp đều phụ thuộc vào nó, nên chỉ họ mới đổi được.',
   urlCheckLabel: 'Kết quả kiểm tra URL',
   checkReachable: 'Kết nối',
   checking: 'Đang kiểm tra…',
@@ -89,6 +90,7 @@ export default translate(m, {
   checkingHost: 'Đang kiểm tra {host}…',
   updateCheck: 'Kiểm tra bản phát hành mới trên GitHub mỗi ngày một lần',
   updateCheckHint: 'Chỉ lấy số phiên bản. ReputeCast không bao giờ gửi dữ liệu sử dụng đi bất cứ đâu. Bạn có thể tắt tùy chọn này với bản cài đặt ngoại tuyến.',
+  updateCheckDisallowed: 'Đã tắt trong cấu hình máy chủ ({setting}).',
   saveCreateWorkspace: 'Lưu và tạo không gian làm việc đầu tiên',
 
   // ── First workspace ──────────────────────────────────────────────────

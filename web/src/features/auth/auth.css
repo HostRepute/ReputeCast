@@ -149,3 +149,15 @@
     }
   }
 }
+
+/* The URL check's badges (DNS, TLS, Reachable) keep one line on phones.
+   The phone rule lets a badge shrink so a long one wraps inside its line;
+   beside the check's text that broke them a letter a line. Unlayered, like
+   that rule. */
+@media (max-width: 767px) {
+  .setup .chk-row > .badge {
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+}
