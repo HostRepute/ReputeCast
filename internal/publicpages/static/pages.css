@@ -332,3 +332,13 @@
   .buybar .bt span { font-size: 13px; color: #5b6472; }
   .has-buybar { padding-bottom: 76px; }
 }
+/* Targets (44px on touch widths, never under 24px): a form's checkbox is
+   hit through its label, which grows by padding inside an equal negative
+   margin (the same look). Labels in a row share the 14px between them. */
+.cons { padding-block: 2px; margin-block: -2px; }
+@container (max-width: 767px) {
+  .cons { padding-block: 12px; margin-block: -12px; }
+  .cons:has(+ .cons) { padding-bottom: 7px; margin-bottom: -7px; }
+  .cons + .cons { padding-top: 7px; margin-top: -7px; }
+  .crumb7 .st-lnk { padding: 12px 7px; margin: -12px -7px; }
+}

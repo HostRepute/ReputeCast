@@ -89,7 +89,7 @@
   "site.certificateFailing": { "message": "{domain}'s certificate is failing, so the site can't go live there. Fix it in Branding & domain first.", "note": "domain: news.acme.io" },
   "site.confirmMismatch": { "message": "Type {address} to turn the website off.", "note": "address: news.acme.io" },
   "site.skip": { "message": "Skip to content", "note": "the first link of every page of the website, for keyboard users" },
-  "site.homeLabel": { "message": "{title}, home", "note": "names the logo link in the site's header; title: the site's title" },
+  "site.homeLabel": { "message": "{title}, home", "note": "names the logo link in the site's header; title: what the link shows, the site's title (the publisher's name on phones). The words around {title} are read by screen readers only, so keep {title} whole" },
   "site.nav": { "message": "Site", "note": "names the header navigation for screen readers" },
   "site.footerNav": { "message": "Footer", "note": "names the footer's links for screen readers" },
   "site.menu": { "message": "Menu", "note": "the button that opens the navigation on phones" },

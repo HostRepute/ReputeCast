@@ -147,10 +147,33 @@ type siteView struct {
 }
 
 // T is one of the site's words as plain text: {{.T "site.signIn"}},
-// {{.T "site.homeLabel" "title" .Frame.Title}}.
+// {{.T "site.accountLabel" "name" .Member.Name}}.
 func (v *siteView) T(key string, kv ...any) string {
 	args, _ := labelArgs(kv)
 	return v.words.Text(key, args)
+}
+
+// wordsAround are the words a message puts before and after one of its
+// arguments.
+type wordsAround struct{ Before, After string }
+
+// Around is what a message says around one of its arguments, for a link
+// that shows that argument and is named by the whole message: the logo
+// link shows the site's title (the publisher's name on phones) and is
+// named "The Acme newsletter, home" ({{.Around "site.homeLabel" "title"}}).
+// The words go in visually hidden text on either side of the shown text,
+// so the link's name starts with what it shows at every width (WCAG 2.5.3,
+// Label in Name), which an aria-label holding the title can't do once the
+// phone layout shows the publisher's name instead.
+func (v *siteView) Around(key, arg string) wordsAround {
+	const at = "" // a private-use character, in no message
+	text := v.words.Text(key, i18n.Args{arg: at})
+	before, after, ok := strings.Cut(text, at)
+	if !ok {
+		// A translation that leaves the argument out: its words follow.
+		return wordsAround{After: " " + text}
+	}
+	return wordsAround{Before: before, After: after}
 }
 
 // H is a sentence of the site with markup: <b> in bold, <link> linked to

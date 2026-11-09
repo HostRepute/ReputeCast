@@ -170,6 +170,11 @@ func TestCustomPageAddresses(t *testing.T) {
 		`class="st-nav"`, `aria-current="page"`, `class="buybar"`, `action="`+e.Server.URL+spSite+`buy/`+e.productID("deliverability-field-guide")+`"`)
 	// The draft's changes aren't live.
 	lacks(t, fg, "Eight practical chapters", "Hannah Weiss")
+	// The logo link is named by what it shows (the title, the publisher's
+	// name on phones) and "home" in hidden text: no aria-label that the
+	// phone's "Acme" isn't the start of (WCAG 2.5.3, Label in Name).
+	must(t, fg, http.StatusOK, `<span class="full">The Acme newsletter</span><span class="short">Acme</span><span class="vh">, home</span></a>`)
+	lacks(t, fg, `class="st-brand" aria-label`)
 	if !strings.HasPrefix(fg.Header.Get("Cache-Control"), "public") {
 		t.Errorf("a public page's Cache-Control %q", fg.Header.Get("Cache-Control"))
 	}
