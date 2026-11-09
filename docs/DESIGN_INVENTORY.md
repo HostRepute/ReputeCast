@@ -589,6 +589,14 @@ The landing page caught up with releases 1.1 to 1.4, and the board with it.
 | `Landing`, `LandingTablet`, `LandingPhone` | "Everything a newsletter tool should have" became a receipt: sixteen lines at $0 in four groups (Create, Reach, Grow, Run) side by side, a total of $0.00 and a torn edge. Picking a line (radio buttons, so without JavaScript too) opens its details inside the receipt, under the lines with a notch at the line's column: what it is, what it includes, a link to its docs page. Tablets show two groups a row; on phones the line opens under itself. The comparison's check marks sit on the text's first line, and the routing card's right column is wider so each route's note stays on one line |
 | `Landing`, `LandingTablet`, `LandingPhone` | Accessibility pass over the whole page: a picked option is marked by an accent line as well as a shade (comparison pickers, the receipt's lines), and by system colours under forced colours, where the check marks stay too; the rival names wrap on narrow phones and with wider text spacing instead of overlapping; a radio sits inside its label, so a focused option scrolls into view; the comparison card shows the focus ring when its table scrolls sideways, and the flow canvas draws its ring inside; the cards' links are at least 24 px tall. axe finds nothing at 320 to 1440 px, with motion, reduced or paused |
 
+### Settings the server's operator manages (M53)
+
+For a hosting company or an IT team that runs an instance for someone else: the server's configuration can pin the public URL and say who runs upgrades.
+
+| Boards | Change |
+|---|---|
+| `InstanceSettingsStates` (new) | Instance & updates when the server sets `http.public_url_locked` and `updates.managed_by`: the public URL is read only and says the server's operator set it (Check still runs); Version & updates names who manages upgrades instead of showing the upgrade command and the backup line, and the update check switch is off with the server configuration's sentence. The first sign-in's instance basics in the same state: the URL read only with the same sentence, and the update check turned off by the server configuration. On a narrow phone Check (Check again) moves under the address when both don't fit, so a pinned address shows whole, and the URL check's badges keep one line. |
+
 ## Conflicts between the design and the spec
 
 When they disagree we follow the design for UI and the spec for behaviour.
