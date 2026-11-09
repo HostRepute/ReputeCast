@@ -73,7 +73,9 @@ func TestBrandKitDemo(t *testing.T) {
 		t.Fatalf("synced: %+v", k.Synced)
 	}
 	footer, header := k.Synced[0], k.Synced[1]
-	if footer.UpdatedBy != "Linh Nguyen" || header.UpdatedBy != "Sofia Rossi" || header.UpdatedAt.AddDate(0, 0, 5).Format("2006-01-02") != footer.UpdatedAt.Format("2006-01-02") {
+	// Compare calendar days in UTC, where the demo places the edits: in the
+	// machine's own zone (+07, say) "five days apart" can straddle midnight.
+	if footer.UpdatedBy != "Linh Nguyen" || header.UpdatedBy != "Sofia Rossi" || header.UpdatedAt.UTC().AddDate(0, 0, 5).Format("2006-01-02") != footer.UpdatedAt.UTC().Format("2006-01-02") {
 		t.Fatalf("edited: footer %s %s, header %s %s", footer.UpdatedBy, footer.UpdatedAt, header.UpdatedBy, header.UpdatedAt)
 	}
 	if !strings.Contains(footer.MJML, `rc-synced="footer"`) || !strings.Contains(footer.MJML, "{{ unsubscribe_url }}") || !strings.Contains(footer.MJML, "500 Market St, Suite 1200") {
