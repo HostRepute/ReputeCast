@@ -47,3 +47,36 @@ test('⌘K finds a campaign and opens it', async ({ page, isMobile }) => {
   await box.press('Enter')
   await expect(page).toHaveURL(/\/campaigns\//)
 })
+
+// Dark mode (M54): the user menu's theme row switches at once, the choice is
+// the account's (it survives a reload and /me says so), and Same as device
+// follows the device again. Desktop only: both projects sign in as the
+// same member, and the choice is theirs.
+test('the theme switches from the user menu and is kept on the account', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'one member, one theme: the desktop run checks it')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await signIn(page)
+  await page.goto('/w/acme-newsletter')
+  await expect(page.getByRole('heading', { level: 1 }).first()).toHaveText(/Overview/)
+  const html = page.locator('html')
+  await expect(html).toHaveAttribute('data-theme', 'light')
+
+  const menu = page.getByRole('button', { name: /account menu/ })
+  await menu.click()
+  await page.getByRole('menuitemradio', { name: 'Dark' }).click()
+  await expect(html).toHaveAttribute('data-theme', 'dark')
+  // The menu stays open, showing the choice.
+  await expect(page.getByRole('menuitemradio', { name: 'Dark' })).toHaveAttribute('aria-checked', 'true')
+  await expect.poll(async () => ((await (await page.request.get('/api/v1/me')).json()) as { user: { theme: string } }).user.theme).toBe('dark')
+  await page.keyboard.press('Escape')
+
+  await page.reload()
+  await expect(html).toHaveAttribute('data-theme', 'dark')
+
+  await menu.click()
+  await page.getByRole('menuitemradio', { name: 'Same as device' }).click()
+  await expect(html).toHaveAttribute('data-theme', 'light')
+  await expect.poll(async () => ((await (await page.request.get('/api/v1/me')).json()) as { user: { theme: string } }).user.theme).toBe('system')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await expect(html).toHaveAttribute('data-theme', 'dark')
+})

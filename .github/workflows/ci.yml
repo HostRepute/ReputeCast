@@ -97,6 +97,10 @@ jobs:
       - name: Accessibility sweep (axe, WCAG 2.2 AA)
         run: node scripts/a11y.ts --app http://localhost:8080 --widths 1440,390 --out ../a11y
         working-directory: web
+      # The same screens in the dark theme (M54): the device prefers dark.
+      - name: Accessibility sweep, dark theme
+        run: node scripts/a11y.ts --app http://localhost:8080 --widths 1440,390 --theme dark --out ../a11y-dark
+        working-directory: web
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -104,6 +108,7 @@ jobs:
           path: |
             web/playwright-report
             a11y
+            a11y-dark
             server.log
 
   go:

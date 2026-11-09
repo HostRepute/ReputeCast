@@ -8,6 +8,8 @@
  *   node scripts/a11y.ts --widths 390 --targets   # also target sizes
  *   node scripts/a11y.ts --widths 390,834,1440 --overflow  # also sideways scrolling
  *   node scripts/a11y.ts --public http://localhost:8080   # public pages' own links go to --app
+ *   node scripts/a11y.ts --theme dark             # the dark theme (the device's setting, M54)
+ *   node scripts/a11y.ts --state ../tmp/s.json    # linh's screens in a session saved by shot.ts --save-state
  *
  * --targets adds the design system's target rule (design/design-system,
  * "Targets"): standalone controls at least 44px on phone widths (767px and
@@ -45,6 +47,12 @@ const axeOptions = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag
 const publicOrigin = opt('public')
 const targets = args.includes('--targets')
 const overflow = args.includes('--overflow')
+// --theme dark: the device prefers dark, which the app follows while the
+// member hasn't chosen a theme (Account & security › Appearance).
+const colorScheme = opt('theme', 'light') === 'dark' ? 'dark' : 'light'
+// --state: linh@acme.io's session, saved by `shot.ts --save-state`, so
+// several sweeps at once don't each answer the demo authenticator.
+const state = opt('state')
 // --overflow: the page itself scrolls sideways (a table or a code block in
 // its own scroller is fine). Reported like an axe rule, naming the outermost
 // elements that stick out past the viewport.
@@ -108,13 +116,16 @@ async function main() {
         skipped.push(`${e.board} (can't sign in as ${user})`)
         continue
       }
-      let ctx = contexts.get(user)
+      // A dark board's screen (theme: 'dark') is checked in dark whatever --theme says.
+      const scheme = e.theme ?? colorScheme
+      const key = `${user}/${scheme}`
+      let ctx = contexts.get(key)
       if (!ctx) {
         // bypassCSP: the public pages allow no inline script, which is how axe is injected.
-        ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce', bypassCSP: true })
+        ctx = await browser.newContext({ deviceScaleFactor: 1, reducedMotion: 'reduce', bypassCSP: true, colorScheme: scheme, storageState: user === 'linh@acme.io' ? state : undefined })
         if (publicOrigin) await ctx.route(`${publicOrigin}/**`, (route) => route.continue({ url: app + route.request().url().slice(publicOrigin.length) }))
         try {
-          if (user !== 'anon') await signIn(ctx, app, user)
+          if (user !== 'anon' && !(state && user === 'linh@acme.io')) await signIn(ctx, app, user)
         } catch {
           // Demo people without a password (SSO only) can't be signed in here.
           failedUsers.add(user)
@@ -122,7 +133,7 @@ async function main() {
           await ctx.close()
           continue
         }
-        contexts.set(user, ctx)
+        contexts.set(key, ctx)
       }
       const path = await resolvePath(ctx, app, e.path, workspace)
       if (!path) {
@@ -130,8 +141,8 @@ async function main() {
         continue
       }
       for (const width of e.widths ?? widths) {
-        if (!widths.includes(width) || seen.has(`${user} ${path} ${width}`)) continue
-        seen.add(`${user} ${path} ${width}`)
+        if (!widths.includes(width) || seen.has(`${key} ${path} ${width}`)) continue
+        seen.add(`${key} ${path} ${width}`)
         const page = await ctx.newPage()
         try {
           await page.setViewportSize({ width, height: 1000 })
@@ -142,10 +153,12 @@ async function main() {
           const violations = (await page.evaluate(`axe.run(document, ${JSON.stringify(axeOptions)}).then((r) => r.violations)`)) as Violation[]
           if (targets) violations.push(...((await page.evaluate(targetCheck)) as Violation[]))
           if (overflow) violations.push(...((await page.evaluate(overflowCheck)) as Violation[]))
-          findings.push({ path, width, violations })
-          console.log(`${String(violations.length).padStart(3)} rule(s)  ${width}  ${path}`)
+          // A dark board's screen in a light sweep is told apart in the report.
+          const where = scheme !== colorScheme ? `${path} (${scheme})` : path
+          findings.push({ path: where, width, violations })
+          console.log(`${String(violations.length).padStart(3)} rule(s)  ${width}  ${where}`)
         } catch (err) {
-          console.log(`error  ${width}  ${path}: ${String(err)}`)
+          console.log(`error  ${width}  ${path} (${scheme}): ${String(err)}`)
         } finally {
           await page.close()
         }

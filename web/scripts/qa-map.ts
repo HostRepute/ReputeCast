@@ -22,12 +22,16 @@ export type Entry = {
   viewportOnly?: boolean
   /** Viewport height when viewportOnly is set. */
   height?: number
+  /** The board draws the dark theme (M54): the app is captured with the device set to dark. */
+  theme?: 'dark'
 }
 
 const ws = '/w/acme-newsletter'
 
 export const entries: Entry[] = [
   { board: 'Main', path: `${ws}` },
+  // M54: the Overview in the dark theme (the app captured on a dark device).
+  { board: 'MainDark', path: `${ws}`, theme: 'dark' },
   { board: 'OverviewEmpty', manual: true },
   { board: 'OverviewStates', manual: true },
   { board: 'Campaigns', path: `${ws}/campaigns` },
@@ -237,6 +241,10 @@ export const entries: Entry[] = [
   // saved in Tiếng Việt with Undo, the browser's suggestion, the pseudo-locale) come from picking.
   { board: 'LanguageRegion', path: `${ws}/account`, viewportOnly: true, height: 1000 },
   { board: 'LanguageRegionPhone', path: `${ws}/account`, widths: [390], viewportOnly: true, height: 844 },
+  // M54 · Appearance (${ws}/account#appearance): the card follows Language & region (LanguageRegion).
+  // Its states, the user menu's Theme row and ⌘K need a pick, a refused save or a key press.
+  { board: 'AppearanceStates', manual: true },
+  { board: 'AppearanceStatesPhone', widths: [390], manual: true },
   { board: 'ShellUserMenu', manual: true },
   { board: 'TeamInvite', manual: true },
   // The stress tests: pick Tiếng Việt or Pseudo (+40%) in Account & security › Language & region,
