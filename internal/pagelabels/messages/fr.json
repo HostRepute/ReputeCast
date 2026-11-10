@@ -51,6 +51,11 @@
   "form.notAllowed.text": "{reason} Inscrivez-vous plutôt sur la page d’inscription.",
   "form.gone": "Ce formulaire n’existe plus.",
   "form.unreadableShort": "Ce formulaire n’a pas pu être lu. Envoyez-le de nouveau.",
+  "form.typo.ask": "Vouliez-vous dire {email}\u202F?",
+  "form.typo.use": "Utiliser {email}",
+  "form.typo.keep": "Garder {email}",
+  "form.inbox.open": "Ouvrir {provider}",
+  "form.inbox.newTab": "(s’ouvre dans un nouvel onglet)",
 
   "challenge.title": "Encore une étape",
   "challenge.text": "Votre inscription semblait automatisée\u00A0: nous voulons donc vérifier que vous êtes bien une personne. Cela ne prend qu’une seconde.",

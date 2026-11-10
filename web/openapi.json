@@ -76235,6 +76235,9 @@
             "maxLength": 120,
             "type": "string"
           },
+          "hideSubscribed": {
+            "type": "boolean"
+          },
           "listsLabel": {
             "maxLength": 80,
             "type": "string"
@@ -76249,6 +76252,9 @@
             "maximum": 600,
             "minimum": 0,
             "type": "integer"
+          },
+          "popupExit": {
+            "type": "boolean"
           },
           "popupRepeatDays": {
             "description": "Days a closed popup stays closed",
@@ -96981,6 +96987,9 @@
           "feed": {
             "type": "string"
           },
+          "llms": {
+            "type": "string"
+          },
           "sitemap": {
             "type": "string"
           },
@@ -96992,7 +97001,8 @@
           "sitemap",
           "feed",
           "tagFeed",
-          "archiveFeed"
+          "archiveFeed",
+          "llms"
         ],
         "type": "object"
       },
@@ -97140,6 +97150,9 @@
             },
             "type": "array"
           },
+          "shareButtons": {
+            "type": "boolean"
+          },
           "tags": {
             "items": {
               "$ref": "#/components/schemas/WebsiteTag"
@@ -97166,6 +97179,7 @@
           "footer",
           "privacyUrl",
           "poweredBy",
+          "shareButtons",
           "identity",
           "index",
           "urls",
@@ -97227,6 +97241,9 @@
             },
             "maxItems": 30,
             "type": "array"
+          },
+          "shareButtons": {
+            "type": "boolean"
           }
         },
         "required": [

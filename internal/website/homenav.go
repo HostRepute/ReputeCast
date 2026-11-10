@@ -48,12 +48,13 @@ type WebsiteIdentity struct {
 	SocialImage string `json:"socialImage" maxLength:"1000"`
 }
 
-// WebsiteFeedURLs are the site's sitemap and feed addresses.
+// WebsiteFeedURLs are the site's sitemap, feed and llms.txt addresses.
 type WebsiteFeedURLs struct {
 	Sitemap     string `json:"sitemap"`
 	Feed        string `json:"feed"`
 	TagFeed     string `json:"tagFeed"`
 	ArchiveFeed string `json:"archiveFeed"`
+	LLMs        string `json:"llms"`
 }
 
 // WebsitePageOption is a page header links can point at (the page builder's).
@@ -72,13 +73,16 @@ type WebsiteHomeNav struct {
 	Footer   WebsiteFooter         `json:"footer"`
 	// PrivacyURL and PoweredBy are the branding's (Forms & pages ›
 	// Branding & domain), shown and changed here too.
-	PrivacyURL string              `json:"privacyUrl"`
-	PoweredBy  bool                `json:"poweredBy"`
-	Identity   WebsiteIdentity     `json:"identity"`
-	Index      bool                `json:"index"`
-	URLs       WebsiteFeedURLs     `json:"urls"`
-	Tags       []WebsiteTag        `json:"tags"`
-	Pages      []WebsitePageOption `json:"pages"`
+	PrivacyURL string `json:"privacyUrl"`
+	PoweredBy  bool   `json:"poweredBy"`
+	// ShareButtons is "Share buttons on posts" (Copy link and the share
+	// links under every published post).
+	ShareButtons bool                `json:"shareButtons"`
+	Identity     WebsiteIdentity     `json:"identity"`
+	Index        bool                `json:"index"`
+	URLs         WebsiteFeedURLs     `json:"urls"`
+	Tags         []WebsiteTag        `json:"tags"`
+	Pages        []WebsitePageOption `json:"pages"`
 	// Logo is the branding's logo (the favicon), "" for the initial.
 	Logo      string    `json:"logo"`
 	Initial   string    `json:"initial"`
@@ -104,8 +108,11 @@ type WebsiteHomeNavInput struct {
 	Footer     WebsiteFooter        `json:"footer"`
 	PrivacyURL string               `json:"privacyUrl" maxLength:"500"`
 	PoweredBy  bool                 `json:"poweredBy"`
-	Identity   WebsiteIdentity      `json:"identity"`
-	Index      bool                 `json:"index"`
+	// ShareButtons turns the share row under posts on or off; omitted
+	// keeps it as it is.
+	ShareButtons *bool           `json:"shareButtons,omitempty"`
+	Identity     WebsiteIdentity `json:"identity"`
+	Index        bool            `json:"index"`
 }
 
 // HomeNav returns Website › Home & navigation.
@@ -119,7 +126,7 @@ func (s *Service) HomeNav(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return WebsiteHomeNav{}, err
 	}
 	b := set.Branding
-	out := WebsiteHomeNav{Layout: c.row.HomeLayout, Sections: c.Sections, Footer: c.Footer, PrivacyURL: b.PrivacyURL, PoweredBy: b.PoweredBy,
+	out := WebsiteHomeNav{Layout: c.row.HomeLayout, Sections: c.Sections, Footer: c.Footer, PrivacyURL: b.PrivacyURL, PoweredBy: b.PoweredBy, ShareButtons: c.row.ShareButtons,
 		Identity: WebsiteIdentity{Title: siteTitle(c, set), Tagline: c.row.Tagline, Description: c.row.Description, SocialImage: c.row.SocialImage},
 		Index:    c.row.IndexSite, About: WebsiteAbout{Title: c.row.AboutTitle, Text: c.row.AboutText, Link: c.row.AboutLink},
 		Featured: []WebsiteFeaturedPost{}, Header: []WebsiteNavItem{}, Pages: []WebsitePageOption{}, Initial: b.Initial(), UpdatedAt: c.row.UpdatedAt}
@@ -130,7 +137,7 @@ func (s *Service) HomeNav(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		out.Logo = s.Forms.Links(ws, set).Logo(b.Logo.Hash)
 	}
 	out.URLs = WebsiteFeedURLs{Sitemap: hostOnly(s.sitePath(ctx, ws, "sitemap.xml")), Feed: hostOnly(s.sitePath(ctx, ws, "feed")),
-		TagFeed: hostOnly(s.sitePath(ctx, ws, "tag")) + "/{slug}/feed", ArchiveFeed: hostOnly(s.Forms.Links(ws, set).Feed())}
+		TagFeed: hostOnly(s.sitePath(ctx, ws, "tag")) + "/{slug}/feed", ArchiveFeed: hostOnly(s.Forms.Links(ws, set).Feed()), LLMs: hostOnly(s.sitePath(ctx, ws, "llms.txt"))}
 	if out.Tags, err = s.tagViews(ctx, s.Q, ws, c); err != nil {
 		return out, err
 	}
@@ -238,8 +245,10 @@ func (s *Service) SaveHomeNav(ctx context.Context, ws *store.Workspace, p *authz
 			return err
 		}
 		if err := log("website.navigation_updated",
-			map[string]any{"header": beforeHeader, "footer": before.Footer, "powered_by": set.Branding.PoweredBy, "privacy_url": set.Branding.PrivacyURL},
-			map[string]any{"header": c.Header, "footer": c.Footer, "powered_by": in.PoweredBy, "privacy_url": strings.TrimSpace(in.PrivacyURL)}); err != nil {
+			map[string]any{"header": beforeHeader, "footer": before.Footer, "powered_by": set.Branding.PoweredBy, "privacy_url": set.Branding.PrivacyURL,
+				"share_buttons": before.row.ShareButtons},
+			map[string]any{"header": c.Header, "footer": c.Footer, "powered_by": in.PoweredBy, "privacy_url": strings.TrimSpace(in.PrivacyURL),
+				"share_buttons": c.row.ShareButtons}); err != nil {
 			return err
 		}
 		return log("website.identity_updated",
@@ -344,6 +353,9 @@ func (s *Service) applyHomeNav(ctx context.Context, q *store.Queries, ws *store.
 	c.row.Title, c.row.Tagline = strings.TrimSpace(in.Identity.Title), strings.TrimSpace(in.Identity.Tagline)
 	c.row.Description, c.row.SocialImage = strings.TrimSpace(in.Identity.Description), strings.TrimSpace(in.Identity.SocialImage)
 	c.row.IndexSite = in.Index
+	if in.ShareButtons != nil {
+		c.row.ShareButtons = *in.ShareButtons
+	}
 	return nil
 }
 

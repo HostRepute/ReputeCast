@@ -35,7 +35,13 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .sk{background:#E9ECF0;border-radius:6px;display:inline-block}
 .sw{width:26px;height:26px;border-radius:6px;border:1px solid #D4D8DF;flex:none}
-
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;align-self:flex-start}
+.seg button{height:32px;padding:0 12px;border:0;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer}
+.seg button.on{background:#0B1220;color:#fff}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.vbtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:4px 14px;border-radius:7px;border:1px solid #4338CA;background:#4338CA;color:#fff;font:inherit;font-weight:700;font-size:13px;text-align:center;text-decoration:none;box-sizing:border-box;flex:1 1 160px}
+.vbtn.ghost{background:#fff;color:#1F2937;border-color:#8B94A3}
+@media (max-width:767px){.content .seg button{min-height:44px}}
 
 /* shell additions: workspace switcher, notification bell, user menu */
 .ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
@@ -239,11 +245,60 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </div>
         </div>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Popup triggers">
+        <div class="strip"><span class="dot" style="color:#4338CA"></span>Popup · opens on exit intent, hidden from people who signed up</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
+          <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+            <span class="k">Type</span>
+            <div class="seg" role="group" aria-label="Type"><button aria-pressed="false">Embedded</button><button class="on" aria-pressed="true">Popup</button><button aria-pressed="false">Hosted page</button></div>
+            <span class="k">Popup opens over your site and stays closed once someone dismisses it; the hosted page lives at news.acme.io/subscribe with your branding.</span>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+              <label class="lbl">Opens after (s)<input class="in" type="number" value="0"></label>
+              <label class="lbl">Or scrolled (%)<input class="in" type="number" value="0"></label>
+              <label class="lbl">Closed for (days)<input class="in" type="number" value="14"></label>
+            </div>
+            <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px" aria-describedby="fs-exit-h"><span>When the visitor is about to leave (exit intent)</span></label>
+            <span class="k" id="fs-exit-h">Desktop only: phones have no exit intent. Add a delay or a scroll depth to show it on phones too.</span>
+            <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px" aria-describedby="fs-hide-h"><span>Hide from people who already signed up on this site</span></label>
+            <span class="k" id="fs-hide-h">Uses this browser's memory of a signup through any of your forms.</span>
+          </div>
+          <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-weight:600">How the popup opens</span>
+            <span class="k">With a mouse, when the pointer leaves through the top of the window, from 2 seconds after the page loads. Phones and tablets only get the delay or the scroll depth, so a popup with exit intent alone never opens there.</span>
+            <span class="k">A visitor who signed up through any of Acme Newsletter's forms in this browser, including one that redirects, doesn't see it again, and the page doesn't count a view.</span>
+          </div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Embedded form states">
+        <div class="strip"><span class="dot" style="color:#0F766E"></span>Embedded form · a likely typo, then the inbox button</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
+          <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+            <span class="k">Did you mean …? · focus moves to Use; editing the address removes the question</span>
+            <div style="border:1px solid #E3E6EB;border-radius:10px;padding:16px;background:#F5F3FF;display:flex;flex-direction:column;gap:8px;font-family:'IBM Plex Sans',sans-serif">
+              <span style="font-weight:700;font-size:15px">The Acme newsletter</span>
+              <span style="height:34px;border:1px solid #DC2626;border-radius:7px;background:#fff;display:flex;align-items:center;padding:0 10px;font-size:13px;color:#374151">linh@gmial.com</span>
+              <span role="alert" style="font-size:12.5px;color:#991B1B">Did you mean linh@gmail.com?</span>
+              <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="vbtn">Use linh@gmail.com</button><button type="button" class="vbtn ghost">Keep linh@gmial.com</button></div>
+              <span style="height:36px;padding:0 14px;border-radius:7px;background:#4338CA;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">Subscribe</span>
+            </div>
+          </div>
+          <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+            <span class="k">Check your inbox · Gmail, Outlook, Yahoo Mail, iCloud Mail and Proton Mail get their web mail, in a new tab</span>
+            <div role="status" style="border:1px solid #E3E6EB;border-radius:10px;padding:16px;background:#F5F3FF;display:flex;flex-direction:column;gap:6px;font-family:'IBM Plex Sans',sans-serif">
+              <strong style="font-weight:700;font-size:15px">Check your inbox</strong>
+              <span style="font-size:13px;color:#374151">We sent you a link to confirm your subscription. It only takes a click.</span>
+              <a class="vbtn" style="flex:none;align-self:flex-start;margin-top:4px;min-height:44px" href="https://mail.google.com/mail/u/linh%40gmail.com/#search/from%3A(no-reply%40news.acme.io)+in%3Aanywhere+newer_than%3A1h" target="_blank" rel="noopener noreferrer">Open Gmail<span class="vh"> (opens in a new tab)</span></a>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1256}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1997}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

@@ -15,7 +15,7 @@ SELECT * FROM website_settings WHERE workspace_id = @workspace_id FOR UPDATE;
 UPDATE website_settings SET
     title = @title, tagline = @tagline, description = @description, social_image = @social_image, index_site = @index_site,
     home_layout = @home_layout, featured = @featured, sections = @sections, about_title = @about_title, about_text = @about_text, about_link = @about_link,
-    header_links = @header_links, footer = @footer,
+    header_links = @header_links, footer = @footer, share_buttons = @share_buttons,
     signin_on = @signin_on, link_minutes = @link_minutes, session_days = @session_days, signup_on = @signup_on, signup_lists = @signup_lists,
     default_visibility = @default_visibility, campaign_visibility = @campaign_visibility,
     meter_visitors_on = @meter_visitors_on, meter_visitors = @meter_visitors, meter_members_on = @meter_members_on, meter_members = @meter_members,
@@ -127,6 +127,13 @@ SELECT * FROM website_posts WHERE campaign_id = @campaign_id AND deleted_at IS N
 SELECT p.id, p.campaign_id, p.status, p.web_on, p.publish_mode, p.publish_at, p.published_at, p.unpublished_at, p.slug, p.visibility
 FROM website_posts p
 WHERE p.workspace_id = @workspace_id AND p.campaign_id = ANY (@campaigns::uuid[]) AND p.deleted_at IS NULL;
+
+-- name: WebsiteLLMsPosts :many
+-- The posts /llms.txt lists: the sitemap's (published, not hidden from
+-- search), newest first, with their public title and excerpt.
+SELECT slug, title, excerpt, published_at FROM website_posts
+WHERE workspace_id = @workspace_id AND status = 'published' AND deleted_at IS NULL AND NOT hide_from_search
+ORDER BY published_at DESC LIMIT 500;
 
 -- name: WebsitePostSlugTaken :one
 -- A slug in use by another post, or kept as an earlier address of one.

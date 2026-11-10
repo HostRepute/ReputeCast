@@ -34,6 +34,9 @@ type SiteFrame struct {
 	// or an outside address.
 	Nav    []FrameLink
 	Footer WebsiteFooter
+	// ShareButtons is "Share buttons on posts": the share row under every
+	// published post.
+	ShareButtons bool
 }
 
 // FrameLink is a header link.
@@ -92,7 +95,7 @@ func (s *Service) Frame(ctx context.Context, ws *store.Workspace, set *forms.Set
 func (s *Service) frame(ctx context.Context, q *store.Queries, ws *store.Workspace, set *forms.Settings, c *config) (SiteFrame, error) {
 	f := SiteFrame{On: c.On(), SigninOn: c.On() && c.row.SigninOn, Title: siteTitle(c, set), Short: set.Branding.PublisherName,
 		Tagline: c.row.Tagline, Description: c.row.Description, SocialImage: c.row.SocialImage, Index: c.row.IndexSite,
-		Nav: []FrameLink{}, Footer: c.Footer}
+		Nav: []FrameLink{}, Footer: c.Footer, ShareButtons: c.row.ShareButtons}
 	if f.Short == "" {
 		f.Short = f.Title
 	}

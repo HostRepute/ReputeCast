@@ -52,6 +52,14 @@ func (s *Service) tokenAge(formKey, token string, now time.Time) (time.Duration,
 	return age, true
 }
 
+// TokenValid reports whether a submitted token is still good for its form:
+// a page answering "Did you mean …?" keeps it, so pressing Use or Keep at
+// once passes the timing check.
+func (s *Service) TokenValid(formKey, token string, now time.Time) bool {
+	_, ok := s.tokenAge(formKey, token, now)
+	return ok
+}
+
 // formKey identifies a form in tokens: its public id, or the workspace's
 // built-in hosted form.
 func formKey(c Config) string {

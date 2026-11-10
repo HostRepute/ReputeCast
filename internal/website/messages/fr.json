@@ -169,6 +169,12 @@
   "site.clearSearch": "Effacer la recherche",
   "site.noMatches": "Aucun article ne correspond. Essayez d’autres mots, ou effacez la recherche.",
   "site.endOfResults": "{count} sur {count} · fin des résultats",
+  "site.share": "Partager cet article",
+  "site.shareLink": "Lien vers cet article",
+  "site.copyLink": "Copier le lien",
+  "site.linkCopied": "Lien copié",
+  "site.shareEmail": "E-mail",
+  "site.shareOn": "Partager sur {network} (s’ouvre dans un nouvel onglet)",
 
   "gate.memberIncluded": "Inclus dans votre abonnement {tier}",
   "gate.freePost": "Voici votre article payant offert en {month}.",

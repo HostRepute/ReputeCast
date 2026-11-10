@@ -191,7 +191,10 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
       <aside style="flex:1 1 320px;max-width:340px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column">
         <div class="sec"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-weight:600">Form · "Newsletter signup"</span><select aria-label="Newsletter signup" class="in" style="width:140px;height:30px"><option>Newsletter signup</option><option>Footer mini form</option><option>Beta apply</option></select></div></div>
-        <div class="sec"><span class="k">Type</span><div class="seg"><button class="on">Embedded</button><button>Popup</button><button>Hosted page</button></div><span class="k">Embedded renders inside your site; the hosted page lives at news.acme.io/subscribe with your branding.</span></div>
+        <div class="sec"><span class="k">Type</span><div class="seg"><button class="on">Embedded</button><button>Popup</button><button>Hosted page</button></div><span class="k">Embedded renders inside your site; the hosted page lives at news.acme.io/subscribe with your branding.</span>
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" style="margin-top:3px" aria-describedby="fb-hide-h"><span>Hide from people who already signed up on this site</span></label>
+          <span class="k" id="fb-hide-h">Uses this browser's memory of a signup through any of your forms.</span>
+        </div>
         <div class="sec"><span class="k">Fields</span>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked disabled>Email · required</label>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>First name · optional</label>
@@ -257,7 +260,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1135}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1223}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

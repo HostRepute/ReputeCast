@@ -169,6 +169,12 @@
   "site.clearSearch": "Clear search",
   "site.noMatches": "No posts match. Try other words, or clear the search.",
   "site.endOfResults": "{count} of {count} · end of results",
+  "site.share": { "message": "Share this post", "note": "the heading of the share row under a post" },
+  "site.shareLink": { "message": "Link to this post", "note": "names the share row's read-only address field for screen readers" },
+  "site.copyLink": "Copy link",
+  "site.linkCopied": { "message": "Link copied", "note": "announced for 2 seconds after Copy link" },
+  "site.shareEmail": { "message": "Email", "note": "the share row's button that opens the reader's mail app with the post's link" },
+  "site.shareOn": { "message": "Share on {network} (opens in a new tab)", "note": "a share button's name for screen readers; network: X, LinkedIn, Facebook, Bluesky or WhatsApp, never translated" },
 
   "gate.memberIncluded": { "message": "Included in your {tier} membership", "note": "the quiet note over a paid post a member's tier opens; tier: Insider" },
   "gate.freePost": { "message": "This is your free paid post for {month}.", "note": "over a paid post a free member reads with the meter; month: October" },

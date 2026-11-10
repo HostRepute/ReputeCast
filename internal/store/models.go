@@ -5552,6 +5552,7 @@ type WebsiteSetting struct {
 	DomainNotified     string          `json:"domainNotified"`
 	UpdatedAt          time.Time       `json:"updatedAt"`
 	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
+	ShareButtons       bool            `json:"shareButtons"`
 }
 
 type WebsiteSigninLink struct {

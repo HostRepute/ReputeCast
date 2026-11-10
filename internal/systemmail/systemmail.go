@@ -279,6 +279,17 @@ func (m *Mailer) sender(ctx context.Context, wsID uuid.UUID) (mail.Address, *mai
 	return addresses(list[0].Name, list[0].Email, list[0].ReplyTo)
 }
 
+// SenderEmail is the From address of a workspace's system mail (the
+// double opt-in confirmation, for one): "" when it has none or it can't be
+// read.
+func (m *Mailer) SenderEmail(ctx context.Context, ws *store.Workspace) string {
+	from, _, err := m.sender(ctx, ws.ID)
+	if err != nil {
+		return ""
+	}
+	return from.Address
+}
+
 func addresses(name, email, replyTo string) (mail.Address, *mail.Address, error) {
 	from := mail.Address{Name: name, Address: email}
 	if replyTo == "" || strings.EqualFold(replyTo, email) {

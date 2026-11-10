@@ -535,6 +535,130 @@ func TestSubscribeValidation(t *testing.T) {
 	})
 }
 
+// embedPost sends the demo signup form the way the embed script does, from
+// an allowed site, with a token old enough for the timing check.
+func embedPost(t *testing.T, env *apptest.Env, ids demoIDs, f url.Values) resp {
+	t.Helper()
+	f.Set("_t", formToken(env, "frm_8c2e1a", time.Minute))
+	f.Set("list", ids.digest.String())
+	f.Set("consent", "1")
+	f.Set("_js", "1")
+	return do(t, env, http.MethodPost, "/p/acme-newsletter/forms/frm_8c2e1a/submit", f, hdr{"Origin": "https://acme.io", "Accept": "application/json"})
+}
+
+// "Did you mean linh@gmail.com?": the server works the suggestion out and
+// the visitor takes it or keeps the address as typed, on every surface.
+func TestSubscribeTypoHint(t *testing.T) {
+	env, ids := demo(t)
+	t.Run("a likely typo asks first", func(t *testing.T) {
+		r := embedPost(t, env, ids, url.Values{"email": {"Linh@Gmial.com"}})
+		m := jsonBody(t, r)
+		errs, _ := m["errors"].(map[string]any)
+		msg, _ := errs["email"].(string)
+		if r.Status != 422 || m["status"] != "invalid" || m["suggestion"] != "linh@gmail.com" || !strings.Contains(msg, "linh@gmail.com") {
+			t.Fatalf("typo: %d %s", r.Status, r.Body)
+		}
+		for _, e := range []string{"linh@gmial.com", "linh@gmail.com"} {
+			if _, ok := contactID(t, env, ids.ws, e); ok {
+				t.Errorf("asking saved %s", e)
+			}
+		}
+	})
+	t.Run("use takes the suggestion", func(t *testing.T) {
+		r := embedPost(t, env, ids, url.Values{"email": {"linh@gmial.com"}, "typo": {"use"}})
+		if r.Status != 200 || jsonBody(t, r)["status"] != "confirm" {
+			t.Fatalf("use: %d %s", r.Status, r.Body)
+		}
+		if _, ok := contactID(t, env, ids.ws, "linh@gmail.com"); !ok {
+			t.Error("no contact for the suggested address")
+		}
+		if _, ok := contactID(t, env, ids.ws, "linh@gmial.com"); ok {
+			t.Error("the mistyped address was saved too")
+		}
+	})
+	t.Run("keep keeps the address as typed", func(t *testing.T) {
+		r := embedPost(t, env, ids, url.Values{"email": {"linh@gmial.com"}, "typo": {"keep"}})
+		if r.Status != 200 || jsonBody(t, r)["status"] != "confirm" {
+			t.Fatalf("keep: %d %s", r.Status, r.Body)
+		}
+		if _, ok := contactID(t, env, ids.ws, "linh@gmial.com"); !ok {
+			t.Error("no contact for the address as typed")
+		}
+	})
+	t.Run("a provider's own domain is no typo", func(t *testing.T) {
+		r := embedPost(t, env, ids, url.Values{"email": {"ana@protonmail.com"}})
+		m := jsonBody(t, r)
+		if _, asked := m["suggestion"]; r.Status != 200 || m["status"] != "confirm" || asked {
+			t.Fatalf("protonmail.com: %d %s", r.Status, r.Body)
+		}
+	})
+	t.Run("the hosted page asks with two buttons and keeps its token", func(t *testing.T) {
+		tok := formToken(env, "frm_8c2e1a", time.Minute)
+		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", url.Values{
+			"_t": {tok}, "email": {"sam.lee@gmial.com"}, "list": {ids.digest.String()}, "consent": {"1"},
+		}, hdr{"Origin": env.Server.URL})
+		must(t, r, 422, `name="typo" value="use"`, `name="typo" value="keep"`, "sam.lee@gmail.com", `value="sam.lee@gmial.com"`,
+			`aria-invalid="true" aria-describedby="f-email-err"`, `id="f-email-err" role="alert"`)
+		if got := pageToken(t, r); got != tok {
+			t.Error("the page issued a new token: Use or Keep pressed at once would be too fast")
+		}
+		if _, ok := contactID(t, env, ids.ws, "sam.lee@gmial.com"); ok {
+			t.Error("asking saved the address")
+		}
+	})
+}
+
+// "Open Gmail" after a signup that waits for its confirmation: the
+// visitor's web mail, searching for the confirmation's sender.
+func TestSubscribeInboxLink(t *testing.T) {
+	env, ids := demo(t)
+	inbox := func(t *testing.T, r resp) (string, string) {
+		t.Helper()
+		m := jsonBody(t, r)
+		if r.Status != 200 || m["status"] != "confirm" {
+			t.Fatalf("submit: %d %s", r.Status, r.Body)
+		}
+		in, _ := m["inbox"].(map[string]any)
+		name, _ := in["name"].(string)
+		link, _ := in["url"].(string)
+		return name, link
+	}
+	t.Run("a Gmail address opens Gmail", func(t *testing.T) {
+		name, link := inbox(t, embedPost(t, env, ids, url.Values{"email": {"sam@gmail.com"}}))
+		if name != "Gmail" || !strings.HasPrefix(link, "https://mail.google.com/mail/u/sam%40gmail.com/") || !strings.Contains(link, "from%3A(no-reply%40news.acme.io)") {
+			t.Errorf("inbox %q %q", name, link)
+		}
+	})
+	t.Run("a company address gets no link", func(t *testing.T) {
+		if name, link := inbox(t, embedPost(t, env, ids, url.Values{"email": {"sam@acme.io"}})); name != "" || link != "" {
+			t.Errorf("inbox %q %q", name, link)
+		}
+	})
+	t.Run("a filled honeypot gets the same link", func(t *testing.T) {
+		name, link := inbox(t, embedPost(t, env, ids, url.Values{"email": {"bot@gmail.com"}, "website": {"https://cheap-pills.example"}}))
+		if name != "Gmail" || !strings.HasPrefix(link, "https://mail.google.com/mail/u/bot%40gmail.com/") {
+			t.Errorf("inbox %q %q", name, link)
+		}
+		if _, ok := contactID(t, env, ids.ws, "bot@gmail.com"); ok {
+			t.Error("the honeypot submission created a contact")
+		}
+	})
+	t.Run("the hosted page has the button before the archive link", func(t *testing.T) {
+		r := do(t, env, http.MethodPost, "/p/acme-newsletter/subscribe", url.Values{
+			"_t": {formToken(env, "frm_8c2e1a", time.Minute)}, "email": {"kim@outlook.com"}, "list": {ids.digest.String()}, "consent": {"1"},
+		}, hdr{"Origin": env.Server.URL})
+		// The first action is the primary button; the archive link follows.
+		must(t, r, 200, "Check your inbox", `<a class="btn-sm" href="https://outlook.live.com/mail/?login_hint=kim%40outlook.com" target="_blank" rel="noopener noreferrer">`)
+		open, past := strings.Index(r.Body, `class="btn-sm" href="https://outlook.live.com`), strings.Index(r.Body, `class="btn-ghost" href="`+env.Server.URL+`/p/acme-newsletter/archive"`)
+		if open < 0 || past < open {
+			t.Errorf("Open Outlook isn't the first button before the archive link:\n%s", clip(r.Body))
+		}
+		if !regexp.MustCompile(`outlook\.live\.com[^>]*>[^<]+<span class="vh">[^<]+</span></a>`).MatchString(r.Body) {
+			t.Error("the new-tab link doesn't say so to screen readers")
+		}
+	})
+}
+
 func TestEmbeddedForm(t *testing.T) {
 	env, ids := demo(t)
 	submit := "/p/acme-newsletter/forms/frm_8c2e1a/submit"

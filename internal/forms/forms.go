@@ -145,10 +145,16 @@ type contentDoc struct {
 	// built-in message ("We sent you a link to confirm…").
 	AfterSubmitText string `json:"afterSubmitText,omitempty"`
 	// Popups open after PopupDelay seconds or PopupScroll percent of the
-	// page, whichever comes first, and stay closed for PopupRepeatDays.
-	PopupDelay      int `json:"popupDelay"`
-	PopupScroll     int `json:"popupScroll"`
-	PopupRepeatDays int `json:"popupRepeatDays"`
+	// page, or when the visitor is about to leave (PopupExit, desktop
+	// only), whichever comes first, and stay closed for PopupRepeatDays.
+	PopupDelay      int  `json:"popupDelay"`
+	PopupScroll     int  `json:"popupScroll"`
+	PopupRepeatDays int  `json:"popupRepeatDays"`
+	PopupExit       bool `json:"popupExit,omitempty"`
+	// HideSubscribed hides the form from people this browser remembers
+	// signing up through any of the workspace's forms; nil is the kind's
+	// default (Config.HideSubscribed).
+	HideSubscribed *bool `json:"hideSubscribed,omitempty"`
 	// SmsConsent shows the SMS consent checkbox (with the phone field),
 	// unchecked; SmsConsentText is its text (empty: the default one) and
 	// SmsConsentVersion goes up whenever the text changes (phase 8).
@@ -222,6 +228,16 @@ func (c Config) Field(key string) (fieldDoc, bool) {
 	return fieldDoc{}, false
 }
 
+// HideSubscribed reports whether the form hides from people who already
+// signed up on the site: what the form says, else on for popups only (a
+// publisher trying their own embedded form would otherwise lose it).
+func (c Config) HideSubscribed() bool {
+	if c.Content.HideSubscribed != nil {
+		return *c.Content.HideSubscribed
+	}
+	return c.Kind == KindPopup
+}
+
 // Source is the consent and contact source of the form's signups.
 func (c Config) Source() string {
 	if c.Builtin {
@@ -286,7 +302,7 @@ func withContentDefaults(c contentDoc, labels pagelabels.Set) contentDoc {
 	if c.NamePlaceholder == "" {
 		c.NamePlaceholder = labels.Text("form.namePlaceholder", nil)
 	}
-	if c.PopupDelay <= 0 && c.PopupScroll <= 0 {
+	if c.PopupDelay <= 0 && c.PopupScroll <= 0 && !c.PopupExit {
 		c.PopupDelay = 8
 	}
 	if c.PopupRepeatDays <= 0 {
@@ -355,6 +371,14 @@ type SignupFormContent struct {
 	PopupDelay       int    `json:"popupDelay" minimum:"0" maximum:"600" doc:"Seconds before a popup opens"`
 	PopupScroll      int    `json:"popupScroll" minimum:"0" maximum:"100" doc:"Percent of the page scrolled before a popup opens; 0 is off"`
 	PopupRepeatDays  int    `json:"popupRepeatDays" minimum:"0" maximum:"365" doc:"Days a closed popup stays closed"`
+	// PopupExit opens a popup when the visitor is about to leave the page
+	// (desktop browsers only: phones have no exit intent).
+	PopupExit bool `json:"popupExit,omitempty"`
+	// HideSubscribed hides the form from people who already signed up on
+	// this site, through any of the workspace's forms (the browser
+	// remembers it). Omitted: on for popups, off for embedded and hosted
+	// forms. Always set in answers.
+	HideSubscribed *bool `json:"hideSubscribed,omitempty"`
 	// AfterSubmitText is what the form says after a signup; empty uses the built-in message.
 	AfterSubmitText string `json:"afterSubmitText,omitempty" maxLength:"300"`
 	// SmsConsent shows the SMS consent checkbox, unchecked by default; it
@@ -607,6 +631,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 		Content: SignupFormContent{Heading: c.Content.Heading, Description: c.Content.Description, Button: c.Content.Button, Footnote: c.Content.Footnote,
 			ListsLabel: c.Content.ListsLabel, EmailPlaceholder: c.Content.EmailPlaceholder, NamePlaceholder: c.Content.NamePlaceholder,
 			PopupDelay: c.Content.PopupDelay, PopupScroll: c.Content.PopupScroll, PopupRepeatDays: c.Content.PopupRepeatDays, AfterSubmitText: c.Content.AfterSubmitText,
+			PopupExit: c.Content.PopupExit, HideSubscribed: new(c.HideSubscribed()),
 			SmsConsent: c.Content.SmsConsent, SmsConsentText: c.Content.SmsConsentText, SmsConsentVersion: c.Content.SmsConsentVersion},
 		BlockedOrigins: []SignupFormBlockedOrigin{}, PublishedAt: f.PublishedAt, UpdatedAt: f.UpdatedAt,
 	}
@@ -943,6 +968,7 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		Heading: strings.TrimSpace(c.Heading), Description: strings.TrimSpace(c.Description), Button: strings.TrimSpace(c.Button), Footnote: strings.TrimSpace(c.Footnote),
 		ListsLabel: strings.TrimSpace(c.ListsLabel), EmailPlaceholder: strings.TrimSpace(c.EmailPlaceholder), NamePlaceholder: strings.TrimSpace(c.NamePlaceholder),
 		PopupDelay: c.PopupDelay, PopupScroll: c.PopupScroll, PopupRepeatDays: c.PopupRepeatDays, AfterSubmitText: strings.TrimSpace(c.AfterSubmitText),
+		PopupExit: c.PopupExit, HideSubscribed: c.HideSubscribed,
 	}
 	if err := smsConsentOf(ctx, &content, c, fields, before.Content); err != nil {
 		return store.FormUpdateParams{}, err

@@ -14,6 +14,7 @@
         </select>{{else if eq $f.Type "tel"}}<span class="phone"><select class="in cc" name="phone_country" aria-label="{{$f.CountryLabel}}">{{range $f.Countries}}<option value="{{.Code}}"{{if eq .Code $f.Country}} selected{{end}}>{{.Name}} {{.Dial}}</option>{{end}}</select><input class="in" type="tel" name="{{$f.Name}}" id="{{$f.ID}}" value="{{$f.Value}}"{{with $f.Placeholder}} placeholder="{{.}}"{{end}} autocomplete="tel"{{if $f.Required}} required{{end}}{{if $f.Error}} aria-invalid="true" aria-describedby="{{$f.ID}}-err"{{end}}></span>{{else}}<input class="in" type="{{$f.Type}}" name="{{$f.Name}}" id="{{$f.ID}}" value="{{$f.Value}}"{{with $f.Placeholder}} placeholder="{{.}}"{{end}}{{with $f.Autocomplete}} autocomplete="{{.}}"{{end}}{{if $f.Required}} required{{end}}{{if $f.Error}} aria-invalid="true" aria-describedby="{{$f.ID}}-err"{{end}}>{{end}}
       </label>
       {{if $f.Error}}<span class="err" id="{{$f.ID}}-err" role="alert">{{$f.Error}}</span>{{end}}
+      {{if eq $f.Key "email"}}{{with $.Body.Typo}}<div class="btns"><button class="btn-sm" type="submit" name="typo" value="use"{{if $.Preview}} disabled{{end}}>{{.Use}}</button><button class="btn-ghost" type="submit" name="typo" value="keep"{{if $.Preview}} disabled{{end}}>{{.Keep}}</button></div>{{end}}{{end}}
     </div>
     {{end}}{{if .Lists}}<fieldset class="lists"{{if .ListError}} aria-describedby="lists-err"{{end}}>
       <legend>{{.ListsLabel}}</legend>

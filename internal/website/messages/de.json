@@ -169,6 +169,12 @@
   "site.clearSearch": "Suche löschen",
   "site.noMatches": "Keine passenden Beiträge. Versuchen Sie andere Wörter, oder setzen Sie die Suche zurück.",
   "site.endOfResults": "{count} von {count} · Ende der Ergebnisse",
+  "site.share": "Diesen Beitrag teilen",
+  "site.shareLink": "Link zu diesem Beitrag",
+  "site.copyLink": "Link kopieren",
+  "site.linkCopied": "Link kopiert",
+  "site.shareEmail": "E-Mail",
+  "site.shareOn": "Auf {network} teilen (öffnet in neuem Tab)",
 
   "gate.memberIncluded": "In Ihrer Mitgliedschaft {tier} enthalten",
   "gate.freePost": "Dies ist Ihr kostenloser Beitrag für zahlende Mitglieder im {month}.",
