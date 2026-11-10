@@ -15,6 +15,7 @@ import (
 // the send leaves it waiting for the cap.
 func TestWarmupHoldOnTheLiveMonitor(t *testing.T) {
 	s := sendtest.NewSuite(t)
+	middayWorkspace(t, s)
 	f := s.Fixture(t, "Warm-up hold live")
 	postal, ses, plan, _ := warmupFixture(t, f, false, false)
 	f.AddContacts(sendtest.ContactSpec{N: 90, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
