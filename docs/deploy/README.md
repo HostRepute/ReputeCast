@@ -21,7 +21,7 @@ You need Docker with Compose. The compose file runs Postgres and ReputeCast:
 
 ```bash
 curl -fsSL -o docker-compose.yml \
-  https://raw.githubusercontent.com/hostrepute/reputecast/main/deploy/docker-compose.yml
+  https://github.com/hostrepute/reputecast/releases/latest/download/docker-compose.yml
 ```
 
 Create a `.env` file next to it before the first start:

@@ -28,6 +28,14 @@ archives:
 
 checksum:
   name_template: checksums.txt
+  extra_files:
+    - glob: ./deploy/docker-compose.yml
+
+# The install commands download the latest release's Compose file, so it
+# always matches the newest image.
+release:
+  extra_files:
+    - glob: ./deploy/docker-compose.yml
 
 dockers_v2:
   - images: [ghcr.io/hostrepute/reputecast]
