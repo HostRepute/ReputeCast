@@ -385,6 +385,23 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.151.3"
           command: pages deploy dist --project-name=reputecast-site --branch=main --commit-hash=${{ github.sha }}
+      # Cloudflare can rewrite the page on its way to visitors: Email Address
+      # Obfuscation once turned the install command into "[email protected]".
+      - name: reputecast.com serves the page as built
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          for _ in 1 2 3 4 5 6; do
+            code=$(curl -sS -o live.html -w '%{http_code}' https://reputecast.com/ || true)
+            if [ "$code" = 200 ] && cmp -s live.html dist/index.html; then exit 0; fi
+            sleep 10
+          done
+          if [ "$code" != 200 ]; then
+            echo "::warning title=reputecast.com wasn't checked::It answered HTTP $code."
+            exit 0
+          fi
+          diff <(tr '>' '\n' < dist/index.html) <(tr '>' '\n' < live.html) | head -40 || true
+          echo "::error title=reputecast.com differs from the build::Something between Cloudflare Pages and visitors changes the page, such as Email Address Obfuscation or an injected script. The diff is above."
+          exit 1
 
   # The integration apps (integrations/): each checks its requests and
   # mocked answers against web/openapi.json, so an API change that breaks
