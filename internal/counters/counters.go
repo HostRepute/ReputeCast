@@ -1,6 +1,6 @@
 // Package counters keeps a campaign's report counters (campaign_counters,
-// campaign_hourly and the clicks of campaign_links) in step with its
-// messages (review AN-3).
+// campaign_hourly, the clicks of campaign_links and the breakdowns of
+// campaign_dims) in step with its messages (review AN-3).
 //
 // A counter is a function of message states, not a tally of events: a
 // message counts as delivered when it has a delivery and no hard bounce, as
@@ -186,3 +186,32 @@ type Cell struct {
 	Mailbox  string
 	Variant  string
 }
+
+// Breakdowns (campaign_dims.dim): a campaign's human opens and clicks by
+// the mail client, system, device, country and city of each person's first
+// engagement, and by the local hour and weekday of the first human open
+// (opens) and of the first click (clicks).
+const (
+	DimClient  = "client"
+	DimOS      = "os"
+	DimDevice  = "device"
+	DimCountry = "country"
+	DimCity    = "city"
+	DimHour    = "hour"
+	DimWeekday = "weekday"
+)
+
+// Dims are what a message keeps of its first human engagement on a
+// campaign that records breakdowns (campaigns.breakdown): the client,
+// system and device (internal/tracking ClientParts keys), the country code
+// and English city name (empty when unknown), and the local weekday-hours
+// ((ISO weekday-1)*24 + hour, 0-167, in the workspace's time zone at that
+// moment) of the first human open and of the first click. Tracking passes
+// the strings; the locals come back from CountersMoveEngagement.
+type Dims struct {
+	Client, OS, Device, Country, City string
+	HumanLocal, ClickLocal            *int16
+}
+
+// CityKey is a city's campaign_dims key: "CC|City".
+func CityKey(country, city string) string { return country + "|" + city }

@@ -78,8 +78,9 @@ var (
 // Reason says why a message of a member kind was sent, in the reader's
 // language. ok is false for kinds it doesn't know (subscribers' mail).
 func Reason(l i18n.Lang, kind string) (reason string, ok bool) {
-	if kind == "notification" {
-		// Notifications already end with the preferences link.
+	if kind == "notification" || kind == "report_summary" {
+		// Notifications and the sending summary already end with why they
+		// came and the link to change it.
 		return "", true
 	}
 	if m, err := msgs.Lookup("reason." + kind); err == nil {

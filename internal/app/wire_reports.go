@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/overview"
 	"github.com/hostrepute/reputecast/internal/reports"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -29,6 +30,23 @@ func reportsService(a *App) *reports.Service {
 			f, err := readinessService(a).Audience(ctx, ws, audience)
 			return f.Final, err
 		},
+		// The sending summary by email: the System stream, its email queued
+		// with the claim of its period, and the Overview's sender health.
+		Mail: a.notifyMailer, Jobs: lazyJobs{a}, Health: summaryHealth(a),
+		// Whether countries and cities can be known (geoip.database).
+		Geo: a.GeoIP,
+	}
+}
+
+// summaryHealth is the Overview's sender health for the sending summary.
+func summaryHealth(a *App) func(ctx context.Context, ws *store.Workspace) (int, string, bool, error) {
+	return func(ctx context.Context, ws *store.Workspace) (int, string, bool, error) {
+		_, dl := deliverabilityServices(a)
+		h, err := (&overview.Service{Pool: a.Pool, Q: a.Q, Deliverability: dl, Providers: a.providersService()}).SenderHealth(ctx, ws)
+		if err != nil || h.State != "ready" {
+			return 0, "", false, err
+		}
+		return h.Score, h.Label, true, nil
 	}
 }
 
@@ -37,10 +55,14 @@ func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		reports.Register(h, reportsService(a))
 	})
-	// "Email me when it's final": told once the 72 hours are over.
+	// "Email me when it's final": told once the 72 hours are over. The
+	// sending summary: an hourly tick claims the periods that are due.
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		river.AddWorker(a.JobReg.Workers, &reports.FinalAlertsWorker{S: reportsService(a)})
 		a.JobReg.Every(10*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return reports.FinalAlertsArgs{}, nil }, false)
+		river.AddWorker(a.JobReg.Workers, &reports.SummaryWorker{S: reportsService(a)})
+		river.AddWorker(a.JobReg.Workers, &reports.SummarySendWorker{S: reportsService(a), Log: a.Log})
+		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return reports.SummaryArgs{}, nil }, false)
 	})
 }
 

@@ -467,7 +467,10 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 var errPrepareMoved = errors.New("prepare moved on")
 
 // startPrepare clears what a failed earlier attempt left, stages segment
-// members, captures the content and indexes its links.
+// members, captures the content and indexes its links. It is the send's
+// first build, so from here on the campaign records breakdowns (mail
+// clients, devices, places and times of its people's first engagements):
+// a campaign sent before them never gets half-filled rows from late clicks.
 func (e *Engine) startPrepare(ctx context.Context, cc store.SendingCampaignContextRow, def audienceDef, content sendContent, now time.Time) error {
 	cid := cc.ID
 	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
@@ -476,6 +479,9 @@ func (e *Engine) startPrepare(ctx context.Context, cc store.SendingCampaignConte
 			return err
 		}
 		if err := q.SendingClearRoutes(ctx, cid); err != nil {
+			return err
+		}
+		if err := q.CountersStartBreakdown(ctx, cid); err != nil {
 			return err
 		}
 		if err := q.SendingStageClear(ctx, cid); err != nil {

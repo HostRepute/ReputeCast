@@ -168,9 +168,25 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .seg button:first-child{border-radius:7px 0 0 7px}.seg button:last-child{border-radius:0 7px 7px 0}
 .seg button + button{border-left:1px solid #E3E6EB}
 .seg button.on{background:#0B1220;color:#fff}
+/* breakdown cards: legend, axes, share bars and the chart's tooltip (as Report draws them, M57) */
+.leg{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;align-items:center}
+.leg > span{display:inline-flex;gap:6px;align-items:center}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.yax{position:relative;width:34px;height:200px;flex:none}
+.yax span{position:absolute;right:0;transform:translateY(-50%);font-size:12px;line-height:1;color:#5B6472;font-weight:500;font-variant-numeric:tabular-nums}
+.xax{position:relative;height:16px;margin-top:6px}
+.xax span{position:absolute;top:0;font-size:12px;line-height:16px;color:#5B6472;font-weight:500;white-space:nowrap;transform:translateX(-50%)}
+.xax span.x0{transform:none}
+.shr{display:flex;align-items:center;gap:10px}
+.shr .sbar{flex:1 1 120px;min-width:48px;max-width:240px}
+.shr .sbar i{background:#0B1220}
+.shr .n{min-width:52px;text-align:right;white-space:nowrap}
+.tip{position:absolute;top:4px;z-index:2;display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;box-shadow:0 12px 32px rgba(11,18,32,.16);font-size:12px;line-height:1.4;color:#4B5563;white-space:nowrap;pointer-events:none;transform:translateX(-50%)}
+.tip b{color:#0B1220;font-weight:600}
+@media (max-width:767px){.shr .sbar{display:none}.content .seg button{height:44px}}
 </style>
 </helmet>
-<h1 class="vh">Campaign report states: loading, empty, error, results still coming in, no clear A/B winner and tracking source notes</h1>
+<h1 class="vh">Campaign report states: loading, empty, error, results still coming in, no clear A/B winner, tracking source notes, and the states of mail clients, countries and times</h1>
 <div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
   <a href="#main" class="skip">Skip to content</a>
   <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
@@ -335,11 +351,132 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </section>
         </div>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Mail clients, countries and times unavailable">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Mail clients, countries and times · a campaign sent before ReputeCast recorded them, and imported history: one card instead of three</div>
+        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+          <section class="card" aria-labelledby="bd1-h" style="flex:1 1 420px;min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+            <h2 id="bd1-h" class="h2">Mail clients, countries and times</h2>
+            <div style="min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:20px 24px;border-radius:8px;background:#F9FAFB;text-align:center;box-sizing:border-box">
+              <span style="font-weight:600">No breakdown for this campaign</span>
+              <span class="k" style="max-width:520px">It was sent before ReputeCast recorded mail clients and places.</span>
+            </div>
+          </section>
+          <section class="card" aria-labelledby="bd2-h" style="flex:1 1 420px;min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+            <h2 id="bd2-h" class="h2">Mail clients, countries and times</h2>
+            <div style="min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:20px 24px;border-radius:8px;background:#F9FAFB;text-align:center;box-sizing:border-box">
+              <span style="font-weight:600">No breakdown for this campaign</span>
+              <span class="k" style="max-width:520px">It was imported with its final totals, which are in the tiles above. Campaigns sent from ReputeCast show mail clients, devices, countries and times.</span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Mail clients, countries and times before anyone opened">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Breakdown · sent, nobody has opened it yet · and Countries when the server has no GeoIP database</div>
+        <section class="card" aria-labelledby="dv0-h" style="min-width:0">
+          <div class="chd"><h2 id="dv0-h" class="h2">Mail clients and devices</h2><span class="k">by the first human open or click of each person</span></div>
+          <p class="k" style="margin:0;padding:14px 18px">No opens from people yet.</p>
+        </section>
+        <section class="card" aria-labelledby="geo0-h" style="min-width:0">
+          <div class="chd"><h2 id="geo0-h" class="h2">Countries</h2><span class="k">from the reader’s address at their first human open; the address isn’t kept</span></div>
+          <div style="padding:14px 18px;display:flex;flex-direction:column;align-items:flex-start;gap:10px">
+            <p class="k" style="margin:0">Countries appear once the server has a GeoIP database (geoip.database).</p>
+            <a href="https://docs.reputecast.com/self-hosting/configuration/" class="btn sm" target="_blank" rel="noopener noreferrer">How to add a GeoIP database<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg><span class="vh"> (opens in a new tab)</span></a>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="tm0-h" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+          <h2 id="tm0-h" class="h2">When people opened</h2>
+          <p class="k" style="margin:0">No opens from people yet.</p>
+        </section>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Countries on a read-only link">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>Countries on a read-only link · no cities, and countries with fewer than 5 human opens fold into Other countries</div>
+        <section class="card" aria-labelledby="geo1-h" style="display:flex;flex-direction:column;min-width:0;max-width:720px">
+          <div class="chd"><h2 id="geo1-h" class="h2">Countries</h2><span class="k">from the reader’s address at their first human open; the address isn’t kept</span></div>
+          <div style="overflow-x:auto;padding:0 10px 4px">
+            <table class="tbl">
+              <caption class="vh">Human opens and clicks per country</caption>
+              <thead><tr><th scope="col">Country</th><th scope="col" class="r">Human opens</th><th scope="col">Share of human opens</th><th scope="col" class="r">Human clicks</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">United States</th><td class="r n">4,092</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:38.0%"></i></span><span class="n">38.0%</span></span></td><td class="r n">628</td></tr>
+                <tr><th scope="row">United Kingdom</th><td class="r n">1,292</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:12.0%"></i></span><span class="n">12.0%</span></span></td><td class="r n">208</td></tr>
+                <tr><th scope="row">Germany</th><td class="r n">1,077</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:10.0%"></i></span><span class="n">10.0%</span></span></td><td class="r n">182</td></tr>
+                <tr><th scope="row">Vietnam</th><td class="r n">969</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:9.0%"></i></span><span class="n">9.0%</span></span></td><td class="r n">134</td></tr>
+                <tr><th scope="row">India</th><td class="r n">861</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:8.0%"></i></span><span class="n">8.0%</span></span></td><td class="r n">112</td></tr>
+                <tr><th scope="row">France</th><td class="r n">754</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:7.0%"></i></span><span class="n">7.0%</span></span></td><td class="r n">116</td></tr>
+                <tr><th scope="row">Canada</th><td class="r n">646</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:6.0%"></i></span><span class="n">6.0%</span></span></td><td class="r n">99</td></tr>
+                <tr><th scope="row">Netherlands</th><td class="r n">431</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:4.0%"></i></span><span class="n">4.0%</span></span></td><td class="r n">79</td></tr>
+                <tr><th scope="row">Australia</th><td class="r n">323</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:3.0%"></i></span><span class="n">3.0%</span></span></td><td class="r n">49</td></tr>
+                <tr><th scope="row">Brazil</th><td class="r n">323</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:3.0%"></i></span><span class="n">3.0%</span></span></td><td class="r n">40</td></tr>
+                <tr><th scope="row">Other countries<span class="k" style="display:block;font-weight:500">2 countries</span></th><td class="r n">7</td><td><span class="shr"><span class="bar sbar" aria-hidden="true"><i style="width:0.1%"></i></span><span class="n">0.1%</span></span></td><td class="r n">1</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="k" style="padding:10px 18px;border-top:1px solid #EEF0F3">Shares of the 10,775 human opens whose country is known. Gmail and Yahoo Mail load images through their own servers, which hides where those readers are.</div>
+        </section>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="When people opened: reading a bar">
+        <div class="strip"><span class="dot" style="color:#6B7280"></span>When people opened · a bar read with the pointer, or with the arrow keys once the chart has focus (Home and End jump to the ends)</div>
+        <section class="card" aria-labelledby="tm1-h" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 16px">
+            <h2 id="tm1-h" class="h2">When people opened</h2>
+            <div style="display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap">
+              <div class="leg"><span><span class="sw" style="background:#0B1220" aria-hidden="true"></span>Human opens</span><span><svg width="16" height="4" aria-hidden="true"><line x1="0" y1="2" x2="16" y2="2" stroke="#0F766E" stroke-width="2.5"></line></svg>Human clicks</span></div>
+              <div class="seg" role="group" aria-label="Group by"><button type="button" class="on" aria-pressed="true">Hour of day</button><button type="button" aria-pressed="false">Day of week</button></div>
+              <div class="seg" role="group" aria-label="Show times as"><button type="button" class="on" aria-pressed="true">Chart</button><button type="button" aria-pressed="false">Table</button></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:flex-start;padding-top:8px">
+            <div class="yax" aria-hidden="true"><span style="top:0px">40%</span><span style="top:50px">30%</span><span style="top:100px">20%</span><span style="top:150px">10%</span><span style="top:200px">0%</span></div>
+            <div style="flex:1 1 0;min-width:0;position:relative">
+              <svg viewBox="0 0 720 200" width="100%" height="200" preserveAspectRatio="none" role="img" aria-label="Bar chart of the share of human opens in each hour of the day, with the share of human clicks as a line, on a 0 to 40% scale. Most opens at 12:00: 4,952. Most clicks at 12:00: 1,098." style="display:block;overflow:visible">
+                <line x1="0" y1="0" x2="720" y2="0" stroke="#EEF0F3" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" y1="50" x2="720" y2="50" stroke="#EEF0F3" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" y1="100" x2="720" y2="100" stroke="#EEF0F3" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" y1="150" x2="720" y2="150" stroke="#EEF0F3" vector-effect="non-scaling-stroke"></line>
+                <line x1="0" y1="200" x2="720" y2="200" stroke="#D4D8DF" vector-effect="non-scaling-stroke"></line>
+                <rect x="5.4" y="192.1" width="19.2" height="7.9" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="35.4" y="192.5" width="19.2" height="7.5" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="65.4" y="192.9" width="19.2" height="7.1" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="95.4" y="193.3" width="19.2" height="6.7" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="125.4" y="193.6" width="19.2" height="6.4" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="155.4" y="193.9" width="19.2" height="6.1" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="185.4" y="194.2" width="19.2" height="5.8" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="215.4" y="194.5" width="19.2" height="5.5" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="245.4" y="194.8" width="19.2" height="5.2" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="275.4" y="195.0" width="19.2" height="5.0" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="305.4" y="167.5" width="19.2" height="32.5" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="335.4" y="179.4" width="19.2" height="20.6" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="365.4" y="73.6" width="19.2" height="126.4" fill="#0B1220"></rect>
+                <rect x="395.4" y="124.2" width="19.2" height="75.8" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="425.4" y="152.5" width="19.2" height="47.5" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="455.4" y="168.6" width="19.2" height="31.4" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="485.4" y="177.7" width="19.2" height="22.3" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="515.4" y="183.0" width="19.2" height="17.0" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="545.4" y="186.2" width="19.2" height="13.8" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="575.4" y="188.1" width="19.2" height="11.9" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="605.4" y="189.5" width="19.2" height="10.5" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="635.4" y="190.4" width="19.2" height="9.6" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="665.4" y="191.1" width="19.2" height="8.9" fill="#0B1220" opacity="0.55"></rect>
+                <rect x="695.4" y="191.6" width="19.2" height="8.4" fill="#0B1220" opacity="0.55"></rect>
+                <path d="M15.0 195.5 L45.0 195.8 L75.0 196.2 L105.0 196.3 L135.0 196.8 L165.0 197.0 L195.0 197.2 L225.0 197.5 L255.0 197.7 L285.0 197.8 L315.0 155.1 L345.0 178.5 L375.0 16.8 L405.0 114.4 L435.0 157.3 L465.0 176.1 L495.0 185.0 L525.0 189.0 L555.0 191.3 L585.0 192.5 L615.0 193.2 L645.0 194.0 L675.0 194.3 L705.0 194.8" fill="none" stroke="#0F766E" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+              </svg>
+              <div role="slider" tabindex="0" aria-label="Read each hour" aria-valuemin="0" aria-valuemax="23" aria-valuenow="12" aria-valuetext="12:00 to 13:00: 4,952 human opens, 25.3%; 1,098 human clicks, 36.6%" style="position:absolute;top:0;left:0;right:0;height:200px;border-radius:4px;outline:2px solid #0F766E;outline-offset:2px"></div>
+              <div class="tip" style="left:52.083%" aria-hidden="true"><b>12:00 to 13:00</b><span>Human opens 4,952 · 25.3%</span><span>Human clicks 1,098 · 36.6%</span></div>
+              <div class="xax" aria-hidden="true"><span class="x0" style="left:0%">00:00</span><span style="left:12.5%">03:00</span><span style="left:25%">06:00</span><span style="left:37.5%">09:00</span><span style="left:50%">12:00</span><span style="left:62.5%">15:00</span><span style="left:75%">18:00</span><span style="left:87.5%">21:00</span></div>
+            </div>
+          </div>
+          <span class="k">The other hours dim while one is read. The tooltip repeats what a screen reader hears from the chart’s slider; the Table view lists every hour.</span>
+        </section>
+      </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3855}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":5660}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

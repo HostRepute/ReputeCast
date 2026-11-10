@@ -54,6 +54,7 @@ import { WhatsAppStepProps, WhatsAppStepStats, WhatsAppStepSub } from '@/feature
 import { T, useI18n, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
+import { isPaidTrigger, paidGroupName, PaidTriggerFields, paidTriggerDefaults } from '@/features/earn/automation'
 
 type Options = Schemas['AutomationOptions']
 
@@ -79,6 +80,10 @@ const mono = (chunks: ReactNode[]) => <span className="mono">{chunks}</span>
 /** Steps to drag onto the canvas (or press to add after the selected step). */
 export function Palette({ disabledReason, onAdd }: { disabledReason?: string; onAdd: (item: PaletteItem) => void }) {
   const tr = useT()
+  const { slug } = useWorkspace()
+  // The flow editor's options (same query, cached): the "Paid members"
+  // triggers show only with a live payment connection (G-11).
+  const paid = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/options', { params: { path: { workspace: slug } } }, { staleTime: 60_000 }).data?.paidConnected
   const sms = useChannelSetUp('sms')
   // Push and WhatsApp (X22) join once they're set up, as SMS does.
   const push = useChannelSetUp('push')
@@ -112,7 +117,17 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
   return (
     <>
       <div className="grp">{tr(mp.triggers)}</div>
-      <div className="flex flex-col gap-1.5 px-3 pb-2">{TRIGGER_KINDS.map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }))}</div>
+      <div className="flex flex-col gap-1.5 px-3 pb-2">
+        {TRIGGER_KINDS.filter((kind) => !isPaidTrigger(kind)).map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }))}
+      </div>
+      {paid ? (
+        <>
+          <div className="grp">{paidGroupName()}</div>
+          <div className="flex flex-col gap-1.5 px-3 pb-2">
+            {TRIGGER_KINDS.filter(isPaidTrigger).map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }))}
+          </div>
+        </>
+      ) : null}
       <div className="grp">{tr(smsStep.messages)}</div>
       <div className="flex flex-col gap-1.5 px-3 pb-2">{messages.map((s) => item(s.type, s.label, typeColors[s.type], { type: s.type }))}</div>
       <div className="grp">{tr(mp.steps)}</div>
@@ -727,11 +742,20 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
             const kind = e.target.value as TriggerConfig['kind']
             onChange({
               ...node.data,
-              trigger: { reentry: t.reentry, reentryDays: t.reentryDays, also: t.also, ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}), ...storeTriggerDefaults(kind, stores), kind },
+              trigger: {
+                reentry: t.reentry,
+                reentryDays: t.reentryDays,
+                also: t.also,
+                ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}),
+                ...storeTriggerDefaults(kind, stores),
+                ...paidTriggerDefaults(kind),
+                kind,
+              },
             })
           }}
         >
-          {TRIGGER_KINDS.map((k) => (
+          {/* The paid-member kinds only with a live payment connection, or when the flow already uses one (G-11). */}
+          {TRIGGER_KINDS.filter((k) => !isPaidTrigger(k) || options?.paidConnected || k === t.kind).map((k) => (
             <option key={k} value={k}>
               {triggerKindLabel(k)}
             </option>
@@ -780,6 +804,8 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
         {t.kind === 'bought_product' ? <BoughtTriggerProps t={t} disabled={disabled} set={set} products={options?.products} /> : null}
         {/* Order placed, First order and Abandoned checkout (design expansion, X20). */}
         {isStoreTrigger(t.kind) ? <StoreTriggerFields t={t} set={set} disabled={disabled} graph={graph} /> : null}
+        {/* Paid members (G-11). */}
+        {isPaidTrigger(t.kind) ? <PaidTriggerFields t={t} set={set} disabled={disabled} tiers={options?.tiers} /> : null}
         {t.kind === 'api_event' ? (
           <>
             <input className="in mono" aria-label={tr(mp.eventName)} list="fe-events" placeholder={'workspace.created'} disabled={disabled} value={t.event ?? ''} onChange={(e) => set({ event: e.target.value })} />

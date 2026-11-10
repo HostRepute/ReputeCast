@@ -28,7 +28,7 @@ func CoreErasure() erasure.Source {
 			{Name: "contact_preferences", Action: "delete"},
 			{Name: "segment_members", Action: "delete"},
 			{Name: "segment_member_events", Action: "delete"},
-			{Name: "messages", Action: "clear", Columns: []string{"email"},
+			{Name: "messages", Action: "clear", Columns: []string{"email", "human_country", "human_city"},
 				Kept: map[string]string{"contact_id": "campaign statistics keep adding up; the contact is scrubbed"}},
 			{Name: "delivery_events", Action: "clear", Columns: []string{"ip", "user_agent", "url", "recipient"},
 				Kept: map[string]string{"contact_id": "reports count events per contact; the contact is scrubbed",
@@ -51,7 +51,7 @@ func CoreErasure() erasure.Source {
 				`DELETE FROM campaign_audience_stage WHERE contact_id = ANY ($1)`,
 				`DELETE FROM optin_sends WHERE contact_id = ANY ($1)`,
 				`DELETE FROM automation_message_vars WHERE message_id IN (SELECT id FROM messages WHERE contact_id = ANY ($1))`,
-				`UPDATE messages SET email = '' WHERE contact_id = ANY ($1)`,
+				`UPDATE messages SET email = '', human_country = '', human_city = '' WHERE contact_id = ANY ($1)`,
 				`UPDATE delivery_events d SET ip = NULL, user_agent = '', url = '',
 				    recipient = CASE WHEN d.recipient = '' OR EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = d.workspace_id AND s.email = lower(d.recipient))
 				                     THEN d.recipient ELSE 'erased-' || d.contact_id || '@erased.invalid' END

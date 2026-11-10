@@ -148,6 +148,8 @@ export const entries: Entry[] = [
   { board: 'FormBuilder', path: `${ws}/forms?form={form:Newsletter signup}` },
   { board: 'FormsStates', manual: true },
   { board: 'Notifications', path: `${ws}/notifications` },
+  // M57 G-14: the weekly sending summary as a member receives it (an email, not a screen).
+  { board: 'ReportSummaryEmail', manual: true, widths: [560] },
   { board: 'AccountSecurity', path: `${ws}/account` },
   { board: 'AccountStates', manual: true },
   { board: 'WorkspaceSettings', path: `${ws}/settings` },

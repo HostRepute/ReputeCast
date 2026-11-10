@@ -400,6 +400,11 @@ type AutomationOptions struct {
 	// link" can start on (review 2026-11 AT-10).
 	Segments  []AutomationSegmentOption `json:"segments"`
 	Campaigns []AutomationOptionItem    `json:"campaigns"`
+	// Tiers are the paid tiers the "Paid members" triggers can name, and
+	// PaidConnected says the workspace has a live payment connection: the
+	// editor offers those triggers only then (G-11).
+	Tiers         []AutomationTierOption `json:"tiers"`
+	PaidConnected bool                   `json:"paidConnected"`
 }
 
 // AutomationMilestoneOption is a referral milestone a "Reached a
@@ -416,7 +421,12 @@ type AutomationMilestoneOption struct {
 // Options lists lists, forms, fields, emails, providers, tags and API events.
 func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationOptions, error) {
 	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{}, Milestones: []AutomationMilestoneOption{},
-		Products: []AutomationOptionItem{}, Segments: []AutomationSegmentOption{}, Campaigns: []AutomationOptionItem{}}
+		Products: []AutomationOptionItem{}, Segments: []AutomationSegmentOption{}, Campaigns: []AutomationOptionItem{}, Tiers: []AutomationTierOption{}}
+	tiers, paid, err := paidOptions(ctx, s.Q, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	out.Tiers, out.PaidConnected = tiers, paid
 	if segs, err := s.Q.AutomationSegments(ctx, ws.ID); err == nil {
 		for _, sg := range segs {
 			o := AutomationSegmentOption{ID: sg.ID.String(), Name: sg.Name, CheckMinutes: int(WatchInterval(sg.WatchMs) / time.Minute)}

@@ -104,6 +104,39 @@ func (q *Queries) CountersBump(ctx context.Context, arg CountersBumpParams) erro
 	return err
 }
 
+const countersBumpDims = `-- name: CountersBumpDims :exec
+INSERT INTO campaign_dims (campaign_id, dim, key, opened_human, clicked)
+SELECT x.campaign_id, x.dim, x.key, x.human, x.clicked
+FROM (SELECT unnest($1::uuid[]) AS campaign_id, unnest($2::text[]) AS dim, unnest($3::text[]) AS key,
+             unnest($4::bigint[]) AS human, unnest($5::bigint[]) AS clicked) AS x
+ORDER BY x.campaign_id, x.dim, x.key
+ON CONFLICT (campaign_id, dim, key) DO UPDATE
+SET opened_human = campaign_dims.opened_human + EXCLUDED.opened_human,
+    clicked = campaign_dims.clicked + EXCLUDED.clicked
+`
+
+type CountersBumpDimsParams struct {
+	CampaignIds []uuid.UUID `json:"campaignIds"`
+	Dims        []string    `json:"dims"`
+	Keys        []string    `json:"keys"`
+	Human       []int64     `json:"human"`
+	Clicked     []int64     `json:"clicked"`
+}
+
+// Adds human opens and clicks per campaign breakdown (client, os, device,
+// country, city, hour, weekday; internal/counters Dims), locking the rows
+// in key order, after campaign_link_variants.
+func (q *Queries) CountersBumpDims(ctx context.Context, arg CountersBumpDimsParams) error {
+	_, err := q.db.Exec(ctx, countersBumpDims,
+		arg.CampaignIds,
+		arg.Dims,
+		arg.Keys,
+		arg.Human,
+		arg.Clicked,
+	)
+	return err
+}
+
 const countersBumpHourly = `-- name: CountersBumpHourly :exec
 INSERT INTO campaign_hourly (campaign_id, hour, opened_human, opened_privacy, opened_machine, clicked)
 SELECT x.campaign_id, x.hour, x.human, x.privacy, x.machine, x.clicked
@@ -215,6 +248,7 @@ func (q *Queries) CountersBumpLinks(ctx context.Context, arg CountersBumpLinksPa
 const countersCampaignHistory = `-- name: CountersCampaignHistory :one
 SELECT c.origin,
        c.started_at,
+       c.breakdown,
        (SELECT count(*) FROM messages m WHERE m.campaign_id = c.id AND m.sent_at IS NOT NULL)::bigint AS messages_sent,
        (SELECT coalesce(sum(cc.sent), 0) FROM campaign_counters cc WHERE cc.campaign_id = c.id)::bigint AS counted_sent
 FROM campaigns c
@@ -224,6 +258,7 @@ WHERE c.id = $1
 type CountersCampaignHistoryRow struct {
 	Origin       string     `json:"origin"`
 	StartedAt    *time.Time `json:"startedAt"`
+	Breakdown    bool       `json:"breakdown"`
 	MessagesSent int64      `json:"messagesSent"`
 	CountedSent  int64      `json:"countedSent"`
 }
@@ -237,6 +272,7 @@ func (q *Queries) CountersCampaignHistory(ctx context.Context, id uuid.UUID) (Co
 	err := row.Scan(
 		&i.Origin,
 		&i.StartedAt,
+		&i.Breakdown,
 		&i.MessagesSent,
 		&i.CountedSent,
 	)
@@ -443,16 +479,30 @@ WITH old AS (
     SELECT m.id, m.campaign_id, m.status, m.sent_at, m.delivered_at, m.deferred_at, m.soft_bounced_at, m.opened_at, m.human_opened_at,
            m.privacy_opened_at, m.clicked_at, m.unsubscribed_at
     FROM messages m
-    WHERE m.id = $4
+    WHERE m.id = $9
     FOR UPDATE
 )
 UPDATE messages m
 SET opened_at = coalesce(m.opened_at, $1::timestamptz),
     human_opened_at = CASE WHEN $2::boolean OR $3::text = 'human' THEN coalesce(m.human_opened_at, $1::timestamptz) ELSE m.human_opened_at END,
     privacy_opened_at = CASE WHEN NOT $2::boolean AND $3::text = 'privacy' THEN coalesce(m.privacy_opened_at, $1::timestamptz) ELSE m.privacy_opened_at END,
-    clicked_at = CASE WHEN $2::boolean THEN coalesce(m.clicked_at, $1::timestamptz) ELSE m.clicked_at END
+    clicked_at = CASE WHEN $2::boolean THEN coalesce(m.clicked_at, $1::timestamptz) ELSE m.clicked_at END,
+    human_client = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND ($2::boolean OR $3::text = 'human') THEN $4::text ELSE m.human_client END,
+    human_os = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND ($2::boolean OR $3::text = 'human') THEN $5::text ELSE m.human_os END,
+    human_device = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND ($2::boolean OR $3::text = 'human') THEN $6::text ELSE m.human_device END,
+    human_country = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND ($2::boolean OR $3::text = 'human') THEN $7::text ELSE m.human_country END,
+    human_city = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND ($2::boolean OR $3::text = 'human') THEN $8::text ELSE m.human_city END,
+    human_local = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND ($2::boolean OR $3::text = 'human')
+        THEN ((extract(isodow FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), $1::timestamptz)) - 1) * 24
+              + extract(hour FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), $1::timestamptz)))::smallint
+        ELSE m.human_local END,
+    click_local = CASE WHEN coalesce(c.breakdown, false) AND m.clicked_at IS NULL AND $2::boolean
+        THEN ((extract(isodow FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), $1::timestamptz)) - 1) * 24
+              + extract(hour FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), $1::timestamptz)))::smallint
+        ELSE m.click_local END
 FROM old
 LEFT JOIN campaigns c ON c.id = old.campaign_id
+LEFT JOIN workspaces w ON w.id = c.workspace_id
 WHERE m.id = old.id
 RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant, c.started_at AS campaign_started_at,
           old.status AS old_status, old.sent_at AS old_sent_at, old.delivered_at AS old_delivered_at, old.deferred_at AS old_deferred_at,
@@ -460,14 +510,21 @@ RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_roll
           old.privacy_opened_at AS old_privacy_opened_at, old.clicked_at AS old_clicked_at, old.unsubscribed_at AS old_unsubscribed_at,
           m.status AS new_status, m.sent_at AS new_sent_at, m.delivered_at AS new_delivered_at, m.deferred_at AS new_deferred_at,
           m.soft_bounced_at AS new_soft_bounced_at, m.opened_at AS new_opened_at, m.human_opened_at AS new_human_opened_at,
-          m.privacy_opened_at AS new_privacy_opened_at, m.clicked_at AS new_clicked_at, m.unsubscribed_at AS new_unsubscribed_at
+          m.privacy_opened_at AS new_privacy_opened_at, m.clicked_at AS new_clicked_at, m.unsubscribed_at AS new_unsubscribed_at,
+          m.human_client, m.human_os, m.human_device, m.human_country, m.human_city, m.human_local, m.click_local,
+          coalesce(c.breakdown, false)::boolean AS breakdown
 `
 
 type CountersMoveEngagementParams struct {
-	At    time.Time `json:"at"`
-	Click bool      `json:"click"`
-	Class string    `json:"class"`
-	ID    uuid.UUID `json:"id"`
+	At      time.Time `json:"at"`
+	Click   bool      `json:"click"`
+	Class   string    `json:"class"`
+	Client  string    `json:"client"`
+	Os      string    `json:"os"`
+	Device  string    `json:"device"`
+	Country string    `json:"country"`
+	City    string    `json:"city"`
+	ID      uuid.UUID `json:"id"`
 }
 
 type CountersMoveEngagementRow struct {
@@ -496,17 +553,38 @@ type CountersMoveEngagementRow struct {
 	NewPrivacyOpenedAt *time.Time `json:"newPrivacyOpenedAt"`
 	NewClickedAt       *time.Time `json:"newClickedAt"`
 	NewUnsubscribedAt  *time.Time `json:"newUnsubscribedAt"`
+	HumanClient        string     `json:"humanClient"`
+	HumanOs            string     `json:"humanOs"`
+	HumanDevice        string     `json:"humanDevice"`
+	HumanCountry       string     `json:"humanCountry"`
+	HumanCity          string     `json:"humanCity"`
+	HumanLocal         *int16     `json:"humanLocal"`
+	ClickLocal         *int16     `json:"clickLocal"`
+	Breakdown          bool       `json:"breakdown"`
 }
 
 // Records an open or a person's click on a message. class is how tracking
 // classified it: human, privacy (Apple Mail Privacy Protection fetched the
 // images) or machine (a scanner). A click is always a person's (bot clicks
 // never get here) and is a human open too.
+//
+// On a campaign that records breakdowns (campaigns.breakdown), the update
+// that sets human_opened_at first keeps the engagement's client, system,
+// device and place (internal/counters Dims; tracking passes them only for
+// a person's engagement) and its local weekday-hour, (isodow-1)*24 + hour
+// in the workspace's time zone at that moment; the one that sets
+// clicked_at first keeps the click's. Other messages (automations,
+// transactional mail, campaigns sent before breakdowns) move as before.
 func (q *Queries) CountersMoveEngagement(ctx context.Context, arg CountersMoveEngagementParams) (CountersMoveEngagementRow, error) {
 	row := q.db.QueryRow(ctx, countersMoveEngagement,
 		arg.At,
 		arg.Click,
 		arg.Class,
+		arg.Client,
+		arg.Os,
+		arg.Device,
+		arg.Country,
+		arg.City,
 		arg.ID,
 	)
 	var i CountersMoveEngagementRow
@@ -536,6 +614,14 @@ func (q *Queries) CountersMoveEngagement(ctx context.Context, arg CountersMoveEn
 		&i.NewPrivacyOpenedAt,
 		&i.NewClickedAt,
 		&i.NewUnsubscribedAt,
+		&i.HumanClient,
+		&i.HumanOs,
+		&i.HumanDevice,
+		&i.HumanCountry,
+		&i.HumanCity,
+		&i.HumanLocal,
+		&i.ClickLocal,
+		&i.Breakdown,
 	)
 	return i, err
 }
@@ -594,6 +680,55 @@ SET sent = EXCLUDED.sent, delivered = EXCLUDED.delivered, deferred = EXCLUDED.de
 // (the same rules as internal/counters State.Flags).
 func (q *Queries) CountersRebuildCells(ctx context.Context, campaignID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, countersRebuildCells, campaignID)
+	return err
+}
+
+const countersRebuildDims = `-- name: CountersRebuildDims :exec
+WITH s AS (
+    SELECT (m.human_opened_at IS NOT NULL)::int AS human, (m.clicked_at IS NOT NULL)::int AS clicked,
+           m.human_client, m.human_os, m.human_device, m.human_country, m.human_city, m.human_local, m.click_local
+    FROM messages m
+    WHERE m.campaign_id = $1 AND m.provider_id IS NOT NULL AND m.human_opened_at IS NOT NULL
+), b AS (
+    SELECT 'client'::text AS dim, s.human_client AS key, s.human, s.clicked FROM s WHERE s.human_client <> ''
+    UNION ALL
+    SELECT 'os', s.human_os, s.human, s.clicked FROM s WHERE s.human_os <> ''
+    UNION ALL
+    SELECT 'device', s.human_device, s.human, s.clicked FROM s WHERE s.human_device <> ''
+    UNION ALL
+    SELECT 'country', s.human_country, s.human, s.clicked FROM s WHERE s.human_country <> ''
+    UNION ALL
+    SELECT 'city', s.human_country || '|' || s.human_city, s.human, s.clicked FROM s WHERE s.human_city <> ''
+    UNION ALL
+    SELECT 'hour', (s.human_local % 24)::text, 1, 0 FROM s WHERE s.human_local IS NOT NULL
+    UNION ALL
+    SELECT 'weekday', (s.human_local / 24 + 1)::text, 1, 0 FROM s WHERE s.human_local IS NOT NULL
+    UNION ALL
+    SELECT 'hour', (s.click_local % 24)::text, 0, 1 FROM s WHERE s.clicked = 1 AND s.click_local IS NOT NULL
+    UNION ALL
+    SELECT 'weekday', (s.click_local / 24 + 1)::text, 0, 1 FROM s WHERE s.clicked = 1 AND s.click_local IS NOT NULL
+), sums AS (
+    SELECT b.dim, b.key, sum(b.human)::bigint AS human, sum(b.clicked)::bigint AS clicked FROM b GROUP BY b.dim, b.key
+), gone AS (
+    DELETE FROM campaign_dims d WHERE d.campaign_id = $1
+      AND NOT EXISTS (SELECT 1 FROM sums WHERE sums.dim = d.dim AND sums.key = d.key)
+)
+INSERT INTO campaign_dims (campaign_id, dim, key, opened_human, clicked)
+SELECT $1, sums.dim, sums.key, sums.human, sums.clicked FROM sums
+ORDER BY sums.dim, sums.key
+ON CONFLICT (campaign_id, dim, key) DO UPDATE SET opened_human = EXCLUDED.opened_human, clicked = EXCLUDED.clicked
+`
+
+// Replaces a campaign's breakdowns with what its messages keep (the same
+// rules as internal/counters Ledger): a person's first engagement counts
+// once in its client, system, device, country and city, as a human open
+// and, once clicked, as a click; the hour and weekday are the first human
+// open's for opens and the first click's for clicks. It counts the current
+// message state, so places erased with a reader's IP or cleared by
+// retention (internal/audience) drop out here, while the live totals kept
+// them as aggregates. Only for campaigns that record breakdowns.
+func (q *Queries) CountersRebuildDims(ctx context.Context, campaignID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, countersRebuildDims, campaignID)
 	return err
 }
 
@@ -726,5 +861,16 @@ WHERE m.id = e.message_id AND m.campaign_id = $1
 // prefetch. Only fills what is missing.
 func (q *Queries) CountersRefreshStates(ctx context.Context, campaignID *uuid.UUID) error {
 	_, err := q.db.Exec(ctx, countersRefreshStates, campaignID)
+	return err
+}
+
+const countersStartBreakdown = `-- name: CountersStartBreakdown :exec
+UPDATE campaigns SET breakdown = true WHERE id = $1 AND NOT breakdown
+`
+
+// A send's first build: from now on the campaign's people's first
+// engagements keep their client, system, device, place and local time.
+func (q *Queries) CountersStartBreakdown(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, countersStartBreakdown, id)
 	return err
 }

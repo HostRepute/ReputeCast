@@ -93,6 +93,11 @@ func sendingTracker(a *App) *tracking.Service {
 		// automation email's checkout link is its own (wire_commerce.go).
 		Decorators:  trackingDecorators(a),
 		MessageVars: trackingMessageVars(a)}
+	// People's first opens and clicks are placed by country and city when
+	// the server has a GeoIP database (a nil interface keeps lookups off).
+	if a.GeoIP != nil {
+		t.Geo = a.GeoIP
+	}
 	for _, hook := range trackingHooks {
 		hook(a, t)
 	}

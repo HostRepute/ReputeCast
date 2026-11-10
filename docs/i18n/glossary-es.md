@@ -1052,6 +1052,7 @@ they are.
 | English | Español |
 |---|---|
 | digest (recurring) · issue (of a digest) | boletín periódico · edición |
+| sending summary (by email, M57) · weekly · monthly | informe de envíos (por correo) · informe semanal · mensual de envíos (a member's own email of the workspace's numbers; never "resumen", which is the notification digest) |
 | event type (a row of Notification preferences) | tipo de evento |
 | Everyone with campaigns:pause | Todas las personas con campaigns:pause |
 | paid tier (Earn) | nivel de pago |

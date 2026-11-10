@@ -2,8 +2,10 @@
 
 -- name: ReportCampaign :one
 -- send_ab is the send's A/B state (when the test is decided, the decision).
+-- breakdown says the campaign's sends recorded mail clients, places and
+-- times (campaign_dims, M57 G-12).
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.audience, c.audience_count, c.ab_test, c.schedule,
-       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note,
+       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note, c.breakdown,
        coalesce(s.ab, '{}'::jsonb)::jsonb AS send_ab
 FROM campaigns c
 LEFT JOIN campaign_sends s ON s.campaign_id = c.id
@@ -42,6 +44,14 @@ SELECT hour, opened_human, opened_privacy, opened_machine, clicked
 FROM campaign_hourly
 WHERE campaign_id = @campaign_id AND hour <= @max_hour
 ORDER BY hour;
+
+-- name: ReportDims :many
+-- Human opens and clicks per mail client, system, device, country, city,
+-- local hour and weekday (M57 G-12): one primary-key range scan.
+SELECT dim, key, opened_human, clicked
+FROM campaign_dims
+WHERE campaign_id = @campaign_id
+ORDER BY dim, key;
 
 -- name: ReportLinks :many
 -- Clicks per link: people's clicks, people's first click per link, and

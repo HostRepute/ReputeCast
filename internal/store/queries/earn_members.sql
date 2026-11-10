@@ -135,6 +135,18 @@ DELETE FROM paid_events WHERE contact_id = @contact_id;
 -- name: EarnSubscriptionSetAccessPaused :exec
 UPDATE paid_subscriptions SET access_paused = @access_paused, updated_at = @at WHERE id = @id;
 
+-- name: EarnSubscriptionMarkStarted :one
+-- Marks a subscription's "Becomes a paid member" automation event as
+-- queued; no row means it was queued before (G-11).
+UPDATE paid_subscriptions SET automation_started_at = @at::timestamptz WHERE id = @id AND automation_started_at IS NULL
+RETURNING id;
+
+-- name: EarnSubscriptionMarkEnded :one
+-- Marks a subscription's "Stops paying" automation event as queued; no row
+-- means it was queued before.
+UPDATE paid_subscriptions SET automation_ended_at = @at::timestamptz WHERE id = @id AND automation_ended_at IS NULL
+RETURNING id;
+
 -- name: EarnContactInsert :one
 -- A contact a paid flow creates without joining a list (a tier with no
 -- lists, or an address suppressed for marketing).

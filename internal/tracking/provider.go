@@ -80,7 +80,7 @@ func (s *Service) recordProvider(ctx context.Context, tx pgx.Tx, q *store.Querie
 		Diagnostic: clip(st.diag, 1000), Link: st.link, Ip: ipPtr}); err != nil {
 		return err
 	}
-	return s.count(ctx, tx, q, b, m, v, ev.EventID, ev.Click, link, ev.URL, ev.At)
+	return s.count(ctx, tx, q, b, m, v, ev.EventID, ev.Click, link, ev.URL, ev.At, ev.UserAgent, ipPtr)
 }
 
 // LinkPosition finds which of an email's links (position → the link as

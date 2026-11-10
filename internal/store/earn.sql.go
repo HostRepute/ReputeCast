@@ -729,7 +729,7 @@ func (q *Queries) EarnSettingsSetUpgradePageOnly(ctx context.Context, arg EarnSe
 }
 
 const earnSubscriptionsOnStripePrice = `-- name: EarnSubscriptionsOnStripePrice :many
-SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND stripe_price_id = $3 AND ended_at IS NULL
+SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND stripe_price_id = $3 AND ended_at IS NULL
 ORDER BY started_at
 `
 
@@ -793,6 +793,8 @@ func (q *Queries) EarnSubscriptionsOnStripePrice(ctx context.Context, arg EarnSu
 			&i.Emailed,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AutomationStartedAt,
+			&i.AutomationEndedAt,
 		); err != nil {
 			return nil, err
 		}
