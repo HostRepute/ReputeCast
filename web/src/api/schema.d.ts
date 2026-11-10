@@ -40240,6 +40240,7 @@ export interface components {
             emailPlaceholder: string;
             footnote: string;
             heading: string;
+            hideSubscribed?: boolean;
             listsLabel: string;
             namePlaceholder: string;
             /**
@@ -40247,6 +40248,7 @@ export interface components {
              * @description Seconds before a popup opens
              */
             popupDelay: number;
+            popupExit?: boolean;
             /**
              * Format: int64
              * @description Days a closed popup stays closed
@@ -46218,6 +46220,7 @@ export interface components {
         WebsiteFeedURLs: {
             archiveFeed: string;
             feed: string;
+            llms: string;
             sitemap: string;
             tagFeed: string;
         };
@@ -46256,6 +46259,7 @@ export interface components {
             poweredBy: boolean;
             privacyUrl: string;
             sections: components["schemas"]["WebsiteHomeSection"][];
+            shareButtons: boolean;
             tags: components["schemas"]["WebsiteTag"][];
             /** Format: date-time */
             updatedAt: string;
@@ -46274,6 +46278,7 @@ export interface components {
             poweredBy: boolean;
             privacyUrl: string;
             sections: components["schemas"]["WebsiteHomeSection"][];
+            shareButtons?: boolean;
         };
         WebsiteHomeSection: {
             /** Format: int64 */

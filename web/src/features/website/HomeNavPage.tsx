@@ -39,6 +39,7 @@ function inputOf(h: HomeNav): HomeNavInput {
     footer: { ...h.footer },
     privacyUrl: h.privacyUrl,
     poweredBy: h.poweredBy,
+    shareButtons: h.shareButtons,
     identity: { ...h.identity },
     index: h.index,
   }
@@ -195,6 +196,7 @@ function changes(t: ReturnType<typeof useT>, a: HomeNavInput, b: HomeNavInput): 
   if (!same(a.footer, b.footer) || a.poweredBy !== b.poweredBy || a.privacyUrl !== b.privacyUrl) out.push(t(mh.chFooter))
   if (!same(a.identity, b.identity)) out.push(t(mh.chIdentity))
   if (a.index !== b.index) out.push(t(mh.chIndex))
+  if (a.shareButtons !== b.shareButtons) out.push(t(mh.chShare))
   return out.join(' · ')
 }
 
@@ -674,6 +676,25 @@ function NavigationCard({ draft, set, ro, data, host }: { draft: HomeNavInput; s
           <Input aria-label={t(mh.privacyLabel)} value={draft.privacyUrl} maxLength={500} disabled={ro} onChange={(e) => set({ privacyUrl: e.target.value })} />
         </Field>
       </div>
+      <div className="ws-sub">
+        <div className="ws-dlist">
+          <div className="ws-drag">
+            <span className="tx">
+              <b>{t(mh.shareButtons)}</b>
+              <span className="k" id="hn-share-text">
+                {t(mh.shareButtonsText)}
+              </span>
+            </span>
+            <SwitchInput
+              aria-label={t(mh.shareButtons)}
+              aria-describedby="hn-share-text"
+              checked={draft.shareButtons ?? true}
+              disabled={ro}
+              onChange={(e) => set({ shareButtons: e.target.checked })}
+            />
+          </div>
+        </div>
+      </div>
     </section>
   )
 }
@@ -782,6 +803,8 @@ function SeoCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Setter; r
       <dl className="ws-kv pad" style={{ borderTop: '1px solid var(--line-2)' }}>
         <dt>{t(mh.sitemap)}</dt>
         <dd className="mono">{u.sitemap}</dd>
+        <dt>{t(mh.llms)}</dt>
+        <dd className="mono">{u.llms}</dd>
         <dt>{t(mh.siteFeed)}</dt>
         <dd className="mono">{u.feed}</dd>
         <dt>{t(mh.tagFeeds)}</dt>

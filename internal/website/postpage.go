@@ -466,6 +466,17 @@ func (s *Service) Sitemap(ctx context.Context, ws *store.Workspace) ([]SitemapEn
 	return out, nil
 }
 
+// LLMsPosts are the posts /llms.txt lists: the sitemap's, newest first, at
+// most 500, with their title and public excerpt (a gated post's too: the
+// file gives nothing a visitor can't read).
+func (s *Service) LLMsPosts(ctx context.Context, ws *store.Workspace) ([]store.WebsiteLLMsPostsRow, error) {
+	rows, err := s.Q.WebsiteLLMsPosts(ctx, ws.ID)
+	if rows == nil {
+		rows = []store.WebsiteLLMsPostsRow{}
+	}
+	return rows, err
+}
+
 // Preview readers ("Preview on web as …").
 const (
 	AsVisitor     = "visitor"

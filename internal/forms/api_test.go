@@ -308,6 +308,49 @@ func TestFormsPermissions(t *testing.T) {
 	}
 }
 
+// A popup opens when the visitor is about to leave, and hides from people
+// who signed up on the site; embedded forms keep showing unless they say so.
+func TestPopupTriggers(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := signedIn(env, "linh@acme.io")
+	o := overview(t, c)
+	if f := getForm(t, c, formByName(t, o, "Newsletter signup")); f.Content["hideSubscribed"] != false || f.Content["popupExit"] != nil {
+		t.Fatalf("an embedded form shows to everyone by default: %v", f.Content)
+	}
+
+	var created formJSON
+	c.Do("POST", api+"/forms", map[string]any{"name": "Before you go", "kind": "popup"}).MustStatus(t, 201).JSON(t, &created)
+	in := inputOf(getForm(t, c, created.ID))
+	content := in["content"].(map[string]any)
+	delete(content, "hideSubscribed")
+	content["popupExit"], content["popupDelay"], content["popupScroll"] = true, 0, 0
+	c.Do("PUT", api+"/forms/"+created.ID, in).MustStatus(t, 200)
+	f := getForm(t, c, created.ID)
+	if f.Content["popupExit"] != true || f.Content["popupDelay"] != float64(0) || f.Content["hideSubscribed"] != true {
+		t.Fatalf("exit-intent popup: %v", f.Content)
+	}
+
+	r := c.Do("GET", "/p/acme-newsletter/forms/"+f.PublicID+".js", nil).MustStatus(t, 200)
+	var ws uuid.UUID
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT id FROM workspaces WHERE slug = 'acme-newsletter'`).Scan(&ws); err != nil {
+		t.Fatal(err)
+	}
+	js := string(r.Body)
+	for _, want := range []string{`"exit":1`, `"delay":0`, `"workspace":"` + ws.String() + `"`, `"hideSubscribed":true`} {
+		if !strings.Contains(js, want) {
+			t.Errorf("the script lacks %s", want)
+		}
+	}
+
+	// Turned off, the popup shows to people who signed up too.
+	content["hideSubscribed"] = false
+	c.Do("PUT", api+"/forms/"+created.ID, in).MustStatus(t, 200)
+	if f := getForm(t, c, created.ID); f.Content["hideSubscribed"] != false {
+		t.Fatalf("hideSubscribed off: %v", f.Content)
+	}
+}
+
 func TestPublicPagesSettingsAPI(t *testing.T) {
 	// Turnstile's siteverify answers from a fake: the secret below is
 	// rejected, every other secret accepted.

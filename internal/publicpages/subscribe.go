@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
@@ -76,6 +77,15 @@ type subscribeBody struct {
 	Page, Ref string
 	// Sms is the SMS consent box (phase 8), nil when the form has none.
 	Sms *smsConsentView
+	// Typo is "Did you mean …?" under the email field: its Use and Keep
+	// buttons (nil when the address has no likely typo).
+	Typo *typoChoice
+}
+
+// typoChoice is the two buttons that answer "Did you mean …?": they send
+// the form again with the suggested address or the one typed.
+type typoChoice struct {
+	Use, Keep string
 }
 
 var errNoForm = errors.New("publicpages: no such form")
@@ -181,6 +191,14 @@ func (h *Handler) subscribeBody(ctx context.Context, s *site, fl formLang, page 
 		Heading: c.Content.Heading, Description: c.Content.Description, Footnote: c.Content.Footnote, Button: c.Content.Button,
 		ListsLabel: c.Content.ListsLabel, Honeypot: c.Spam.Honeypot, Token: h.Forms.FormToken(formKey(c), h.now()),
 		Action: s.links.Subscribe(c.Slug), Consent: splitConsent(c.ConsentText, privacy, l.Text("form.privacy", nil)),
+	}
+	// "Did you mean …?" keeps the submitted token, so Use or Keep pressed at
+	// once passes the timing check (the token is good for a day).
+	if out.Suggestion != "" && values != nil {
+		b.Typo = &typoChoice{Use: l.Text("form.typo.use", i18n.Args{"email": out.Suggestion}), Keep: l.Text("form.typo.keep", i18n.Args{"email": strings.TrimSpace(values.Email)})}
+		if h.Forms.TokenValid(formKey(c), values.Token, h.now()) {
+			b.Token = values.Token
+		}
 	}
 	if page {
 		b.Action = s.links.Subscribe("")
@@ -438,7 +456,7 @@ func submissionFrom(r *http.Request) forms.Submission {
 		Email: f.Get("email"), FirstName: f.Get("first_name"), LastName: f.Get("last_name"), Company: f.Get("company"),
 		Lists: f["list"], Consent: f.Get("consent") != "", Honeypot: f.Get("website"), Token: f.Get("_t"), Plain: f.Get("_plain") == "1",
 		Origin: forms.OriginHost(r.Header.Get("Origin"), r.Header.Get("Referer")), IP: clientIP(r), UserAgent: r.UserAgent(),
-		Fields: map[string]string{}, Page: clipURL(f.Get("_page")), Referrer: clipURL(f.Get("_ref")),
+		Fields: map[string]string{}, Page: clipURL(f.Get("_page")), Referrer: clipURL(f.Get("_ref")), Typo: clipTo(f.Get("typo"), 8),
 		Language: clipLang(f.Get("_lang")), BrowserLanguage: audience.BrowserLanguage(r.Header.Get("Accept-Language")),
 		// Phase 8: the number, its country picker and the SMS consent box.
 		Phone: clipTo(f.Get("phone"), 40), PhoneCountry: clipTo(strings.ToUpper(f.Get("phone_country")), 2), SmsConsent: f.Get("sms_consent") != "",
@@ -540,9 +558,14 @@ func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *sit
 			return
 		}
 		if out.Status == forms.OutcomeConfirm {
+			// "Open Gmail" first, as the primary button, then the archive.
+			actions := archive
+			if name, link, ok := h.inboxLink(r.Context(), s, out, sub.Email); ok {
+				actions = append([]action{{Label: l.Text("form.inbox.open", i18n.Args{"provider": name}), Href: link, NewTab: true}}, archive...)
+			}
 			h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "form.confirm.heading"), messageBody{Icon: "mail", Heading: l.Text("form.confirm.heading", nil),
 				Lead:    labelHTML(l, "form.confirm.text", i18n.Args{"email": email, "publisher": publisher}, ""),
-				Actions: archive, Footer: l.Text("form.confirm.footer", nil), Texted: out.Texted}, true)
+				Actions: actions, Footer: l.Text("form.confirm.footer", nil), Texted: out.Texted}, true)
 			return
 		}
 		h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "form.subscribed.heading"), messageBody{Icon: "tick", Heading: l.Text("form.subscribed.heading", nil),
@@ -580,6 +603,29 @@ func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *sit
 		h.messageIn(w, r, s, pl, http.StatusForbidden, pageTitle(pl, s, "form.notAllowed.title"), messageBody{Heading: l.Text("form.notAllowed.heading", nil), Text: l.Text("form.notAllowed.text", i18n.Args{"reason": reason}),
 			Actions: []action{{Label: l.Text("page.subscribePage", nil), Href: s.links.Subscribe("")}}}, true)
 	}
+}
+
+// inboxLink is "Open Gmail" after a signup that waits for its confirmation:
+// the visitor's web mail, searching for the confirmation email when it can.
+// It reads only the outcome's status and the address, so the bare "check
+// your inbox" a filled honeypot gets carries the same link as a real one.
+func (h *Handler) inboxLink(ctx context.Context, s *site, out forms.Outcome, typed string) (name, link string, ok bool) {
+	if out.Status != forms.OutcomeConfirm {
+		return "", "", false
+	}
+	email := out.Email
+	if email == "" {
+		email = emailaddr.Normalize(typed)
+	}
+	// The sender is looked up only for an address with a known web mail.
+	if _, _, ok := emailaddr.InboxLink(email, ""); !ok {
+		return "", "", false
+	}
+	sender := ""
+	if h.SenderEmail != nil {
+		sender = h.SenderEmail(ctx, s.ws)
+	}
+	return emailaddr.InboxLink(email, sender)
 }
 
 func slugOf(c forms.Config, page bool) string {
@@ -827,6 +873,12 @@ func (h *Handler) formSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if out.RedirectURL != "" {
 		body["redirect"] = out.RedirectURL
+	}
+	if out.Suggestion != "" {
+		body["suggestion"] = out.Suggestion
+	}
+	if name, link, ok := h.inboxLink(r.Context(), s, out, sub.Email); ok {
+		body["inbox"] = map[string]string{"name": name, "url": link}
 	}
 	writeJSON(w, status, body)
 }

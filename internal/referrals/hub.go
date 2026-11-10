@@ -6,7 +6,6 @@ import (
 	"errors"
 	"html"
 	"net/netip"
-	"net/url"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/sharelinks"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -53,13 +53,13 @@ func ShareLinks(link, message, subject string, buttons []string) []ShareLink {
 	for _, b := range buttons {
 		switch b {
 		case ViaEmail:
-			out = append(out, ShareLink{Channel: b, URL: "mailto:?subject=" + url.PathEscape(subject) + "&body=" + url.PathEscape(text(ViaEmail))})
+			out = append(out, ShareLink{Channel: b, URL: sharelinks.URL(sharelinks.Email, "", text(ViaEmail), subject)})
 		case ViaX:
-			out = append(out, ShareLink{Channel: b, URL: "https://x.com/intent/post?text=" + url.QueryEscape(text(ViaX))})
+			out = append(out, ShareLink{Channel: b, URL: sharelinks.URL(sharelinks.X, "", text(ViaX), "")})
 		case ViaLinkedIn:
-			out = append(out, ShareLink{Channel: b, URL: "https://www.linkedin.com/sharing/share-offsite/?url=" + url.QueryEscape(with(ViaLinkedIn))})
+			out = append(out, ShareLink{Channel: b, URL: sharelinks.URL(sharelinks.LinkedIn, with(ViaLinkedIn), "", "")})
 		case ViaWhatsApp:
-			out = append(out, ShareLink{Channel: b, URL: "https://wa.me/?text=" + url.QueryEscape(text(ViaWhatsApp))})
+			out = append(out, ShareLink{Channel: b, URL: sharelinks.URL(sharelinks.WhatsApp, "", text(ViaWhatsApp), "")})
 		}
 	}
 	return out

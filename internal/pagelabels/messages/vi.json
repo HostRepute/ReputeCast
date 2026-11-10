@@ -51,6 +51,11 @@
   "form.notAllowed.text": "{reason} Hãy đăng ký trên trang đăng ký.",
   "form.gone": "Biểu mẫu này không còn tồn tại.",
   "form.unreadableShort": "Không đọc được biểu mẫu đó. Hãy gửi lại.",
+  "form.typo.ask": "Có phải ý bạn là {email}?",
+  "form.typo.use": "Dùng {email}",
+  "form.typo.keep": "Giữ {email}",
+  "form.inbox.open": "Mở {provider}",
+  "form.inbox.newTab": "(mở trong thẻ mới)",
 
   "challenge.title": "Thêm một bước nữa",
   "challenge.text": "Lượt đăng ký của bạn trông như tự động, nên chúng tôi muốn chắc chắn bạn là người thật. Chỉ mất một giây.",

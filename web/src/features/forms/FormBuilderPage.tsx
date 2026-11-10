@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button } from '@/components/ui/Button'
@@ -561,6 +561,8 @@ function TypeSection({
   const at = hostPath(form.hostedUrl)
   const help: Record<Kind, MessageDescriptor> = { embedded: m.helpEmbedded, popup: m.helpPopup, hosted: m.helpHosted }
   const c = draft.content
+  const exitHint = useId()
+  const hideHint = useId()
   return (
     <div className="fb-sec">
       <span className="k">{t(m.type)}</span>
@@ -573,21 +575,44 @@ function TypeSection({
       </div>
       <span className="k">{t(help[draft.kind], { at })}</span>
       {draft.kind === 'popup' ? (
-        <div className="grid grid-cols-3 gap-2">
-          <label className="lbl justify-between">
-            {t(m.opensAfter)}
-            <input className="fb-in" type="number" min={0} max={600} value={c.popupDelay} disabled={readOnly} onChange={(e) => onContent({ popupDelay: Number(e.target.value) })} />
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <label className="lbl justify-between">
+              {t(m.opensAfter)}
+              <input className="fb-in" type="number" min={0} max={600} value={c.popupDelay} disabled={readOnly} onChange={(e) => onContent({ popupDelay: Number(e.target.value) })} />
+            </label>
+            <label className="lbl justify-between">
+              {t(m.orScrolled)}
+              <input className="fb-in" type="number" min={0} max={100} value={c.popupScroll} disabled={readOnly} onChange={(e) => onContent({ popupScroll: Number(e.target.value) })} />
+            </label>
+            <label className="lbl justify-between">
+              {t(m.closedFor)}
+              <input className="fb-in" type="number" min={0} max={365} value={c.popupRepeatDays} disabled={readOnly} onChange={(e) => onContent({ popupRepeatDays: Number(e.target.value) })} />
+            </label>
+          </div>
+          <label className="fb-check start">
+            {/* Unticked is omitted, as the server answers it. */}
+            <input type="checkbox" checked={c.popupExit === true} disabled={readOnly} aria-describedby={exitHint} onChange={(e) => onContent({ popupExit: e.target.checked || undefined })} />
+            <span>{t(m.exitIntent)}</span>
           </label>
-          <label className="lbl justify-between">
-            {t(m.orScrolled)}
-            <input className="fb-in" type="number" min={0} max={100} value={c.popupScroll} disabled={readOnly} onChange={(e) => onContent({ popupScroll: Number(e.target.value) })} />
-          </label>
-          <label className="lbl justify-between">
-            {t(m.closedFor)}
-            <input className="fb-in" type="number" min={0} max={365} value={c.popupRepeatDays} disabled={readOnly} onChange={(e) => onContent({ popupRepeatDays: Number(e.target.value) })} />
-          </label>
-        </div>
+          <span className="k" id={exitHint}>
+            {t(m.exitIntentHint)}
+          </span>
+        </>
       ) : null}
+      <label className="fb-check start">
+        <input
+          type="checkbox"
+          checked={c.hideSubscribed ?? draft.kind === 'popup'}
+          disabled={readOnly}
+          aria-describedby={hideHint}
+          onChange={(e) => onContent({ hideSubscribed: e.target.checked })}
+        />
+        <span>{t(m.hideSubscribed)}</span>
+      </label>
+      <span className="k" id={hideHint}>
+        {t(m.hideSubscribedHint)}
+      </span>
     </div>
   )
 }

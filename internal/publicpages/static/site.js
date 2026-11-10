@@ -1,7 +1,7 @@
 // The publication website's small enhancements (every page works without
 // them): a sign-in link's page continues by itself, the code's six boxes
 // move along as you type or paste, "Send again" waits its minute, toasts
-// close without a reload.
+// close without a reload, a post's Copy link copies its address.
 (function () {
   'use strict';
 
@@ -82,6 +82,32 @@
       }, 1000);
     }
   }
+
+  // A post's share row: Copy link (hidden without this script, where the
+  // read-only field is the way to copy) copies the address and says so
+  // for 2 seconds; the field selects its text when it takes focus.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (b) {
+    var field = document.getElementById(b.getAttribute('data-copy'));
+    if (!field) return;
+    var status = document.getElementById(b.getAttribute('data-status') || '');
+    var timer;
+    field.addEventListener('focus', function () { field.select(); });
+    b.hidden = false;
+    b.addEventListener('click', function () {
+      var select = function () {
+        field.focus();
+        field.select();
+      };
+      var copied = function () {
+        if (!status) return;
+        status.textContent = b.getAttribute('data-copied') || '';
+        window.clearTimeout(timer);
+        timer = window.setTimeout(function () { status.textContent = ''; }, 2000);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(field.value).then(copied, select);
+      else select();
+    });
+  });
 
   // Toasts close where they are.
   document.addEventListener('click', function (e) {

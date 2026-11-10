@@ -190,6 +190,12 @@ func TestSystemMailThroughTheSystemRoute(t *testing.T) {
 	if _, err := env.App.Mail.SendSystem(ctx, mailer.Message{WorkspaceID: &wsID, To: "marcus@acme.io", Subject: "S", Text: "x", Kind: "notification"}); err == nil {
 		t.Fatal("no error when every provider refused")
 	}
+	// The From address the pages name ("Open Gmail" searches for it).
+	m := env.App.Mail.(*systemmail.Mailer)
+	wsRow := &store.Workspace{ID: wsID}
+	if got := m.SenderEmail(ctx, wsRow); got != "no-reply@news.acme.io" {
+		t.Fatalf("sender email %q", got)
+	}
 
 	// Without a sender address the workspace can't send: callers see it as
 	// "no System provider" and fall back (copy the link, the CLI command).
@@ -197,7 +203,10 @@ func TestSystemMailThroughTheSystemRoute(t *testing.T) {
 	if _, err := env.App.Pool.Exec(ctx, `DELETE FROM senders WHERE workspace_id = $1`, wsID); err != nil {
 		t.Fatal(err)
 	}
-	env.App.Mail.(*systemmail.Mailer).Forget()
+	if got := m.SenderEmail(ctx, wsRow); got != "" {
+		t.Fatalf("sender email %q without senders", got)
+	}
+	m.Forget()
 	if env.App.Mail.SystemAvailable(ctx, &wsID) {
 		t.Fatal("a workspace without senders counts as able to send")
 	}

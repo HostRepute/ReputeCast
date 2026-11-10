@@ -171,6 +171,46 @@ func (q *Queries) WebsiteConversionTotals(ctx context.Context, arg WebsiteConver
 	return i, err
 }
 
+const websiteLLMsPosts = `-- name: WebsiteLLMsPosts :many
+SELECT slug, title, excerpt, published_at FROM website_posts
+WHERE workspace_id = $1 AND status = 'published' AND deleted_at IS NULL AND NOT hide_from_search
+ORDER BY published_at DESC LIMIT 500
+`
+
+type WebsiteLLMsPostsRow struct {
+	Slug        string     `json:"slug"`
+	Title       string     `json:"title"`
+	Excerpt     string     `json:"excerpt"`
+	PublishedAt *time.Time `json:"publishedAt"`
+}
+
+// The posts /llms.txt lists: the sitemap's (published, not hidden from
+// search), newest first, with their public title and excerpt.
+func (q *Queries) WebsiteLLMsPosts(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteLLMsPostsRow, error) {
+	rows, err := q.db.Query(ctx, websiteLLMsPosts, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WebsiteLLMsPostsRow{}
+	for rows.Next() {
+		var i WebsiteLLMsPostsRow
+		if err := rows.Scan(
+			&i.Slug,
+			&i.Title,
+			&i.Excerpt,
+			&i.PublishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const websiteLinkByToken = `-- name: WebsiteLinkByToken :one
 SELECT id, workspace_id, contact_id, purpose, token_hash, code_hash, browser_hash, return_to, new_email, lists, created_at, expires_at, used_at, used_same_browser, replaced_at, code_tries FROM website_signin_links WHERE token_hash = $1
 `
@@ -2444,7 +2484,7 @@ func (q *Queries) WebsiteSettingsEnsure(ctx context.Context, workspaceID uuid.UU
 }
 
 const websiteSettingsGet = `-- name: WebsiteSettingsGet :one
-SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by FROM website_settings WHERE workspace_id = $1
+SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by, share_buttons FROM website_settings WHERE workspace_id = $1
 `
 
 func (q *Queries) WebsiteSettingsGet(ctx context.Context, workspaceID uuid.UUID) (WebsiteSetting, error) {
@@ -2486,12 +2526,13 @@ func (q *Queries) WebsiteSettingsGet(ctx context.Context, workspaceID uuid.UUID)
 		&i.DomainNotified,
 		&i.UpdatedAt,
 		&i.UpdatedBy,
+		&i.ShareButtons,
 	)
 	return i, err
 }
 
 const websiteSettingsLock = `-- name: WebsiteSettingsLock :one
-SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by FROM website_settings WHERE workspace_id = $1 FOR UPDATE
+SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by, share_buttons FROM website_settings WHERE workspace_id = $1 FOR UPDATE
 `
 
 func (q *Queries) WebsiteSettingsLock(ctx context.Context, workspaceID uuid.UUID) (WebsiteSetting, error) {
@@ -2533,6 +2574,7 @@ func (q *Queries) WebsiteSettingsLock(ctx context.Context, workspaceID uuid.UUID
 		&i.DomainNotified,
 		&i.UpdatedAt,
 		&i.UpdatedBy,
+		&i.ShareButtons,
 	)
 	return i, err
 }
@@ -2541,12 +2583,12 @@ const websiteSettingsSave = `-- name: WebsiteSettingsSave :exec
 UPDATE website_settings SET
     title = $1, tagline = $2, description = $3, social_image = $4, index_site = $5,
     home_layout = $6, featured = $7, sections = $8, about_title = $9, about_text = $10, about_link = $11,
-    header_links = $12, footer = $13,
-    signin_on = $14, link_minutes = $15, session_days = $16, signup_on = $17, signup_lists = $18,
-    default_visibility = $19, campaign_visibility = $20,
-    meter_visitors_on = $21, meter_visitors = $22, meter_members_on = $23, meter_members = $24,
-    paywall = $25, updated_at = $26, updated_by = $27
-WHERE workspace_id = $28
+    header_links = $12, footer = $13, share_buttons = $14,
+    signin_on = $15, link_minutes = $16, session_days = $17, signup_on = $18, signup_lists = $19,
+    default_visibility = $20, campaign_visibility = $21,
+    meter_visitors_on = $22, meter_visitors = $23, meter_members_on = $24, meter_members = $25,
+    paywall = $26, updated_at = $27, updated_by = $28
+WHERE workspace_id = $29
 `
 
 type WebsiteSettingsSaveParams struct {
@@ -2563,6 +2605,7 @@ type WebsiteSettingsSaveParams struct {
 	AboutLink          string          `json:"aboutLink"`
 	HeaderLinks        json.RawMessage `json:"headerLinks"`
 	Footer             json.RawMessage `json:"footer"`
+	ShareButtons       bool            `json:"shareButtons"`
 	SigninOn           bool            `json:"signinOn"`
 	LinkMinutes        int32           `json:"linkMinutes"`
 	SessionDays        int32           `json:"sessionDays"`
@@ -2595,6 +2638,7 @@ func (q *Queries) WebsiteSettingsSave(ctx context.Context, arg WebsiteSettingsSa
 		arg.AboutLink,
 		arg.HeaderLinks,
 		arg.Footer,
+		arg.ShareButtons,
 		arg.SigninOn,
 		arg.LinkMinutes,
 		arg.SessionDays,

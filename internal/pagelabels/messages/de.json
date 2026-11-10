@@ -51,6 +51,11 @@
   "form.notAllowed.text": "{reason} Melden Sie sich stattdessen auf der Anmeldeseite an.",
   "form.gone": "Dieses Formular existiert nicht mehr.",
   "form.unreadableShort": "Das Formular konnte nicht gelesen werden. Senden Sie es erneut ab.",
+  "form.typo.ask": "Meinten Sie {email}?",
+  "form.typo.use": "{email} verwenden",
+  "form.typo.keep": "{email} behalten",
+  "form.inbox.open": "{provider} öffnen",
+  "form.inbox.newTab": "(öffnet in einem neuen Tab)",
 
   "challenge.title": "Noch ein Schritt",
   "challenge.text": "Ihre Anmeldung wirkte automatisiert, daher möchten wir sicherstellen, dass Sie ein Mensch sind. Das dauert nur eine Sekunde.",

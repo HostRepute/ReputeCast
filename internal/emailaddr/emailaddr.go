@@ -4,6 +4,7 @@
 package emailaddr
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -315,9 +316,10 @@ var realNeighbours = map[string]bool{
 
 // TypoFix returns the intended domain when domain is one edit (insertion,
 // deletion, substitution or swap of neighbours) away from a major provider.
+// A provider's own domain is no typo.
 func TypoFix(domain string) (string, bool) {
 	d := strings.ToLower(domain)
-	if MailboxProvider(d) != Other || realNeighbours[d] || IsDisposable(d) {
+	if MailboxProvider(d) != Other || realNeighbours[d] || IsDisposable(d) || slices.Contains(typoTargets, d) {
 		return "", false
 	}
 	for _, t := range typoTargets {

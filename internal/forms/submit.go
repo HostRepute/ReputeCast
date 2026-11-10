@@ -62,6 +62,10 @@ type Submission struct {
 	// and Referrer the page before it (growth sources).
 	Page     string `json:"-"`
 	Referrer string `json:"-"`
+	// Typo is the visitor's answer to "Did you mean …?": "use" takes the
+	// suggested domain, "keep" the address as typed; empty hasn't been
+	// asked (or the address has no likely typo).
+	Typo string `json:"-"`
 }
 
 // Outcome statuses.
@@ -96,6 +100,10 @@ type Outcome struct {
 	// Texted is "We've also texted +1 312 ••• 0123 to confirm." when the
 	// signup gave SMS consent and the opt-in confirmation went out.
 	Texted string `json:"texted,omitempty"`
+	// Suggestion is the address the visitor likely meant ("Did you mean
+	// linh@gmail.com?"), with OutcomeInvalid; the server always works it
+	// out itself.
+	Suggestion string `json:"suggestion,omitempty"`
 }
 
 // Messages a visitor sees are built-in labels (internal/pagelabels), in
@@ -253,6 +261,19 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 		if emailaddr.IsRole(sub.Email) {
 			s.recordReject(ctx, ws, c, "role", sub.Origin)
 			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: l.Text("error.emailRole", nil)}}
+		}
+	}
+	// "Did you mean linh@gmail.com?": one rule for every surface. The
+	// visitor answers with the address as suggested or as typed.
+	if fix, ok := emailaddr.TypoFix(emailaddr.Domain(sub.Email)); ok {
+		suggested := emailaddr.Local(sub.Email) + "@" + fix
+		switch sub.Typo {
+		case "use":
+			sub.Email = suggested
+		case "keep":
+		default:
+			msg := l.Text("form.typo.ask", i18n.Args{"email": suggested})
+			return Outcome{Status: OutcomeInvalid, Errors: map[string]string{FieldEmail: msg}, Message: msg, Suggestion: suggested}
 		}
 	}
 	if suspicious {

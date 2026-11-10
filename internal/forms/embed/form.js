@@ -31,6 +31,25 @@
     document.head.appendChild(l)
   }
 
+  // The browser remembers a signup through any of the workspace's forms:
+  // forms that hide from subscribers show nothing to it.
+  var signedKey = 'rcf:ws:' + cfg.workspace + ':done'
+  function signedUp() {
+    try {
+      return !!localStorage.getItem(signedKey)
+    } catch (e) {
+      return false
+    }
+  }
+  function markSignedUp() {
+    try {
+      localStorage.setItem(signedKey, '1')
+    } catch (e) {}
+  }
+  function hidden() {
+    return cfg.hideSubscribed && signedUp()
+  }
+
   // pick returns the copy to show where spot is.
   function pick(spot) {
     var wants = []
@@ -304,40 +323,66 @@
       }
       if (first) first.focus()
     }
-    function done(status, texted) {
+    function done(status, texted, inbox) {
       var msg = t.messages[status] || t.messages.confirm
       var box = el('div', 'rcf-done')
       box.setAttribute('role', 'status')
       box.appendChild(el('strong', 'rcf-heading', msg.title))
       box.appendChild(el('p', 'rcf-desc', msg.text))
       if (texted) box.appendChild(el('p', 'rcf-desc', texted))
+      // "Open Gmail": the server builds the address from a fixed https one.
+      if (inbox && /^https:\/\//.test(inbox.url)) {
+        var open = el('a', 'rcf-btn', t.text.inboxOpen.split('{provider}').join(inbox.name))
+        open.href = inbox.url
+        open.target = '_blank'
+        open.rel = 'noopener noreferrer'
+        open.appendChild(el('span', 'rcf-vh', ' ' + t.text.newTab))
+        box.appendChild(open)
+      }
       while (form.firstChild) form.removeChild(form.firstChild)
       form.appendChild(box)
       try {
         localStorage.setItem('rcf:' + cfg.id + ':done', '1')
       } catch (e) {}
+      markSignedUp()
     }
 
-    form.addEventListener('submit', function (ev) {
-      ev.preventDefault()
-      clear()
-      var email = errors.email.input.value.trim()
-      if (!email || email.indexOf('@') < 1 || email.lastIndexOf('.') < email.indexOf('@')) {
-        showErrors({ email: email ? t.text.emailInvalid : t.text.emailMissing })
-        return
-      }
-      if (errors.consent && !errors.consent.input.checked) {
-        showErrors({ consent: t.text.consent })
-        return
-      }
-      if (errors.sms && errors.sms.input.checked && errors.phone && !errors.phone.input.value.trim()) {
-        showErrors({ phone: t.text.phoneNeeded })
-        return
-      }
+    // "Did you mean linh@gmail.com?": the server suggests, the visitor
+    // takes the suggestion or keeps the address as typed.
+    var email = errors.email
+    var choice = null
+    function dropChoice() {
+      if (choice) email.err.parentNode.removeChild(choice)
+      choice = null
+    }
+    function offer(suggested, typed) {
+      choice = el('div', 'rcf-typo')
+      var use = el('button', 'rcf-btn', t.text.typoUse.split('{email}').join(suggested))
+      var keep = el('button', 'rcf-btn rcf-btn2', t.text.typoKeep.split('{email}').join(typed))
+      use.type = keep.type = 'button'
+      use.addEventListener('click', function () { send('use') })
+      keep.addEventListener('click', function () { send('keep') })
+      choice.appendChild(use)
+      choice.appendChild(keep)
+      email.err.parentNode.insertBefore(choice, email.err.nextSibling)
+      use.focus()
+    }
+    email.input.addEventListener('input', function () {
+      if (!choice) return
+      dropChoice()
+      email.err.hidden = true
+      email.input.removeAttribute('aria-invalid')
+      email.input.removeAttribute('aria-describedby')
+    })
+
+    function send(typo) {
+      if (button.disabled) return
+      var typed = email.input.value.trim()
       var body = new URLSearchParams(new FormData(form))
       body.set('_t', token)
       body.set('_js', '1')
       body.set('_lang', t.lang)
+      if (typo) body.set('typo', typo)
       // Where the signup happened, for growth sources: this page (its UTM
       // parameters) and the page before it.
       body.set('_page', String(window.location.href).slice(0, 2000))
@@ -352,21 +397,45 @@
           button.disabled = false
           button.removeAttribute('aria-busy')
           if (j.redirect) {
+            markSignedUp()
             window.location.href = j.redirect
             return
           }
-          if (j.status === 'confirm' || j.status === 'subscribed') return done(j.status, j.texted)
+          if (j.status === 'confirm' || j.status === 'subscribed') return done(j.status, j.texted, j.inbox)
           if (j.status === 'challenge' && j.challengeUrl) {
             window.location.href = j.challengeUrl
             return
           }
+          dropChoice()
+          clear()
           showErrors(j.errors, j.message || t.messages.error.text)
+          if (j.suggestion) offer(j.suggestion, typed)
         })
         .catch(function () {
           button.disabled = false
           button.removeAttribute('aria-busy')
           showErrors(null, t.messages.error.text)
         })
+    }
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault()
+      dropChoice()
+      clear()
+      var typed = email.input.value.trim()
+      if (!typed || typed.indexOf('@') < 1 || typed.lastIndexOf('.') < typed.indexOf('@')) {
+        showErrors({ email: typed ? t.text.emailInvalid : t.text.emailMissing })
+        return
+      }
+      if (errors.consent && !errors.consent.input.checked) {
+        showErrors({ consent: t.text.consent })
+        return
+      }
+      if (errors.sms && errors.sms.input.checked && errors.phone && !errors.phone.input.value.trim()) {
+        showErrors({ phone: t.text.phoneNeeded })
+        return
+      }
+      send('')
     })
     return form
   }
@@ -374,6 +443,7 @@
   function mountInline() {
     var spots = document.querySelectorAll('[data-reputecast-form="' + cfg.id + '"]')
     if (!spots.length) return false
+    if (hidden()) return true // no view counted: no /session request
     stylesheet()
     session()
     for (var i = 0; i < spots.length; i++) {
@@ -384,6 +454,7 @@
   }
 
   function mountPopup() {
+    if (hidden()) return
     var key = 'rcf:' + cfg.id
     try {
       if (localStorage.getItem(key + ':done')) return
@@ -391,9 +462,22 @@
       if (closed && Date.now() - closed < cfg.popup.repeatDays * 86400000) return
     } catch (e) {}
     var shown = false
+    function onScroll() {
+      var h = document.documentElement
+      var seen = (h.scrollTop + window.innerHeight) / Math.max(h.scrollHeight, 1)
+      if (seen * 100 >= cfg.popup.scroll) show()
+    }
+    // Exit intent: the pointer leaves through the top of the window.
+    function onOut(e) {
+      if (!e.relatedTarget && e.clientY <= 0) show()
+    }
     function show() {
       if (shown) return
       shown = true
+      window.removeEventListener('scroll', onScroll)
+      document.removeEventListener('mouseout', onOut)
+      // Another form on the page may have signed the visitor up since.
+      if (hidden()) return
       stylesheet()
       session()
       var t = pick(document.documentElement)
@@ -419,15 +503,13 @@
       else dlg.setAttribute('open', '')
     }
     if (cfg.popup.delay > 0) setTimeout(show, cfg.popup.delay * 1000)
-    if (cfg.popup.scroll > 0) {
-      window.addEventListener('scroll', function onScroll() {
-        var h = document.documentElement
-        var seen = (h.scrollTop + window.innerHeight) / Math.max(h.scrollHeight, 1)
-        if (seen * 100 >= cfg.popup.scroll) {
-          window.removeEventListener('scroll', onScroll)
-          show()
-        }
-      }, { passive: true })
+    if (cfg.popup.scroll > 0) window.addEventListener('scroll', onScroll, { passive: true })
+    // Only with a mouse: touch screens have no exit intent. Armed after 2 s
+    // so a pointer passing the top edge while the page loads doesn't count.
+    if (cfg.popup.exit && window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
+      setTimeout(function () {
+        if (!shown) document.addEventListener('mouseout', onOut, { passive: true })
+      }, 2000)
     }
   }
 

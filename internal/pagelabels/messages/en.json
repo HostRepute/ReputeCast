@@ -51,6 +51,11 @@
   "form.notAllowed.text": "{reason} Sign up on the subscribe page instead.",
   "form.gone": "This form doesn't exist any more.",
   "form.unreadableShort": "That form couldn't be read. Send it again.",
+  "form.typo.ask": {"message": "Did you mean {email}?", "note": "under the email field when the domain looks mistyped; email: the address with the likely domain, linh@gmail.com"},
+  "form.typo.use": {"message": "Use {email}", "note": "the button that takes the suggested address; email: linh@gmail.com"},
+  "form.typo.keep": {"message": "Keep {email}", "note": "the button that keeps the address as typed; email: linh@gmial.com"},
+  "form.inbox.open": {"message": "Open {provider}", "note": "after signing up, the button that opens the visitor's web mail; provider: Gmail, Outlook, Yahoo Mail, iCloud Mail or Proton Mail"},
+  "form.inbox.newTab": {"message": "(opens in a new tab)", "note": "read by screen readers after Open Gmail"},
 
   "challenge.title": "One more step",
   "challenge.text": "Your signup looked automated, so we'd like to make sure you're a person. It only takes a second.",

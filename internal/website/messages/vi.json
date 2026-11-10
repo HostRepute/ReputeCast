@@ -169,6 +169,12 @@
   "site.clearSearch": "Xóa tìm kiếm",
   "site.noMatches": "Không có bài viết nào khớp. Hãy thử từ khác, hoặc xóa tìm kiếm.",
   "site.endOfResults": "{count} trên {count} · hết kết quả",
+  "site.share": "Chia sẻ bài viết này",
+  "site.shareLink": "Liên kết đến bài viết này",
+  "site.copyLink": "Sao chép liên kết",
+  "site.linkCopied": "Đã sao chép liên kết",
+  "site.shareEmail": "Email",
+  "site.shareOn": "Chia sẻ lên {network} (mở trong thẻ mới)",
 
   "gate.memberIncluded": "Có trong gói {tier} của bạn",
   "gate.freePost": "Đây là bài viết trả phí miễn phí của bạn trong {month}.",
