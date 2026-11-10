@@ -213,13 +213,9 @@ func DemoPostmaster(now time.Time, domain string) []PostmasterDay {
 	for i, rate := range demoSpamRates {
 		daysAgo := len(demoSpamRates) - i
 		r := rate / 100
-		rep := "HIGH"
-		if daysAgo <= 24 && daysAgo >= 22 {
-			rep = "MEDIUM"
-		}
 		errs := 0.001
 		out = append(out, PostmasterDay{
-			Day: demoDay(now, daysAgo, 0, 0).Format("2006-01-02"), SpamRate: &r, DomainReputation: rep, IPReputation: "HIGH",
+			Day: demoDay(now, daysAgo, 0, 0).Format("2006-01-02"), SpamRate: &r,
 			SPFRate: &one, DKIMRate: &one, DMARCRate: &one, TLSRate: &one, DeliveryErrors: &errs, FBLFlagged: &zero,
 		})
 	}
@@ -284,7 +280,7 @@ func DemoDMARC(now time.Time, domain string) []DMARCReport {
 			rep := DMARCReport{
 				Domain: domain, OrgName: org, ReportID: fmt.Sprintf("demo-%s-%d", strings.ToLower(strings.TrimSuffix(org, ".com")), day),
 				DateBegin: begin, DateEnd: begin.Add(24*time.Hour - time.Second),
-				Policy:  map[string]string{"domain": "acme.io", "p": "quarantine", "sp": "quarantine", "pct": "100", "adkim": "r", "aspf": "r"},
+				Policy:  map[string]string{"domain": "acme.io", "p": "quarantine", "sp": "quarantine", "adkim": "r", "aspf": "r"},
 				Records: []DMARCRecord{},
 			}
 			for _, s := range sources {

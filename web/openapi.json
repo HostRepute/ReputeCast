@@ -2269,6 +2269,24 @@
         ],
         "type": "object"
       },
+      "APIKeyAllowedIPsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "allowedIps": {
+            "description": "Addresses or networks: 203.0.113.7, 203.0.113.0/24, 2001:db8::/48. Empty allows any address.",
+            "items": {
+              "maxLength": 64,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "allowedIps"
+        ],
+        "type": "object"
+      },
       "APIKeyCategoryRef": {
         "additionalProperties": false,
         "properties": {
@@ -2288,6 +2306,15 @@
       "APIKeyCreateInput": {
         "additionalProperties": false,
         "properties": {
+          "allowedIps": {
+            "description": "Addresses or networks the key may be called from: 203.0.113.7, 203.0.113.0/24, 2001:db8::/48",
+            "items": {
+              "maxLength": 64,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
           "description": {
             "description": "Client label, e.g. Claude Desktop",
             "maxLength": 120,
@@ -2408,6 +2435,14 @@
               "$ref": "#/components/schemas/PermissionInfo"
             },
             "type": "array"
+          },
+          "proxyWarning": {
+            "description": "Requests come through a proxy that http.trusted_proxies doesn't list, so the addresses keys are called from may be the proxy's",
+            "type": "boolean"
+          },
+          "yourIp": {
+            "description": "The address of this request as ReputeCast resolved it; empty when unknown",
+            "type": "string"
           }
         },
         "required": [
@@ -2417,7 +2452,9 @@
           "held",
           "locked",
           "lists",
-          "endpoint"
+          "endpoint",
+          "yourIp",
+          "proxyWarning"
         ],
         "type": "object"
       },
@@ -2575,6 +2612,13 @@
       "APIKeyView": {
         "additionalProperties": false,
         "properties": {
+          "allowedIps": {
+            "description": "Addresses and networks the key may be called from (203.0.113.7, 203.0.113.0/24); empty for any address",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -2663,7 +2707,8 @@
           "scope",
           "createdBy",
           "createdAt",
-          "status"
+          "status",
+          "allowedIps"
         ],
         "type": "object"
       },
@@ -25664,9 +25709,6 @@
           "fallback": {
             "$ref": "#/components/schemas/DeliverabilityAssetBlocklists"
           },
-          "gmailReputation": {
-            "type": "string"
-          },
           "notMonitored": {
             "type": "boolean"
           },
@@ -26539,9 +26581,6 @@
           "dedicatedIpOption": {
             "type": "string"
           },
-          "gmailIpReputation": {
-            "type": "string"
-          },
           "managedReputation": {
             "type": "boolean"
           },
@@ -26598,21 +26637,12 @@
           "domain": {
             "type": "string"
           },
-          "domainReputation": {
-            "type": "string"
-          },
           "feedbackLoopFlagged": {
             "format": "int64",
             "type": "integer"
           },
           "from": {
             "format": "date",
-            "type": "string"
-          },
-          "ipReputation": {
-            "type": "string"
-          },
-          "ipReputationPool": {
             "type": "string"
           },
           "peak": {
@@ -35949,9 +35979,6 @@
           },
           "monitored": {
             "type": "boolean"
-          },
-          "postmasterReputation": {
-            "type": "string"
           },
           "provider": {
             "type": "string"
@@ -74339,6 +74366,9 @@
           "footerAddress": {
             "type": "string"
           },
+          "listUnsubscribeMailto": {
+            "type": "boolean"
+          },
           "replyHandling": {
             "enum": [
               "forward"
@@ -74380,7 +74410,8 @@
           "footerAddress",
           "trackingDomain",
           "trackingOptions",
-          "replyOptions"
+          "replyOptions",
+          "listUnsubscribeMailto"
         ],
         "type": "object"
       },
@@ -74394,6 +74425,9 @@
           "footerAddress": {
             "maxLength": 300,
             "type": "string"
+          },
+          "listUnsubscribeMailto": {
+            "type": "boolean"
           },
           "replyHandling": {
             "enum": [
@@ -112940,6 +112974,79 @@
           }
         ],
         "summary": "One API key with the calls rejected since it expired",
+        "tags": [
+          "API keys"
+        ],
+        "x-access": "workspace",
+        "x-permission": "apikeys:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}/allowed-ips": {
+      "put": {
+        "operationId": "set-api-key-allowed-ips",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIKeyAllowedIPsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set the addresses and networks an API key may be called from (empty: any)",
         "tags": [
           "API keys"
         ],
@@ -152593,6 +152700,79 @@
           }
         ],
         "summary": "One MCP agent with the calls rejected since it expired",
+        "tags": [
+          "MCP agents"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}/allowed-ips": {
+      "put": {
+        "operationId": "set-mcp-agent-allowed-ips",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/APIKeyAllowedIPsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set the addresses and networks an MCP agent may be called from (empty: any)",
         "tags": [
           "MCP agents"
         ],

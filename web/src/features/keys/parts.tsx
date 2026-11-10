@@ -3,7 +3,7 @@ import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Feedback'
 import { t as tt, useT } from '@/i18n'
-import { callTime, lastUsed, usDate } from '@/lib/format'
+import { callTime, count, lastUsed, usDate } from '@/lib/format'
 import { scopeLabel } from '../access/parts'
 import { m } from './messages'
 
@@ -107,6 +107,18 @@ export function scopeText(k: Pick<Key, 'scope'> & Partial<Pick<Key, 'transaction
     return tx.mode === 'test' ? tt(m.scopeTestOnly, { scope: what }) : what
   }
   return k.scope.all || !k.scope.label ? tt(m.scopeAllLists) : scopeLabel(k.scope, { listWord: false })
+}
+
+/** The Scope cell: the scope, then "Allowed IPs: 2" when the key is limited to addresses. */
+export function ScopeCell({ k }: { k: Key }) {
+  const t = useT()
+  if (k.allowedIps.length === 0) return <>{scopeText(k)}</>
+  return (
+    <div className="col gap-0.5">
+      <span>{scopeText(k)}</span>
+      <span className="k">{t(m.allowedIpsScope, { count: count(k.allowedIps.length) })}</span>
+    </div>
+  )
 }
 
 /** One-line summary used in dialogs: “Website signup form” · subscribers:create · Weekly Digest only · no expiry. */

@@ -37,7 +37,6 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | SMTP | github.com/wneessen/go-mail | v0.8.1 |
 | Bounce mailbox (IMAP) | github.com/emersion/go-imap/v2 | v2.0.0-beta.8 (beta; isolated in one package) |
 | DNS checks | github.com/miekg/dns | v1.1.73 (behind `internal/dnscheck`; see notes) |
-| DKIM/DMARC parsing | github.com/emersion/go-msgauth | v0.7.0 |
 | SMTP relay for transactional email (server, AUTH, MIME) | github.com/emersion/go-smtp + go-sasl + go-message | v0.25.1 / v0.0.0-20241020182733-b788ff22d5a6 (no tagged release) / v0.18.2 |
 | SMS through AWS End User Messaging | github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 | v1.42.5 |
 | Phone numbers (E.164, country, type) | github.com/nyaruka/phonenumbers | v1.8.1 |

@@ -148,6 +148,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* switch rows, as Settings › Sending rules draws them */
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.trow{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px 0 2px;border-top:1px solid #EEF0F3}
+.trow .col{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
 
 
 /* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
@@ -225,13 +231,17 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <label class="lbl">Footer address<input class="in" value="Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105"></label>
           <label class="lbl">Link tracking domain<select class="in"><option>go.news.acme.io · verified</option><option>Provider default</option></select></label>
         </div>
+        <label class="trow" style="cursor:pointer">
+          <span class="col"><span style="font-weight:600" id="lu-l">Include a mailto: address in List-Unsubscribe</span><span class="k" id="lu-d">Off: the header has only the one-click link, which Gmail, Yahoo and Outlook use. On: some mail apps send an email instead. ReputeCast doesn't receive mail, so someone at the reply-to address must remove those readers by hand within 10 days.</span></span>
+          <input type="checkbox" class="tg" role="switch" aria-labelledby="lu-l" aria-describedby="lu-d">
+        </label>
         <div style="display:flex;gap:8px"><button class="btn pri">Save</button></div>
       </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1312}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1398}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

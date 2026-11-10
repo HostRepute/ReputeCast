@@ -119,7 +119,7 @@ var Tools = []MCPToolInfo{
 	{"get_routing", "Routing rules per stream with weights and fallbacks.", string(authz.ProvidersView), false},
 	{"update_routing", "Change the weights of a stream's default route.", string(authz.ProvidersManage), true},
 	{"list_automations", "Automations with their status.", string(authz.AutomationsView), false},
-	{"get_deliverability", "Domain authentication, blocklists and Postmaster reputation.", string(authz.DeliverabilityView), false},
+	{"get_deliverability", "Domain authentication, blocklists, and Postmaster spam rate and authentication.", string(authz.DeliverabilityView), false},
 	{"send_test_email", "Send a test of a campaign to a member of the workspace.", string(authz.CampaignsEdit), true},
 	{"get_campaign_languages", "A campaign's language versions: each one's status (up to date, outdated, draft, missing) and who gets it.", string(authz.CampaignsView), false},
 	{"get_accessibility_issues", "Accessibility issues of a campaign in every language: what is serious, where it is and how to fix it.", string(authz.CampaignsView), false},

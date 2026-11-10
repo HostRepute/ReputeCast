@@ -49,6 +49,9 @@ export default translate(m, {
   trackingDomain: 'Tracking-Domain für Links',
   trackingOption: '{verified, select, yes {{domain} · verifiziert} other {{domain} · noch nicht verifiziert}}',
   providerDefault: 'Standard des Anbieters',
+  listUnsubscribeMailto: 'mailto:-Adresse in List-Unsubscribe aufnehmen',
+  listUnsubscribeMailtoHelp:
+    'Aus: Der Header enthält nur den Link zur Abmeldung mit einem Klick, den Gmail, Yahoo und Outlook nutzen. An: Manche Mail-Apps senden stattdessen eine E-Mail. ReputeCast empfängt keine E-Mails, daher muss jemand unter der Antwortadresse diese Kontakte innerhalb von 10 Tagen von Hand austragen.',
   defaultsSaved: 'Standards gespeichert',
   defaultsFailed: 'Standards nicht gespeichert',
   addSenderTitle: 'Absender hinzufügen',

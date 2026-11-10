@@ -15,13 +15,14 @@ import { T, t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { count, createdTime, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
-import { deniedReason, useWorkspace } from '@/lib/session'
+import { deniedReason, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '../access/parts'
+import { AllowedIpsDialog } from './AllowedIpsDialog'
 import { CreateKeyDialog, type KeyKind } from './CreateKeyDialog'
 import { KeyActionDialog, type KeyAction } from './KeyActionDialogs'
 import { KeySecretDialog } from './KeySecretDialog'
 import { m } from './messages'
-import { DashedEmpty, ExpiresCell, LastUsedCell, PermBadges, scopeText, TableSkeleton, type Key } from './parts'
+import { DashedEmpty, ExpiresCell, LastUsedCell, PermBadges, ScopeCell, TableSkeleton, type Key } from './parts'
 import { SendOnlyKeyDialog } from '@/features/transactional/CreateKeyDialog'
 import { KeyBadges } from '@/features/transactional/shared'
 
@@ -41,7 +42,9 @@ export function KeysPage() {
   const canTransactional = me.permissions.includes('transactional:view')
   const [act, setAct] = useState<{ k: Key; action: KeyAction }>()
   const [secret, setSecret] = useState<Secret>()
+  const [ips, setIps] = useState<Key>()
   const createList = create === 'mcp_agent' ? agents.data : keys.data
+  const ipsList = ips?.kind === 'mcp_agent' ? agents.data : keys.data
   return (
     <Page
       title={t(m.title)}
@@ -57,7 +60,7 @@ export function KeysPage() {
       {!canKeys && !canAgents ? <ForbiddenState permission="apikeys:manage" title={t(m.forbidden)} /> : null}
       {!canKeys && !canAgents ? null : canKeys ? (
         <>
-          <KeysCard q={keys} onCreate={() => setCreate('api_key')} onAction={(k, action) => setAct({ k, action })} />
+          <KeysCard q={keys} onCreate={() => setCreate('api_key')} onAction={(k, action) => setAct({ k, action })} onAllowedIps={setIps} />
           <ManagedKeysCard />
         </>
       ) : (
@@ -65,7 +68,7 @@ export function KeysPage() {
       )}
       {canAgents ? (
         <>
-          <AgentsCard q={agents} onCreate={() => setCreate('mcp_agent')} onAction={(k, action) => setAct({ k, action })} />
+          <AgentsCard q={agents} onCreate={() => setCreate('mcp_agent')} onAction={(k, action) => setAct({ k, action })} onAllowedIps={setIps} />
           {agents.data?.items.length === 0 ? null : <ActionsCard />}
         </>
       ) : null}
@@ -101,13 +104,15 @@ export function KeysPage() {
         />
       ) : null}
       {secret ? <KeySecretDialog created={secret.created} action={secret.action} onClose={() => setSecret(undefined)} /> : null}
+      {ips && ipsList ? <AllowedIpsDialog k={ips} list={ipsList} onClose={() => setIps(undefined)} /> : null}
     </Page>
   )
 }
 
 type ListQuery = { data?: Schemas['APIKeyList']; isPending: boolean; isError: boolean; error: unknown; refetch: () => unknown }
+type RowActions = { onAction: (k: Key, a: KeyAction) => void; onAllowedIps: (k: Key) => void }
 
-function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => void; onAction: (k: Key, a: KeyAction) => void }) {
+function KeysCard({ q, onCreate, onAction, onAllowedIps }: { q: ListQuery; onCreate: () => void } & RowActions) {
   const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
@@ -197,7 +202,9 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
                 <Td>
                   <PermBadges keys={k.permissions} />
                 </Td>
-                <Td>{scopeText(k)}</Td>
+                <Td>
+                  <ScopeCell k={k} />
+                </Td>
                 <Td>
                   <PersonCell name={k.createdBy.name} sub={createdTime(k.createdAt, now)} color={k.createdBy.avatarColor} />
                 </Td>
@@ -208,7 +215,7 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
                   <ExpiresCell k={k} />
                 </Td>
                 <Td>
-                  <KeyButtons k={k} onAction={onAction} />
+                  <KeyButtons k={k} onAction={onAction} onAllowedIps={onAllowedIps} />
                 </Td>
               </tr>
             ))}
@@ -219,8 +226,9 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
   )
 }
 
-function KeyButtons({ k, onAction }: { k: Key; onAction: (k: Key, a: KeyAction) => void }) {
+function KeyButtons({ k, onAction, onAllowedIps }: { k: Key } & RowActions) {
   const t = useT()
+  const reason = usePermissionReason(k.kind === 'mcp_agent' ? 'mcp:manage' : 'apikeys:manage')
   return (
     <div className="row gap-1.5">
       {k.status === 'expired' ? (
@@ -234,6 +242,9 @@ function KeyButtons({ k, onAction }: { k: Key; onAction: (k: Key, a: KeyAction) 
         </>
       ) : (
         <>
+          <Button size="sm" disabledReason={reason} onClick={() => onAllowedIps(k)} aria-label={t(m.allowedIpsNamed, { name: k.name })}>
+            {t(m.allowedIpsButton)}
+          </Button>
           <Button size="sm" onClick={() => onAction(k, 'rotate')} aria-label={t(m.rotateNamed, { name: k.name })}>
             {t(m.rotate)}
           </Button>
@@ -253,7 +264,7 @@ function agentsCaption(items: Key[]) {
   return tt(m.agentsCaptionPause, { article: /agent$/i.test(a.name) ? 'the' : 'quoted', name: a.name })
 }
 
-function AgentsCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => void; onAction: (k: Key, a: KeyAction) => void }) {
+function AgentsCard({ q, onCreate, onAction, onAllowedIps }: { q: ListQuery; onCreate: () => void } & RowActions) {
   const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
@@ -326,7 +337,9 @@ function AgentsCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => v
                 <Td>
                   <PermBadges keys={k.permissions} />
                 </Td>
-                <Td>{scopeText(k)}</Td>
+                <Td>
+                  <ScopeCell k={k} />
+                </Td>
                 <Td>
                   <PersonCell name={k.createdBy.name} sub={createdTime(k.createdAt, now)} color={k.createdBy.avatarColor} />
                 </Td>
@@ -337,7 +350,7 @@ function AgentsCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => v
                   <ExpiresCell k={k} />
                 </Td>
                 <Td>
-                  <KeyButtons k={k} onAction={onAction} />
+                  <KeyButtons k={k} onAction={onAction} onAllowedIps={onAllowedIps} />
                 </Td>
               </tr>
             ))}

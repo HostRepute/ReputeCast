@@ -49,6 +49,9 @@ export default translate(m, {
   trackingDomain: 'Dominio de seguimiento de enlaces',
   trackingOption: '{verified, select, yes {{domain} · verificado} other {{domain} · aún sin verificar}}',
   providerDefault: 'Predeterminado del proveedor',
+  listUnsubscribeMailto: 'Incluir una dirección mailto: en List-Unsubscribe',
+  listUnsubscribeMailtoHelp:
+    'Desactivado: la cabecera solo lleva el enlace de baja con un clic, que usan Gmail, Yahoo y Outlook. Activado: algunas apps de correo envían un correo en su lugar. ReputeCast no recibe correo, así que alguien en la dirección de respuesta tiene que dar de baja a mano a esos contactos en un plazo de 10 días.',
   defaultsSaved: 'Valores predeterminados guardados',
   defaultsFailed: 'No se pudieron guardar los valores predeterminados',
   addSenderTitle: 'Añadir remitente',

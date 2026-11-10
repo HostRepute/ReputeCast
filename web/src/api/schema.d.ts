@@ -2875,6 +2875,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/api-keys/{keyId}/allowed-ips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the addresses and networks an API key may be called from (empty: any) */
+        put: operations["set-api-key-allowed-ips"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/api-keys/{keyId}/revoke": {
         parameters: {
             query?: never;
@@ -11270,6 +11287,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}/allowed-ips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the addresses and networks an MCP agent may be called from (empty: any) */
+        put: operations["set-mcp-agent-allowed-ips"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/mcp-agents/{keyId}/revoke": {
         parameters: {
             query?: never;
@@ -19094,11 +19128,17 @@ export interface components {
             /** Format: int64 */
             tokens: number;
         };
+        APIKeyAllowedIPsInput: {
+            /** @description Addresses or networks: 203.0.113.7, 203.0.113.0/24, 2001:db8::/48. Empty allows any address. */
+            allowedIps: string[];
+        };
         APIKeyCategoryRef: {
             id: string;
             name: string;
         };
         APIKeyCreateInput: {
+            /** @description Addresses or networks the key may be called from: 203.0.113.7, 203.0.113.0/24, 2001:db8::/48 */
+            allowedIps?: string[];
             /** @description Client label, e.g. Claude Desktop */
             description?: string;
             /** Format: date-time */
@@ -19127,6 +19167,10 @@ export interface components {
             lists: components["schemas"]["ScopedList"][];
             locked: components["schemas"]["APIKeyLockedPermission"][];
             permissions: components["schemas"]["PermissionInfo"][];
+            /** @description Requests come through a proxy that http.trusted_proxies doesn't list, so the addresses keys are called from may be the proxy's */
+            proxyWarning: boolean;
+            /** @description The address of this request as ReputeCast resolved it; empty when unknown */
+            yourIp: string;
         };
         APIKeyLockedPermission: {
             key: string;
@@ -19181,6 +19225,8 @@ export interface components {
             testAddresses?: string[];
         };
         APIKeyView: {
+            /** @description Addresses and networks the key may be called from (203.0.113.7, 203.0.113.0/24); empty for any address */
+            allowedIps: string[];
             /** Format: date-time */
             createdAt: string;
             createdBy: components["schemas"]["APIKeyCreator"];
@@ -25681,7 +25727,6 @@ export interface components {
             /** Format: double */
             dmarcAligned?: number;
             fallback?: components["schemas"]["DeliverabilityAssetBlocklists"];
-            gmailReputation?: string;
             notMonitored?: boolean;
             provider?: string;
             providerId?: string;
@@ -25924,7 +25969,6 @@ export interface components {
             /** Format: double */
             complaintRate?: number;
             dedicatedIpOption?: string;
-            gmailIpReputation?: string;
             managedReputation: boolean;
             /** @enum {string} */
             onlyStream?: "broadcast" | "automation" | "system";
@@ -25942,13 +25986,10 @@ export interface components {
             /** Format: double */
             dmarc?: number;
             domain: string;
-            domainReputation?: string;
             /** Format: int64 */
             feedbackLoopFlagged?: number;
             /** Format: date */
             from: string;
-            ipReputation?: string;
-            ipReputationPool?: string;
             peak?: components["schemas"]["DeliverabilityPostmasterPeak"];
             series: components["schemas"]["DeliverabilityPostmasterPoint"][];
             /** Format: double */
@@ -28641,7 +28682,6 @@ export interface components {
             lastSyncAt?: string;
             listings: string[];
             monitored: boolean;
-            postmasterReputation?: string;
             provider?: string;
             /** @enum {string} */
             role: "sending_domain" | "organization_domain" | "dedicated_ip" | "server_hostname" | "other";
@@ -39672,6 +39712,7 @@ export interface components {
             automationSenderId: string;
             defaultSenderId: string;
             footerAddress: string;
+            listUnsubscribeMailto: boolean;
             /** @enum {string} */
             replyHandling: "forward";
             replyOptions: string[];
@@ -39685,6 +39726,7 @@ export interface components {
             /** @description Default From for new campaigns (the Broadcasts default) */
             defaultSenderId?: string;
             footerAddress: string;
+            listUnsubscribeMailto?: boolean;
             /** @enum {string} */
             replyHandling: "forward";
             replyTo?: string;
@@ -54045,6 +54087,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-api-key-allowed-ips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyAllowedIPsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyView"];
+                };
             };
             /** @description Error */
             default: {
@@ -73432,6 +73511,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-mcp-agent-allowed-ips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                keyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyAllowedIPsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyView"];
+                };
             };
             /** @description Error */
             default: {

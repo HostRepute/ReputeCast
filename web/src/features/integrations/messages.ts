@@ -820,5 +820,5 @@ export const m = defineMessages('integrations', {
 
   // ── HostRepute ───────────────────────────────────────────────────────
   hrAdds: 'Adds',
-  hrAddsValue: 'Google Postmaster Tools: domain reputation, spam rate and feedback loop · Microsoft SNDS: IP reputation for Outlook.com',
+  hrAddsValue: 'Google Postmaster Tools: compliance status, spam rate and feedback loop · Microsoft SNDS: IP reputation for Outlook.com',
 })

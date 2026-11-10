@@ -15,6 +15,8 @@
   "fixed.twoFactorRequired": "Votre instance exige l’authentification à deux facteurs. Ajoutez une clé d’accès ou une application d’authentification pour continuer.",
   "fixed.whoUnavailable": "Impossible de vérifier votre identité pour le moment. Réessayez dans un instant.",
   "keyExpired": "Cette clé API a expiré le {date, date}. Renouvelez-la dans Paramètres › Clés et MCP.",
+  "keyIpNotAllowed": "Cette clé API ne peut pas être utilisée depuis {ip}. Ajoutez l’adresse aux IP autorisées de la clé dans Paramètres › Clés et MCP.",
+  "unknownAddress": "une adresse inconnue",
   "problem.notForThisKey": "Cette clé appartient à l’intégration {integration} et ne permet que ce que cette intégration peut faire. Modifiez les droits de l’intégration {integration} dans Paramètres › Intégrations.",
   "problem.integrationOnly": "Seule la clé d’une intégration peut faire cet appel.",
   "problem.wordpressOnly": "Seule la clé d’un site WordPress peut faire cet appel.",

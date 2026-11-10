@@ -118,8 +118,6 @@ export const m = defineMessages('hostrepute', {
   /** {aligned} is a percentage. */
   dmarcPolicyAligned: 'DMARC p={policy}, {aligned} aligned',
   cleanOn: 'Clean on {count} blocklists',
-  /** {level} is Google Postmaster's domain reputation; another value shows as {raw}. */
-  postmasterReputation: 'Postmaster {level, select, high {high} medium {medium} low {low} bad {bad} other {{raw}}} reputation',
   sectionLine: 'Reputation monitoring that feeds Send Readiness and Deliverability',
   connectedTo: 'Connected to HostRepute team “{team}”',
   metaConnected: 'connected {date}',

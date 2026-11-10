@@ -190,4 +190,31 @@ export const m = defineMessages('keys', {
   useItValue: '<mono>{header}</mono> against <mono>{endpoint}</mono>',
   logged: 'Logged',
   loggedActor: '{kind, select, agent {every call by this agent is logged with the agent as actor} other {every call by this key is logged with the key as actor}}',
+
+  // Allowed IPs: the field of the create dialog and of its own dialog, the
+  // Scope column's second line and the row button. kind: agent or key.
+  allowedIpsLabel: 'Allowed IPs',
+  allowedIpsOptional: 'Allowed IPs <opt>· optional</opt>',
+  allowedIpsHint: 'Leave empty to allow any address. Example: 203.0.113.7 or 203.0.113.0/24',
+  allowedIpsLineError: 'Line {line}: {message}',
+  allowedIpsYourIp: 'Your address as ReputeCast sees it: <mono>{ip}</mono>',
+  allowedIpsYourIpUnknown: "ReputeCast doesn't know your address.",
+  allowedIpsLastUsed: 'Last used from <mono>{ip}</mono>',
+  allowedIpsAdd: 'Add this address',
+  allowedIpsAddNamed: 'Add {ip} to the allowed IPs',
+  allowedIpsProxy: "ReputeCast may be seeing your proxy's address, not your callers'. Set http.trusted_proxies before relying on allowed IPs.",
+  allowedIpsProxyLink: 'See the proxies in Instance admin',
+  allowedIpsScope: 'Allowed IPs: {count}',
+  allowedIpsButton: 'Allowed IPs…',
+  allowedIpsNamed: 'Allowed IPs of {name}',
+  allowedIpsEyebrow: 'Keys & MCP · allowed IPs',
+  allowedIpsTitle: 'Allowed IPs of “{name}”',
+  allowedIpsDesc:
+    '{kind, select, agent {Calls with this agent token from any other address are refused and counted. Empty: any address.} other {Calls with this key from any other address get 403 ip_not_allowed and are counted. Empty: any address.}}',
+  allowedIpsSaved: 'Allowed IPs saved',
+  allowedIpsNotSaved: 'Not saved',
+  lockoutBadge: 'Refuse its last caller',
+  lockoutTitle: 'Save without {ip}?',
+  lockoutText: '{kind, select, agent {Calls from {ip}, where this token was last used, will be refused.} other {Calls from {ip}, where this key was last used, will be refused.}}',
+  saveAnyway: 'Save anyway',
 })

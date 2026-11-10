@@ -15,6 +15,8 @@
   "fixed.twoFactorRequired": "Your instance requires two-factor authentication. Add a passkey or an authenticator app to continue.",
   "fixed.whoUnavailable": "Couldn't check who you are right now. Try again in a moment.",
   "keyExpired": { "message": "This API key expired on {date, date}. Rotate it in Settings › Keys & MCP.", "note": "date: Oct 22, 2026, in the reader's region format" },
+  "keyIpNotAllowed": { "message": "This API key can't be used from {ip}. Add the address to the key's allowed IPs in Settings › Keys & MCP.", "note": "ip: the caller's address, such as 203.0.113.7, or the unknownAddress message" },
+  "unknownAddress": { "message": "an unknown address", "note": "the {ip} of keyIpNotAllowed when the caller's address isn't known" },
   "problem.notForThisKey": { "message": "This key belongs to {integration} and works only for what {integration} can do. Change what {integration} can do in Settings › Integrations.", "note": "integration: an app's name, such as Zapier" },
   "problem.integrationOnly": "Only an integration's key calls this.",
   "problem.wordpressOnly": "Only a WordPress site's key calls this.",

@@ -145,6 +145,11 @@ type AudienceFacts struct {
 	NoFirstName int64
 	// Mailboxes counts final recipients per mailbox provider.
 	Mailboxes map[string]int64
+	// OutlookConsumer counts final recipients at Outlook.com, Hotmail, Live
+	// and MSN addresses (Microsoft's bulk-sender rule), unlike the
+	// "outlook" key of Mailboxes, which includes Microsoft 365 company
+	// domains the rule doesn't cover.
+	OutlookConsumer int64
 	// Languages counts final recipients per contact language code
 	// (lowercase, "" for none), for content languages.
 	Languages map[string]int64
@@ -367,12 +372,16 @@ type AuthFacts struct {
 	MailFrom  []ProviderAuthFacts
 	// DMARC: status (pass, missing, invalid), policy, the record and the
 	// share of aligned mail over the last 7 days (nil without reports).
-	DMARCStatus  string
-	DMARCPolicy  string
-	DMARCRecord  string
-	DMARCAligned *float64
-	// DMARCDomain is where the record was found: the domain itself or its
-	// organizational domain (the record is at _dmarc.DMARCDomain).
+	// DMARCTestMode is the record's t=y: receivers apply the policy one
+	// level lower (RFC 9989).
+	DMARCStatus   string
+	DMARCPolicy   string
+	DMARCTestMode bool
+	DMARCRecord   string
+	DMARCAligned  *float64
+	// DMARCDomain is where the record was found: the domain itself or the
+	// parent the DNS Tree Walk found it at (the record is at
+	// _dmarc.DMARCDomain).
 	DMARCDomain string
 	// BIMIStatus is pass, missing, invalid or error.
 	BIMIStatus string
@@ -486,7 +495,8 @@ type ComplianceFacts struct {
 	// UnsubscribeURL is the one-click unsubscribe link with a {token} placeholder.
 	UnsubscribeURL string
 	// Mailto is the List-Unsubscribe header's mailto address (the reply-to
-	// address, else the From address), as the send writes it.
+	// address, else the From address), as the send writes it: "" unless
+	// the workspace includes one (Settings › Senders, off by default).
 	Mailto string
 	HTTPS  bool
 	// ComplaintRate is the route's 7-day complaint rate in percent.

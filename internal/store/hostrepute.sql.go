@@ -633,31 +633,28 @@ func (q *Queries) UpsertDeliverabilityDMARCReport(ctx context.Context, arg Upser
 }
 
 const upsertDeliverabilityPostmasterDay = `-- name: UpsertDeliverabilityPostmasterDay :exec
-INSERT INTO postmaster_daily (workspace_id, domain, day, via, spam_rate, domain_reputation, ip_reputation, spf_rate, dkim_rate, dmarc_rate,
+INSERT INTO postmaster_daily (workspace_id, domain, day, via, spam_rate, spf_rate, dkim_rate, dmarc_rate,
     tls_rate, delivery_errors, fbl_flagged)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+    $9, $10, $11)
 ON CONFLICT (workspace_id, domain, day) DO UPDATE SET
-    via = EXCLUDED.via, spam_rate = EXCLUDED.spam_rate, domain_reputation = EXCLUDED.domain_reputation,
-    ip_reputation = EXCLUDED.ip_reputation, spf_rate = EXCLUDED.spf_rate, dkim_rate = EXCLUDED.dkim_rate,
+    via = EXCLUDED.via, spam_rate = EXCLUDED.spam_rate, spf_rate = EXCLUDED.spf_rate, dkim_rate = EXCLUDED.dkim_rate,
     dmarc_rate = EXCLUDED.dmarc_rate, tls_rate = EXCLUDED.tls_rate, delivery_errors = EXCLUDED.delivery_errors,
     fbl_flagged = EXCLUDED.fbl_flagged
 `
 
 type UpsertDeliverabilityPostmasterDayParams struct {
-	WorkspaceID      uuid.UUID `json:"workspaceId"`
-	Domain           string    `json:"domain"`
-	Day              time.Time `json:"day"`
-	Via              string    `json:"via"`
-	SpamRate         *float64  `json:"spamRate"`
-	DomainReputation string    `json:"domainReputation"`
-	IpReputation     string    `json:"ipReputation"`
-	SpfRate          *float64  `json:"spfRate"`
-	DkimRate         *float64  `json:"dkimRate"`
-	DmarcRate        *float64  `json:"dmarcRate"`
-	TlsRate          *float64  `json:"tlsRate"`
-	DeliveryErrors   *float64  `json:"deliveryErrors"`
-	FblFlagged       *int32    `json:"fblFlagged"`
+	WorkspaceID    uuid.UUID `json:"workspaceId"`
+	Domain         string    `json:"domain"`
+	Day            time.Time `json:"day"`
+	Via            string    `json:"via"`
+	SpamRate       *float64  `json:"spamRate"`
+	SpfRate        *float64  `json:"spfRate"`
+	DkimRate       *float64  `json:"dkimRate"`
+	DmarcRate      *float64  `json:"dmarcRate"`
+	TlsRate        *float64  `json:"tlsRate"`
+	DeliveryErrors *float64  `json:"deliveryErrors"`
+	FblFlagged     *int32    `json:"fblFlagged"`
 }
 
 func (q *Queries) UpsertDeliverabilityPostmasterDay(ctx context.Context, arg UpsertDeliverabilityPostmasterDayParams) error {
@@ -667,8 +664,6 @@ func (q *Queries) UpsertDeliverabilityPostmasterDay(ctx context.Context, arg Ups
 		arg.Day,
 		arg.Via,
 		arg.SpamRate,
-		arg.DomainReputation,
-		arg.IpReputation,
 		arg.SpfRate,
 		arg.DkimRate,
 		arg.DmarcRate,

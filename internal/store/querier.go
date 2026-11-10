@@ -2105,10 +2105,16 @@ type Querier interface {
 	// Expired keys last; the keys that send transactional mail (send-only
 	// and SMTP presets) first, as they were created; the rest by last use.
 	KeysList(ctx context.Context, arg KeysListParams) ([]KeysListRow, error)
+	// One row per key, day and address, at most 1,000 addresses a key and day
+	// (an address already counted keeps counting), so a flood of callers can't
+	// grow the table without bound.
 	KeysRecordRejection(ctx context.Context, arg KeysRecordRejectionParams) error
 	// Calls rejected in the last 7 days, with the busiest client address.
 	KeysRejections(ctx context.Context, apiKeyID uuid.UUID) (KeysRejectionsRow, error)
 	KeysRevoke(ctx context.Context, arg KeysRevokeParams) (int64, error)
+	// The addresses and networks a key may be called from (empty: any). Revoked
+	// keys and integrations' keys keep theirs.
+	KeysSetAllowedIPs(ctx context.Context, arg KeysSetAllowedIPsParams) (KeysSetAllowedIPsRow, error)
 	// Makes a key a send-only, test-mode or SMTP key (transactional:send only).
 	KeysSetTransactional(ctx context.Context, arg KeysSetTransactionalParams) error
 	KeysTouch(ctx context.Context, arg KeysTouchParams) error

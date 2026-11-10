@@ -89,11 +89,9 @@ type DeliverabilityAssetHealth struct {
 	// Auth is the SPF / DKIM / DMARC check of a domain.
 	Auth *DeliverabilityDomainAuth `json:"auth,omitempty"`
 	// DMARCAligned is the share of DMARC-aligned mail, last 7 days (percent).
-	DMARCAligned *float64 `json:"dmarcAligned,omitempty"`
-	// GmailReputation is Postmaster's domain reputation: high, medium, low, bad.
-	GmailReputation string                    `json:"gmailReputation,omitempty"`
-	ReverseDNS      *DeliverabilityReverseDNS `json:"reverseDns,omitempty"`
-	SNDS            *DeliverabilitySNDSBrief  `json:"snds,omitempty"`
+	DMARCAligned *float64                  `json:"dmarcAligned,omitempty"`
+	ReverseDNS   *DeliverabilityReverseDNS `json:"reverseDns,omitempty"`
+	SNDS         *DeliverabilitySNDSBrief  `json:"snds,omitempty"`
 	// NotMonitored: HostRepute is connected but doesn't watch this asset
 	// yet (a new sending domain, such as a Transactional one). The card
 	// offers "Add to monitoring"; such cards come after the monitored ones.
@@ -151,7 +149,6 @@ type DeliverabilityPoolHealth struct {
 	OnlyStream        string `json:"onlyStream,omitempty" enum:"broadcast,automation,system"`
 	AccountStatus     string `json:"accountStatus"`
 	Status            string `json:"status"`
-	GmailIPReputation string `json:"gmailIpReputation,omitempty"`
 	DedicatedIPOption string `json:"dedicatedIpOption,omitempty"`
 	VolumeThisMonth   *int64 `json:"volumeThisMonth,omitempty"`
 	// ManagedReputation is true when the provider manages pool reputation (SES).
@@ -230,11 +227,6 @@ type DeliverabilityPostmaster struct {
 	Domain string `json:"domain"`
 	Via    string `json:"via" enum:"hostrepute,direct"`
 	Stale  bool   `json:"stale"`
-	// Reputations: high, medium, low, bad.
-	DomainReputation string `json:"domainReputation,omitempty"`
-	IPReputation     string `json:"ipReputation,omitempty"`
-	// IPReputationPool names the shared pool the IP reputation is about ("SES").
-	IPReputationPool string `json:"ipReputationPool,omitempty"`
 	// Rates in percent. SpamRate is the 30-day average.
 	SpamRate *float64 `json:"spamRate,omitempty"`
 	SPF      *float64 `json:"spf,omitempty"`

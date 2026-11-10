@@ -16,9 +16,10 @@ import (
 // takes the mail and answers, or takes it and never answers (the call times
 // out), or holds the call until the test lets it go, or refuses it. It
 // counts what it took per message, so a test can tell whether anything was
-// delivered twice. "faultesp-idem" dedupes by message id like a provider
-// with idempotency keys (providers.IdempotentSender); "faultesp-ips" lists
-// the account's dedicated IPs (providers.IPReporter, Fault.SetIPs).
+// delivered twice, and keeps the List-Unsubscribe header each address got.
+// "faultesp-idem" dedupes by message id like a provider with idempotency
+// keys (providers.IdempotentSender); "faultesp-ips" lists the account's
+// dedicated IPs (providers.IPReporter, Fault.SetIPs).
 //
 // Only tests import sendtest, so the adapters exist only in test binaries.
 
@@ -53,6 +54,7 @@ type FaultState struct {
 	mode    string
 	took    map[uuid.UUID]int
 	to      map[string]int
+	unsub   map[string]string
 	calls   int
 	started chan struct{}
 	release chan struct{}
@@ -64,7 +66,7 @@ type FaultState struct {
 func (f *FaultState) Reset(mode string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.mode, f.took, f.to, f.calls = mode, map[uuid.UUID]int{}, map[string]int{}, 0
+	f.mode, f.took, f.to, f.unsub, f.calls = mode, map[uuid.UUID]int{}, map[string]int{}, map[string]string{}, 0
 	f.started, f.release = make(chan struct{}, 64), make(chan struct{})
 	f.ips = nil
 }
@@ -117,6 +119,14 @@ func (f *FaultState) TookFor(address string) int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.to[address]
+}
+
+// ListUnsubscribe is the List-Unsubscribe header of the last message the
+// provider took for an address.
+func (f *FaultState) ListUnsubscribe(address string) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.unsub[address]
 }
 
 // Calls is how many Send calls arrived.
@@ -193,6 +203,7 @@ func (p *faultESP) take(msgs []providers.Message) []providers.SendResult {
 		if !p.dedupe || Fault.took[m.ID] == 0 {
 			Fault.took[m.ID]++
 			Fault.to[m.To.Address]++
+			Fault.unsub[m.To.Address] = m.Headers["List-Unsubscribe"]
 		}
 		out[i] = providers.SendResult{MessageID: m.ID, ProviderMessageID: "fault-" + m.ID.String()}
 	}

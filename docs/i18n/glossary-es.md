@@ -352,7 +352,7 @@ order of the English.
 | monitoring · monitored | supervisión · supervisado | HostRepute; never "monitoreo" or "monitorización" |
 | nameserver | servidor de nombres | |
 | polling (instead of webhooks) | consulta periódica | "consulta la API de eventos cada minuto" |
-| Postmaster reputation: high · medium · low · bad | alta · media · baja · mala | |
+| Postmaster compliance status | estado de cumplimiento | Google Postmaster Tools v2 has no domain or IP reputation |
 | production access (SES) | acceso de producción | the SES sandbox stays "sandbox" |
 | provisioning | aprovisionamiento | SNS topics and configuration sets |
 | pulled in · pushed out · two-way (suppression sync) | recibidas · enviadas · bidireccional | suppressions, from and to the provider |

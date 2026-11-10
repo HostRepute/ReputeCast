@@ -8,12 +8,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/netip"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,6 +27,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -40,6 +43,10 @@ type Service struct {
 	Audit     *audit.Logger
 	PublicURL func(context.Context) string
 	Now       func() time.Time
+	// ProxyWarning reports that requests reach ReputeCast through a proxy it
+	// doesn't trust, so the addresses it sees may be the proxy's
+	// (internal/proxycheck). Nil: no warning.
+	ProxyWarning func(context.Context) bool
 }
 
 func (s *Service) now() time.Time {
@@ -56,7 +63,8 @@ type APIKeyCreator struct {
 	AvatarColor string `json:"avatarColor"`
 }
 
-// APIKeyRejections counts calls refused because the key expired or was revoked.
+// APIKeyRejections counts calls refused because the key expired or was
+// revoked, or came from an address its allowed IPs don't include.
 type APIKeyRejections struct {
 	Calls  int64      `json:"calls" doc:"In the last 7 days"`
 	Since  *time.Time `json:"since,omitempty" doc:"First rejected call"`
@@ -87,6 +95,9 @@ type APIKeyView struct {
 	Rejections *APIKeyRejections `json:"rejections,omitempty"`
 	// Transactional is set for send-only, test-mode and SMTP keys.
 	Transactional *APIKeyTransactional `json:"transactional,omitempty"`
+	// AllowedIPs are the addresses and networks the key may be called from;
+	// empty: any address.
+	AllowedIPs []string `json:"allowedIps" doc:"Addresses and networks the key may be called from (203.0.113.7, 203.0.113.0/24); empty for any address"`
 }
 
 // APIKeyTransactional describes a send-only key: its preset (send_only, or
@@ -121,6 +132,10 @@ type APIKeyList struct {
 	Lists       []access.ScopedList      `json:"lists"`
 	// Endpoint is the API base URL (or the MCP endpoint for agents).
 	Endpoint string `json:"endpoint"`
+	// YourIP and ProxyWarning feed the allowed IPs field: the caller's
+	// address as ReputeCast sees it, and whether that may be a proxy's.
+	YourIP       string `json:"yourIp" doc:"The address of this request as ReputeCast resolved it; empty when unknown"`
+	ProxyWarning bool   `json:"proxyWarning" doc:"Requests come through a proxy that http.trusted_proxies doesn't list, so the addresses keys are called from may be the proxy's"`
 }
 
 // APIKeyLockedPermission is a permission the caller can't put on a key.
@@ -145,6 +160,7 @@ func viewWith(l i18n.Lang, r store.KeysListRow, lists, categories map[uuid.UUID]
 		Scope:     access.ViewIn(l, access.ParseScope(r.Scope), lists, false),
 		CreatedBy: APIKeyCreator{Name: r.CreatedByName, AvatarColor: r.CreatedByColor}, CreatedAt: r.CreatedAt,
 		ExpiresAt: r.ExpiresAt, LastUsedAt: r.LastUsedAt, LastUsedClient: r.LastUsedClient, LastCall: r.LastCall, Status: "active",
+		AllowedIPs: prefixStrings(r.AllowedIps),
 	}
 	if r.CreatedBy != nil {
 		v.CreatedBy.ID = r.CreatedBy.String()
@@ -187,6 +203,64 @@ func nonNil(s []string) []string {
 		return []string{}
 	}
 	return s
+}
+
+// prefixStrings writes networks as people do, a single address without
+// its /32 or /128.
+func prefixStrings(ps []netip.Prefix) []string {
+	out := make([]string, 0, len(ps))
+	for _, p := range ps {
+		if p.IsSingleIP() {
+			out = append(out, p.Addr().String())
+		} else {
+			out = append(out, p.String())
+		}
+	}
+	return out
+}
+
+// allowedIPs reads a key's allowed addresses and networks (at most 50, as
+// the operations' maxItems say): each one parsed (server.ParsePrefix),
+// duplicates dropped, order kept. Every entry that isn't an address or a
+// network gets its own error, so a pasted list shows all its bad lines.
+func allowedIPs(ctx context.Context, in []string) ([]netip.Prefix, error) {
+	out := make([]netip.Prefix, 0, len(in))
+	var bad *api.Problem
+	for i, s := range in {
+		p, ok := server.ParsePrefix(s)
+		switch {
+		case !ok && bad == nil:
+			bad = api.Invalid(fmt.Sprintf("body.allowedIps[%d]", i), say(ctx, "problem.ipInvalid", nil))
+		case !ok:
+			bad.Errors = append(bad.Errors, &huma.ErrorDetail{Location: fmt.Sprintf("body.allowedIps[%d]", i), Message: bad.Detail})
+		case !slices.Contains(out, p):
+			out = append(out, p)
+		}
+	}
+	if bad != nil {
+		return nil, bad
+	}
+	return out, nil
+}
+
+// widens reports whether next lets a key be called from an address old
+// doesn't: any address (an empty list) where old had a list, or a network
+// no network of old covers.
+func widens(old, next []netip.Prefix) bool {
+	if len(old) == 0 {
+		return false
+	}
+	if len(next) == 0 {
+		return true
+	}
+	for _, n := range next {
+		if !slices.ContainsFunc(old, func(o netip.Prefix) bool {
+			return o.Addr().BitLen() == n.Addr().BitLen() && o.Bits() <= n.Bits() && o.Contains(n.Addr())
+		}) {
+			return true
+		}
+	}
+	return false
 }
 
 // categoryNames maps the workspace's transactional categories to their names.
@@ -293,6 +367,10 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	} else {
 		out.Endpoint = s.base(ctx) + api.Version
 	}
+	if ip := audit.RequestFrom(ctx).IP; ip != nil && ip.IsValid() {
+		out.YourIP = ip.Unmap().String()
+	}
+	out.ProxyWarning = s.ProxyWarning != nil && s.ProxyWarning(ctx)
 	return out, nil
 }
 
@@ -359,6 +437,9 @@ type APIKeyCreateInput struct {
 	// Transactional makes a send-only, test-mode or SMTP key; its only
 	// permission is then transactional:send.
 	Transactional *APIKeyTransactionalInput `json:"transactional,omitempty"`
+	// AllowedIPs limits the key to calls from these addresses and networks
+	// (empty = any address).
+	AllowedIPs []string `json:"allowedIps,omitempty" maxItems:"50" maxLength:"64" doc:"Addresses or networks the key may be called from: 203.0.113.7, 203.0.113.0/24, 2001:db8::/48"`
 }
 
 // Send-only key presets.
@@ -415,6 +496,10 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if in.ExpiresAt != nil && !in.ExpiresAt.After(s.now()) {
 		return APIKeyCreated{}, api.Invalid("body.expiresAt", say(ctx, "problem.expiry", nil))
 	}
+	allowed, err := allowedIPs(ctx, in.AllowedIPs)
+	if err != nil {
+		return APIKeyCreated{}, err
+	}
 	var tx0 *transactionalKey
 	if in.Transactional != nil {
 		if kind != KindAPIKey {
@@ -430,13 +515,17 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	var out APIKeyCreated
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
-		out, err = s.insertWith(ctx, store.New(tx), ws, p, kind, strings.TrimSpace(in.Name), strings.TrimSpace(in.Description), stored, scope, in.ExpiresAt, nil, lists, tx0)
+		out, err = s.insertWith(ctx, store.New(tx), ws, p, kind, strings.TrimSpace(in.Name), strings.TrimSpace(in.Description), stored, scope, in.ExpiresAt, nil, allowed, lists, tx0)
 		if err != nil {
 			return err
 		}
+		after := map[string]any{"name": out.Key.Name, "permissions": out.Key.Permissions, "scope": scopeLabel(access.View(scope, lists, false)), "expires_at": in.ExpiresAt, "masked": out.Key.Masked}
+		if len(out.Key.AllowedIPs) > 0 {
+			after["allowed_ips"] = out.Key.AllowedIPs
+		}
 		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{
 			WorkspaceID: &ws.ID, Action: action(kind, "created"), TargetType: kind, TargetID: out.Key.ID, TargetName: out.Key.Name,
-			After:    map[string]any{"name": out.Key.Name, "permissions": out.Key.Permissions, "scope": scopeLabel(access.View(scope, lists, false)), "expires_at": in.ExpiresAt, "masked": out.Key.Masked},
+			After:    after,
 			Metadata: audit.KeepSummary(map[string]any{"permission": string(managePerm(kind))}, keySummary(out.Key, scope, lists)...),
 		})
 	})
@@ -462,7 +551,7 @@ func scopeLabel(v access.ScopeSummary) string {
 }
 
 // keySummary is a new key's audit summary, its parts kept for later
-// readers: "campaigns:view · Weekly Digest only · no expiry".
+// readers: "campaigns:view · Weekly Digest only · no expiry · 2 allowed IPs".
 func keySummary(v APIKeyView, scope authz.Scope, lists map[uuid.UUID]string) []any {
 	parts := []any{strings.Join(v.Permissions, ", "), access.ScopeText(scope, lists, false)}
 	if t := v.Transactional; t != nil {
@@ -478,6 +567,9 @@ func keySummary(v APIKeyView, scope authz.Scope, lists map[uuid.UUID]string) []a
 		parts = append(parts, msgs.M("audit.expires").Keep(i18n.Args{"at": *v.ExpiresAt}))
 	} else {
 		parts = append(parts, msgs.M("audit.noExpiry").Keep(nil))
+	}
+	if n := len(v.AllowedIPs); n > 0 {
+		parts = append(parts, msgs.M("audit.allowedIps").Keep(i18n.Args{"count": n}))
 	}
 	return parts
 }
@@ -523,7 +615,7 @@ func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.
 	return set, nil
 }
 
-func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind, name, desc string, perms []string, scope authz.Scope, expires *time.Time, rotatedFrom *uuid.UUID, lists map[uuid.UUID]string, tk *transactionalKey) (APIKeyCreated, error) {
+func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind, name, desc string, perms []string, scope authz.Scope, expires *time.Time, rotatedFrom *uuid.UUID, allowed []netip.Prefix, lists map[uuid.UUID]string, tk *transactionalKey) (APIKeyCreated, error) {
 	if name == "" {
 		return APIKeyCreated{}, api.Invalid("body.name", say(ctx, "problem.name", nil))
 	}
@@ -534,9 +626,12 @@ func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Wo
 	secret, hash, masked := authn.NewAPIKey(prefix)
 	creator := p.UserID
 	id := uuid.Must(uuid.NewV7())
+	if allowed == nil {
+		allowed = []netip.Prefix{} // the column is NOT NULL: empty is any address
+	}
 	row, err := q.KeysCreate(ctx, store.KeysCreateParams{
 		ID: id, WorkspaceID: ws.ID, Kind: kind, Name: name, Description: desc, Prefix: masked, TokenHash: hash,
-		Permissions: perms, Scope: access.ScopeJSON(scope), CreatedBy: &creator, ExpiresAt: expires, RotatedFrom: rotatedFrom,
+		Permissions: perms, Scope: access.ScopeJSON(scope), CreatedBy: &creator, ExpiresAt: expires, RotatedFrom: rotatedFrom, AllowedIps: allowed,
 	})
 	if err != nil {
 		return APIKeyCreated{}, err
@@ -545,6 +640,7 @@ func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Wo
 	lr := store.KeysListRow{
 		ID: id, WorkspaceID: ws.ID, Kind: kind, Name: name, Description: desc, Prefix: masked, Permissions: perms, Scope: access.ScopeJSON(scope),
 		CreatedBy: &creator, CreatedAt: row.CreatedAt, ExpiresAt: expires, CreatedByName: u.Name, CreatedByColor: u.AvatarColor, Mode: "live", RatePerSecond: 50,
+		AllowedIps: allowed,
 	}
 	if tk != nil {
 		if err := q.KeysSetTransactional(ctx, store.KeysSetTransactionalParams{ID: id, WorkspaceID: ws.ID, Preset: tk.Preset, Mode: tk.Mode, Templates: tk.Templates,
@@ -562,7 +658,8 @@ func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Wo
 }
 
 // Rotate replaces a key (active or expired) with a new secret that has the
-// same name, permissions and scope. The old one stops working at once.
+// same name, permissions, scope and allowed IPs. The old one stops working
+// at once.
 func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, id uuid.UUID) (APIKeyCreated, error) {
 	old, err := s.Q.KeysGet(ctx, store.KeysGetParams{ID: id, WorkspaceID: ws.ID, Kind: kind})
 	if err != nil {
@@ -611,7 +708,7 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if old.Preset != "" {
 			tk = &transactionalKey{Preset: old.Preset, Mode: old.Mode, Templates: old.Templates, Categories: old.Categories, TestAddresses: old.TestAddresses, Rate: int(old.RatePerSecond)}
 		}
-		out, err = s.insertWith(ctx, q, ws, p, kind, old.Name, old.Description, old.Permissions, scope, expires, &old.ID, lists, tk)
+		out, err = s.insertWith(ctx, q, ws, p, kind, old.Name, old.Description, old.Permissions, scope, expires, &old.ID, old.AllowedIps, lists, tk)
 		if err != nil {
 			return err
 		}
@@ -628,6 +725,75 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		})
 	})
 	return out, err
+}
+
+// APIKeyAllowedIPsInput replaces the addresses and networks a key may be
+// called from.
+type APIKeyAllowedIPsInput struct {
+	AllowedIPs []string `json:"allowedIps" maxItems:"50" maxLength:"64" doc:"Addresses or networks: 203.0.113.7, 203.0.113.0/24, 2001:db8::/48. Empty allows any address."`
+}
+
+// SetAllowedIPs replaces a key's allowed IPs. Narrowing them needs only the
+// manage permission; letting the key be called from more addresses (an
+// empty list, or a network the old list doesn't cover) needs what rotating
+// it needs: its permissions and its lists within the caller's own.
+// Integrations' keys are called from their platforms' servers and never
+// get a list; revoked keys keep theirs.
+func (s *Service) SetAllowedIPs(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, id uuid.UUID, in APIKeyAllowedIPsInput) (APIKeyView, error) {
+	old, err := s.Q.KeysGet(ctx, store.KeysGetParams{ID: id, WorkspaceID: ws.ID, Kind: kind})
+	if err != nil {
+		return APIKeyView{}, api.MapError(err, noun(kind))
+	}
+	if k, err := s.Q.GetAPIKey(ctx, store.GetAPIKeyParams{ID: id, WorkspaceID: ws.ID}); err == nil && k.IntegrationID != nil {
+		return APIKeyView{}, api.Err(http.StatusConflict, "managed_by_integration", say(ctx, "problem.integrationKeyIPs", nil))
+	}
+	if old.RevokedAt != nil {
+		return APIKeyView{}, api.Conflict(say(ctx, "problem.revokedKeyIPs", nil))
+	}
+	next, err := allowedIPs(ctx, in.AllowedIPs)
+	if err != nil {
+		return APIKeyView{}, err
+	}
+	if widens(old.AllowedIps, next) {
+		wanted := make([]authz.Permission, 0, len(old.Permissions))
+		for _, k := range old.Permissions {
+			if pk := authz.Permission(k); authz.Valid(pk) {
+				wanted = append(wanted, pk)
+			}
+		}
+		if _, err := s.checkGrant(ctx, ws, p, kind, wanted); err != nil {
+			return APIKeyView{}, err
+		}
+		if !access.ParseScope(old.Scope).Within(p.Scope) {
+			return APIKeyView{}, api.Err(http.StatusForbidden, api.CodeEscalation, say(ctx, "problem.widenScope", nil))
+		}
+	}
+	before, after := prefixStrings(old.AllowedIps), prefixStrings(next)
+	if !slices.Equal(before, after) {
+		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			if _, err := q.KeysSetAllowedIPs(ctx, store.KeysSetAllowedIPsParams{AllowedIps: next, ID: id, WorkspaceID: ws.ID, Kind: kind}); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return api.Conflict(say(ctx, "problem.revokedKeyIPs", nil)) // revoked meanwhile
+				}
+				return err
+			}
+			summary := msgs.M("audit.allowedIpsAny").Keep(nil)
+			if len(after) > 0 {
+				summary = msgs.M("audit.allowedIpsSet").Keep(i18n.Args{"list": strings.Join(after, ", ")})
+			}
+			return s.Audit.LogWith(ctx, q, audit.Event{
+				WorkspaceID: &ws.ID, Action: action(kind, "updated"), TargetType: kind, TargetID: id.String(), TargetName: old.Name,
+				Before:   map[string]any{"allowed_ips": before},
+				After:    map[string]any{"allowed_ips": after},
+				Metadata: audit.KeepText(map[string]any{"permission": string(managePerm(kind))}, "summary", summary),
+			})
+		})
+		if err != nil {
+			return APIKeyView{}, err
+		}
+	}
+	return s.Get(ctx, ws, kind, id)
 }
 
 // Revoke stops a key immediately.
@@ -744,13 +910,19 @@ func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit i
 	return out, nil
 }
 
-// RecordRejection counts a call refused because a key expired or was
-// revoked, so the expired-key card can show what still uses it. The REST
-// middleware and the MCP endpoint call it.
+// RecordRejection counts a call refused because a key expired, was revoked
+// or came from an address its allowed IPs don't include, so the keys screen
+// can show what still uses it. The REST middleware and the MCP endpoint call
+// it. A refused address is kept as its /64 for IPv6 (one host holds many),
+// and a key keeps at most 1,000 addresses a day (KeysRecordRejection).
 func RecordRejection(ctx context.Context, q *store.Queries, keyID uuid.UUID, ip *netip.Addr, userAgent, reason string) {
 	addr := ""
-	if ip != nil {
-		addr = ip.String()
+	if ip != nil && ip.IsValid() {
+		a := ip.Unmap()
+		addr = a.String()
+		if reason == "ip_not_allowed" && a.Is6() {
+			addr = netip.PrefixFrom(a, 64).Masked().String()
+		}
 	}
 	_ = q.KeysRecordRejection(ctx, store.KeysRecordRejectionParams{ApiKeyID: keyID, Ip: addr, Client: ClientLabel(userAgent), Reason: reason})
 }

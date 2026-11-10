@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/deliverability"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -603,7 +604,7 @@ func AuthFactsOf(domain string, auth dnscheck.DomainAuth, orgDMARC *dnscheck.DMA
 	if dmarc.Status != dnscheck.StatusPass && orgDMARC != nil && orgDMARC.Status == dnscheck.StatusPass {
 		dmarc = *orgDMARC
 	}
-	out.DMARCStatus, out.DMARCPolicy, out.DMARCRecord = dmarc.Status, dmarc.Policy, dmarc.Record
+	out.DMARCStatus, out.DMARCPolicy, out.DMARCTestMode, out.DMARCRecord = dmarc.Status, dmarc.Policy, dmarc.TestMode, dmarc.Record
 	out.DMARCDomain = firstNonEmpty(dmarc.PolicyDomain, dmarc.Domain, domain)
 	if dmarc.Status == dnscheck.StatusError {
 		out.DMARCError = dnsTrouble(dmarc.Error)
@@ -939,9 +940,13 @@ func net4(s string) string {
 }
 
 // compliance gathers the one-click unsubscribe link and the complaint rate.
+// The header carries a mailto address only when the workspace includes one
+// (Settings › Senders, off by default).
 func (s *Service) compliance(ws *store.Workspace, f Facts) ComplianceFacts {
-	out := ComplianceFacts{UnsubscribeURL: strings.ReplaceAll(s.URLs.Unsubscribe(ws.Slug, "TOKEN"), "TOKEN", "{token}"),
-		Mailto: firstNonEmpty(f.Campaign.ReplyTo, f.Campaign.SenderEmail)}
+	out := ComplianceFacts{UnsubscribeURL: strings.ReplaceAll(s.URLs.Unsubscribe(ws.Slug, "TOKEN"), "TOKEN", "{token}")}
+	if domains.ListUnsubscribeMailto(ws.SendingDefaults) {
+		out.Mailto = firstNonEmpty(f.Campaign.ReplyTo, f.Campaign.SenderEmail)
+	}
 	out.HTTPS = strings.HasPrefix(out.UnsubscribeURL, "https://") || localURL(out.UnsubscribeURL)
 	var weighted, total float64
 	for _, sh := range f.Route.Shares {

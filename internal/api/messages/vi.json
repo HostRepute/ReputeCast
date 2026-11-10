@@ -15,6 +15,8 @@
   "fixed.twoFactorRequired": "Hệ thống của bạn yêu cầu xác thực hai lớp. Hãy thêm khóa truy cập hoặc ứng dụng xác thực để tiếp tục.",
   "fixed.whoUnavailable": "Hiện chưa xác định được bạn là ai. Hãy thử lại sau giây lát.",
   "keyExpired": "Khóa API này đã hết hạn ngày {date, date}. Hãy xoay vòng khóa trong Cài đặt › Khóa và MCP.",
+  "keyIpNotAllowed": "Không thể dùng khóa API này từ {ip}. Hãy thêm địa chỉ này vào IP được phép của khóa trong Cài đặt › Khóa và MCP.",
+  "unknownAddress": "một địa chỉ không xác định",
   "problem.notForThisKey": "Khóa này thuộc về {integration} và chỉ dùng được cho những việc {integration} được phép làm. Hãy thay đổi những việc {integration} được làm trong Cài đặt › Tích hợp.",
   "problem.integrationOnly": "Chỉ khóa của một tích hợp mới gọi được thao tác này.",
   "problem.wordpressOnly": "Chỉ khóa của một trang WordPress mới gọi được thao tác này.",

@@ -379,7 +379,7 @@ order of the English.
 | monitoring · monitored | surveillance · surveillé | HostRepute |
 | nameserver | serveur de noms | |
 | polling (instead of webhooks) | interrogation périodique | "interroge l’API des événements toutes les minutes" |
-| Postmaster reputation: high · medium · low · bad | élevée · moyenne · faible · mauvaise | agrees with "réputation" |
+| Postmaster compliance status | état de conformité | Google Postmaster Tools v2 has no domain or IP reputation |
 | production access (SES) | accès production | the SES sandbox stays "sandbox" |
 | provisioning | provisionnement | SNS topics and configuration sets |
 | pulled in · pushed out · two-way (suppression sync) | importées · exportées · bidirectionnelle | addresses, so feminine ("Importées" as a column); the sync is "bidirectionnelle" |

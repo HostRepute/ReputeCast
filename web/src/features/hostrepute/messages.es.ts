@@ -90,7 +90,6 @@ export default translate(m, {
   dmarcPolicy: 'DMARC p={policy}',
   dmarcPolicyAligned: 'DMARC p={policy}, {aligned} alineado',
   cleanOn: 'Limpio en {count} listas de bloqueo',
-  postmasterReputation: 'Reputación {level, select, high {alta} medium {media} low {baja} bad {mala} other {{raw}}} en Postmaster',
   sectionLine: 'Supervisión de la reputación que alimenta la revisión previa y Entregabilidad',
   connectedTo: 'Conectado al equipo “{team}” de HostRepute',
   metaConnected: 'conectado el {date}',

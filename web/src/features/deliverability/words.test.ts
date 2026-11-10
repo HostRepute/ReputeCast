@@ -9,8 +9,8 @@ describe('deliverability words', () => {
     expect(dayMonthOf('2026-10-01T00:00:00Z')).toBe('1 Oct')
   })
 
-  it('capitalizes reputations and filter results', () => {
-    expect(cap('high')).toBe('High')
+  it('capitalizes filter results', () => {
+    expect(cap('green')).toBe('Green')
     expect(cap('')).toBe('—')
     expect(cap(undefined)).toBe('—')
   })

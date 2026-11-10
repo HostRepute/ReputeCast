@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
+import { ButtonAnchor } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import { count, decimal, pct, trimPct } from '@/lib/format'
+import { HOSTREPUTE } from '@/lib/hostrepute'
 import { KV } from './AssetCards'
 import { m } from './messages'
-import { dayMonthOf, filterWord, reputationWord } from './words'
+import { dayMonthOf, filterWord } from './words'
 
 function SourceBadge({ via, stale }: { via: string; stale: boolean }) {
   const t = useT()
@@ -101,14 +103,6 @@ export function PostmasterCard({ p }: { p: Schemas['DeliverabilityPostmaster'] }
   return (
     <PanelCard title={`Google Postmaster Tools · ${p.domain}`} id="h-postmaster" badge={<SourceBadge via={p.via} stale={p.stale} />}>
       <div className={pair}>
-        <KV label={t(m.domainReputation)} labelClass="k">
-          {reputationWord(p.domainReputation)}
-        </KV>
-        {!direct ? (
-          <KV label={p.ipReputationPool ? t(m.ipReputationPool, { pool: p.ipReputationPool }) : t(m.ipReputation)} labelClass="k">
-            {reputationWord(p.ipReputation)}
-          </KV>
-        ) : null}
         <KV label={t(m.spamRate30d)} labelClass="k">
           {trimPct(p.spamRate)}
         </KV>
@@ -125,6 +119,14 @@ export function PostmasterCard({ p }: { p: Schemas['DeliverabilityPostmaster'] }
         ) : null}
       </div>
       {direct ? <span className="k">{t(m.directNote)}</span> : <SpamRateChart p={p} />}
+      {p.via === 'hostrepute' ? (
+        <div className="flex">
+          <ButtonAnchor size="sm" href={HOSTREPUTE} icon="external">
+            {t(m.postmasterInHostRepute)}
+            <span className="vh"> {t(m.newTab)}</span>
+          </ButtonAnchor>
+        </div>
+      ) : null}
     </PanelCard>
   )
 }

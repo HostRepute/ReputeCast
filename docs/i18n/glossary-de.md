@@ -388,7 +388,7 @@ order of the English.
 | monitoring · monitored | Überwachung · überwacht | HostRepute |
 | nameserver | Nameserver | |
 | polling (instead of webhooks) | Abfrage | "fragt die Event-API jede Minute ab" |
-| Postmaster reputation: high · medium · low · bad | hoch · mittel · niedrig · schlecht | as Google Postmaster Tools' German |
+| Postmaster compliance status | Compliance-Status | Google Postmaster Tools v2 has no domain or IP reputation |
 | production access (SES) | Produktionszugriff | the SES sandbox stays "Sandbox" |
 | provisioning | Einrichtung | SNS topics and configuration sets |
 | pulled in · pushed out · two-way (suppression sync) | abgerufen · übertragen · beidseitig | |

@@ -15,6 +15,10 @@
   "problem.testAddress": "“{address}” isn't an address or a pattern such as qa+*@acme.io.",
   "problem.testPattern": "“{address}” isn't a valid pattern.",
   "problem.testLive": "Allowed test addresses belong to test-mode keys; live keys deliver to everyone.",
+  "problem.ipInvalid": { "message": "Enter an address or a network, such as 203.0.113.0/24 or 2001:db8::/48.", "note": "an API key's allowed IPs: one line that isn't an IP address or a CIDR network" },
+  "problem.integrationKeyIPs": "This key belongs to an integration, which calls from its platform's servers, so it can't be limited to allowed IPs.",
+  "problem.revokedKeyIPs": "This key is revoked, so its allowed IPs can't change.",
+  "problem.widenScope": "This key reaches lists outside your scope, so you can't let it be called from more addresses.",
 
   "label.formerMember": { "message": "Former member", "note": "who created a key, when that member has left the workspace" },
   "label.deletedCategory": "deleted category",
@@ -27,5 +31,8 @@
   "audit.smtp": "SMTP credential",
   "audit.expires": "expires {at, date}",
   "audit.noExpiry": "no expiry",
-  "audit.rotated": { "message": "new secret {masked} · old {old} revoked", "note": "masked, old: keys shown masked, such as rc_live_8f2c…a91d" }
+  "audit.rotated": { "message": "new secret {masked} · old {old} revoked", "note": "masked, old: keys shown masked, such as rc_live_8f2c…a91d" },
+  "audit.allowedIps": { "message": "{count, plural, one {# allowed IP} other {# allowed IPs}}", "note": "a new key's audit summary part: the addresses or networks it may be called from" },
+  "audit.allowedIpsSet": { "message": "allowed IPs {list}", "note": "list: addresses and networks such as 203.0.113.7, 198.51.100.0/24" },
+  "audit.allowedIpsAny": { "message": "allowed from any address", "note": "a key's allowed IPs were emptied" }
 }

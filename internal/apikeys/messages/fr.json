@@ -27,5 +27,12 @@
   "audit.smtp": "identifiants SMTP",
   "audit.expires": "expire le {at, date}",
   "audit.noExpiry": "sans expiration",
-  "audit.rotated": "nouveau secret {masked} · ancien {old} révoqué"
+  "audit.rotated": "nouveau secret {masked} · ancien {old} révoqué",
+  "problem.ipInvalid": "Saisissez une adresse ou un réseau, par exemple 203.0.113.0/24 ou 2001:db8::/48.",
+  "problem.integrationKeyIPs": "Cette clé appartient à une intégration, qui appelle depuis les serveurs de sa plateforme\u00A0: elle ne peut donc pas être limitée à des IP autorisées.",
+  "problem.revokedKeyIPs": "Cette clé est révoquée\u00A0: ses IP autorisées ne peuvent donc plus changer.",
+  "problem.widenScope": "Cette clé accède à des listes hors de votre portée\u00A0: vous ne pouvez donc pas l’autoriser depuis d’autres adresses.",
+  "audit.allowedIps": "{count, plural, one {# IP autorisée} other {# IP autorisées}}",
+  "audit.allowedIpsSet": "IP autorisées {list}",
+  "audit.allowedIpsAny": "autorisée depuis n’importe quelle adresse"
 }

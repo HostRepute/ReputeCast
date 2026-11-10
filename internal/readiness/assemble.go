@@ -282,7 +282,7 @@ func (b *builder) reputation() {
 	}
 	deliverability := link(tx("fix.openDeliverability", nil), b.href("/deliverability"))
 	if domain != "" {
-		b.add(b.domainReputation(domain, via, checked, unknownNote, deliverability))
+		b.add(b.domainBlocklists(domain, via, checked, unknownNote, deliverability))
 	}
 	// Dedicated IPs of the providers carrying the send.
 	shared := []string{}
@@ -368,12 +368,12 @@ type domainHit struct {
 	listings []ListingFacts
 }
 
-// domainReputation is the domain blocklists check (SR-2): the sending
+// domainBlocklists is the domain blocklists check (SR-2): the sending
 // domain, its parent domain, the return-path domains and the tracking
 // domain, each on Deliverability's lists or, for the domains it doesn't
 // watch, looked up live on the URI blocklists. A listing of any of them
 // counts: acme.io listed is news.acme.io's problem too.
-func (b *builder) domainReputation(domain, via string, checked any, unknownNote Text, deliverability fix) check {
+func (b *builder) domainBlocklists(domain, via string, checked any, unknownNote Text, deliverability fix) check {
 	r := b.f.Reputation
 	key, label := "reputation.domain_blocklists", tx("label.domainBlocklists", nil)
 	assets := r.Domains
@@ -836,6 +836,14 @@ func (b *builder) authentication() {
 		if status == Warn {
 			c.Ack = tx("auth.dmarcLowAck", nil)
 			c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
+		}
+		if a.DMARCTestMode {
+			// t=y: receivers apply the policy one level lower (RFC 9989).
+			applied := "none"
+			if policy == "reject" {
+				applied = "quarantine"
+			}
+			c.Technical = append(c.Technical, techRow{Label: RawText("t=y"), Value: tx("auth.dmarcTestMode", A{"policy": policy, "applied": applied})})
 		}
 		b.add(c)
 	case a.DMARCStatus == "missing" || a.DMARCStatus == "":
@@ -1683,6 +1691,16 @@ func (b *builder) compliance() {
 			Detail: tx("compliance.oneClickHttpsDetail", A{"url": cf.UnsubscribeURL}), Raw: unsubscribeHeaders(cf),
 			Label: tx("label.oneClick", nil), Ack: tx("compliance.oneClickHttpsAck", nil)})
 	}
+	if cf.Mailto != "" {
+		// The workspace includes a mailto: address in List-Unsubscribe
+		// (Settings › Senders). ReputeCast receives no mail, so someone has
+		// to remove the readers who unsubscribe by email.
+		b.add(check{Key: "compliance.unsubscribe_mailto", Group: GroupCompliance, Status: Warn, Label: RawText("mailto"),
+			Title:  tx("compliance.mailtoTitle", A{"mailto": cf.Mailto}),
+			Detail: tx("compliance.mailtoDetail", nil),
+			Ack:    tx("compliance.mailtoAck", A{"mailto": cf.Mailto}),
+			Fixes:  []fix{link(tx("fix.openSenders", nil), b.href("/settings/senders"))}})
+	}
 	ct := b.f.Content
 	footerBlocked := false
 	if ct.Checked {
@@ -1714,13 +1732,31 @@ func (b *builder) compliance() {
 	c := check{Key: "compliance.bulk_sender", Group: GroupCompliance, Status: Pass, Title: tx("compliance.bulk", nil), Label: tx("label.bulkRules", nil),
 		Short: tx("compliance.bulkShort", nil)}
 	parts := []Text{}
-	// rules are ReputeCast's checks of Google's and Yahoo's rules, as the
-	// Postmaster status lists them beside Google's verdict.
+	// rules are ReputeCast's checks of Google's, Yahoo's and Microsoft's
+	// rules, as the Postmaster status lists them beside Google's verdict.
 	rules := []Text{}
-	if b.f.Auth.DMARCStatus == "pass" {
+	a := b.f.Auth
+	if spfDKIMPass(a) {
+		parts = append(parts, tx("compliance.partSpfDkim", nil))
+		rules = append(rules, tx("compliance.partSpfDkim", nil))
+	}
+	// Microsoft (Outlook.com, from 5 May 2025) refuses mail with 550 5.7.515
+	// from a domain sending it 5,000 messages a day or more without SPF,
+	// DKIM and an aligned DMARC pass. One send to 5,000 consumer Outlook
+	// addresses is at least that day's volume. Only the DMARC states the
+	// auth.dmarc row treats as definite failures count: no record or an
+	// invalid one, never a DNS error (Unknown, rechecked at send time).
+	dmarcFails := a.Checked && firstNonEmpty(a.Domain, b.f.Campaign.SenderDomain) != "" && a.DMARCStatus != "pass" && a.DMARCStatus != "error"
+	msBlock := b.f.Audience.OutlookConsumer >= 5000 && dmarcFails
+	switch {
+	case a.DMARCStatus == "pass":
 		parts = append(parts, tx("compliance.partDmarc", nil))
 		rules = append(rules, tx("compliance.partDmarc", nil))
-	} else {
+	case msBlock:
+		c.Status = Block
+		c.Title = tx("compliance.microsoftDmarc", A{"count": b.f.Audience.OutlookConsumer})
+		c.Fixes = []fix{link(tx("fix.openSenders", nil), b.href("/settings/senders"))}
+	default:
 		c.Status = Warn
 		c.Title = tx("compliance.bulkDmarc", nil)
 		c.Ack = tx("compliance.bulkDmarcAck", nil)
@@ -1779,6 +1815,10 @@ func (b *builder) compliance() {
 	parts = append(parts, tx("compliance.partUnsubscribes", A{"days": 2}))
 	c.Detail = joined(" · ", parts)
 	b.postmasterStatus(&c, rules, parts)
+	if msBlock {
+		// Composed last: postmasterStatus writes the detail.
+		c.Detail = sentences(tx("compliance.microsoftDmarcDetail", nil), c.Detail)
+	}
 	if footerBlocked && c.Status == Pass {
 		// The rules also want a visible unsubscribe link and address in the
 		// body: the footer block says they aren't met, and its fix meets them.
@@ -1787,12 +1827,29 @@ func (b *builder) compliance() {
 	b.add(c)
 }
 
+// spfDKIMPass reports that every SPF and every DKIM record of the route's
+// providers is verified: none fails, none is unknown.
+func spfDKIMPass(a AuthFacts) bool {
+	if len(a.SPF) == 0 || len(a.DKIM) == 0 {
+		return false
+	}
+	for _, list := range [2][]ProviderAuthFacts{a.SPF, a.DKIM} {
+		for _, p := range list {
+			if !p.OK || p.Unknown {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // postmasterStatus is Gmail Postmaster's compliance status on the bulk
 // sender check (SR-12). With Postmaster data for the domain, the check is
 // Google's verdict on its latest day, Compliant or Needs work (naming what
 // Google measured short), beside ReputeCast's checks of the same rules,
-// which Yahoo has no report for. Otherwise ReputeCast's checks stand alone
-// and say Postmaster isn't connected, or has no data for the domain yet.
+// which Yahoo and Microsoft have no report for. Otherwise ReputeCast's
+// checks stand alone and say Postmaster isn't connected, or has no data for
+// the domain yet.
 func (b *builder) postmasterStatus(c *check, rules, parts []Text) {
 	cf := b.f.Compliance
 	g := cf.Gmail

@@ -567,7 +567,7 @@ func (q *Queries) ListDeliverabilityIncidents(ctx context.Context, arg ListDeliv
 }
 
 const listDeliverabilityPostmasterDays = `-- name: ListDeliverabilityPostmasterDays :many
-SELECT workspace_id, domain, day, spam_rate, domain_reputation, ip_reputation, spf_rate, dkim_rate, dmarc_rate, tls_rate, delivery_errors, via, fbl_flagged FROM postmaster_daily
+SELECT workspace_id, domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate, tls_rate, delivery_errors, via, fbl_flagged FROM postmaster_daily
 WHERE workspace_id = $1 AND day >= $2::date
 ORDER BY domain, day
 `
@@ -591,8 +591,6 @@ func (q *Queries) ListDeliverabilityPostmasterDays(ctx context.Context, arg List
 			&i.Domain,
 			&i.Day,
 			&i.SpamRate,
-			&i.DomainReputation,
-			&i.IpReputation,
 			&i.SpfRate,
 			&i.DkimRate,
 			&i.DmarcRate,

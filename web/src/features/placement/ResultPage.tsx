@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/Toast'
 import { standaloneLanguageName, T, useI18n, useT } from '@/i18n'
 import { andList, clock, shortDate, weekdayDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
+import { HOSTREPUTE } from '@/lib/hostrepute'
 import { useWorkspace } from '@/lib/session'
 import { AuthMarks, CopyDetailPanel, Matrix } from './Matrix'
 import { m } from './messages'
@@ -29,8 +30,6 @@ import {
   type ProviderResult,
   type TestDetail,
 } from './shared'
-
-const HOSTREPUTE = 'https://app.hostrepute.com'
 
 /** A placement test's result: the providers, the matrix, a copy's detail and the guidance. */
 export function ResultPage({ testId, copy }: { testId: string; copy?: string }) {

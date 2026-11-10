@@ -11,8 +11,8 @@ import (
 
 // SR-12: with Gmail Postmaster data for the domain, the bulk-sender check
 // is Google's compliance status on its latest day, beside ReputeCast's
-// checks of the same rules for Yahoo; without it, ReputeCast's checks
-// stand alone and say so.
+// checks of the same rules for Yahoo and Microsoft; without it,
+// ReputeCast's checks stand alone and say so.
 
 func postmasterDay(f readiness.Facts, daysAgo int) time.Time {
 	d := f.Now.In(f.Location).AddDate(0, 0, -daysAgo)
@@ -31,12 +31,13 @@ func TestPostmasterCompliant(t *testing.T) {
 	res := stored(t, readiness.Assemble(withPostmaster(digest(), 1, 100, 100)))
 	c := byKey(res)["compliance.bulk_sender"]
 	if c.Status != readiness.Pass || c.Title != "Gmail Postmaster: Compliant (yesterday)" ||
-		c.Detail != "Google reports compliance a day late. Yahoo has no such report, so ReputeCast checks the same rules itself: DMARC aligned, one-click unsubscribe, complaint rate 0.04% under the 0.3% limit." {
+		c.Detail != "Google reports compliance a day late. Yahoo and Microsoft have no such report, so ReputeCast checks the same rules itself: SPF and DKIM pass, DMARC aligned, one-click unsubscribe, complaint rate 0.04% under the 0.3% limit." {
 		t.Fatalf("compliant: %q · %q", c.Title, c.Detail)
 	}
 	vi := res.In(i18n.For(i18n.Vietnamese))
 	for _, ch := range vi.Checks {
-		if ch.Key == "compliance.bulk_sender" && (ch.Title != "Gmail Postmaster: Tuân thủ (hôm qua)" || !strings.Contains(ch.Detail, "tỷ lệ khiếu nại 0,04% dưới giới hạn 0,3%")) {
+		if ch.Key == "compliance.bulk_sender" && (ch.Title != "Gmail Postmaster: Tuân thủ (hôm qua)" || !strings.Contains(ch.Detail, "Yahoo và Microsoft không có báo cáo như vậy") ||
+			!strings.Contains(ch.Detail, "SPF và DKIM đạt, DMARC đã căn chỉnh") || !strings.Contains(ch.Detail, "tỷ lệ khiếu nại 0,04% dưới giới hạn 0,3%")) {
 			t.Errorf("in Vietnamese: %q · %q", ch.Title, ch.Detail)
 		}
 	}

@@ -743,5 +743,5 @@ export default translate(m, {
   memberNoManage: 'Elles cessent de fonctionner jusqu’à ce qu’une personne autorisée à gérer les intégrations les reprenne ou les déconnecte dans Paramètres › Intégrations.',
   memberError: 'Impossible de transférer {name}',
   hrAdds: 'Apporte',
-  hrAddsValue: 'Google Postmaster Tools\u00A0: réputation du domaine, taux de spam et boucle de rétroaction · Microsoft SNDS\u00A0: réputation de l’IP pour Outlook.com',
+  hrAddsValue: 'Google Postmaster Tools\u00A0: état de conformité, taux de spam et boucle de rétroaction · Microsoft SNDS\u00A0: réputation de l’IP pour Outlook.com',
 })
