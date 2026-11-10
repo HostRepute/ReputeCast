@@ -1,6 +1,6 @@
 # ReputeCast — Tech stack
 
-Last verified: 2026-10-13 against go.dev, proxy.golang.org, the npm registry, Docker Hub and the GitHub releases of each project. Versions updated 2026-10-31 to match go.mod and the package.json files after Dependabot's updates (#16, #17).
+Last verified: 2026-10-13 against go.dev, proxy.golang.org, the npm registry, Docker Hub and the GitHub releases of each project. Versions updated 2026-11-10 to match go.mod and the package.json files after Dependabot's updates (#52, #36).
 
 Versions are minimums to start from. Upgrade within the same major version freely. Changing a major version needs a note in the PR.
 
@@ -21,10 +21,10 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | Purpose | Module | Version |
 |---|---|---|
 | Router | github.com/go-chi/chi/v5 | v5.5.0 |
-| API + OpenAPI 3.1 | github.com/danielgtaylor/huma/v2 (adapter `humachi`) | v2.39.1 |
+| API + OpenAPI 3.1 | github.com/danielgtaylor/huma/v2 (adapter `humachi`) | v2.40.0 (since v2.40 a raw `RawBody []byte` upload gets a 5 s read deadline unless it sets one; `api.Register` gives it the server's read timeout) |
 | Rate limiting (HTTP) | github.com/go-chi/httprate | v0.16.1 |
 | Rate limiting (per provider) | golang.org/x/time/rate | v0.16.0 |
-| Postgres driver | github.com/jackc/pgx/v5 | v5.11.0 |
+| Postgres driver | github.com/jackc/pgx/v5 | v5.12.0 |
 | Query codegen | sqlc (CLI) | v1.31.1 |
 | Migrations | github.com/pressly/goose/v3 | v3.29.0 |
 | Job queue + scheduler | github.com/riverqueue/river + riverdriver/riverpgxv5 | v0.49.0 |
@@ -32,14 +32,14 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | UUID (v7 primary keys) | github.com/google/uuid (`uuid.NewV7`) | v1.6.0 |
 | Templates | github.com/osteele/liquid | v1.9.2 |
 | Server-side MJML (API/automation sends only) | github.com/preslavrachev/gomjml | v0.13.0 (targets MJML 4.15.3) |
-| AWS SES | github.com/aws/aws-sdk-go-v2 + service/sesv2 | v1.47.3 / v1.79.2 |
-| AWS SES events and setup: the SNS topic SES publishes to; the SQS queue ReputeCast long-polls when nothing may reach it from the internet (review PR-4); STS for the account a key belongs to and for assuming a role | github.com/aws/aws-sdk-go-v2/service/sns + service/sqs + service/sts | v1.47.5 / v1.52.4 / v1.51.4 |
+| AWS SES | github.com/aws/aws-sdk-go-v2 + service/sesv2 | v1.47.6 / v1.79.6 |
+| AWS SES events and setup: the SNS topic SES publishes to; the SQS queue ReputeCast long-polls when nothing may reach it from the internet (review PR-4); STS for the account a key belongs to and for assuming a role | github.com/aws/aws-sdk-go-v2/service/sns + service/sqs + service/sts | v1.47.8 / v1.52.9 / v1.51.7 |
 | SMTP | github.com/wneessen/go-mail | v0.8.1 |
 | Bounce mailbox (IMAP) | github.com/emersion/go-imap/v2 | v2.0.0-beta.8 (beta; isolated in one package) |
 | DNS checks | github.com/miekg/dns | v1.1.73 (behind `internal/dnscheck`; see notes) |
 | DKIM/DMARC parsing | github.com/emersion/go-msgauth | v0.7.0 |
-| SMTP relay for transactional email (server, AUTH, MIME) | github.com/emersion/go-smtp + go-sasl + go-message | v0.25.0 / v0.0.0-20241020182733-b788ff22d5a6 (no tagged release) / v0.18.2 |
-| SMS through AWS End User Messaging | github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 | v1.42.1 |
+| SMTP relay for transactional email (server, AUTH, MIME) | github.com/emersion/go-smtp + go-sasl + go-message | v0.25.1 / v0.0.0-20241020182733-b788ff22d5a6 (no tagged release) / v0.18.2 |
+| SMS through AWS End User Messaging | github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 | v1.42.5 |
 | Phone numbers (E.164, country, type) | github.com/nyaruka/phonenumbers | v1.8.1 |
 | App languages: language names, plural rules, collation, currencies, Unicode normalization | golang.org/x/text | v0.43.0 |
 | Password hashing | golang.org/x/crypto/argon2 (argon2id) | v0.58.0 |
@@ -75,11 +75,11 @@ Dev tools:
 | Language | typescript | **6.0.3** (not 7; see notes) |
 | Build | vite + @vitejs/plugin-react | 8.3.5 / 6.1.2 |
 | Routing | @tanstack/react-router + @tanstack/router-plugin | 1.170.x / 1.168.x |
-| Server state | @tanstack/react-query | 5.104.5 |
+| Server state | @tanstack/react-query | 5.105.0 |
 | Tables | @tanstack/react-table | 9.3.1 (v9; shadcn data-table uses v9) |
 | Styling | tailwindcss + @tailwindcss/vite | 4.3.3 |
 | Components | shadcn (CLI; generated components live in our repo) | 4.21.4 |
-| Forms | react-hook-form + zod | 7.90.0 / 4.6.7 |
+| Forms | react-hook-form + zod | 7.91.0 / 4.6.7 |
 | Charts | recharts | 3.10.1 |
 | Code editors (SQL, Liquid, HTML) | @codemirror/view, @codemirror/lang-sql, @codemirror/lang-liquid, @codemirror/lang-html | 6.43.x / 6.10.0 / 6.3.3 / 6.4.12 |
 | Email composer | grapesjs + grapesjs-mjml (own thin React wrapper, not @grapesjs/react) | 0.23.8 / 1.0.8 (bundles mjml-browser ^4.18) |
