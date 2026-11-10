@@ -79,6 +79,12 @@ func Trackable(href string) bool {
 // from 0 in document order, and returns the links. src is the email as the
 // engine numbers it: blocks already expanded (liquid.ExpandBlocks).
 func Rewrite(src string, to func(Link) string) (string, []Link) {
+	return Edit(src, func(l Link) (string, bool) { return to(l), true })
+}
+
+// Edit is Rewrite where to may keep a link as written (false): its anchor
+// is left byte for byte, and it is numbered and returned all the same.
+func Edit(src string, to func(Link) (string, bool)) (string, []Link) {
 	links := []Link{}
 	out := anchorRe.ReplaceAllStringFunc(src, func(a string) string {
 		attrs, inner, start, end, href, ok := parse(a)
@@ -87,7 +93,11 @@ func Rewrite(src string, to func(Link) string) (string, []Link) {
 		}
 		l := Link{Position: len(links), URL: href, Label: label(attrs, inner)}
 		links = append(links, l)
-		return "<a" + attrs[:start] + `"` + to(l) + `"` + attrs[end:] + ">" + inner + "</a>"
+		next, change := to(l)
+		if !change {
+			return a
+		}
+		return "<a" + attrs[:start] + `"` + next + `"` + attrs[end:] + ">" + inner + "</a>"
 	})
 	return out, links
 }

@@ -19270,6 +19270,10 @@
         "properties": {
           "minify": {
             "type": "boolean"
+          },
+          "utm": {
+            "description": "Add UTM tags to the campaign's links; omit to follow the workspace's setting",
+            "type": "boolean"
           }
         },
         "required": [
@@ -69361,6 +69365,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "settings": {
+            "$ref": "#/components/schemas/ComposerContentSettings"
+          },
           "startedAt": {
             "format": "date-time",
             "type": "string"
@@ -69389,6 +69396,12 @@
           "updatedBy": {
             "type": "string"
           },
+          "utm": {
+            "$ref": "#/components/schemas/ReviewUTM"
+          },
+          "utmDefault": {
+            "type": "boolean"
+          },
           "version": {
             "format": "int64",
             "type": "integer"
@@ -69406,7 +69419,9 @@
           "updatedAt",
           "updatedBy",
           "audienceLabel",
-          "editable"
+          "editable",
+          "settings",
+          "utmDefault"
         ],
         "type": "object"
       },
@@ -69776,6 +69791,26 @@
         "required": [
           "needed",
           "reasons"
+        ],
+        "type": "object"
+      },
+      "ReviewUTM": {
+        "additionalProperties": false,
+        "properties": {
+          "campaign": {
+            "type": "string"
+          },
+          "medium": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "medium",
+          "campaign"
         ],
         "type": "object"
       },
@@ -74619,6 +74654,9 @@
           },
           "transactionalSenderId": {
             "type": "string"
+          },
+          "utmLinks": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -74632,7 +74670,8 @@
           "trackingDomain",
           "trackingOptions",
           "replyOptions",
-          "listUnsubscribeMailto"
+          "listUnsubscribeMailto",
+          "utmLinks"
         ],
         "type": "object"
       },
@@ -74668,6 +74707,9 @@
           "transactionalSenderId": {
             "maxLength": 36,
             "type": "string"
+          },
+          "utmLinks": {
+            "type": "boolean"
           }
         },
         "required": [

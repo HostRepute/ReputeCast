@@ -16,6 +16,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/cadence"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -149,6 +150,18 @@ type sendContent struct {
 	// List-Unsubscribe" at send start, so a change mid-send never splits
 	// one send (sends started before the setting existed decode off).
 	ListUnsubscribeMailto bool `json:"list_unsubscribe_mailto,omitempty"`
+	// UTM is what "Add UTM tags to links" (the campaign's choice, else the
+	// workspace's) added at send start: every Prepare of the send tags
+	// with it, so a change mid-send never splits one send (nil = untagged,
+	// and sends started before the setting existed decode untagged).
+	UTM *clicktoken.UTM `json:"utm,omitempty"`
+}
+
+// tracking is what every Prepare of the send tracks and tags.
+func (c sendContent) tracking() Tracking {
+	t := c.Tracking
+	t.UTM = c.UTM
+	return t
 }
 
 // abTest is campaigns.ab_test.
@@ -833,6 +846,12 @@ func (e *Engine) snapshotContent(cc store.SendingCampaignContextRow, ab *abTest)
 	c := sendContent{Subject: cc.Subject, Preheader: cc.Preheader, HTML: media.Absolutize(cc.Html, base), Text: cc.PlainText,
 		FromName: cc.SenderName, FromEmail: cc.SenderEmail, ReplyTo: firstNonEmpty(cc.ReplyTo, cc.SenderReplyTo), Tracking: tr, Links: map[string]int{},
 		ListUnsubscribeMailto: cc.ListUnsubscribeMailto}
+	// The campaign's own "Add UTM tags" ("true" or "false"), else the
+	// workspace's: campaigns.ComposerContentSettings.UTMOn's rule.
+	if cc.UtmOverride == "true" || (cc.UtmOverride == "" && cc.UtmLinks) {
+		u := clicktoken.ForEmail(cc.WorkspaceSlug, cc.Name, "campaign")
+		c.UTM = &u
+	}
 	if strings.TrimSpace(c.HTML) == "" && strings.TrimSpace(c.Text) == "" {
 		return c, errors.New("the email has no content")
 	}
@@ -852,7 +871,7 @@ func (e *Engine) snapshotContent(cc store.SendingCampaignContextRow, ab *abTest)
 func (e *Engine) indexLinks(c sendContent) ([]TrackedLink, error) {
 	out := []TrackedLink{}
 	for _, v := range variantKeys(c) {
-		t, err := Prepare(c.forVariant(v), c.Tracking)
+		t, err := Prepare(c.forVariant(v), c.tracking())
 		if err != nil {
 			return nil, err
 		}

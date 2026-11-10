@@ -3,10 +3,12 @@ package engine
 import (
 	"errors"
 	"fmt"
+	stdhtml "html"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/linkrule"
 	"github.com/hostrepute/reputecast/internal/liquid"
@@ -57,6 +59,12 @@ func (t *Template) Source() string { return t.source }
 type Tracking struct {
 	Opens  bool `json:"opens"`
 	Clicks bool `json:"clicks"`
+	// UTM, when set, is added to the email's tracked web links before
+	// anything else (clicktoken.AddUTM), click tracking on or off: the
+	// plain variant, the text part and the addresses the click redirect
+	// goes to all carry it. It is decided per send, never stored with the
+	// campaign's tracking options.
+	UTM *clicktoken.UTM `json:"-"`
 }
 
 // Variables the tracked HTML expects for each recipient.
@@ -87,6 +95,9 @@ func PrepareCut(c Content, t Tracking, cut func(string) string) (*Template, erro
 	// Blocks that render per reader (Grow's) become Liquid first, so their
 	// links are indexed and tracked like the email's own.
 	c.HTML = liquid.ExpandBlocks(c.HTML)
+	if t.UTM != nil {
+		c.HTML, c.Text = addUTM(c.HTML, c.Text, *t.UTM)
+	}
 	for _, src := range []string{c.Subject, c.HTML, c.Text} {
 		if probs := liquid.Validate(src); len(probs) > 0 {
 			return nil, fmt.Errorf("%w: %s", ErrRender, probs[0].Message)
@@ -162,6 +173,64 @@ func rewriteLinks(src string) (string, []TrackedLink) {
 		links = append(links, TrackedLink{Position: l.Position, URL: l.URL, Label: l.Label})
 	}
 	return out, links
+}
+
+// addUTM tags the email's tracked web links (linkrule's, the links clicks
+// are counted on) with u: in the HTML, in one pass, and where the plain
+// text spells the same addresses, in one pass over the text. A link that
+// AddUTM leaves alone (personalized, or tagged already) stays as written.
+func addUTM(src, text string, u clicktoken.UTM) (string, string) {
+	tagged := map[string]string{}
+	src, _ = linkrule.Edit(src, func(l linkrule.Link) (string, bool) {
+		next := clicktoken.AddUTM(l.URL, u)
+		if next == l.URL {
+			return "", false
+		}
+		tagged[l.URL] = next
+		return stdhtml.EscapeString(next), true
+	})
+	if len(tagged) == 0 || strings.TrimSpace(text) == "" {
+		return src, text
+	}
+	return src, tagText(text, tagged)
+}
+
+// tagText replaces each web address of a plain text that is one of tagged's
+// keys, as a whole: an address ends at a space or one of <>"', and may
+// lose the punctuation after it ("." or ")" ending a sentence), so a link
+// that is the start of a longer address (acme.io and acme.io/docs) never
+// tags the other's beginning. One pass over the text.
+func tagText(text string, tagged map[string]string) string {
+	var b strings.Builder
+	last, changed := 0, false
+	for i := 0; i < len(text); {
+		j := strings.Index(text[i:], "http")
+		if j < 0 {
+			break
+		}
+		start := i + j
+		end := start
+		for end < len(text) && !strings.ContainsRune(" \t\r\n<>\"'", rune(text[end])) {
+			end++
+		}
+		addr := text[start:end]
+		next, ok := tagged[addr]
+		if !ok {
+			addr = strings.TrimRight(addr, ".,;:!?)]}")
+			next, ok = tagged[addr]
+		}
+		if ok {
+			b.WriteString(text[last:start])
+			b.WriteString(next)
+			last, changed = start+len(addr), true
+		}
+		i = max(end, start+len("http"))
+	}
+	if !changed {
+		return text
+	}
+	b.WriteString(text[last:])
+	return b.String()
 }
 
 // pixel is the open-tracking image: 1×1, no alt text to announce, block so

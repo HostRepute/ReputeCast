@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -73,6 +74,66 @@ func TestPrepareWithoutClickTracking(t *testing.T) {
 	}
 	if len(tpl.Links) != 0 {
 		t.Fatalf("links tracked with click tracking off: %+v", tpl.Links)
+	}
+}
+
+// "Add UTM tags to links" (G-13): the tracked links (and so campaign_links),
+// the plain variant and the text part carry the same tagged address; the
+// unsubscribe link, mailto:, anchors and personalized links stay as written.
+func TestPrepareAddsUTM(t *testing.T) {
+	u := clicktoken.UTM{Source: "acme-newsletter", Medium: "email", Campaign: "weekly-digest-142"}
+	const tags = "utm_source=acme-newsletter&utm_medium=email&utm_campaign=weekly-digest-142"
+	blog, docs := "https://acme.io/blog?"+tags, "https://docs.acme.io/flags?utm=x&y=1&"+tags
+	text := "Read the blog: https://acme.io/blog.\nDocs (https://docs.acme.io/flags?utm=x&y=1)\nOlder posts: https://acme.io/blog/archive\nUnsubscribe: {{ unsubscribe_url }}"
+	tpl, err := Prepare(Content{Subject: "s", HTML: sampleHTML, Text: text}, Tracking{Opens: true, Clicks: true, UTM: &u})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tpl.Links) != 3 || tpl.Links[0].URL != blog || tpl.Links[1].URL != docs || tpl.Links[2].URL != "https://acme.io/u/{{ contact.id }}" {
+		t.Fatalf("tracked links: %+v", tpl.Links)
+	}
+	vars := map[string]any{"contact": map[string]any{"id": "c1"}, "unsubscribe_url": "https://x/p/acme/unsubscribe/T", "preferences_url": "https://x/p/acme/preferences/P"}
+	plain, err := tpl.Render(vars, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`href="https://acme.io/blog?utm_source=acme-newsletter&amp;utm_medium=email&amp;utm_campaign=weekly-digest-142"`,
+		`href="https://docs.acme.io/flags?utm=x&amp;y=1&amp;utm_source=acme-newsletter&amp;utm_medium=email&amp;utm_campaign=weekly-digest-142"`,
+		`href="https://acme.io/u/c1"`, `href="https://x/p/acme/unsubscribe/T"`, `href="https://x/p/acme/preferences/P"`, `href="mailto:hello@acme.io"`, `href="#top"`,
+		`style="color:#5B6472"`} {
+		if !strings.Contains(plain.HTML, want) {
+			t.Errorf("the plain variant lacks %s:\n%s", want, plain.HTML)
+		}
+	}
+	if strings.Contains(plain.HTML, "unsubscribe/T?utm") {
+		t.Errorf("the unsubscribe link was tagged:\n%s", plain.HTML)
+	}
+	want := "Read the blog: " + blog + ".\nDocs (" + docs + ")\nOlder posts: https://acme.io/blog/archive\nUnsubscribe: https://x/p/acme/unsubscribe/T"
+	if plain.Text != want {
+		t.Errorf("text part:\n%s\nwant\n%s", plain.Text, want)
+	}
+}
+
+// Tagging doesn't need click tracking: with clicks off the HTML and the
+// text part derived from it still carry the tags.
+func TestPrepareAddsUTMWithoutClickTracking(t *testing.T) {
+	u := clicktoken.UTM{Source: "acme-newsletter", Medium: "email", Campaign: "weekly-digest-142"}
+	tpl, err := Prepare(Content{Subject: "s", HTML: sampleHTML}, Tracking{Opens: true, UTM: &u})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tpl.Links) != 0 {
+		t.Fatalf("links tracked with click tracking off: %+v", tpl.Links)
+	}
+	out, err := tpl.Render(map[string]any{"contact": map[string]any{"id": "c1"}, OpenVar: "https://x/t/o/OPEN"}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.HTML, `href="https://acme.io/blog?utm_source=acme-newsletter&amp;utm_medium=email&amp;utm_campaign=weekly-digest-142"`) {
+		t.Errorf("HTML:\n%s", out.HTML)
+	}
+	if !strings.Contains(out.Text, "https://acme.io/blog?utm_source=acme-newsletter&utm_medium=email&utm_campaign=weekly-digest-142") {
+		t.Errorf("text part:\n%s", out.Text)
 	}
 }
 

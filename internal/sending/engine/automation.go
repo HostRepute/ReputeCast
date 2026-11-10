@@ -71,7 +71,7 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 	if err != nil {
 		return out, err
 	}
-	cr := contentRef{Email: o.EmailID, Version: version, Subject: o.Subject, Ctx: o.Context}
+	cr := contentRef{Email: o.EmailID, Version: version, Subject: o.Subject, Ctx: o.Context, UTM: o.UTM}
 	if ml.Language != "" && ml.Language != ml.source {
 		cr.Language = ml.Language
 	}
@@ -431,7 +431,9 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	if ref.Email == uuid.Nil {
 		return providers.Message{}, errors.New("the flow step has no email")
 	}
-	k := ref.Email.String() + ":" + fmt.Sprint(ref.Version) + ":" + ref.Subject + ":" + ref.Language
+	// One template per email version, language and tags: two automation
+	// versions can send one email version, tagged by one only.
+	k := ref.Email.String() + ":" + fmt.Sprint(ref.Version) + ":" + ref.Subject + ":" + ref.Language + ":" + ref.utmKey()
 	ot := cache[k]
 	if ot == nil {
 		ot = &outboxTemplate{}
@@ -466,14 +468,15 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 				// keep their place, so the email's links keep theirs.
 				c.HTML = e.Store.Resolve(ctx, em.WorkspaceID, c.HTML, true)
 			}
-			tpl, err := Prepare(c, Tracking{Opens: true, Clicks: true})
+			tpl, err := Prepare(c, Tracking{Opens: true, Clicks: true, UTM: ref.UTM})
 			if err != nil {
 				ot.missing = err.Error()
 			} else {
 				ot.tpl, ot.name = tpl, em.Name
-				if n, err := e.Q.SendingAutomationLinkCount(ctx, store.SendingAutomationLinkCountParams{EmailID: ref.Email, Version: int32(ref.Version), Language: lang}); err == nil && n == 0 {
+				utm := ref.utmKey()
+				if n, err := e.Q.SendingAutomationLinkCount(ctx, store.SendingAutomationLinkCountParams{EmailID: ref.Email, Version: int32(ref.Version), Language: lang, Utm: utm}); err == nil && n == 0 {
 					for _, l := range tpl.Links {
-						_ = e.Q.SendingInsertAutomationLink(ctx, store.SendingInsertAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: lang,
+						_ = e.Q.SendingInsertAutomationLink(ctx, store.SendingInsertAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: lang, Utm: utm,
 							Position: int32(l.Position), Url: l.URL, Label: l.Label})
 					}
 				}

@@ -52,6 +52,10 @@ export default translate(m, {
   listUnsubscribeMailto: 'Incluir una dirección mailto: en List-Unsubscribe',
   listUnsubscribeMailtoHelp:
     'Desactivado: la cabecera solo lleva el enlace de baja con un clic, que usan Gmail, Yahoo y Outlook. Activado: algunas apps de correo envían un correo en su lugar. ReputeCast no recibe correo, así que alguien en la dirección de respuesta tiene que dar de baja a mano a esos contactos en un plazo de 10 días.',
+  utmLinks: 'Añadir parámetros UTM a los enlaces',
+  utmLinksHelp:
+    'Así la analítica web muestra qué correo trajo cada visita. Un enlace conserva los parámetros UTM que ya tiene. Las campañas lo aplican desde su próximo envío y las automatizaciones desde su próxima publicación.',
+  utmCampaignName: 'nombre de la campaña',
   defaultsSaved: 'Valores predeterminados guardados',
   defaultsFailed: 'No se pudieron guardar los valores predeterminados',
   addSenderTitle: 'Añadir remitente',

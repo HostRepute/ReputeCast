@@ -471,6 +471,10 @@ type ContentFacts struct {
 	// Fields are the personalization tags of the email (every version and
 	// variant), each field once.
 	Fields []FieldUse
+	// AutoUTM is the campaign's "Add UTM tags" as it would send now (its
+	// own choice, else the workspace's): the sending engine adds
+	// utm_source, utm_medium and utm_campaign to its web links.
+	AutoUTM bool
 }
 
 // FieldUse is a personalization field the email uses, and its fallback.

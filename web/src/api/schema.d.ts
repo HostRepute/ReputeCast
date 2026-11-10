@@ -23964,6 +23964,8 @@ export interface components {
         };
         ComposerContentSettings: {
             minify: boolean;
+            /** @description Add UTM tags to the campaign's links; omit to follow the workspace's setting */
+            utm?: boolean;
         };
         ComposerContext: {
             broadcastRoute: components["schemas"]["ComposerRoute"];
@@ -38410,6 +38412,7 @@ export interface components {
             replyTo: string;
             /** Format: date-time */
             scheduledAt?: string;
+            settings: components["schemas"]["ComposerContentSettings"];
             /** Format: date-time */
             startedAt?: string;
             /** @enum {string} */
@@ -38418,6 +38421,8 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             updatedBy: string;
+            utm?: components["schemas"]["ReviewUTM"];
+            utmDefault: boolean;
             /** Format: int64 */
             version: number;
         };
@@ -38519,6 +38524,11 @@ export interface components {
         ReviewTyped: {
             needed: boolean;
             reasons: string[];
+        };
+        ReviewUTM: {
+            campaign: string;
+            medium: string;
+            source: string;
         };
         RewardBlock: {
             button: string;
@@ -39801,6 +39811,7 @@ export interface components {
             trackingDomain: string;
             trackingOptions: components["schemas"]["SenderTrackingOption"][];
             transactionalSenderId: string;
+            utmLinks: boolean;
         };
         SenderDefaultsInput: {
             /** @description Default From for new campaigns (the Broadcasts default) */
@@ -39813,6 +39824,7 @@ export interface components {
             /** @description Empty for the provider default */
             trackingDomain?: string;
             transactionalSenderId?: string;
+            utmLinks?: boolean;
         };
         SenderDomainCell: {
             text: string;

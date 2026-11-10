@@ -52,6 +52,10 @@ export default translate(m, {
   listUnsubscribeMailto: 'Inclure une adresse mailto: dans List-Unsubscribe',
   listUnsubscribeMailtoHelp:
     'Désactivé\u00A0: l’en-tête ne contient que le lien de désabonnement en un clic, celui qu’utilisent Gmail, Yahoo et Outlook. Activé\u00A0: certaines applications de messagerie envoient un e-mail à la place. ReputeCast ne reçoit pas d’e-mails, donc quelqu’un à l’adresse de réponse doit retirer ces contacts à la main sous 10\u00A0jours.',
+  utmLinks: 'Ajouter des paramètres UTM aux liens',
+  utmLinksHelp:
+    'Les outils d’analyse web indiquent alors quel e-mail a amené chaque visite. Un lien garde les paramètres UTM qu’il a déjà. Les campagnes l’appliquent dès leur prochain envoi, les automatisations dès leur prochaine publication.',
+  utmCampaignName: 'nom de la campagne',
   defaultsSaved: 'Valeurs par défaut enregistrées',
   defaultsFailed: 'Impossible d’enregistrer les valeurs par défaut',
   addSenderTitle: 'Ajouter un expéditeur',

@@ -3,6 +3,7 @@ package readiness
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"errors"
 	"html"
 	"math"
@@ -22,8 +23,11 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -468,7 +472,8 @@ type ruleLink struct {
 
 // ruleLinks are the email's links a rule reads: the web links it points
 // readers to (not mailto:, merge tags or the unsubscribe links ReputeCast
-// adds), each once.
+// adds), each once. With "Add UTM tags" on, a link the send tags counts as
+// having utm_source, utm_medium and utm_campaign.
 func (b *builder) ruleLinks() []ruleLink {
 	out := []ruleLink{}
 	seen := map[string]bool{}
@@ -478,9 +483,25 @@ func (b *builder) ruleLinks() []ruleLink {
 			continue
 		}
 		seen[l.URL] = true
-		out = append(out, ruleLink{URL: l.URL, Host: strings.TrimPrefix(strings.ToLower(u.Hostname()), "www."), Query: u.Query()})
+		q := u.Query()
+		if b.f.Content.AutoUTM && clicktoken.Taggable(strings.TrimSpace(l.URL)) {
+			for _, k := range []string{"utm_source", "utm_medium", "utm_campaign"} {
+				if !q.Has(k) {
+					q.Set(k, "")
+				}
+			}
+		}
+		out = append(out, ruleLink{URL: l.URL, Host: strings.TrimPrefix(strings.ToLower(u.Hostname()), "www."), Query: q})
 	}
 	return out
+}
+
+// campaignUTMOn is a campaign's "Add UTM tags" as it would send now: its
+// own choice (content_settings), else the workspace's (Settings › Senders).
+func campaignUTMOn(settings, sendingDefaults json.RawMessage) bool {
+	var s campaigns.ComposerContentSettings
+	_ = json.Unmarshal(settings, &s)
+	return s.UTMOn(domains.UTMLinks(sendingDefaults))
 }
 
 // onDomain reports whether host is domain or one of its subdomains.

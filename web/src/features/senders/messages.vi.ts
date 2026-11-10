@@ -58,6 +58,10 @@ export default translate(m, {
   listUnsubscribeMailto: 'Thêm địa chỉ mailto: vào List-Unsubscribe',
   listUnsubscribeMailtoHelp:
     'Tắt: header chỉ có liên kết hủy đăng ký một lần nhấp, loại mà Gmail, Yahoo và Outlook dùng. Bật: một số ứng dụng thư sẽ gửi email thay vào đó. ReputeCast không nhận thư, nên người ở địa chỉ trả lời phải tự gỡ những liên hệ này trong vòng 10 ngày.',
+  utmLinks: 'Thêm tham số UTM vào liên kết',
+  utmLinksHelp:
+    'Nhờ đó công cụ phân tích web cho biết mỗi lượt truy cập đến từ email nào. Liên kết giữ nguyên các tham số UTM đã có. Chiến dịch áp dụng từ lần gửi tiếp theo, tự động hóa từ lần xuất bản tiếp theo.',
+  utmCampaignName: 'tên chiến dịch',
   defaultsSaved: 'Đã lưu cài đặt mặc định',
   defaultsFailed: 'Không lưu được cài đặt mặc định',
 

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge, type Tone } from '@/components/ui/Badge'
@@ -247,6 +247,9 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
   const [tracking, setTracking] = useState(d.trackingDomain)
   // Off by default: List-Unsubscribe carries only the one-click link.
   const [mailto, setMailto] = useState(d.listUnsubscribeMailto)
+  // Off by default: links keep only the tags their authors wrote.
+  const [utm, setUtm] = useState(d.utmLinks)
+  const utmTags = useId()
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/senders/defaults')
   const submit = () => {
     save.mutate(
@@ -260,6 +263,7 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
           footerAddress: footer.trim(),
           trackingDomain: tracking,
           listUnsubscribeMailto: mailto,
+          utmLinks: utm,
         },
       },
       {
@@ -332,6 +336,28 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
         disabled={Boolean(reason)}
         onChange={(e) => setMailto(e.target.checked)}
       />
+      <div className="flex flex-col gap-1.5">
+        <Toggle
+          className="sd-trow"
+          label={t(m.utmLinks)}
+          description={t(m.utmLinksHelp)}
+          checked={utm}
+          disabled={Boolean(reason)}
+          aria-describedby={utmTags}
+          onChange={(e) => setUtm(e.target.checked)}
+        />
+        {/* What the switch adds: the workspace's slug, email and each campaign's or automation's name (query parameters, never translated). */}
+        <ul className="sd-chips" id={utmTags}>
+          <li className="chip mono">{`utm_source=${slug}`}</li>
+          <li className="chip mono">{`utm_medium=${'email'}`}</li>
+          <li className="chip">
+            <span>
+              <span className="mono">{`utm_campaign=`}</span>
+              {t(m.utmCampaignName)}
+            </span>
+          </li>
+        </ul>
+      </div>
       <div className="flex gap-2">
         <Button variant="primary" onClick={submit} loading={save.isPending} disabledReason={reason}>
           {t(common.save)}

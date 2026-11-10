@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -146,15 +147,23 @@ func (o RunOptions) nonHuman() (string, string) {
 }
 
 // Fingerprint identifies what a run checks: content, sender, audience,
-// route override, the Broadcasts routing rules and the schedule. Any change
-// to them makes the latest run stale.
+// route override, the Broadcasts routing rules, the schedule and the
+// campaign's own "Add UTM tags" (which link rules read). Any change to them
+// makes the latest run stale.
 func Fingerprint(c store.ReadinessCampaignRow, routing json.RawMessage) string {
 	h := sha256.New()
 	sender := ""
 	if c.SenderID != nil {
 		sender = c.SenderID.String()
 	}
-	for _, part := range []string{c.ContentHash, sender, string(c.Audience), string(c.RouteOverride), string(routing), string(c.Schedule)} {
+	parts := []string{c.ContentHash, sender, string(c.Audience), string(c.RouteOverride), string(routing), string(c.Schedule)}
+	// Only a campaign that chose for itself adds it, so the fingerprints of
+	// the others are those they had before the choice existed.
+	var settings campaigns.ComposerContentSettings
+	if json.Unmarshal(c.ContentSettings, &settings) == nil && settings.UTM != nil {
+		parts = append(parts, "utm:"+strconv.FormatBool(*settings.UTM))
+	}
+	for _, part := range parts {
 		h.Write([]byte(part))
 		h.Write([]byte{0})
 	}

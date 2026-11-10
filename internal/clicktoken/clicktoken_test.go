@@ -54,6 +54,63 @@ func TestTag(t *testing.T) {
 	}
 }
 
+// AddUTM adds only the absent tags, after the query as written and before
+// the fragment; personalized and non-web links stay as they are.
+func TestAddUTM(t *testing.T) {
+	u := UTM{Source: "acme-newsletter", Medium: "email", Campaign: "weekly-digest-142"}
+	const tags = "utm_source=acme-newsletter&utm_medium=email&utm_campaign=weekly-digest-142"
+	for _, c := range []struct{ in, want string }{
+		{"https://acme.io/blog", "https://acme.io/blog?" + tags},
+		{"https://acme.io", "https://acme.io?" + tags},
+		{"HTTPS://ACME.IO/Blog", "HTTPS://ACME.IO/Blog?" + tags},
+		// The query as written: not re-encoded, not reordered.
+		{"https://acme.io/p?b=2&a=1", "https://acme.io/p?b=2&a=1&" + tags},
+		{"https://acme.io/s?q=a+b&x=%7e&flag", "https://acme.io/s?q=a+b&x=%7e&flag&" + tags},
+		{"https://acme.io/?", "https://acme.io/?" + tags},
+		{"https://acme.io/?a=1&", "https://acme.io/?a=1&" + tags},
+		// The author's tags win; the others are added.
+		{"https://acme.io/?utm_source=x", "https://acme.io/?utm_source=x&utm_medium=email&utm_campaign=weekly-digest-142"},
+		{"https://acme.io/?utm_campaign=launch&utm_source=x&utm_medium=social", "https://acme.io/?utm_campaign=launch&utm_source=x&utm_medium=social"},
+		// The fragment stays last, even one that looks like a query.
+		{"https://docs.acme.io/flags#install", "https://docs.acme.io/flags?" + tags + "#install"},
+		{"https://docs.acme.io/flags?v=2#install", "https://docs.acme.io/flags?v=2&" + tags + "#install"},
+		{"https://app.acme.io/#/billing?tab=plan", "https://app.acme.io/?" + tags + "#/billing?tab=plan"},
+		// Personalized and non-web links.
+		{"{{ upgrade_url }}", "{{ upgrade_url }}"},
+		{"https://acme.io/u/{{ contact.id }}", "https://acme.io/u/{{ contact.id }}"},
+		{"https://acme.io/{% if vip %}vip{% endif %}", "https://acme.io/{% if vip %}vip{% endif %}"},
+		{"mailto:hello@acme.io", "mailto:hello@acme.io"},
+		{"#top", "#top"},
+	} {
+		if got := AddUTM(c.in, u); got != c.want {
+			t.Errorf("AddUTM(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+	if got := AddUTM("https://acme.io/", UTM{Source: "a b&c", Medium: "email"}); got != "https://acme.io/?utm_source=a+b%26c&utm_medium=email" {
+		t.Errorf("values are escaped and empty ones skipped: %q", got)
+	}
+	if u.Key() != tags {
+		t.Errorf("Key = %q", u.Key())
+	}
+}
+
+// ForEmail names the email: a non-ASCII name keeps its letters without
+// their marks, a name with nothing to keep gets the fallback.
+func TestForEmail(t *testing.T) {
+	for _, c := range []struct{ name, want string }{
+		{"Weekly Digest #142", "weekly-digest-142"},
+		{"Bản tin tháng 10 · Đặc biệt", "ban-tin-thang-10-dac-biet"},
+		{"Straße & Café", "strasse-cafe"},
+		{"新闻 Weekly", "weekly"},
+		{"新闻", "campaign"},
+		{"", "campaign"},
+	} {
+		if got := ForEmail("acme-newsletter", c.name, "campaign"); got != (UTM{Source: "acme-newsletter", Medium: "email", Campaign: c.want}) {
+			t.Errorf("ForEmail(%q) = %+v, want campaign %q", c.name, got, c.want)
+		}
+	}
+}
+
 // A click token isn't a hidden link's token, nor the other way round:
 // they used to share a kind, so a store link's rc= worked at /t/h/.
 // Tokens of that kind already in store links still credit orders.

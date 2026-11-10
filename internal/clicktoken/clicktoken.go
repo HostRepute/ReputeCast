@@ -12,8 +12,10 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/hostrepute/reputecast/internal/linktoken"
 )
@@ -83,7 +85,91 @@ func Verify(s *linktoken.Signer, token string) (Click, error) {
 
 // UTM are the parameters a tagged link gets.
 type UTM struct {
-	Source, Medium, Campaign string
+	Source   string `json:"source"`
+	Medium   string `json:"medium"`
+	Campaign string `json:"campaign"`
+}
+
+// ForEmail is the UTM of an email's links (Settings › Senders' "Add UTM
+// tags to links"): the workspace's slug, email, and the campaign's or the
+// automation's name as a slug, fallback when the name has nothing a slug
+// keeps.
+func ForEmail(workspace, name, fallback string) UTM {
+	c := Slug(name)
+	if c == "" {
+		c = fallback
+	}
+	return UTM{Source: workspace, Medium: "email", Campaign: c}
+}
+
+// Key is the query AddUTM gives a link without parameters
+// ("utm_source=acme-newsletter&utm_medium=email&utm_campaign=welcome"):
+// what tells apart the link sets of one email sent with different tags.
+func (u UTM) Key() string {
+	parts := make([]string, 0, 3)
+	for _, p := range u.params() {
+		if p[1] != "" {
+			parts = append(parts, p[0]+"="+url.QueryEscape(p[1]))
+		}
+	}
+	return strings.Join(parts, "&")
+}
+
+// params are the parameters in the order AddUTM adds them.
+func (u UTM) params() [3][2]string {
+	return [3][2]string{{"utm_source", u.Source}, {"utm_medium", u.Medium}, {"utm_campaign", u.Campaign}}
+}
+
+// Taggable reports whether AddUTM tags a link: a web link without Liquid
+// (a personalized address is left as written).
+func Taggable(href string) bool {
+	lower := strings.ToLower(href)
+	if !strings.HasPrefix(lower, "http://") && !strings.HasPrefix(lower, "https://") {
+		return false
+	}
+	return !strings.Contains(href, "{{") && !strings.Contains(href, "{%")
+}
+
+// AddUTM adds to a link the UTM parameters it doesn't set (the author's
+// choice wins), in the order utm_source, utm_medium, utm_campaign, after
+// its query and before its fragment. Unlike Tag it never re-encodes or
+// reorders what the link already has, so a tagged link still reads as
+// written. Links that aren't Taggable come back unchanged.
+func AddUTM(href string, u UTM) string {
+	if !Taggable(href) {
+		return href
+	}
+	base, fragment, hasFragment := strings.Cut(href, "#")
+	_, query, hasQuery := strings.Cut(base, "?")
+	have, _ := url.ParseQuery(query)
+	sep := "?"
+	if hasQuery {
+		sep = "&"
+		if query == "" || strings.HasSuffix(query, "&") {
+			sep = ""
+		}
+	}
+	var b strings.Builder
+	b.WriteString(base)
+	added := false
+	for _, p := range u.params() {
+		if p[1] == "" || have.Has(p[0]) {
+			continue
+		}
+		b.WriteString(sep)
+		b.WriteString(p[0])
+		b.WriteByte('=')
+		b.WriteString(url.QueryEscape(p[1]))
+		sep, added = "&", true
+	}
+	if !added {
+		return href
+	}
+	if hasFragment {
+		b.WriteByte('#')
+		b.WriteString(fragment)
+	}
+	return b.String()
 }
 
 // Tag adds the UTM parameters (where the link doesn't set them already:
@@ -110,19 +196,47 @@ func Tag(link string, utm UTM, token string) string {
 }
 
 // Slug turns a campaign's or an automation's name into a utm_campaign
-// value ("October Product Update" → "october-product-update").
+// value ("October Product Update" → "october-product-update"). Letters lose
+// their marks ("Bản tin tháng 10" → "ban-tin-thang-10"); letters outside
+// ASCII once their marks are gone (中, ж) are dropped.
 func Slug(name string) string {
 	var b strings.Builder
 	dash := false
-	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+	for _, r := range strings.ToLower(asciiFold(strings.TrimSpace(name))) {
 		switch {
 		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
 			b.WriteRune(r)
 			dash = false
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
+			// Other scripts' letters (中, ж) are dropped.
 		case b.Len() > 0 && !dash:
 			b.WriteByte('-')
 			dash = true
 		}
 	}
 	return strings.TrimSuffix(b.String(), "-")
+}
+
+// asciiFold writes a name's letters without their marks: "Bản tin" →
+// "Ban tin", "Straße" → "Strasse".
+func asciiFold(s string) string {
+	var b strings.Builder
+	for _, r := range norm.NFD.String(s) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+		case r == 'đ', r == 'Đ':
+			b.WriteByte('d')
+		case r == 'ß':
+			b.WriteString("ss")
+		case r == 'æ', r == 'Æ':
+			b.WriteString("ae")
+		case r == 'œ', r == 'Œ':
+			b.WriteString("oe")
+		case r == 'ø', r == 'Ø':
+			b.WriteByte('o')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }

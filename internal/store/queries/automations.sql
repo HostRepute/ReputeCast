@@ -99,7 +99,10 @@ WHERE automation_id = @automation_id AND published_at IS NOT NULL
 ORDER BY version;
 
 -- name: PublishAutomationVersion :exec
-UPDATE automation_versions SET published_at = now(), published_by = @published_by, summary = @summary, summary_text = sqlc.narg(summary_text), migration = @migration
+-- utm is the UTM tags the version's emails add (NULL = untagged), decided
+-- now and never changed.
+UPDATE automation_versions SET published_at = now(), published_by = @published_by, summary = @summary, summary_text = sqlc.narg(summary_text), migration = @migration,
+       utm = sqlc.narg(utm)
 WHERE automation_id = @automation_id AND version = @version;
 
 -- name: RetireAutomationVersion :exec

@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -223,7 +224,7 @@ func (e *Engine) linkCount(ctx context.Context, q *store.Queries, m store.Sendin
 		var ref contentRef
 		_ = json.Unmarshal(tm.ContentRef, &ref)
 		if ref.Email != uuid.Nil {
-			ls, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language})
+			ls, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Utm: ref.utmKey()})
 			if err != nil {
 				return 0, err
 			}
@@ -244,4 +245,17 @@ type contentRef struct {
 	// Ctx is what the flow's trigger passed to its emails (a store's
 	// checkout or order).
 	Ctx map[string]string `json:"ctx,omitempty"`
+	// UTM is what the automation version that queued the email adds to its
+	// links (automation_versions.utm; nil = untagged): its link set is that
+	// version's (utmKey).
+	UTM *clicktoken.UTM `json:"utm,omitempty"`
+}
+
+// utmKey tells apart the link sets of one email version sent with and
+// without UTM tags (automation_email_links.utm).
+func (r contentRef) utmKey() string {
+	if r.UTM == nil {
+		return ""
+	}
+	return r.UTM.Key()
 }

@@ -158,7 +158,8 @@ export async function applyFix(c: ComposerState, issue: Issue, fix: Fix, value?:
       try {
         await http.PATCH('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', {
           params: { path: { workspace: c.slug, campaignId: c.campaign.id } },
-          body: { settings: { minify: true } },
+          // The settings are saved whole: the campaign's own UTM choice stays.
+          body: { settings: { ...c.campaign.settings, minify: true } },
         })
         c.onSettingsChanged()
         toast({ kind: 'success', title: t(m.minified), detail: t(m.minifiedDetail) })
