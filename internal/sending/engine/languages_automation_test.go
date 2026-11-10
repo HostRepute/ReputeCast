@@ -88,9 +88,12 @@ func testAutomationLanguages(t *testing.T, f *sendtest.Fixture) {
 	if l, c, r, ref := language(french); l != "en" || c != "fr" || r != "not_offered" || ref["language"] != nil {
 		t.Fatalf("fr reader: %q %q %q %v", l, c, r, ref)
 	}
+	// Ten seconds of outbox steps: the demo transport throttles about one
+	// call in a thousand (one in 250 for Postal), and a throttled email is
+	// retried 5 s later.
 	send := func(now time.Time) {
 		t.Helper()
-		for i := range 5 {
+		for i := range 10 {
 			if _, err := f.E.OutboxStep(f.Ctx, now.Add(time.Duration(i)*time.Second)); err != nil {
 				t.Fatal(err)
 			}
