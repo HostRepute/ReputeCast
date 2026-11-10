@@ -5137,6 +5137,9 @@ type Querier interface {
 	WebsiteConversionCounts(ctx context.Context, arg WebsiteConversionCountsParams) ([]WebsiteConversionCountsRow, error)
 	WebsiteConversionInsert(ctx context.Context, arg WebsiteConversionInsertParams) error
 	WebsiteConversionTotals(ctx context.Context, arg WebsiteConversionTotalsParams) (WebsiteConversionTotalsRow, error)
+	// The posts /llms.txt lists: the sitemap's (published, not hidden from
+	// search), newest first, with their public title and excerpt.
+	WebsiteLLMsPosts(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteLLMsPostsRow, error)
 	WebsiteLinkByToken(ctx context.Context, tokenHash []byte) (WebsiteSigninLink, error)
 	// Sign-in links
 	WebsiteLinkInsert(ctx context.Context, arg WebsiteLinkInsertParams) error

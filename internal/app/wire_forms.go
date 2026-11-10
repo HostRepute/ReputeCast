@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/publicpages"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/systemmail"
 	"github.com/hostrepute/reputecast/web"
 )
 
@@ -146,6 +147,13 @@ func (a *App) publicPages() *publicpages.Handler {
 		TextPrefs: publicTextPrefs(a),
 		// The push prompt and the preference center's "Turn off" (X22).
 		Push: pp,
+		// "Open Gmail" after a signup searches for the confirmation's sender.
+		SenderEmail: func(ctx context.Context, ws *store.Workspace) string {
+			if m, ok := a.Mail.(*systemmail.Mailer); ok {
+				return m.SenderEmail(ctx, ws)
+			}
+			return ""
+		},
 	}
 	formsPages[a] = h
 	return h

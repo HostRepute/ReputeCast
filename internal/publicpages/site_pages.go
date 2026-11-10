@@ -496,3 +496,78 @@ func (h *Handler) siteSitemap(ctx context.Context, s *site, set *sitemapURLSet) 
 	}
 	return nil
 }
+
+// siteLLMs is /llms.txt (llmstxt.org): the site's title, description and
+// posts in Markdown, for language models. It follows the sitemap: the
+// posts search engines may list, and 404 while the website is off or
+// "Let search engines index the site" is off. Section titles stay English
+// (a file machines read); every value from the publisher is one escaped
+// line of text, and links are the site's own addresses.
+func (h *Handler) siteLLMs(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.siteOr404(w, r)
+	if !ok {
+		return
+	}
+	ctx := r.Context()
+	if h.Website == nil || !h.siteOn(ctx, s) {
+		h.notFound(w, r, s)
+		return
+	}
+	frame, err := h.Website.Frame(ctx, s.ws, s.set)
+	if err != nil {
+		h.serverError(w, r, s, err)
+		return
+	}
+	if !frame.Index {
+		h.notFound(w, r, s)
+		return
+	}
+	posts, err := h.Website.LLMsPosts(ctx, s.ws)
+	if err != nil {
+		h.serverError(w, r, s, err)
+		return
+	}
+	var b strings.Builder
+	b.WriteString("# " + mdText(frame.Title) + "\n\n")
+	if d := mdText(frame.Description); d != "" {
+		b.WriteString("> " + d + "\n\n")
+	}
+	b.WriteString("## Posts\n\n")
+	for _, p := range posts {
+		b.WriteString("- [" + mdText(p.Title) + "](" + s.canonPath("posts", p.Slug) + ")")
+		if e := mdText(p.Excerpt); e != "" {
+			b.WriteString(": " + e)
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("\n## Optional\n\n")
+	b.WriteString("- [RSS feed](" + s.canonPath("feed") + ")\n")
+	b.WriteString("- [Sitemap](" + s.canon.Sitemap() + ")\n")
+	hd := w.Header()
+	hd.Set("Content-Type", "text/markdown; charset=utf-8")
+	hd.Set("Cache-Control", "public, max-age=3600")
+	hd.Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write([]byte(b.String()))
+}
+
+// mdText is s as one line of Markdown text: line breaks and runs of
+// spaces become one space, and the characters that would start a link, an
+// image, emphasis, a heading or HTML are escaped, so a post's title can't
+// add a line or a link of its own.
+func mdText(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	var b strings.Builder
+	b.Grow(len(s))
+	for i, c := range s {
+		switch c {
+		case '\\', '[', ']', '(', ')', '<', '>', '*', '_', '#':
+			b.WriteByte('\\')
+		case '-':
+			if i == 0 {
+				b.WriteByte('\\')
+			}
+		}
+		b.WriteRune(c)
+	}
+	return b.String()
+}

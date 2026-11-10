@@ -187,6 +187,59 @@
   flex-direction: column;
   gap: 6px;
 }
+/* Buttons beside the field ("Use linh@gmail.com", "Keep …") and after a
+   signup ("Open Gmail"): 44px targets that wrap at narrow widths. */
+.rcf .rcf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 6px 16px;
+  border: 1px solid var(--rcf-accent, #4338ca);
+  border-radius: 9px;
+  background: var(--rcf-accent, #4338ca);
+  color: var(--rcf-on, #fff);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.rcf .rcf-btn:hover {
+  background: var(--rcf-hover, #3730a3);
+  color: var(--rcf-on, #fff);
+}
+.rcf .rcf-btn2 {
+  border-color: #8b94a3;
+  background: #fff;
+  color: #1f2937;
+}
+.rcf .rcf-btn2:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+.rcf-typo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rcf-typo .rcf-btn {
+  flex: 1 1 180px;
+}
+.rcf-done .rcf-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+.rcf-vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 .rcf-hp {
   position: absolute !important;
   left: -10000px !important;

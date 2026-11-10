@@ -73,13 +73,14 @@ func TestTypoFix(t *testing.T) {
 	for in, want := range map[string]string{
 		"gmial.com": "gmail.com", "outlok.com": "outlook.com", "yaho.com": "yahoo.com", "gmail.con": "gmail.com",
 		"gmail.co": "gmail.com", "hotmial.com": "hotmail.com", "iclod.com": "icloud.com", "gmaill.com": "gmail.com",
+		"protonmial.com": "protonmail.com",
 	} {
 		got, ok := TypoFix(in)
 		if !ok || got != want {
 			t.Errorf("TypoFix(%s) = %s, %v; want %s", in, got, ok, want)
 		}
 	}
-	for _, in := range []string{"gmail.com", "acme.io", "mail.com", "live.com", "gmx.de", "ymail.com"} {
+	for _, in := range []string{"gmail.com", "acme.io", "mail.com", "live.com", "gmx.de", "ymail.com", "protonmail.com", "ProtonMail.com"} {
 		if got, ok := TypoFix(in); ok {
 			t.Errorf("TypoFix(%s) = %s, want no fix", in, got)
 		}

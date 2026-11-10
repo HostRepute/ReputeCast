@@ -72,7 +72,7 @@ func (s *Service) save(ctx context.Context, q *store.Queries, ws *store.Workspac
 	return q.WebsiteSettingsSave(ctx, store.WebsiteSettingsSaveParams{WorkspaceID: ws.ID,
 		Title: r.Title, Tagline: r.Tagline, Description: r.Description, SocialImage: r.SocialImage, IndexSite: r.IndexSite,
 		HomeLayout: r.HomeLayout, Featured: r.Featured, Sections: sections, AboutTitle: r.AboutTitle, AboutText: r.AboutText, AboutLink: r.AboutLink,
-		HeaderLinks: header, Footer: footer,
+		HeaderLinks: header, Footer: footer, ShareButtons: r.ShareButtons,
 		SigninOn: r.SigninOn, LinkMinutes: r.LinkMinutes, SessionDays: r.SessionDays, SignupOn: r.SignupOn, SignupLists: lists,
 		DefaultVisibility: r.DefaultVisibility, CampaignVisibility: r.CampaignVisibility,
 		MeterVisitorsOn: r.MeterVisitorsOn, MeterVisitors: r.MeterVisitors, MeterMembersOn: r.MeterMembersOn, MeterMembers: r.MeterMembers,

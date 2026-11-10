@@ -130,6 +130,10 @@ type Handler struct {
 	// on the publication website's pages and "Turn off notifications in
 	// this browser" on the preference center (nil: neither).
 	Push PushPages
+	// SenderEmail is the From address of the workspace's confirmation
+	// emails: "Open Gmail" after a signup searches for it (nil or "": the
+	// button opens the inbox).
+	SenderEmail func(ctx context.Context, ws *store.Workspace) string
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -209,7 +213,7 @@ func (h *Handler) Routes(r chi.Router) {
 		root.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), hostKey{}, slug)))
 	})
 	for _, p := range append([]string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
-		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/poll/*", "/s/*", "/sms-terms"}, growPaths...) {
+		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/llms.txt", "/poll/*", "/s/*", "/sms-terms"}, growPaths...) {
 		r.Handle(p, custom)
 	}
 	// The upgrade page (earn.go).
@@ -272,6 +276,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Get("/archive/{issue}", h.issue)
 	r.Get("/archive/{issue}/{lang}", h.issue)
 	r.Get("/sitemap.xml", h.sitemap)
+	r.Get("/llms.txt", h.siteLLMs)
 	r.Get("/sms-terms", h.smsTerms)
 	r.Get("/forms/{script}", h.formScript)
 	r.Get("/forms/{id}/session", h.formSession)
@@ -636,6 +641,9 @@ type messageBody struct {
 type action struct {
 	Label string
 	Href  string
+	// NewTab opens the link in a new tab and says so to screen readers
+	// ("Open Gmail").
+	NewTab bool
 }
 
 // messageIn is a message page in a language: its words are pl's labels.

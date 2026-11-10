@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/sharelinks"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website"
 	"github.com/hostrepute/reputecast/internal/website/gate"
@@ -103,6 +104,25 @@ type bandView struct {
 	Form                subFormView
 }
 
+// postShare is the share row under a published post: its address with
+// Copy link, then the share links (plain links: no third-party scripts).
+type postShare struct {
+	URL   string
+	Links []postShareLink
+}
+
+// postShareLink is a share button. Label is what it shows (the network's
+// name, never translated, or "Email"); AriaLabel names a link that opens
+// a new tab ("Share on X (opens in a new tab)"), "" for Email, which opens
+// the reader's mail app in place.
+type postShareLink struct {
+	Channel, Label, AriaLabel, URL string
+}
+
+// shareNames are the networks' names on their buttons.
+var shareNames = map[string]string{sharelinks.X: "X", sharelinks.LinkedIn: "LinkedIn", sharelinks.Facebook: "Facebook",
+	sharelinks.Bluesky: "Bluesky", sharelinks.WhatsApp: "WhatsApp"}
+
 // postBody is the post page.
 type postBody struct {
 	Tags     []tagLinkView
@@ -118,6 +138,7 @@ type postBody struct {
 	Cover    *coverView
 	HTML     template.HTML
 	Paywall  *paywallView
+	Share    *postShare
 	More     *moreView
 	Band     *bandView
 }
@@ -290,6 +311,10 @@ func (h *Handler) postBody(ctx context.Context, s *site, v *siteView, p store.We
 		}
 		b.Paywall = pw
 	}
+	if v.Frame.ShareButtons && p.Status == website.PostPublished {
+		// Every visibility: a paid post's link leads to its preview.
+		b.Share = postShareOf(v, s.canonPath("posts", p.Slug), pv.Post.Title)
+	}
 	if pv.MoreTag != nil && len(pv.More) > 0 {
 		m := &moreView{Title: v.T("site.moreFrom", "tag", pv.MoreTag.Name), AllHref: s.path("tag", pv.MoreTag.Slug), AllText: v.T("site.allPosts", "count", pv.MoreTotal)}
 		for _, mp := range pv.More {
@@ -308,6 +333,22 @@ func (h *Handler) postBody(ctx context.Context, s *site, v *siteView, p store.We
 				Placeholder: v.T("site.emailPlaceholder"), Button: v.T("site.subscribe")}}
 	}
 	return b, nil
+}
+
+// postShareOf is the share row of a post's address and title.
+func postShareOf(v *siteView, link, title string) *postShare {
+	sh := &postShare{URL: link, Links: make([]postShareLink, 0, len(sharelinks.Channels))}
+	for _, ch := range sharelinks.Channels {
+		l := postShareLink{Channel: ch, URL: sharelinks.URL(ch, link, title, title)}
+		if ch == sharelinks.Email {
+			l.Label = v.T("site.shareEmail")
+		} else {
+			l.Label = shareNames[ch]
+			l.AriaLabel = v.T("site.shareOn", "network", l.Label)
+		}
+		sh.Links = append(sh.Links, l)
+	}
+	return sh
 }
 
 // monthName names the meter's month ("October", "tháng 10").

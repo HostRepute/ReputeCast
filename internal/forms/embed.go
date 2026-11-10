@@ -120,6 +120,11 @@ type embedConfig struct {
 	Fixed      string               `json:"fixed"`
 	Fallback   string               `json:"fallback"`
 	Langs      map[string]embedCopy `json:"langs"`
+	// Workspace and HideSubscribed: the browser remembers a signup through
+	// any of the workspace's forms, and a form that hides from subscribers
+	// shows nothing to it.
+	Workspace      string `json:"workspace"`
+	HideSubscribed bool   `json:"hideSubscribed"`
 }
 
 // FieldLabelIn is the label a field shows in a language: the form's own,
@@ -209,6 +214,10 @@ func embedCopyOf(c Config, b Branding, lists []audience.PublicList, customs []st
 			"optional": l.Text("form.optional", nil), "choose": l.Text("form.choose", nil), "honeypot": l.Text("form.honeypot", nil),
 			"emailMissing": l.Text("error.emailMissing", nil), "emailInvalid": l.Text("error.emailInvalid", nil), "consent": l.Text("error.consent", nil),
 			"close": l.Text("form.close", nil),
+			// The script puts the address or the provider in place of {email}
+			// and {provider}: "Use linh@gmail.com", "Open Gmail".
+			"typoUse": l.Text("form.typo.use", i18n.Args{"email": "{email}"}), "typoKeep": l.Text("form.typo.keep", i18n.Args{"email": "{email}"}),
+			"inboxOpen": l.Text("form.inbox.open", i18n.Args{"provider": "{provider}"}), "newTab": l.Text("form.inbox.newTab", nil),
 		}}
 	for _, f := range c.Fields {
 		ef := embedField{Key: f.Key, Name: FieldName(f.Key), Label: FieldLabelIn(f, customs, l), Type: "text", Required: f.Required || f.Key == FieldEmail, Options: []string{}}
@@ -304,6 +313,14 @@ func (fc *FormCopy) plain(lists []audience.PublicList) Config {
 	return c
 }
 
+// exitIntent is the popup's exit-intent trigger as the script reads it.
+func exitIntent(c Config) int {
+	if c.Content.PopupExit {
+		return 1
+	}
+	return 0
+}
+
 func embedScriptOf(c Config, links PageLinks, b Branding, lists []audience.PublicList, langs map[string]embedCopy, fallback string) []byte {
 	mode := c.LanguageMode
 	if mode == "" {
@@ -314,7 +331,8 @@ func embedScriptOf(c Config, links PageLinks, b Branding, lists []audience.Publi
 		CSS: links.Static("embed.css?v=" + EmbedCSSVersion), Hosted: links.PlainAction(c.Slug),
 		Accent: b.Palette.Accent, Hover: b.Palette.Hover, OnAccent: b.Palette.OnAccent, Link: b.Palette.Text,
 		Publisher: b.PublisherName, Initial: b.Initial(), ListChoice: c.ListChoice, Honeypot: c.Spam.Honeypot,
-		Popup: map[string]int{"delay": c.Content.PopupDelay, "scroll": c.Content.PopupScroll, "repeatDays": c.Content.PopupRepeatDays},
+		Popup:     map[string]int{"delay": c.Content.PopupDelay, "scroll": c.Content.PopupScroll, "repeatDays": c.Content.PopupRepeatDays, "exit": exitIntent(c)},
+		Workspace: c.WorkspaceID.String(), HideSubscribed: c.HideSubscribed(),
 		Lists: []embedList{}, Mode: mode, Fixed: c.FixedLanguage, Fallback: fallback, Langs: langs,
 	}
 	if b.Logo != nil {

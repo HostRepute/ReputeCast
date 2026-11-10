@@ -583,7 +583,7 @@
   },
   "FormBuilder.dc.html": {
    "expand": "fill",
-   "h": 1135,
+   "h": 1223,
    "is_interactive": true,
    "page": "forms",
    "title": "Signup form builder",
@@ -592,7 +592,7 @@
    "y": 0
   },
   "FormBuilderPhone.dc.html": {
-   "h": 2839,
+   "h": 2928,
    "is_interactive": true,
    "page": "forms",
    "title": "Signup form builder · phone",
@@ -601,7 +601,7 @@
    "y": 4091
   },
   "FormBuilderTablet.dc.html": {
-   "h": 1765,
+   "h": 1853,
    "is_interactive": true,
    "page": "forms",
    "title": "Signup form builder · tablet",
@@ -611,10 +611,10 @@
   },
   "FormsStates.dc.html": {
    "expand": "fill",
-   "h": 1256,
+   "h": 1997,
    "is_interactive": true,
    "page": "forms",
-   "title": "Forms · empty / loading / error",
+   "title": "Forms · empty / loading / error · popup triggers · embedded form typo and inbox states",
    "w": 1440,
    "x": 5520,
    "y": 0
@@ -3695,7 +3695,7 @@
    "x": 3120,
    "y": 0,
    "w": 1440,
-   "h": 3164,
+   "h": 3272,
    "title": "Website · home, navigation, tags and site settings",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3735,7 +3735,7 @@
    "x": 1560,
    "y": 9514,
    "w": 1440,
-   "h": 2738,
+   "h": 2913,
    "title": "Public · paid post at the paywall (visitor)",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3967,7 +3967,7 @@
    "x": 1530,
    "y": 50137,
    "w": 390,
-   "h": 3107,
+   "h": 3450,
    "title": "Public · paid post at the paywall (visitor) · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -4319,10 +4319,10 @@
   },
   "PublicConfirmStates.dc.html": {
    "expand": "fill",
-   "h": 2320,
+   "h": 3682,
    "is_interactive": true,
    "page": "forms",
-   "title": "Public · opt-in confirmation · confirm button, expired link, new link sent",
+   "title": "Public · opt-in confirmation · confirm button, expired link, new link sent · signup typo hint and inbox button",
    "w": 1440,
    "x": 7040,
    "y": 0

@@ -51,6 +51,11 @@
   "form.notAllowed.text": "{reason} Suscríbete en la página de suscripción.",
   "form.gone": "Este formulario ya no existe.",
   "form.unreadableShort": "No se pudo leer el formulario. Envíalo de nuevo.",
+  "form.typo.ask": "¿Quisiste decir {email}?",
+  "form.typo.use": "Usar {email}",
+  "form.typo.keep": "Mantener {email}",
+  "form.inbox.open": "Abrir {provider}",
+  "form.inbox.newTab": "(se abre en una pestaña nueva)",
 
   "challenge.title": "Un paso más",
   "challenge.text": "Tu suscripción parecía automatizada, así que queremos asegurarnos de que eres una persona. Solo tarda un segundo.",

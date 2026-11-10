@@ -11,7 +11,7 @@
   {{if .Lead}}<p class="lead">{{.Lead}}</p>{{else if .Email}}<p class="lead">{{.Text}} <strong>{{.Email}}</strong>{{.TextAfter}}</p>{{else}}<p class="lead">{{.Text}}</p>{{end}}
   {{with .Texted}}<div class="notice">{{.}}</div>{{end}}
   {{if .Actions}}<div class="btns">
-    {{range $i, $a := .Actions}}<a class="{{if eq $i 0}}btn-sm{{else}}btn-ghost{{end}}" href="{{$a.Href}}">{{$a.Label}}</a>
+    {{range $i, $a := .Actions}}<a class="{{if eq $i 0}}btn-sm{{else}}btn-ghost{{end}}" href="{{$a.Href}}"{{if $a.NewTab}} target="_blank" rel="noopener noreferrer"{{end}}>{{$a.Label}}{{if $a.NewTab}}<span class="vh"> {{$.T "form.inbox.newTab"}}</span>{{end}}</a>
     {{end}}
   </div>{{end}}
 </main>{{end}}{{end}}
