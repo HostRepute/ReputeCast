@@ -107,7 +107,7 @@ export const groups: { name: string; features: Feature[] }[] = [
         items: [
           'Language versions of campaigns, automation emails and transactional templates',
           'Forms and pages in each language',
-          `The app itself in ${languageList}`,
+          `The app itself in ${languageList}, light or dark`,
         ],
         docs: 'campaigns/languages/',
       },

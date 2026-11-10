@@ -614,6 +614,7 @@ The app has a dark theme: Account & security › Appearance (Same as device, Lig
 | `DarkTheme` (new) | The dark theme's specimen: every colour token as a light and dark pair with its contrast, elevation (ground, side, surface, raised; field a step below its card; hover and hover-soft a step above), buttons, badges, fields in every state, choices and switches, tabs and segments, menus, tooltips, toasts, a dialog over the scrim, notes, a table with a hovered row, stat tiles, bars, every chart palette, an always-dark code pane, a keep-light email preview and the focus ring. |
 | `MainDark`, `MainDarkTablet`, `MainDarkPhone` (new) | The Overview in the dark theme, colour for colour as the app draws it; layout and sample data are Main's. |
 | `PublicArchive`, `PublicAccount`, `PublicHome`, `PublicPost`, `PublicSalesPage`, `PublicPagesStates`, `PublicSiteStates` and the Phone wrappers | Touch targets at 767 px and below, the site's 600–767 px tablet layout included: chips, buttons, the period switch, the member pill, checkbox rows and the header's navigation are 44 px, as on phones; the old archive's filter pills are 44 px there and keep their 22 px look above, with a 24 px hit area. Unchanged at 768 px and up. The logo links reach 44 px by padding (same look). |
+| `Landing`, `LandingTablet`, `LandingPhone` | With 1.6.0, the receipt's Languages line says the app itself comes in five languages, light or dark. |
 
 ## Conflicts between the design and the spec
 
