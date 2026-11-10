@@ -13,7 +13,11 @@ SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_
        coalesce(s.reply_to, '')::text AS sender_reply_to,
        w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name,
        w.send_thresholds AS workspace_thresholds,
-       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto
+       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto,
+       -- "Add UTM tags to links": the workspace's, and the campaign's own
+       -- choice ('' follows the workspace's, else 'true' or 'false').
+       coalesce((w.sending_defaults->>'utm_links')::boolean, false)::boolean AS utm_links,
+       coalesce(c.content_settings->>'utm', '')::text AS utm_override
 FROM campaigns c
 JOIN workspaces w ON w.id = c.workspace_id
 LEFT JOIN senders s ON s.id = c.sender_id
@@ -624,10 +628,10 @@ WHERE v.email_id = @email_id AND v.version = @version;
 SELECT latest_version FROM automation_emails WHERE id = @id;
 
 -- name: SendingAutomationLinkCount :one
-SELECT count(*)::bigint FROM automation_email_links WHERE email_id = @email_id AND version = @version AND language = @language;
+SELECT count(*)::bigint FROM automation_email_links WHERE email_id = @email_id AND version = @version AND language = @language AND utm = @utm;
 
 -- name: SendingInsertAutomationLink :exec
-INSERT INTO automation_email_links (email_id, version, language, position, url, label) VALUES (@email_id, @version, @language, @position, @url, @label)
+INSERT INTO automation_email_links (email_id, version, language, utm, position, url, label) VALUES (@email_id, @version, @language, @utm, @position, @url, @label)
 ON CONFLICT DO NOTHING;
 
 -- name: SendingAutomationSender :one

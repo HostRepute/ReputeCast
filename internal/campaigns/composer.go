@@ -206,6 +206,19 @@ func (t *ComposerABTest) toDB() json.RawMessage {
 type ComposerContentSettings struct {
 	// Minify shrinks the HTML (whitespace, inline CSS) to stay under Gmail's clipping limit.
 	Minify bool `json:"minify"`
+	// UTM is the campaign's own "Add UTM tags": its links get utm_source,
+	// utm_medium and utm_campaign when it sends. Omitted, the workspace's
+	// setting applies (Settings › Senders).
+	UTM *bool `json:"utm,omitempty" doc:"Add UTM tags to the campaign's links; omit to follow the workspace's setting"`
+}
+
+// UTMOn reports whether the campaign's links get UTM tags: its own choice,
+// else the workspace's "Add UTM tags to links" (workspace).
+func (s ComposerContentSettings) UTMOn(workspace bool) bool {
+	if s.UTM != nil {
+		return *s.UTM
+	}
+	return workspace
 }
 
 // ComposerSenderRef is the "From" identity.

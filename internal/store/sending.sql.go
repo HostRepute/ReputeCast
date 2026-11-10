@@ -488,17 +488,23 @@ func (q *Queries) SendingAutomationEmailLatest(ctx context.Context, id uuid.UUID
 }
 
 const sendingAutomationLinkCount = `-- name: SendingAutomationLinkCount :one
-SELECT count(*)::bigint FROM automation_email_links WHERE email_id = $1 AND version = $2 AND language = $3
+SELECT count(*)::bigint FROM automation_email_links WHERE email_id = $1 AND version = $2 AND language = $3 AND utm = $4
 `
 
 type SendingAutomationLinkCountParams struct {
 	EmailID  uuid.UUID `json:"emailId"`
 	Version  int32     `json:"version"`
 	Language string    `json:"language"`
+	Utm      string    `json:"utm"`
 }
 
 func (q *Queries) SendingAutomationLinkCount(ctx context.Context, arg SendingAutomationLinkCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, sendingAutomationLinkCount, arg.EmailID, arg.Version, arg.Language)
+	row := q.db.QueryRow(ctx, sendingAutomationLinkCount,
+		arg.EmailID,
+		arg.Version,
+		arg.Language,
+		arg.Utm,
+	)
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -638,7 +644,11 @@ SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_
        coalesce(s.reply_to, '')::text AS sender_reply_to,
        w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name,
        w.send_thresholds AS workspace_thresholds,
-       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto
+       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto,
+       -- "Add UTM tags to links": the workspace's, and the campaign's own
+       -- choice ('' follows the workspace's, else 'true' or 'false').
+       coalesce((w.sending_defaults->>'utm_links')::boolean, false)::boolean AS utm_links,
+       coalesce(c.content_settings->>'utm', '')::text AS utm_override
 FROM campaigns c
 JOIN workspaces w ON w.id = c.workspace_id
 LEFT JOIN senders s ON s.id = c.sender_id
@@ -678,6 +688,8 @@ type SendingCampaignContextRow struct {
 	WorkspaceName         string          `json:"workspaceName"`
 	WorkspaceThresholds   json.RawMessage `json:"workspaceThresholds"`
 	ListUnsubscribeMailto bool            `json:"listUnsubscribeMailto"`
+	UtmLinks              bool            `json:"utmLinks"`
+	UtmOverride           string          `json:"utmOverride"`
 }
 
 // A campaign with its sender and workspace, for building messages.
@@ -717,6 +729,8 @@ func (q *Queries) SendingCampaignContext(ctx context.Context, id uuid.UUID) (Sen
 		&i.WorkspaceName,
 		&i.WorkspaceThresholds,
 		&i.ListUnsubscribeMailto,
+		&i.UtmLinks,
+		&i.UtmOverride,
 	)
 	return i, err
 }
@@ -1645,7 +1659,7 @@ func (q *Queries) SendingIncidents(ctx context.Context, campaignID uuid.UUID) ([
 }
 
 const sendingInsertAutomationLink = `-- name: SendingInsertAutomationLink :exec
-INSERT INTO automation_email_links (email_id, version, language, position, url, label) VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO automation_email_links (email_id, version, language, utm, position, url, label) VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT DO NOTHING
 `
 
@@ -1653,6 +1667,7 @@ type SendingInsertAutomationLinkParams struct {
 	EmailID  uuid.UUID `json:"emailId"`
 	Version  int32     `json:"version"`
 	Language string    `json:"language"`
+	Utm      string    `json:"utm"`
 	Position int32     `json:"position"`
 	Url      string    `json:"url"`
 	Label    string    `json:"label"`
@@ -1663,6 +1678,7 @@ func (q *Queries) SendingInsertAutomationLink(ctx context.Context, arg SendingIn
 		arg.EmailID,
 		arg.Version,
 		arg.Language,
+		arg.Utm,
 		arg.Position,
 		arg.Url,
 		arg.Label,

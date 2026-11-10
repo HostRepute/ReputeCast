@@ -28,7 +28,7 @@ type overviewT struct {
 	Providers []struct{ ID, Name, Short string }
 	Defaults  struct {
 		DefaultSenderID, ReplyHandling, ReplyTo, FooterAddress, TrackingDomain string
-		ListUnsubscribeMailto                                                  bool
+		ListUnsubscribeMailto, UTMLinks                                        bool
 		TrackingOptions                                                        []struct {
 			Domain   string
 			Verified bool
@@ -262,6 +262,49 @@ func TestSenderDefaultsListUnsubscribeMailto(t *testing.T) {
 	viewer := env.Client()
 	viewer.SignInDemo("aisha@acme.io")
 	body["listUnsubscribeMailto"] = true
+	viewer.Do("PUT", ws+"/senders/defaults", body).MustStatus(t, 403)
+}
+
+// "Add UTM tags to links" (G-13) is off by default, saved with the Defaults
+// card (omitting it keeps it), audited, and only for members who manage
+// senders.
+func TestSenderDefaultsUTMLinks(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	get := func() bool {
+		var ov overviewT
+		c.Do("GET", ws+"/senders", nil).MustStatus(t, 200).JSON(t, &ov)
+		return ov.Defaults.UTMLinks
+	}
+	if get() {
+		t.Fatal("on before anyone turned it on")
+	}
+	body := map[string]any{"replyHandling": "forward", "replyTo": "hello@acme.io", "footerAddress": "Acme Inc · 1 Main St", "utmLinks": true}
+	c.Do("PUT", ws+"/senders/defaults", body).MustStatus(t, 200)
+	if !get() {
+		t.Fatal("not saved")
+	}
+	var before, after string
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT before->>'utm_links', after->>'utm_links' FROM audit_events
+		WHERE action = 'senders.defaults_update' ORDER BY occurred_at DESC LIMIT 1`).Scan(&before, &after); err != nil || before != "false" || after != "true" {
+		t.Fatalf("audit %q → %q %v", before, after, err)
+	}
+	delete(body, "utmLinks")
+	c.Do("PUT", ws+"/senders/defaults", body).MustStatus(t, 200)
+	if !get() {
+		t.Fatal("a save without the field turned it off")
+	}
+	body["utmLinks"] = false
+	c.Do("PUT", ws+"/senders/defaults", body).MustStatus(t, 200)
+	var stored *string
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT sending_defaults->>'utm_links' FROM workspaces WHERE slug = 'acme-newsletter'`).Scan(&stored); err != nil || stored != nil || get() {
+		t.Fatalf("off leaves the key out: %v %v", stored, err)
+	}
+	viewer := env.Client()
+	viewer.SignInDemo("aisha@acme.io")
+	body["utmLinks"] = true
 	viewer.Do("PUT", ws+"/senders/defaults", body).MustStatus(t, 403)
 }
 

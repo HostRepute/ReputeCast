@@ -207,6 +207,28 @@
   .rv-card.c-tight {
     gap: 10px;
   }
+  /* The Links card (SendReadiness .trow): the words on the left, the
+     switch on the right at the first line. Outranks Toggle's items-center
+     and gap-3 utilities. */
+  .rv-trow {
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  /* Its tags, without the passed chips' padding; a long campaign slug ends
+     in an ellipsis inside its chip (Truncate shows the whole tag). */
+  .rv-pchips.rv-utm {
+    padding: 0;
+  }
+  .rv-utm .rv-pchip {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .rv-utm .ellipsis {
+    min-width: 0;
+    max-width: 100%;
+  }
   /* The estimate's timeline under the route table (the board's .inset). */
   .rv-inset {
     padding: 12px 14px;

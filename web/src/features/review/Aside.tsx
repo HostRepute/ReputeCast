@@ -1,12 +1,15 @@
+import { Link } from '@tanstack/react-router'
 import { useId, useState, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Field, Select } from '@/components/ui/Field'
+import { Field, Select, Toggle } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
-import { formatList, getI18n, useT } from '@/i18n'
+import { Truncate } from '@/components/ui/Truncate'
+import { formatList, getI18n, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { calendarDate, clock, count, decimal, inZone, timeOfDay } from '@/lib/format'
+import { useWorkspace } from '@/lib/session'
 import {
   defaultScheduleAt,
   dollars,
@@ -409,6 +412,77 @@ function textOf(t: Thresholds): Record<ThresholdField, string> {
     mailboxComplaint: percentText(t.mailboxComplaint, thresholdLimits.mailboxComplaint.digits),
     providerErrors: percentText(t.providerErrors, thresholdLimits.providerErrors.digits),
   }
+}
+
+/**
+ * Links (G-13): "Add UTM tags" for this send (the campaign's own choice,
+ * else the workspace's default), the tags it adds as the server computes
+ * them for this campaign, and the workspace's default. A long tag ends in
+ * an ellipsis, the whole tag on hover and focus.
+ */
+export function LinksCard({
+  utm,
+  on,
+  workspaceDefault,
+  disabledReason,
+  saving,
+  onToggle,
+}: {
+  utm?: Schemas['ReviewUTM']
+  on: boolean
+  workspaceDefault: boolean
+  disabledReason?: string
+  saving?: boolean
+  onToggle: (on: boolean) => void
+}) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const tags = utm
+    ? [
+        ['utm_source', utm.source],
+        ['utm_medium', utm.medium],
+        ['utm_campaign', utm.campaign],
+      ]
+    : []
+  return (
+    <section className="card rv-card c-tight" aria-labelledby="rv-links">
+      <h2 className="h2" id="rv-links">
+        {t(m.linksCard)}
+      </h2>
+      <Toggle
+        className="rv-trow"
+        label={t(m.utmTags)}
+        description={t(m.utmTagsHelp)}
+        checked={on}
+        disabled={Boolean(disabledReason) || saving}
+        aria-busy={saving || undefined}
+        onChange={(e) => onToggle(e.target.checked)}
+      />
+      {on && tags.length ? (
+        <ul className="rv-pchips rv-utm" aria-label={t(m.utmTagsList)}>
+          {tags.map(([k, v]) => (
+            <li key={k} className="rv-pchip mono">
+              <Truncate text={`${k}=${v}`} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <span className="k">
+        <T
+          msg={m.utmDefault}
+          values={{
+            on: workspaceDefault ? 'yes' : 'no',
+            link: (c) => (
+              <Link to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
+                {c}
+              </Link>
+            ),
+          }}
+        />
+      </span>
+      {disabledReason ? <span className="k">{disabledReason}</span> : null}
+    </section>
+  )
 }
 
 /**

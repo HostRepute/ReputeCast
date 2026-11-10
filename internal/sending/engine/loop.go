@@ -224,7 +224,7 @@ func (e *Engine) templatesFor(id uuid.UUID, c sendContent) (map[string]*Template
 		}
 	}
 	for _, k := range keys {
-		t, err := Prepare(c.forVariant(k), c.Tracking)
+		t, err := Prepare(c.forVariant(k), c.tracking())
 		if err != nil {
 			return nil, err
 		}

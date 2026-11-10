@@ -52,6 +52,10 @@ export default translate(m, {
   listUnsubscribeMailto: 'mailto:-Adresse in List-Unsubscribe aufnehmen',
   listUnsubscribeMailtoHelp:
     'Aus: Der Header enthält nur den Link zur Abmeldung mit einem Klick, den Gmail, Yahoo und Outlook nutzen. An: Manche Mail-Apps senden stattdessen eine E-Mail. ReputeCast empfängt keine E-Mails, daher muss jemand unter der Antwortadresse diese Kontakte innerhalb von 10 Tagen von Hand austragen.',
+  utmLinks: 'UTM-Parameter an Links anhängen',
+  utmLinksHelp:
+    'Webanalyse-Tools zeigen dann, welche E-Mail einen Besuch gebracht hat. Ein Link behält die UTM-Parameter, die er schon hat. Kampagnen nutzen die Einstellung ab dem nächsten Versand, Automationen ab der nächsten Veröffentlichung.',
+  utmCampaignName: 'Name der Kampagne',
   defaultsSaved: 'Standards gespeichert',
   defaultsFailed: 'Standards nicht gespeichert',
   addSenderTitle: 'Absender hinzufügen',

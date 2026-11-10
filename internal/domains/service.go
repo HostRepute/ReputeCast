@@ -199,6 +199,10 @@ type SenderDefaults struct {
 	// From) to the List-Unsubscribe header of campaigns and automations.
 	// Off by default: the header carries only the one-click link.
 	ListUnsubscribeMailto bool `json:"listUnsubscribeMailto"`
+	// UTMLinks adds utm_source, utm_medium and utm_campaign to the links of
+	// campaigns (from their next send, unless a campaign chose otherwise)
+	// and automations (from their next publish). Off by default.
+	UTMLinks bool `json:"utmLinks"`
 }
 
 // SendersOverview is Settings › Senders.
@@ -219,6 +223,8 @@ type sendingDefaults struct {
 	TrackingDomain string `json:"tracking_domain,omitempty"`
 	// ListUnsubscribeMailto: absent = off.
 	ListUnsubscribeMailto bool `json:"list_unsubscribe_mailto,omitempty"`
+	// UTMLinks: absent = off.
+	UTMLinks bool `json:"utm_links,omitempty"`
 	// The rest belongs to Settings › Providers (internal/connect) and is
 	// kept as is.
 	Rest map[string]json.RawMessage `json:"-"`
@@ -240,6 +246,12 @@ func ListUnsubscribeMailto(raw json.RawMessage) bool {
 	return decodeSendingDefaults(raw).ListUnsubscribeMailto
 }
 
+// UTMLinks reports whether a workspace's sending defaults turn on "Add UTM
+// tags to links".
+func UTMLinks(raw json.RawMessage) bool {
+	return decodeSendingDefaults(raw).UTMLinks
+}
+
 func (d sendingDefaults) encode() json.RawMessage {
 	m := map[string]any{}
 	for k, v := range d.Rest {
@@ -255,11 +267,15 @@ func (d sendingDefaults) encode() json.RawMessage {
 	set("reply_handling", d.ReplyHandling)
 	set("reply_to", d.ReplyTo)
 	set("tracking_domain", d.TrackingDomain)
-	if d.ListUnsubscribeMailto {
-		m["list_unsubscribe_mailto"] = true
-	} else {
-		delete(m, "list_unsubscribe_mailto")
+	setBool := func(k string, v bool) {
+		if v {
+			m[k] = true
+		} else {
+			delete(m, k)
+		}
 	}
+	setBool("list_unsubscribe_mailto", d.ListUnsubscribeMailto)
+	setBool("utm_links", d.UTMLinks)
 	b, _ := json.Marshal(m)
 	return b
 }
@@ -405,6 +421,7 @@ func defaultsView(defs workspaceDefaults, senders []store.SenderListRow, doms []
 	}
 	out.TrackingDomain = defs.sending.TrackingDomain
 	out.ListUnsubscribeMailto = defs.sending.ListUnsubscribeMailto
+	out.UTMLinks = defs.sending.UTMLinks
 	for _, d := range doms {
 		if d.TrackingDomain != "" {
 			out.TrackingOptions = append(out.TrackingOptions, SenderTrackingOption{Domain: d.TrackingDomain, Verified: d.TrackingStatus == StatusVerified})
@@ -748,6 +765,8 @@ type SenderDefaultsInput struct {
 	// ListUnsubscribeMailto turns the mailto: address in List-Unsubscribe
 	// on or off; omit to keep it.
 	ListUnsubscribeMailto *bool `json:"listUnsubscribeMailto,omitempty"`
+	// UTMLinks turns "Add UTM tags to links" on or off; omit to keep it.
+	UTMLinks *bool `json:"utmLinks,omitempty"`
 }
 
 // SaveDefaults saves the "Defaults" card.
@@ -809,11 +828,14 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 	}
 	before := map[string]any{"default_sender_id": defs.ids["broadcast"], "reply_handling": defs.sending.ReplyHandling, "reply_to": defs.sending.ReplyTo,
 		"footer_address": defs.branding["footer_address"], "tracking_domain": defs.sending.TrackingDomain, "transactional_sender_id": defs.ids["transactional"],
-		"list_unsubscribe_mailto": defs.sending.ListUnsubscribeMailto}
+		"list_unsubscribe_mailto": defs.sending.ListUnsubscribeMailto, "utm_links": defs.sending.UTMLinks}
 	next := defs.sending
 	next.ReplyHandling, next.ReplyTo, next.TrackingDomain = in.ReplyHandling, replyTo, tracking
 	if in.ListUnsubscribeMailto != nil {
 		next.ListUnsubscribeMailto = *in.ListUnsubscribeMailto
+	}
+	if in.UTMLinks != nil {
+		next.UTMLinks = *in.UTMLinks
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -842,7 +864,7 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 		}
 		return s.audit(ctx, q, ws, "senders.defaults_update", "workspace", ws.ID.String(), ws.Name, before,
 			map[string]any{"default_sender_id": broadcast, "reply_handling": in.ReplyHandling, "reply_to": replyTo, "footer_address": strings.TrimSpace(in.FooterAddress), "tracking_domain": tracking,
-				"transactional_sender_id": txnSender, "list_unsubscribe_mailto": next.ListUnsubscribeMailto})
+				"transactional_sender_id": txnSender, "list_unsubscribe_mailto": next.ListUnsubscribeMailto, "utm_links": next.UTMLinks})
 	})
 	if err != nil {
 		return SenderDefaults{}, err

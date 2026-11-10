@@ -1445,7 +1445,7 @@
   },
   "SendReadiness.dc.html": {
    "expand": "fill",
-   "h": 2239,
+   "h": 2483,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings",
@@ -1512,7 +1512,7 @@
    "y": 7179
   },
   "SendReadinessPhone.dc.html": {
-   "h": 4132,
+   "h": 4441,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings · phone",
@@ -1531,7 +1531,7 @@
    "y": 0
   },
   "SendReadinessTablet.dc.html": {
-   "h": 2641,
+   "h": 2839,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings · tablet",
@@ -1638,7 +1638,7 @@
   },
   "SettingsSenders.dc.html": {
    "expand": "fill",
-   "h": 1398,
+   "h": 1503,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains",
@@ -1647,7 +1647,7 @@
    "y": 0
   },
   "SettingsSendersPhone.dc.html": {
-   "h": 1978,
+   "h": 2203,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains · phone",
@@ -1656,7 +1656,7 @@
    "y": 5627
   },
   "SettingsSendersTablet.dc.html": {
-   "h": 1561,
+   "h": 1683,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains · tablet",

@@ -15,13 +15,14 @@ import (
 )
 
 const trackingAutomationLinks = `-- name: TrackingAutomationLinks :many
-SELECT position, url FROM automation_email_links WHERE email_id = $1 AND version = $2 AND language = $3 ORDER BY position
+SELECT position, url FROM automation_email_links WHERE email_id = $1 AND version = $2 AND language = $3 AND utm = $4 ORDER BY position
 `
 
 type TrackingAutomationLinksParams struct {
 	EmailID  uuid.UUID `json:"emailId"`
 	Version  int32     `json:"version"`
 	Language string    `json:"language"`
+	Utm      string    `json:"utm"`
 }
 
 type TrackingAutomationLinksRow struct {
@@ -29,8 +30,15 @@ type TrackingAutomationLinksRow struct {
 	Url      string `json:"url"`
 }
 
+// utm tells apart the link sets of an email version sent with and without
+// UTM tags (clicktoken.UTM.Key, ” = untagged).
 func (q *Queries) TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error) {
-	rows, err := q.db.Query(ctx, trackingAutomationLinks, arg.EmailID, arg.Version, arg.Language)
+	rows, err := q.db.Query(ctx, trackingAutomationLinks,
+		arg.EmailID,
+		arg.Version,
+		arg.Language,
+		arg.Utm,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -50,13 +58,14 @@ func (q *Queries) TrackingAutomationLinks(ctx context.Context, arg TrackingAutom
 }
 
 const trackingBumpAutomationLink = `-- name: TrackingBumpAutomationLink :exec
-UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = $1 AND version = $2 AND language = $3 AND position = $4
+UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = $1 AND version = $2 AND language = $3 AND utm = $4 AND position = $5
 `
 
 type TrackingBumpAutomationLinkParams struct {
 	EmailID  uuid.UUID `json:"emailId"`
 	Version  int32     `json:"version"`
 	Language string    `json:"language"`
+	Utm      string    `json:"utm"`
 	Position int32     `json:"position"`
 }
 
@@ -65,6 +74,7 @@ func (q *Queries) TrackingBumpAutomationLink(ctx context.Context, arg TrackingBu
 		arg.EmailID,
 		arg.Version,
 		arg.Language,
+		arg.Utm,
 		arg.Position,
 	)
 	return err

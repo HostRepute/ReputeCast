@@ -19,7 +19,7 @@ import { t as tx, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { MoreMenu, StickyAction } from './Actions'
 import { approvalMode, ApprovedCard, BypassDialog, canRestore, HeldActions, HeldCard, InvalidatedCard, RequiredCard, WaitingCard } from './ApprovalCard'
-import { AudienceCard, finalCount, RouteCard, ScheduleNote, SchedulingCard, TestSendsCard, ThresholdsCard, ThrottlingCard } from './Aside'
+import { AudienceCard, finalCount, LinksCard, RouteCard, ScheduleNote, SchedulingCard, TestSendsCard, ThresholdsCard, ThrottlingCard } from './Aside'
 import { RunningList, UnknownList } from './Checklist'
 import { ConfirmSend, type SendIntent } from './ConfirmSend'
 import { FixReview, type FixPick } from './FixReview'
@@ -336,6 +336,22 @@ function ReviewBody({
     } catch (e) {
       fail(t(m.saveFailed, { what }))(e)
       return false
+    }
+  }
+
+  // "Add UTM tags" (G-13) is the campaign's own setting: saved whole, with
+  // its minify choice, through update-campaign; the switch shows the
+  // choice while it saves and falls back on an error.
+  const [utmPending, setUtmPending] = useState<boolean>()
+  const saveUTM = async (on: boolean) => {
+    setUtmPending(on)
+    try {
+      await http.PATCH('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path }, body: { settings: { ...d.campaign.settings, utm: on } } })
+      await refresh()
+    } catch (e) {
+      fail(t(m.utmFailed))(e)
+    } finally {
+      setUtmPending(undefined)
     }
   }
 
@@ -857,6 +873,14 @@ function ReviewBody({
             scope={!blocked}
             disabledReason={editReason}
             onSave={(th: Thresholds) => saveSettings({ thresholds: th }, 'thresholds')}
+          />
+          <LinksCard
+            utm={c.utm}
+            on={utmPending ?? Boolean(c.utm)}
+            workspaceDefault={c.utmDefault}
+            saving={utmPending !== undefined}
+            disabledReason={editReason}
+            onToggle={(on) => void saveUTM(on)}
           />
           {digestSends && issue?.sendAt ? (
             <ScheduleNote text={t(im.scheduleNote, { when: dateTime(issue.sendAt) })} />

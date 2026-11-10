@@ -494,6 +494,7 @@ type AutomationEmailLink struct {
 	Label    string    `json:"label"`
 	Clicks   int64     `json:"clicks"`
 	Language string    `json:"language"`
+	Utm      string    `json:"utm"`
 }
 
 type AutomationEmailVersion struct {
@@ -592,6 +593,7 @@ type AutomationVersion struct {
 	Summary      string          `json:"summary"`
 	Migration    string          `json:"migration"`
 	SummaryText  json.RawMessage `json:"summaryText"`
+	Utm          json.RawMessage `json:"utm"`
 }
 
 type AutomationWebhookCall struct {

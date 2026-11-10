@@ -3015,6 +3015,8 @@ type Querier interface {
 	PublicSettingsTurnstileWorks(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	// The unsubscribe page tab: departures and answers in the last 30 days.
 	PublicUnsubscribeStats(ctx context.Context, arg PublicUnsubscribeStatsParams) (PublicUnsubscribeStatsRow, error)
+	// utm is the UTM tags the version's emails add (NULL = untagged), decided
+	// now and never changed.
 	PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error
 	PurgeAuditEvents(ctx context.Context, arg PurgeAuditEventsParams) (int64, error)
 	PurgeAutomationEvents(ctx context.Context, before *time.Time) (int64, error)
@@ -4672,6 +4674,8 @@ type Querier interface {
 	TouchPasskey(ctx context.Context, arg TouchPasskeyParams) error
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
+	// utm tells apart the link sets of an email version sent with and without
+	// UTM tags (clicktoken.UTM.Key, '' = untagged).
 	TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error)
 	TrackingBumpAutomationLink(ctx context.Context, arg TrackingBumpAutomationLinkParams) error
 	TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUID) ([]TrackingCampaignLinksRow, error)

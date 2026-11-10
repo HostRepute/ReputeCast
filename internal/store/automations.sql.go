@@ -2617,7 +2617,7 @@ func (q *Queries) GetAutomationStepSecret(ctx context.Context, arg GetAutomation
 }
 
 const getAutomationVersion = `-- name: GetAutomationVersion :one
-SELECT v.automation_id, v.version, v.graph, v.created_by, v.created_at, v.published_by, v.published_at, v.retired_at, v.summary, v.migration, v.summary_text, coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
+SELECT v.automation_id, v.version, v.graph, v.created_by, v.created_at, v.published_by, v.published_at, v.retired_at, v.summary, v.migration, v.summary_text, v.utm, coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
 FROM automation_versions v
 LEFT JOIN users cu ON cu.id = v.created_by
 LEFT JOIN users pu ON pu.id = v.published_by
@@ -2641,6 +2641,7 @@ type GetAutomationVersionRow struct {
 	Summary         string          `json:"summary"`
 	Migration       string          `json:"migration"`
 	SummaryText     json.RawMessage `json:"summaryText"`
+	Utm             json.RawMessage `json:"utm"`
 	CreatedByName   string          `json:"createdByName"`
 	PublishedByName string          `json:"publishedByName"`
 }
@@ -2660,6 +2661,7 @@ func (q *Queries) GetAutomationVersion(ctx context.Context, arg GetAutomationVer
 		&i.Summary,
 		&i.Migration,
 		&i.SummaryText,
+		&i.Utm,
 		&i.CreatedByName,
 		&i.PublishedByName,
 	)
@@ -3638,8 +3640,9 @@ func (q *Queries) PauseAutomation(ctx context.Context, arg PauseAutomationParams
 }
 
 const publishAutomationVersion = `-- name: PublishAutomationVersion :exec
-UPDATE automation_versions SET published_at = now(), published_by = $1, summary = $2, summary_text = $3, migration = $4
-WHERE automation_id = $5 AND version = $6
+UPDATE automation_versions SET published_at = now(), published_by = $1, summary = $2, summary_text = $3, migration = $4,
+       utm = $5
+WHERE automation_id = $6 AND version = $7
 `
 
 type PublishAutomationVersionParams struct {
@@ -3647,16 +3650,20 @@ type PublishAutomationVersionParams struct {
 	Summary      string          `json:"summary"`
 	SummaryText  json.RawMessage `json:"summaryText"`
 	Migration    string          `json:"migration"`
+	Utm          json.RawMessage `json:"utm"`
 	AutomationID uuid.UUID       `json:"automationId"`
 	Version      int32           `json:"version"`
 }
 
+// utm is the UTM tags the version's emails add (NULL = untagged), decided
+// now and never changed.
 func (q *Queries) PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error {
 	_, err := q.db.Exec(ctx, publishAutomationVersion,
 		arg.PublishedBy,
 		arg.Summary,
 		arg.SummaryText,
 		arg.Migration,
+		arg.Utm,
 		arg.AutomationID,
 		arg.Version,
 	)

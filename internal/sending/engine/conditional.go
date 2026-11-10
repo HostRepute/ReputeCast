@@ -89,7 +89,7 @@ func (e *Engine) versionTemplate(rs *runState, key, hidden string) (*Template, e
 		return t, nil
 	}
 	content, cut := e.cutContent(rs.content.forVariant(key), hidden)
-	t, err := PrepareCut(content, rs.content.Tracking, cut)
+	t, err := PrepareCut(content, rs.content.tracking(), cut)
 	if err != nil {
 		return nil, err
 	}

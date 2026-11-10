@@ -42,6 +42,7 @@ func TestSending(t *testing.T) {
 	t.Run("AutomationOutboxWake", func(t *testing.T) { testAutomationOutboxWake(t, s.Fixture(t, "Automation outbox wake")) })
 	t.Run("MailboxFromMX", func(t *testing.T) { testMailboxFromMX(t, s.Fixture(t, "Mailbox from MX")) })
 	t.Run("ListUnsubscribeMailto", func(t *testing.T) { testListUnsubscribeMailto(t, s) })
+	t.Run("UTMLinks", func(t *testing.T) { testUTMLinks(t, s) })
 }
 
 // testListUnsubscribeMailto: by default List-Unsubscribe carries only the
