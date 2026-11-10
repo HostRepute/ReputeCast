@@ -89,13 +89,12 @@ ON CONFLICT (workspace_id, via, asset, source) DO UPDATE SET
     delisting_requested_at = EXCLUDED.delisting_requested_at, checked_at = EXCLUDED.checked_at;
 
 -- name: UpsertDeliverabilityPostmasterDay :exec
-INSERT INTO postmaster_daily (workspace_id, domain, day, via, spam_rate, domain_reputation, ip_reputation, spf_rate, dkim_rate, dmarc_rate,
+INSERT INTO postmaster_daily (workspace_id, domain, day, via, spam_rate, spf_rate, dkim_rate, dmarc_rate,
     tls_rate, delivery_errors, fbl_flagged)
-VALUES (@workspace_id, @domain, @day, @via, @spam_rate, @domain_reputation, @ip_reputation, @spf_rate, @dkim_rate, @dmarc_rate,
+VALUES (@workspace_id, @domain, @day, @via, @spam_rate, @spf_rate, @dkim_rate, @dmarc_rate,
     @tls_rate, @delivery_errors, @fbl_flagged)
 ON CONFLICT (workspace_id, domain, day) DO UPDATE SET
-    via = EXCLUDED.via, spam_rate = EXCLUDED.spam_rate, domain_reputation = EXCLUDED.domain_reputation,
-    ip_reputation = EXCLUDED.ip_reputation, spf_rate = EXCLUDED.spf_rate, dkim_rate = EXCLUDED.dkim_rate,
+    via = EXCLUDED.via, spam_rate = EXCLUDED.spam_rate, spf_rate = EXCLUDED.spf_rate, dkim_rate = EXCLUDED.dkim_rate,
     dmarc_rate = EXCLUDED.dmarc_rate, tls_rate = EXCLUDED.tls_rate, delivery_errors = EXCLUDED.delivery_errors,
     fbl_flagged = EXCLUDED.fbl_flagged;
 

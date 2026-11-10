@@ -74,7 +74,7 @@ func (q *Queries) KeysAgentActions(ctx context.Context, arg KeysAgentActionsPara
 }
 
 const keysByToken = `-- name: KeysByToken :one
-SELECT k.id, k.workspace_id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at,
+SELECT k.id, k.workspace_id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at, k.allowed_ips,
        w.slug AS workspace_slug, w.name AS workspace_name, w.mcp_settings
 FROM api_keys k JOIN workspaces w ON w.id = k.workspace_id AND w.deleted_at IS NULL
 WHERE k.token_hash = $1
@@ -91,6 +91,7 @@ type KeysByTokenRow struct {
 	CreatedBy     *uuid.UUID      `json:"createdBy"`
 	ExpiresAt     *time.Time      `json:"expiresAt"`
 	RevokedAt     *time.Time      `json:"revokedAt"`
+	AllowedIps    []netip.Prefix  `json:"allowedIps"`
 	WorkspaceSlug string          `json:"workspaceSlug"`
 	WorkspaceName string          `json:"workspaceName"`
 	McpSettings   json.RawMessage `json:"mcpSettings"`
@@ -110,6 +111,7 @@ func (q *Queries) KeysByToken(ctx context.Context, tokenHash []byte) (KeysByToke
 		&i.CreatedBy,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.AllowedIps,
 		&i.WorkspaceSlug,
 		&i.WorkspaceName,
 		&i.McpSettings,
@@ -136,8 +138,8 @@ func (q *Queries) KeysCountActive(ctx context.Context, workspaceID uuid.UUID) (K
 }
 
 const keysCreate = `-- name: KeysCreate :one
-INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, expires_at, rotated_from)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, expires_at, rotated_from, allowed_ips)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING id, created_at
 `
 
@@ -154,6 +156,7 @@ type KeysCreateParams struct {
 	CreatedBy   *uuid.UUID      `json:"createdBy"`
 	ExpiresAt   *time.Time      `json:"expiresAt"`
 	RotatedFrom *uuid.UUID      `json:"rotatedFrom"`
+	AllowedIps  []netip.Prefix  `json:"allowedIps"`
 }
 
 type KeysCreateRow struct {
@@ -175,6 +178,7 @@ func (q *Queries) KeysCreate(ctx context.Context, arg KeysCreateParams) (KeysCre
 		arg.CreatedBy,
 		arg.ExpiresAt,
 		arg.RotatedFrom,
+		arg.AllowedIps,
 	)
 	var i KeysCreateRow
 	err := row.Scan(&i.ID, &i.CreatedAt)
@@ -216,7 +220,7 @@ const keysGet = `-- name: KeysGet :one
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
        coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
-       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.allowed_ips
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.id = $1 AND k.workspace_id = $2 AND k.kind = $3
@@ -254,6 +258,7 @@ type KeysGetRow struct {
 	Categories     []uuid.UUID     `json:"categories"`
 	TestAddresses  []string        `json:"testAddresses"`
 	RatePerSecond  int32           `json:"ratePerSecond"`
+	AllowedIps     []netip.Prefix  `json:"allowedIps"`
 }
 
 func (q *Queries) KeysGet(ctx context.Context, arg KeysGetParams) (KeysGetRow, error) {
@@ -285,6 +290,7 @@ func (q *Queries) KeysGet(ctx context.Context, arg KeysGetParams) (KeysGetRow, e
 		&i.Categories,
 		&i.TestAddresses,
 		&i.RatePerSecond,
+		&i.AllowedIps,
 	)
 	return i, err
 }
@@ -294,7 +300,7 @@ const keysList = `-- name: KeysList :many
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
        coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
-       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.allowed_ips
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = $1 AND k.kind = $2
@@ -338,6 +344,7 @@ type KeysListRow struct {
 	Categories     []uuid.UUID     `json:"categories"`
 	TestAddresses  []string        `json:"testAddresses"`
 	RatePerSecond  int32           `json:"ratePerSecond"`
+	AllowedIps     []netip.Prefix  `json:"allowedIps"`
 }
 
 // API keys and MCP agents. Both live in api_keys (kind api_key | mcp_agent).
@@ -378,6 +385,7 @@ func (q *Queries) KeysList(ctx context.Context, arg KeysListParams) ([]KeysListR
 			&i.Categories,
 			&i.TestAddresses,
 			&i.RatePerSecond,
+			&i.AllowedIps,
 		); err != nil {
 			return nil, err
 		}
@@ -391,8 +399,10 @@ func (q *Queries) KeysList(ctx context.Context, arg KeysListParams) ([]KeysListR
 
 const keysRecordRejection = `-- name: KeysRecordRejection :exec
 INSERT INTO api_key_rejections (api_key_id, day, ip, client, reason, calls, first_at, last_at)
-VALUES ($1, current_date, $2, $3, $4, 1, now(), now())
-ON CONFLICT (api_key_id, day, ip) DO UPDATE SET calls = api_key_rejections.calls + 1, last_at = now(),
+SELECT $1::uuid, current_date, $2::text, $3::text, $4::text, 1, now(), now()
+WHERE (SELECT count(*) FROM api_key_rejections c WHERE c.api_key_id = $1::uuid AND c.day = current_date) < 1000
+   OR EXISTS (SELECT 1 FROM api_key_rejections e WHERE e.api_key_id = $1::uuid AND e.day = current_date AND e.ip = $2::text)
+ON CONFLICT (api_key_id, day, ip) DO UPDATE SET calls = api_key_rejections.calls + 1, last_at = now(), reason = excluded.reason,
     client = CASE WHEN excluded.client <> '' THEN excluded.client ELSE api_key_rejections.client END
 `
 
@@ -403,6 +413,9 @@ type KeysRecordRejectionParams struct {
 	Reason   string    `json:"reason"`
 }
 
+// One row per key, day and address, at most 1,000 addresses a key and day
+// (an address already counted keeps counting), so a flood of callers can't
+// grow the table without bound.
 func (q *Queries) KeysRecordRejection(ctx context.Context, arg KeysRecordRejectionParams) error {
 	_, err := q.db.Exec(ctx, keysRecordRejection,
 		arg.ApiKeyID,
@@ -460,6 +473,38 @@ func (q *Queries) KeysRevoke(ctx context.Context, arg KeysRevokeParams) (int64, 
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const keysSetAllowedIPs = `-- name: KeysSetAllowedIPs :one
+UPDATE api_keys SET allowed_ips = $1
+WHERE id = $2 AND workspace_id = $3 AND kind = $4 AND revoked_at IS NULL AND integration_id IS NULL
+RETURNING id, allowed_ips
+`
+
+type KeysSetAllowedIPsParams struct {
+	AllowedIps  []netip.Prefix `json:"allowedIps"`
+	ID          uuid.UUID      `json:"id"`
+	WorkspaceID uuid.UUID      `json:"workspaceId"`
+	Kind        string         `json:"kind"`
+}
+
+type KeysSetAllowedIPsRow struct {
+	ID         uuid.UUID      `json:"id"`
+	AllowedIps []netip.Prefix `json:"allowedIps"`
+}
+
+// The addresses and networks a key may be called from (empty: any). Revoked
+// keys and integrations' keys keep theirs.
+func (q *Queries) KeysSetAllowedIPs(ctx context.Context, arg KeysSetAllowedIPsParams) (KeysSetAllowedIPsRow, error) {
+	row := q.db.QueryRow(ctx, keysSetAllowedIPs,
+		arg.AllowedIps,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Kind,
+	)
+	var i KeysSetAllowedIPsRow
+	err := row.Scan(&i.ID, &i.AllowedIps)
+	return i, err
 }
 
 const keysSetTransactional = `-- name: KeysSetTransactional :exec

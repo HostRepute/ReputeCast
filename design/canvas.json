@@ -534,7 +534,7 @@
    "y": 0
   },
   "DeliverabilityPhone.dc.html": {
-   "h": 4189,
+   "h": 4125,
    "is_interactive": true,
    "page": "deliverability",
    "title": "Deliverability · HostRepute connected · phone",
@@ -553,7 +553,7 @@
    "y": 0
   },
   "DeliverabilityTablet.dc.html": {
-   "h": 2697,
+   "h": 2681,
    "is_interactive": true,
    "page": "deliverability",
    "title": "Deliverability · HostRepute connected · tablet",
@@ -1475,7 +1475,7 @@
   },
   "SendReadinessConfirm.dc.html": {
    "expand": "fill",
-   "h": 746,
+   "h": 779,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · confirm",
@@ -1513,7 +1513,7 @@
   },
   "SendReadinessStates.dc.html": {
    "expand": "fill",
-   "h": 3334,
+   "h": 3831,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · running / error / scheduled",
@@ -1571,7 +1571,7 @@
   },
   "SettingsKeys.dc.html": {
    "expand": "fill",
-   "h": 2100,
+   "h": 2134,
    "is_interactive": true,
    "page": "integrations",
    "title": "API keys & MCP agents",
@@ -1590,10 +1590,10 @@
   },
   "SettingsKeysStates.dc.html": {
    "expand": "fill",
-   "h": 1191,
+   "h": 1848,
    "is_interactive": true,
    "page": "integrations",
-   "title": "API keys · shown once, expired, escalation guard",
+   "title": "API keys · shown once, expired, escalation guard, allowed IPs",
    "w": 1440,
    "x": 1560,
    "y": 0
@@ -1609,7 +1609,7 @@
   },
   "SettingsMCP.dc.html": {
    "expand": "fill",
-   "h": 1761,
+   "h": 1774,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · MCP server",
@@ -1629,7 +1629,7 @@
   },
   "SettingsSenders.dc.html": {
    "expand": "fill",
-   "h": 1312,
+   "h": 1398,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains",
@@ -1647,7 +1647,7 @@
    "y": 5627
   },
   "SettingsSendersTablet.dc.html": {
-   "h": 1475,
+   "h": 1561,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains · tablet",
@@ -2600,7 +2600,7 @@
    "x": 4590,
    "y": 43001,
    "w": 390,
-   "h": 6073,
+   "h": 6113,
    "title": "Review & send · languages and accessibility (Weekly Digest #143) · phone",
    "page": "p2-connect",
    "is_interactive": true

@@ -291,6 +291,40 @@ func TestAgentScopeFollowsItsCreator(t *testing.T) {
 	}
 }
 
+// An agent limited to allowed IPs is refused from elsewhere, like a revoked
+// agent, and its refusals are counted (the test client calls from
+// 127.0.0.1).
+func TestAgentAllowedIPs(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var agent struct {
+		Key    struct{ ID string }
+		Secret string
+	}
+	c.Do("POST", ws+"/mcp-agents", map[string]any{"name": "Office agent", "permissions": []string{"reports:view"}, "allowedIps": []string{"203.0.113.0/24"}}).MustStatus(t, 201).JSON(t, &agent)
+	if _, err := connect(t, env, agent.Secret); err == nil {
+		t.Fatal("an agent called from outside its allowed IPs connected")
+	}
+	var rejected int
+	_ = env.App.Pool.QueryRow(context.Background(), `SELECT coalesce(sum(calls), 0) FROM api_key_rejections WHERE api_key_id = $1 AND reason = 'ip_not_allowed'`, agent.Key.ID).Scan(&rejected)
+	if rejected == 0 {
+		t.Fatal("the refusal isn't counted")
+	}
+	c.Do("PUT", ws+"/mcp-agents/"+agent.Key.ID+"/allowed-ips", map[string]any{"allowedIps": []string{"203.0.113.0/24", "127.0.0.1"}}).MustStatus(t, 200)
+	cs, err := connect(t, env, agent.Secret)
+	if err != nil {
+		t.Fatalf("connect from an allowed address: %v", err)
+	}
+	_ = cs.Close()
+	var n int
+	_ = env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM audit_events WHERE action = 'agent.updated' AND target_id = $1`, agent.Key.ID).Scan(&n)
+	if n != 1 {
+		t.Fatalf("agent.updated entries: %d", n)
+	}
+}
+
 // create_segment validates the definition before storing it.
 func TestCreateSegmentValidatesDefinition(t *testing.T) {
 	env := apptest.New(t)

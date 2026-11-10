@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
@@ -1100,7 +1101,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, in PlacementRu
 		if err := q.PlacementTestInsert(ctx, store.PlacementTestInsertParams{ID: id, WorkspaceID: ws.ID, Name: name, ContentKind: in.Content.Kind,
 			ContentID: contentID, ContentName: c.view.Name, ContentNote: c.note, ContentKey: c.view.Key, ContentVersion: int32(c.view.Version), ContentAt: c.at,
 			Variant: in.Variant, Language: c.langUsed, Personalization: c.testData, Through: in.Through, Stream: string(c.stream), ProviderIds: pids,
-			SenderID: &sender, FromName: fromName, FromEmail: fromEmail, Origin: origin, Subject: c.subject, Html: c.html, TextBody: c.text, Links: lb,
+			SenderID: &sender, FromName: fromName, FromEmail: fromEmail, ReplyTo: c.replyTo, Origin: origin, Subject: c.subject, Html: c.html, TextBody: c.text, Links: lb,
 			Providers: sb, TrackOpens: c.tracking.Opens, TrackClicks: c.tracking.Clicks, StartedBy: actor(ctx), StartedAt: now, WaitUntil: &wait,
 			DeleteAfter: deleteAfter, ConditionalVersion: int32(c.view.ConditionalVersion), ConditionalShows: c.shows}); err != nil {
 			return err
@@ -1214,6 +1215,7 @@ func (s *Service) SendDue(ctx context.Context, id uuid.UUID) (*time.Time, error)
 		return nil, err
 	}
 	provs := map[uuid.UUID]store.Provider{}
+	mailto := domains.ListUnsubscribeMailto(ws.SendingDefaults)
 	for _, c := range due {
 		if c.ProviderID == nil {
 			continue
@@ -1227,7 +1229,7 @@ func (s *Service) SendDue(ctx context.Context, id uuid.UUID) (*time.Time, error)
 			}
 			provs[p.ID] = p
 		}
-		msg := s.compose(&ws, t, c, tpl)
+		msg := s.compose(&ws, t, c, tpl, mailto)
 		at := s.now()
 		d, err := s.Deliver.Send(ctx, p, msg, Kind)
 		status, handed, errText := "sent", ptrTime(d.SentAt), ""
@@ -1275,8 +1277,9 @@ func (s *Service) SendDue(ctx context.Context, id uuid.UUID) (*time.Time, error)
 
 // compose builds a copy: the email with the fallbacks, link tracking on
 // (opens and clicks are never counted), the bulk headers a real send has,
-// and the test token.
-func (s *Service) compose(ws *store.Workspace, t store.PlacementTest, c store.PlacementCopy, tpl *engine.Template) providers.Message {
+// and the test token. mailto adds the reply-to, else the From, to
+// List-Unsubscribe, when the workspace includes one (Settings › Senders).
+func (s *Service) compose(ws *store.Workspace, t store.PlacementTest, c store.PlacementCopy, tpl *engine.Template, mailto bool) providers.Message {
 	sign := func(k linktoken.Kind, link uint32) string {
 		return s.Links.Sign(linktoken.Claims{Kind: k, WorkspaceID: ws.ID, MessageID: c.ID, Link: link})
 	}
@@ -1302,8 +1305,12 @@ func (s *Service) compose(ws *store.Workspace, t store.PlacementTest, c store.Pl
 	if t.ContentID != nil {
 		feedback = feedbackID(t.ContentID.String(), ws.Slug, string(stream))
 	}
+	lu := "<" + links["unsubscribe_url"] + ">"
+	if to := firstNonEmpty(t.ReplyTo, t.FromEmail); mailto && to != "" {
+		lu += ", <mailto:" + to + "?subject=" + url.PathEscape("unsubscribe "+unsub) + ">"
+	}
 	h := map[string]string{
-		"List-Unsubscribe":      "<" + links["unsubscribe_url"] + ">, <mailto:" + t.FromEmail + "?subject=" + url.PathEscape("unsubscribe "+unsub) + ">",
+		"List-Unsubscribe":      lu,
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
 		"Feedback-ID":           feedback,
 		seedbox.TestHeader:      c.Token,

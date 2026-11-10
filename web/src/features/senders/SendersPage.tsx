@@ -5,6 +5,7 @@ import { Page } from '@/components/shell/Page'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { Toggle } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { EmptyRow, Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -244,6 +245,8 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
   const [reply, setReply] = useState(d.replyTo)
   const [footer, setFooter] = useState(d.footerAddress)
   const [tracking, setTracking] = useState(d.trackingDomain)
+  // Off by default: List-Unsubscribe carries only the one-click link.
+  const [mailto, setMailto] = useState(d.listUnsubscribeMailto)
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/senders/defaults')
   const submit = () => {
     save.mutate(
@@ -256,6 +259,7 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
           replyTo: reply || undefined,
           footerAddress: footer.trim(),
           trackingDomain: tracking,
+          listUnsubscribeMailto: mailto,
         },
       },
       {
@@ -320,6 +324,14 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
           </select>
         </label>
       </Grid>
+      <Toggle
+        className="sd-trow"
+        label={t(m.listUnsubscribeMailto)}
+        description={t(m.listUnsubscribeMailtoHelp)}
+        checked={mailto}
+        disabled={Boolean(reason)}
+        onChange={(e) => setMailto(e.target.checked)}
+      />
       <div className="flex gap-2">
         <Button variant="primary" onClick={submit} loading={save.isPending} disabledReason={reason}>
           {t(common.save)}

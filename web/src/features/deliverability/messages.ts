@@ -61,7 +61,7 @@ export const m = defineMessages('deliverability', {
   cachedLabel: 'Cached results',
   staleNote: 'Send Readiness stays usable: blocklist checks are marked Unknown instead of Pass until HostRepute answers.',
   noDataYet: 'No data yet',
-  postmasterPlaceholder: 'Domain and IP reputation, spam rate and authentication at Gmail. Connect HostRepute to bring it in; it appears here after the first sync.',
+  postmasterPlaceholder: 'Spam rate, authentication and feedback loop at Gmail. Connect HostRepute to bring them in; they appear here after the first sync.',
   sndsPlaceholder: 'Filter results, complaints and trap hits for your dedicated IPs at Outlook.com. Connect HostRepute to bring it in; it appears here after the first sync.',
   connectHostRepute: 'Connect HostRepute',
 
@@ -133,7 +133,6 @@ export const m = defineMessages('deliverability', {
   blocklistsBuiltin: 'Blocklists · built-in, {sources} public DNSBLs',
   domainBlocklists: 'Domain blocklists',
   dmarcAlignment7d: 'DMARC alignment, 7 d',
-  gmailDomainReputation: 'Gmail domain reputation',
   dmarcAlignment: 'DMARC alignment',
   needsReports: 'needs reports: add rua to HostRepute or your own mailbox',
   ipBlocklists: 'IP blocklists',
@@ -152,7 +151,6 @@ export const m = defineMessages('deliverability', {
   sharedIps: 'Shared IPs',
   accountReputation: 'Account reputation',
   providerStatus: 'Provider status',
-  gmailIpReputationPool: 'Gmail IP reputation, pool',
   dedicatedIpOption: 'Dedicated IP option',
   volumeThisMonth: 'Volume this month',
 
@@ -165,12 +163,8 @@ export const m = defineMessages('deliverability', {
   runningNow: 'running now',
   current: 'Current',
   bounceComplaint: 'Bounce · complaint',
-  reputationCurrent: '{reputation} · current',
-  reputationStale: '{reputation} · stale',
 
-  // Words of Google Postmaster Tools (reputations) and SNDS (filter results);
-  // another value shows as it comes.
-  reputation: '{level, select, high {High} medium {Medium} low {Low} bad {Bad} other {{raw}}}',
+  // Words of SNDS (filter results); another value shows as it comes.
   filterResult: '{level, select, green {Green} yellow {Yellow} red {Red} other {{raw}}}',
   /** HostRepute's check interval in a caption. */
   interval: '{interval, select, hourly {hourly} daily {daily} other {{interval}}}',
@@ -223,9 +217,6 @@ export const m = defineMessages('deliverability', {
   /** {note} is HostRepute's note on the peak: "first send after migration". */
   peakNote: 'peak {rate} on {date}, {note}',
   today: 'today',
-  domainReputation: 'Domain reputation',
-  ipReputation: 'IP reputation',
-  ipReputationPool: 'IP reputation, {pool} pool',
   spamRate30d: 'Spam rate, 30 d',
   authSuccess: 'SPF · DKIM · DMARC success',
   tlsInbound: 'TLS inbound',
@@ -233,6 +224,8 @@ export const m = defineMessages('deliverability', {
   noFlagged: 'no flagged campaigns',
   flagged: '{count} flagged',
   directNote: "Postmaster and SNDS connect through their own APIs; HostRepute isn't needed for either.",
+  postmasterInHostRepute: 'Compliance status in HostRepute',
+  newTab: '(opens in a new tab)',
   filterResultLabel: 'Filter result',
   messages7d: 'Messages, 7 d',
   complaintRate: 'Complaint rate',

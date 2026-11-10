@@ -84,7 +84,7 @@ function HostReputeSection({ conn, onLimit }: { conn: Connection; onLimit: (l: L
   return <HostReputeCard conn={conn} onLimit={onLimit} />
 }
 
-/** "Clean on 84 blocklists · Postmaster high reputation" and the other status lines. */
+/** "Clean on 84 blocklists", "Clean · DMARC p=quarantine, 99.6% aligned" and the other status lines. */
 function assetStatus(a: Connection['assets'][number], sources: number) {
   if (!a.monitored) return null
   if (a.listings.length) {
@@ -105,7 +105,6 @@ function assetStatus(a: Connection['assets'][number], sources: number) {
     if (a.dmarcPolicy) parts.push(a.dmarcAligned != null ? tt(m.dmarcPolicyAligned, { policy: a.dmarcPolicy, aligned: trimPct(a.dmarcAligned) }) : tt(m.dmarcPolicy, { policy: a.dmarcPolicy }))
   } else {
     parts.push(tt(m.cleanOn, { count: count(sources) }))
-    if (a.postmasterReputation) parts.push(tt(m.postmasterReputation, { level: a.postmasterReputation.toLowerCase(), raw: a.postmasterReputation }))
   }
   return parts.join(' · ')
 }

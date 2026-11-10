@@ -4,7 +4,7 @@
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
        coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
-       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.allowed_ips
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.workspace_id = @workspace_id AND k.kind = @kind
@@ -22,15 +22,22 @@ ORDER BY (k.expires_at IS NOT NULL AND k.expires_at <= now()), (k.preset = ''),
 SELECT k.id, k.workspace_id, k.kind, k.name, k.description, k.prefix, k.permissions, k.scope, k.created_by, k.created_at,
        k.expires_at, k.last_used_at, k.last_used_ip, k.last_used_client, k.last_call, k.revoked_at, k.rotated_from,
        coalesce(u.name, '')::text AS created_by_name, coalesce(u.avatar_color, '')::text AS created_by_color,
-       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second
+       k.preset, k.mode, k.templates, k.categories, k.test_addresses, k.rate_per_second, k.allowed_ips
 FROM api_keys k
 LEFT JOIN users u ON u.id = k.created_by
 WHERE k.id = @id AND k.workspace_id = @workspace_id AND k.kind = @kind;
 
 -- name: KeysCreate :one
-INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, expires_at, rotated_from)
-VALUES (@id, @workspace_id, @kind, @name, @description, @prefix, @token_hash, @permissions, @scope, @created_by, @expires_at, @rotated_from)
+INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, expires_at, rotated_from, allowed_ips)
+VALUES (@id, @workspace_id, @kind, @name, @description, @prefix, @token_hash, @permissions, @scope, @created_by, @expires_at, @rotated_from, @allowed_ips)
 RETURNING id, created_at;
+
+-- name: KeysSetAllowedIPs :one
+-- The addresses and networks a key may be called from (empty: any). Revoked
+-- keys and integrations' keys keep theirs.
+UPDATE api_keys SET allowed_ips = @allowed_ips
+WHERE id = @id AND workspace_id = @workspace_id AND kind = @kind AND revoked_at IS NULL AND integration_id IS NULL
+RETURNING id, allowed_ips;
 
 -- name: KeysSetTransactional :exec
 -- Makes a key a send-only, test-mode or SMTP key (transactional:send only).
@@ -61,9 +68,14 @@ WHERE api_key_id = @api_key_id AND day >= (now() - interval '7 days')::date;
 SELECT coalesce(min(first_at), now())::timestamptz FROM api_key_rejections WHERE api_key_id = @api_key_id;
 
 -- name: KeysRecordRejection :exec
+-- One row per key, day and address, at most 1,000 addresses a key and day
+-- (an address already counted keeps counting), so a flood of callers can't
+-- grow the table without bound.
 INSERT INTO api_key_rejections (api_key_id, day, ip, client, reason, calls, first_at, last_at)
-VALUES (@api_key_id, current_date, @ip, @client, @reason, 1, now(), now())
-ON CONFLICT (api_key_id, day, ip) DO UPDATE SET calls = api_key_rejections.calls + 1, last_at = now(),
+SELECT @api_key_id::uuid, current_date, @ip::text, @client::text, @reason::text, 1, now(), now()
+WHERE (SELECT count(*) FROM api_key_rejections c WHERE c.api_key_id = @api_key_id::uuid AND c.day = current_date) < 1000
+   OR EXISTS (SELECT 1 FROM api_key_rejections e WHERE e.api_key_id = @api_key_id::uuid AND e.day = current_date AND e.ip = @ip::text)
+ON CONFLICT (api_key_id, day, ip) DO UPDATE SET calls = api_key_rejections.calls + 1, last_at = now(), reason = excluded.reason,
     client = CASE WHEN excluded.client <> '' THEN excluded.client ELSE api_key_rejections.client END;
 
 -- name: KeysTouch :exec
@@ -71,7 +83,7 @@ UPDATE api_keys SET last_used_at = now(), last_used_ip = @ip, last_used_client =
 WHERE id = @id;
 
 -- name: KeysByToken :one
-SELECT k.id, k.workspace_id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at,
+SELECT k.id, k.workspace_id, k.kind, k.name, k.prefix, k.permissions, k.scope, k.created_by, k.expires_at, k.revoked_at, k.allowed_ips,
        w.slug AS workspace_slug, w.name AS workspace_name, w.mcp_settings
 FROM api_keys k JOIN workspaces w ON w.id = k.workspace_id AND w.deleted_at IS NULL
 WHERE k.token_hash = @token_hash;

@@ -55,6 +55,9 @@ export default translate(m, {
   trackingDomain: 'Tên miền theo dõi liên kết',
   trackingOption: '{verified, select, yes {{domain} · đã xác minh} other {{domain} · chưa xác minh}}',
   providerDefault: 'Mặc định của nhà cung cấp',
+  listUnsubscribeMailto: 'Thêm địa chỉ mailto: vào List-Unsubscribe',
+  listUnsubscribeMailtoHelp:
+    'Tắt: header chỉ có liên kết hủy đăng ký một lần nhấp, loại mà Gmail, Yahoo và Outlook dùng. Bật: một số ứng dụng thư sẽ gửi email thay vào đó. ReputeCast không nhận thư, nên người ở địa chỉ trả lời phải tự gỡ những liên hệ này trong vòng 10 ngày.',
   defaultsSaved: 'Đã lưu cài đặt mặc định',
   defaultsFailed: 'Không lưu được cài đặt mặc định',
 

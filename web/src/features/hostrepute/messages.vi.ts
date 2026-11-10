@@ -104,7 +104,6 @@ export default translate(m, {
   dmarcPolicy: 'DMARC p={policy}',
   dmarcPolicyAligned: 'DMARC p={policy}, {aligned} căn chỉnh',
   cleanOn: 'Sạch trên {count} danh sách chặn',
-  postmasterReputation: 'Uy tín Postmaster {level, select, high {cao} medium {trung bình} low {thấp} bad {kém} other {{raw}}}',
   sectionLine: 'Giám sát uy tín, cung cấp dữ liệu cho Độ sẵn sàng gửi và Khả năng vào hộp thư',
   connectedTo: 'Đã kết nối với nhóm HostRepute “{team}”',
   metaConnected: 'kết nối ngày {date}',

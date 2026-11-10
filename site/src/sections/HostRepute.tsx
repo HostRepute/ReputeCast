@@ -3,7 +3,7 @@ import { links } from '../content/links'
 const checks = [
   { label: 'Domain blocklists', value: '0 of 84 listed' },
   { label: 'DMARC alignment, 7 days', value: '99.6%' },
-  { label: 'Gmail domain reputation', value: 'High' },
+  { label: 'Gmail Postmaster compliance', value: 'Compliant' },
 ]
 
 /** "Built by HostRepute" with the domain health card. */

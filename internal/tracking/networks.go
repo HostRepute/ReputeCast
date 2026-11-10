@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -135,25 +136,6 @@ const (
 	widestV6 = 16
 )
 
-func parseNetwork(s string) (netip.Prefix, bool) {
-	s = strings.TrimSpace(s)
-	if !strings.Contains(s, "/") {
-		a, err := netip.ParseAddr(s)
-		if err != nil {
-			return netip.Prefix{}, false
-		}
-		return netip.PrefixFrom(a.Unmap(), a.Unmap().BitLen()), true
-	}
-	p, err := netip.ParsePrefix(s)
-	if err != nil {
-		return netip.Prefix{}, false
-	}
-	if p.Addr().Is4In6() {
-		p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()-96)
-	}
-	return p.Masked(), true
-}
-
 // Networks lists the instance's networks.
 func (s *Service) Networks(ctx context.Context) (TrackingNetworkList, error) {
 	rows, err := s.Q.TrackingNetworkList(ctx)
@@ -171,7 +153,7 @@ func (s *Service) Networks(ctx context.Context) (TrackingNetworkList, error) {
 // AddNetwork adds a network to the list (audited).
 func (s *Service) AddNetwork(ctx context.Context, in TrackingNetworkInput) (TrackingNetwork, error) {
 	l := i18n.LangFrom(ctx)
-	p, ok := parseNetwork(in.CIDR)
+	p, ok := server.ParsePrefix(in.CIDR)
 	if !ok {
 		return TrackingNetwork{}, api.Invalid("body.cidr", msgs.M("problem.networkInvalid").Text(l, nil))
 	}
@@ -211,7 +193,7 @@ func (s *Service) AddNetwork(ctx context.Context, in TrackingNetworkInput) (Trac
 // RemoveNetwork takes a network an admin added off the list (audited).
 func (s *Service) RemoveNetwork(ctx context.Context, cidr string) error {
 	l := i18n.LangFrom(ctx)
-	p, ok := parseNetwork(cidr)
+	p, ok := server.ParsePrefix(cidr)
 	if !ok {
 		return api.Invalid("query.cidr", msgs.M("problem.networkInvalid").Text(l, nil))
 	}

@@ -73,11 +73,12 @@ func ReplyRules(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]ReplyRul
 // KnownReplyKey names a reply mailbox providers are known for, so the
 // screen and the incident can say what it means in the reader's language
 // ("" for one it doesn't know). Yahoo's TS04 and TSS04 both defer mail for
-// unexpected volume or complaints.
+// unexpected volume or complaints; Microsoft's 5.7.515 refuses a bulk
+// sender's domain without SPF, DKIM and an aligned DMARC pass.
 func KnownReplyKey(contains string) string {
 	return map[string]string{
 		"tss04": "tss04", "ts04": "tss04", "s3150": "s3150", "s3140": "s3150", "421-4.7.28": "gmail_rate", "4.7.28": "gmail_rate",
-		"4.7.650": "outlook_throttle", "5.7.26": "dmarc", "4.7.0": "temporary",
+		"4.7.650": "outlook_throttle", "5.7.26": "dmarc", "5.7.515": "dmarc", "4.7.0": "temporary",
 	}[strings.ToLower(strings.TrimSpace(contains))]
 }
 

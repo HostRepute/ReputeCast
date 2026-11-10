@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,6 +41,46 @@ func TestSending(t *testing.T) {
 	t.Run("AutomationLanguages", func(t *testing.T) { testAutomationLanguages(t, s.Fixture(t, "Automation languages")) })
 	t.Run("AutomationOutboxWake", func(t *testing.T) { testAutomationOutboxWake(t, s.Fixture(t, "Automation outbox wake")) })
 	t.Run("MailboxFromMX", func(t *testing.T) { testMailboxFromMX(t, s.Fixture(t, "Mailbox from MX")) })
+	t.Run("ListUnsubscribeMailto", func(t *testing.T) { testListUnsubscribeMailto(t, s) })
+}
+
+// testListUnsubscribeMailto: by default List-Unsubscribe carries only the
+// one-click link; with the workspace's "Include a mailto: address in
+// List-Unsubscribe" on, also the reply-to address, as the send started:
+// turning it off mid-send doesn't split the send.
+func testListUnsubscribeMailto(t *testing.T, s *sendtest.Suite) {
+	send := func(f *sendtest.Fixture, started func()) string {
+		f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+		f.AddContacts(sendtest.ContactSpec{N: 3, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
+		sendtest.Fault.Reset(sendtest.FaultOK)
+		f.UseFaultProvider(false)
+		f.StartSend(engine.StartOptions{})
+		started()
+		if _, done, err := f.E.Drive(f.Ctx, f.Campaign, f.Start.Add(time.Second), 10*time.Minute); err != nil || !done {
+			f.Dump()
+			t.Fatalf("the send didn't finish: done=%v err=%v", done, err)
+		}
+		var email string
+		if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT c.email FROM contacts c JOIN list_memberships m ON m.contact_id = c.id WHERE m.list_id = $1 ORDER BY c.email LIMIT 1`,
+			f.List).Scan(&email); err != nil {
+			t.Fatal(err)
+		}
+		return sendtest.Fault.ListUnsubscribe(email)
+	}
+	// One fixture at a time: a fixture's contact addresses follow the
+	// suite's fixture count.
+	if lu := send(s.Fixture(t, "Mailto off"), func() {}); !strings.HasPrefix(lu, "<http") || strings.Contains(lu, "mailto:") {
+		t.Fatalf("List-Unsubscribe by default: %q", lu)
+	}
+	on := s.Fixture(t, "Mailto on")
+	on.Exec(`UPDATE workspaces SET sending_defaults = sending_defaults || '{"list_unsubscribe_mailto": true}' WHERE id = $1`, on.WS)
+	turnOff := func() {
+		on.Exec(`UPDATE workspaces SET sending_defaults = sending_defaults - 'list_unsubscribe_mailto' WHERE id = $1`, on.WS)
+	}
+	defer turnOff()
+	if lu := send(on, turnOff); !strings.HasPrefix(lu, "<http") || !strings.Contains(lu, ", <mailto:hello@acme.io?subject=unsubscribe%20") {
+		t.Fatalf("List-Unsubscribe with the mailto address: %q", lu)
+	}
 }
 
 // testBestTime sends at each recipient's best time: a contact who usually

@@ -51,12 +51,11 @@ type deliverabilityAsset struct {
 		Sources, Listed int
 		Listings        []string
 	}
-	Fallback        *struct{ Via string }
-	Stale           *string
-	Auth            *struct{ SPF, DKIM, DMARC string }
-	DMARCAligned    *float64 `json:"dmarcAligned"`
-	GmailReputation string
-	ReverseDNS      *struct {
+	Fallback     *struct{ Via string }
+	Stale        *string
+	Auth         *struct{ SPF, DKIM, DMARC string }
+	DMARCAligned *float64 `json:"dmarcAligned"`
+	ReverseDNS   *struct {
 		PTR     string
 		Matches bool
 	} `json:"reverseDns"`
@@ -104,10 +103,9 @@ type overview struct {
 		}
 	}
 	Postmaster *struct {
-		DomainReputation string
-		SpamRate         float64
-		Series           []struct{ SpamRate *float64 }
-		Peak             *struct {
+		SpamRate float64
+		Series   []struct{ SpamRate *float64 }
+		Peak     *struct {
 			SpamRate float64
 			Note     string
 		}
@@ -157,7 +155,7 @@ func TestOverviewDemo(t *testing.T) {
 	d, ip := o.Assets[0], o.Assets[1]
 	if d.Asset != "news.acme.io" || *d.Score != 96 || d.Verdict != "Good" || d.Blocklists.Sources != 84 || d.Blocklists.Listed != 0 ||
 		strings.Join(d.UsedBy, ",") != "SES,Postmark,Postal" || d.Auth.SPF != "pass" || d.Auth.DKIM != "pass" || d.Auth.DMARC != "quarantine" ||
-		*d.DMARCAligned != 99.6 || d.GmailReputation != "high" {
+		*d.DMARCAligned != 99.6 {
 		t.Fatalf("domain card: %+v", d)
 	}
 	if ip.Asset != "203.0.113.25" || *ip.Score != 81 || ip.Tone != "warn" || ip.Provider != "Postal" || ip.Warmup.Day != 9 || ip.Warmup.Days != 21 ||
@@ -198,7 +196,7 @@ func TestOverviewDemo(t *testing.T) {
 	if !b.Results[0].Listed || b.Results[0].Delisting != "pending" || b.Results[0].DelistURL == "" || b.Results[1].DelistURL != "" {
 		t.Fatalf("listing row: %+v", b.Results[:2])
 	}
-	if o.Postmaster.DomainReputation != "high" || o.Postmaster.SpamRate != 0.05 || len(o.Postmaster.Series) != 15 || o.Postmaster.Peak.SpamRate != 0.09 ||
+	if o.Postmaster.SpamRate != 0.05 || len(o.Postmaster.Series) != 15 || o.Postmaster.Peak.SpamRate != 0.09 ||
 		o.Postmaster.Peak.Note != "first send after migration" {
 		t.Fatalf("postmaster: %+v", o.Postmaster)
 	}

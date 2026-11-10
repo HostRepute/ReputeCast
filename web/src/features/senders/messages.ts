@@ -58,6 +58,9 @@ export const m = defineMessages('senders', {
   trackingDomain: 'Link tracking domain',
   trackingOption: '{verified, select, yes {{domain} · verified} other {{domain} · not verified yet}}',
   providerDefault: 'Provider default',
+  listUnsubscribeMailto: 'Include a mailto: address in List-Unsubscribe',
+  listUnsubscribeMailtoHelp:
+    "Off: the header has only the one-click link, which Gmail, Yahoo and Outlook use. On: some mail apps send an email instead. ReputeCast doesn't receive mail, so someone at the reply-to address must remove those readers by hand within 10 days.",
   defaultsSaved: 'Defaults saved',
   defaultsFailed: "Couldn't save the defaults",
 

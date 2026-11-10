@@ -612,6 +612,9 @@ func TestCopyLinksNeverCount(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := f.deliver.sent[0]
+	if lu := m.Headers["List-Unsubscribe"]; strings.Contains(lu, "mailto:") || !strings.HasPrefix(lu, "<http") {
+		t.Fatalf("List-Unsubscribe without the workspace's mailto setting: %s", lu)
+	}
 	web := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	unsub := strings.TrimPrefix(strings.SplitN(m.Headers["List-Unsubscribe"], ">", 2)[0], "<")
 	// call makes a request and returns its status, Location and body.
@@ -662,5 +665,22 @@ func TestCopyLinksNeverCount(t *testing.T) {
 	_ = f.env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type IN ('open', 'click')`, m.ID).Scan(&events)
 	if clicked != nil || events != 0 {
 		t.Fatalf("the click was counted: clicked_at %v, %d events", clicked, events)
+	}
+}
+
+// With "Include a mailto: address in List-Unsubscribe" on, a copy's header
+// has the email's reply-to address, like a real send.
+func TestCopyListUnsubscribeMailto(t *testing.T) {
+	f := setup(t)
+	if _, err := f.env.App.Pool.Exec(context.Background(), `UPDATE workspaces SET sending_defaults = sending_defaults || '{"list_unsubscribe_mailto": true}' WHERE id = $1`, f.ws.ID); err != nil {
+		t.Fatal(err)
+	}
+	s := f.seed(t, "yahoo", "pt-mailto@seeds.test", "Bulk", false)
+	if _, err := f.svc.Start(f.ctx, &f.ws, placement.PlacementRunInput{Content: placement.PlacementContentRef{Kind: "campaign", ID: f.campaign(t, "Weekly Digest #142")},
+		Through: "provider", Providers: []string{f.prov["ses"].String()}, Seeds: []string{s.Seed.ID}}); err != nil {
+		t.Fatal(err)
+	}
+	if lu := f.deliver.sent[0].Headers["List-Unsubscribe"]; !strings.HasPrefix(lu, "<http") || !strings.Contains(lu, ", <mailto:hello@acme.io?subject=unsubscribe%20") {
+		t.Fatalf("List-Unsubscribe with the mailto setting: %s", lu)
 	}
 }

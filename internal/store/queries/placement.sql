@@ -67,11 +67,11 @@ DELETE FROM placement_oauth_states WHERE expires_at < @now;
 -- name: PlacementTestInsert :exec
 INSERT INTO placement_tests (id, workspace_id, name, content_kind, content_id, content_name, content_note, content_key, content_version,
                              content_at, variant, language, personalization, through, stream, provider_ids, sender_id, from_name,
-                             from_email, origin, status, subject, html, text_body, links, providers, track_opens, track_clicks,
+                             from_email, reply_to, origin, status, subject, html, text_body, links, providers, track_opens, track_clicks,
                              started_by, started_at, wait_until, delete_after, conditional_version, conditional_shows)
 VALUES (@id, @workspace_id, @name, @content_kind, @content_id, @content_name, @content_note, @content_key, @content_version,
         @content_at, @variant, @language, @personalization, @through, @stream, @provider_ids, @sender_id, @from_name,
-        @from_email, @origin, 'sending', @subject, @html, @text_body, @links, @providers, @track_opens, @track_clicks,
+        @from_email, @reply_to, @origin, 'sending', @subject, @html, @text_body, @links, @providers, @track_opens, @track_clicks,
         @started_by, @started_at, @wait_until, @delete_after, @conditional_version, @conditional_shows);
 
 -- name: PlacementCopyInsert :exec

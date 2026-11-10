@@ -588,7 +588,8 @@ func (s *Service) addTools(srv *mcp.Server) {
 		}
 		post := []map[string]any{}
 		for _, p := range pm {
-			post = append(post, map[string]any{"domain": p.Domain, "day": p.Day.Format("2006-01-02"), "domain_reputation": p.DomainReputation, "ip_reputation": p.IpReputation, "spam_rate": p.SpamRate})
+			post = append(post, map[string]any{"domain": p.Domain, "day": p.Day.Format("2006-01-02"), "spam_rate": p.SpamRate,
+				"spf_rate": p.SpfRate, "dkim_rate": p.DkimRate, "dmarc_rate": p.DmarcRate})
 		}
 		if len(lists) == 0 {
 			e.summaryText = keep("outcome.clear", nil)

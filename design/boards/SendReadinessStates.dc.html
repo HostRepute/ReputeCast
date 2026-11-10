@@ -323,6 +323,23 @@ label.chk input{margin-top:3px;flex:none}
         <div class="srcnote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.6" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span>The skipped checks run again at the send-time recheck at 08:45. If either one finds a listing, the send is held for review. Recorded in the audit trail: accepted by Linh Nguyen (Owner), Mon 13 Oct 09:44.</span></div>
       </section>
 
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-mailto">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Warn · mailto: address in List-Unsubscribe is on</div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="prow"><span class="badge warn"><span class="dot"></span>Warn</span><div class="pt"><h2 id="st-mailto" style="margin:0;font-size:13px;font-weight:500">Unsubscribe emails go to hello@acme.io</h2><span class="k">Some mail apps unsubscribe by sending an email to this address. ReputeCast doesn't receive mail, so someone has to remove these readers by hand within 10 days, as CAN-SPAM requires. Turn the mailto address off in Settings › Senders to send only the one-click link.</span></div><a href="SettingsSenders.dc.html" class="btn sm">Open senders &amp; domains</a></div>
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Pass</span><div class="pt"><span style="font-weight:500">One-click unsubscribe headers present</span><span class="k mono" style="overflow-wrap:anywhere">List-Unsubscribe: &lt;https://news.acme.io/u/{token}&gt;, &lt;mailto:hello@acme.io?subject=unsubscribe%20{token}&gt;</span></div></div>
+        </div>
+        <span class="k">Compliance group, only when "Include a mailto: address in List-Unsubscribe" is on in Settings › Senders. The address is the campaign's reply-to, else its From. Confirming the send asks for the acknowledgement on the Confirm send board.</span>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-msdmarc">
+        <div class="strip"><span class="dot" style="color:#F87171"></span>Block · Microsoft's bulk-sender rule, no DMARC</div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="prow" style="background:#FFF5F5"><span class="badge bad"><span class="dot"></span>Block</span><div class="pt"><h2 id="st-msdmarc" style="margin:0;font-size:13px;font-weight:500">Outlook.com rejects this send without DMARC: 6,214 recipients at Outlook.com, Hotmail and Live</h2><span class="k">Microsoft refuses mail with 550 5.7.515 from domains that send it 5,000 messages a day or more unless SPF and DKIM pass and DMARC passes aligned. Publish a DMARC record (p=none is enough) and align a provider. SPF and DKIM pass · one-click unsubscribe · complaint rate 0.04%, under the 0.3% limit · unsubscribes processed within 2 days · Gmail Postmaster not connected.</span></div><a href="SettingsSenders.dc.html" class="btn sm">Open senders &amp; domains</a></div>
+        </div>
+        <span class="k">Compliance group, Bulk-sender rules row. It blocks only when this send alone reaches 5,000 or more Outlook.com, Hotmail, Live or MSN addresses (Microsoft 365 company domains don't count) and the domain has no DMARC record or an invalid one. Below 5,000 the row stays the warning "Gmail, Yahoo and Microsoft bulk-sender rules need DMARC"; when DNS doesn't answer, the DMARC check is unknown and the row stays a warning too.</span>
+      </section>
+
       <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-sched">
         <div class="strip"><span class="dot" style="color:#4ADE80"></span>Success · scheduled</div>
         <div class="vb okb">
@@ -405,7 +422,7 @@ label.chk input{margin-top:3px;flex:none}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3334}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3831}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

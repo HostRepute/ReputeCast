@@ -145,6 +145,10 @@ type sendContent struct {
 	Fallback        string        `json:"fallback,omitempty"`
 	Offered         []string      `json:"offered,omitempty"`
 	Languages       []langContent `json:"languages,omitempty"`
+	// ListUnsubscribeMailto is the workspace's "Include a mailto: address in
+	// List-Unsubscribe" at send start, so a change mid-send never splits
+	// one send (sends started before the setting existed decode off).
+	ListUnsubscribeMailto bool `json:"list_unsubscribe_mailto,omitempty"`
 }
 
 // abTest is campaigns.ab_test.
@@ -821,7 +825,8 @@ func (e *Engine) snapshotContent(cc store.SendingCampaignContextRow, ab *abTest)
 	}
 	base := e.URLs.Base()
 	c := sendContent{Subject: cc.Subject, Preheader: cc.Preheader, HTML: media.Absolutize(cc.Html, base), Text: cc.PlainText,
-		FromName: cc.SenderName, FromEmail: cc.SenderEmail, ReplyTo: firstNonEmpty(cc.ReplyTo, cc.SenderReplyTo), Tracking: tr, Links: map[string]int{}}
+		FromName: cc.SenderName, FromEmail: cc.SenderEmail, ReplyTo: firstNonEmpty(cc.ReplyTo, cc.SenderReplyTo), Tracking: tr, Links: map[string]int{},
+		ListUnsubscribeMailto: cc.ListUnsubscribeMailto}
 	if strings.TrimSpace(c.HTML) == "" && strings.TrimSpace(c.Text) == "" {
 		return c, errors.New("the email has no content")
 	}

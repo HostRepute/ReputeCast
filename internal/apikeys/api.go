@@ -70,6 +70,18 @@ func Register(h huma.API, s *Service) {
 				out, err := s.Rotate(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), k.kind, id)
 				return api.OK(out), err
 			})
+		api.Put(h, api.Op{ID: "set-" + k.idPrefix + "-allowed-ips", Path: k.path + "/{keyId}/allowed-ips", Summary: "Set the addresses and networks an " + k.title + " may be called from (empty: any)", Tags: tags, Access: api.WorkspaceHuman(k.perm)},
+			func(ctx context.Context, in *struct {
+				KeyPathInput
+				Body APIKeyAllowedIPsInput
+			}) (*api.Body[APIKeyView], error) {
+				id, err := in.id(k.kind)
+				if err != nil {
+					return nil, err
+				}
+				out, err := s.SetAllowedIPs(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), k.kind, id, in.Body)
+				return api.OK(out), err
+			})
 		api.Post(h, api.Op{ID: "revoke-" + k.idPrefix, Path: k.path + "/{keyId}/revoke", Summary: "Revoke an " + k.title + " immediately", Tags: tags, Access: api.Workspace(k.perm), Status: 204},
 			func(ctx context.Context, in *KeyPathInput) (*api.Empty, error) {
 				id, err := in.id(k.kind)

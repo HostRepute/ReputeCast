@@ -27,5 +27,12 @@
   "audit.smtp": "credencial SMTP",
   "audit.expires": "caduca el {at, date}",
   "audit.noExpiry": "sin caducidad",
-  "audit.rotated": "secreto nuevo {masked} · anterior {old} revocado"
+  "audit.rotated": "secreto nuevo {masked} · anterior {old} revocado",
+  "problem.ipInvalid": "Escribe una dirección o una red, como 203.0.113.0/24 o 2001:db8::/48.",
+  "problem.integrationKeyIPs": "Esta clave pertenece a una integración, que llama desde los servidores de su plataforma, así que no se puede limitar a IP permitidas.",
+  "problem.revokedKeyIPs": "Esta clave está revocada, así que sus IP permitidas no pueden cambiar.",
+  "problem.widenScope": "Esta clave llega a listas fuera de tu ámbito, así que no puedes permitir que se llame desde más direcciones.",
+  "audit.allowedIps": "{count, plural, one {# IP permitida} other {# IP permitidas}}",
+  "audit.allowedIpsSet": "IP permitidas {list}",
+  "audit.allowedIpsAny": "permitida desde cualquier dirección"
 }

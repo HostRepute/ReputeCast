@@ -73,11 +73,10 @@ type HostReputeAsset struct {
 	Verdict    string     `json:"verdict,omitempty"`
 	// Sources is how many blocklists check the asset; Listings names the
 	// ones it is listed on.
-	Sources              int      `json:"sources"`
-	Listings             []string `json:"listings"`
-	PostmasterReputation string   `json:"postmasterReputation,omitempty"`
-	DMARCPolicy          string   `json:"dmarcPolicy,omitempty"`
-	DMARCAligned         *float64 `json:"dmarcAligned,omitempty" doc:"Percent of DMARC-aligned mail in the last 7 days"`
+	Sources      int      `json:"sources"`
+	Listings     []string `json:"listings"`
+	DMARCPolicy  string   `json:"dmarcPolicy,omitempty"`
+	DMARCAligned *float64 `json:"dmarcAligned,omitempty" doc:"Percent of DMARC-aligned mail in the last 7 days"`
 }
 
 // HostReputeShared lists what is sent to HostRepute. Contacts, email content
@@ -196,7 +195,7 @@ func (s *Service) Connection(ctx context.Context, ws uuid.UUID) (HostReputeConne
 	row := func(name, typ, role, provider string) HostReputeAsset {
 		a := HostReputeAsset{Asset: name, Type: typ, Role: role, Provider: provider, Listings: []string{}}
 		if st, ok := status[name]; ok {
-			a.Sources, a.PostmasterReputation, a.DMARCPolicy, a.DMARCAligned = st.Sources, st.PostmasterReputation, st.DMARCPolicy, st.DMARCAligned
+			a.Sources, a.DMARCPolicy, a.DMARCAligned = st.Sources, st.DMARCPolicy, st.DMARCAligned
 			if st.Listings != nil {
 				a.Listings = st.Listings
 			}

@@ -41,4 +41,16 @@
       grid-template-columns: minmax(0, 1fr) !important;
     }
   }
+
+  /* The mailto switch under the defaults (SettingsSenders .trow): the
+     words on the left, the switch on the right at the first line, a rule
+     above. Outranks Toggle's items-center and gap-3 utilities. */
+  .sd-trow {
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    padding-top: 14px;
+    border-top: 1px solid var(--line-2);
+  }
 }

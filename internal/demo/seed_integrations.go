@@ -67,6 +67,8 @@ func seedIntegrationsImpl(ctx context.Context, s *Seeder) error {
 		expires                              *time.Time
 		lastUsed                             *time.Time
 		ip, client, lastCall                 string
+		// allowed: the key's allowed IPs (SettingsKeys, SettingsMCP: "Allowed IPs: 2").
+		allowed []string
 	}
 	t := func(v time.Time) *time.Time { return &v }
 	keys := []key{
@@ -74,14 +76,15 @@ func seedIntegrationsImpl(ctx context.Context, s *Seeder) error {
 			lists: []uuid.UUID{digest}, creator: linh.ID, created: s.Ago(5*time.Minute + 58*time.Second), lastUsed: t(s.Ago(3 * time.Minute)), ip: "198.51.100.12"},
 		{kind: "api_key", name: "Data warehouse sync", prefix: "rc_live_", head: "3b17", tail: "c04e", perms: []authz.Permission{authz.ReportsView, authz.SubscribersView},
 			creator: marcus.ID, created: s.designDay(20, 14, 10), expires: t(time.Date(2027, 1, 1, 12, 0, 0, 0, time.UTC)), lastUsed: t(s.designDay(1, 3, 5)),
-			ip: "10.0.4.22", client: "nightly job"},
+			ip: "10.0.4.22", client: "nightly job", allowed: []string{"10.0.4.0/24", "10.0.5.0/24"}},
 		{kind: "api_key", name: "Old CI key", prefix: "rc_live_", head: "11aa", tail: "ff02", perms: []authz.Permission{authz.CampaignsView},
 			creator: linh.ID, created: s.designDay(223, 11, 0), expires: t(s.designDay(41, 0, 0)), lastUsed: t(s.designDay(43, 22, 14)), ip: "10.0.9.14", client: "GitHub Actions runner"},
 		{kind: "mcp_agent", name: "Claude — analytics", desc: "Claude Desktop", prefix: "rc_agent_", head: "7a", tail: "c2", perms: []authz.Permission{authz.ReportsView, authz.DeliverabilityView},
 			creator: linh.ID, created: s.designDay(12, 15, 30), expires: t(time.Date(2027, 3, 31, 12, 0, 0, 0, time.UTC)), lastUsed: t(s.Ago(10*time.Minute + 12*time.Second)),
 			ip: "203.0.113.9", client: "Claude Desktop", lastCall: "get_campaign_report"},
 		{kind: "mcp_agent", name: "Ops agent", desc: "on-call runbook", prefix: "rc_agent_", head: "e0", tail: "44", perms: []authz.Permission{authz.CampaignsPause, authz.ProvidersView},
-			creator: marcus.ID, created: s.designDay(10, 18, 0), lastUsed: t(s.Ago(25*time.Minute + 46*time.Second)), ip: "10.0.7.3", lastCall: "pause_campaign"},
+			creator: marcus.ID, created: s.designDay(10, 18, 0), lastUsed: t(s.Ago(25*time.Minute + 46*time.Second)), ip: "10.0.7.3", lastCall: "pause_campaign",
+			allowed: []string{"10.0.7.0/24"}},
 	}
 	for _, k := range keys {
 		id := ID()
@@ -97,10 +100,14 @@ func seedIntegrationsImpl(ctx context.Context, s *Seeder) error {
 		if k.ip != "" {
 			ip = addr(k.ip)
 		}
+		allowed := make([]netip.Prefix, 0, len(k.allowed))
+		for _, a := range k.allowed {
+			allowed = append(allowed, netip.MustParsePrefix(a))
+		}
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO api_keys (id, workspace_id, kind, name, description, prefix, token_hash, permissions, scope, created_by, created_at, expires_at,
-			last_used_at, last_used_ip, last_used_client, last_call) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+			last_used_at, last_used_ip, last_used_client, last_call, allowed_ips) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
 			id, ws.ID, k.kind, k.name, k.desc, masked, hash, pickedFirst(k.perms), scope, creator, k.created, k.expires,
-			k.lastUsed, ip, k.client, k.lastCall); err != nil {
+			k.lastUsed, ip, k.client, k.lastCall, allowed); err != nil {
 			return err
 		}
 		s.Extra["key:"+k.name] = id

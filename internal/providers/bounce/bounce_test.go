@@ -31,6 +31,8 @@ func TestClassify(t *testing.T) {
 		{"451 4.3.0", "Temporary local problem", Temporary},
 		{"", "something odd", Other},
 		{"5.1.2", "Host not found", DomainInvalid},
+		{"550 5.7.515", "Access denied, sending domain news.acme.io does not meet the required authentication level.", PolicyBlock},
+		{"550 5.7.515", "", PolicyBlock},
 	}
 	for _, c := range cases {
 		if got := Classify(c.status, c.diag); got != c.want {

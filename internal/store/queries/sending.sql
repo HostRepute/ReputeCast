@@ -12,7 +12,8 @@ SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_
        coalesce(s.name, '')::text     AS sender_name,
        coalesce(s.reply_to, '')::text AS sender_reply_to,
        w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name,
-       w.send_thresholds AS workspace_thresholds
+       w.send_thresholds AS workspace_thresholds,
+       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto
 FROM campaigns c
 JOIN workspaces w ON w.id = c.workspace_id
 LEFT JOIN senders s ON s.id = c.sender_id
@@ -633,7 +634,8 @@ ON CONFLICT DO NOTHING;
 -- The sender of an automation email: its own (milestone emails come from
 -- their program's sender), else the workspace's default sender.
 SELECT coalesce(s.email, '')::text AS email, coalesce(s.name, '')::text AS name,
-       coalesce(nullif(e.reply_to, ''), s.reply_to, '')::text AS reply_to, w.slug, w.timezone
+       coalesce(nullif(e.reply_to, ''), s.reply_to, '')::text AS reply_to, w.slug, w.timezone,
+       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto
 FROM workspaces w
 LEFT JOIN automation_emails e ON e.id = @email_id::uuid AND e.workspace_id = w.id
 LEFT JOIN senders s ON s.id = coalesce(e.sender_id, w.default_sender_id)

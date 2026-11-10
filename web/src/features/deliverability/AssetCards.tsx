@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn'
 import { clock, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { m } from './messages'
-import { authLine, cap, filterWord, reputationWord, shortSource, toneOf, usedBy, type AssetHealth, type Overview } from './words'
+import { authLine, cap, filterWord, shortSource, toneOf, usedBy, type AssetHealth, type Overview } from './words'
 
 /** A label and a value on one line (the board's `.kv` on Deliverability). */
 export function KV({ label, children, labelClass, valueClass, className }: { label: ReactNode; children: ReactNode; labelClass?: string; valueClass?: string; className?: string }) {
@@ -160,9 +160,7 @@ function DomainCard({ a, connected }: { a: AssetHealth; connected: boolean }) {
         <KV label={t(m.domainBlocklists)}>{listingLine(a.blocklists)}</KV>
       )}
       <KV label={'SPF · DKIM · DMARC'}>{a.auth ? authLine(a.auth) : t(m.notCheckedYet)}</KV>
-      {connected && a.dmarcAligned != null ? <KV label={t(m.dmarcAlignment7d)}>{trimPct(a.dmarcAligned)}</KV> : null}
-      {a.gmailReputation ? <KV label={t(m.gmailDomainReputation)}>{reputationWord(a.gmailReputation)}</KV> : null}
-      {!connected && a.dmarcAligned != null ? <KV label={t(m.dmarcAlignment7d)}>{trimPct(a.dmarcAligned)}</KV> : null}
+      {a.dmarcAligned != null ? <KV label={t(m.dmarcAlignment7d)}>{trimPct(a.dmarcAligned)}</KV> : null}
       {!connected && a.dmarcAligned == null ? (
         <KV label={t(m.dmarcAlignment)} labelClass="k" valueClass="k font-medium [font-variant-numeric:normal]">
           {t(m.needsReports)}
@@ -212,7 +210,7 @@ function IPCard({ a, connected, onDelist, delistReason, delisting }: { a: AssetH
   )
 }
 
-function PoolCard({ p, connected, ipPool }: { p: Schemas['DeliverabilityPoolHealth']; connected: boolean; ipPool?: string }) {
+function PoolCard({ p, connected }: { p: Schemas['DeliverabilityPoolHealth']; connected: boolean }) {
   const t = useT()
   const only = p.onlyStream ? t(m.streamOnly, { stream: p.onlyStream, name: cap(p.onlyStream) }) : null
   const caption = connected
@@ -224,7 +222,6 @@ function PoolCard({ p, connected, ipPool }: { p: Schemas['DeliverabilityPoolHeal
       <CardHead name={name} badge={<Badge tone="neutral">{t(m.sharedIps)}</Badge>} />
       <span className="k">{caption.filter(Boolean).join(' · ')}</span>
       <KV label={p.managedReputation ? t(m.accountReputation) : t(m.providerStatus)}>{p.accountStatus}</KV>
-      {p.gmailIpReputation && ipPool === p.short ? <KV label={t(m.gmailIpReputationPool)}>{reputationWord(p.gmailIpReputation)}</KV> : null}
       {connected && p.dedicatedIpOption ? <KV label={t(m.dedicatedIpOption)}>{p.dedicatedIpOption}</KV> : null}
       {connected && p.volumeThisMonth != null ? <KV label={t(m.volumeThisMonth)}>{count(p.volumeThisMonth)}</KV> : null}
     </Card>
@@ -249,7 +246,7 @@ export function AssetGrid({ o, onDelist, delistReason, delisting }: { o: Overvie
           ),
         )}
         {o.pools.map((p) => (
-          <PoolCard key={p.providerId} p={p} connected={connected} ipPool={o.postmaster?.ipReputationPool ?? o.pools[0]?.short} />
+          <PoolCard key={p.providerId} p={p} connected={connected} />
         ))}
       </Grid>
     </section>
@@ -264,7 +261,6 @@ export function AssetGrid({ o, onDelist, delistReason, delisting }: { o: Overvie
 export function StaleGrid({ o }: { o: Overview }) {
   const t = useT()
   const pool = o.pools[0]
-  const domain = o.assets.find((a) => a.type === 'domain')
   return (
     <Grid min={300} gap={16}>
       {o.assets.map((a) => {
@@ -310,13 +306,6 @@ export function StaleGrid({ o }: { o: Overview }) {
           <KV label={t(m.bounceComplaint)}>
             {trimPct(pool.bounceRate)} · {trimPct(pool.complaintRate)}
           </KV>
-          {domain?.gmailReputation ? (
-            <KV label={t(m.gmailDomainReputation)}>
-              {o.postmaster && !o.postmaster.stale
-                ? t(m.reputationCurrent, { reputation: reputationWord(domain.gmailReputation) })
-                : t(m.reputationStale, { reputation: reputationWord(domain.gmailReputation) })}
-            </KV>
-          ) : null}
         </Card>
       ) : null}
     </Grid>

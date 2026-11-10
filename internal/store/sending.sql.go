@@ -506,7 +506,8 @@ func (q *Queries) SendingAutomationLinkCount(ctx context.Context, arg SendingAut
 
 const sendingAutomationSender = `-- name: SendingAutomationSender :one
 SELECT coalesce(s.email, '')::text AS email, coalesce(s.name, '')::text AS name,
-       coalesce(nullif(e.reply_to, ''), s.reply_to, '')::text AS reply_to, w.slug, w.timezone
+       coalesce(nullif(e.reply_to, ''), s.reply_to, '')::text AS reply_to, w.slug, w.timezone,
+       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto
 FROM workspaces w
 LEFT JOIN automation_emails e ON e.id = $1::uuid AND e.workspace_id = w.id
 LEFT JOIN senders s ON s.id = coalesce(e.sender_id, w.default_sender_id)
@@ -519,11 +520,12 @@ type SendingAutomationSenderParams struct {
 }
 
 type SendingAutomationSenderRow struct {
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	ReplyTo  string `json:"replyTo"`
-	Slug     string `json:"slug"`
-	Timezone string `json:"timezone"`
+	Email                 string `json:"email"`
+	Name                  string `json:"name"`
+	ReplyTo               string `json:"replyTo"`
+	Slug                  string `json:"slug"`
+	Timezone              string `json:"timezone"`
+	ListUnsubscribeMailto bool   `json:"listUnsubscribeMailto"`
 }
 
 // The sender of an automation email: its own (milestone emails come from
@@ -537,6 +539,7 @@ func (q *Queries) SendingAutomationSender(ctx context.Context, arg SendingAutoma
 		&i.ReplyTo,
 		&i.Slug,
 		&i.Timezone,
+		&i.ListUnsubscribeMailto,
 	)
 	return i, err
 }
@@ -633,7 +636,8 @@ SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.sender_
        coalesce(s.name, '')::text     AS sender_name,
        coalesce(s.reply_to, '')::text AS sender_reply_to,
        w.slug AS workspace_slug, w.timezone AS workspace_timezone, w.name AS workspace_name,
-       w.send_thresholds AS workspace_thresholds
+       w.send_thresholds AS workspace_thresholds,
+       coalesce((w.sending_defaults->>'list_unsubscribe_mailto')::boolean, false)::boolean AS list_unsubscribe_mailto
 FROM campaigns c
 JOIN workspaces w ON w.id = c.workspace_id
 LEFT JOIN senders s ON s.id = c.sender_id
@@ -641,37 +645,38 @@ WHERE c.id = $1
 `
 
 type SendingCampaignContextRow struct {
-	ID                  uuid.UUID       `json:"id"`
-	WorkspaceID         uuid.UUID       `json:"workspaceId"`
-	Name                string          `json:"name"`
-	Status              string          `json:"status"`
-	Subject             string          `json:"subject"`
-	Preheader           string          `json:"preheader"`
-	SenderID            *uuid.UUID      `json:"senderId"`
-	ReplyTo             string          `json:"replyTo"`
-	Audience            json.RawMessage `json:"audience"`
-	AudienceCount       *int64          `json:"audienceCount"`
-	Html                string          `json:"html"`
-	PlainText           string          `json:"plainText"`
-	AbTest              json.RawMessage `json:"abTest"`
-	Schedule            json.RawMessage `json:"schedule"`
-	Thresholds          json.RawMessage `json:"thresholds"`
-	RouteOverride       json.RawMessage `json:"routeOverride"`
-	Tracking            json.RawMessage `json:"tracking"`
-	CreatedBy           *uuid.UUID      `json:"createdBy"`
-	UpdatedBy           *uuid.UUID      `json:"updatedBy"`
-	ScheduledAt         *time.Time      `json:"scheduledAt"`
-	StartedBy           *uuid.UUID      `json:"startedBy"`
-	StartedAt           *time.Time      `json:"startedAt"`
-	CompletedAt         *time.Time      `json:"completedAt"`
-	Version             int32           `json:"version"`
-	SenderEmail         string          `json:"senderEmail"`
-	SenderName          string          `json:"senderName"`
-	SenderReplyTo       string          `json:"senderReplyTo"`
-	WorkspaceSlug       string          `json:"workspaceSlug"`
-	WorkspaceTimezone   string          `json:"workspaceTimezone"`
-	WorkspaceName       string          `json:"workspaceName"`
-	WorkspaceThresholds json.RawMessage `json:"workspaceThresholds"`
+	ID                    uuid.UUID       `json:"id"`
+	WorkspaceID           uuid.UUID       `json:"workspaceId"`
+	Name                  string          `json:"name"`
+	Status                string          `json:"status"`
+	Subject               string          `json:"subject"`
+	Preheader             string          `json:"preheader"`
+	SenderID              *uuid.UUID      `json:"senderId"`
+	ReplyTo               string          `json:"replyTo"`
+	Audience              json.RawMessage `json:"audience"`
+	AudienceCount         *int64          `json:"audienceCount"`
+	Html                  string          `json:"html"`
+	PlainText             string          `json:"plainText"`
+	AbTest                json.RawMessage `json:"abTest"`
+	Schedule              json.RawMessage `json:"schedule"`
+	Thresholds            json.RawMessage `json:"thresholds"`
+	RouteOverride         json.RawMessage `json:"routeOverride"`
+	Tracking              json.RawMessage `json:"tracking"`
+	CreatedBy             *uuid.UUID      `json:"createdBy"`
+	UpdatedBy             *uuid.UUID      `json:"updatedBy"`
+	ScheduledAt           *time.Time      `json:"scheduledAt"`
+	StartedBy             *uuid.UUID      `json:"startedBy"`
+	StartedAt             *time.Time      `json:"startedAt"`
+	CompletedAt           *time.Time      `json:"completedAt"`
+	Version               int32           `json:"version"`
+	SenderEmail           string          `json:"senderEmail"`
+	SenderName            string          `json:"senderName"`
+	SenderReplyTo         string          `json:"senderReplyTo"`
+	WorkspaceSlug         string          `json:"workspaceSlug"`
+	WorkspaceTimezone     string          `json:"workspaceTimezone"`
+	WorkspaceName         string          `json:"workspaceName"`
+	WorkspaceThresholds   json.RawMessage `json:"workspaceThresholds"`
+	ListUnsubscribeMailto bool            `json:"listUnsubscribeMailto"`
 }
 
 // A campaign with its sender and workspace, for building messages.
@@ -710,6 +715,7 @@ func (q *Queries) SendingCampaignContext(ctx context.Context, id uuid.UUID) (Sen
 		&i.WorkspaceTimezone,
 		&i.WorkspaceName,
 		&i.WorkspaceThresholds,
+		&i.ListUnsubscribeMailto,
 	)
 	return i, err
 }

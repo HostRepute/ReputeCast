@@ -19,10 +19,12 @@ import { common } from '@/i18n/common'
 import { count, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
+import { AllowedIpsDialog } from './AllowedIpsDialog'
 import { CreateKeyDialog } from './CreateKeyDialog'
 import { KeySecretDialog } from './KeySecretDialog'
 import { m } from './mcp.messages'
-import { DashedEmpty, TableSkeleton } from './parts'
+import { m as km } from './messages'
+import { DashedEmpty, TableSkeleton, type Key } from './parts'
 import { McpIntegrationsNote } from '@/features/integrations/ManagedWebhook'
 import { McpAssistantNote } from '@/features/ai/parts'
 
@@ -44,6 +46,7 @@ export function McpPage() {
   const agents = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents', { params: { path: { workspace: slug } } }, { enabled: can })
   const [adding, setAdding] = useState(false)
   const [secret, setSecret] = useState<Schemas['APIKeyCreated']>()
+  const [ips, setIps] = useState<Key>()
   const tabs = settingsTabs(slug).map((tab) => (tab.to === '/w/$workspace/settings/keys' ? { ...tab, current: true } : tab))
   return (
     <Page
@@ -91,7 +94,7 @@ export function McpPage() {
               {t(m.noAgentsBody)}
             </DashedEmpty>
           ) : (
-            <AgentsMatrix o={q.data} />
+            <AgentsMatrix o={q.data} list={agents.data} onAllowedIps={setIps} />
           )}
           <div className="flex flex-wrap items-start gap-5">
             <ActionsCard />
@@ -111,6 +114,7 @@ export function McpPage() {
         />
       ) : null}
       {secret ? <KeySecretDialog created={secret} action="created" onClose={() => setSecret(undefined)} /> : null}
+      {ips && agents.data ? <AllowedIpsDialog k={ips} list={agents.data} onClose={() => setIps(undefined)} /> : null}
     </Page>
   )
 }
@@ -178,7 +182,7 @@ function ConnectCard({ o }: { o: Overview }) {
   )
 }
 
-function AgentsMatrix({ o }: { o: Overview }) {
+function AgentsMatrix({ o, list, onAllowedIps }: { o: Overview; list?: Schemas['APIKeyList']; onAllowedIps: (k: Key) => void }) {
   const t = useT()
   const { slug } = useWorkspace()
   const caps = o.capabilities
@@ -212,30 +216,41 @@ function AgentsMatrix({ o }: { o: Overview }) {
           </tr>
         </thead>
         <tbody>
-          {o.agents.map((a) => (
-            <tr key={a.id}>
-              <Td>
-                <div className="font-semibold">{a.name}</div>
-                <div className="k">{t(m.agentLine, { masked: a.masked, name: a.createdBy, permissions: a.permissions.join(', ') })}</div>
-              </Td>
-              {caps.map((c) => {
-                const cell = a.cells.find((x) => x.capability === c)
-                return (
-                  <Td key={c} align="center">
-                    {cell ? <Badge tone={levelTone[cell.level]}>{cell.label}</Badge> : <span className="k">–</span>}
-                  </Td>
-                )
-              })}
-              <Td>
-                <LastCall agentId={a.id} />
-              </Td>
-              <Td>
-                <ButtonLink size="sm" to="/w/$workspace/settings/keys" params={{ workspace: slug }} aria-label={t(m.editAgent, { name: a.name })}>
-                  {t(common.edit)}
-                </ButtonLink>
-              </Td>
-            </tr>
-          ))}
+          {o.agents.map((a) => {
+            const k = list?.items.find((x) => x.id === a.id)
+            return (
+              <tr key={a.id}>
+                <Td>
+                  <div className="font-semibold">{a.name}</div>
+                  <div className="k">{t(m.agentLine, { masked: a.masked, name: a.createdBy, permissions: a.permissions.join(', ') })}</div>
+                  {k?.allowedIps.length ? <div className="k">{t(km.allowedIpsScope, { count: count(k.allowedIps.length) })}</div> : null}
+                </Td>
+                {caps.map((c) => {
+                  const cell = a.cells.find((x) => x.capability === c)
+                  return (
+                    <Td key={c} align="center">
+                      {cell ? <Badge tone={levelTone[cell.level]}>{cell.label}</Badge> : <span className="k">–</span>}
+                    </Td>
+                  )
+                })}
+                <Td>
+                  <LastCall agentId={a.id} />
+                </Td>
+                <Td>
+                  <div className="row flex-nowrap gap-1.5">
+                    {k && k.status === 'active' ? (
+                      <Button size="sm" onClick={() => onAllowedIps(k)} aria-label={t(km.allowedIpsNamed, { name: a.name })}>
+                        {t(km.allowedIpsButton)}
+                      </Button>
+                    ) : null}
+                    <ButtonLink size="sm" to="/w/$workspace/settings/keys" params={{ workspace: slug }} aria-label={t(m.editAgent, { name: a.name })}>
+                      {t(common.edit)}
+                    </ButtonLink>
+                  </div>
+                </Td>
+              </tr>
+            )
+          })}
         </tbody>
       </Table>
       <McpAssistantNote />

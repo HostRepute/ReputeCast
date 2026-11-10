@@ -15,6 +15,8 @@
   "fixed.twoFactorRequired": "Ihre Instanz verlangt die Zwei-Faktor-Authentifizierung. Fügen Sie einen Passkey oder eine Authenticator-App hinzu, um fortzufahren.",
   "fixed.whoUnavailable": "Ihre Identität konnte gerade nicht geprüft werden. Versuchen Sie es gleich noch einmal.",
   "keyExpired": "Dieser API-Schlüssel ist am {date, date} abgelaufen. Rotieren Sie ihn unter Einstellungen › Schlüssel & MCP.",
+  "keyIpNotAllowed": "Dieser API-Schlüssel kann nicht von {ip} aus verwendet werden. Fügen Sie die Adresse unter Einstellungen › Schlüssel & MCP den erlaubten IPs des Schlüssels hinzu.",
+  "unknownAddress": "einer unbekannten Adresse",
   "problem.notForThisKey": "Dieser Schlüssel gehört zu {integration} und funktioniert nur für das, was {integration} darf. Ändern Sie die Rechte von {integration} unter Einstellungen › Integrationen.",
   "problem.integrationOnly": "Nur der Schlüssel einer Integration kann dies aufrufen.",
   "problem.wordpressOnly": "Nur der Schlüssel einer WordPress-Website kann dies aufrufen.",

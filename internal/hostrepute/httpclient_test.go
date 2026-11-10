@@ -34,7 +34,8 @@ func TestHTTPClientAuthAndDecode(t *testing.T) {
 			if r.URL.Query().Get("from") == "" {
 				t.Errorf("missing date range: %s", r.URL)
 			}
-			_, _ = w.Write([]byte(`{"days":[{"day":"2026-10-01","spam_rate":0.0004,"domain_reputation":"HIGH"}]}`))
+			// Postmaster v1 keys an older HostRepute may still send are ignored.
+			_, _ = w.Write([]byte(`{"days":[{"day":"2026-10-01","spam_rate":0.0004,"domain_reputation":"HIGH","ip_reputation":"HIGH"}]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}

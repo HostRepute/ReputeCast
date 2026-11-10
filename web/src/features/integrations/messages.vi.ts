@@ -819,5 +819,5 @@ export default translate(m, {
 
   // ── HostRepute ───────────────────────────────────────────────────────
   hrAdds: 'Bổ sung',
-  hrAddsValue: 'Google Postmaster Tools: uy tín tên miền, tỷ lệ spam và vòng phản hồi · Microsoft SNDS: uy tín IP cho Outlook.com',
+  hrAddsValue: 'Google Postmaster Tools: trạng thái tuân thủ, tỷ lệ spam và vòng phản hồi · Microsoft SNDS: uy tín IP cho Outlook.com',
 })

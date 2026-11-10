@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/logging"
+	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -368,6 +369,20 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, tok
 		}
 		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, mKeyExpired.Text(i18n.LangFrom(ctx), i18n.Args{"date": *k.ExpiresAt}))
 	}
+	// A key limited to allowed IPs answers only calls from them, and none
+	// from an address ReputeCast doesn't know. The token is verified by now,
+	// so the refusal tells nothing about which keys exist, and it names only
+	// the caller's own address.
+	ip := audit.RequestFrom(ctx).IP
+	if !server.AllowedFrom(k.AllowedIps, ip) {
+		a.keyRejected(ctx, k.ID, "ip_not_allowed")
+		l := i18n.LangFrom(ctx)
+		addr := mUnknownAddress.Text(l, nil)
+		if ip != nil && ip.IsValid() {
+			addr = ip.Unmap().String()
+		}
+		return caller{}, Err(http.StatusForbidden, CodeIPNotAllowed, mKeyIPNotAllowed.Text(l, i18n.Args{"ip": addr}))
+	}
 	perms := authz.ParseSet(k.Permissions)
 	var scope authz.Scope
 	_ = json.Unmarshal(k.Scope, &scope)
@@ -397,7 +412,6 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, tok
 		typ = authz.ActorMCPAgent
 	}
 	perms = perms.HoldableBy(typ)
-	ip := audit.RequestFrom(ctx).IP
 	_ = a.Q.TouchAPIKey(ctx, store.TouchAPIKeyParams{ID: k.ID, Ip: ip})
 	creator := uuid.Nil
 	if k.CreatedBy != nil {

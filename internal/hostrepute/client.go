@@ -105,16 +105,14 @@ type Delisting struct {
 
 // PostmasterDay is one day of Google Postmaster Tools data for a domain.
 type PostmasterDay struct {
-	Day              string   `json:"day"` // YYYY-MM-DD
-	SpamRate         *float64 `json:"spam_rate,omitempty"`
-	DomainReputation string   `json:"domain_reputation,omitempty"` // HIGH, MEDIUM, LOW, BAD
-	IPReputation     string   `json:"ip_reputation,omitempty"`
-	SPFRate          *float64 `json:"spf_rate,omitempty"`
-	DKIMRate         *float64 `json:"dkim_rate,omitempty"`
-	DMARCRate        *float64 `json:"dmarc_rate,omitempty"`
-	TLSRate          *float64 `json:"tls_rate,omitempty"`
-	DeliveryErrors   *float64 `json:"delivery_errors,omitempty"`
-	FBLFlagged       *int     `json:"fbl_flagged,omitempty"`
+	Day            string   `json:"day"` // YYYY-MM-DD
+	SpamRate       *float64 `json:"spam_rate,omitempty"`
+	SPFRate        *float64 `json:"spf_rate,omitempty"`
+	DKIMRate       *float64 `json:"dkim_rate,omitempty"`
+	DMARCRate      *float64 `json:"dmarc_rate,omitempty"`
+	TLSRate        *float64 `json:"tls_rate,omitempty"`
+	DeliveryErrors *float64 `json:"delivery_errors,omitempty"`
+	FBLFlagged     *int     `json:"fbl_flagged,omitempty"`
 }
 
 // SNDSDay is one day of Microsoft SNDS data for an IP.

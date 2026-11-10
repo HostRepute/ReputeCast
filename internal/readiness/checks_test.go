@@ -457,3 +457,78 @@ func TestRatesNeedVolume(t *testing.T) {
 		t.Fatalf("provider-reported: %+v", c)
 	}
 }
+
+// Microsoft's bulk-sender rule (Outlook.com, from 5 May 2025): a send to
+// 5,000 or more consumer Outlook addresses from a domain without DMARC
+// blocks, the 550 5.7.515 explanation first, with or without Postmaster
+// data; fewer recipients keep the warning; a DNS error stays Unknown.
+func TestMicrosoftBulkSenderRule(t *testing.T) {
+	noDMARC := func(f readiness.Facts, outlook int64) readiness.Facts {
+		f.Auth.DMARCStatus, f.Auth.DMARCPolicy, f.Auth.DMARCRecord, f.Auth.DMARCAligned = "missing", "", "", nil
+		f.Audience.OutlookConsumer = outlook
+		return f
+	}
+	for _, postmaster := range []bool{false, true} {
+		f := digest()
+		if postmaster {
+			f = withPostmaster(f, 1, 100, 100)
+		}
+		c := mustCheck(t, readiness.Assemble(noDMARC(f, 6000)), "compliance.bulk_sender")
+		if c.Status != readiness.Block || c.Ack != "" || !strings.Contains(c.Title, "6,000") || !strings.HasPrefix(c.Detail, "Microsoft refuses mail with 550 5.7.515") ||
+			len(c.Fixes) == 0 || c.Fixes[0].Href != "/w/acme-newsletter/settings/senders" {
+			t.Fatalf("postmaster %v: %+v", postmaster, c)
+		}
+	}
+	below := mustCheck(t, readiness.Assemble(noDMARC(digest(), 4999)), "compliance.bulk_sender")
+	if below.Status != readiness.Warn || below.Ack == "" || strings.Contains(below.Detail, "5.7.515") {
+		t.Fatalf("4,999 Outlook.com recipients: %+v", below)
+	}
+	f := noDMARC(digest(), 6000)
+	f.Auth.DMARCStatus = "error"
+	res := readiness.Assemble(f)
+	if c := mustCheck(t, res, "compliance.bulk_sender"); c.Status == readiness.Block || strings.Contains(c.Detail, "5.7.515") {
+		t.Fatalf("DMARC unknown: %+v", c)
+	}
+	if c := mustCheck(t, res, "auth.dmarc"); c.Status != readiness.Unknown {
+		t.Fatalf("auth.dmarc with a DNS error: %+v", c)
+	}
+}
+
+// "SPF and DKIM pass" joins the bulk-sender rules only when every SPF and
+// DKIM record is verified; one DNS didn't answer for leaves it out.
+func TestMicrosoftRulesNeedKnownSPFAndDKIM(t *testing.T) {
+	pass := mustCheck(t, readiness.Assemble(digest()), "compliance.bulk_sender")
+	if !strings.Contains(pass.Detail, "SPF and DKIM pass") {
+		t.Fatalf("every record verified: %q", pass.Detail)
+	}
+	f := digest()
+	f.Auth.SPF[1] = readiness.ProviderAuthFacts{Short: "Postal", Unknown: true, Trouble: readiness.TroubleTimeout}
+	if c := mustCheck(t, readiness.Assemble(f), "compliance.bulk_sender"); strings.Contains(c.Detail, "SPF and DKIM pass") {
+		t.Fatalf("an unknown SPF record: %q", c.Detail)
+	}
+}
+
+// With "Include a mailto: address in List-Unsubscribe" on, the compliance
+// group warns that someone has to remove readers who unsubscribe by email
+// and the header shows the address; off (the default), neither.
+func TestUnsubscribeMailto(t *testing.T) {
+	res := readiness.Assemble(digest())
+	noCheck(t, res, "compliance.unsubscribe_mailto")
+	if c := mustCheck(t, res, "compliance.list_unsubscribe"); strings.Contains(strings.Join(c.Raw, "\n"), "mailto:") {
+		t.Fatalf("header without the setting: %v", c.Raw)
+	}
+	f := digest()
+	f.Compliance.Mailto = "hello@acme.io"
+	res = readiness.Assemble(f)
+	c := mustCheck(t, res, "compliance.unsubscribe_mailto")
+	if c.Status != readiness.Warn || c.Group != "compliance" || c.Ack == "" || !strings.Contains(c.Title, "hello@acme.io") || !strings.Contains(c.Ack, "hello@acme.io") ||
+		len(c.Fixes) != 1 || c.Fixes[0].Href != "/w/acme-newsletter/settings/senders" {
+		t.Fatalf("mailto: %+v", c)
+	}
+	if h := mustCheck(t, res, "compliance.list_unsubscribe"); !strings.Contains(strings.Join(h.Raw, "\n"), "<mailto:hello@acme.io?subject=unsubscribe%20{token}>") {
+		t.Fatalf("header with the setting: %v", h.Raw)
+	}
+	if res.Counts.Warnings != 3 {
+		t.Fatalf("warnings %v", statuses(res, readiness.Warn))
+	}
+}

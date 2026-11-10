@@ -15,6 +15,8 @@
   "fixed.twoFactorRequired": "Tu instancia exige la verificación en dos pasos. Añade una llave de acceso o una aplicación de autenticación para continuar.",
   "fixed.whoUnavailable": "Ahora mismo no se pudo comprobar quién eres. Vuelve a intentarlo en un momento.",
   "keyExpired": "Esta clave de API caducó el {date, date}. Rótala en Configuración › Claves y MCP.",
+  "keyIpNotAllowed": "Esta clave de API no se puede usar desde {ip}. Añade la dirección a las IP permitidas de la clave en Configuración › Claves y MCP.",
+  "unknownAddress": "una dirección desconocida",
   "problem.notForThisKey": "Esta clave pertenece a {integration} y solo sirve para lo que {integration} puede hacer. Cambia lo que puede hacer {integration} en Configuración › Integraciones.",
   "problem.integrationOnly": "Solo la clave de una integración puede hacer esta llamada.",
   "problem.wordpressOnly": "Solo la clave de un sitio de WordPress puede hacer esta llamada.",

@@ -118,7 +118,7 @@ func Classify(status, diagnostic string) string {
 		return MailboxFull
 	case "5.1.2", "5.1.10", "4.1.2", "5.4.4", "4.4.4":
 		return DomainInvalid
-	case "5.7.1", "5.7.0", "5.7.23", "5.7.24", "5.7.25", "5.7.26", "5.7.27", "5.4.1", "5.7.509", "5.7.606":
+	case "5.7.1", "5.7.0", "5.7.23", "5.7.24", "5.7.25", "5.7.26", "5.7.27", "5.4.1", "5.7.509", "5.7.515", "5.7.606":
 		return PolicyBlock
 	}
 	switch {

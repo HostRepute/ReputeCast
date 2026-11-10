@@ -457,3 +457,24 @@ func TestSMTPCredentialFollowsItsCreator(t *testing.T) {
 		t.Fatalf("after Marcus was deactivated: %v", err)
 	}
 }
+
+// An SMTP credential limited to allowed IPs is refused from any other
+// connecting address (the test connects from 127.0.0.1).
+func TestSMTPCredentialAllowedIPs(t *testing.T) {
+	e := newRelayEnv(t)
+	auth := func() error {
+		t.Helper()
+		return e.client(false).Auth(sasl.NewPlainClient("", e.keyID, e.secret))
+	}
+	e.owner.Do("PUT", ws+"/api-keys/"+e.keyID+"/allowed-ips", map[string]any{"allowedIps": []string{"203.0.113.0/24"}}).MustStatus(t, 200)
+	if err := auth(); err == nil || !strings.Contains(err.Error(), "535") || !strings.Contains(err.Error(), "127.0.0.1") {
+		t.Fatalf("from outside the allowed IPs: %v", err)
+	}
+	if n := e.count(`SELECT count(*) FROM api_keys WHERE id = $1 AND last_call = 'SMTP AUTH'`, e.keyID); n != 0 {
+		t.Fatal("a refused credential was marked as used by the relay")
+	}
+	e.owner.Do("PUT", ws+"/api-keys/"+e.keyID+"/allowed-ips", map[string]any{"allowedIps": []string{"203.0.113.0/24", "127.0.0.0/8"}}).MustStatus(t, 200)
+	if err := auth(); err != nil {
+		t.Fatalf("from an allowed address: %v", err)
+	}
+}

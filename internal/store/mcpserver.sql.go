@@ -701,16 +701,17 @@ func (q *Queries) McpOffers(ctx context.Context, workspaceID uuid.UUID) ([]McpOf
 }
 
 const mcpPostmaster = `-- name: McpPostmaster :many
-SELECT DISTINCT ON (domain) domain, day, spam_rate, domain_reputation, ip_reputation
+SELECT DISTINCT ON (domain) domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate
 FROM postmaster_daily WHERE workspace_id = $1 ORDER BY domain, day DESC
 `
 
 type McpPostmasterRow struct {
-	Domain           string    `json:"domain"`
-	Day              time.Time `json:"day"`
-	SpamRate         *float64  `json:"spamRate"`
-	DomainReputation string    `json:"domainReputation"`
-	IpReputation     string    `json:"ipReputation"`
+	Domain    string    `json:"domain"`
+	Day       time.Time `json:"day"`
+	SpamRate  *float64  `json:"spamRate"`
+	SpfRate   *float64  `json:"spfRate"`
+	DkimRate  *float64  `json:"dkimRate"`
+	DmarcRate *float64  `json:"dmarcRate"`
 }
 
 func (q *Queries) McpPostmaster(ctx context.Context, workspaceID uuid.UUID) ([]McpPostmasterRow, error) {
@@ -726,8 +727,9 @@ func (q *Queries) McpPostmaster(ctx context.Context, workspaceID uuid.UUID) ([]M
 			&i.Domain,
 			&i.Day,
 			&i.SpamRate,
-			&i.DomainReputation,
-			&i.IpReputation,
+			&i.SpfRate,
+			&i.DkimRate,
+			&i.DmarcRate,
 		); err != nil {
 			return nil, err
 		}

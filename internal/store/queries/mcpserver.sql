@@ -58,7 +58,7 @@ SELECT asset, source, impact, listed, listed_since FROM blocklist_results
 WHERE workspace_id = @workspace_id AND listed ORDER BY impact DESC, asset;
 
 -- name: McpPostmaster :many
-SELECT DISTINCT ON (domain) domain, day, spam_rate, domain_reputation, ip_reputation
+SELECT DISTINCT ON (domain) domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate
 FROM postmaster_daily WHERE workspace_id = @workspace_id ORDER BY domain, day DESC;
 
 -- name: McpCreateSegment :one

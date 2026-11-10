@@ -743,5 +743,5 @@ export default translate(m, {
   memberNoManage: 'Diese funktionieren nicht mehr, bis jemand, der Integrationen verwalten darf, sie unter Einstellungen › Integrationen übernimmt oder trennt.',
   memberError: '{name} konnte nicht übergeben werden',
   hrAdds: 'Ergänzt',
-  hrAddsValue: 'Google Postmaster Tools: Domain-Reputation, Spamrate und Feedback-Loop · Microsoft SNDS: IP-Reputation für Outlook.com',
+  hrAddsValue: 'Google Postmaster Tools: Compliance-Status, Spamrate und Feedback-Loop · Microsoft SNDS: IP-Reputation für Outlook.com',
 })

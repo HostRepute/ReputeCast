@@ -80,15 +80,13 @@ func (st *state) primaryStreams(p store.Provider) []string {
 // pools lists the shared IP pools (checked at domain level).
 func (st *state) pools() []DeliverabilityPoolHealth {
 	out := []DeliverabilityPoolHealth{}
-	domain := st.mainDomain()
-	pm := st.latestPostmaster(domain)
 	for _, p := range st.providers {
 		if p.IpMode != "shared" {
 			continue
 		}
 		u := st.usage[p.ID]
 		pool := DeliverabilityPoolHealth{ProviderID: p.ID.String(), Provider: p.Name, Short: provstate.Short(p.Name, p.Adapter), Adapter: p.Adapter,
-			Region: configOf(p).Region, Status: p.Status, ManagedReputation: p.Adapter == "ses", GmailIPReputation: pm.IPReputation,
+			Region: configOf(p).Region, Status: p.Status, ManagedReputation: p.Adapter == "ses",
 			BounceRate: u.Bounce7d, ComplaintRate: u.Complaint7d}
 		if s := st.primaryStreams(p); len(s) == 1 {
 			pool.OnlyStream = s[0]

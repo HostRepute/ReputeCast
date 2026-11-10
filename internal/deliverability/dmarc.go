@@ -381,7 +381,9 @@ func contains(list []string, v string) bool {
 	return false
 }
 
-// feedback is an RFC 7489 appendix C aggregate report.
+// feedback is an aggregate report: RFC 7489 appendix C or RFC 9990, whose
+// elements are in the urn:ietf:params:xml:ns:dmarc-2.0 namespace (the tags
+// carry no namespace, so they match either).
 type feedback struct {
 	XMLName  xml.Name `xml:"feedback"`
 	Metadata struct {
@@ -392,13 +394,17 @@ type feedback struct {
 			End   int64 `xml:"end"`
 		} `xml:"date_range"`
 	} `xml:"report_metadata"`
+	// Policy is the record receivers applied; RFC 9990 removed pct.
 	Policy struct {
-		Domain string `xml:"domain"`
-		ADKIM  string `xml:"adkim"`
-		ASPF   string `xml:"aspf"`
-		P      string `xml:"p"`
-		SP     string `xml:"sp"`
-		Pct    string `xml:"pct"`
+		Domain          string `xml:"domain"`
+		ADKIM           string `xml:"adkim"`
+		ASPF            string `xml:"aspf"`
+		P               string `xml:"p"`
+		SP              string `xml:"sp"`
+		NP              string `xml:"np"`
+		FO              string `xml:"fo"`
+		Testing         string `xml:"testing"`
+		DiscoveryMethod string `xml:"discovery_method"`
 	} `xml:"policy_published"`
 	Records []struct {
 		Row struct {
@@ -480,15 +486,29 @@ func ParseReport(data []byte) (hostrepute.DMARCReport, error) {
 	if fb.Metadata.OrgName == "" || fb.Metadata.ReportID == "" || len(fb.Records) == 0 {
 		return hostrepute.DMARCReport{}, &reportError{key: "problem.notDMARCEmpty", english: "this isn't a DMARC aggregate report: no report_metadata or records"}
 	}
+	// The policy as stored: the tags RFC 9990 reports, empty ones left out.
+	pp := fb.Policy
+	policy := map[string]string{}
+	for _, kv := range [][2]string{{"domain", pp.Domain}, {"p", pp.P}, {"sp", pp.SP}, {"np", pp.NP}, {"adkim", pp.ADKIM}, {"aspf", pp.ASPF},
+		{"fo", pp.FO}, {"testing", pp.Testing}, {"discovery_method", pp.DiscoveryMethod}} {
+		if v := strings.TrimSpace(kv[1]); v != "" {
+			policy[kv[0]] = v
+		}
+	}
 	out := hostrepute.DMARCReport{
 		Domain: strings.ToLower(fb.Policy.Domain), OrgName: fb.Metadata.OrgName, ReportID: fb.Metadata.ReportID,
 		DateBegin: time.Unix(fb.Metadata.DateRange.Begin, 0).UTC(), DateEnd: time.Unix(fb.Metadata.DateRange.End, 0).UTC(),
-		Policy:  map[string]string{"domain": fb.Policy.Domain, "p": fb.Policy.P, "sp": fb.Policy.SP, "pct": fb.Policy.Pct, "adkim": fb.Policy.ADKIM, "aspf": fb.Policy.ASPF},
-		Records: []hostrepute.DMARCRecord{},
+		Policy: policy, Records: []hostrepute.DMARCRecord{},
 	}
 	for _, r := range fb.Records {
+		disposition := strings.ToLower(r.Row.Evaluated.Disposition)
+		if disposition == "pass" {
+			// RFC 9990's "pass": no action, the mail passed DMARC under an
+			// enforcing policy. Delivered, like "none".
+			disposition = "none"
+		}
 		rec := hostrepute.DMARCRecord{
-			SourceIP: strings.TrimSpace(r.Row.SourceIP), Count: r.Row.Count, Disposition: strings.ToLower(r.Row.Evaluated.Disposition),
+			SourceIP: strings.TrimSpace(r.Row.SourceIP), Count: r.Row.Count, Disposition: disposition,
 			DKIM: strings.ToLower(r.Row.Evaluated.DKIM), SPF: strings.ToLower(r.Row.Evaluated.SPF), HeaderFrom: strings.ToLower(r.Identifiers.HeaderFrom),
 			DKIMResult: "none", SPFResult: "none",
 		}
