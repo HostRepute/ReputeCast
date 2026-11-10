@@ -191,6 +191,7 @@ export const groups: { name: string; features: Feature[] }[] = [
           'OIDC SSO and passkeys',
           'An audit log',
           'Client workspaces for agencies, with staff assignments, client sign-off and usage per client',
+          'Settings a host pins when it runs the server for someone else: the public URL and who upgrades',
         ],
         docs: 'team/roles-and-permissions/',
       },
