@@ -61,6 +61,10 @@ export const m = defineMessages('senders', {
   listUnsubscribeMailto: 'Include a mailto: address in List-Unsubscribe',
   listUnsubscribeMailtoHelp:
     "Off: the header has only the one-click link, which Gmail, Yahoo and Outlook use. On: some mail apps send an email instead. ReputeCast doesn't receive mail, so someone at the reply-to address must remove those readers by hand within 10 days.",
+  utmLinks: 'Add UTM tags to links',
+  utmLinksHelp:
+    'Web analytics then show which email brought each visit. A link keeps the UTM tags it already has. Campaigns use it from their next send, automations from their next publish.',
+  utmCampaignName: "the campaign's name",
   defaultsSaved: 'Defaults saved',
   defaultsFailed: "Couldn't save the defaults",
 

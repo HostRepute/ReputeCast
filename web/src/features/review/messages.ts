@@ -422,6 +422,13 @@ export const m = defineMessages('review', {
   rowCostTiming: 'Cost · timing',
   costTiming: '{cost} · winner {winner} · done about {end}',
   autoPause: 'Auto-pause',
+  // The Links card (G-13): this send's UTM tags.
+  linksCard: 'Links',
+  utmTags: 'Add UTM tags',
+  utmTagsHelp: "Added to the web links that don't set them, so web analytics show which visits this email brought.",
+  utmTagsList: 'Tags added to the links',
+  utmDefault: 'Workspace default: {on, select, yes {on} other {off}} · <link>Settings › Senders</link>',
+  utmFailed: "Couldn't save the UTM tags",
   sendDate: 'Send date',
   sendTime: 'Send time',
   modeNowCaptionAb: 'Starts within a minute of confirming; the A/B winner is picked {hours, plural, one {# hour} other {# hours}} later',

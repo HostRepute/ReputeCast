@@ -151,6 +151,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 .ws .av{font-weight:700}
 /* switches: a disabled switch looks disabled */
 .tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+/* switch rows, as Settings › Sending rules draws them */
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:18px}
+.trow{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.trow .col{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
 /* readiness rework: verdict first, issues first, passes collapsed */
 .verdict{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;background:#FFFBEB;border:1px solid #FCD34D;flex-wrap:wrap}
 .verdict .vtx{display:flex;flex-direction:column;gap:2px;flex:1 1 300px;min-width:0}
@@ -512,6 +518,16 @@ List-Unsubscribe-Post: List-Unsubscribe=One-Click</pre></div></details></div></d
             </details>
           </section>
 
+          <section class="card" aria-labelledby="h-links" style="gap:10px">
+            <h2 class="h2" id="h-links">Links</h2>
+            <label class="trow" style="cursor:pointer">
+              <span class="col"><span style="font-weight:600" id="utm-l">Add UTM tags</span><span class="k" id="utm-d">Added to the web links that don't set them, so web analytics show which visits this email brought.</span></span>
+              <input type="checkbox" class="tg" role="switch" aria-labelledby="utm-l" aria-describedby="utm-d" checked="{{utmOn}}" onChange="{{toggleUtm}}">
+            </label>
+            <sc-if value="{{utmOn}}" hint-placeholder-val="{{true}}"><ul class="pchips" style="padding:0" aria-label="Tags added to the links"><li class="pchip mono">utm_source=acme-newsletter</li><li class="pchip mono">utm_medium=email</li><li class="pchip mono">utm_campaign=weekly-digest-142</li></ul></sc-if>
+            <span class="k">Workspace default: off · <a href="SettingsSenders.dc.html">Settings › Senders</a></span>
+          </section>
+
           <section class="card" aria-labelledby="h-sched" style="gap:10px">
             <h2 class="h2" id="h-sched">Scheduling</h2>
             <div class="{{nowBox}}"><label class="radl"><input type="radio" name="when" checked="{{isNow}}" onChange="{{pickNow}}"><span><span style="font-weight:600">Send now</span><br><span class="k">Starts within a minute of confirming; the A/B winner is picked 2 hours later</span></span></label></div>
@@ -542,11 +558,11 @@ List-Unsubscribe-Post: List-Unsubscribe=One-Click</pre></div></details></div></d
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2239}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2483}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { when: 'schedule' };
+    this.state = { when: 'schedule', utm: false };
   }
   renderVals() {
     var w = this.state.when;
@@ -568,6 +584,8 @@ class Component extends DCLogic {
       pickNow: function () { self.setState({ when: 'now' }); },
       pickSched: function () { self.setState({ when: 'schedule' }); },
       pickBest: function () { self.setState({ when: 'best' }); },
+      utmOn: this.state.utm,
+      toggleUtm: function () { self.setState({ utm: !self.state.utm }); },
       ctaLabel: labels[w],
       ctaShort: shortLabel,
       ctaWhen: whens[w],

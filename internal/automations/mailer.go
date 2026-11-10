@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -36,6 +37,9 @@ type OutgoingEmail struct {
 	// Context is what the trigger passed to the flow's emails (a store's
 	// checkout or order): the sending engine keeps it with the message.
 	Context map[string]string
+	// UTM is what the automation version adds to the email's links
+	// (automation_versions.utm, decided at publish); nil = untagged.
+	UTM *clicktoken.UTM
 }
 
 // QueuedEmail is what the mailer did with an email.

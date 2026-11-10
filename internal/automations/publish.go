@@ -15,7 +15,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
@@ -634,8 +636,15 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 	q := store.New(tx)
 	version := a.DraftVersion
 	summary := versionSummary(st.items, a.LiveVersion == nil)
+	// The version's emails add the workspace's UTM tags as they stand now:
+	// turning "Add UTM tags to links" on or off reaches the flow at its
+	// next publish, and this version's links never change.
+	var utm []byte
+	if domains.UTMLinks(ws.SendingDefaults) {
+		utm, _ = json.Marshal(clicktoken.ForEmail(ws.Slug, a.Name, "automation"))
+	}
 	if err := q.PublishAutomationVersion(ctx, store.PublishAutomationVersionParams{AutomationID: a.ID, Version: version, PublishedBy: &by, Summary: say(english, summary),
-		SummaryText: keepText(summary), Migration: migration}); err != nil {
+		SummaryText: keepText(summary), Migration: migration, Utm: utm}); err != nil {
 		return err
 	}
 	moved := int64(0)

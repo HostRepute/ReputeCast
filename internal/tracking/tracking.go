@@ -34,6 +34,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/customhost"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -383,7 +384,7 @@ func (s *Service) resolve(ctx context.Context, c linktoken.Claims, m store.Track
 		}
 		key = ref.linkKey()
 		load = func() (map[int]string, error) {
-			rows, err := s.Q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language})
+			rows, err := s.Q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Utm: ref.utmKey()})
 			if err != nil {
 				return nil, err
 			}
@@ -574,7 +575,7 @@ func (s *Service) linksOf(ctx context.Context, q *store.Queries, m store.Trackin
 		return map[int]string{}, nil
 	}
 	return s.cachedLinks(ref.linkKey(), func() (map[int]string, error) {
-		rows, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language})
+		rows, err := q.TrackingAutomationLinks(ctx, store.TrackingAutomationLinksParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Utm: ref.utmKey()})
 		if err != nil {
 			return nil, err
 		}
@@ -594,11 +595,27 @@ type contentRef struct {
 	// Ctx is what the flow's trigger passed to the email (a store's
 	// checkout or order): its link variables come from MessageVars.
 	Ctx map[string]string `json:"ctx,omitempty"`
+	// UTM is what the email's automation version added to its links (nil
+	// = untagged): the link set it was sent with (automation_email_links.utm).
+	UTM *clicktoken.UTM `json:"utm,omitempty"`
 }
 
-// linkKey identifies the link set of an automation email version and language.
+// utmKey is automation_email_links.utm of the email's link set.
+func (r contentRef) utmKey() string {
+	if r.UTM == nil {
+		return ""
+	}
+	return r.UTM.Key()
+}
+
+// linkKey identifies the link set of an automation email version, language
+// and tags.
 func (r contentRef) linkKey() uuid.UUID {
-	return uuid.NewSHA1(r.Email, append([]byte{byte(r.Version >> 8), byte(r.Version)}, r.Language...))
+	b := append([]byte{byte(r.Version >> 8), byte(r.Version)}, r.Language...)
+	if k := r.utmKey(); k != "" {
+		b = append(append(b, 0), k...)
+	}
+	return uuid.NewSHA1(r.Email, b)
 }
 
 func refOf(raw json.RawMessage) contentRef {

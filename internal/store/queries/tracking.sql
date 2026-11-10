@@ -13,7 +13,9 @@ WHERE m.id = @id;
 SELECT position, url FROM campaign_links WHERE campaign_id = @campaign_id ORDER BY position;
 
 -- name: TrackingAutomationLinks :many
-SELECT position, url FROM automation_email_links WHERE email_id = @email_id AND version = @version AND language = @language ORDER BY position;
+-- utm tells apart the link sets of an email version sent with and without
+-- UTM tags (clicktoken.UTM.Key, '' = untagged).
+SELECT position, url FROM automation_email_links WHERE email_id = @email_id AND version = @version AND language = @language AND utm = @utm ORDER BY position;
 
 -- name: TrackingContactVars :one
 SELECT email, first_name, last_name, attributes FROM contacts WHERE id = @id;
@@ -24,7 +26,7 @@ ON CONFLICT DO NOTHING
 RETURNING link;
 
 -- name: TrackingBumpAutomationLink :exec
-UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = @email_id AND version = @version AND language = @language AND position = @position;
+UPDATE automation_email_links SET clicks = clicks + 1 WHERE email_id = @email_id AND version = @version AND language = @language AND utm = @utm AND position = @position;
 
 -- name: TrackingInsertEvent :exec
 -- class is how tracking classified the open or click (human, privacy,

@@ -11,6 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
+	"github.com/hostrepute/reputecast/internal/domains"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -51,6 +54,22 @@ type ReviewCampaign struct {
 	AB            *ReviewAB  `json:"ab,omitempty"`
 	// Editable is false once the send started.
 	Editable bool `json:"editable"`
+	// Settings are the campaign's content settings, which the Links card
+	// saves whole through update-campaign (its own "Add UTM tags").
+	Settings campaigns.ComposerContentSettings `json:"settings"`
+	// UTM are the tags the send adds to its web links, as the sending
+	// engine computes them; omitted when it adds none.
+	UTM *ReviewUTM `json:"utm,omitempty"`
+	// UTMDefault is the workspace's "Add UTM tags to links" (Settings ›
+	// Senders), which applies when Settings has no choice of its own.
+	UTMDefault bool `json:"utmDefault"`
+}
+
+// ReviewUTM are the UTM tags a send adds to its links.
+type ReviewUTM struct {
+	Source   string `json:"source"`
+	Medium   string `json:"medium"`
+	Campaign string `json:"campaign"`
 }
 
 // ReviewTestSend is a recent test email.
@@ -253,6 +272,12 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out.Campaign = ReviewCampaign{ID: c.ID.String(), Name: c.Name, Status: c.Status, Subject: c.Subject, Preheader: c.Preheader, From: fromLine(c.SenderName, c.SenderEmail),
 		ReplyTo: c.ReplyTo, Version: int(c.Version), AutosavedAt: c.AutosavedAt, UpdatedAt: c.UpdatedAt, UpdatedBy: c.UpdatedByName, ScheduledAt: c.ScheduledAt,
 		StartedAt: c.StartedAt, AB: abSummary(langOf(ctx), c.AbTest)}
+	_ = json.Unmarshal(c.ContentSettings, &out.Campaign.Settings)
+	out.Campaign.UTMDefault = domains.UTMLinks(ws.SendingDefaults)
+	if out.Campaign.Settings.UTMOn(out.Campaign.UTMDefault) {
+		u := clicktoken.ForEmail(ws.Slug, c.Name, "campaign")
+		out.Campaign.UTM = &ReviewUTM{Source: u.Source, Medium: u.Medium, Campaign: u.Campaign}
+	}
 	switch c.Status {
 	case "draft", "approval", "approved", "scheduled":
 		out.Campaign.Editable = true

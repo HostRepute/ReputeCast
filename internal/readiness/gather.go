@@ -208,6 +208,7 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	f.Content.TrackOpens, f.Content.TrackClicks = tracking.Opens, tracking.Clicks
 	f.Content.TrackedBytes = trackedSize(c.Html, tracking, s.URLs, ws.Slug)
 	s.trackingFacts(ctx, &f.Content)
+	f.Content.AutoUTM = campaignUTMOn(c.ContentSettings, ws.SendingDefaults)
 	if s.Conditional != nil {
 		f.Polls = s.Conditional.PollFacts(ctx, ws, c.ID, c.Mjml)
 	}

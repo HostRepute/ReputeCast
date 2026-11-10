@@ -65,6 +65,20 @@ func TestRuleLinkParam(t *testing.T) {
 		c.Title != "Links need UTM tags: all 2 links have utm_campaign" {
 		t.Fatalf("kept: %+v", c)
 	}
+	// "Add UTM tags" on (G-13): the send adds utm_campaign where a link
+	// lacks it, so the rule has nothing to find.
+	f.Content.Report.LinkList = links("https://acme.io/changelog"+tag, "https://acme.io/roadmap?utm_source=newsletter&utm_medium=email",
+		"https://docs.acme.io/changelog?utm_source=newsletter")
+	f.Content.AutoUTM = true
+	if c := check(t, stored(t, readiness.Assemble(withRules(f, utmRule()))), "rules.r-utm"); c.Status != readiness.Pass || len(c.Fixes) != 0 || len(c.Raw) != 0 {
+		t.Fatalf("tagged by the send: %+v", c)
+	}
+	// A rule that keeps the tag out still sees the links the send tags.
+	none := utmRule()
+	none.Operator = "on_none"
+	if c := check(t, stored(t, readiness.Assemble(withRules(f, none))), "rules.r-utm"); c.Status != readiness.Warn {
+		t.Fatalf("on_none with the send's tags: %+v", c)
+	}
 }
 
 // A Block rule stops the send: a shortener when the rule keeps them out.

@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
@@ -150,25 +151,42 @@ func (b statsBuf) flush(ctx context.Context, q *store.Queries) error {
 	return nil
 }
 
-// graphCache holds published graphs (they never change).
+// graphCache holds published versions (they never change): their graph and
+// the UTM tags their emails add.
 type graphCache struct {
 	s *Service
 	q *store.Queries
-	m map[string]AutomationGraph
+	m map[string]publishedVersion
 }
 
-func (c *graphCache) get(ctx context.Context, automation uuid.UUID, version int32) (AutomationGraph, error) {
+// publishedVersion is what a run moves through: the version's graph, and
+// the tags its emails add (nil = untagged).
+type publishedVersion struct {
+	graph AutomationGraph
+	utm   *clicktoken.UTM
+}
+
+func (c *graphCache) get(ctx context.Context, automation uuid.UUID, version int32) (publishedVersion, error) {
 	key := fmt.Sprintf("%s/%d", automation, version)
 	if g, ok := c.m[key]; ok {
 		return g, nil
 	}
 	v, err := c.q.GetAutomationVersion(ctx, store.GetAutomationVersionParams{AutomationID: automation, Version: version})
 	if err != nil {
-		return AutomationGraph{}, err
+		return publishedVersion{}, err
 	}
-	g := c.s.graphOf(v.Graph)
+	g := publishedVersion{graph: c.s.graphOf(v.Graph), utm: versionUTM(v.Utm)}
 	c.m[key] = g
 	return g, nil
+}
+
+// versionUTM reads automation_versions.utm.
+func versionUTM(raw []byte) *clicktoken.UTM {
+	var u clicktoken.UTM
+	if len(raw) == 0 || json.Unmarshal(raw, &u) != nil || u.Source == "" {
+		return nil
+	}
+	return &u
 }
 
 // Dispatch enrolls contacts from pending trigger events. It returns how many
@@ -474,18 +492,18 @@ func (s *Service) tickBatch(ctx context.Context, limit int32) (int, error) {
 		}
 		count = len(runs)
 		stats := statsBuf{}
-		cache := &graphCache{s: s, q: q, m: map[string]AutomationGraph{}}
+		cache := &graphCache{s: s, q: q, m: map[string]publishedVersion{}}
 		for _, r := range runs {
 			// Each run in its own savepoint: one that fails is counted,
 			// tried again later and, after five tries, fails with a "step
 			// failing" alert; the others go on (review 2026-11 EN-1).
 			mine := statsBuf{}
 			_, err := savepoint(ctx, tx, func(sp pgx.Tx) (struct{}, error) {
-				g, err := cache.get(ctx, r.AutomationID, r.Version)
+				v, err := cache.get(ctx, r.AutomationID, r.Version)
 				if err != nil {
 					return struct{}{}, err
 				}
-				ex := &executor{s: s, tx: sp, q: store.New(sp), stats: mine, g: g, now: now, run: r, st: parseState(r.State)}
+				ex := &executor{s: s, tx: sp, q: store.New(sp), stats: mine, g: v.graph, utm: v.utm, now: now, run: r, st: parseState(r.State)}
 				return struct{}{}, ex.advance(ctx)
 			})
 			if err != nil {
@@ -529,10 +547,12 @@ type executor struct {
 	q     *store.Queries
 	stats statsBuf
 	g     AutomationGraph
-	now   time.Time
-	run   store.ClaimDueAutomationRunsRow
-	st    runState
-	c     *store.AutomationContactRow
+	// utm is what the run's version adds to its emails' links.
+	utm *clicktoken.UTM
+	now time.Time
+	run store.ClaimDueAutomationRunsRow
+	st  runState
+	c   *store.AutomationContactRow
 }
 
 func (e *executor) stat(node string) *store.BumpAutomationStepStatsParams {
@@ -807,7 +827,7 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 	queued, err := e.s.mailer().QueueAutomationEmail(ctx, e.tx, OutgoingEmail{
 		WorkspaceID: e.run.WorkspaceID, AutomationID: e.run.AutomationID, Version: int(e.run.Version), NodeID: n.ID,
 		RunID: e.run.ID, ContactID: e.run.ContactID, To: c.Email, EmailID: emailID, EmailVersion: cfg.EmailVersion,
-		Subject: cfg.Subject, Route: cfg.Route, Context: e.st.Ctx,
+		Subject: cfg.Subject, Route: cfg.Route, Context: e.st.Ctx, UTM: e.utm,
 	})
 	if err != nil {
 		return "", "", true, err

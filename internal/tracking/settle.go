@@ -202,7 +202,8 @@ func (s *Service) countClick(ctx context.Context, tx pgx.Tx, q *store.Queries, b
 		}
 		b.ledger.Click(*m.CampaignID, link, m.Variant, false, unique)
 	} else if ref := refOf(m.ContentRef); ref.Email != uuid.Nil {
-		if err := q.TrackingBumpAutomationLink(ctx, store.TrackingBumpAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Position: int32(link)}); err != nil {
+		if err := q.TrackingBumpAutomationLink(ctx, store.TrackingBumpAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Utm: ref.utmKey(),
+			Position: int32(link)}); err != nil {
 			return err
 		}
 	}
