@@ -96,9 +96,10 @@ func TestAHostCarriesOnlyItsWorkspacesLinks(t *testing.T) {
 	expect("acme's click", "blog.example", click, http.StatusNotFound, "")
 	expect("acme's click", "BLOG.example.:443", click, http.StatusNotFound, "")
 
-	// Its open counts on acme's host, not on the blog's.
+	// Its open counts on acme's host, not on the blog's. Opens only: the
+	// clicks above are written in the background and can land later.
 	tracked := func() (n int64) {
-		scan(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND original_type = 'ReputeCast tracking'`, []any{msg}, &n)
+		scan(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND original_type = 'ReputeCast tracking' AND type = 'open'`, []any{msg}, &n)
 		return n
 	}
 	before := tracked()
