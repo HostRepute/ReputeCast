@@ -249,10 +249,14 @@ func leaveOut(r *CampaignReport, in ReportShareIncludes) {
 }
 
 // redact drops the ids of rows inside the workspace from a report that
-// leaves through a link: only names and numbers remain.
+// leaves through a link: only names and numbers remain. Places are
+// coarser there, for every link old or new: no cities, and countries with
+// fewer than MinPlace human opens fold into "other".
 func redact(r *CampaignReport) {
 	r.Campaign.ID = ""
 	r.NotSent = nil
+	r.Breakdown.Cities = []ReportDimRow{}
+	r.Breakdown.Countries = fold(r.Breakdown.Countries, otherCountries, func(_ int, c ReportDimRow) bool { return c.HumanOpens >= MinPlace })
 	for i := range r.Headline.SentBy {
 		r.Headline.SentBy[i].ProviderID = ""
 	}

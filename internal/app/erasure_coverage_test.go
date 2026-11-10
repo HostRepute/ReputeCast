@@ -16,7 +16,7 @@ import (
 // wrote. A table with one must be in an erasure source or exempted below.
 var personalColumn = regexp.MustCompile(`^(contact_id|contact_ids|[a-z_]+_contact|email|[a-z_]+_email|emails|phone|[a-z_]+_phone|ip|[a-z_]+_ip|user_agent|` +
 	`endpoint|p256dh|recipient|to_name|cc|bcc|first_name|last_name|buyer_name|buyer|recipient_name|billing_[a-z_]+|stripe_customer|stripe_customer_id|` +
-	`referrer|landing_page|recovery_url|issued_to|address|comment)$`)
+	`referrer|landing_page|recovery_url|issued_to|address|comment|[a-z_]+_city|[a-z_]+_country)$`)
 
 // erasureExempt are tables with personal-looking columns that erasing a
 // contact leaves alone, and why.
@@ -62,6 +62,7 @@ var erasureExempt = map[string]string{
 	"report_shares":        "a boolean (include the email), not an address",
 	"referral_programs":    "a boolean (the same-IP rule), not an address",
 	"recommendation_daily": "a count of recommendations shown in email",
+	"payment_connections":  "the publisher's own payment account and its country",
 	// Links to the scrubbed contact, for counts; nothing else personal.
 	"form_submissions":         "form signup counts; no personal data beyond the scrubbed contact",
 	"page_conversions":         "landing page conversion counts; the contact is scrubbed",

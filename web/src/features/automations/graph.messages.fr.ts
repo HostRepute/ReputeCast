@@ -28,7 +28,7 @@ export default translate(mg, {
   kindSegmentEntered: 'Entre dans un segment',
   kindSegmentLeft: 'Quitte un segment',
   kindLinkClicked: 'Clique sur un lien',
-  kindWord: '{kind, select, joined_list {s’inscrit à une liste} form_submitted {formulaire soumis} tag_added {tag ajouté} api_event {événement API} date_field {champ de date} score_crosses {le score franchit} poll_answered {répond à un sondage} bought_product {achète un produit} milestone_reached {atteint un palier} order_placed {commande passée} first_order {première commande} abandoned_checkout {paiement abandonné} segment_entered {entre dans un segment} segment_left {quitte un segment} link_clicked {clique sur un lien} other {{kind}}}',
+  kindWord: '{kind, select, joined_list {s’inscrit à une liste} form_submitted {formulaire soumis} tag_added {tag ajouté} api_event {événement API} date_field {champ de date} score_crosses {le score franchit} poll_answered {répond à un sondage} bought_product {achète un produit} milestone_reached {atteint un palier} order_placed {commande passée} first_order {première commande} abandoned_checkout {paiement abandonné} segment_entered {entre dans un segment} segment_left {quitte un segment} link_clicked {clique sur un lien} paid_started {devient abonné payant} paid_tier_changed {change de formule} paid_ended {arrête de payer} paid_trial_ending {l’essai se termine bientôt} other {{kind}}}',
   duration: '{unit, select, minutes {{n, plural, one {# minute} other {# minutes}}} hours {{n, plural, one {# heure} other {# heures}}} weeks {{n, plural, one {# semaine} other {# semaines}}} other {{n, plural, one {# jour} other {# jours}}}}',
   aRemovedStep: 'une étape supprimée',
   aList: 'une liste',

@@ -680,6 +680,7 @@ type Campaign struct {
 	ArchivedBy      *uuid.UUID      `json:"archivedBy"`
 	DeletedBy       *uuid.UUID      `json:"deletedBy"`
 	Tags            []string        `json:"tags"`
+	Breakdown       bool            `json:"breakdown"`
 }
 
 type CampaignAudienceStage struct {
@@ -743,6 +744,14 @@ type CampaignCounterBuild struct {
 	Version    int32     `json:"version"`
 	BuiltAt    time.Time `json:"builtAt"`
 	Skipped    string    `json:"skipped"`
+}
+
+type CampaignDim struct {
+	CampaignID  uuid.UUID `json:"campaignId"`
+	Dim         string    `json:"dim"`
+	Key         string    `json:"key"`
+	OpenedHuman int64     `json:"openedHuman"`
+	Clicked     int64     `json:"clicked"`
 }
 
 type CampaignHourly struct {
@@ -2268,6 +2277,13 @@ type Message struct {
 	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
 	AbRollout         bool            `json:"abRollout"`
 	DoubtAt           *time.Time      `json:"doubtAt"`
+	HumanClient       string          `json:"humanClient"`
+	HumanOs           string          `json:"humanOs"`
+	HumanDevice       string          `json:"humanDevice"`
+	HumanCountry      string          `json:"humanCountry"`
+	HumanCity         string          `json:"humanCity"`
+	HumanLocal        *int16          `json:"humanLocal"`
+	ClickLocal        *int16          `json:"clickLocal"`
 }
 
 type MxCache struct {
@@ -2463,6 +2479,8 @@ type PaidSubscription struct {
 	Emailed              []string        `json:"emailed"`
 	CreatedAt            time.Time       `json:"createdAt"`
 	UpdatedAt            time.Time       `json:"updatedAt"`
+	AutomationStartedAt  *time.Time      `json:"automationStartedAt"`
+	AutomationEndedAt    *time.Time      `json:"automationEndedAt"`
 }
 
 type PartnerCode struct {
@@ -3665,6 +3683,14 @@ type ReportShare struct {
 	IncludeCost   bool       `json:"includeCost"`
 	IncludeWarmup bool       `json:"includeWarmup"`
 	IncludeEmail  bool       `json:"includeEmail"`
+}
+
+type ReportSummary struct {
+	UserID          uuid.UUID  `json:"userId"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Frequency       string     `json:"frequency"`
+	LastPeriodStart *time.Time `json:"lastPeriodStart"`
+	CreatedAt       time.Time  `json:"createdAt"`
 }
 
 type Role struct {

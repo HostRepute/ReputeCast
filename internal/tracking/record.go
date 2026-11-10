@@ -186,7 +186,7 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 	}); err != nil {
 		return err
 	}
-	return s.count(ctx, tx, q, b, m, v, eventID, ev.Click, ev.Link, link, ev.At)
+	return s.count(ctx, tx, q, b, m, v, eventID, ev.Click, ev.Link, link, ev.At, ev.UserAgent, ipPtr)
 }
 
 // stored is how an open or a click is stored once classified.
@@ -213,8 +213,9 @@ func classified(v Verdict, click bool, link int) stored {
 
 // count counts a classified open or click: an open at once, a click that
 // looks like a person's once it settles, a bot's click on the bot clicks.
+// ua and ip are the request's, for the breakdowns of a person's open.
 func (s *Service) count(ctx context.Context, tx pgx.Tx, q *store.Queries, b *batch, m store.TrackingMessageRow, v Verdict, eventID uuid.UUID,
-	click bool, link int, url string, at time.Time) error {
+	click bool, link int, url string, at time.Time, ua string, ip *netip.Addr) error {
 	if click {
 		switch {
 		case link == HoneypotLink:
@@ -232,7 +233,9 @@ func (s *Service) count(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 		}
 		return nil
 	}
-	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: at, Click: false, Class: v.Class})
+	d := s.dimsFor(v.Class, false, ua, ip)
+	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: at, Click: false, Class: v.Class,
+		Client: d.Client, Os: d.OS, Device: d.Device, Country: d.Country, City: d.City})
 	if err != nil {
 		return err
 	}
@@ -260,6 +263,24 @@ func (s *Service) count(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 		}
 	}
 	return nil
+}
+
+// dimsFor is what a person's first open or click keeps for the campaign
+// report's breakdowns (counters.Dims): the client, system and device of
+// its user agent and the country and city of its address. Machine and
+// privacy opens keep nothing, and an image proxy's address (Gmail's,
+// Yahoo's) isn't the reader's, so it isn't looked up. Messages of campaigns
+// that don't record breakdowns ignore them (CountersMoveEngagement).
+func (s *Service) dimsFor(class string, click bool, ua string, ip *netip.Addr) counters.Dims {
+	if !click && class != ClassHuman {
+		return counters.Dims{}
+	}
+	c := ClientParts(ua)
+	d := counters.Dims{Client: c.App, OS: c.OS, Device: c.Device}
+	if s.Geo != nil && ip != nil && c.App != AppGmail && c.App != AppYahooMail {
+		d.Country, d.City = s.Geo.Lookup(*ip)
+	}
+	return d
 }
 
 // classPending marks a click event waiting to settle.

@@ -358,6 +358,50 @@ details.rep-opx[open] > summary .chev {
   white-space: nowrap;
 }
 
+/* "When people opened": the layer over the bars that reads them one by
+   one (pointer or arrow keys) and the tooltip it shows. */
+.rep-scrub {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  border-radius: 4px;
+  touch-action: pan-y;
+}
+.rep-tip {
+  position: absolute;
+  top: 4px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow: var(--shadow-menu);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-2);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+.rep-tip b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.rep-tip.start {
+  transform: translateX(-12px);
+}
+.rep-tip.end {
+  transform: translateX(calc(-100% + 12px));
+}
+.rep-xax.rep-hours.short {
+  display: none;
+}
+
 /* Tables: row headers, sub-labels, a highlighted row with its note, totals. */
 .rep-tbl tbody th,
 .rep-tbl tfoot th {
@@ -493,6 +537,16 @@ details.rep-opx[open] > summary .chev {
   }
   .rep-xax .xo {
     display: none;
+  }
+  /* 24 bars and eight hour labels, without their minutes, fit at 390px. */
+  .rep-xax.rep-hours span {
+    font-size: 11px;
+  }
+  .rep-xax.rep-hours.long {
+    display: none;
+  }
+  .rep-xax.rep-hours.short {
+    display: block;
   }
   .rep-gts {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

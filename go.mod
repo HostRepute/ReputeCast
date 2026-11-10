@@ -33,6 +33,7 @@ require (
 	github.com/miekg/dns v1.1.73
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/nyaruka/phonenumbers v1.8.1
+	github.com/oschwald/maxminddb-golang/v2 v2.9.0
 	github.com/osteele/liquid v1.9.2
 	github.com/pquerna/otp v1.5.0
 	github.com/preslavrachev/gomjml v0.13.0

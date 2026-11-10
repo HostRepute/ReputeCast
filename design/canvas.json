@@ -19,7 +19,7 @@
    "title": "Account & security · phone",
    "w": 390,
    "x": 0,
-   "y": 8851
+   "y": 9106
   },
   "AccountSecurityTablet.dc.html": {
    "h": 2520,
@@ -258,7 +258,7 @@
    "title": "Campaigns list · phone",
    "w": 390,
    "x": 0,
-   "y": 11098
+   "y": 14500
   },
   "CampaignsTablet.dc.html": {
    "h": 1403,
@@ -267,7 +267,7 @@
    "title": "Campaigns list · tablet",
    "w": 834,
    "x": 0,
-   "y": 4797
+   "y": 6480
   },
   "Composer.dc.html": {
    "expand": "fill",
@@ -1015,7 +1015,7 @@
   },
   "Notifications.dc.html": {
    "expand": "fill",
-   "h": 2989,
+   "h": 3451,
    "is_interactive": true,
    "page": "account",
    "title": "Notification center & preferences",
@@ -1024,16 +1024,16 @@
    "y": 0
   },
   "NotificationsPhone.dc.html": {
-   "h": 6793,
+   "h": 7843,
    "is_interactive": true,
    "page": "account",
    "title": "Notification center & preferences · phone",
    "w": 390,
    "x": 510,
-   "y": 8851
+   "y": 9106
   },
   "NotificationsTablet.dc.html": {
-   "h": 4902,
+   "h": 5516,
    "is_interactive": true,
    "page": "account",
    "title": "Notification center & preferences · tablet",
@@ -1293,7 +1293,7 @@
   },
   "Report.dc.html": {
    "expand": "fill",
-   "h": 4467,
+   "h": 6150,
    "is_interactive": true,
    "page": "report",
    "title": "Campaign report",
@@ -1302,32 +1302,41 @@
    "y": 0
   },
   "ReportPhone.dc.html": {
-   "h": 8470,
+   "h": 11170,
    "is_interactive": true,
    "page": "report",
    "title": "Campaign report · phone",
    "w": 390,
    "x": 510,
-   "y": 11098
+   "y": 14500
+  },
+  "ReportSummaryEmail.dc.html": {
+   "h": 1260,
+   "is_interactive": true,
+   "page": "account",
+   "title": "Sending summary by email · the weekly email a member gets (system-mail layout, 560 px)",
+   "w": 560,
+   "x": 15600,
+   "y": 0
   },
   "ReportStates.dc.html": {
    "expand": "fill",
-   "h": 3855,
+   "h": 5660,
    "is_interactive": true,
    "page": "report",
-   "title": "Report · loading / empty / error / retry / A/B states",
+   "title": "Report · loading / empty / error / retry / A/B states, and mail clients, countries and times",
    "w": 1440,
    "x": 3040,
    "y": 0
   },
   "ReportTablet.dc.html": {
-   "h": 5971,
+   "h": 7690,
    "is_interactive": true,
    "page": "report",
    "title": "Campaign report · tablet",
    "w": 834,
    "x": 954,
-   "y": 4797
+   "y": 6480
   },
   "RoleEditor.dc.html": {
    "expand": "fill",
@@ -4349,10 +4358,10 @@
   },
   "AutomationsComplete.dc.html": {
    "expand": "fill",
-   "h": 2588,
+   "h": 3440,
    "is_interactive": true,
    "page": "automations",
-   "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats",
+   "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats, paid-member triggers",
    "w": 1440,
    "x": 6080,
    "y": 0
@@ -4429,7 +4438,7 @@
   },
   "AppearanceStatesPhone.dc.html": {
    "x": 1020,
-   "y": 8851,
+   "y": 9106,
    "w": 390,
    "h": 6285,
    "title": "Account & security · appearance · phone",
@@ -5688,6 +5697,7 @@
   "AppearanceStatesPhone.dc.html",
   "Notifications.dc.html",
   "ShellNotifications.dc.html",
+  "ReportSummaryEmail.dc.html",
   "AccountSecurityTablet.dc.html",
   "NotificationsTablet.dc.html",
   "AccountSecurityPhone.dc.html",

@@ -237,7 +237,7 @@ func (q *Queries) ReportBounceRecipients(ctx context.Context, arg ReportBounceRe
 const reportCampaign = `-- name: ReportCampaign :one
 
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.audience, c.audience_count, c.ab_test, c.schedule,
-       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note,
+       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note, c.breakdown,
        coalesce(s.ab, '{}'::jsonb)::jsonb AS send_ab
 FROM campaigns c
 LEFT JOIN campaign_sends s ON s.campaign_id = c.id
@@ -265,11 +265,14 @@ type ReportCampaignRow struct {
 	CompletedAt   *time.Time      `json:"completedAt"`
 	Origin        string          `json:"origin"`
 	Note          string          `json:"note"`
+	Breakdown     bool            `json:"breakdown"`
 	SendAb        json.RawMessage `json:"sendAb"`
 }
 
 // Campaign reports (spec 7.7, 5.5) and read-only report links.
 // send_ab is the send's A/B state (when the test is decided, the decision).
+// breakdown says the campaign's sends recorded mail clients, places and
+// times (campaign_dims, M57 G-12).
 func (q *Queries) ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error) {
 	row := q.db.QueryRow(ctx, reportCampaign, arg.WorkspaceID, arg.ID)
 	var i ReportCampaignRow
@@ -289,6 +292,7 @@ func (q *Queries) ReportCampaign(ctx context.Context, arg ReportCampaignParams) 
 		&i.CompletedAt,
 		&i.Origin,
 		&i.Note,
+		&i.Breakdown,
 		&i.SendAb,
 	)
 	return i, err
@@ -354,6 +358,47 @@ func (q *Queries) ReportCounterCells(ctx context.Context, campaignID uuid.UUID) 
 			&i.OpenedMachine,
 			&i.Clicked,
 			&i.Unsubscribed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const reportDims = `-- name: ReportDims :many
+SELECT dim, key, opened_human, clicked
+FROM campaign_dims
+WHERE campaign_id = $1
+ORDER BY dim, key
+`
+
+type ReportDimsRow struct {
+	Dim         string `json:"dim"`
+	Key         string `json:"key"`
+	OpenedHuman int64  `json:"openedHuman"`
+	Clicked     int64  `json:"clicked"`
+}
+
+// Human opens and clicks per mail client, system, device, country, city,
+// local hour and weekday (M57 G-12): one primary-key range scan.
+func (q *Queries) ReportDims(ctx context.Context, campaignID uuid.UUID) ([]ReportDimsRow, error) {
+	rows, err := q.db.Query(ctx, reportDims, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReportDimsRow{}
+	for rows.Next() {
+		var i ReportDimsRow
+		if err := rows.Scan(
+			&i.Dim,
+			&i.Key,
+			&i.OpenedHuman,
+			&i.Clicked,
 		); err != nil {
 			return nil, err
 		}

@@ -381,7 +381,7 @@ func (q *Queries) IngestMarkNormalized(ctx context.Context, arg IngestMarkNormal
 }
 
 const ingestMessageByID = `-- name: IngestMessageByID :one
-SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, m.canary, m.hold_reason, m.deferred_at, m.soft_bounced_at, m.unsubscribed_at, m.privacy_opened_at, m.ab_rollout, m.doubt_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, m.canary, m.hold_reason, m.deferred_at, m.soft_bounced_at, m.unsubscribed_at, m.privacy_opened_at, m.ab_rollout, m.doubt_at, m.human_client, m.human_os, m.human_device, m.human_country, m.human_city, m.human_local, m.click_local, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
 FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 LEFT JOIN automations a ON a.id = m.automation_id
@@ -434,6 +434,13 @@ type IngestMessageByIDRow struct {
 	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
 	AbRollout         bool            `json:"abRollout"`
 	DoubtAt           *time.Time      `json:"doubtAt"`
+	HumanClient       string          `json:"humanClient"`
+	HumanOs           string          `json:"humanOs"`
+	HumanDevice       string          `json:"humanDevice"`
+	HumanCountry      string          `json:"humanCountry"`
+	HumanCity         string          `json:"humanCity"`
+	HumanLocal        *int16          `json:"humanLocal"`
+	ClickLocal        *int16          `json:"clickLocal"`
 	CampaignName      string          `json:"campaignName"`
 	AutomationName    string          `json:"automationName"`
 }
@@ -482,6 +489,13 @@ func (q *Queries) IngestMessageByID(ctx context.Context, arg IngestMessageByIDPa
 		&i.PrivacyOpenedAt,
 		&i.AbRollout,
 		&i.DoubtAt,
+		&i.HumanClient,
+		&i.HumanOs,
+		&i.HumanDevice,
+		&i.HumanCountry,
+		&i.HumanCity,
+		&i.HumanLocal,
+		&i.ClickLocal,
 		&i.CampaignName,
 		&i.AutomationName,
 	)
@@ -489,7 +503,7 @@ func (q *Queries) IngestMessageByID(ctx context.Context, arg IngestMessageByIDPa
 }
 
 const ingestMessageByProviderID = `-- name: IngestMessageByProviderID :one
-SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, m.canary, m.hold_reason, m.deferred_at, m.soft_bounced_at, m.unsubscribed_at, m.privacy_opened_at, m.ab_rollout, m.doubt_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, m.canary, m.hold_reason, m.deferred_at, m.soft_bounced_at, m.unsubscribed_at, m.privacy_opened_at, m.ab_rollout, m.doubt_at, m.human_client, m.human_os, m.human_device, m.human_country, m.human_city, m.human_local, m.click_local, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
 FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 LEFT JOIN automations a ON a.id = m.automation_id
@@ -542,6 +556,13 @@ type IngestMessageByProviderIDRow struct {
 	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
 	AbRollout         bool            `json:"abRollout"`
 	DoubtAt           *time.Time      `json:"doubtAt"`
+	HumanClient       string          `json:"humanClient"`
+	HumanOs           string          `json:"humanOs"`
+	HumanDevice       string          `json:"humanDevice"`
+	HumanCountry      string          `json:"humanCountry"`
+	HumanCity         string          `json:"humanCity"`
+	HumanLocal        *int16          `json:"humanLocal"`
+	ClickLocal        *int16          `json:"clickLocal"`
 	CampaignName      string          `json:"campaignName"`
 	AutomationName    string          `json:"automationName"`
 }
@@ -590,6 +611,13 @@ func (q *Queries) IngestMessageByProviderID(ctx context.Context, arg IngestMessa
 		&i.PrivacyOpenedAt,
 		&i.AbRollout,
 		&i.DoubtAt,
+		&i.HumanClient,
+		&i.HumanOs,
+		&i.HumanDevice,
+		&i.HumanCountry,
+		&i.HumanCity,
+		&i.HumanLocal,
+		&i.ClickLocal,
 		&i.CampaignName,
 		&i.AutomationName,
 	)

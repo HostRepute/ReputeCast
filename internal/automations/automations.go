@@ -155,6 +155,9 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 		return nil, err
 	}
 	loadStoreRefs(ctx, q, wsID, r)
+	if err := loadTierRefs(ctx, q, wsID, r); err != nil {
+		return nil, err
+	}
 	lists, err := q.AutomationLists(ctx, wsID)
 	if err != nil {
 		return nil, err

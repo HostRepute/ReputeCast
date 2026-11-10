@@ -17,6 +17,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/abstats"
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/counters"
 	"github.com/hostrepute/reputecast/internal/linkrule"
 	"github.com/hostrepute/reputecast/internal/liquid"
 )
@@ -134,8 +135,14 @@ func seedReportsImpl(ctx context.Context, s *Seeder) error {
 		if err := reportBounceEvents(ctx, s, c, i); err != nil {
 			return err
 		}
-		if err := reportHourly(ctx, s, c, oct); err != nil {
+		hourly, err := reportHourly(ctx, s, c, oct)
+		if err != nil {
 			return err
+		}
+		if oct {
+			if err := reportOctoberBreakdown(ctx, s, c, hourly); err != nil {
+				return err
+			}
 		}
 		if err := reportLinks(ctx, s, c, oct); err != nil {
 			return err
@@ -852,8 +859,9 @@ func reportCurve(h, fast, tauFast, tauSlow float64) float64 {
 
 // reportHourly spreads opens and clicks over the first 72 hours. With an
 // A/B test, the samples (20%) start at the send and everyone else when the
-// winner goes out two hours later: the second rise of the chart.
-func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool) error {
+// winner goes out two hours later: the second rise of the chart. It
+// returns the counts per hour after the send, by metric.
+func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool) (map[int][]int64, error) {
 	type curve struct{ fast, tauFast, tauSlow float64 }
 	// Privacy-protected opens come as the mail arrives.
 	curves := map[int]curve{rmHuman: {0.578, 1.7, 20}, rmPrivacy: {0.92, 0.35, 10}, rmMachine: {0.9, 0.2, 6}, rmClicked: {0.72, 1.2, 12}}
@@ -877,10 +885,10 @@ func reportHourly(ctx context.Context, s *Seeder, c *reportCampaignSeed, ab bool
 		rows = append(rows, []any{c.id, int32(h), counts[rmHuman][h], counts[rmPrivacy][h], counts[rmMachine][h], counts[rmClicked][h]})
 	}
 	if _, err := s.Tx.Exec(ctx, `DELETE FROM campaign_hourly WHERE campaign_id = $1`, c.id); err != nil {
-		return err
+		return nil, err
 	}
 	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_hourly"}, []string{"campaign_id", "hour", "opened_human", "opened_privacy", "opened_machine", "clicked"}, pgx.CopyFromRows(rows))
-	return err
+	return counts, err
 }
 
 // The October Product Update's people per link, as on the Report board's
@@ -1155,4 +1163,140 @@ func reportShareLink(ctx context.Context, s *Seeder, c *reportCampaignSeed) erro
 		}
 	}
 	return nil
+}
+
+// The October Product Update's breakdown (Report board, M57 G-12): who
+// read it in which mail app, on which system and device, and where. Each
+// dimension's weights are percent of the 19,590 human opens; clicks are
+// split by the same rows, weighted by how often each one clicks. Gmail's
+// and Yahoo's image proxies hide the system, the device and the place of
+// their readers, so those are "unknown" and have no country.
+var (
+	octClients = []octDim{
+		{"gmail", 39, 0.95}, {"apple_mail", 22, 0.8}, {"outlook", 18, 1.25}, {"yahoo_mail", 7, 0.9}, {"chrome", 5, 1.1},
+		{"thunderbird", 2, 1.4}, {"safari", 2, 1}, {"firefox", 1, 1.2}, {"edge", 1, 1.2}, {"other", 3, 0.7},
+	}
+	octSystems = []octDim{
+		{"unknown", 44, 0.95}, {"ios", 21, 0.8}, {"windows", 16, 1.3}, {"macos", 9, 1.15}, {"android", 7, 0.85}, {"linux", 2, 1.3}, {"chromeos", 1, 1},
+	}
+	octDevices = []octDim{{"unknown", 44, 0.95}, {"desktop", 27, 1.25}, {"mobile", 26, 0.8}, {"tablet", 3, 0.9}}
+	// Countries of the 55% of human opens whose place is known, and two
+	// with fewer than five, which read-only links fold into "Other".
+	octLocated   = 55.0
+	octCountries = []octDim{
+		{"US", 38, 1}, {"GB", 12, 1.05}, {"DE", 10, 1.1}, {"VN", 9, 0.9}, {"IN", 8, 0.85}, {"FR", 7, 1}, {"CA", 6, 1}, {"NL", 4, 1.2}, {"AU", 3, 1}, {"BR", 3, 0.8},
+	}
+	octSmallCountries = []struct {
+		key           string
+		opens, clicks int64
+	}{{"IS", 4, 1}, {"LU", 3, 0}}
+	// Cities, as a share of the located opens; six small towns of under
+	// five opens each are "Other cities".
+	octCities = []struct {
+		country, city string
+		share         float64
+	}{
+		{"US", "New York", 9.5}, {"GB", "London", 7.2}, {"US", "San Francisco", 5.8}, {"DE", "Berlin", 4.1}, {"VN", "Hanoi", 3.9}, {"IN", "Bengaluru", 3.2},
+		{"CA", "Toronto", 2.6}, {"FR", "Paris", 2.4},
+	}
+	octSmallCities = []struct {
+		country, city string
+		opens, clicks int64
+	}{{"US", "Boise", 4, 1}, {"GB", "Bath", 4, 0}, {"DE", "Jena", 3, 1}, {"NL", "Delft", 3, 0}, {"VN", "Hue", 2, 0}, {"FR", "Annecy", 2, 0}}
+)
+
+type octDim struct {
+	key          string
+	share, click float64
+}
+
+// reportOctoberBreakdown marks the October Product Update as recording
+// breakdowns and writes its campaign_dims: every dimension but the places
+// adds up to the human opens and clicks of the headline, and the hours and
+// weekdays follow the hourly curve of the engagement chart in the
+// workspace's time zone.
+func reportOctoberBreakdown(ctx context.Context, s *Seeder, c *reportCampaignSeed, hourly map[int][]int64) error {
+	human, clicks := c.total(rmHuman), c.total(rmClicked)
+	type dimKey struct{ dim, key string }
+	rows := map[dimKey][2]int64{}
+	add := func(dim, key string, opens, clicked int64) {
+		k := dimKey{dim, key}
+		v := rows[k]
+		rows[k] = [2]int64{v[0] + opens, v[1] + clicked}
+	}
+	spread := func(dim string, dims []octDim, opens, clicked int64) {
+		ow, cw := make([]float64, len(dims)), make([]float64, len(dims))
+		for i, d := range dims {
+			ow[i], cw[i] = d.share, d.share*d.click
+		}
+		o, k := Split(opens, ow), Split(clicked, cw)
+		for i, d := range dims {
+			add(dim, d.key, o[i], k[i])
+		}
+	}
+	spread(counters.DimClient, octClients, human, clicks)
+	spread(counters.DimOS, octSystems, human, clicks)
+	spread(counters.DimDevice, octDevices, human, clicks)
+
+	located := Split(human, []float64{octLocated, 100 - octLocated})[0]
+	locClicks := Split(clicks, []float64{octLocated, 100 - octLocated})[0]
+	var smallOpens, smallClicks int64
+	for _, sc := range octSmallCountries {
+		add(counters.DimCountry, sc.key, sc.opens, sc.clicks)
+		smallOpens += sc.opens
+		smallClicks += sc.clicks
+	}
+	spread(counters.DimCountry, octCountries, located-smallOpens, locClicks-smallClicks)
+	cw := make([]float64, len(octCities)+1)
+	var cityShare float64
+	for i, ci := range octCities {
+		cw[i] = ci.share
+		cityShare += ci.share
+	}
+	cw[len(octCities)] = 100 - cityShare // located opens without a known city
+	co, cc := Split(located, cw), Split(locClicks, cw)
+	for i, ci := range octCities {
+		add(counters.DimCity, counters.CityKey(ci.country, ci.city), co[i], cc[i])
+	}
+	for _, sc := range octSmallCities {
+		add(counters.DimCity, counters.CityKey(sc.country, sc.city), sc.opens, sc.clicks)
+	}
+
+	loc, err := time.LoadLocation(s.WS().Timezone)
+	if err != nil {
+		loc = time.UTC
+	}
+	for h := range hourly[rmHuman] {
+		at := c.started.Add(time.Duration(h) * time.Hour).In(loc)
+		day := int(at.Weekday())
+		if day == 0 {
+			day = 7
+		}
+		add(counters.DimHour, fmt.Sprint(at.Hour()), hourly[rmHuman][h], hourly[rmClicked][h])
+		add(counters.DimWeekday, fmt.Sprint(day), hourly[rmHuman][h], hourly[rmClicked][h])
+	}
+
+	if _, err := s.Tx.Exec(ctx, `UPDATE campaigns SET breakdown = true WHERE id = $1`, c.id); err != nil {
+		return err
+	}
+	if _, err := s.Tx.Exec(ctx, `DELETE FROM campaign_dims WHERE campaign_id = $1`, c.id); err != nil {
+		return err
+	}
+	keys := make([]dimKey, 0, len(rows))
+	for k := range rows {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].dim != keys[j].dim {
+			return keys[i].dim < keys[j].dim
+		}
+		return keys[i].key < keys[j].key
+	})
+	copyRows := make([][]any, 0, len(keys))
+	for _, k := range keys {
+		v := rows[k]
+		copyRows = append(copyRows, []any{c.id, k.dim, k.key, v[0], v[1]})
+	}
+	_, err = s.Tx.CopyFrom(ctx, pgx.Identifier{"campaign_dims"}, []string{"campaign_id", "dim", "key", "opened_human", "clicked"}, pgx.CopyFromRows(copyRows))
+	return err
 }

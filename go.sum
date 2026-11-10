@@ -466,6 +466,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
 github.com/opencontainers/image-spec v1.1.1/go.mod h1:qpqAh3Dmcf36wStyyWU+kCeDgrGnAve2nCC8+7h8Q0M=
+github.com/oschwald/maxminddb-golang/v2 v2.9.0 h1:YpIl3WoA9oIuNvqNaO/aD1N/7Ci2wOqoKH5GWo53H5Y=
+github.com/oschwald/maxminddb-golang/v2 v2.9.0/go.mod h1:3TxexMBcR0ss3SbyYvnqfsDzDjN4o1KCg/nTsaMAivU=
 github.com/osteele/liquid v1.9.2 h1:CNRBW07oR9jrfnr1LPbQp04h4KCsy1PRDA4kmNthlkU=
 github.com/osteele/liquid v1.9.2/go.mod h1:FwU+G/tGalaYsdjoUUU3OkAALpOhMDtlOkCtxy6puHE=
 github.com/osteele/tuesday v1.1.1 h1:Xsh3L1PkgghmxXQG4o2s2rS4+WQLnYZAoQrMFUxvVms=

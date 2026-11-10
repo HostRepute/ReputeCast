@@ -1085,6 +1085,7 @@ they are.
 | English | Français |
 |---|---|
 | digest (recurring) · issue (of a digest) | récapitulatif récurrent · numéro |
+| sending summary (by email, M57) · weekly · monthly | bilan des envois (par e-mail) · bilan hebdomadaire · mensuel des envois (a member's own email of the workspace's numbers; never "synthèse", the notification digest, or "récapitulatif") |
 | event type (a row of Notification preferences) | type d’événement |
 | Everyone with campaigns:pause | Toutes les personnes disposant de l’autorisation campaigns:pause |
 | paid tier (Earn) | formule payante |

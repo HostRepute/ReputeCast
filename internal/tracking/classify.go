@@ -259,46 +259,142 @@ func scannerNet(s Signal) string {
 	return ""
 }
 
+// Mail apps and browsers, systems and devices as ClientParts reads them
+// (the campaign report's breakdowns keep these keys).
+const (
+	AppAppleMail   = "apple_mail"
+	AppGmail       = "gmail"
+	AppOutlook     = "outlook"
+	AppYahooMail   = "yahoo_mail"
+	AppThunderbird = "thunderbird"
+	AppChrome      = "chrome"
+	AppSafari      = "safari"
+	AppFirefox     = "firefox"
+	AppEdge        = "edge"
+	AppOther       = "other"
+
+	OSiOS      = "ios"
+	OSAndroid  = "android"
+	OSWindows  = "windows"
+	OSMacOS    = "macos"
+	OSChromeOS = "chromeos"
+	OSLinux    = "linux"
+	OSUnknown  = "unknown"
+
+	DeviceMobile  = "mobile"
+	DeviceTablet  = "tablet"
+	DeviceDesktop = "desktop"
+	DeviceUnknown = "unknown"
+)
+
+// ClientInfo is a user agent's mail app or browser, system and kind of
+// device, as keys.
+type ClientInfo struct {
+	App, OS, Device string
+}
+
+// ClientParts reads a user agent. Gmail's and Yahoo's image proxies fetch
+// for the reader, so they tell the app and nothing about the system or the
+// device (and their address is the proxy's): only they read as gmail and
+// yahoo_mail.
+func ClientParts(ua string) ClientInfo {
+	low := strings.ToLower(ua)
+	switch {
+	case strings.Contains(low, "googleimageproxy"):
+		return ClientInfo{App: AppGmail, OS: OSUnknown, Device: DeviceUnknown}
+	case strings.Contains(low, "yahoomailproxy"):
+		return ClientInfo{App: AppYahooMail, OS: OSUnknown, Device: DeviceUnknown}
+	}
+	c := ClientInfo{App: AppOther, OS: OSUnknown, Device: DeviceUnknown}
+	switch {
+	case strings.Contains(low, "microsoft outlook") || strings.Contains(low, "ms-office") || strings.Contains(low, "outlook-") || strings.Contains(low, "microsoft office"):
+		c.App = AppOutlook
+	case strings.Contains(low, "thunderbird"):
+		c.App = AppThunderbird
+	case strings.Contains(low, "edg/") || strings.Contains(low, "edge/"):
+		c.App = AppEdge
+	case strings.Contains(low, "firefox/"):
+		c.App = AppFirefox
+	case strings.Contains(low, "chrome/") || strings.Contains(low, "crios/"):
+		c.App = AppChrome
+	case strings.Contains(low, "safari/") && strings.Contains(low, "version/"):
+		c.App = AppSafari
+	case strings.Contains(low, "applewebkit") && (strings.Contains(low, "iphone") || strings.Contains(low, "ipad") || strings.Contains(low, "macintosh")):
+		c.App = AppAppleMail
+	}
+	switch {
+	case strings.Contains(low, "iphone") || strings.Contains(low, "ipod"):
+		c.OS, c.Device = OSiOS, DeviceMobile
+	case strings.Contains(low, "ipad"):
+		c.OS, c.Device = OSiOS, DeviceTablet
+	case strings.Contains(low, "android"):
+		// Android phones say "Mobile"; tablets don't.
+		c.OS, c.Device = OSAndroid, DeviceTablet
+		if strings.Contains(low, "mobile") {
+			c.Device = DeviceMobile
+		}
+	case strings.Contains(low, "windows"):
+		c.OS, c.Device = OSWindows, DeviceDesktop
+	case strings.Contains(low, "mac os x") || strings.Contains(low, "macintosh"):
+		c.OS, c.Device = OSMacOS, DeviceDesktop
+	case strings.Contains(low, "; cros"):
+		// "(X11; CrOS x86_64 …)"; not the "cros" inside "Microsoft".
+		c.OS, c.Device = OSChromeOS, DeviceDesktop
+	case strings.Contains(low, "linux"):
+		c.OS, c.Device = OSLinux, DeviceDesktop
+	}
+	return c
+}
+
+// AppName is an app key's product name ("" for other).
+func AppName(key string) string {
+	switch key {
+	case AppAppleMail:
+		return "Apple Mail"
+	case AppGmail:
+		return "Gmail"
+	case AppOutlook:
+		return "Outlook"
+	case AppYahooMail:
+		return "Yahoo Mail"
+	case AppThunderbird:
+		return "Thunderbird"
+	case AppChrome:
+		return "Chrome"
+	case AppSafari:
+		return "Safari"
+	case AppFirefox:
+		return "Firefox"
+	case AppEdge:
+		return "Edge"
+	}
+	return ""
+}
+
+// OSName is a system key's product name ("" for unknown).
+func OSName(key string) string {
+	switch key {
+	case OSiOS:
+		return "iOS"
+	case OSAndroid:
+		return "Android"
+	case OSWindows:
+		return "Windows"
+	case OSMacOS:
+		return "macOS"
+	case OSChromeOS:
+		return "ChromeOS"
+	case OSLinux:
+		return "Linux"
+	}
+	return ""
+}
+
 // ClientName turns a user agent into "Chrome on macOS", "Outlook on
 // Windows", "Apple Mail on iOS".
 func ClientName(ua string) string {
-	low := strings.ToLower(ua)
-	app := ""
-	switch {
-	case strings.Contains(low, "googleimageproxy"):
-		return "Gmail"
-	case strings.Contains(low, "yahoomailproxy"):
-		return "Yahoo Mail"
-	case strings.Contains(low, "microsoft outlook") || strings.Contains(low, "ms-office") || strings.Contains(low, "outlook-") || strings.Contains(low, "microsoft office"):
-		app = "Outlook"
-	case strings.Contains(low, "thunderbird"):
-		app = "Thunderbird"
-	case strings.Contains(low, "edg/") || strings.Contains(low, "edge/"):
-		app = "Edge"
-	case strings.Contains(low, "firefox/"):
-		app = "Firefox"
-	case strings.Contains(low, "chrome/") || strings.Contains(low, "crios/"):
-		app = "Chrome"
-	case strings.Contains(low, "safari/") && strings.Contains(low, "version/"):
-		app = "Safari"
-	case strings.Contains(low, "applewebkit") && (strings.Contains(low, "iphone") || strings.Contains(low, "ipad") || strings.Contains(low, "macintosh")):
-		app = "Apple Mail"
-	}
-	os := ""
-	switch {
-	case strings.Contains(low, "iphone") || strings.Contains(low, "ipad") || strings.Contains(low, "ipod"):
-		os = "iOS"
-	case strings.Contains(low, "android"):
-		os = "Android"
-	case strings.Contains(low, "windows"):
-		os = "Windows"
-	case strings.Contains(low, "mac os x") || strings.Contains(low, "macintosh"):
-		os = "macOS"
-	case strings.Contains(low, "cros"):
-		os = "ChromeOS"
-	case strings.Contains(low, "linux"):
-		os = "Linux"
-	}
+	c := ClientParts(ua)
+	app, os := AppName(c.App), OSName(c.OS)
 	switch {
 	case app != "" && os != "":
 		return app + " on " + os

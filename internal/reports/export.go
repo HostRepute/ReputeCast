@@ -171,6 +171,39 @@ func reportCSV(r CampaignReport, loc *time.Location) []byte {
 		}
 		row()
 	}
+	if b := r.Breakdown; b.Measured {
+		dims := func(title string, rows []ReportDimRow) {
+			if len(rows) == 0 {
+				return
+			}
+			row(title, "Human opens", "Share of human opens", "Human clicks")
+			for _, d := range rows {
+				row(d.Label, num(d.HumanOpens), strconv.FormatFloat(d.Share, 'f', 1, 64)+"%", num(d.Clicks))
+			}
+			row()
+		}
+		dims("Mail clients", b.Clients)
+		dims("Systems", b.Systems)
+		dims("Devices", b.Devices)
+		dims("Countries", b.Countries)
+		if len(b.Cities) > 0 {
+			row("Cities", "Country", "Human opens", "Share of human opens", "Human clicks")
+			for _, d := range b.Cities {
+				row(d.Label, d.Country, num(d.HumanOpens), strconv.FormatFloat(d.Share, 'f', 1, 64)+"%", num(d.Clicks))
+			}
+			row()
+		}
+		row("Hour of day ("+b.Timezone+")", "Human opens", "Human clicks")
+		for _, h := range b.Hours {
+			row(fmt.Sprintf("%02d:00", h.Key), num(h.HumanOpens), num(h.Clicks))
+		}
+		row()
+		row("Day of week ("+b.Timezone+")", "Human opens", "Human clicks")
+		for _, d := range b.Weekdays {
+			row(time.Weekday(d.Key%7).String(), num(d.HumanOpens), num(d.Clicks))
+		}
+		row()
+	}
 	switch {
 	case r.ClickMap.PerVariant:
 		// A test on content: each variant's email has its own links, each a

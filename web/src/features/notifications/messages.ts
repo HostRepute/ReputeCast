@@ -58,4 +58,22 @@ export const m = defineMessages('notifications', {
   notSaved: 'Not saved',
   save: 'Save preferences',
   saved: 'Preferences saved',
+
+  // Sending summary by email (M57 G-14): a member who can view reports gets
+  // the workspace's numbers weekly or monthly. Not the email digest above,
+  // which batches notifications.
+  summaryTitle: 'Sending summary by email',
+  summaryCaption: 'Campaigns, audience and sender health of the last week or month, as far as your role shows them · times in your time zone',
+  summaryOff: 'Off',
+  summaryOffHint: 'No summary email',
+  summaryWeekly: 'Weekly',
+  // time: 09:00 on the reader's clock.
+  summaryWeeklyHint: 'Mondays at {time}',
+  summaryMonthly: 'Monthly',
+  summaryMonthlyHint: 'On the 1st at {time}',
+  // when: "Mon 17 Nov · 09:00"; email: the reader's sign-in address.
+  summaryNext: 'Next one: {when} · sent to {email}',
+  summaryLoading: 'Loading your sending summary…',
+  summaryLoadFailed: "Couldn't load your sending summary",
+  summaryNotSaved: "Sending summary wasn't changed",
 })

@@ -568,10 +568,18 @@ func (s *Service) applySubscription(ctx context.Context, tx pgx.Tx, ws *store.Wo
 	if status != StatusCanceled {
 		ended, reason = nil, ""
 	}
+	var before *store.PaidSubscription
+	if !created {
+		b := row
+		before = &b
+	}
 	if err := q.EarnSubscriptionSetState(ctx, store.EarnSubscriptionSetStateParams{ID: row.ID, TierID: tier, PriceID: price, StripePriceID: sub.PriceID, Status: status,
 		Period: periodOf(sub.Interval), AmountCents: sub.AmountCents, Currency: sub.Currency, Discount: discountJSON(sub), TrialEnd: sub.TrialEnd,
 		CurrentPeriodEnd: sub.CurrentPeriodEnd, CancelAt: sub.CancelAt, CanceledAt: sub.CanceledAt, EndedAt: ended, EndReason: reason,
 		StripeCustomerID: sub.CustomerID, SyncedAt: &at, At: s.now()}); err != nil {
+		return outcome{}, err
+	}
+	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, at); err != nil {
 		return outcome{}, err
 	}
 	if d := sub.Discount; d != nil && d.PromoCode != "" {
@@ -698,8 +706,12 @@ func (s *Service) applyTrialEnding(ctx context.Context, tx pgx.Tx, ws *store.Wor
 	}
 	tname := tierName(ctx, q, ws.ID, row.TierID)
 	o := applied("sent_trial_ending", map[string]any{"tier": tname})
-	if t := firstTime(ev.Subscription.TrialEnd, row.TrialEnd); t != nil {
-		o.detail["date"] = t.UTC().Format(time.RFC3339)
+	trialEnd := firstTime(ev.Subscription.TrialEnd, row.TrialEnd)
+	if trialEnd != nil {
+		o.detail["date"] = trialEnd.UTC().Format(time.RFC3339)
+	}
+	if err := s.paidTrialEnding(ctx, q, ws, conn.Mode, row, trialEnd, ev.Created); err != nil {
+		return outcome{}, err
 	}
 	o.contact, o.sub = &row.ContactID, &row.ID
 	m := s.memberEmailFor("trial_ending", row, ws, tname, ev.Created)
@@ -769,6 +781,7 @@ func (s *Service) applyCheckout(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 			src.email = cs.CustomerEmail
 		}
 	}
+	var before *store.PaidSubscription
 	row, err := q.EarnSubscriptionByStripeID(ctx, store.EarnSubscriptionByStripeIDParams{WorkspaceID: ws.ID, Mode: conn.Mode, StripeSubscriptionID: cs.SubscriptionID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		client, err := s.open(conn)
@@ -792,6 +805,8 @@ func (s *Service) applyCheckout(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 	} else if err != nil {
 		return outcome{}, err
 	} else {
+		b := row
+		before = &b
 		// The subscription came first: credit it now.
 		detail, _ := json.Marshal(src.detail)
 		if err := q.EarnSubscriptionSetSource(ctx, store.EarnSubscriptionSetSourceParams{ID: row.ID, SourceKind: src.kind, SourceCampaignID: src.campaign,
@@ -806,6 +821,9 @@ func (s *Service) applyCheckout(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 				}
 			}
 		}
+	}
+	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, ev.Created); err != nil {
+		return outcome{}, err
 	}
 	if found {
 		sid, cid := row.ID, row.ContactID
@@ -864,9 +882,14 @@ func (s *Service) applyInvoicePaid(ctx context.Context, tx pgx.Tx, ws *store.Wor
 	if inv.SubscriptionID == "" {
 		return ignored("not_a_subscription"), nil
 	}
-	row, _, err := s.subscriptionFor(ctx, tx, ws, conn, inv.SubscriptionID, ev.Created)
+	row, found, err := s.subscriptionFor(ctx, tx, ws, conn, inv.SubscriptionID, ev.Created)
 	if err != nil || row.ID == uuid.Nil {
 		return ignored("unknown_subscription"), err
+	}
+	var before *store.PaidSubscription
+	if found {
+		b := row
+		before = &b
 	}
 	tname := tierName(ctx, q, ws.ID, row.TierID)
 	o := applied("paid", map[string]any{"tier": tname, "period": row.Period})
@@ -879,6 +902,9 @@ func (s *Service) applyInvoicePaid(ctx context.Context, tx pgx.Tx, ws *store.Wor
 	amount := inv.AmountPaid
 	o.amount = &amount
 	if err := q.EarnSubscriptionPaid(ctx, store.EarnSubscriptionPaidParams{ID: row.ID, Amount: amount, At: s.now()}); err != nil {
+		return outcome{}, err
+	}
+	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, ev.Created); err != nil {
 		return outcome{}, err
 	}
 	if row.AccessPaused {
@@ -910,9 +936,14 @@ func (s *Service) applyPaymentFailed(ctx context.Context, tx pgx.Tx, ws *store.W
 	if inv.SubscriptionID == "" {
 		return ignored("not_a_subscription"), nil
 	}
-	row, _, err := s.subscriptionFor(ctx, tx, ws, conn, inv.SubscriptionID, ev.Created)
+	row, found, err := s.subscriptionFor(ctx, tx, ws, conn, inv.SubscriptionID, ev.Created)
 	if err != nil || row.ID == uuid.Nil {
 		return ignored("unknown_subscription"), err
+	}
+	var before *store.PaidSubscription
+	if found {
+		b := row
+		before = &b
 	}
 	reason := ""
 	if inv.ChargeID != "" {
@@ -940,6 +971,9 @@ func (s *Service) applyPaymentFailed(ctx context.Context, tx pgx.Tx, ws *store.W
 		if st.OnPaymentFailure == "end" {
 			_ = q.EarnSubscriptionSetAccessPaused(ctx, store.EarnSubscriptionSetAccessPausedParams{ID: row.ID, AccessPaused: true, At: s.now()})
 		}
+	}
+	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, ev.Created); err != nil {
+		return outcome{}, err
 	}
 	tname := tierName(ctx, q, ws.ID, row.TierID)
 	o := applied("past_due", map[string]any{"tier": tname, "reason": reason, "rule": st.OnPaymentFailure})

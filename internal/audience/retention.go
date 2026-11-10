@@ -24,8 +24,10 @@ import (
 // Data retention (review 2026-11 DP-4, DP-6, decision D3), per workspace
 // from Settings › General › Data retention, every hour:
 //   - the IP address and user agent of opens and clicks in campaigns and
-//     automations go after event_detail_days (12 months by default); the
-//     events stay, so counts, scores, A/B decisions and reports don't move;
+//     automations go after event_detail_days (12 months by default), and
+//     with them the country and city a campaign's report keeps per message
+//     (derived from the IP); the events stay, so counts, scores, A/B
+//     decisions and reports don't move;
 //   - double opt-in signups never confirmed are erased after
 //     unconfirmed_erase_days (30 by default), through the erasure registry;
 //   - claims of the confirmation email limit older than a day go;
@@ -258,18 +260,28 @@ func (s *Service) ClearDetailByPartition(ctx context.Context, now time.Time) (in
 			}
 			err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 				// The partition's name comes from the catalog and matches
-				// delivery_events_YYYY_MM.
-				tag, err := tx.Exec(ctx, `
-					UPDATE `+p.Name+` e SET ip = NULL, user_agent = ''
-					FROM workspaces w
-					WHERE w.id = e.workspace_id AND w.event_detail_days = $1
-					  AND e.type IN ('open', 'click') AND (e.ip IS NOT NULL OR e.user_agent <> '')
-					  AND (e.message_id IS NULL OR NOT EXISTS (
-					        SELECT 1 FROM messages m WHERE m.id = e.message_id AND m.stream NOT IN ('broadcast', 'automation')))`, d)
+				// delivery_events_YYYY_MM. The country and city the events'
+				// messages keep for the report come from the readers' IPs,
+				// so they go with them (RetentionClearEventDetail).
+				var n int64
+				err := tx.QueryRow(ctx, `
+					WITH ev AS (
+						UPDATE `+p.Name+` e SET ip = NULL, user_agent = ''
+						FROM workspaces w
+						WHERE w.id = e.workspace_id AND w.event_detail_days = $1
+						  AND e.type IN ('open', 'click') AND (e.ip IS NOT NULL OR e.user_agent <> '')
+						  AND (e.message_id IS NULL OR NOT EXISTS (
+						        SELECT 1 FROM messages m WHERE m.id = e.message_id AND m.stream NOT IN ('broadcast', 'automation')))
+						RETURNING e.message_id
+					), places AS (
+						UPDATE messages m SET human_country = '', human_city = ''
+						WHERE m.id IN (SELECT ev.message_id FROM ev) AND (m.human_country <> '' OR m.human_city <> '')
+					)
+					SELECT count(*) FROM ev`, d).Scan(&n)
 				if err != nil {
 					return err
 				}
-				total += tag.RowsAffected()
+				total += n
 				_, err = tx.Exec(ctx, `INSERT INTO delivery_event_partitions (partition, detail_days, cleared_at) VALUES ($1, $2, $3)
 					ON CONFLICT DO NOTHING`, p.Name, d, now)
 				return err

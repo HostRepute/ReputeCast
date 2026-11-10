@@ -207,4 +207,7 @@ func Register(h huma.API, s *Service) {
 			}
 			return &sharedOutput{CacheControl: "no-store", RobotsTag: "noindex, nofollow", Body: out}, nil
 		})
+
+	// Sending summary by email (summary.go).
+	registerSummary(h, s)
 }

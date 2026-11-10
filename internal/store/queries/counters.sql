@@ -55,6 +55,14 @@ SELECT 1 FROM messages WHERE id = @id FOR UPDATE;
 -- classified it: human, privacy (Apple Mail Privacy Protection fetched the
 -- images) or machine (a scanner). A click is always a person's (bot clicks
 -- never get here) and is a human open too.
+--
+-- On a campaign that records breakdowns (campaigns.breakdown), the update
+-- that sets human_opened_at first keeps the engagement's client, system,
+-- device and place (internal/counters Dims; tracking passes them only for
+-- a person's engagement) and its local weekday-hour, (isodow-1)*24 + hour
+-- in the workspace's time zone at that moment; the one that sets
+-- clicked_at first keeps the click's. Other messages (automations,
+-- transactional mail, campaigns sent before breakdowns) move as before.
 WITH old AS (
     SELECT m.id, m.campaign_id, m.status, m.sent_at, m.delivered_at, m.deferred_at, m.soft_bounced_at, m.opened_at, m.human_opened_at,
            m.privacy_opened_at, m.clicked_at, m.unsubscribed_at
@@ -66,9 +74,23 @@ UPDATE messages m
 SET opened_at = coalesce(m.opened_at, @at::timestamptz),
     human_opened_at = CASE WHEN @click::boolean OR @class::text = 'human' THEN coalesce(m.human_opened_at, @at::timestamptz) ELSE m.human_opened_at END,
     privacy_opened_at = CASE WHEN NOT @click::boolean AND @class::text = 'privacy' THEN coalesce(m.privacy_opened_at, @at::timestamptz) ELSE m.privacy_opened_at END,
-    clicked_at = CASE WHEN @click::boolean THEN coalesce(m.clicked_at, @at::timestamptz) ELSE m.clicked_at END
+    clicked_at = CASE WHEN @click::boolean THEN coalesce(m.clicked_at, @at::timestamptz) ELSE m.clicked_at END,
+    human_client = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND (@click::boolean OR @class::text = 'human') THEN @client::text ELSE m.human_client END,
+    human_os = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND (@click::boolean OR @class::text = 'human') THEN @os::text ELSE m.human_os END,
+    human_device = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND (@click::boolean OR @class::text = 'human') THEN @device::text ELSE m.human_device END,
+    human_country = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND (@click::boolean OR @class::text = 'human') THEN @country::text ELSE m.human_country END,
+    human_city = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND (@click::boolean OR @class::text = 'human') THEN @city::text ELSE m.human_city END,
+    human_local = CASE WHEN coalesce(c.breakdown, false) AND m.human_opened_at IS NULL AND (@click::boolean OR @class::text = 'human')
+        THEN ((extract(isodow FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), @at::timestamptz)) - 1) * 24
+              + extract(hour FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), @at::timestamptz)))::smallint
+        ELSE m.human_local END,
+    click_local = CASE WHEN coalesce(c.breakdown, false) AND m.clicked_at IS NULL AND @click::boolean
+        THEN ((extract(isodow FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), @at::timestamptz)) - 1) * 24
+              + extract(hour FROM timezone(coalesce(nullif(w.timezone, ''), 'UTC'), @at::timestamptz)))::smallint
+        ELSE m.click_local END
 FROM old
 LEFT JOIN campaigns c ON c.id = old.campaign_id
+LEFT JOIN workspaces w ON w.id = c.workspace_id
 WHERE m.id = old.id
 RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant, c.started_at AS campaign_started_at,
           old.status AS old_status, old.sent_at AS old_sent_at, old.delivered_at AS old_delivered_at, old.deferred_at AS old_deferred_at,
@@ -76,7 +98,9 @@ RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_roll
           old.privacy_opened_at AS old_privacy_opened_at, old.clicked_at AS old_clicked_at, old.unsubscribed_at AS old_unsubscribed_at,
           m.status AS new_status, m.sent_at AS new_sent_at, m.delivered_at AS new_delivered_at, m.deferred_at AS new_deferred_at,
           m.soft_bounced_at AS new_soft_bounced_at, m.opened_at AS new_opened_at, m.human_opened_at AS new_human_opened_at,
-          m.privacy_opened_at AS new_privacy_opened_at, m.clicked_at AS new_clicked_at, m.unsubscribed_at AS new_unsubscribed_at;
+          m.privacy_opened_at AS new_privacy_opened_at, m.clicked_at AS new_clicked_at, m.unsubscribed_at AS new_unsubscribed_at,
+          m.human_client, m.human_os, m.human_device, m.human_country, m.human_city, m.human_local, m.click_local,
+          coalesce(c.breakdown, false)::boolean AS breakdown;
 
 -- name: CountersBump :exec
 -- Adds counter deltas, one row per cell, locking the rows in key order.
@@ -149,12 +173,31 @@ ORDER BY d.campaign_id, d.position, d.variant
 ON CONFLICT (campaign_id, position, variant) DO UPDATE
 SET clicks = v.clicks + EXCLUDED.clicks, unique_clicks = v.unique_clicks + EXCLUDED.unique_clicks, bot_clicks = v.bot_clicks + EXCLUDED.bot_clicks;
 
+-- name: CountersBumpDims :exec
+-- Adds human opens and clicks per campaign breakdown (client, os, device,
+-- country, city, hour, weekday; internal/counters Dims), locking the rows
+-- in key order, after campaign_link_variants.
+INSERT INTO campaign_dims (campaign_id, dim, key, opened_human, clicked)
+SELECT x.campaign_id, x.dim, x.key, x.human, x.clicked
+FROM (SELECT unnest(@campaign_ids::uuid[]) AS campaign_id, unnest(@dims::text[]) AS dim, unnest(@keys::text[]) AS key,
+             unnest(@human::bigint[]) AS human, unnest(@clicked::bigint[]) AS clicked) AS x
+ORDER BY x.campaign_id, x.dim, x.key
+ON CONFLICT (campaign_id, dim, key) DO UPDATE
+SET opened_human = campaign_dims.opened_human + EXCLUDED.opened_human,
+    clicked = campaign_dims.clicked + EXCLUDED.clicked;
+
+-- name: CountersStartBreakdown :exec
+-- A send's first build: from now on the campaign's people's first
+-- engagements keep their client, system, device, place and local time.
+UPDATE campaigns SET breakdown = true WHERE id = @id AND NOT breakdown;
+
 -- name: CountersCampaignHistory :one
 -- Whether a campaign's per-message history is stored, so its counters can
 -- be rebuilt from it: imported history and sample data have counters but
 -- no message per recipient.
 SELECT c.origin,
        c.started_at,
+       c.breakdown,
        (SELECT count(*) FROM messages m WHERE m.campaign_id = c.id AND m.sent_at IS NOT NULL)::bigint AS messages_sent,
        (SELECT coalesce(sum(cc.sent), 0) FROM campaign_counters cc WHERE cc.campaign_id = c.id)::bigint AS counted_sent
 FROM campaigns c
@@ -326,6 +369,49 @@ LEFT JOIN (
 ) u ON u.position = k.position AND u.variant = k.variant
 WHERE NOT EXISTS (SELECT 1 FROM delivery_events e WHERE e.campaign_id = @campaign_id AND e.type = 'click' AND e.link IS NULL)
 ORDER BY k.position, k.variant;
+
+-- name: CountersRebuildDims :exec
+-- Replaces a campaign's breakdowns with what its messages keep (the same
+-- rules as internal/counters Ledger): a person's first engagement counts
+-- once in its client, system, device, country and city, as a human open
+-- and, once clicked, as a click; the hour and weekday are the first human
+-- open's for opens and the first click's for clicks. It counts the current
+-- message state, so places erased with a reader's IP or cleared by
+-- retention (internal/audience) drop out here, while the live totals kept
+-- them as aggregates. Only for campaigns that record breakdowns.
+WITH s AS (
+    SELECT (m.human_opened_at IS NOT NULL)::int AS human, (m.clicked_at IS NOT NULL)::int AS clicked,
+           m.human_client, m.human_os, m.human_device, m.human_country, m.human_city, m.human_local, m.click_local
+    FROM messages m
+    WHERE m.campaign_id = @campaign_id AND m.provider_id IS NOT NULL AND m.human_opened_at IS NOT NULL
+), b AS (
+    SELECT 'client'::text AS dim, s.human_client AS key, s.human, s.clicked FROM s WHERE s.human_client <> ''
+    UNION ALL
+    SELECT 'os', s.human_os, s.human, s.clicked FROM s WHERE s.human_os <> ''
+    UNION ALL
+    SELECT 'device', s.human_device, s.human, s.clicked FROM s WHERE s.human_device <> ''
+    UNION ALL
+    SELECT 'country', s.human_country, s.human, s.clicked FROM s WHERE s.human_country <> ''
+    UNION ALL
+    SELECT 'city', s.human_country || '|' || s.human_city, s.human, s.clicked FROM s WHERE s.human_city <> ''
+    UNION ALL
+    SELECT 'hour', (s.human_local % 24)::text, 1, 0 FROM s WHERE s.human_local IS NOT NULL
+    UNION ALL
+    SELECT 'weekday', (s.human_local / 24 + 1)::text, 1, 0 FROM s WHERE s.human_local IS NOT NULL
+    UNION ALL
+    SELECT 'hour', (s.click_local % 24)::text, 0, 1 FROM s WHERE s.clicked = 1 AND s.click_local IS NOT NULL
+    UNION ALL
+    SELECT 'weekday', (s.click_local / 24 + 1)::text, 0, 1 FROM s WHERE s.clicked = 1 AND s.click_local IS NOT NULL
+), sums AS (
+    SELECT b.dim, b.key, sum(b.human)::bigint AS human, sum(b.clicked)::bigint AS clicked FROM b GROUP BY b.dim, b.key
+), gone AS (
+    DELETE FROM campaign_dims d WHERE d.campaign_id = @campaign_id
+      AND NOT EXISTS (SELECT 1 FROM sums WHERE sums.dim = d.dim AND sums.key = d.key)
+)
+INSERT INTO campaign_dims (campaign_id, dim, key, opened_human, clicked)
+SELECT @campaign_id, sums.dim, sums.key, sums.human, sums.clicked FROM sums
+ORDER BY sums.dim, sums.key
+ON CONFLICT (campaign_id, dim, key) DO UPDATE SET opened_human = EXCLUDED.opened_human, clicked = EXCLUDED.clicked;
 
 -- name: CountersBuildSave :exec
 INSERT INTO campaign_counter_builds (campaign_id, version, built_at, skipped)

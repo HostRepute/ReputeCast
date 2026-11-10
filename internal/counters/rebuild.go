@@ -34,13 +34,16 @@ type Result struct {
 	Skipped string
 }
 
-// Rebuild recomputes a campaign's counters, hourly engagement and clicks
-// per link from its messages and their stored events, in one transaction:
-// the states the status can't tell apart are filled from the events first,
-// then every counter is replaced by what the states add up to. Writers
-// that move the campaign's messages meanwhile wait for it (it locks the
-// counter rows first). A campaign whose per-message history isn't stored
-// is left as it is, with the reason.
+// Rebuild recomputes a campaign's counters, hourly engagement, clicks per
+// link and, when it records them, breakdowns from its messages and their
+// stored events, in one transaction: the states the status can't tell
+// apart are filled from the events first, then every counter is replaced
+// by what the states add up to. Writers that move the campaign's messages
+// meanwhile wait for it (it locks the counter rows first). A campaign
+// whose per-message history isn't stored is left as it is, with the
+// reason. Breakdowns count what messages keep now: a place erased with a
+// reader's IP or cleared by retention leaves the rebuilt totals, though
+// the live ones kept it.
 func Rebuild(ctx context.Context, pool *pgxpool.Pool, campaign uuid.UUID, now time.Time) (Result, error) {
 	var res Result
 	err := db.Tx(ctx, pool, func(tx pgx.Tx) error {
@@ -83,6 +86,11 @@ func Rebuild(ctx context.Context, pool *pgxpool.Pool, campaign uuid.UUID, now ti
 			}
 			if err := q.CountersRebuildLinkVariants(ctx, campaign); err != nil {
 				return err
+			}
+			if h.Breakdown {
+				if err := q.CountersRebuildDims(ctx, campaign); err != nil {
+					return err
+				}
 			}
 			res.Rebuilt = true
 		}

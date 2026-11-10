@@ -29,6 +29,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/countcache"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/geoip"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
@@ -74,6 +75,10 @@ type App struct {
 	// PublicURL is that URL: the saved instance setting, else http.public_url
 	// (see wire_publicurl.go).
 	PublicURL *publicurl.Source
+	// GeoIP places readers' opens and clicks by country and city for the
+	// campaign report (geoip.database), loaded in the background at start;
+	// nil when it isn't configured. Its methods are nil-safe.
+	GeoIP *geoip.DB
 
 	httpMetrics *server.HTTPMetrics
 	// schema is behind while migrations are pending (schema.go); workersUp
@@ -121,6 +126,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		URLs:      publicurl.From(pub),
 		PublicURL: pub,
 		Counts:    countcache.New(0, 0, nil),
+		GeoIP:     geoip.Load(cfg.GeoIP.Database, log),
 	}
 	a.Counts.MinCost = countcache.SlowCount
 	a.Audit.Observe(func(ws uuid.UUID, action string) {

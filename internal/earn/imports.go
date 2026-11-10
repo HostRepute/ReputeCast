@@ -1309,6 +1309,9 @@ func (s *Service) importRow(ctx context.Context, q *store.Queries, ws *store.Wor
 		if err != nil {
 			return "", nil, nil, err
 		}
+		if err := markPaidHistory(ctx, q, row); err != nil {
+			return "", nil, nil, err
+		}
 		short := s.tierShortName(ctx, q, ws.ID, tidp)
 		m := s.memberEmailFor(EmailWelcome, row, ws, short, now)
 		return "paid", &cid, &m, nil

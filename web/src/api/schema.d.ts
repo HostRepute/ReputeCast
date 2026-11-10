@@ -13716,6 +13716,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your sending summary by email: off, weekly or monthly */
+        get: operations["get-report-summary"];
+        /**
+         * Turn your sending summary by email on (weekly or monthly) or off
+         * @description Campaigns, audience and sender health of the last week or month, as far as your role shows them, emailed to you through the System stream. Only people, not API keys.
+         */
+        put: operations["save-report-summary"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/roles": {
         parameters: {
             query?: never;
@@ -21978,11 +21999,13 @@ export interface components {
             forms: components["schemas"]["AutomationFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
             milestones: components["schemas"]["AutomationMilestoneOption"][];
+            paidConnected: boolean;
             products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
             scoreBands?: components["schemas"]["ScoringBands"];
             segments: components["schemas"]["AutomationSegmentOption"][];
             tags: string[];
+            tiers: components["schemas"]["AutomationTierOption"][];
         };
         AutomationPathCount: {
             /** Format: int64 */
@@ -22273,6 +22296,11 @@ export interface components {
         AutomationTemplates: {
             templates: components["schemas"]["AutomationStarterTemplate"][];
         };
+        AutomationTierOption: {
+            id: string;
+            /** @example Weekly Digest Insider */
+            name: string;
+        };
         AutomationTrigger: {
             /** Format: int64 */
             afterHours?: number;
@@ -22285,7 +22313,8 @@ export interface components {
             confirmedOnly?: boolean;
             contactTime?: boolean;
             /** @enum {string} */
-            direction?: "rises" | "falls";
+            direction?: "rises" | "falls" | "any" | "upgrade" | "downgrade";
+            endReasons?: ("canceled" | "payment_failed" | "trial_ended")[];
             event?: string;
             exitOnLeave?: boolean;
             field?: string;
@@ -22293,7 +22322,7 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending";
             listId?: string;
             milestoneId?: string;
             /** Format: int64 */
@@ -22318,6 +22347,7 @@ export interface components {
             tag?: string;
             /** Format: int64 */
             threshold?: number;
+            tierId?: string;
             urlContains?: string;
             yearly?: boolean;
         };
@@ -22795,6 +22825,7 @@ export interface components {
             abTest?: components["schemas"]["ReportABTest"];
             backlog?: components["schemas"]["ReportIngestBacklog"];
             bounces: components["schemas"]["ReportBounceTable"];
+            breakdown: components["schemas"]["ReportBreakdown"];
             campaign: components["schemas"]["ReportCampaignInfo"];
             clickMap: components["schemas"]["ReportClickMap"];
             comparisons: components["schemas"]["ReportComparisons"];
@@ -37421,6 +37452,22 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        ReportBreakdown: {
+            cities: components["schemas"]["ReportDimRow"][];
+            clients: components["schemas"]["ReportDimRow"][];
+            countries: components["schemas"]["ReportDimRow"][];
+            devices: components["schemas"]["ReportDimRow"][];
+            geoip: boolean;
+            hours: components["schemas"]["ReportTimeBucket"][];
+            /** Format: int64 */
+            located: number;
+            measured: boolean;
+            /** Format: int64 */
+            privacyOpens: number;
+            systems: components["schemas"]["ReportDimRow"][];
+            timezone: string;
+            weekdays: components["schemas"]["ReportTimeBucket"][];
+        };
         ReportCampaignInfo: {
             audience: string;
             /** Format: date-time */
@@ -37498,6 +37545,19 @@ export interface components {
             tiles: components["schemas"]["ReportComparison"][];
             /** @enum {string} */
             unavailable?: "not_final" | "no_history";
+        };
+        ReportDimRow: {
+            /** Format: int64 */
+            clicks: number;
+            country?: string;
+            /** Format: int64 */
+            humanOpens: number;
+            key: string;
+            label: string;
+            /** Format: int64 */
+            places?: number;
+            /** Format: double */
+            share: number;
         };
         ReportEngagement: {
             available: boolean;
@@ -37876,6 +37936,18 @@ export interface components {
         ReportShareList: {
             items: components["schemas"]["ReportShareLink"][];
         };
+        ReportSummarySetting: {
+            /**
+             * @description weekly: Mondays at 09:00; monthly: on the 1st at 09:00, in your time zone
+             * @enum {string}
+             */
+            frequency: "off" | "weekly" | "monthly";
+            /**
+             * Format: date-time
+             * @description When the next summary goes out (ignored in requests)
+             */
+            readonly nextAt?: string;
+        };
         ReportSuppressResult: {
             /** Format: int64 */
             added: number;
@@ -37884,6 +37956,14 @@ export interface components {
              * @description Already on the list
              */
             already: number;
+        };
+        ReportTimeBucket: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            humanOpens: number;
+            /** Format: int64 */
+            key: number;
         };
         ReportUnsubscribeReason: {
             /** Format: int64 */
@@ -78972,6 +79052,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RenderingService"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSummarySetting"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-report-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportSummarySetting"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSummarySetting"];
                 };
             };
             /** @description Error */
