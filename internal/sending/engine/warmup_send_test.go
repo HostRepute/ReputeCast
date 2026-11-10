@@ -21,6 +21,7 @@ import (
 // the plan allows it, or waits as a hold with choices.
 func TestWarmupInTheSendLoop(t *testing.T) {
 	s := sendtest.NewSuite(t)
+	middayWorkspace(t, s)
 	// The overflow scenario runs first: it counts on Postal having sent
 	// nothing yet today.
 	t.Run("OverflowToWarmProvider", func(t *testing.T) { testWarmupOverflow(t, s.Fixture(t, "Warm-up overflow")) })
@@ -29,6 +30,27 @@ func TestWarmupInTheSendLoop(t *testing.T) {
 
 // warmupFixture sends the fixture's list through Postal alone (SES is the
 // rule's fallback), without an A/B test, with today's cap left at 60.
+// middayWorkspace moves the suite's workspace (in the suite's own database
+// clone) to a whole-hour time zone where the suite's clock starts around
+// noon. Warm-up caps count the workspace's day, so a scenario that ran
+// across the workspace's midnight, as CI did near 05:00 UTC with the demo's
+// New York, saw the caps start over halfway through.
+func middayWorkspace(t *testing.T, s *sendtest.Suite) {
+	t.Helper()
+	zone := "Etc/GMT"
+	// IANA's Etc zones have inverted signs: Etc/GMT-7 is seven hours ahead
+	// of UTC. The offset is -11…+12, which they all cover.
+	switch offset := 12 - s.Start.UTC().Hour(); {
+	case offset > 0:
+		zone = fmt.Sprintf("Etc/GMT-%d", offset)
+	case offset < 0:
+		zone = fmt.Sprintf("Etc/GMT+%d", -offset)
+	}
+	if _, err := s.Env.App.Pool.Exec(s.Ctx, `UPDATE workspaces SET timezone = $2 WHERE id = $1`, s.WS, zone); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func warmupFixture(t *testing.T, f *sendtest.Fixture, overflow, spread bool) (postal, ses uuid.UUID, plan string, sentBefore int64) {
 	t.Helper()
 	postal, ses = f.ProviderID("postal"), f.ProviderID("ses")
@@ -153,6 +175,7 @@ func testWarmupCapHold(t *testing.T, f *sendtest.Fixture) {
 // today's cap for the warm-up page and the provider card.
 func TestWarmupOtherStreams(t *testing.T) {
 	s := sendtest.NewSuite(t)
+	middayWorkspace(t, s)
 	t.Run("AutomationsWaitAtTheCap", func(t *testing.T) { testAutomationsWaitAtTheCap(t, s.Fixture(t, "Warm-up automations cap")) })
 	t.Run("AutomationsWaitWhilePaused", func(t *testing.T) { testAutomationsWaitWhilePaused(t, s.Fixture(t, "Warm-up automations paused")) })
 	t.Run("AutomationsCapPerMailbox", func(t *testing.T) { testAutomationsCapPerMailbox(t, s.Fixture(t, "Warm-up automations mailbox")) })
