@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/geoip"
 	"github.com/hostrepute/reputecast/internal/sealed"
 	"github.com/hostrepute/reputecast/internal/secrets"
 )
@@ -46,8 +47,8 @@ func newDoctorCmd(o *rootOpts) *cobra.Command {
 		Use:   "doctor",
 		Short: "Check the database, schema, secret key, files folder and roles (after a restore or a move)",
 		Long: "Check what a restore or a move to another host can get wrong: the database and its schema,\n" +
-			"whether the secret key opens the values it sealed, the files folder, and the role SQL segments\n" +
-			"run as (pg_dump doesn't carry roles). Exits 1 when a check fails. See docs/deploy/backup-restore.md.",
+			"whether the secret key opens the values it sealed, the files folder, the GeoIP database, and the role\n" +
+			"SQL segments run as (pg_dump doesn't carry roles). Exits 1 when a check fails. See docs/deploy/backup-restore.md.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, log, err := o.load(cmd)
@@ -89,7 +90,7 @@ func runDoctor(ctx context.Context, cfg *config.Config, openBox func(*config.Con
 	pool, err := db.Open(ctx, cfg.Database.URL, 2)
 	if err != nil {
 		add("Database", checkFail, "can't connect: %v", err)
-		return append(out, filesCheck(cfg))
+		return append(out, filesCheck(cfg), geoipCheck(cfg))
 	}
 	defer pool.Close()
 	var num int
@@ -115,7 +116,7 @@ func runDoctor(ctx context.Context, cfg *config.Config, openBox func(*config.Con
 	}
 
 	out = append(out, keyChecks(ctx, cfg, pool, openBox)...)
-	out = append(out, filesCheck(cfg))
+	out = append(out, filesCheck(cfg), geoipCheck(cfg))
 	out = append(out, segmentsRoleCheck(ctx, pool))
 	if u, err := url.Parse(cfg.HTTP.PublicURL); err != nil || u.Host == "" {
 		add("Public URL", checkFail, "http.public_url isn't a URL: %q", cfg.HTTP.PublicURL)
@@ -201,6 +202,18 @@ func filesCheck(cfg *config.Config) check {
 		return nil
 	})
 	return check{"Files folder", checkOK, fmt.Sprintf("%s: %d files, %s", dir, files, humanBytes(size))}
+}
+
+// geoipCheck opens the GeoIP database the way serve does, but at once.
+func geoipCheck(cfg *config.Config) check {
+	if cfg.GeoIP.Database == "" {
+		return check{"GeoIP", checkOK, "off (geoip.database isn't set): reports show no countries"}
+	}
+	d, err := geoip.Open(cfg.GeoIP.Database)
+	if err != nil {
+		return check{"GeoIP", checkWarn, fmt.Sprintf("%v: reports show no countries until it is fixed", err)}
+	}
+	return check{"GeoIP", checkOK, d.Describe()}
 }
 
 // segmentsRoleCheck checks the role SQL segments run as.

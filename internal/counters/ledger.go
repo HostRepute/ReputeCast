@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,13 @@ type variantLinkKey struct {
 	variant  string
 }
 
+type dimKey struct {
+	campaign uuid.UUID
+	dim, key string
+}
+
+type dimDelta struct{ human, clicked int64 }
+
 // Ledger collects counter changes during a transaction and applies them
 // in one lock order (Flush). The zero value is ready to use.
 type Ledger struct {
@@ -38,6 +46,7 @@ type Ledger struct {
 	hours    map[hourKey]*hourDelta
 	links    map[linkKey]*linkDelta
 	variants map[variantLinkKey]*linkDelta
+	dims     map[dimKey]*dimDelta
 }
 
 // Move records a message moving from one state to another: the counters
@@ -134,13 +143,14 @@ func (d *linkDelta) add(bot, unique bool) {
 
 // Empty reports whether the ledger has nothing to apply.
 func (l *Ledger) Empty() bool {
-	return len(l.cells) == 0 && len(l.hours) == 0 && len(l.links) == 0 && len(l.variants) == 0
+	return len(l.cells) == 0 && len(l.hours) == 0 && len(l.links) == 0 && len(l.variants) == 0 && len(l.dims) == 0
 }
 
 func uuidLess(a, b uuid.UUID) bool { return bytes.Compare(a[:], b[:]) < 0 }
 
 // Flush applies what the ledger collected: counter cells, then hours, then
-// links, then links per variant, each in key order, and empties it.
+// links, then links per variant, then breakdowns, each in key order, and
+// empties it.
 func (l *Ledger) Flush(ctx context.Context, q *store.Queries) error {
 	if len(l.cells) > 0 {
 		keys := make([]Cell, 0, len(l.cells))
@@ -270,17 +280,53 @@ func (l *Ledger) Flush(ctx context.Context, q *store.Queries) error {
 			return err
 		}
 	}
-	l.cells, l.hours, l.links, l.variants = nil, nil, nil, nil
+	if len(l.dims) > 0 {
+		keys := make([]dimKey, 0, len(l.dims))
+		for k, d := range l.dims {
+			if *d != (dimDelta{}) {
+				keys = append(keys, k)
+			}
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			a, b := keys[i], keys[j]
+			if a.campaign != b.campaign {
+				return uuidLess(a.campaign, b.campaign)
+			}
+			if a.dim != b.dim {
+				return a.dim < b.dim
+			}
+			return a.key < b.key
+		})
+		if len(keys) > 0 {
+			p := store.CountersBumpDimsParams{CampaignIds: make([]uuid.UUID, 0, len(keys)), Dims: make([]string, 0, len(keys)),
+				Keys: make([]string, 0, len(keys)), Human: make([]int64, 0, len(keys)), Clicked: make([]int64, 0, len(keys))}
+			for _, k := range keys {
+				d := l.dims[k]
+				p.CampaignIds = append(p.CampaignIds, k.campaign)
+				p.Dims = append(p.Dims, k.dim)
+				p.Keys = append(p.Keys, k.key)
+				p.Human = append(p.Human, d.human)
+				p.Clicked = append(p.Clicked, d.clicked)
+			}
+			if err := q.CountersBumpDims(ctx, p); err != nil {
+				return err
+			}
+		}
+	}
+	l.cells, l.hours, l.links, l.variants, l.dims = nil, nil, nil, nil, nil
 	return nil
 }
 
 // Moved is a message's move as CountersMoveDelivery and
-// CountersMoveEngagement return it.
+// CountersMoveEngagement return it. Breakdown says the campaign records
+// breakdowns, Dims what the message keeps for them (engagement only).
 type Moved struct {
-	Cell    Cell
-	Started *time.Time
-	Before  State
-	After   State
+	Cell      Cell
+	Started   *time.Time
+	Before    State
+	After     State
+	Breakdown bool
+	Dims      Dims
 }
 
 // FromDelivery reads a CountersMoveDelivery row.
@@ -294,9 +340,18 @@ func FromDelivery(r store.CountersMoveDeliveryRow) Moved {
 	return m
 }
 
-// FromEngagement reads a CountersMoveEngagement row.
+// FromEngagement reads a CountersMoveEngagement row: the same move as a
+// delivery's, with the breakdowns the message keeps.
 func FromEngagement(r store.CountersMoveEngagementRow) Moved {
-	return FromDelivery(store.CountersMoveDeliveryRow(r))
+	m := Moved{Started: r.CampaignStartedAt, Breakdown: r.Breakdown}
+	m.Cell = cellOf(r.CampaignID, r.ProviderID, r.MailboxProvider, r.Variant)
+	m.Before = State{Status: r.OldStatus, SentAt: r.OldSentAt, DeliveredAt: r.OldDeliveredAt, DeferredAt: r.OldDeferredAt, SoftBouncedAt: r.OldSoftBouncedAt,
+		OpenedAt: r.OldOpenedAt, HumanOpenedAt: r.OldHumanOpenedAt, PrivacyOpenedAt: r.OldPrivacyOpenedAt, ClickedAt: r.OldClickedAt, UnsubscribedAt: r.OldUnsubscribedAt}
+	m.After = State{Status: r.NewStatus, SentAt: r.NewSentAt, DeliveredAt: r.NewDeliveredAt, DeferredAt: r.NewDeferredAt, SoftBouncedAt: r.NewSoftBouncedAt,
+		OpenedAt: r.NewOpenedAt, HumanOpenedAt: r.NewHumanOpenedAt, PrivacyOpenedAt: r.NewPrivacyOpenedAt, ClickedAt: r.NewClickedAt, UnsubscribedAt: r.NewUnsubscribedAt}
+	m.Dims = Dims{Client: r.HumanClient, OS: r.HumanOs, Device: r.HumanDevice, Country: r.HumanCountry, City: r.HumanCity,
+		HumanLocal: r.HumanLocal, ClickLocal: r.ClickLocal}
+	return m
 }
 
 func cellOf(campaign, provider *uuid.UUID, mailbox, variant string) Cell {
@@ -310,5 +365,59 @@ func cellOf(campaign, provider *uuid.UUID, mailbox, variant string) Cell {
 	return c
 }
 
-// Add records a move.
-func (l *Ledger) Add(m Moved) { l.Move(m.Cell, m.Started, m.Before, m.After) }
+// Add records a move: its counters, hours and, on a campaign that records
+// breakdowns, the breakdowns of a first human open or a first click.
+func (l *Ledger) Add(m Moved) {
+	l.Move(m.Cell, m.Started, m.Before, m.After)
+	if m.Breakdown {
+		l.breakdown(m.Cell, m.Before, m.After, m.Dims)
+	}
+}
+
+// breakdown counts a message's first human open (human) and first click
+// (clicked) in the breakdowns its first engagement keeps: client, system,
+// device, country and city for both, the hour and weekday of each. The
+// rules are the same as CountersRebuildDims'.
+func (l *Ledger) breakdown(c Cell, before, after State, d Dims) {
+	if c.Campaign == uuid.Nil || c.Provider == uuid.Nil {
+		return
+	}
+	human := before.HumanOpenedAt == nil && after.HumanOpenedAt != nil
+	clicked := before.ClickedAt == nil && after.ClickedAt != nil
+	if !human && !clicked {
+		return
+	}
+	h, k := b2i(human), b2i(clicked)
+	l.dim(c.Campaign, DimClient, d.Client, h, k)
+	l.dim(c.Campaign, DimOS, d.OS, h, k)
+	l.dim(c.Campaign, DimDevice, d.Device, h, k)
+	l.dim(c.Campaign, DimCountry, d.Country, h, k)
+	if d.City != "" {
+		l.dim(c.Campaign, DimCity, CityKey(d.Country, d.City), h, k)
+	}
+	if human && d.HumanLocal != nil {
+		l.dim(c.Campaign, DimHour, strconv.Itoa(int(*d.HumanLocal%24)), 1, 0)
+		l.dim(c.Campaign, DimWeekday, strconv.Itoa(int(*d.HumanLocal/24+1)), 1, 0)
+	}
+	if clicked && d.ClickLocal != nil {
+		l.dim(c.Campaign, DimHour, strconv.Itoa(int(*d.ClickLocal%24)), 0, 1)
+		l.dim(c.Campaign, DimWeekday, strconv.Itoa(int(*d.ClickLocal/24+1)), 0, 1)
+	}
+}
+
+func (l *Ledger) dim(campaign uuid.UUID, dim, key string, human, clicked int64) {
+	if key == "" {
+		return
+	}
+	if l.dims == nil {
+		l.dims = map[dimKey]*dimDelta{}
+	}
+	k := dimKey{campaign, dim, key}
+	cur := l.dims[k]
+	if cur == nil {
+		cur = &dimDelta{}
+		l.dims[k] = cur
+	}
+	cur.human += human
+	cur.clicked += clicked
+}

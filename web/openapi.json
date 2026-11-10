@@ -12461,6 +12461,9 @@
             },
             "type": "array"
           },
+          "paidConnected": {
+            "type": "boolean"
+          },
           "products": {
             "items": {
               "$ref": "#/components/schemas/AutomationOptionItem"
@@ -12487,6 +12490,12 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "tiers": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationTierOption"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -12500,7 +12509,9 @@
           "products",
           "milestones",
           "segments",
-          "campaigns"
+          "campaigns",
+          "tiers",
+          "paidConnected"
         ],
         "type": "object"
       },
@@ -13389,6 +13400,25 @@
         ],
         "type": "object"
       },
+      "AutomationTierOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Weekly Digest Insider"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "AutomationTrigger": {
         "additionalProperties": false,
         "properties": {
@@ -13441,9 +13471,24 @@
           "direction": {
             "enum": [
               "rises",
-              "falls"
+              "falls",
+              "any",
+              "upgrade",
+              "downgrade"
             ],
             "type": "string"
+          },
+          "endReasons": {
+            "items": {
+              "enum": [
+                "canceled",
+                "payment_failed",
+                "trial_ended"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "type": "array"
           },
           "event": {
             "maxLength": 100,
@@ -13482,7 +13527,11 @@
               "abandoned_checkout",
               "segment_entered",
               "segment_left",
-              "link_clicked"
+              "link_clicked",
+              "paid_started",
+              "paid_tier_changed",
+              "paid_ended",
+              "paid_trial_ending"
             ],
             "type": "string"
           },
@@ -13570,6 +13619,10 @@
             "maximum": 100,
             "minimum": 0,
             "type": "integer"
+          },
+          "tierId": {
+            "maxLength": 40,
+            "type": "string"
           },
           "urlContains": {
             "maxLength": 200,
@@ -15201,6 +15254,9 @@
           "bounces": {
             "$ref": "#/components/schemas/ReportBounceTable"
           },
+          "breakdown": {
+            "$ref": "#/components/schemas/ReportBreakdown"
+          },
           "campaign": {
             "$ref": "#/components/schemas/ReportCampaignInfo"
           },
@@ -15253,6 +15309,7 @@
           "engagement",
           "clickMap",
           "mailboxes",
+          "breakdown",
           "providers",
           "bounces",
           "unsubscribes"
@@ -66281,6 +66338,85 @@
         ],
         "type": "object"
       },
+      "ReportBreakdown": {
+        "additionalProperties": false,
+        "properties": {
+          "cities": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDimRow"
+            },
+            "type": "array"
+          },
+          "clients": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDimRow"
+            },
+            "type": "array"
+          },
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDimRow"
+            },
+            "type": "array"
+          },
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDimRow"
+            },
+            "type": "array"
+          },
+          "geoip": {
+            "type": "boolean"
+          },
+          "hours": {
+            "items": {
+              "$ref": "#/components/schemas/ReportTimeBucket"
+            },
+            "type": "array"
+          },
+          "located": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "measured": {
+            "type": "boolean"
+          },
+          "privacyOpens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "systems": {
+            "items": {
+              "$ref": "#/components/schemas/ReportDimRow"
+            },
+            "type": "array"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "weekdays": {
+            "items": {
+              "$ref": "#/components/schemas/ReportTimeBucket"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "measured",
+          "clients",
+          "systems",
+          "devices",
+          "countries",
+          "cities",
+          "located",
+          "geoip",
+          "hours",
+          "weekdays",
+          "timezone",
+          "privacyOpens"
+        ],
+        "type": "object"
+      },
       "ReportCampaignInfo": {
         "additionalProperties": false,
         "properties": {
@@ -66539,6 +66675,44 @@
         "required": [
           "issues",
           "tiles"
+        ],
+        "type": "object"
+      },
+      "ReportDimRow": {
+        "additionalProperties": false,
+        "properties": {
+          "clicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "country": {
+            "type": "string"
+          },
+          "humanOpens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "places": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "share": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "humanOpens",
+          "clicks",
+          "share"
         ],
         "type": "object"
       },
@@ -67679,6 +67853,30 @@
         ],
         "type": "object"
       },
+      "ReportSummarySetting": {
+        "additionalProperties": false,
+        "properties": {
+          "frequency": {
+            "description": "weekly: Mondays at 09:00; monthly: on the 1st at 09:00, in your time zone",
+            "enum": [
+              "off",
+              "weekly",
+              "monthly"
+            ],
+            "type": "string"
+          },
+          "nextAt": {
+            "description": "When the next summary goes out (ignored in requests)",
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "frequency"
+        ],
+        "type": "object"
+      },
       "ReportSuppressResult": {
         "additionalProperties": false,
         "properties": {
@@ -67695,6 +67893,29 @@
         "required": [
           "added",
           "already"
+        ],
+        "type": "object"
+      },
+      "ReportTimeBucket": {
+        "additionalProperties": false,
+        "properties": {
+          "clicks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "humanOpens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "humanOpens",
+          "clicks"
         ],
         "type": "object"
       },
@@ -163756,6 +163977,123 @@
         ],
         "x-access": "workspace",
         "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/report-summary": {
+      "get": {
+        "operationId": "get-report-summary",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSummarySetting"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your sending summary by email: off, weekly or monthly",
+        "tags": [
+          "Reports"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      },
+      "put": {
+        "description": "Campaigns, audience and sender health of the last week or month, as far as your role shows them, emailed to you through the System stream. Only people, not API keys.",
+        "operationId": "save-report-summary",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportSummarySetting"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSummarySetting"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn your sending summary by email on (weekly or monthly) or off",
+        "tags": [
+          "Reports"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
       }
     },
     "/api/v1/workspaces/{workspace}/roles": {

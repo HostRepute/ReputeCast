@@ -14,7 +14,9 @@ func init() { seedNotifications = seedNotificationsImpl }
 // latest): three unread (approval requested, send auto-paused, provider
 // down) and five read. Links point at the screens where she can act; they
 // are resolved once every seeder has run, so the approval request and
-// campaign ids exist.
+// campaign ids exist. Linh also gets the weekly sending summary of Acme
+// Newsletter (the board's "Sending summary by email" card); no period is
+// claimed yet, so the first tick sends her last week's.
 func seedNotificationsImpl(_ context.Context, s *Seeder) error {
 	s.After(func(ctx context.Context, s *Seeder) error {
 		ws := s.WS()
@@ -92,7 +94,8 @@ func seedNotificationsImpl(_ context.Context, s *Seeder) error {
 				return err
 			}
 		}
-		return nil
+		_, err = s.Tx.Exec(ctx, `INSERT INTO report_summaries (user_id, workspace_id, frequency) VALUES ($1, $2, 'weekly')`, linh.ID, ws.ID)
+		return err
 	})
 	return nil
 }

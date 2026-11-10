@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
@@ -13,8 +13,8 @@ import { FilterTabs } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
-import { count, notificationTime, timeOfDay } from '@/lib/format'
-import { useWorkspace } from '@/lib/session'
+import { clock, count, notificationTime, shortDate, timeOfDay } from '@/lib/format'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { NotificationLink, notificationDotColor, useNotificationActions } from '@/components/shell/NotificationsPopover'
 import { m } from './messages'
 import { SwitchInput } from '@/components/ui/Field'
@@ -34,6 +34,7 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/notifications', { params: { path: { workspace: slug }, query: { filter, limit: 100 } } })
   const { markAll, marking } = useNotificationActions()
   const unread = list.data?.unread ?? me.unread
+  const summary = useCan('reports:view')
   return (
     <Page
       title={t(m.title)}
@@ -114,6 +115,8 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
           <PreferencesCard />
         </div>
       </div>
+      {/* A person's own email of the workspace's numbers: only for members who read reports. */}
+      {summary ? <SummaryCard /> : null}
     </Page>
   )
 }
@@ -327,6 +330,102 @@ function PreferencesCard() {
           </div>
         </div>
       </form>
+    </section>
+  )
+}
+
+type SummaryFrequency = Schemas['ReportSummarySetting']['frequency']
+const summaryPath = '/api/v1/workspaces/{workspace}/report-summary'
+const summaryChoices: SummaryFrequency[] = ['off', 'weekly', 'monthly']
+const summaryLabel = { off: m.summaryOff, weekly: m.summaryWeekly, monthly: m.summaryMonthly } as const
+
+/**
+ * Sending summary by email (M57 G-14): off, weekly on Mondays or monthly on
+ * the 1st, at 09:00 in the member's time zone. A choice is saved as soon as
+ * it is picked; a refused save goes back to what the server holds, with a
+ * message and Retry, as switches do.
+ */
+function SummaryCard() {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const email = useMe().data?.user.email ?? ''
+  const qc = useQueryClient()
+  const init = { params: { path: { workspace: slug } } }
+  const summary = $api.useQuery('get', summaryPath, init)
+  const [picked, setPicked] = useState<SummaryFrequency>()
+  // Only the latest pick's answer decides what the card shows.
+  const latest = useRef(0)
+  const name = useId()
+  const heading = useId()
+  const choice = picked ?? summary.data?.frequency
+  const next = picked === undefined ? summary.data?.nextAt : undefined
+  const hint = { off: t(m.summaryOffHint), weekly: t(m.summaryWeeklyHint, { time: timeOfDay('09:00') }), monthly: t(m.summaryMonthlyHint, { time: timeOfDay('09:00') }) }
+
+  const save = async (frequency: SummaryFrequency) => {
+    const n = ++latest.current
+    setPicked(frequency)
+    try {
+      const { data } = await http.PUT(summaryPath, { ...init, body: { frequency } })
+      if (n !== latest.current) return
+      qc.setQueryData($api.queryOptions('get', summaryPath, init).queryKey, data)
+      setPicked(undefined)
+    } catch (e) {
+      if (n !== latest.current) return
+      setPicked(undefined)
+      toast({ kind: 'error', title: t(m.summaryNotSaved), detail: errorMessage(e), retry: () => void save(frequency) })
+    }
+  }
+
+  return (
+    <section className="card scroll-mt-4" id="summary" aria-labelledby={heading}>
+      <CardSection id={heading} title={t(m.summaryTitle)} caption={t(m.summaryCaption)} />
+      <div className="pad flex flex-col gap-3">
+        {summary.isError ? (
+          <ErrorPanel title={t(m.summaryLoadFailed)} actions={<Button onClick={() => summary.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(summary.error)}
+          </ErrorPanel>
+        ) : !choice ? (
+          <div aria-busy="true" className="grid grid-cols-3 gap-2.5 max-md:grid-cols-1">
+            <span className="vh" role="status">
+              {t(m.summaryLoading)}
+            </span>
+            {summaryChoices.map((c) => (
+              <Skeleton key={c} w="100%" h={64} r={8} />
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Radio cards, not a select: the choices run long in German. */}
+            <fieldset className="m-0 grid min-w-0 grid-cols-3 gap-2.5 border-0 p-0 max-md:grid-cols-1">
+              <legend className="vh">{t(m.summaryTitle)}</legend>
+              {summaryChoices.map((c) => (
+                <label key={c} className="opt min-w-0 max-md:min-h-11">
+                  <input
+                    type="radio"
+                    name={name}
+                    value={c}
+                    checked={choice === c}
+                    onChange={() => void save(c)}
+                    aria-labelledby={`${name}-${c}`}
+                    aria-describedby={`${name}-${c}-d`}
+                  />
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="font-semibold" id={`${name}-${c}`}>
+                      {t(summaryLabel[c])}
+                    </span>
+                    <span className="k" id={`${name}-${c}-d`}>
+                      {hint[c]}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <p className="k m-0" role="status">
+              {next ? t(m.summaryNext, { when: `${shortDate(next)} · ${clock(next)}`, email }) : null}
+            </p>
+          </>
+        )}
+      </div>
     </section>
   )
 }

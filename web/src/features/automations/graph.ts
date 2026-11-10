@@ -3,6 +3,7 @@ import { scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
 import { boughtGoalTitle, boughtPhrase, boughtRef, boughtTriggerName } from '@/features/products/automationText'
 import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
+import { isPaidTrigger, paidTriggerDefaults, paidTriggerName, paidTriggerRef } from '@/features/earn/automation'
 import { m as smsStep } from '@/features/sms/automation.messages'
 import { keepsCapitals, type MessageDescriptor, t as tt } from '@/i18n'
 import { pct } from '@/lib/format'
@@ -43,6 +44,8 @@ export interface Refs {
   segments?: Map<string, string>
   /** What "Clicked a link" listens to: "campaign:<id>" and "email:<id>" → name. */
   sources?: Map<string, string>
+  /** Paid tiers the paid-member triggers name (id → name; G-11). */
+  tiers?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map(), milestones: new Map() }
@@ -60,6 +63,7 @@ export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
     milestones: new Map(o.milestones.map((x) => [x.id, x.name])),
     segments: new Map((o.segments ?? []).map((x) => [x.id, x.name])),
     sources: new Map([...(o.campaigns ?? []).map((c): [string, string] => [`campaign:${c.id}`, c.name]), ...o.emails.map((e): [string, string] => [`email:${e.id}`, e.name])]),
+    tiers: new Map((o.tiers ?? []).map((x) => [x.id, x.name])),
   }
 }
 
@@ -105,6 +109,11 @@ export const TRIGGER_KINDS: readonly TriggerConfig['kind'][] = [
   'segment_entered',
   'segment_left',
   'link_clicked',
+  // Paid members (G-11): the palette shows them only with a live payment connection.
+  'paid_started',
+  'paid_tier_changed',
+  'paid_ended',
+  'paid_trial_ending',
 ]
 
 /** The triggers that can be a flow's second or third (AT-11). */
@@ -143,6 +152,11 @@ export function triggerKindLabel(kind: TriggerConfig['kind']): string {
       return tt(mg.kindSegmentLeft)
     case 'link_clicked':
       return tt(mg.kindLinkClicked)
+    case 'paid_started':
+    case 'paid_tier_changed':
+    case 'paid_ended':
+    case 'paid_trial_ending':
+      return paidTriggerName(kind)
   }
   return kind
 }
@@ -305,6 +319,11 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
     case 'link_clicked':
       if (!t.source) return t.urlContains ? `${tt(mg.anyCampaignOrEmail)} · ${t.urlContains}` : tt(mg.anyCampaignOrEmail)
       return (refs.sources?.get(t.source) ?? tt(mg.anEmail)) + (t.urlContains ? ` · ${t.urlContains}` : '')
+    case 'paid_started':
+    case 'paid_tier_changed':
+    case 'paid_ended':
+    case 'paid_trial_ending':
+      return paidTriggerRef(t, refs.tiers)
   }
   return ''
 }
@@ -759,6 +778,7 @@ export function newStepData(type: StepType, trigger?: TriggerConfig['kind']): No
   switch (type) {
     case 'trigger':
       if (trigger === 'score_crosses') return { trigger: { kind: trigger, ...scoreTriggerDefaults(), reentry: 'once' } }
+      if (trigger && isPaidTrigger(trigger)) return { trigger: { kind: trigger, reentry: 'once', ...paidTriggerDefaults(trigger) } }
       return { trigger: { kind: trigger ?? 'joined_list', confirmedOnly: trigger === 'joined_list' || !trigger ? true : undefined, reentry: 'once' } }
     case 'delay':
       return { delay: { amount: 1, unit: 'days' } }

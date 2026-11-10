@@ -1067,6 +1067,10 @@ type Querier interface {
 	CountersBuildSave(ctx context.Context, arg CountersBuildSaveParams) error
 	// Adds counter deltas, one row per cell, locking the rows in key order.
 	CountersBump(ctx context.Context, arg CountersBumpParams) error
+	// Adds human opens and clicks per campaign breakdown (client, os, device,
+	// country, city, hour, weekday; internal/counters Dims), locking the rows
+	// in key order, after campaign_link_variants.
+	CountersBumpDims(ctx context.Context, arg CountersBumpDimsParams) error
 	// Adds hourly engagement deltas, locking the rows in key order.
 	CountersBumpHourly(ctx context.Context, arg CountersBumpHourlyParams) error
 	// Adds clicks per link and A/B variant (review AN-5), in key order, after
@@ -1111,10 +1115,27 @@ type Querier interface {
 	// classified it: human, privacy (Apple Mail Privacy Protection fetched the
 	// images) or machine (a scanner). A click is always a person's (bot clicks
 	// never get here) and is a human open too.
+	//
+	// On a campaign that records breakdowns (campaigns.breakdown), the update
+	// that sets human_opened_at first keeps the engagement's client, system,
+	// device and place (internal/counters Dims; tracking passes them only for
+	// a person's engagement) and its local weekday-hour, (isodow-1)*24 + hour
+	// in the workspace's time zone at that moment; the one that sets
+	// clicked_at first keeps the click's. Other messages (automations,
+	// transactional mail, campaigns sent before breakdowns) move as before.
 	CountersMoveEngagement(ctx context.Context, arg CountersMoveEngagementParams) (CountersMoveEngagementRow, error)
 	// Replaces a campaign's counters with what its messages' states add up to
 	// (the same rules as internal/counters State.Flags).
 	CountersRebuildCells(ctx context.Context, campaignID uuid.UUID) error
+	// Replaces a campaign's breakdowns with what its messages keep (the same
+	// rules as internal/counters Ledger): a person's first engagement counts
+	// once in its client, system, device, country and city, as a human open
+	// and, once clicked, as a click; the hour and weekday are the first human
+	// open's for opens and the first click's for clicks. It counts the current
+	// message state, so places erased with a reader's IP or cleared by
+	// retention (internal/audience) drop out here, while the live totals kept
+	// them as aggregates. Only for campaigns that record breakdowns.
+	CountersRebuildDims(ctx context.Context, campaignID uuid.UUID) error
 	// Replaces a campaign's hourly engagement with its messages' states: a
 	// person's first open, a privacy prefetch or a scanner's first open, and
 	// the first click, in the hour after the send started they happened in.
@@ -1132,6 +1153,9 @@ type Querier interface {
 	// the first deferral, the first soft bounce, an unsubscribe, a privacy
 	// prefetch. Only fills what is missing.
 	CountersRefreshStates(ctx context.Context, campaignID *uuid.UUID) error
+	// A send's first build: from now on the campaign's people's first
+	// engagements keep their client, system, device, place and local time.
+	CountersStartBreakdown(ctx context.Context, id uuid.UUID) error
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateAutomation(ctx context.Context, arg CreateAutomationParams) (Automation, error)
 	CreateAutomationEmail(ctx context.Context, arg CreateAutomationEmailParams) error
@@ -1474,6 +1498,12 @@ type Querier interface {
 	EarnSubscriptionFailed(ctx context.Context, arg EarnSubscriptionFailedParams) error
 	EarnSubscriptionForUpdate(ctx context.Context, id uuid.UUID) (PaidSubscription, error)
 	EarnSubscriptionInsert(ctx context.Context, arg EarnSubscriptionInsertParams) error
+	// Marks a subscription's "Stops paying" automation event as queued; no row
+	// means it was queued before.
+	EarnSubscriptionMarkEnded(ctx context.Context, arg EarnSubscriptionMarkEndedParams) (uuid.UUID, error)
+	// Marks a subscription's "Becomes a paid member" automation event as
+	// queued; no row means it was queued before (G-11).
+	EarnSubscriptionMarkStarted(ctx context.Context, arg EarnSubscriptionMarkStartedParams) (uuid.UUID, error)
 	// A payment: lifetime value grows, any failure is cleared.
 	EarnSubscriptionPaid(ctx context.Context, arg EarnSubscriptionPaidParams) error
 	EarnSubscriptionRefunded(ctx context.Context, arg EarnSubscriptionRefundedParams) error
@@ -3388,10 +3418,15 @@ type Querier interface {
 	ReportBounceRecipients(ctx context.Context, arg ReportBounceRecipientsParams) ([]string, error)
 	// Campaign reports (spec 7.7, 5.5) and read-only report links.
 	// send_ab is the send's A/B state (when the test is decided, the decision).
+	// breakdown says the campaign's sends recorded mail clients, places and
+	// times (campaign_dims, M57 G-12).
 	ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error)
 	// Final or live counters per sending provider × mailbox provider × A/B
 	// variant, with the provider's name for the per-provider comparison.
 	ReportCounterCells(ctx context.Context, campaignID uuid.UUID) ([]ReportCounterCellsRow, error)
+	// Human opens and clicks per mail client, system, device, country, city,
+	// local hour and weekday (M57 G-12): one primary-key range scan.
+	ReportDims(ctx context.Context, campaignID uuid.UUID) ([]ReportDimsRow, error)
 	ReportFinalAlertIs(ctx context.Context, arg ReportFinalAlertIsParams) (bool, error)
 	ReportFinalAlertRemove(ctx context.Context, arg ReportFinalAlertRemoveParams) (int64, error)
 	// Someone asked to be emailed when a report's results are final.
@@ -3451,6 +3486,32 @@ type Querier interface {
 	ReportShareList(ctx context.Context, arg ReportShareListParams) ([]ReportShareListRow, error)
 	ReportShareRevoke(ctx context.Context, arg ReportShareRevokeParams) (ReportShare, error)
 	ReportShareTouch(ctx context.Context, arg ReportShareTouchParams) error
+	// Every summary asked for in a workspace that isn't deleted, with the zones
+	// its periods are counted in: the member's, else the workspace's.
+	ReportSummariesList(ctx context.Context) ([]ReportSummariesListRow, error)
+	// The newsletter's subscribers in a period, counted as the Overview's
+	// growth counts them (OverviewListChanges) but between two moments: joins
+	// of members still subscribed and departures, plus the subscribers now.
+	// The lists a connected store fills aren't the newsletter's (X20).
+	ReportSummaryAudience(ctx context.Context, arg ReportSummaryAudienceParams) (ReportSummaryAudienceRow, error)
+	// The email campaigns started in a period (not history imported from
+	// another platform), with their counters per mailbox provider; a campaign
+	// without counters yet has one row with an empty provider.
+	ReportSummaryCampaigns(ctx context.Context, arg ReportSummaryCampaignsParams) ([]ReportSummaryCampaignsRow, error)
+	// Claims a period for sending: only one tick gets the row back, however
+	// many run at once.
+	ReportSummaryClaim(ctx context.Context, arg ReportSummaryClaimParams) (uuid.UUID, error)
+	// Sending summary by email (M57 G-14): members who can view reports and
+	// asked for a weekly or monthly summary of a workspace (internal/reports,
+	// summary.go).
+	ReportSummaryGet(ctx context.Context, arg ReportSummaryGetParams) (ReportSummaryGetRow, error)
+	// Whether the person is still an active member of the workspace.
+	ReportSummaryMember(ctx context.Context, arg ReportSummaryMemberParams) (bool, error)
+	ReportSummaryRemove(ctx context.Context, arg ReportSummaryRemoveParams) (int64, error)
+	// Turns the summary on or changes how often it comes. last_period_start is
+	// the last period already behind the member, so the first email is the next
+	// one, not a summary of the week they turned it on in.
+	ReportSummarySet(ctx context.Context, arg ReportSummarySetParams) error
 	ReportUnsubscribeReasons(ctx context.Context, arg ReportUnsubscribeReasonsParams) ([]ReportUnsubscribeReasonsRow, error)
 	// Which of these messages are a campaign's (view-online pages a signup
 	// came from).
@@ -3466,8 +3527,11 @@ type Querier interface {
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	// Clears the IP address and user agent of up to @lim opens and clicks older
-	// than @cutoff in campaigns and automations (or of a message since deleted).
-	// Counters, classes and links stay, so reports read the same.
+	// than @cutoff in campaigns and automations (or of a message since deleted),
+	// and the country and city their messages keep for the report's breakdowns
+	// (derived from the reader's IP, so they go with it). Counters, classes,
+	// links and the breakdowns' totals stay, so reports read the same. Returns
+	// how many events it cleared.
 	RetentionClearEventDetail(ctx context.Context, arg RetentionClearEventDetailParams) (int64, error)
 	// Confirmation email claims older than a day no longer limit anything.
 	RetentionOptInSendsPurge(ctx context.Context, before time.Time) (int64, error)

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sending summary by email · the weekly email</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* The system-mail layout (internal/systemmail/templates/layout.html) around the
+   body membermail.ReportSummary writes: everything is inline, as in the email. */
+body{margin:0;padding:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+</style>
+</helmet>
+<div style="width:560px;min-height:1260px;background:#F3F4F6" data-wrap="1">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F3F4F6">
+<tr><td align="center" style="padding:28px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px">
+<tr><td style="padding:20px 24px 4px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="width:22px;height:22px;border-radius:6px;background:#0F766E;color:#FFFFFF;font-size:13px;font-weight:700;text-align:center;line-height:22px">A</td>
+<td style="padding-left:10px;font-size:15px;font-weight:700;color:#0B1220">Acme ReputeCast</td>
+</tr></table>
+</td></tr>
+<tr><td style="padding:12px 24px 20px;font-size:14px;line-height:1.5;color:#0B1220">
+<h1 style="margin:0 0 4px;font-size:20px;line-height:1.3;font-weight:700;color:#0B1220">Weekly sending summary</h1>
+<p style="margin:0 0 4px;font-size:14px;line-height:1.5;color:#5B6472">Acme Newsletter · Nov 10, 2026 – Nov 16, 2026</p>
+
+<h2 style="margin:24px 0 8px;font-size:16px;line-height:1.3;font-weight:700;color:#0B1220">Campaigns</h2>
+<p style="margin:0 0 12px;font-size:14px;line-height:1.5">2 campaigns started · 1 still collecting results</p>
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;font-size:14px;line-height:1.4">
+<tr><td style="padding:6px 0;border-bottom:1px solid #E3E6EB"></td><th scope="col" style="padding:6px 0 6px 12px;border-bottom:1px solid #E3E6EB;text-align:right;font-size:14px;font-weight:600;color:#5B6472;white-space:nowrap">Total</th><th scope="col" style="padding:6px 0 6px 12px;border-bottom:1px solid #E3E6EB;text-align:right;font-size:14px;font-weight:600;color:#5B6472;white-space:nowrap">Rate</th></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Sent</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">79,500</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap"></td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Delivered</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">78,864</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">99.2%</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Human opens</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">33,600</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">42.6%</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Clicks</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">5,205</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">6.6%</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Unsubscribes</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">142</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">0.18%</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Bounces</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">445</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">0.56%</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Complaints</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">21</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">0.04%</td></tr>
+</table>
+<p style="margin:8px 0 12px;font-size:14px;line-height:1.5;color:#5B6472">Complaints count only the mailbox providers that report them; Gmail and iCloud don't.</p>
+
+<h2 style="margin:24px 0 8px;font-size:16px;line-height:1.3;font-weight:700;color:#0B1220">Most opened</h2>
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;font-size:14px;line-height:1.4">
+<tr><th scope="col" style="padding:6px 0;border-bottom:1px solid #E3E6EB;text-align:left;font-size:14px;font-weight:600;color:#5B6472">Campaign</th><th scope="col" style="padding:6px 0 6px 12px;border-bottom:1px solid #E3E6EB;text-align:right;font-size:14px;font-weight:600;color:#5B6472;white-space:nowrap">Sent</th><th scope="col" style="padding:6px 0 6px 12px;border-bottom:1px solid #E3E6EB;text-align:right;font-size:14px;font-weight:600;color:#5B6472;white-space:nowrap">Human opens</th><th scope="col" style="padding:6px 0 6px 12px;border-bottom:1px solid #E3E6EB;text-align:right;font-size:14px;font-weight:600;color:#5B6472;white-space:nowrap">Clicks</th></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400"><a style="color:#0F766E" href="Report.dc.html" aria-label="Open the report for October Product Update">October Product Update</a></th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">47,980</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">19,590</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">2,996</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400"><a style="color:#0F766E" href="Report.dc.html" aria-label="Open the report for Weekly Digest #141">Weekly Digest #141</a></th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">31,520</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">14,010</td><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">2,209</td></tr>
+</table>
+<p style="margin:12px 0 0;font-size:14px"><a style="color:#0F766E" href="Campaigns.dc.html">Open Campaigns in ReputeCast</a></p>
+
+<h2 style="margin:24px 0 8px;font-size:16px;line-height:1.3;font-weight:700;color:#0B1220">Audience</h2>
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;font-size:14px;line-height:1.4">
+<tr><td style="padding:6px 0;border-bottom:1px solid #E3E6EB"></td><th scope="col" style="padding:6px 0 6px 12px;border-bottom:1px solid #E3E6EB;text-align:right;font-size:14px;font-weight:600;color:#5B6472;white-space:nowrap">Subscribers</th></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Joined</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">1,240</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Left</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">386</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Net change</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">+854</td></tr>
+<tr><th scope="row" style="padding:8px 0;border-bottom:1px solid #EEF0F3;text-align:left;font-size:14px;font-weight:400">Subscribers now</th><td style="padding:8px 0 8px 12px;border-bottom:1px solid #EEF0F3;text-align:right;font-size:14px;white-space:nowrap">48,213</td></tr>
+</table>
+
+<h2 style="margin:24px 0 8px;font-size:16px;line-height:1.3;font-weight:700;color:#0B1220">Sender health</h2>
+<p style="margin:0 0 12px;font-size:14px;line-height:1.5">92 of 100 · Good</p>
+<p style="margin:0;font-size:14px"><a style="color:#0F766E" href="Deliverability.dc.html">Open Deliverability in ReputeCast</a></p>
+
+<p style="margin:24px 0 0;font-size:14px;line-height:1.5;color:#5B6472">You get this summary because you turned it on in <a style="color:#0F766E" href="Notifications.dc.html">Acme Newsletter › Notifications</a>.</p>
+</td></tr>
+<tr><td style="padding:14px 24px 20px;border-top:1px solid #EEF0F3;font-size:12px;line-height:1.5;color:#5B6472">
+Sent by Acme ReputeCast for Acme Newsletter · reputecast.acme.io
+</td></tr>
+</table>
+</td></tr>
+</table>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":560,"height":1260}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

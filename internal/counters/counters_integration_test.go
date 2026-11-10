@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/netip"
 	"strings"
 	"sync"
 	"testing"
@@ -28,6 +29,7 @@ func TestCounters(t *testing.T) {
 	t.Run("Transitions", func(t *testing.T) { testTransitions(t, s.Fixture(t, "Counter transitions")) })
 	t.Run("OneLockOrder", func(t *testing.T) { testLockOrder(t, s.Fixture(t, "Counter lock order")) })
 	t.Run("TrackingRetry", func(t *testing.T) { testTrackingRetry(t, s.Fixture(t, "Tracking retry")) })
+	t.Run("Breakdowns", func(t *testing.T) { testBreakdowns(t, s.Fixture(t, "Counter breakdowns")) })
 }
 
 // snapshot is everything counted for a campaign, as text.
@@ -55,6 +57,7 @@ func snapshot(t *testing.T, f *sendtest.Fixture) string {
 	read(`SELECT hour, opened_human, opened_privacy, opened_machine, clicked FROM campaign_hourly WHERE campaign_id = $1
 		AND (opened_human + opened_privacy + opened_machine + clicked) > 0 ORDER BY hour`)
 	read(`SELECT position, clicks, unique_clicks, bot_clicks FROM campaign_links WHERE campaign_id = $1 ORDER BY position`)
+	read(`SELECT dim, key, opened_human, clicked FROM campaign_dims WHERE campaign_id = $1 AND (opened_human + clicked) > 0 ORDER BY dim, key`)
 	return b.String()
 }
 
@@ -172,11 +175,13 @@ func sentMessages(t *testing.T, f *sendtest.Fixture, n int) *script {
 	}
 	f.Exec(`DELETE FROM sending_sim_events WHERE campaign_id = $1`, f.Campaign)
 	f.Exec(`UPDATE messages SET status = 'sent', delivered_at = NULL, opened_at = NULL, human_opened_at = NULL, clicked_at = NULL,
-		deferred_at = NULL, soft_bounced_at = NULL, unsubscribed_at = NULL, privacy_opened_at = NULL
+		deferred_at = NULL, soft_bounced_at = NULL, unsubscribed_at = NULL, privacy_opened_at = NULL,
+		human_client = '', human_os = '', human_device = '', human_country = '', human_city = '', human_local = NULL, click_local = NULL
 		WHERE campaign_id = $1`, f.Campaign)
 	f.Exec(`UPDATE campaign_counters SET delivered = 0, deferred = 0, hard_bounced = 0, soft_bounced = 0, complained = 0, rejected = 0,
 		opened_human = 0, opened_privacy = 0, opened_machine = 0, clicked = 0, unsubscribed = 0 WHERE campaign_id = $1`, f.Campaign)
 	f.Exec(`DELETE FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign)
+	f.Exec(`DELETE FROM campaign_dims WHERE campaign_id = $1`, f.Campaign)
 	f.Exec(`DELETE FROM delivery_events WHERE campaign_id = $1`, f.Campaign)
 	s := &script{t: t, f: f, p: map[uuid.UUID]store.Provider{}}
 	rows, err := f.Env.App.Pool.Query(f.Ctx, `SELECT id FROM messages WHERE campaign_id = $1 ORDER BY id`, f.Campaign)
@@ -366,5 +371,161 @@ func testTrackingRetry(t *testing.T, f *sendtest.Fixture) {
 	}
 	if s.sum("opened_human") != 1 {
 		t.Fatal("the kept open wasn't counted")
+	}
+}
+
+// fakeGeo places every address in Hanoi (no GeoIP file in tests).
+type fakeGeo struct{}
+
+func (fakeGeo) Lookup(netip.Addr) (string, string) { return "VN", "Hanoi" }
+
+// dims reads a campaign's breakdowns: "dim key" → {human opens, clicks}.
+func dims(t *testing.T, f *sendtest.Fixture) map[string][2]int64 {
+	t.Helper()
+	rows, err := f.Env.App.Pool.Query(f.Ctx, `SELECT dim, key, opened_human, clicked FROM campaign_dims WHERE campaign_id = $1 AND (opened_human + clicked) > 0`, f.Campaign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	out := map[string][2]int64{}
+	for rows.Next() {
+		var dim, key string
+		var h, c int64
+		if err := rows.Scan(&dim, &key, &h, &c); err != nil {
+			t.Fatal(err)
+		}
+		out[dim+" "+key] = [2]int64{h, c}
+	}
+	return out
+}
+
+// testBreakdowns: on a campaign sent after breakdowns began, a person's
+// first open or click counts once in its client, system, device, place and
+// local hour and weekday; privacy opens count nowhere, an image proxy has
+// no place, automation messages and campaigns sent before keep nothing,
+// and a rebuild after a time-zone change finds the same rows.
+func testBreakdowns(t *testing.T, f *sendtest.Fixture) {
+	s := sentMessages(t, f, 6)
+	if f.Count(`SELECT count(*) FROM campaigns WHERE id = $1 AND breakdown`, f.Campaign) != 1 {
+		t.Fatal("the send's first build didn't turn breakdowns on")
+	}
+	// The suite's tracker has no GeoIP; this one places everyone in Hanoi.
+	tr := &tracking.Service{Pool: f.Env.App.Pool, Q: f.Env.App.Q, Links: f.Env.App.Links, Geo: fakeGeo{}}
+	var tz string
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT timezone FROM workspaces WHERE id = $1`, f.WS).Scan(&tz); err != nil {
+		t.Fatal(err)
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string][2]int64{}
+	add := func(dim, key string, h, c int64) {
+		w := want[dim+" "+key]
+		want[dim+" "+key] = [2]int64{w[0] + h, w[1] + c}
+	}
+	at := func(d time.Duration) time.Time { return f.Start.Add(d) }
+	local := func(t time.Time, h, c int64) {
+		l := t.In(loc)
+		add(counters.DimHour, fmt.Sprint(l.Hour()), h, c)
+		wd := int(l.Weekday())
+		if wd == 0 {
+			wd = 7
+		}
+		add(counters.DimWeekday, fmt.Sprint(wd), h, c)
+	}
+	const (
+		iosMail   = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+		iosSafari = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+		chromeWin = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
+		gmailPx   = "Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)"
+	)
+	record := func(evs ...sending.Engagement) {
+		t.Helper()
+		if err := tr.RecordEngagement(f.Ctx, evs); err != nil {
+			t.Fatal(err)
+		}
+	}
+	settle := func(by time.Time) {
+		t.Helper()
+		if _, err := tr.SettleEngagement(f.Ctx, by); err != nil {
+			t.Fatal(err)
+		}
+	}
+	m := s.ids
+	// A person opens in Apple Mail on an iPhone, and later clicks in
+	// Safari: the click counts where the first open does, at its own hour.
+	record(sending.Engagement{MessageID: m[0], UserAgent: iosMail, IP: "198.51.100.7", Method: "GET", At: at(3 * time.Hour)})
+	record(sending.Engagement{MessageID: m[0], UserAgent: iosSafari, IP: "198.51.100.8", Method: "GET", Click: true, Link: 0, At: at(5 * time.Hour)})
+	settle(at(5*time.Hour + 2*time.Minute))
+	for _, kv := range [][2]string{{counters.DimClient, tracking.AppAppleMail}, {counters.DimOS, tracking.OSiOS}, {counters.DimDevice, tracking.DeviceMobile},
+		{counters.DimCountry, "VN"}, {counters.DimCity, counters.CityKey("VN", "Hanoi")}} {
+		add(kv[0], kv[1], 1, 1)
+	}
+	local(at(3*time.Hour), 1, 0)
+	local(at(5*time.Hour), 0, 1)
+	// A click first: a human open and a click, in Chrome on Windows.
+	record(sending.Engagement{MessageID: m[1], UserAgent: chromeWin, IP: "198.51.100.9", Method: "GET", Click: true, Link: 0, At: at(4 * time.Hour)})
+	settle(at(4*time.Hour + 2*time.Minute))
+	for _, kv := range [][2]string{{counters.DimClient, tracking.AppChrome}, {counters.DimOS, tracking.OSWindows}, {counters.DimDevice, tracking.DeviceDesktop},
+		{counters.DimCountry, "VN"}, {counters.DimCity, counters.CityKey("VN", "Hanoi")}} {
+		add(kv[0], kv[1], 1, 1)
+	}
+	local(at(4*time.Hour), 1, 1)
+	// Apple Mail Privacy Protection: counted as a privacy open, nowhere here.
+	record(sending.Engagement{MessageID: m[2], UserAgent: "Mozilla/5.0", IP: "17.58.101.4", Method: "GET", At: at(time.Minute)})
+	// Gmail's proxy, later: Gmail, no system, no device, no place.
+	record(sending.Engagement{MessageID: m[3], UserAgent: gmailPx, IP: "66.249.84.1", Method: "GET", At: at(3 * time.Hour)})
+	add(counters.DimClient, tracking.AppGmail, 1, 0)
+	add(counters.DimOS, tracking.OSUnknown, 1, 0)
+	add(counters.DimDevice, tracking.DeviceUnknown, 1, 0)
+	local(at(3*time.Hour), 1, 0)
+
+	got := dims(t, f)
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("breakdowns\ngot:  %v\nwant: %v", got, want)
+	}
+	if s.sum("opened_privacy") != 1 || s.sum("opened_human") != 3 || s.sum("clicked") != 2 {
+		t.Fatalf("counters: %d privacy, %d human, %d clicked", s.sum("opened_privacy"), s.sum("opened_human"), s.sum("clicked"))
+	}
+
+	// A rebuild after the workspace moved to another time zone finds the
+	// same rows: each message keeps the local time it was counted at.
+	other := "Pacific/Auckland"
+	if tz == other {
+		other = "America/New_York"
+	}
+	f.Exec(`UPDATE workspaces SET timezone = $2 WHERE id = $1`, f.WS, other)
+	t.Cleanup(func() { f.Exec(`UPDATE workspaces SET timezone = $2 WHERE id = $1`, f.WS, tz) })
+	live := snapshot(t, f)
+	if res, err := counters.Rebuild(f.Ctx, f.Env.App.Pool, f.Campaign, time.Now()); err != nil || !res.Rebuilt {
+		t.Fatalf("rebuild: %+v %v", res, err)
+	}
+	if rebuilt := snapshot(t, f); rebuilt != live {
+		t.Fatalf("rebuilt breakdowns differ\nlive:\n%s\nrebuilt:\n%s", live, rebuilt)
+	}
+
+	// An automation message's open still moves the message and keeps no
+	// breakdown.
+	auto := uuid.Must(uuid.NewV7())
+	f.Exec(`INSERT INTO messages (id, workspace_id, stream, email, provider_id, mailbox_provider, status, sent_at)
+		SELECT $1, workspace_id, 'automation', 'auto.reader@example.com', provider_id, 'gmail', 'sent', sent_at FROM messages WHERE id = $2`, auto, m[5])
+	record(sending.Engagement{MessageID: auto, UserAgent: iosMail, IP: "198.51.100.10", Method: "GET", At: at(3 * time.Hour)})
+	if f.Count(`SELECT count(*) FROM messages WHERE id = $1 AND human_opened_at IS NOT NULL AND human_client = '' AND human_local IS NULL`, auto) != 1 {
+		t.Fatal("the automation message's open didn't move it, or it kept a breakdown")
+	}
+
+	// A campaign sent before breakdowns: a click moves its counters only.
+	f.Exec(`UPDATE campaigns SET breakdown = false WHERE id = $1`, f.Campaign)
+	record(sending.Engagement{MessageID: m[4], UserAgent: chromeWin, IP: "198.51.100.11", Method: "GET", Click: true, Link: 0, At: at(6 * time.Hour)})
+	settle(at(6*time.Hour + 2*time.Minute))
+	if s.sum("clicked") != 3 {
+		t.Fatalf("%d clicks, want 3", s.sum("clicked"))
+	}
+	if after := dims(t, f); fmt.Sprint(after) != fmt.Sprint(want) {
+		t.Fatalf("a campaign sent before breakdowns got rows\ngot:  %v\nwant: %v", after, want)
+	}
+	if f.Count(`SELECT count(*) FROM messages WHERE id = $1 AND human_client = '' AND click_local IS NULL`, m[4]) != 1 {
+		t.Fatal("a campaign sent before breakdowns kept a message's breakdown")
 	}
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/linkrule"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailbox"
+	"github.com/hostrepute/reputecast/internal/mailer"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -73,6 +74,17 @@ type Service struct {
 	// them (Send Readiness): what a retry of blocked addresses would reach.
 	// Nil counts the blocked addresses alone.
 	RetryAudience func(ctx context.Context, ws *store.Workspace, audience json.RawMessage) (int64, error)
+	// Geo says whether countries and cities can be known; nil reads as no
+	// GeoIP database.
+	Geo GeoIP
+	// The sending summary by email (summary.go). Mail is read at run time:
+	// the system mailer is wired after the workers; nil skips the emails.
+	Mail func() mailer.Sender
+	// Jobs queues a summary's email in the transaction that claims its period.
+	Jobs Inserter
+	// Health reads the sender health the summary shows (the Overview's
+	// score and word); ok is false until there is one. Nil leaves it out.
+	Health func(ctx context.Context, ws *store.Workspace) (score int, label string, ok bool, err error)
 }
 
 func (s *Service) now() time.Time {
@@ -107,7 +119,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	now := s.now()
 	loc := provstate.Location(ws.Timezone)
 	l := i18n.LangFrom(ctx)
-	out := CampaignReport{Mailboxes: []ReportMailboxRow{}}
+	out := CampaignReport{Mailboxes: []ReportMailboxRow{}, Breakdown: emptyBreakdown()}
 	label, err := s.audienceLabel(ctx, ws.ID, c.Audience)
 	if err != nil {
 		return out, err
@@ -189,6 +201,9 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		return out, err
 	}
 	out.Headline, out.Mailboxes = headline(cells, c.Origin)
+	if out.Breakdown, err = s.breakdown(ctx, ws, c, out.Headline.PrivacyOpens); err != nil {
+		return out, err
+	}
 	if out.Comparisons, err = s.compare(ctx, ws, c, cells, info.Final); err != nil {
 		return out, err
 	}

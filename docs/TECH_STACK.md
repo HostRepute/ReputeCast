@@ -40,6 +40,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | SMTP relay for transactional email (server, AUTH, MIME) | github.com/emersion/go-smtp + go-sasl + go-message | v0.25.1 / v0.0.0-20241020182733-b788ff22d5a6 (no tagged release) / v0.18.2 |
 | SMS through AWS End User Messaging | github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 | v1.42.5 |
 | Phone numbers (E.164, country, type) | github.com/nyaruka/phonenumbers | v1.8.1 |
+| Country and city of readers (campaign report), from an operator-supplied MaxMind DB file | github.com/oschwald/maxminddb-golang/v2 | v2.9.0 (ISC, pure Go; the file is read into memory and verified, never memory-mapped) |
 | App languages: language names, plural rules, collation, currencies, Unicode normalization | golang.org/x/text | v0.43.0 |
 | Password hashing | golang.org/x/crypto/argon2 (argon2id) | v0.58.0 |
 | TOTP 2FA | github.com/pquerna/otp | v1.5.0 |

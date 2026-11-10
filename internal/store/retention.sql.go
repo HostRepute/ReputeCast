@@ -13,15 +13,22 @@ import (
 	"github.com/google/uuid"
 )
 
-const retentionClearEventDetail = `-- name: RetentionClearEventDetail :execrows
-UPDATE delivery_events d SET ip = NULL, user_agent = ''
-WHERE d.id IN (
-    SELECT e.id FROM delivery_events e LEFT JOIN messages m ON m.id = e.message_id
-    WHERE e.workspace_id = $1 AND e.occurred_at < $2::timestamptz
-      AND e.type IN ('open', 'click') AND (e.ip IS NOT NULL OR e.user_agent <> '')
-      AND (e.message_id IS NULL OR m.id IS NULL OR m.stream IN ('broadcast', 'automation'))
-    ORDER BY e.occurred_at
-    LIMIT $3)
+const retentionClearEventDetail = `-- name: RetentionClearEventDetail :one
+WITH ev AS (
+    UPDATE delivery_events d SET ip = NULL, user_agent = ''
+    WHERE d.id IN (
+        SELECT e.id FROM delivery_events e LEFT JOIN messages m ON m.id = e.message_id
+        WHERE e.workspace_id = $1 AND e.occurred_at < $2::timestamptz
+          AND e.type IN ('open', 'click') AND (e.ip IS NOT NULL OR e.user_agent <> '')
+          AND (e.message_id IS NULL OR m.id IS NULL OR m.stream IN ('broadcast', 'automation'))
+        ORDER BY e.occurred_at
+        LIMIT $3)
+    RETURNING d.message_id
+), places AS (
+    UPDATE messages m SET human_country = '', human_city = ''
+    WHERE m.id IN (SELECT ev.message_id FROM ev) AND (m.human_country <> '' OR m.human_city <> '')
+)
+SELECT count(*)::bigint FROM ev
 `
 
 type RetentionClearEventDetailParams struct {
@@ -31,14 +38,16 @@ type RetentionClearEventDetailParams struct {
 }
 
 // Clears the IP address and user agent of up to @lim opens and clicks older
-// than @cutoff in campaigns and automations (or of a message since deleted).
-// Counters, classes and links stay, so reports read the same.
+// than @cutoff in campaigns and automations (or of a message since deleted),
+// and the country and city their messages keep for the report's breakdowns
+// (derived from the reader's IP, so they go with it). Counters, classes,
+// links and the breakdowns' totals stay, so reports read the same. Returns
+// how many events it cleared.
 func (q *Queries) RetentionClearEventDetail(ctx context.Context, arg RetentionClearEventDetailParams) (int64, error) {
-	result, err := q.db.Exec(ctx, retentionClearEventDetail, arg.WorkspaceID, arg.Cutoff, arg.Lim)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	row := q.db.QueryRow(ctx, retentionClearEventDetail, arg.WorkspaceID, arg.Cutoff, arg.Lim)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const retentionOptInSendsPurge = `-- name: RetentionOptInSendsPurge :execrows

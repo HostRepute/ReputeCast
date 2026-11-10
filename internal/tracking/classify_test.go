@@ -128,3 +128,66 @@ func TestClientName(t *testing.T) {
 		}
 	}
 }
+
+func TestClientParts(t *testing.T) {
+	cases := []struct {
+		name, ua string
+		want     ClientInfo
+	}{
+		{"Apple Mail on iPhone", iosMail, ClientInfo{AppAppleMail, OSiOS, DeviceMobile}},
+		{"Apple Mail on iPad", "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+			ClientInfo{AppAppleMail, OSiOS, DeviceTablet}},
+		{"Outlook on Windows", "Microsoft Office/16.0 (Windows NT 10.0; Microsoft Outlook 16.0.17928; Pro)", ClientInfo{AppOutlook, OSWindows, DeviceDesktop}},
+		// The Gmail app opens links in a Chrome tab; its images come
+		// through Google's proxy.
+		{"Gmail app click on Android", "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36",
+			ClientInfo{AppChrome, OSAndroid, DeviceMobile}},
+		{"Android tablet", "Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+			ClientInfo{AppChrome, OSAndroid, DeviceTablet}},
+		{"Gmail image proxy", gmailPx, ClientInfo{AppGmail, OSUnknown, DeviceUnknown}},
+		{"Yahoo image proxy", yahooPx, ClientInfo{AppYahooMail, OSUnknown, DeviceUnknown}},
+		{"Chrome on macOS", chromeMac, ClientInfo{AppChrome, OSMacOS, DeviceDesktop}},
+		{"ChromeOS", "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+			ClientInfo{AppChrome, OSChromeOS, DeviceDesktop}},
+		{"Outlook without a system", outlook, ClientInfo{AppOutlook, OSUnknown, DeviceUnknown}},
+		{"nothing known", "curl-like/1.0", ClientInfo{AppOther, OSUnknown, DeviceUnknown}},
+		{"empty", "", ClientInfo{AppOther, OSUnknown, DeviceUnknown}},
+	}
+	for _, tc := range cases {
+		if got := ClientParts(tc.ua); got != tc.want {
+			t.Errorf("%s: ClientParts = %+v, want %+v", tc.name, got, tc.want)
+		}
+	}
+}
+
+type fakeGeo struct{ calls int }
+
+func (g *fakeGeo) Lookup(netip.Addr) (string, string) {
+	g.calls++
+	return "VN", "Hanoi"
+}
+
+func TestDimsFor(t *testing.T) {
+	geo := &fakeGeo{}
+	s := &Service{Geo: geo}
+	addr := ip("203.0.113.9")
+	if d := s.dimsFor(ClassHuman, false, iosMail, &addr); d.Client != AppAppleMail || d.OS != OSiOS || d.Device != DeviceMobile || d.Country != "VN" || d.City != "Hanoi" {
+		t.Errorf("a person's open on an iPhone: %+v", d)
+	}
+	if d := s.dimsFor(ClassPrivacy, false, "Mozilla/5.0", &addr); d.Client != "" || d.Country != "" {
+		t.Errorf("a privacy open keeps %+v", d)
+	}
+	if d := s.dimsFor(ClassMachine, false, chromeMac, &addr); d.Client != "" {
+		t.Errorf("a machine open keeps %+v", d)
+	}
+	calls := geo.calls
+	if d := s.dimsFor(ClassHuman, false, gmailPx, &addr); d.Client != AppGmail || d.Country != "" || geo.calls != calls {
+		t.Errorf("Gmail's proxy: %+v, looked up %d times", d, geo.calls-calls)
+	}
+	if d := s.dimsFor(ClassHuman, true, chromeMac, nil); d.Client != AppChrome || d.Country != "" {
+		t.Errorf("a click without an address: %+v", d)
+	}
+	if d := (&Service{}).dimsFor(ClassHuman, true, chromeMac, &addr); d.Country != "" || d.Device != DeviceDesktop {
+		t.Errorf("without GeoIP: %+v", d)
+	}
+}

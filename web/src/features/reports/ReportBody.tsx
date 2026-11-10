@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import type { Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { TableScroll, Th } from '@/components/ui/Table'
+import { Th } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
 import { andList, count, money, pct } from '@/lib/format'
 import { useOptionalWorkspace } from '@/lib/session'
@@ -16,9 +16,13 @@ import { ABTestCard } from './ABTestCard'
 import { ClickMap } from './ClickMap'
 import { m as rm } from './messages'
 import { CampaignStoreRevenue } from '@/features/commerce/revenue'
+import { BreakdownUnavailable, DevicesCard } from './DevicesCard'
 import { EngagementChart } from './EngagementChart'
 import { Growth, Insights } from './Insights'
+import { PlacesCard } from './PlacesCard'
+import { TableCard } from './TableCard'
 import { HeadlineTiles, InfoNote, MeasurableDisclosure, TileNotes, TrackingNotes } from './Tiles'
+import { TimesCard } from './TimesCard'
 import { fewerNote, mailboxColor, pct1, pct2, providerNote, seconds, splitCaption, type CampaignReport } from './words'
 
 type BounceRow = Schemas['ReportBounceRow']
@@ -35,22 +39,6 @@ export interface ReportActions {
   suppressReason?: string
   onSuppress: (row: BounceRow) => void
   onReview: (row: BounceRow) => void
-}
-
-/** A card with the add-on boards' section bar on top. */
-function TableCard({ title, caption, footer, className, children, id }: { title: string; caption: string; footer?: ReactNode; className?: string; children: ReactNode; id: string }) {
-  return (
-    <section className={cn('card min-w-0', className)} aria-labelledby={id}>
-      <div className="sec">
-        <h2 className="h2" id={id}>
-          {title}
-        </h2>
-        <span className="k">{caption}</span>
-      </div>
-      <TableScroll label={title}>{children}</TableScroll>
-      {footer ? <div className="k flex flex-col gap-1 border-t border-line-2 px-4.5 py-2.5">{footer}</div> : null}
-    </section>
-  )
 }
 
 /** "n/a" with why, for a rate a mailbox provider never reports (review F-2). */
@@ -423,6 +411,16 @@ export function ReportBody({
       {/* Store orders credited to the email (X20), after Earn's Revenue and Sponsor sections. */}
       <CampaignStoreRevenue campaignId={r.campaign.id} campaign={r.campaign.name} />
       <MailboxTable rows={r.mailboxes} />
+      {/* Where and when people read it (M57 G-12), from campaigns sent since ReputeCast records it. */}
+      {r.breakdown.measured ? (
+        <>
+          <DevicesCard b={r.breakdown} />
+          <PlacesCard b={r.breakdown} />
+          <TimesCard b={r.breakdown} />
+        </>
+      ) : (
+        <BreakdownUnavailable imported={Boolean(r.campaign.origin)} />
+      )}
       <div className="flex flex-wrap items-start gap-5">
         {r.providers.columns.length ? <ProviderTable t={r.providers} /> : null}
         <Unsubscribes u={r.unsubscribes} imported={Boolean(r.campaign.origin)} />

@@ -125,7 +125,7 @@ func (s *Service) settleOne(ctx context.Context, tx pgx.Tx, q *store.Queries, b 
 	if err := q.TrackingSettleEvent(ctx, store.TrackingSettleEventParams{ID: r.EventID, Class: ClassHuman, Machine: false, Diagnostic: clip(v.Client, 1000)}); err != nil {
 		return err
 	}
-	return s.countClick(ctx, tx, q, b, m, int(r.Link), r.Url, r.ClickedAt)
+	return s.countClick(ctx, tx, q, b, m, int(r.Link), r.Url, r.ClickedAt, s.dimsFor(ClassHuman, true, r.UserAgent, r.Ip))
 }
 
 // verdictAt classifies a pending click with what is known now: the
@@ -179,10 +179,13 @@ func (s *Service) signal(ctx context.Context, m store.TrackingMessageRow, ua str
 }
 
 // countClick counts a person's click: the message moves (a click is a
-// human open too), the link's clicks, the contact's activity, and what
-// listens to clicks.
-func (s *Service) countClick(ctx context.Context, tx pgx.Tx, q *store.Queries, b *batch, m store.TrackingMessageRow, link int, url string, at time.Time) error {
-	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: at, Click: true, Class: ClassHuman})
+// human open too, d what it keeps for the breakdowns when it is the first
+// engagement), the link's clicks, the contact's activity, and what listens
+// to clicks.
+func (s *Service) countClick(ctx context.Context, tx pgx.Tx, q *store.Queries, b *batch, m store.TrackingMessageRow, link int, url string, at time.Time,
+	d counters.Dims) error {
+	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: at, Click: true, Class: ClassHuman,
+		Client: d.Client, Os: d.OS, Device: d.Device, Country: d.Country, City: d.City})
 	if err != nil {
 		return err
 	}

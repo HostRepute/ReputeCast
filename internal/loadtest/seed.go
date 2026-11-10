@@ -122,15 +122,17 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, contacts int, log *slog.Logge
 
 	// Three sent campaigns, five, three and one month ago: a message per
 	// active recipient (the second to every other one), delivered, with
-	// opens for a quarter and clicks for one in twenty-five.
+	// opens for a quarter and clicks for one in twenty-five. The last one
+	// recorded mail clients, places and times (campaign_dims, M57 G-12).
 	for _, c := range []struct {
-		name   string
-		ago    time.Duration
-		modulo int
+		name      string
+		ago       time.Duration
+		modulo    int
+		breakdown bool
 	}{
-		{"June product update", 150 * 24 * time.Hour, 1},
-		{"August digest", 90 * 24 * time.Hour, 2},
-		{"October product update", 30 * 24 * time.Hour, 1},
+		{"June product update", 150 * 24 * time.Hour, 1, false},
+		{"August digest", 90 * 24 * time.Hour, 2, false},
+		{"October product update", 30 * 24 * time.Hour, 1, true},
 	} {
 		id := uuid.Must(uuid.NewV7())
 		sent := time.Now().Add(-c.ago).UTC().Truncate(time.Hour)
@@ -170,6 +172,11 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, contacts int, log *slog.Logge
 			}
 			res.Events += n
 		}
+		if c.breakdown {
+			if _, err := exec("breakdown "+c.name, breakdownSQL, id); err != nil {
+				return res, err
+			}
+		}
 	}
 	if _, err := exec("analyze", `ANALYZE contacts, list_memberships, messages, delivery_events`); err != nil {
 		return res, err
@@ -177,3 +184,29 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, contacts int, log *slog.Logge
 	res.Took = time.Since(start)
 	return res, nil
 }
+
+// breakdownSQL fills a campaign's campaign_dims from its messages' opens and
+// clicks, spread over ten mail apps, seven systems, four devices, 60
+// countries, 2,000 cities (as many rows as a large send reaches), 24 hours
+// and 7 weekdays, so the report reads as many rows as a real one would.
+const breakdownSQL = `
+	WITH t AS (
+	    SELECT count(*) FILTER (WHERE opened_at IS NOT NULL)::float8 AS opened, count(*) FILTER (WHERE clicked_at IS NOT NULL)::float8 AS clicked
+	    FROM messages WHERE campaign_id = $1
+	), d AS (
+	    SELECT 'client' AS dim, u.k AS key, u.w FROM unnest(ARRAY['gmail','apple_mail','outlook','yahoo_mail','chrome','thunderbird','safari','firefox','edge','other'],
+	                                                     ARRAY[35,30,15,6,4,1,3,1,1,4]::float8[]) AS u(k, w)
+	    UNION ALL SELECT 'os', u.k, u.w FROM unnest(ARRAY['unknown','ios','windows','macos','android','linux','chromeos'], ARRAY[40,25,15,9,8,2,1]::float8[]) AS u(k, w)
+	    UNION ALL SELECT 'device', u.k, u.w FROM unnest(ARRAY['unknown','mobile','desktop','tablet'], ARRAY[40,30,27,3]::float8[]) AS u(k, w)
+	    UNION ALL SELECT 'country', chr(65 + i / 26) || chr(65 + i % 26), 1.0 / (i + 1) FROM generate_series(0, 59) i
+	    UNION ALL SELECT 'city', chr(65 + (i % 60) / 26) || chr(65 + (i % 60) % 26) || '|City ' || i, 1.0 / (i + 1) FROM generate_series(0, 1999) i
+	    UNION ALL SELECT 'hour', i::text, 1 + 4 * exp(-((i - 10) ^ 2) / 8.0) FROM generate_series(0, 23) i
+	    UNION ALL SELECT 'weekday', i::text, CASE WHEN i < 6 THEN 3 ELSE 1 END FROM generate_series(1, 7) i
+	), s AS (
+	    SELECT dim, sum(w) AS total FROM d GROUP BY dim
+	), ins AS (
+	    INSERT INTO campaign_dims (campaign_id, dim, key, opened_human, clicked)
+	    SELECT $1, d.dim, d.key, round(t.opened * d.w / s.total)::bigint, round(t.clicked * d.w / s.total)::bigint
+	    FROM d JOIN s USING (dim) CROSS JOIN t
+	)
+	UPDATE campaigns SET breakdown = true WHERE id = $1`

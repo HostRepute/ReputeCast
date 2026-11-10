@@ -6,6 +6,8 @@ import (
 	"crypto/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -27,10 +29,21 @@ func TestDoctor(t *testing.T) {
 	if err := printChecks(&out, runDoctor(ctx, &cfg, right)); err != nil {
 		t.Fatalf("%v\n%s", err, out.String())
 	}
-	for _, want := range []string{"[ok  ] Database", "[ok  ] Schema", "[ok  ] Secret key", "opens the", "[ok  ] Files folder", "[ok  ] Public URL"} {
+	for _, want := range []string{"[ok  ] Database", "[ok  ] Schema", "[ok  ] Secret key", "opens the", "[ok  ] Files folder", "[ok  ] GeoIP", "[ok  ] Public URL"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("missing %q in\n%s", want, out.String())
 		}
+	}
+
+	// A GeoIP file that isn't one: warned, the other checks still pass.
+	geo := cfg
+	geo.GeoIP.Database = filepath.Join(t.TempDir(), "GeoLite2-City.mmdb")
+	if err := os.WriteFile(geo.GeoIP.Database, []byte("not a database"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	if err := printChecks(&out, runDoctor(ctx, &geo, right)); err != nil || !strings.Contains(out.String(), "[warn] GeoIP") {
+		t.Fatalf("bad GeoIP file: %v\n%s", err, out.String())
 	}
 
 	// A locked public URL only this machine reaches.

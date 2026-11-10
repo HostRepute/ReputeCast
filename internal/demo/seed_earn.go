@@ -1059,6 +1059,14 @@ func (e *earnSeed) write(ctx context.Context) error {
 		"grant_note", "granted_by", "grant_until", "import_id", "stripe_synced_at", "emailed", "created_at", "updated_at"}, pgx.CopyFromRows(e.subs)); err != nil {
 		return fmt.Errorf("paid subscriptions: %w", err)
 	}
+	// The demo's members paid, or ended, before today: they are history to
+	// the paid-member automation triggers, as the M57 migration marks them.
+	if _, err := e.s.Tx.Exec(ctx, `UPDATE paid_subscriptions SET
+		automation_started_at = CASE WHEN kind = 'stripe' AND status IN ('active', 'past_due', 'canceled') THEN started_at END,
+		automation_ended_at = ended_at
+		WHERE workspace_id = $1`, e.ws.ID); err != nil {
+		return fmt.Errorf("paid subscriptions: automation marks: %w", err)
+	}
 	if _, err := e.s.Tx.CopyFrom(ctx, pgx.Identifier{"paid_events"}, []string{"id", "workspace_id", "contact_id", "subscription_id", "mode", "kind", "occurred_at",
 		"amount_cents", "currency", "payment_event_id", "stripe_event", "message_id", "actor_id", "data"}, pgx.CopyFromRows(e.events)); err != nil {
 		return fmt.Errorf("paid events: %w", err)

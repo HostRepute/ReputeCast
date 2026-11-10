@@ -17,6 +17,11 @@ export function pct2(v: number | null | undefined): string {
   return pct(v, 2)
 }
 
+/** A share of a breakdown: "39.0%", and "under 0.1%" rather than a 0.0% that still counts someone. */
+export function shareOf(v: number): string {
+  return v > 0 && v < 0.05 ? t(m.shareUnder, { rate: pct1(0.1) }) : pct1(v)
+}
+
 /** "Thu 9 Oct, 10:00 to 12:41", or with both dates when it ran past midnight. */
 export function sendWindow(start?: string, end?: string): string {
   if (!start) return ''

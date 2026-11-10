@@ -21,6 +21,8 @@ func every(l i18n.Lang) map[string]mailer.Message {
 		"2fa reset":     TwoFactorReset(l, "Acme ReputeCast", "Linh Nguyen", "aisha@acme.io", "lost phone", at),
 		"notification":  Notification(l, NotificationEmail{Workspace: "Acme Newsletter", Items: []NotificationLine{{Title: "Send auto-paused", Body: "Outlook complaints hit 0.18%.", Link: "/w/acme/live"}}, Base: "https://x", Preferences: "https://x/w/acme/notifications#preferences"}),
 		"digest":        Notification(l, NotificationEmail{Workspace: "Acme Newsletter", Items: []NotificationLine{{Title: "A", Body: "a"}, {Title: "B", Body: "b", Link: "/w/acme"}}, Base: "https://x", Preferences: "https://x/p"}),
+		"summary":       ReportSummary(l, sampleSummary("weekly")),
+		"monthly":       ReportSummary(l, sampleSummary("monthly")),
 	}
 }
 
@@ -76,5 +78,54 @@ func TestVietnameseAndPseudo(t *testing.T) {
 func TestEveryMessageIsTranslated(t *testing.T) {
 	if missing := msgs.Missing(i18n.Vietnamese); len(missing) > 0 {
 		t.Errorf("membermail messages without Vietnamese: %v", missing)
+	}
+}
+
+func sampleSummary(freq string) ReportSummaryEmail {
+	from := time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC)
+	return ReportSummaryEmail{Workspace: "Acme <News>", Frequency: freq, From: from, To: from.AddDate(0, 0, 7),
+		Campaigns: SummaryCampaigns{Started: 2, Collecting: 1, Sent: 182340, Delivered: 180912, HumanOpens: 61204, Clicks: 9876, Unsubscribes: 214, Bounces: 1428,
+			Complaints: 31, ComplaintRate: 0.03, Reported: true},
+		Top:      []SummaryCampaign{{Name: "Weekly Digest #142 & more", Sent: 48210, HumanOpens: 16402, Clicks: 2511, Link: "https://x/w/acme/campaigns/1/report"}},
+		Audience: &SummaryAudience{Joined: 1240, Departed: 56, Subscribers: 48213}, Health: &SummaryHealth{Score: 92, Label: "Good"},
+		Links: SummaryLinks{Campaigns: "https://x/w/acme/campaigns", Deliverability: "https://x/w/acme/deliverability", Preferences: "https://x/w/acme/notifications#summary"}}
+}
+
+// TestReportSummary: the summary is an accessible email (tables with
+// headers, links named by their target) whose plain-text part carries the
+// same numbers, with every value escaped.
+func TestReportSummary(t *testing.T) {
+	for _, l := range []i18n.Lang{i18n.Default, i18n.For(i18n.Vietnamese), i18n.For(i18n.German)} {
+		m := ReportSummary(l, sampleSummary("weekly"))
+		if m.Kind != "report_summary" || m.Lang.Locale != l.Locale || !strings.Contains(m.Subject, "Acme <News>") {
+			t.Errorf("%s: %+v", l.Locale, m)
+		}
+		for _, n := range []int64{182340, 61204, 9876, 1428, 48210, 16402, 1240, 56, 48213, 92} {
+			if v := l.Region.Int(n); !strings.Contains(m.Text, v) || !strings.Contains(m.HTML, v) {
+				t.Errorf("%s: %s is in one part only", l.Locale, v)
+			}
+		}
+		for _, want := range []string{`scope="col"`, `scope="row"`, `text-align:right`, `href="https://x/w/acme/campaigns/1/report"`, `href="https://x/w/acme/notifications#summary"`} {
+			if !strings.Contains(m.HTML, want) {
+				t.Errorf("%s: the HTML has no %s", l.Locale, want)
+			}
+		}
+		if strings.Contains(m.HTML, "Acme <News>") || strings.Contains(m.HTML, "#142 & more") || !strings.Contains(m.HTML, "Acme &lt;News&gt;") {
+			t.Errorf("%s: values aren't escaped", l.Locale)
+		}
+		// The report link's accessible name starts with what the reader sees.
+		if !strings.Contains(m.HTML, `aria-label="`) || !strings.Contains(m.Text, "https://x/w/acme/campaigns/1/report") {
+			t.Errorf("%s: report link: %s", l.Locale, m.Text)
+		}
+		if r, ok := Reason(l, m.Kind); !ok || r != "" {
+			t.Errorf("%s: the layout adds a reason the summary already gives: %q", l.Locale, r)
+		}
+	}
+	// Sections the member's role doesn't show are left out.
+	d := sampleSummary("monthly")
+	d.Audience, d.Health = nil, nil
+	if full, part := ReportSummary(i18n.Default, sampleSummary("monthly")), ReportSummary(i18n.Default, d); strings.Count(full.HTML, "<h2") != strings.Count(part.HTML, "<h2")+2 ||
+		strings.Contains(part.Text, "48,213") {
+		t.Errorf("sections without the audience and health:\n%s", part.Text)
 	}
 }

@@ -55,6 +55,7 @@ type Config struct {
 	Connect    ConnectConfig    `koanf:"connect"`
 	I18n       I18nConfig       `koanf:"i18n"`
 	Files      FilesConfig      `koanf:"files"`
+	GeoIP      GeoIPConfig      `koanf:"geoip"`
 }
 
 // FilesConfig is where uploaded files live: digital products' files and
@@ -77,6 +78,14 @@ func (c *Config) FilesDir() string {
 		base = filepath.Dir(c.Secrets.KeyFile)
 	}
 	return filepath.Join(base, "files")
+}
+
+// GeoIPConfig is the operator's MaxMind DB file (GeoLite2-City/Country,
+// DB-IP Lite City/Country) that places readers' opens and clicks in the
+// campaign report. Empty is off. ReputeCast never downloads it: replace the
+// file and restart to update it.
+type GeoIPConfig struct {
+	Database string `koanf:"database"`
 }
 
 // I18nConfig configures the app languages.

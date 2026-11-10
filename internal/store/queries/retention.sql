@@ -5,18 +5,28 @@
 SELECT id, unconfirmed_erase_days, event_detail_days FROM workspaces
 WHERE deleted_at IS NULL AND (unconfirmed_erase_days > 0 OR event_detail_days > 0);
 
--- name: RetentionClearEventDetail :execrows
+-- name: RetentionClearEventDetail :one
 -- Clears the IP address and user agent of up to @lim opens and clicks older
--- than @cutoff in campaigns and automations (or of a message since deleted).
--- Counters, classes and links stay, so reports read the same.
-UPDATE delivery_events d SET ip = NULL, user_agent = ''
-WHERE d.id IN (
-    SELECT e.id FROM delivery_events e LEFT JOIN messages m ON m.id = e.message_id
-    WHERE e.workspace_id = @workspace_id AND e.occurred_at < @cutoff::timestamptz
-      AND e.type IN ('open', 'click') AND (e.ip IS NOT NULL OR e.user_agent <> '')
-      AND (e.message_id IS NULL OR m.id IS NULL OR m.stream IN ('broadcast', 'automation'))
-    ORDER BY e.occurred_at
-    LIMIT @lim);
+-- than @cutoff in campaigns and automations (or of a message since deleted),
+-- and the country and city their messages keep for the report's breakdowns
+-- (derived from the reader's IP, so they go with it). Counters, classes,
+-- links and the breakdowns' totals stay, so reports read the same. Returns
+-- how many events it cleared.
+WITH ev AS (
+    UPDATE delivery_events d SET ip = NULL, user_agent = ''
+    WHERE d.id IN (
+        SELECT e.id FROM delivery_events e LEFT JOIN messages m ON m.id = e.message_id
+        WHERE e.workspace_id = @workspace_id AND e.occurred_at < @cutoff::timestamptz
+          AND e.type IN ('open', 'click') AND (e.ip IS NOT NULL OR e.user_agent <> '')
+          AND (e.message_id IS NULL OR m.id IS NULL OR m.stream IN ('broadcast', 'automation'))
+        ORDER BY e.occurred_at
+        LIMIT @lim)
+    RETURNING d.message_id
+), places AS (
+    UPDATE messages m SET human_country = '', human_city = ''
+    WHERE m.id IN (SELECT ev.message_id FROM ev) AND (m.human_country <> '' OR m.human_city <> '')
+)
+SELECT count(*)::bigint FROM ev;
 
 -- name: RetentionUnconfirmedDue :many
 -- Contacts a double opt-in signup created who never confirmed, older than

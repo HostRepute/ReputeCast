@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -85,6 +86,11 @@ type Service struct {
 	// Recipients add the per-reader variables of blocks (Grow's
 	// referral.* links) to personalized links; nil adds none.
 	Recipients func() []liquid.RecipientData
+	// Geo places a reader's address by country and city for the campaign
+	// report (internal/geoip); nil places nobody.
+	Geo interface {
+		Lookup(ip netip.Addr) (country, city string)
+	}
 
 	// Audit records the instance admin's changes to the machine networks.
 	Audit *audit.Logger

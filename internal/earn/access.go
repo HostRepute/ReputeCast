@@ -324,6 +324,11 @@ func (s *Service) CancelSubscription(ctx context.Context, ws *store.Workspace, p
 			EndedAt: ended, EndReason: reason, StripeCustomerID: sub.StripeCustomerID, SyncedAt: maxTime(sub.StripeSyncedAt, now), At: now}); err != nil {
 			return err
 		}
+		// "Cancel now" ends access here at once; Stripe's own event for it
+		// arrives as already applied, so the transition is queued now.
+		if err := s.paidTransitions(ctx, q, ws, sub.Mode, &sub, sub.ID, now); err != nil {
+			return err
+		}
 		kind := "canceled_by_team"
 		data := map[string]any{"when": in.When, "note": note}
 		if in.When != "now" && updated.CancelAt != nil {

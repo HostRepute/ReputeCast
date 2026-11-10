@@ -977,6 +977,7 @@ they are.
 | English | Tiếng Việt |
 |---|---|
 | digest (recurring) · issue (of a digest) | bản tin định kỳ · kỳ bản tin |
+| sending summary (by email, M57) · weekly · monthly | bản tóm tắt gửi thư (qua email) · tóm tắt gửi thư hằng tuần · hằng tháng (a member's own email of the workspace's numbers; never "tổng hợp", which is the notification digest) |
 | event type (a row of Notification preferences) | loại sự kiện |
 | Everyone with campaigns:pause | Mọi người có quyền campaigns:pause |
 | paid tier (Earn) | hạng thành viên |

@@ -20,10 +20,13 @@ type CampaignReport struct {
 	Insights []ReportInsight `json:"insights"`
 	// Growth is the issue's new subscribers and web views (review AN-12);
 	// its upgrades and revenue are the campaign's revenue (Earn).
-	Growth       ReportGrowth         `json:"growth"`
-	Engagement   ReportEngagement     `json:"engagement"`
-	ClickMap     ReportClickMap       `json:"clickMap"`
-	Mailboxes    []ReportMailboxRow   `json:"mailboxes"`
+	Growth     ReportGrowth       `json:"growth"`
+	Engagement ReportEngagement   `json:"engagement"`
+	ClickMap   ReportClickMap     `json:"clickMap"`
+	Mailboxes  []ReportMailboxRow `json:"mailboxes"`
+	// Breakdown is "Mail clients and devices", "Countries" and "When
+	// people opened" (M57 G-12).
+	Breakdown    ReportBreakdown      `json:"breakdown"`
 	Providers    ReportProviderTable  `json:"providers"`
 	Bounces      ReportBounceTable    `json:"bounces"`
 	Unsubscribes ReportUnsubscribes   `json:"unsubscribes"`
@@ -268,6 +271,64 @@ type ReportMailboxRow struct {
 	Key  string `json:"key" enum:"gmail,outlook,yahoo,icloud,other"`
 	Name string `json:"name"`
 	ReportRates
+}
+
+// ReportDimRow is one mail client, system, device, country or city: the
+// people whose first human engagement came from it, and how many of them
+// clicked. Share is its part of the dimension's human opens (percent).
+type ReportDimRow struct {
+	// Key: apple_mail, ios, mobile, the ISO country code ("VN"), "VN|Hanoi"
+	// for a city; "other" for the folded rest.
+	Key string `json:"key"`
+	// Label is the product name ("Apple Mail", "iOS"), the English device
+	// word, the country code or the city's English name.
+	Label string `json:"label"`
+	// Country is a city's ISO country code.
+	Country string `json:"country,omitempty"`
+	// Places is how many cities or countries the "other" row folds.
+	Places     int     `json:"places,omitempty"`
+	HumanOpens int64   `json:"humanOpens"`
+	Clicks     int64   `json:"clicks"`
+	Share      float64 `json:"share"`
+}
+
+// ReportTimeBucket is one local hour (0-23) or ISO weekday (1-7, Monday
+// = 1) of the workspace's time zone at the time: first human opens and
+// first clicks in it.
+type ReportTimeBucket struct {
+	Key        int   `json:"key"`
+	HumanOpens int64 `json:"humanOpens"`
+	Clicks     int64 `json:"clicks"`
+}
+
+// ReportBreakdown is where and when people read the campaign (M57 G-12),
+// from campaign_dims: a message's first human engagement (a human open or
+// a person's click) carries its mail client, system, device and place;
+// privacy-protected and scanner opens never do.
+type ReportBreakdown struct {
+	// Measured is false for campaigns sent before ReputeCast recorded
+	// breakdowns and for imported history.
+	Measured bool           `json:"measured"`
+	Clients  []ReportDimRow `json:"clients"`
+	Systems  []ReportDimRow `json:"systems"`
+	Devices  []ReportDimRow `json:"devices"`
+	// Countries and Cities: the top 20 by human opens, the rest folded into
+	// "other"; cities with fewer than 5 human opens fold too. Read-only
+	// links show no cities.
+	Countries []ReportDimRow `json:"countries"`
+	Cities    []ReportDimRow `json:"cities"`
+	// Located are the human opens whose country is known: Gmail's and
+	// Yahoo's image proxies hide where their readers are.
+	Located int64 `json:"located"`
+	// GeoIP is true when the server has a GeoIP database loaded.
+	GeoIP bool `json:"geoip"`
+	// Hours (24) and Weekdays (7), zero-filled.
+	Hours    []ReportTimeBucket `json:"hours"`
+	Weekdays []ReportTimeBucket `json:"weekdays"`
+	// Timezone the hours and weekdays are in (the workspace's).
+	Timezone string `json:"timezone"`
+	// PrivacyOpens are left out: Apple hides the device and the place.
+	PrivacyOpens int64 `json:"privacyOpens"`
 }
 
 // ReportProviderColumn is one sending provider in the side-by-side table.

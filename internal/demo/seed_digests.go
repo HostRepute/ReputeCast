@@ -360,7 +360,7 @@ func issueEngagement(ctx context.Context, s *Seeder, id uuid.UUID, name, html st
 	if len(c.cells) == 0 {
 		return nil
 	}
-	if err := reportHourly(ctx, s, c, false); err != nil {
+	if _, err := reportHourly(ctx, s, c, false); err != nil {
 		return err
 	}
 	return reportLinks(ctx, s, c, false)
