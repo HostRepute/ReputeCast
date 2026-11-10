@@ -359,7 +359,6 @@ func (st *state) assetHealth(builtin int) []DeliverabilityAssetHealth {
 				a.Auth = authSummary(chk)
 			}
 			a.DMARCAligned = st.dmarcAligned(c.Asset)
-			a.GmailReputation = st.latestPostmaster(c.Asset).DomainReputation
 		case hostrepute.AssetIP:
 			if c.ProviderID != nil {
 				a.ProviderID = c.ProviderID.String()
@@ -468,26 +467,6 @@ func (st *state) warmup(provider uuid.UUID, ip string) *DeliverabilityWarmupProg
 	return nil
 }
 
-type postmasterLatest struct {
-	DomainReputation string
-	IPReputation     string
-}
-
-func (st *state) latestPostmaster(domain string) postmasterLatest {
-	var out postmasterLatest
-	for _, d := range st.postmaster {
-		if strings.EqualFold(d.Domain, domain) {
-			if d.DomainReputation != "" {
-				out.DomainReputation = d.DomainReputation
-			}
-			if d.IpReputation != "" {
-				out.IPReputation = d.IpReputation
-			}
-		}
-	}
-	return out
-}
-
 func (st *state) latestSNDS(ip string) *store.SndsDaily {
 	var out *store.SndsDaily
 	for i := range st.snds {
@@ -548,13 +527,6 @@ func (st *state) postmasterPanel() *DeliverabilityPostmaster {
 	last := days[len(days)-1]
 	out := &DeliverabilityPostmaster{Domain: domain, Via: last.Via, Series: []DeliverabilityPostmasterPoint{}}
 	out.Stale = last.Via == "hostrepute" && st.hostReputeStale()
-	latest := st.latestPostmaster(domain)
-	out.DomainReputation, out.IPReputation = latest.DomainReputation, latest.IPReputation
-	for _, p := range st.pools() {
-		if p.Adapter == "ses" || out.IPReputationPool == "" {
-			out.IPReputationPool = p.Short
-		}
-	}
 	out.SPF, out.DKIM, out.DMARC, out.TLS = pctOf(last.SpfRate), pctOf(last.DkimRate), pctOf(last.DmarcRate), pctOf(last.TlsRate)
 	var sum float64
 	var n int

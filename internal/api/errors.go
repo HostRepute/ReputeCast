@@ -52,6 +52,9 @@ const (
 	// CodeOperatorLocked refuses a change to a setting the server's
 	// configuration pins (http.public_url_locked).
 	CodeOperatorLocked = "operator_locked"
+	// CodeIPNotAllowed refuses a key called from an address its allowed
+	// IPs don't include.
+	CodeIPNotAllowed = "ip_not_allowed"
 )
 
 func init() {

@@ -1,14 +1,16 @@
 package dnscheck
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/netip"
+	"net/url"
 	"slices"
 	"strings"
 
-	"github.com/emersion/go-msgauth/dmarc"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -324,74 +326,221 @@ func parseTags(rec string) map[string]string {
 	return out
 }
 
+// DMARCRecord is a DMARC Policy Record (RFC 9989 §4.7) with its defaults
+// filled in: SubdomainPolicy is p= without an sp= tag, NonexistentPolicy is
+// the subdomain policy without an np= tag, and PSD is "u" without a valid
+// psd= tag.
+type DMARCRecord struct {
+	Policy, SubdomainPolicy, NonexistentPolicy, PSD string
+	TestMode, StrictDKIM, StrictSPF                 bool
+	RUA, RUF                                        []string
+}
+
+// ParseDMARC reads a DMARC Policy Record. ok is false when txt isn't one
+// (its first tag isn't v=DMARC1) or when receivers apply no DMARC with it
+// (§4.10.1): p= missing or invalid, or sp= or np= invalid, and no valid
+// rua= URI. With a valid rua= URI such a record reads as p=none. Tags RFC
+// 9989 doesn't define (pct=, ri=, rf=, anything unknown) are ignored, and
+// other invalid values fall back to their defaults. Tag names and the
+// values of p, sp, np, adkim, aspf, t and psd are case-insensitive (ABNF
+// strings); the alignment and test-mode fields are filled even when ok is
+// false.
+func ParseDMARC(txt string) (DMARCRecord, bool) {
+	if !isDMARC(txt) {
+		return DMARCRecord{}, false
+	}
+	tags := dmarcTags(txt)
+	rec := DMARCRecord{PSD: "u", RUA: dmarcURIs(tags["rua"]), RUF: dmarcURIs(tags["ruf"]),
+		TestMode: strings.EqualFold(tags["t"], "y"), StrictDKIM: strings.EqualFold(tags["adkim"], "s"), StrictSPF: strings.EqualFold(tags["aspf"], "s")}
+	if psd := strings.ToLower(tags["psd"]); psd == "y" || psd == "n" {
+		rec.PSD = psd
+	}
+	valid := true
+	policy := func(tag string) string {
+		v, set := tags[tag]
+		switch v = strings.ToLower(v); v {
+		case "none", "quarantine", "reject":
+			return v
+		}
+		if set || tag == "p" {
+			valid = false
+		}
+		return ""
+	}
+	p, sp, np := policy("p"), policy("sp"), policy("np")
+	if !valid {
+		if !slices.ContainsFunc(rec.RUA, validDMARCURI) {
+			return rec, false
+		}
+		p, sp, np = "none", "", ""
+	}
+	rec.Policy = p
+	rec.SubdomainPolicy = cmp.Or(sp, p)
+	rec.NonexistentPolicy = cmp.Or(np, rec.SubdomainPolicy)
+	return rec, true
+}
+
+// isDMARC reports whether a TXT record's first tag is v=DMARC1; receivers
+// discard every other record at a _dmarc name.
+func isDMARC(txt string) bool {
+	first, _, _ := strings.Cut(txt, ";")
+	k, v, ok := strings.Cut(first, "=")
+	return ok && strings.EqualFold(strings.TrimSpace(k), "v") && strings.TrimSpace(v) == "DMARC1"
+}
+
+// dmarcTags is parseTags with lower-case tag names; of two spellings of a
+// name, the lower-case one wins.
+func dmarcTags(txt string) map[string]string {
+	tags := parseTags(txt)
+	out := make(map[string]string, len(tags))
+	for _, k := range slices.Sorted(maps.Keys(tags)) {
+		out[strings.ToLower(k)] = tags[k]
+	}
+	return out
+}
+
+func dmarcURIs(list string) []string {
+	var out []string
+	for _, u := range strings.Split(list, ",") {
+		if u = strings.TrimSpace(u); u != "" {
+			out = append(out, u)
+		}
+	}
+	return out
+}
+
+// validDMARCURI reports whether a rua= entry is a syntactically valid URI,
+// ignoring the obsolete "!size" suffix.
+func validDMARCURI(s string) bool {
+	s, _, _ = strings.Cut(s, "!")
+	u, err := url.Parse(s)
+	return err == nil && u.Scheme != "" && (u.Opaque != "" || u.Host != "")
+}
+
 // DMARC is the result of DMARC policy discovery for a domain.
 type DMARC struct {
 	Domain string `json:"domain"`
-	// PolicyDomain is where the record was found: the domain itself or its
-	// organizational domain (RFC 7489 §6.6.3).
+	// PolicyDomain is where the record was found: the domain itself or the
+	// parent the DNS Tree Walk found it at (RFC 9989 §4.10.1).
 	PolicyDomain string `json:"policyDomain,omitempty"`
 	Status       string `json:"status"`
 	Record       string `json:"record,omitempty"`
-	// Policy applied to Domain: p= or, for a subdomain, sp= when present.
-	Policy          string   `json:"policy,omitempty"`
-	SubdomainPolicy string   `json:"subdomainPolicy,omitempty"`
-	Percent         int      `json:"percent"`
-	RUA             []string `json:"rua,omitempty"`
-	RUF             []string `json:"ruf,omitempty"`
-	StrictDKIM      bool     `json:"strictDkim"`
-	StrictSPF       bool     `json:"strictSpf"`
-	Error           string   `json:"error,omitempty"`
+	// Policy applied to Domain: p= of its own record; of a parent's, np=
+	// when Domain doesn't exist (NXDOMAIN), else sp=, both defaulting to p=.
+	Policy            string `json:"policy,omitempty"`
+	SubdomainPolicy   string `json:"subdomainPolicy,omitempty"`
+	NonexistentPolicy string `json:"nonexistentPolicy,omitempty"`
+	// TestMode is t=y: receivers apply the policy one level lower.
+	TestMode bool `json:"testMode,omitempty"`
+	// PSD is the record's psd= flag, y or n; empty for the default u.
+	PSD        string   `json:"psd,omitempty"`
+	RUA        []string `json:"rua,omitempty"`
+	RUF        []string `json:"ruf,omitempty"`
+	StrictDKIM bool     `json:"strictDkim"`
+	StrictSPF  bool     `json:"strictSpf"`
+	Error      string   `json:"error,omitempty"`
 }
 
-// CheckDMARC finds the DMARC policy for domain: _dmarc.<domain>, then
-// _dmarc.<organizational domain>.
-func CheckDMARC(ctx context.Context, r Resolver, domain string) DMARC {
-	out := DMARC{Domain: domain, Percent: 100}
-	candidates := []string{domain}
-	if org := OrgDomain(domain); org != strings.ToLower(domain) {
-		candidates = append(candidates, org)
+// dmarcWalkQueries bounds the DNS Tree Walk (RFC 9989 §4.10).
+const dmarcWalkQueries = 8
+
+// dmarcWalk lists the names policy discovery asks for: name itself, then
+// its parents down to the top-level label, a name of more than 8 labels
+// jumping to its last 7 first, so 8 names at most.
+func dmarcWalk(name string) []string {
+	out := make([]string, 0, dmarcWalkQueries)
+	out = append(out, name)
+	rest := name
+	for n := strings.Count(name, "."); n >= 1; n-- {
+		_, rest, _ = strings.Cut(rest, ".")
+		if n < dmarcWalkQueries {
+			out = append(out, rest)
+		}
 	}
+	return out
+}
+
+// dmarcCandidates are the v=DMARC1 records among a _dmarc name's TXT
+// records, and the first one that only looks like it ("v=DMARC1 p=reject",
+// "v=dmarc1"), which receivers discard.
+func dmarcCandidates(txts []string) (recs []string, malformed string) {
+	for _, t := range txts {
+		t = strings.TrimSpace(t)
+		switch {
+		case isDMARC(t):
+			recs = append(recs, t)
+		case malformed == "" && len(t) >= 7 && strings.EqualFold(t[:7], "v=DMARC"):
+			malformed = t
+		}
+	}
+	return recs, malformed
+}
+
+// CheckDMARC finds the DMARC policy for domain by RFC 9989 policy discovery
+// (§4.10.1): _dmarc.<domain>, then the DNS Tree Walk up its parents, at
+// most 8 queries, to the first usable record or one with psd=y or psd=n.
+// Receivers discard several records at one name and keep walking; at the
+// domain itself several records, or one receivers can't use, are invalid:
+// its owner has to fix them. A DNS error stops the walk: the policy is
+// unknown, not missing.
+func CheckDMARC(ctx context.Context, r Resolver, domain string) DMARC {
+	out := DMARC{Domain: domain}
+	invalid := func(at, record, why string) DMARC {
+		out.PolicyDomain, out.Record, out.Status, out.Error = at, record, StatusInvalid, why
+		return out
+	}
+	name := strings.ToLower(strings.TrimSuffix(domain, "."))
 	var lastErr error
-	for _, d := range candidates {
-		txts, err := r.TXT(ctx, "_dmarc."+d)
+	for i, target := range dmarcWalk(name) {
+		txts, err := r.TXT(ctx, "_dmarc."+target)
 		if err != nil {
-			lastErr = err
 			if !IsNotFound(err) {
+				out.Status, out.Error = StatusError, err.Error()
+				return out
+			}
+			lastErr = err
+			continue
+		}
+		recs, malformed := dmarcCandidates(txts)
+		own := i == 0
+		switch {
+		case own && len(recs) > 1:
+			return invalid(target, recs[0], "more than one DMARC record")
+		case own && len(recs) == 0 && malformed != "":
+			return invalid(target, malformed, "the record doesn't start with v=DMARC1")
+		case len(recs) != 1:
+			lastErr = fmt.Errorf("_dmarc.%s: no single v=DMARC1 record: %w", target, ErrNoData)
+			continue
+		}
+		rec, ok := ParseDMARC(recs[0])
+		if !ok {
+			const why = "no valid p= policy and no rua= address"
+			if own {
+				return invalid(target, recs[0], why)
+			}
+			lastErr = fmt.Errorf("_dmarc.%s: %s: %w", target, why, ErrNoData)
+			if rec.PSD != "u" {
 				break
 			}
 			continue
 		}
-		var recs []string
-		for _, t := range txts {
-			if strings.HasPrefix(strings.TrimSpace(t), "v=DMARC1") {
-				recs = append(recs, strings.TrimSpace(t))
+		out.PolicyDomain, out.Record = target, recs[0]
+		out.Policy = rec.Policy
+		if !own {
+			out.Policy = rec.SubdomainPolicy
+			// np= applies to an author domain that doesn't exist; the lookup
+			// is made only when np= would change the answer.
+			if rec.NonexistentPolicy != rec.SubdomainPolicy {
+				if _, err := r.TXT(ctx, name); errors.Is(err, ErrNXDomain) {
+					out.Policy = rec.NonexistentPolicy
+				}
 			}
 		}
-		if len(recs) == 0 {
-			lastErr = fmt.Errorf("_dmarc.%s: no v=DMARC1 record: %w", d, ErrNoData)
-			continue
+		out.SubdomainPolicy, out.NonexistentPolicy, out.TestMode = rec.SubdomainPolicy, rec.NonexistentPolicy, rec.TestMode
+		if rec.PSD != "u" {
+			out.PSD = rec.PSD
 		}
-		out.PolicyDomain, out.Record = d, recs[0]
-		if len(recs) > 1 {
-			out.Status, out.Error = StatusInvalid, "more than one DMARC record"
-			return out
-		}
-		rec, err := dmarc.Parse(recs[0])
-		if err != nil {
-			out.Status, out.Error = StatusInvalid, strings.TrimPrefix(err.Error(), "dmarc: ")
-			return out
-		}
-		out.Policy = string(rec.Policy)
-		out.SubdomainPolicy = string(rec.SubdomainPolicy)
-		if d != strings.ToLower(domain) && rec.SubdomainPolicy != "" {
-			out.Policy = string(rec.SubdomainPolicy)
-		}
-		if rec.Percent != nil {
-			out.Percent = *rec.Percent
-		}
-		out.RUA, out.RUF = rec.ReportURIAggregate, rec.ReportURIFailure
-		out.StrictDKIM = rec.DKIMAlignment == dmarc.AlignmentStrict
-		out.StrictSPF = rec.SPFAlignment == dmarc.AlignmentStrict
+		out.RUA, out.RUF, out.StrictDKIM, out.StrictSPF = rec.RUA, rec.RUF, rec.StrictDKIM, rec.StrictSPF
 		out.Status = StatusPass
 		return out
 	}
@@ -400,11 +549,6 @@ func CheckDMARC(ctx context.Context, r Resolver, domain string) DMARC {
 		out.Error = lastErr.Error()
 	}
 	return out
-}
-
-// Enforced reports whether the policy keeps failing mail out of inboxes.
-func (d DMARC) Enforced() bool {
-	return d.Status == StatusPass && (d.Policy == "quarantine" || d.Policy == "reject")
 }
 
 // BIMI is the result of checking default._bimi.<domain>.

@@ -282,7 +282,7 @@ order of the English.
 | monitoring · monitored | giám sát · đang giám sát | HostRepute |
 | nameserver | máy chủ tên miền | |
 | polling (instead of webhooks) | hỏi định kỳ | "hỏi API sự kiện mỗi phút" |
-| Postmaster reputation: high · medium · low · bad | cao · trung bình · thấp · kém | |
+| Postmaster compliance status | trạng thái tuân thủ | Google Postmaster Tools v2 has no domain or IP reputation |
 | production access (SES) | quyền gửi chính thức | the SES sandbox stays "sandbox" |
 | provisioning | khởi tạo | SNS topics and configuration sets |
 | pulled in · pushed out · two-way (suppression sync) | đã kéo về · đã đẩy đi · hai chiều | |

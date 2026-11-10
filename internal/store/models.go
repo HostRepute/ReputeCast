@@ -280,6 +280,7 @@ type ApiKey struct {
 	RatePerSecond  int32           `json:"ratePerSecond"`
 	IntegrationID  *uuid.UUID      `json:"integrationId"`
 	GraceUntil     *time.Time      `json:"graceUntil"`
+	AllowedIps     []netip.Prefix  `json:"allowedIps"`
 }
 
 type ApiKeyRejection struct {
@@ -2747,6 +2748,7 @@ type PlacementTest struct {
 	CopiesDeletedBy    *uuid.UUID      `json:"copiesDeletedBy"`
 	ConditionalVersion int32           `json:"conditionalVersion"`
 	ConditionalShows   string          `json:"conditionalShows"`
+	ReplyTo            string          `json:"replyTo"`
 }
 
 type Poll struct {
@@ -2812,19 +2814,17 @@ type PollTestRecipient struct {
 }
 
 type PostmasterDaily struct {
-	WorkspaceID      uuid.UUID `json:"workspaceId"`
-	Domain           string    `json:"domain"`
-	Day              time.Time `json:"day"`
-	SpamRate         *float64  `json:"spamRate"`
-	DomainReputation string    `json:"domainReputation"`
-	IpReputation     string    `json:"ipReputation"`
-	SpfRate          *float64  `json:"spfRate"`
-	DkimRate         *float64  `json:"dkimRate"`
-	DmarcRate        *float64  `json:"dmarcRate"`
-	TlsRate          *float64  `json:"tlsRate"`
-	DeliveryErrors   *float64  `json:"deliveryErrors"`
-	Via              string    `json:"via"`
-	FblFlagged       *int32    `json:"fblFlagged"`
+	WorkspaceID    uuid.UUID `json:"workspaceId"`
+	Domain         string    `json:"domain"`
+	Day            time.Time `json:"day"`
+	SpamRate       *float64  `json:"spamRate"`
+	SpfRate        *float64  `json:"spfRate"`
+	DkimRate       *float64  `json:"dkimRate"`
+	DmarcRate      *float64  `json:"dmarcRate"`
+	TlsRate        *float64  `json:"tlsRate"`
+	DeliveryErrors *float64  `json:"deliveryErrors"`
+	Via            string    `json:"via"`
+	FblFlagged     *int32    `json:"fblFlagged"`
 }
 
 type Product struct {

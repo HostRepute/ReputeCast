@@ -120,9 +120,10 @@ fields are below.
   `rank`, `listed`, `listed_since`, `delist_url`, `detail` and `delisting`.
   `delisting` holds `status` (`requested`, `pending`, `delisted` or `denied`),
   `requested_at` and `url`.
-- `PostmasterDay`: `day`, `spam_rate`, `domain_reputation` (`HIGH`, `MEDIUM`,
-  `LOW` or `BAD`), `ip_reputation`, `spf_rate`, `dkim_rate`, `dmarc_rate`,
-  `tls_rate`, `delivery_errors` and `fbl_flagged`.
+- `PostmasterDay`: `day`, `spam_rate`, `spf_rate`, `dkim_rate`, `dmarc_rate`,
+  `tls_rate`, `delivery_errors` and `fbl_flagged`. Postmaster Tools v2 has no
+  domain or IP reputation; ReputeCast ignores `domain_reputation` and
+  `ip_reputation` when an older HostRepute still sends them.
 - `SNDSDay`: `day`, `filter_result` (`green`, `yellow` or `red`),
   `complaint_rate`, `trap_hits`, `messages` and `jmrp_reports`.
 - `DMARCReport`: `domain`, `org_name`, `report_id`, `date_begin`, `date_end`,

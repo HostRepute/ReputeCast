@@ -549,8 +549,9 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 		ID: row.ID, Stream: providers.StreamAutomation,
 		From: mail.Address{Name: ot.sender.Name, Address: ot.sender.Email}, To: mail.Address{Name: strings.TrimSpace(row.FirstName + " " + row.LastName), Address: row.Email},
 		Subject: out.Subject, HTML: out.HTML, Text: out.Text,
-		Headers: bulkHeaders(links["unsubscribe_url"], unsub, firstNonEmpty(ot.sender.ReplyTo, ot.sender.Email), feedbackID(auto, slug, "automation")),
-		Tags:    map[string]string{"automation": auto, "workspace": slug},
+		Headers: bulkHeaders(links["unsubscribe_url"], unsub, unsubscribeMailto(ot.sender.ListUnsubscribeMailto, ot.sender.ReplyTo, ot.sender.Email),
+			feedbackID(auto, slug, "automation")),
+		Tags: map[string]string{"automation": auto, "workspace": slug},
 	}
 	if ot.sender.ReplyTo != "" {
 		if a, err := mail.ParseAddress(ot.sender.ReplyTo); err == nil {

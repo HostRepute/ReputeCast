@@ -23,16 +23,10 @@ export function dayMonthOf(date: string): string {
   })
 }
 
-/** "high" → "High" (Postmaster reputations, SNDS filter results). */
+/** "green" → "Green" (SNDS filter results, stream names). */
 export function cap(s: string | undefined | null): string {
   if (!s) return '—'
   return s[0]!.toUpperCase() + s.slice(1)
-}
-
-/** A Postmaster reputation in the app language: "high" → "High"; another value as it comes. */
-export function reputationWord(s: string | undefined | null): string {
-  if (!s) return '—'
-  return tt(m.reputation, { level: s.toLowerCase(), raw: cap(s) })
 }
 
 /** An SNDS filter result in the app language: "green" → "Green"; another value as it comes. */

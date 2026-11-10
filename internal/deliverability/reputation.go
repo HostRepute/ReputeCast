@@ -142,7 +142,6 @@ func (s *Service) AssetStatuses(ctx context.Context, ws uuid.UUID) (map[string]h
 			continue
 		}
 		a := out[c.Asset]
-		a.PostmasterReputation = st.latestPostmaster(c.Asset).DomainReputation
 		if chk, ok := st.checks[strings.ToLower(c.Asset)]; ok {
 			var r struct {
 				Auth  *dnscheck.DomainAuth `json:"auth"`

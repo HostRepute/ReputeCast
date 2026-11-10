@@ -195,6 +195,10 @@ type SenderDefaults struct {
 	TrackingDomain  string                 `json:"trackingDomain"`
 	TrackingOptions []SenderTrackingOption `json:"trackingOptions"`
 	ReplyOptions    []string               `json:"replyOptions"`
+	// ListUnsubscribeMailto adds a mailto: address (the reply-to, else the
+	// From) to the List-Unsubscribe header of campaigns and automations.
+	// Off by default: the header carries only the one-click link.
+	ListUnsubscribeMailto bool `json:"listUnsubscribeMailto"`
 }
 
 // SendersOverview is Settings › Senders.
@@ -213,6 +217,8 @@ type sendingDefaults struct {
 	ReplyHandling  string `json:"reply_handling,omitempty"`
 	ReplyTo        string `json:"reply_to,omitempty"`
 	TrackingDomain string `json:"tracking_domain,omitempty"`
+	// ListUnsubscribeMailto: absent = off.
+	ListUnsubscribeMailto bool `json:"list_unsubscribe_mailto,omitempty"`
 	// The rest belongs to Settings › Providers (internal/connect) and is
 	// kept as is.
 	Rest map[string]json.RawMessage `json:"-"`
@@ -225,6 +231,13 @@ func decodeSendingDefaults(raw json.RawMessage) sendingDefaults {
 		_ = json.Unmarshal(raw, &d)
 	}
 	return d
+}
+
+// ListUnsubscribeMailto reports whether a workspace's sending defaults
+// (workspaces.sending_defaults) turn on the mailto: address in
+// List-Unsubscribe.
+func ListUnsubscribeMailto(raw json.RawMessage) bool {
+	return decodeSendingDefaults(raw).ListUnsubscribeMailto
 }
 
 func (d sendingDefaults) encode() json.RawMessage {
@@ -242,6 +255,11 @@ func (d sendingDefaults) encode() json.RawMessage {
 	set("reply_handling", d.ReplyHandling)
 	set("reply_to", d.ReplyTo)
 	set("tracking_domain", d.TrackingDomain)
+	if d.ListUnsubscribeMailto {
+		m["list_unsubscribe_mailto"] = true
+	} else {
+		delete(m, "list_unsubscribe_mailto")
+	}
 	b, _ := json.Marshal(m)
 	return b
 }
@@ -386,6 +404,7 @@ func defaultsView(defs workspaceDefaults, senders []store.SenderListRow, doms []
 		out.FooterAddress = v
 	}
 	out.TrackingDomain = defs.sending.TrackingDomain
+	out.ListUnsubscribeMailto = defs.sending.ListUnsubscribeMailto
 	for _, d := range doms {
 		if d.TrackingDomain != "" {
 			out.TrackingOptions = append(out.TrackingOptions, SenderTrackingOption{Domain: d.TrackingDomain, Verified: d.TrackingStatus == StatusVerified})
@@ -726,6 +745,9 @@ type SenderDefaultsInput struct {
 	// TransactionalSenderID is the default From of transactional templates:
 	// a sender on a Transactional domain ("" clears it; omit to keep it).
 	TransactionalSenderID *string `json:"transactionalSenderId,omitempty" maxLength:"36"`
+	// ListUnsubscribeMailto turns the mailto: address in List-Unsubscribe
+	// on or off; omit to keep it.
+	ListUnsubscribeMailto *bool `json:"listUnsubscribeMailto,omitempty"`
 }
 
 // SaveDefaults saves the "Defaults" card.
@@ -786,9 +808,13 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 		}
 	}
 	before := map[string]any{"default_sender_id": defs.ids["broadcast"], "reply_handling": defs.sending.ReplyHandling, "reply_to": defs.sending.ReplyTo,
-		"footer_address": defs.branding["footer_address"], "tracking_domain": defs.sending.TrackingDomain, "transactional_sender_id": defs.ids["transactional"]}
+		"footer_address": defs.branding["footer_address"], "tracking_domain": defs.sending.TrackingDomain, "transactional_sender_id": defs.ids["transactional"],
+		"list_unsubscribe_mailto": defs.sending.ListUnsubscribeMailto}
 	next := defs.sending
 	next.ReplyHandling, next.ReplyTo, next.TrackingDomain = in.ReplyHandling, replyTo, tracking
+	if in.ListUnsubscribeMailto != nil {
+		next.ListUnsubscribeMailto = *in.ListUnsubscribeMailto
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.SenderSetStreamDefaults(ctx, store.SenderSetStreamDefaultsParams{ID: ws.ID, DefaultSenderID: broadcast,
@@ -816,7 +842,7 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 		}
 		return s.audit(ctx, q, ws, "senders.defaults_update", "workspace", ws.ID.String(), ws.Name, before,
 			map[string]any{"default_sender_id": broadcast, "reply_handling": in.ReplyHandling, "reply_to": replyTo, "footer_address": strings.TrimSpace(in.FooterAddress), "tracking_domain": tracking,
-				"transactional_sender_id": txnSender})
+				"transactional_sender_id": txnSender, "list_unsubscribe_mailto": next.ListUnsubscribeMailto})
 	})
 	if err != nil {
 		return SenderDefaults{}, err

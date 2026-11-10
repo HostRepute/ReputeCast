@@ -39,11 +39,10 @@ type JobInserter interface {
 // AssetStatus is what Deliverability knows about an asset, shown next to it
 // in Settings › Integrations.
 type AssetStatus struct {
-	Sources              int
-	Listings             []string
-	PostmasterReputation string
-	DMARCPolicy          string
-	DMARCAligned         *float64
+	Sources      int
+	Listings     []string
+	DMARCPolicy  string
+	DMARCAligned *float64
 }
 
 // Service manages a workspace's HostRepute connection.

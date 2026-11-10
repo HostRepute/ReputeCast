@@ -104,7 +104,7 @@ func seedAuditImpl(ctx context.Context, s *Seeder) error {
 		// Mon 6 Oct.
 		{at: s.designDay(6, 8, 2), actorType: "mcp_agent", actor: "Claude — analytics", action: "deliverability.read", targetType: "sending_domain", target: "news.acme.io",
 			ip: "203.0.113.9", ua: uaClaude, meta: m("summary", "MCP agent “Claude — analytics” · tool get_deliverability", "tool", "get_deliverability", "source", "mcp", "via", "rc_agent_7a…c2",
-				"outcome", "news.acme.io · clean on 84 blocklists · Postmaster high", "permission", "deliverability:view")},
+				"outcome", "news.acme.io · clean on 84 blocklists · Postmaster synced", "permission", "deliverability:view")},
 	}
 	for _, e := range events {
 		if err := s.insertAudit(ctx, ws.ID, e); err != nil {

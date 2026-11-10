@@ -163,7 +163,6 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace) ([]byte, erro
 		_ = w.Write([]string{"provider", p.Name, p.Complaint.Label, pct(p.Complaint.Value), p.Complaint.Thresholds, "", ""})
 	}
 	if pm := o.Postmaster; pm != nil {
-		_ = w.Write([]string{"postmaster", pm.Domain, "domain reputation", pm.DomainReputation, "", "", ""})
 		_ = w.Write([]string{"postmaster", pm.Domain, "spam rate, 30 days", pct(pm.SpamRate), "", "", ""})
 	}
 	if sn := o.SNDS; sn != nil {

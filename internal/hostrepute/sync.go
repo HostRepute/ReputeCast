@@ -155,7 +155,6 @@ func Apply(ctx context.Context, tx pgx.Tx, ws uuid.UUID, snap Snapshot, now time
 			}
 			if err := q.UpsertDeliverabilityPostmasterDay(ctx, store.UpsertDeliverabilityPostmasterDayParams{
 				WorkspaceID: ws, Domain: strings.ToLower(domain), Day: day, Via: "hostrepute", SpamRate: d.SpamRate,
-				DomainReputation: strings.ToLower(d.DomainReputation), IpReputation: strings.ToLower(d.IPReputation),
 				SpfRate: d.SPFRate, DkimRate: d.DKIMRate, DmarcRate: d.DMARCRate, TlsRate: d.TLSRate, DeliveryErrors: d.DeliveryErrors, FblFlagged: fbl,
 			}); err != nil {
 				return nil, err

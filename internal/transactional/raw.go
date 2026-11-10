@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -81,7 +82,19 @@ var (
 	// ErrSMTPIntegrationKey: an integration's key (Zapier, Make, n8n,
 	// WordPress) only calls its own integration's operations.
 	ErrSMTPIntegrationKey = errors.New("this key belongs to an integration, which can only call its own operations; create an SMTP credential in Transactional › Setup")
+	// ErrSMTPIPNotAllowed: the credential's allowed IPs don't include the
+	// connecting address.
+	ErrSMTPIPNotAllowed = errors.New("this SMTP credential can't be used from this address; add the address to its allowed IPs in Settings › Keys & MCP")
 )
+
+// smtpIPError names the address a credential was refused from.
+type smtpIPError struct{ ip string }
+
+func (e smtpIPError) Error() string {
+	return "this SMTP credential can't be used from " + e.ip + "; add the address to its allowed IPs in Settings › Keys & MCP"
+}
+
+func (e smtpIPError) Unwrap() error { return ErrSMTPIPNotAllowed }
 
 // smtpIntegrationKeyError names the integration a refused key belongs to.
 type smtpIntegrationKeyError struct{ name string }
@@ -108,7 +121,8 @@ func integrationName(kind string) string {
 }
 
 // AuthenticateSMTP checks an SMTP credential: the username is the key's ID
-// and the password its secret.
+// and the password its secret. ip is the connecting peer, which a
+// credential's allowed IPs must include.
 func (s *Service) AuthenticateSMTP(ctx context.Context, username, password string, ip *netip.Addr) (SMTPCredential, error) {
 	id, err := uuid.Parse(strings.TrimSpace(username))
 	if err != nil || !authn.LooksLikeAPIKey(password) {
@@ -129,6 +143,12 @@ func (s *Service) AuthenticateSMTP(ctx context.Context, username, password strin
 	}
 	if k.ExpiresAt != nil && !k.ExpiresAt.After(s.now()) {
 		return SMTPCredential{}, ErrSMTPKeyExpired
+	}
+	if !server.AllowedFrom(k.AllowedIps, ip) {
+		if ip == nil || !ip.IsValid() {
+			return SMTPCredential{}, ErrSMTPIPNotAllowed
+		}
+		return SMTPCredential{}, smtpIPError{ip: ip.Unmap().String()}
 	}
 	tk, err := s.Q.TxnKey(ctx, store.TxnKeyParams{ID: k.ID, WorkspaceID: k.WorkspaceID})
 	if err != nil {

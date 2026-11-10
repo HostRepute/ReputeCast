@@ -27,5 +27,12 @@
   "audit.smtp": "thông tin xác thực SMTP",
   "audit.expires": "hết hạn ngày {at, date}",
   "audit.noExpiry": "không hết hạn",
-  "audit.rotated": "khóa bí mật mới {masked} · khóa cũ {old} đã bị thu hồi"
+  "audit.rotated": "khóa bí mật mới {masked} · khóa cũ {old} đã bị thu hồi",
+  "problem.ipInvalid": "Hãy nhập một địa chỉ hoặc một dải mạng, ví dụ 203.0.113.0/24 hoặc 2001:db8::/48.",
+  "problem.integrationKeyIPs": "Khóa này thuộc về một tích hợp, vốn gọi từ máy chủ của nền tảng đó, nên không thể giới hạn theo IP được phép.",
+  "problem.revokedKeyIPs": "Khóa này đã bị thu hồi nên không thể thay đổi IP được phép.",
+  "problem.widenScope": "Khóa này truy cập được danh sách nằm ngoài phạm vi của bạn nên bạn không thể cho phép gọi nó từ thêm địa chỉ.",
+  "audit.allowedIps": "{count, plural, other {# IP được phép}}",
+  "audit.allowedIpsSet": "IP được phép {list}",
+  "audit.allowedIpsAny": "được gọi từ mọi địa chỉ"
 }

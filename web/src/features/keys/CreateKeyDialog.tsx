@@ -10,6 +10,8 @@ import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { AllowedIpsField, ipErrors, type IpError } from './AllowedIpsDialog'
+import { ipEntries } from './ip'
 import { m } from './messages'
 
 type List = Schemas['APIKeyList']
@@ -41,7 +43,8 @@ const opt = (c: ReactNode) => <span className="k font-medium">{c}</span>
 /**
  * Create an API key or an MCP agent token (SettingsKeysStates, escalation
  * guard): a name, the permissions (never more than the creator holds; locked
- * rows say why and who can help), a list scope and an expiry.
+ * rows say why and who can help), a list scope, an expiry and the addresses
+ * it may be called from.
  */
 export function CreateKeyDialog({
   kind,
@@ -76,6 +79,8 @@ export function CreateKeyDialog({
   const [preset, setPreset] = useState(initialPreset ?? 'custom')
   const conversionKey = preset === 'conversions' && conversionsOnly(picked)
   const [error, setError] = useState<{ field?: string; message: string }>()
+  const [ips, setIps] = useState('')
+  const [ipErrs, setIpErrs] = useState<IpError[]>()
   const createKey = $api.useMutation('post', '/api/v1/workspaces/{workspace}/api-keys')
   const createAgent = $api.useMutation('post', '/api/v1/workspaces/{workspace}/mcp-agents')
   const create = agent ? createAgent : createKey
@@ -85,6 +90,7 @@ export function CreateKeyDialog({
 
   const submit = () => {
     setError(undefined)
+    setIpErrs(undefined)
     if (!name.trim()) {
       setError({ field: 'name', message: t(m.nameRequired, { kind: agent ? 'agent' : 'key' }) })
       return
@@ -94,7 +100,15 @@ export function CreateKeyDialog({
       return
     }
     const expiresAt = expiry ? new Date(Date.now() + Number(expiry) * 86_400_000).toISOString() : undefined
-    const body = { name: name.trim(), description: description.trim() || undefined, permissions: picked, lists: listId ? [listId] : undefined, expiresAt }
+    const sent = ipEntries(ips)
+    const body = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      permissions: picked,
+      lists: listId ? [listId] : undefined,
+      expiresAt,
+      allowedIps: sent.length ? sent.map((e) => e.value) : undefined,
+    }
     const handlers = {
       onSuccess: (r: Schemas['APIKeyCreated']) => {
         void qc.invalidateQueries({ queryKey: ['get', agent ? '/api/v1/workspaces/{workspace}/mcp-agents' : '/api/v1/workspaces/{workspace}/api-keys'] })
@@ -102,6 +116,11 @@ export function CreateKeyDialog({
         onCreated(r)
       },
       onError: (e: unknown) => {
+        const lines = ipErrors(e, sent)
+        if (lines) {
+          setIpErrs(lines)
+          return
+        }
         const loc = e instanceof ApiError ? e.problem.errors?.[0]?.location : undefined
         setError({ field: loc === 'body.name' ? 'name' : loc?.startsWith('body.permissions') ? 'permissions' : undefined, message: errorMessage(e) })
       },
@@ -302,6 +321,7 @@ export function CreateKeyDialog({
           </select>
         </label>
       </div>
+      <AllowedIpsField value={ips} onChange={setIps} errors={ipErrs} list={list} optional />
       {error && !error.field ? (
         <Note tone="bad" label={t(m.notCreated)}>
           {error.message}

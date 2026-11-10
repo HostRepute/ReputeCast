@@ -379,6 +379,9 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 			mbp = routing.MailboxProvider(r.Email)
 		}
 		out.Mailboxes[mbp]++
+		if emailaddr.MailboxProvider(emailaddr.Domain(r.Email)) == emailaddr.Outlook {
+			out.OutlookConsumer++
+		}
 		out.Languages[strings.ToLower(strings.TrimSpace(r.Language))]++
 		if !withRecipients {
 			continue

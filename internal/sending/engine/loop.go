@@ -1194,8 +1194,9 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, ext
 		From:    mail.Address{Name: rs.content.FromName, Address: rs.content.FromEmail},
 		To:      mail.Address{Name: strings.TrimSpace(m.FirstName + " " + m.LastName), Address: m.Email},
 		Subject: out.Subject, HTML: out.HTML, Text: out.Text,
-		Headers: bulkHeaders(links["unsubscribe_url"], unsub, firstNonEmpty(rs.content.ReplyTo, rs.content.FromEmail), feedbackID(rs.campaign.ID.String(), slug, "broadcast")),
-		Tags:    map[string]string{"campaign": rs.campaign.ID.String(), "workspace": slug},
+		Headers: bulkHeaders(links["unsubscribe_url"], unsub, unsubscribeMailto(rs.content.ListUnsubscribeMailto, rs.content.ReplyTo, rs.content.FromEmail),
+			feedbackID(rs.campaign.ID.String(), slug, "broadcast")),
+		Tags: map[string]string{"campaign": rs.campaign.ID.String(), "workspace": slug},
 	}
 	if rs.content.ReplyTo != "" {
 		if a, err := mail.ParseAddress(rs.content.ReplyTo); err == nil {
@@ -1245,8 +1246,9 @@ func contentKey(c sendContent, variant string) string {
 }
 
 // bulkHeaders are the headers every bulk message carries: one-click
-// unsubscribe (RFC 8058) with a mailto alternative, and Feedback-ID for
-// Gmail's feedback loop. The Message-ID comes from the message id.
+// unsubscribe (RFC 8058), with a mailto alternative when mailto isn't
+// empty, and Feedback-ID for Gmail's feedback loop. The Message-ID comes
+// from the message id.
 func bulkHeaders(unsubURL, token, mailto, feedback string) map[string]string {
 	h := map[string]string{
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -1258,6 +1260,16 @@ func bulkHeaders(unsubURL, token, mailto, feedback string) map[string]string {
 	}
 	h["List-Unsubscribe"] = lu
 	return h
+}
+
+// unsubscribeMailto is the mailto: address of List-Unsubscribe: the
+// reply-to, else the From, when the workspace includes one (Settings ›
+// Senders, off by default); "" leaves only the one-click link.
+func unsubscribeMailto(on bool, replyTo, from string) string {
+	if !on {
+		return ""
+	}
+	return firstNonEmpty(replyTo, from)
 }
 
 // feedbackID is Gmail's Feedback-ID: campaign, customer (workspace), mail

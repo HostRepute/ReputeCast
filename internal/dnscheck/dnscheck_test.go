@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/netip"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -101,11 +102,11 @@ func TestDKIM(t *testing.T) {
 func TestDMARC(t *testing.T) {
 	z := acmeZone()
 	d := CheckDMARC(ctx, z, "news.acme.io")
-	if d.Status != StatusPass || d.PolicyDomain != "acme.io" || d.Policy != "quarantine" || !d.Enforced() || len(d.RUA) != 1 {
+	if d.Status != StatusPass || d.PolicyDomain != "acme.io" || d.Policy != "quarantine" || len(d.RUA) != 1 {
 		t.Fatalf("org fallback: %+v", d)
 	}
 	z.Add("_dmarc.example.org", "TXT", "v=DMARC1; p=reject; sp=none; pct=50")
-	if d := CheckDMARC(ctx, z, "mail.example.org"); d.Policy != "none" || d.Percent != 50 {
+	if d := CheckDMARC(ctx, z, "mail.example.org"); d.Status != StatusPass || d.Policy != "none" {
 		t.Fatalf("sp applies to subdomains: %+v", d)
 	}
 	if d := CheckDMARC(ctx, z, "example.org"); d.Policy != "reject" {
@@ -115,8 +116,113 @@ func TestDMARC(t *testing.T) {
 	if d := CheckDMARC(ctx, z, "broken.example"); d.Status != StatusInvalid {
 		t.Fatalf("invalid: %+v", d)
 	}
-	if d := CheckDMARC(ctx, z, "none.example"); d.Status != StatusMissing || d.Enforced() {
+	if d := CheckDMARC(ctx, z, "none.example"); d.Status != StatusMissing {
 		t.Fatalf("missing: %+v", d)
+	}
+}
+
+// queries records the TXT names a check asks for.
+type queries struct {
+	*Zone
+	names []string
+}
+
+func (q *queries) TXT(ctx context.Context, name string) ([]string, error) {
+	q.names = append(q.names, name)
+	return q.Zone.TXT(ctx, name)
+}
+
+// TestDMARCbis covers RFC 9989: the record's tags (§4.7) and policy
+// discovery by the DNS Tree Walk (§4.10).
+func TestDMARCbis(t *testing.T) {
+	z := NewZone()
+	z.Add("_dmarc.nop.example", "TXT", "v=DMARC1; rua=mailto:d@nop.example")
+	z.Add("_dmarc.norua.example", "TXT", "v=DMARC1; adkim=s")
+	z.Add("_dmarc.badsp.example", "TXT", "v=DMARC1; p=reject; sp=never; rua=mailto:d@badsp.example")
+	z.Add("_dmarc.legacy.example", "TXT", "v=DMARC1; p=reject; pct=50; ri=3600; rf=afrf; future=1")
+	z.Add("_dmarc.testing.example", "TXT", "v=DMARC1; p=quarantine; t=y")
+	z.Add("_dmarc.case.example", "TXT", "v = DMARC1; P = Reject; ADKIM = S")
+	z.Add("_dmarc.nosemi.example", "TXT", "v=DMARC1 p=reject")
+	// acme.io: np=reject for subdomains that don't exist; news.acme.io and
+	// a.b.news.acme.io exist (NODATA for TXT), ghost.news.acme.io doesn't
+	// (NXDOMAIN).
+	z.Add("_dmarc.acme.io", "TXT", "v=DMARC1; p=none; sp=quarantine; np=reject")
+	z.Add("news.acme.io", "A", "203.0.113.25").Add("a.b.news.acme.io", "A", "203.0.113.26")
+	// Two records at a parent are discarded and the walk goes on.
+	z.Add("_dmarc.news.dup.example", "TXT", "v=DMARC1; p=none").Add("_dmarc.news.dup.example", "TXT", "v=DMARC1; p=reject")
+	z.Add("_dmarc.dup.example", "TXT", "v=DMARC1; p=quarantine")
+	z.Add("_dmarc.two.example", "TXT", "v=DMARC1; p=none").Add("_dmarc.two.example", "TXT", "v=DMARC1; p=reject")
+	// A PSD record stops the walk, usable or not.
+	z.Add("_dmarc.bank.example", "TXT", "v=DMARC1; p=reject; psd=y")
+	z.Add("_dmarc.broken.psd", "TXT", "v=DMARC1; p=sometimes; psd=y")
+	z.Add("_dmarc.psd", "TXT", "v=DMARC1; p=reject")
+	z.Add("_dmarc.flaky.example", "TXT", "v=DMARC1; p=reject")
+	z.Fail("_dmarc.b.flaky.example").Fail("_dmarc.example")
+
+	cases := []struct {
+		name, domain string
+		status       string
+		policy, at   string
+		check        func(DMARC) bool
+		walk         []string
+	}{
+		{name: "no p, a rua", domain: "nop.example", status: StatusPass, policy: "none", at: "nop.example"},
+		{name: "no p, no rua", domain: "norua.example", status: StatusInvalid},
+		{name: "invalid sp, a rua", domain: "badsp.example", status: StatusPass, policy: "none", at: "badsp.example",
+			check: func(d DMARC) bool { return d.SubdomainPolicy == "none" && d.NonexistentPolicy == "none" }},
+		{name: "pct, ri and rf ignored", domain: "legacy.example", status: StatusPass, policy: "reject", at: "legacy.example",
+			check: func(d DMARC) bool { return d.Error == "" && !d.TestMode }},
+		{name: "test mode", domain: "testing.example", status: StatusPass, policy: "quarantine", at: "testing.example",
+			check: func(d DMARC) bool { return d.TestMode }},
+		{name: "case-insensitive tags", domain: "case.example", status: StatusPass, policy: "reject", at: "case.example",
+			check: func(d DMARC) bool { return d.StrictDKIM && !d.StrictSPF }},
+		{name: "malformed version tag", domain: "nosemi.example", status: StatusInvalid},
+		{name: "np for a domain that doesn't exist", domain: "ghost.news.acme.io", status: StatusPass, policy: "reject", at: "acme.io",
+			walk: []string{"_dmarc.ghost.news.acme.io", "_dmarc.news.acme.io", "_dmarc.acme.io", "ghost.news.acme.io"}},
+		{name: "NODATA keeps sp", domain: "news.acme.io", status: StatusPass, policy: "quarantine", at: "acme.io",
+			check: func(d DMARC) bool { return d.SubdomainPolicy == "quarantine" && d.NonexistentPolicy == "reject" }},
+		{name: "own record", domain: "acme.io", status: StatusPass, policy: "none", at: "acme.io", walk: []string{"_dmarc.acme.io"}},
+		{name: "walk of 3", domain: "a.b.news.acme.io", status: StatusPass, policy: "quarantine", at: "acme.io",
+			walk: []string{"_dmarc.a.b.news.acme.io", "_dmarc.b.news.acme.io", "_dmarc.news.acme.io", "_dmarc.acme.io", "a.b.news.acme.io"}},
+		{name: "more than 8 labels", domain: "a.b.c.d.e.f.g.h.i.j.mail.example.com", status: StatusMissing,
+			walk: []string{"_dmarc.a.b.c.d.e.f.g.h.i.j.mail.example.com", "_dmarc.g.h.i.j.mail.example.com", "_dmarc.h.i.j.mail.example.com",
+				"_dmarc.i.j.mail.example.com", "_dmarc.j.mail.example.com", "_dmarc.mail.example.com", "_dmarc.example.com", "_dmarc.com"}},
+		{name: "two records at a parent", domain: "a.news.dup.example", status: StatusPass, policy: "quarantine", at: "dup.example"},
+		{name: "two records at the domain", domain: "two.example", status: StatusInvalid,
+			check: func(d DMARC) bool { return d.Error == "more than one DMARC record" }},
+		{name: "psd=y stops the walk", domain: "giant.bank.example", status: StatusPass, policy: "reject", at: "bank.example",
+			check: func(d DMARC) bool { return d.PSD == "y" }, walk: []string{"_dmarc.giant.bank.example", "_dmarc.bank.example"}},
+		{name: "unusable psd=y record stops the walk", domain: "giant.broken.psd", status: StatusMissing,
+			walk: []string{"_dmarc.giant.broken.psd", "_dmarc.broken.psd"}},
+		{name: "SERVFAIL mid-walk", domain: "a.b.flaky.example", status: StatusError,
+			walk: []string{"_dmarc.a.b.flaky.example", "_dmarc.b.flaky.example"}},
+	}
+	for _, c := range cases {
+		q := &queries{Zone: z}
+		d := CheckDMARC(ctx, q, c.domain)
+		if d.Status != c.status || d.Policy != c.policy || c.at != "" && d.PolicyDomain != c.at || c.check != nil && !c.check(d) {
+			t.Errorf("%s: %+v", c.name, d)
+		}
+		if c.walk != nil && !slices.Equal(q.names, c.walk) {
+			t.Errorf("%s: asked for %v, want %v", c.name, q.names, c.walk)
+		}
+	}
+}
+
+func TestParseDMARC(t *testing.T) {
+	if r, ok := ParseDMARC("v=DMARC1; p=reject; adkim=x; aspf=s; t=maybe; psd=n; np=quarantine; rua=mailto:a@x.io, https://r.example/dmarc"); !ok ||
+		r.Policy != "reject" || r.SubdomainPolicy != "reject" || r.NonexistentPolicy != "quarantine" || r.StrictDKIM || !r.StrictSPF || r.TestMode ||
+		r.PSD != "n" || !slices.Equal(r.RUA, []string{"mailto:a@x.io", "https://r.example/dmarc"}) {
+		t.Errorf("defaults: %+v %v", r, ok)
+	}
+	if _, ok := ParseDMARC("p=reject; v=DMARC1"); ok {
+		t.Error("v= must be the first tag")
+	}
+	if _, ok := ParseDMARC("v=DMARC1; p=bogus; rua=not a uri"); ok {
+		t.Error("an invalid rua= doesn't make the record usable")
+	}
+	if r, ok := ParseDMARC("v=DMARC1; p=bogus; rua=mailto:a@x.io!10m"); !ok || r.Policy != "none" {
+		t.Errorf("rua= with a size suffix: %+v %v", r, ok)
 	}
 }
 

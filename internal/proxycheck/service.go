@@ -153,6 +153,24 @@ func (s *Service) List(ctx context.Context) (UntrustedProxies, error) {
 	return out, nil
 }
 
+// Flagged reports whether a proxy http.trusted_proxies doesn't list
+// forwarded requests often in the last day (the proxies admins are told
+// about), so the client addresses ReputeCast sees may be that proxy's. API
+// keys' allowed IPs warn about it.
+func (s *Service) Flagged(ctx context.Context) bool {
+	rows, err := s.Q.ProxyList(ctx)
+	if err != nil {
+		return false
+	}
+	since := s.now().Add(-24 * time.Hour)
+	for _, r := range rows {
+		if r.Requests >= minRequests && !r.LastSeen.Before(since) && !trusted(r.Peer, s.Trusted) {
+			return true
+		}
+	}
+	return false
+}
+
 // Register adds the instance admin's view of untrusted proxies.
 func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "list-untrusted-proxies", Path: "/admin/untrusted-proxies",

@@ -27,5 +27,12 @@
   "audit.smtp": "SMTP-Zugangsdaten",
   "audit.expires": "läuft am {at, date} ab",
   "audit.noExpiry": "ohne Ablaufdatum",
-  "audit.rotated": "neuer geheimer Schlüssel {masked} · alter {old} widerrufen"
+  "audit.rotated": "neuer geheimer Schlüssel {masked} · alter {old} widerrufen",
+  "problem.ipInvalid": "Geben Sie eine Adresse oder ein Netz ein, etwa 203.0.113.0/24 oder 2001:db8::/48.",
+  "problem.integrationKeyIPs": "Dieser Schlüssel gehört zu einer Integration, die von den Servern ihrer Plattform aus aufruft. Er lässt sich daher nicht auf erlaubte IPs beschränken.",
+  "problem.revokedKeyIPs": "Dieser Schlüssel ist widerrufen, daher lassen sich seine erlaubten IPs nicht ändern.",
+  "problem.widenScope": "Dieser Schlüssel erreicht Listen außerhalb Ihres Bereichs, daher können Sie ihn nicht von weiteren Adressen aus erlauben.",
+  "audit.allowedIps": "{count, plural, one {# erlaubte IP} other {# erlaubte IPs}}",
+  "audit.allowedIpsSet": "erlaubte IPs {list}",
+  "audit.allowedIpsAny": "von jeder Adresse erlaubt"
 }

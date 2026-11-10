@@ -229,11 +229,9 @@ func (b *builder) fallbackRow() {
 // dmarcMode is a DMARC record's alignment mode for adkim or aspf: s
 // (strict) or r (relaxed, the default).
 func dmarcMode(record, tag string) string {
-	for _, part := range strings.Split(record, ";") {
-		k, v, ok := strings.Cut(strings.TrimSpace(part), "=")
-		if ok && strings.EqualFold(strings.TrimSpace(k), tag) && strings.EqualFold(strings.TrimSpace(v), "s") {
-			return "s"
-		}
+	rec, _ := dnscheck.ParseDMARC(record)
+	if tag == "adkim" && rec.StrictDKIM || tag == "aspf" && rec.StrictSPF {
+		return "s"
 	}
 	return "r"
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -56,7 +57,7 @@ func (s *Service) allow(agent uuid.UUID, perMin int) bool {
 }
 
 // verify checks an agent token: known, an MCP agent, not revoked or expired,
-// MCP on in its workspace.
+// called from one of its allowed IPs, MCP on in its workspace.
 func (s *Service) verify(ctx context.Context, token string, r *http.Request) (*auth.TokenInfo, error) {
 	req := audit.RequestFrom(ctx)
 	if !strings.HasPrefix(token, authn.AgentPrefix) {
@@ -73,6 +74,15 @@ func (s *Service) verify(ctx context.Context, token string, r *http.Request) (*a
 	case k.ExpiresAt != nil && !k.ExpiresAt.After(s.now()):
 		apikeys.RecordRejection(ctx, s.Q, k.ID, req.IP, r.UserAgent(), "expired")
 		return nil, fmt.Errorf("%w: this agent token expired on %s; rotate it in Settings › Keys & MCP", auth.ErrInvalidToken, k.ExpiresAt.Format("Jan 2, 2006"))
+	}
+	// Allowed IPs, after the token is verified; an unknown address is refused.
+	if !server.AllowedFrom(k.AllowedIps, req.IP) {
+		apikeys.RecordRejection(ctx, s.Q, k.ID, req.IP, r.UserAgent(), "ip_not_allowed")
+		addr := "an unknown address"
+		if req.IP != nil && req.IP.IsValid() {
+			addr = req.IP.Unmap().String()
+		}
+		return nil, fmt.Errorf("%w: this agent can't be used from %s; add the address to its allowed IPs in Settings › Keys & MCP", auth.ErrInvalidToken, addr)
 	}
 	st := ParseSettings(k.McpSettings)
 	if !st.Enabled {

@@ -15,6 +15,9 @@ func init() {
 		apikeys.Register(h, &apikeys.Service{
 			Pool: a.Pool, Q: a.Q, Audit: a.Audit,
 			PublicURL: func(context.Context) string { return a.URLs.Base() },
+			// Allowed IPs rely on the client addresses: warn while requests
+			// come through a proxy ReputeCast doesn't trust.
+			ProxyWarning: proxyService(a).Flagged,
 		})
 	})
 	// Calls with a revoked or expired key are counted, so the keys screen can

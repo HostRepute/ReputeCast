@@ -26,6 +26,10 @@ var msgs = i18n.MustLoad(messagesFS, "api")
 var (
 	mEscalation = msgs.M("escalation")
 	mKeyExpired = msgs.M("keyExpired")
+	// mKeyIPNotAllowed refuses a key called from outside its allowed IPs;
+	// mUnknownAddress is its address when ReputeCast doesn't know it.
+	mKeyIPNotAllowed = msgs.M("keyIpNotAllowed")
+	mUnknownAddress  = msgs.M("unknownAddress")
 
 	// Problems the middleware writes in the request's language.
 	mNotForThisKey         = msgs.M("problem.notForThisKey")
