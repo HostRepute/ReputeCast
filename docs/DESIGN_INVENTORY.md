@@ -600,6 +600,7 @@ For a hosting company or an IT team that runs an instance for someone else: the 
 | Boards | Change |
 |---|---|
 | `InstanceSettingsStates` (new) | Instance & updates when the server sets `http.public_url_locked` and `updates.managed_by`: the public URL is read only and says the server's operator set it (Check still runs); Version & updates names who manages upgrades instead of showing the upgrade command and the backup line, and the update check switch is off with the server configuration's sentence. The first sign-in's instance basics in the same state: the URL read only with the same sentence, and the update check turned off by the server configuration. On a narrow phone Check (Check again) moves under the address when both don't fit, so a pinned address shows whole, and the URL check's badges keep one line. |
+| `Landing`, `LandingTablet`, `LandingPhone` | The receipt's Teams and agencies line lists it with 1.5.0: "Settings a host pins when it runs the server for someone else: the public URL and who upgrades". |
 
 ### Dark mode (M54)
 
