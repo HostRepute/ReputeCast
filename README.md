@@ -187,7 +187,7 @@ You need Docker with Compose:
 
 ```bash
 curl -fsSL -o docker-compose.yml \
-  https://raw.githubusercontent.com/hostrepute/reputecast/main/deploy/docker-compose.yml
+  https://github.com/hostrepute/reputecast/releases/latest/download/docker-compose.yml
 REPUTECAST_ADMIN_EMAIL=you@example.com docker compose up -d
 docker compose logs app | grep -A4 "ReputeCast is installed"
 ```
