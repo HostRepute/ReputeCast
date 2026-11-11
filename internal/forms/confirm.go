@@ -279,7 +279,7 @@ func (s *Service) Confirm(ctx context.Context, ws *store.Workspace, contactID, s
 			if r.FormID == nil {
 				continue
 			}
-			if err := q.FormBumpDaily(ctx, store.FormBumpDailyParams{FormID: *r.FormID, Day: dayOf(r.CreatedAt, loc), Confirmed: 1}); err != nil {
+			if err := q.FormBumpDaily(ctx, store.FormBumpDailyParams{FormID: *r.FormID, Day: dayOf(r.CreatedAt, loc), Variant: r.Variant, Confirmed: 1}); err != nil {
 				return err
 			}
 			if err := q.FormBumpTotals(ctx, store.FormBumpTotalsParams{ID: *r.FormID, Confirmed: 1}); err != nil {
@@ -445,6 +445,7 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &DomainsWorker{S: s})
 	reg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return ConfirmationsArgs{}, nil }, true)
 	reg.Every(10*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return DomainsArgs{}, nil }, true)
+	registerABJobs(reg, s)
 }
 
 // SendPreferenceLink emails a contact the link to their preference center

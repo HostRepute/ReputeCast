@@ -106,7 +106,8 @@
   flex: none;
   font-weight: 400;
 }
-.rcf input[type='checkbox'] {
+.rcf input[type='checkbox'],
+.rcf input[type='radio'] {
   width: 16px;
   height: 16px;
   margin: 0;
@@ -181,6 +182,64 @@
   padding: 8px 10px;
   border-radius: 7px;
   background: #fee2e2;
+}
+/* Several steps (M60 G-23): one shows at a time, "Step 2 of 3" and dots
+   above its heading, Back and Next (or the submit button) below. */
+.rcf-step {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rcf-step[hidden] {
+  display: none;
+}
+.rcf-stepbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.rcf-stepof {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6472;
+}
+.rcf-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+.rcf-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d5d9e0;
+}
+.rcf-dots span.done {
+  background: var(--rcf-hover, #3730a3);
+}
+.rcf-dots span.on {
+  background: var(--rcf-accent, #4338ca);
+  width: 20px;
+  border-radius: 4px;
+}
+.rcf-steph {
+  font-size: 16px;
+  font-weight: 700;
+}
+.rcf-steph:focus,
+.rcf-stepof:focus {
+  outline: none;
+}
+.rcf-nav {
+  display: flex;
+  gap: 8px;
+}
+.rcf-nav .rcf-submit {
+  flex: 1 1 auto;
+}
+.rcf .rcf-nav .rcf-btn2 {
+  flex: none;
+  min-height: 46px;
 }
 .rcf-done {
   display: flex;

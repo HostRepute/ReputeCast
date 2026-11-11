@@ -115,6 +115,14 @@ fieldset.lists { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; 
 fieldset.lists legend { font-size: 13px; font-weight: 600; margin-bottom: 4px; padding: 0; }
 label.listopt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; cursor: pointer; }
 label.listopt input { margin-top: 4px; }
+/* A multi-step form without the embed script: every step at once (M60 G-23). */
+fieldset.step { border: 0; border-top: 1px solid var(--line); padding: 14px 0 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+fieldset.step:first-of-type { border-top: 0; padding-top: 0; }
+/* Floated, the legend is an ordinary first item of the column. */
+fieldset.step > legend { font-size: 15px; font-weight: 700; padding: 0; margin: 0; float: left; width: 100%; }
+.step-d { margin: 0; color: var(--ink-3); font-size: 14px; }
+fieldset.choice label.listopt { align-items: center; }
+fieldset.choice label.listopt input { margin-top: 0; }
 label.row { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
 label.row input { margin-top: 4px; }
 .nm { font-weight: 600; }

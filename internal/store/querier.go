@@ -1561,7 +1561,11 @@ type Querier interface {
 	FormAllowOrigin(ctx context.Context, arg FormAllowOriginParams) (Form, error)
 	// Origins rejected today that nobody chose to keep blocked yet.
 	FormBlockedOrigins(ctx context.Context, arg FormBlockedOriginsParams) ([]FormBlockedOriginsRow, error)
+	// variant is the A/B test's variant the numbers belong to ('' outside a test).
 	FormBumpDaily(ctx context.Context, arg FormBumpDailyParams) error
+	// M60 G-23–G-25: steps, A/B tests.
+	// One view of a step after the first, per day and variant.
+	FormBumpStep(ctx context.Context, arg FormBumpStepParams) error
 	FormBumpTotals(ctx context.Context, arg FormBumpTotalsParams) error
 	FormByPublicID(ctx context.Context, arg FormByPublicIDParams) (Form, error)
 	FormBySlug(ctx context.Context, arg FormBySlugParams) (Form, error)
@@ -1586,12 +1590,18 @@ type Querier interface {
 	FormDownloadGet(ctx context.Context, arg FormDownloadGetParams) (FormDownloadGetRow, error)
 	// Lead magnets
 	FormDownloadSet(ctx context.Context, arg FormDownloadSetParams) error
+	// Ends a test: the kept variant's overrides become the form's content.
+	FormEndAB(ctx context.Context, arg FormEndABParams) (Form, error)
 	FormGet(ctx context.Context, arg FormGetParams) (Form, error)
 	FormInsert(ctx context.Context, arg FormInsertParams) (Form, error)
 	FormLastSubmissionForContact(ctx context.Context, contactID uuid.UUID) (FormLastSubmissionForContactRow, error)
+	// Views and submissions of the form itself (outside a test, or its variant
+	// A): the first and last bars of the step funnel.
+	FormOwnStatsSince(ctx context.Context, arg FormOwnStatsSinceParams) (FormOwnStatsSinceRow, error)
 	FormPublicIDTaken(ctx context.Context, arg FormPublicIDTakenParams) (bool, error)
 	FormRecordRejection(ctx context.Context, arg FormRecordRejectionParams) error
 	FormRename(ctx context.Context, arg FormRenameParams) (Form, error)
+	FormSetAB(ctx context.Context, arg FormSetABParams) (Form, error)
 	// Saves a form's own text from its language view: the copy, the field
 	// labels and the consent text, whose version moves when the words change.
 	FormSetCopy(ctx context.Context, arg FormSetCopyParams) (Form, error)
@@ -1601,6 +1611,8 @@ type Querier interface {
 	// Per form: views, submissions, confirmations of those submissions and spam
 	// blocked since a day (inclusive).
 	FormStatsSince(ctx context.Context, arg FormStatsSinceParams) ([]FormStatsSinceRow, error)
+	// The step funnel of the form itself (outside a test, or its variant A).
+	FormStepViewsSince(ctx context.Context, arg FormStepViewsSinceParams) ([]FormStepViewsSinceRow, error)
 	FormSubmissionByID(ctx context.Context, arg FormSubmissionByIDParams) (FormSubmission, error)
 	FormSubmissionInsert(ctx context.Context, arg FormSubmissionInsertParams) error
 	// The language the contact's latest signup form was shown in (the
@@ -1624,11 +1636,19 @@ type Querier interface {
 	// a provider error): retried by the confirmations job for three days.
 	FormSubmissionsToSend(ctx context.Context, arg FormSubmissionsToSendParams) ([]FormSubmissionsToSendRow, error)
 	FormUpdate(ctx context.Context, arg FormUpdateParams) (Form, error)
+	// An A/B test's numbers per variant since it started.
+	FormVariantStatsSince(ctx context.Context, arg FormVariantStatsSinceParams) ([]FormVariantStatsSinceRow, error)
+	FormVariantUpsert(ctx context.Context, arg FormVariantUpsertParams) error
+	FormVariantsDelete(ctx context.Context, formID uuid.UUID) error
+	FormVariantsDeleteExcept(ctx context.Context, arg FormVariantsDeleteExceptParams) error
+	FormVariantsList(ctx context.Context, formID uuid.UUID) ([]FormVariant, error)
 	FormWaitingCount(ctx context.Context, arg FormWaitingCountParams) (int64, error)
 	// Double opt-in signups of a form whose confirmation email hasn't gone out
 	// (nothing could send System mail, or the provider refused it), newest
 	// first: the builder offers their links to send by hand.
 	FormWaitingSubmissions(ctx context.Context, arg FormWaitingSubmissionsParams) ([]FormWaitingSubmissionsRow, error)
+	// Running tests that end on their own once a variant wins.
+	FormsABAutoEnd(ctx context.Context) ([]Form, error)
 	FormsDefaultSender(ctx context.Context, workspaceID uuid.UUID) (FormsDefaultSenderRow, error)
 	// Signup forms and public page settings (spec 5.12, 7.12).
 	FormsList(ctx context.Context, workspaceID uuid.UUID) ([]Form, error)
@@ -4318,6 +4338,10 @@ type Querier interface {
 	// Sidebar sections (Settings › General): the sections a workspace hides.
 	SidebarHiddenSectionsForUpdate(ctx context.Context, id uuid.UUID) ([]string, error)
 	SidebarSetHiddenSections(ctx context.Context, arg SidebarSetHiddenSectionsParams) error
+	// Adds tags a signup brought (a form's choice questions, M60 G-23) to the
+	// contact's own, kept sorted and once each; updating tags fires the
+	// tag_added automation trigger for the new ones.
+	SignupAddContactTags(ctx context.Context, arg SignupAddContactTagsParams) error
 	// Unsubscribes block Broadcasts and Automations; System mail (password
 	// resets, receipts) still reaches the contact.
 	SignupAddUnsubscribe(ctx context.Context, arg SignupAddUnsubscribeParams) error

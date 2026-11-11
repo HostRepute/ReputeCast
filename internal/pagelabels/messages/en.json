@@ -56,6 +56,9 @@
   "form.typo.keep": {"message": "Keep {email}", "note": "the button that keeps the address as typed; email: linh@gmial.com"},
   "form.inbox.open": {"message": "Open {provider}", "note": "after signing up, the button that opens the visitor's web mail; provider: Gmail, Outlook, Yahoo Mail, iCloud Mail or Proton Mail"},
   "form.inbox.newTab": {"message": "(opens in a new tab)", "note": "read by screen readers after Open Gmail"},
+  "form.step.next": {"message": "Next", "note": "the button that moves a multi-step form to its next step"},
+  "form.step.back": {"message": "Back", "note": "the button that goes back to the previous step of a multi-step form"},
+  "form.step.of": {"message": "Step {n} of {total}", "note": "above a multi-step form's step; n: 2, total: 3"},
 
   "challenge.title": "One more step",
   "challenge.text": "Your signup looked automated, so we'd like to make sure you're a person. It only takes a second.",

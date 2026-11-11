@@ -50,6 +50,7 @@
   "short.store_problem": "store problems",
   "short.push_worker_missing": "missing push service workers",
   "short.whatsapp_attention": "WhatsApp templates and quality",
+  "short.form_test_ended": "ended form tests",
 
   "event.approval_requested": {"message": "Approval requested", "note": "Notification preferences: one row per event type, which the member turns on in-app or by email"},
   "event.approval_decided": "Approval approved, rejected or changes requested",
@@ -98,6 +99,7 @@
   "event.store_problem": "Store disconnected or its webhooks missing",
   "event.push_worker_missing": "Push service worker missing",
   "event.whatsapp_attention": "WhatsApp template rejected or quality dropped",
+  "event.form_test_ended": "Signup form A/B test ended",
 
   "audience.approval_requested": {"message": "Only for approvers", "note": "who gets an event type, under its name in Notification preferences; it names who in people's words (\"People who can send campaigns\"), never a permission key"},
   "audience.approval_decided": "Only for the author",
@@ -146,6 +148,7 @@
   "audience.store_problem": "People who can manage integrations",
   "audience.push_worker_missing": "People who can view sending providers",
   "audience.whatsapp_attention": "People who can view sending providers",
+  "audience.form_test_ended": "People who can edit forms · when a test ends on its own",
 
   "category.approvals": {"message": "Approvals", "note": "the notification center's tabs, and the badge on each notification"},
   "category.sending": "Sending",

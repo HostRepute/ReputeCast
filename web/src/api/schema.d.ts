@@ -8642,6 +8642,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a signup form's A/B test and its results
+         * @description Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.
+         */
+        get: operations["get-signup-form-ab-test"];
+        /**
+         * Start or change a signup form's A/B test
+         * @description Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+         */
+        put: operations["save-signup-form-ab-test"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a signup form's A/B test, keeping one variant
+         * @description The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+         */
+        post: operations["end-signup-form-ab-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/forms/{form}/allowed-origins": {
         parameters: {
             query?: never;
@@ -40305,6 +40349,70 @@ export interface components {
             /** Format: int64 */
             waiting: number;
         };
+        SignupFormABEndInput: {
+            /** @enum {string} */
+            keep: "A" | "B" | "C";
+        };
+        SignupFormABInput: {
+            /** @description End the test on its own, keeping the winner, once one is clear */
+            autoEnd: boolean;
+            /** Format: double */
+            confidence: number;
+            /**
+             * Format: int64
+             * @description Views each variant needs before a winner can be called
+             */
+            minViews: number;
+            variants: components["schemas"]["SignupFormVariantInput"][];
+        };
+        SignupFormABResult: {
+            autoEnd: boolean;
+            /** Format: double */
+            confidence: number;
+            doubleOptIn: boolean;
+            /** Format: date-time */
+            endedAt?: string;
+            /** Format: int64 */
+            fewestViews: number;
+            leader?: string;
+            /** Format: double */
+            lift: number;
+            /** Format: int64 */
+            minViews: number;
+            /** @enum {string} */
+            outcome?: "winner" | "not_significant" | "too_small";
+            runnerUp?: string;
+            /**
+             * Format: date
+             * @description The first day counted, in the workspace's time zone
+             */
+            startedOn?: string;
+            /** @enum {string} */
+            status: "none" | "running" | "ended";
+            /**
+             * Format: double
+             * @description What a winner needs, 0.95 for 95%
+             */
+            targetConfidence: number;
+            variants: components["schemas"]["SignupFormABVariant"][];
+            winner?: string;
+        };
+        SignupFormABVariant: {
+            /** Format: int64 */
+            confirmed: number;
+            /** @description What B or C changes; omitted for A */
+            content?: components["schemas"]["SignupFormVariantContent"];
+            /** @enum {string} */
+            key: "A" | "B" | "C";
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            submissions: number;
+            /** Format: int64 */
+            views: number;
+            /** Format: int64 */
+            weight: number;
+        };
         SignupFormBlockedOrigin: {
             /** Format: int64 */
             count: number;
@@ -40312,6 +40420,10 @@ export interface components {
             lastAt: string;
             /** @example staging.acme.io */
             origin: string;
+        };
+        SignupFormChoiceOption: {
+            label: string;
+            tag: string;
         };
         SignupFormConfirmLink: {
             email: string;
@@ -40355,6 +40467,8 @@ export interface components {
             smsConsentText?: string;
             /** Format: int64 */
             smsConsentVersion?: number;
+            steps?: components["schemas"]["SignupFormStep"][];
+            targeting?: components["schemas"]["SignupFormTargeting"];
         };
         SignupFormCopy: {
             /** Format: date-time */
@@ -40372,6 +40486,8 @@ export interface components {
             /** @enum {string} */
             languageMode: "page" | "browser" | "fixed";
             languages: components["schemas"]["SignupFormCopyLanguage"][];
+            options: components["schemas"]["SignupFormCopyString"][];
+            steps: components["schemas"]["SignupFormCopyString"][];
         };
         SignupFormCopyField: {
             key: string;
@@ -40409,6 +40525,11 @@ export interface components {
             /** Format: int64 */
             written: number;
         };
+        SignupFormCopyString: {
+            key: string;
+            /** @description The text in the form's own language */
+            source: string;
+        };
         SignupFormCopyText: {
             /** @description What the form says after a signup */
             afterSubmit: string;
@@ -40419,6 +40540,17 @@ export interface components {
                 [key: string]: string;
             };
             heading: string;
+            options?: {
+                [key: string]: string;
+            };
+            steps?: {
+                [key: string]: string;
+            };
+        };
+        SignupFormCountries: {
+            codes: string[];
+            /** @enum {string} */
+            mode: "all" | "only" | "except";
         };
         SignupFormCreateInput: {
             /** @enum {string} */
@@ -40433,11 +40565,17 @@ export interface components {
             type: "text" | "number" | "date" | "boolean" | "select";
         };
         SignupFormField: {
-            /** @description email, first_name, last_name, company or a custom field key */
+            /** @description email, first_name, last_name, company, a custom field key, or a choice question's own key */
             key: string;
-            /** @description Shown above the input; empty uses the field's name */
+            /** @description Shown above the input; empty uses the field's name (a choice question needs its question) */
             label: string;
+            /** @description A choice question that takes several answers */
+            multiple?: boolean;
+            /** @description A choice question's answers (2 to 12) */
+            options?: components["schemas"]["SignupFormChoiceOption"][];
             required: boolean;
+            /** @enum {string} */
+            type?: "choice";
         };
         SignupFormInput: {
             /** @enum {string} */
@@ -40475,8 +40613,32 @@ export interface components {
             /** @example staging.acme.io */
             origin: string;
         };
+        SignupFormPageRule: {
+            /** @enum {string} */
+            op: "contains" | "equals" | "starts_with";
+            /** @example /pricing */
+            value: string;
+        };
+        SignupFormPageRules: {
+            /** @enum {string} */
+            mode: "all" | "only" | "except";
+            rules: components["schemas"]["SignupFormPageRule"][];
+        };
         SignupFormRenameInput: {
             name: string;
+        };
+        SignupFormSchedule: {
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: date-time */
+            startsAt?: string;
+        };
+        SignupFormSources: {
+            /** @enum {string} */
+            referrer: "any" | "search" | "social" | "other_site" | "direct";
+            utmCampaign: string[];
+            utmMedium: string[];
+            utmSource: string[];
         };
         SignupFormSpam: {
             blockDisposable: boolean;
@@ -40510,6 +40672,9 @@ export interface components {
              * @description Double opt-in confirmations not clicked yet
              */
             pending: number;
+            /** Format: int64 */
+            stepSignups: number;
+            steps: components["schemas"]["SignupFormStepStat"][];
             /** Format: double */
             submissionRate: number;
             /** Format: int64 */
@@ -40520,6 +40685,23 @@ export interface components {
         SignupFormStatusInput: {
             /** @enum {string} */
             status: "live" | "paused";
+        };
+        SignupFormStep: {
+            button?: string;
+            description?: string;
+            fields: string[];
+            heading?: string;
+            /** @description s1 to s4, kept when steps move so their translations stay */
+            id: string;
+        };
+        SignupFormStepStat: {
+            /**
+             * Format: int64
+             * @description 1 to 4
+             */
+            step: number;
+            /** Format: int64 */
+            views: number;
         };
         SignupFormSummary: {
             hostedPage: boolean;
@@ -40534,12 +40716,49 @@ export interface components {
             /** @enum {string} */
             status: "draft" | "live" | "paused";
         };
+        SignupFormTargeting: {
+            countries: components["schemas"]["SignupFormCountries"];
+            /** @description None: every device */
+            devices: ("desktop" | "tablet" | "mobile")[];
+            pages: components["schemas"]["SignupFormPageRules"];
+            schedule: components["schemas"]["SignupFormSchedule"];
+            sources: components["schemas"]["SignupFormSources"];
+            /**
+             * @description Returning: this browser has seen one of the workspace's forms before today
+             * @enum {string}
+             */
+            visitors: "all" | "new" | "returning";
+        };
         SignupFormURLs: {
             hosted: string;
             script: string;
             /** Format: int64 */
             scriptKb: number;
             submit: string;
+        };
+        SignupFormVariantContent: {
+            afterSubmitText?: string;
+            button: string;
+            description: string;
+            heading: string;
+            /** Format: int64 */
+            popupDelay: number;
+            popupExit?: boolean;
+            /** Format: int64 */
+            popupScroll: number;
+            /** @description Omitted or one step: everything at once */
+            steps?: components["schemas"]["SignupFormStep"][];
+        };
+        SignupFormVariantInput: {
+            /** @description Required for B and C; ignored for A */
+            content?: components["schemas"]["SignupFormVariantContent"];
+            /** @enum {string} */
+            key: "A" | "B" | "C";
+            /**
+             * Format: int64
+             * @description Percent of visitors; the variants add up to 100
+             */
+            weight: number;
         };
         SignupFormWaiting: {
             items: components["schemas"]["SignupFormWaitingItem"][];
@@ -40567,6 +40786,7 @@ export interface components {
             customFields: components["schemas"]["SignupFormCustomField"][];
             domain: components["schemas"]["PublicCustomDomain"];
             forms: components["schemas"]["SignupFormSummary"][];
+            geoip: boolean;
             hostedFormId: string;
             hostedUrl: string;
             lists: components["schemas"]["SignupFormList"][];
@@ -67497,6 +67717,116 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormABInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormABEndInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
             };
             /** @description Error */
             default: {

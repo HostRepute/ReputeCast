@@ -14,6 +14,26 @@ import (
 	"github.com/google/uuid"
 )
 
+const signupAddContactTags = `-- name: SignupAddContactTags :exec
+UPDATE contacts
+SET tags = (SELECT array_agg(DISTINCT t ORDER BY t) FROM unnest(tags || $1::text[]) AS t), updated_at = $2::timestamptz
+WHERE id = $3 AND NOT (tags @> $1::text[])
+`
+
+type SignupAddContactTagsParams struct {
+	Tags []string  `json:"tags"`
+	At   time.Time `json:"at"`
+	ID   uuid.UUID `json:"id"`
+}
+
+// Adds tags a signup brought (a form's choice questions, M60 G-23) to the
+// contact's own, kept sorted and once each; updating tags fires the
+// tag_added automation trigger for the new ones.
+func (q *Queries) SignupAddContactTags(ctx context.Context, arg SignupAddContactTagsParams) error {
+	_, err := q.db.Exec(ctx, signupAddContactTags, arg.Tags, arg.At, arg.ID)
+	return err
+}
+
 const signupAddUnsubscribe = `-- name: SignupAddUnsubscribe :exec
 INSERT INTO suppressions (id, workspace_id, email, reason, source, detail, scope, campaign_id, context, created_at, texts)
 VALUES ($1, $2, $3, 'unsubscribe', $4, $5, 'marketing', $6, $7, $8, coalesce($9::jsonb, '{}'))

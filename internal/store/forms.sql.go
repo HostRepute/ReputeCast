@@ -16,7 +16,7 @@ import (
 const formAllowOrigin = `-- name: FormAllowOrigin :one
 UPDATE forms SET allowed_origins = array_append(allowed_origins, $1::text), updated_by = $2, updated_at = $3
 WHERE workspace_id = $4 AND id = $5 AND NOT ($1::text = ANY (allowed_origins))
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab
 `
 
 type FormAllowOriginParams struct {
@@ -72,6 +72,7 @@ func (q *Queries) FormAllowOrigin(ctx context.Context, arg FormAllowOriginParams
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
 }
@@ -116,9 +117,9 @@ func (q *Queries) FormBlockedOrigins(ctx context.Context, arg FormBlockedOrigins
 }
 
 const formBumpDaily = `-- name: FormBumpDaily :exec
-INSERT INTO form_daily (form_id, day, views, submissions, confirmed, blocked)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (form_id, day) DO UPDATE
+INSERT INTO form_daily (form_id, day, variant, views, submissions, confirmed, blocked)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (form_id, day, variant) DO UPDATE
 SET views = form_daily.views + excluded.views,
     submissions = form_daily.submissions + excluded.submissions,
     confirmed = form_daily.confirmed + excluded.confirmed,
@@ -128,20 +129,49 @@ SET views = form_daily.views + excluded.views,
 type FormBumpDailyParams struct {
 	FormID      uuid.UUID `json:"formId"`
 	Day         time.Time `json:"day"`
+	Variant     string    `json:"variant"`
 	Views       int64     `json:"views"`
 	Submissions int64     `json:"submissions"`
 	Confirmed   int64     `json:"confirmed"`
 	Blocked     int64     `json:"blocked"`
 }
 
+// variant is the A/B test's variant the numbers belong to (” outside a test).
 func (q *Queries) FormBumpDaily(ctx context.Context, arg FormBumpDailyParams) error {
 	_, err := q.db.Exec(ctx, formBumpDaily,
 		arg.FormID,
 		arg.Day,
+		arg.Variant,
 		arg.Views,
 		arg.Submissions,
 		arg.Confirmed,
 		arg.Blocked,
+	)
+	return err
+}
+
+const formBumpStep = `-- name: FormBumpStep :exec
+
+INSERT INTO form_step_daily (form_id, day, variant, step, views)
+VALUES ($1, $2, $3, $4, 1)
+ON CONFLICT (form_id, day, variant, step) DO UPDATE SET views = form_step_daily.views + 1
+`
+
+type FormBumpStepParams struct {
+	FormID  uuid.UUID `json:"formId"`
+	Day     time.Time `json:"day"`
+	Variant string    `json:"variant"`
+	Step    int16     `json:"step"`
+}
+
+// M60 G-23–G-25: steps, A/B tests.
+// One view of a step after the first, per day and variant.
+func (q *Queries) FormBumpStep(ctx context.Context, arg FormBumpStepParams) error {
+	_, err := q.db.Exec(ctx, formBumpStep,
+		arg.FormID,
+		arg.Day,
+		arg.Variant,
+		arg.Step,
 	)
 	return err
 }
@@ -172,7 +202,7 @@ func (q *Queries) FormBumpTotals(ctx context.Context, arg FormBumpTotalsParams) 
 }
 
 const formByPublicID = `-- name: FormByPublicID :one
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 AND public_id = $2
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab FROM forms WHERE workspace_id = $1 AND public_id = $2
 `
 
 type FormByPublicIDParams struct {
@@ -219,12 +249,13 @@ func (q *Queries) FormByPublicID(ctx context.Context, arg FormByPublicIDParams) 
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
 }
 
 const formBySlug = `-- name: FormBySlug :one
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 AND slug = $2
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab FROM forms WHERE workspace_id = $1 AND slug = $2
 `
 
 type FormBySlugParams struct {
@@ -271,6 +302,7 @@ func (q *Queries) FormBySlug(ctx context.Context, arg FormBySlugParams) (Form, e
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
 }
@@ -395,8 +427,75 @@ func (q *Queries) FormDismissOrigin(ctx context.Context, arg FormDismissOriginPa
 	return result.RowsAffected(), nil
 }
 
+const formEndAB = `-- name: FormEndAB :one
+UPDATE forms SET ab = $1, content = $2, updated_by = $3, updated_at = $4
+WHERE workspace_id = $5 AND id = $6
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab
+`
+
+type FormEndABParams struct {
+	Ab          json.RawMessage `json:"ab"`
+	Content     json.RawMessage `json:"content"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	At          time.Time       `json:"at"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ID          uuid.UUID       `json:"id"`
+}
+
+// Ends a test: the kept variant's overrides become the form's content.
+func (q *Queries) FormEndAB(ctx context.Context, arg FormEndABParams) (Form, error) {
+	row := q.db.QueryRow(ctx, formEndAB,
+		arg.Ab,
+		arg.Content,
+		arg.UpdatedBy,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	var i Form
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Kind,
+		&i.Slug,
+		&i.ListIds,
+		&i.DoubleOptIn,
+		&i.Fields,
+		&i.Content,
+		&i.SpamProtection,
+		&i.Status,
+		&i.Views,
+		&i.Submissions,
+		&i.Confirmed,
+		&i.Blocked,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PublicID,
+		&i.DefaultListIds,
+		&i.ListChoice,
+		&i.ConsentText,
+		&i.ConsentVersion,
+		&i.AllowedOrigins,
+		&i.AfterSubmit,
+		&i.RedirectUrl,
+		&i.PublishedAt,
+		&i.UpdatedBy,
+		&i.CopyLanguage,
+		&i.LanguageMode,
+		&i.FixedLanguage,
+		&i.ConsentChangedBy,
+		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
+		&i.Ab,
+	)
+	return i, err
+}
+
 const formGet = `-- name: FormGet :one
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab FROM forms WHERE workspace_id = $1 AND id = $2
 `
 
 type FormGetParams struct {
@@ -443,6 +542,7 @@ func (q *Queries) FormGet(ctx context.Context, arg FormGetParams) (Form, error) 
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
 }
@@ -454,7 +554,7 @@ INSERT INTO forms (id, workspace_id, name, kind, slug, public_id, list_ids, defa
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18,
         $19, $20, $21, $21, $22, $22)
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab
 `
 
 type FormInsertParams struct {
@@ -544,6 +644,7 @@ func (q *Queries) FormInsert(ctx context.Context, arg FormInsertParams) (Form, e
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
 }
@@ -564,6 +665,31 @@ func (q *Queries) FormLastSubmissionForContact(ctx context.Context, contactID uu
 	row := q.db.QueryRow(ctx, formLastSubmissionForContact, contactID)
 	var i FormLastSubmissionForContactRow
 	err := row.Scan(&i.FormID, &i.ListIds)
+	return i, err
+}
+
+const formOwnStatsSince = `-- name: FormOwnStatsSince :one
+SELECT coalesce(sum(views), 0)::bigint AS views, coalesce(sum(submissions), 0)::bigint AS submissions
+FROM form_daily
+WHERE form_id = $1 AND day >= $2::date AND variant IN ('', 'A')
+`
+
+type FormOwnStatsSinceParams struct {
+	FormID uuid.UUID `json:"formId"`
+	Since  time.Time `json:"since"`
+}
+
+type FormOwnStatsSinceRow struct {
+	Views       int64 `json:"views"`
+	Submissions int64 `json:"submissions"`
+}
+
+// Views and submissions of the form itself (outside a test, or its variant
+// A): the first and last bars of the step funnel.
+func (q *Queries) FormOwnStatsSince(ctx context.Context, arg FormOwnStatsSinceParams) (FormOwnStatsSinceRow, error) {
+	row := q.db.QueryRow(ctx, formOwnStatsSince, arg.FormID, arg.Since)
+	var i FormOwnStatsSinceRow
+	err := row.Scan(&i.Views, &i.Submissions)
 	return i, err
 }
 
@@ -612,7 +738,7 @@ func (q *Queries) FormRecordRejection(ctx context.Context, arg FormRecordRejecti
 const formRename = `-- name: FormRename :one
 UPDATE forms SET name = $1, slug = $2, updated_by = $3, updated_at = $4
 WHERE workspace_id = $5 AND id = $6
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab
 `
 
 type FormRenameParams struct {
@@ -670,6 +796,71 @@ func (q *Queries) FormRename(ctx context.Context, arg FormRenameParams) (Form, e
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
+	)
+	return i, err
+}
+
+const formSetAB = `-- name: FormSetAB :one
+UPDATE forms SET ab = $1, updated_by = $2, updated_at = $3
+WHERE workspace_id = $4 AND id = $5
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab
+`
+
+type FormSetABParams struct {
+	Ab          json.RawMessage `json:"ab"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	At          time.Time       `json:"at"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	ID          uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) FormSetAB(ctx context.Context, arg FormSetABParams) (Form, error) {
+	row := q.db.QueryRow(ctx, formSetAB,
+		arg.Ab,
+		arg.UpdatedBy,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	var i Form
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Kind,
+		&i.Slug,
+		&i.ListIds,
+		&i.DoubleOptIn,
+		&i.Fields,
+		&i.Content,
+		&i.SpamProtection,
+		&i.Status,
+		&i.Views,
+		&i.Submissions,
+		&i.Confirmed,
+		&i.Blocked,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PublicID,
+		&i.DefaultListIds,
+		&i.ListChoice,
+		&i.ConsentText,
+		&i.ConsentVersion,
+		&i.AllowedOrigins,
+		&i.AfterSubmit,
+		&i.RedirectUrl,
+		&i.PublishedAt,
+		&i.UpdatedBy,
+		&i.CopyLanguage,
+		&i.LanguageMode,
+		&i.FixedLanguage,
+		&i.ConsentChangedBy,
+		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
 }
@@ -677,7 +868,7 @@ func (q *Queries) FormRename(ctx context.Context, arg FormRenameParams) (Form, e
 const formSetStatus = `-- name: FormSetStatus :one
 UPDATE forms SET status = $1, updated_by = $2, updated_at = $3
 WHERE workspace_id = $4 AND id = $5
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab
 `
 
 type FormSetStatusParams struct {
@@ -733,6 +924,7 @@ func (q *Queries) FormSetStatus(ctx context.Context, arg FormSetStatusParams) (F
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
 }
@@ -806,8 +998,47 @@ func (q *Queries) FormStatsSince(ctx context.Context, arg FormStatsSinceParams) 
 	return items, nil
 }
 
+const formStepViewsSince = `-- name: FormStepViewsSince :many
+SELECT step::int AS step, coalesce(sum(views), 0)::bigint AS views
+FROM form_step_daily
+WHERE form_id = $1 AND day >= $2::date AND variant IN ('', 'A')
+GROUP BY step
+ORDER BY step
+`
+
+type FormStepViewsSinceParams struct {
+	FormID uuid.UUID `json:"formId"`
+	Since  time.Time `json:"since"`
+}
+
+type FormStepViewsSinceRow struct {
+	Step  int32 `json:"step"`
+	Views int64 `json:"views"`
+}
+
+// The step funnel of the form itself (outside a test, or its variant A).
+func (q *Queries) FormStepViewsSince(ctx context.Context, arg FormStepViewsSinceParams) ([]FormStepViewsSinceRow, error) {
+	rows, err := q.db.Query(ctx, formStepViewsSince, arg.FormID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FormStepViewsSinceRow{}
+	for rows.Next() {
+		var i FormStepViewsSinceRow
+		if err := rows.Scan(&i.Step, &i.Views); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const formSubmissionByID = `-- name: FormSubmissionByID :one
-SELECT id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirm_sent_at, send_attempts, reminded_at, confirmed_at, language FROM form_submissions WHERE id = $1 AND workspace_id = $2 AND form_id = $3
+SELECT id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirm_sent_at, send_attempts, reminded_at, confirmed_at, language, variant FROM form_submissions WHERE id = $1 AND workspace_id = $2 AND form_id = $3
 `
 
 type FormSubmissionByIDParams struct {
@@ -832,13 +1063,14 @@ func (q *Queries) FormSubmissionByID(ctx context.Context, arg FormSubmissionByID
 		&i.RemindedAt,
 		&i.ConfirmedAt,
 		&i.Language,
+		&i.Variant,
 	)
 	return i, err
 }
 
 const formSubmissionInsert = `-- name: FormSubmissionInsert :exec
-INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, language, created_at, confirmed_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, language, variant, created_at, confirmed_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type FormSubmissionInsertParams struct {
@@ -849,6 +1081,7 @@ type FormSubmissionInsertParams struct {
 	ListIds     []uuid.UUID `json:"listIds"`
 	DoubleOptIn bool        `json:"doubleOptIn"`
 	Language    string      `json:"language"`
+	Variant     string      `json:"variant"`
 	At          time.Time   `json:"at"`
 	ConfirmedAt *time.Time  `json:"confirmedAt"`
 }
@@ -862,6 +1095,7 @@ func (q *Queries) FormSubmissionInsert(ctx context.Context, arg FormSubmissionIn
 		arg.ListIds,
 		arg.DoubleOptIn,
 		arg.Language,
+		arg.Variant,
 		arg.At,
 		arg.ConfirmedAt,
 	)
@@ -906,7 +1140,7 @@ func (q *Queries) FormSubmissionMarkSent(ctx context.Context, arg FormSubmission
 }
 
 const formSubmissionOfContact = `-- name: FormSubmissionOfContact :one
-SELECT id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirm_sent_at, send_attempts, reminded_at, confirmed_at, language FROM form_submissions WHERE id = $1 AND contact_id = $2
+SELECT id, workspace_id, form_id, contact_id, list_ids, double_opt_in, created_at, confirm_sent_at, send_attempts, reminded_at, confirmed_at, language, variant FROM form_submissions WHERE id = $1 AND contact_id = $2
 `
 
 type FormSubmissionOfContactParams struct {
@@ -931,6 +1165,7 @@ func (q *Queries) FormSubmissionOfContact(ctx context.Context, arg FormSubmissio
 		&i.RemindedAt,
 		&i.ConfirmedAt,
 		&i.Language,
+		&i.Variant,
 	)
 	return i, err
 }
@@ -957,7 +1192,7 @@ SET confirmed_at = $1
 WHERE fs.contact_id = $2 AND fs.double_opt_in AND fs.confirmed_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = fs.contact_id
                   AND m.status = 'pending' AND m.list_id = ANY (fs.list_ids))
-RETURNING fs.id, fs.form_id, fs.created_at
+RETURNING fs.id, fs.form_id, fs.created_at, fs.variant
 `
 
 type FormSubmissionsConfirmParams struct {
@@ -969,6 +1204,7 @@ type FormSubmissionsConfirmRow struct {
 	ID        uuid.UUID  `json:"id"`
 	FormID    *uuid.UUID `json:"formId"`
 	CreatedAt time.Time  `json:"createdAt"`
+	Variant   string     `json:"variant"`
 }
 
 // Marks a contact's waiting submissions confirmed once none of their lists
@@ -983,7 +1219,12 @@ func (q *Queries) FormSubmissionsConfirm(ctx context.Context, arg FormSubmission
 	items := []FormSubmissionsConfirmRow{}
 	for rows.Next() {
 		var i FormSubmissionsConfirmRow
-		if err := rows.Scan(&i.ID, &i.FormID, &i.CreatedAt); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.FormID,
+			&i.CreatedAt,
+			&i.Variant,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1107,7 +1348,7 @@ SET name = $1, kind = $2, list_ids = $3, default_list_ids = $4, list_choice = $5
     published_at = CASE WHEN $17::text = 'live' THEN $14::timestamptz ELSE published_at END,
     updated_by = $13, updated_at = $14
 WHERE workspace_id = $18 AND id = $19
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab
 `
 
 type FormUpdateParams struct {
@@ -1191,8 +1432,139 @@ func (q *Queries) FormUpdate(ctx context.Context, arg FormUpdateParams) (Form, e
 		&i.ConsentChangedAt,
 		&i.DownloadFileID,
 		&i.DownloadDays,
+		&i.Ab,
 	)
 	return i, err
+}
+
+const formVariantStatsSince = `-- name: FormVariantStatsSince :many
+SELECT variant,
+       coalesce(sum(views), 0)::bigint AS views,
+       coalesce(sum(submissions), 0)::bigint AS submissions,
+       coalesce(sum(confirmed), 0)::bigint AS confirmed
+FROM form_daily
+WHERE form_id = $1 AND day >= $2::date AND variant <> ''
+GROUP BY variant
+`
+
+type FormVariantStatsSinceParams struct {
+	FormID uuid.UUID `json:"formId"`
+	Since  time.Time `json:"since"`
+}
+
+type FormVariantStatsSinceRow struct {
+	Variant     string `json:"variant"`
+	Views       int64  `json:"views"`
+	Submissions int64  `json:"submissions"`
+	Confirmed   int64  `json:"confirmed"`
+}
+
+// An A/B test's numbers per variant since it started.
+func (q *Queries) FormVariantStatsSince(ctx context.Context, arg FormVariantStatsSinceParams) ([]FormVariantStatsSinceRow, error) {
+	rows, err := q.db.Query(ctx, formVariantStatsSince, arg.FormID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FormVariantStatsSinceRow{}
+	for rows.Next() {
+		var i FormVariantStatsSinceRow
+		if err := rows.Scan(
+			&i.Variant,
+			&i.Views,
+			&i.Submissions,
+			&i.Confirmed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const formVariantUpsert = `-- name: FormVariantUpsert :exec
+INSERT INTO form_variants (id, form_id, key, weight, content, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $6)
+ON CONFLICT (form_id, key) DO UPDATE SET weight = excluded.weight, content = excluded.content, updated_at = excluded.updated_at
+`
+
+type FormVariantUpsertParams struct {
+	ID      uuid.UUID       `json:"id"`
+	FormID  uuid.UUID       `json:"formId"`
+	Key     string          `json:"key"`
+	Weight  int32           `json:"weight"`
+	Content json.RawMessage `json:"content"`
+	At      time.Time       `json:"at"`
+}
+
+func (q *Queries) FormVariantUpsert(ctx context.Context, arg FormVariantUpsertParams) error {
+	_, err := q.db.Exec(ctx, formVariantUpsert,
+		arg.ID,
+		arg.FormID,
+		arg.Key,
+		arg.Weight,
+		arg.Content,
+		arg.At,
+	)
+	return err
+}
+
+const formVariantsDelete = `-- name: FormVariantsDelete :exec
+DELETE FROM form_variants WHERE form_id = $1
+`
+
+func (q *Queries) FormVariantsDelete(ctx context.Context, formID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, formVariantsDelete, formID)
+	return err
+}
+
+const formVariantsDeleteExcept = `-- name: FormVariantsDeleteExcept :exec
+DELETE FROM form_variants WHERE form_id = $1 AND NOT (key = ANY ($2::text[]))
+`
+
+type FormVariantsDeleteExceptParams struct {
+	FormID uuid.UUID `json:"formId"`
+	Keys   []string  `json:"keys"`
+}
+
+func (q *Queries) FormVariantsDeleteExcept(ctx context.Context, arg FormVariantsDeleteExceptParams) error {
+	_, err := q.db.Exec(ctx, formVariantsDeleteExcept, arg.FormID, arg.Keys)
+	return err
+}
+
+const formVariantsList = `-- name: FormVariantsList :many
+SELECT id, form_id, key, weight, content, created_at, updated_at FROM form_variants WHERE form_id = $1 ORDER BY key
+`
+
+func (q *Queries) FormVariantsList(ctx context.Context, formID uuid.UUID) ([]FormVariant, error) {
+	rows, err := q.db.Query(ctx, formVariantsList, formID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FormVariant{}
+	for rows.Next() {
+		var i FormVariant
+		if err := rows.Scan(
+			&i.ID,
+			&i.FormID,
+			&i.Key,
+			&i.Weight,
+			&i.Content,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const formWaitingCount = `-- name: FormWaitingCount :one
@@ -1262,6 +1634,68 @@ func (q *Queries) FormWaitingSubmissions(ctx context.Context, arg FormWaitingSub
 	return items, nil
 }
 
+const formsABAutoEnd = `-- name: FormsABAutoEnd :many
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab FROM forms WHERE ab @> '{"status": "running", "autoEnd": true}'::jsonb ORDER BY id
+`
+
+// Running tests that end on their own once a variant wins.
+func (q *Queries) FormsABAutoEnd(ctx context.Context) ([]Form, error) {
+	rows, err := q.db.Query(ctx, formsABAutoEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Form{}
+	for rows.Next() {
+		var i Form
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Name,
+			&i.Kind,
+			&i.Slug,
+			&i.ListIds,
+			&i.DoubleOptIn,
+			&i.Fields,
+			&i.Content,
+			&i.SpamProtection,
+			&i.Status,
+			&i.Views,
+			&i.Submissions,
+			&i.Confirmed,
+			&i.Blocked,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PublicID,
+			&i.DefaultListIds,
+			&i.ListChoice,
+			&i.ConsentText,
+			&i.ConsentVersion,
+			&i.AllowedOrigins,
+			&i.AfterSubmit,
+			&i.RedirectUrl,
+			&i.PublishedAt,
+			&i.UpdatedBy,
+			&i.CopyLanguage,
+			&i.LanguageMode,
+			&i.FixedLanguage,
+			&i.ConsentChangedBy,
+			&i.ConsentChangedAt,
+			&i.DownloadFileID,
+			&i.DownloadDays,
+			&i.Ab,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const formsDefaultSender = `-- name: FormsDefaultSender :one
 SELECT s.email, s.name FROM workspaces w JOIN senders s ON s.id = w.default_sender_id WHERE w.id = $1
 `
@@ -1280,7 +1714,7 @@ func (q *Queries) FormsDefaultSender(ctx context.Context, workspaceID uuid.UUID)
 
 const formsList = `-- name: FormsList :many
 
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 ORDER BY created_at, id
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days, ab FROM forms WHERE workspace_id = $1 ORDER BY created_at, id
 `
 
 // Signup forms and public page settings (spec 5.12, 7.12).
@@ -1329,6 +1763,7 @@ func (q *Queries) FormsList(ctx context.Context, workspaceID uuid.UUID) ([]Form,
 			&i.ConsentChangedAt,
 			&i.DownloadFileID,
 			&i.DownloadDays,
+			&i.Ab,
 		); err != nil {
 			return nil, err
 		}
