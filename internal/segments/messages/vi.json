@@ -197,5 +197,8 @@
   "sql.readOnly": "Phân khúc SQL chỉ đọc: chúng không thể thay đổi dữ liệu.",
   "sql.roles": "Phân khúc SQL không thể thay đổi vai trò hoặc cài đặt phiên.",
   "sql.function": "Phân khúc SQL không thể gọi {name}.",
-  "sql.unicodeIdentifier": "Phân khúc SQL không thể dùng định danh U&\"…\": hãy viết tên như bình thường."
+  "sql.unicodeIdentifier": "Phân khúc SQL không thể dùng định danh U&\"…\": hãy viết tên như bình thường.",
+  "field.site_viewed_product": "Đã xem một sản phẩm",
+  "field.site_last_seen": "Lần cuối thấy trên trang web",
+  "problem.pickCollection": "Hãy chọn một bộ sưu tập của cửa hàng, hoặc bất kỳ sản phẩm nào."
 }

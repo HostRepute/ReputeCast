@@ -12,6 +12,8 @@
 //	/p/{workspace}/archive[/{issue}]      public newsletter archive
 //	/p/{workspace}/archive.rss            archive feed
 //	/r/{token}                            read-only shared campaign report
+//	/track/v1/rc.js                       the site tracker's script (M62)
+//	/p/{workspace}/track/{site}/e         the site tracker's events
 //
 // {workspace} is the workspace slug. Handlers must still check that a token's
 // workspace matches the slug in the path.
@@ -177,3 +179,11 @@ func (b Builder) ArchiveFeed(workspace string) string {
 
 // Report is a read-only shared campaign report.
 func (b Builder) Report(token string) string { return b.join("r", token) }
+
+// TrackerScript is the site tracker's script, for a site's snippet.
+func (b Builder) TrackerScript() string { return b.join("track", "v1", "rc.js") }
+
+// TrackerCollect is where a tracked site's events go.
+func (b Builder) TrackerCollect(workspace, site string) string {
+	return b.join("p", workspace, "track", site, "e")
+}

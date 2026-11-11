@@ -30,10 +30,16 @@ const MaxWebhookBody = 2 << 20
 const lifecyclePosition = 100
 
 // topicsOf are the webhooks a store registers: its platform's data topics,
-// then Shopify's lifecycle topic.
-func topicsOf(platform string) []string {
-	t := slices.Clone(descriptor(platform).Topics)
-	if platform == Shopify {
+// the stock topic when the store granted its scope (Shopify's
+// inventory_levels/update with read_inventory), then Shopify's lifecycle
+// topic.
+func topicsOf(st store.Store) []string {
+	d := descriptor(st.Platform)
+	t := slices.Clone(d.Topics)
+	if d.InventoryTopic != "" && slices.Contains(st.Scopes, d.InventoryScope) {
+		t = append(t, d.InventoryTopic)
+	}
+	if st.Platform == Shopify {
 		t = append(t, shopify.LifecycleTopic)
 	}
 	return t
@@ -67,7 +73,7 @@ func (s *Service) registerWebhooks(ctx context.Context, st store.Store, by *uuid
 		}
 	}
 	now := s.now()
-	for i, topic := range topicsOf(st.Platform) {
+	for i, topic := range topicsOf(st) {
 		pos := int32(i)
 		if topic == shopify.LifecycleTopic {
 			pos = lifecyclePosition
@@ -305,10 +311,21 @@ func (s *Service) Apply(ctx context.Context, id uuid.UUID) error {
 		}
 		return s.Q.CommerceEventDone(ctx, store.CommerceEventDoneParams{ID: ev.ID, Status: "applied", Outcome: "uninstalled", At: now})
 	}
+	if parsed.Kind == stores.EventInventory {
+		// A stock level names an inventory item: the product is read
+		// again, before the transaction.
+		done, err := s.inventoryProduct(ctx, st, &parsed)
+		if err != nil {
+			return err
+		}
+		if done != "" {
+			return s.Q.CommerceEventDone(ctx, store.CommerceEventDoneParams{ID: ev.ID, Status: "ignored", Outcome: done, At: now})
+		}
+	}
 	var emitted bool
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		res, err := s.applyEvent(ctx, q, st, parsed, sourceWebhook)
+		res, err := s.applyEvent(ctx, tx, q, st, parsed, sourceWebhook)
 		if err != nil {
 			return err
 		}
@@ -322,6 +339,36 @@ func (s *Service) Apply(ctx context.Context, id uuid.UUID) error {
 		s.Kick(ctx)
 	}
 	return nil
+}
+
+// inventoryProduct turns a stock level into the product it changed, read
+// again from the store. It says why when there's nothing to apply (an
+// item the store no longer has, products that don't sync); a refused or
+// throttled call is an error, so the job tries again.
+func (s *Service) inventoryProduct(ctx context.Context, st store.Store, ev *stores.Event) (string, error) {
+	if !st.SyncProducts {
+		return "products don't sync", nil
+	}
+	c, err := s.client(st)
+	if err != nil {
+		return "", err
+	}
+	r, ok := c.(stores.InventoryReader)
+	if !ok {
+		return "unknown event", nil
+	}
+	p, err := r.InventoryProduct(ctx, ev.InventoryItemID)
+	if errors.Is(err, stores.ErrNotFound) {
+		return "unknown inventory item", nil
+	}
+	if err != nil {
+		if wait, ok := stores.IsRateLimited(err); ok {
+			_ = s.rateLimited(ctx, st, wait)
+		}
+		return "", err
+	}
+	ev.Kind, ev.Product = stores.EventProduct, &p
+	return "", nil
 }
 
 // Sources of data (store_orders.source).
@@ -341,8 +388,8 @@ type applied struct {
 	newOrder bool
 }
 
-// applyEvent applies one normalized event.
-func (s *Service) applyEvent(ctx context.Context, q *store.Queries, st store.Store, ev stores.Event, source string) (applied, error) {
+// applyEvent applies one normalized event in tx.
+func (s *Service) applyEvent(ctx context.Context, tx pgx.Tx, q *store.Queries, st store.Store, ev stores.Event, source string) (applied, error) {
 	switch ev.Kind {
 	case stores.EventOrder:
 		if !st.SyncOrders {
@@ -367,7 +414,7 @@ func (s *Service) applyEvent(ctx context.Context, q *store.Queries, st store.Sto
 		if !st.SyncProducts {
 			return applied{status: "ignored", outcome: "products don't sync"}, nil
 		}
-		return s.applyProduct(ctx, q, st, *ev.Product, true)
+		return s.applyProduct(ctx, tx, q, st, *ev.Product, true)
 	case stores.EventProductDeleted:
 		n, err := q.CommerceProductRemoved(ctx, store.CommerceProductRemovedParams{StoreID: st.ID, ExternalID: ev.DeletedID, At: s.now()})
 		if err != nil {

@@ -1,0 +1,17 @@
+{
+  "problem.name": "Geben Sie der Website einen Namen mit höchstens 80 Zeichen.",
+  "problem.origin": "Geben Sie die Adresse der Website als https://shop.acme.io ein: https, eine Domain und nur dann einen Port, wenn er nicht 443 ist.",
+  "problem.originLocal": "Geben Sie die Adresse der Website als https://shop.acme.io ein. Solange ReputeCast im Entwicklungsmodus läuft, funktioniert auch http://localhost.",
+  "problem.originOwn": "{host} zeigt ReputeCasts eigene Seiten, und die werden nie getrackt: Sie bleiben ohne Cookies. Fügen Sie stattdessen Ihre eigene Website oder Ihren Shop hinzu.",
+  "problem.originTaken": "{origin} ist in diesem Arbeitsbereich bereits eine getrackte Website.",
+  "problem.store": "Wählen Sie einen mit diesem Arbeitsbereich verbundenen Shop oder keinen Shop.",
+  "problem.siteGone": "Diese getrackte Website gibt es nicht oder sie wurde gelöscht. Laden Sie die Liste neu.",
+  "snippet.wordpress": "Öffnen Sie in WordPress Einstellungen › ReputeCast, schalten Sie Site tracking ein und fügen Sie diese Website-ID ein: {site}. Damit angemeldete Kunden erkannt werden, fügen Sie dort auch das Identify-Secret ein.",
+  "snippet.pixelConsent": "Diese Website wartet auf Einwilligung: Ereignisse werden gesendet, sobald der Besucher Analysen erlaubt.",
+  "snippet.pixelOpen": "Shopify › Einstellungen › Kundenereignisse › Benutzerdefiniertes Pixel hinzufügen, dann diesen Code einfügen.",
+  "activity.viewed": "{count, plural, one {# Produkt auf {host} angesehen} other {# Produkte auf {host} angesehen}}",
+  "activity.visited": "{host} besucht",
+  "activity.carts": "{count, plural, one {# in den Warenkorb gelegt} other {# in den Warenkorb gelegt}}",
+  "hub.facts": "{sites, plural, one {# Website} other {# Websites}} · {events, plural, one {# Ereignis heute} other {# Ereignisse heute}}",
+  "activity.source": "Website-Tracking"
+}

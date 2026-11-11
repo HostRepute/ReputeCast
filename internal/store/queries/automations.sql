@@ -831,3 +831,10 @@ SELECT id, name FROM campaigns
 WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status IN ('scheduled', 'sending', 'paused', 'sent', 'approved')
 ORDER BY coalesce(started_at, scheduled_at, created_at) DESC, id
 LIMIT 100;
+
+-- name: AutomationTrackedStores :many
+-- The stores a tracked site names (Website tracking, M62): browse, cart and
+-- price-drop flows learn who viewed what through one of them.
+SELECT DISTINCT ON (store_id) store_id::uuid AS store_id, origin FROM tracker_sites
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND store_id IS NOT NULL
+ORDER BY store_id, created_at;

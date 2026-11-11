@@ -565,6 +565,9 @@ type Querier interface {
 	// The workspace's stores, for the store triggers' and goal's references.
 	AutomationStoreRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationStoreRefsRow, error)
 	AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTopTagsRow, error)
+	// The stores a tracked site names (Website tracking, M62): browse, cart and
+	// price-drop flows learn who viewed what through one of them.
+	AutomationTrackedStores(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTrackedStoresRow, error)
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
 	// Dynamic segments a live flow starts on entering or leaving (AT-10), the
 	// quick ones first (AT-15).
@@ -686,6 +689,14 @@ type Querier interface {
 	CommerceAutomationName(ctx context.Context, id uuid.UUID) (CommerceAutomationNameRow, error)
 	// Credited store orders per automation since a time (the automations list).
 	CommerceAutomationRevenue(ctx context.Context, arg CommerceAutomationRevenueParams) ([]CommerceAutomationRevenueRow, error)
+	// A store's best sellers: the most units ordered since @since (not in test
+	// or cancelled orders), optionally one collection's, still for sale.
+	CommerceBestSellers(ctx context.Context, arg CommerceBestSellersParams) ([]CommerceBestSellersRow, error)
+	// Bought together, for a page of readers at once (G-31): the products most
+	// often in an order with what each reader bought (the 180 days) or viewed
+	// (the 90 days) before their message was queued (@now for a preview),
+	// without those, @lim at most.
+	CommerceBoughtTogetherFor(ctx context.Context, arg CommerceBoughtTogetherForParams) ([]CommerceBoughtTogetherForRow, error)
 	CommerceCampaignName(ctx context.Context, id uuid.UUID) (string, error)
 	// A campaign's credited store orders, per store (the report's rows).
 	CommerceCampaignRevenue(ctx context.Context, arg CommerceCampaignRevenueParams) ([]CommerceCampaignRevenueRow, error)
@@ -757,6 +768,10 @@ type Querier interface {
 	CommerceEventsPending(ctx context.Context, before time.Time) ([]uuid.UUID, error)
 	CommerceEventsPurge(ctx context.Context, before time.Time) (int64, error)
 	CommerceEventsRejected(ctx context.Context, arg CommerceEventsRejectedParams) (int64, error)
+	// ── Store flows and recommendations (M62, G-30 and G-31) ──────────────
+	// Whether a live flow of the workspace starts on a kind of store event
+	// (a product change queues nothing otherwise).
+	CommerceFlowListens(ctx context.Context, arg CommerceFlowListensParams) (bool, error)
 	// When an automation's live version was published.
 	CommerceFlowLiveSince(ctx context.Context, arg CommerceFlowLiveSinceParams) (*time.Time, error)
 	// Joins the store's list. A contact who left the list stays out, unless
@@ -788,29 +803,62 @@ type Querier interface {
 	CommerceOrderUpdate(ctx context.Context, arg CommerceOrderUpdateParams) error
 	// Imported orders not matched yet (the first import's last phase).
 	CommerceOrdersToMatch(ctx context.Context, arg CommerceOrdersToMatchParams) ([]CommerceOrdersToMatchRow, error)
+	// Rebuilds a store's products bought together from its orders since
+	// @since (not test or cancelled), in one statement: how often each other
+	// product is in an order with a product, divided by that product's orders,
+	// the top 20 per product; pairs no longer among them are removed.
+	CommercePairsRebuild(ctx context.Context, arg CommercePairsRebuildParams) error
 	CommercePauseFlow(ctx context.Context, arg CommercePauseFlowParams) (int64, error)
 	// The connected WordPress site at a host, with what its plugin reported.
 	CommercePluginSite(ctx context.Context, arg CommercePluginSiteParams) (CommercePluginSiteRow, error)
 	CommerceProductCollections(ctx context.Context, arg CommerceProductCollectionsParams) ([]CommerceProductCollectionsRow, error)
 	CommerceProductCount(ctx context.Context, storeID uuid.UUID) (int64, error)
+	// A product of one of the workspace's connected stores, by its id.
+	CommerceProductInWorkspace(ctx context.Context, arg CommerceProductInWorkspaceParams) (CommerceProductInWorkspaceRow, error)
 	CommerceProductRemoved(ctx context.Context, arg CommerceProductRemovedParams) (int64, error)
 	// An older version of a product than the one stored is ignored (events
-	// that arrive out of order).
-	CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (uuid.UUID, error)
+	// that arrive out of order). It returns what the product was before
+	// (existed is false for a new one), locked first: back in stock and price
+	// drops are told apart from it (G-30).
+	CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (CommerceProductUpsertRow, error)
 	// The catalog for the picker: products not removed, newest first,
 	// optionally one collection's, optionally matching a search.
 	CommerceProducts(ctx context.Context, arg CommerceProductsParams) ([]StoreProduct, error)
 	// Products by id, removed ones included (blocks flag those).
 	CommerceProductsByExternal(ctx context.Context, arg CommerceProductsByExternalParams) ([]StoreProduct, error)
+	CommerceProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]StoreProduct, error)
+	// Products of the workspace's connected stores with the store's own id
+	// (two stores may share one), optionally in one store.
+	CommerceProductsByStoreID(ctx context.Context, arg CommerceProductsByStoreIDParams) ([]CommerceProductsByStoreIDRow, error)
 	// The newest products of a collection (the product grid's "Newest from a
 	// collection").
 	CommerceProductsNewest(ctx context.Context, arg CommerceProductsNewestParams) ([]StoreProduct, error)
 	// After a full product read: products the store no longer has.
 	CommerceProductsRemoveMissing(ctx context.Context, arg CommerceProductsRemoveMissingParams) ([]CommerceProductsRemoveMissingRow, error)
+	// Recently viewed, for a page of readers at once (G-31): each reader's
+	// products of the store viewed or added to their cart in the 90 days before
+	// their message was queued (@now without a message: a preview), newest
+	// first, @lim at most, without what they had bought by then. Read as of the
+	// message's queueing from the site's events, so a click days later finds
+	// the product the email showed in its place.
+	CommerceRecentlyViewedFor(ctx context.Context, arg CommerceRecentlyViewedForParams) ([]CommerceRecentlyViewedForRow, error)
 	// Resumes an automation the store paused (not one a person paused).
 	CommerceResumeFlow(ctx context.Context, arg CommerceResumeFlowParams) (int64, error)
 	// A store's credited orders in a period by campaign or automation.
 	CommerceRevenueByEmail(ctx context.Context, arg CommerceRevenueByEmailParams) ([]CommerceRevenueByEmailRow, error)
+	// A page of the contacts (by id, after @after) a stock flow may take for a
+	// product: those who asked to hear when it's back and weren't told before
+	// this run (@requests), those who viewed it (@viewers) or added it to their
+	// cart (@carters) since @since; and whether they enter: active, not
+	// erased, not taken by the flow since @reentry_since.
+	CommerceStockCandidates(ctx context.Context, arg CommerceStockCandidatesParams) ([]CommerceStockCandidatesRow, error)
+	// Live flows started by back in stock or a price drop on a store: one row
+	// per such trigger, whichever of the flow's triggers it is.
+	CommerceStockFlows(ctx context.Context, arg CommerceStockFlowsParams) ([]CommerceStockFlowsRow, error)
+	// The back-in-stock flow took these contacts: their requests are answered.
+	CommerceStockNotified(ctx context.Context, arg CommerceStockNotifiedParams) error
+	// "Email me when it's back": asking again clears the answer.
+	CommerceStockRequestUpsert(ctx context.Context, arg CommerceStockRequestUpsertParams) (time.Time, error)
 	CommerceStore(ctx context.Context, arg CommerceStoreParams) (Store, error)
 	CommerceStoreByAddress(ctx context.Context, arg CommerceStoreByAddressParams) (Store, error)
 	// A workspace's store on a shop's own domain, whatever address connected it
@@ -822,7 +870,9 @@ type Querier interface {
 	CommerceStoreDelete(ctx context.Context, id uuid.UUID) error
 	CommerceStoreDisconnected(ctx context.Context, arg CommerceStoreDisconnectedParams) error
 	// Live and paused automations started by a store's triggers, with the
-	// first trigger that names the store (review 2026-11 AT-14).
+	// first trigger that names the store (review 2026-11 AT-14): its orders and
+	// checkouts ("store"), and what its tracked site saw (M62: "browse" and
+	// "stock" name it as storeId).
 	CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlowsParams) ([]CommerceStoreFlowsRow, error)
 	// The WooCommerce store at a WordPress site's address.
 	CommerceStoreForSite(ctx context.Context, arg CommerceStoreForSiteParams) (CommerceStoreForSiteRow, error)
@@ -4674,6 +4724,102 @@ type Querier interface {
 	TouchPasskey(ctx context.Context, arg TouchPasskeyParams) error
 	TouchSession(ctx context.Context, id uuid.UUID) error
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
+	// The visitor's anonymous events of the last 30 days join the contact
+	// (events already linked to someone stay theirs).
+	TrackerBackfillEvents(ctx context.Context, arg TrackerBackfillEventsParams) (int64, error)
+	// A page of contacts (by id, after @after) whose view of one of the store's
+	// products (or add-to-cart, with @carts) last happened in [@window_start,
+	// @window_end): products in @collections when set, viewed (carted)
+	// @min_views times or more. For each: the products they viewed (carted) in
+	// [@products_since, @window_end), newest first, 6 at most, and whether
+	// they enter: active and not erased, nothing on the store's products since
+	// @window_end (they're still browsing otherwise), not taken by the flow
+	// since @reentry_since, and no order or checkout in the store since their
+	// last view.
+	TrackerBrowseCandidates(ctx context.Context, arg TrackerBrowseCandidatesParams) ([]TrackerBrowseCandidatesRow, error)
+	// Live flows started by a view or an add-to-cart: one row per such
+	// trigger, whichever of the flow's triggers it is, with its connected store.
+	TrackerBrowseFlows(ctx context.Context) ([]TrackerBrowseFlowsRow, error)
+	// The hub card's facts: live sites, their events since a moment, the last
+	// event ('epoch' when there's none).
+	TrackerCatalogFacts(ctx context.Context, arg TrackerCatalogFactsParams) (TrackerCatalogFactsRow, error)
+	// The site a collect call names, by the workspace's slug.
+	TrackerCollectSite(ctx context.Context, arg TrackerCollectSiteParams) (TrackerCollectSiteRow, error)
+	TrackerContactByEmail(ctx context.Context, arg TrackerContactByEmailParams) (uuid.UUID, error)
+	TrackerContactDayCount(ctx context.Context, arg TrackerContactDayCountParams) (int64, error)
+	// The contact timeline: one line per day (in the workspace's time zone)
+	// and site, newest first, before the cursor.
+	TrackerContactDays(ctx context.Context, arg TrackerContactDaysParams) ([]TrackerContactDaysRow, error)
+	// A contact of the workspace who hasn't been erased (identification).
+	TrackerContactLive(ctx context.Context, arg TrackerContactLiveParams) (uuid.UUID, error)
+	// The default partition should stay empty; what it holds past the 90 days
+	// goes.
+	TrackerDeleteDefaultEvents(ctx context.Context, before time.Time) (int64, error)
+	TrackerDeleteSiteEvents(ctx context.Context, arg TrackerDeleteSiteEventsParams) (int64, error)
+	TrackerDeleteVisitorEvents(ctx context.Context, ids []uuid.UUID) (int64, error)
+	TrackerDeleteVisitors(ctx context.Context, ids []uuid.UUID) (int64, error)
+	TrackerDropVisitorProducts(ctx context.Context, visitorID uuid.UUID) error
+	// One automation event per contact, in one statement.
+	TrackerFlowsEmit(ctx context.Context, arg TrackerFlowsEmitParams) error
+	// Takes contacts into a store flow: those it didn't take since
+	// @reentry_since (the 7-day rule) are entered now and returned; the others
+	// are left as they are.
+	TrackerFlowsEnter(ctx context.Context, arg TrackerFlowsEnterParams) ([]uuid.UUID, error)
+	// Store flows from the site tracker (M62, G-29 and G-30): who enters
+	// "Viewed a product and didn't buy" and "Added to cart and didn't check
+	// out" (internal/tracker's tracker.tick), and the 7-day re-entry rule the
+	// stock flows share (internal/commerce's commerce.product_changed).
+	// Whether any live flow starts on a view or an add-to-cart (the minute's
+	// job does nothing otherwise).
+	TrackerFlowsListening(ctx context.Context) (bool, error)
+	// Products an event names, for its {{ browse.products }}.
+	TrackerFlowsProducts(ctx context.Context, ids []uuid.UUID) ([]TrackerFlowsProductsRow, error)
+	// A newly linked visitor's product interest joins the contact's.
+	TrackerMergeVisitorProducts(ctx context.Context, arg TrackerMergeVisitorProductsParams) error
+	// A batch's product views and add-to-carts of known contacts, in
+	// (contact, product) order. 'epoch' stands for "none" in the time arrays.
+	TrackerProductViewsAdd(ctx context.Context, arg TrackerProductViewsAddParams) error
+	// A linked store's products by the ids its pages name.
+	TrackerProductsByExternal(ctx context.Context, arg TrackerProductsByExternalParams) ([]TrackerProductsByExternalRow, error)
+	// A contact's interest in a product is kept 180 days after the last view
+	// or add-to-cart.
+	TrackerPurgeProductViews(ctx context.Context, before *time.Time) (int64, error)
+	TrackerPurgeRefusals(ctx context.Context, before time.Time) (int64, error)
+	// The setup's live check: a site's last 20 events, without addresses.
+	TrackerRecentEvents(ctx context.Context, arg TrackerRecentEventsParams) ([]TrackerRecentEventsRow, error)
+	// Calls refused for coming from another origin, counted in memory.
+	TrackerRefusalsAdd(ctx context.Context, arg TrackerRefusalsAddParams) error
+	// Every site's events cutoff: 30 days where the workspace keeps event
+	// detail 30 days, else 90.
+	TrackerRetentionSites(ctx context.Context) ([]TrackerRetentionSitesRow, error)
+	TrackerSite(ctx context.Context, arg TrackerSiteParams) (TrackerSiteRow, error)
+	// A site stops collecting at once; its events go with the retention.
+	TrackerSiteDelete(ctx context.Context, arg TrackerSiteDeleteParams) (int64, error)
+	// Events per site since a moment (the sites table's "events today").
+	TrackerSiteEventsSince(ctx context.Context, arg TrackerSiteEventsSinceParams) ([]TrackerSiteEventsSinceRow, error)
+	TrackerSiteInsert(ctx context.Context, arg TrackerSiteInsertParams) error
+	// A workspace's live site origins (the click decorator's hosts).
+	TrackerSiteOrigins(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// Origins refused per site since a moment, most refused first.
+	TrackerSiteRefusedSince(ctx context.Context, arg TrackerSiteRefusedSinceParams) ([]TrackerSiteRefusedSinceRow, error)
+	TrackerSiteSetSecret(ctx context.Context, arg TrackerSiteSetSecretParams) (int64, error)
+	TrackerSiteUpdate(ctx context.Context, arg TrackerSiteUpdateParams) error
+	// The site tracker (M62 G-28): sites, the collect writer's batches,
+	// identification, the contact timeline, the hub card and retention.
+	// A workspace's sites, newest last, with the store each is linked to.
+	TrackerSites(ctx context.Context, workspaceID uuid.UUID) ([]TrackerSitesRow, error)
+	// The last event of each site of a batch.
+	TrackerSitesTouch(ctx context.Context, arg TrackerSitesTouchParams) error
+	// Visitors never linked to a contact and unseen since a moment.
+	TrackerStaleVisitors(ctx context.Context, arg TrackerStaleVisitorsParams) ([]uuid.UUID, error)
+	// "Email me when it's back" from known visitors: asking again starts over.
+	TrackerStockRequestsAdd(ctx context.Context, arg TrackerStockRequestsAddParams) error
+	TrackerVisitorIdentify(ctx context.Context, arg TrackerVisitorIdentifyParams) error
+	// The same for visitors not linked to a contact yet.
+	TrackerVisitorProductsAdd(ctx context.Context, arg TrackerVisitorProductsAddParams) error
+	// A batch's visitors, in (workspace, hash) order: new ones are added, the
+	// others seen again; each comes back with the contact it is linked to.
+	TrackerVisitorsUpsert(ctx context.Context, arg TrackerVisitorsUpsertParams) ([]TrackerVisitorsUpsertRow, error)
 	// utm tells apart the link sets of an email version sent with and without
 	// UTM tags (clicktoken.UTM.Key, '' = untagged).
 	TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error)

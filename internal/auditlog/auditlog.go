@@ -147,8 +147,9 @@ var Categories = []AuditCategory{
 	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
 	// Digital products and their orders (design expansion, phase 7).
 	{Key: "products", Label: "Products", Groups: []string{"product", "order"}},
-	// Shopify and WooCommerce (design expansion, phase 7).
-	{Key: "commerce", Label: "Commerce", Groups: []string{"store"}},
+	// Shopify and WooCommerce (design expansion, phase 7), and the site
+	// tracker's sites (M62).
+	{Key: "commerce", Label: "Commerce", Groups: []string{"store", "tracker_site"}},
 	// SMS (design expansion, phase 8): providers, senders, registrations,
 	// routes and rules, the short-link domain, suppressions, the terms page
 	// and test numbers. Text campaigns are campaigns (Sending).
@@ -575,6 +576,8 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 		if targetID != "" {
 			path, key = "/settings/integrations/stores/"+targetID, "link.store"
 		}
+	case "tracker_site":
+		path, key = "/settings/integrations/tracking", "link.tracking"
 	}
 	if key == "" {
 		return "", ""

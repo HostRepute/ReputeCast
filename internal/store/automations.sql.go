@@ -1758,6 +1758,39 @@ func (q *Queries) AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) 
 	return items, nil
 }
 
+const automationTrackedStores = `-- name: AutomationTrackedStores :many
+SELECT DISTINCT ON (store_id) store_id::uuid AS store_id, origin FROM tracker_sites
+WHERE workspace_id = $1 AND deleted_at IS NULL AND store_id IS NOT NULL
+ORDER BY store_id, created_at
+`
+
+type AutomationTrackedStoresRow struct {
+	StoreID uuid.UUID `json:"storeId"`
+	Origin  string    `json:"origin"`
+}
+
+// The stores a tracked site names (Website tracking, M62): browse, cart and
+// price-drop flows learn who viewed what through one of them.
+func (q *Queries) AutomationTrackedStores(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTrackedStoresRow, error) {
+	rows, err := q.db.Query(ctx, automationTrackedStores, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationTrackedStoresRow{}
+	for rows.Next() {
+		var i AutomationTrackedStoresRow
+		if err := rows.Scan(&i.StoreID, &i.Origin); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationUnsubscribeAll = `-- name: AutomationUnsubscribeAll :exec
 UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
 WHERE contact_id = $1 AND status <> 'unsubscribed'

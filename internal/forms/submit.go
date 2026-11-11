@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/tracker"
 )
 
 // Submission is what a visitor sent, with the request it came in.
@@ -104,6 +105,12 @@ type Outcome struct {
 	// linh@gmail.com?"), with OutcomeInvalid; the server always works it
 	// out itself.
 	Suggestion string `json:"suggestion,omitempty"`
+	// Link is the site tracker's token (internal/tracker) for the contact a
+	// signup created, valid ten minutes: form.js hands it to
+	// reputecast('link', …) when the tracker is on the page. Only a
+	// contact the signup made gets one, so typing someone else's address
+	// never links a browser to them.
+	Link string `json:"link,omitempty"`
 }
 
 // Messages a visitor sees are built-in labels (internal/pagelabels), in
@@ -496,6 +503,9 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		s.Addresses.SignedUp(ctx, ws, res.ContactID, addr)
 	}
 	out := Outcome{Status: OutcomeSubscribed, Email: sub.Email, FirstName: res.FirstName, Lists: lists}
+	if res.Created {
+		out.Link = tracker.FormLink(s.Tokens, ws.ID, res.ContactID, now)
+	}
 	if confirmTexts {
 		s.Texts.Confirm(ctx, ws, res.ContactID, lists)
 		out.Texted = s.Texts.Texted(lang, sub.number.E164)

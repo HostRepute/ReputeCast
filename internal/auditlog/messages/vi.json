@@ -342,5 +342,7 @@
   "type.whatsapp_settings": "cài đặt WhatsApp",
   "type.whatsapp_templates": "mẫu WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "không gian làm việc"
+  "type.workspace": "không gian làm việc",
+  "type.tracker_site": "trang được theo dõi",
+  "link.tracking": "Mở theo dõi trang web"
 }

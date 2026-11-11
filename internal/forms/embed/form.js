@@ -396,6 +396,7 @@
         .then(function (j) {
           button.disabled = false
           button.removeAttribute('aria-busy')
+          if (j.link && typeof window.reputecast === 'function') window.reputecast('link', j.link)
           if (j.redirect) {
             markSignedUp()
             window.location.href = j.redirect

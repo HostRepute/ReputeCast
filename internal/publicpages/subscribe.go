@@ -877,6 +877,11 @@ func (h *Handler) formSubmit(w http.ResponseWriter, r *http.Request) {
 	if out.Suggestion != "" {
 		body["suggestion"] = out.Suggestion
 	}
+	// The site tracker on the same page links its visitor to the new
+	// contact (internal/tracker).
+	if out.Link != "" {
+		body["link"] = out.Link
+	}
 	if name, link, ok := h.inboxLink(r.Context(), s, out, sub.Email); ok {
 		body["inbox"] = map[string]string{"name": name, "url": link}
 	}

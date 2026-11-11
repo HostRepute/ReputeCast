@@ -352,6 +352,20 @@ func (w Webhooks) Parse(h http.Header, body []byte) (stores.Event, error) {
 			return ev, fmt.Errorf("shopify: unreadable product deletion: %w", err)
 		}
 		ev.Kind, ev.DeletedID = stores.EventProductDeleted, p.ID.String()
+	case InventoryTopic:
+		// {"inventory_item_id", "location_id", "available", "updated_at"}:
+		// one location's level of one variant. The product's stock is the
+		// sum over its variants and locations, so it is read again.
+		var l struct {
+			InventoryItemID json.Number `json:"inventory_item_id"`
+		}
+		if err := json.Unmarshal(body, &l); err != nil {
+			return ev, fmt.Errorf("shopify: unreadable inventory level: %w", err)
+		}
+		if l.InventoryItemID == "" {
+			return ev, fmt.Errorf("shopify: inventory level without its item")
+		}
+		ev.Kind, ev.InventoryItemID = stores.EventInventory, l.InventoryItemID.String()
 	case LifecycleTopic:
 		ev.Kind = stores.EventUninstalled
 	default:

@@ -1,0 +1,17 @@
+{
+  "problem.name": { "message": "Name the site, in 80 characters or fewer.", "note": "Website tracking › Add site: the name field is empty or too long" },
+  "problem.origin": { "message": "Enter the site's address as https://shop.acme.io: https, a domain and, only when it isn't 443, a port.", "note": "Add site: the address isn't an https origin" },
+  "problem.originLocal": { "message": "Enter the site's address as https://shop.acme.io. While ReputeCast runs in development, http://localhost works too.", "note": "Add site in development mode: the address isn't https or a localhost address" },
+  "problem.originOwn": { "message": "{host} shows ReputeCast's own pages, which are never tracked: they stay cookie-less. Add your own site or store instead.", "note": "Add site: the address is the instance's or a workspace's custom domain; host: news.acme.io" },
+  "problem.originTaken": { "message": "{origin} is already a tracked site in this workspace.", "note": "origin: https://shop.acme.io" },
+  "problem.store": { "message": "Pick a store connected to this workspace, or no store.", "note": "Add site: the linked store isn't a connected store of the workspace" },
+  "problem.siteGone": { "message": "This tracked site doesn't exist or was deleted. Reload the list.", "note": "a site id that isn't the workspace's" },
+  "snippet.wordpress": { "message": "In WordPress, open Settings › ReputeCast, turn on Site tracking and paste this site id: {site}. To recognize signed-in customers, paste the identify secret there too.", "note": "the WordPress tab of the site's snippet; site: the site's id" },
+  "snippet.pixelConsent": { "message": "This site waits for consent: events are sent once the visitor allows analytics.", "note": "a comment in the Shopify custom pixel's code" },
+  "snippet.pixelOpen": { "message": "Shopify › Settings › Customer events › Add custom pixel, then paste this code.", "note": "the first comment line of the Shopify custom pixel's code" },
+  "activity.viewed": { "message": "{count, plural, one {Viewed # product on {host}} other {Viewed # products on {host}}}", "note": "a contact timeline line, one per day and site; host: shop.acme.io" },
+  "activity.visited": { "message": "Visited {host}", "note": "a contact timeline line for a day with pages but no products; host: shop.acme.io" },
+  "activity.carts": { "message": "{count, plural, one {# added to the cart} other {# added to the cart}}", "note": "under the timeline line: how many products were added to the cart that day" },
+  "hub.facts": { "message": "{sites, plural, one {# site} other {# sites}} · {events, plural, one {# event today} other {# events today}}", "note": "the Website tracking card's fact line in Settings › Integrations" },
+  "activity.source": { "message": "Website tracking", "note": "the timeline line's source, after the date" }
+}

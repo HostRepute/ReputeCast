@@ -114,7 +114,7 @@ type IntegrationGroup struct {
 // IntegrationEntry is a catalog card: its status, the reason it needs
 // attention, and the facts of its fact line.
 type IntegrationEntry struct {
-	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,stripe,paddle,lemonsqueezy,shopify,woocommerce"`
+	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,stripe,paddle,lemonsqueezy,shopify,woocommerce,tracking"`
 	// Status: not_connected, waiting, connected, attention; none for the
 	// developer cards.
 	Status          string              `json:"status" enum:"not_connected,waiting,connected,attention,none"`
@@ -150,6 +150,8 @@ type IntegrationFacts struct {
 	Price   float64 `json:"price,omitempty"`
 	// Store is a store platform's card (the Commerce group, X20).
 	Store *IntegrationStoreFacts `json:"store,omitempty"`
+	// Tracking is the Website tracking card's (the Commerce group, M62).
+	Tracking *IntegrationTrackingFacts `json:"tracking,omitempty"`
 }
 
 // IntegrationStoreFacts are a store platform's fact line: its stores, the
@@ -160,6 +162,16 @@ type IntegrationStoreFacts struct {
 	State       string     `json:"state" enum:"connecting,importing,connected,webhook_missing,rate_limited,no_plugin,revoked"`
 	Orders      int64      `json:"orders"`
 	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+}
+
+// IntegrationTrackingFacts are the Website tracking card's fact line: its
+// sites, their events today and the last one, and the line in the
+// reader's language ("2 sites · 1,284 events today").
+type IntegrationTrackingFacts struct {
+	Sites       int64      `json:"sites"`
+	EventsToday int64      `json:"eventsToday"`
+	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+	Line        string     `json:"line"`
 }
 
 // IntegrationPaymentFacts are a payment provider card's facts: whether it

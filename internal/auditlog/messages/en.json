@@ -342,5 +342,7 @@
   "type.whatsapp_settings": "whatsapp settings",
   "type.whatsapp_templates": "whatsapp templates",
   "type.wordpress": "wordpress",
-  "type.workspace": "workspace"
+  "type.workspace": "workspace",
+  "type.tracker_site": { "message": "tracked site", "note": "a site the site tracker runs on (Settings › Integrations › Website tracking)" },
+  "link.tracking": "Open website tracking"
 }

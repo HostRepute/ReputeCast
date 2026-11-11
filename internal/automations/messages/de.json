@@ -504,5 +504,17 @@
   "webinar.hourBefore.subject": "In einer Stunde geht es los: {title}",
   "webinar.hourBefore.preheader": "Nehmen Sie über den Link unten teil.",
   "webinar.hourBefore.heading": "In einer Stunde geht es los",
-  "webinar.hourBefore.body": "{title} beginnt in einer Stunde."
+  "webinar.hourBefore.body": "{title} beginnt in einer Stunde.",
+
+  "trigger.viewedProduct": "Produkt angesehen und nicht gekauft",
+  "trigger.addedToCart": "In den Warenkorb gelegt und nicht bezahlt",
+  "trigger.backInStock": "Wieder auf Lager",
+  "trigger.priceDrop": "Preissenkung",
+  "ref.browseAfter": "{store} · nach {hours, plural, one {# Stunde} other {# Stunden}}",
+  "ref.priceDrop": "{store} · ab {percent}\u00A0%",
+  "problem.browseWait": "Ein Ansichts- oder Warenkorb-Auslöser wartet 1 bis 24 Stunden nach dem letzten Aufruf.",
+  "problem.browseViews": "Zählen Sie 1 bis 5 Aufrufe eines Produkts.",
+  "problem.browseCollections": "Wählen Sie bis zu 20 Kollektionen oder keine für alle Produkte.",
+  "problem.stockDays": "Berücksichtigen Sie Aufrufe und Warenkorb-Aktionen der letzten 1 bis 60 Tage.",
+  "problem.dropPercent": "Starten Sie bei einer Preissenkung von 1\u00A0% bis 90\u00A0%."
 }

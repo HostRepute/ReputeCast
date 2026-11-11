@@ -107,6 +107,6 @@ func (s *Service) approve(ctx context.Context, st store.Store) (string, error) {
 	if err := s.Q.CommerceStoreSetState(ctx, store.CommerceStoreSetStateParams{ID: st.ID, OauthState: &state, ExpiresAt: ptr(now.Add(stateTTL)), At: now}); err != nil {
 		return "", err
 	}
-	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope)
+	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope, shopify.InventoryScope)
 	return shopify.AuthorizeURL(st.Domain, st.ClientID, s.CallbackURL(), state, scopes), nil
 }

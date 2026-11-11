@@ -344,6 +344,8 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return milestoneTriggerMatches(t, ev)
 	case TriggerOrderPlaced, TriggerFirstOrder, TriggerAbandonedCheckout:
 		return storeTriggerMatches(t, ev)
+	case TriggerViewedProduct, TriggerAddedToCart, TriggerBackInStock, TriggerPriceDrop:
+		return trackerTriggerMatches(t, ev)
 	case TriggerSegmentEntered, TriggerSegmentLeft:
 		return t.SegmentID == ev.Ref
 	case TriggerPaidStarted, TriggerPaidTierChanged, TriggerPaidEnded, TriggerPaidTrialEnding:
@@ -430,6 +432,12 @@ func (s *Service) enroll(ctx context.Context, q *store.Queries, stats statsBuf, 
 			if err != nil || exists {
 				return false, err
 			}
+		}
+	} else if isTrackerTrigger(t.Kind) {
+		// The finder took the contact (7 days apart at most): the event
+		// only has to be this flow's.
+		if !trackerTriggerAllows(f.ID, ev) {
+			return false, nil
 		}
 	} else if t.Kind == TriggerDateField && t.Yearly && t.Reentry != "always" {
 		// A yearly date (a birthday, an anniversary) lets a contact through

@@ -342,5 +342,7 @@
   "type.whatsapp_settings": "WhatsApp-Einstellungen",
   "type.whatsapp_templates": "WhatsApp-Vorlagen",
   "type.wordpress": "WordPress",
-  "type.workspace": "Arbeitsbereich"
+  "type.workspace": "Arbeitsbereich",
+  "type.tracker_site": "getrackte Website",
+  "link.tracking": "Website-Tracking öffnen"
 }
