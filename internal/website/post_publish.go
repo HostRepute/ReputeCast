@@ -205,6 +205,14 @@ func (s *Service) publishNow(ctx context.Context, tx pgx.Tx, ws *store.Workspace
 			}
 		}
 	}
+	cur.Status = PostPublished
+	cur.PublishedAt = &at
+	if _, imported := system["imported"]; imported {
+		// An imported post (M61) goes live without an audit entry or a
+		// post.published webhook of its own: one website.posts_imported
+		// entry records the import, and imports never notify anyone.
+		return nil
+	}
 	ev := audit.Event{WorkspaceID: &ws.ID, Action: "post.published", TargetType: "website_post", TargetID: cur.ID.String(), TargetName: cur.Title,
 		Before: map[string]any{"status": cur.Status}, After: map[string]any{"status": PostPublished, "slug": cur.Slug, "visibility": cur.Visibility, "tiers": cur.Tiers}}
 	if approvalID != "" {
@@ -224,8 +232,6 @@ func (s *Service) publishNow(ctx context.Context, tx pgx.Tx, ws *store.Workspace
 	if err := s.Audit.LogWith(ctx, q, ev); err != nil {
 		return err
 	}
-	cur.Status = PostPublished
-	cur.PublishedAt = &at
 	if err := s.emitPost(ctx, tx, ws, cur, "post.published", ""); err != nil {
 		return err
 	}

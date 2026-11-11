@@ -5295,7 +5295,7 @@ type Querier interface {
 	WebsiteConversionCounts(ctx context.Context, arg WebsiteConversionCountsParams) ([]WebsiteConversionCountsRow, error)
 	WebsiteConversionInsert(ctx context.Context, arg WebsiteConversionInsertParams) error
 	WebsiteConversionTotals(ctx context.Context, arg WebsiteConversionTotalsParams) (WebsiteConversionTotalsRow, error)
-	// The staged posts' authors, with how many posts each.
+	// The authors of the staged posts to import, with how many posts each.
 	WebsiteImportAuthors(ctx context.Context, importID uuid.UUID) ([]WebsiteImportAuthorsRow, error)
 	// An import for its background jobs.
 	WebsiteImportByID(ctx context.Context, id uuid.UUID) (WebsiteImportByIDRow, error)
@@ -5331,10 +5331,12 @@ type Querier interface {
 	// The analysis is done: the posts are staged.
 	WebsiteImportReady(ctx context.Context, arg WebsiteImportReadyParams) error
 	WebsiteImportReport(ctx context.Context, arg WebsiteImportReportParams) (WebsiteImportReportRow, error)
+	// Try again after a run stopped: it carries on from its cursor.
+	WebsiteImportResume(ctx context.Context, arg WebsiteImportResumeParams) (int64, error)
 	WebsiteImportSetOptions(ctx context.Context, arg WebsiteImportSetOptionsParams) error
 	WebsiteImportSetStats(ctx context.Context, arg WebsiteImportSetStatsParams) error
 	WebsiteImportStatus(ctx context.Context, id uuid.UUID) (string, error)
-	// The old site's tiers the staged posts name, with how many posts each.
+	// The old site's tiers the staged posts to import name, with how many posts each.
 	WebsiteImportTierRefs(ctx context.Context, importID uuid.UUID) ([]WebsiteImportTierRefsRow, error)
 	// The imports the jobs tray shows: running ones, and ones that ended since.
 	WebsiteImportTray(ctx context.Context, arg WebsiteImportTrayParams) ([]WebsiteImportTrayRow, error)

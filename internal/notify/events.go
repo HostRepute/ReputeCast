@@ -83,6 +83,8 @@ var Events = []EventType{
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "People who can view sending providers", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
 	// Comments on the website's posts (M61).
 	{Key: KindCommentsWaiting, Label: "Comments waiting for review", Audience: "People who can moderate comments · then at most once an hour while comments wait", Short: "comments waiting for review", DefaultEmail: true, Kinds: []string{KindCommentsWaiting}},
+	// Importing posts from Substack, Ghost and WordPress (M61).
+	{Key: KindPostImportDone, Label: "Post import finished", Audience: "Whoever started the import", Short: "post imports", DefaultEmail: false, Kinds: []string{KindPostImportDone}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -134,7 +136,7 @@ var categoryKinds = map[string][]string{
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
-	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed, KindCommentsWaiting},
+	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed, KindCommentsWaiting, KindPostImportDone},
 	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
 
@@ -176,3 +178,7 @@ func KindsOf(category string) []string { return categoryKinds[category] }
 // review (comments:moderate), when the queue goes from empty to waiting,
 // then at most once an hour (M61).
 const KindCommentsWaiting = "comments_waiting"
+
+// KindPostImportDone: an import of posts from Substack, Ghost or WordPress
+// ended (whoever started it; M61).
+const KindPostImportDone = "post_import_done"

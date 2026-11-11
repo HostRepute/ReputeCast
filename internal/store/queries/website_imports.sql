@@ -38,6 +38,11 @@ SELECT status FROM website_imports WHERE id = @id;
 UPDATE website_imports SET status = @status, updated_at = @at
 WHERE id = @id AND status = ANY (@from_statuses::text[]);
 
+-- name: WebsiteImportResume :execrows
+-- Try again after a run stopped: it carries on from its cursor.
+UPDATE website_imports SET status = 'importing', stats = @stats, error = '', finished_at = NULL, updated_at = @at
+WHERE id = @id AND status = 'failed';
+
 -- name: WebsiteImportSetOptions :exec
 UPDATE website_imports SET options = @options, updated_at = @at WHERE id = @id;
 
@@ -61,7 +66,8 @@ WHERE workspace_id = @workspace_id AND id = @id AND report_csv IS NOT NULL;
 SELECT id, source, status, stats, error, file_name, created_at, updated_at, finished_at
 FROM website_imports
 WHERE workspace_id = @workspace_id
-  AND (status IN ('uploaded','analysing','importing') OR (status IN ('done','failed','canceled') AND finished_at > @ended_after::timestamptz))
+  AND (status IN ('uploaded','analysing','importing') OR (status = 'ready' AND updated_at > @ended_after::timestamptz)
+       OR (status IN ('done','failed','canceled') AND finished_at > @ended_after::timestamptz))
 ORDER BY created_at DESC
 LIMIT 20;
 
@@ -127,24 +133,24 @@ SELECT count(*)::bigint AS found,
        count(*) FILTER (WHERE status = 'draft')::bigint AS drafts,
        count(*) FILTER (WHERE status = 'draft' AND decision = 'skip')::bigint AS drafts_skipped,
        count(*) FILTER (WHERE problems @> '[{"code":"already_imported"}]'::jsonb)::bigint AS already_imported,
-       count(*) FILTER (WHERE visibility = 'paid')::bigint AS paid,
-       count(*) FILTER (WHERE visibility = 'members')::bigint AS members,
+       count(*) FILTER (WHERE visibility = 'paid' AND decision <> 'skip')::bigint AS paid,
+       count(*) FILTER (WHERE visibility = 'members' AND decision <> 'skip')::bigint AS members,
        coalesce(sum(images), 0)::bigint AS images,
        count(*) FILTER (WHERE jsonb_array_length(problems) > 0 AND NOT problems @> '[{"code":"already_imported"}]'::jsonb)::bigint AS with_problems
 FROM website_import_posts WHERE import_id = @import_id;
 
 -- name: WebsiteImportTierRefs :many
--- The old site's tiers the staged posts name, with how many posts each.
+-- The old site's tiers the staged posts to import name, with how many posts each.
 SELECT ref::text AS ref, count(*)::bigint AS posts
 FROM website_import_posts, unnest(tier_refs) AS ref
-WHERE import_id = @import_id
+WHERE import_id = @import_id AND decision <> 'skip'
 GROUP BY ref ORDER BY count(*) DESC, ref;
 
 -- name: WebsiteImportAuthors :many
--- The staged posts' authors, with how many posts each.
+-- The authors of the staged posts to import, with how many posts each.
 SELECT author, count(*)::bigint AS posts
 FROM website_import_posts
-WHERE import_id = @import_id AND author <> ''
+WHERE import_id = @import_id AND author <> '' AND decision <> 'skip'
 GROUP BY author ORDER BY count(*) DESC, author;
 
 -- Imported posts

@@ -577,6 +577,10 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 		}
 	case "website_comment":
 		path, key = "/forms/website/comments", "link.comments"
+	case "website_import":
+		if targetID != "" {
+			path, key = "/forms/website/import?import="+targetID, "link.import"
+		}
 	}
 	if key == "" {
 		return "", ""

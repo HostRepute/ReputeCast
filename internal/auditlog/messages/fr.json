@@ -59,6 +59,7 @@
   "link.workspaces": "Ouvrir les espaces",
   "link.instance": "Ouvrir les paramètres de l’instance",
   "link.comments": "Ouvrir les commentaires",
+  "link.import": "Ouvrir l’import",
 
   "client.on": "{browser} sur {os}",
   "related.entry": "{action} par {name} à {at, time}",
@@ -344,5 +345,6 @@
   "type.whatsapp_templates": "modèles WhatsApp",
   "type.wordpress": "WordPress",
   "type.workspace": "espace de travail",
-  "type.website_comment": "commentaire du site"
+  "type.website_comment": "commentaire du site",
+  "type.website_import": "import d’articles"
 }

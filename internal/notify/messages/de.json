@@ -51,6 +51,7 @@
   "short.push_worker_missing": "fehlende Push-Service-Worker",
   "short.whatsapp_attention": "WhatsApp-Vorlagen und -Qualität",
   "short.comments_waiting": "Kommentare, die auf Prüfung warten",
+  "short.post_import_done": "Beitragsimporte",
 
   "event.approval_requested": "Freigabe angefordert",
   "event.approval_decided": "Freigabe erteilt, abgelehnt oder Änderungen angefordert",
@@ -100,6 +101,7 @@
   "event.push_worker_missing": "Push-Service-Worker fehlt",
   "event.whatsapp_attention": "WhatsApp-Vorlage abgelehnt oder Qualität gesunken",
   "event.comments_waiting": "Kommentare warten auf Prüfung",
+  "event.post_import_done": "Beitragsimport abgeschlossen",
 
   "audience.approval_requested": "Nur für freigebende Personen",
   "audience.approval_decided": "Nur für den Autor",
@@ -149,6 +151,7 @@
   "audience.push_worker_missing": "Alle, die Versandanbieter ansehen dürfen",
   "audience.whatsapp_attention": "Alle, die Versandanbieter ansehen dürfen",
   "audience.comments_waiting": "Alle, die Kommentare moderieren dürfen · danach höchstens einmal pro Stunde, solange Kommentare warten",
+  "audience.post_import_done": "Wer den Import gestartet hat",
 
   "category.approvals": "Freigaben",
   "category.sending": "Versand",

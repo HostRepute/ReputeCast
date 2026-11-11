@@ -12,8 +12,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/digests/feed"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -52,9 +54,22 @@ func websiteService(a *App) *website.Service {
 		Certs: func() website.CertChecker { return websiteCerts(a) },
 		// "Stop these emails" in comment reply emails (M61).
 		Links: a.Links,
+		// Imported posts' images, read from the old site through the
+		// outbound guard (M61).
+		Images: func() website.ImageFetcher { return websiteImages(a) },
 	}
 	v, _ := websiteServices.LoadOrStore(a, s)
 	return v.(*website.Service)
+}
+
+// websiteImages reads imported posts' images from the old site: 20
+// seconds and 20 MB each, every address and redirect checked by the guard.
+func websiteImages(a *App) website.ImageFetcher {
+	policy := netguard.Policy{}
+	if a.Cfg != nil {
+		policy.AllowPrivate = a.Cfg.Providers.AllowPrivateNetworks
+	}
+	return &feed.Fetcher{Policy: policy, Timeout: 20 * time.Second, MaxBytes: media.MaxUploadBytes}
 }
 
 // websiteCerts checks the certificate the custom domain serves, through the

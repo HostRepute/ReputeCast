@@ -38,7 +38,7 @@ func (a *App) imports() *imports.Service {
 		Templates: notifuseTemplates{a: a},
 		// Verification jobs run in the background too (built when asked:
 		// the verification service uses this one).
-		JobSources: []imports.JobSource{verificationTray(a), audienceTray(a)},
+		JobSources: []imports.JobSource{verificationTray(a), audienceTray(a), websiteImportTray(a)},
 		// The optional "Verify the new addresses" folds a service's answers
 		// into the preview and the import (X14), read when asked.
 		Checks: importChecks{a: a},
@@ -67,6 +67,23 @@ func audienceTray(a *App) imports.JobSource {
 		for _, j := range jobs {
 			out = append(out, imports.ImportJob{ID: j.ID, Kind: j.Kind, Title: j.Title, Status: j.Status, Progress: j.Progress, Detail: j.Detail, Href: j.Href,
 				DownloadURL: j.DownloadURL, StartedAt: j.StartedAt, FinishedAt: j.FinishedAt})
+		}
+		return out, nil
+	}
+}
+
+// websiteImportTray adds imports of posts from Substack, Ghost and
+// WordPress (M61) to the jobs tray.
+func websiteImportTray(a *App) imports.JobSource {
+	return func(ctx context.Context, ws *store.Workspace) ([]imports.ImportJob, error) {
+		jobs, err := websiteService(a).ImportTray(ctx, ws)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]imports.ImportJob, 0, len(jobs))
+		for _, j := range jobs {
+			out = append(out, imports.ImportJob{ID: j.ID, Kind: "post_import", Title: j.Title, Status: j.Status, Progress: j.Progress, Eta: j.Eta,
+				Detail: j.Detail, Href: j.Href, StartedAt: j.StartedAt, FinishedAt: j.FinishedAt})
 		}
 		return out, nil
 	}

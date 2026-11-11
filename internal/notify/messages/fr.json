@@ -51,6 +51,7 @@
   "short.push_worker_missing": "service workers push manquants",
   "short.whatsapp_attention": "modèles et qualité WhatsApp",
   "short.comments_waiting": "commentaires en attente de validation",
+  "short.post_import_done": "imports d’articles",
 
   "event.approval_requested": "Approbation demandée",
   "event.approval_decided": "Demande approuvée, refusée ou modifications demandées",
@@ -100,6 +101,7 @@
   "event.push_worker_missing": "Service worker push manquant",
   "event.whatsapp_attention": "Modèle WhatsApp refusé ou baisse de qualité",
   "event.comments_waiting": "Commentaires en attente de validation",
+  "event.post_import_done": "Import d’articles terminé",
 
   "audience.approval_requested": "Approbateurs uniquement",
   "audience.approval_decided": "Auteur uniquement",
@@ -149,6 +151,7 @@
   "audience.push_worker_missing": "Personnes pouvant consulter les fournisseurs d’envoi",
   "audience.whatsapp_attention": "Personnes pouvant consulter les fournisseurs d’envoi",
   "audience.comments_waiting": "Personnes pouvant modérer les commentaires · puis au plus une fois par heure tant que des commentaires attendent",
+  "audience.post_import_done": "La personne qui a lancé l’import",
 
   "category.approvals": "Approbations",
   "category.sending": "Envois",

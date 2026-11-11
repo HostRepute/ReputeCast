@@ -381,4 +381,5 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	registerComments(h, s)
+	registerImports(h, s)
 }

@@ -98,6 +98,9 @@ type Service struct {
 	// Links signs the tokens in the site's own emails ("Stop these
 	// emails" in a comment reply email).
 	Links *linktoken.Signer
+	// Images reads an imported post's images from the old site (M61; nil:
+	// they keep linking there).
+	Images func() ImageFetcher
 
 	certs certCache
 	salts saltCache

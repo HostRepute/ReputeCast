@@ -51,6 +51,7 @@
   "short.push_worker_missing": "thiếu service worker thông báo đẩy",
   "short.whatsapp_attention": "mẫu và chất lượng WhatsApp",
   "short.comments_waiting": "bình luận chờ duyệt",
+  "short.post_import_done": "nhập bài viết",
 
   "event.approval_requested": "Yêu cầu phê duyệt",
   "event.approval_decided": "Yêu cầu phê duyệt được duyệt, bị từ chối hoặc cần thay đổi",
@@ -100,6 +101,7 @@
   "event.push_worker_missing": "Thiếu service worker thông báo đẩy",
   "event.whatsapp_attention": "Mẫu WhatsApp bị từ chối hoặc chất lượng giảm",
   "event.comments_waiting": "Bình luận đang chờ duyệt",
+  "event.post_import_done": "Đã nhập xong bài viết",
 
   "audience.approval_requested": "Chỉ dành cho người phê duyệt",
   "audience.approval_decided": "Chỉ dành cho tác giả",
@@ -149,6 +151,7 @@
   "audience.push_worker_missing": "Những người có thể xem nhà cung cấp gửi thư",
   "audience.whatsapp_attention": "Những người có thể xem nhà cung cấp gửi thư",
   "audience.comments_waiting": "Những người có thể kiểm duyệt bình luận · sau đó tối đa mỗi giờ một lần khi còn bình luận chờ duyệt",
+  "audience.post_import_done": "Người bắt đầu lượt nhập",
 
   "category.approvals": "Phê duyệt",
   "category.sending": "Gửi thư",

@@ -59,6 +59,7 @@
   "link.workspaces": "Arbeitsbereiche öffnen",
   "link.instance": "Instanzeinstellungen öffnen",
   "link.comments": "Kommentare öffnen",
+  "link.import": "Import öffnen",
 
   "client.on": "{browser} unter {os}",
   "related.entry": "{action} von {name} um {at, time}",
@@ -344,5 +345,6 @@
   "type.whatsapp_templates": "WhatsApp-Vorlagen",
   "type.wordpress": "WordPress",
   "type.workspace": "Arbeitsbereich",
-  "type.website_comment": "Website-Kommentar"
+  "type.website_comment": "Website-Kommentar",
+  "type.website_import": "Beitragsimport"
 }
