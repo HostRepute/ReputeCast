@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -380,7 +381,10 @@ func TestWebhooksAreVerifiedStoredOnceAndAppliedInOrder(t *testing.T) {
 		t.Fatalf("stale event: %s", st)
 	}
 	// Nothing private is kept: the payload's address, phone, payment and note.
+	// The row's UUIDs are random and can hold "4242" by chance, so they are
+	// left out of the search.
 	raw := one[string](t, s, `SELECT row_to_json(o)::text FROM store_orders o WHERE external_id = $1`, o.ID)
+	raw = regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`).ReplaceAllString(raw, "")
 	for _, private := range []string{"Example Street", "555 0100", "4242", "Leave at the door", grace} {
 		if strings.Contains(raw, private) {
 			t.Fatalf("kept %q: %s", private, raw)
