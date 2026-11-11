@@ -201,7 +201,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 
           <div class="grp">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="op">Group 1</span><select aria-label="Match rule for Group 1" class="in" style="height:30px"><option>Match ALL of these</option><option>Match ANY of these</option></select><button class="btn sm" style="margin-left:auto" aria-label="Remove group">Remove group</button></div>
-            <div class="cond"><select aria-label="Condition field" class="in"><option>Mailbox provider</option><option>Email domain</option><option>List membership</option><option>Tier</option><option>Last open</option><option>Custom field</option></select><select aria-label="Condition operator" class="in"><option>is</option><option>is not</option></select><select aria-label="Condition value" class="in"><option>Outlook</option><option>Gmail</option><option>Yahoo</option><option>iCloud</option><option>Other</option></select><button class="btn sm" aria-label="Remove condition">×</button></div>
+            <div class="cond"><select aria-label="Condition field" class="in"><option>Mailbox provider</option><option>Email domain</option><option>List membership</option><option>Tier</option><option>Last open</option><option>Custom field</option><optgroup label="Site activity"><option>Viewed a product</option><option>Last seen on the site</option></optgroup></select><select aria-label="Condition operator" class="in"><option>is</option><option>is not</option></select><select aria-label="Condition value" class="in"><option>Outlook</option><option>Gmail</option><option>Yahoo</option><option>iCloud</option><option>Other</option></select><button class="btn sm" aria-label="Remove condition">×</button></div>
             <div class="cond"><select aria-label="Condition field" class="in"><option>Opened any email</option><option>Clicked any email</option><option>Last open</option></select><select aria-label="Condition operator" class="in"><option>in the last</option><option>not in the last</option></select><input class="in" value="30" style="width:70px" aria-label="Days"><select aria-label="Time unit" class="in"><option>days</option><option>weeks</option></select><button class="btn sm" aria-label="Remove condition">×</button></div>
             <div class="cond"><select aria-label="Condition field" class="in"><option>List membership</option></select><select aria-label="Condition operator" class="in"><option>includes</option><option>excludes</option></select><select aria-label="Condition value" class="in"><option>Weekly Digest</option><option>Product Updates</option><option>Beta Program</option></select><button class="btn sm" aria-label="Remove condition">×</button></div>
             <button class="btn sm" style="align-self:flex-start">Add condition</button>
@@ -235,6 +235,15 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   <span class="kw">AND</span> c.suppressed_at <span class="kw">IS NULL</span>;</pre>
           </div>
         </div>
+
+        <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px" aria-label="Site activity conditions">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h2 class="h2">Site activity</h2><span class="k">The condition picker's group when a site has Website tracking</span></div>
+          <div class="grp">
+            <div class="cond"><select aria-label="Condition field" class="in"><option>Viewed a product</option></select><select aria-label="Condition operator" class="in"><option>in the last</option></select><input class="in" value="30" style="width:70px" aria-label="Days"><span class="k">days, in</span><select aria-label="Collection" class="in"><option>Any collection</option><option selected>Apparel</option><option>Desk</option><option>Stickers</option><option>New arrivals</option></select></div>
+            <div class="cond"><select aria-label="Condition field" class="in"><option>Last seen on the site</option></select><select aria-label="Condition operator" class="in"><option>before</option><option>after</option><option selected>in the last</option></select><input class="in" value="14" style="width:70px" aria-label="Days"><span class="k">days</span></div>
+          </div>
+          <span class="k">Only known contacts match: people become known by a click from an email, a signup on the site or a signed identify call. Before and after take a date. Product views count for 180 days.</span>
+        </div>
       </section>
 
       <aside class="sb-aside" style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:16px">
@@ -262,7 +271,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1212}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1484}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

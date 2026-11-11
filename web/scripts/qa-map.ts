@@ -561,4 +561,14 @@ export const entries: Entry[] = [
   { board: 'AgencyStates', manual: true },
   // The workspace switcher opens from a click (ShellSwitcher's agency staff view).
   { board: 'ShellSwitcher', manual: true },
+  // M62 · Website tracking. The demo's sites are Acme Merch (https://shop.acme.io, linked to the
+  // Acme Merch store) and Docs (https://docs.acme.io, no store), Acme Merch selected. The add-site
+  // dialog (TrackingSetup) and TrackingStates' frames (loading, empty, error, Aisha Bello's read-only
+  // view, a new site waiting for its first event and for consent, a refused origin, no store linked,
+  // rotating the identify secret, deleting a site) need clicks, other users or data changes.
+  { board: 'TrackingSites', path: `${ws}/settings/integrations/tracking`, widths: [1440] },
+  { board: 'TrackingSitesTablet', path: `${ws}/settings/integrations/tracking`, widths: [834] },
+  { board: 'TrackingSitesPhone', path: `${ws}/settings/integrations/tracking`, widths: [390] },
+  { board: 'TrackingSetup', manual: true },
+  { board: 'TrackingStates', manual: true },
 ]
