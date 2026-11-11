@@ -518,7 +518,7 @@ func (q *Queries) WebsiteMemberEvents(ctx context.Context, arg WebsiteMemberEven
 }
 
 const websiteMemberGet = `-- name: WebsiteMemberGet :one
-SELECT contact_id, workspace_id, first_signed_in, last_signed_in, last_method, sign_ins FROM website_members WHERE contact_id = $1 AND workspace_id = $2
+SELECT contact_id, workspace_id, first_signed_in, last_signed_in, last_method, sign_ins, display_name, comments_blocked_at, comment_emails FROM website_members WHERE contact_id = $1 AND workspace_id = $2
 `
 
 type WebsiteMemberGetParams struct {
@@ -536,6 +536,9 @@ func (q *Queries) WebsiteMemberGet(ctx context.Context, arg WebsiteMemberGetPara
 		&i.LastSignedIn,
 		&i.LastMethod,
 		&i.SignIns,
+		&i.DisplayName,
+		&i.CommentsBlockedAt,
+		&i.CommentEmails,
 	)
 	return i, err
 }
@@ -773,7 +776,7 @@ func (q *Queries) WebsitePostAddTag(ctx context.Context, arg WebsitePostAddTagPa
 }
 
 const websitePostByCampaign = `-- name: WebsitePostByCampaign :one
-SELECT id, workspace_id, kind, campaign_id, web_on, status, publish_mode, publish_at, publish_tz, title, title_edited, slug, excerpt, excerpt_edited, cover_url, cover_alt, byline_user_id, byline_name, visibility, tiers, never_free, seo_title, seo_description, social_image, canonical_url, hide_from_search, mjml, version, autosaved_at, body_html, preview_html, has_marker, marker_after, body_text, preview_text, words, render_notes, rendered_hash, published_at, published_by, first_published_at, unpublished_at, unpublished_by, unpublish_reason, redirect_to, sent_as_campaign, created_by, created_at, updated_by, updated_at, deleted_at, published_mjml, published_version, paid_blocks FROM website_posts WHERE campaign_id = $1 AND deleted_at IS NULL
+SELECT id, workspace_id, kind, campaign_id, web_on, status, publish_mode, publish_at, publish_tz, title, title_edited, slug, excerpt, excerpt_edited, cover_url, cover_alt, byline_user_id, byline_name, visibility, tiers, never_free, seo_title, seo_description, social_image, canonical_url, hide_from_search, mjml, version, autosaved_at, body_html, preview_html, has_marker, marker_after, body_text, preview_text, words, render_notes, rendered_hash, published_at, published_by, first_published_at, unpublished_at, unpublished_by, unpublish_reason, redirect_to, sent_as_campaign, created_by, created_at, updated_by, updated_at, deleted_at, published_mjml, published_version, paid_blocks, import_source, import_source_id, comments_off FROM website_posts WHERE campaign_id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) WebsitePostByCampaign(ctx context.Context, campaignID *uuid.UUID) (WebsitePost, error) {
@@ -834,12 +837,15 @@ func (q *Queries) WebsitePostByCampaign(ctx context.Context, campaignID *uuid.UU
 		&i.PublishedMjml,
 		&i.PublishedVersion,
 		&i.PaidBlocks,
+		&i.ImportSource,
+		&i.ImportSourceID,
+		&i.CommentsOff,
 	)
 	return i, err
 }
 
 const websitePostBySlug = `-- name: WebsitePostBySlug :one
-SELECT id, workspace_id, kind, campaign_id, web_on, status, publish_mode, publish_at, publish_tz, title, title_edited, slug, excerpt, excerpt_edited, cover_url, cover_alt, byline_user_id, byline_name, visibility, tiers, never_free, seo_title, seo_description, social_image, canonical_url, hide_from_search, mjml, version, autosaved_at, body_html, preview_html, has_marker, marker_after, body_text, preview_text, words, render_notes, rendered_hash, published_at, published_by, first_published_at, unpublished_at, unpublished_by, unpublish_reason, redirect_to, sent_as_campaign, created_by, created_at, updated_by, updated_at, deleted_at, published_mjml, published_version, paid_blocks FROM website_posts WHERE workspace_id = $1 AND slug = $2 AND deleted_at IS NULL
+SELECT id, workspace_id, kind, campaign_id, web_on, status, publish_mode, publish_at, publish_tz, title, title_edited, slug, excerpt, excerpt_edited, cover_url, cover_alt, byline_user_id, byline_name, visibility, tiers, never_free, seo_title, seo_description, social_image, canonical_url, hide_from_search, mjml, version, autosaved_at, body_html, preview_html, has_marker, marker_after, body_text, preview_text, words, render_notes, rendered_hash, published_at, published_by, first_published_at, unpublished_at, unpublished_by, unpublish_reason, redirect_to, sent_as_campaign, created_by, created_at, updated_by, updated_at, deleted_at, published_mjml, published_version, paid_blocks, import_source, import_source_id, comments_off FROM website_posts WHERE workspace_id = $1 AND slug = $2 AND deleted_at IS NULL
 `
 
 type WebsitePostBySlugParams struct {
@@ -905,6 +911,9 @@ func (q *Queries) WebsitePostBySlug(ctx context.Context, arg WebsitePostBySlugPa
 		&i.PublishedMjml,
 		&i.PublishedVersion,
 		&i.PaidBlocks,
+		&i.ImportSource,
+		&i.ImportSourceID,
+		&i.CommentsOff,
 	)
 	return i, err
 }
@@ -987,7 +996,7 @@ func (q *Queries) WebsitePostDelete(ctx context.Context, arg WebsitePostDeletePa
 }
 
 const websitePostGet = `-- name: WebsitePostGet :one
-SELECT p.id, p.workspace_id, p.kind, p.campaign_id, p.web_on, p.status, p.publish_mode, p.publish_at, p.publish_tz, p.title, p.title_edited, p.slug, p.excerpt, p.excerpt_edited, p.cover_url, p.cover_alt, p.byline_user_id, p.byline_name, p.visibility, p.tiers, p.never_free, p.seo_title, p.seo_description, p.social_image, p.canonical_url, p.hide_from_search, p.mjml, p.version, p.autosaved_at, p.body_html, p.preview_html, p.has_marker, p.marker_after, p.body_text, p.preview_text, p.words, p.render_notes, p.rendered_hash, p.published_at, p.published_by, p.first_published_at, p.unpublished_at, p.unpublished_by, p.unpublish_reason, p.redirect_to, p.sent_as_campaign, p.created_by, p.created_at, p.updated_by, p.updated_at, p.deleted_at, p.published_mjml, p.published_version, p.paid_blocks,
+SELECT p.id, p.workspace_id, p.kind, p.campaign_id, p.web_on, p.status, p.publish_mode, p.publish_at, p.publish_tz, p.title, p.title_edited, p.slug, p.excerpt, p.excerpt_edited, p.cover_url, p.cover_alt, p.byline_user_id, p.byline_name, p.visibility, p.tiers, p.never_free, p.seo_title, p.seo_description, p.social_image, p.canonical_url, p.hide_from_search, p.mjml, p.version, p.autosaved_at, p.body_html, p.preview_html, p.has_marker, p.marker_after, p.body_text, p.preview_text, p.words, p.render_notes, p.rendered_hash, p.published_at, p.published_by, p.first_published_at, p.unpublished_at, p.unpublished_by, p.unpublish_reason, p.redirect_to, p.sent_as_campaign, p.created_by, p.created_at, p.updated_by, p.updated_at, p.deleted_at, p.published_mjml, p.published_version, p.paid_blocks, p.import_source, p.import_source_id, p.comments_off,
        coalesce(bu.name, '')::text AS byline_user_name, coalesce(bu.avatar_color, '')::text AS byline_color,
        coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
        c.started_at AS campaign_started_at, c.scheduled_at AS campaign_scheduled_at,
@@ -1083,6 +1092,9 @@ func (q *Queries) WebsitePostGet(ctx context.Context, arg WebsitePostGetParams) 
 		&i.WebsitePost.PublishedMjml,
 		&i.WebsitePost.PublishedVersion,
 		&i.WebsitePost.PaidBlocks,
+		&i.WebsitePost.ImportSource,
+		&i.WebsitePost.ImportSourceID,
+		&i.WebsitePost.CommentsOff,
 		&i.BylineUserName,
 		&i.BylineColor,
 		&i.CampaignName,
@@ -1168,7 +1180,7 @@ func (q *Queries) WebsitePostInsert(ctx context.Context, arg WebsitePostInsertPa
 }
 
 const websitePostLock = `-- name: WebsitePostLock :one
-SELECT id, workspace_id, kind, campaign_id, web_on, status, publish_mode, publish_at, publish_tz, title, title_edited, slug, excerpt, excerpt_edited, cover_url, cover_alt, byline_user_id, byline_name, visibility, tiers, never_free, seo_title, seo_description, social_image, canonical_url, hide_from_search, mjml, version, autosaved_at, body_html, preview_html, has_marker, marker_after, body_text, preview_text, words, render_notes, rendered_hash, published_at, published_by, first_published_at, unpublished_at, unpublished_by, unpublish_reason, redirect_to, sent_as_campaign, created_by, created_at, updated_by, updated_at, deleted_at, published_mjml, published_version, paid_blocks FROM website_posts WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
+SELECT id, workspace_id, kind, campaign_id, web_on, status, publish_mode, publish_at, publish_tz, title, title_edited, slug, excerpt, excerpt_edited, cover_url, cover_alt, byline_user_id, byline_name, visibility, tiers, never_free, seo_title, seo_description, social_image, canonical_url, hide_from_search, mjml, version, autosaved_at, body_html, preview_html, has_marker, marker_after, body_text, preview_text, words, render_notes, rendered_hash, published_at, published_by, first_published_at, unpublished_at, unpublished_by, unpublish_reason, redirect_to, sent_as_campaign, created_by, created_at, updated_by, updated_at, deleted_at, published_mjml, published_version, paid_blocks, import_source, import_source_id, comments_off FROM website_posts WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
 `
 
 type WebsitePostLockParams struct {
@@ -1234,6 +1246,9 @@ func (q *Queries) WebsitePostLock(ctx context.Context, arg WebsitePostLockParams
 		&i.PublishedMjml,
 		&i.PublishedVersion,
 		&i.PaidBlocks,
+		&i.ImportSource,
+		&i.ImportSourceID,
+		&i.CommentsOff,
 	)
 	return i, err
 }
@@ -1334,8 +1349,8 @@ UPDATE website_posts SET
     cover_url = $10, cover_alt = $11, byline_user_id = $12, byline_name = $13,
     visibility = $14, tiers = $15, never_free = $16,
     seo_title = $17, seo_description = $18, social_image = $19, canonical_url = $20,
-    hide_from_search = $21, updated_by = $22, updated_at = $23
-WHERE workspace_id = $24 AND id = $25
+    hide_from_search = $21, comments_off = $22, updated_by = $23, updated_at = $24
+WHERE workspace_id = $25 AND id = $26
 `
 
 type WebsitePostSaveFieldsParams struct {
@@ -1360,6 +1375,7 @@ type WebsitePostSaveFieldsParams struct {
 	SocialImage    string      `json:"socialImage"`
 	CanonicalUrl   string      `json:"canonicalUrl"`
 	HideFromSearch bool        `json:"hideFromSearch"`
+	CommentsOff    bool        `json:"commentsOff"`
 	UpdatedBy      *uuid.UUID  `json:"updatedBy"`
 	At             time.Time   `json:"at"`
 	WorkspaceID    uuid.UUID   `json:"workspaceId"`
@@ -1389,6 +1405,7 @@ func (q *Queries) WebsitePostSaveFields(ctx context.Context, arg WebsitePostSave
 		arg.SocialImage,
 		arg.CanonicalUrl,
 		arg.HideFromSearch,
+		arg.CommentsOff,
 		arg.UpdatedBy,
 		arg.At,
 		arg.WorkspaceID,
@@ -2026,7 +2043,7 @@ func (q *Queries) WebsiteRedirectCount(ctx context.Context, workspaceID uuid.UUI
 }
 
 const websiteRedirectGet = `-- name: WebsiteRedirectGet :one
-SELECT p.id, p.workspace_id, p.kind, p.campaign_id, p.web_on, p.status, p.publish_mode, p.publish_at, p.publish_tz, p.title, p.title_edited, p.slug, p.excerpt, p.excerpt_edited, p.cover_url, p.cover_alt, p.byline_user_id, p.byline_name, p.visibility, p.tiers, p.never_free, p.seo_title, p.seo_description, p.social_image, p.canonical_url, p.hide_from_search, p.mjml, p.version, p.autosaved_at, p.body_html, p.preview_html, p.has_marker, p.marker_after, p.body_text, p.preview_text, p.words, p.render_notes, p.rendered_hash, p.published_at, p.published_by, p.first_published_at, p.unpublished_at, p.unpublished_by, p.unpublish_reason, p.redirect_to, p.sent_as_campaign, p.created_by, p.created_at, p.updated_by, p.updated_at, p.deleted_at, p.published_mjml, p.published_version, p.paid_blocks FROM website_redirects r JOIN website_posts p ON p.id = r.post_id AND p.deleted_at IS NULL
+SELECT p.id, p.workspace_id, p.kind, p.campaign_id, p.web_on, p.status, p.publish_mode, p.publish_at, p.publish_tz, p.title, p.title_edited, p.slug, p.excerpt, p.excerpt_edited, p.cover_url, p.cover_alt, p.byline_user_id, p.byline_name, p.visibility, p.tiers, p.never_free, p.seo_title, p.seo_description, p.social_image, p.canonical_url, p.hide_from_search, p.mjml, p.version, p.autosaved_at, p.body_html, p.preview_html, p.has_marker, p.marker_after, p.body_text, p.preview_text, p.words, p.render_notes, p.rendered_hash, p.published_at, p.published_by, p.first_published_at, p.unpublished_at, p.unpublished_by, p.unpublish_reason, p.redirect_to, p.sent_as_campaign, p.created_by, p.created_at, p.updated_by, p.updated_at, p.deleted_at, p.published_mjml, p.published_version, p.paid_blocks, p.import_source, p.import_source_id, p.comments_off FROM website_redirects r JOIN website_posts p ON p.id = r.post_id AND p.deleted_at IS NULL
 WHERE r.workspace_id = $1 AND r.path = $2
 `
 
@@ -2093,6 +2110,9 @@ func (q *Queries) WebsiteRedirectGet(ctx context.Context, arg WebsiteRedirectGet
 		&i.PublishedMjml,
 		&i.PublishedVersion,
 		&i.PaidBlocks,
+		&i.ImportSource,
+		&i.ImportSourceID,
+		&i.CommentsOff,
 	)
 	return i, err
 }
@@ -2484,7 +2504,7 @@ func (q *Queries) WebsiteSettingsEnsure(ctx context.Context, workspaceID uuid.UU
 }
 
 const websiteSettingsGet = `-- name: WebsiteSettingsGet :one
-SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by, share_buttons FROM website_settings WHERE workspace_id = $1
+SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by, share_buttons, comments, comments_review, comments_notified_at FROM website_settings WHERE workspace_id = $1
 `
 
 func (q *Queries) WebsiteSettingsGet(ctx context.Context, workspaceID uuid.UUID) (WebsiteSetting, error) {
@@ -2527,12 +2547,15 @@ func (q *Queries) WebsiteSettingsGet(ctx context.Context, workspaceID uuid.UUID)
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.ShareButtons,
+		&i.Comments,
+		&i.CommentsReview,
+		&i.CommentsNotifiedAt,
 	)
 	return i, err
 }
 
 const websiteSettingsLock = `-- name: WebsiteSettingsLock :one
-SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by, share_buttons FROM website_settings WHERE workspace_id = $1 FOR UPDATE
+SELECT workspace_id, status, turned_on_at, turned_on_by, turned_off_at, turned_off_by, progress, title, tagline, description, social_image, index_site, home_layout, featured, sections, about_title, about_text, about_link, header_links, footer, signin_on, link_minutes, session_days, signup_on, signup_lists, default_visibility, campaign_visibility, meter_visitors_on, meter_visitors, meter_members_on, meter_members, paywall, domain_notified, updated_at, updated_by, share_buttons, comments, comments_review, comments_notified_at FROM website_settings WHERE workspace_id = $1 FOR UPDATE
 `
 
 func (q *Queries) WebsiteSettingsLock(ctx context.Context, workspaceID uuid.UUID) (WebsiteSetting, error) {
@@ -2575,6 +2598,9 @@ func (q *Queries) WebsiteSettingsLock(ctx context.Context, workspaceID uuid.UUID
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.ShareButtons,
+		&i.Comments,
+		&i.CommentsReview,
+		&i.CommentsNotifiedAt,
 	)
 	return i, err
 }
@@ -2587,8 +2613,8 @@ UPDATE website_settings SET
     signin_on = $15, link_minutes = $16, session_days = $17, signup_on = $18, signup_lists = $19,
     default_visibility = $20, campaign_visibility = $21,
     meter_visitors_on = $22, meter_visitors = $23, meter_members_on = $24, meter_members = $25,
-    paywall = $26, updated_at = $27, updated_by = $28
-WHERE workspace_id = $29
+    paywall = $26, comments = $27, comments_review = $28, updated_at = $29, updated_by = $30
+WHERE workspace_id = $31
 `
 
 type WebsiteSettingsSaveParams struct {
@@ -2618,6 +2644,8 @@ type WebsiteSettingsSaveParams struct {
 	MeterMembersOn     bool            `json:"meterMembersOn"`
 	MeterMembers       int32           `json:"meterMembers"`
 	Paywall            json.RawMessage `json:"paywall"`
+	Comments           string          `json:"comments"`
+	CommentsReview     string          `json:"commentsReview"`
 	At                 time.Time       `json:"at"`
 	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
 	WorkspaceID        uuid.UUID       `json:"workspaceId"`
@@ -2651,6 +2679,8 @@ func (q *Queries) WebsiteSettingsSave(ctx context.Context, arg WebsiteSettingsSa
 		arg.MeterMembersOn,
 		arg.MeterMembers,
 		arg.Paywall,
+		arg.Comments,
+		arg.CommentsReview,
 		arg.At,
 		arg.UpdatedBy,
 		arg.WorkspaceID,

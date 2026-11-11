@@ -50,6 +50,8 @@ func websiteService(a *App) *website.Service {
 			return &campaigns.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, AfterChange: CampaignChangeHook(a)}
 		},
 		Certs: func() website.CertChecker { return websiteCerts(a) },
+		// "Stop these emails" in comment reply emails (M61).
+		Links: a.Links,
 	}
 	v, _ := websiteServices.LoadOrStore(a, s)
 	return v.(*website.Service)

@@ -50,6 +50,7 @@
   "short.store_problem": "problemas con tiendas",
   "short.push_worker_missing": "service workers de push que faltan",
   "short.whatsapp_attention": "plantillas y calidad de WhatsApp",
+  "short.comments_waiting": "comentarios pendientes de revisión",
 
   "event.approval_requested": "Aprobación solicitada",
   "event.approval_decided": "Solicitud aprobada, rechazada o con cambios solicitados",
@@ -98,6 +99,7 @@
   "event.store_problem": "Tienda desconectada o sin sus webhooks",
   "event.push_worker_missing": "Falta el service worker de push",
   "event.whatsapp_attention": "Plantilla de WhatsApp rechazada o calidad en descenso",
+  "event.comments_waiting": "Comentarios pendientes de revisión",
 
   "audience.approval_requested": "Solo para quien aprueba",
   "audience.approval_decided": "Solo para quien la creó",
@@ -146,6 +148,7 @@
   "audience.store_problem": "Personas que pueden gestionar las integraciones",
   "audience.push_worker_missing": "Personas que pueden ver los proveedores de envío",
   "audience.whatsapp_attention": "Personas que pueden ver los proveedores de envío",
+  "audience.comments_waiting": "Personas que pueden moderar comentarios · después, como máximo una vez por hora mientras haya comentarios esperando",
 
   "category.approvals": "Aprobaciones",
   "category.sending": "Envíos",

@@ -5202,12 +5202,156 @@ type Querier interface {
 	// Sent campaigns of the archived lists, as the archive files them: the
 	// posts turning the website on creates.
 	WebsiteArchiveCampaigns(ctx context.Context, arg WebsiteArchiveCampaignsParams) ([]WebsiteArchiveCampaignsRow, error)
+	// A post's published comments, replies included ("Comments (13)").
+	WebsiteCommentCount(ctx context.Context, postID uuid.UUID) (int64, error)
+	// Website › Posts' comment column.
+	WebsiteCommentCountsByPost(ctx context.Context, posts []uuid.UUID) ([]WebsiteCommentCountsByPostRow, error)
+	// A member deletes their own comment: its text goes at once.
+	WebsiteCommentDeleteOwn(ctx context.Context, id uuid.UUID) error
+	// A member's own edit (within 15 minutes): held again when the site
+	// reviews every comment.
+	WebsiteCommentEdit(ctx context.Context, arg WebsiteCommentEditParams) error
+	WebsiteCommentGet(ctx context.Context, arg WebsiteCommentGetParams) (WebsiteComment, error)
+	// Addresses of comments older than 30 days.
+	WebsiteCommentIPsClear(ctx context.Context, before time.Time) error
+	// Writing
+	WebsiteCommentInsert(ctx context.Context, arg WebsiteCommentInsertParams) error
+	// Who wrote comments and under which post (audit entries name them).
+	WebsiteCommentLabels(ctx context.Context, arg WebsiteCommentLabelsParams) ([]WebsiteCommentLabelsRow, error)
+	// Moderation
+	// Website › Comments: one tab's comments, newest first, after a cursor.
+	WebsiteCommentList(ctx context.Context, arg WebsiteCommentListParams) ([]WebsiteCommentListRow, error)
+	WebsiteCommentLock(ctx context.Context, arg WebsiteCommentLockParams) (WebsiteComment, error)
+	// What a reply email says: the reply, who wrote it and its post.
+	WebsiteCommentNoticeReply(ctx context.Context, id uuid.UUID) (WebsiteCommentNoticeReplyRow, error)
+	WebsiteCommentNoticesDrop(ctx context.Context, arg WebsiteCommentNoticesDropParams) error
+	// Reply emails to send: the notices of members who got none since @since.
+	WebsiteCommentNoticesDue(ctx context.Context, since *time.Time) ([]WebsiteCommentNoticesDueRow, error)
+	// Keeping
+	// Sent notices once the hourly cap no longer needs them, and notices that
+	// couldn't go for a week (no System stream).
+	WebsiteCommentNoticesPurge(ctx context.Context, before *time.Time) error
+	// Reply emails
+	// Published replies: each thread's author hears about them, unless they
+	// wrote the reply or turned reply emails off.
+	WebsiteCommentNoticesQueue(ctx context.Context, arg WebsiteCommentNoticesQueueParams) error
+	WebsiteCommentNoticesSent(ctx context.Context, arg WebsiteCommentNoticesSentParams) error
+	// Replies that left the site before their email went.
+	WebsiteCommentNoticesUnqueue(ctx context.Context, comments []uuid.UUID) error
+	WebsiteCommentPin(ctx context.Context, arg WebsiteCommentPinParams) error
+	// The posts that have comments (Website › Comments' post filter), newest
+	// comment first.
+	WebsiteCommentPosts(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteCommentPostsRow, error)
+	// Who a reply email goes to, in their language.
+	WebsiteCommentRecipient(ctx context.Context, contactID uuid.UUID) (WebsiteCommentRecipientRow, error)
+	// The replies of threads, oldest first: published ones and the reader's
+	// own waiting for review.
+	WebsiteCommentReplies(ctx context.Context, arg WebsiteCommentRepliesParams) ([]WebsiteCommentRepliesRow, error)
+	// The tabs' counts, with the same post and search.
+	WebsiteCommentStatusCounts(ctx context.Context, arg WebsiteCommentStatusCountsParams) (WebsiteCommentStatusCountsRow, error)
+	// How many top-level comments the reader sees (the pages).
+	WebsiteCommentThreadCount(ctx context.Context, arg WebsiteCommentThreadCountParams) (int64, error)
+	// Comments on posts (internal/website/comments*.go, M61): what members
+	// write under the posts they can read, the team's replies, moderation in
+	// Website › Comments and the emails that tell a member someone replied.
+	// Public: a post's threads as one reader sees them
+	// A page of a post's top-level comments as a reader sees them: the
+	// published ones, the reader's own waiting for review, and removed ones
+	// that still have published replies. Pinned first, then oldest first.
+	WebsiteCommentThreads(ctx context.Context, arg WebsiteCommentThreadsParams) ([]WebsiteCommentThreadsRow, error)
+	// How many top-level comments the reader sees before one (its page):
+	// pinned is its pinned_at while it is published and pinned.
+	WebsiteCommentThreadsBefore(ctx context.Context, arg WebsiteCommentThreadsBeforeParams) (int64, error)
+	// Members as commenters
+	// A contact as their comments know them: the name shown, a moderator's
+	// block, reply emails.
+	WebsiteCommenter(ctx context.Context, arg WebsiteCommenterParams) (WebsiteCommenterRow, error)
+	// Blocks a member from commenting (at) or lets them again (NULL).
+	WebsiteCommenterBlock(ctx context.Context, arg WebsiteCommenterBlockParams) (int64, error)
+	// Whether a member has a published comment (review "a member's first comment").
+	WebsiteCommenterHasPublished(ctx context.Context, contactID *uuid.UUID) (bool, error)
+	// "Stop these emails" in a reply email.
+	WebsiteCommenterMute(ctx context.Context, arg WebsiteCommenterMuteParams) (int64, error)
+	// The name a member's comments show (their first comment asks for it).
+	WebsiteCommenterName(ctx context.Context, arg WebsiteCommenterNameParams) error
+	// The account page's Comments section: the name and reply emails.
+	WebsiteCommenterSettings(ctx context.Context, arg WebsiteCommenterSettingsParams) error
+	// A member's comments since day_start, and since recent (the limits).
+	WebsiteCommentsByMember(ctx context.Context, arg WebsiteCommentsByMemberParams) (WebsiteCommentsByMemberRow, error)
+	// Comments from one network (an IPv4 address or an IPv6 /64) since a moment.
+	WebsiteCommentsByNetwork(ctx context.Context, arg WebsiteCommentsByNetworkParams) (int64, error)
+	// Publishes, hides or deletes comments, keeping what Undo restores.
+	WebsiteCommentsDecide(ctx context.Context, arg WebsiteCommentsDecideParams) error
+	// The text of deleted comments once their Undo has passed.
+	WebsiteCommentsDeletedClear(ctx context.Context, now *time.Time) error
+	// A blocked member's comments waiting for review say why they wait.
+	WebsiteCommentsHoldBlocked(ctx context.Context, arg WebsiteCommentsHoldBlockedParams) (int64, error)
+	WebsiteCommentsLock(ctx context.Context, arg WebsiteCommentsLockParams) ([]WebsiteComment, error)
+	// When the people who moderate were last told comments are waiting.
+	WebsiteCommentsNotified(ctx context.Context, arg WebsiteCommentsNotifiedParams) error
+	WebsiteCommentsOfDecision(ctx context.Context, arg WebsiteCommentsOfDecisionParams) ([]WebsiteComment, error)
+	WebsiteCommentsPending(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	WebsiteCommentsUndo(ctx context.Context, arg WebsiteCommentsUndoParams) error
 	WebsiteConversionCounts(ctx context.Context, arg WebsiteConversionCountsParams) ([]WebsiteConversionCountsRow, error)
 	WebsiteConversionInsert(ctx context.Context, arg WebsiteConversionInsertParams) error
 	WebsiteConversionTotals(ctx context.Context, arg WebsiteConversionTotalsParams) (WebsiteConversionTotalsRow, error)
+	// The staged posts' authors, with how many posts each.
+	WebsiteImportAuthors(ctx context.Context, importID uuid.UUID) ([]WebsiteImportAuthorsRow, error)
+	// An import for its background jobs.
+	WebsiteImportByID(ctx context.Context, id uuid.UUID) (WebsiteImportByIDRow, error)
+	// The staged posts in numbers (the Review step's).
+	WebsiteImportCounts(ctx context.Context, importID uuid.UUID) (WebsiteImportCountsRow, error)
+	WebsiteImportFile(ctx context.Context, importID uuid.UUID) ([]byte, error)
+	WebsiteImportFileDelete(ctx context.Context, importID uuid.UUID) error
+	WebsiteImportFileInsert(ctx context.Context, arg WebsiteImportFileInsertParams) error
+	WebsiteImportFinish(ctx context.Context, arg WebsiteImportFinishParams) error
+	// An import of a workspace, with who uploaded it.
+	WebsiteImportGet(ctx context.Context, arg WebsiteImportGetParams) (WebsiteImportGetRow, error)
+	// Importing posts from Substack, Ghost and WordPress (M61, G-26):
+	// internal/website/imports*.go.
+	WebsiteImportInsert(ctx context.Context, arg WebsiteImportInsertParams) error
+	WebsiteImportLock(ctx context.Context, arg WebsiteImportLockParams) (WebsiteImportLockRow, error)
+	// Moves an import on from one of the statuses it may move from.
+	WebsiteImportMove(ctx context.Context, arg WebsiteImportMoveParams) (int64, error)
+	// A staged post after its run: the post it became, its address and problems.
+	WebsiteImportPostDone(ctx context.Context, arg WebsiteImportPostDoneParams) error
+	// A page of the staged posts, in the export's order (newest first, drafts
+	// last), with the status of the post each became.
+	WebsiteImportPostList(ctx context.Context, arg WebsiteImportPostListParams) ([]WebsiteImportPostListRow, error)
+	// The staged posts' decisions, for checking new ones.
+	WebsiteImportPostRefs(ctx context.Context, arg WebsiteImportPostRefsParams) ([]WebsiteImportPostRefsRow, error)
+	WebsiteImportPostSetDecision(ctx context.Context, arg WebsiteImportPostSetDecisionParams) error
+	WebsiteImportPostsClear(ctx context.Context, importID uuid.UUID) error
+	// An ended import's staged posts keep their outcome, not their bodies.
+	WebsiteImportPostsDropHTML(ctx context.Context, importID uuid.UUID) error
+	// Staged posts
+	WebsiteImportPostsInsert(ctx context.Context, arg []WebsiteImportPostsInsertParams) (int64, error)
+	// The next staged posts of a run, after its cursor.
+	WebsiteImportPostsToRun(ctx context.Context, arg WebsiteImportPostsToRunParams) ([]WebsiteImportPost, error)
+	// The analysis is done: the posts are staged.
+	WebsiteImportReady(ctx context.Context, arg WebsiteImportReadyParams) error
+	WebsiteImportReport(ctx context.Context, arg WebsiteImportReportParams) (WebsiteImportReportRow, error)
+	WebsiteImportSetOptions(ctx context.Context, arg WebsiteImportSetOptionsParams) error
+	WebsiteImportSetStats(ctx context.Context, arg WebsiteImportSetStatsParams) error
+	WebsiteImportStatus(ctx context.Context, id uuid.UUID) (string, error)
+	// The old site's tiers the staged posts name, with how many posts each.
+	WebsiteImportTierRefs(ctx context.Context, importID uuid.UUID) ([]WebsiteImportTierRefsRow, error)
+	// The imports the jobs tray shows: running ones, and ones that ended since.
+	WebsiteImportTray(ctx context.Context, arg WebsiteImportTrayParams) ([]WebsiteImportTrayRow, error)
+	WebsiteImportedPost(ctx context.Context, arg WebsiteImportedPostParams) (WebsitePost, error)
+	// Imported posts
+	// The posts already imported from a platform, by their source ids.
+	WebsiteImportedPosts(ctx context.Context, arg WebsiteImportedPostsParams) ([]WebsiteImportedPostsRow, error)
+	// An ended import's file goes (the run drops it; this catches the rest).
+	WebsiteImportsPurgeFiles(ctx context.Context) error
+	// Reports are kept 30 days.
+	WebsiteImportsPurgeReports(ctx context.Context, before time.Time) error
 	// The posts /llms.txt lists: the sitemap's (published, not hidden from
 	// search), newest first, with their public title and excerpt.
 	WebsiteLLMsPosts(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteLLMsPostsRow, error)
+	WebsiteLegacyPathInsert(ctx context.Context, arg WebsiteLegacyPathInsertParams) error
+	// The post an old address of the site leads to.
+	WebsiteLegacyPathPost(ctx context.Context, arg WebsiteLegacyPathPostParams) (string, error)
 	WebsiteLinkByToken(ctx context.Context, tokenHash []byte) (WebsiteSigninLink, error)
 	// Sign-in links
 	WebsiteLinkInsert(ctx context.Context, arg WebsiteLinkInsertParams) error
@@ -5245,6 +5389,11 @@ type Querier interface {
 	WebsitePostCounts(ctx context.Context, workspaceID uuid.UUID) ([]WebsitePostCountsRow, error)
 	WebsitePostDelete(ctx context.Context, arg WebsitePostDeleteParams) error
 	WebsitePostGet(ctx context.Context, arg WebsitePostGetParams) (WebsitePostGetRow, error)
+	// An imported post: a web-only draft with its settings and content.
+	WebsitePostImportInsert(ctx context.Context, arg WebsitePostImportInsertParams) error
+	// An imported post imported again ("Update"): its settings and content as
+	// the export has them now. Its address stays.
+	WebsitePostImportUpdate(ctx context.Context, arg WebsitePostImportUpdateParams) error
 	// Posts
 	WebsitePostInsert(ctx context.Context, arg WebsitePostInsertParams) error
 	WebsitePostLock(ctx context.Context, arg WebsitePostLockParams) (WebsitePost, error)

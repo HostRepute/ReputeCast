@@ -76,5 +76,5 @@ func (s *Service) save(ctx context.Context, q *store.Queries, ws *store.Workspac
 		SigninOn: r.SigninOn, LinkMinutes: r.LinkMinutes, SessionDays: r.SessionDays, SignupOn: r.SignupOn, SignupLists: lists,
 		DefaultVisibility: r.DefaultVisibility, CampaignVisibility: r.CampaignVisibility,
 		MeterVisitorsOn: r.MeterVisitorsOn, MeterVisitors: r.MeterVisitors, MeterMembersOn: r.MeterMembersOn, MeterMembers: r.MeterMembers,
-		Paywall: paywall, At: s.now(), UpdatedBy: by})
+		Paywall: paywall, Comments: r.Comments, CommentsReview: r.CommentsReview, At: s.now(), UpdatedBy: by})
 }

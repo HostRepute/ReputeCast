@@ -176,6 +176,10 @@ var secretSegments = []*regexp.Regexp{
 	// under /p/{workspace}/ and at a custom domain's root.
 	regexp.MustCompile(`^(/p/[^/]+/(?:signin/link|d|l|billing|cancel|gift/redeem|poll)/)[^/]+`),
 	regexp.MustCompile(`^(/(?:signin/link|d|l|billing|cancel|gift/redeem|poll)/)[^/]+`),
+	// "Stop these emails" in a comment reply email (M61), under
+	// /p/{workspace}/ and at a custom domain's root.
+	regexp.MustCompile(`^(/p/[^/]+/comments/mute/)[^/]+`),
+	regexp.MustCompile(`^(/comments/mute/)[^/]+`),
 	// An SMS short link's code at the root of a short-link domain
 	// (go.acme.io/Xk7Pq2).
 	regexp.MustCompile(`^(/)[A-Za-z0-9]{6}$`),

@@ -81,6 +81,8 @@ var Events = []EventType{
 	// Web push and WhatsApp (design expansion, phase 8).
 	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "People who can view sending providers", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "People who can view sending providers", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
+	// Comments on the website's posts (M61).
+	{Key: KindCommentsWaiting, Label: "Comments waiting for review", Audience: "People who can moderate comments · then at most once an hour while comments wait", Short: "comments waiting for review", DefaultEmail: true, Kinds: []string{KindCommentsWaiting}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -132,7 +134,7 @@ var categoryKinds = map[string][]string{
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
-	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed},
+	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed, KindCommentsWaiting},
 	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
 
@@ -169,3 +171,8 @@ func CategoryLabel(c string) string { return categoryLabels[c] }
 
 // KindsOf returns the kinds of a category tab.
 func KindsOf(category string) []string { return categoryKinds[category] }
+
+// KindCommentsWaiting: readers' comments on the website's posts wait for
+// review (comments:moderate), when the queue goes from empty to waiting,
+// then at most once an hour (M61).
+const KindCommentsWaiting = "comments_waiting"

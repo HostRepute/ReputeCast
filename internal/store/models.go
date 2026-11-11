@@ -5412,13 +5412,99 @@ type WebhookToken struct {
 	ExpiresAt   time.Time `json:"expiresAt"`
 }
 
+type WebsiteComment struct {
+	ID                uuid.UUID   `json:"id"`
+	WorkspaceID       uuid.UUID   `json:"workspaceId"`
+	PostID            uuid.UUID   `json:"postId"`
+	ParentID          *uuid.UUID  `json:"parentId"`
+	ContactID         *uuid.UUID  `json:"contactId"`
+	Team              bool        `json:"team"`
+	UserID            *uuid.UUID  `json:"userId"`
+	Body              string      `json:"body"`
+	Status            string      `json:"status"`
+	HeldReason        string      `json:"heldReason"`
+	PinnedAt          *time.Time  `json:"pinnedAt"`
+	Ip                *netip.Addr `json:"ip"`
+	CreatedAt         time.Time   `json:"createdAt"`
+	EditedAt          *time.Time  `json:"editedAt"`
+	PublishedAt       *time.Time  `json:"publishedAt"`
+	ModeratedBy       *uuid.UUID  `json:"moderatedBy"`
+	ModeratedAt       *time.Time  `json:"moderatedAt"`
+	DecisionID        *uuid.UUID  `json:"decisionId"`
+	UndoUntil         *time.Time  `json:"undoUntil"`
+	BeforeStatus      string      `json:"beforeStatus"`
+	BeforePublishedAt *time.Time  `json:"beforePublishedAt"`
+}
+
+type WebsiteCommentNotice struct {
+	ContactID uuid.UUID  `json:"contactId"`
+	CommentID uuid.UUID  `json:"commentId"`
+	QueuedAt  time.Time  `json:"queuedAt"`
+	SentAt    *time.Time `json:"sentAt"`
+}
+
+type WebsiteImport struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Source      string          `json:"source"`
+	Status      string          `json:"status"`
+	Options     json.RawMessage `json:"options"`
+	Stats       json.RawMessage `json:"stats"`
+	Error       string          `json:"error"`
+	ReportCsv   []byte          `json:"reportCsv"`
+	FileName    string          `json:"fileName"`
+	FileSize    int64           `json:"fileSize"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+	FinishedAt  *time.Time      `json:"finishedAt"`
+}
+
+type WebsiteImportFile struct {
+	ImportID uuid.UUID `json:"importId"`
+	Data     []byte    `json:"data"`
+}
+
+type WebsiteImportPost struct {
+	ID          uuid.UUID       `json:"id"`
+	ImportID    uuid.UUID       `json:"importId"`
+	SourceID    string          `json:"sourceId"`
+	Title       string          `json:"title"`
+	Slug        string          `json:"slug"`
+	PublishedAt *time.Time      `json:"publishedAt"`
+	Status      string          `json:"status"`
+	Visibility  string          `json:"visibility"`
+	TierRefs    []string        `json:"tierRefs"`
+	Tags        []string        `json:"tags"`
+	Author      string          `json:"author"`
+	Excerpt     string          `json:"excerpt"`
+	CoverUrl    string          `json:"coverUrl"`
+	Seo         json.RawMessage `json:"seo"`
+	LegacyPaths []string        `json:"legacyPaths"`
+	Html        string          `json:"html"`
+	Images      int32           `json:"images"`
+	Problems    json.RawMessage `json:"problems"`
+	Decision    string          `json:"decision"`
+	PostID      *uuid.UUID      `json:"postId"`
+}
+
+type WebsiteLegacyPath struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Path        string    `json:"path"`
+	PostID      uuid.UUID `json:"postId"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
 type WebsiteMember struct {
-	ContactID     uuid.UUID `json:"contactId"`
-	WorkspaceID   uuid.UUID `json:"workspaceId"`
-	FirstSignedIn time.Time `json:"firstSignedIn"`
-	LastSignedIn  time.Time `json:"lastSignedIn"`
-	LastMethod    string    `json:"lastMethod"`
-	SignIns       int32     `json:"signIns"`
+	ContactID         uuid.UUID  `json:"contactId"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	FirstSignedIn     time.Time  `json:"firstSignedIn"`
+	LastSignedIn      time.Time  `json:"lastSignedIn"`
+	LastMethod        string     `json:"lastMethod"`
+	SignIns           int32      `json:"signIns"`
+	DisplayName       string     `json:"displayName"`
+	CommentsBlockedAt *time.Time `json:"commentsBlockedAt"`
+	CommentEmails     bool       `json:"commentEmails"`
 }
 
 type WebsiteMemberEvent struct {
@@ -5497,6 +5583,9 @@ type WebsitePost struct {
 	PublishedMjml    string          `json:"publishedMjml"`
 	PublishedVersion int32           `json:"publishedVersion"`
 	PaidBlocks       json.RawMessage `json:"paidBlocks"`
+	ImportSource     *string         `json:"importSource"`
+	ImportSourceID   *string         `json:"importSourceId"`
+	CommentsOff      bool            `json:"commentsOff"`
 }
 
 type WebsitePostConversion struct {
@@ -5581,6 +5670,9 @@ type WebsiteSetting struct {
 	UpdatedAt          time.Time       `json:"updatedAt"`
 	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
 	ShareButtons       bool            `json:"shareButtons"`
+	Comments           string          `json:"comments"`
+	CommentsReview     string          `json:"commentsReview"`
+	CommentsNotifiedAt *time.Time      `json:"commentsNotifiedAt"`
 }
 
 type WebsiteSigninLink struct {

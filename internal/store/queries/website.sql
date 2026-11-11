@@ -19,7 +19,7 @@ UPDATE website_settings SET
     signin_on = @signin_on, link_minutes = @link_minutes, session_days = @session_days, signup_on = @signup_on, signup_lists = @signup_lists,
     default_visibility = @default_visibility, campaign_visibility = @campaign_visibility,
     meter_visitors_on = @meter_visitors_on, meter_visitors = @meter_visitors, meter_members_on = @meter_members_on, meter_members = @meter_members,
-    paywall = @paywall, updated_at = @at, updated_by = sqlc.narg(updated_by)
+    paywall = @paywall, comments = @comments, comments_review = @comments_review, updated_at = @at, updated_by = sqlc.narg(updated_by)
 WHERE workspace_id = @workspace_id;
 
 -- name: WebsiteSetStatus :exec
@@ -155,7 +155,7 @@ UPDATE website_posts SET
     cover_url = @cover_url, cover_alt = @cover_alt, byline_user_id = sqlc.narg(byline_user_id), byline_name = @byline_name,
     visibility = @visibility, tiers = @tiers, never_free = @never_free,
     seo_title = @seo_title, seo_description = @seo_description, social_image = @social_image, canonical_url = @canonical_url,
-    hide_from_search = @hide_from_search, updated_by = sqlc.narg(updated_by), updated_at = @at
+    hide_from_search = @hide_from_search, comments_off = @comments_off, updated_by = sqlc.narg(updated_by), updated_at = @at
 WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: WebsitePostSaveContent :exec

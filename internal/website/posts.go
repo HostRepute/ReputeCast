@@ -118,6 +118,10 @@ type WebsitePostRow struct {
 	Approval     *WebsitePostApproval `json:"approval,omitempty"`
 	CreatedBy    string               `json:"createdBy"`
 	UpdatedAt    time.Time            `json:"updatedAt"`
+	// Comments are the post's published comments, CommentsPending those
+	// waiting for review.
+	Comments        int64 `json:"comments"`
+	CommentsPending int64 `json:"commentsPending"`
 }
 
 // WebsitePostCounts are the posts by status.
@@ -354,6 +358,14 @@ func (s *Service) rows(ctx context.Context, ws *store.Workspace, ids []uuid.UUID
 			upgrades[r.PostID] = r.N
 		}
 	}
+	comments, err := s.Q.WebsiteCommentCountsByPost(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	published, pending := map[uuid.UUID]int64{}, map[uuid.UUID]int64{}
+	for _, r := range comments {
+		published[r.PostID], pending[r.PostID] = r.Published, r.Pending
+	}
 	approvals := s.openApprovals(ctx, ws, ids)
 	for _, id := range ids {
 		pr, err := s.getPost(ctx, s.Q, ws, id)
@@ -363,6 +375,7 @@ func (s *Service) rows(ctx context.Context, ws *store.Workspace, ids []uuid.UUID
 		row := s.row(ws, c, tiers, pr)
 		row.Views, row.ViewsAllTime, row.Signups, row.Upgrades = v30[id], vAll[id], signups[id], upgrades[id]
 		row.Approval = approvals[id]
+		row.Comments, row.CommentsPending = published[id], pending[id]
 		out = append(out, row)
 	}
 	return out, nil

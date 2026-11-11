@@ -58,6 +58,7 @@
   "link.authentication": "Ouvrir l’authentification",
   "link.workspaces": "Ouvrir les espaces",
   "link.instance": "Ouvrir les paramètres de l’instance",
+  "link.comments": "Ouvrir les commentaires",
 
   "client.on": "{browser} sur {os}",
   "related.entry": "{action} par {name} à {at, time}",
@@ -342,5 +343,6 @@
   "type.whatsapp_settings": "paramètres WhatsApp",
   "type.whatsapp_templates": "modèles WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "espace de travail"
+  "type.workspace": "espace de travail",
+  "type.website_comment": "commentaire du site"
 }

@@ -58,6 +58,7 @@
   "link.authentication": "Open authentication",
   "link.workspaces": "Open workspaces",
   "link.instance": "Open instance settings",
+  "link.comments": "Open comments",
 
   "client.on": { "message": "{browser} on {os}", "note": "the browser and system of a request: Chrome 141 on macOS 26" },
   "related.entry": { "message": "{action} by {name} at {at, time}", "note": "a related entry; action: an audit action name, never translated" },
@@ -342,5 +343,6 @@
   "type.whatsapp_settings": "whatsapp settings",
   "type.whatsapp_templates": "whatsapp templates",
   "type.wordpress": "wordpress",
-  "type.workspace": "workspace"
+  "type.workspace": "workspace",
+  "type.website_comment": "website comment"
 }

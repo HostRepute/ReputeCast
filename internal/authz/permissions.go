@@ -91,6 +91,9 @@ const (
 	WebsiteEdit    Permission = "website:edit"
 	WebsitePublish Permission = "website:publish"
 	WebsiteManage  Permission = "website:manage"
+	// CommentsModerate publishes, hides and deletes comments on posts,
+	// pins them, replies as the publication and blocks commenters (M61).
+	CommentsModerate Permission = "comments:moderate"
 
 	ProductsView    Permission = "products:view"
 	ProductsEdit    Permission = "products:edit"
@@ -220,6 +223,7 @@ var Defs = described([]Def{
 	{Key: WebsiteEdit, Group: g("website"), Implies: []Permission{WebsiteView}},
 	{Key: WebsitePublish, Group: g("website"), Sensitive: true, Implies: []Permission{WebsiteView}},
 	{Key: WebsiteManage, Group: g("website"), Sensitive: true, Implies: []Permission{WebsiteView}},
+	{Key: CommentsModerate, Group: g("website"), NoAgents: true, Implies: []Permission{WebsiteView}},
 
 	{Key: ProductsView, Group: g("products")},
 	{Key: ProductsEdit, Group: g("products"), Implies: []Permission{ProductsView}},
@@ -445,7 +449,7 @@ var BuiltinRoles = []BuiltinRole{
 		SubscribersCreate, SubscribersEdit, SubscribersImport, ListsManage, SegmentsEdit, FormsEdit, ReportsShare,
 		TransactionalEdit, TransactionalPublish, AIUse, ScoringEdit, PlacementRun, GrowEdit, GrowReview,
 		SponsorsManage, WebsiteEdit, WebsitePublish, WebsiteManage, ProductsEdit, ProductsPublish, OrdersManage,
-		SMSSend, PushSend, WhatsAppSend)...)},
+		SMSSend, PushSend, WhatsAppSend, CommentsModerate)...)},
 	{Key: RoleViewer, Name: "Viewer", Description: roleAbout(RoleViewer), Permissions: NewSet(viewAll...)},
 }
 

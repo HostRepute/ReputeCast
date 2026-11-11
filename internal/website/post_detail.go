@@ -107,6 +107,9 @@ type WebsitePost struct {
 	Publish        WebsitePublishState `json:"publish"`
 	// Bylines are the workspace's members a byline can name.
 	Bylines []WebsiteByline `json:"bylines"`
+	// CommentsOff: comments are off for this post, whatever the site's
+	// setting (Website › Access).
+	CommentsOff bool `json:"commentsOff"`
 }
 
 // Post returns one post.
@@ -142,7 +145,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		ExcerptEdited: post.ExcerptEdited, WebOn: post.WebOn, MJML: post.Mjml, Version: int(post.Version), PublishedVersion: int(post.PublishedVersion),
 		AutosavedAt: post.AutosavedAt, Base: strings.TrimSuffix(s.sitePath(ctx, ws, "posts", "x"), "x"),
 		SEO: WebsitePostSEO{Title: post.SeoTitle, Description: post.SeoDescription, SocialImage: post.SocialImage, CanonicalURL: post.CanonicalUrl,
-			HideFromSearch: post.HideFromSearch}}
+			HideFromSearch: post.HideFromSearch}, CommentsOff: post.CommentsOff}
 	out.Base = hostOnly(out.Base)
 	src, err := s.sourceMJML(ctx, ws, post)
 	if err != nil {

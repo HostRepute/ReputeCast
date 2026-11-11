@@ -380,4 +380,5 @@ func Register(h huma.API, s *Service) {
 			out, err := s.SignOutEverywhere(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
+	registerComments(h, s)
 }

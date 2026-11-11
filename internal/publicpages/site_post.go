@@ -141,6 +141,9 @@ type postBody struct {
 	Share    *postShare
 	More     *moreView
 	Band     *bandView
+	// Comments come after the share row, where the reader may read the
+	// post whole (M61).
+	Comments *commentsBlock
 }
 
 // sitePost is /posts/{slug}.
@@ -206,18 +209,35 @@ func (h *Handler) servePost(w http.ResponseWriter, r *http.Request, problem *sig
 		h.siteFail(w, r, s, err)
 		return
 	}
+	commentCount := int64(-1)
+	if pv.Decision.Readable() {
+		cb, n, err := h.postComments(ctx, r, s, v, p, reader)
+		if err != nil {
+			h.siteFail(w, r, s, err)
+			return
+		}
+		if cb != nil {
+			body.Comments, commentCount = cb, n
+		}
+	}
 	v.Body = body
 	if gated {
 		// What a gated post shows depends on the reader: never cached.
 		v.private = true
 	}
 	h.postMeta(s, v, p, pv)
+	if ld, ok := v.JSONLD[len(v.JSONLD)-1].(map[string]any); ok && commentCount >= 0 {
+		ld["commentCount"] = commentCount
+	}
 	if problem == nil && r.Method == http.MethodGet {
 		h.Website.CountView(ctx, s.ws, r, website.PagePost, p.ID)
 	}
 	status := http.StatusOK
 	if problem != nil {
 		status = http.StatusUnprocessableEntity
+	}
+	if cp := commentProblemOf(ctx); cp != nil {
+		status = cp.status
 	}
 	h.renderSite(w, r, s, "post", status, v)
 }
