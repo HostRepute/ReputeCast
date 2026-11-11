@@ -301,6 +301,107 @@
     gap: 6px;
   }
 
+  /* A choice question in the preview (FormsStates "Several steps"). */
+  .pf-choice {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .pf-choice legend {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0;
+    margin: 0 0 6px;
+  }
+
+  /* A multi-step form's step: dots, "Step 2 of 3", Back and Next. */
+  .pf-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pf-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--line-hover);
+  }
+  .pf-dots span.on {
+    width: 20px;
+    border-radius: 999px;
+  }
+  .pf-stepof {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .pf-steph {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .pf-stepdesc {
+    font-size: 13px;
+    color: var(--ink-nav);
+  }
+  .pf-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 4px 14px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    font: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    box-sizing: border-box;
+    flex: 1 1 120px;
+    cursor: pointer;
+  }
+  .pf-btn.ghost {
+    background: #fff;
+    color: #1f2937;
+    border-color: var(--line-input);
+  }
+
+  /* A variant's copy, edited where it shows: it reads as the visitor sees
+     it (FormBuilderABTest) and shows its edge on hover and focus. */
+  .pf-edit {
+    border-radius: 4px;
+    outline: 1px dashed transparent;
+    outline-offset: 2px;
+    cursor: text;
+    min-width: 2ch;
+  }
+  .pf-edit:hover {
+    outline-color: var(--line-hover);
+  }
+  .pf-edit:focus {
+    outline: 2px solid var(--focus);
+  }
+  .pf-edit:empty::before {
+    content: attr(data-placeholder);
+    color: #6b7280;
+  }
+  .pf-submit-edit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pf-submit-edit .pf-edit:hover {
+    outline-color: currentColor;
+  }
+
   /* Number pairs of "Last 30 days". */
   .fb-nums {
     display: grid;
