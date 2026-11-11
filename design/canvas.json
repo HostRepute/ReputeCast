@@ -239,7 +239,7 @@
    "title": "Settings · brand kit · phone",
    "w": 390,
    "x": 1020,
-   "y": 5627
+   "y": 5937
   },
   "Campaigns.dc.html": {
    "expand": "fill",
@@ -398,7 +398,7 @@
   },
   "ContactProfile.dc.html": {
    "expand": "fill",
-   "h": 1015,
+   "h": 1090,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contact profile",
@@ -407,7 +407,7 @@
    "y": 0
   },
   "ContactProfilePhone.dc.html": {
-   "h": 2732,
+   "h": 2828,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contact profile · phone",
@@ -417,7 +417,7 @@
   },
   "Contacts.dc.html": {
    "expand": "fill",
-   "h": 1028,
+   "h": 1074,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contacts",
@@ -525,7 +525,7 @@
   },
   "DeliverabilityNoHostRepute.dc.html": {
    "expand": "fill",
-   "h": 1693,
+   "h": 1718,
    "is_interactive": true,
    "page": "deliverability",
    "title": "Deliverability · HostRepute not connected",
@@ -534,7 +534,7 @@
    "y": 0
   },
   "DeliverabilityPhone.dc.html": {
-   "h": 4125,
+   "h": 4160,
    "is_interactive": true,
    "page": "deliverability",
    "title": "Deliverability · HostRepute connected · phone",
@@ -553,7 +553,7 @@
    "y": 0
   },
   "DeliverabilityTablet.dc.html": {
-   "h": 2681,
+   "h": 2699,
    "is_interactive": true,
    "page": "deliverability",
    "title": "Deliverability · HostRepute connected · tablet",
@@ -775,7 +775,7 @@
   },
   "ListHealth.dc.html": {
    "expand": "fill",
-   "h": 1216,
+   "h": 1262,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · list health",
@@ -1340,7 +1340,7 @@
   },
   "RoleEditor.dc.html": {
    "expand": "fill",
-   "h": 4799,
+   "h": 4940,
    "is_interactive": true,
    "page": "team",
    "title": "Role editor · creating Content Writer",
@@ -1360,7 +1360,7 @@
   },
   "Roles.dc.html": {
    "expand": "fill",
-   "h": 4666,
+   "h": 4750,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison",
@@ -1369,7 +1369,7 @@
    "y": 0
   },
   "RolesPhone.dc.html": {
-   "h": 6950,
+   "h": 7071,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison · phone",
@@ -1378,7 +1378,7 @@
    "y": 11281
   },
   "RolesTablet.dc.html": {
-   "h": 5541,
+   "h": 5606,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison · tablet",
@@ -1426,7 +1426,7 @@
   },
   "SegmentBuilder.dc.html": {
    "expand": "fill",
-   "h": 1212,
+   "h": 1258,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · segment builder",
@@ -1522,7 +1522,7 @@
   },
   "SendReadinessStates.dc.html": {
    "expand": "fill",
-   "h": 3831,
+   "h": 4149,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · running / error / scheduled",
@@ -1541,7 +1541,7 @@
   },
   "SettingsAPI.dc.html": {
    "expand": "fill",
-   "h": 1731,
+   "h": 1774,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · API keys & webhooks",
@@ -1550,13 +1550,13 @@
    "y": 0
   },
   "SettingsAPIPhone.dc.html": {
-   "h": 2562,
+   "h": 2719,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · API keys & webhooks · phone",
    "w": 390,
    "x": 510,
-   "y": 5627
+   "y": 5937
   },
   "SettingsAudit.dc.html": {
    "expand": "fill",
@@ -1638,7 +1638,7 @@
   },
   "SettingsSenders.dc.html": {
    "expand": "fill",
-   "h": 1503,
+   "h": 1792,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains",
@@ -1647,16 +1647,16 @@
    "y": 0
   },
   "SettingsSendersPhone.dc.html": {
-   "h": 2203,
+   "h": 2511,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains · phone",
    "w": 390,
    "x": 0,
-   "y": 5627
+   "y": 5937
   },
   "SettingsSendersTablet.dc.html": {
-   "h": 1683,
+   "h": 1993,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains · tablet",
@@ -1681,7 +1681,7 @@
    "title": "Settings · sending rules · phone",
    "w": 390,
    "x": 1530,
-   "y": 5627
+   "y": 5937
   },
   "SettingsStates.dc.html": {
    "expand": "fill",
@@ -2748,7 +2748,7 @@
    "x": 3120,
    "y": 23021,
    "w": 1440,
-   "h": 4861,
+   "h": 4907,
    "title": "Segments and report · AI drafts and summaries",
    "page": "p3-create",
    "is_interactive": true,
@@ -4482,6 +4482,73 @@
    "w": 390,
    "x": 1520,
    "y": 5273
+  },
+  "Replies.dc.html": {
+   "expand": "fill",
+   "h": 1000,
+   "is_interactive": true,
+   "page": "audience",
+   "title": "Audience · replies",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "RepliesStates.dc.html": {
+   "expand": "fill",
+   "h": 4073,
+   "is_interactive": true,
+   "page": "audience",
+   "title": "Audience · replies · loading, no route, empty, no results, error, no access, bulk, attachments, phone detail, unsubscribe",
+   "w": 1440,
+   "x": 12160,
+   "y": 0
+  },
+  "RepliesTablet.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "page": "audience",
+   "title": "Audience · replies · tablet",
+   "w": 834,
+   "x": 1908,
+   "y": 3253
+  },
+  "RepliesPhone.dc.html": {
+   "h": 1099,
+   "is_interactive": true,
+   "page": "audience",
+   "title": "Audience · replies · phone",
+   "w": 390,
+   "x": 1020,
+   "y": 5625
+  },
+  "InboundSetup.dc.html": {
+   "expand": "fill",
+   "h": 2448,
+   "is_interactive": true,
+   "page": "settings",
+   "title": "Settings · senders · set up receiving mail",
+   "w": 1440,
+   "x": 9360,
+   "y": 0
+  },
+  "InboundStates.dc.html": {
+   "expand": "fill",
+   "h": 4632,
+   "is_interactive": true,
+   "page": "settings",
+   "title": "Settings · senders · receiving mail · not set up, loading, waiting, receiving, test message, failing, stop receiving, Viewer",
+   "w": 1440,
+   "x": 10920,
+   "y": 0
+  },
+  "InboundSetupPhone.dc.html": {
+   "h": 5277,
+   "is_interactive": true,
+   "page": "settings",
+   "title": "Settings · senders · set up receiving mail · phone",
+   "w": 390,
+   "x": 2040,
+   "y": 5937
   }
  },
  "createdOnFiles": {
@@ -4558,7 +4625,7 @@
   },
   "t-audience": {
    "kind": "title1",
-   "maxW": 10560,
+   "maxW": 13600,
    "page": "audience",
    "text": "7.9 Audience",
    "w": 240,
@@ -4959,7 +5026,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 5477
+   "y": 5787
   },
   "t-settings-tablet": {
    "kind": "title1",
@@ -5995,7 +6062,14 @@
   "DarkTheme.dc.html",
   "MainDark.dc.html",
   "MainDarkTablet.dc.html",
-  "MainDarkPhone.dc.html"
+  "MainDarkPhone.dc.html",
+  "Replies.dc.html",
+  "RepliesStates.dc.html",
+  "RepliesTablet.dc.html",
+  "RepliesPhone.dc.html",
+  "InboundSetup.dc.html",
+  "InboundStates.dc.html",
+  "InboundSetupPhone.dc.html"
  ],
  "pages": [
   {

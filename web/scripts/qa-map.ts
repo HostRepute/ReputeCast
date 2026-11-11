@@ -561,4 +561,15 @@ export const entries: Entry[] = [
   { board: 'AgencyStates', manual: true },
   // The workspace switcher opens from a click (ShellSwitcher's agency staff view).
   { board: 'ShellSwitcher', manual: true },
+  // M58: inbound email. Replies is the Open view with Sam Rivera's reply selected; RepliesStates
+  // (loading, no route, no replies, a search with no results, an error, a Viewer, the bulk bar,
+  // an attachment, the phone detail and its dialogs), InboundSetup (the three steps over the Senders
+  // page) and InboundStates (each state of the Receiving mail card) need clicks or data changes.
+  { board: 'Replies', path: `${ws}/audience/replies`, widths: [1440] },
+  { board: 'RepliesTablet', path: `${ws}/audience/replies`, widths: [834] },
+  { board: 'RepliesPhone', path: `${ws}/audience/replies`, widths: [390] },
+  { board: 'RepliesStates', manual: true },
+  { board: 'InboundSetup', manual: true },
+  { board: 'InboundSetupPhone', manual: true, widths: [390] },
+  { board: 'InboundStates', manual: true },
 ]

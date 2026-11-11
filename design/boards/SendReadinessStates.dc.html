@@ -332,6 +332,18 @@ label.chk input{margin-top:3px;flex:none}
         <span class="k">Compliance group, only when "Include a mailto: address in List-Unsubscribe" is on in Settings › Senders. The address is the campaign's reply-to, else its From. Confirming the send asks for the acknowledgement on the Confirm send board.</span>
       </section>
 
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-inbox">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>Receiving mail · replies kept in ReputeCast, unsubscribe emails processed</div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="prow"><span class="badge warn"><span class="dot"></span>Warn</span><div class="pt"><h2 id="st-inbox" style="margin:0;font-size:13px;font-weight:500">Replies go to ReputeCast, but receiving is failing</h2><span class="k">Reply handling is "Keep replies in ReputeCast inbox", and Receiving mail says Failing: reply.news.acme.io's MX record no longer points at inbound.postmarkapp.com. Replies to this send won't reach Audience › Replies until it's fixed. Fix the record, or forward replies to hello@acme.io instead.</span></div><a href="SettingsSenders.dc.html" class="btn sm">Open Settings</a></div>
+        </div>
+        <span class="k">Compliance group, only when Reply handling keeps replies in ReputeCast and the route isn't receiving. While receiving works, the mailto: row below passes instead of warning.</span>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Pass</span><div class="pt"><span style="font-weight:500">Unsubscribe emails are processed by ReputeCast</span><span class="k">Receiving mail is on, so the mailto: address is on reply.news.acme.io and ReputeCast applies those unsubscribes within a minute. No one has to remove readers by hand.</span></div></div>
+          <div class="prow"><span class="badge ok"><span class="dot"></span>Pass</span><div class="pt"><span style="font-weight:500">One-click unsubscribe headers present</span><span class="k mono" style="overflow-wrap:anywhere">List-Unsubscribe: &lt;https://news.acme.io/u/{token}&gt;, &lt;mailto:u-wfr3k57v665distrwnkpaitjcv7snijhyx7fu4y@reply.news.acme.io?subject=unsubscribe&gt;</span></div></div>
+        </div>
+      </section>
+
       <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-msdmarc">
         <div class="strip"><span class="dot" style="color:#F87171"></span>Block · Microsoft's bulk-sender rule, no DMARC</div>
         <div class="card" style="display:flex;flex-direction:column">
@@ -422,7 +434,7 @@ label.chk input{margin-top:3px;flex:none}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3831}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4149}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
