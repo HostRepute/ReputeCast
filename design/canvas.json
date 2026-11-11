@@ -148,7 +148,7 @@
   },
   "AutomationFlow.dc.html": {
    "expand": "fill",
-   "h": 1154,
+   "h": 1196,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations · flow canvas",
@@ -157,7 +157,7 @@
    "y": 0
   },
   "AutomationFlowPhone.dc.html": {
-   "h": 2743,
+   "h": 2809,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations · flow canvas · phone",
@@ -166,7 +166,7 @@
    "y": 3808
   },
   "AutomationFlowTablet.dc.html": {
-   "h": 1935,
+   "h": 2001,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations · flow canvas · tablet",
@@ -475,7 +475,7 @@
   },
   "DSCoverage.dc.html": {
    "expand": "fill",
-   "h": 3900,
+   "h": 3993,
    "is_interactive": true,
    "page": "design",
    "title": "UX coverage matrix · every screen × every state",
@@ -1445,7 +1445,7 @@
   },
   "SendReadiness.dc.html": {
    "expand": "fill",
-   "h": 2483,
+   "h": 2517,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings",
@@ -1512,7 +1512,7 @@
    "y": 7179
   },
   "SendReadinessPhone.dc.html": {
-   "h": 4441,
+   "h": 4466,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings · phone",
@@ -1522,7 +1522,7 @@
   },
   "SendReadinessStates.dc.html": {
    "expand": "fill",
-   "h": 3831,
+   "h": 4327,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · running / error / scheduled",
@@ -1666,7 +1666,7 @@
   },
   "SettingsSendingRules.dc.html": {
    "expand": "fill",
-   "h": 1409,
+   "h": 1728,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · sending rules",
@@ -1675,7 +1675,7 @@
    "y": 0
   },
   "SettingsSendingRulesPhone.dc.html": {
-   "h": 3340,
+   "h": 4101,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · sending rules · phone",
@@ -4482,6 +4482,44 @@
    "w": 390,
    "x": 1520,
    "y": 5273
+  },
+  "AudienceHoldout.dc.html": {
+   "x": 0,
+   "y": 8987,
+   "w": 1440,
+   "h": 780,
+   "title": "Audience · holdout group",
+   "page": "audience",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "AudienceHoldoutStates.dc.html": {
+   "x": 1520,
+   "y": 8987,
+   "w": 1440,
+   "h": 3684,
+   "title": "Holdout group · loading, computing, recompute refused, pending, too early, too few, no difference, holdout ahead, off, never set up, error, other currencies, table view, the settings card",
+   "page": "audience",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "AudienceHoldoutTablet.dc.html": {
+   "x": 0,
+   "y": 10247,
+   "w": 834,
+   "h": 862,
+   "title": "Audience · holdout group · tablet",
+   "page": "audience",
+   "is_interactive": true
+  },
+  "AudienceHoldoutPhone.dc.html": {
+   "x": 0,
+   "y": 11588,
+   "w": 390,
+   "h": 1410,
+   "title": "Audience · holdout group · phone",
+   "page": "audience",
+   "is_interactive": true
   }
  },
  "createdOnFiles": {
@@ -5529,6 +5567,14 @@
    "kind": "title1",
    "maxW": 3450,
    "page": "p8-channels"
+  },
+  "t-audience-holdout": {
+   "x": 0,
+   "y": 8837,
+   "text": "Audience › Holdout · a random share of contacts kept out of campaigns and automations to measure what marketing adds (M63). The tablet and phone versions are under the desktop screen.",
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "audience"
   }
  },
  "order": [
@@ -5995,7 +6041,11 @@
   "DarkTheme.dc.html",
   "MainDark.dc.html",
   "MainDarkTablet.dc.html",
-  "MainDarkPhone.dc.html"
+  "MainDarkPhone.dc.html",
+  "AudienceHoldout.dc.html",
+  "AudienceHoldoutStates.dc.html",
+  "AudienceHoldoutTablet.dc.html",
+  "AudienceHoldoutPhone.dc.html"
  ],
  "pages": [
   {

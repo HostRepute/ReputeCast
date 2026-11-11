@@ -175,6 +175,8 @@ label.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:poi
 label.chk input{margin-top:3px;flex:none}
 .err{color:#991B1B;font-size:12px;font-weight:500}
 .in.bad{border-color:#DC2626}
+/* audience card, as SendReadiness draws it */
+.sum{display:flex;justify-content:space-between;gap:10px;font-size:13px}
 @media (max-width:767px){
   .vb{padding:16px;gap:12px}
   .vb .vacts{width:100%}
@@ -418,11 +420,29 @@ label.chk input{margin-top:3px;flex:none}
         </div>
         <span class="k">The routine confirm (no typed count) is on the Confirm send board. Triggers for the typed count live in <a href="SettingsSendingRules.dc.html">Settings › Sending rules</a>, under Audience defaults.</span>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Holdout group left out">
+        <div class="strip"><span class="dot" style="color:#9CA3AF"></span>Holdout group left out · Black Friday Early Access</div>
+        <section class="card" aria-labelledby="st-hold" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;max-width:380px">
+          <div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2" id="st-hold">Audience</h2><span class="k">Black Friday Early Access · Product Updates list</span></div>
+          <div class="sum"><span>Product Updates list</span><span class="n">12,480</span></div>
+          <div class="sum" style="color:#5B6472"><span>Suppression list (shared)</span><span class="n">−118</span></div>
+          <div class="sum" style="color:#5B6472"><span>Role addresses</span><span class="n">−9</span></div>
+          <div class="sum" style="color:#5B6472"><span>Duplicates</span><span class="n">−4</span></div>
+          <div class="sum" style="color:#5B6472"><span>Holdout group: 617 left out (5%)</span><span class="n">−617</span></div>
+          <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px;font-size:15px;align-items:baseline"><span style="font-weight:600">Final recipients</span><span class="n" style="font-size:20px">11,732</span></div>
+          <div style="border-top:1px solid #EEF0F3;padding-top:12px;display:flex;flex-direction:column;gap:4px">
+            <label class="chk"><input type="checkbox" aria-describedby="hold-hint"><span style="font-weight:600">Include the holdout group</span></label>
+            <span class="k" id="hold-hint" style="padding-left:26px">Use it for messages everyone must get, such as a change to your terms.</span>
+          </div>
+        </section>
+        <span class="k">The holdout row comes after Duplicates, before the cadence, sunset and marketing cap rows. Ticking the box puts the 617 back (Final recipients 12,349) and adds "The 617 contacts in the holdout group (5%) get this send." under the hint.</span>
+      </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3831}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4327}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

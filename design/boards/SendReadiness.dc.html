@@ -216,6 +216,9 @@ details[open] > summary .sh-c,details:not([open]) > summary .sh-o{display:none}
 .radbox label.radl input{margin-top:3px;flex:none}
 .radbox .dt{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 12px 12px 38px}
 .radbox .dt select{grid-column:1 / -1}
+/* audience: the holdout checkbox, as SendReadinessStates draws checkboxes */
+label.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer}
+label.chk input{margin-top:3px;flex:none}
 .actbar{display:none}
 @media (max-width:1100px){
   .rail{max-width:none}
@@ -239,6 +242,7 @@ details[open] > summary .sh-c,details:not([open]) > summary .sh-o{display:none}
   .pchip{min-height:32px}
   .lnk{min-height:44px;display:inline-flex;align-items:center}
   .content .in{min-height:44px}
+  label.chk{min-height:44px}
   .app .mainc{padding-bottom:140px}
   .actbar{display:flex;position:fixed;left:0;right:0;bottom:57px;z-index:45;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
   .actbar .abm{display:flex;flex-direction:column;gap:1px;min-width:0;line-height:1.3}
@@ -463,6 +467,11 @@ List-Unsubscribe-Post: List-Unsubscribe=One-Click</pre></div></details></div></d
             <div class="sum" style="color:#5B6472"><span>Duplicates</span><span class="n">−26</span></div>
             <div class="sum" style="color:#5B6472;align-items:flex-start"><span style="display:flex;flex-direction:column;gap:2px;align-items:flex-start"><span>Unengaged 180+ days (sunset policy)</span><button type="button" class="lnk" aria-label="Include them: the 412 unengaged contacts">Include them</button></span><span class="n">−412</span></div>
             <div class="sum" style="border-top:1px solid #E3E6EB;padding-top:10px;font-size:15px;align-items:baseline"><span style="font-weight:600">Final recipients</span><span class="n" style="font-size:20px">31,192</span></div>
+            <div style="border-top:1px solid #EEF0F3;padding-top:12px;display:flex;flex-direction:column;gap:4px">
+              <label class="chk"><input type="checkbox" checked aria-describedby="ho-hint ho-note"><span style="font-weight:600">Include the holdout group</span></label>
+              <span class="k" id="ho-hint" style="padding-left:26px">Use it for messages everyone must get, such as a change to your terms.</span>
+              <span class="k" id="ho-note" style="padding-left:26px">The 1,560 contacts in the holdout group (5%) get this send.</span>
+            </div>
           </section>
 
           <section class="card" aria-labelledby="h-route">
@@ -558,7 +567,7 @@ List-Unsubscribe-Post: List-Unsubscribe=One-Click</pre></div></details></div></d
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2483}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2517}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

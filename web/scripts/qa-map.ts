@@ -561,4 +561,10 @@ export const entries: Entry[] = [
   { board: 'AgencyStates', manual: true },
   // The workspace switcher opens from a click (ShellSwitcher's agency staff view).
   { board: 'ShellSwitcher', manual: true },
+  // M63 · the holdout group. AudienceHoldoutStates draws loading, computing, the verdicts, off,
+  // never set up, error, the table view and the Sending rules card's states: data changes or clicks.
+  { board: 'AudienceHoldout', path: `${ws}/audience/holdout`, widths: [1440] },
+  { board: 'AudienceHoldoutTablet', path: `${ws}/audience/holdout`, widths: [834] },
+  { board: 'AudienceHoldoutPhone', path: `${ws}/audience/holdout`, widths: [390] },
+  { board: 'AudienceHoldoutStates', manual: true, widths: [1440] },
 ]

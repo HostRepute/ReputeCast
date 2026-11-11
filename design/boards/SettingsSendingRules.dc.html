@@ -274,6 +274,12 @@ label.opt.on{border-color:#0F766E;background:#F0FDFA}
   .mult .in{width:96px}
   label.opt{min-height:44px;box-sizing:border-box}
 }
+/* holdout group: checkboxes, as SendReadinessStates draws them */
+label.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer}
+label.chk input{margin-top:3px;flex:none}
+@media (max-width:767px){label.chk{min-height:44px}}
+/* marketing cap: a disabled field looks disabled, as AIComposer draws it */
+.in:disabled,select.in:disabled,textarea.in:disabled{background:#F3F4F6;color:#5B6472;cursor:not-allowed}
 
 
 /* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
@@ -392,6 +398,7 @@ label.opt.on{border-color:#0F766E;background:#F0FDFA}
           </div>
         </section>
 
+        <div class="col" style="gap:20px;min-width:0">
         <section class="card" aria-labelledby="h-aud">
           <div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2" id="h-aud">Audience defaults</h2><span class="k">How every send's audience is counted and confirmed</span></div></div>
           <div class="pad col" style="gap:0">
@@ -411,12 +418,42 @@ label.opt.on{border-color:#0F766E;background:#F0FDFA}
             <div class="row" style="justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid #EEF0F3"><button type="button" class="btn pri">Save</button></div>
           </div>
         </section>
+
+        <section class="card" aria-labelledby="h-cap">
+          <div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2" id="h-cap">Marketing cap</h2><span class="k">Transactional and System mail never count</span></div><input type="checkbox" class="tg" role="switch" aria-label="Marketing cap"></div>
+          <div class="pad col" style="gap:12px">
+            <span style="font-size:13px;line-height:2.2">At most <input class="in" type="number" inputmode="numeric" min="1" max="50" defaultValue="3" aria-label="Emails" disabled style="display:inline-block;width:64px;height:30px;padding:2px 6px;margin:0 4px;vertical-align:baseline;min-width:0"> marketing emails in <input class="in" type="number" inputmode="numeric" min="1" max="90" defaultValue="7" aria-label="Days" disabled style="display:inline-block;width:64px;height:30px;padding:2px 6px;margin:0 4px;vertical-align:baseline;min-width:0"> days per contact, campaigns and automations together.</span>
+            <span class="k">Campaigns leave out contacts over the cap; automation emails wait or are skipped, as each step says.</span>
+            <div class="row" style="justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid #EEF0F3"><button type="button" class="btn pri">Save cap</button></div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="h-ho">
+          <div class="sec"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2 class="h2" id="h-ho">Holdout group</h2><span class="k">Measure what your marketing adds</span></div><input type="checkbox" class="tg" role="switch" checked aria-label="Holdout group"></div>
+          <div class="pad col" style="gap:12px">
+            <span style="font-size:13px;line-height:2.2">Keep a random <input class="in" type="number" inputmode="decimal" min="0.1" max="20" step="0.1" defaultValue="5" aria-label="Share of contacts, in percent" style="display:inline-block;width:64px;height:30px;padding:2px 6px;margin:0 4px;vertical-align:baseline;min-width:0"> % of contacts out of marketing to measure what it adds.</span>
+            <fieldset class="fs">
+              <legend>Hold them out of</legend>
+              <div class="row" style="gap:4px 24px">
+                <label class="chk"><input type="checkbox" checked><span>Campaigns</span></label>
+                <label class="chk"><input type="checkbox" checked><span>Automations</span></label>
+              </div>
+            </fieldset>
+            <div class="col" style="gap:2px">
+              <span class="k">Transactional and system mail always reach everyone.</span>
+              <span class="k">Raising the share keeps everyone already held out. Starting over picks new people.</span>
+            </div>
+            <span class="k">2,397 contacts held out since 15 Aug. <a href="AudienceHoldout.dc.html" style="font-weight:600">See the results</a></span>
+            <div class="row" style="justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid #EEF0F3"><button type="button" class="btn">Start over…</button><button type="button" class="btn pri">Save</button></div>
+          </div>
+        </section>
+        </div>
       </div>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1409}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1728}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
