@@ -1,0 +1,11 @@
+<mjml>
+<mj-body width="680px">
+<mj-section>
+<mj-column>
+<mj-text><p>Every December we read a year of bounces, complaints and inbox placement, and write down what changed.</p><p>The short version: authentication stopped being optional.</p></mj-text>
+<mj-raw rc-preview="end"><!-- rc:preview-end --></mj-raw>
+<mj-text><h2>What changed</h2><p>Gmail and Yahoo now refuse unauthenticated bulk mail outright.</p><p>View on dmarc.org: <a href="https://dmarc.org/overview/">https://dmarc.org/overview/</a></p><p>The full numbers are below.</p></mj-text>
+</mj-column>
+</mj-section>
+</mj-body>
+</mjml>

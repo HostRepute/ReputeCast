@@ -1,0 +1,8 @@
+{
+  "embed.watch": {"message": "Watch on {platform}: <link>{url}</link>", "note": "an imported post: an embedded video player, shown as a link. platform: YouTube, Vimeo…; url: the video's address. Written into the post in the site's language"},
+  "embed.listen": {"message": "Listen on {platform}: <link>{url}</link>", "note": "an imported post: an embedded audio player (Spotify, SoundCloud), shown as a link"},
+  "embed.view": {"message": "View on {platform}: <link>{url}</link>", "note": "an imported post: an embedded post (X, Instagram, Bluesky) or page, shown as a link; platform may be a site's address (example.com)"},
+  "embed.read": {"message": "Read on {platform}: <link>{url}</link>", "note": "an imported post: a card for another post or article (Substack, a Ghost bookmark), shown as a link"},
+  "embed.video": {"message": "Watch the video: <link>{url}</link>", "note": "an imported post: a video file played in the post, shown as a link"},
+  "embed.audio": {"message": "Listen to the audio: <link>{url}</link>", "note": "an imported post: an audio file played in the post, shown as a link"}
+}

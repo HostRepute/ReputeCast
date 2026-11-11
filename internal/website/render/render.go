@@ -778,6 +778,15 @@ func around(src, key, fallback string) (string, string) {
 	return "{{ " + key + " }}", fallback
 }
 
+// Sanitize keeps the HTML the site may serve, as Render keeps it in a
+// post's text blocks: known elements and safe attributes, http(s), mailto
+// and root-relative links and images. Imported posts are cleaned with it
+// (internal/website/importer).
+func Sanitize(fragment string) string {
+	var t strings.Builder
+	return sanitize(fragment, "", nil, &t)
+}
+
 // sanitize keeps the HTML the site may serve: known elements and safe
 // attributes. Text goes to t.
 func sanitize(fragment, publicURL string, links map[string]string, t *strings.Builder) string {

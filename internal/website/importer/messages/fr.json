@@ -1,0 +1,8 @@
+{
+  "embed.watch": "Regarder sur {platform} : <link>{url}</link>",
+  "embed.listen": "Écouter sur {platform} : <link>{url}</link>",
+  "embed.view": "Voir sur {platform} : <link>{url}</link>",
+  "embed.read": "Lire sur {platform} : <link>{url}</link>",
+  "embed.video": "Regarder la vidéo : <link>{url}</link>",
+  "embed.audio": "Écouter l’audio : <link>{url}</link>"
+}

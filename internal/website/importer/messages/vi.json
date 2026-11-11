@@ -1,0 +1,8 @@
+{
+  "embed.watch": "Xem trên {platform}: <link>{url}</link>",
+  "embed.listen": "Nghe trên {platform}: <link>{url}</link>",
+  "embed.view": "Xem trên {platform}: <link>{url}</link>",
+  "embed.read": "Đọc trên {platform}: <link>{url}</link>",
+  "embed.video": "Xem video: <link>{url}</link>",
+  "embed.audio": "Nghe bản ghi âm: <link>{url}</link>"
+}

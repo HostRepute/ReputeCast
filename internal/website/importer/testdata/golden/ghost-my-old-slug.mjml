@@ -1,0 +1,11 @@
+<mjml>
+<mj-body width="680px">
+<mj-section>
+<mj-column>
+<mj-text><p>Feature flags let us ship on a Tuesday afternoon without holding our breath. This is how we roll a change out to 1% of accounts, watch it, and widen it.</p></mj-text>
+<mj-image src="/content/images/2025/09/rollout.png" alt="A rollout going from 1% to 100% over four days"></mj-image>
+<mj-text><p><em>Four days from 1% to everyone.</em></p><h2>The flag is the plan</h2><p>Every flag starts with a written rollback: who flips it, and what we watch while it is on. Hi &#123;&#123; first_name }}, if you remember one thing, make it that.</p><p>Watch on YouTube: <a href="https://www.youtube.com/watch?v=hmH3XMlms8E">https://www.youtube.com/watch?v=hmH3XMlms8E</a></p><ul><li>Start with internal accounts</li><li>Then 1%, 10% and 50%</li><li>Remove the flag within a sprint</li></ul><p>Read <a href="/rate-limits-explained/">how we set rate limits</a> next.</p></mj-text>
+</mj-column>
+</mj-section>
+</mj-body>
+</mjml>
