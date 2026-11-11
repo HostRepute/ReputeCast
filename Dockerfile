@@ -4,9 +4,13 @@
 FROM node:24-alpine AS web
 WORKDIR /src/web
 RUN corepack enable
-COPY web/package.json web/pnpm-lock.yaml ./
+# pnpm-workspace.yaml holds the overrides the lockfile was resolved with.
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY web/ ./
+# The build type-checks tests too, and two import the server's fixtures.
+COPY internal/sms/testdata/segments.json /src/internal/sms/testdata/
+COPY internal/i18n/testdata/regions.json /src/internal/i18n/testdata/
 RUN pnpm build
 
 FROM golang:1.27-alpine AS build
