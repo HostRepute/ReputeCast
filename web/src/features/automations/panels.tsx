@@ -55,6 +55,7 @@ import { T, useI18n, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
 import { isPaidTrigger, paidGroupName, PaidTriggerFields, paidTriggerDefaults } from '@/features/earn/automation'
+import { isLeadTrigger, leadGroupName, leadTriggerLine, LeadTriggerFields } from '@/features/leads/automation'
 
 type Options = Schemas['AutomationOptions']
 
@@ -83,7 +84,10 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
   const { slug } = useWorkspace()
   // The flow editor's options (same query, cached): the "Paid members"
   // triggers show only with a live payment connection (G-11).
-  const paid = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/options', { params: { path: { workspace: slug } } }, { staleTime: 60_000 }).data?.paidConnected
+  const opts = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/options', { params: { path: { workspace: slug } } }, { staleTime: 60_000 }).data
+  const paid = opts?.paidConnected
+  // "Submitted a lead ad form" once the workspace has a lead form (M66).
+  const leads = (opts?.leadForms.length ?? 0) > 0
   const sms = useChannelSetUp('sms')
   // Push and WhatsApp (X22) join once they're set up, as SMS does.
   const push = useChannelSetUp('push')
@@ -95,7 +99,7 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
     ...(push ? [{ type: 'push' as const, label: tr(pushStep.palette) }] : []),
     ...(whatsapp ? [{ type: 'whatsapp' as const, label: tr(waStep.palette) }] : []),
   ]
-  const item = (key: string, label: string, color: string, value: PaletteItem) => (
+  const item = (key: string, label: string, color: string, value: PaletteItem, hint?: string) => (
     <button
       key={key}
       type="button"
@@ -111,20 +115,35 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
       onClick={() => !disabledReason && onAdd(value)}
     >
       <span className="sw" style={{ background: color }} aria-hidden="true" />
-      {label}
+      {hint ? (
+        <span className="flex min-w-0 flex-col">
+          <span>{label}</span>
+          <span className="text-[11.5px] font-normal text-ink-3">{hint}</span>
+        </span>
+      ) : (
+        label
+      )}
     </button>
   )
   return (
     <>
       <div className="grp">{tr(mp.triggers)}</div>
       <div className="flex flex-col gap-1.5 px-3 pb-2">
-        {TRIGGER_KINDS.filter((kind) => !isPaidTrigger(kind)).map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }))}
+        {TRIGGER_KINDS.filter((kind) => !isPaidTrigger(kind) && !isLeadTrigger(kind)).map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }))}
       </div>
       {paid ? (
         <>
           <div className="grp">{paidGroupName()}</div>
           <div className="flex flex-col gap-1.5 px-3 pb-2">
             {TRIGGER_KINDS.filter(isPaidTrigger).map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }))}
+          </div>
+        </>
+      ) : null}
+      {leads ? (
+        <>
+          <div className="grp">{leadGroupName()}</div>
+          <div className="flex flex-col gap-1.5 px-3 pb-2">
+            {TRIGGER_KINDS.filter(isLeadTrigger).map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }, leadTriggerLine()))}
           </div>
         </>
       ) : null}
@@ -755,7 +774,8 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
           }}
         >
           {/* The paid-member kinds only with a live payment connection, or when the flow already uses one (G-11). */}
-          {TRIGGER_KINDS.filter((k) => !isPaidTrigger(k) || options?.paidConnected || k === t.kind).map((k) => (
+          {/* "Submitted a lead ad form" only once there is a lead form (M66). */}
+          {TRIGGER_KINDS.filter((k) => (!isPaidTrigger(k) || options?.paidConnected || k === t.kind) && (!isLeadTrigger(k) || (options?.leadForms.length ?? 0) > 0 || k === t.kind)).map((k) => (
             <option key={k} value={k}>
               {triggerKindLabel(k)}
             </option>
@@ -806,6 +826,8 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
         {isStoreTrigger(t.kind) ? <StoreTriggerFields t={t} set={set} disabled={disabled} graph={graph} /> : null}
         {/* Paid members (G-11). */}
         {isPaidTrigger(t.kind) ? <PaidTriggerFields t={t} set={set} disabled={disabled} tiers={options?.tiers} /> : null}
+        {/* Lead ads from Meta (M66). */}
+        {isLeadTrigger(t.kind) ? <LeadTriggerFields t={t} set={set} disabled={disabled} forms={options?.leadForms} /> : null}
         {t.kind === 'api_event' ? (
           <>
             <input className="in mono" aria-label={tr(mp.eventName)} list="fe-events" placeholder={'workspace.created'} disabled={disabled} value={t.event ?? ''} onChange={(e) => set({ event: e.target.value })} />

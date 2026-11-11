@@ -4,6 +4,7 @@ import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } 
 import { boughtGoalTitle, boughtPhrase, boughtRef, boughtTriggerName } from '@/features/products/automationText'
 import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
 import { isPaidTrigger, paidTriggerDefaults, paidTriggerName, paidTriggerRef } from '@/features/earn/automation'
+import { leadFormLabel, leadTriggerName, leadTriggerRef } from '@/features/leads/automation'
 import { m as smsStep } from '@/features/sms/automation.messages'
 import { keepsCapitals, type MessageDescriptor, t as tt } from '@/i18n'
 import { pct } from '@/lib/format'
@@ -46,6 +47,8 @@ export interface Refs {
   sources?: Map<string, string>
   /** Paid tiers the paid-member triggers name (id → name; G-11). */
   tiers?: Map<string, string>
+  /** Lead forms "Submitted a lead ad form" names (id → "name · Page"; M66). */
+  leadForms?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map(), milestones: new Map() }
@@ -64,6 +67,7 @@ export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
     segments: new Map((o.segments ?? []).map((x) => [x.id, x.name])),
     sources: new Map([...(o.campaigns ?? []).map((c): [string, string] => [`campaign:${c.id}`, c.name]), ...o.emails.map((e): [string, string] => [`email:${e.id}`, e.name])]),
     tiers: new Map((o.tiers ?? []).map((x) => [x.id, x.name])),
+    leadForms: new Map((o.leadForms ?? []).map((x) => [x.id, leadFormLabel(x)])),
   }
 }
 
@@ -114,10 +118,12 @@ export const TRIGGER_KINDS: readonly TriggerConfig['kind'][] = [
   'paid_tier_changed',
   'paid_ended',
   'paid_trial_ending',
+  // Lead ads from Meta (M66): the palette shows it only once the workspace has a lead form.
+  'lead_ad_submitted',
 ]
 
 /** The triggers that can be a flow's second or third (AT-11). */
-export const ALSO_KINDS: readonly TriggerConfig['kind'][] = ['joined_list', 'form_submitted', 'tag_added', 'api_event', 'segment_entered', 'segment_left', 'link_clicked']
+export const ALSO_KINDS: readonly TriggerConfig['kind'][] = ['joined_list', 'form_submitted', 'tag_added', 'api_event', 'segment_entered', 'segment_left', 'link_clicked', 'lead_ad_submitted']
 
 /** A trigger kind's name: "Joined list", "Form submitted". */
 export function triggerKindLabel(kind: TriggerConfig['kind']): string {
@@ -157,6 +163,8 @@ export function triggerKindLabel(kind: TriggerConfig['kind']): string {
     case 'paid_ended':
     case 'paid_trial_ending':
       return paidTriggerName(kind)
+    case 'lead_ad_submitted':
+      return leadTriggerName()
   }
   return kind
 }
@@ -324,6 +332,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
     case 'paid_ended':
     case 'paid_trial_ending':
       return paidTriggerRef(t, refs.tiers)
+    case 'lead_ad_submitted':
+      return leadTriggerRef(t, refs.leadForms)
   }
   return ''
 }

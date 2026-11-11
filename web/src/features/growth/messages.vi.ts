@@ -244,4 +244,6 @@ export default translate(m, {
   retry: 'Thử lại',
   listHealth: 'Sức khỏe danh sách',
   requestRef: 'yêu cầu {ref}',
+  srcLeadAd: 'Quảng cáo khách hàng tiềm năng · {name}',
+  lineLeadAd: 'Biểu mẫu khách hàng tiềm năng trên Facebook và Instagram',
 })

@@ -237,4 +237,6 @@ export const m = defineMessages('growth', {
   retry: 'Retry',
   listHealth: 'List health',
   requestRef: 'request {ref}',
+  srcLeadAd: 'Lead ads · {name}',
+  lineLeadAd: 'Facebook and Instagram lead form',
 })

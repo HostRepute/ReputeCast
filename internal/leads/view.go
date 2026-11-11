@@ -57,7 +57,8 @@ type LeadAdsConnection struct {
 	// subscription by hand in Meta's app dashboard: only for people who
 	// can manage integrations.
 	Webhook *LeadAdsWebhook `json:"webhook,omitempty"`
-	// CanManage: the caller holds integrations:manage; Helpers hold it.
+	// CanManage: the caller holds integrations:manage; Helpers are who
+	// hold it (named for everyone, up to two).
 	CanManage bool     `json:"canManage"`
 	Helpers   []string `json:"helpers"`
 }
@@ -220,10 +221,10 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if name, err := s.Q.LeadConnectionCreatorName(ctx, c.ID); err == nil {
 		out.CreatedBy = name
 	}
+	// Helpers are named for everyone: "Who can see it" says who maps forms
+	// and connects Meta, and a read-only member asks one of them.
 	out.CanManage = p != nil && p.Can(authz.IntegrationsManage)
-	if !out.CanManage {
-		out.Helpers = nonNil(access.Helpers(ctx, s.Q, ws.ID, authz.IntegrationsManage))
-	}
+	out.Helpers = nonNil(access.Helpers(ctx, s.Q, ws.ID, authz.IntegrationsManage))
 	if out.CanManage && c.Status != StatusDisconnected && len(c.CallbackTokenSealed) > 0 {
 		cb, err := s.callbackURL(c)
 		if err == nil {

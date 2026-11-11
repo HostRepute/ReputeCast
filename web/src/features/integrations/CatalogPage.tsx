@@ -16,6 +16,7 @@ import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/a
 import { isAIProvider } from '@/features/ai/entries'
 import { isPayment, PaymentAction, PaymentFact, paymentUnavailable, UnavailableBadge } from '@/features/earn/entries'
 import { StoreAction, StoreBadge, StoreFact } from '@/features/commerce/catalog'
+import { LeadAdsAction, LeadAdsFact, leadAdsWhy } from '@/features/leads/catalog'
 import { ConnectDialog } from './ConnectDialog'
 import { m } from './messages'
 import {
@@ -308,6 +309,8 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
   const invite = e.key === 'hostrepute' && e.status === 'not_connected'
   const builtIn = e.key === 'api' || e.key === 'webhooks' || e.key === 'mcp'
   const reason = e.status === 'attention' ? e.reasons[0] : undefined
+  // Meta Lead Ads says why in its facts (M66): "Meta refused the token".
+  const why = reason ? reasonWhy(t, reason) : e.key === 'meta_lead_ads' ? leadAdsWhy(t, e) : undefined
 
   let action: ReactNode = null
   if (isPlatform(e.key)) {
@@ -374,6 +377,9 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
   } else if (isStore(e.key)) {
     // Shopify and WooCommerce (X20): Connect opens the store's dialog, Manage its page.
     action = <StoreAction entry={e} platform={e.key} canManage={canManage} />
+  } else if (e.key === 'meta_lead_ads') {
+    // Meta Lead Ads (M66): Connect opens its dialog, Manage the connection's page.
+    action = <LeadAdsAction entry={e} canManage={canManage} />
   } else if (isVerification(e.key)) {
     // Address verification services live on their own page (X14).
     action =
@@ -408,10 +414,10 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
           </span>
         ))}
       </div>
-      {reason ? (
+      {why ? (
         <div className="ih-why">
           <AttentionIcon size={14} />
-          <span>{reasonWhy(t, reason)}</span>
+          <span>{why}</span>
         </div>
       ) : null}
       <div className="ih-ft">
@@ -455,6 +461,7 @@ function Fact({ entry: e }: { entry: Entry }) {
   }
   if (isPayment(e.key)) return <PaymentFact e={e} />
   if (isStore(e.key)) return <StoreFact entry={e} platform={e.key} />
+  if (e.key === 'meta_lead_ads') return <LeadAdsFact entry={e} />
   if (isVerification(e.key)) {
     const price = money(f.price ?? 0, 3)
     if (e.status === 'not_connected') return <>{t(m.factPayPerCheck)}</>

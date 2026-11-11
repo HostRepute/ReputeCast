@@ -5,6 +5,7 @@ import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
 import { m } from './complete.messages'
 import { mp } from './panels.messages'
+import { isLeadTrigger, LeadFormSelect } from '@/features/leads/automation'
 import { ALSO_KINDS, triggerKindLabel, type TriggerConfig } from './graph'
 
 type Options = Schemas['AutomationOptions']
@@ -117,6 +118,8 @@ function AlsoFields({ t, set, options, disabled }: { t: TriggerConfig; set: (p: 
       return <input className="in" aria-label={tr(mp.tag)} list="fe-tags" placeholder={tr(mp.tagPlaceholder)} disabled={disabled} value={t.tag ?? ''} onChange={(e) => set({ tag: e.target.value })} />
     case 'api_event':
       return <input className="in mono" aria-label={tr(mp.eventName)} list="fe-events" placeholder={'workspace.created'} disabled={disabled} value={t.event ?? ''} onChange={(e) => set({ event: e.target.value })} />
+    case 'lead_ad_submitted':
+      return <LeadFormSelect t={t} set={set} disabled={disabled} forms={options?.leadForms} />
   }
   return <NewKindFields t={t} set={set} options={options} disabled={disabled} />
 }
@@ -145,9 +148,12 @@ export function AlsoTriggers({ t, set, options, disabled }: { t: TriggerConfig; 
             aria-label={tr(m.triggerN, { n: i + 2, kind: triggerKindLabel(a.kind) })}
             disabled={disabled}
             value={a.kind}
-            onChange={(e) => update(i, { kind: e.target.value as TriggerConfig['kind'], listId: undefined, formId: undefined, tag: undefined, event: undefined, segmentId: undefined, source: undefined, urlContains: undefined })}
+            onChange={(e) =>
+              update(i, { kind: e.target.value as TriggerConfig['kind'], listId: undefined, formId: undefined, tag: undefined, event: undefined, segmentId: undefined, source: undefined, urlContains: undefined, leadFormId: undefined })
+            }
           >
-            {ALSO_KINDS.map((k) => (
+            {/* "Submitted a lead ad form" once there is a lead form (M66). */}
+            {ALSO_KINDS.filter((k) => !isLeadTrigger(k) || (options?.leadForms.length ?? 0) > 0 || k === a.kind).map((k) => (
               <option key={k} value={k}>
                 {triggerKindLabel(k)}
               </option>
