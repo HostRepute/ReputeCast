@@ -744,4 +744,12 @@ export default translate(m, {
   memberError: '{name} konnte nicht übergeben werden',
   hrAdds: 'Ergänzt',
   hrAddsValue: 'Google Postmaster Tools: Compliance-Status, Spamrate und Feedback-Loop · Microsoft SNDS: IP-Reputation für Outlook.com',
+  groupLeads: 'Lead-Anzeigen',
+  groupLeadsLine: 'Anmeldungen aus Anzeigen auf anderen Plattformen, mit der dort gegebenen Einwilligung.',
+  metaLeadAds: 'Meta Lead Ads',
+  byOwnMetaApp: 'Ihre eigene Meta-App',
+  metaLeadAdsLine: 'Lead-Formulare auf Facebook und Instagram werden zu Kontakten, mit der Einwilligung aus dem Formular.',
+  capInstantLeads: 'Sofortige Leads',
+  capFormConsent: 'Einwilligung aus dem Formular',
+  capPast90: 'Letzte 90 Tage',
 })

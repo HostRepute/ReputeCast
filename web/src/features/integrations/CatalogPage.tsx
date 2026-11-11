@@ -52,6 +52,7 @@ const groupName: Record<GroupKey, MessageDescriptor> = {
   verification: m.groupVerification,
   payments: m.groupPayments,
   commerce: m.groupCommerce,
+  leads: m.groupLeads,
 }
 
 const groupLine: Record<GroupKey, MessageDescriptor> = {
@@ -63,6 +64,7 @@ const groupLine: Record<GroupKey, MessageDescriptor> = {
   verification: m.groupVerificationLine,
   payments: m.groupPaymentsLine,
   commerce: m.groupCommerceLine,
+  leads: m.groupLeadsLine,
 }
 
 /** Groups of one card sit side by side (Websites, Deliverability); the others take the full width. */

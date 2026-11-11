@@ -744,4 +744,12 @@ export default translate(m, {
   memberError: 'No se pudo traspasar {name}',
   hrAdds: 'Añade',
   hrAddsValue: 'Google Postmaster Tools: estado de cumplimiento, tasa de spam y bucle de retroalimentación · Microsoft SNDS: reputación de la IP para Outlook.com',
+  groupLeads: 'Anuncios de clientes potenciales',
+  groupLeadsLine: 'Registros de anuncios en otras plataformas, con el consentimiento que se dio allí.',
+  metaLeadAds: 'Meta Lead Ads',
+  byOwnMetaApp: 'Tu propia app de Meta',
+  metaLeadAdsLine: 'Los formularios de clientes potenciales de Facebook e Instagram se convierten en contactos, con el consentimiento del formulario.',
+  capInstantLeads: 'Al instante',
+  capFormConsent: 'Consentimiento del formulario',
+  capPast90: 'Últimos 90 días',
 })
