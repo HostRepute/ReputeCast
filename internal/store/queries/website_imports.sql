@@ -86,13 +86,19 @@ VALUES (@id, @import_id, @source_id, @title, @slug, @published_at, @status, @vis
 DELETE FROM website_import_posts WHERE import_id = @import_id;
 
 -- name: WebsiteImportPostList :many
--- A page of the staged posts, in the export's order (newest first, drafts last).
-SELECT id, source_id, title, slug, published_at, status, visibility, tier_refs, tags, author, images, problems, decision, post_id,
-       (seo->>'sourceUrl')::text AS source_url
-FROM website_import_posts
-WHERE import_id = @import_id AND id > @after::uuid
-ORDER BY id
+-- A page of the staged posts, in the export's order (newest first, drafts
+-- last), with the status of the post each became.
+SELECT ip.id, ip.source_id, ip.title, ip.slug, ip.published_at, ip.status, ip.visibility, ip.tier_refs, ip.tags, ip.author, ip.images, ip.problems,
+       ip.decision, ip.post_id, coalesce(ip.seo->>'sourceUrl', '')::text AS source_url, coalesce(wp.status, '')::text AS post_status
+FROM website_import_posts ip
+LEFT JOIN website_posts wp ON wp.id = ip.post_id
+WHERE ip.import_id = @import_id AND ip.id > @after::uuid
+ORDER BY ip.id
 LIMIT @lim;
+
+-- name: WebsiteImportPostsDropHTML :exec
+-- An ended import's staged posts keep their outcome, not their bodies.
+UPDATE website_import_posts SET html = '' WHERE import_id = @import_id;
 
 -- name: WebsiteImportPostsToRun :many
 -- The next staged posts of a run, after its cursor.

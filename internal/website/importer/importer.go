@@ -41,6 +41,19 @@ const (
 	WordPress = "wordpress"
 )
 
+// Name is a platform's name ("Substack"), the same in every language.
+func Name(source string) string {
+	switch source {
+	case Substack:
+		return "Substack"
+	case Ghost:
+		return "Ghost"
+	case WordPress:
+		return "WordPress"
+	}
+	return source
+}
+
 // Limits of an export.
 const (
 	// MaxPosts is the most posts one import takes.
