@@ -64,7 +64,9 @@ func TestSitesAPI(t *testing.T) {
 	}
 	var l tracker.TrackerSiteList
 	list.JSON(t, &l)
-	if len(l.Items) != 1 || !strings.HasSuffix(l.ScriptURL, "/track/v1/rc.js") || l.Stores == nil || l.Items[0].Refused == nil {
+	// The demo's Acme Merch and Docs, then the new site.
+	if len(l.Items) != 3 || l.Items[2].ID != s.ID || !strings.HasSuffix(l.ScriptURL, "/track/v1/rc.js") || len(l.Stores) == 0 || l.Items[2].Refused == nil ||
+		!l.CanManage || len(l.Helpers) == 0 {
 		t.Fatalf("list: %+v", l)
 	}
 
@@ -185,7 +187,8 @@ func TestCollect(t *testing.T) {
 	c.Do("POST", sitesPath, map[string]any{"name": "Acme shop", "origin": "https://shop.example.org", "storeId": store.String(), "waitConsent": true}).MustStatus(t, 201).JSON(t, &out)
 	site := out.Site.ID
 	ws := one[uuid.UUID](t, env, `SELECT id FROM workspaces WHERE slug = 'acme-newsletter'`)
-	contact := one[uuid.UUID](t, env, `SELECT id FROM contacts WHERE workspace_id = $1 AND erased_at IS NULL AND status = 'active' ORDER BY id LIMIT 1`, ws)
+	contact := one[uuid.UUID](t, env, `SELECT id FROM contacts c WHERE workspace_id = $1 AND erased_at IS NULL AND status = 'active'
+		AND NOT EXISTS (SELECT 1 FROM tracker_visitors v WHERE v.contact_id = c.id) ORDER BY id LIMIT 1`, ws)
 	col := &collector{t: t, url: env.Server.URL + "/p/acme-newsletter/track/" + site + "/e"}
 	flush := func() {
 		t.Helper()
@@ -237,8 +240,14 @@ func TestCollect(t *testing.T) {
 	}
 	var l tracker.TrackerSiteList
 	c.Do("GET", sitesPath, nil).MustStatus(t, 200).JSON(t, &l)
-	if len(l.Items[0].Refused) != 1 || l.Items[0].Refused[0].Origin != "https://copycat.example" || l.Items[0].EventsToday != 1 || l.Items[0].LastEventAt == nil {
-		t.Fatalf("site: %+v", l.Items[0])
+	var mine tracker.TrackerSite
+	for _, it := range l.Items {
+		if it.ID == site {
+			mine = it
+		}
+	}
+	if len(mine.Refused) != 1 || mine.Refused[0].Origin != "https://copycat.example" || mine.EventsToday != 1 || mine.LastEventAt == nil {
+		t.Fatalf("site: %+v", mine)
 	}
 
 	// An identify call with a bad signature links nobody.
@@ -274,7 +283,8 @@ func TestCollect(t *testing.T) {
 
 	// A form's link token links another browser; an unknown product stays
 	// a product view without a product.
-	other := one[uuid.UUID](t, env, `SELECT id FROM contacts WHERE workspace_id = $1 AND erased_at IS NULL AND id <> $2 ORDER BY id LIMIT 1`, ws, contact)
+	other := one[uuid.UUID](t, env, `SELECT id FROM contacts c WHERE workspace_id = $1 AND erased_at IS NULL AND id <> $2
+		AND NOT EXISTS (SELECT 1 FROM tracker_visitors v WHERE v.contact_id = c.id) ORDER BY id LIMIT 1`, ws, contact)
 	link := tracker.FormLink(env.App.Links, ws, other, time.Now())
 	col.post(origin, chrome, map[string]any{"vid": "BBBBBBBBBBBBBBBBBBBBBB", "c": 1, "link": link, "events": []any{map[string]any{"t": "product", "url": origin + "/p", "id": "no-such-product"}}})
 	flush()

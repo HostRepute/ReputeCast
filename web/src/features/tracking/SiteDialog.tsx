@@ -201,16 +201,17 @@ function SiteForm({
             <div className="min-w-0 flex-[1_1_320px]">{serverError.text}</div>
           </div>
         ) : null}
-        <label className="lbl">
-          {t(tm.name)}
-          <input className="in" value={name} maxLength={80} aria-invalid={nameError ? true : undefined} aria-describedby="tk-name-hint" onChange={(e) => setName(e.target.value)} />
+        <div className="lbl">
+          <label htmlFor="tk-name">{t(tm.name)}</label>
+          <input id="tk-name" className="in" value={name} maxLength={80} aria-invalid={nameError ? true : undefined} aria-describedby="tk-name-hint" onChange={(e) => setName(e.target.value)} />
           <span className={nameError ? 'k text-bad-fg' : 'k'} id="tk-name-hint" role={nameError ? 'alert' : undefined}>
             {nameError ?? t(tm.nameHint)}
           </span>
-        </label>
-        <label className="lbl">
-          {t(tm.origin)}
+        </div>
+        <div className="lbl">
+          <label htmlFor="tk-origin">{t(tm.origin)}</label>
           <input
+            id="tk-origin"
             className="in mono"
             value={origin}
             readOnly={editing}
@@ -227,10 +228,10 @@ function SiteForm({
           <span className={originError ? 'k text-bad-fg' : 'k'} id="tk-origin-hint" role={originError ? 'alert' : undefined}>
             {originError ?? (editing ? t(tm.originFixed) : t(tm.originHint))}
           </span>
-        </label>
-        <label className="lbl">
-          {t(tm.store)}
-          <select className="in" value={store} aria-describedby="tk-store-hint" onChange={(e) => setStore(e.target.value)}>
+        </div>
+        <div className="lbl">
+          <label htmlFor="tk-store">{t(tm.store)}</label>
+          <select id="tk-store" className="in" value={store} aria-describedby="tk-store-hint" onChange={(e) => setStore(e.target.value)}>
             <option value="">{t(tm.notLinked)}</option>
             {list.stores.map((s) => (
               <option key={s.id} value={s.id}>
@@ -241,7 +242,7 @@ function SiteForm({
           <span className="k" id="tk-store-hint">
             {t(tm.storeHint)}
           </span>
-        </label>
+        </div>
         <div className="cm-srow items-center">
           <span>
             <b className="text-[13px] font-semibold">{t(tm.wait)}</b>

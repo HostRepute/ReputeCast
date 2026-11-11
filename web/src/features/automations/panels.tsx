@@ -886,7 +886,8 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
         {/* Up to two more triggers (review 2026-11 AT-11). */}
         <AlsoTriggers t={t} set={set} options={options} disabled={disabled} />
       </Prop>
-      {t.kind === 'score_crosses' || t.kind === 'milestone_reached' ? null : (
+      {/* Store flows from Website tracking take a contact again after 7 days, whatever the flow says (M62). */}
+      {t.kind === 'score_crosses' || t.kind === 'milestone_reached' || isTrackerTrigger(t.kind) ? null : (
         <Prop title={tr(mp.reentry)} id="p-reentry">
           <LongChoice
             id="p-reentry"
