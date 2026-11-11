@@ -64,7 +64,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
   <span class="k">States live on the dedicated "States" board of each area (empty, loading, error, success in one place) so a developer sees them side by side; interactive and role-limited states are shown as banners and disabled controls rather than separate screens.</span>
 </main>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4285}}'>
 class Component extends DCLogic {
   renderVals() {
     function cell(spec) {
@@ -102,7 +102,10 @@ class Component extends DCLogic {
       row('Send approvals', [['ApprovalPolicy|Policy', 'ApprovalReview|Review', 'ApprovalInbox|Inbox', 'SendReadinessApproval|Review & send states', 'ComposerRequestApproval|Composer as Content Writer'], ['ApprovalInbox|Nothing waiting'], ['na'], ['ApprovalStates|Recheck blocked'], ['SendReadinessApproval|Approved'], ['SendReadinessApproval|Approval required'], ['na'], ['ApprovalStates|Emergency bypass', 'ApprovalStates|Invalidated diff'], ['ApprovalReviewTablet|Review'], ['ApprovalReviewPhone|Review', 'ApprovalInboxPhone|Inbox']]),
       row('Keys, audit & integrations', [['SettingsKeys|API keys & MCP', 'SettingsAudit|Audit log', 'AuditInstance|Instance audit', 'SettingsIntegrations|Integrations', 'ConnectHostRepute|Connect HostRepute'], ['AuditInstance|No events'], ['ConnectHostRepute|Redirecting'], ['SettingsKeysStates|Expired key', 'HostReputeStates|Token revoked', 'AuditInstance|Export failed'], ['SettingsKeysStates|Key shown once', 'ConnectHostRepute|Connected'], ['SettingsKeysStates|Escalation guard', 'SettingsAudit|Denied event'], ['HostReputeStates|Monitoring limit'], ['HostReputeStates|Disconnect'], ['SettingsKeysTablet|Keys'], ['SettingsKeysPhone|Keys']]),
       row('Notifications', [['Notifications|Center & preferences', 'ShellNotifications|Popover'], ['Notifications|All caught up'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['NotificationsTablet|Notifications'], ['NotificationsPhone|Notifications']]),
-      row('Landing & README', [['Landing|Landing', 'ReadmeBanner|README banner'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['LandingTablet|Landing'], ['LandingPhone|Landing']])
+      row('Landing & README', [['Landing|Landing', 'ReadmeBanner|README banner'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['LandingTablet|Landing'], ['LandingPhone|Landing']]),
+      row('Website · import posts', [['WebsiteImport|Review', 'WebsiteImport|Upload'], ['WebsiteImportStates|Nothing to import'], ['WebsiteImport|Reading, importing', 'WebsiteImportStates|Loading'], ['WebsiteImportStates|Wrong file, site off, failed'], ['WebsiteImport|Done, report'], ['WebsiteImportStates|Needs website:publish'], ['WebsiteImportStates|Over 100 MB'], ['WebsiteImportStates|Import posts menu'], ['na'], ['WebsiteImportPhone|Import']]),
+      row('Website · comments', [['WebsiteComments|Waiting for review', 'WebsiteCommentsStates|Published, team reply'], ['WebsiteCommentsStates|Each tab, comments off'], ['WebsiteCommentsStates|Loading'], ['WebsiteCommentsStates|Load failed'], ['WebsiteCommentsStates|Undo'], ['WebsiteCommentsStates|Viewer read-only'], ['WebsiteCommentsStates|Blocked commenter'], ['WebsiteCommentsStates|Delete, block'], ['WebsiteCommentsTablet|Comments'], ['WebsiteCommentsPhone|Comments']]),
+      row('Public · post comments', [['PublicPostComments|Sam Rivera'], ['PublicPostComments|Signed out'], ['na'], ['PublicPostComments|Too many comments'], ['PublicPostComments|Waiting for review, reply email'], ['PublicPostComments|Paid only, blocked'], ['PublicPostComments|Show more comments'], ['PublicPostComments|Stop these emails'], ['na'], ['PublicPostCommentsPhone|Comments']])
     ];
     return { rows: rows };
   }

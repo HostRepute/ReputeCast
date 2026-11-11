@@ -561,4 +561,19 @@ export const entries: Entry[] = [
   { board: 'AgencyStates', manual: true },
   // The workspace switcher opens from a click (ShellSwitcher's agency staff view).
   { board: 'ShellSwitcher', manual: true },
+  // M61 · post import and comments. An import's id is made when its file is uploaded and the map has no
+  // placeholder for it, so the import boards are compared by hand (the demo seeds the review of
+  // acme-weekly-substack-export.zip). PublicPostComments is Sam Rivera's view of
+  // /p/acme-newsletter/posts/what-shipped-in-october: it needs his site session
+  // (rc_member=demo-session-sam-<workspace id>), which the sweep doesn't set, and its frames need other
+  // readers and settings.
+  { board: 'WebsiteImport', manual: true },
+  { board: 'WebsiteImportPhone', manual: true, widths: [390] },
+  { board: 'WebsiteImportStates', manual: true },
+  { board: 'WebsiteComments', path: `${ws}/forms/website/comments`, widths: [1440] },
+  { board: 'WebsiteCommentsTablet', path: `${ws}/forms/website/comments`, widths: [834] },
+  { board: 'WebsiteCommentsPhone', path: `${ws}/forms/website/comments`, widths: [390] },
+  { board: 'WebsiteCommentsStates', manual: true },
+  { board: 'PublicPostComments', manual: true, widths: [720] },
+  { board: 'PublicPostCommentsPhone', manual: true, widths: [390] },
 ]

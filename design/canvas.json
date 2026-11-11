@@ -475,7 +475,7 @@
   },
   "DSCoverage.dc.html": {
    "expand": "fill",
-   "h": 3900,
+   "h": 4285,
    "is_interactive": true,
    "page": "design",
    "title": "UX coverage matrix · every screen × every state",
@@ -3684,7 +3684,7 @@
    "x": 0,
    "y": 0,
    "w": 1440,
-   "h": 1386,
+   "h": 1394,
    "title": "Website · posts",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3694,7 +3694,7 @@
    "x": 1560,
    "y": 0,
    "w": 1440,
-   "h": 5299,
+   "h": 5441,
    "title": "Composer · publish to web, view as each reader",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3714,7 +3714,7 @@
    "x": 4680,
    "y": 0,
    "w": 1440,
-   "h": 1739,
+   "h": 2418,
    "title": "Website · members, meter and paywall",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3754,7 +3754,7 @@
    "x": 3120,
    "y": 9514,
    "w": 1440,
-   "h": 2446,
+   "h": 2727,
    "title": "Public · member account (Sam Rivera)",
    "page": "p7-publish",
    "is_interactive": true,
@@ -3949,7 +3949,7 @@
    "x": 0,
    "y": 50137,
    "w": 390,
-   "h": 2099,
+   "h": 2133,
    "title": "Website · posts · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -3958,7 +3958,7 @@
    "x": 510,
    "y": 50137,
    "w": 390,
-   "h": 2171,
+   "h": 2296,
    "title": "Composer · publish to web, view as each reader · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -3985,7 +3985,7 @@
    "x": 2040,
    "y": 50137,
    "w": 390,
-   "h": 3482,
+   "h": 3894,
    "title": "Public · member account (Sam Rivera) · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -4482,6 +4482,92 @@
    "w": 390,
    "x": 1520,
    "y": 5273
+  },
+  "WebsiteImport.dc.html": {
+   "x": 0,
+   "y": 56000,
+   "w": 1440,
+   "h": 4078,
+   "title": "Website · import posts from Substack, Ghost or WordPress: the review, then upload, reading, importing and done",
+   "page": "p7-publish",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "WebsiteImportStates.dc.html": {
+   "x": 1560,
+   "y": 56000,
+   "w": 1440,
+   "h": 2433,
+   "title": "Website · import posts · the menu, wrong file, too large, site off, failed, nothing to import, loading, read-only",
+   "page": "p7-publish",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "WebsiteComments.dc.html": {
+   "x": 3120,
+   "y": 56000,
+   "w": 1440,
+   "h": 920,
+   "title": "Website · comments waiting for review",
+   "page": "p7-publish",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "WebsiteCommentsStates.dc.html": {
+   "x": 4680,
+   "y": 56000,
+   "w": 1440,
+   "h": 4404,
+   "title": "Website · comments · published, Undo, delete and block, empty, off, loading, error, read-only",
+   "page": "p7-publish",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "PublicPostComments.dc.html": {
+   "x": 6240,
+   "y": 56000,
+   "w": 720,
+   "h": 12634,
+   "title": "Public · comments under a post (Sam Rivera), each reader's state, the reply email and the mute page",
+   "page": "p7-publish",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "WebsiteCommentsTablet.dc.html": {
+   "x": 0,
+   "y": 60800,
+   "w": 834,
+   "h": 988,
+   "title": "Website · comments waiting for review · tablet",
+   "page": "p7-publish",
+   "is_interactive": true
+  },
+  "WebsiteImportPhone.dc.html": {
+   "x": 0,
+   "y": 62200,
+   "w": 390,
+   "h": 8068,
+   "title": "Website · import posts · phone",
+   "page": "p7-publish",
+   "is_interactive": true
+  },
+  "WebsiteCommentsPhone.dc.html": {
+   "x": 510,
+   "y": 62200,
+   "w": 390,
+   "h": 1897,
+   "title": "Website · comments waiting for review · phone",
+   "page": "p7-publish",
+   "is_interactive": true
+  },
+  "PublicPostCommentsPhone.dc.html": {
+   "x": 1020,
+   "y": 62200,
+   "w": 390,
+   "h": 14397,
+   "title": "Public · comments under a post (Sam Rivera) · phone",
+   "page": "p7-publish",
+   "is_interactive": true
   }
  },
  "createdOnFiles": {
@@ -5995,7 +6081,16 @@
   "DarkTheme.dc.html",
   "MainDark.dc.html",
   "MainDarkTablet.dc.html",
-  "MainDarkPhone.dc.html"
+  "MainDarkPhone.dc.html",
+  "WebsiteImport.dc.html",
+  "WebsiteImportStates.dc.html",
+  "WebsiteComments.dc.html",
+  "WebsiteCommentsStates.dc.html",
+  "PublicPostComments.dc.html",
+  "WebsiteCommentsTablet.dc.html",
+  "WebsiteImportPhone.dc.html",
+  "WebsiteCommentsPhone.dc.html",
+  "PublicPostCommentsPhone.dc.html"
  ],
  "pages": [
   {
