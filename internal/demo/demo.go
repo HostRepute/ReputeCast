@@ -165,6 +165,9 @@ func SeedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *se
 		{"stores", seedStores},
 		{"agency", seedAgency},
 		{"brand kit", seedBrandKit},
+		// Post import and comments (M61).
+		{"website import", seedWebsiteImport},
+		{"website comments", seedWebsiteComments},
 	}
 	for _, st := range steps {
 		if err := st.fn(ctx, s); err != nil {

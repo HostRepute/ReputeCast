@@ -64,6 +64,10 @@ var (
 	// the brand kit: Acme's logos, colours, fonts and buttons, and the synced
 	// Header and Footer Weekly Digest #142 holds (seed_brandkit.go)
 	seedBrandKit = noop
+	// an import of posts from Substack waiting for its review (M61, seed_website_import.go)
+	seedWebsiteImport = noop
+	// comments on two posts, three waiting for review (M61, seed_website_comments.go)
+	seedWebsiteComments = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }
