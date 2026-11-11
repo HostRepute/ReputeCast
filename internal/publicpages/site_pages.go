@@ -69,7 +69,11 @@ func (h *Handler) siteFail(w http.ResponseWriter, r *http.Request, s *site, err 
 
 // siteNotFound is a missing page of the site, in its frame while it is on.
 func (h *Handler) siteNotFound(w http.ResponseWriter, r *http.Request, s *site) {
-	if h.Website == nil || !h.siteOn(r.Context(), s) {
+	on := h.siteOn(r.Context(), s)
+	if on && h.siteLegacy(w, r, s) {
+		return
+	}
+	if !on {
 		h.notFound(w, r, s)
 		return
 	}

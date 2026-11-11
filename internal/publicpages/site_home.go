@@ -118,6 +118,10 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, s.links.Subscribe(""), http.StatusFound)
 		return
 	}
+	// WordPress's own links to a post (/?p=123) lead to the imported post.
+	if r.URL.Query().Has("p") && h.siteLegacy(w, r, s) {
+		return
+	}
 	v, ok := h.siteViewFor(w, r, s)
 	if !ok {
 		return

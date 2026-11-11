@@ -311,7 +311,9 @@ func (a *App) Handler() http.Handler {
 	})
 
 	if a.Cfg.HasRole(config.RoleWeb) {
-		r.Handle("/*", server.NewSPA(web.Dist()))
+		// On a workspace's custom domain an unknown path is the site's (an
+		// old address of an imported site, or its 404 page), not the app's.
+		r.Handle("/*", a.publicPages().SiteFallback(server.NewSPA(web.Dist())))
 	}
 	return r
 }
