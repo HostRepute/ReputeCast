@@ -10,5 +10,7 @@
   "field.monthly_limit.label": "Gói · số email mỗi tháng",
   "field.monthly_limit.help": "Dùng cho thanh hạn mức khi gói là hạn mức hằng tháng.",
 
-  "account": "{company, select, none {Tài khoản Brevo} other {{name}}}{plan, select, free { · gói miễn phí · còn {n} email{today, select, yes { hôm nay} other {}}} subscription { · thuê bao · còn {n} email} credits { · còn {n} tín dụng trả trước} other {}}"
+  "account": "{company, select, none {Tài khoản Brevo} other {{name}}}{plan, select, free { · gói miễn phí · còn {n} email{today, select, yes { hôm nay} other {}}} subscription { · thuê bao · còn {n} email} credits { · còn {n} tín dụng trả trước} other {}}",
+
+  "inbound.step.domain": "Brevo chỉ nhận thư cho {domain} khi tên miền này khác tên miền bạn dùng để gửi và thuộc một tên miền đã xác minh trong Brevo. ReputeCast sẽ thêm webhook nhận thư cho nó."
 }

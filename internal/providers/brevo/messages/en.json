@@ -10,5 +10,7 @@
   "field.monthly_limit.label": { "message": "Plan · emails per month", "note": "the plan's monthly allowance" },
   "field.monthly_limit.help": "Used for the quota bar when the plan is a monthly allowance.",
 
-  "account": { "message": "{company, select, none {Brevo account} other {{name}}}{plan, select, free { · free plan · {n} emails left{today, select, yes { today} other {}}} subscription { · subscription · {n} emails left} credits { · {n} prepaid credits left} other {}}", "note": "the account's standing on the provider card: the company's name, then its email plan; n: emails or credits left" }
+  "account": { "message": "{company, select, none {Brevo account} other {{name}}}{plan, select, free { · free plan · {n} emails left{today, select, yes { today} other {}}} subscription { · subscription · {n} emails left} credits { · {n} prepaid credits left} other {}}", "note": "the account's standing on the provider card: the company's name, then its email plan; n: emails or credits left" },
+
+  "inbound.step.domain": { "message": "Brevo receives mail for {domain} only if it differs from the domain you send from and belongs to a domain verified in Brevo. ReputeCast adds the inbound webhook for it.", "note": "M58: a setup step of Receiving mail; domain: reply.news.acme.io" }
 }

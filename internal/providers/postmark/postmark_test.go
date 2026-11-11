@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -35,6 +36,12 @@ type fake struct {
 	mu    sync.Mutex
 	hooks []fakeHook
 	next  int64
+	// server is the server's inbound settings (PUT /server).
+	server struct {
+		InboundHookURL  string `json:"InboundHookUrl"`
+		InboundDomain   string
+		RawEmailEnabled bool
+	}
 }
 
 func fakeAPI(env *contracttest.Env) http.Handler { return (&fake{next: 1234}).handler(env) }
@@ -78,7 +85,24 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		if fail(w) {
 			return
 		}
-		_, _ = io.WriteString(w, `{"ID":23,"Name":"Acme Newsletter","TrackOpens":true,"TrackLinks":"HtmlAndText"}`)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		_ = json.NewEncoder(w).Encode(map[string]any{"ID": 23, "Name": "Acme Newsletter", "TrackOpens": true, "TrackLinks": "HtmlAndText",
+			"InboundHookUrl": f.server.InboundHookURL, "InboundDomain": f.server.InboundDomain, "RawEmailEnabled": f.server.RawEmailEnabled})
+	})
+	mux.HandleFunc("PUT /server", func(w http.ResponseWriter, r *http.Request) {
+		if fail(w) {
+			return
+		}
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		// Only the fields sent change.
+		if err := json.NewDecoder(r.Body).Decode(&f.server); err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = io.WriteString(w, `{"ErrorCode":402,"Message":"Received invalid JSON input."}`)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(f.server)
 	})
 	notFound := func(w http.ResponseWriter) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -239,7 +263,102 @@ func TestContract(t *testing.T) {
 				MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42"), OriginalType: "SpamComplaint", OriginalCode: "Type 512",
 			}}},
 		},
+		InboundRoute: providers.InboundRoute{Secret: inboundSecret},
+		Inbound: []contracttest.InboundCase{
+			// Postmark's sample inbound payload, with the Message-ID and
+			// threading headers a reply carries.
+			{Name: "Parsed", Request: inbound(false), Tamper: wrongPassword, Want: []providers.InboundMessage{{
+				From: `"Alan Turing" <alanturing@computers.com>`, To: []string{`"Margaret Hamilton" <yourhash+SampleHash@inbound.postmarkapp.com>`},
+				Subject: "Saying Hello!", MessageID: "<CAF-turing-1@computers.com>", InReplyTo: "<0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40@news.acme.io>",
+				References: []string{"<0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40@news.acme.io>", "<CAF-turing-0@computers.com>"},
+				Text:       "This is a test text body.", HTML: "<p>", Attachments: make([]providers.InboundAttachment, 1),
+				Recipients: []string{"yourhash+samplehash@inbound.postmarkapp.com"}, ProviderMessageID: "883953f4-6105-42a2-a16a-77a8eac79483", Spam: "pass",
+			}}},
+			// With RawEmailEnabled, which ReputeCast sets.
+			{Name: "RawEmail", Request: inbound(true), Tamper: wrongPassword, Want: []providers.InboundMessage{{
+				Raw: []byte{1}, Recipients: []string{"yourhash+samplehash@inbound.postmarkapp.com"}, ProviderMessageID: "883953f4-6105-42a2-a16a-77a8eac79483", Spam: "pass",
+			}}},
+		},
 	})
+}
+
+const inboundSecret = "route-secret-postmark"
+
+func inbound(raw bool) func(t *testing.T, env *contracttest.Env) (*http.Request, []byte) {
+	return func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+		body, err := os.ReadFile("testdata/inbound.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if raw {
+			var m map[string]any
+			_ = json.Unmarshal(body, &m)
+			m["RawEmail"] = "From: Alan Turing <alanturing@computers.com>\r\nTo: yourhash+SampleHash@inbound.postmarkapp.com\r\nSubject: Saying Hello!\r\n\r\nThis is a test text body.\r\n"
+			body, _ = json.Marshal(m)
+		}
+		r, _ := http.NewRequest(http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token", bytes.NewReader(body))
+		r.Header.Set("Content-Type", "application/json")
+		r.SetBasicAuth(providers.InboundUser, inboundSecret)
+		return r, body
+	}
+}
+
+func wrongPassword(r *http.Request, body []byte) (*http.Request, []byte) {
+	r.SetBasicAuth(providers.InboundUser, "wrong-secret")
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	return r, body
+}
+
+func TestInboundServerSettings(t *testing.T) {
+	f := &fake{next: 1234}
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	reg := p.(providers.InboundRegistrar)
+	route := providers.InboundRoute{Domain: "reply.acme.io", Secret: inboundSecret}
+	ctx := context.Background()
+	if err := reg.RegisterInbound(ctx, route, "https://rc.acme.io/hooks/inbound/tok"); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	s := f.server
+	f.mu.Unlock()
+	if s.InboundHookURL != "https://reputecast:"+inboundSecret+"@rc.acme.io/hooks/inbound/tok" || s.InboundDomain != "reply.acme.io" || !s.RawEmailEnabled {
+		t.Fatalf("server: %+v", s)
+	}
+	// Someone pointed the inbound webhook elsewhere since: it stays.
+	f.mu.Lock()
+	f.server.InboundHookURL = "https://helpdesk.example/postmark"
+	f.mu.Unlock()
+	if err := reg.UnregisterInbound(ctx, route, "https://rc.acme.io/hooks/inbound/tok"); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	s = f.server
+	f.mu.Unlock()
+	if s.InboundHookURL != "https://helpdesk.example/postmark" || s.InboundDomain != "" {
+		t.Fatalf("server: %+v", s)
+	}
+	mx := p.(providers.InboundReceiver).InboundSetup(route).MX
+	if len(mx) != 1 || mx[0] != (providers.DNSRecord{Purpose: "inbound", Type: "MX", Name: "reply.acme.io", Value: "10 inbound.postmarkapp.com"}) {
+		t.Fatalf("MX: %+v", mx)
+	}
+	env.SetMode(contracttest.ModeAuth)
+	if err := reg.RegisterInbound(ctx, route, "https://rc.acme.io/hooks/inbound/tok"); !errors.Is(err, providers.ErrUnauthorized) {
+		t.Fatalf("rejected token: %v", err)
+	}
+}
+
+func TestInboundAttachments(t *testing.T) {
+	p := newProvider(t, contracttest.NewEnv(t, nil)).(providers.InboundReceiver)
+	r, body := inbound(false)(t, nil)
+	msgs, err := p.ParseInbound(context.Background(), providers.InboundRoute{}, r, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := msgs[0].Attachments[0]
+	if a.Name != "test.txt" || a.ContentType != "text/plain" || a.Size != 45 || string(a.Data) != "This is attachment contents, base-64 encoded." {
+		t.Fatalf("attachment: %+v", a)
+	}
 }
 
 func TestTracking(t *testing.T) {

@@ -16,5 +16,7 @@
   "tracking.scope": "Every message ReputeCast sends",
   "tracking.detail": { "message": "ReputeCast sends every message with Mailjet's TrackOpens and TrackClicks disabled, whatever the account setting.", "note": "TrackOpens and TrackClicks are Mailjet's setting names" },
   "error.domainMissing": { "message": "{domain} is not set up in Mailjet", "note": "domain: news.acme.io" },
-  "error.callbackTaken": { "message": "Mailjet allows one callback URL per event and API key, and {events} already post to another URL. Use an API key only ReputeCast uses, or remove those callbacks in Mailjet, then register again.", "note": "events: Mailjet's event names, separated by commas" }
+  "error.callbackTaken": { "message": "Mailjet allows one callback URL per event and API key, and {events} already post to another URL. Use an API key only ReputeCast uses, or remove those callbacks in Mailjet, then register again.", "note": "events: Mailjet's event names, separated by commas" },
+
+  "inbound.step.domain": { "message": "{domain} must be a domain validated in Mailjet (Account settings › Senders & domains), and Mailjet's Parse API needs a paid plan (Premium and up). ReputeCast adds the parse route for every address of the domain.", "note": "M58: a setup step of Receiving mail; Account settings › Senders & domains, Parse API and Premium are Mailjet's names; domain: reply.news.acme.io" }
 }

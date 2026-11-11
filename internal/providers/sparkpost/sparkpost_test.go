@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/sparkpost"
@@ -43,6 +45,9 @@ type fake struct {
 	// sendingIPs is GET /api/v1/sending-ips's answer; "" lists the
 	// account's IPs in two pools.
 	sendingIPs string
+	// inbound are the inbound domains, relays the relay webhooks.
+	inbound []string
+	relays  []map[string]any
 }
 
 // sendingIPs are the account's dedicated IPs: two in the "marketing" pool
@@ -264,6 +269,66 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 			{"type":"bounce","bounce_class":"10","raw_reason":"550 5.1.1 unknown user","transmission_id":"t-2","rcpt_to":"b@example.com","timestamp":"2026-10-12T13:01:00.000+00:00"}
 		],"total_count":3,"links":{}}`)
 	}))
+	mux.HandleFunc("POST /api/v1/inbound-domains", guard(func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ Domain string }
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if slices.Contains(f.inbound, in.Domain) {
+			writeErr(w, http.StatusConflict, "1602", "resource conflict")
+			return
+		}
+		f.inbound = append(f.inbound, in.Domain)
+	}))
+	mux.HandleFunc("DELETE /api/v1/inbound-domains/{domain}", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		d := r.PathValue("domain")
+		if !slices.Contains(f.inbound, d) {
+			writeErr(w, http.StatusNotFound, "1600", "resource not found")
+			return
+		}
+		for _, h := range f.relays {
+			if h["match"].(map[string]any)["domain"] == d {
+				writeErr(w, http.StatusConflict, "1602", "Domain currently being used in a relay-webhook. Please delete the relay-webhook first.")
+				return
+			}
+		}
+		f.inbound = slices.DeleteFunc(f.inbound, func(x string) bool { return x == d })
+	}))
+	mux.HandleFunc("GET /api/v1/relay-webhooks", guard(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		_ = json.NewEncoder(w).Encode(map[string]any{"results": f.relays})
+	}))
+	saveRelay := func(w http.ResponseWriter, r *http.Request, id string) {
+		var in map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		match, _ := in["match"].(map[string]any)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if d, _ := match["domain"].(string); match == nil || !slices.Contains(f.inbound, d) {
+			writeErr(w, http.StatusBadRequest, "", "Domain 'domain' is not a registered inbound domain")
+			return
+		}
+		in["id"] = id
+		f.relays = slices.DeleteFunc(f.relays, func(h map[string]any) bool { return h["id"] == id })
+		f.relays = append(f.relays, in)
+		_ = json.NewEncoder(w).Encode(map[string]any{"results": map[string]string{"id": id}})
+	}
+	mux.HandleFunc("POST /api/v1/relay-webhooks", guard(func(w http.ResponseWriter, r *http.Request) {
+		saveRelay(w, r, strconv.FormatInt(12013026328707075+f.n.Add(1), 10))
+	}))
+	mux.HandleFunc("PUT /api/v1/relay-webhooks/{id}", guard(func(w http.ResponseWriter, r *http.Request) { saveRelay(w, r, r.PathValue("id")) }))
+	mux.HandleFunc("DELETE /api/v1/relay-webhooks/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		n := len(f.relays)
+		f.relays = slices.DeleteFunc(f.relays, func(h map[string]any) bool { return h["id"] == r.PathValue("id") })
+		if len(f.relays) == n {
+			writeErr(w, http.StatusNotFound, "", "Resource could not be found")
+		}
+	}))
 	return mux
 }
 
@@ -353,6 +418,89 @@ func TestContract(t *testing.T) {
 					MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e45"), OriginalType: "list_unsubscribe"},
 			},
 		}},
+		InboundRoute: providers.InboundRoute{Secret: inboundSecret},
+		Inbound: []contracttest.InboundCase{{
+			// SparkPost's sample relay batch.
+			Name: "RelayBatch",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				return relayPost(t, inboundSecret)
+			},
+			Want: []providers.InboundMessage{{Raw: []byte{1}, Recipients: []string{"you@there.com"}}},
+			Tamper: func(r *http.Request, body []byte) (*http.Request, []byte) {
+				r.Header.Set(sparkpost.InboundTokenHeader, "wrong-token")
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				return r, body
+			},
+		}},
+	})
+}
+
+const inboundSecret = "route-secret-sparkpost"
+
+func relayPost(t *testing.T, token string) (*http.Request, []byte) {
+	t.Helper()
+	body, err := os.ReadFile("testdata/inbound-relay.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token", bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set(sparkpost.InboundTokenHeader, token)
+	return r, body
+}
+
+func TestInboundRelay(t *testing.T) {
+	f := &fake{}
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	reg := p.(providers.InboundRegistrar)
+	route := providers.InboundRoute{ID: uuid.MustParse("019a7b2c-0000-7000-8000-0000000000cc"), Domain: "reply.acme.io", Secret: inboundSecret}
+	hook := "https://rc.acme.io/hooks/inbound/tok"
+	ctx := context.Background()
+	for range 2 { // registering again updates the relay webhook
+		if err := reg.RegisterInbound(ctx, route, hook); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.with(func() {
+		if len(f.inbound) != 1 || f.inbound[0] != "reply.acme.io" || len(f.relays) != 1 {
+			t.Fatalf("inbound %v relays %v", f.inbound, f.relays)
+		}
+		h := f.relays[0]
+		if h["name"] != "ReputeCast "+route.ID.String() || h["target"] != hook || h["auth_token"] != inboundSecret ||
+			h["match"].(map[string]any)["domain"] != "reply.acme.io" || h["match"].(map[string]any)["protocol"] != "SMTP" {
+			t.Fatalf("relay webhook: %v", h)
+		}
+	})
+	if err := reg.UnregisterInbound(ctx, route, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		if len(f.inbound) != 0 || len(f.relays) != 0 {
+			t.Fatalf("left: %v %v", f.inbound, f.relays)
+		}
+	})
+	// EU accounts receive on SparkPost's EU relay hosts.
+	mx := p.(providers.InboundReceiver).InboundSetup(route).MX
+	if len(mx) != 3 || mx[0].Value != "10 rx1.eu.sparkpostmail.com" || mx[2].Value != "10 rx3.eu.sparkpostmail.com" {
+		t.Fatalf("MX: %+v", mx)
+	}
+	// The token travels as it is: ingest never stores it.
+	if hs := p.(providers.WebhookSecrets).WebhookSecretHeaders(); !slices.Equal(hs, []string{"X-MessageSystems-Webhook-Token"}) {
+		t.Fatalf("secret headers: %v", hs)
+	}
+	// Another relay webhook still uses the domain: it stays.
+	f.with(func() {
+		f.inbound = []string{"reply.acme.io"}
+		f.relays = []map[string]any{{"id": "1", "name": "Helpdesk", "target": "https://helpdesk.example/sp", "match": map[string]any{"domain": "reply.acme.io"}}}
+	})
+	if err := reg.UnregisterInbound(ctx, route, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		if len(f.inbound) != 1 || len(f.relays) != 1 {
+			t.Fatalf("someone else's relay webhook was touched: %v %v", f.inbound, f.relays)
+		}
 	})
 }
 

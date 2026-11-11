@@ -73,6 +73,7 @@ func Descriptor() providers.Descriptor {
 			Bulk:      providers.BulkYourPolicy,
 			Webhooks:  "Registered",
 			BatchSize: 1,
+			Inbound:   providers.InboundManual,
 			// Pricing and every other text people read (the terms' variant
 			// and note, the Adapters tab's words, the fields' labels and
 			// hints) are in messages/en.json: WithMessages fills them.

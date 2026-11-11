@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"io"
 	"math/big"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/ses"
@@ -153,15 +155,19 @@ func newProviderWith(t *testing.T, env *contracttest.Env, confirmed *bool) provi
 }
 
 func envelope(t *testing.T, typ, message, version string) []byte {
+	return envelopeFor(t, topicARN, typ, message, version)
+}
+
+func envelopeFor(t *testing.T, topic, typ, message, version string) []byte {
 	key, _ := signer(t)
 	e := ses.Envelope{
-		Type: typ, MessageID: "d9b9c7a3-3a9c-5f3c-9a1b-2c3d4e5f6a7b", TopicArn: topicARN, Message: message,
+		Type: typ, MessageID: "d9b9c7a3-3a9c-5f3c-9a1b-2c3d4e5f6a7b", TopicArn: topic, Message: message,
 		Timestamp: "2026-10-12T13:41:02.200Z", SignatureVersion: version, SigningCertURL: certURL,
-		UnsubscribeURL: "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=" + topicARN + ":1",
+		UnsubscribeURL: "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=" + topic + ":1",
 	}
 	if typ == "SubscriptionConfirmation" {
 		e.Token = "2336412f37fb687f5d51e6e2425f004aed"
-		e.SubscribeURL = "https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&TopicArn=" + topicARN + "&Token=" + e.Token
+		e.SubscribeURL = "https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&TopicArn=" + topic + "&Token=" + e.Token
 		e.UnsubscribeURL = ""
 	}
 	var sig []byte
@@ -260,7 +266,130 @@ func TestContract(t *testing.T) {
 				MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e64"), OriginalType: "Reject · Bad content", BounceClass: "spam_block",
 			}}},
 		},
+		InboundRoute: providers.InboundRoute{Settings: map[string]string{ses.SettingTopicARN: inboundTopic}},
+		Inbound: []contracttest.InboundCase{
+			// AWS's sample notification of an SNS action, as documented
+			// (the message as UTF-8).
+			{Name: "Received", Request: received(false), Want: []providers.InboundMessage{receivedWant}},
+			// The same message published with the Base64 encoding the
+			// setup asks for.
+			{Name: "ReceivedBase64", Request: received(true), Want: []providers.InboundMessage{receivedWant}},
+		},
 	})
+}
+
+// inboundTopic is the receipt rule's topic: not one of the connection's
+// event topics.
+const inboundTopic = "arn:aws:sns:us-east-1:123456789012:reputecast-inbound"
+
+var receivedWant = providers.InboundMessage{Raw: []byte{1}, Recipients: []string{"recipient@example.com"},
+	ProviderMessageID: "d6iitobk75ur44p8kdnnp7g2n800", Spam: "pass", SPF: "pass", DKIM: "pass", DMARC: ""}
+
+func received(base64Content bool) func(t *testing.T, env *contracttest.Env) (*http.Request, []byte) {
+	return func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+		raw, err := os.ReadFile("testdata/inbound-received.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if base64Content {
+			var n map[string]any
+			_ = json.Unmarshal(raw, &n)
+			n["content"] = base64.StdEncoding.EncodeToString([]byte(n["content"].(string)))
+			n["receipt"].(map[string]any)["action"].(map[string]any)["encoding"] = "BASE64"
+			raw, _ = json.Marshal(n)
+		}
+		var compact bytes.Buffer
+		_ = json.Compact(&compact, raw)
+		body := envelopeFor(t, inboundTopic, "Notification", compact.String(), "2")
+		r, _ := http.NewRequest(http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token", bytes.NewReader(body))
+		r.Header.Set("Content-Type", "text/plain; charset=UTF-8")
+		r.Header.Set("X-Amz-Sns-Message-Type", "Notification")
+		return r, body
+	}
+}
+
+func TestReceivedMessageContent(t *testing.T) {
+	env := contracttest.NewEnv(t, fakeAPI)
+	p := newProvider(t, env).(providers.InboundReceiver)
+	route := providers.InboundRoute{Domain: "reply.acme.io", Settings: map[string]string{ses.SettingTopicARN: inboundTopic}}
+	for _, b64 := range []bool{false, true} {
+		r, body := received(b64)(t, env)
+		msgs, err := p.ParseInbound(context.Background(), route, r, body)
+		if err != nil || len(msgs) != 1 {
+			t.Fatalf("ParseInbound: %v, %v", msgs, err)
+		}
+		if !strings.HasPrefix(string(msgs[0].Raw), "Return-Path: <61967230") || !strings.HasSuffix(string(msgs[0].Raw), "\r\n\r\nExample content\r\n") {
+			t.Fatalf("base64 %v: raw message %q", b64, msgs[0].Raw)
+		}
+		if want := time.Date(2015, 9, 11, 20, 32, 33, 936e6, time.UTC); !msgs[0].ReceivedAt.Equal(want) {
+			t.Fatalf("received at %v", msgs[0].ReceivedAt)
+		}
+	}
+}
+
+// The inbound hook trusts the route's topic only: never the connection's
+// event topics, and nothing while no ARN is entered.
+func TestInboundTopicIsTheRoutes(t *testing.T) {
+	env := contracttest.NewEnv(t, fakeAPI)
+	confirmed := false
+	p := newProviderWith(t, env, &confirmed)
+	in := p.(providers.InboundReceiver)
+	hs := p.(providers.InboundHandshaker)
+	route := providers.InboundRoute{Domain: "reply.acme.io", Settings: map[string]string{ses.SettingTopicARN: inboundTopic}}
+	r, _ := http.NewRequest(http.MethodPost, "https://reputecast.acme.io/hooks/inbound/token", nil)
+	ctx := context.Background()
+
+	sub := envelopeFor(t, inboundTopic, "SubscriptionConfirmation", "You have chosen to subscribe to the topic.", "2")
+	if handled, _, err := hs.HandshakeInbound(ctx, providers.InboundRoute{Settings: map[string]string{}}, r, sub); !handled || !errors.Is(err, providers.ErrBadSignature) || confirmed {
+		t.Fatalf("without a topic ARN nothing is confirmed: handled %v, %v, confirmed %v", handled, err, confirmed)
+	}
+	if handled, _, err := hs.HandshakeInbound(ctx, route, r, envelope(t, "SubscriptionConfirmation", "x", "2")); !handled || !errors.Is(err, providers.ErrBadSignature) || confirmed {
+		t.Fatalf("the events topic's subscription is not the route's: handled %v, %v, confirmed %v", handled, err, confirmed)
+	}
+	if handled, _, err := hs.HandshakeInbound(ctx, route, r, sub); !handled || err != nil || !confirmed {
+		t.Fatalf("the route's topic is confirmed: handled %v, %v, confirmed %v", handled, err, confirmed)
+	}
+	note := envelopeFor(t, inboundTopic, "Notification", `{"notificationType":"Received"}`, "2")
+	if handled, _, _ := hs.HandshakeInbound(ctx, route, r, note); handled {
+		t.Fatal("a notification is not a handshake")
+	}
+	if err := in.VerifyInbound(ctx, route, r, note); err != nil {
+		t.Fatalf("the route's topic: %v", err)
+	}
+	if err := in.VerifyInbound(ctx, route, r, envelope(t, "Notification", `{"notificationType":"Received"}`, "2")); !errors.Is(err, providers.ErrBadSignature) {
+		t.Fatalf("an events topic's notification on the inbound hook: %v", err)
+	}
+	// And the events webhook doesn't take the route's topic.
+	if err := p.(providers.WebhookVerifier).VerifyWebhook(ctx, r, note); !errors.Is(err, providers.ErrBadSignature) {
+		t.Fatalf("the route's topic on the events webhook: %v", err)
+	}
+}
+
+func TestInboundSetupRegion(t *testing.T) {
+	env := contracttest.NewEnv(t, fakeAPI)
+	p := newProvider(t, env).(providers.InboundReceiver)
+	route := providers.InboundRoute{Domain: "reply.acme.io", URL: "https://rc.acme.io/hooks/inbound/t", Settings: map[string]string{}}
+	setup := p.InboundSetup(route)
+	if setup.Automatic || len(setup.MX) != 1 || setup.MX[0] != (providers.DNSRecord{Purpose: "inbound", Type: "MX", Name: "reply.acme.io", Value: "10 inbound-smtp.us-east-1.amazonaws.com"}) {
+		t.Fatalf("setup: %+v", setup)
+	}
+	if len(setup.Settings) != 1 || setup.Settings[0].Key != ses.SettingTopicARN || setup.Settings[0].Label != "SNS topic ARN" || !setup.Settings[0].Required {
+		t.Fatalf("settings: %+v", setup.Settings)
+	}
+	if len(setup.Steps) != 4 || !strings.Contains(setup.Steps[2].In(i18n.Default), "https://rc.acme.io/hooks/inbound/t") || !strings.Contains(setup.Steps[3].In(i18n.Default), "150 KB") {
+		t.Fatalf("steps: %+v", setup.Steps)
+	}
+	// The receipt rule, its topic and the MX are in the topic's region.
+	route.Settings[ses.SettingTopicARN] = "arn:aws:sns:eu-west-1:123456789012:reputecast-inbound"
+	if mx := p.InboundSetup(route).MX; len(mx) != 1 || mx[0].Value != "10 inbound-smtp.eu-west-1.amazonaws.com" {
+		t.Fatalf("MX: %+v", mx)
+	}
+	// SES doesn't receive everywhere.
+	route.Settings[ses.SettingTopicARN] = "arn:aws:sns:ap-south-2:123456789012:reputecast-inbound"
+	setup = p.InboundSetup(route)
+	if len(setup.MX) != 0 || len(setup.Steps) != 5 || !strings.Contains(setup.Steps[0].In(i18n.Default), "doesn't receive mail in ap-south-2") {
+		t.Fatalf("setup: %+v", setup)
+	}
 }
 
 func TestSubscriptionHandshake(t *testing.T) {

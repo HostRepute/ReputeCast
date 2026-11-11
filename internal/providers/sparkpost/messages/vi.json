@@ -17,5 +17,7 @@
   "tracking.on": "Tài khoản mặc định theo dõi lượt mở và lượt nhấp, nhưng ReputeCast tắt theo dõi trên mọi lượt gửi mà ReputeCast thực hiện.",
   "tracking.off": "Theo dõi lượt mở và lượt nhấp mặc định đang tắt, và tắt trên mọi lượt gửi ReputeCast thực hiện.",
   "error.notRegistered": "Không có webhook SparkPost nào trỏ đến {url}. Hãy đăng ký webhook trước.",
-  "error.endpointStatus": "endpoint đã trả về {status} cho lô thử của SparkPost"
+  "error.endpointStatus": "endpoint đã trả về {status} cho lô thử của SparkPost",
+
+  "inbound.step.enterprise": "Với tài khoản SparkPost Enterprise, hãy trỏ bản ghi MX của {domain} đến máy chủ riêng của tài khoản (có đuôi .mx.e.sparkpost.com) thay cho các bản ghi bên dưới. ReputeCast sẽ thêm inbound domain và relay webhook của nó."
 }

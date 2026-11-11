@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
@@ -205,4 +207,126 @@ func SignatureVerified(ctx context.Context) bool {
 func Registered(adapter string) bool {
 	_, ok := Lookup(adapter)
 	return ok
+}
+
+// Receiving mail (M58). A workspace receives mail through one inbound
+// route: a connected provider's receiving, or a mailbox ReputeCast polls.
+// The provider posts what it receives to ReputeCast's inbound hook
+// (POST /hooks/inbound/{token}); the hook checks the request at once
+// (VerifyInbound) and stores it, and a job parses it later (ParseInbound).
+// Capabilities.Inbound says which of the interfaces below an adapter has.
+
+// Values of Capabilities.Inbound.
+const (
+	// InboundAutomatic: ReputeCast points the provider's receiving at its
+	// hook itself (InboundRegistrar); people add the MX record.
+	InboundAutomatic = "automatic"
+	// InboundManual: people follow the adapter's steps in the provider's
+	// console (InboundSetup.Steps) and add the MX record.
+	InboundManual = "manual"
+)
+
+// InboundRoute is the route a workspace receives through, as an adapter
+// sees it.
+type InboundRoute struct {
+	ID uuid.UUID
+	// Domain is the domain mail is received for (reply.news.acme.io).
+	Domain string
+	// Settings are the values of InboundSetup.Settings people entered
+	// (an SNS topic ARN).
+	Settings map[string]string
+	// Secret is the route's own secret: the password of the hook's basic
+	// authentication, or the key of its signature, for providers that
+	// authenticate inbound requests with a shared secret.
+	Secret string
+	// URL is the hook's address without credentials
+	// (https://reputecast.example/hooks/inbound/<token>), for setup steps.
+	URL string
+}
+
+// InboundUser is the user name of the hook's basic authentication: the
+// password is InboundRoute.Secret.
+const InboundUser = "reputecast"
+
+// InboundAttachment is one attachment of a received message. Only its name,
+// type and size are kept; Data is read for reports (DMARC aggregate
+// reports arrive as attachments) and dropped.
+type InboundAttachment struct {
+	Name        string
+	ContentType string
+	Size        int64
+	Data        []byte
+}
+
+// InboundMessage is one received message. Adapters whose provider passes
+// the whole message set Raw (RFC 5322) and may leave the header and body
+// fields empty: ReputeCast parses Raw itself. Others fill the fields from
+// the provider's parsed payload. Envelope facts the message itself doesn't
+// carry (the recipients, the provider's verdicts) come in their fields
+// either way.
+type InboundMessage struct {
+	Raw []byte
+	// From, Subject, MessageID, InReplyTo, To and References are the
+	// message's headers (addresses as "Name <addr>" or the address).
+	From, Subject, MessageID, InReplyTo string
+	To, References                      []string
+	// Headers are the message's headers when Raw is empty.
+	Headers     map[string][]string
+	Text, HTML  string
+	Attachments []InboundAttachment
+	// Recipients are the envelope's RCPT TO addresses, when the provider
+	// reports them.
+	Recipients        []string
+	ProviderMessageID string
+	// Spam is the provider's spam verdict: "", "pass" or "spam".
+	Spam string
+	// SPF, DKIM and DMARC are the provider's authentication verdicts:
+	// "pass", "fail", "none" or "".
+	SPF, DKIM, DMARC string
+	ReceivedAt       time.Time
+}
+
+// InboundSetup is what setting up a route through the adapter takes.
+type InboundSetup struct {
+	// Automatic is true when ReputeCast registers the hook itself.
+	Automatic bool
+	// MX are the records people add for route.Domain.
+	MX []DNSRecord
+	// Steps are what people do in the provider's console, in order, from
+	// the adapter's catalog (with the route's domain and URL as arguments).
+	Steps []i18n.Text
+	// Settings are the values people enter for the route (an SNS topic
+	// ARN); they come back in InboundRoute.Settings.
+	Settings []Field
+}
+
+// InboundReceiver is implemented by adapters whose provider posts received
+// mail to ReputeCast (Capabilities.Inbound is set).
+type InboundReceiver interface {
+	InboundSetup(route InboundRoute) InboundSetup
+	// VerifyInbound checks the request when it arrives, without parsing
+	// it; a request that fails is ErrBadSignature.
+	VerifyInbound(ctx context.Context, route InboundRoute, r *http.Request, body []byte) error
+	// ParseInbound reads a verified request in a job, from the stored body
+	// and headers (credentials are never stored). It may call the
+	// provider's API (Resend sends only metadata).
+	ParseInbound(ctx context.Context, route InboundRoute, r *http.Request, body []byte) ([]InboundMessage, error)
+}
+
+// InboundRegistrar is implemented by adapters that point the provider's
+// receiving for route.Domain at url themselves
+// (Capabilities.Inbound == InboundAutomatic).
+type InboundRegistrar interface {
+	RegisterInbound(ctx context.Context, route InboundRoute, url string) error
+	// UnregisterInbound removes what RegisterInbound added; a registration
+	// that isn't there is not an error.
+	UnregisterInbound(ctx context.Context, route InboundRoute, url string) error
+}
+
+// InboundHandshaker answers subscription handshakes on the inbound hook
+// (an SNS SubscriptionConfirmation), checked against the route's settings
+// rather than the provider's event topic. handled is true when the request
+// was a handshake; response, when set, is written back with 200.
+type InboundHandshaker interface {
+	HandshakeInbound(ctx context.Context, route InboundRoute, r *http.Request, body []byte) (handled bool, response []byte, err error)
 }

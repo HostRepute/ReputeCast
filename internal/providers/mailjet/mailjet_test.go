@@ -39,6 +39,9 @@ type fake struct {
 	n            atomic.Int64
 	// answer, when set, replaces the send endpoint's answer.
 	answer *cannedAnswer
+	// routes are the parse routes; nextRoute numbers them.
+	routes    []map[string]any
+	nextRoute atomic.Int64
 }
 
 type cannedAnswer struct {
@@ -235,6 +238,43 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		}
 		envelope(w, []map[string]any{{"ID": json.Number(r.PathValue("id")), "Status": status, "ArrivedAt": "2026-10-12T13:41:02Z"}})
 	}))
+	mux.HandleFunc("GET /v3/REST/parseroute", guard(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		envelope(w, append([]map[string]any{}, f.routes...))
+	}))
+	saveRoute := func(w http.ResponseWriter, r *http.Request, id int) {
+		var in map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		if s, _ := in["Url"].(string); s == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		in["ID"] = id
+		f.mu.Lock()
+		f.routes = slices.DeleteFunc(f.routes, func(x map[string]any) bool { return x["ID"] == id })
+		f.routes = append(f.routes, in)
+		f.mu.Unlock()
+		envelope(w, []any{in})
+	}
+	mux.HandleFunc("POST /v3/REST/parseroute", guard(func(w http.ResponseWriter, r *http.Request) { saveRoute(w, r, 100+int(f.nextRoute.Add(1))) }))
+	mux.HandleFunc("PUT /v3/REST/parseroute/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.PathValue("id"))
+		saveRoute(w, r, id)
+	}))
+	mux.HandleFunc("DELETE /v3/REST/parseroute/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		id, _ := strconv.Atoi(r.PathValue("id"))
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		n := len(f.routes)
+		f.routes = slices.DeleteFunc(f.routes, func(x map[string]any) bool { return x["ID"] == id })
+		if len(f.routes) == n {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = io.WriteString(w, `{"ErrorInfo":"","ErrorMessage":"Object not found","StatusCode":404}`)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
 	return mux
 }
 
@@ -324,7 +364,71 @@ func TestContract(t *testing.T) {
 					MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e45"), OriginalType: "unsub"},
 			},
 		}},
+		InboundRoute: providers.InboundRoute{Secret: inboundSecret},
+		Inbound: []contracttest.InboundCase{{
+			// Mailjet's sample Parse API payload, with an attachment.
+			Name: "Parsed",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				body, err := os.ReadFile("testdata/inbound-parse.json")
+				if err != nil {
+					t.Fatal(err)
+				}
+				r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token", bytes.NewReader(body))
+				r.Header.Set("Content-Type", "application/json")
+				r.SetBasicAuth(providers.InboundUser, inboundSecret)
+				return r, body
+			},
+			Want: []providers.InboundMessage{{
+				From: "Pilot <pilot@mailjet.com>", Subject: "Hey! It's Friday!", To: []string{"passenger@mailjet.com"},
+				MessageID: "<CAE5Zh0ZpHZ6G5DC+He5426a4RkVab7uWaTDwiMcHzOR=YB3urA@mail.gmail.com>",
+				Text:      "Hi,\n\nImportant notice: it's Friday. Friday *afternoon*, even!\n\n\nHave a *great* weekend!\nThe Anonymous Friday Teller",
+				HTML:      "<div>", Attachments: make([]providers.InboundAttachment, 1), Recipients: []string{"passenger@mailjet.com"}, Spam: "pass",
+			}},
+			Tamper: func(r *http.Request, body []byte) (*http.Request, []byte) {
+				r.SetBasicAuth(providers.InboundUser, "wrong-secret")
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				return r, body
+			},
+		}},
 	})
+}
+
+const inboundSecret = "route-secret-mailjet"
+
+func TestInboundParseRoute(t *testing.T) {
+	f := &fake{}
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	reg := p.(providers.InboundRegistrar)
+	route := providers.InboundRoute{Domain: "Reply.Acme.io", Secret: inboundSecret}
+	hook := "https://rc.acme.io/hooks/inbound/tok"
+	for range 2 { // registering again updates the route
+		if err := reg.RegisterInbound(context.Background(), route, hook); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.with(func() {
+		if len(f.routes) != 1 || f.routes[0]["Email"] != "*@reply.acme.io" || f.routes[0]["Url"] != "https://reputecast:"+inboundSecret+"@rc.acme.io/hooks/inbound/tok" {
+			t.Fatalf("parse routes: %v", f.routes)
+		}
+	})
+	if err := reg.UnregisterInbound(context.Background(), route, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		if len(f.routes) != 0 {
+			t.Fatalf("left: %v", f.routes)
+		}
+	})
+	body, _ := os.ReadFile("testdata/inbound-parse.json")
+	r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://rc.acme.io/hooks/inbound/tok", bytes.NewReader(body))
+	msgs, err := p.(providers.InboundReceiver).ParseInbound(context.Background(), route, r, body)
+	if err != nil || len(msgs) != 1 || len(msgs[0].Attachments) != 1 {
+		t.Fatalf("ParseInbound: %+v, %v", msgs, err)
+	}
+	if a := msgs[0].Attachments[0]; a.Name != "helloworld.txt" || a.ContentType != "text/plain" || a.Size != 12 || string(a.Data) != "Hello World!" {
+		t.Fatalf("attachment: %+v", a)
+	}
 }
 
 func TestSingleAndEmptyCallbacks(t *testing.T) {

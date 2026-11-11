@@ -10,5 +10,7 @@
   "field.monthly_limit.label": "Forfait · e-mails par mois",
   "field.monthly_limit.help": "Utilisé pour la barre de quota quand le forfait est une allocation mensuelle.",
 
-  "account": "{company, select, none {Compte Brevo} other {{name}}}{plan, select, free { · forfait gratuit · {n} e-mails restants{today, select, yes { aujourd’hui} other {}}} subscription { · abonnement · {n} e-mails restants} credits { · {n} crédits prépayés restants} other {}}"
+  "account": "{company, select, none {Compte Brevo} other {{name}}}{plan, select, free { · forfait gratuit · {n} e-mails restants{today, select, yes { aujourd’hui} other {}}} subscription { · abonnement · {n} e-mails restants} credits { · {n} crédits prépayés restants} other {}}",
+
+  "inbound.step.domain": "Brevo ne reçoit le courrier pour {domain} que s’il diffère du domaine d’envoi et appartient à un domaine vérifié dans Brevo. ReputeCast ajoute le webhook de réception correspondant."
 }

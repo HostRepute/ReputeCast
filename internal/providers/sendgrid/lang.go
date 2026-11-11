@@ -26,6 +26,9 @@ var (
 	mNoWebhookID       = msgs.M("error.noWebhookId")
 	mDomainMissing     = msgs.M("error.domainMissing")
 	mIPsRestricted     = msgs.M("error.ipsRestricted")
+
+	mInboundAuthenticated     = msgs.M("inbound.step.authenticated")
+	mInboundAutomaticSecurity = msgs.M("inbound.step.automaticSecurity")
 )
 
 // say returns a message's English and the message, kept for its readers.

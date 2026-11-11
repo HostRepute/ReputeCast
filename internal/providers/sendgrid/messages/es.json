@@ -6,7 +6,7 @@
   "domainSetup": "API",
   "suppressionMode": "Bidireccional",
   "field.api_key.label": "Clave de API",
-  "field.api_key.help": "SendGrid › Settings › API Keys. Full Access permite que ReputeCast registre el Event Webhook firmado, autentique dominios y sincronice supresiones.",
+  "field.api_key.help": "SendGrid › Settings › API Keys. Full Access permite que ReputeCast registre el Event Webhook firmado, autentique dominios, sincronice supresiones y configure Inbound Parse para recibir correo. Una clave con Restricted Access necesita el permiso Inbound Parse para recibir correo.",
   "field.region.label": "Región",
   "field.region.help": "EU solo para un subusuario de la UE (planes Pro y superiores).",
   "field.ip_pool.label": "Grupo de IP",
@@ -21,5 +21,8 @@
   "tracking.on": "{on, select, open {El seguimiento de aperturas de la cuenta está activado, pero ReputeCast desactiva el seguimiento de SendGrid en cada mensaje que envía.} click {El seguimiento de clics de la cuenta está activado, pero ReputeCast desactiva el seguimiento de SendGrid en cada mensaje que envía.} other {El seguimiento de aperturas y clics de la cuenta está activado, pero ReputeCast desactiva el seguimiento de SendGrid en cada mensaje que envía.}}",
   "error.noWebhookId": "SendGrid no devolvió el ID del webhook",
   "error.domainMissing": "{domain} no está autenticado en SendGrid",
-  "error.ipsRestricted": "La clave de API no puede leer las direcciones IP de la cuenta: dale acceso de lectura a IP Management en SendGrid › Settings › API Keys y vuelve a comprobarlo."
+  "error.ipsRestricted": "La clave de API no puede leer las direcciones IP de la cuenta: dale acceso de lectura a IP Management en SendGrid › Settings › API Keys y vuelve a comprobarlo.",
+
+  "inbound.step.authenticated": "SendGrid solo recibe correo para un dominio autenticado en SendGrid › Settings › Sender Authentication o un subdominio suyo: autentica antes {domain} o su dominio principal. ReputeCast añade la configuración de Inbound Parse.",
+  "inbound.step.automaticSecurity": "Si {domain} es tu propio dominio autenticado, desactiva Automatic Security en él en SendGrid; si no, su correo da vueltas entre los servidores de SendGrid."
 }

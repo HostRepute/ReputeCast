@@ -42,5 +42,13 @@
 
   "status.incident": { "message": "AWS reports an SES incident in {region}.", "note": "from the AWS status page, during an outage; region: us-east-1" },
 
-  "error.dedicatedIpsDenied": { "message": "The role or keys ReputeCast uses can't list the account's dedicated IPs: allow ses:GetDedicatedIps in their IAM policy (the CloudFormation template does), then check again.", "note": "a daily check of the sending IPs failed for want of a permission; ses:GetDedicatedIps is AWS's name for it, never translated" }
+  "error.dedicatedIpsDenied": { "message": "The role or keys ReputeCast uses can't list the account's dedicated IPs: allow ses:GetDedicatedIps in their IAM policy (the CloudFormation template does), then check again.", "note": "a daily check of the sending IPs failed for want of a permission; ses:GetDedicatedIps is AWS's name for it, never translated" },
+
+  "inbound.field.topic_arn.label": { "message": "SNS topic ARN", "note": "M58: a setting of the Receiving mail setup; AWS's own name for the value" },
+  "inbound.field.topic_arn.help": { "message": "The topic the receipt rule publishes to, such as arn:aws:sns:{region}:123456789012:reputecast-inbound.", "note": "M58: under the SNS topic ARN setting; region: us-east-1" },
+  "inbound.step.noReceiving": { "message": "Amazon SES doesn't receive mail in {region}. Create the receipt rule and its SNS topic in one of these regions instead: {regions}.", "note": "M58: a setup step, when the connection's region has no SES receiving endpoint; regions: a comma-separated list of AWS region codes" },
+  "inbound.step.rule": { "message": "In the Amazon SES console ({region}), open Email receiving › Rule sets and add a rule to the active rule set for the recipient domain {domain}, with the action Publish to Amazon SNS topic, encoding Base64, and an SNS topic in {region}.", "note": "M58: a setup step; Email receiving › Rule sets, Publish to Amazon SNS topic and Base64 are AWS's own words; domain: reply.news.acme.io" },
+  "inbound.step.topic": { "message": "Enter the topic's ARN below. ReputeCast accepts mail from that topic only.", "note": "M58: a setup step" },
+  "inbound.step.subscribe": { "message": "In Amazon SNS, add a subscription to the topic with the protocol HTTPS and the endpoint {url}. Don't confirm it yourself: ReputeCast confirms it when SNS asks.", "note": "M58: a setup step, after the ARN is saved; url: ReputeCast's inbound address" },
+  "inbound.step.size": { "message": "Amazon SES bounces a message over {size} KB instead of publishing it to SNS, so a reply with large attachments doesn't reach ReputeCast.", "note": "M58: the last setup step, a limit of SES; size: 150" }
 }

@@ -6,7 +6,7 @@
   "domainSetup": "API",
   "suppressionMode": "Bidirectionnelle",
   "field.api_key.label": "Clé API",
-  "field.api_key.help": "SendGrid › Settings › API Keys. Full Access permet à ReputeCast d’enregistrer l’Event Webhook signé, d’authentifier les domaines et de synchroniser la liste de suppression.",
+  "field.api_key.help": "SendGrid › Settings › API Keys. Full Access permet à ReputeCast d’enregistrer l’Event Webhook signé, d’authentifier les domaines, de synchroniser la liste de suppression et de configurer Inbound Parse pour recevoir le courrier. Une clé en Restricted Access a besoin de l’autorisation Inbound Parse pour recevoir le courrier.",
   "field.region.label": "Région",
   "field.region.help": "EU uniquement pour un sous-utilisateur EU (forfaits Pro et supérieurs).",
   "field.ip_pool.label": "Pool d’IP",
@@ -21,5 +21,8 @@
   "tracking.on": "{on, select, open {Le suivi des ouvertures est activé au niveau du compte, mais ReputeCast désactive le suivi de SendGrid sur chaque message qu’il envoie.} click {Le suivi des clics est activé au niveau du compte, mais ReputeCast désactive le suivi de SendGrid sur chaque message qu’il envoie.} other {Le suivi des ouvertures et des clics est activé au niveau du compte, mais ReputeCast désactive le suivi de SendGrid sur chaque message qu’il envoie.}}",
   "error.noWebhookId": "SendGrid n’a pas renvoyé l’ID du webhook",
   "error.domainMissing": "{domain} n’est pas authentifié dans SendGrid",
-  "error.ipsRestricted": "La clé API ne peut pas lire les adresses IP du compte\u00A0: accordez-lui l’accès en lecture à IP Management dans SendGrid › Settings › API Keys, puis relancez la vérification."
+  "error.ipsRestricted": "La clé API ne peut pas lire les adresses IP du compte\u00A0: accordez-lui l’accès en lecture à IP Management dans SendGrid › Settings › API Keys, puis relancez la vérification.",
+
+  "inbound.step.authenticated": "SendGrid ne reçoit le courrier que pour un domaine authentifié dans SendGrid › Settings › Sender Authentication, ou l’un de ses sous-domaines\u00A0: authentifiez d’abord {domain} ou son domaine parent. ReputeCast ajoute le réglage Inbound Parse.",
+  "inbound.step.automaticSecurity": "Si {domain} est lui-même votre domaine authentifié, désactivez Automatic Security dessus dans SendGrid, sinon son courrier tourne en boucle entre les serveurs de SendGrid."
 }

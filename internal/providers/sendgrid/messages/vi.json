@@ -6,7 +6,7 @@
   "domainSetup": "API",
   "suppressionMode": "Hai chiều",
   "field.api_key.label": "Khóa API",
-  "field.api_key.help": "SendGrid › Settings › API Keys. Quyền Full Access cho phép ReputeCast đăng ký Event Webhook có chữ ký, xác thực tên miền và đồng bộ danh sách chặn gửi.",
+  "field.api_key.help": "SendGrid › Settings › API Keys. Quyền Full Access cho phép ReputeCast đăng ký Event Webhook có chữ ký, xác thực tên miền, đồng bộ danh sách chặn gửi và thiết lập Inbound Parse để nhận thư. Khóa Restricted Access cần quyền Inbound Parse để nhận thư.",
   "field.region.label": "Khu vực",
   "field.region.help": "Chỉ chọn EU cho subuser ở EU (từ gói Pro trở lên).",
   "field.ip_pool.label": "Nhóm IP",
@@ -21,5 +21,8 @@
   "tracking.on": "{on, select, open {Theo dõi lượt mở ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.} click {Theo dõi lượt nhấp ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.} other {Theo dõi lượt mở và lượt nhấp ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.}}",
   "error.noWebhookId": "SendGrid không trả về mã của webhook",
   "error.domainMissing": "{domain} chưa được xác thực trong SendGrid",
-  "error.ipsRestricted": "Khóa API không đọc được địa chỉ IP của tài khoản: hãy cấp quyền đọc IP Management cho khóa trong SendGrid › Settings › API Keys, rồi kiểm tra lại."
+  "error.ipsRestricted": "Khóa API không đọc được địa chỉ IP của tài khoản: hãy cấp quyền đọc IP Management cho khóa trong SendGrid › Settings › API Keys, rồi kiểm tra lại.",
+
+  "inbound.step.authenticated": "SendGrid chỉ nhận thư cho tên miền đã xác thực trong SendGrid › Settings › Sender Authentication, hoặc tên miền con của nó: hãy xác thực {domain} hoặc tên miền cha của nó trước. ReputeCast sẽ thêm thiết lập Inbound Parse.",
+  "inbound.step.automaticSecurity": "Nếu chính {domain} là tên miền đã xác thực của bạn, hãy tắt Automatic Security cho nó trong SendGrid, nếu không thư gửi đến sẽ quay vòng giữa các máy chủ của SendGrid."
 }

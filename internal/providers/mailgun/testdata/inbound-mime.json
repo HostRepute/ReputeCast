@@ -1,0 +1,9 @@
+{
+  "token": "6a9b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182",
+  "recipient": "r-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test",
+  "sender": "bob@example.com",
+  "from": "Bob <bob@example.com>",
+  "subject": "Re: October newsletter",
+  "message-headers": "[[\"Received\", \"by luna.mailgun.net with SMTP mgrt 8734663311733; Mon, 12 Oct 2026 13:41:02 +0000\"], [\"X-Mailgun-Sflag\", \"No\"], [\"X-Mailgun-Sscore\", \"0.0\"], [\"X-Mailgun-Spf\", \"Pass\"], [\"X-Mailgun-Dkim-Check-Result\", \"Pass\"], [\"From\", \"Bob <bob@example.com>\"], [\"To\", \"r-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test\"], [\"Subject\", \"Re: October newsletter\"], [\"Message-Id\", \"<CAF-reply-2@mail.example.com>\"], [\"In-Reply-To\", \"<20261012134102.58bbb7ce85a423e5@mg.acme.io>\"], [\"Mime-Version\", \"1.0\"], [\"Content-Type\", \"text/plain; charset=\\\"utf-8\\\"\"]]",
+  "body-mime": "Received: by luna.mailgun.net with SMTP mgrt 8734663311733; Mon, 12 Oct 2026 13:41:02 +0000\r\nX-Mailgun-Sflag: No\r\nX-Mailgun-Sscore: 0.0\r\nX-Mailgun-Spf: Pass\r\nX-Mailgun-Dkim-Check-Result: Pass\r\nFrom: Bob <bob@example.com>\r\nTo: r-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test\r\nSubject: Re: October newsletter\r\nMessage-Id: <CAF-reply-2@mail.example.com>\r\nIn-Reply-To: <20261012134102.58bbb7ce85a423e5@mg.acme.io>\r\nMime-Version: 1.0\r\nContent-Type: text/plain; charset=\"utf-8\"\r\n\r\nThanks, this was useful.\r\n"
+}

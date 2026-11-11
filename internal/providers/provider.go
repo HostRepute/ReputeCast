@@ -93,6 +93,11 @@ type Capabilities struct {
 	// sending IPs (IPReporter): ReputeCast keeps them up to date. Without
 	// it, people set a provider's IPs by hand.
 	ReportsIPs bool `json:"reportsIps,omitempty"`
+	// Inbound is how the provider receives mail for a workspace (M58):
+	// InboundAutomatic when ReputeCast registers its hook (InboundReceiver
+	// and InboundRegistrar), InboundManual when people follow the setup's
+	// steps (InboundReceiver only), "" when it doesn't receive mail.
+	Inbound string `json:"inbound,omitempty"`
 }
 
 // How a provider carries the one-click unsubscribe headers

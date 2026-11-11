@@ -22,5 +22,7 @@
   "tracking.open": "Le suivi des ouvertures est activé pour {opens}.",
   "tracking.click": "Le suivi des clics est activé pour {clicks}.",
   "tracking.off": "Le suivi des ouvertures et des clics est désactivé sur tous les domaines.",
-  "error.domainMissing": "{domain} n’est pas configuré dans Resend"
+  "error.domainMissing": "{domain} n’est pas configuré dans Resend",
+
+  "inbound.step.receiving": "Dans Resend › Domains, ouvrez {domain} (ajoutez-le d’abord s’il n’y est pas), activez Receiving et ajoutez l’enregistrement MX que Resend affiche pour lui. ReputeCast ajoute le webhook email.received."
 }

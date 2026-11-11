@@ -12,5 +12,9 @@
 
   "account": "Postal{hasVersion, select, yes { {version}} other {}} · accesible",
   "error.badKey": "No se aceptó la clave de API.",
-  "error.suspended": "El servidor de correo de Postal está suspendido."
+  "error.suspended": "El servidor de correo de Postal está suspendido.",
+
+  "inbound.step.endpoint": "En Postal, abre Routing › HTTP Endpoints del servidor de correo y añade un endpoint con la URL {url}, la codificación Sent in the body as JSON y el formato Delivered as the raw message.",
+  "inbound.step.route": "En Routing › Routes, añade una ruta con el nombre * y el dominio {domain}, con ese HTTP endpoint como endpoint. El dominio debe ser uno de los dominios verificados del servidor de correo.",
+  "inbound.step.mx": "Apunta el registro MX de {domain} a tu servidor Postal, {host}, salvo que tu instalación de Postal indique otros hosts MX en su ajuste dns.mx_records."
 }

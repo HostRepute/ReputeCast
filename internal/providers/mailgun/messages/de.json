@@ -22,5 +22,7 @@
   "tracking.on": "{on, select, open {Das Öffnungs-Tracking der Domain ist aktiviert, aber ReputeCast deaktiviert es bei jeder gesendeten Nachricht.} click {Das Klick-Tracking der Domain ist aktiviert, aber ReputeCast deaktiviert es bei jeder gesendeten Nachricht.} other {Öffnungs- und Klick-Tracking der Domain sind aktiviert, aber ReputeCast deaktiviert beide bei jeder gesendeten Nachricht.}}",
   "tracking.off": "Öffnungs-, Klick- und Abmelde-Tracking sind für {domain} deaktiviert.",
   "error.domainUnknown": "Mailgun kennt die Domain {domain} in dieser Region nicht. Prüfen Sie Domain und Region.",
-  "error.tooManyURLs": "Mailgun erlaubt drei URLs pro Ereignis, und {event} hat bereits drei. Entfernen Sie eine in Mailgun und registrieren Sie dann erneut."
+  "error.tooManyURLs": "Mailgun erlaubt drei URLs pro Ereignis, und {event} hat bereits drei. Entfernen Sie eine in Mailgun und registrieren Sie dann erneut.",
+
+  "inbound.step.domain": "Mailgun empfängt E-Mails nur für Domains in Ihrem Konto: Fügen Sie {domain} unter Mailgun › Domains hinzu, falls sie dort noch fehlt. ReputeCast legt die Route an, die ihre E-Mails weiterleitet."
 }

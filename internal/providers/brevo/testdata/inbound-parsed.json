@@ -1,0 +1,33 @@
+{
+    "items": [
+        {
+            "Uuid": ["1a825d56-029b-4a41-b8e4-61670463431b"],
+            "MessageId": "<CAN0zNmMsj_xOx8hCREv3rbovcYE3m5rZh8eRe+QSKC0yff_W6A@mail.gmail.com>",
+            "InReplyTo": "<e6df8cf2-cfb2-2cb6-320f-d9cba05a3001@clubble.me>",
+            "From": {"Name": "Antoine Lefeuvre", "Address": "antoine@mailclark.ai"},
+            "To": [{"Name": "Terry Estill", "Address": "test@clubble.me"}],
+            "Recipients": ["test-2023-08-02@sib-inbound.esperat.fr"],
+            "Cc": [],
+            "ReplyTo": null,
+            "SentAtDate": "Tue, 1 Sep 2020 09:53:21 +0200",
+            "Subject": "Re: Summer brochure 2021",
+            "RawHtmlBody": "<div dir=\"ltr\">Hi Terry,<br />Nice to hear from you, I hope you&#39;re well.</div>",
+            "RawTextBody": "Hi Terry,\nNice to hear from you, I hope you're well.\n",
+            "ExtractedMarkdownMessage": "Hi Terry,  \nNice to hear from you, I hope you're well.  \n",
+            "ExtractedMarkdownSignature": "**Antoine Lefeuvre**",
+            "SpamScore": 3.3,
+            "Attachments": [
+                {"Name": "duck1.png", "ContentType": "image/png", "ContentLength": 330518, "ContentID": "ii_kejngtlh0", "DownloadToken": "abc"},
+                {"Name": "summer2021.pdf", "ContentType": "application/pdf", "ContentLength": 168910, "ContentID": "f_kejnjyug1", "DownloadToken": "def"}
+            ],
+            "Headers": {
+                "Return-Path": "<antoine@mailclark.ai>",
+                "Delivered-To": "test@clubble.me",
+                "Received": ["from spool.mail.gandi.net (spool5.mail.gandi.net [217.70.178.214]) by nmboxes20.sd4.0x35.net (Postfix) with ESMTP id 7115220256", "from mail-wm1-f45.google.com (mail-wm1-f45.google.com [209.85.128.45]) by spool.mail.gandi.net (Postfix) with ESMTPS id B3B4B180196"],
+                "Message-ID": "<CAN0zNmMsj_xOx8hCREv3rbovcYE3m5rZh8eRe+QSKC0yff_W6A@mail.gmail.com>",
+                "In-Reply-To": "<e6df8cf2-cfb2-2cb6-320f-d9cba05a3001@clubble.me>",
+                "Subject": "Re: Summer brochure 2021"
+            }
+        }
+    ]
+}

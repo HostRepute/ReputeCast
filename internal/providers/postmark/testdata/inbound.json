@@ -1,0 +1,83 @@
+{
+  "FromName": "Alan Turing",
+  "MessageStream": "inbound",
+  "From": "alanturing@computers.com",
+  "FromFull": {
+    "Email": "alanturing@computers.com",
+    "Name": "Alan Turing",
+    "MailboxHash": ""
+  },
+  "To": "\"Margaret Hamilton\" <yourhash+SampleHash@inbound.postmarkapp.com>",
+  "ToFull": [
+    {
+      "Email": "yourhash+SampleHash@inbound.postmarkapp.com",
+      "Name": "Margaret Hamilton",
+      "MailboxHash": "SampleHash"
+    }
+  ],
+  "Cc": "\"Katherine Johnson\" <katherine@nasa.com>, <dorothy@nasa.com>",
+  "CcFull": [
+    {
+      "Email": "katherine@nasa.com",
+      "Name": "Katherine Johnson",
+      "MailboxHash": ""
+    },
+    {
+      "Email": "dorothy@nasa.com",
+      "Name": "",
+      "MailboxHash": ""
+    }
+  ],
+  "Bcc": "\"Mary Jackson\" <mary@nasa.com>",
+  "BccFull": [
+    {
+      "Email": "mary@nasa.com",
+      "Name": "Mary Jackson",
+      "MailboxHash": ""
+    }
+  ],
+  "OriginalRecipient": "yourhash+SampleHash@inbound.postmarkapp.com",
+  "Subject": "Saying Hello!",
+  "MessageID": "883953f4-6105-42a2-a16a-77a8eac79483",
+  "ReplyTo": "alanturing@computers.com",
+  "MailboxHash": "SampleHash",
+  "Date": "Thu, 5 Nov 2026 16:33:54 -0500",
+  "TextBody": "This is a test text body.",
+  "HtmlBody": "<html><body><p>This is a test html body.</p></body></html>",
+  "StrippedTextReply": "This is the reply text",
+  "Tag": "welcome-email",
+  "Headers": [
+    {
+      "Name": "X-Spam-Status",
+      "Value": "No"
+    },
+    {
+      "Name": "X-Spam-Score",
+      "Value": "-0.1"
+    },
+    {
+      "Name": "X-Spam-Tests",
+      "Value": "DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,SPF_PASS"
+    },
+    {
+      "Name": "Message-ID",
+      "Value": "<CAF-turing-1@computers.com>"
+    },
+    {
+      "Name": "In-Reply-To",
+      "Value": "<0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40@news.acme.io>"
+    },
+    {
+      "Name": "References",
+      "Value": "<0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40@news.acme.io> <CAF-turing-0@computers.com>"
+    }
+  ],
+  "Attachments": [
+    {
+      "Name": "test.txt",
+      "Content": "VGhpcyBpcyBhdHRhY2htZW50IGNvbnRlbnRzLCBiYXNlLTY0IGVuY29kZWQu",
+      "ContentType": "text/plain",
+      "ContentLength": 45
+    }
+  ]
+}

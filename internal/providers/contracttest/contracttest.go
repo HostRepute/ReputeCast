@@ -129,6 +129,26 @@ type Suite struct {
 	// SendingIPs is what an adapter that reports the account's sending IPs
 	// (providers.IPReporter) must read from the fake API, in any order.
 	SendingIPs *providers.SendingIPs
+	// Inbound are recorded requests the provider posts to the inbound
+	// hook when it receives mail (an adapter with Capabilities.Inbound).
+	Inbound []InboundCase
+	// InboundRoute is the route the inbound cases are for; its Secret is
+	// what the cases authenticate with.
+	InboundRoute providers.InboundRoute
+}
+
+// InboundCase is one recorded inbound request.
+type InboundCase struct {
+	Name string
+	// Request returns a correctly authenticated request and its body.
+	Request func(t *testing.T, env *Env) (*http.Request, []byte)
+	// Want are the expected messages (compared on every field but Raw's
+	// bytes, Headers and attachment data: a Raw that isn't empty matches
+	// any Raw that isn't, and Text is compared without surrounding space).
+	Want []providers.InboundMessage
+	// Tamper breaks the request's authentication; the default flips a
+	// body byte (a basic-auth adapter changes the password instead).
+	Tamper func(r *http.Request, body []byte) (*http.Request, []byte)
 }
 
 // NewEnv starts the fake API (when api is not nil) for adapter-specific
@@ -219,7 +239,123 @@ func Run(t *testing.T, s Suite) {
 		if _, ok := p.(providers.IPReporter); ok != p.Capabilities().ReportsIPs {
 			t.Fatalf("ReportsIPs is %v but the adapter implements IPReporter: %v", p.Capabilities().ReportsIPs, ok)
 		}
+		// Settings › Senders offers a provider for receiving mail from this
+		// flag, without opening the adapter.
+		_, recv := p.(providers.InboundReceiver)
+		_, reg := p.(providers.InboundRegistrar)
+		switch in := p.Capabilities().Inbound; in {
+		case "":
+			if recv || reg {
+				t.Fatalf("Capabilities.Inbound is empty but the adapter implements InboundReceiver (%v) or InboundRegistrar (%v)", recv, reg)
+			}
+		case providers.InboundAutomatic, providers.InboundManual:
+			if !recv {
+				t.Fatalf("Capabilities.Inbound is %q but the adapter doesn't implement InboundReceiver", in)
+			}
+			if reg != (in == providers.InboundAutomatic) {
+				t.Fatalf("Capabilities.Inbound is %q but the adapter implements InboundRegistrar: %v (only an automatic one registers)", in, reg)
+			}
+		default:
+			t.Fatalf("Capabilities.Inbound %q is not %q, %q or empty", in, providers.InboundAutomatic, providers.InboundManual)
+		}
+		if d, ok := providers.Lookup(s.Adapter); ok && d.Capabilities.Inbound != p.Capabilities().Inbound {
+			t.Fatalf("the descriptor says Inbound %q, the adapter %q", d.Capabilities.Inbound, p.Capabilities().Inbound)
+		}
 	})
+
+	// What the setup dialog shows for a route through the adapter: MX
+	// records for the route's domain and steps in every app language.
+	t.Run("InboundSetup", func(t *testing.T) {
+		env.reset()
+		p := s.New(t, env)
+		r, ok := p.(providers.InboundReceiver)
+		if !ok {
+			t.Skip("the adapter doesn't receive mail")
+		}
+		route := inboundRoute(s)
+		setup := r.InboundSetup(route)
+		if setup.Automatic != (p.Capabilities().Inbound == providers.InboundAutomatic) {
+			t.Fatalf("InboundSetup.Automatic is %v for Inbound %q", setup.Automatic, p.Capabilities().Inbound)
+		}
+		if !setup.Automatic && len(setup.Steps) == 0 {
+			t.Fatal("a manual route needs the steps people follow in the provider's console")
+		}
+		for i, st := range setup.Steps {
+			for _, l := range i18n.Locales() {
+				if st.In(i18n.For(l)) == "" {
+					t.Fatalf("step %d (%s) has no %s text", i, st.ID, l)
+				}
+			}
+		}
+		for _, rec := range setup.MX {
+			if rec.Type != "MX" || !strings.EqualFold(rec.Name, route.Domain) || rec.Value == "" {
+				t.Fatalf("MX record %+v: want an MX record for %s", rec, route.Domain)
+			}
+		}
+		for _, f := range setup.Settings {
+			if f.Key == "" || f.Label == "" {
+				t.Fatalf("setting %+v needs a key and a label", f)
+			}
+		}
+	})
+
+	// The receiving ReputeCast points at its hook goes when the route is
+	// removed, and removing it twice is not an error.
+	t.Run("InboundLifecycle", func(t *testing.T) {
+		env.reset()
+		p := s.New(t, env)
+		reg, ok := p.(providers.InboundRegistrar)
+		if !ok {
+			t.Skip("the adapter doesn't register its receiving")
+		}
+		ctx := context.Background()
+		route := inboundRoute(s)
+		hook := "https://reputecast.contract.test/hooks/inbound/contract-token"
+		if err := reg.RegisterInbound(ctx, route, hook); err != nil {
+			t.Fatalf("RegisterInbound: %v", err)
+		}
+		if err := reg.UnregisterInbound(ctx, route, hook); err != nil {
+			t.Fatalf("UnregisterInbound: %v", err)
+		}
+		if err := reg.UnregisterInbound(ctx, route, hook); err != nil {
+			t.Fatalf("removing a registration that isn't there: %v", err)
+		}
+	})
+
+	for _, c := range s.Inbound {
+		t.Run("Inbound/"+c.Name, func(t *testing.T) {
+			env.reset()
+			p := s.New(t, env)
+			r, ok := p.(providers.InboundReceiver)
+			if !ok {
+				t.Skip("the adapter doesn't receive mail")
+			}
+			ctx := context.Background()
+			route := inboundRoute(s)
+			req, body := c.Request(t, env)
+			if err := r.VerifyInbound(ctx, route, req, body); err != nil {
+				t.Fatalf("VerifyInbound rejected a valid request: %v", err)
+			}
+			// The job parses the stored body and headers, without the
+			// request's credentials.
+			stored, _ := http.NewRequestWithContext(ctx, http.MethodPost, req.URL.String(), bytes.NewReader(body))
+			stored.Header = req.Header.Clone()
+			stored.Header.Del("Authorization")
+			got, err := r.ParseInbound(ctx, route, stored, body)
+			if err != nil {
+				t.Fatalf("ParseInbound: %v", err)
+			}
+			compareInbound(t, got, c.Want)
+			tamper := c.Tamper
+			if tamper == nil {
+				tamper = flipByte
+			}
+			bad, badBody := tamper(req.Clone(ctx), slices.Clone(body))
+			if err := r.VerifyInbound(ctx, route, bad, badBody); !errors.Is(err, providers.ErrBadSignature) {
+				t.Fatalf("VerifyInbound must reject a tampered request with providers.ErrBadSignature, got %v", err)
+			}
+		})
+	}
 
 	// An adapter that reports the account's sending IPs answers with what
 	// the provider lists, each address once, and fails when it can't ask:
@@ -638,3 +774,64 @@ func UUID(t *testing.T, s string) *uuid.UUID {
 
 // Time is a fixed time for fixtures.
 var Time = time.Date(2026, 10, 12, 13, 41, 2, 0, time.UTC)
+
+// inboundRoute is the suite's route, with a domain and a secret by default.
+func inboundRoute(s Suite) providers.InboundRoute {
+	r := s.InboundRoute
+	if r.ID == uuid.Nil {
+		r.ID = uuid.MustParse("019a7b2c-0000-7000-8000-00000000c0de")
+	}
+	if r.Domain == "" {
+		r.Domain = "reply.contract.test"
+	}
+	if r.Secret == "" {
+		r.Secret = "contract-inbound-secret"
+	}
+	if r.URL == "" {
+		r.URL = "https://reputecast.contract.test/hooks/inbound/contract-token"
+	}
+	if r.Settings == nil {
+		r.Settings = map[string]string{}
+	}
+	return r
+}
+
+func compareInbound(t *testing.T, got, want []providers.InboundMessage) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("got %d messages, want %d: %+v", len(got), len(want), got)
+	}
+	for i := range want {
+		g, w := inboundSummary(got[i]), inboundSummary(want[i])
+		for k, wv := range w {
+			if gv := g[k]; !equalAny(gv, wv) {
+				t.Fatalf("message %d %s:\n got  %#v\n want %#v", i, k, gv, wv)
+			}
+		}
+	}
+}
+
+func equalAny(a, b any) bool {
+	as, aok := a.([]string)
+	bs, bok := b.([]string)
+	if aok && bok {
+		return slices.Equal(as, bs)
+	}
+	return a == b
+}
+
+func inboundSummary(m providers.InboundMessage) map[string]any {
+	return map[string]any{
+		"raw": len(m.Raw) > 0, "from": m.From, "subject": m.Subject, "messageId": m.MessageID, "inReplyTo": m.InReplyTo,
+		"to": nonNil(m.To), "references": nonNil(m.References), "text": strings.TrimSpace(m.Text), "html": m.HTML != "",
+		"attachments": len(m.Attachments), "recipients": nonNil(m.Recipients), "providerMessageId": m.ProviderMessageID,
+		"spam": m.Spam, "spf": m.SPF, "dkim": m.DKIM, "dmarc": m.DMARC,
+	}
+}
+
+func nonNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}

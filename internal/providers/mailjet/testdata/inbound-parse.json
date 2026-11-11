@@ -1,0 +1,29 @@
+{
+	"Sender":"pilot@mailjet.com",
+	"Recipient":"passenger@mailjet.com",
+	"Date":"20150410T160638",
+	"From":"Pilot <pilot@mailjet.com>",
+	"Subject":"Hey! It's Friday!",
+	"Headers":{
+		"Return-Path": ["<pilot@mailjet.com>"],
+		"Received": ["by 10.107.134.160 with HTTP; Fri, 10 Apr 2015 09:06:38 -0700 (PDT)"],
+		"MIME-Version": ["1.0"],
+		"Content-Type": ["multipart/mixed; boundary=001a1141f3c406f1b2051360f37d"],
+		"Date":"Fri, 10 Apr 2015 18:06:38 +0200",
+		"Message-ID":"<CAE5Zh0ZpHZ6G5DC+He5426a4RkVab7uWaTDwiMcHzOR=YB3urA@mail.gmail.com>",
+		"Subject":"Hey! It's Friday!",
+		"From":"Pilot <pilot@mailjet.com>",
+		"To":"passenger@mailjet.com"
+	},
+	"Parts":[
+		{"Headers":{"Content-Type":"text/plain; charset=UTF-8"},"ContentRef":"Text-part"},
+		{"Headers":{"Content-Type":"text/html; charset=UTF-8","Content-Transfer-Encoding":"quoted-printable"},"ContentRef":"Html-part"},
+		{"Headers":{"Content-Type":"text/plain","Content-Disposition":"attachment; filename=helloworld.txt"},"ContentRef":"Attachment1"}
+	],
+	"Text-part":"Hi,\n\nImportant notice: it's Friday. Friday *afternoon*, even!\n\n\nHave a *great* weekend!\nThe Anonymous Friday Teller\n",
+	"Html-part":"<div dir=\"ltr\">Hi,<div><br></div><div>Important notice: it&#39;s Friday. Friday <i>afternoon</i>, even!</div></div>\n",
+	"SpamAssassinScore":"0.602",
+	"CustomID":"helloworld",
+	"Payload":"{'message': 'helloworld'}",
+	"Attachment1":"SGVsbG8gV29ybGQh"
+}

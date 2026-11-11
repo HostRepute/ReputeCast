@@ -23,6 +23,8 @@ var (
 	mTrackingDetail = msgs.M("tracking.detail")
 	mDomainMissing  = msgs.M("error.domainMissing")
 	mCallbackTaken  = msgs.M("error.callbackTaken")
+
+	mInboundDomain = msgs.M("inbound.step.domain")
 )
 
 // say returns a message's English and the message, kept for its readers.

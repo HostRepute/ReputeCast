@@ -22,5 +22,7 @@
   "tracking.on": "{on, select, open {El seguimiento de aperturas del dominio está activado, pero ReputeCast lo desactiva en cada mensaje que envía.} click {El seguimiento de clics del dominio está activado, pero ReputeCast lo desactiva en cada mensaje que envía.} other {El seguimiento de aperturas y clics del dominio está activado, pero ReputeCast lo desactiva en cada mensaje que envía.}}",
   "tracking.off": "El seguimiento de aperturas, clics y bajas está desactivado para {domain}.",
   "error.domainUnknown": "Mailgun no conoce el dominio {domain} en esta región. Comprueba el dominio y la región.",
-  "error.tooManyURLs": "Mailgun admite tres URL por evento y {event} ya tiene tres. Quita una en Mailgun y vuelve a hacer el registro."
+  "error.tooManyURLs": "Mailgun admite tres URL por evento y {event} ya tiene tres. Quita una en Mailgun y vuelve a hacer el registro.",
+
+  "inbound.step.domain": "Mailgun solo recibe correo para los dominios de tu cuenta: añade {domain} en Mailgun › Domains si todavía no está. ReputeCast crea la ruta que reenvía su correo."
 }

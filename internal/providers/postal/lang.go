@@ -20,6 +20,10 @@ var (
 	mAccount   = msgs.M("account")
 	mBadKey    = msgs.M("error.badKey")
 	mSuspended = msgs.M("error.suspended")
+
+	mInboundEndpoint = msgs.M("inbound.step.endpoint")
+	mInboundRoute    = msgs.M("inbound.step.route")
+	mInboundMX       = msgs.M("inbound.step.mx")
 )
 
 // say returns a message's English and the message, kept for its readers.

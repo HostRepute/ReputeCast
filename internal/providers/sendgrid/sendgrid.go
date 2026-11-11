@@ -84,6 +84,7 @@ func Descriptor() providers.Descriptor {
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
 			ReportsIPs:      true,
+			Inbound:         providers.InboundAutomatic,
 			// Pricing, DedicatedIPs and every other text people read (the
 			// terms' note, the Adapters tab's words, the fields' labels and
 			// hints) are in messages/en.json: WithMessages fills them.

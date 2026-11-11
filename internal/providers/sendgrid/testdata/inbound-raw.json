@@ -1,0 +1,13 @@
+{
+  "dkim": "{@sendgrid.com : pass}",
+  "email": "Received: by mx0032p1mdw1.sendgrid.net with SMTP id rOkt2xLLKV Tue, 19 Jul 2016 15:06:29 +0000 (UTC)\nReceived: from mail-it0-f45.google.com (mail-it0-f45.google.com [209.85.214.45]) by mx0032p1mdw1.sendgrid.net (Postfix) with ESMTPS id 26D6080397 for <parse@parse.yourdomain>; Tue, 19 Jul 2016 15:06:22 +0000 (UTC)\nMIME-Version: 1.0\nFrom: Sender Name <example@example.com>\nDate: Tue, 19 Jul 2016 09:06:21 -0600\nMessage-ID: <CAN_P_JNa25--hzm5=-ES9cnxgWa+h+E49OOAS7sPpV0gsoXCOw@mail.gmail.com>\nSubject: Hello\nTo: example@example.com\nContent-Type: multipart/mixed; boundary=001a11447dc881e40f0537fe6d5a\n\n--001a11447dc881e40f0537fe6d5a\nContent-Type: multipart/alternative; boundary=001a11447dc881e40b0537fe6d58\n\n--001a11447dc881e40b0537fe6d58\nContent-Type: text/plain; charset=UTF-8\n\nThis is a test email with 1 attachment.\n\n--001a11447dc881e40b0537fe6d58\nContent-Type: text/html; charset=UTF-8\nContent-Transfer-Encoding: quoted-printable\n\n<div dir=3D\"ltr\">This is a test email with 1 attachment.</div>\n\n--001a11447dc881e40b0537fe6d58--\n\n--001a11447dc881e40f0537fe6d5a\nContent-Type: text/plain; name=\"notes.txt\"\nContent-Disposition: attachment; filename=\"notes.txt\"\nContent-Transfer-Encoding: base64\n\nSGVsbG8gZnJvbSB0aGUgYXR0YWNobWVudC4=\n--001a11447dc881e40f0537fe6d5a--\n",
+  "to": "example@example.com",
+  "from": "Sender Name <example@example.com>",
+  "sender_ip": "209.85.214.45",
+  "spam_report": "Spam detection software, running on the system \"mx0032p1mdw1.sendgrid.net\", has\nNOT identified this incoming email as spam.\n\nContent preview:  This is a test email with 1 attachment.\n\nContent analysis details:   (2.6 points, 5.0 required)\n",
+  "envelope": "{\"to\":[\"example@example.com\"],\"from\":\"example@example.com\"}",
+  "subject": "Hello",
+  "spam_score": "2.597",
+  "charsets": "{\"to\":\"UTF-8\",\"html\":\"UTF-8\",\"subject\":\"UTF-8\",\"from\":\"UTF-8\",\"text\":\"UTF-8\"}",
+  "SPF": "pass"
+}

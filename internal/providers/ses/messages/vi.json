@@ -42,5 +42,13 @@
 
   "status.incident": "AWS báo có sự cố SES ở {region}.",
 
-  "error.dedicatedIpsDenied": "Vai trò hoặc khóa truy cập mà ReputeCast dùng không được phép liệt kê các IP riêng của tài khoản: hãy cho phép ses:GetDedicatedIps trong chính sách IAM của chúng (mẫu CloudFormation đã cho phép), rồi kiểm tra lại."
+  "error.dedicatedIpsDenied": "Vai trò hoặc khóa truy cập mà ReputeCast dùng không được phép liệt kê các IP riêng của tài khoản: hãy cho phép ses:GetDedicatedIps trong chính sách IAM của chúng (mẫu CloudFormation đã cho phép), rồi kiểm tra lại.",
+
+  "inbound.field.topic_arn.label": "SNS topic ARN",
+  "inbound.field.topic_arn.help": "Topic mà quy tắc nhận thư đăng lên, ví dụ arn:aws:sns:{region}:123456789012:reputecast-inbound.",
+  "inbound.step.noReceiving": "Amazon SES không nhận thư ở {region}. Hãy tạo quy tắc nhận thư và SNS topic của nó ở một trong các vùng sau: {regions}.",
+  "inbound.step.rule": "Trong bảng điều khiển Amazon SES ({region}), mở Email receiving › Rule sets và thêm một quy tắc vào rule set đang hoạt động cho tên miền nhận {domain}, với hành động Publish to Amazon SNS topic, mã hóa Base64 và một SNS topic ở {region}.",
+  "inbound.step.topic": "Nhập ARN của topic bên dưới. ReputeCast chỉ nhận thư từ topic đó.",
+  "inbound.step.subscribe": "Trong Amazon SNS, thêm một đăng ký vào topic với giao thức HTTPS và endpoint {url}. Đừng tự xác nhận: ReputeCast sẽ xác nhận khi SNS yêu cầu.",
+  "inbound.step.size": "Amazon SES trả lại thư lớn hơn {size} KB thay vì đăng lên SNS, nên thư trả lời có tệp đính kèm lớn sẽ không đến được ReputeCast."
 }

@@ -70,27 +70,31 @@ func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []by
 		return fmt.Errorf("%w: not a Mailgun webhook", providers.ErrBadSignature)
 	}
 	ts := strings.Trim(strings.TrimSpace(string(pl.Signature.Timestamp)), `"`)
-	if pl.Signature.Token == "" || ts == "" || pl.Signature.Signature == "" {
+	if err := p.checkSignature(ctx, ts, pl.Signature.Token, pl.Signature.Signature); err != nil {
+		return err
+	}
+	return replays.Check(ctx, p.cfg.Tokens, "mailgun", pl.Signature.Token, canonical(pl.EventData), now())
+}
+
+// checkSignature checks a signed timestamp and token with the account's
+// HTTP webhook signing key, which signs webhooks and route forwards alike,
+// and bounds the timestamp's age (Window).
+func (p *Provider) checkSignature(ctx context.Context, ts, token, sig string) error {
+	if token == "" || ts == "" || sig == "" {
 		return fmt.Errorf("%w: the request has no signature", providers.ErrBadSignature)
 	}
 	verify := func(key string) error {
-		if !check(key, ts, pl.Signature.Token, pl.Signature.Signature) {
+		if !check(key, ts, token, sig) {
 			return providers.ErrBadSignature
 		}
 		return webhookauth.Within(ts, now(), Window)
 	}
-	var err error
 	if k := strings.TrimSpace(p.c.WebhookSigningKey); k != "" {
-		err = verify(k)
-	} else {
-		// The key may have been regenerated: the cache reads it again
-		// when a signature doesn't verify.
-		err = signingKeys.Verify(ctx, webhookauth.Key(p.api.BaseURL, p.c.APIKey), p.fetchSigningKey, verify)
+		return verify(k)
 	}
-	if err != nil {
-		return err
-	}
-	return replays.Check(ctx, p.cfg.Tokens, "mailgun", pl.Signature.Token, canonical(pl.EventData), now())
+	// The key may have been regenerated: the cache reads it again when a
+	// signature doesn't verify.
+	return signingKeys.Verify(ctx, webhookauth.Key(p.api.BaseURL, p.c.APIKey), p.fetchSigningKey, verify)
 }
 
 // canonical re-encodes JSON with sorted keys and no spacing, so a

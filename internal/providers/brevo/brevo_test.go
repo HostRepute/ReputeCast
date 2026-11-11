@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -143,13 +144,20 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		_, _ = io.WriteString(w, `{"domain_name":"news.acme.io","message":"Domain has been authenticated successfully."}`)
 	}))
 	mux.HandleFunc("GET /v3/webhooks", guard(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("type") != "transactional" {
+		typ := r.URL.Query().Get("type")
+		if typ != "transactional" && typ != "inbound" {
 			writeErr(w, http.StatusBadRequest, "invalid_parameter", "type")
 			return
 		}
 		f.mu.Lock()
 		defer f.mu.Unlock()
-		_ = json.NewEncoder(w).Encode(map[string]any{"webhooks": f.hooks})
+		out := []map[string]any{}
+		for _, h := range f.hooks {
+			if t, _ := h["type"].(string); t == typ || (t == "" && typ == "transactional") {
+				out = append(out, h)
+			}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"webhooks": out})
 	}))
 	mux.HandleFunc("POST /v3/webhooks", guard(func(w http.ResponseWriter, r *http.Request) {
 		var in map[string]any
@@ -322,7 +330,75 @@ func TestContract(t *testing.T) {
 				MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e45"), OriginalType: "unsubscribed",
 			}}},
 		},
+		InboundRoute: providers.InboundRoute{Secret: inboundSecret},
+		Inbound: []contracttest.InboundCase{{
+			// Brevo's sample inbound parsing payload.
+			Name: "Parsed",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				body, err := os.ReadFile("testdata/inbound-parsed.json")
+				if err != nil {
+					t.Fatal(err)
+				}
+				r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token", bytes.NewReader(body))
+				r.Header.Set("Content-Type", "application/json")
+				r.Header.Set("Authorization", "Bearer "+inboundSecret)
+				return r, body
+			},
+			Want: []providers.InboundMessage{{
+				From: `"Antoine Lefeuvre" <antoine@mailclark.ai>`, To: []string{`"Terry Estill" <test@clubble.me>`}, Subject: "Re: Summer brochure 2021",
+				MessageID: "<CAN0zNmMsj_xOx8hCREv3rbovcYE3m5rZh8eRe+QSKC0yff_W6A@mail.gmail.com>", InReplyTo: "<e6df8cf2-cfb2-2cb6-320f-d9cba05a3001@clubble.me>",
+				Text: "Hi Terry,\nNice to hear from you, I hope you're well.", HTML: "<div>", Attachments: make([]providers.InboundAttachment, 2),
+				Recipients: []string{"test-2023-08-02@sib-inbound.esperat.fr"}, Spam: "pass",
+			}},
+			Tamper: func(r *http.Request, body []byte) (*http.Request, []byte) {
+				r.Header.Set("Authorization", "Bearer wrong-secret")
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				return r, body
+			},
+		}},
 	})
+}
+
+const inboundSecret = "route-secret-brevo"
+
+func TestInboundWebhook(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env)
+	reg := p.(providers.InboundRegistrar)
+	route := providers.InboundRoute{Domain: "Reply.Acme.io", Secret: inboundSecret}
+	hook := "https://rc.acme.io/hooks/inbound/tok"
+	for range 2 { // registering again updates the webhook
+		if err := reg.RegisterInbound(context.Background(), route, hook); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var inbound []map[string]any
+	f.with(func() {
+		for _, h := range f.hooks {
+			if h["type"] == "inbound" {
+				inbound = append(inbound, h)
+			}
+		}
+	})
+	if len(inbound) != 1 || inbound[0]["url"] != hook || inbound[0]["domain"] != "reply.acme.io" ||
+		inbound[0]["auth"].(map[string]any)["token"] != inboundSecret || fmt.Sprint(inbound[0]["events"]) != "[inboundEmailProcessed]" {
+		t.Fatalf("inbound webhooks: %v", inbound)
+	}
+	if err := reg.UnregisterInbound(context.Background(), route, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		for _, h := range f.hooks {
+			if h["type"] == "inbound" {
+				t.Fatalf("left: %v", h)
+			}
+		}
+	})
+	mx := p.(providers.InboundReceiver).InboundSetup(route).MX
+	if len(mx) != 2 || mx[0].Value != "10 inbound1.sendinblue.com" || mx[1].Value != "20 inbound2.sendinblue.com" {
+		t.Fatalf("MX: %+v", mx)
+	}
 }
 
 func TestEventTimes(t *testing.T) {
