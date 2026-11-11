@@ -63,4 +63,5 @@ export default translate(m, {
   retry: 'Reintentar',
   campaigns: 'Campañas',
   request: 'solicitud {id}',
+  skippedHoldout: 'Omitidas: grupo de control {n}',
 })

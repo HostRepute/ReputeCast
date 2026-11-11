@@ -1081,5 +1081,6 @@
   "estimate.holdout": "Grupo de control: {count, number} excluidos ({percent})",
   "problem.holdoutShare": "Introduce un porcentaje del 0,1 % al 20 %.",
   "problem.holdoutScope": "Elige campañas, automatizaciones o ambas.",
-  "problem.holdoutOff": "Activa el grupo de control antes de empezar de nuevo."
+  "problem.holdoutOff": "Activa el grupo de control antes de empezar de nuevo.",
+  "problem.scheduledAudience": "La campaña está programada. Desprográmala para cambiar quién la recibe."
 }

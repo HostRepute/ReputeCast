@@ -77,7 +77,17 @@ export function useChannelActivity(): (it: Item) => { title: ReactNode; meta: st
   const t = useT()
   const b = (c: ReactNode[]) => <b>{c}</b>
   const reason = (r: string) =>
-    r === 'frequency_cap' ? t(m.reasonCap) : r === 'quiet_hours' ? t(m.reasonQuiet) : r === 'worker_missing' ? t(m.reasonWorker) : r ? t(m.reasonOther, { reason: r.replace(/_/g, ' ') }) : ''
+    r === 'frequency_cap'
+      ? t(m.reasonCap)
+      : r === 'quiet_hours'
+        ? t(m.reasonQuiet)
+        : r === 'worker_missing'
+          ? t(m.reasonWorker)
+          : r === 'holdout'
+            ? t(m.reasonHoldout)
+            : r
+              ? t(m.reasonOther, { reason: r.replace(/_/g, ' ') })
+              : ''
   return (it) => {
     if (it.type.startsWith('push_')) {
       const browser = it.code ? t(browserName(it.code)) : ''

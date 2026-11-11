@@ -1081,5 +1081,6 @@
   "estimate.holdout": {"message": "Holdout group: {count, number} left out ({percent})", "note": "An audience line on Review & send: the random share of contacts the workspace keeps out of marketing to measure what it adds (M63)"},
   "problem.holdoutShare": "Enter a share from 0.1% to 20%.",
   "problem.holdoutScope": "Pick campaigns, automations or both.",
-  "problem.holdoutOff": "Turn the holdout group on before starting over."
+  "problem.holdoutOff": "Turn the holdout group on before starting over.",
+  "problem.scheduledAudience": "The campaign is scheduled. Unschedule it to change who gets it."
 }

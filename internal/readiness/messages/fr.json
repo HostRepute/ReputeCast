@@ -1081,5 +1081,6 @@
   "estimate.holdout": "Groupe témoin : {count, number} laissés de côté ({percent})",
   "problem.holdoutShare": "Saisissez une part comprise entre 0,1 % et 20 %.",
   "problem.holdoutScope": "Choisissez les campagnes, les automatisations ou les deux.",
-  "problem.holdoutOff": "Activez le groupe témoin avant de recommencer."
+  "problem.holdoutOff": "Activez le groupe témoin avant de recommencer.",
+  "problem.scheduledAudience": "La campagne est programmée. Déprogrammez-la pour changer ses destinataires."
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/holdout"
 	"github.com/hostrepute/reputecast/internal/push/webpush"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
@@ -186,9 +187,18 @@ func insertMessages(ctx context.Context, tx pgx.Tx, ws *store.Workspace, kind st
 	return err
 }
 
-// plan applies the frequency cap and quiet hours to an audience at now.
+// reasonHoldout skips a campaign's notification to a contact in the
+// holdout group (M63 G-33).
+const reasonHoldout = "holdout"
+
+// plan applies the holdout group, the frequency cap and quiet hours to an
+// audience at now.
 func (s *Service) plan(ctx context.Context, ws *store.Workspace, g Guards, list []recipient, outside string, now time.Time) ([]queued, map[string]int64, error) {
 	counts, err := s.todayCounts(ctx, ws, now)
+	if err != nil {
+		return nil, nil, err
+	}
+	held, err := s.heldOut(ctx, ws, list)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -199,6 +209,11 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, g Guards, list 
 		loc, _ := zoneOf(r, ws)
 		inside := !g.Quiet || g.Window.Inside(now, loc)
 		switch {
+		case r.Contact != nil && held[*r.Contact]:
+			// The holdout group gets no campaigns: logged as skipped so the
+			// report counts it.
+			q.status, q.reason = "skipped", reasonHoldout
+			left[reasonHoldout]++
 		case counts[r.ID] >= g.Cap:
 			q.status, q.reason = "skipped", "frequency_cap"
 			left["frequency_cap"]++
@@ -224,6 +239,21 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, g Guards, list 
 		out = append(out, q)
 	}
 	return out, left, nil
+}
+
+// heldOut lists the audience's contacts the open holdout period keeps out
+// of campaigns (nil when nobody is). Subscribers without a contact can't
+// be in the holdout group.
+func (s *Service) heldOut(ctx context.Context, ws *store.Workspace, list []recipient) (map[uuid.UUID]bool, error) {
+	ids := make([]uuid.UUID, 0, len(list))
+	seen := map[uuid.UUID]bool{}
+	for _, r := range list {
+		if r.Contact != nil && !seen[*r.Contact] {
+			seen[*r.Contact] = true
+			ids = append(ids, *r.Contact)
+		}
+	}
+	return holdout.HeldFromCampaigns(ctx, s.Q, ws.ID, ids)
 }
 
 // StartDue starts the sends whose time has come.

@@ -1080,6 +1080,7 @@
   "tech.sourceBuiltin": "Lần kiểm tra của ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}",
   "estimate.holdout": "Nhóm đối chứng: {count, number} người không nhận ({percent})",
   "problem.holdoutShare": "Hãy nhập tỷ lệ từ 0,1% đến 20%.",
-  "problem.holdoutScope": "Hãy chọn chiến dịch, tự động hoá hoặc cả hai.",
-  "problem.holdoutOff": "Hãy bật nhóm đối chứng trước khi bắt đầu lại."
+  "problem.holdoutScope": "Hãy chọn chiến dịch, tự động hóa hoặc cả hai.",
+  "problem.holdoutOff": "Hãy bật nhóm đối chứng trước khi bắt đầu lại.",
+  "problem.scheduledAudience": "Chiến dịch đã được lên lịch. Hãy hủy lịch để thay đổi người nhận."
 }

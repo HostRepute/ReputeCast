@@ -67,4 +67,5 @@ export default translate(m, {
   retry: 'Thử lại',
   campaigns: 'Chiến dịch',
   request: 'mã yêu cầu {id}',
+  skippedHoldout: 'Bị bỏ qua: nhóm đối chứng {n}',
 })

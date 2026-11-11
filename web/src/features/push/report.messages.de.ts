@@ -63,4 +63,5 @@ export default translate(m, {
   retry: 'Erneut versuchen',
   campaigns: 'Kampagnen',
   request: 'Anfrage {id}',
+  skippedHoldout: 'Übersprungen: Kontrollgruppe {n}',
 })

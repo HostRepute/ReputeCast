@@ -146,8 +146,11 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 	if !editable(c.Status) {
 		return api.Conflict(say(ctx, "problem.thresholdsLive", nil))
 	}
-	if c.Status == "scheduled" && (in.Schedule != nil || in.IncludeHoldout != nil) {
+	if c.Status == "scheduled" && in.Schedule != nil {
 		return api.Conflict(say(ctx, "problem.scheduled", nil))
+	}
+	if c.Status == "scheduled" && in.IncludeHoldout != nil {
+		return api.Conflict(say(ctx, "problem.scheduledAudience", nil))
 	}
 	thresholds, schedule, audience := c.Thresholds, c.Schedule, json.RawMessage(nil)
 	before, after := map[string]any{}, map[string]any{}

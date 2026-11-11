@@ -1081,5 +1081,6 @@
   "estimate.holdout": "Kontrollgruppe: {count, number} ausgelassen ({percent})",
   "problem.holdoutShare": "Geben Sie einen Anteil von 0,1 % bis 20 % ein.",
   "problem.holdoutScope": "Wählen Sie Kampagnen, Automationen oder beides.",
-  "problem.holdoutOff": "Schalten Sie die Kontrollgruppe ein, bevor Sie neu beginnen."
+  "problem.holdoutOff": "Schalten Sie die Kontrollgruppe ein, bevor Sie neu beginnen.",
+  "problem.scheduledAudience": "Die Kampagne ist geplant. Heben Sie die Planung auf, um die Empfänger zu ändern."
 }
