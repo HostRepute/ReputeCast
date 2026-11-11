@@ -67,6 +67,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M55 Compliance and deliverability** | The first batch from the November 2026 look at competitors: the mailto: address in List-Unsubscribe as a setting, off by default; DMARCbis (RFC 9989 policy discovery by tree walk, `np`, `t`, `psd`; RFC 9990 aggregate reports); Microsoft's bulk-sender rule and `550 5.7.515`; Postmaster v1 reputation removed, compliance through HostRepute; allowed IP addresses for API keys and MCP agents | G-1–G-5 | ✅ |
 | **M56 Forms and website** | The second batch from the November 2026 look at competitors: "Did you mean …?" on every form, "Open Gmail" after signing up, exit-intent popups and forms hidden from people who already signed up, share buttons on posts, `llms.txt` | G-6–G-10 | ✅ |
 | **M57 Analytics and automation** | The third batch from the November 2026 look at competitors: automation triggers for paid members; mail clients, devices, countries and opening hours in the campaign report; UTM tags on email links; a weekly or monthly sending summary by email | G-11–G-14 | ✅ |
+| **M61 Posts: import and comments** | From the second wave of the November 2026 look at competitors (items 14 and 15): posts imported from a Substack, Ghost or WordPress export with their dates, access, tags, images and old addresses; comments on posts for signed-in or paid members, with review, moderation, team replies and reply emails | G-26–G-27 | ✅ |
 
 ## Review 2026-11 (M41–M51)
 
