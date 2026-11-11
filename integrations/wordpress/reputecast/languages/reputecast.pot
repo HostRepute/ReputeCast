@@ -2,22 +2,22 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: ReputeCast 1.4.0\n"
+"Project-Id-Version: ReputeCast 1.5.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/reputecast\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-19T15:47:37+00:00\n"
+"POT-Creation-Date: 2026-11-11T17:08:07+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: reputecast\n"
 
 #. Plugin Name of the plugin
 #: reputecast.php
-#: includes/class-settings-page.php:36
-#: includes/class-settings-page.php:304
+#: includes/class-settings-page.php:37
+#: includes/class-settings-page.php:348
 msgid "ReputeCast"
 msgstr ""
 
@@ -28,7 +28,7 @@ msgstr ""
 
 #. Description of the plugin
 #: reputecast.php
-msgid "Signup forms from ReputeCast, the open-source newsletter platform, as a block and a shortcode. Published posts become campaign drafts in ReputeCast, the site reports its health there, and WooCommerce stores get the checkout's marketing consent and abandoned checkouts."
+msgid "Signup forms from ReputeCast, the open-source newsletter platform, as a block and a shortcode. Published posts become campaign drafts in ReputeCast, the site reports its health there, WooCommerce stores get the checkout's marketing consent and abandoned checkouts, and ReputeCast's site tracking can follow up on what visitors looked at."
 msgstr ""
 
 #. Author of the plugin
@@ -69,361 +69,425 @@ msgstr ""
 msgid "This site isn’t connected to ReputeCast."
 msgstr ""
 
-#: includes/class-settings-page.php:51
+#: includes/class-settings-page.php:52
 msgid "Settings"
 msgstr ""
 
-#: includes/class-settings-page.php:104
+#: includes/class-settings-page.php:124
+msgid "That isn’t a site id. In ReputeCast, open Settings › Integrations › Website tracking, add this site and copy its id from the WordPress tab."
+msgstr ""
+
+#: includes/class-settings-page.php:127
+msgid "That isn’t an identify secret. Copy the one ReputeCast showed when you added the site, or rotate it there: it starts with rcid_."
+msgstr ""
+
+#: includes/class-settings-page.php:136
+msgid "Site tracking is off. The tracker isn’t on the site’s pages any more."
+msgstr ""
+
+#: includes/class-settings-page.php:138
+msgid "Site tracking is on. Its events show in ReputeCast › Settings › Integrations › Website tracking."
+msgstr ""
+
+#: includes/class-settings-page.php:148
 msgid "You can’t change the ReputeCast settings."
 msgstr ""
 
-#: includes/class-settings-page.php:132
+#: includes/class-settings-page.php:176
 msgid "Paste your ReputeCast address, for example https://reputecast.example.com."
 msgstr ""
 
-#: includes/class-settings-page.php:135
+#: includes/class-settings-page.php:179
 msgid "That isn’t a ReputeCast key. Copy the whole key ReputeCast shows when you connect a site: it starts with rc_live_."
 msgstr ""
 
-#: includes/class-settings-page.php:143
+#: includes/class-settings-page.php:187
 msgid "This key isn’t a WordPress site’s key. In ReputeCast, open Settings › Integrations › WordPress and choose Connect a site: it shows the site’s key."
 msgstr ""
 
-#: includes/class-settings-page.php:147
+#: includes/class-settings-page.php:191
 msgid "ReputeCast didn’t say which workspace the key belongs to. Check the address: use the one ReputeCast shows."
 msgstr ""
 
 #. translators: 1: the workspace's name, 2: what went wrong.
-#: includes/class-settings-page.php:193
+#: includes/class-settings-page.php:237
 #, php-format
 msgid "Connected to %1$s, but the first report didn’t arrive: %2$s The site reports in again within 12 hours, or press Report in now."
 msgstr ""
 
 #. translators: 1: the workspace's name, 2: the site's address as ReputeCast lists it.
-#: includes/class-settings-page.php:199
+#: includes/class-settings-page.php:243
 #, php-format
 msgid "Connected to %1$s. ReputeCast lists this site as %2$s."
 msgstr ""
 
 #. translators: %s: the workspace's name.
-#: includes/class-settings-page.php:217
+#: includes/class-settings-page.php:261
 #, php-format
 msgid "Disconnected from %s. Signup forms keep working. To remove the site from ReputeCast too, disconnect it there, in Settings › Integrations › WordPress."
 msgstr ""
 
 #. translators: %s: what went wrong.
-#: includes/class-settings-page.php:237
+#: includes/class-settings-page.php:281
 #, php-format
 msgid "Reported in, but the forms list didn’t update: %s"
 msgstr ""
 
 #. translators: %s: the site's address as ReputeCast lists it.
-#: includes/class-settings-page.php:243
+#: includes/class-settings-page.php:287
 #, php-format
 msgid "Reported in. ReputeCast lists this site as %s."
 msgstr ""
 
 #. translators: %s: how long ago, like "6 minutes".
-#: includes/class-settings-page.php:289
+#: includes/class-settings-page.php:333
 #, php-format
 msgid "%s ago"
 msgstr ""
 
-#: includes/class-settings-page.php:325
+#: includes/class-settings-page.php:369
 msgid "Connect this site to a ReputeCast workspace to add its signup forms to your pages, and to send published posts to ReputeCast, where the site’s post-draft rule can turn them into campaign drafts."
 msgstr ""
 
 #. translators: 1: the workspace's name, 2: the instance's address.
-#: includes/class-settings-page.php:331
+#: includes/class-settings-page.php:375
 #, php-format
 msgid "This site was connected to %1$s at %2$s. Its signup forms keep working: they load from there."
 msgstr ""
 
-#: includes/class-settings-page.php:342
+#: includes/class-settings-page.php:386
 msgid "ReputeCast address"
 msgstr ""
 
-#: includes/class-settings-page.php:344
+#: includes/class-settings-page.php:388
 msgid "The address you open ReputeCast at."
 msgstr ""
 
-#: includes/class-settings-page.php:346
-#: includes/class-settings-page.php:377
+#: includes/class-settings-page.php:390
+#: includes/class-settings-page.php:421
 msgid "Site key"
 msgstr ""
 
-#: includes/class-settings-page.php:348
+#: includes/class-settings-page.php:392
 msgid "In ReputeCast, open Settings › Integrations › WordPress and choose Connect a site. It shows the site’s key once."
 msgstr ""
 
-#: includes/class-settings-page.php:351
+#: includes/class-settings-page.php:395
 msgid "Connect"
 msgstr ""
 
-#: includes/class-settings-page.php:363
+#: includes/class-settings-page.php:407
 msgid "Connection"
 msgstr ""
 
-#: includes/class-settings-page.php:364
+#: includes/class-settings-page.php:408
 msgid "Connected"
 msgstr ""
 
 #. translators: 1: the workspace's name, 2: a link to the instance.
-#: includes/class-settings-page.php:367
+#: includes/class-settings-page.php:411
 #, php-format
 msgid "%1$s at %2$s"
 msgstr ""
 
 #. translators: %s: the site's address as ReputeCast lists it.
-#: includes/class-settings-page.php:373
+#: includes/class-settings-page.php:417
 #, php-format
 msgid "ReputeCast lists this site as %s."
 msgstr ""
 
-#: includes/class-settings-page.php:379
+#: includes/class-settings-page.php:423
 msgid "Kept encrypted. It isn’t shown again."
 msgstr ""
 
-#: includes/class-settings-page.php:382
+#: includes/class-settings-page.php:426
 msgid "Last report"
 msgstr ""
 
-#: includes/class-settings-page.php:384
+#: includes/class-settings-page.php:428
 msgid "Failed"
 msgstr ""
 
 #. translators: %s: how long ago, like "6 minutes ago".
-#: includes/class-settings-page.php:387
+#: includes/class-settings-page.php:431
 #, php-format
 msgid "Last arrived %s."
 msgstr ""
 
-#: includes/class-settings-page.php:392
+#: includes/class-settings-page.php:436
 msgid "Not reported in yet."
 msgstr ""
 
-#: includes/class-settings-page.php:394
+#: includes/class-settings-page.php:438
 msgid "The site reports in every 12 hours and with every post: the plugin, WordPress and PHP versions, the feed, the post categories and where forms are used."
 msgstr ""
 
-#: includes/class-settings-page.php:398
+#: includes/class-settings-page.php:442
 msgid "Report in now"
 msgstr ""
 
-#: includes/class-settings-page.php:402
+#: includes/class-settings-page.php:446
 msgid "Plugin"
 msgstr ""
 
 #. translators: 1: the newest version, 2: a link to the Plugins screen.
-#: includes/class-settings-page.php:407
+#: includes/class-settings-page.php:451
 #, php-format
 msgid "Update available: %1$s. %2$s"
 msgstr ""
 
-#: includes/class-settings-page.php:409
+#: includes/class-settings-page.php:453
 msgid "Update it in Plugins."
 msgstr ""
 
-#: includes/class-settings-page.php:412
+#: includes/class-settings-page.php:456
 msgid "Up to date"
 msgstr ""
 
-#: includes/class-settings-page.php:416
+#: includes/class-settings-page.php:460
 msgid "Check now"
 msgstr ""
 
 #. translators: %s: how long ago, like "6 minutes ago".
-#: includes/class-settings-page.php:419
+#: includes/class-settings-page.php:463
 #, php-format
 msgid "ReputeCast last checked the site %s."
 msgstr ""
 
-#: includes/class-settings-page.php:421
+#: includes/class-settings-page.php:465
 msgid "ReputeCast hasn’t checked the site yet."
 msgstr ""
 
 #. translators: %s: the status endpoint's address.
-#: includes/class-settings-page.php:426
+#: includes/class-settings-page.php:470
 #, php-format
 msgid "Check now, in ReputeCast, calls %s. It answers only calls signed with this site’s key."
 msgstr ""
 
-#: includes/class-settings-page.php:446
+#: includes/class-settings-page.php:491
 msgid "Signup forms"
 msgstr ""
 
-#: includes/class-settings-page.php:447
+#: includes/class-settings-page.php:492
 msgid "Add a form to a page with the ReputeCast signup form block, or paste its shortcode. Forms load from ReputeCast, so changes made there show here. They keep working if you disconnect."
 msgstr ""
 
-#: includes/class-settings-page.php:450
+#: includes/class-settings-page.php:495
 msgid "The workspace has no signup forms yet. Create one in ReputeCast › Forms, then press Report in now."
 msgstr ""
 
-#: includes/class-settings-page.php:455
+#: includes/class-settings-page.php:500
 #: blocks/signup-form/index.js:55
 msgid "Live"
 msgstr ""
 
-#: includes/class-settings-page.php:456
+#: includes/class-settings-page.php:501
 #: blocks/signup-form/index.js:55
 msgid "Paused"
 msgstr ""
 
-#: includes/class-settings-page.php:457
+#: includes/class-settings-page.php:502
 #: blocks/signup-form/index.js:55
 msgid "Draft"
 msgstr ""
 
-#: includes/class-settings-page.php:460
+#: includes/class-settings-page.php:505
 #: blocks/signup-form/index.js:117
 #: blocks/signup-form/index.js:120
 #: blocks/signup-form/index.js:172
 msgid "Form"
 msgstr ""
 
-#: includes/class-settings-page.php:461
-#: includes/class-settings-page.php:468
+#: includes/class-settings-page.php:506
+#: includes/class-settings-page.php:513
 msgid "Status"
 msgstr ""
 
-#: includes/class-settings-page.php:462
-#: includes/class-settings-page.php:469
+#: includes/class-settings-page.php:507
+#: includes/class-settings-page.php:514
 msgid "Shortcode"
 msgstr ""
 
-#: includes/class-settings-page.php:463
-#: includes/class-settings-page.php:470
+#: includes/class-settings-page.php:508
+#: includes/class-settings-page.php:515
 msgid "This site"
 msgstr ""
 
-#: includes/class-settings-page.php:472
+#: includes/class-settings-page.php:517
 msgid "Allowed"
 msgstr ""
 
-#: includes/class-settings-page.php:474
+#: includes/class-settings-page.php:519
 msgid "Not allowed"
 msgstr ""
 
 #. translators: %s: the site's address.
-#: includes/class-settings-page.php:476
+#: includes/class-settings-page.php:521
 #, php-format
 msgid "%s isn’t one of the form’s allowed domains, so its signups are rejected. Add it in ReputeCast › Forms."
 msgstr ""
 
 #. translators: %s: how long ago, like "6 minutes ago".
-#: includes/class-settings-page.php:483
+#: includes/class-settings-page.php:528
 #, php-format
 msgid "Updated %s."
 msgstr ""
 
-#: includes/class-settings-page.php:493
+#: includes/class-settings-page.php:535
+msgid "Site tracking"
+msgstr ""
+
+#: includes/class-settings-page.php:536
+msgid "Adds ReputeCast’s tracker to this site’s pages, so automations can follow up on what visitors looked at. With WooCommerce, product pages and add-to-carts go to it. Leave the site id empty to turn it off."
+msgstr ""
+
+#: includes/class-settings-page.php:541
+msgid "Site id"
+msgstr ""
+
+#: includes/class-settings-page.php:543
+msgid "In ReputeCast, open Settings › Integrations › Website tracking, add this site, and copy its id from the WordPress tab."
+msgstr ""
+
+#: includes/class-settings-page.php:545
+msgid "Consent"
+msgstr ""
+
+#: includes/class-settings-page.php:547
+msgid "Wait for visitors’ consent"
+msgstr ""
+
+#: includes/class-settings-page.php:548
+msgid "Nothing is stored until your consent banner calls reputecast('consent', true). Set it as the site is set in ReputeCast."
+msgstr ""
+
+#: includes/class-settings-page.php:550
+msgid "Identify secret"
+msgstr ""
+
+#: includes/class-settings-page.php:554
+msgid "Saved, kept encrypted. Signed-in customers are recognized. Paste a new one after rotating it in ReputeCast."
+msgstr ""
+
+#: includes/class-settings-page.php:555
+msgid "Optional: paste the secret ReputeCast showed when you added the site, to recognize signed-in customers."
+msgstr ""
+
+#: includes/class-settings-page.php:557
+msgid "Forget the identify secret"
+msgstr ""
+
+#: includes/class-settings-page.php:561
+msgid "Save site tracking"
+msgstr ""
+
+#: includes/class-settings-page.php:571
 msgid "Post drafts"
 msgstr ""
 
-#: includes/class-settings-page.php:494
+#: includes/class-settings-page.php:572
 msgid "Each post you publish goes to ReputeCast. The site’s post-draft rule, set there, decides which become a campaign draft, with its audience, template and sender. Drafts only: nobody gets anything until someone reviews and sends it in ReputeCast."
 msgstr ""
 
-#: includes/class-settings-page.php:496
+#: includes/class-settings-page.php:574
 msgid "A post’s translations go with it and become the draft’s language versions."
 msgstr ""
 
-#: includes/class-settings-page.php:501
+#: includes/class-settings-page.php:579
 msgid "No posts sent yet."
 msgstr ""
 
-#: includes/class-settings-page.php:505
+#: includes/class-settings-page.php:583
 msgid "Post"
 msgstr ""
 
-#: includes/class-settings-page.php:506
-#: includes/class-settings-page.php:513
+#: includes/class-settings-page.php:584
+#: includes/class-settings-page.php:591
 msgid "Sent"
 msgstr ""
 
-#: includes/class-settings-page.php:507
-#: includes/class-settings-page.php:513
+#: includes/class-settings-page.php:585
+#: includes/class-settings-page.php:591
 msgid "In ReputeCast"
 msgstr ""
 
-#: includes/class-settings-page.php:530
+#: includes/class-settings-page.php:608
 msgid "Open the draft"
 msgstr ""
 
 #. translators: %s: what went wrong.
-#: includes/class-settings-page.php:534
+#: includes/class-settings-page.php:612
 #, php-format
 msgid "Not sent: %s"
 msgstr ""
 
-#: includes/class-settings-page.php:537
+#: includes/class-settings-page.php:615
 msgid "Draft created."
 msgstr ""
 
-#: includes/class-settings-page.php:540
+#: includes/class-settings-page.php:618
 msgid "It already has a draft."
 msgstr ""
 
-#: includes/class-settings-page.php:541
+#: includes/class-settings-page.php:619
 msgid "No draft: the site has no post-draft rule yet. Set one in ReputeCast › Settings › Integrations › WordPress."
 msgstr ""
 
-#: includes/class-settings-page.php:542
+#: includes/class-settings-page.php:620
 msgid "No draft: the site’s post-draft rule is off."
 msgstr ""
 
-#: includes/class-settings-page.php:543
+#: includes/class-settings-page.php:621
 msgid "No draft: the post isn’t in one of the rule’s categories."
 msgstr ""
 
-#: includes/class-settings-page.php:544
+#: includes/class-settings-page.php:622
 msgid "Not sent: the post has no title."
 msgstr ""
 
-#: includes/class-settings-page.php:546
+#: includes/class-settings-page.php:624
 msgid "No draft."
 msgstr ""
 
-#: includes/class-settings-page.php:555
+#: includes/class-settings-page.php:633
 msgid "Change the key"
 msgstr ""
 
-#: includes/class-settings-page.php:556
+#: includes/class-settings-page.php:634
 msgid "After you rotate the site’s key in ReputeCast, paste the new one here. The old key keeps working for 24 hours."
 msgstr ""
 
-#: includes/class-settings-page.php:562
+#: includes/class-settings-page.php:640
 msgid "New site key"
 msgstr ""
 
-#: includes/class-settings-page.php:565
+#: includes/class-settings-page.php:643
 msgid "Save the new key"
 msgstr ""
 
-#: includes/class-settings-page.php:571
-#: includes/class-settings-page.php:577
+#: includes/class-settings-page.php:649
+#: includes/class-settings-page.php:655
 msgid "Disconnect"
 msgstr ""
 
-#: includes/class-settings-page.php:572
+#: includes/class-settings-page.php:650
 msgid "Signup forms keep working. Posts stop going to ReputeCast, and the site stops reporting in. ReputeCast keeps the site’s key until you disconnect the site there too."
 msgstr ""
 
-#: includes/class-settings-page.php:573
+#: includes/class-settings-page.php:651
 msgid "Disconnect this site from ReputeCast? Signup forms keep working."
 msgstr ""
 
-#: includes/class-settings-page.php:583
+#: includes/class-settings-page.php:661
 msgid "What the plugin sends"
 msgstr ""
 
-#: includes/class-settings-page.php:585
+#: includes/class-settings-page.php:663
 msgid "The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. With WooCommerce, every 15 minutes, it sends the checkouts changed since: the email and name typed, whether the marketing checkbox was ticked, the cart and its totals, and the link that restores it. It never sends addresses, phone numbers or payment details. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does."
 msgstr ""
 
-#: includes/class-settings-page.php:588
-msgid "The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. It sends nothing about visitors or users. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does."
+#: includes/class-settings-page.php:666
+msgid "The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. It sends nothing about visitors or users, unless Site tracking is on: then visitors’ browsers send the pages and products they view to ReputeCast once they consent, and the plugin signs signed-in customers’ addresses so ReputeCast recognizes them. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does."
 msgstr ""
 
 #: includes/class-status.php:56

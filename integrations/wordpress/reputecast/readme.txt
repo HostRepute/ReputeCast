@@ -4,7 +4,7 @@ Tags: newsletter, signup form, email marketing, woocommerce, abandoned cart
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,11 @@ Nothing about visitors or users is sent by the plugin, except the WooCommerce ch
 
 == Changelog ==
 
+= 1.5.0 =
+* Site tracking: with a tracked site's id from ReputeCast (Settings › Integrations › Website tracking), every page loads ReputeCast's tracker. It waits for the visitor's consent unless the site is set not to, and never tracks a browser that sends Global Privacy Control.
+* WooCommerce: product pages and add-to-carts go to the tracker, for ReputeCast's browse and cart flows.
+* Signed-in customers are recognized by a signature of their address made on the server with the site's identify secret, kept encrypted as the site's key.
+
 = 1.4.0 =
 * WooCommerce: the marketing consent checkbox at the classic and block checkouts, recorded on the order with its exact text and time.
 * WooCommerce: the email's click token kept on each order, for ReputeCast's attribution.
@@ -89,6 +94,9 @@ Nothing about visitors or users is sent by the plugin, except the WooCommerce ch
 * WPML and Polylang: post translations as the draft's language versions, and the block's language setting.
 
 == Upgrade Notice ==
+
+= 1.5.0 =
+Site tracking: add the tracked site's id from ReputeCast to follow up on what visitors looked at.
 
 = 1.4.0 =
 WooCommerce stores connected in ReputeCast get the checkout's marketing consent, the click token on orders and abandoned checkouts.
