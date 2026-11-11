@@ -405,6 +405,10 @@ type AutomationOptions struct {
 	// editor offers those triggers only then (G-11).
 	Tiers         []AutomationTierOption `json:"tiers"`
 	PaidConnected bool                   `json:"paidConnected"`
+	// LeadForms are the Facebook and Instagram lead forms "Submitted a
+	// lead ad form" can listen to (M66); the editor offers the trigger only
+	// when there is one.
+	LeadForms []AutomationLeadFormOption `json:"leadForms"`
 }
 
 // AutomationMilestoneOption is a referral milestone a "Reached a
@@ -511,6 +515,9 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationO
 	for _, m := range ms {
 		out.Milestones = append(out.Milestones, AutomationMilestoneOption{ID: m.ID.String(), ProgramID: m.ProgramID.String(), ListName: m.ListName,
 			Count: int(m.Count), Reward: m.RewardName, Name: milestoneName(langOf(ctx), m.Count, m.RewardName)})
+	}
+	if out.LeadForms, err = leadFormOptions(ctx, s.Q, ws.ID); err != nil {
+		return out, err
 	}
 	return out, nil
 }

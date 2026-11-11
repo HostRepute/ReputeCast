@@ -81,6 +81,8 @@ var Events = []EventType{
 	// Web push and WhatsApp (design expansion, phase 8).
 	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "People who can view sending providers", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "People who can view sending providers", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
+	// Lead ads from Meta (M66).
+	{Key: KindLeadAdsAttention, Label: "Meta refused the lead ads token", Audience: "People who can manage integrations", Short: "lead ads problems", DefaultEmail: true, Kinds: []string{KindLeadAdsAttention}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -128,7 +130,7 @@ var categoryKinds = map[string][]string{
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested, KindCommentMention},
 	CategoryHostRepute:    {KindHostReputeAlert},
-	CategoryIntegrations:  {KindIntegrationAttention, KindWebhookFailing, KindPostDraftCreated, KindStoreProblem},
+	CategoryIntegrations:  {KindIntegrationAttention, KindWebhookFailing, KindPostDraftCreated, KindStoreProblem, KindLeadAdsAttention},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},

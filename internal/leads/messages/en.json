@@ -1,0 +1,57 @@
+{
+  "connection.notFound": "That Meta connection isn't in this workspace.",
+  "connection.gone": {
+    "message": "{name} is disconnected. Connect Meta again to collect leads.",
+    "note": "name: the connection's name, such as Acme Marketing"
+  },
+  "connection.exists": "This workspace is connected to Meta already ({name}). Open it to add Pages.",
+  "name.missing": "Give the connection a name, such as your business's.",
+  "token.rejected": "Meta refused the token. Generate the system user's token again and paste it.",
+  "token.expired": "Meta refused the token: it expired. Generate one with no expiry and paste it again.",
+  "token.permissions": {
+    "message": "The token lacks a permission ReputeCast needs. Generate it again with {permissions}.",
+    "note": "permissions: Meta's permission names, never translated"
+  },
+  "token.noPages": "The token can't see any Page. Give the system user your Pages in Business Settings.",
+  "app.rejected": "Meta didn't accept this app ID and secret together. Copy both from App settings › Basic.",
+  "app.secretWithId": "Paste the new app's secret too.",
+  "meta.unavailable": "Meta didn't answer. Try again in a few minutes.",
+  "meta.rateLimited": "Meta asked ReputeCast to slow down. Try again in 15 minutes.",
+  "page.unknown": "The token doesn't reach one of those Pages any more. Reload the list and choose again.",
+  "page.subscribeFailed": {
+    "message": "Meta didn't subscribe the app to {page}'s leads. Check that the system user can manage the Page, then try again.",
+    "note": "page: a Facebook Page's name"
+  },
+  "page.notChosen": "{page} isn't chosen any more. Choose it again to import its leads.",
+  "form.notFound": "That lead form isn't in this workspace.",
+  "form.notMapped": {
+    "message": "Map {form} first: choose which question is the email address, and its lists.",
+    "note": "form: a lead form's name"
+  },
+  "import.paused": "{form} is paused. Resume it to import its past leads.",
+  "import.running": "Leads from {form} are being imported already.",
+  "mapping.question": {
+    "message": "{key} isn't one of the form's questions. Reload the form and map it again.",
+    "note": "key: a question's key in Meta, such as full_name"
+  },
+  "mapping.target": "Pick a contact field or a custom field for each question you keep.",
+  "mapping.twice": {
+    "message": "{first} and {second} are saved in the same field. Keep one of them.",
+    "note": "first, second: question keys"
+  },
+  "mapping.email": "Choose which question is the email address.",
+  "mapping.names": "Use First and last name, or First name and Last name, not both.",
+  "mapping.list": "Pick at least one of the workspace's lists.",
+  "mapping.listScope": "You can't add contacts to {list}. Pick a list you have access to.",
+  "consent.noCheckbox": "This form has no consent checkbox. Add one under Custom disclaimer in Meta to use single opt-in.",
+  "consent.pick": "Choose the checkbox that is the consent to email.",
+  "notify.title": "Meta refused the lead ads token",
+  "notify.body": {
+    "message": "Leads from {name} wait at Meta until a new token is pasted.",
+    "note": "name: the connection's name"
+  },
+  "note.lead": {
+    "message": "Facebook/Instagram lead form {form}",
+    "note": "a consent record's note; form: the lead form's name"
+  }
+}

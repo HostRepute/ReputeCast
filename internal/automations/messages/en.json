@@ -504,5 +504,9 @@
   "webinar.hourBefore.subject": "Starting in an hour: {title}",
   "webinar.hourBefore.preheader": "Join from the link below.",
   "webinar.hourBefore.heading": "Starting in an hour",
-  "webinar.hourBefore.body": "{title} starts in an hour."
+  "webinar.hourBefore.body": "{title} starts in an hour.",
+  "trigger.leadAdSubmitted": "Submitted a lead ad form",
+  "ref.anyLeadForm": "any lead form",
+  "ref.aLeadForm": "a lead form",
+  "problem.triggerLeadFormDeleted": "The trigger's lead form is gone: its Page was disconnected. Pick another form, or any lead form."
 }

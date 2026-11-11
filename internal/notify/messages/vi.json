@@ -164,5 +164,8 @@
   "problem.badCursor": "Trang này không hợp lệ.",
   "problem.unknownEvent": "Không có loại sự kiện {type}.",
   "problem.quietFormat": "Hãy nhập giờ dạng 22:00 và 07:00.",
-  "problem.quietSame": "Giờ yên lặng cần giờ bắt đầu và giờ kết thúc khác nhau."
+  "problem.quietSame": "Giờ yên lặng cần giờ bắt đầu và giờ kết thúc khác nhau.",
+  "short.lead_ads_attention": "sự cố quảng cáo khách hàng tiềm năng",
+  "event.lead_ads_attention": "Meta từ chối token quảng cáo khách hàng tiềm năng",
+  "audience.lead_ads_attention": "Những người có thể quản lý tích hợp"
 }

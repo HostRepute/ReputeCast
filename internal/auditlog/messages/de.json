@@ -342,5 +342,9 @@
   "type.whatsapp_settings": "WhatsApp-Einstellungen",
   "type.whatsapp_templates": "WhatsApp-Vorlagen",
   "type.wordpress": "WordPress",
-  "type.workspace": "Arbeitsbereich"
+  "type.workspace": "Arbeitsbereich",
+  "category.leads": "Lead-Anzeigen",
+  "type.lead_connection": "Lead-Anzeigen-Verbindung",
+  "type.lead_form": "Lead-Formular",
+  "link.leadConnection": "Verbindung öffnen"
 }

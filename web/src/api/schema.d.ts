@@ -11089,6 +11089,229 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workspace's Meta Lead Ads connections */
+        get: operations["list-lead-ads-connections"];
+        put?: never;
+        /** Connect a Meta app with a system user's token (checked with Meta, kept sealed) */
+        post: operations["connect-lead-ads"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A Meta connection: how leads arrive, its Pages and forms */
+        get: operations["get-lead-ads-connection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The connection's last 50 leads: when, which form, what happened and the contact (no answers) */
+        get: operations["list-lead-ads-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the connection's name, app id, app secret or token (blank secrets stay) */
+        put: operations["replace-lead-ads-credentials"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop collecting: unsubscribe the Pages and delete the credentials (contacts stay) */
+        post: operations["disconnect-lead-ads"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Facebook Pages the token reaches, the chosen ones marked (read from Meta) */
+        get: operations["list-lead-ads-pages"];
+        /** Choose the Pages whose leads are collected: they're subscribed, the others unsubscribed */
+        put: operations["choose-lead-ads-pages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List the chosen Pages' lead forms again */
+        post: operations["refresh-lead-ads-forms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A lead form's questions, consent checkboxes and mapping (read from Meta when it answers) */
+        get: operations["get-lead-ads-form"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import a lead form's leads of the last 90 days (each once) */
+        post: operations["import-lead-ads-form"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Map a lead form: its questions to fields, its lists, tags and consent */
+        put: operations["map-lead-ads-form"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a lead form: its leads wait at Meta */
+        post: operations["pause-lead-ads-form"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a lead form */
+        post: operations["resume-lead-ads-form"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What connecting Meta Lead Ads needs: the token's permissions and whether Meta can reach this server */
+        get: operations["get-lead-ads-setup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/leave": {
         parameters: {
             query?: never;
@@ -21884,6 +22107,18 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        AutomationLeadFormOption: {
+            id: string;
+            /** @example Spring webinar signup */
+            name: string;
+            /**
+             * @description The Facebook Page the form belongs to
+             * @example Acme Inc
+             */
+            page: string;
+            /** @description Paused, or not mapped yet: it records no leads */
+            paused: boolean;
+        };
         AutomationList: {
             alerts: components["schemas"]["AutomationAlert"][];
             counts: components["schemas"]["AutomationStatusCounts"];
@@ -21997,6 +22232,7 @@ export interface components {
             events: string[];
             fields: components["schemas"]["AutomationFieldOption"][];
             forms: components["schemas"]["AutomationFormOption"][];
+            leadForms: components["schemas"]["AutomationLeadFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
             milestones: components["schemas"]["AutomationMilestoneOption"][];
             paidConnected: boolean;
@@ -22322,7 +22558,8 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending" | "lead_ad_submitted";
+            leadFormId?: string;
             listId?: string;
             milestoneId?: string;
             /** Format: int64 */
@@ -30001,7 +30238,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce" | "meta_lead_ads";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -30025,6 +30262,7 @@ export interface components {
             lastCallAt?: string;
             /** Format: date-time */
             lastSyncAt?: string;
+            leads?: components["schemas"]["IntegrationLeadFacts"];
             mcpEnabled: boolean;
             payment?: components["schemas"]["IntegrationPaymentFacts"];
             /** Format: double */
@@ -30075,7 +30313,7 @@ export interface components {
         IntegrationGroup: {
             entries: components["schemas"]["IntegrationEntry"][];
             /** @enum {string} */
-            key: "automation" | "websites" | "deliverability" | "developer" | "ai" | "verification" | "payments" | "commerce";
+            key: "automation" | "websites" | "deliverability" | "developer" | "ai" | "verification" | "payments" | "commerce" | "leads";
         };
         IntegrationHook: {
             /** Format: date-time */
@@ -30163,6 +30401,16 @@ export interface components {
             sensitive: string[];
             /** @enum {string} */
             status: "active" | "grace" | "revoked" | "expired";
+        };
+        IntegrationLeadFacts: {
+            /** Format: int64 */
+            leads30d: number;
+            name: string;
+            /** Format: int64 */
+            pages: number;
+            polling: boolean;
+            /** @enum {string} */
+            problem?: "token_rejected" | "token_expired" | "app_rejected" | "permission_missing" | "";
         };
         IntegrationListItem: {
             doubleOptIn: boolean;
@@ -30707,6 +30955,256 @@ export interface components {
             outdated: string[];
             /** Format: int64 */
             version: number;
+        };
+        LeadAdsActivity: {
+            items: components["schemas"]["LeadAdsActivityItem"][];
+        };
+        LeadAdsActivityItem: {
+            /**
+             * Format: date-time
+             * @description When ReputeCast recorded it
+             */
+            at: string;
+            contact?: components["schemas"]["LeadAdsContactRef"];
+            formId: string;
+            formName: string;
+            hidden: boolean;
+            id: string;
+            /**
+             * Format: date-time
+             * @description When the person sent the form
+             */
+            leadAt: string;
+            /** @enum {string} */
+            outcome: "created" | "updated" | "pending" | "blocked" | "invalid" | "declined" | "test";
+            page: string;
+            /** @enum {string} */
+            source: "webhook" | "poll" | "import";
+        };
+        LeadAdsCheckbox: {
+            key: string;
+            required: boolean;
+            text: string;
+        };
+        LeadAdsConnectInput: {
+            /** @description The Meta app's id, from App settings › Basic */
+            appId: string;
+            /** @description The app secret, from App settings › Basic (write-only) */
+            appSecret: string;
+            /** @example Acme Marketing */
+            name: string;
+            /** @description A system user's token for the app, with no expiry (write-only) */
+            token: string;
+        };
+        LeadAdsConnection: {
+            /** @example 481516234200 */
+            appId: string;
+            canManage: boolean;
+            /**
+             * Format: date-time
+             * @description When the token was last checked
+             */
+            checkedAt?: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: date-time */
+            disconnectedAt?: string;
+            helpers: string[];
+            id: string;
+            /**
+             * Format: int64
+             * @description Leads in the last 30 days, Meta's test leads left out
+             */
+            leads30d: number;
+            /** @example Acme Marketing */
+            name: string;
+            /** @description The chosen Pages and their lead forms */
+            pages: components["schemas"]["LeadAdsPage"][];
+            /** @enum {string} */
+            platform: "meta";
+            /** @enum {string} */
+            problem?: "token_rejected" | "token_expired" | "app_rejected" | "permission_missing" | "";
+            /** Format: date-time */
+            rateLimitedUntil?: string;
+            receiving: components["schemas"]["LeadAdsReceiving"];
+            /** @enum {string} */
+            status: "connected" | "attention" | "disconnected";
+            webhook?: components["schemas"]["LeadAdsWebhook"];
+        };
+        LeadAdsConnectionItem: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @example Acme Marketing */
+            name: string;
+            /** @enum {string} */
+            status: "connected" | "attention" | "disconnected";
+        };
+        LeadAdsConnectionList: {
+            items: components["schemas"]["LeadAdsConnectionItem"][];
+        };
+        LeadAdsContactRef: {
+            email: string;
+            erased: boolean;
+            id: string;
+            name: string;
+        };
+        LeadAdsCredentialsInput: {
+            appId?: string;
+            appSecret?: string;
+            name?: string;
+            token?: string;
+        };
+        LeadAdsFieldOption: {
+            key: string;
+            label: string;
+            type: string;
+        };
+        LeadAdsForm: {
+            /** @enum {string} */
+            consentMode: "double" | "single";
+            /** @description Meta's id of the form */
+            formId: string;
+            id: string;
+            import: components["schemas"]["LeadAdsImport"];
+            /** Format: date-time */
+            lastLeadAt?: string;
+            /** Format: int64 */
+            leads30d: number;
+            lists: components["schemas"]["LeadAdsListRef"][];
+            mapped: boolean;
+            metaStatus: string;
+            /** @example Spring webinar signup */
+            name: string;
+            /** @example Acme Inc */
+            page: string;
+            pageId: string;
+            /** Format: int64 */
+            questions: number;
+            /** @enum {string} */
+            status: "active" | "paused";
+            tags: string[];
+            /** Format: int32 */
+            waiting: number;
+        };
+        LeadAdsFormDetail: {
+            checkboxes: components["schemas"]["LeadAdsCheckbox"][];
+            consentKey?: string;
+            /** @description Single opt-in: the checkbox's text the leads agreed to */
+            consentText?: string;
+            /** @description The custom disclaimer's text */
+            disclaimer: string;
+            fields: components["schemas"]["LeadAdsFieldOption"][];
+            form: components["schemas"]["LeadAdsForm"];
+            listIds: string[];
+            lists: components["schemas"]["LeadAdsListOption"][];
+            questions: components["schemas"]["LeadAdsQuestion"][];
+        };
+        LeadAdsImport: {
+            /**
+             * Format: date-time
+             * @description When the last import finished
+             */
+            at?: string;
+            /**
+             * Format: int32
+             * @description Leads read so far, or in the finished import
+             */
+            count: number;
+            /** @enum {string} */
+            state: "running" | "done" | "failed" | "";
+        };
+        LeadAdsListOption: {
+            doubleOptIn: boolean;
+            id: string;
+            name: string;
+        };
+        LeadAdsListRef: {
+            id: string;
+            name: string;
+        };
+        LeadAdsMappingInput: {
+            consentKey?: string;
+            /** @enum {string} */
+            consentMode: "double" | "single";
+            listIds: string[];
+            mapping: {
+                [key: string]: string;
+            };
+            tags?: string[];
+        };
+        LeadAdsPage: {
+            forms: components["schemas"]["LeadAdsForm"][];
+            id: string;
+            /** @example Acme Inc */
+            name: string;
+            /** @description Meta's id of the Page */
+            pageId: string;
+            /** Format: date-time */
+            subscribedAt?: string;
+        };
+        LeadAdsPageChoice: {
+            chosen: boolean;
+            /** Format: int64 */
+            forms?: number;
+            /** @example Acme Inc */
+            name: string;
+            pageId: string;
+        };
+        LeadAdsPageChoices: {
+            items: components["schemas"]["LeadAdsPageChoice"][];
+        };
+        LeadAdsPagesInput: {
+            /** @description Meta's ids of the chosen Pages */
+            pageIds: string[];
+        };
+        LeadAdsQuestion: {
+            /** @example full_name */
+            key: string;
+            /** @example Full name */
+            label: string;
+            suggested: string;
+            target: string;
+            /**
+             * @description Meta's question type
+             * @example FULL_NAME
+             */
+            type: string;
+        };
+        LeadAdsReceiving: {
+            /**
+             * Format: date-time
+             * @description Meta's last delivery
+             */
+            lastEventAt?: string;
+            /** Format: date-time */
+            lastLeadAt?: string;
+            /** Format: date-time */
+            lastPolledAt?: string;
+            /** @enum {string} */
+            mode: "webhook" | "polling";
+            /** @enum {string} */
+            reason?: "not_subscribed" | "quiet" | "unreachable" | "";
+            /**
+             * Format: date-time
+             * @description When Meta accepted the app's webhook subscription
+             */
+            subscribedAt?: string;
+            /** @description The instance's public URL */
+            url: string;
+        };
+        LeadAdsSetup: {
+            connection?: components["schemas"]["LeadAdsConnectionItem"];
+            permissions: string[];
+            /** @description Meta can reach it, so leads arrive within seconds; otherwise they're polled every 15 minutes */
+            reachable: boolean;
+            /** @description The instance's public URL */
+            url: string;
+        };
+        LeadAdsWebhook: {
+            callbackUrl: string;
+            verifyToken: string;
         };
         LiquidProblem: {
             /** Format: int64 */
@@ -73067,6 +73565,526 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LanguageRemoval"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-lead-ads-connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnectionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-lead-ads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadAdsConnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-lead-ads-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-lead-ads-activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsActivity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-lead-ads-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadAdsCredentialsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-lead-ads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-lead-ads-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsPageChoices"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "choose-lead-ads-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadAdsPagesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "refresh-lead-ads-forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-lead-ads-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The lead form's id in ReputeCast */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsFormDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "import-lead-ads-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The lead form's id in ReputeCast */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsFormDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "map-lead-ads-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The lead form's id in ReputeCast */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeadAdsMappingInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsFormDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-lead-ads-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The lead form's id in ReputeCast */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsFormDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-lead-ads-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The lead form's id in ReputeCast */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsFormDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-lead-ads-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsSetup"];
                 };
             };
             /** @description Error */

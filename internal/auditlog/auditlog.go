@@ -159,6 +159,8 @@ var Categories = []AuditCategory{
 	{Key: "whatsapp", Label: "WhatsApp", Groups: []string{"whatsapp", "whatsapp_templates", "whatsapp_rates", "whatsapp_settings"}},
 	// Agency accounts (design expansion, phase 8).
 	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
+	// Lead ads from Meta (M66).
+	{Key: "leads", Label: "Lead ads", Groups: []string{"lead_connection", "lead_form"}},
 }
 
 // Filter narrows the log.
@@ -574,6 +576,10 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 	case "store":
 		if targetID != "" {
 			path, key = "/settings/integrations/stores/"+targetID, "link.store"
+		}
+	case "lead_connection":
+		if targetID != "" {
+			path, key = "/settings/integrations/leads/"+targetID, "link.leadConnection"
 		}
 	}
 	if key == "" {

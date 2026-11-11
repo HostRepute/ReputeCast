@@ -55,7 +55,7 @@ const (
 // alsoKinds are the triggers that can be the second or third of a flow
 // (AT-11): the ones an event matches on its own, with no rules of their
 // own about who enters.
-var alsoKinds = []string{TriggerJoinedList, TriggerFormSubmitted, TriggerTagAdded, TriggerAPIEvent, TriggerSegmentEntered, TriggerSegmentLeft, TriggerLinkClicked}
+var alsoKinds = []string{TriggerJoinedList, TriggerFormSubmitted, TriggerTagAdded, TriggerAPIEvent, TriggerSegmentEntered, TriggerSegmentLeft, TriggerLinkClicked, TriggerLeadAdSubmitted}
 
 // Triggers returns a flow's triggers: the first, then those in its Also.
 func (t *AutomationTrigger) Triggers() []AutomationTrigger {
@@ -135,7 +135,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout,segment_entered,segment_left,link_clicked,paid_started,paid_tier_changed,paid_ended,paid_trial_ending"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout,segment_entered,segment_left,link_clicked,paid_started,paid_tier_changed,paid_ended,paid_trial_ending,lead_ad_submitted"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -206,6 +206,9 @@ type AutomationTrigger struct {
 	// starts on (any when empty).
 	TierID     string   `json:"tierId,omitempty" maxLength:"40"`
 	EndReasons []string `json:"endReasons,omitempty" maxItems:"3" enum:"canceled,payment_failed,trial_ended"`
+	// Submitted a lead ad form (leads.go): the lead form, or any when
+	// empty (M66).
+	LeadFormID string `json:"leadFormId,omitempty" maxLength:"40"`
 	// Also holds up to two more triggers, any of which enrols (review
 	// 2026-11 AT-11). Re-entry and leaving with the list are the first
 	// trigger's; the others never carry their own Also.
@@ -568,6 +571,7 @@ type Refs struct {
 	Stores     map[string]string // store id → name (connected stores)
 	Segments   map[string]string // id → name (AT-10)
 	Tiers      map[string]string // paid tier id → name (G-11)
+	LeadForms  map[string]string // lead form id → "name · Page" (M66)
 	// Sources are what a "Clicked a link" trigger can listen to:
 	// "campaign:<id>" and "email:<id>" → name.
 	Sources map[string]string
@@ -1044,6 +1048,9 @@ func checkTrigger(t *AutomationTrigger, refs *Refs, bad func(string, i18n.Text),
 	}
 	if isPaidTrigger(t.Kind) {
 		extra(checkPaidTrigger(t, refs))
+	}
+	if t.Kind == TriggerLeadAdSubmitted {
+		extra(checkLeadTrigger(t, refs))
 	}
 	switch t.Kind {
 	case TriggerSegmentEntered, TriggerSegmentLeft:

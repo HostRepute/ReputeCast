@@ -82,6 +82,8 @@ func countIngest(next http.Handler) http.Handler {
 			channel = seg
 		case "shopify", "woocommerce":
 			channel = "store"
+		case "meta-leads":
+			channel = "lead_ads"
 		}
 		result := "stored"
 		switch st := ww.Status(); {

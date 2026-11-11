@@ -504,5 +504,9 @@
   "webinar.hourBefore.subject": "Bắt đầu sau một giờ: {title}",
   "webinar.hourBefore.preheader": "Tham gia từ liên kết bên dưới.",
   "webinar.hourBefore.heading": "Bắt đầu sau một giờ",
-  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ."
+  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ.",
+  "trigger.leadAdSubmitted": "Gửi biểu mẫu quảng cáo khách hàng tiềm năng",
+  "ref.anyLeadForm": "mọi biểu mẫu khách hàng tiềm năng",
+  "ref.aLeadForm": "một biểu mẫu khách hàng tiềm năng",
+  "problem.triggerLeadFormDeleted": "Biểu mẫu khách hàng tiềm năng của trình kích hoạt không còn nữa: Trang của nó đã bị ngắt kết nối. Hãy chọn biểu mẫu khác, hoặc mọi biểu mẫu khách hàng tiềm năng."
 }

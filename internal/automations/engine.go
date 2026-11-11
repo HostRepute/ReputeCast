@@ -348,6 +348,8 @@ func triggerMatches(t AutomationTrigger, ev store.ClaimAutomationEventsRow) bool
 		return t.SegmentID == ev.Ref
 	case TriggerPaidStarted, TriggerPaidTierChanged, TriggerPaidEnded, TriggerPaidTrialEnding:
 		return paidTriggerMatches(t, ev)
+	case TriggerLeadAdSubmitted:
+		return leadTriggerMatches(t, ev)
 	case TriggerLinkClicked:
 		if t.Source != "" && t.Source != ev.Ref {
 			return false

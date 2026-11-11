@@ -12068,6 +12068,38 @@
         ],
         "type": "object"
       },
+      "AutomationLeadFormOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Spring webinar signup"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "description": "The Facebook Page the form belongs to",
+            "examples": [
+              "Acme Inc"
+            ],
+            "type": "string"
+          },
+          "paused": {
+            "description": "Paused, or not mapped yet: it records no leads",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "page",
+          "paused"
+        ],
+        "type": "object"
+      },
       "AutomationList": {
         "additionalProperties": false,
         "properties": {
@@ -12449,6 +12481,12 @@
             },
             "type": "array"
           },
+          "leadForms": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationLeadFormOption"
+            },
+            "type": "array"
+          },
           "lists": {
             "items": {
               "$ref": "#/components/schemas/AutomationOptionItem"
@@ -12511,7 +12549,8 @@
           "segments",
           "campaigns",
           "tiers",
-          "paidConnected"
+          "paidConnected",
+          "leadForms"
         ],
         "type": "object"
       },
@@ -13531,8 +13570,13 @@
               "paid_started",
               "paid_tier_changed",
               "paid_ended",
-              "paid_trial_ending"
+              "paid_trial_ending",
+              "lead_ad_submitted"
             ],
+            "type": "string"
+          },
+          "leadFormId": {
+            "maxLength": 40,
             "type": "string"
           },
           "listId": {
@@ -40478,7 +40522,8 @@
               "paddle",
               "lemonsqueezy",
               "shopify",
-              "woocommerce"
+              "woocommerce",
+              "meta_lead_ads"
             ],
             "type": "string"
           },
@@ -40548,6 +40593,9 @@
           "lastSyncAt": {
             "format": "date-time",
             "type": "string"
+          },
+          "leads": {
+            "$ref": "#/components/schemas/IntegrationLeadFacts"
           },
           "mcpEnabled": {
             "type": "boolean"
@@ -40725,7 +40773,8 @@
               "ai",
               "verification",
               "payments",
-              "commerce"
+              "commerce",
+              "leads"
             ],
             "type": "string"
           }
@@ -41038,6 +41087,42 @@
           "ownerStatus",
           "createdAt",
           "status"
+        ],
+        "type": "object"
+      },
+      "IntegrationLeadFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "leads30d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "polling": {
+            "type": "boolean"
+          },
+          "problem": {
+            "enum": [
+              "token_rejected",
+              "token_expired",
+              "app_rejected",
+              "permission_missing",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "pages",
+          "leads30d",
+          "polling"
         ],
         "type": "object"
       },
@@ -42922,6 +43007,854 @@
           "at",
           "blocks",
           "outdated"
+        ],
+        "type": "object"
+      },
+      "LeadAdsActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsActivityItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "LeadAdsActivityItem": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "description": "When ReputeCast recorded it",
+            "format": "date-time",
+            "type": "string"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/LeadAdsContactRef"
+          },
+          "formId": {
+            "type": "string"
+          },
+          "formName": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "leadAt": {
+            "description": "When the person sent the form",
+            "format": "date-time",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "created",
+              "updated",
+              "pending",
+              "blocked",
+              "invalid",
+              "declined",
+              "test"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "webhook",
+              "poll",
+              "import"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "leadAt",
+          "formId",
+          "formName",
+          "page",
+          "outcome",
+          "source",
+          "hidden"
+        ],
+        "type": "object"
+      },
+      "LeadAdsCheckbox": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "text",
+          "required"
+        ],
+        "type": "object"
+      },
+      "LeadAdsConnectInput": {
+        "additionalProperties": false,
+        "properties": {
+          "appId": {
+            "description": "The Meta app's id, from App settings › Basic",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "appSecret": {
+            "description": "The app secret, from App settings › Basic (write-only)",
+            "maxLength": 64,
+            "minLength": 16,
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Acme Marketing"
+            ],
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "description": "A system user's token for the app, with no expiry (write-only)",
+            "maxLength": 1024,
+            "minLength": 20,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "appId",
+          "appSecret",
+          "token"
+        ],
+        "type": "object"
+      },
+      "LeadAdsConnection": {
+        "additionalProperties": false,
+        "properties": {
+          "appId": {
+            "examples": [
+              "481516234200"
+            ],
+            "type": "string"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "checkedAt": {
+            "description": "When the token was last checked",
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "disconnectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "leads30d": {
+            "description": "Leads in the last 30 days, Meta's test leads left out",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "examples": [
+              "Acme Marketing"
+            ],
+            "type": "string"
+          },
+          "pages": {
+            "description": "The chosen Pages and their lead forms",
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsPage"
+            },
+            "type": "array"
+          },
+          "platform": {
+            "enum": [
+              "meta"
+            ],
+            "type": "string"
+          },
+          "problem": {
+            "enum": [
+              "token_rejected",
+              "token_expired",
+              "app_rejected",
+              "permission_missing",
+              ""
+            ],
+            "type": "string"
+          },
+          "rateLimitedUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "receiving": {
+            "$ref": "#/components/schemas/LeadAdsReceiving"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "attention",
+              "disconnected"
+            ],
+            "type": "string"
+          },
+          "webhook": {
+            "$ref": "#/components/schemas/LeadAdsWebhook"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "platform",
+          "appId",
+          "status",
+          "receiving",
+          "createdAt",
+          "createdBy",
+          "pages",
+          "leads30d",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "LeadAdsConnectionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Acme Marketing"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "attention",
+              "disconnected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "LeadAdsConnectionList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsConnectionItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "LeadAdsContactRef": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "erased": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "erased"
+        ],
+        "type": "object"
+      },
+      "LeadAdsCredentialsInput": {
+        "additionalProperties": false,
+        "properties": {
+          "appId": {
+            "maxLength": 32,
+            "pattern": "^[0-9]*$",
+            "type": "string"
+          },
+          "appSecret": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 1024,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LeadAdsFieldOption": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "type": "object"
+      },
+      "LeadAdsForm": {
+        "additionalProperties": false,
+        "properties": {
+          "consentMode": {
+            "enum": [
+              "double",
+              "single"
+            ],
+            "type": "string"
+          },
+          "formId": {
+            "description": "Meta's id of the form",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "import": {
+            "$ref": "#/components/schemas/LeadAdsImport"
+          },
+          "lastLeadAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "leads30d": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsListRef"
+            },
+            "type": "array"
+          },
+          "mapped": {
+            "type": "boolean"
+          },
+          "metaStatus": {
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Spring webinar signup"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "examples": [
+              "Acme Inc"
+            ],
+            "type": "string"
+          },
+          "pageId": {
+            "type": "string"
+          },
+          "questions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "paused"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "waiting": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "formId",
+          "name",
+          "pageId",
+          "page",
+          "metaStatus",
+          "status",
+          "mapped",
+          "leads30d",
+          "lists",
+          "tags",
+          "consentMode",
+          "questions",
+          "waiting",
+          "import"
+        ],
+        "type": "object"
+      },
+      "LeadAdsFormDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "checkboxes": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsCheckbox"
+            },
+            "type": "array"
+          },
+          "consentKey": {
+            "type": "string"
+          },
+          "consentText": {
+            "description": "Single opt-in: the checkbox's text the leads agreed to",
+            "type": "string"
+          },
+          "disclaimer": {
+            "description": "The custom disclaimer's text",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsFieldOption"
+            },
+            "type": "array"
+          },
+          "form": {
+            "$ref": "#/components/schemas/LeadAdsForm"
+          },
+          "listIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsListOption"
+            },
+            "type": "array"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsQuestion"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "form",
+          "questions",
+          "checkboxes",
+          "disclaimer",
+          "listIds",
+          "lists",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "LeadAdsImport": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "description": "When the last import finished",
+            "format": "date-time",
+            "type": "string"
+          },
+          "count": {
+            "description": "Leads read so far, or in the finished import",
+            "format": "int32",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "running",
+              "done",
+              "failed",
+              ""
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "count"
+        ],
+        "type": "object"
+      },
+      "LeadAdsListOption": {
+        "additionalProperties": false,
+        "properties": {
+          "doubleOptIn": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "doubleOptIn"
+        ],
+        "type": "object"
+      },
+      "LeadAdsListRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "LeadAdsMappingInput": {
+        "additionalProperties": false,
+        "properties": {
+          "consentKey": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "consentMode": {
+            "enum": [
+              "double",
+              "single"
+            ],
+            "type": "string"
+          },
+          "listIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array"
+          },
+          "mapping": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 60,
+            "type": "object"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          }
+        },
+        "required": [
+          "mapping",
+          "listIds",
+          "consentMode"
+        ],
+        "type": "object"
+      },
+      "LeadAdsPage": {
+        "additionalProperties": false,
+        "properties": {
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsForm"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "examples": [
+              "Acme Inc"
+            ],
+            "type": "string"
+          },
+          "pageId": {
+            "description": "Meta's id of the Page",
+            "type": "string"
+          },
+          "subscribedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pageId",
+          "name",
+          "forms"
+        ],
+        "type": "object"
+      },
+      "LeadAdsPageChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "chosen": {
+            "type": "boolean"
+          },
+          "forms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "examples": [
+              "Acme Inc"
+            ],
+            "type": "string"
+          },
+          "pageId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pageId",
+          "name",
+          "chosen"
+        ],
+        "type": "object"
+      },
+      "LeadAdsPageChoices": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LeadAdsPageChoice"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "LeadAdsPagesInput": {
+        "additionalProperties": false,
+        "properties": {
+          "pageIds": {
+            "description": "Meta's ids of the chosen Pages",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "pageIds"
+        ],
+        "type": "object"
+      },
+      "LeadAdsQuestion": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "examples": [
+              "full_name"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "examples": [
+              "Full name"
+            ],
+            "type": "string"
+          },
+          "suggested": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "type": {
+            "description": "Meta's question type",
+            "examples": [
+              "FULL_NAME"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "target",
+          "suggested"
+        ],
+        "type": "object"
+      },
+      "LeadAdsReceiving": {
+        "additionalProperties": false,
+        "properties": {
+          "lastEventAt": {
+            "description": "Meta's last delivery",
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastLeadAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastPolledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "webhook",
+              "polling"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "not_subscribed",
+              "quiet",
+              "unreachable",
+              ""
+            ],
+            "type": "string"
+          },
+          "subscribedAt": {
+            "description": "When Meta accepted the app's webhook subscription",
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "description": "The instance's public URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "url"
+        ],
+        "type": "object"
+      },
+      "LeadAdsSetup": {
+        "additionalProperties": false,
+        "properties": {
+          "connection": {
+            "$ref": "#/components/schemas/LeadAdsConnectionItem"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reachable": {
+            "description": "Meta can reach it, so leads arrive within seconds; otherwise they're polled every 15 minutes",
+            "type": "boolean"
+          },
+          "url": {
+            "description": "The instance's public URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "permissions",
+          "url",
+          "reachable"
+        ],
+        "type": "object"
+      },
+      "LeadAdsWebhook": {
+        "additionalProperties": false,
+        "properties": {
+          "callbackUrl": {
+            "type": "string"
+          },
+          "verifyToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "callbackUrl",
+          "verifyToken"
         ],
         "type": "object"
       },
@@ -151978,6 +152911,987 @@
           "Languages"
         ],
         "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/connections": {
+      "get": {
+        "operationId": "list-lead-ads-connections",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsConnectionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The workspace's Meta Lead Ads connections",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      },
+      "post": {
+        "operationId": "connect-lead-ads",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadAdsConnectInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsConnection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Connect a Meta app with a system user's token (checked with Meta, kept sealed)",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}": {
+      "get": {
+        "operationId": "get-lead-ads-connection",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The connection's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The connection's id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsConnection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A Meta connection: how leads arrive, its Pages and forms",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/activity": {
+      "get": {
+        "operationId": "list-lead-ads-activity",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The connection's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The connection's id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsActivity"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The connection's last 50 leads: when, which form, what happened and the contact (no answers)",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/credentials": {
+      "put": {
+        "operationId": "replace-lead-ads-credentials",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The connection's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The connection's id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadAdsCredentialsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsConnection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Replace the connection's name, app id, app secret or token (blank secrets stay)",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/disconnect": {
+      "post": {
+        "operationId": "disconnect-lead-ads",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The connection's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The connection's id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsConnection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Stop collecting: unsubscribe the Pages and delete the credentials (contacts stay)",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/pages": {
+      "get": {
+        "operationId": "list-lead-ads-pages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The connection's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The connection's id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsPageChoices"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The Facebook Pages the token reaches, the chosen ones marked (read from Meta)",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      },
+      "put": {
+        "operationId": "choose-lead-ads-pages",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The connection's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The connection's id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadAdsPagesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsConnection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Choose the Pages whose leads are collected: they're subscribed, the others unsubscribed",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/refresh": {
+      "post": {
+        "operationId": "refresh-lead-ads-forms",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The connection's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The connection's id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsConnection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List the chosen Pages' lead forms again",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}": {
+      "get": {
+        "operationId": "get-lead-ads-form",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The lead form's id in ReputeCast",
+            "in": "path",
+            "name": "formId",
+            "required": true,
+            "schema": {
+              "description": "The lead form's id in ReputeCast",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsFormDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A lead form's questions, consent checkboxes and mapping (read from Meta when it answers)",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/import": {
+      "post": {
+        "operationId": "import-lead-ads-form",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The lead form's id in ReputeCast",
+            "in": "path",
+            "name": "formId",
+            "required": true,
+            "schema": {
+              "description": "The lead form's id in ReputeCast",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsFormDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Import a lead form's leads of the last 90 days (each once)",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/mapping": {
+      "put": {
+        "operationId": "map-lead-ads-form",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The lead form's id in ReputeCast",
+            "in": "path",
+            "name": "formId",
+            "required": true,
+            "schema": {
+              "description": "The lead form's id in ReputeCast",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadAdsMappingInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsFormDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Map a lead form: its questions to fields, its lists, tags and consent",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/pause": {
+      "post": {
+        "operationId": "pause-lead-ads-form",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The lead form's id in ReputeCast",
+            "in": "path",
+            "name": "formId",
+            "required": true,
+            "schema": {
+              "description": "The lead form's id in ReputeCast",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsFormDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pause a lead form: its leads wait at Meta",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}/resume": {
+      "post": {
+        "operationId": "resume-lead-ads-form",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The lead form's id in ReputeCast",
+            "in": "path",
+            "name": "formId",
+            "required": true,
+            "schema": {
+              "description": "The lead form's id in ReputeCast",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsFormDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Resume a lead form",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/lead-ads/setup": {
+      "get": {
+        "operationId": "get-lead-ads-setup",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadAdsSetup"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What connecting Meta Lead Ads needs: the token's permissions and whether Meta can reach this server",
+        "tags": [
+          "Lead ads"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
       }
     },
     "/api/v1/workspaces/{workspace}/leave": {

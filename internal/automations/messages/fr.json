@@ -504,5 +504,9 @@
   "webinar.hourBefore.subject": "Dans une heure\u00A0: {title}",
   "webinar.hourBefore.preheader": "Rejoignez la session depuis le lien ci-dessous.",
   "webinar.hourBefore.heading": "Ça commence dans une heure",
-  "webinar.hourBefore.body": "{title} commence dans une heure."
+  "webinar.hourBefore.body": "{title} commence dans une heure.",
+  "trigger.leadAdSubmitted": "Envoie un formulaire de publicité à formulaire",
+  "ref.anyLeadForm": "n’importe quel formulaire de prospects",
+  "ref.aLeadForm": "un formulaire de prospects",
+  "problem.triggerLeadFormDeleted": "Le formulaire de prospects du déclencheur n’existe plus : sa Page a été déconnectée. Choisissez un autre formulaire, ou n’importe quel formulaire de prospects."
 }

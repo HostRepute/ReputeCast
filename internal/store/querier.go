@@ -2209,12 +2209,85 @@ type Querier interface {
 	LatestDeliverabilityCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error)
 	LatestFinishedDeliverabilityCheckRun(ctx context.Context, arg LatestFinishedDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
 	LatestFinishedImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
+	// A connection by id alone (jobs).
+	LeadConnectionAny(ctx context.Context, id uuid.UUID) (LeadConnection, error)
+	// The connection a callback URL's token belongs to (by its SHA-256).
+	LeadConnectionByHash(ctx context.Context, hash []byte) (LeadConnection, error)
+	LeadConnectionByID(ctx context.Context, arg LeadConnectionByIDParams) (LeadConnection, error)
+	LeadConnectionChecked(ctx context.Context, arg LeadConnectionCheckedParams) error
+	LeadConnectionCreatorName(ctx context.Context, id uuid.UUID) (string, error)
+	LeadConnectionDisconnect(ctx context.Context, arg LeadConnectionDisconnectParams) error
+	// Lead ads from Meta (M66, internal/leads).
+	LeadConnectionInsert(ctx context.Context, arg LeadConnectionInsertParams) (LeadConnection, error)
+	// The workspace's Meta connection that isn't disconnected.
+	LeadConnectionLive(ctx context.Context, workspaceID uuid.UUID) (LeadConnection, error)
+	LeadConnectionNotified(ctx context.Context, arg LeadConnectionNotifiedParams) error
+	LeadConnectionPolling(ctx context.Context, arg LeadConnectionPollingParams) error
+	LeadConnectionRateLimited(ctx context.Context, arg LeadConnectionRateLimitedParams) error
+	LeadConnectionSetCredentials(ctx context.Context, arg LeadConnectionSetCredentialsParams) error
+	LeadConnectionSetStatus(ctx context.Context, arg LeadConnectionSetStatusParams) error
+	// Meta accepted the app's webhook subscription (subscribed), or refused it
+	// (NULL: leads are polled).
+	LeadConnectionSubscribed(ctx context.Context, arg LeadConnectionSubscribedParams) error
+	// A delivery with a valid signature: the webhook works.
+	LeadConnectionTouchEvent(ctx context.Context, arg LeadConnectionTouchEventParams) error
+	// Meta's verification request was answered.
+	LeadConnectionVerified(ctx context.Context, arg LeadConnectionVerifiedParams) error
+	// Every connection still collecting (the health job).
+	LeadConnectionsActive(ctx context.Context) ([]LeadConnection, error)
+	LeadConnectionsOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]LeadConnectionsOfWorkspaceRow, error)
+	// A lead's phone number on a contact that has none.
+	LeadContactFillPhone(ctx context.Context, arg LeadContactFillPhoneParams) error
+	// A connection's last leads with their form, Page and contact.
+	LeadEntriesRecent(ctx context.Context, arg LeadEntriesRecentParams) ([]LeadEntriesRecentRow, error)
+	// A contact's double opt-in leads not confirmed yet, with their form's
+	// lists (the confirmation starts their flows).
+	LeadEntriesWaitingOf(ctx context.Context, contactID *uuid.UUID) ([]LeadEntriesWaitingOfRow, error)
+	LeadEntryConfirmed(ctx context.Context, arg LeadEntryConfirmedParams) error
+	LeadEntryExists(ctx context.Context, arg LeadEntryExistsParams) (bool, error)
+	LeadEntryInsert(ctx context.Context, arg LeadEntryInsertParams) (int64, error)
+	LeadEventByID(ctx context.Context, id uuid.UUID) (LeadEvent, error)
+	LeadEventDone(ctx context.Context, arg LeadEventDoneParams) error
+	LeadEventInsert(ctx context.Context, arg LeadEventInsertParams) (uuid.UUID, error)
+	// Deliveries not applied two minutes after they arrived (a lost job).
+	LeadEventsPending(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	LeadEventsPurge(ctx context.Context, before time.Time) (int64, error)
+	LeadFormAddWaiting(ctx context.Context, id uuid.UUID) error
+	LeadFormAny(ctx context.Context, id uuid.UUID) (LeadFormAnyRow, error)
+	LeadFormByID(ctx context.Context, arg LeadFormByIDParams) (LeadFormByIDRow, error)
+	LeadFormByMetaID(ctx context.Context, arg LeadFormByMetaIDParams) (LeadForm, error)
+	// An import finished: the leads that waited for the mapping are in.
+	LeadFormClearWaiting(ctx context.Context, id uuid.UUID) error
+	LeadFormImportProgress(ctx context.Context, arg LeadFormImportProgressParams) error
+	LeadFormLeadAt(ctx context.Context, arg LeadFormLeadAtParams) error
+	// Every lead form of the workspace with its Page (growth sources, the
+	// automation trigger).
+	LeadFormNames(ctx context.Context, workspaceID uuid.UUID) ([]LeadFormNamesRow, error)
+	LeadFormPolled(ctx context.Context, arg LeadFormPolledParams) error
+	LeadFormSaveMapping(ctx context.Context, arg LeadFormSaveMappingParams) (LeadForm, error)
+	LeadFormSetImport(ctx context.Context, arg LeadFormSetImportParams) error
+	LeadFormSetStatus(ctx context.Context, arg LeadFormSetStatusParams) error
+	// A form as Meta lists it; its mapping and counters stay.
+	LeadFormUpsert(ctx context.Context, arg LeadFormUpsertParams) (LeadForm, error)
+	// The mapped, active forms of a connection's chosen Pages (polling).
+	LeadFormsCollecting(ctx context.Context, connectionID uuid.UUID) ([]LeadFormsCollectingRow, error)
+	// The connection's forms with their Page and leads in the last 30 days
+	// (Meta's test leads left out).
+	LeadFormsOfConnection(ctx context.Context, arg LeadFormsOfConnectionParams) ([]LeadFormsOfConnectionRow, error)
+	// A connection's leads in the last 30 days (the catalog card).
+	LeadLeads30d(ctx context.Context, arg LeadLeads30dParams) (int64, error)
+	LeadLeads30dOfForm(ctx context.Context, arg LeadLeads30dOfFormParams) (int64, error)
+	LeadListsOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]LeadListsOfWorkspaceRow, error)
 	// The link a contact got for a form's download (one per signup).
 	LeadMagnetLinkFor(ctx context.Context, arg LeadMagnetLinkForParams) (LeadMagnetLink, error)
 	LeadMagnetLinkGet(ctx context.Context, id uuid.UUID) (LeadMagnetLink, error)
 	LeadMagnetLinkInsert(ctx context.Context, arg LeadMagnetLinkInsertParams) error
 	LeadMagnetLinkUse(ctx context.Context, id uuid.UUID) error
 	LeadMagnetStats(ctx context.Context, formID uuid.UUID) (LeadMagnetStatsRow, error)
+	LeadPageByMetaID(ctx context.Context, arg LeadPageByMetaIDParams) (LeadPage, error)
+	LeadPageUpsert(ctx context.Context, arg LeadPageUpsertParams) (LeadPage, error)
+	LeadPageWipeTokens(ctx context.Context, arg LeadPageWipeTokensParams) error
+	LeadPagesOfConnection(ctx context.Context, connectionID uuid.UUID) ([]LeadPage, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	// Open alerts, held sending first: nothing goes out until it is fixed.
@@ -4318,6 +4391,10 @@ type Querier interface {
 	// Sidebar sections (Settings › General): the sections a workspace hides.
 	SidebarHiddenSectionsForUpdate(ctx context.Context, id uuid.UUID) ([]string, error)
 	SidebarSetHiddenSections(ctx context.Context, arg SidebarSetHiddenSectionsParams) error
+	// Adds the tags a signup gives (a lead form's, M66), keeping the contact's
+	// own; a contact that has them all is left alone, so "Tag added" flows
+	// start only for tags it didn't have.
+	SignupAddTags(ctx context.Context, arg SignupAddTagsParams) error
 	// Unsubscribes block Broadcasts and Automations; System mail (password
 	// resets, receipts) still reaches the contact.
 	SignupAddUnsubscribe(ctx context.Context, arg SignupAddUnsubscribeParams) error

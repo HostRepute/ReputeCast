@@ -342,5 +342,9 @@
   "type.whatsapp_settings": "cài đặt WhatsApp",
   "type.whatsapp_templates": "mẫu WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "không gian làm việc"
+  "type.workspace": "không gian làm việc",
+  "category.leads": "Quảng cáo khách hàng tiềm năng",
+  "type.lead_connection": "kết nối quảng cáo khách hàng tiềm năng",
+  "type.lead_form": "biểu mẫu khách hàng tiềm năng",
+  "link.leadConnection": "Mở kết nối"
 }

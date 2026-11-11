@@ -504,5 +504,9 @@
   "webinar.hourBefore.subject": "Empieza en una hora: {title}",
   "webinar.hourBefore.preheader": "Únete desde el enlace de abajo.",
   "webinar.hourBefore.heading": "Empieza en una hora",
-  "webinar.hourBefore.body": "{title} empieza en una hora."
+  "webinar.hourBefore.body": "{title} empieza en una hora.",
+  "trigger.leadAdSubmitted": "Envía un formulario de anuncios de clientes potenciales",
+  "ref.anyLeadForm": "cualquier formulario de clientes potenciales",
+  "ref.aLeadForm": "un formulario de clientes potenciales",
+  "problem.triggerLeadFormDeleted": "El formulario de clientes potenciales del disparador ya no existe: se desconectó su página. Elige otro formulario o cualquier formulario de clientes potenciales."
 }

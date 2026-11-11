@@ -122,6 +122,10 @@ type SignupInput struct {
 	// it came through ("Newsletter signup"; empty for the subscribe page).
 	BrowserLanguage string
 	FormName        string
+	// Tags are added to the contact (cleaned as the profile does: trimmed,
+	// lower-cased, at most 60 characters, no duplicates), through the
+	// contact's tags, so "Tag added" automations start as for any tag.
+	Tags []string
 }
 
 // SignupResult says what happened. Public pages show the same message in
@@ -228,6 +232,11 @@ func (s *Service) Signup(ctx context.Context, tx pgx.Tx, ws *store.Workspace, in
 	}
 	if err := FillLanguage(ctx, q, c.ID, in.BrowserLanguage, in.FormName, at); err != nil {
 		return out, err
+	}
+	if tags := cleanTags(in.Tags); len(tags) > 0 {
+		if err := q.SignupAddTags(ctx, store.SignupAddTagsParams{ID: c.ID, Tags: tags, At: at}); err != nil {
+			return out, err
+		}
 	}
 	members, err := q.SignupMemberships(ctx, c.ID)
 	if err != nil {

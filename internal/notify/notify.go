@@ -99,6 +99,8 @@ const (
 	// KindResultsFinal: a campaign report's results are final, for someone
 	// who asked to be emailed then ("Email me when it's final").
 	KindResultsFinal = "results_final"
+	// Lead ads from Meta (M66).
+	KindLeadAdsAttention = "lead_ads_attention" // Meta refused a lead ads connection's token: leads wait at Meta
 )
 
 // Notification is what appears in the notification center.

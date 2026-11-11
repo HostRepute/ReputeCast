@@ -273,4 +273,6 @@ var Groups = []Group{
 	{Key: "verification"},
 	{Key: "payments"},
 	{Key: "commerce"},
+	// Lead ads from Meta (M66).
+	{Key: "leads"},
 }

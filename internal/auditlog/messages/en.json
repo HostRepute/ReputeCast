@@ -342,5 +342,9 @@
   "type.whatsapp_settings": "whatsapp settings",
   "type.whatsapp_templates": "whatsapp templates",
   "type.wordpress": "wordpress",
-  "type.workspace": "workspace"
+  "type.workspace": "workspace",
+  "category.leads": "Lead ads",
+  "type.lead_connection": "lead ads connection",
+  "type.lead_form": "lead form",
+  "link.leadConnection": "Open the connection"
 }

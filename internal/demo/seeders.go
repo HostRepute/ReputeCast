@@ -64,6 +64,8 @@ var (
 	// the brand kit: Acme's logos, colours, fonts and buttons, and the synced
 	// Header and Footer Weekly Digest #142 holds (seed_brandkit.go)
 	seedBrandKit = noop
+	// lead ads from Meta: Acme Marketing, its Pages, forms and leads (seed_leads.go)
+	seedLeads = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

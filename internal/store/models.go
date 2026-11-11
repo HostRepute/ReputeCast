@@ -2176,6 +2176,87 @@ type Invitation struct {
 	Language            *string         `json:"language"`
 }
 
+type LeadConnection struct {
+	ID                  uuid.UUID  `json:"id"`
+	WorkspaceID         uuid.UUID  `json:"workspaceId"`
+	Platform            string     `json:"platform"`
+	Name                string     `json:"name"`
+	Demo                bool       `json:"demo"`
+	AppID               string     `json:"appId"`
+	CredentialsSealed   []byte     `json:"credentialsSealed"`
+	CallbackTokenHash   []byte     `json:"callbackTokenHash"`
+	CallbackTokenSealed []byte     `json:"callbackTokenSealed"`
+	VerifyTokenSealed   []byte     `json:"verifyTokenSealed"`
+	Status              string     `json:"status"`
+	StatusDetail        string     `json:"statusDetail"`
+	PollingReason       string     `json:"pollingReason"`
+	RateLimitedUntil    *time.Time `json:"rateLimitedUntil"`
+	LastEventAt         *time.Time `json:"lastEventAt"`
+	VerifiedAt          *time.Time `json:"verifiedAt"`
+	SubscribedAt        *time.Time `json:"subscribedAt"`
+	CheckedAt           *time.Time `json:"checkedAt"`
+	NotifiedAt          *time.Time `json:"notifiedAt"`
+	CreatedBy           *uuid.UUID `json:"createdBy"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+	DisconnectedAt      *time.Time `json:"disconnectedAt"`
+	DisconnectedBy      *uuid.UUID `json:"disconnectedBy"`
+}
+
+type LeadEntry struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	FormID      uuid.UUID  `json:"formId"`
+	LeadgenID   string     `json:"leadgenId"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	Outcome     string     `json:"outcome"`
+	Source      string     `json:"source"`
+	LeadAt      time.Time  `json:"leadAt"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	ConfirmedAt *time.Time `json:"confirmedAt"`
+}
+
+type LeadEvent struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	ConnectionID uuid.UUID  `json:"connectionId"`
+	ReceivedAt   time.Time  `json:"receivedAt"`
+	Body         []byte     `json:"body"`
+	SignatureOk  bool       `json:"signatureOk"`
+	Status       string     `json:"status"`
+	Error        string     `json:"error"`
+	AppliedAt    *time.Time `json:"appliedAt"`
+}
+
+type LeadForm struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	PageID         uuid.UUID       `json:"pageId"`
+	FormID         string          `json:"formId"`
+	Name           string          `json:"name"`
+	MetaStatus     string          `json:"metaStatus"`
+	Questions      json.RawMessage `json:"questions"`
+	Checkboxes     json.RawMessage `json:"checkboxes"`
+	Disclaimer     string          `json:"disclaimer"`
+	Status         string          `json:"status"`
+	MappedAt       *time.Time      `json:"mappedAt"`
+	Mapping        json.RawMessage `json:"mapping"`
+	ConsentMode    string          `json:"consentMode"`
+	ConsentKey     string          `json:"consentKey"`
+	ConsentText    string          `json:"consentText"`
+	ConsentVersion string          `json:"consentVersion"`
+	ListIds        []uuid.UUID     `json:"listIds"`
+	Tags           []string        `json:"tags"`
+	Waiting        int32           `json:"waiting"`
+	ImportState    string          `json:"importState"`
+	ImportCount    int32           `json:"importCount"`
+	ImportedAt     *time.Time      `json:"importedAt"`
+	LastPolledAt   *time.Time      `json:"lastPolledAt"`
+	LastLeadAt     *time.Time      `json:"lastLeadAt"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+}
+
 type LeadMagnetLink struct {
 	ID          uuid.UUID  `json:"id"`
 	WorkspaceID uuid.UUID  `json:"workspaceId"`
@@ -2185,6 +2266,19 @@ type LeadMagnetLink struct {
 	CreatedAt   time.Time  `json:"createdAt"`
 	ExpiresAt   time.Time  `json:"expiresAt"`
 	Downloads   int32      `json:"downloads"`
+}
+
+type LeadPage struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	ConnectionID    uuid.UUID  `json:"connectionId"`
+	PageID          string     `json:"pageId"`
+	Name            string     `json:"name"`
+	PageTokenSealed []byte     `json:"pageTokenSealed"`
+	Chosen          bool       `json:"chosen"`
+	SubscribedAt    *time.Time `json:"subscribedAt"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
 }
 
 type LinkDomainListing struct {

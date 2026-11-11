@@ -164,5 +164,8 @@
   "problem.badCursor": "Cursor no válido.",
   "problem.unknownEvent": "Tipo de evento desconocido: {type}.",
   "problem.quietFormat": "Usa horas como 22:00 y 07:00.",
-  "problem.quietSame": "Las horas de silencio necesitan una hora de inicio y una de fin distintas."
+  "problem.quietSame": "Las horas de silencio necesitan una hora de inicio y una de fin distintas.",
+  "short.lead_ads_attention": "problemas con los anuncios de clientes potenciales",
+  "event.lead_ads_attention": "Meta rechazó el token de los anuncios de clientes potenciales",
+  "audience.lead_ads_attention": "Personas que pueden gestionar las integraciones"
 }

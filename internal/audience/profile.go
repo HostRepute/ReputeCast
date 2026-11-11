@@ -290,7 +290,7 @@ func consentSourceLabel(l i18n.Lang, src, action string) string {
 	case "preference_center", "one_click", "repermission", "team", "api":
 		return msgs.M("source."+src).Text(l, nil)
 	}
-	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") || strings.HasPrefix(src, "product_checkout:") {
+	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") || strings.HasPrefix(src, "product_checkout:") || strings.HasPrefix(src, "lead_ad:") {
 		return segments.SourceLabelIn(l, src)
 	}
 	return src

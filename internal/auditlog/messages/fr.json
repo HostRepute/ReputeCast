@@ -342,5 +342,9 @@
   "type.whatsapp_settings": "paramètres WhatsApp",
   "type.whatsapp_templates": "modèles WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "espace de travail"
+  "type.workspace": "espace de travail",
+  "category.leads": "Publicités à formulaire",
+  "type.lead_connection": "connexion de publicités à formulaire",
+  "type.lead_form": "formulaire de prospects",
+  "link.leadConnection": "Ouvrir la connexion"
 }

@@ -197,5 +197,6 @@
   "sql.readOnly": "SQL segments are read-only: they can't change data.",
   "sql.roles": "SQL segments can't change roles or session settings.",
   "sql.function": { "message": "SQL segments can't call {name}.", "note": "name: a Postgres function, like pg_advisory_lock" },
-  "sql.unicodeIdentifier": "SQL segments can't use U&\"…\" identifiers: write the name as it is."
+  "sql.unicodeIdentifier": "SQL segments can't use U&\"…\" identifiers: write the name as it is.",
+  "source.leadAd": "Lead ads"
 }

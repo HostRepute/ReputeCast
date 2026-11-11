@@ -504,5 +504,9 @@
   "webinar.hourBefore.subject": "In einer Stunde geht es los: {title}",
   "webinar.hourBefore.preheader": "Nehmen Sie über den Link unten teil.",
   "webinar.hourBefore.heading": "In einer Stunde geht es los",
-  "webinar.hourBefore.body": "{title} beginnt in einer Stunde."
+  "webinar.hourBefore.body": "{title} beginnt in einer Stunde.",
+  "trigger.leadAdSubmitted": "Lead-Anzeigen-Formular gesendet",
+  "ref.anyLeadForm": "beliebiges Lead-Formular",
+  "ref.aLeadForm": "Lead-Formular",
+  "problem.triggerLeadFormDeleted": "Das Lead-Formular des Auslösers gibt es nicht mehr: Seine Seite wurde getrennt. Wählen Sie ein anderes Formular oder ein beliebiges Lead-Formular."
 }

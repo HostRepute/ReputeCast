@@ -107,14 +107,14 @@ type IntegrationHub struct {
 
 // IntegrationGroup is one group of the catalog.
 type IntegrationGroup struct {
-	Key     string             `json:"key" enum:"automation,websites,deliverability,developer,ai,verification,payments,commerce"`
+	Key     string             `json:"key" enum:"automation,websites,deliverability,developer,ai,verification,payments,commerce,leads"`
 	Entries []IntegrationEntry `json:"entries"`
 }
 
 // IntegrationEntry is a catalog card: its status, the reason it needs
 // attention, and the facts of its fact line.
 type IntegrationEntry struct {
-	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,stripe,paddle,lemonsqueezy,shopify,woocommerce"`
+	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,stripe,paddle,lemonsqueezy,shopify,woocommerce,meta_lead_ads"`
 	// Status: not_connected, waiting, connected, attention; none for the
 	// developer cards.
 	Status          string              `json:"status" enum:"not_connected,waiting,connected,attention,none"`
@@ -150,6 +150,19 @@ type IntegrationFacts struct {
 	Price   float64 `json:"price,omitempty"`
 	// Store is a store platform's card (the Commerce group, X20).
 	Store *IntegrationStoreFacts `json:"store,omitempty"`
+	// Leads is Meta Lead Ads' card (the Lead ads group, M66).
+	Leads *IntegrationLeadFacts `json:"leads,omitempty"`
+}
+
+// IntegrationLeadFacts are Meta Lead Ads' fact line: the connection, its
+// Pages and leads in 30 days, whether leads are polled, and why it needs
+// attention.
+type IntegrationLeadFacts struct {
+	Name     string `json:"name"`
+	Pages    int    `json:"pages"`
+	Leads30d int64  `json:"leads30d"`
+	Polling  bool   `json:"polling"`
+	Problem  string `json:"problem,omitempty" enum:"token_rejected,token_expired,app_rejected,permission_missing,"`
 }
 
 // IntegrationStoreFacts are a store platform's fact line: its stores, the
