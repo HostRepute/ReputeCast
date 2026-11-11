@@ -9,7 +9,6 @@ import { ScrollPre } from '@/components/ui/ScrollPre'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuSeparator, Popover } from '@/components/ui/Menu'
-import { PillTabs } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { ago, andList, calendarDate, count, shortDate, trimPct } from '@/lib/format'
@@ -588,7 +587,15 @@ function Editor({ form, overview, ab, variant }: { form: SignupForm; overview: O
         <section className="fb-center" aria-label={t(m.livePreview)}>
           <div className="fb-bar">
             {testOn ? (
-              <PillTabs value={selected} onChange={pickVariant} items={abDraft.variants.map((v) => ({ value: v.key, label: v.key }))} label={t(m.variants)} />
+              // The variant edited and shown: one pressed button, as the
+              // whole editor follows it (there is no single tab panel).
+              <div className="tabs" role="group" aria-label={t(m.variants)}>
+                {abDraft.variants.map((v) => (
+                  <button key={v.key} type="button" aria-pressed={v.key === selected} onClick={() => pickVariant(v.key)}>
+                    {v.key}
+                  </button>
+                ))}
+              </div>
             ) : null}
             {abDraft.variants.length < variantKeys.length ? (
               <Button size="sm" disabledReason={reason ?? (draft.kind === 'hosted' ? t(m.hostedShowsA) : undefined)} onClick={newVariant}>
