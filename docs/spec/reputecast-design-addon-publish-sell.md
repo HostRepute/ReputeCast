@@ -187,6 +187,7 @@ Read all of it before you start.
   - Gifts (phase 6): gifts given and received.
   - Purchases: the digital products bought, with "Download" or "Send me a new link".
   - Referrals (phase 5): the member's link and progress, opening their referral hub.
+  - Comments (3.12), while the site has comments on: the display name shown next to the member's comments, and "Email me when someone replies to my comments", on by default.
   - The preference center stays for links in emails. When the reader is signed in, it links to the account page.
 
 ### 3.3 Visibility, free preview and meter
@@ -387,6 +388,7 @@ New permission group, "Website and pages":
 - edit posts and pages (website:edit)
 - publish, schedule and unpublish posts and pages (website:publish) ⚑
 - manage the website: turning it on or off, home, navigation, tags, members, meter and paywall (website:manage) ⚑
+- moderate comments: publish, hide, delete and pin them, reply as the publication, block commenters (comments:moderate)
 
 New permission group, "Products and orders":
 - view products and orders (products:view)
@@ -402,11 +404,11 @@ Existing keys that apply:
 
 Who gets what:
 - **Built-in roles:**
-  - Owner, Admin and Editor: all eight.
+  - Owner, Admin and Editor: all nine.
   - Viewer: website:view and products:view.
 - **Content Writer**, the sample's custom role: website:view, website:edit, products:view and products:edit.
-- **API keys:** any of the eight, never more than their creator holds.
-- **MCP agents:** can list and read posts, pages, products and their numbers, and draft posts. Publishing becomes a proposal for a person. They never publish, change a price, refund or revoke access.
+- **API keys:** any of the eight website and product keys, never more than their creator holds. comments:moderate is for people only.
+- **MCP agents:** can list and read posts, pages, products and their numbers, and draft posts. Publishing becomes a proposal for a person. They never publish, change a price, refund, revoke access or moderate comments.
 
 **Approvals:** Settings › Approvals gets an optional rule, "Publishing a post or page needs approval", off by default.
 - The existing rule "The author lacks the send permission" also covers website:publish. With it on, an author without website:publish gets "Request approval" instead of Publish.
@@ -425,11 +427,16 @@ Who gets what:
   - a store connected, reconnected or disconnected; its sync, list or attribution settings changed; store data deleted
   - orders exported
   - a member signed out everywhere by a person
+  - posts imported: one entry per import with its counts, plus the upload, changed choices and a canceled import
+  - a comment published, hidden, deleted, pinned or unpinned, a reply from the publication, and a commenter blocked or unblocked
+  - the site's comment settings (with the access settings) and a post's comment setting (with the post's changes)
 - **Not in the audit log:**
   - page views
   - member sign-ins, which are on the contact's timeline
   - each order placed, since the orders list is the record
   - each store webhook, which is in the store's activity log
+  - each post an import creates: the import's entry and its report cover them
+  - comments members write, which are kept with their post
 
   See section 8.
 
@@ -438,7 +445,7 @@ Who gets what:
 - Nothing about members, buyers, orders, stores or page content is ever sent to HostRepute.
 
 ### 3.10 Out of scope for this phase
-- Comments, community and member directories.
+- Community and member directories.
 - Uploading custom themes, or custom code in the page head.
 - Podcasts and video hosting.
 - Physical products, inventory and shipping (that's the store's job), and changing store data from ReputeCast, except unsubscribes.
@@ -446,6 +453,80 @@ Who gets what:
 - Invoices (Stripe's receipts and Stripe Tax cover them).
 - Store platforms other than Shopify and WooCommerce, and abandoned-browse triggers.
 - Custom domains per page, and A/B tests of pages.
+
+### 3.11 Post import
+- **Where:** Website › Posts › "Import posts", a menu with "From Substack, Ghost or WordPress" and "Publish past campaigns". Importing needs website:publish, and the website must be on ("Turn on the site first").
+- **Sources** are export files, uploaded. No passwords or API keys.
+  - Substack: the .zip from Settings › Exports, with posts.csv and one HTML file per post.
+  - Ghost: the .json from Settings › Advanced › Import/Export, or the .zip that holds it.
+  - WordPress: the .xml from Tools › Export (WXR).
+  - Files up to 100 MB. ReputeCast tells the format from the file's content, not its name; any other file gets "This isn't a Substack, Ghost or WordPress export".
+  - beehiiv isn't a source: it has no posts export in these formats.
+- **Three steps: Upload → Review → Import.**
+  - After the upload, ReputeCast reads the file in the background, usually in under a minute, and lists every post with its date, visibility, tags, problems and a decision.
+  - Counts at the top: to import, drafts skipped, already imported, paid, members-only.
+  - Default decisions: published posts are imported and drafts are skipped. A post an earlier import already brought in (the same post in the same source) is skipped. A post whose slug another post uses is imported as `<slug>-2`, with a problem.
+- **Choices:**
+  - Dates: "Keep the original dates and publish" (default) or "Import as drafts".
+  - Images: "Copy images to ReputeCast" (default) or "Keep linking to the old site". Copied images go through the media library's checks. WebP is accepted and stored as JPEG, or PNG when it has transparency. An image that can't be copied keeps its old address and is listed as a problem.
+  - Tiers: each paid audience in the export (Substack's paid and founding subscribers, Ghost's tiers) maps to one of the workspace's tiers or to "Any paid tier". Members-only posts stay Members.
+  - Authors: each author maps to a team member, who gets the byline, or keeps the name as written.
+- **What each post brings:** title, slug, its text and images as blocks, excerpt (up to 200 characters, cut at a word), cover, byline, visibility and tiers, up to 5 tags (more are listed as a problem), SEO title and description, and canonical URL.
+  - The text is cleaned with the same rules as every post. Consecutive text becomes one text block, each image an image block, a horizontal line a divider. An image without alt text is a problem, "Image without alt text".
+  - Embeds (YouTube, Vimeo, X, Instagram, Spotify, Substack and Ghost cards) become a paragraph with a link, such as "Watch on YouTube: …", and a problem, "Embed shown as a link".
+  - Substack's and Ghost's paywall markers become the free preview marker.
+  - Liquid in the text shows as written; it never runs.
+  - A post that can't be turned into blocks is skipped, with the reason in the report.
+- **Never done:** an import sends no email, and it sends no post.published webhook for the posts it publishes.
+- **Importing** runs in the background, with its progress on the page and in the jobs tray. It can be canceled: posts already imported stay. It carries on after a restart, and running the same export again imports nothing twice.
+- **Done:** the totals, and a report to download (CSV: title, old address, what happened, problems), kept for 30 days. Whoever started the import gets a notification.
+- **Old addresses keep working.** Each imported post keeps its old paths: Substack's /p/{slug}, Ghost's /{slug}/, and WordPress's link and ?p={id}. When the site's own domain gets a request for one, it redirects (301) to the new post.
+  - /feed/, /rss/ and /feed.xml redirect to /feed, and /posts/{slug}/ to /posts/{slug}.
+  - Landing pages keep their addresses first. Any other unknown address gets the site's 404 page.
+- **Audit:** one entry per import with its counts, plus the upload, changed choices and a cancellation. Imported posts don't get an entry each.
+
+### 3.12 Comments
+- **Off by default.** Website › Access › Comments: Off · Signed-in members · Paid members only. Needs website:manage.
+- **Review:** Every comment · A member's first comment (default) · None. Whatever the setting, a comment with 2 or more links waits for review.
+- **Where:** under every post the reader can read, after "Share this post".
+  - A post can turn them off in its Web settings: "Comments: Use the site's setting / Off for this post".
+  - With comments off, for the site or the post, the section doesn't show. Comments already written are kept for when they're turned on again.
+  - A reader who can't read the post sees nothing about comments.
+- **Who can comment:** signed-in members, or only paid members, among the readers of the post.
+  - Visitors who aren't signed in see "Sign in to join the conversation". The sign-in link brings them back to the comments.
+  - Free members, when comments are for paid members, see "Comments are for paid members" with an upgrade link.
+  - A blocked member sees "You can't comment on The Acme newsletter".
+- **The section:** "Comments (n)", counting published comments. Pinned comments come first, then the rest oldest first. 50 comments a page, each with its replies, then "Show more comments"; the next page loads on the server.
+  - Each comment shows an initials avatar, the display name, a "Team" badge on replies from the publication, the time, the text with its links made clickable (marked nofollow and ugc), and Reply.
+  - Replies are one level deep: replying to a reply adds to the same thread.
+  - A deleted comment with replies reads "This comment was removed." One without replies disappears.
+- **The form,** only for a signed-in member who may comment:
+  - the first time, a display name, filled in from the contact's name and never from the email address, up to 60 characters
+  - "Add a comment", up to 5,000 characters, with a counter, and Post comment
+  - A member can edit a comment for 15 minutes (it waits for review again when every comment is reviewed) and delete it any time.
+  - After posting, a comment that waits shows "Your comment is waiting for review." Its writer sees it, marked "Waiting for review"; nobody else does until it's published.
+  - Pages with a form or a member's own waiting comment are never cached. Visitors see published comments within the page's one-minute cache.
+- **Moderation:** Website › Comments, for people with comments:moderate. Anyone with website:view can read it.
+  - Tabs: Waiting for review (n) · Published · Hidden. Search by text, name or email, and filter by post.
+  - Each row: avatar, display name and email, the post, the text, the time, and why it waits: First comment, Review all, Links or Blocked.
+  - Select comments to Publish, Hide or Delete. Every decision can be undone for 10 seconds.
+  - Delete asks first and offers "Hide instead". After the 10 seconds a deleted comment can't be brought back.
+  - On a published comment: Pin to the top (or Unpin), and "Reply as The Acme newsletter", published at once with the Team badge. The team member who wrote it is recorded.
+  - Block commenter, with a confirmation: the member can't post or edit comments. Their comments waiting for review stay, marked Blocked; their published comments stay until someone hides them; their membership, newsletters and sign-in don't change. Unblock from the menu of any of their comments.
+  - People with comments:moderate get a notification when comments start waiting, then at most once an hour.
+- **Reply emails:** when a comment or a reply from the publication is published under a member's comment, that member gets "{name} replied to your comment on {post}", with the reply, a link to it, and "Stop these emails".
+  - At most one email an hour per member, from the workspace's default sender on the System stream, in the member's language.
+  - "Stop these emails" opens a page with one button that turns them off, as the unsubscribe page does.
+  - The account page has the same setting, "Email me when someone replies to my comments", on by default.
+- **Limits and protections:**
+  - A member can post 10 comments in 10 minutes and 50 a day; one network 30 an hour. Past that the comment is refused and its text stays in the form.
+  - Comments are accepted only from the site's own pages, with a form token between 3 seconds and 24 hours old. A hidden field catches bots.
+  - Comments are plain text, up to 5,000 characters.
+- **Privacy:**
+  - The IP address is kept with a comment for 30 days, against abuse, then cleared.
+  - Erasing a contact empties their comments ("This comment was removed." where replies hang under them), clears their display name and stops their reply emails. A data export lists their comments.
+- **Search engines:** a post's structured data counts its published comments. Feeds don't include comments.
+- **Audit:** moderation and the settings are audited (3.8). Comments members write aren't, as page views and sign-ins aren't.
 
 ---
 
@@ -644,19 +725,32 @@ Who gets what:
 - **Daniel Park** (Content Writer) drafts "Q4 roadmap deep dive", the "Sponsor the Weekly Digest" page and the Warm-up planner. He can't publish any of them; for the post he requests approval.
 - **Aisha Bello** (Viewer) sees posts, pages, products and orders, read-only.
 
+### Post import
+- **acme-weekly-substack-export.zip** (Substack, 4.2 MB), uploaded by Sofia Rossi on 15 Oct: 15 posts. 12 to import, 3 drafts skipped, 0 already imported; 4 paid and 2 members-only.
+- **Choices:** keep the original dates and publish; copy the 38 images; Substack's "Paid subscribers" to Weekly Digest Insider and "Founding members" to Founding member; Sofia Rossi to Sofia Rossi (team member), Jordan Ellis keeps the name.
+- **Problems:** embeds shown as links in "The 2025 deliverability report" and "Rate limits, explained"; an image without alt text in "Shipping feature flags without fear"; "How we test email rendering" imported as how-we-test-email-rendering-2.
+- Every post with its date, visibility, tags and decision is on WebsiteImport.
+
+### Comments
+- **Setting:** on, for signed-in members; a member's first comment waits for review.
+- **23 comments on two posts:**
+  - "What shipped in October, and what we're retiring" (public): 16. 13 published, Sam Rivera's question about the v1 retirement pinned, with a Team reply from The Acme newsletter written by Sofia Rossi. 2 waiting: Alex Murphy's first comment, and Kenji W.'s with 2 links. 1 hidden: Brandboost Media's, hidden by Sofia Rossi on 12 Oct.
+  - "Ask Acme: your deliverability questions, answered" (members): 7. 6 published, 1 waiting: Omar Haddad's first comment.
+- The texts, display names and times are on PublicPostComments and WebsiteComments.
+
 ---
 
 ## 5. New screens
 
 Forms & pages has four tabs: Signup forms · Website · Pages · Branding & domain.
-- The Website tab has three views, as pill tabs: Posts · Home & navigation · Access.
+- The Website tab has four views, as pill tabs: Posts · Home & navigation · Access · Comments.
 - Earn gets a Products tab.
 
 ### 5.1 Website › Posts
 - **Header:**
   - status "Live · news.acme.io · certificate valid", and "View site"
   - the numbers for 30 days: views, visitors, signups, upgrades
-  - "New post", and "Publish past campaigns" (pick sent campaigns that aren't posts yet)
+  - "New post", and "Import posts": a menu with "From Substack, Ghost or WordPress" (5.17) and "Publish past campaigns" (pick sent campaigns that aren't posts yet)
 - **Table:**
   - title with its excerpt
   - source: "Weekly Digest #142" (links to the campaign) or "Web only", with the byline
@@ -664,6 +758,7 @@ Forms & pages has four tabs: Signup forms · Website · Pages · Branding & doma
   - status badge with its time
   - tags
   - views, signups and upgrades for 30 days
+  - comments: the published count, and how many wait for review
   - row menu: Edit, View, Copy link, Unpublish, Send as a campaign (web-only posts), Delete
 - **Filters:** status, visibility, tag, source. Search by title.
 
@@ -705,6 +800,7 @@ States to show:
   - free preview: "Ends after block 3 · Move" or "Add a marker"
   - when: with the send, at a time, or now (sent campaigns)
   - "Feature on home"
+  - "Comments": Use the site's setting / Off for this post
   - SEO and social, folded
   - web checks:
     - the slug is free
@@ -756,6 +852,7 @@ States to show:
   - 2,804 signed in since 29 Sep, 1,126 in the last 7 days
   - 1,184 paid members, linked to Earn › Paid members
   - "Show signed-in members", which opens Contacts with that filter
+- **Comments:** who can comment (Off · Signed-in members · Paid members only) and review (Every comment · A member's first comment · None), with the number waiting, linked to Website › Comments.
 
 States to show:
 - the sample
@@ -809,6 +906,7 @@ States to show (in PublicSiteStates):
   - Newsletters: Weekly Digest (weekly roundup) and Product Updates on, Beta Program off, pause
   - Purchases: The Deliverability Field Guide, 3 Oct, $29, "Your link expired on 10 Oct · Send me a new link"
   - Gifts: none, "Give a gift" (phase 6)
+  - Comments: the display name, and "Email me when someone replies to my comments"
   - Sign out · Sign out everywhere
 
 States to show (in PublicSiteStates):
@@ -967,6 +1065,50 @@ All in CommerceStates:
 - **The October Product Update report's Revenue section:** "Acme Merch: 31 orders · $1,612" next to Phase 6's subscription revenue.
 - **Sam Rivera's profile:** the Field Guide purchase and the Acme Merch order, with consent "Not added to Acme Merch: didn't accept marketing in Shopify".
 
+### 5.17 Website › Import posts
+A page under Website › Posts with the steps Upload → Review → Import (3.11).
+- **Main board:** the review of the sample Substack import: the file, the five counts, the choices (dates and publishing, images, tiers, authors), the old addresses, and the 15 posts with title, date, visibility, tags, problems and a decision.
+- **Also on the board:** the upload (drop zone, the three sources and where to find each export), reading the export, importing with its progress and the jobs tray, and done with the totals and the report.
+
+States to show (in WebsiteImportStates):
+- the Import posts menu in Website › Posts
+- a wrong file: "This isn't a Substack, Ghost or WordPress export"
+- a file over 100 MB
+- the website off: "Turn on the site first"
+- an import that stopped: what failed, what ReputeCast did, what to do
+- nothing new to import
+- loading
+- no website:publish (Daniel Park): read-only, with who can help
+
+### 5.18 Website › Comments
+- **Main board:** Waiting for review (3) with the three sample comments, two of them selected (Publish · Hide · Delete), and a row's menu open.
+- **Rows:** avatar, display name and email, the post, the text, the time, the held reason.
+
+States to show (in WebsiteCommentsStates):
+- Published, with a row's menu (Unpin, Reply as The Acme newsletter, Block commenter, Open contact) and the reply box
+- the Undo toast after publishing, hiding and deleting
+- the Delete dialog, with Hide instead
+- the Block dialog, and the blocked member's waiting comment
+- each tab empty, and a search with no results
+- comments off: "Comments are off for this site." with Turn on comments
+- loading, and an error
+- read-only (Aisha Bello)
+
+### 5.19 Public: comments under a post
+- **Main board:** "What shipped in October, and what we're retiring" as Sam Rivera sees it: the post, Share this post, then "Comments (13)" with the form, the pinned comment and its Team reply, and the threads.
+
+States to show (on the same board):
+- a visitor, signed out
+- Alex Murphy's first comment, with the display-name field
+- Alex Murphy after posting: "Your comment is waiting for review."
+- comments for paid members only, as a free member
+- Sam Rivera replying in a thread
+- a removed comment with a reply
+- the end of a first page, with "Show more comments"
+- a blocked member
+- a comment refused for posting too many
+- the reply email, and the page behind "Stop these emails", before and after its button
+
 ---
 
 ## 6. Changes to existing screens
@@ -1036,6 +1178,8 @@ All in CommerceStates:
   - product delivery failed
   - dispute opened
   - website domain or certificate problem
+  - posts imported, for whoever started the import
+  - comments waiting for review, for people with comments:moderate
 - **Audit log:** the actions from 3.8, and filter categories Website, Products and Commerce.
 - **Settings › MCP server:** the new tools in the agents' permission matrix: list and read posts, pages and products; draft a post; propose publishing.
 - **DSCoverage and `docs/DESIGN_INVENTORY.md`:** the new boards, and the conflicts in section 8.
@@ -1120,8 +1264,13 @@ New boards for the canvas page "P7 Website, pages & commerce". Public pages are 
 | 15 | `ProductEditor.dc.html` | Product editor · The Deliverability Field Guide | 5.13 | 1440 | – | – |
 | 16 | `IntegrationsShopify.dc.html` | Integrations · Shopify (Acme Merch) | 5.15 | 1440 | Yes | Yes |
 | 17 | `CommerceStates.dc.html` | Products and stores · connect, product blocks, abandoned-cart starter, states | 5.12–5.16 | 1440 | – | – |
+| 18 | `WebsiteImport.dc.html` | Website · import posts from Substack, Ghost or WordPress | 5.17 | 1440 | – | Yes |
+| 19 | `WebsiteImportStates.dc.html` | Website · import posts · states | 5.17 | 1440 | – | – |
+| 20 | `WebsiteComments.dc.html` | Website · comments waiting for review | 5.18 | 1440 | Yes | Yes |
+| 21 | `WebsiteCommentsStates.dc.html` | Website · comments · states | 5.18 | 1440 | – | – |
+| 22 | `PublicPostComments.dc.html` | Public · comments under a post (Sam Rivera) | 5.19 | 720 | – | Yes |
 
-That's 17 new boards: 13 at 1440 px and 4 public pages at 720 px. Plus 5 tablet and 9 phone boards. The two public states boards are 1440 px wide, holding 720 px frames side by side.
+That's 22 new boards: 17 at 1440 px and 5 public pages at 720 px (rows 18–22 came with post import and comments). Plus 6 tablet and 12 phone boards. The two public states boards are 1440 px wide, holding 720 px frames side by side.
 
 **Existing boards to update (section 6):**
 
@@ -1147,3 +1296,8 @@ That's 17 new boards: 13 at 1440 px and 4 public pages at 720 px. Plus 5 tablet 
 | Phase 1 boards: Transactional templates and settings | Product delivery starter; Purchases category |
 | Phase 6 boards: Earn overview and tabs | Products tab; Product sales and Store revenue cards |
 | `DSCoverage.dc.html`, `DSPatterns.dc.html`, `DSComponents.dc.html` | New boards in the coverage matrix; section 7 patterns |
+| `WebsitePosts.dc.html` (+ tablet, phone) | "Import posts" menu; Comments column |
+| `WebsiteAccess.dc.html` | Comments card |
+| `WebsiteHomeNav.dc.html`, `WebsiteStates.dc.html` | The Comments view in the Website pill tabs |
+| `ComposerPublishToWeb.dc.html` (+ phone) | "Comments" in the Web tab |
+| `PublicAccount.dc.html` (+ phone) | Comments section: display name and reply emails |
