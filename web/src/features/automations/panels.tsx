@@ -53,7 +53,17 @@ import { m as waStep } from '@/features/whatsapp/automation.messages'
 import { WhatsAppStepProps, WhatsAppStepStats, WhatsAppStepSub } from '@/features/whatsapp/AutomationStep'
 import { T, useI18n, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
-import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
+import {
+  isStoreTrigger,
+  isTrackerTrigger,
+  PlacedOrderFields,
+  StoreTriggerFields,
+  storeTriggerDefaults,
+  TrackerTriggerFields,
+  trackerTriggerDefaults,
+  useStoreTriggerOptions,
+} from '@/features/commerce/automation'
+import { cf } from '@/features/commerce/flows.messages'
 import { isPaidTrigger, paidGroupName, PaidTriggerFields, paidTriggerDefaults } from '@/features/earn/automation'
 
 type Options = Schemas['AutomationOptions']
@@ -118,7 +128,16 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
     <>
       <div className="grp">{tr(mp.triggers)}</div>
       <div className="flex flex-col gap-1.5 px-3 pb-2">
-        {TRIGGER_KINDS.filter((kind) => !isPaidTrigger(kind)).map((kind) => item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }))}
+        {TRIGGER_KINDS.filter((kind) => !isPaidTrigger(kind) && !isStoreTrigger(kind) && !isTrackerTrigger(kind)).map((kind) =>
+          item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }),
+        )}
+      </div>
+      {/* Store triggers, with Website tracking's store flows (M62, AutomationsComplete strip 8). */}
+      <div className="grp">{tr(cf.storeGroup)}</div>
+      <div className="flex flex-col gap-1.5 px-3 pb-2">
+        {TRIGGER_KINDS.filter((kind) => isStoreTrigger(kind) || isTrackerTrigger(kind)).map((kind) =>
+          item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }),
+        )}
       </div>
       {paid ? (
         <>
@@ -748,6 +767,7 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
                 also: t.also,
                 ...(kind === 'score_crosses' ? scoreTriggerDefaults(options?.scoreBands) : {}),
                 ...storeTriggerDefaults(kind, stores),
+                ...trackerTriggerDefaults(kind, stores),
                 ...paidTriggerDefaults(kind),
                 kind,
               },
@@ -804,6 +824,8 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
         {t.kind === 'bought_product' ? <BoughtTriggerProps t={t} disabled={disabled} set={set} products={options?.products} /> : null}
         {/* Order placed, First order and Abandoned checkout (design expansion, X20). */}
         {isStoreTrigger(t.kind) ? <StoreTriggerFields t={t} set={set} disabled={disabled} graph={graph} /> : null}
+        {/* Website tracking's store flows (M62). */}
+        {isTrackerTrigger(t.kind) ? <TrackerTriggerFields t={t} set={set} disabled={disabled} tracked={options?.trackedStores ?? []} /> : null}
         {/* Paid members (G-11). */}
         {isPaidTrigger(t.kind) ? <PaidTriggerFields t={t} set={set} disabled={disabled} tiers={options?.tiers} /> : null}
         {t.kind === 'api_event' ? (

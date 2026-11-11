@@ -16,12 +16,18 @@ import { clock, count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { commerceBase, money, storesBase, useCatalog } from './api'
 import { ce } from './elsewhere.messages'
+import { cf } from './flows.messages'
 import './commerce.css'
 import { SwitchInput } from '@/components/ui/Field'
 
 export { ce }
 
 type Block = Schemas['CommerceBlock']
+
+/** The modes whose products the server picks: a collection, best sellers, or each reader's own (M62). */
+const filled = (mode: Block['mode']) => mode !== 'chosen' && mode !== 'card'
+/** Recently viewed, Bought together and Viewed products: each reader's own products. */
+const readerMode = (mode: Block['mode']) => mode === 'recently_viewed' || mode === 'bought_together' || mode === 'viewed'
 type Render = Schemas['CommerceBlockRender']
 type Product = Schemas['CommerceProduct']
 type CatalogStore = Schemas['CommerceCatalogStore']
@@ -292,7 +298,7 @@ export function StoreBlockStyle({ section }: { section: Component }) {
   const render = useQuery({
     queryKey: ['commerce-render', c.slug, key],
     queryFn: () => drawBlock(c.slug, block!),
-    enabled: !!block && (block.products.length > 0 || block.mode === 'collection'),
+    enabled: !!block && (block.products.length > 0 || filled(block.mode)),
     staleTime: 30_000,
   })
   const applied = useRef('')
@@ -321,6 +327,16 @@ export function StoreBlockStyle({ section }: { section: Component }) {
   const removed = render.data?.removed ?? []
   const first = removed[0]
   const collections = store?.collections ?? []
+  const hint =
+    block.mode === 'best_sellers'
+      ? t(cf.bestSellersHint)
+      : block.mode === 'recently_viewed'
+        ? t(cf.recentlyViewedHint)
+        : block.mode === 'bought_together'
+          ? t(cf.boughtTogetherHint)
+          : block.mode === 'viewed'
+            ? t(cf.viewedHint)
+            : undefined
   return (
     <>
       <div className="flex flex-col gap-0.5 border-b border-line-2" style={{ padding: '10px 12px' }}>
@@ -358,20 +374,74 @@ export function StoreBlockStyle({ section }: { section: Component }) {
         </Prop>
       ) : null}
       {card ? null : (
-        <Prop title={t(ce.products)}>
-          <Seg
-            label={t(ce.products)}
-            value={block.mode === 'collection' ? 'collection' : 'chosen'}
-            disabled={disabled}
-            onChange={(mode) => void update(mode === 'collection' ? { mode, collection: block.collection || collections[0]?.id || '', count: block.count || 3 } : { mode })}
-            options={[
-              { value: 'chosen', label: t(ce.chosen) },
-              { value: 'collection', label: t(ce.newest) },
-            ]}
-          />
+        <Prop>
+          <label className="lbl">
+            {t(cf.products)}
+            <select
+              className="in"
+              disabled={disabled}
+              value={block.mode}
+              aria-describedby={hint ? 'cm-mode-hint' : undefined}
+              onChange={(e) => {
+                const mode = e.target.value as Block['mode']
+                if (mode === 'chosen') return void update({ mode })
+                if (mode === 'collection') return void update({ mode, collection: block.collection || collections[0]?.id || '', count: block.count || 3 })
+                // Best sellers keep a collection only when one was picked; the reader's own modes have none.
+                return void update({ mode, collection: mode === 'best_sellers' ? '' : undefined, count: block.count || 3 })
+              }}
+            >
+              <optgroup label={t(cf.sameForEveryone)}>
+                <option value="chosen">{t(cf.chosen)}</option>
+                <option value="collection">{t(cf.newest)}</option>
+                <option value="best_sellers">{t(cf.bestSellers)}</option>
+              </optgroup>
+              <optgroup label={t(cf.eachReader)}>
+                <option value="recently_viewed">{t(cf.recentlyViewed)}</option>
+                <option value="bought_together">{t(cf.boughtTogether)}</option>
+                {/* Only automation emails fill it: the campaign composer offers it greyed out. */}
+                <option value="viewed" disabled={block.mode !== 'viewed'}>
+                  {t(cf.viewed)}
+                </option>
+              </optgroup>
+            </select>
+            {hint ? (
+              <span className="k" id="cm-mode-hint">
+                {hint}
+              </span>
+            ) : null}
+          </label>
+          {render.data?.note ? <span className="k text-ink-nav">{render.data.note}</span> : null}
         </Prop>
       )}
-      {block.mode === 'collection' ? (
+      {block.mode === 'best_sellers' || readerMode(block.mode) ? (
+        <Prop>
+          <div className="row2">
+            {block.mode === 'best_sellers' ? (
+              <label className="k">
+                {t(ce.collection)}
+                <select className="in" disabled={disabled} value={block.collection ?? ''} onChange={(e) => void update({ collection: e.target.value })}>
+                  <option value="">{t(cf.anyCollection)}</option>
+                  {collections.map((col) => (
+                    <option key={col.id} value={col.id}>
+                      {t(ce.collectionOption, { title: col.title, count: count(col.products) })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <label className="k">
+              {t(ce.howMany)}
+              <select className="in" disabled={disabled} value={String(block.count || 3)} onChange={(e) => void update({ count: Number(e.target.value) })}>
+                {[2, 3, 4, 6].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </Prop>
+      ) : block.mode === 'collection' ? (
         <Prop>
           <div className="row2">
             <label className="k">
