@@ -202,6 +202,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>Let people pick lists</label>
           <button class="btn sm" style="align-self:flex-start">Add custom field</button>
         </div>
+        <div class="sec"><span class="k">Steps</span><div class="seg" role="group" aria-label="Steps"><button class="on" aria-pressed="true">One step</button><button aria-pressed="false">Several steps</button></div><span class="k">Everything shows at once.</span></div>
         <div class="sec"><span class="k">Lists</span>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>Weekly Digest · checked by default</label>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>Product Updates</label>
@@ -217,11 +218,12 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>Cloudflare Turnstile · shows only when a submission looks automated</label>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>Reject disposable domains and role addresses</label>
         </div>
-        <div class="sec" style="border-bottom:0"><span class="k">After submit</span><select aria-label="After submit" class="in"><option>Show "check your inbox" message</option><option>Redirect to a URL</option></select></div>
+        <div class="sec"><span class="k">After submit</span><select aria-label="After submit" class="in"><option>Show "check your inbox" message</option><option>Redirect to a URL</option></select></div>
+        <div class="sec" style="border-bottom:0"><span class="k">Where and when</span><div style="display:flex;align-items:center;gap:10px"><span style="flex:1 1 auto;min-width:0;font-size:13px">Shown on every page, to everyone.</span><button class="btn sm" aria-label="Edit where and when">Edit</button></div></div>
       </aside>
 
       <section role="main" id="main" style="flex:999 1 420px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB"><span class="k">Live preview · embedded on acme.io</span><div class="seg" style="margin-left:auto"><button class="on">Desktop</button><button>Mobile</button></div></div><div style="padding:12px 14px 0"><section class="card" style="padding:14px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;border-color:#99F6E4;background:#F0FDFA;box-shadow:0 1px 2px rgba(11,18,32,.06)" aria-label="Welcome series suggestion"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.6" aria-hidden="true" style="flex:none"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span style="display:flex;flex-direction:column;gap:2px;flex:1 1 320px;min-width:0"><span style="font-weight:600">New subscribers of Product Updates get no welcome email yet</span><span class="k" style="color:#374151">The Welcome series starter sends three emails over the first week. Weekly Digest already has one.</span></span><span style="display:flex;gap:8px;flex-wrap:wrap"><a href="AutomationFlow.dc.html" class="btn sm pri">Start the welcome series</a><button class="btn sm">Not now</button></span></section></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB"><button class="btn sm">+ Add variant</button><span class="k">Live preview · embedded on acme.io</span><div class="seg" style="margin-left:auto"><button class="on">Desktop</button><button>Mobile</button></div></div><div style="padding:12px 14px 0"><section class="card" style="padding:14px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;border-color:#99F6E4;background:#F0FDFA;box-shadow:0 1px 2px rgba(11,18,32,.06)" aria-label="Welcome series suggestion"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="1.6" aria-hidden="true" style="flex:none"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span style="display:flex;flex-direction:column;gap:2px;flex:1 1 320px;min-width:0"><span style="font-weight:600">New subscribers of Product Updates get no welcome email yet</span><span class="k" style="color:#374151">The Welcome series starter sends three emails over the first week. Weekly Digest already has one.</span></span><span style="display:flex;gap:8px;flex-wrap:wrap"><a href="AutomationFlow.dc.html" class="btn sm pri">Start the welcome series</a><button class="btn sm">Not now</button></span></section></div>
         <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:36px 24px">
           <div style="width:100%;max-width:520px;background:#fff;border:1px solid #E3E6EB;border-radius:14px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px" class="pf">
             <div style="display:flex;align-items:center;gap:10px"><span style="width:34px;height:34px;border-radius:9px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">A</span><span style="font-weight:700;font-size:16px">The Acme newsletter</span></div>
@@ -260,7 +262,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1223}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1413}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};
