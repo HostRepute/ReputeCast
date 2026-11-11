@@ -190,7 +190,7 @@ func Register(h huma.API, s *Service) {
 	api.Patch(h, api.Op{ID: "update-send-settings", Path: "/workspaces/{workspace}/campaigns/{campaignId}/send-settings", Summary: "Change the auto-pause thresholds, the schedule or whether the send includes the holdout group",
 		Description: "The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: " +
 			"the checks run again, and it can't change while the send is scheduled.",
-		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit), Status: 204},
+		Tags: tags, Access: api.Workspace(authz.CampaignsEdit), Status: 204},
 		func(ctx context.Context, in *settingsInput) (*api.Empty, error) {
 			id, err := in.ID()
 			if err != nil {
