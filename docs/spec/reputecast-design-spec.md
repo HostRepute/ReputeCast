@@ -381,7 +381,7 @@ Design the reputecast.com landing page and a GitHub README banner.
 Include:
 - an honest comparison with listmonk, Keila, Notifuse, Mautic and Brevo
 - a cost calculator comparing providers at the user's volume, with editable prices
-- a one-command docker compose install
+- a one-command docker compose install, plus the Helm chart and one-click installs (Render, Railway, DigitalOcean, Coolify) since M64
 - features
 - "Built by HostRepute"
 - GitHub and Discord calls to action

@@ -523,7 +523,7 @@ States to show:
   - limits: message size per route, 100 messages per batch, rate per key
   - an error table
   - a link to the instance's OpenAPI document
-  - code samples in cURL, Node.js, Python, Go and PHP
+  - code samples in cURL, Node.js, Python, Go and PHP; Node.js, Python and Go through the ReputeCast SDKs (`@reputecast/client`, `reputecast`, `github.com/hostrepute/reputecast/sdk/client-go`, generated from the public OpenAPI document, since M64) by default, with an SDK · HTTP switch back to the plain request
 - **Keys that can send:**
   - every key holding transactional:send, with name, mode (live or test), template scope, last used and created by
   - "Create send-only key": name, mode, template scope, allowed test addresses (test mode), expiry
@@ -626,7 +626,7 @@ States to show:
 
 Add these to the "9 Design system" page before the screens. Use the existing tokens and badge colors.
 
-- **Code samples:** language tabs (cURL, Node.js, Python, Go, PHP) with copy, and a request and response viewer.
+- **Code samples:** language tabs (cURL, Node.js, Python, Go, PHP) with copy, an SDK · HTTP switch for the languages with an SDK (M64), and a request and response viewer.
 - **Variables:** a variables table next to a JSON test-data editor.
 - **Message status badges:**
   - Queued: neutral
