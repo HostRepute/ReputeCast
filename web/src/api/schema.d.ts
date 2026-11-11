@@ -5405,8 +5405,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Change the auto-pause thresholds or the schedule
-         * @description The schedule is part of what an approval covers: changing it invalidates the approval.
+         * Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
+         * @description The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
          */
         patch: operations["update-send-settings"];
         trace?: never;

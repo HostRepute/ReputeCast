@@ -459,16 +459,6 @@
       min-height: 44px;
     }
   }
-}
-
-/* "Delivered to Gmail" stays one pill and the line beside it wraps
-   (SendReadinessPhone). Outside the layer: app.css's phone rules let badges
-   wrap, unlayered. */
-@media (max-width: 1100px) {
-  .rv-card .rv-sum > .badge {
-    flex: none;
-    white-space: nowrap;
-  }
   /* "Include the holdout group" under Final recipients (M63, SendReadiness). */
   .rv-hold {
     border-top: 1px solid var(--line-2);
@@ -490,5 +480,15 @@
     .rv-hold-chk {
       min-height: 44px;
     }
+  }
+}
+
+/* "Delivered to Gmail" stays one pill and the line beside it wraps
+   (SendReadinessPhone). Outside the layer: app.css's phone rules let badges
+   wrap, unlayered. */
+@media (max-width: 1100px) {
+  .rv-card .rv-sum > .badge {
+    flex: none;
+    white-space: nowrap;
   }
 }

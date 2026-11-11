@@ -126025,7 +126025,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings": {
       "patch": {
-        "description": "The schedule is part of what an approval covers: changing it invalidates the approval.",
+        "description": "The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.",
         "operationId": "update-send-settings",
         "parameters": [
           {
@@ -126085,7 +126085,7 @@
             "bearer": []
           }
         ],
-        "summary": "Change the auto-pause thresholds or the schedule",
+        "summary": "Change the auto-pause thresholds, the schedule or whether the send includes the holdout group",
         "tags": [
           "Review \u0026 send"
         ],
