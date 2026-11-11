@@ -81,8 +81,8 @@ function lit(v: string | number, q: '"' | "'" = '"'): string {
 
 /** The instance's base URL and the workspace slug of a send endpoint, for the SDKs' clients. */
 function target(endpoint: string): { base: string; workspace: string } {
-  const m = /^(.*?)\/api\/v1\/workspaces\/([^/]+)\//.exec(endpoint)
-  return m ? { base: m[1], workspace: m[2] } : { base: endpoint.replace(/\/api\/.*$/, ''), workspace: '' }
+  const [, base, workspace] = /^(.*?)\/api\/v1\/workspaces\/([^/]+)\//.exec(endpoint) ?? []
+  return base !== undefined && workspace ? { base, workspace } : { base: endpoint.replace(/\/api\/.*$/, ''), workspace: '' }
 }
 
 /** The same call through the ReputeCast SDK (sdk/client-ts, sdk/client-python, sdk/client-go). */
