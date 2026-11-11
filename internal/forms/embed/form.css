@@ -195,14 +195,14 @@
 }
 .rcf-stepbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 .rcf-stepof {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: #5b6472;
+  color: #4b5563;
 }
 .rcf-dots {
   display: inline-flex;
@@ -212,18 +212,18 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #d5d9e0;
+  background: #c9ced6;
 }
 .rcf-dots span.done {
-  background: var(--rcf-hover, #3730a3);
+  background: var(--rcf-accent, #4338ca);
 }
 .rcf-dots span.on {
   background: var(--rcf-accent, #4338ca);
   width: 20px;
-  border-radius: 4px;
+  border-radius: 999px;
 }
 .rcf-steph {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
 }
 .rcf-steph:focus,
@@ -232,13 +232,12 @@
 }
 .rcf-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
-.rcf-nav .rcf-submit {
-  flex: 1 1 auto;
-}
+.rcf-nav .rcf-submit,
 .rcf .rcf-nav .rcf-btn2 {
-  flex: none;
+  flex: 1 1 120px;
   min-height: 46px;
 }
 .rcf-done {

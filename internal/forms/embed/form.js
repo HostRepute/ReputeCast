@@ -459,14 +459,15 @@
       steps.forEach(function (st, i) {
         var box = el('div', 'rcf-step')
         box.hidden = i > 0
+        // The dots, then "Step 2 of 3" (FormsStates' several steps).
         var top = el('div', 'rcf-stepbar')
-        var of = el('span', 'rcf-stepof', fill(t.text.stepOf, i + 1, steps.length))
-        of.tabIndex = -1
-        top.appendChild(of)
         var dots = el('span', 'rcf-dots')
         dots.setAttribute('aria-hidden', 'true')
         for (var d = 0; d < steps.length; d++) dots.appendChild(el('span', d === i ? 'on' : d < i ? 'done' : ''))
         top.appendChild(dots)
+        var of = el('span', 'rcf-stepof', fill(t.text.stepOf, i + 1, steps.length))
+        of.tabIndex = -1
+        top.appendChild(of)
         box.appendChild(top)
         var focus = of
         if (st.heading) {

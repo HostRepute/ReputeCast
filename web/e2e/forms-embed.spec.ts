@@ -11,8 +11,10 @@ import { signIn as demoSignIn } from '../scripts/lib/demo-auth.ts'
 
 const ws = '/api/v1/workspaces/acme-newsletter'
 
+// The server takes each authenticator code once: a second sign-in may wait
+// for the next one.
 async function signIn(page: Page) {
-  test.setTimeout(120_000)
+  test.setTimeout(180_000)
   await demoSignIn(page.context(), '', 'linh@acme.io')
 }
 
@@ -81,8 +83,21 @@ async function threeStepPopup(page: Page): Promise<SignupForm> {
   return (await saved.json()) as SignupForm
 }
 
-/** Serves the publisher's page under /e2e-forms/ with the form's script. */
+/**
+ * Serves the publisher's page under /e2e-forms/ with the form's script. The
+ * demo's verified custom domain (news.acme.io) is where the script and its
+ * session, step and submit addresses point: the test sends those requests
+ * to the server under test, with the page's Origin as a browser would.
+ */
 async function hostPage(page: Page, form: SignupForm) {
+  const base = test.info().project.use.baseURL ?? 'http://localhost:5173'
+  const site = new URL(form.urls.script).origin
+  if (site !== new URL(base).origin) {
+    await page.route(`${site}/**`, async (route) => {
+      const u = new URL(route.request().url())
+      await route.fulfill({ response: await route.fetch({ url: `${base}${u.pathname}${u.search}` }) })
+    })
+  }
   await page.route('**/e2e-forms/**', (route) =>
     route.fulfill({
       contentType: 'text/html; charset=utf-8',
@@ -108,16 +123,16 @@ test('a three-step popup moves with Next and Back and sends only from the last s
     // Next checks the step first: the email is required.
     await dialog.getByRole('button', { name: 'Next' }).click()
     await expect(dialog.getByText('Enter your email address.', { exact: false })).toBeVisible()
-    await dialog.getByLabel('Email').fill('three.steps@fastmail.com')
+    await dialog.getByRole('textbox', { name: 'Email' }).fill('three.steps@fastmail.com')
     await dialog.getByRole('button', { name: 'Next' }).click()
     await expect(dialog.getByText('What are you into?', { exact: true })).toBeFocused()
     await expect(dialog.locator('[aria-live="polite"]')).toHaveText('Step 2 of 3')
-    await expect(dialog.getByLabel('Email')).toBeHidden()
+    await expect(dialog.getByRole('textbox', { name: 'Email' })).toBeHidden()
 
     // Back keeps the answers.
     await dialog.getByRole('button', { name: 'Back' }).click()
     await expect(dialog.getByText('Your email', { exact: true })).toBeFocused()
-    await expect(dialog.getByLabel('Email')).toHaveValue('three.steps@fastmail.com')
+    await expect(dialog.getByRole('textbox', { name: 'Email' })).toHaveValue('three.steps@fastmail.com')
     await dialog.getByRole('button', { name: 'Next' }).click()
 
     // A required choice question needs an answer before the last step.
