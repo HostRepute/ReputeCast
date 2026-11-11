@@ -5,6 +5,9 @@
 // publicly at /media/{id}/{file} with immutable caching, because email
 // clients fetch them without a session. Content stores root-relative URLs;
 // Absolutize turns them into public URLs when an email leaves ReputeCast.
+// Images that come from elsewhere (posts imported from another platform)
+// go through Prepare, which also takes WebP and stores it as JPEG, or PNG
+// when it has transparency: WebP doesn't display in Outlook.
 package media
 
 import (
@@ -13,6 +16,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"image"
+	"image/color"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -29,6 +33,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	xwebp "golang.org/x/image/webp"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -91,7 +96,7 @@ type MediaOriginal struct {
 	SizeBytes   int    `json:"sizeBytes"`
 	Width       int    `json:"width"`
 	Height      int    `json:"height"`
-	ContentType string `json:"contentType" enum:"image/png,image/jpeg,image/gif"`
+	ContentType string `json:"contentType" enum:"image/png,image/jpeg,image/gif,image/webp"`
 }
 
 func originalOf(size, width, height *int32, contentType *string) *MediaOriginal {
@@ -140,15 +145,16 @@ func (e ImageError) Error() string { return string(e) }
 
 // Inspect validates image bytes by their content and returns the type,
 // dimensions and whether the image has transparency. Its ImageError reads
-// in English.
+// in English. WebP is refused: its callers store the bytes as they are.
 func Inspect(data []byte) (contentType string, width, height int, alpha bool, err error) {
-	return inspect(i18n.Default, data, MaxBytes)
+	return inspect(i18n.Default, data, MaxBytes, false)
 }
 
 // inspect is Inspect with the reason in a reader's language. limit is the
 // largest file accepted: MaxBytes, or MaxUploadBytes for an upload that is
-// compressed before it's stored.
-func inspect(l i18n.Lang, data []byte, limit int) (contentType string, width, height int, alpha bool, err error) {
+// compressed before it's stored. webp accepts WebP, for a caller that
+// stores what optimize makes of it.
+func inspect(l i18n.Lang, data []byte, limit int, webp bool) (contentType string, width, height int, alpha bool, err error) {
 	refuse := func(m i18n.Msg, args i18n.Args) (string, int, int, bool, error) {
 		return "", 0, 0, false, ImageError(m.Text(l, args))
 	}
@@ -172,7 +178,10 @@ func inspect(l i18n.Lang, data []byte, limit int) (contentType string, width, he
 	case "image/gif":
 		cfg, err = gif.DecodeConfig(bytes.NewReader(data))
 	case "image/webp":
-		return refuse(mWebP, nil)
+		if !webp {
+			return refuse(mWebP, nil)
+		}
+		cfg, err = xwebp.DecodeConfig(bytes.NewReader(data))
 	default:
 		if strings.Contains(string(data[:min(len(data), 512)]), "<svg") {
 			return refuse(mSVG, nil)
@@ -198,7 +207,8 @@ func mb(l i18n.Lang, n int) string {
 }
 
 // hasAlpha reports transparency: PNG with an alpha channel or a tRNS chunk,
-// GIF with a transparent color index.
+// GIF with a transparent color index, WebP with an alpha channel (lossless
+// WebP always has one; optimize looks at its pixels).
 func hasAlpha(contentType string, data []byte, cfg image.Config) bool {
 	switch contentType {
 	case "image/png":
@@ -211,43 +221,87 @@ func hasAlpha(contentType string, data []byte, cfg image.Config) bool {
 		// Graphic Control Extension with the transparency flag.
 		i := bytes.Index(data, []byte{0x21, 0xF9, 0x04})
 		return i >= 0 && len(data) > i+3 && data[i+3]&0x01 == 1
+	case "image/webp":
+		return cfg.ColorModel == color.NRGBAModel || cfg.ColorModel == color.NYCbCrAModel
 	}
-	_ = cfg
 	return false
+}
+
+// Prepared is an image ready for the library: checked by its content,
+// resized and compressed for email, its metadata removed.
+type Prepared struct {
+	Data          []byte
+	ContentType   string
+	Width, Height int
+	HasAlpha      bool
+	// Sha256 is the file's own: the same file found again is the same asset.
+	Sha256 [32]byte
+	// Original is what came in, when what's stored differs from it.
+	Original *MediaOriginal
+}
+
+// Prepare readies an image that comes from elsewhere (an imported post's)
+// for the library, as Upload readies an upload, without its audit entry:
+// up to MaxUploadBytes in, MaxBytes stored. WebP is accepted and stored as
+// JPEG, or PNG when it has transparency. Its ImageError reads in English.
+func Prepare(ctx context.Context, data []byte) (Prepared, error) {
+	return prepare(ctx, i18n.Default, data, true)
+}
+
+// prepare is Prepare in a reader's language; webp says whether WebP is
+// taken.
+func prepare(ctx context.Context, l i18n.Lang, data []byte, webp bool) (Prepared, error) {
+	ctype, w, h, _, err := inspect(l, data, MaxUploadBytes, webp)
+	if err != nil {
+		return Prepared{}, err
+	}
+	release, err := DecodeSlot(ctx)
+	if err != nil {
+		return Prepared{}, err
+	}
+	o, err := optimize(ctype, data, w, h)
+	release()
+	if err != nil {
+		return Prepared{}, ImageError(mDamaged.Text(l, nil))
+	}
+	if len(o.data) > MaxBytes {
+		return Prepared{}, ImageError(mStillTooLarge.Text(l, i18n.Args{"size": mb(l, len(o.data))}))
+	}
+	p := Prepared{Data: o.data, ContentType: o.contentType, Width: o.width, Height: o.height,
+		HasAlpha: hasAlpha(o.contentType, o.data, image.Config{}), Sha256: sha256.Sum256(data)}
+	if !bytes.Equal(o.data, data) {
+		p.Original = &MediaOriginal{SizeBytes: len(data), Width: w, Height: h, ContentType: ctype}
+	}
+	return p, nil
+}
+
+// Params are the library row of a prepared image: its file name made safe,
+// who added it and when.
+func (p Prepared) Params(ws uuid.UUID, fileName string, by *uuid.UUID, at time.Time) store.InsertMediaAssetParams {
+	params := store.InsertMediaAssetParams{
+		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, FileName: SafeFileName(fileName, p.ContentType), ContentType: p.ContentType,
+		SizeBytes: int32(len(p.Data)), Width: int32(p.Width), Height: int32(p.Height), HasAlpha: p.HasAlpha, Sha256: p.Sha256[:], Data: p.Data,
+		CreatedBy: by, CreatedAt: at,
+	}
+	if o := p.Original; o != nil {
+		size, ow, oh, oct := int32(o.SizeBytes), int32(o.Width), int32(o.Height), o.ContentType
+		params.OriginalSizeBytes, params.OriginalWidth, params.OriginalHeight, params.OriginalContentType = &size, &ow, &oh, &oct
+	}
+	return params
 }
 
 // Upload stores an image (or returns the identical one already stored),
 // resized and compressed for email with its metadata removed.
 func (s *Service) Upload(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, fileName string, data []byte) (MediaAsset, error) {
-	l := i18n.LangFrom(ctx)
-	ctype, w, h, _, err := inspect(l, data, MaxUploadBytes)
-	if err != nil {
-		return MediaAsset{}, api.Invalid("body.file", err.Error())
+	prep, err := prepare(ctx, i18n.LangFrom(ctx), data, false)
+	var refused ImageError
+	if errors.As(err, &refused) {
+		return MediaAsset{}, api.Invalid("body.file", refused.Error())
 	}
-	release, err := DecodeSlot(ctx)
 	if err != nil {
 		return MediaAsset{}, err
 	}
-	o, err := optimize(ctype, data, w, h)
-	release()
-	if err != nil {
-		return MediaAsset{}, api.Invalid("body.file", mDamaged.Text(l, nil))
-	}
-	if len(o.data) > MaxBytes {
-		return MediaAsset{}, api.Invalid("body.file", mStillTooLarge.Text(l, i18n.Args{"size": mb(l, len(o.data))}))
-	}
-	// The uploaded file's hash: the same file uploaded twice is found again.
-	sum := sha256.Sum256(data)
-	name := SafeFileName(fileName, o.contentType)
-	p := store.InsertMediaAssetParams{
-		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, FileName: name, ContentType: o.contentType, SizeBytes: int32(len(o.data)),
-		Width: int32(o.width), Height: int32(o.height), HasAlpha: hasAlpha(o.contentType, o.data, image.Config{}), Sha256: sum[:], Data: o.data,
-		CreatedBy: actor, CreatedAt: s.now(),
-	}
-	if !bytes.Equal(o.data, data) {
-		size, ow, oh, oct := int32(len(data)), int32(w), int32(h), ctype
-		p.OriginalSizeBytes, p.OriginalWidth, p.OriginalHeight, p.OriginalContentType = &size, &ow, &oh, &oct
-	}
+	p := prep.Params(ws.ID, fileName, actor, s.now())
 	var out MediaAsset
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

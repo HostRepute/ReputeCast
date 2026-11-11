@@ -10,6 +10,8 @@ import (
 	"image/png"
 	"io"
 	"math"
+
+	xwebp "golang.org/x/image/webp"
 )
 
 // Uploads are stored the way email needs them (review 2026-10, CO-12): at
@@ -63,6 +65,8 @@ func optimize(contentType string, data []byte, width, height int) (optimized, er
 		return optimizePNG(data, width, height)
 	case "image/gif":
 		return optimized{data: stripGIF(data), contentType: contentType, width: width, height: height}, nil
+	case "image/webp":
+		return optimizeWebP(data, width, height)
 	}
 	return optimized{data: data, contentType: contentType, width: width, height: height}, nil
 }
@@ -178,6 +182,38 @@ func optimizePNG(data []byte, w, h int) (optimized, error) {
 		}
 	}
 	return best, nil
+}
+
+// optimizeWebP stores a WebP as email shows it: JPEG, or PNG when it has
+// transparency, at most MaxWidth wide. Only its pixels are kept, so its
+// metadata goes too.
+func optimizeWebP(data []byte, w, h int) (optimized, error) {
+	tw, th := fit(w, h)
+	// Decoding, and the RGBA copy a resize makes.
+	cost, _, _, ok := DecodeCost(data)
+	if !ok || cost+int64(4*tw*th*btoi(tw != w)) > DecodeBudget {
+		return optimized{}, errUnreadable
+	}
+	img, err := xwebp.Decode(bytes.NewReader(data))
+	if err != nil {
+		return optimized{}, errUnreadable
+	}
+	m := img
+	if tw != w {
+		m = scale(img, tw, th)
+	}
+	if !isOpaque(m) {
+		enc, err := encodePNG(m, nil)
+		if err != nil {
+			return optimized{}, err
+		}
+		return optimized{data: enc, contentType: "image/png", width: tw, height: th}, nil
+	}
+	enc, err := encodeJPEG(m, nil)
+	if err != nil {
+		return optimized{}, err
+	}
+	return optimized{data: enc, contentType: "image/jpeg", width: tw, height: th}, nil
 }
 
 // ── JPEG ───────────────────────────────────────────────────────────────

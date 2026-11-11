@@ -5,6 +5,8 @@ import (
 	"context"
 	"image/gif"
 	"image/png"
+
+	xwebp "golang.org/x/image/webp"
 )
 
 // Decoding an image takes memory its file doesn't show: a few hundred
@@ -17,9 +19,11 @@ import (
 // and its size in pixels, read from its header: for a PNG its pixels (8
 // bytes each at 16 bits, 4 otherwise, and twice that for an interlaced
 // one, decoded pass by pass next to the whole image), for a GIF its first
-// frame (a byte a pixel, within the screen), for a JPEG what image/jpeg
-// allocates for its frame (jpegFrame.memory). ok is false when the header
-// isn't one a decoder would read, or the image is empty.
+// frame (a byte a pixel, within the screen), for a WebP 8 bytes a pixel
+// (a lossless one is decoded as 32-bit words, then copied to the image it
+// returns), for a JPEG what image/jpeg allocates for its frame
+// (jpegFrame.memory). ok is false when the header isn't one a decoder
+// would read, or the image is empty.
 func DecodeCost(data []byte) (cost int64, width, height int, ok bool) {
 	switch {
 	case bytes.HasPrefix(data, pngSignature):
@@ -39,6 +43,12 @@ func DecodeCost(data []byte) (cost int64, width, height int, ok bool) {
 			return 0, 0, 0, false
 		}
 		return int64(cfg.Width) * int64(cfg.Height), cfg.Width, cfg.Height, true
+	case len(data) >= 12 && string(data[:4]) == "RIFF" && string(data[8:12]) == "WEBP":
+		cfg, err := xwebp.DecodeConfig(bytes.NewReader(data))
+		if err != nil || cfg.Width <= 0 || cfg.Height <= 0 {
+			return 0, 0, 0, false
+		}
+		return 8 * int64(cfg.Width) * int64(cfg.Height), cfg.Width, cfg.Height, true
 	}
 	f, found := readFrame(data)
 	if !found || f.width <= 0 || f.height <= 0 {
