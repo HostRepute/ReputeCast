@@ -349,25 +349,12 @@ func apiNotFound(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte(`{"status":404,"title":"Not Found","detail":"No such API endpoint.","code":"not_found"}`))
 }
 
+// trustedProxies reads http.trusted_proxies; entries that are no address,
+// network or "private" are logged and ignored.
 func trustedProxies(cidrs []string, log *slog.Logger) []netip.Prefix {
-	var out []netip.Prefix
-	for _, c := range cidrs {
-		c = strings.TrimSpace(c)
-		if c == "" {
-			continue
-		}
-		if !strings.Contains(c, "/") {
-			if ip, err := netip.ParseAddr(c); err == nil {
-				out = append(out, netip.PrefixFrom(ip, ip.BitLen()))
-				continue
-			}
-		}
-		p, err := netip.ParsePrefix(c)
-		if err != nil {
-			log.Warn("ignoring invalid trusted proxy", "value", c)
-			continue
-		}
-		out = append(out, p)
+	out, invalid := config.ParseTrustedProxies(cidrs)
+	for _, c := range invalid {
+		log.Warn("ignoring invalid trusted proxy", "value", c)
 	}
 	return out
 }
