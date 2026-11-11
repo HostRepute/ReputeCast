@@ -416,6 +416,15 @@ const icons = {
     ),
   },
   barChart: { body: <path d="M2 14h12M4.2 11.5V8.2M8 11.5V3.8M11.8 11.5V6.2" /> },
+  // An uploaded file (Import posts, M61).
+  file: {
+    body: (
+      <>
+        <path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z" />
+        <path d="M9.5 1.5v3h3" />
+      </>
+    ),
+  },
 } satisfies Record<string, IconDef>
 
 export type IconName = keyof typeof icons

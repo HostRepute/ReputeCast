@@ -19,6 +19,7 @@ import { m } from './messages'
 import { visibilityIcon } from './postFormat'
 import { ReadOnlyNote, SavedLine, WebsitePage } from './WebsiteFrame'
 import { Check } from '@/components/ui/SelectAll'
+import { CommentsCard } from './comments/AccessComments'
 
 type Tier = Access['tiers'][number]
 
@@ -37,6 +38,8 @@ function inputOf(a: Access): AccessInput {
     meterMembers: a.meterMembers,
     neverFree: a.neverFree.map((p) => p.id),
     paywall: { ...a.paywall, tiers: [...a.paywall.tiers] },
+    comments: a.comments,
+    commentsReview: a.commentsReview,
   }
 }
 
@@ -161,6 +164,7 @@ function AccessEditor({ data, overview }: { data: Access; overview: Overview }) 
         <div className="flex min-w-0 flex-col gap-5">
           <PaywallCard data={data} draft={draft} set={set} ro={ro} />
           <MembersCard data={data} overview={overview} />
+          <CommentsCard data={data} draft={draft} set={set} ro={ro} />
         </div>
       </div>
       {dirty && canManage ? (

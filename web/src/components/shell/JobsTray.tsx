@@ -39,6 +39,8 @@ export function JobsTray() {
           kind: 'success',
           title:
             j.doneTitle ??
+            // An import of posts says what it did ("12 posts imported from Substack").
+            (j.kind === 'post_import' ? j.title : undefined) ??
             t(j.kind === 'import' ? m.jobImportFinished : j.kind === 'verification' ? m.jobVerificationFinished : j.kind === 'optin' ? m.jobOptinFinished : m.jobExportFinished),
           detail: j.detail,
           // A finished export downloads from the toast (its starter's file).

@@ -32,6 +32,7 @@ export const m = defineMessages('website', {
   viewPosts: 'Posts',
   viewHomeNav: 'Home & navigation',
   viewAccess: 'Access',
+  viewComments: 'Comments',
   liveValid: 'Live · {host} · certificate valid',
   liveFailing: 'Live · {host} · certificate failing',
   livePending: 'Live · {host} · certificate pending',

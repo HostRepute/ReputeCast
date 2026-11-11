@@ -29,6 +29,7 @@ export default translate(m, {
   viewPosts: 'Artículos',
   viewHomeNav: 'Inicio y navegación',
   viewAccess: 'Acceso',
+  viewComments: 'Comentarios',
   liveValid: 'En línea · {host} · certificado válido',
   liveFailing: 'En línea · {host} · certificado con errores',
   livePending: 'En línea · {host} · certificado pendiente',

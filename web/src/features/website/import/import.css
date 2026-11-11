@@ -1,0 +1,61 @@
+/* Import posts (WebsiteImport, WebsiteImportPhone, WebsiteImportStates): the
+   board's M61 classes with their values, colours from the tokens by job. */
+.wi-main { display: flex; flex-direction: column; gap: 20px; }
+.wi-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 20px; }
+.wi-head .tt { display: flex; flex-direction: column; gap: 6px; flex: 1 1 520px; min-width: 0; }
+.wi-head h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.wi-head .lead { font-size: 13.5px; color: var(--ink-2); }
+.wi-back { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; }
+.wi-trail { display: flex; gap: 6px; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+.wi-trail li { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--ink-3); }
+.wi-trail .n { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--ground-2); color: var(--ink-2); flex: none; }
+.wi-trail li.done { color: var(--ok-fg); }
+.wi-trail li.done .n { background: var(--ok-bg); }
+.wi-trail li.on { color: var(--accent); }
+.wi-trail li.on .n { background: var(--accent); color: var(--on-strong); }
+.wi-trail .sep { color: var(--ink-3); margin: 0 4px; }
+.wi-drop { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 36px 24px; border: 1px dashed var(--line-strong); border-radius: 10px; background: var(--ground); }
+.wi-drop.over { border-color: var(--accent); background: var(--accent-tint); }
+.wi-drop .ic { width: 44px; height: 44px; border-radius: 10px; background: var(--accent-tint); border: 1px solid var(--accent-line); display: inline-flex; align-items: center; justify-content: center; color: var(--accent); }
+.wi-drop .ds { max-width: 520px; font-size: 13px; color: var(--ink-2); }
+.wi-srcs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }
+.wi-srcs > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
+.wi-hd3 { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+.wi-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr)); gap: 16px; align-items: start; }
+.wi-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.wi-maprow { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line-2); }
+.wi-maprow:first-of-type { border-top: 0; }
+.wi-maprow .arw { color: var(--ink-3); text-align: center; }
+.wi-tbl td { vertical-align: top; }
+.wi-tbl td .badge { white-space: nowrap; }
+.wi-tbl .pt2 { display: flex; flex-direction: column; gap: 2px; min-width: 240px; max-width: 340px; }
+.wi-tbl .pt2 b { font-weight: 600; line-height: 1.35; }
+.wi-probs { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 170px; }
+.wi-list .pi { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-top: 1px solid var(--line-2); }
+.wi-list .pi:first-child { border-top: 0; }
+.wi-list .pm { display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+.wi-mono { font-family: var(--font-family-mono); font-size: 12px; overflow-wrap: anywhere; }
+.wi-foot { padding: 12px 18px; border-top: 1px solid var(--line-2); }
+.wi-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; }
+.wi-steps { display: flex; flex-direction: column; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.wi-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; }
+.wi-steps li .ic { width: 18px; height: 18px; flex: none; display: inline-flex; align-items: center; justify-content: center; margin-top: 1px; }
+.wi-steps li.done .ic { color: var(--ok-fg); }
+.wi-steps li.todo { color: var(--ink-3); }
+.wi-steps li.todo .ic::before { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--line-strong); }
+.wi-steps .sub { display: block; font-size: 12.5px; color: var(--ink-3); }
+.wi-skel { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.wi-skel > div { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.wi-done-ic { width: 36px; height: 36px; border-radius: 50%; background: var(--ok-bg); color: var(--ok-fg); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.wi-kv { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: 13px; }
+.wi-kv dt { color: var(--ink-3); }
+.wi-kv dd { margin: 0; }
+.wi-card { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+.wi-card h3 { margin: 0; font-size: 17px; font-weight: 600; }
+@media (max-width: 767px) {
+  .wi-maprow { grid-template-columns: 1fr; gap: 4px; }
+  .wi-maprow .arw { display: none; }
+  .wi-kv { grid-template-columns: 1fr; gap: 2px; }
+  .wi-kv dd { margin-bottom: 8px; }
+  .wi-card { padding: 16px; }
+}

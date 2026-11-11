@@ -1,0 +1,30 @@
+import { defineMessages } from '@/i18n'
+
+/** Website › Access › Comments (WebsiteAccess). */
+export const ma = defineMessages('website.access.comments', {
+  title: 'Comments',
+  text: 'Members comment under the posts they can read. Off for every site until you turn it on.',
+  waiting: '{count, plural, one {# waiting for review} other {# waiting for review}}',
+  who: 'Who can comment',
+  off: 'Off',
+  offText: 'No comments section under posts. Comments already written are kept for when you turn them on.',
+  members: 'Signed-in members',
+  membersText: 'Any member who can read the post',
+  paid: 'Paid members only',
+  paidText: 'Free members read the comments and see an upgrade link',
+  review: 'Review',
+  reviewAll: 'Every comment',
+  reviewAllText: 'Nothing shows until someone who moderates comments publishes it',
+  reviewFirst: 'A member\'s first comment',
+  reviewFirstText: 'After one published comment, a member\'s comments show at once',
+  reviewNone: 'None',
+  reviewNoneText: 'Comments show at once',
+  links: 'Whatever you choose, a comment with 2 or more links waits for review.',
+  moderatedBy: 'Moderated by',
+  moderatedByNote: 'people who can moderate comments',
+  nobody: 'Nobody yet',
+  perPost: 'Per post',
+  perPostText: 'A post can turn comments off in its Web settings',
+  limits: 'Limits',
+  limitsText: '{chars} characters a comment; 10 per member in 10 minutes and 50 a day',
+})
