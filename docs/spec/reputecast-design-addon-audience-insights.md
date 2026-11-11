@@ -285,6 +285,37 @@ New kinds, in the notification center and by email, following each member's pref
 - **Placement tests:** scheduled or recurring tests, alerts, a managed seed network, spam-filter scoring of the content.
 - **Growth:** multi-touch attribution, ad spend, referrals and recommendations (phase 5).
 
+### 3.10 Holdout group (Đợt 2, M63)
+
+Added after this phase: measure what marketing adds by keeping a random share of contacts out of it. It answers "would they have bought anyway?", which open and click rates can't.
+
+- **Terms:**
+  - **Holdout group:** the contacts a workspace keeps out of its marketing (campaigns, automations or both) to compare them with everyone else, the **marketing group**.
+  - **Share:** 0.1% to 20% of contacts, in steps of 0.1% (5% by default).
+  - **Period:** one set of settings, from when it started until it changed or ended. Results are per period.
+  - **Converter:** a contact who placed a store order (not a test, not cancelled), recorded a conversion or started a paid subscription in the window.
+- **Who is held out:**
+  - A contact is held out while a period is open and the contact's bucket for the period's seed is under the share (`rc_holdout_bucket(contact, seed) < basis points`). One SQL function decides it: the sending engine, Send Readiness, automations, text, push and WhatsApp campaigns, the segment field and the measurement all ask it.
+  - Raising the share keeps everyone already held out (the buckets nest). Any change of the settings ends the open period and starts the next with the same seed. **Start over** ends it and draws a new seed: new people.
+  - Transactional and system mail always reach everyone. The marketing cap, consent and suppressions apply as before.
+- **Settings › Sending rules › Holdout group** (under Marketing cap), workspace:manage, audited (`holdout.updated`, `holdout.restarted` with the reason):
+  - A switch that saves at once and goes back if the server refuses, with the server's sentence.
+  - "Keep a random [5] % of contacts out of marketing to measure what it adds.", "Hold them out of: Campaigns · Automations", the notes "Transactional and system mail always reach everyone." and "Raising the share keeps everyone already held out. Starting over picks new people.", and "{n} contacts held out since {date}. See the results".
+  - **Start over…** asks first: the current group ends today (its results stay), a new random share is held out from now on, results start again; an optional reason goes to the audit log.
+- **Campaigns:**
+  - A send leaves the holdout group out right after duplicates, as Send Readiness counts it: "Holdout group: {n} left out ({percent})" in the audience card. Who is held out is fixed when the send's build starts.
+  - Review & send's audience card offers **Include the holdout group** ("Use it for messages everyone must get, such as a change to your terms."). Ticked, it says how many of the group's contacts the send reaches. The choice is part of the campaign's audience: approvals compare it and confirmations name it. It can't change while the send is scheduled.
+  - Text, push and WhatsApp campaigns skip the holdout group too: their messages are logged as skipped, reason "holdout group".
+- **Automations:** email, text, push and WhatsApp steps let a held-out contact pass without a message. The flow goes on, so goals and branches stay comparable. The step counts them as skipped and as **held out** ("67 held out" on the canvas, "Held out (holdout group)" in the step's stats).
+- **Segments:** "In the holdout group" (yes or no), for the open period. SQL segments read `in_holdout`.
+- **Audience › Holdout** (a tab once a workspace has had a holdout group; reports:view):
+  - Window: since the period started (default), the last 30 or the last 90 days, never before the period started. "Computed {ago}" and **Recompute** (at most once every 10 minutes; otherwise "Results were computed {ago}. You can recompute once every 10 minutes.").
+  - The verdict on revenue per contact first: "Marketing added 18% more revenue per contact (96% confidence).", "Contacts in the holdout brought 9% more revenue per contact (95% confidence).", "No measurable difference yet.", "Too few contacts in the holdout: 640 of 1,000 needed." or "Too early to tell: the holdout group started 9 Oct. Give it at least two weeks."
+  - Tiles for conversion rate, revenue per contact and orders per contact: the marketing group's value, the holdout's, the lift and its confidence. A two-bar comparison with a table view. "Campaigns that included the holdout: {n}" (what they add isn't part of the difference).
+  - Revenue is store orders minus refunds plus conversion values, in the workspace's main currency (Earn's); other currencies are listed, never converted.
+- **Measurement:** every night at 04:00 workspace time, and on Recompute. For the open period and the last closed one, over each window: the contacts not erased, created before the window's end and not suppressed before its start, split into the two groups. Stored as each group's sums; the metrics are computed when read, so a metric can be added (site visitors, with M62's tracker) without measuring again. Conversion rate is compared with a two-proportion z-test, revenue and orders per contact with Welch's t-test; a difference counts at 95% confidence. Under 1,000 contacts in the holdout group, or a period younger than two weeks, the verdict says so instead.
+- **Not in this phase:** per-campaign or per-flow holdouts, several groups at once, and converting currencies.
+
 ---
 
 ## 4. Sample data
@@ -514,6 +545,12 @@ Added by Linh Nguyen on Thu 2 Oct 2026, two days before Postal's warm-up started
 - **Too little data:** "Added by a person: 14 contacts. Too few to compare."
 - **Only imports so far** (Acme Engineering Blog): "Moving your list isn't growth. Joins from your forms, API keys and integrations will show here."
 - **Contacts filtered by source:** "Source: Zapier · Beta application (Typeform) · 38 contacts", and by `utm_campaign` flags-ga: 272 contacts.
+
+### Holdout group (M63)
+- On since Fri 15 Aug at 5% of campaigns and automations: 2,397 contacts held out today.
+- Since 15 Aug: 2,316 contacts in the holdout group and 44,021 in the marketing group. Conversion rate 7.6% vs 6.4% (+19%, 97% confidence); revenue per contact $5.45 vs $4.62 (+18%, 96%); orders per contact 0.083 vs 0.071 (+17%, 94%).
+- The eight Weekly Digests sent since, and #142, include the holdout group: subscribers get the digest they signed up for. #142 reaches 1,560 of its contacts.
+- The Welcome series held out 67, 41 and 26 contacts at its three emails.
 
 ### People
 - **Sofia Rossi** (Editor) set up the scoring rules and runs placement tests from Review & send. She can't send addresses to a verification service.

@@ -120,4 +120,4 @@ The second batch from the November 2026 look at competitors (items 11–20), one
 
 | # | Milestone | IDs | Boards (plus Phone/Tablet) | Packages | Migrations |
 |---|---|---|---|---|---|
-| M63 | **Holdout group** | G-33 | SettingsSendingRules, SendReadiness, SendReadinessStates, AutomationFlow, AudienceHoldout, AudienceHoldoutStates | `holdout` (new), `abstats` (Welch t), `readiness` (settings, audience mirror), `sending/engine` (eligibility), `automations` (held-out steps), `texting`, `segments` field | 03540–03549 |
+| M63 | **Holdout group** | G-33 | SettingsSendingRules, SendReadiness, SendReadinessStates, AutomationFlow, AudienceHoldout, AudienceHoldoutStates | `holdout` (new), `abstats` (Welch t), `readiness` (settings, audience mirror), `sending/engine` (eligibility), `automations` (held-out steps), `texting`, `push`, `whatsapp`, `segments` field, `demo` (`seed_holdout.go`) | 03540–03549 |

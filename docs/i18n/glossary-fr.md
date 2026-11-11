@@ -1405,3 +1405,14 @@ they are.
 | open rate · click rate | taux d’ouverture · taux de clic |
 | email (the word) | e-mail (plural e-mails; "adresse e-mail") |
 | subject (of an email) | objet |
+
+## Holdout group (M63)
+
+| English | Français |
+|---|---|
+| holdout group | groupe témoin |
+| marketing group (everyone else, on Audience › Holdout) | groupe marketing |
+| held out (of a send or an automation step) | tenu à l’écart |
+| start over (the holdout group, new people) | recommencer |
+| lift · confidence | hausse · confiance (« +18 % · 96 % de confiance ») |
+| converter · revenue per contact | contact converti · revenu par contact |

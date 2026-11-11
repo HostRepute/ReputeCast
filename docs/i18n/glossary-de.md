@@ -1421,3 +1421,14 @@ newsletter, as in every German email tool; the screen tells them apart.
 Where one sentence could mean either, say "vom Newsletter abmelden" or
 "von ReputeCast abmelden". A paid subscription is cancelled ("kündigen"),
 never "abgemeldet".
+
+## Holdout group (M63)
+
+| English | Deutsch |
+|---|---|
+| holdout group | Kontrollgruppe (never „Holdout“) |
+| marketing group (everyone else, on Audience › Holdout) | Marketinggruppe |
+| held out (of a send or an automation step) | ausgenommen |
+| start over (the holdout group, new people) | neu beginnen |
+| lift · confidence | Plus · Konfidenz („+18 % · 96 % Konfidenz“) |
+| converter · revenue per contact | Konvertierte · Umsatz pro Kontakt |

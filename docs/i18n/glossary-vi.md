@@ -1293,3 +1293,14 @@ they are.
 | cancel · close · back | hủy · đóng · quay lại |
 | copy · copied | sao chép · đã sao chép |
 | optional · required | không bắt buộc · bắt buộc |
+
+## Holdout group (M63)
+
+| English | Tiếng Việt |
+|---|---|
+| holdout group | nhóm đối chứng |
+| marketing group (everyone else, on Audience › Holdout) | nhóm marketing |
+| held out (of a send or an automation step) | giữ ngoài · thuộc nhóm đối chứng |
+| start over (the holdout group, new people) | bắt đầu lại |
+| lift · confidence | mức tăng · độ tin cậy ("+18% · độ tin cậy 96%") |
+| converter · revenue per contact | người chuyển đổi · doanh thu trên mỗi liên hệ |
