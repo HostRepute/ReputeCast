@@ -197,5 +197,8 @@
   "sql.readOnly": "Phân khúc SQL chỉ đọc: chúng không thể thay đổi dữ liệu.",
   "sql.roles": "Phân khúc SQL không thể thay đổi vai trò hoặc cài đặt phiên.",
   "sql.function": "Phân khúc SQL không thể gọi {name}.",
-  "sql.unicodeIdentifier": "Phân khúc SQL không thể dùng định danh U&\"…\": hãy viết tên như bình thường."
+  "sql.unicodeIdentifier": "Phân khúc SQL không thể dùng định danh U&\"…\": hãy viết tên như bình thường.",
+  "field.in_holdout": "Trong nhóm đối chứng",
+  "option.in_holdout.yes": "Có",
+  "option.in_holdout.no": "Không"
 }

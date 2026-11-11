@@ -113,3 +113,11 @@ range; the design for every screen is on the updated canvas.
 | R04 | **Send Readiness** | SR-1–SR-13 | SendReadiness*, SendReadinessFixes, SettingsSendingRules | `readiness`, `contentcheck`, `dnscheck`, `approvals` (send path), `review` web feature | 03150–03199 |
 | R05 | **Honest analytics** | AN-1–AN-16 | Report*, ReportStates | `reports`, `tracking`, `ingest` counters, `sending/engine/ab*.go`, `ai` summaries, share links, web-post views, `reports` web feature | 03200–03249 |
 | R06 | **Composer** | CO-1–CO-14 | Composer*, ComposerWrite, BrandKit | `campaigns` (content, versions, comments), `liquid`, `mjml`, `templates`, `media`, `composer` web feature | 03250–03299 |
+
+## Đợt 2 (M58–M66)
+
+The second batch from the November 2026 look at competitors (items 11–20), one branch and one block of ten migrations per milestone.
+
+| # | Milestone | IDs | Boards (plus Phone/Tablet) | Packages | Migrations |
+|---|---|---|---|---|---|
+| M63 | **Holdout group** | G-33 | SettingsSendingRules, SendReadiness, SendReadinessStates, AutomationFlow, AudienceHoldout, AudienceHoldoutStates | `holdout` (new), `abstats` (Welch t), `readiness` (settings, audience mirror), `sending/engine` (eligibility), `automations` (held-out steps), `texting`, `segments` field | 03540–03549 |

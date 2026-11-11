@@ -197,5 +197,8 @@
   "sql.readOnly": "Los segmentos SQL son de solo lectura: no pueden cambiar datos.",
   "sql.roles": "Los segmentos SQL no pueden cambiar roles ni la configuración de la sesión.",
   "sql.function": "Los segmentos SQL no pueden llamar a {name}.",
-  "sql.unicodeIdentifier": "Los segmentos SQL no pueden usar identificadores U&\"…\": escribe el nombre tal cual."
+  "sql.unicodeIdentifier": "Los segmentos SQL no pueden usar identificadores U&\"…\": escribe el nombre tal cual.",
+  "field.in_holdout": "En el grupo de control",
+  "option.in_holdout.yes": "Sí",
+  "option.in_holdout.no": "No"
 }

@@ -197,5 +197,8 @@
   "sql.readOnly": "SQL segments are read-only: they can't change data.",
   "sql.roles": "SQL segments can't change roles or session settings.",
   "sql.function": { "message": "SQL segments can't call {name}.", "note": "name: a Postgres function, like pg_advisory_lock" },
-  "sql.unicodeIdentifier": "SQL segments can't use U&\"…\" identifiers: write the name as it is."
+  "sql.unicodeIdentifier": "SQL segments can't use U&\"…\" identifiers: write the name as it is.",
+  "field.in_holdout": { "message": "In the holdout group", "note": "M63: contacts the workspace keeps out of marketing to measure what it adds" },
+  "option.in_holdout.yes": "Yes",
+  "option.in_holdout.no": "No"
 }
