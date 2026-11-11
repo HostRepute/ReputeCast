@@ -141,7 +141,7 @@ func init() {
 		return commerceService(a).StarterEmail
 	}
 	integrationCommerce = commerceCatalog
-	contentExtras = func(a *App) []contentcheck.Extra { return []contentcheck.Extra{commerceService(a).RemovedProducts} }
+	contentExtras = append(contentExtras, func(a *App) contentcheck.Extra { return commerceService(a).RemovedProducts })
 
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		commerce.Register(h, commerceService(a))

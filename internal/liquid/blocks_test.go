@@ -58,3 +58,26 @@ func TestBlocks(t *testing.T) {
 		t.Fatalf("render: %q %v", html, err)
 	}
 }
+
+func TestUsedPaths(t *testing.T) {
+	src := `<p>coupons.welcome.code stays text</p>{{ coupons.welcome.code }} {{ coupons.welcome.url | default: "x" }}
+{% if coupons.partner.code != blank %}{{coupons.welcome.code}}{% endcase %} {{ mycoupons.other.code }}`
+	got := UsedPaths(src, "coupons")
+	want := []string{"welcome.code", "welcome.url", "partner.code"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("UsedPaths = %v, want %v", got, want)
+	}
+	if UsedPaths("{{ first_name }}", "coupons") != nil {
+		t.Fatal("a template without the root uses no paths")
+	}
+}
+
+func TestAllocating(t *testing.T) {
+	ctx := context.Background()
+	if Allocating(ctx) {
+		t.Fatal("a plain context doesn't allocate")
+	}
+	if !Allocating(WithAllocation(ctx)) {
+		t.Fatal("WithAllocation allocates")
+	}
+}

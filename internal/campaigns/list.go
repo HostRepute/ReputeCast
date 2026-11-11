@@ -49,9 +49,10 @@ type Service struct {
 	// Extras fill in test emails' poll links and cut them to a contact's
 	// version of conditional content (conditional.go); nil leaves them.
 	Extras Extras
-	// More adds other domains' findings to the composer's checks (the
-	// Sponsor block's creative, internal/sponsors); nil leaves them out.
-	More MoreChecks
+	// More add other domains' findings to the composer's checks (the
+	// Sponsor block's creative, internal/sponsors; the Countdown and
+	// Discount code blocks), in order; none leaves them out.
+	More []MoreChecks
 	// Channels fill in the rows of campaigns on other channels (SMS, and
 	// later push and WhatsApp): their routes, results and readiness. Nil
 	// leaves those rows as stored.

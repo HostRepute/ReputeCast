@@ -396,7 +396,50 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	}
 	// Phase 8: the channels' badges (an SMS step's quiet hours and senders).
 	out = append(out, channelPublishChecks(ctx, ws.ID, st.draft)...)
+	// Other domains' badges about the emails (countdowns, discount codes).
+	out = append(out, s.emailPublishChecks(ctx, ws, st.draft)...)
 	return append(out, s.languageChecks(ctx, ws, st.draft, l)...)
+}
+
+// emailPublishChecks asks every EmailChecks hook about the flow's emails:
+// each email step's picked version, once per version.
+func (s *Service) emailPublishChecks(ctx context.Context, ws *store.Workspace, g AutomationGraph) []AutomationPublishCheck {
+	if len(s.EmailChecks) == 0 {
+		return nil
+	}
+	type ref struct {
+		id      uuid.UUID
+		version int
+	}
+	seen := map[ref]bool{}
+	var emails []EmailContent
+	for _, n := range g.Nodes {
+		if n.Type != NodeEmail || n.Data.Email == nil {
+			continue
+		}
+		id, err := uuid.Parse(n.Data.Email.EmailID)
+		if err != nil {
+			continue
+		}
+		k := ref{id, n.Data.Email.EmailVersion}
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		e, err := s.Q.GetAutomationEmailVersion(ctx, store.GetAutomationEmailVersionParams{WorkspaceID: ws.ID, ID: id, Version: int32(k.version)})
+		if err != nil {
+			continue
+		}
+		emails = append(emails, EmailContent{Subject: e.Subject, Preheader: e.Preheader, MJML: e.Mjml, HTML: e.Html, Text: e.PlainText})
+	}
+	if len(emails) == 0 {
+		return nil
+	}
+	var out []AutomationPublishCheck
+	for _, check := range s.EmailChecks {
+		out = append(out, check(ctx, ws, emails)...)
+	}
+	return out
 }
 
 // remaining is the longest time a contact can still spend in the flow from

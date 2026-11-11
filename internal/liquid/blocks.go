@@ -178,3 +178,53 @@ func SourceFrom(ctx context.Context) string {
 	s, _ := ctx.Value(sourceKey{}).(string)
 	return s
 }
+
+type allocKey struct{}
+
+// WithAllocation marks a render as a real send: per-recipient data that
+// hands something out once per message (a discount code) may hand it out.
+// Only the sending engine sets it, for campaign pages and automation
+// emails; previews, test sends, view online and link redirects only read
+// what a message was given.
+func WithAllocation(ctx context.Context) context.Context {
+	return context.WithValue(ctx, allocKey{}, true)
+}
+
+// Allocating reports whether ctx is a real send (WithAllocation).
+func Allocating(ctx context.Context) bool {
+	v, _ := ctx.Value(allocKey{}).(bool)
+	return v
+}
+
+// ShortKey is the variable a RecipientData provider sets on a reader it
+// couldn't give what the email needs (a discount code once a pool ran
+// out); its value is the reason ("no_codes"). The sending engine doesn't
+// send that reader's message.
+const ShortKey = "rc_short"
+
+var pathRes sync.Map // root → *regexp.Regexp
+
+// UsedPaths are the dotted paths under root that src's Liquid uses, in
+// order of first use and without duplicates: {{ coupons.welcome.code }}
+// is "welcome.code" under "coupons". Text outside Liquid never counts.
+func UsedPaths(src, root string) []string {
+	if !strings.Contains(src, root+".") {
+		return nil
+	}
+	re, ok := pathRes.Load(root)
+	if !ok {
+		re, _ = pathRes.LoadOrStore(root, regexp.MustCompile(`(?:^|[^.\w])`+regexp.QuoteMeta(root)+`((?:\.[A-Za-z_][\w-]*)+)`))
+	}
+	var out []string
+	seen := map[string]bool{}
+	for _, span := range liquidSpanRe.FindAllString(src, -1) {
+		for _, m := range re.(*regexp.Regexp).FindAllStringSubmatch(span, -1) {
+			p := m[1][1:]
+			if !seen[p] {
+				seen[p] = true
+				out = append(out, p)
+			}
+		}
+	}
+	return out
+}

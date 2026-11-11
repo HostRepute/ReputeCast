@@ -76,7 +76,15 @@ type Service struct {
 	// links they carry (AT-3).
 	Mail func() mailer.Sender
 	URLs publicurl.Builder
+	// EmailChecks add other domains' badges about the flow's emails to the
+	// publish dialog (a countdown that ends while the flow still sends,
+	// a discount code pool running low), in order; none adds nothing.
+	EmailChecks []EmailPublishChecker
 }
+
+// EmailPublishChecker gives publish badges about a flow's emails (each
+// email step's picked version). Its badges warn; they don't block.
+type EmailPublishChecker func(ctx context.Context, ws *store.Workspace, emails []EmailContent) []AutomationPublishCheck
 
 func (s *Service) now() time.Time {
 	if s.Now != nil {

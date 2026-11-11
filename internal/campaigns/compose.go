@@ -761,8 +761,10 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err != nil {
 		return ComposerChecks{}, err
 	}
-	if s.More != nil && in.Language == "" && strings.TrimSpace(in.MJML) != "" {
-		r.AddIssues(s.More(ctx, ws, id, in.MJML)...)
+	if in.Language == "" && strings.TrimSpace(in.MJML) != "" {
+		for _, more := range s.More {
+			r.AddIssues(more(ctx, ws, id, in.MJML)...)
+		}
 	}
 	out := ComposerChecks{ContentCheckReport: r, Lint: mjml.Lint(in.MJML), Variants: []ComposerVariantChecks{}}
 	if out.Variants, err = s.checkVariants(ctx, checker, base, r, in.ABTest, settings.Minify); err != nil {

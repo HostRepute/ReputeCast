@@ -76,6 +76,10 @@ type Service struct {
 	// Grow checks the Referral and Recommendations blocks (Content rows);
 	// nil leaves them out.
 	Grow GrowChecker
+	// Blocks check other domains' blocks whose rows depend on the
+	// audience (the Discount code block's codes, the Countdown block's
+	// end), after Grow's, in order; none leaves them out.
+	Blocks []GrowChecker
 	// Mailbox classifies company domains from their MX records before the
 	// audience is counted, so throttles and estimates use the mailbox
 	// provider the send will use (internal/mailbox); nil skips it.
