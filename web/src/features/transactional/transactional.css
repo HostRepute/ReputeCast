@@ -281,6 +281,15 @@
     color: var(--dark-text);
     border: 1px solid #374151;
   }
+  /* SDK · HTTP, beside Copy, for the languages with an SDK. */
+  .tx-cbh .sw {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 2px;
+  }
+  .tx-cbh .sw + .cp {
+    margin-left: 8px;
+  }
   .tx-cbx pre {
     margin: 0;
     padding: 12px 14px;

@@ -211,8 +211,30 @@ export const codeLangs: { key: CodeLang; label: string }[] = [
   { key: 'php', label: 'PHP' },
 ]
 
-/** A dark code box with language buttons and Copy (design system §7). */
-export function CodeBox({ lang, onLang, code, children }: { lang: CodeLang; onLang: (l: CodeLang) => void; code: string; children: ReactNode }) {
+/** A sample calls the API through a ReputeCast SDK or with plain HTTP. */
+export type CodeStyle = 'sdk' | 'http'
+/** The languages with a ReputeCast SDK (sdk/client-ts, client-python, client-go). */
+export const sdkLangs: readonly CodeLang[] = ['node', 'python', 'go']
+
+/**
+ * A dark code box with language buttons and Copy (design system §7). With
+ * `style`, a language that has an SDK also gets the SDK · HTTP switch.
+ */
+export function CodeBox({
+  lang,
+  onLang,
+  style,
+  onStyle,
+  code,
+  children,
+}: {
+  lang: CodeLang
+  onLang: (l: CodeLang) => void
+  style?: CodeStyle
+  onStyle?: (s: CodeStyle) => void
+  code: string
+  children: ReactNode
+}) {
   const t = useT()
   const [copied, setCopied] = useState(false)
   return (
@@ -223,6 +245,15 @@ export function CodeBox({ lang, onLang, code, children }: { lang: CodeLang; onLa
             {l.label}
           </button>
         ))}
+        {style && onStyle && sdkLangs.includes(lang) ? (
+          <span className="sw" role="group" aria-label={t(mt.codeStyle)}>
+            {(['sdk', 'http'] as const).map((s) => (
+              <button key={s} type="button" className={s === style ? 'on' : undefined} aria-pressed={s === style} onClick={() => onStyle(s)}>
+                {s === 'sdk' ? 'SDK' : 'HTTP'}
+              </button>
+            ))}
+          </span>
+        ) : null}
         <button
           type="button"
           className="cp"

@@ -161,4 +161,5 @@ export default translate(mu, {
   templates: 'Mẫu',
   apiReference: 'Tài liệu API',
   importMore: 'Nhập thêm mẫu',
+  firstCallSdks: 'Với Node.js, Python và Go, mã mẫu dùng SDK của ReputeCast; HTTP cho thấy yêu cầu thuần.',
 })

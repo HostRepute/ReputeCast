@@ -15,7 +15,7 @@ import { useWorkspace } from '@/lib/session'
 import { codeSample, highlight } from './codeSamples'
 import { useTemplateVariables } from './OverviewPage'
 import { ms } from './setup.messages'
-import { CodeBox, type CodeLang } from './shared'
+import { CodeBox, type CodeLang, type CodeStyle } from './shared'
 
 type Created = Schemas['APIKeyCreated']
 type Expiry = 'never' | '30' | '90' | '365' | 'date'
@@ -179,11 +179,12 @@ function ShownOnce({ created, smtp, setup, onClose }: { created: Created; smtp: 
   const t = useT()
   const [copied, setCopied] = useState(false)
   const [lang, setLang] = useState<CodeLang>('node')
+  const [style, setStyle] = useState<CodeStyle>('sdk')
   const k = created.key
   const tx = k.transactional
   const scope = tx?.templates.length ? tx.templates.join(', ') : tx?.categories.length ? tx.categories.map((c) => c.name).join(', ') : t(ms.scopeAllInline)
   const vars = useTemplateVariables(tx?.templates[0] ?? 'password-reset')
-  const code = codeSample(lang, { endpoint: `${setup.baseUrl}/messages`, template: tx?.templates[0] ?? 'password-reset', variables: vars, compact: true })
+  const code = codeSample(lang, { endpoint: `${setup.baseUrl}/messages`, template: tx?.templates[0] ?? 'password-reset', variables: vars, compact: true, style })
   const copy = (text: string) =>
     void navigator.clipboard?.writeText(text).then(
       () => {
@@ -265,7 +266,7 @@ function ShownOnce({ created, smtp, setup, onClose }: { created: Created; smtp: 
         )}
       </Note>
       {!smtp ? (
-        <CodeBox lang={lang} onLang={setLang} code={code}>
+        <CodeBox lang={lang} onLang={setLang} style={style} onStyle={setStyle} code={code}>
           {highlight(code, lang)}
         </CodeBox>
       ) : null}

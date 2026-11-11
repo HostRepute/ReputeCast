@@ -47,6 +47,7 @@ export default {
     loading: 'Chargement…',
     forbiddenTitle: 'Votre rôle ne permet pas de voir l’e-mail transactionnel',
     forbiddenBody: 'Votre rôle ne permet pas de voir l’e-mail transactionnel. Demandez à un Propriétaire ou à un Admin de l’espace {workspace}.',
+    codeStyle: 'SDK ou HTTP brut',
   }),
   ...translate(mo, {
     route: 'Route',

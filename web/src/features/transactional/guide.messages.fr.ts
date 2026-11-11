@@ -147,4 +147,5 @@ export default translate(mu, {
   templates: 'Modèles',
   apiReference: 'Référence de l’API',
   importMore: 'Importer d’autres modèles',
+  firstCallSdks: 'Pour Node.js, Python et Go, l’exemple utilise le SDK ReputeCast\u202f; HTTP montre la requête brute.',
 })

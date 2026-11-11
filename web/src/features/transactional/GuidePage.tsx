@@ -21,7 +21,7 @@ import { codeSample, highlight } from './codeSamples'
 import { mu } from './guide.messages'
 import { stampMs } from './MessagePage'
 import { mt } from './messages'
-import { CodeBox, secs, sizeText, type CodeLang } from './shared'
+import { CodeBox, sdkLangs, secs, sizeText, type CodeLang, type CodeStyle } from './shared'
 import { SwitchInput } from '@/components/ui/Field'
 import { Stepper } from '@/components/ui/Stepper'
 
@@ -794,10 +794,11 @@ function KeyStep({ setup, product, tpl, onBack, onNext }: { setup: Setup; produc
   const [name, setName] = useState(t(mu.keyNameDefault, { product }))
   const [created, setCreated] = useState<Schemas['APIKeyCreated']>()
   const [lang, setLang] = useState<CodeLang>('curl')
+  const [style, setStyle] = useState<CodeStyle>('sdk')
   const create = $api.useMutation('post', `${W}/api-keys`)
   const denied = usePermissionReason('apikeys:manage', setup.keyHelpers)
   const last = useLastCall(tpl?.key)
-  const code = codeSample(lang, { endpoint: `${setup.baseUrl}/messages`, template: tpl?.key ?? 'password-reset', variables: tpl?.variables ?? [], literal: { data: sampleData(tpl), ...last } })
+  const code = codeSample(lang, { endpoint: `${setup.baseUrl}/messages`, template: tpl?.key ?? 'password-reset', variables: tpl?.variables ?? [], literal: { data: sampleData(tpl), ...last }, style })
   const existing = setup.keys.find((k) => k.mode === 'live' && !k.expired)
   const copy = (s: string) =>
     void navigator.clipboard?.writeText(s).then(
@@ -861,7 +862,7 @@ function KeyStep({ setup, product, tpl, onBack, onNext }: { setup: Setup; produc
           </div>
         </div>
       )}
-      <CodeBox lang={lang} onLang={setLang} code={code}>
+      <CodeBox lang={lang} onLang={setLang} style={style} onStyle={setStyle} code={code}>
         {highlight(code, lang)}
       </CodeBox>
     </Panel>
@@ -976,6 +977,7 @@ function WatchStep({
   const now = useNow(1000)
   const [since] = useState(() => Date.now())
   const [lang, setLang] = useState<CodeLang>('curl')
+  const [style, setStyle] = useState<CodeStyle>('sdk')
   const [sentId, setSentId] = useState<string>()
   const [rejected, setRejected] = useState<{ at: string; status: number; code: string; detail: string }>()
   const [publishing, setPublishing] = useState(false)
@@ -983,7 +985,7 @@ function WatchStep({
   const key = keyName ?? setup.keys[0]?.name
   const tplKey = tpl?.key ?? 'password-reset'
   const last = useLastCall(tpl?.key)
-  const code = codeSample(lang, { endpoint: `${setup.baseUrl}/messages`, template: tplKey, variables: tpl?.variables ?? [], literal: { data: sampleData(tpl), ...last } })
+  const code = codeSample(lang, { endpoint: `${setup.baseUrl}/messages`, template: tplKey, variables: tpl?.variables ?? [], literal: { data: sampleData(tpl), ...last }, style })
   // Waits for the first message after the step opened, from the app or from here.
   const log = $api.useQuery('get', `${API}/messages`, { params: { path: { workspace: slug }, query: { range: '1h', limit: 10 } } }, { refetchInterval: sentId ? false : 2000 })
   const fresh = (log.data?.items ?? []).filter((it) => Date.parse(it.at) >= since - 1000)
@@ -1100,9 +1102,10 @@ function WatchStep({
           <span className="k" style={{ color: 'var(--ink-nav)' }}>
             {t(mu.firstCallBody)}
           </span>
-          <CodeBox lang={lang} onLang={setLang} code={code}>
+          <CodeBox lang={lang} onLang={setLang} style={style} onStyle={setStyle} code={code}>
             {highlight(code, lang)}
           </CodeBox>
+          {sdkLangs.includes(lang) ? null : <span className="k">{t(mu.firstCallSdks)}</span>}
           {d || rejected ? sendHere(false) : null}
         </section>
         <section

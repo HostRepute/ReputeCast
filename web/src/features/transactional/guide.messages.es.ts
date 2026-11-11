@@ -147,4 +147,5 @@ export default translate(mu, {
   templates: 'Plantillas',
   apiReference: 'Referencia de la API',
   importMore: 'Importar más plantillas',
+  firstCallSdks: 'En Node.js, Python y Go el ejemplo usa el SDK de ReputeCast; HTTP muestra la petición directa.',
 })
