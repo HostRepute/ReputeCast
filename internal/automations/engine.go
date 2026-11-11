@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/holdout"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -123,8 +124,8 @@ func (b statsBuf) merge(o statsBuf) {
 		dst.OpenedHuman += src.OpenedHuman
 		dst.Clicked += src.Clicked
 		dst.Unsubscribed += src.Unsubscribed
-		dst.BranchYes += src.BranchYes
 		dst.BranchNo += src.BranchNo
+		dst.HeldOut += src.HeldOut
 		dst.Paths = mergeKeys(dst.Paths, src.Paths)
 		dst.Providers = mergeKeys(dst.Providers, src.Providers)
 	}
@@ -775,6 +776,16 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 		e.stat(n.ID).Skipped++
 		return next, "", false, nil
 	}
+	// The holdout group (M63 G-33): the contact passes the step without an
+	// email, so goals and branches stay comparable with everyone else's.
+	if held, err := e.heldOut(ctx); err != nil {
+		return "", "", true, err
+	} else if held {
+		st := e.stat(n.ID)
+		st.Skipped++
+		st.HeldOut++
+		return next, "", false, nil
+	}
 	// The workspace's marketing cap, with campaigns (AT-9): wait until the
 	// contact is under it, or skip the email.
 	if over, until, err := e.overCap(ctx); err != nil {
@@ -866,6 +877,12 @@ func (e *executor) overCap(ctx context.Context) (bool, time.Time, error) {
 		return false, time.Time{}, err
 	}
 	return true, got.Oldest.Add(days + time.Minute), nil
+}
+
+// heldOut reports whether the open holdout period keeps the contact out of
+// automation messages.
+func (e *executor) heldOut(ctx context.Context) (bool, error) {
+	return holdout.FromAutomations(ctx, e.q, e.run.WorkspaceID, e.run.ContactID)
 }
 
 // branch evaluates a condition. Engagement conditions (opened / clicked)

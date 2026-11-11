@@ -221,6 +221,19 @@ type ReadinessAudience struct {
 	// left out, as they are by default, and ExcludedUnengaged counts them.
 	UnengagedExcluded bool  `json:"unengagedExcluded"`
 	ExcludedUnengaged int64 `json:"excludedUnengaged"`
+	// Holdout is the holdout group as this run counted it (M63 G-33);
+	// omitted when no open period holds out campaigns.
+	Holdout *ReadinessHoldout `json:"holdout,omitempty"`
+}
+
+// ReadinessHoldout is the holdout group in a send's audience: its share,
+// whether the campaign includes it, and how many of its contacts the send
+// leaves out (LeftOut, a row of the audience card) or reaches (Reached).
+type ReadinessHoldout struct {
+	Percent  float64 `json:"percent"`
+	Included bool    `json:"included"`
+	LeftOut  int64   `json:"leftOut"`
+	Reached  int64   `json:"reached"`
 }
 
 // ReadinessRouteShare is one sending provider's part of the send.

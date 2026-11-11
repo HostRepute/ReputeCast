@@ -46,6 +46,16 @@ type marketingCapInput struct {
 	Body MarketingCap
 }
 
+type holdoutInput struct {
+	api.WorkspaceInput
+	Body HoldoutInput
+}
+
+type holdoutRestartInput struct {
+	api.WorkspaceInput
+	Body HoldoutRestartInput
+}
+
 // registerRules adds Settings › Sending rules (SR-10): anyone who can see
 // campaigns reads the rules; workspace:manage changes them (audited).
 func registerRules(h huma.API, s *Service) {
@@ -95,6 +105,22 @@ func registerRules(h huma.API, s *Service) {
 		Tags:        tags, Access: api.WorkspaceHuman(authz.WorkspaceManage)},
 		func(ctx context.Context, in *marketingCapInput) (*api.Body[SendingRulesView], error) {
 			out, err := s.SaveMarketingCap(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	// The holdout group (M63 G-33).
+	api.Put(h, api.Op{ID: "update-holdout", Path: "/workspaces/{workspace}/holdout", Summary: "Turn the holdout group on or off, or change its share and scope",
+		Description: "A random share of contacts (basisPoints: 500 = 5%) gets no campaigns, automation messages or both, so Audience › Holdout can measure what marketing adds. " +
+			"Any change ends the current group and starts the next one with the same people (a larger share keeps everyone already held out). Transactional and system mail always go to everyone.",
+		Tags: tags, Access: api.WorkspaceHuman(authz.WorkspaceManage)},
+		func(ctx context.Context, in *holdoutInput) (*api.Body[SendingRulesView], error) {
+			out, err := s.SaveHoldout(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "restart-holdout", Path: "/workspaces/{workspace}/holdout/restart", Summary: "Start the holdout group over with new people",
+		Description: "Ends the current group (its results stay) and holds out a new random share of contacts from now on.",
+		Tags:        tags, Access: api.WorkspaceHuman(authz.WorkspaceManage)},
+		func(ctx context.Context, in *holdoutRestartInput) (*api.Body[SendingRulesView], error) {
+			out, err := s.RestartHoldout(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 }

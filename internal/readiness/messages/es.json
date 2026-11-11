@@ -1077,5 +1077,9 @@
   "tech.allOK": "HTTP 200 de {count, plural, one {el enlace} other {los # enlaces}}",
   "tech.error": "Error",
   "tech.sourceHostRepute": "Comprobación horaria de HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}",
-  "tech.sourceBuiltin": "Comprobación propia de ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}"
+  "tech.sourceBuiltin": "Comprobación propia de ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}",
+  "estimate.holdout": "Grupo de control: {count, number} excluidos ({percent})",
+  "problem.holdoutShare": "Introduce un porcentaje del 0,1 % al 20 %.",
+  "problem.holdoutScope": "Elige campañas, automatizaciones o ambas.",
+  "problem.holdoutOff": "Activa el grupo de control antes de empezar de nuevo."
 }

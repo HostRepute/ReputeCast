@@ -132,11 +132,45 @@ type MarketingCap struct {
 	Days  int `json:"days" minimum:"1" maximum:"90"`
 }
 
+// HoldoutInput is Settings › Sending rules › Holdout group (M63 G-33): keep
+// a random share of contacts out of campaigns and/or automations to
+// measure what marketing adds.
+type HoldoutInput struct {
+	On bool `json:"on"`
+	// BasisPoints is the share in hundredths of a percent (500 = 5%).
+	BasisPoints int  `json:"basisPoints" minimum:"10" maximum:"2000"`
+	Campaigns   bool `json:"campaigns"`
+	Automations bool `json:"automations"`
+}
+
+// HoldoutRestartInput starts the holdout group over with new people.
+type HoldoutRestartInput struct {
+	Reason string `json:"reason,omitempty" maxLength:"500"`
+}
+
+// HoldoutSettings is the holdout group as Settings shows it: its share
+// (Percent repeats BasisPoints as a percentage), scope, when the open
+// period started and how many active contacts it holds out now. Off, the
+// share and scope are the last ones used (5% of both before any).
+type HoldoutSettings struct {
+	On          bool       `json:"on"`
+	BasisPoints int        `json:"basisPoints"`
+	Percent     float64    `json:"percent"`
+	Campaigns   bool       `json:"campaigns"`
+	Automations bool       `json:"automations"`
+	StartedAt   *time.Time `json:"startedAt,omitempty"`
+	HeldOut     int64      `json:"heldOut"`
+	// Measured is true once a period exists (Audience › Holdout has
+	// results to show).
+	Measured bool `json:"measured"`
+}
+
 // SendingRulesView is Settings › Sending rules.
 type SendingRulesView struct {
-	Rules        []SendingRule `json:"rules"`
-	Defaults     SendDefaults  `json:"defaults"`
-	MarketingCap MarketingCap  `json:"marketingCap"`
+	Rules        []SendingRule   `json:"rules"`
+	Defaults     SendDefaults    `json:"defaults"`
+	MarketingCap MarketingCap    `json:"marketingCap"`
+	Holdout      HoldoutSettings `json:"holdout"`
 	// SunsetDays is the sunset policy's (contacts unengaged that long are
 	// left out).
 	SunsetDays int `json:"sunsetDays"`
@@ -178,6 +212,9 @@ func (s *Service) SendingRules(ctx context.Context, ws *store.Workspace, p *auth
 		return out, err
 	}
 	out.MarketingCap = MarketingCap{Count: int(limit.MarketingCapCount), Days: int(limit.MarketingCapDays)}
+	if out.Holdout, err = holdoutSettings(ctx, s.Q, ws.ID); err != nil {
+		return out, err
+	}
 	rows, err := s.Q.SendingRulesList(ctx, ws.ID)
 	if err != nil {
 		return out, err

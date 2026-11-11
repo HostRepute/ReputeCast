@@ -1077,5 +1077,9 @@
   "tech.allOK": "HTTP 200 từ {count, plural, other {cả # liên kết}}",
   "tech.error": "Lỗi",
   "tech.sourceHostRepute": "Lần kiểm tra hằng giờ của HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}",
-  "tech.sourceBuiltin": "Lần kiểm tra của ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}"
+  "tech.sourceBuiltin": "Lần kiểm tra của ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}",
+  "estimate.holdout": "Nhóm đối chứng: {count, number} người không nhận ({percent})",
+  "problem.holdoutShare": "Hãy nhập tỷ lệ từ 0,1% đến 20%.",
+  "problem.holdoutScope": "Hãy chọn chiến dịch, tự động hoá hoặc cả hai.",
+  "problem.holdoutOff": "Hãy bật nhóm đối chứng trước khi bắt đầu lại."
 }

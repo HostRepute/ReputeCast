@@ -1,0 +1,4 @@
+{
+  "problem.noHoldout": "There's no holdout group yet. Set one up in Settings › Sending rules.",
+  "problem.measureSoon": { "message": "You can recompute once every 10 minutes. Try again in {minutes, plural, one {# minute} other {# minutes}}.", "note": "Audience › Holdout's Recompute, asked again too soon" }
+}

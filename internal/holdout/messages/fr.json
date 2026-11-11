@@ -1,0 +1,4 @@
+{
+  "problem.noHoldout": "Il n’y a pas encore de groupe témoin. Configurez-en un dans Paramètres › Règles d’envoi.",
+  "problem.measureSoon": "Vous pouvez recalculer une fois toutes les 10 minutes. Réessayez dans {minutes, plural, one {# minute} other {# minutes}}."
+}

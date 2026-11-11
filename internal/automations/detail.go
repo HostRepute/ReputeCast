@@ -146,7 +146,8 @@ type AutomationStepStats struct {
 	Exited       int64                     `json:"exited" doc:"Finished the flow at this step"`
 	Dropped      int64                     `json:"dropped" doc:"Left early: filtered out, unsubscribed or removed"`
 	GoalReached  int64                     `json:"goalReached"`
-	Skipped      int64                     `json:"skipped" doc:"Emails skipped by a rule, or because the contact paused email on the preference center"`
+	Skipped      int64                     `json:"skipped" doc:"Emails skipped by a rule, because the contact paused email on the preference center, or because they are in the holdout group (heldOut counts those)"`
+	HeldOut      int64                     `json:"heldOut" doc:"Contacts in the holdout group who passed the step without a message (M63)"`
 	Failed       int64                     `json:"failed" doc:"Webhook calls that failed"`
 	Sent         int64                     `json:"sent"`
 	Delivered    int64                     `json:"delivered"`
@@ -288,7 +289,7 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 		st.Entered, st.Completed, st.Exited, st.Dropped = r.Entered, r.Completed, r.Exited, r.Dropped
 		st.GoalReached, st.Skipped, st.Failed, st.Sent = r.GoalReached, r.Skipped, r.Failed, r.Sent
 		st.Delivered, st.Bounced, st.Complained, st.Opened = r.Delivered, r.Bounced, r.Complained, r.Opened
-		st.OpenedHuman, st.Clicked, st.Unsubscribed = r.OpenedHuman, r.Clicked, r.Unsubscribed
+		st.OpenedHuman, st.Clicked, st.Unsubscribed, st.HeldOut = r.OpenedHuman, r.Clicked, r.Unsubscribed, r.HeldOut
 	}
 	for _, p := range paths {
 		st := get(p.NodeID)

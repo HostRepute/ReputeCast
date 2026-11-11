@@ -1650,7 +1650,8 @@ SELECT automation_id, node_id,
        sum(sent)::bigint AS sent, sum(delivered)::bigint AS delivered, sum(bounced)::bigint AS bounced,
        sum(complained)::bigint AS complained, sum(opened)::bigint AS opened, sum(opened_human)::bigint AS opened_human,
        sum(clicked)::bigint AS clicked, sum(unsubscribed)::bigint AS unsubscribed,
-       sum(branch_yes)::bigint AS branch_yes, sum(branch_no)::bigint AS branch_no
+       sum(branch_yes)::bigint AS branch_yes, sum(branch_no)::bigint AS branch_no,
+       sum(held_out)::bigint AS held_out
 FROM automation_step_stats
 WHERE automation_id = ANY($1::uuid[]) AND day >= $2::date
 GROUP BY automation_id, node_id
@@ -1682,6 +1683,7 @@ type AutomationStepStatsSinceRow struct {
 	Unsubscribed int64     `json:"unsubscribed"`
 	BranchYes    int64     `json:"branchYes"`
 	BranchNo     int64     `json:"branchNo"`
+	HeldOut      int64     `json:"heldOut"`
 }
 
 // Per-step totals since a day, across versions (steps keep their ids).
@@ -1715,6 +1717,7 @@ func (q *Queries) AutomationStepStatsSince(ctx context.Context, arg AutomationSt
 			&i.Unsubscribed,
 			&i.BranchYes,
 			&i.BranchNo,
+			&i.HeldOut,
 		); err != nil {
 			return nil, err
 		}
@@ -1868,11 +1871,11 @@ func (q *Queries) AutomationWorkspaceStatsSince(ctx context.Context, arg Automat
 const bumpAutomationStepStats = `-- name: BumpAutomationStepStats :exec
 INSERT INTO automation_step_stats AS s (automation_id, version, node_id, day,
     entered, completed, waiting, exited, dropped, goal_reached, skipped, failed, sent,
-    delivered, bounced, complained, opened, opened_human, clicked, unsubscribed, branch_yes, branch_no, paths, providers)
+    delivered, bounced, complained, opened, opened_human, clicked, unsubscribed, branch_yes, branch_no, paths, providers, held_out)
 VALUES ($1, $2, $3, $4,
     $5, $6, $7, $8, $9, $10, $11, $12, $13,
     $14, $15, $16, $17, $18, $19, $20, $21, $22,
-    $23, $24)
+    $23, $24, $25)
 ON CONFLICT (automation_id, version, node_id, day) DO UPDATE SET
     entered = s.entered + EXCLUDED.entered,
     completed = s.completed + EXCLUDED.completed,
@@ -1892,6 +1895,7 @@ ON CONFLICT (automation_id, version, node_id, day) DO UPDATE SET
     unsubscribed = s.unsubscribed + EXCLUDED.unsubscribed,
     branch_yes = s.branch_yes + EXCLUDED.branch_yes,
     branch_no = s.branch_no + EXCLUDED.branch_no,
+    held_out = s.held_out + EXCLUDED.held_out,
     paths = (SELECT coalesce(jsonb_object_agg(k, v), '{}'::jsonb) FROM (
         SELECT k, sum(v)::bigint AS v FROM (
             SELECT a.k, a.v::bigint AS v FROM jsonb_each_text(s.paths) AS a(k, v)
@@ -1927,6 +1931,7 @@ type BumpAutomationStepStatsParams struct {
 	BranchNo     int64           `json:"branchNo"`
 	Paths        json.RawMessage `json:"paths"`
 	Providers    json.RawMessage `json:"providers"`
+	HeldOut      int64           `json:"heldOut"`
 }
 
 // Adds to one step's counters for a day. Path and provider counts are merged
@@ -1957,6 +1962,7 @@ func (q *Queries) BumpAutomationStepStats(ctx context.Context, arg BumpAutomatio
 		arg.BranchNo,
 		arg.Paths,
 		arg.Providers,
+		arg.HeldOut,
 	)
 	return err
 }

@@ -123,7 +123,7 @@ type AuditCategory struct {
 
 // Categories are the action filter's choices, in the order of the board.
 var Categories = []AuditCategory{
-	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation"}},
+	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation", "holdout"}},
 	{Key: "routing", Label: "Routing & providers", Groups: []string{"routing", "provider", "warmup", "deliverability", "domain", "sender"}},
 	{Key: "audience", Label: "Audience & consent", Groups: []string{"contact", "contacts", "subscriber", "subscribers", "list", "segment", "form", "consent", "suppression", "import", "growth"}},
 	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},

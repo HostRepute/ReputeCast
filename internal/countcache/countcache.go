@@ -182,8 +182,9 @@ func (c *Cache) Len() int {
 }
 
 // audiencePrefixes are the audit actions that change who is in a
-// workspace's audience, its lists, fields, tiers or suppressions.
-var audiencePrefixes = []string{"contact", "list", "import.", "suppression", "field.", "audience.", "sunset_policy."}
+// workspace's audience, its lists, fields, tiers or suppressions, or who a
+// send leaves out (the holdout group, M63).
+var audiencePrefixes = []string{"contact", "list", "import.", "suppression", "field.", "audience.", "sunset_policy.", "holdout."}
 
 // AudienceChange reports whether an audit action changes what the counts
 // count ("contacts.erase", "list.delete", "import.finish"…).

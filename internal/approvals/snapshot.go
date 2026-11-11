@@ -548,7 +548,8 @@ func sameAudience(a, b json.RawMessage) bool {
 		return slices.Equal(p, q)
 	}
 	return eq(x.Lists, y.Lists) && eq(x.Segments, y.Segments) && eq(x.ExcludeLists, y.ExcludeLists) && eq(x.ExcludeSegments, y.ExcludeSegments) &&
-		eq(x.ExcludeTiers, y.ExcludeTiers) && x.IncludeSunset == y.IncludeSunset && sameChoice(x.IncludeUnengaged, y.IncludeUnengaged) && x.Paid == y.Paid
+		eq(x.ExcludeTiers, y.ExcludeTiers) && x.IncludeSunset == y.IncludeSunset && sameChoice(x.IncludeUnengaged, y.IncludeUnengaged) && x.Paid == y.Paid &&
+		x.IncludeHoldout == y.IncludeHoldout
 }
 
 // sameChoice compares an optional choice (unset, yes or no).

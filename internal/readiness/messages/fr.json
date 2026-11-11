@@ -1077,5 +1077,9 @@
   "tech.allOK": "HTTP 200 pour {count, plural, one {le lien} other {les # liens}}",
   "tech.error": "Erreur",
   "tech.sourceHostRepute": "Contrôle horaire HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listé depuis le {day}}}",
-  "tech.sourceBuiltin": "Contrôle propre à ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listé depuis le {day}}}"
+  "tech.sourceBuiltin": "Contrôle propre à ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listé depuis le {day}}}",
+  "estimate.holdout": "Groupe témoin : {count, number} laissés de côté ({percent})",
+  "problem.holdoutShare": "Saisissez une part comprise entre 0,1 % et 20 %.",
+  "problem.holdoutScope": "Choisissez les campagnes, les automatisations ou les deux.",
+  "problem.holdoutOff": "Activez le groupe témoin avant de recommencer."
 }

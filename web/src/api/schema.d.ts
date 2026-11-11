@@ -10002,6 +10002,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/holdout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn the holdout group on or off, or change its share and scope
+         * @description A random share of contacts (basisPoints: 500 = 5%) gets no campaigns, automation messages or both, so Audience › Holdout can measure what marketing adds. Any change ends the current group and starts the next one with the same people (a larger share keeps everyone already held out). Transactional and system mail always go to everyone.
+         */
+        put: operations["update-holdout"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/holdout/measure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recompute the holdout group's results
+         * @description At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+         */
+        post: operations["measure-holdout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/holdout/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start the holdout group over with new people
+         * @description Ends the current group (its results stay) and holds out a new random share of contacts from now on.
+         */
+        post: operations["restart-holdout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/holdout/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What marketing added, measured against the holdout group
+         * @description The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+         */
+        get: operations["get-holdout-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/imports": {
         parameters: {
             query?: never;
@@ -21374,6 +21454,7 @@ export interface components {
         AudienceSummary: {
             /** Format: int64 */
             contacts: number;
+            holdout: boolean;
             lists: components["schemas"]["AudienceListSummary"][];
             paidTiers: components["schemas"]["AudiencePaidTier"][];
             /** Format: int64 */
@@ -22256,6 +22337,11 @@ export interface components {
             failed: number;
             /** Format: int64 */
             goalReached: number;
+            /**
+             * Format: int64
+             * @description Contacts in the holdout group who passed the step without a message (M63)
+             */
+            heldOut: number;
             /** Format: int64 */
             inFlowNow: number;
             nodeId: string;
@@ -22269,7 +22355,7 @@ export interface components {
             sent: number;
             /**
              * Format: int64
-             * @description Emails skipped by a rule, or because the contact paused email on the preference center
+             * @description Emails skipped by a rule, because the contact paused email on the preference center, or because they are in the holdout group (heldOut counts those)
              */
             skipped: number;
             /** Format: int64 */
@@ -28695,6 +28781,101 @@ export interface components {
         HoldInput: {
             held: boolean;
         };
+        HoldoutGroupResult: {
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            converters: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenueCents: number;
+        };
+        HoldoutInput: {
+            automations: boolean;
+            /** Format: int64 */
+            basisPoints: number;
+            campaigns: boolean;
+            on: boolean;
+        };
+        HoldoutMetric: {
+            /** Format: double */
+            confidence: number;
+            /** Format: double */
+            holdout: number;
+            /** @enum {string} */
+            key: "conversion_rate" | "revenue_per_contact" | "orders_per_contact";
+            /** Format: double */
+            lift: number;
+            /** Format: double */
+            marketing: number;
+            significant: boolean;
+            tested: boolean;
+        };
+        HoldoutOtherCurrency: {
+            currency: string;
+            /** Format: int64 */
+            holdoutCents: number;
+            /** Format: int64 */
+            marketingCents: number;
+        };
+        HoldoutPeriodItem: {
+            automations: boolean;
+            /** Format: int64 */
+            basisPoints: number;
+            campaigns: boolean;
+            /** Format: date-time */
+            endedAt?: string;
+            id: string;
+            open: boolean;
+            /** Format: double */
+            percent: number;
+            /** Format: date-time */
+            startedAt: string;
+        };
+        HoldoutRestartInput: {
+            reason?: string;
+        };
+        HoldoutResults: {
+            /** Format: int64 */
+            campaignsIncluded: number;
+            /** Format: date-time */
+            computedAt?: string;
+            computing: boolean;
+            currency: string;
+            /** Format: date-time */
+            from?: string;
+            holdout: components["schemas"]["HoldoutGroupResult"];
+            marketing: components["schemas"]["HoldoutGroupResult"];
+            metrics: components["schemas"]["HoldoutMetric"][];
+            /** Format: int64 */
+            minHoldout: number;
+            /** Format: date-time */
+            nextMeasureAt?: string;
+            otherCurrencies: components["schemas"]["HoldoutOtherCurrency"][];
+            period?: components["schemas"]["HoldoutPeriodItem"];
+            periods: components["schemas"]["HoldoutPeriodItem"][];
+            /** Format: date-time */
+            to?: string;
+            /** @enum {string} */
+            verdict: "none" | "pending" | "too_few" | "too_early" | "added" | "lost" | "no_difference";
+            /** @enum {string} */
+            window: "period" | "30d" | "90d";
+        };
+        HoldoutSettings: {
+            automations: boolean;
+            /** Format: int64 */
+            basisPoints: number;
+            campaigns: boolean;
+            /** Format: int64 */
+            heldOut: number;
+            measured: boolean;
+            on: boolean;
+            /** Format: double */
+            percent: number;
+            /** Format: date-time */
+            startedAt?: string;
+        };
         HostReputeAPIKeyInputBody: {
             /** @description A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned. */
             apiKey: string;
@@ -30907,6 +31088,8 @@ export interface components {
             duplicates: number;
             /** Format: int64 */
             excluded: number;
+            /** Format: int64 */
+            holdout: number;
             /** Format: int64 */
             paused: number;
             /** Format: int64 */
@@ -35728,6 +35911,7 @@ export interface components {
             excludedUnengaged: number;
             /** Format: int64 */
             final: number;
+            holdout?: components["schemas"]["ReadinessHoldout"];
             lists: string[];
             /** Format: int64 */
             role: number;
@@ -35886,6 +36070,15 @@ export interface components {
             to: string;
             toId: string;
         };
+        ReadinessHoldout: {
+            included: boolean;
+            /** Format: int64 */
+            leftOut: number;
+            /** Format: double */
+            percent: number;
+            /** Format: int64 */
+            reached: number;
+        };
         ReadinessPoll: {
             failed?: components["schemas"]["ReadinessRunFailure"];
             latest?: components["schemas"]["ReadinessRunRef"];
@@ -36031,6 +36224,7 @@ export interface components {
             timezone?: string;
         };
         ReadinessSendSettings: {
+            includeHoldout?: boolean;
             schedule?: components["schemas"]["ReadinessSchedule"];
             thresholds?: components["schemas"]["ReadinessThresholds"];
         };
@@ -38406,6 +38600,7 @@ export interface components {
             autosavedAt?: string;
             editable: boolean;
             from: string;
+            holdout?: components["schemas"]["ReviewHoldout"];
             id: string;
             name: string;
             preheader: string;
@@ -38475,6 +38670,11 @@ export interface components {
             /** @enum {string} */
             kind: "blocked" | "new_warning" | "unknown" | "audience_change" | "edited";
             text: string;
+        };
+        ReviewHoldout: {
+            included: boolean;
+            /** Format: double */
+            percent: number;
         };
         ReviewPage: {
             campaign: string;
@@ -40052,6 +40252,7 @@ export interface components {
         SendingRulesView: {
             canManage: boolean;
             defaults: components["schemas"]["SendDefaults"];
+            holdout: components["schemas"]["HoldoutSettings"];
             managers: string[];
             marketingCap: components["schemas"]["MarketingCap"];
             reason?: string;
@@ -70620,6 +70821,147 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GrowthSourceList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-holdout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldoutInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRulesView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "measure-holdout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldoutResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restart-holdout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoldoutRestartInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendingRulesView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-holdout-results": {
+        parameters: {
+            query?: {
+                /** @description A period's id; the newest by default */
+                period?: string;
+                /** @description The whole period (default) or its last 30 or 90 days */
+                window?: "period" | "30d" | "90d";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldoutResults"];
                 };
             };
             /** @description Error */

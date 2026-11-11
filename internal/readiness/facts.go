@@ -118,6 +118,14 @@ type AudienceFacts struct {
 	// (review 2026-11 AT-9); CapCount and CapDays are the cap.
 	OverCap           int64
 	CapCount, CapDays int
+	// The holdout group (M63 G-33): HoldoutPercent is the open period's
+	// share (0 when no period holds out campaigns); Holdout counts the
+	// contacts it leaves out, or, when the campaign includes the group
+	// (HoldoutIncluded), HoldoutReached counts those it reaches.
+	Holdout         int64
+	HoldoutPercent  float64
+	HoldoutIncluded bool
+	HoldoutReached  int64
 	// OffCadence counts readers whose chosen rhythm the campaign doesn't
 	// reach (review 2026-11 CA-6); Announcement is a campaign that reaches
 	// every rhythm, DigestFrequency a digest issue's frequency.

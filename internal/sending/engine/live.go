@@ -678,6 +678,9 @@ type LiveExcluded struct {
 	Sunset     int64 `json:"sunset"`
 	Excluded   int64 `json:"excluded"`
 	Tiers      int64 `json:"tiers"`
+	// Holdout is the holdout group, left out to measure what marketing
+	// adds (M63 G-33).
+	Holdout int64 `json:"holdout"`
 }
 
 // LiveCostByRoute is the cost so far and planned.

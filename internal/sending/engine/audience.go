@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/holdout"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
@@ -52,6 +53,9 @@ type audienceDef struct {
 	// Paid keeps only the paid members of the lists (at a tier and above)
 	// or only the free subscribers: a paid-only campaign (Earn).
 	Paid paidaccess.Audience
+	// IncludeHoldout sends to the holdout group too (Review & send's
+	// "Include the holdout group", M63 G-33).
+	IncludeHoldout bool
 }
 
 // leaveOutUnengaged excludes the sunset tier when the unengaged contacts
@@ -88,6 +92,8 @@ func parseAudience(raw json.RawMessage) audienceDef {
 		IncludeSunset2    bool     `json:"includeSunset"`
 		IncludeUnengaged  *bool    `json:"include_unengaged"`
 		IncludeUnengaged2 *bool    `json:"includeUnengaged"`
+		IncludeHoldout    bool     `json:"include_holdout"`
+		IncludeHoldout2   bool     `json:"includeHoldout"`
 	}
 	_ = json.Unmarshal(raw, &in)
 	ids := func(parts ...[]string) []uuid.UUID {
@@ -104,7 +110,7 @@ func parseAudience(raw json.RawMessage) audienceDef {
 	tiers := append(append([]string{}, in.ExcludeTiers...), in.ExcludeTiers2...)
 	return audienceDef{Lists: ids(in.Lists), Segments: ids(in.Segments), ExcludeLists: ids(in.ExcludeLists, in.ExcludeLists2),
 		ExcludeSegments: ids(in.ExcludeSegments, in.ExcludeSegments2), ExcludeTiers: tiers, IncludeSunset: in.IncludeSunset || in.IncludeSunset2,
-		IncludeUnengaged: cmp.Or(in.IncludeUnengaged, in.IncludeUnengaged2), Paid: paidaccess.Parse(raw)}
+		IncludeUnengaged: cmp.Or(in.IncludeUnengaged, in.IncludeUnengaged2), Paid: paidaccess.Parse(raw), IncludeHoldout: in.IncludeHoldout || in.IncludeHoldout2}
 }
 
 // Excluded counts the contacts of the audience who don't receive the send.
@@ -125,6 +131,9 @@ type Excluded struct {
 	// Cadence counts readers whose chosen rhythm (weekly, monthly) this
 	// campaign doesn't reach (review 2026-11 CA-6).
 	Cadence int64 `json:"cadence"`
+	// Holdout counts the holdout group, left out to measure what marketing
+	// adds (M63 G-33).
+	Holdout int64 `json:"holdout"`
 }
 
 // Content is what a send renders, captured at start (campaign_sends.content).
@@ -155,6 +164,11 @@ type sendContent struct {
 	// with it, so a change mid-send never splits one send (nil = untagged,
 	// and sends started before the setting existed decode untagged).
 	UTM *clicktoken.UTM `json:"utm,omitempty"`
+	// Holdout is who the holdout group left out, decided when the build
+	// starts so a change of the settings mid-build never splits one send
+	// (nil: nobody, the campaign includes the group, or the build began
+	// before M63).
+	Holdout *holdout.Share `json:"holdout,omitempty"`
 }
 
 // tracking is what every Prepare of the send tracks and tags.
@@ -293,12 +307,29 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			return err
 		}
 		e.resolveStore(ctx, cc.WorkspaceID, &content)
+		// The holdout group (M63 G-33): left out unless the campaign
+		// includes it, as the build starts.
+		if !def.IncludeHoldout {
+			sh, err := holdout.ForCampaigns(ctx, e.Q, cc.WorkspaceID)
+			if err != nil {
+				return err
+			}
+			if sh.On() {
+				content.Holdout = &sh
+			}
+		}
 	} else if len(snd.Content) > 0 {
-		// A build that continues keeps the versions captured when it began.
+		// A build that continues keeps the versions and the holdout group
+		// captured when it began.
 		var prev sendContent
 		if json.Unmarshal(snd.Content, &prev) == nil {
 			content.Source, content.DefaultLanguage, content.Fallback, content.Offered, content.Languages = prev.Source, prev.DefaultLanguage, prev.Fallback, prev.Offered, prev.Languages
+			content.Holdout = prev.Holdout
 		}
+	}
+	held := holdout.Share{}
+	if content.Holdout != nil {
+		held = *content.Holdout
 	}
 	chooser, multilingual := content.chooser()
 	if snd.PrepareCursor == nil {
@@ -371,7 +402,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	for {
 		rows, err := e.Q.SendingAudiencePage(ctx, store.SendingAudiencePageParams{
 			Now: now, ExcludeLists: def.ExcludeLists, CampaignID: campaignID, Lists: def.Lists, WorkspaceID: cc.WorkspaceID, After: cursor, Lim: pageSize,
-			CapCount: limit.MarketingCapCount, CapSince: capSince, Frequencies: freqs,
+			CapCount: limit.MarketingCapCount, CapSince: capSince, Frequencies: freqs, HoldoutSeed: held.Seed, HoldoutBp: held.BasisPoints,
 		})
 		if err != nil {
 			return err
@@ -648,6 +679,10 @@ func eligibility(c store.SendingAudiencePageRow, def audienceDef, dup bool) stri
 		return "role"
 	case dup:
 		return "duplicate"
+	case c.HeldOut:
+		// The holdout group (M63 G-33); Send Readiness counts it at the
+		// same step.
+		return "holdout"
 	case c.Paused:
 		return "paused"
 	case c.OffCadence:
@@ -688,6 +723,8 @@ func (x *Excluded) add(why string) {
 		x.Capped++
 	case "cadence":
 		x.Cadence++
+	case "holdout":
+		x.Holdout++
 	}
 }
 

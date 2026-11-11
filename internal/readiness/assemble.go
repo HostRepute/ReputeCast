@@ -2246,6 +2246,14 @@ func (b *builder) estimates() ReadinessEstimates {
 		if a.Duplicates > 0 {
 			addRow(tx("estimate.duplicates", nil), a.Duplicates, "minus")
 		}
+		// The holdout group (M63 G-33), at the sending engine's step: a row
+		// when the send leaves it out; Review & send's checkbox includes it.
+		if a.HoldoutPercent > 0 {
+			aud.Holdout = &ReadinessHoldout{Percent: a.HoldoutPercent, Included: a.HoldoutIncluded, LeftOut: a.Holdout, Reached: a.HoldoutReached}
+			if !a.HoldoutIncluded {
+				addRow(tx("estimate.holdout", A{"count": a.Holdout, "percent": ArgPercent(a.HoldoutPercent)}), a.Holdout, "minus")
+			}
+		}
 		// Readers whose chosen rhythm the campaign doesn't reach (review
 		// 2026-11 CA-6).
 		if a.OffCadence > 0 {

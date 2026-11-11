@@ -1077,5 +1077,9 @@
   "tech.allOK": "HTTP 200 von {count, plural, one {dem Link} other {allen # Links}}",
   "tech.error": "Fehler",
   "tech.sourceHostRepute": "Stündliche Prüfung von HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}",
-  "tech.sourceBuiltin": "Eigene Prüfung von ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}"
+  "tech.sourceBuiltin": "Eigene Prüfung von ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}",
+  "estimate.holdout": "Kontrollgruppe: {count, number} ausgelassen ({percent})",
+  "problem.holdoutShare": "Geben Sie einen Anteil von 0,1 % bis 20 % ein.",
+  "problem.holdoutScope": "Wählen Sie Kampagnen, Automationen oder beides.",
+  "problem.holdoutOff": "Schalten Sie die Kontrollgruppe ein, bevor Sie neu beginnen."
 }

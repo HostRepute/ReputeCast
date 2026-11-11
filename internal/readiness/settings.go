@@ -129,10 +129,15 @@ func (in ReadinessSchedule) Resolve(ctx context.Context, field string) (Schedule
 type ReadinessSendSettings struct {
 	Thresholds *ReadinessThresholds `json:"thresholds,omitempty"`
 	Schedule   *ReadinessSchedule   `json:"schedule,omitempty"`
+	// IncludeHoldout sends to the holdout group too ("Include the holdout
+	// group", M63 G-33).
+	IncludeHoldout *bool `json:"includeHoldout,omitempty"`
 }
 
-// UpdateSendSettings saves the thresholds and the schedule the person chose.
-// Changing the schedule after approval invalidates the approval.
+// UpdateSendSettings saves the thresholds, the schedule and the holdout
+// choice the person made. Changing the schedule after approval invalidates
+// the approval; the holdout choice is part of the audience the approval and
+// the confirmation describe (AudienceDigest).
 func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in ReadinessSendSettings) error {
 	c, err := s.Campaign(ctx, ws, id)
 	if err != nil {
@@ -141,11 +146,25 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 	if !editable(c.Status) {
 		return api.Conflict(say(ctx, "problem.thresholdsLive", nil))
 	}
-	if c.Status == "scheduled" && in.Schedule != nil {
+	if c.Status == "scheduled" && (in.Schedule != nil || in.IncludeHoldout != nil) {
 		return api.Conflict(say(ctx, "problem.scheduled", nil))
 	}
-	thresholds, schedule := c.Thresholds, c.Schedule
+	thresholds, schedule, audience := c.Thresholds, c.Schedule, json.RawMessage(nil)
 	before, after := map[string]any{}, map[string]any{}
+	if in.IncludeHoldout != nil && *in.IncludeHoldout != ParseAudience(c.Audience).IncludeHoldout {
+		var raw map[string]any
+		if err := json.Unmarshal(c.Audience, &raw); err != nil || raw == nil {
+			raw = map[string]any{}
+		}
+		delete(raw, "includeHoldout")
+		if *in.IncludeHoldout {
+			raw["include_holdout"] = true
+		} else {
+			delete(raw, "include_holdout")
+		}
+		audience, _ = json.Marshal(raw)
+		before["include_holdout"], after["include_holdout"] = !*in.IncludeHoldout, *in.IncludeHoldout
+	}
 	if in.Thresholds != nil {
 		t := *in.Thresholds
 		if t.Scope == "" {
@@ -177,8 +196,9 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 	}
 	// A new time doesn't change what the checks found: a run that described
 	// the campaign keeps describing it (the send-time recheck runs anyway).
+	// A new holdout choice changes the audience, so the checks run again.
 	var carry *uuid.UUID
-	if _, ok := after["schedule"]; ok {
+	if _, ok := after["schedule"]; ok && audience == nil {
 		if run, err := s.Latest(ctx, id); err == nil && run != nil && run.Fingerprint == s.CurrentFingerprint(ctx, ws, c) {
 			if rid, err := uuid.Parse(run.ID); err == nil {
 				carry = &rid
@@ -189,6 +209,12 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		q := store.New(tx)
 		if err := q.ReadinessSetSendSettings(ctx, store.ReadinessSetSendSettingsParams{Thresholds: thresholds, Schedule: schedule, UpdatedBy: &p.UserID, Now: s.now(), WorkspaceID: ws.ID, ID: id}); err != nil {
 			return err
+		}
+		if audience != nil {
+			if err := q.ReadinessSetAudience(ctx, store.ReadinessSetAudienceParams{Audience: audience, AudienceCount: c.AudienceCount, UpdatedBy: &p.UserID, Now: s.now(),
+				WorkspaceID: ws.ID, ID: id}); err != nil {
+				return err
+			}
 		}
 		if carry != nil {
 			// Fingerprint the row as Postgres stored it, as every later
@@ -207,7 +233,8 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 	if err != nil {
 		return err
 	}
-	if _, ok := after["schedule"]; ok {
+	_, rescheduled := after["schedule"]
+	if rescheduled || audience != nil {
 		s.changed(ctx, ws, id)
 	}
 	return nil

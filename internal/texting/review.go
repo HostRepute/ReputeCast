@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/holdout"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -183,6 +184,16 @@ func (s *Service) buildReview(ctx context.Context, ws *store.Workspace, c store.
 	}
 	personalized := len(rv.measured.Fields) > 0
 	decisions := map[string]Decision{}
+	// The holdout group (M63 G-33) gets no text: its messages are logged
+	// as skipped, reason holdout.
+	ids := make([]uuid.UUID, 0, len(rv.funnel.Recipients))
+	for _, r := range rv.funnel.Recipients {
+		ids = append(ids, r.ContactID)
+	}
+	held, err := holdout.HeldFromCampaigns(ctx, s.Q, ws.ID, ids)
+	if err != nil {
+		return nil, err
+	}
 	for _, r := range rv.funnel.Recipients {
 		d, ok := decisions[r.Country]
 		if !ok {
@@ -194,9 +205,12 @@ func (s *Service) buildReview(ctx context.Context, ws *store.Workspace, c store.
 			body := render(withShortLinks(rv.text.Body, domain, placeholder), r)
 			p.segments = sms.CountText(Text{Prefix: rv.text.Prefix, Body: body, OptOut: rv.text.OptOut}.Full()).Segments
 		}
-		if d.Sender == nil {
+		switch {
+		case held[r.ContactID]:
+			p.skip = "holdout"
+		case d.Sender == nil:
 			p.skip = d.Hold
-		} else {
+		default:
 			p.cost = d.Price * float64(p.segments)
 			rv.cost += p.cost
 			rv.sent++
@@ -260,7 +274,7 @@ func (s *Service) checks(ctx context.Context, rv *review) []SmsCheck {
 	gaps := map[string]*gap{}
 	noRoute := map[string]int64{}
 	for _, p := range rv.plan {
-		if p.skip == "" {
+		if p.skip == "" || p.skip == "holdout" {
 			continue
 		}
 		if p.skip == "no_route" {

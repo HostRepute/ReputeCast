@@ -324,6 +324,16 @@ func (e *executor) channelSend(ctx context.Context, n AutomationNode) (string, s
 		e.stat(n.ID).Dropped++
 		return "", "", true, e.finish(ctx, "exited", "contact is "+ct.Status)
 	}
+	// The holdout group (M63 G-33): no text, notification or WhatsApp
+	// message either; the contact passes the step.
+	if held, err := e.heldOut(ctx); err != nil {
+		return "", "", true, err
+	} else if held {
+		st := e.stat(n.ID)
+		st.Skipped++
+		st.HeldOut++
+		return next, "", false, nil
+	}
 	res, err := c.Send(ctx, e.tx, ChannelSend{WorkspaceID: e.run.WorkspaceID, AutomationID: e.run.AutomationID, Version: int(e.run.Version), RunID: e.run.ID,
 		ContactID: e.run.ContactID, Node: n, Now: e.now, Waited: e.st.Wait == "window"})
 	if err != nil {
