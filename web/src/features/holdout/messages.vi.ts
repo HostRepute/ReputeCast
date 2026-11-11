@@ -1,0 +1,70 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+/** Vietnamese for Audience › Holdout (docs/i18n/glossary-vi.md: nhóm đối chứng). */
+export default translate(m, {
+  audience: 'Người đăng ký',
+  documentTitle: 'Nhóm đối chứng · Người đăng ký',
+  tab: 'Nhóm đối chứng',
+  loading: 'Đang tải kết quả nhóm đối chứng',
+
+  window: 'Khoảng thời gian',
+  since: 'Từ {date}',
+  last30: '30 ngày qua',
+  last90: '90 ngày qua',
+  computedAgo: 'Đã tính {ago}',
+  computing: 'Đang tính kết quả… Việc này mất khoảng một phút.',
+  recompute: 'Tính lại',
+  recomputeSoon: 'Kết quả đã được tính {ago}.',
+  recomputeEvery: 'Bạn có thể tính lại mỗi 10 phút một lần.',
+  recomputeFailed: 'Không thể tính lại kết quả',
+
+  added: 'Marketing mang lại thêm {lift} doanh thu trên mỗi liên hệ (độ tin cậy {confidence}).',
+  lost: 'Liên hệ trong nhóm đối chứng mang lại thêm {lift} doanh thu trên mỗi liên hệ (độ tin cậy {confidence}).',
+  noDifference: 'Chưa thấy khác biệt đo được.',
+  tooFew: 'Nhóm đối chứng có quá ít liên hệ: {count} trên {needed} cần có.',
+  tooFewHelp: 'Hãy tăng tỷ lệ trong <link>Cài đặt › Quy tắc gửi</link>, hoặc chờ danh sách lớn thêm.',
+  tooEarly: 'Còn quá sớm để kết luận: nhóm đối chứng bắt đầu từ {date}. Hãy chờ ít nhất hai tuần.',
+  pending: 'Chưa có kết quả. ReputeCast tính kết quả mỗi đêm lúc 04:00, hoặc ngay bây giờ khi bạn bấm Tính lại.',
+  groups:
+    '{holdout, plural, other {# liên hệ}} trong nhóm đối chứng ({percent}) không nhận {scope, select, campaigns {chiến dịch} automations {tự động hóa} other {chiến dịch hay tự động hóa}} nào từ {from} đến {to}; {marketing, plural, other {# liên hệ}} có nhận.',
+
+  conversionRate: 'Tỷ lệ chuyển đổi',
+  revenuePerContact: 'Doanh thu trên mỗi liên hệ',
+  ordersPerContact: 'Đơn hàng trên mỗi liên hệ',
+  marketingValue: '<vh>Nhóm marketing:</vh> {value}',
+  holdoutValue: 'Nhóm đối chứng {value}',
+  liftConfidence: '{lift} · độ tin cậy {confidence}',
+
+  view: 'Chế độ xem',
+  chart: 'Biểu đồ',
+  table: 'Bảng',
+  chartLabel: 'Doanh thu trên mỗi liên hệ: nhóm marketing {marketing}, nhóm đối chứng {holdout}',
+  marketingGroup: 'Nhóm marketing',
+  holdoutGroup: 'Nhóm đối chứng',
+  tableCaption: 'Doanh thu trên mỗi liên hệ, nhóm marketing và nhóm đối chứng',
+  colGroup: 'Nhóm',
+  colContacts: 'Liên hệ',
+  colConverters: 'Người chuyển đổi',
+  colConversionRate: 'Tỷ lệ chuyển đổi',
+  colOrders: 'Đơn hàng',
+  colRevenue: 'Doanh thu',
+  colRevenuePerContact: 'Doanh thu trên mỗi liên hệ',
+  otherCurrencies: 'Cũng được ghi nhận nhưng không tính: {amounts}.',
+  otherCurrency: '{amount} bằng {currency}',
+
+  includedTitle: 'Chiến dịch đã gửi cả cho nhóm đối chứng: {count}',
+  includedBody: 'Các chiến dịch này cũng đến nhóm đối chứng, nên giá trị chúng mang lại không nằm trong phần chênh lệch.',
+  converterNote: 'Người chuyển đổi là người đã đặt hàng, ghi nhận một chuyển đổi hoặc bắt đầu một gói trả phí. Doanh thu là đơn hàng trừ hoàn tiền cộng giá trị chuyển đổi, tính bằng {currency}.',
+  alwaysNote: 'Thư giao dịch và thư hệ thống luôn đến được với mọi người.',
+  settingsLink: 'Cài đặt nhóm đối chứng',
+
+  off: 'Nhóm đối chứng đang tắt. Kết quả này tính từ {from} đến {to}.',
+  turnOn: 'Bật lại trong Cài đặt › Quy tắc gửi',
+  noneTitle: 'Chưa có nhóm đối chứng.',
+  setUp: 'Thiết lập nhóm đối chứng',
+  loadFailed: 'Không tải được kết quả.',
+  loadFailedKept: 'ReputeCast vẫn giữ kết quả đã tính lần gần nhất; không có gì bị mất.',
+  loadFailedDo: 'Hãy kiểm tra kết nối rồi thử lại.',
+  retry: 'Thử lại',
+})

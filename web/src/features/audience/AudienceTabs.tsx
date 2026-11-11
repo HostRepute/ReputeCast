@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { NavTabs } from '@/components/ui/Tabs'
+import { m as holdout } from '@/features/holdout/messages'
 import { m as scoring } from '@/features/scoring/messages'
 import { useT } from '@/i18n'
 import { count } from '@/lib/format'
@@ -15,7 +16,7 @@ export function useAudienceSummary() {
 }
 
 /**
- * Contacts · Segments · Lists & fields · List health · Suppression list,
+ * Contacts · Segments · Lists & fields · List health · Suppression list (and Holdout),
  * inline after the screen title. Counts appear once the summary has loaded
  * (and not at all while the workspace has no contacts, as on the empty-state
  * board).
@@ -46,6 +47,8 @@ export function AudienceTabs() {
           params: { workspace: slug },
           reserve: reserve(5),
         },
+        // The holdout group (M63), once the workspace has had one.
+        ...(s?.holdout ? [{ label: t(holdout.tab), to: '/w/$workspace/audience/holdout' as const, params: { workspace: slug } }] : []),
       ]}
     />
   )

@@ -1,0 +1,35 @@
+import { translate } from '@/i18n'
+import { m } from './holdout.messages'
+
+/** Vietnamese for Settings › Sending rules › Holdout group (docs/i18n/glossary-vi.md). */
+export default translate(m, {
+  title: 'Nhóm đối chứng',
+  caption: 'Đo lường giá trị marketing mang lại',
+  switchLabel: 'Nhóm đối chứng',
+  sentence: 'Giữ ngẫu nhiên <share></share> % liên hệ ngoài các hoạt động marketing để đo lường giá trị mà marketing mang lại.',
+  shareLabel: 'Tỷ lệ liên hệ, tính bằng phần trăm',
+  scope: 'Không gửi cho họ',
+  campaigns: 'Chiến dịch',
+  automations: 'Tự động hóa',
+  noteAlways: 'Thư giao dịch và thư hệ thống luôn đến được với mọi người.',
+  noteRaise: 'Tăng tỷ lệ vẫn giữ nguyên những người đã ở trong nhóm. Bắt đầu lại sẽ chọn người mới.',
+  status: '{count, plural, other {# liên hệ}} được giữ ngoài từ {date}. <link>Xem kết quả</link>',
+  off: 'Đang tắt. Mọi liên hệ đều nhận chiến dịch và tự động hóa của bạn.',
+  startOver: 'Bắt đầu lại…',
+  save: 'Lưu',
+  saved: 'Đã lưu nhóm đối chứng',
+  turnedOn: 'Nhóm đối chứng đang bật',
+  turnedOff: 'Nhóm đối chứng đang tắt',
+  shareRange: 'Hãy nhập tỷ lệ từ 0,1% đến 20%.',
+  scopeRequired: 'Hãy chọn chiến dịch, tự động hóa hoặc cả hai.',
+  notChanged: 'Nhóm đối chứng chưa được thay đổi.',
+  dialogTitle: 'Bắt đầu lại với người mới?',
+  dialogEnds: 'Nhóm hiện tại kết thúc hôm nay. Kết quả của nhóm vẫn nằm trong Người đăng ký › Nhóm đối chứng.',
+  dialogNew: 'Từ bây giờ, {percent} liên hệ ngẫu nhiên mới sẽ được giữ ngoài.',
+  dialogAgain: 'Kết quả được tính lại từ hôm nay.',
+  dialogReason: 'Vì sao bắt đầu lại? (không bắt buộc, được lưu trong nhật ký kiểm tra)',
+  cancel: 'Hủy',
+  dialogConfirm: 'Bắt đầu lại',
+  restarted: 'Đã bắt đầu lại với người mới',
+  restartFailed: 'Không thể bắt đầu lại',
+})

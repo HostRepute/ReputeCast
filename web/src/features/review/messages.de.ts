@@ -481,4 +481,9 @@ export default translate(m, {
   composerFromReview: 'Aus Prüfen & senden',
   composerFromReviewAt: 'Aus Prüfen & senden · Blocklisten geprüft um {time}',
   openInReview: 'In Prüfen & senden öffnen',
+  includeHoldout: 'Kontrollgruppe einbeziehen',
+  includeHoldoutHint: 'Für Nachrichten, die alle erhalten müssen, etwa eine Änderung Ihrer AGB.',
+  includeHoldoutReached: '{count, plural, one {Der # Kontakt} other {Die # Kontakte}} in der Kontrollgruppe ({percent}) {count, plural, one {erhält} other {erhalten}} diesen Versand.',
+  holdoutScheduled: 'Die Kampagne ist geplant. Heben Sie die Planung auf, um die Empfänger zu ändern.',
+  holdoutFailed: 'Die Empfänger dieses Versands konnten nicht geändert werden',
 })

@@ -192,4 +192,6 @@ export default translate(mp, {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'Chưa có lệnh gọi nào.',
+  statHeldOut: 'Nhóm đối chứng <b>{value}</b>',
+  rowHeldOut: 'Giữ ngoài (nhóm đối chứng) <b>{value}</b>',
 })

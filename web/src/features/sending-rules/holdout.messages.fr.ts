@@ -1,0 +1,35 @@
+import { translate } from '@/i18n'
+import { m } from './holdout.messages'
+
+/** French for Settings › Sending rules › Holdout group (docs/i18n/glossary-fr.md). */
+export default translate(m, {
+  title: 'Groupe témoin',
+  caption: 'Mesurez ce que votre marketing apporte',
+  switchLabel: 'Groupe témoin',
+  sentence: 'Tenir <share></share> % des contacts, tirés au hasard, à l’écart du marketing pour mesurer ce qu’il apporte.',
+  shareLabel: 'Part des contacts, en pourcentage',
+  scope: 'Les tenir à l’écart des',
+  campaigns: 'Campagnes',
+  automations: 'Automatisations',
+  noteAlways: 'Les e-mails transactionnels et système parviennent toujours à tout le monde.',
+  noteRaise: 'Augmenter la part garde tous ceux déjà tenus à l’écart. Recommencer choisit de nouvelles personnes.',
+  status: '{count, plural, one {# contact tenu} other {# contacts tenus}} à l’écart depuis le {date}. <link>Voir les résultats</link>',
+  off: 'Désactivé. Tous les contacts reçoivent vos campagnes et automatisations.',
+  startOver: 'Recommencer…',
+  save: 'Enregistrer',
+  saved: 'Groupe témoin enregistré',
+  turnedOn: 'Le groupe témoin est activé',
+  turnedOff: 'Le groupe témoin est désactivé',
+  shareRange: 'Saisissez une part de 0,1 % à 20 %.',
+  scopeRequired: 'Choisissez les campagnes, les automatisations ou les deux.',
+  notChanged: 'Le groupe témoin n’a pas été modifié.',
+  dialogTitle: 'Recommencer avec de nouvelles personnes ?',
+  dialogEnds: 'Le groupe actuel prend fin aujourd’hui. Ses résultats restent dans Audience › Groupe témoin.',
+  dialogNew: 'À partir de maintenant, {percent} des contacts, tirés au hasard, sont tenus à l’écart.',
+  dialogAgain: 'Les résultats repartent d’aujourd’hui.',
+  dialogReason: 'Pourquoi recommencer ? (facultatif, conservé dans le journal d’audit)',
+  cancel: 'Annuler',
+  dialogConfirm: 'Recommencer',
+  restarted: 'Recommencé avec de nouvelles personnes',
+  restartFailed: 'Impossible de recommencer',
+})

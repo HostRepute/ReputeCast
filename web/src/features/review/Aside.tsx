@@ -2,13 +2,14 @@ import { Link } from '@tanstack/react-router'
 import { useId, useState, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
+import { DisabledReason } from '@/components/ui/DisabledReason'
 import { Button } from '@/components/ui/Button'
 import { Field, Select, Toggle } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Truncate } from '@/components/ui/Truncate'
 import { formatList, getI18n, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { calendarDate, clock, count, decimal, inZone, timeOfDay } from '@/lib/format'
+import { calendarDate, clock, count, decimal, inZone, timeOfDay, trimPct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import {
   defaultScheduleAt,
@@ -42,11 +43,13 @@ export function AudienceCard({
   audience,
   onInclude,
   including,
+  holdout,
   children,
 }: {
   audience: Run['estimates']['audience']
   onInclude?: () => void
   including?: boolean
+  holdout?: HoldoutChoiceProps
   children?: ReactNode
 }) {
   const t = useT()
@@ -81,8 +84,58 @@ export function AudienceCard({
         <span className="font-semibold">{t(m.finalRecipients)}</span>
         <span className="n text-[20px]">{count(audience.final)}</span>
       </div>
+      {holdout ? <HoldoutChoice {...holdout} /> : null}
       {children}
     </section>
+  )
+}
+
+export interface HoldoutChoiceProps {
+  /** The campaign includes the holdout group (the box is ticked). */
+  included: boolean
+  /** The holdout group's share in percent. */
+  percent: number
+  /** How many of its contacts the send reaches when included (from the last run). */
+  reached?: number
+  saving?: boolean
+  disabledReason?: string
+  onChange: (include: boolean) => void
+}
+
+/**
+ * "Include the holdout group" (M63 G-33): a send everyone must get, such as
+ * a change to the terms, goes to the holdout group too. Checked, it says how
+ * many of the group's contacts the send reaches.
+ */
+function HoldoutChoice({ included, percent, reached, saving, disabledReason, onChange }: HoldoutChoiceProps) {
+  const t = useT()
+  const id = useId()
+  const note = included && reached !== undefined
+  return (
+    <div className="rv-hold">
+      <label className="chk rv-hold-chk">
+        {/* Kept focusable when it can't change, with the reason (DisabledReason). */}
+        <DisabledReason reason={disabledReason}>
+          <input
+            type="checkbox"
+            checked={included}
+            disabled={saving}
+            aria-busy={saving || undefined}
+            aria-describedby={note ? `${id}-h ${id}-n` : `${id}-h`}
+            onChange={(e) => (disabledReason ? undefined : onChange(e.target.checked))}
+          />
+        </DisabledReason>
+        <span className="font-semibold">{t(m.includeHoldout)}</span>
+      </label>
+      <span className="k pl-[26px]" id={`${id}-h`}>
+        {t(m.includeHoldoutHint)}
+      </span>
+      {note ? (
+        <span className="k pl-[26px]" id={`${id}-n`}>
+          {t(m.includeHoldoutReached, { count: reached, percent: trimPct(percent) })}
+        </span>
+      ) : null}
+    </div>
   )
 }
 

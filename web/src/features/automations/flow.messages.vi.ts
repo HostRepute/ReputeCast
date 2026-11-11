@@ -204,4 +204,5 @@ export default translate(mf, {
   preheader: 'Dòng xem trước',
   html: 'HTML',
   htmlHint: 'Các thẻ Liquid như {example} và {unsubscribe} được điền khi gửi.',
+  statHeldOut: '<b>{count}</b> thuộc nhóm đối chứng',
 })

@@ -185,4 +185,5 @@ export default translate(mf, {
   preheader: 'Texte d’aperçu',
   html: 'HTML',
   htmlHint: 'Les balises Liquid comme {example} et {unsubscribe} sont remplies à l’envoi.',
+  statHeldOut: '<b>{count}</b> tenus à l’écart',
 })

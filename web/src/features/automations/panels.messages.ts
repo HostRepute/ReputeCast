@@ -213,4 +213,6 @@ export const mp = defineMessages('automations.panels', {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'No calls yet.',
+  statHeldOut: 'Held out <b>{value}</b>',
+  rowHeldOut: 'Held out (holdout group) <b>{value}</b>',
 })

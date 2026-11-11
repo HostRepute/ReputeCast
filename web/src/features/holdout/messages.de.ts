@@ -1,0 +1,70 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+/** German for Audience › Holdout (docs/i18n/glossary-de.md: Kontrollgruppe). */
+export default translate(m, {
+  audience: 'Zielgruppe',
+  documentTitle: 'Kontrollgruppe · Zielgruppe',
+  tab: 'Kontrollgruppe',
+  loading: 'Ergebnisse der Kontrollgruppe werden geladen',
+
+  window: 'Zeitraum',
+  since: 'Seit {date}',
+  last30: 'Letzte 30 Tage',
+  last90: 'Letzte 90 Tage',
+  computedAgo: 'Berechnet {ago}',
+  computing: 'Die Ergebnisse werden berechnet … Das dauert etwa eine Minute.',
+  recompute: 'Neu berechnen',
+  recomputeSoon: 'Die Ergebnisse wurden {ago} berechnet.',
+  recomputeEvery: 'Sie können alle 10 Minuten neu berechnen.',
+  recomputeFailed: 'Die Ergebnisse konnten nicht neu berechnet werden',
+
+  added: 'Marketing brachte {lift} mehr Umsatz pro Kontakt ({confidence} Konfidenz).',
+  lost: 'Kontakte in der Kontrollgruppe brachten {lift} mehr Umsatz pro Kontakt ({confidence} Konfidenz).',
+  noDifference: 'Noch kein messbarer Unterschied.',
+  tooFew: 'Zu wenige Kontakte in der Kontrollgruppe: {count} von {needed} nötigen.',
+  tooFewHelp: 'Erhöhen Sie den Anteil unter <link>Einstellungen › Versandregeln</link> oder warten Sie, bis die Zielgruppe wächst.',
+  tooEarly: 'Zu früh für eine Aussage: Die Kontrollgruppe begann am {date}. Geben Sie ihr mindestens zwei Wochen.',
+  pending: 'Noch keine Ergebnisse. ReputeCast berechnet sie jede Nacht um 04:00 Uhr oder jetzt mit „Neu berechnen“.',
+  groups:
+    '{holdout, plural, one {# Kontakt} other {# Kontakte}} in der Kontrollgruppe ({percent}) {holdout, plural, one {erhielt} other {erhielten}} vom {from} bis {to} keine {scope, select, campaigns {Kampagnen} automations {Automatisierungen} other {Kampagnen oder Automatisierungen}}; {marketing, plural, one {# Kontakt erhielt} other {# Kontakte erhielten}} sie.',
+
+  conversionRate: 'Konversionsrate',
+  revenuePerContact: 'Umsatz pro Kontakt',
+  ordersPerContact: 'Bestellungen pro Kontakt',
+  marketingValue: '<vh>Marketinggruppe:</vh> {value}',
+  holdoutValue: 'Kontrollgruppe {value}',
+  liftConfidence: '{lift} · {confidence} Konfidenz',
+
+  view: 'Ansicht',
+  chart: 'Diagramm',
+  table: 'Tabelle',
+  chartLabel: 'Umsatz pro Kontakt: Marketinggruppe {marketing}, Kontrollgruppe {holdout}',
+  marketingGroup: 'Marketinggruppe',
+  holdoutGroup: 'Kontrollgruppe',
+  tableCaption: 'Umsatz pro Kontakt, Marketinggruppe und Kontrollgruppe',
+  colGroup: 'Gruppe',
+  colContacts: 'Kontakte',
+  colConverters: 'Konvertierte',
+  colConversionRate: 'Konversionsrate',
+  colOrders: 'Bestellungen',
+  colRevenue: 'Umsatz',
+  colRevenuePerContact: 'Umsatz pro Kontakt',
+  otherCurrencies: 'Ebenfalls erfasst, nicht gezählt: {amounts}.',
+  otherCurrency: '{amount} in {currency}',
+
+  includedTitle: 'Kampagnen, die die Kontrollgruppe einbezogen: {count}',
+  includedBody: 'Sie gingen auch an die Kontrollgruppe, daher ist ihr Beitrag nicht Teil des Unterschieds.',
+  converterNote: 'Als konvertiert zählt, wer bestellt, eine Konversion ausgelöst oder ein bezahltes Abo begonnen hat. Umsatz sind Bestellungen abzüglich Erstattungen plus Konversionswerte, in {currency}.',
+  alwaysNote: 'Transaktions- und Systemmails erreichen immer alle.',
+  settingsLink: 'Einstellungen der Kontrollgruppe',
+
+  off: 'Die Kontrollgruppe ist aus. Diese Ergebnisse reichen vom {from} bis {to}.',
+  turnOn: 'Unter Einstellungen › Versandregeln einschalten',
+  noneTitle: 'Noch keine Kontrollgruppe.',
+  setUp: 'Kontrollgruppe einrichten',
+  loadFailed: 'Die Ergebnisse wurden nicht geladen.',
+  loadFailedKept: 'ReputeCast behält die zuletzt berechneten Ergebnisse; nichts ging verloren.',
+  loadFailedDo: 'Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
+  retry: 'Erneut versuchen',
+})

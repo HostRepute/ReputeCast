@@ -181,4 +181,6 @@ export default translate(mp, {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'Noch keine Aufrufe.',
+  statHeldOut: 'Ausgenommen <b>{value}</b>',
+  rowHeldOut: 'Ausgenommen (Kontrollgruppe) <b>{value}</b>',
 })

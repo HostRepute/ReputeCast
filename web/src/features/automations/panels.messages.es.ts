@@ -181,4 +181,6 @@ export default translate(mp, {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'Aún no hay llamadas.',
+  statHeldOut: 'Fuera <b>{value}</b>',
+  rowHeldOut: 'Fuera (grupo de control) <b>{value}</b>',
 })

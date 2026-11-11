@@ -609,6 +609,11 @@ export function StepPanel(p: StepPanelProps) {
                 <span>
                   <T msg={mp.statSent} values={{ value: count(st.sent), b: bold }} />
                 </span>
+                {st.heldOut > 0 ? (
+                  <span>
+                    <T msg={mp.statHeldOut} values={{ value: count(st.heldOut), b: bold }} />
+                  </span>
+                ) : null}
                 <span>
                   <T msg={mp.statDelivered} values={{ value: pct(st.sent ? (st.delivered / st.sent) * 100 : undefined), b: bold }} />
                 </span>
@@ -1058,13 +1063,18 @@ export function StepStatsPanel({
         ...(node.type === 'email'
           ? ([
               [mp.rowSent, count(st.sent)],
-              [mp.rowSkipped, count(st.skipped)],
+              // The holdout group's passes are skips too (M63): counted apart.
+              [mp.rowSkipped, count(st.skipped - st.heldOut)],
+              ...(st.heldOut > 0 ? ([[mp.rowHeldOut, count(st.heldOut)]] as [MessageDescriptor, string][]) : []),
               [mp.rowDelivered, count(st.delivered)],
               [mp.rowHumanOpens, count(st.openedHuman)],
               [mp.rowAllOpens, count(st.opened)],
               [mp.rowClicks, count(st.clicked)],
               [mp.rowUnsubscribes, count(st.unsubscribed)],
             ] as [MessageDescriptor, string][])
+          : []),
+        ...((node.type === 'sms' || node.type === 'push' || node.type === 'whatsapp') && st.heldOut > 0
+          ? ([[mp.rowHeldOut, count(st.heldOut)]] as [MessageDescriptor, string][])
           : []),
         ...(node.type === 'goal' ? ([[mp.rowReached, count(st.goalReached)]] as [MessageDescriptor, string][]) : []),
         ...(node.type === 'webhook' ? ([[mp.rowFailedCalls, count(st.failed)]] as [MessageDescriptor, string][]) : []),
@@ -1100,8 +1110,8 @@ export function StepStatsPanel({
         </div>
       )}
       {node.type === 'sms' ? <SmsStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} /> : null}
-      {node.type === 'push' ? <PushStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} skipped={st?.skipped ?? 0} /> : null}
-      {node.type === 'whatsapp' ? <WhatsAppStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} skipped={st?.skipped ?? 0} /> : null}
+      {node.type === 'push' ? <PushStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} skipped={(st?.skipped ?? 0) - (st?.heldOut ?? 0)} /> : null}
+      {node.type === 'whatsapp' ? <WhatsAppStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} skipped={(st?.skipped ?? 0) - (st?.heldOut ?? 0)} /> : null}
       {node.type === 'webhook' ? (
         <div className="fe-prop">
           <span className="tt">{tr(mp.deliveryLog)}</span>

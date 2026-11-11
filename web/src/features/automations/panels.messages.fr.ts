@@ -181,4 +181,6 @@ export default translate(mp, {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'Aucun appel pour l’instant.',
+  statHeldOut: 'Tenus à l’écart <b>{value}</b>',
+  rowHeldOut: 'Tenus à l’écart (groupe témoin) <b>{value}</b>',
 })

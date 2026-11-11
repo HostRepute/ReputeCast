@@ -1,0 +1,35 @@
+import { translate } from '@/i18n'
+import { m } from './holdout.messages'
+
+/** German for Settings › Sending rules › Holdout group (docs/i18n/glossary-de.md). */
+export default translate(m, {
+  title: 'Kontrollgruppe',
+  caption: 'Messen Sie, was Ihr Marketing bringt',
+  switchLabel: 'Kontrollgruppe',
+  sentence: 'Zufällig <share></share> % der Kontakte vom Marketing ausnehmen, um zu messen, was es bringt.',
+  shareLabel: 'Anteil der Kontakte in Prozent',
+  scope: 'Ausnehmen von',
+  campaigns: 'Kampagnen',
+  automations: 'Automatisierungen',
+  noteAlways: 'Transaktions- und Systemmails erreichen immer alle.',
+  noteRaise: 'Ein höherer Anteil behält alle, die schon ausgenommen sind. Neu beginnen wählt neue Personen.',
+  status: '{count, plural, one {# Kontakt} other {# Kontakte}} seit {date} ausgenommen. <link>Ergebnisse ansehen</link>',
+  off: 'Aus. Alle Kontakte erhalten Ihre Kampagnen und Automatisierungen.',
+  startOver: 'Neu beginnen …',
+  save: 'Speichern',
+  saved: 'Kontrollgruppe gespeichert',
+  turnedOn: 'Die Kontrollgruppe ist an',
+  turnedOff: 'Die Kontrollgruppe ist aus',
+  shareRange: 'Geben Sie einen Anteil von 0,1 % bis 20 % ein.',
+  scopeRequired: 'Wählen Sie Kampagnen, Automatisierungen oder beides.',
+  notChanged: 'Die Kontrollgruppe wurde nicht geändert.',
+  dialogTitle: 'Mit neuen Personen neu beginnen?',
+  dialogEnds: 'Die aktuelle Gruppe endet heute. Ihre Ergebnisse bleiben unter Zielgruppe › Kontrollgruppe.',
+  dialogNew: 'Ab jetzt werden zufällig neue {percent} der Kontakte ausgenommen.',
+  dialogAgain: 'Die Ergebnisse beginnen ab heute neu.',
+  dialogReason: 'Warum neu beginnen? (optional, wird im Prüfprotokoll gespeichert)',
+  cancel: 'Abbrechen',
+  dialogConfirm: 'Neu beginnen',
+  restarted: 'Mit neuen Personen neu begonnen',
+  restartFailed: 'Neu beginnen fehlgeschlagen',
+})
