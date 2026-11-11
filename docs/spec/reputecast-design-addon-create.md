@@ -270,6 +270,9 @@ Everything else uses existing keys:
 | See the AI assistant's settings, usage and activity log | integrations:view (phase 2) |
 | Use AI features | ai:use |
 | Connect, change or disconnect the AI model, set the cap and the features | integrations:manage ⚑ |
+| Create a countdown image for a Countdown block | the email's own edit permission (campaigns:edit for the API) |
+| See discount code pools and their numbers | campaigns:view |
+| Create, change or archive a pool; upload, create, remove or export codes | coupons:manage ⚑ (M59, section 3.10) |
 
 Who gets ai:use:
 - **Built-in roles:** Owner, Admin and Editor. Not Viewer.
@@ -313,6 +316,28 @@ Waiting-for-approval issues use the existing "Approval requested" kind.
 - **Conditional content:** score (phase 4), paid tier (phase 6), conditions in transactional templates.
 - **Polls and surveys:** quizzes with right answers, image answers, multi-page surveys, branching logic, file uploads.
 - **AI:** reputation diagnosis, sending or scheduling, writing a whole campaign from a prompt, image generation, a chat window, contact data in prompts.
+
+### 3.10 Countdown timers and unique discount codes (M59)
+Added after the November 2026 look at competitors (item 12). Both are blocks in campaigns and automation emails; neither is offered in transactional templates.
+
+- **Countdown block** (composer group Content): an image ReputeCast draws when the email is opened, counting down to a moment.
+  - Settings: ends (date and time) in a time zone (the workspace's by default); what it shows (days, hours, minutes, seconds · hours, minutes, seconds · days, hours, minutes); size S, M or L (360×96, 480×120, 600×150 px); background, digit and label colours from the brand kit, refused when the digits are under 4.5:1 on the background; when it ends, zeros or a message of up to 60 characters; alt text, written for the reader ("Offer ends Fri 27 Nov at 23:59 (EST)") and editable. Labels follow the language version being edited.
+  - Each set of settings is stored once per workspace (the same settings give the same image) and served at `/t/cd/<token>.gif`: a signed token, no contact in it, so the image is the same for every reader and records nothing. The GIF plays the next 60 seconds once and stays on its last frame; over 999 days shows 999. Ended, it is one frame cached for an hour; running, it is never cached (Gmail's and Apple's image proxies may still keep a copy, so the time is then right as of their fetch).
+  - The server draws at most four images at once and serves a copy at most ten seconds old when busy, so a large send's opens can't take it down.
+  - Checks: the composer warns "This countdown has already ended"; Send Readiness blocks a send whose countdown ends before the send time and warns when it ends within an hour of the send's start; publishing a flow warns when a countdown ends within 30 days, since the flow keeps sending afterwards.
+- **Discount codes** (Campaigns › Discount codes): a code per reader from a pool.
+  - A pool has a name, a slug used in Liquid (`{{ coupons.welcome15.code }}`, `{{ coupons.welcome15.url }}`), a source, an optional prefix, "One code per contact" (on by default) and a low mark (200).
+  - Sources: codes uploaded as text or CSV (up to 100,000 per upload, each 3–64 letters, digits, `-` or `_`, with an optional apply address holding `{code}`), or codes ReputeCast creates in a connected Shopify store (percentage, fixed amount or free shipping; minimum order, collections, ends after N days; one use, once per customer) or WooCommerce store (the same as coupons; a read-only key can't). Shopify asks for the discount permission once, from the store's page ("Allow discount codes").
+  - Created codes are made prefix + 8 characters without look-alikes, only those the store confirms become usable. Store pools that live automations use are refilled every hour to 1.2 × the last 7 days' use, at least the low mark.
+  - Codes are stored encrypted and never shown in lists; the export (CSV) needs coupons:manage and is audited.
+  - A code is given when a campaign page or an automation email is sent, once per message (a retried page gets the same codes), the contact's earlier code when "One code per contact" is on. Previews and test sends show `{prefix}SAMPLE1`; view online and link redirects show the message's own code and never take a new one.
+  - Not enough codes: Send Readiness blocks the send ("Not enough discount codes: 3 left for 5 recipients", or for a store pool "Creating 120 more codes in Acme Merch (40 done). The send starts when they're ready."); a scheduled send waits for the check to pass. A campaign message that still finds no code isn't sent (`no_codes`); an automation email waits, checking every 15 minutes for up to 24 hours, then skips the email.
+  - A store order using a code marks it redeemed; the pool shows free, sent, redeemed and the revenue of those orders (refunds taken off, cancelled and test orders left out).
+  - Pools in use are listed on the pool ("Used in"); archiving one that live automations use asks first.
+  - **Permissions:** coupons:manage (Campaigns group, sensitive ⚑; MCP agents can't hold it, and every change to pools and codes needs a person, so API keys can't make them), given to Owner, Admin and Editor, not Viewer. Seeing pools needs campaigns:view.
+  - **Audit:** a countdown image created; a pool created, changed or archived; codes uploaded (counts only), requested, removed or exported. Codes being given out are not audited (they are on the message).
+  - **Notifications:** "Discount codes running low" to members with coupons:manage, once when a pool goes under its low mark, again only after it was refilled above it.
+  - **Privacy:** a code given to a contact is contact data: erasure clears who it went to, the data export lists the contact's codes.
 
 ---
 
