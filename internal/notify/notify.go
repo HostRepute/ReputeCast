@@ -99,6 +99,9 @@ const (
 	// KindResultsFinal: a campaign report's results are final, for someone
 	// who asked to be emailed then ("Email me when it's final").
 	KindResultsFinal = "results_final"
+	// Receiving mail (M58).
+	KindReplyReceived  = "reply_received"  // new replies in Audience › Replies, at most every 15 minutes (replies:view)
+	KindInboundFailing = "inbound_failing" // receiving mail stopped: the MX record moved or the mailbox refused (domains:manage)
 )
 
 // Notification is what appears in the notification center.

@@ -15,13 +15,13 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/audience"
-	"github.com/hostrepute/reputecast/internal/counters"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/optout"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -920,51 +920,15 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 }
 
 // unsubscribe removes the contact from every list and records what the
-// email it came from needs: the campaign's unsubscribe count, the event on
-// the contact's timeline and, when given, the reason.
+// email it came from needs (internal/optout): the campaign's unsubscribe
+// count, the event on the contact's timeline and, when given, the reason.
 func (h *Handler) unsubscribe(ctx context.Context, s *site, c linktoken.Claims, ev audience.PublicEvidence, reason, comment string) (audience.UnsubscribeResult, error) {
 	var res audience.UnsubscribeResult
 	err := db.Tx(ctx, h.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		var msg *store.PublicMessageRow
-		var campaign *uuid.UUID
-		if c.MessageID != uuid.Nil {
-			if m, err := q.PublicMessage(ctx, c.MessageID); err == nil && m.WorkspaceID == s.ws.ID {
-				msg, campaign = &m, m.CampaignID
-			}
-		}
 		var err error
-		res, err = h.Audience.Unsubscribe(ctx, tx, s.ws, c.ContactID, campaign, ev)
-		if err != nil || res.Already {
-			return err
-		}
-		at := ev.At
-		if msg != nil {
-			// The message moves to unsubscribed once; its campaign's count
-			// follows (internal/counters).
-			if err := counters.Unsubscribed(ctx, q, msg.ID, at); err != nil {
-				return err
-			}
-			source := "Unsubscribe page"
-			if ev.Source == audience.SourceOneClick {
-				source = "List-Unsubscribe one-click"
-			}
-			if err := q.PublicInsertUnsubscribeEvent(ctx, store.PublicInsertUnsubscribeEventParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: s.ws.ID,
-				MessageID: &msg.ID, CampaignID: msg.CampaignID, ContactID: &c.ContactID, ProviderID: msg.ProviderID, At: at, MailboxProvider: msg.MailboxProvider,
-				OriginalType: source, UserAgent: truncate(ev.UserAgent, 500), Ip: ev.IP, Recipient: msg.Email, Source: source}); err != nil {
-				return err
-			}
-			if h.MessageUnsubscribed != nil {
-				if err := h.MessageUnsubscribed(ctx, q, msg.ID, at); err != nil {
-					return err
-				}
-			}
-		}
-		if reason != "" {
-			return q.PublicInsertFeedback(ctx, store.PublicInsertFeedbackParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: s.ws.ID, ContactID: &c.ContactID,
-				CampaignID: campaign, Reason: reason, Comment: comment, At: at})
-		}
-		return nil
+		res, err = optout.Apply(ctx, tx, optout.Deps{Audience: h.Audience, MessageUnsubscribed: h.MessageUnsubscribed}, s.ws,
+			optout.MessageRef{MessageID: c.MessageID, ContactID: c.ContactID}, ev, reason, comment)
+		return err
 	})
 	return res, err
 }
@@ -987,13 +951,6 @@ func (h *Handler) chooseFewer(r *http.Request, s *site, c linktoken.Claims) erro
 		return q.PublicInsertFeedback(ctx, store.PublicInsertFeedbackParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: s.ws.ID, ContactID: &c.ContactID,
 			CampaignID: campaign, Reason: "too_frequent", ChoseFewer: true, At: h.now()})
 	})
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n]
 }
 
 func (h *Handler) viewOnline(w http.ResponseWriter, r *http.Request) {

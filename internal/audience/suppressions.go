@@ -423,6 +423,8 @@ func suppressionSource(l i18n.Lang, source, provider, adapter, user, importSourc
 		return SuppressionSource{Kind: "one_click", Label: supSourceLabel(l, "one_click")}
 	case source == "bounce_mailbox":
 		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
+	case source == SourceMailto || source == SourceReply:
+		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	case source == "api":
 		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	case source == "import" || strings.HasPrefix(source, "import:"):

@@ -113,6 +113,8 @@
 
   "source.preference_center": "le centre de préférences",
   "source.one_click": "List-Unsubscribe en un clic",
+  "source.mailto": "E-mail de désabonnement (mailto:)",
+  "source.reply": "Boîte des réponses",
   "source.repermission": "e-mail de redemande de consentement",
   "source.team": "l’équipe",
   "source.api": "l’API",
@@ -122,6 +124,8 @@
 
   "suppressionSource.preference_center": "Centre de préférences",
   "suppressionSource.one_click": "List-Unsubscribe en un clic",
+  "suppressionSource.mailto": "E-mail de désabonnement (mailto:)",
+  "suppressionSource.reply": "Boîte des réponses",
   "suppressionSource.bounce_mailbox": "Boîte de réception des rebonds SMTP",
   "suppressionSource.api": "API",
   "suppressionSource.import": "Import {importer}",
@@ -155,6 +159,8 @@
   "detail.pauseLifted": "pause levée",
   "context.unsubscribePage": "Page de désabonnement",
   "context.oneClick": "List-Unsubscribe en un clic",
+  "context.mailto": "E-mail de désabonnement (mailto:)",
+  "context.reply": "Boîte des réponses",
   "context.repermissionExpired": "Aucune réponse à l’e-mail de redemande de consentement après {days, plural, one {# jour} other {# jours}}",
   "context.csvUpload": "Import CSV · {file}",
   "job.exportTitle": "Export · {count, plural, one {# contact} other {# contacts}}",

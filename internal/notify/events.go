@@ -81,6 +81,9 @@ var Events = []EventType{
 	// Web push and WhatsApp (design expansion, phase 8).
 	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "People who can view sending providers", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "People who can view sending providers", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
+	// Receiving mail (M58).
+	{Key: KindReplyReceived, Label: "New replies", Audience: "People who can view replies · at most every 15 minutes", Short: "replies", DefaultEmail: false, Kinds: []string{KindReplyReceived}},
+	{Key: KindInboundFailing, Label: "Receiving mail failing", Audience: "People who can manage domains", Short: "receiving problems", DefaultEmail: true, Kinds: []string{KindInboundFailing}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -120,12 +123,14 @@ const (
 	CategoryWebsite = "website"
 	// CategoryGrow holds referrals' and partner links' notifications.
 	CategoryGrow = "grow"
+	// CategoryAudience holds the replies inbox's notices (M58).
+	CategoryAudience = "audience"
 )
 
 var categoryKinds = map[string][]string{
 	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
 	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindResultsFinal, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused, KindAutomationAttention},
-	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails},
+	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails, KindInboundFailing},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested, KindCommentMention},
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindWebhookFailing, KindPostDraftCreated, KindStoreProblem},
@@ -134,6 +139,7 @@ var categoryKinds = map[string][]string{
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
 	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed},
 	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
+	CategoryAudience:      {KindReplyReceived},
 }
 
 var categoryLabels = map[string]string{
@@ -149,6 +155,7 @@ var categoryLabels = map[string]string{
 	CategoryEarn:          "Earn",
 	CategoryWebsite:       "Website",
 	CategoryGrow:          "Grow",
+	CategoryAudience:      "Audience",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

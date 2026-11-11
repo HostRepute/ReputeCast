@@ -368,18 +368,25 @@ UPDATE automation_runs SET status = 'exited', finished_at = now(), next_at = NUL
 WHERE automation_id = @automation_id AND status IN ('active', 'waiting');
 
 -- name: WakeAutomationBranchRuns :execrows
--- Runs waiting at a branch for an open or click: wake them as soon as the
--- email they wait on has one, instead of at the end of the window. A click
--- is a person's once it settled as one (review AN-2): a scanner's click is
--- filed as a bot's, and one still waiting to settle wakes nobody yet.
+-- Runs waiting at a branch for an open, a click or a reply: wake them as
+-- soon as the email they wait on has one, instead of at the end of the
+-- window. A click is a person's once it settled as one (review AN-2): a
+-- scanner's click is filed as a bot's, and one still waiting to settle
+-- wakes nobody yet. A reply is a person's (not an auto-reply or spam), to
+-- the email the run waits on, or to any email of the flow since the
+-- contact entered when the branch names none (M58).
 UPDATE automation_runs r SET next_at = @now
 WHERE r.status = 'waiting' AND r.next_at > @now AND r.state ->> 'wait' = 'branch'
-  AND (r.state ->> 'message') IS NOT NULL
-  AND EXISTS (
+  AND (((r.state ->> 'message') IS NOT NULL AND EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = (r.state ->> 'message')::uuid
       AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT coalesce((r.state ->> 'human')::boolean, false) OR NOT de.machine))
-        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending')));
+        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'))))
+    OR (r.state ->> 'want' = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam
+      AND (im.message_id = (r.state ->> 'message')::uuid
+        OR ((r.state ->> 'message') IS NULL AND im.contact_id = r.contact_id AND im.automation_id = r.automation_id AND im.received_at >= r.entered_at)))));
 
 -- name: AutomationContact :one
 SELECT id, email, first_name, last_name, status, timezone, tags, attributes, erased_at
@@ -415,25 +422,34 @@ WHERE automation_id = @automation_id AND automation_node = @node_id AND contact_
 ORDER BY queued_at DESC LIMIT 1;
 
 -- name: AutomationMessageEngaged :one
--- Whether an email was opened or clicked: clicks only once they settled as
--- a person's (review AN-2).
-SELECT EXISTS (
+-- Whether an email was opened, clicked or replied to: clicks only once they
+-- settled as a person's (review AN-2), replies only a person's, not
+-- auto-replies or spam (M58).
+SELECT (EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = @message_id
       AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
         OR (@want::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
-            AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))));
+            AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))))
+  OR (@want::text = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.message_id = @message_id AND im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam)))::boolean AS engaged;
 
 -- name: AutomationEngaged :one
--- Whether the contact opened or clicked any email of this flow since a time
--- (a person's settled clicks only, review AN-2).
-SELECT EXISTS (
+-- Whether the contact opened, clicked or replied to any email of this flow
+-- since a time (a person's settled clicks only, review AN-2; a person's
+-- replies only, M58).
+SELECT (EXISTS (
     SELECT 1 FROM delivery_events de
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = @contact_id AND m.automation_id = @automation_id AND de.occurred_at >= @since
       AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
         OR (@want::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
-            AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))));
+            AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))))
+  OR (@want::text = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.contact_id = @contact_id AND im.automation_id = @automation_id AND im.received_at >= @since
+      AND im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam)))::boolean AS engaged;
 
 -- name: AutomationContactSentEvent :one
 SELECT EXISTS (
@@ -592,17 +608,22 @@ JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = 
 WHERE r.status IN ('active', 'waiting') AND a.status = 'live' AND a.deleted_at IS NULL;
 
 -- name: AutomationGoalRunsEngaged :many
--- Runs whose contact opened or clicked an email of this flow since entering
--- (a person's settled clicks only, review AN-2).
+-- Runs whose contact opened, clicked or replied to an email of this flow
+-- since entering (a person's settled clicks only, review AN-2; a person's
+-- replies only, M58).
 SELECT r.id, r.node_id FROM automation_runs r
 WHERE r.automation_id = @automation_id AND r.version = @version AND r.status IN ('active', 'waiting')
-  AND EXISTS (
+  AND (EXISTS (
     SELECT 1 FROM delivery_events de
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
       AND ((@want::text = 'opened' AND de.type = 'open' AND (NOT @human_only::boolean OR NOT de.machine))
         OR (@want::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
             AND (@url_contains::text = '' OR de.url ILIKE '%' || @url_contains::text || '%'))))
+    OR (@want::text = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.contact_id = r.contact_id AND im.automation_id = r.automation_id AND im.received_at >= r.entered_at
+      AND im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam)))
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED;
 
@@ -711,6 +732,18 @@ FROM automation_runs r
 JOIN automations a ON a.id = r.automation_id AND a.deleted_at IS NULL
 JOIN contacts c ON c.id = r.contact_id
 WHERE r.id = @id AND a.workspace_id = @workspace_id
+FOR UPDATE OF r;
+
+-- name: AutomationContactRunsForReply :many
+-- A contact's runs in progress in a flow, locked, with their version's
+-- graph: a reply from them ends the runs whose version stops on reply
+-- (M58).
+SELECT r.id, r.version, r.node_id, v.graph
+FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = r.version
+WHERE r.automation_id = @automation_id AND a.workspace_id = @workspace_id AND r.contact_id = @contact_id
+  AND r.status IN ('active', 'waiting')
 FOR UPDATE OF r;
 
 -- name: AutomationContactOnList :one

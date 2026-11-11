@@ -2015,6 +2015,76 @@ type ImportRow struct {
 	Reason     string          `json:"reason"`
 }
 
+type InboundMessage struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	RouteID         *uuid.UUID      `json:"routeId"`
+	RawID           *uuid.UUID      `json:"rawId"`
+	Kind            string          `json:"kind"`
+	MessageID       *uuid.UUID      `json:"messageId"`
+	ContactID       *uuid.UUID      `json:"contactId"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	AutomationID    *uuid.UUID      `json:"automationId"`
+	FromEmail       string          `json:"fromEmail"`
+	FromName        string          `json:"fromName"`
+	ToAddress       string          `json:"toAddress"`
+	Subject         string          `json:"subject"`
+	TextBody        string          `json:"textBody"`
+	HasHtml         bool            `json:"hasHtml"`
+	Attachments     json.RawMessage `json:"attachments"`
+	AutoReply       bool            `json:"autoReply"`
+	Spam            bool            `json:"spam"`
+	AsksUnsubscribe bool            `json:"asksUnsubscribe"`
+	Auth            json.RawMessage `json:"auth"`
+	Status          string          `json:"status"`
+	HandledBy       *uuid.UUID      `json:"handledBy"`
+	HandledAt       *time.Time      `json:"handledAt"`
+	HeaderMessageID string          `json:"headerMessageId"`
+	ReceivedAt      time.Time       `json:"receivedAt"`
+}
+
+type InboundRaw struct {
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	RouteID      uuid.UUID       `json:"routeId"`
+	Source       string          `json:"source"`
+	ReceivedAt   time.Time       `json:"receivedAt"`
+	ContentType  string          `json:"contentType"`
+	Headers      json.RawMessage `json:"headers"`
+	Body         []byte          `json:"body"`
+	SignatureOk  bool            `json:"signatureOk"`
+	ProcessedAt  *time.Time      `json:"processedAt"`
+	ProcessError string          `json:"processError"`
+}
+
+type InboundRoute struct {
+	ID                    uuid.UUID       `json:"id"`
+	WorkspaceID           uuid.UUID       `json:"workspaceId"`
+	Kind                  string          `json:"kind"`
+	ProviderID            *uuid.UUID      `json:"providerId"`
+	Domain                string          `json:"domain"`
+	MailboxLocal          string          `json:"mailboxLocal"`
+	MailboxSettings       json.RawMessage `json:"mailboxSettings"`
+	MailboxPasswordSealed []byte          `json:"mailboxPasswordSealed"`
+	Settings              json.RawMessage `json:"settings"`
+	SecretSealed          []byte          `json:"secretSealed"`
+	HookTokenHash         []byte          `json:"hookTokenHash"`
+	HookTokenSealed       []byte          `json:"hookTokenSealed"`
+	Status                string          `json:"status"`
+	StatusDetail          string          `json:"statusDetail"`
+	RegisteredAt          *time.Time      `json:"registeredAt"`
+	VerifiedAt            *time.Time      `json:"verifiedAt"`
+	LastReceivedAt        *time.Time      `json:"lastReceivedAt"`
+	LastPolledAt          *time.Time      `json:"lastPolledAt"`
+	NotifiedAt            *time.Time      `json:"notifiedAt"`
+	FailingNotifiedAt     *time.Time      `json:"failingNotifiedAt"`
+	TestSentAt            *time.Time      `json:"testSentAt"`
+	TestReceivedAt        *time.Time      `json:"testReceivedAt"`
+	CreatedBy             *uuid.UUID      `json:"createdBy"`
+	CreatedAt             time.Time       `json:"createdAt"`
+	UpdatedAt             time.Time       `json:"updatedAt"`
+}
+
 type Incident struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`

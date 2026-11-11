@@ -50,6 +50,8 @@
   "short.store_problem": "store problems",
   "short.push_worker_missing": "missing push service workers",
   "short.whatsapp_attention": "WhatsApp templates and quality",
+  "short.reply_received": "replies",
+  "short.inbound_failing": "receiving problems",
 
   "event.approval_requested": {"message": "Approval requested", "note": "Notification preferences: one row per event type, which the member turns on in-app or by email"},
   "event.approval_decided": "Approval approved, rejected or changes requested",
@@ -98,6 +100,8 @@
   "event.store_problem": "Store disconnected or its webhooks missing",
   "event.push_worker_missing": "Push service worker missing",
   "event.whatsapp_attention": "WhatsApp template rejected or quality dropped",
+  "event.reply_received": "New replies",
+  "event.inbound_failing": "Receiving mail failing",
 
   "audience.approval_requested": {"message": "Only for approvers", "note": "who gets an event type, under its name in Notification preferences; it names who in people's words (\"People who can send campaigns\"), never a permission key"},
   "audience.approval_decided": "Only for the author",
@@ -146,6 +150,8 @@
   "audience.store_problem": "People who can manage integrations",
   "audience.push_worker_missing": "People who can view sending providers",
   "audience.whatsapp_attention": "People who can view sending providers",
+  "audience.reply_received": "People who can view replies · at most every 15 minutes",
+  "audience.inbound_failing": "People who can manage domains",
 
   "category.approvals": {"message": "Approvals", "note": "the notification center's tabs, and the badge on each notification"},
   "category.sending": "Sending",
@@ -159,6 +165,7 @@
   "category.earn": "Earn",
   "category.website": "Website",
   "category.grow": "Grow",
+  "category.audience": "Audience",
 
   "problem.unknownFilter": {"message": "Unknown filter.", "note": "the notification center was asked for a tab it doesn't have"},
   "problem.badCursor": {"message": "Invalid cursor.", "note": "a page of the notification center that doesn't exist"},
