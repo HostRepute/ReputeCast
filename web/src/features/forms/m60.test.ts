@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addStep, canMove, moveField, nextChoiceKey, removeStep, splitSteps, syncSteps, tagOf, type FormStep } from './steps'
+import { addStep, canMove, moveField, nextChoiceKey, placeField, removeStep, splitSteps, syncSteps, tagOf, type FormStep } from './steps'
 import { emptyTargeting, listOf, scheduleSummary, targetingSummary, type Targeting } from './targeting'
 import { abInputOf, abSentence, addVariant, evenSplit, sameAB, splitText, type ABDraft, type ABResult } from './variants'
 
@@ -57,6 +57,19 @@ describe('form steps (M60 G-23)', () => {
     expect(canMove(three(), 0, 0, -1)).toBe(false)
     expect(canMove(three(), 2, 0, 1)).toBe(false)
     expect(canMove(three(), 1, 0, 1)).toBe(true)
+  })
+
+  it('places a dragged field in a step, before the field it was dropped on', () => {
+    // Into another step, before its first field.
+    expect(placeField(three(), 'first_name', 1, 0)[1]).toEqual({ id: 's2', fields: ['first_name', 'topics'] })
+    // Onto a step card: last.
+    const last = placeField(three(), 'email', 2, 1)
+    expect(last[0]).toEqual({ id: 's1', fields: [] })
+    expect(last[2]).toEqual({ id: 's3', fields: ['first_name', 'email'] })
+    // Down within its own step: the place it leaves moves the drop point up.
+    const own: FormStep[] = [{ id: 's1', fields: ['email', 'first_name', 'company'] }, { id: 's2', fields: ['topics'] }]
+    expect(placeField(own, 'email', 0, 2)[0]!.fields).toEqual(['first_name', 'email', 'company'])
+    expect(placeField(own, 'company', 0, 0)[0]!.fields).toEqual(['company', 'email', 'first_name'])
   })
 
   it('gives a choice question a free key and its answers tags', () => {

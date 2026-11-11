@@ -1,9 +1,10 @@
+import { useState, type DragEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { m } from './builder.messages'
-import { addStep, canMove, maxSteps, moveField, removeStep, severalSteps, splitSteps, type FormField, type FormStep } from './steps'
+import { addStep, canMove, maxSteps, moveField, placeField, removeStep, severalSteps, splitSteps, type FormField, type FormStep } from './steps'
 
 const up = (
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -19,7 +20,7 @@ const down = (
 /**
  * "Steps" (FormBuilder, FormsStates "Several steps"): one step, or up to
  * four with their own heading, description and button; every field sits
- * in one step and moves between them with ↑ ↓. Selecting a step's card
+ * in one step and moves between them with ↑ ↓ or by dragging. Selecting a step's card
  * shows that step in the preview. With an A/B test's variant selected, it
  * edits that variant's steps.
  */
@@ -57,6 +58,24 @@ export function StepsSection({
     onPick(0)
   }
   const edit = (index: number, patch: Partial<FormStep>) => steps && onChange(steps.map((s, i) => (i === index ? { ...s, ...patch } : s)))
+  // Fields also move by dragging (the ↑ ↓ buttons do the same from the keyboard).
+  const [over, setOver] = useState<number>()
+  const dragType = 'application/x-reputecast-field'
+  const dragOver = (e: DragEvent, si: number) => {
+    if (readOnly || !e.dataTransfer.types.includes(dragType)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setOver(si)
+  }
+  const drop = (e: DragEvent, si: number, at: number) => {
+    const key = e.dataTransfer.getData(dragType)
+    setOver(undefined)
+    if (readOnly || !key || !steps) return
+    e.preventDefault()
+    e.stopPropagation()
+    onChange(placeField(steps, key, si, at))
+    onPick(si)
+  }
   return (
     <div className="fb-sec">
       <span className="k">{t(m.steps)}</span>
@@ -81,9 +100,12 @@ export function StepsSection({
                 role="group"
                 aria-label={on ? t(m.stepShown, { n }) : t(m.stepN, { n })}
                 aria-current={on || undefined}
-                className={cn('card flex flex-col gap-2 px-3 py-2.5', on && 'border-accent')}
+                className={cn('card flex flex-col gap-2 px-3 py-2.5', on && 'border-accent', over === si && 'fb-step-drop')}
                 onFocus={() => onPick(si)}
                 onClick={() => onPick(si)}
+                onDragOver={(e) => dragOver(e, si)}
+                onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setOver(undefined)}
+                onDrop={(e) => drop(e, si, s.fields.length)}
               >
                 <div className="flex items-center justify-between gap-2.5">
                   <span className="font-semibold">{t(m.stepN, { n })}</span>
@@ -120,7 +142,17 @@ export function StepsSection({
                   if (!f) return null
                   const field = nameOf(f)
                   return (
-                    <div key={key} className="flex items-center gap-2 text-[13px]">
+                    <div
+                      key={key}
+                      className={cn('flex items-center gap-2 text-[13px]', !readOnly && 'cursor-grab')}
+                      draggable={!readOnly}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData(dragType, key)
+                        e.dataTransfer.effectAllowed = 'move'
+                      }}
+                      onDragEnd={() => setOver(undefined)}
+                      onDrop={(e) => drop(e, si, fi)}
+                    >
                       <span className="min-w-0 flex-auto">{t(f.required || f.key === 'email' ? m.fieldRequired : m.fieldOptional, { field })}</span>
                       <Button
                         size="sm"

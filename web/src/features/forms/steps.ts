@@ -97,6 +97,25 @@ export function moveField(steps: FormStep[], stepIndex: number, fieldIndex: numb
   return out
 }
 
+/**
+ * Puts a field (dragged) into a step, before the field at `at` there, or
+ * last when `at` is past its end; it leaves the step it was in.
+ */
+export function placeField(steps: FormStep[], key: string, stepIndex: number, at: number): FormStep[] {
+  if (!steps[stepIndex]) return steps
+  let target = at
+  const out = steps.map((s, i) => {
+    const from = s.fields.indexOf(key)
+    if (from < 0) return { ...s, fields: [...s.fields] }
+    // Leaving a place before the drop point in the same step moves that point up.
+    if (i === stepIndex && from < at) target--
+    return { ...s, fields: s.fields.filter((k) => k !== key) }
+  })
+  const fields = out[stepIndex]!.fields
+  fields.splice(Math.max(0, Math.min(target, fields.length)), 0, key)
+  return out
+}
+
 /** Whether a field can move that way: not up from the very first place, nor down from the very last. */
 export function canMove(steps: FormStep[], stepIndex: number, fieldIndex: number, dir: -1 | 1): boolean {
   if (dir < 0) return stepIndex > 0 || fieldIndex > 0

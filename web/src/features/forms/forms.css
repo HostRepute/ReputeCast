@@ -374,6 +374,12 @@
     border-color: var(--line-input);
   }
 
+  /* A step card a dragged field is over. */
+  .fb-step-drop {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+  }
+
   /* A variant's copy, edited where it shows: it reads as the visitor sees
      it (FormBuilderABTest) and shows its edge on hover and focus. */
   .pf-edit {
