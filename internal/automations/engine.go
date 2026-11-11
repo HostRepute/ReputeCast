@@ -124,6 +124,7 @@ func (b statsBuf) merge(o statsBuf) {
 		dst.OpenedHuman += src.OpenedHuman
 		dst.Clicked += src.Clicked
 		dst.Unsubscribed += src.Unsubscribed
+		dst.BranchYes += src.BranchYes
 		dst.BranchNo += src.BranchNo
 		dst.HeldOut += src.HeldOut
 		dst.Paths = mergeKeys(dst.Paths, src.Paths)
