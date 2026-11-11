@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request an issue · Acme Newsletter</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+select{height:44px;padding:0 12px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:14px;width:100%;box-sizing:border-box;background:#fff}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.pcard{width:100%;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;border:0;cursor:pointer;text-decoration:none;font-family:inherit}
+.pbtn:hover{background:#3730A3;color:#fff}
+.pbtn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit}
+.pin{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;min-width:0;width:100%}
+.pmut{color:#5B6472}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#4B5563}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .m{width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+@media (max-width:767px){.pcard{padding:22px}.sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}}
+
+/* phase 6b public pages */
+input[type=checkbox],input[type=radio]{accent-color:#4338CA}
+:focus-visible{outline-color:#4338CA}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.num{font-variant-numeric:tabular-nums}
+.k{font-size:12.5px;color:#5B6472}
+.plbl{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:#1F2937;min-width:0}
+.plbl .opt{font-weight:400;color:#5B6472}
+.plbl .pin,.plbl .pta{font-weight:400;color:#1F2937}
+.pin::placeholder,.pta::placeholder{color:#6B7280;opacity:1}
+.pta{min-height:96px;padding:10px 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;width:100%;resize:vertical}
+.pfs{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pfs legend{font-size:13px;font-weight:600;color:#1F2937;padding:0;margin-bottom:8px}
+.ropt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #C9CED6;border-radius:10px;background:#fff;cursor:pointer;box-sizing:border-box;min-width:0}
+.ropt input{margin-top:3px;flex:none}
+.ropt.on{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA;background:#F5F3FF}
+.rpill{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid #C9CED6;border-radius:9px;font-size:14px;background:#fff;cursor:pointer;box-sizing:border-box}
+.rpill.on{border-color:#4338CA;background:#F5F3FF;font-weight:600}
+.pbox{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border:1px solid #E3E6EB;border-radius:12px;background:#F9FAFB;font-size:14px;color:#374151}
+.pbox.lav{border-color:#DDD6FE;background:#F5F3FF}
+.pbox.ok{border-color:#BBF7D0;background:#F0FDF4;color:#14532D}
+.pbox.warn{border-color:#FCD34D;background:#FFFBEB;color:#78350F}
+.pbox.bad{border-color:#FCA5A5;background:#FFF5F5;color:#7F1D1D}
+.pbox svg{flex:none;margin-top:2px}
+.pdiv{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:#5B6472;border-top:1px solid #EEF0F3;padding-top:14px}
+.pnote{font-size:12.5px;color:#5B6472;line-height:1.5}
+.pagelbl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:#4B5563}
+.pagelbl .url{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #DDD6FE;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#1F2937}
+.pstat{background:#fff;border:1px solid #E3E6EB;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pstat .l{font-size:13px;color:#5B6472;font-weight:500}
+.pstat .v{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums;color:#1F2937}
+.pstat .s{font-size:12.5px;color:#5B6472}
+.faq details{border-top:1px solid #EEF0F3;padding:14px 0}
+.faq details:first-of-type{border-top:0;padding-top:4px}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:600;font-size:15px;color:#1F2937}
+.faq summary::-webkit-details-marker{display:none}
+.faq p{margin:8px 0 0;font-size:14px;color:#374151;line-height:1.55}
+.ribbon{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:9px 16px;background:#EDE9FE;color:#5B21B6;font-size:13px;font-weight:600;text-align:center}
+.sw2{display:inline-flex;gap:4px;padding:4px;border:1px solid #C9CED6;border-radius:999px;background:#fff}
+.sw2 label{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.sw2 label.on{background:#4338CA;color:#fff}
+.sw2 input{position:absolute;opacity:0;width:1px;height:1px}
+.ptag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EDE9FE;color:#4338CA;white-space:nowrap}
+.strip{margin-top:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.tiers .fine{min-height:55px}
+@media (max-width:600px){.fcbtn{flex:1 1 100%!important}}
+@media (max-width:767px){.pstat .v{font-size:22px}.sw2 label{padding:0 12px}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#F5F3FF;position:relative">
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 32px;box-sizing:border-box"><main style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:18px"><div class="pagelbl"><span class="url"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/sponsor/request</span><span>Request an issue · an anonymous visitor</span></div><section class="pcard" style="gap:18px" aria-label="Request an issue"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2;color:#1F2937">Request an issue</h1><p style="margin:0;font-size:15px;line-height:1.55;color:#374151">Tell Acme Newsletter who you are and send your sponsor block. Nothing is charged until your request is approved and you pay.</p></div><fieldset class="pfs"><legend>The issue</legend><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><label class="plbl"><span>Slot</span><select class="pin"><option selected>Main sponsor · $750 an issue</option></select></label><label class="plbl"><span>Issue</span><select class="pin"><option selected>Choose an issue</option><option>#144 · Tue 28 Oct</option><option>#147 · Tue 18 Nov</option><option>#149 · Tue 2 Dec</option><option>#151 · Tue 16 Dec</option><option>#152 · Tue 23 Dec</option><option>#153 · Tue 30 Dec</option><option>#154 · Tue 6 Jan 2027</option></select></label></div><span class="pnote">Issues at least 7 days away. A request doesn't hold the issue: once it's approved, it's held for you until the pay-by date.</span></fieldset><fieldset class="pfs"><legend>About you</legend><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><label class="plbl"><span>Company</span><input class="pin" type="text" value="" placeholder=""></label><label class="plbl"><span>Website <span class="opt">optional</span></span><input class="pin" type="text" value="" placeholder="example.com"></label><label class="plbl"><span>Your name</span><input class="pin" type="text" value="" placeholder=""></label><label class="plbl"><span>Your email</span><input class="pin" type="email" value="" placeholder="name@example.com"><span style="font-size:12.5px;font-weight:400;color:#5B6472">We send updates and the link to pay here.</span></label></div></fieldset><fieldset class="pfs"><legend>Your sponsor block</legend><span class="pnote" style="margin-top:-4px">It goes out as “Sponsored by” your company, after the first story. Acme Newsletter sees it before approving.</span><div style="display:flex;flex-direction:column;gap:5px;min-width:0"><span style="font-size:13px;font-weight:600;color:#1F2937">Logo <span class="opt" style="font-weight:400;color:#5B6472">optional</span></span><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px dashed #C9CED6;border-radius:9px;background:#F9FAFB"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect><path d="m2 11 3.5-3.5 3 3 2-2L14 12"></path><circle cx="10.5" cy="6" r="1"></circle></svg><span style="display:flex;flex-direction:column;gap:2px;flex:1 1 180px;min-width:0"><span style="font-weight:600;font-size:13.5px;color:#1F2937">No file chosen</span><span style="font-size:12.5px;color:#5B6472">PNG or JPEG, up to 2 MB, at least 120 px wide.</span></span><label style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer;text-align:center;background:#fff;color:#1F2937;border:1px solid #C9CED6;padding:0 14px;font-size:13.5px;position:relative">Choose file<input type="file" name="logo" accept="image/png,image/jpeg" style="position:absolute;opacity:0;width:1px;height:1px"></label></div></div><div style="display:flex;flex-direction:column;gap:5px;min-width:0"><span style="font-size:13px;font-weight:600;color:#1F2937">Image <span class="opt" style="font-weight:400;color:#5B6472">optional</span></span><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px dashed #C9CED6;border-radius:9px;background:#F9FAFB"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect><path d="m2 11 3.5-3.5 3 3 2-2L14 12"></path><circle cx="10.5" cy="6" r="1"></circle></svg><span style="display:flex;flex-direction:column;gap:2px;flex:1 1 180px;min-width:0"><span style="font-weight:600;font-size:13.5px;color:#1F2937">No file chosen</span><span style="font-size:12.5px;color:#5B6472">PNG or JPEG, up to 2 MB. Shown above the text.</span></span><label style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer;text-align:center;background:#fff;color:#1F2937;border:1px solid #C9CED6;padding:0 14px;font-size:13.5px;position:relative">Choose file<input type="file" name="image" accept="image/png,image/jpeg" style="position:absolute;opacity:0;width:1px;height:1px"></label></div></div><label class="plbl"><span>Headline</span><input class="pin" type="text" value="" placeholder=""><span style="font-size:12.5px;font-weight:400;color:#5B6472">Up to 120 characters.</span></label><label class="plbl"><span>Text</span><textarea class="pta" placeholder="Two sentences about what you offer"></textarea><span style="font-size:12.5px;font-weight:400;color:#5B6472">280 characters left</span></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><label class="plbl"><span>Button text</span><input class="pin" type="text" value="" placeholder="Such as “Try it free”"></label><label class="plbl"><span>Link</span><input class="pin" type="url" value="" placeholder="https://"></label></div></fieldset><label class="plbl"><span>Notes for Acme Newsletter <span class="opt">optional</span></span><textarea class="pta" placeholder="Anything we should know"></textarea><span style="font-size:12.5px;font-weight:400;color:#5B6472">600 characters left</span></label><button type="button" style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer;text-align:center;background:#4338CA;color:#fff;border:0;height:48px;font-size:15px">Send request</button><span class="pnote" style="text-align:center">We email you a link to follow your request.</span></section><div style="height:20px"></div><div class="pagelbl"><span class="url"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/sponsor/request?slot=…&amp;issue=147</span><span>Sent with three fields to fix · from #147 on the media kit</span></div><section class="pcard" style="gap:18px" aria-label="Request an issue, with errors"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2;color:#1F2937">Request an issue</h1><p style="margin:0;font-size:15px;line-height:1.55;color:#374151">Tell Acme Newsletter who you are and send your sponsor block. Nothing is charged until your request is approved and you pay.</p></div><div class="pbox bad" role="alert"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#B91C1C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1"><span style="font-weight:700">3 fields need a change</span><span>Nothing was sent yet. Fix the fields marked below, then send the request again.</span></div></div><fieldset class="pfs"><legend>The issue</legend><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><label class="plbl"><span>Slot</span><select class="pin"><option selected>Main sponsor · $750 an issue</option></select></label><label class="plbl"><span>Issue</span><select class="pin"><option>Choose an issue</option><option>#144 · Tue 28 Oct</option><option selected>#147 · Tue 18 Nov</option><option>#149 · Tue 2 Dec</option><option>#151 · Tue 16 Dec</option><option>#152 · Tue 23 Dec</option><option>#153 · Tue 30 Dec</option><option>#154 · Tue 6 Jan 2027</option></select></label></div><span class="pnote">Issues at least 7 days away. A request doesn't hold the issue: once it's approved, it's held for you until the pay-by date.</span></fieldset><fieldset class="pfs"><legend>About you</legend><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><label class="plbl"><span>Company</span><input class="pin" type="text" value="Fabrikam Studio" placeholder=""></label><label class="plbl"><span>Website <span class="opt">optional</span></span><input class="pin" type="text" value="fabrikam-studio.example" placeholder="example.com"></label><label class="plbl"><span>Your name</span><input class="pin" type="text" value="Lucía Fernández" placeholder=""></label><label class="plbl"><span>Your email</span><input class="pin" type="email" value="lucia@fabrikam-studio" placeholder="name@example.com" aria-invalid="true" aria-describedby="rq-email" style="border-color:#B91C1C"><span id="rq-email" style="font-size:12.5px;font-weight:600;color:#B91C1C">Enter a whole email address, such as name@example.com.</span></label></div></fieldset><fieldset class="pfs"><legend>Your sponsor block</legend><span class="pnote" style="margin-top:-4px">It goes out as “Sponsored by” your company, after the first story. Acme Newsletter sees it before approving.</span><div style="display:flex;flex-direction:column;gap:5px;min-width:0"><span style="font-size:13px;font-weight:600;color:#1F2937">Logo <span class="opt" style="font-weight:400;color:#5B6472">optional</span></span><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px dashed #C9CED6;border-radius:9px;background:#F9FAFB"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect><path d="m2 11 3.5-3.5 3 3 2-2L14 12"></path><circle cx="10.5" cy="6" r="1"></circle></svg><span style="display:flex;flex-direction:column;gap:2px;flex:1 1 180px;min-width:0"><span style="font-weight:600;font-size:13.5px;color:#1F2937">fabrikam-logo.png · 18 KB</span><span style="font-size:12.5px;color:#5B6472">PNG or JPEG, up to 2 MB, at least 120 px wide.</span></span><label style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer;text-align:center;background:#fff;color:#1F2937;border:1px solid #C9CED6;padding:0 14px;font-size:13.5px;position:relative">Replace<input type="file" name="logo" accept="image/png,image/jpeg" style="position:absolute;opacity:0;width:1px;height:1px"></label></div></div><div style="display:flex;flex-direction:column;gap:5px;min-width:0"><span style="font-size:13px;font-weight:600;color:#1F2937">Image <span class="opt" style="font-weight:400;color:#5B6472">optional</span></span><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px dashed #B91C1C;border-radius:9px;background:#F9FAFB"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect><path d="m2 11 3.5-3.5 3 3 2-2L14 12"></path><circle cx="10.5" cy="6" r="1"></circle></svg><span style="display:flex;flex-direction:column;gap:2px;flex:1 1 180px;min-width:0"><span style="font-weight:600;font-size:13.5px;color:#1F2937">reviews-hero.png · 3.4 MB</span><span style="font-size:12.5px;color:#5B6472">PNG or JPEG, up to 2 MB. Shown above the text.</span></span><label style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer;text-align:center;background:#fff;color:#1F2937;border:1px solid #C9CED6;padding:0 14px;font-size:13.5px;position:relative">Replace<input type="file" name="image" accept="image/png,image/jpeg" aria-invalid="true" aria-describedby="rq-img" style="position:absolute;opacity:0;width:1px;height:1px"></label></div><span id="rq-img" style="font-size:12.5px;font-weight:600;color:#B91C1C">This image is 3.4 MB. Use a PNG or JPEG up to 2 MB.</span></div><label class="plbl"><span>Headline</span><input class="pin" type="text" value="Design reviews without the screenshot pile" placeholder=""><span style="font-size:12.5px;font-weight:400;color:#5B6472">Up to 120 characters.</span></label><label class="plbl"><span>Text</span><textarea class="pta" placeholder="Two sentences about what you offer">Fabrikam Studio collects comments on your live pages, so feedback lands where the work is. Free for teams of five.</textarea><span style="font-size:12.5px;font-weight:400;color:#5B6472">166 characters left</span></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><label class="plbl"><span>Button text</span><input class="pin" type="text" value="Try Fabrikam free" placeholder="Such as “Try it free”"></label><label class="plbl"><span>Link</span><input class="pin" type="url" value="fabrikam-studio.example/reviews" placeholder="https://" aria-invalid="true" aria-describedby="rq-link" style="border-color:#B91C1C"><span id="rq-link" style="font-size:12.5px;font-weight:600;color:#B91C1C">Start the link with https://.</span></label></div></fieldset><label class="plbl"><span>Notes for Acme Newsletter <span class="opt">optional</span></span><textarea class="pta" placeholder="Anything we should know">We're launching our review plugin on 18 Nov. Happy to move a week if that issue goes.</textarea><span style="font-size:12.5px;font-weight:400;color:#5B6472">515 characters left</span></label><button type="button" style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer;text-align:center;background:#4338CA;color:#fff;border:0;height:48px;font-size:15px">Send request</button><span class="pnote" style="text-align:center">We email you a link to follow your request.</span></section><div style="height:20px"></div><div class="pagelbl"><span class="url"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/sponsor/request</span><span>Sent · Fabrikam Studio</span></div><section class="pcard" style="gap:18px" aria-label="Request sent"><div class="brand"><span class="m">A</span><span style="font-weight:700;font-size:18px">Acme</span></div><div style="display:flex;flex-direction:column;gap:14px;align-items:flex-start"><span style="width:48px;height:48px;border-radius:50%;background:#DCFCE7;display:inline-flex;align-items:center;justify-content:center;flex:none"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg></span><h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2;color:#1F2937">We got your request</h1><p style="margin:0;font-size:15px;line-height:1.55;color:#374151">We emailed lucia@fabrikam-studio.example a link to follow it. Acme Newsletter approves or declines each request, and you hear either way.</p></div><div style="display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:1px solid #E3E6EB;border-radius:12px;background:#F9FAFB;font-size:14px"><span><b style="font-weight:600">Main sponsor · #147 · Tue 18 Nov</b> · $750</span><span style="color:#374151">Fabrikam Studio · Lucía Fernández · sent 14 Oct, 11:42</span></div><span class="pnote">Nothing is charged now. Once it's approved, you have 3 days to pay through Stripe.</span><a href="PublicSponsorStatus.dc.html" style="display:flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer;text-align:center;background:#fff;color:#1F2937;border:1px solid #C9CED6;">Follow your request</a><div class="pdiv"><span><a href="PublicSponsorKit.dc.html">Back to the media kit</a></span></div></section></main><footer style="display:flex;gap:10px 16px;align-items:center;margin-top:18px;font-size:12.5px;color:#5B6472;flex-wrap:wrap;justify-content:center"><a href="https://acme.io/terms" style="color:#5B6472">Terms of sale</a><span aria-hidden="true">·</span><a href="https://acme.io/privacy" style="color:#5B6472">Privacy</a><span aria-hidden="true">·</span><a href="Landing.dc.html" style="color:#5B6472">Sent with ReputeCast</a></footer></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":3996}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

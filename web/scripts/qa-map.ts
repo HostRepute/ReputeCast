@@ -413,6 +413,18 @@ export const entries: Entry[] = [
   { board: 'PublicSponsorReport', manual: true },
   { board: 'PublicSponsorReportPhone', manual: true },
   { board: 'PublicEarnStates', manual: true },
+  // M65 · teams, pauses and sponsor self-booking. The demo's self-serve slot on the Weekly Digest has
+  // requests from the media kit; sponsor status pages and team links are personal links made in a dev
+  // database (tmp scripts call the API), so their boards are manual.
+  { board: 'EarnSponsorRequests', path: `${ws}/earn/sponsors?tab=requests`, widths: [1440] },
+  { board: 'EarnSponsorRequestsTablet', path: `${ws}/earn/sponsors?tab=requests`, widths: [834] },
+  { board: 'EarnSponsorRequestsPhone', path: `${ws}/earn/sponsors?tab=requests`, widths: [390] },
+  { board: 'PublicSponsorKit', path: '/p/acme-newsletter/sponsor', user: 'anon', widths: [720] },
+  { board: 'PublicSponsorKitPhone', path: '/p/acme-newsletter/sponsor', user: 'anon', widths: [390] },
+  { board: 'PublicSponsorRequest', path: '/p/acme-newsletter/sponsor/request', user: 'anon', widths: [720] },
+  { board: 'PublicSponsorRequestPhone', path: '/p/acme-newsletter/sponsor/request', user: 'anon', widths: [390] },
+  { board: 'PublicSponsorStatus', manual: true },
+  { board: 'PublicSponsorStatusPhone', manual: true },
   // X18 · the publication website. The demo's website is on at news.acme.io. WebsiteStates holds
   // the off and turning-on pages, address problems, read-only views and the elsewhere-in-the-app
   // frames: reproduce them by hand (turn the website off in a dev database, sign in as aisha@acme.io).
