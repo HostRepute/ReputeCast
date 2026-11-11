@@ -1,0 +1,19 @@
+{{- if eq .Values.mode "split" }}
+{{- include "reputecast.validate" . }}
+{{- $role := ternary "web" "web,ingest" .Values.ingest.separate }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reputecast.fullname" . }}-web
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "web") | nindent 4 }}
+spec:
+  {{- if not .Values.hpa.enabled }}
+  replicas: {{ .Values.web.replicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "reputecast.componentSelector" (dict "root" . "component" "web") | nindent 6 }}
+  template:
+    {{- include "reputecast.podTemplate" (dict "root" . "component" "web" "args" (list "serve" (printf "--role=%s" $role)) "probePort" "http" "web" true "resources" .Values.web.resources "data" (dict "emptyDir" (dict))) | nindent 4 }}
+{{- end }}

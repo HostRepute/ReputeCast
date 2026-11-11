@@ -1,0 +1,56 @@
+# documentation: https://github.com/hostrepute/reputecast/blob/main/docs/deploy/README.md
+# slogan: Open-source newsletters that reach the inbox, through your own sending providers.
+# category: email
+# tags: newsletter,email,email-marketing,transactional-email,mailing-list,amazon-ses,self-hosted
+# logo: svgs/reputecast.svg
+# port: 8080
+#
+# ReputeCast as a Coolify service: paste this file into a Docker Compose Empty
+# resource, set REPUTECAST_ADMIN_EMAIL and deploy. Coolify generates the
+# domain and the Postgres credentials. The first Owner's temporary password is
+# in the reputecast container's logs (search for "ReputeCast is installed").
+# Back up the reputecast-data volume (it holds the secret key) with the
+# database. To upgrade, set REPUTECAST_VERSION to a newer release tag and
+# redeploy.
+
+services:
+  reputecast:
+    image: ghcr.io/hostrepute/reputecast:${REPUTECAST_VERSION:-v1.6.0}
+    environment:
+      - SERVICE_URL_REPUTECAST_8080
+      - REPUTECAST_PUBLIC_URL=${SERVICE_URL_REPUTECAST}
+      - REPUTECAST_ADMIN_EMAIL=${REPUTECAST_ADMIN_EMAIL:?}
+      - REPUTECAST_DATABASE__URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-reputecast}?sslmode=disable
+      # Coolify's proxy reaches the container over a private network.
+      - REPUTECAST_HTTP__TRUSTED_PROXIES=private
+    volumes:
+      - reputecast-data:/var/lib/reputecast
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Ready once the database answers and the schema is current; the first
+    # start applies every migration and creates the first Owner.
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/reputecast", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 2m
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      - POSTGRES_USER=${SERVICE_USER_POSTGRES}
+      - POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}
+      - POSTGRES_DB=${POSTGRES_DB:-reputecast}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 20s
+      retries: 10
+
+volumes:
+  reputecast-data:
+  postgres-data:

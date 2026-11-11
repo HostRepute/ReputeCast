@@ -1,0 +1,38 @@
+ReputeCast is starting at {{ .Values.publicURL }} ({{ .Values.mode }} mode).
+
+{{- $fullname := include "reputecast.fullname" . }}
+{{- if .Values.admin.email }}
+
+The first Owner is {{ .Values.admin.email }}.
+{{- if .Values.admin.passwordSecret }} Sign in with the password in the {{ .Values.admin.passwordSecret }} Secret.
+{{- else }} Their temporary password is in the install Job's log:
+
+  kubectl logs --namespace {{ .Release.Namespace }} job/{{ $fullname }}-install
+{{- end }}
+{{- else }}
+
+No first Owner was created (admin.email is empty). Create one with:
+
+  kubectl exec --namespace {{ .Release.Namespace }} -it {{ if eq .Values.mode "split" }}deploy/{{ $fullname }}-web{{ else }}statefulset/{{ $fullname }}{{ end }} -- \
+    reputecast install --email you@example.com --name "Your Name"
+{{- end }}
+
+At first sign-in you replace that password, add a passkey or an authenticator
+app, save recovery codes and create the first workspace.
+{{- if not .Values.ingress.enabled }}
+
+No Ingress was created. To try it from this machine:
+
+  kubectl port-forward --namespace {{ .Release.Namespace }} service/{{ $fullname }} 8080:{{ .Values.service.port }}
+
+Providers deliver webhooks to {{ .Values.publicURL }}/hooks/…, so that address
+must reach the {{ $fullname }} Service from the internet.
+{{- end }}
+{{- if not .Values.secretKey.existingSecret }}
+
+The key that encrypts provider credentials was generated into the
+{{ $fullname }}-key Secret, which stays when the release is uninstalled.
+Back it up with the database; restoring needs both:
+
+  kubectl get secret --namespace {{ .Release.Namespace }} {{ $fullname }}-key -o jsonpath='{.data.secret-key}' | base64 -d
+{{- end }}

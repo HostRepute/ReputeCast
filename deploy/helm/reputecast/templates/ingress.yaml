@@ -1,0 +1,46 @@
+{{- if .Values.ingress.enabled }}
+{{- include "reputecast.validate" . }}
+{{- $fullname := include "reputecast.fullname" . }}
+{{- $ingest := and (eq .Values.mode "split") .Values.ingest.separate }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "reputecast.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range (include "reputecast.ingressHosts" . | fromYamlArray) }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          {{- if $ingest }}
+          # Provider webhooks go to the ingest pods.
+          - path: /hooks/
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}-ingest
+                port:
+                  name: http
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}

@@ -1,0 +1,22 @@
+{{- if and (eq .Values.mode "split") .Values.pdb.enabled }}
+{{- $components := list "web" }}
+{{- if .Values.ingest.separate }}
+{{- $components = append $components "ingest" }}
+{{- end }}
+{{- range $i, $c := $components }}
+{{- if $i }}
+---
+{{- end }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "reputecast.fullname" $ }}-{{ $c }}
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" $ "component" $c) | nindent 4 }}
+spec:
+  maxUnavailable: {{ $.Values.pdb.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "reputecast.componentSelector" (dict "root" $ "component" $c) | nindent 6 }}
+{{- end }}
+{{- end }}

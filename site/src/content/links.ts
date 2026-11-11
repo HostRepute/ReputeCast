@@ -18,4 +18,13 @@ export const links = {
   hostrepute: 'https://hostrepute.com',
   withoutHostRepute: `${docs}/deliverability/hostrepute/`,
   composeUrl: 'https://get.reputecast.com/compose.yml',
+  // The Helm chart, pushed to GitHub's registry with each release.
+  chartUrl: 'oci://ghcr.io/hostrepute/charts/reputecast',
+  // The platforms: Render and DigitalOcean read render.yaml and
+  // .do/deploy.template.yaml from the repository; Railway and Coolify open
+  // their setup in deploy/ until their template listings are published.
+  render: `https://render.com/deploy?repo=${repo}`,
+  railway: `${repo}/tree/main/deploy/railway`,
+  digitalOcean: `https://cloud.digitalocean.com/apps/new?repo=${repo}/tree/main`,
+  coolify: `${repo}/blob/main/deploy/coolify/reputecast.yaml`,
 } as const

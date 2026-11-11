@@ -1,0 +1,36 @@
+{{- /* `helm test <release>`: the web Service answers /readyz with 200. */}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "reputecast.fullname" . }}-test-readyz
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "test") | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  {{- with .Values.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  securityContext:
+    {{- toYaml .Values.podSecurityContext | nindent 4 }}
+  containers:
+    - name: readyz
+      image: {{ include "reputecast.image" . }}
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      args:
+        - healthcheck
+        - --url=http://{{ include "reputecast.fullname" . }}:{{ .Values.service.port }}/readyz
+        - --timeout=10s
+      # The binary loads its catalogs at start, even for a health check.
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 256Mi
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}

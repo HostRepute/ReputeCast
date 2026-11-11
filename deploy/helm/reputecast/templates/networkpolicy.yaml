@@ -1,0 +1,45 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "reputecast.fullname" . }}
+  labels:
+    {{- include "reputecast.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "reputecast.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    # The web app, the API and provider webhooks.
+    - ports:
+        - port: http
+          protocol: TCP
+      {{- with $np.httpFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    # Prometheus.
+    - ports:
+        - port: metrics
+          protocol: TCP
+      from:
+        {{- if $np.metricsFrom }}
+        {{- toYaml $np.metricsFrom | nindent 8 }}
+        {{- else }}
+        - podSelector: {}
+        {{- end }}
+    {{- if .Values.smtpRelay.service.enabled }}
+    # The SMTP relay, from anywhere: its own checks decide who may send.
+    - ports:
+        - port: smtp-starttls
+          protocol: TCP
+        - port: smtp-tls
+          protocol: TCP
+    {{- end }}
+    {{- with $np.extraIngress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

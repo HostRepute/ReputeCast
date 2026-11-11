@@ -1,0 +1,17 @@
+{{- if eq .Values.mode "split" }}
+{{- include "reputecast.validate" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reputecast.fullname" . }}-worker
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "worker") | nindent 4 }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "reputecast.componentSelector" (dict "root" . "component" "worker") | nindent 6 }}
+  template:
+    {{- /* A worker has no HTTP listener: its probes ask the metrics one. */}}
+    {{- include "reputecast.podTemplate" (dict "root" . "component" "worker" "args" (list "worker") "probePort" "metrics" "web" false "resources" .Values.worker.resources "data" (dict "emptyDir" (dict))) | nindent 4 }}
+{{- end }}

@@ -4,6 +4,8 @@ ReputeCast is a single binary that embeds the web app and its database
 migrations. It needs Postgres 16, 17 or 18 and nothing else.
 
 - [Install with Docker](#install-with-docker)
+- [One-click installs](#one-click-installs)
+- [Kubernetes (Helm)](#kubernetes-helm)
 - [Install the binary](#install-the-binary)
 - [First sign-in](#first-sign-in)
 - [Commands](#commands)
@@ -53,6 +55,53 @@ make docker VERSION=local
 REPUTECAST_IMAGE=reputecast REPUTECAST_VERSION=local REPUTECAST_ADMIN_EMAIL=you@example.com \
   docker compose -f deploy/docker-compose.yml up -d
 ```
+
+## One-click installs
+
+Each of these runs one ReputeCast instance from the release image, with
+Postgres beside it. The first start applies the migrations and creates the
+first Owner from the email you enter; their temporary password is in the
+service's logs (search for `ReputeCast is installed`).
+
+| Platform | Start from | What it needs |
+|---|---|---|
+| Render | [Deploy to Render](https://render.com/deploy?repo=https://github.com/hostrepute/reputecast) ([`render.yaml`](../../render.yaml)) | A paid web service (the 10 GB disk at `/var/lib/reputecast`) and a Render Postgres database. Render asks for the public URL and the first Owner's email. |
+| Railway | [`deploy/railway`](../../deploy/railway/README.md): the template, three steps by hand, or the Railway CLI | Railway Postgres and a volume at `/var/lib/reputecast`. The public URL follows the domain Railway generates. |
+| DigitalOcean | [Deploy to DigitalOcean](https://cloud.digitalocean.com/apps/new?repo=https://github.com/hostrepute/reputecast/tree/main) ([`.do/deploy.template.yaml`](../../.do/deploy.template.yaml)) | App Platform has no disks: a Spaces bucket and access key for uploaded files, and a secret key you generate (`openssl rand -base64 32`). The button creates a dev database; convert it to a managed one in the app's settings before you rely on it. |
+| Coolify | [`deploy/coolify/reputecast.yaml`](../../deploy/coolify/reputecast.yaml) in a **Docker Compose Empty** resource | A Coolify server with a domain. Coolify generates the URL and the Postgres password; you enter the first Owner's email. |
+| Kubernetes | [Helm chart](#kubernetes-helm) | Kubernetes 1.29+, Postgres 16–18 (CloudNativePG or a managed database) and an Ingress controller. |
+| Docker Compose | [Install with Docker](#install-with-docker) | Docker 24+ with Compose and a domain you control. |
+
+All of them set `REPUTECAST_HTTP__TRUSTED_PROXIES=private`, which trusts the
+platform's router on private networks ([configuration](configuration.md)).
+When you move to your own domain, change `REPUTECAST_PUBLIC_URL` (Render,
+Coolify), add the domain in Railway (its variable follows) or in
+DigitalOcean (`${APP_URL}` follows), then confirm it in Instance admin ›
+Instance & updates. Back up the secret key with the database: the
+`secret.key` file on the volume, or the `REPUTECAST_SECRETS__KEY` you entered
+on DigitalOcean.
+
+## Kubernetes (Helm)
+
+The chart in [`deploy/helm/reputecast`](../../deploy/helm/reputecast/README.md)
+is published to `oci://ghcr.io/hostrepute/charts/reputecast` with each
+release. It runs one StatefulSet pod with a volume (`mode: single`), or web,
+worker and webhook pods that share an S3-compatible bucket (`mode: split`).
+Migrations run in a Job before every install and upgrade.
+
+```bash
+helm install reputecast oci://ghcr.io/hostrepute/charts/reputecast \
+  --namespace reputecast --create-namespace \
+  --set publicURL=https://news.example.com \
+  --set database.existingSecret=reputecast-db-app \
+  --set admin.email=you@example.com \
+  --set ingress.enabled=true
+kubectl logs --namespace reputecast job/reputecast-install   # the temporary password
+```
+
+The chart's README covers Postgres with CloudNativePG or a managed database,
+split mode and the bucket, the generated secret key, the SMTP relay's
+LoadBalancer, GeoIP, metrics, network policy and every value.
 
 ## Install the binary
 
@@ -106,6 +155,11 @@ reachable from the internet. See [Reverse proxy and TLS](reverse-proxy.md).
 - Docker: `docker compose pull && docker compose up -d`. Migrations run at
   start.
 - Binary: replace it, then run `reputecast migrate up`.
+- Helm: `helm upgrade` with the new chart version; a Job migrates before the
+  pods change (give a large upgrade `--timeout 30m`).
+- Render, Railway, DigitalOcean: redeploy the service to pull the image
+  again. Coolify: set `REPUTECAST_VERSION` to the new tag and redeploy.
+  Migrations run at start.
 
 The upgrade to the release with review 2026-11 converts `delivery_events` to
 monthly partitions if it isn't already; on a very large table run

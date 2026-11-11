@@ -532,7 +532,19 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
 REPUTECAST_ADMIN_EMAIL=you@example.com docker compose up -d
 docker compose logs app | grep -A4 "ReputeCast is installed"<span class="cursor" aria-hidden="true"></span></pre>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><a href="https://docs.reputecast.com/self-hosting/docker/" class="btn" style="background:#fff">Read the install guide</a><a href="https://github.com/hostrepute/reputecast/releases" class="btn" style="background:transparent;color:#fff;border-color:#374151">Releases</a></div>
-        <span style="font-size:13px;color:#9CA3AF">Requirements: Docker 24+ with Compose and a domain you control. Load-tested with a million contacts on 4 vCPUs; the docs cover the binary, TLS, Postgres, backups and scaling.</span>
+        <div style="display:flex;flex-direction:column;gap:12px;padding-top:16px;border-top:1px solid #1F2937">
+          <span style="font-size:13px;color:#9CA3AF">On Kubernetes, with your own Postgres:</span>
+<pre style="background:#111827;border:1px solid #1F2937">helm install reputecast \
+  oci://ghcr.io/hostrepute/charts/reputecast \
+  --set publicURL=https://news.example.com \
+  --set database.url=postgres://… \
+  --set admin.email=you@example.com</pre>
+          <div role="group" aria-labelledby="install-platforms" style="display:flex;flex-direction:column;gap:12px">
+            <span id="install-platforms" style="font-size:13px;color:#9CA3AF">On a platform, with Postgres beside it:</span>
+            <div style="display:flex;gap:10px;flex-wrap:wrap"><a href="https://render.com/deploy?repo=https://github.com/hostrepute/reputecast" class="btn" style="background:transparent;color:#fff;border-color:#374151">Render</a><a href="https://github.com/hostrepute/reputecast/tree/main/deploy/railway" class="btn" style="background:transparent;color:#fff;border-color:#374151">Railway</a><a href="https://cloud.digitalocean.com/apps/new?repo=https://github.com/hostrepute/reputecast/tree/main" class="btn" style="background:transparent;color:#fff;border-color:#374151">DigitalOcean</a><a href="https://github.com/hostrepute/reputecast/blob/main/deploy/coolify/reputecast.yaml" class="btn" style="background:transparent;color:#fff;border-color:#374151">Coolify</a></div>
+          </div>
+        </div>
+        <span style="font-size:13px;color:#9CA3AF">Requirements: Docker 24+ with Compose and a domain you control; for the chart, Kubernetes 1.29+ and Postgres 16–18. Load-tested with a million contacts on 4 vCPUs; the docs cover the binary, Helm, TLS, Postgres, backups and scaling.</span>
       </div>
     </div>
   </section>

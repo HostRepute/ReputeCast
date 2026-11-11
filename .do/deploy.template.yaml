@@ -1,0 +1,71 @@
+# App Platform app spec for the Deploy to DigitalOcean button
+# (https://docs.digitalocean.com/products/app-platform/how-to/add-deploy-do-button/):
+#   https://cloud.digitalocean.com/apps/new?repo=https://github.com/hostrepute/reputecast/tree/main
+# App Platform has no disks, so uploaded files go to a Spaces bucket
+# (storage.backend s3) and the secret key is a secret you enter: create the
+# bucket and a Spaces access key first, and a key with
+#   openssl rand -base64 32
+# Keep that key with your database backups. The button can only create a dev
+# database (Postgres 18); convert it to a managed database in the app's
+# settings before you rely on it. The first Owner's temporary password is in
+# the runtime logs (search for "ReputeCast is installed").
+spec:
+  name: reputecast
+  services:
+    - name: reputecast
+      image:
+        registry_type: GHCR
+        registry: hostrepute
+        repository: reputecast
+        tag: latest
+      http_port: 8080
+      instance_count: 1
+      instance_size_slug: apps-s-1vcpu-1gb
+      # Ready once the database answers and the schema is current; the
+      # first start applies every migration.
+      health_check:
+        http_path: /readyz
+        initial_delay_seconds: 10
+        period_seconds: 10
+        timeout_seconds: 3
+        failure_threshold: 30
+      envs:
+        - key: REPUTECAST_PUBLIC_URL
+          scope: RUN_TIME
+          value: ${APP_URL}
+        - key: REPUTECAST_ADMIN_EMAIL
+          scope: RUN_TIME
+        # ReputeCast reads DATABASE_URL when REPUTECAST_DATABASE__URL isn't set.
+        - key: DATABASE_URL
+          scope: RUN_TIME
+          value: ${db.DATABASE_URL}
+        # Base64 32-byte key: openssl rand -base64 32
+        - key: REPUTECAST_SECRETS__KEY
+          scope: RUN_TIME
+          type: SECRET
+        # App Platform's proxy reaches the app over a private network.
+        - key: REPUTECAST_HTTP__TRUSTED_PROXIES
+          scope: RUN_TIME
+          value: private
+        - key: REPUTECAST_STORAGE__BACKEND
+          scope: RUN_TIME
+          value: s3
+        - key: REPUTECAST_STORAGE__S3__BUCKET
+          scope: RUN_TIME
+        - key: REPUTECAST_STORAGE__S3__REGION
+          scope: RUN_TIME
+          value: nyc3
+        - key: REPUTECAST_STORAGE__S3__ENDPOINT
+          scope: RUN_TIME
+          value: https://nyc3.digitaloceanspaces.com
+        - key: REPUTECAST_STORAGE__S3__ACCESS_KEY_ID
+          scope: RUN_TIME
+          type: SECRET
+        - key: REPUTECAST_STORAGE__S3__SECRET_ACCESS_KEY
+          scope: RUN_TIME
+          type: SECRET
+  databases:
+    - name: db
+      engine: PG
+      version: "18"
+      production: false

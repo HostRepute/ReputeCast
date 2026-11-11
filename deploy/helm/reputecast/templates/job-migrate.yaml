@@ -1,0 +1,119 @@
+{{- /*
+Migrations run before every install and upgrade, before the pods change. A
+hook can't use the release's own Secret on the first install (it doesn't
+exist yet), so the database URL from values comes in a hook Secret of its own,
+removed once the hooks succeed. For the same reason the Job runs as the
+namespace's default service account, or as serviceAccount.name when the chart
+doesn't create one.
+*/}}
+{{- include "reputecast.validate" . }}
+{{- $fullname := include "reputecast.fullname" . }}
+{{- $inline := not .Values.database.existingSecret }}
+{{- if $inline }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $fullname }}-migrate
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "migrate") | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
+type: Opaque
+data:
+  database-url: {{ .Values.database.url | b64enc | quote }}
+---
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-migrate
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "migrate") | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    # Kept after it runs, so its log can be read, until the next upgrade
+    # replaces it or seven days have passed.
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        {{- include "reputecast.componentLabels" (dict "root" . "component" "migrate") | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      {{- if not .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "reputecast.serviceAccountName" . }}
+      {{- end }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "reputecast.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["migrate", "up"]
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: REPUTECAST_DATABASE__URL
+              valueFrom:
+                secretKeyRef:
+                  {{- if $inline }}
+                  name: {{ $fullname }}-migrate
+                  key: database-url
+                  {{- else }}
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.existingSecretKey }}
+                  {{- end }}
+            - name: REPUTECAST_PUBLIC_URL
+              value: {{ .Values.publicURL | quote }}
+            - name: REPUTECAST_LOG__LEVEL
+              value: {{ .Values.log.level | quote }}
+            - name: REPUTECAST_LOG__FORMAT
+              value: "json"
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml (default .Values.resources .Values.migrations.resources) | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

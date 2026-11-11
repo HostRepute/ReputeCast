@@ -1,0 +1,65 @@
+# Postgres 18 for the kind install in CI (not for production: the data lives
+# in an emptyDir). kubectl apply -f deploy/helm/reputecast/ci/postgres.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+type: Opaque
+stringData:
+  password: reputecast-ci
+  uri: postgres://reputecast:reputecast-ci@postgres:5432/reputecast?sslmode=disable
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          env:
+            - name: POSTGRES_USER
+              value: reputecast
+            - name: POSTGRES_DB
+              value: reputecast
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: password
+          ports:
+            - name: postgres
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "reputecast", "-d", "reputecast"]
+            periodSeconds: 2
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

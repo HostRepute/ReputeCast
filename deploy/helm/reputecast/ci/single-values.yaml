@@ -1,0 +1,28 @@
+# Single mode with every optional resource on, for helm lint and kubeconform.
+publicURL: https://news.example.com
+database:
+  url: postgres://reputecast:secret@postgres:5432/reputecast?sslmode=disable
+admin:
+  email: owner@example.com
+  name: Linh Nguyen
+ingress:
+  enabled: true
+  className: nginx
+  tls:
+    - secretName: reputecast-tls
+      hosts: [news.example.com]
+geoip:
+  volume:
+    persistentVolumeClaim:
+      claimName: geoip
+smtpRelay:
+  service:
+    enabled: true
+serviceMonitor:
+  enabled: true
+networkPolicy:
+  enabled: true
+  metricsFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring

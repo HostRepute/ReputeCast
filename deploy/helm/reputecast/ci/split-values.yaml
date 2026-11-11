@@ -1,0 +1,34 @@
+# Split mode with separate ingest pods, a bucket and every optional
+# resource on, for helm lint and kubeconform.
+publicURL: https://news.example.com
+mode: split
+database:
+  existingSecret: reputecast-app
+  existingSecretKey: uri
+secretKey:
+  existingSecret: reputecast-key
+ingest:
+  separate: true
+storage:
+  backend: s3
+  s3:
+    bucket: reputecast-files
+    region: us-east-1
+    sse: aws:kms
+    kmsKeyID: alias/reputecast
+    existingSecret: reputecast-s3
+ingress:
+  enabled: true
+  className: nginx
+smtpRelay:
+  service:
+    enabled: true
+serviceMonitor:
+  enabled: true
+networkPolicy:
+  enabled: true
+hpa:
+  enabled: true
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/reputecast

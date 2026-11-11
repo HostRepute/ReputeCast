@@ -1,0 +1,21 @@
+# The kind install in CI: single mode on an image built from the checkout
+# (kind load docker-image), against ci/postgres.yaml.
+publicURL: http://localhost:8080
+image:
+  repository: reputecast
+  tag: ci
+  pullPolicy: Never
+database:
+  existingSecret: postgres
+  existingSecretKey: uri
+admin:
+  email: owner@example.com
+  name: CI Owner
+persistence:
+  size: 1Gi
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 1Gi

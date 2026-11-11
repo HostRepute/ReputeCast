@@ -1,0 +1,36 @@
+{{- include "reputecast.validate" . }}
+{{- $s3 := .Values.storage.s3 }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "reputecast.fullname" . }}-env
+  labels:
+    {{- include "reputecast.labels" . | nindent 4 }}
+data:
+  REPUTECAST_PUBLIC_URL: {{ .Values.publicURL | quote }}
+  REPUTECAST_HTTP__TRUSTED_PROXIES: {{ join "," .Values.http.trustedProxies | quote }}
+  REPUTECAST_LOG__LEVEL: {{ .Values.log.level | quote }}
+  REPUTECAST_LOG__FORMAT: "json"
+  REPUTECAST_STORAGE__BACKEND: {{ .Values.storage.backend | quote }}
+  {{- if eq .Values.storage.backend "s3" }}
+  REPUTECAST_STORAGE__S3__BUCKET: {{ $s3.bucket | quote }}
+  {{- with $s3.region }}
+  REPUTECAST_STORAGE__S3__REGION: {{ . | quote }}
+  {{- end }}
+  {{- with $s3.endpoint }}
+  REPUTECAST_STORAGE__S3__ENDPOINT: {{ . | quote }}
+  {{- end }}
+  REPUTECAST_STORAGE__S3__PATH_STYLE: {{ $s3.pathStyle | quote }}
+  {{- with $s3.prefix }}
+  REPUTECAST_STORAGE__S3__PREFIX: {{ . | quote }}
+  {{- end }}
+  {{- with $s3.sse }}
+  REPUTECAST_STORAGE__S3__SSE: {{ . | quote }}
+  {{- end }}
+  {{- with $s3.kmsKeyID }}
+  REPUTECAST_STORAGE__S3__KMS_KEY_ID: {{ . | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.geoip.volume }}
+  REPUTECAST_GEOIP__DATABASE: {{ printf "/var/lib/geoip/%s" .Values.geoip.file | quote }}
+  {{- end }}
