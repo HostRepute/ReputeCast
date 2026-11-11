@@ -11,13 +11,15 @@ import (
 	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 )
 
-// blocksOutOfReach keeps the trip the complaints' where they are what the
-// test is about. The demo transport bounces about one Outlook message in
-// 750 for the sender's reputation, and a few of those among the first
-// hundreds sent are clearly over the block-bounce limit, which then acts
-// first (about one run in a hundred).
-func blocksOutOfReach(f *sendtest.Fixture) {
-	f.Exec(`UPDATE campaigns SET thresholds = thresholds || '{"block_bounce": 20}' WHERE id = $1`, f.Campaign)
+// bouncesOutOfReach keeps the trip the complaints' where they are what the
+// test is about. The demo transport bounces at-risk Outlook imports at
+// random: about one Outlook message in 750 for the sender's reputation,
+// and a few of those among the first hundreds sent are clearly over the
+// block-bounce limit (about one run in a hundred); now and then the hard
+// bounces also cross the 2% bounce limit before enough complaints are in.
+// Either would then act first.
+func bouncesOutOfReach(f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET thresholds = thresholds || '{"block_bounce": 20, "bounce": 20}' WHERE id = $1`, f.Campaign)
 }
 
 // outlookTrip sends to 2,500 at-risk Outlook imports and 600 engaged Gmail
@@ -26,7 +28,7 @@ func blocksOutOfReach(f *sendtest.Fixture) {
 func outlookTrip(t *testing.T, f *sendtest.Fixture) time.Time {
 	t.Helper()
 	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
-	blocksOutOfReach(f)
+	bouncesOutOfReach(f)
 	f.AddContacts(
 		sendtest.ContactSpec{N: 2500, Mailbox: "outlook", Domain: "hotmail.com", Tier: "at_risk", Source: "import:mailchimp"},
 		sendtest.ContactSpec{N: 600, Mailbox: "gmail", Domain: "gmail.com", Engaged: true},
