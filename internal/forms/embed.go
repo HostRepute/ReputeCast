@@ -23,7 +23,47 @@ import (
 )
 
 //go:embed embed/form.js
-var embedScript string
+var embedScriptSource string
+
+// embedScript is the form script as served: its comments and indentation
+// left out (they are a third of what visitors would download), every line
+// break kept, so the source stays the readable one.
+var embedScript = compactScript(embedScriptSource)
+
+// compactScript drops the lines of a script that are only a comment (//
+// lines, and /* */ blocks that start a line) and the indentation of the
+// others. The script has no template literals, so no line's leading
+// whitespace is part of a string.
+func compactScript(src string) string {
+	var b strings.Builder
+	b.Grow(len(src))
+	inBlock := false
+	for line := range strings.SplitSeq(src, "\n") {
+		l := strings.TrimLeft(line, " \t")
+		if inBlock {
+			if i := strings.Index(l, "*/"); i >= 0 {
+				inBlock = false
+				l = strings.TrimLeft(l[i+2:], " \t")
+			} else {
+				continue
+			}
+		}
+		if strings.HasPrefix(l, "/*") {
+			if i := strings.Index(l, "*/"); i >= 0 {
+				l = strings.TrimLeft(l[i+2:], " \t")
+			} else {
+				inBlock = true
+				continue
+			}
+		}
+		if l == "" || strings.HasPrefix(l, "//") {
+			continue
+		}
+		b.WriteString(l)
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
 
 //go:embed embed/form.css
 var embedCSS []byte
