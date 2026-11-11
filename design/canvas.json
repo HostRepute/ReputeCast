@@ -475,7 +475,7 @@
   },
   "DSCoverage.dc.html": {
    "expand": "fill",
-   "h": 3900,
+   "h": 4062,
    "is_interactive": true,
    "page": "design",
    "title": "UX coverage matrix · every screen × every state",
@@ -1340,7 +1340,7 @@
   },
   "RoleEditor.dc.html": {
    "expand": "fill",
-   "h": 4799,
+   "h": 4851,
    "is_interactive": true,
    "page": "team",
    "title": "Role editor · creating Content Writer",
@@ -1360,7 +1360,7 @@
   },
   "Roles.dc.html": {
    "expand": "fill",
-   "h": 4666,
+   "h": 4708,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison",
@@ -1369,7 +1369,7 @@
    "y": 0
   },
   "RolesPhone.dc.html": {
-   "h": 6950,
+   "h": 7030,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison · phone",
@@ -1378,7 +1378,7 @@
    "y": 11281
   },
   "RolesTablet.dc.html": {
-   "h": 5541,
+   "h": 5602,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison · tablet",
@@ -1522,7 +1522,7 @@
   },
   "SendReadinessStates.dc.html": {
    "expand": "fill",
-   "h": 3831,
+   "h": 4392,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · running / error / scheduled",
@@ -3900,6 +3900,46 @@
    "is_interactive": true,
    "expand": "fill"
   },
+  "DiscountCodes.dc.html": {
+   "expand": "fill",
+   "h": 1750,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Campaigns › Discount codes · pools, and the New pool dialog for codes created in Shopify or uploaded",
+   "w": 1440,
+   "x": 4680,
+   "y": 39163
+  },
+  "DiscountCodePool.dc.html": {
+   "expand": "fill",
+   "h": 1971,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Discount codes · Welcome 15%: numbers, a running batch, where it is used, its Liquid, batches; an uploaded pool’s Add codes and Create more",
+   "w": 1440,
+   "x": 6240,
+   "y": 39163
+  },
+  "DiscountCodesStates.dc.html": {
+   "expand": "fill",
+   "h": 3839,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Discount codes · empty, loading, generating, store not allowed, read-only key, running out, error, read-only, remove and archive",
+   "w": 1440,
+   "x": 7800,
+   "y": 39163
+  },
+  "ComposerTimedBlocks.dc.html": {
+   "expand": "fill",
+   "h": 4314,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Composer · Countdown and Discount code blocks: their inspectors, a refused colour, the end and its check, what a reader sees",
+   "w": 1440,
+   "x": 9360,
+   "y": 39163
+  },
   "WebsitePostsTablet.dc.html": {
    "x": 0,
    "y": 45792,
@@ -3940,10 +3980,28 @@
    "x": 3816,
    "y": 45792,
    "w": 834,
-   "h": 3856,
+   "h": 3997,
    "title": "Integrations · Shopify (Acme Merch) · tablet",
    "page": "p7-publish",
    "is_interactive": true
+  },
+  "DiscountCodesTablet.dc.html": {
+   "h": 2470,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Campaigns › Discount codes · tablet",
+   "w": 834,
+   "x": 4770,
+   "y": 45792
+  },
+  "DiscountCodePoolTablet.dc.html": {
+   "h": 3088,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Discount codes · Welcome 15% · tablet",
+   "w": 834,
+   "x": 5724,
+   "y": 45792
   },
   "WebsitePostsPhone.dc.html": {
    "x": 0,
@@ -4021,10 +4079,37 @@
    "x": 4080,
    "y": 50137,
    "w": 390,
-   "h": 5253,
+   "h": 5441,
    "title": "Integrations · Shopify (Acme Merch) · phone",
    "page": "p7-publish",
    "is_interactive": true
+  },
+  "DiscountCodesPhone.dc.html": {
+   "h": 3421,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Campaigns › Discount codes · phone",
+   "w": 390,
+   "x": 4590,
+   "y": 50137
+  },
+  "DiscountCodePoolPhone.dc.html": {
+   "h": 4016,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Discount codes · Welcome 15% · phone",
+   "w": 390,
+   "x": 5100,
+   "y": 50137
+  },
+  "ComposerTimedBlocksPhone.dc.html": {
+   "h": 6230,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Composer · Countdown and Discount code blocks · phone",
+   "w": 390,
+   "x": 5610,
+   "y": 50137
   },
   "SmsProviders.dc.html": {
    "x": 0,
@@ -4368,7 +4453,7 @@
   },
   "CampaignsComplete.dc.html": {
    "expand": "fill",
-   "h": 2225,
+   "h": 2422,
    "is_interactive": true,
    "page": "report",
    "title": "Campaigns, everyday · delete and archive, filters, tags and bulk, follow-ups, local time, cadence, templates",
@@ -5450,6 +5535,14 @@
    "maxW": 4560,
    "page": "p7-publish"
   },
+  "t-p7-publish-m59": {
+   "x": 4680,
+   "y": 38863,
+   "text": "Discount codes and countdowns · a code of their own for each reader, from codes you upload or codes created in Acme Merch, and the Countdown block, an image drawn when the email opens.",
+   "kind": "title1",
+   "maxW": 6120,
+   "page": "p7-publish"
+  },
   "t-p7-publish-tablet": {
    "x": 0,
    "y": 45492,
@@ -5947,11 +6040,17 @@
   "IntegrationsShopify.dc.html",
   "CommerceStates.dc.html",
   "CommerceEmails.dc.html",
+  "DiscountCodes.dc.html",
+  "DiscountCodePool.dc.html",
+  "DiscountCodesStates.dc.html",
+  "ComposerTimedBlocks.dc.html",
   "WebsitePostsTablet.dc.html",
   "PagesListTablet.dc.html",
   "PageBuilderTablet.dc.html",
   "ProductsTablet.dc.html",
   "IntegrationsShopifyTablet.dc.html",
+  "DiscountCodesTablet.dc.html",
+  "DiscountCodePoolTablet.dc.html",
   "WebsitePostsPhone.dc.html",
   "ComposerPublishToWebPhone.dc.html",
   "PublicHomePhone.dc.html",
@@ -5961,6 +6060,9 @@
   "PublicSalesPagePhone.dc.html",
   "ProductsPhone.dc.html",
   "IntegrationsShopifyPhone.dc.html",
+  "DiscountCodesPhone.dc.html",
+  "DiscountCodePoolPhone.dc.html",
+  "ComposerTimedBlocksPhone.dc.html",
   "SmsProviders.dc.html",
   "SmsRouting.dc.html",
   "SmsStates.dc.html",

@@ -561,4 +561,17 @@ export const entries: Entry[] = [
   { board: 'AgencyStates', manual: true },
   // The workspace switcher opens from a click (ShellSwitcher's agency staff view).
   { board: 'ShellSwitcher', manual: true },
+  // M59 G-21/G-22 · countdown timers and unique discount codes. The list and the pool page (Welcome 15%,
+  // Acme Merch's Shopify pool, with a batch of 500 codes half created) draw their dialogs under the
+  // screen: compare the screen. The states, and the composer's inspectors, refused colour, ended
+  // countdown and reader's view, need clicks or data changes.
+  { board: 'DiscountCodes', path: `${ws}/campaigns/codes`, widths: [1440], viewportOnly: true, height: 500 },
+  { board: 'DiscountCodesTablet', path: `${ws}/campaigns/codes`, widths: [834], viewportOnly: true, height: 540 },
+  { board: 'DiscountCodesPhone', path: `${ws}/campaigns/codes`, widths: [390], viewportOnly: true, height: 700 },
+  { board: 'DiscountCodePool', path: `${ws}/campaigns/codes/{pool:Welcome 15%}`, widths: [1440], viewportOnly: true, height: 1230 },
+  { board: 'DiscountCodePoolTablet', path: `${ws}/campaigns/codes/{pool:Welcome 15%}`, widths: [834], viewportOnly: true, height: 1890 },
+  { board: 'DiscountCodePoolPhone', path: `${ws}/campaigns/codes/{pool:Welcome 15%}`, widths: [390], viewportOnly: true, height: 2440 },
+  { board: 'DiscountCodesStates', manual: true },
+  { board: 'ComposerTimedBlocks', manual: true },
+  { board: 'ComposerTimedBlocksPhone', manual: true },
 ]

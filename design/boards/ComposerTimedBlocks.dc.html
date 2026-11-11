@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composer · Countdown and Discount code blocks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.ic{width:32px;padding:0}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
+.blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
+.blk.rc{border-color:#99F6E4;background:#F0FDFA}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.seg button.on{background:#0B1220;color:#fff}
+.email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
+.sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
+.ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"],.sc-host [style*="minmax(440px"],.sc-host [style*="minmax(460px"],.sc-host [style*="minmax(480px"],.sc-host [style*="minmax(500px"],.sc-host [style*="minmax(520px"],.sc-host [style*="minmax(560px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+/* ===== compact composer chrome: one top bar + one Inbox strip (shared by the composer boards) ===== */
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:30}
+.cbar .btn{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;white-space:nowrap}
+.cbar .btn.ic{width:36px;padding:0}
+.cbar svg{flex:none}
+.cb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cb-id{display:flex;align-items:center;gap:8px;min-width:0}
+.cb-name{height:36px;width:164px;min-width:0;padding:0 8px;margin-left:-2px;border:1px solid transparent;border-radius:8px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:#0B1220;box-sizing:border-box;text-overflow:ellipsis}
+.cb-name:hover{border-color:#D4D8DF}
+.cb-name:focus{border-color:#8B94A3;background:#FFFFFF}
+.cb-name::placeholder{color:#5B6472;font-weight:600}
+.stchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600;white-space:nowrap;flex:none;box-sizing:border-box}
+.stchip.ok{background:#DCFCE7;color:#166534}.stchip.warn{background:#FEF3C7;color:#92400E}.stchip.bad{background:#FEE2E2;color:#991B1B}
+.cb-pres{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid #E3E6EB;min-height:28px}
+.pav{position:relative;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#EDE9FE;color:#5B21B6;flex:none}
+.pav i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#15803D;border:2px solid #FFFFFF;box-sizing:border-box}
+.cb-pres .pt{font-size:12px;font-weight:500;color:#5B6472;white-space:nowrap}
+.cb-mid{display:flex;align-items:center;gap:8px;margin-left:auto}
+.modes{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid #D4D8DF;border-radius:9px;background:#FFFFFF;flex:none;box-sizing:border-box}
+.modes a,.modes button{border:0;background:transparent;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:7px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;box-sizing:border-box}
+.modes a:hover,.modes button:hover{background:#F3F4F6;color:#0B1220}
+.modes a[aria-selected="true"],.modes button[aria-selected="true"]{background:#0B1220;color:#FFFFFF}
+.devt{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.devt button{width:38px;height:34px;border:0;background:#FFFFFF;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.devt button + button{border-left:1px solid #E3E6EB}
+.devt button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.devt button:disabled{color:#5B6472;opacity:.55;cursor:not-allowed}
+.cb-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.cb-end .btn .bi{display:none}
+.modes a svg{display:none}
+.langb .ln{color:#5B6472;font-weight:500}
+.cb-go{display:flex;align-items:center}
+.rsend .rs-b{font-weight:600}
+.btn.pri.rs-stop{background:#B91C1C;border-color:#B91C1C;color:#FFFFFF}.btn.pri.rs-stop:hover{background:#991B1B;color:#FFFFFF}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FFF5F5;color:#991B1B}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:#F3F4F6}
+.nt-phone{display:none}
+
+/* Inbox strip */
+.istrip{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 16px;background:#F9FAFB;border-bottom:1px solid #E3E6EB;box-sizing:border-box;font-size:12.5px;position:relative;z-index:20}
+.is-l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;flex:none}
+.is-sum{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;margin:0;white-space:nowrap;overflow:hidden}
+.is-i{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden}
+.is-i.sub{flex:0 1 auto;max-width:330px}.is-i.pre{flex:0 1 auto;max-width:280px}.is-i.to,.is-i.via{flex:none}
+.is-k{color:#5B6472;font-weight:500;flex:none}
+.is-v{color:#0B1220;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.is-v.none{color:#5B6472;font-weight:500;font-style:italic}
+.is-sep{color:#5B6472;flex:none}
+.is-flag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:11.5px;font-weight:600;flex:none}
+.is-edit{flex:none;margin-left:auto}
+.ipanel{display:flex;flex-wrap:wrap;gap:16px 20px;padding:14px 16px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:19}
+.ip-in{flex:3 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ip-row{display:flex;flex-wrap:wrap;gap:10px 14px}
+.ip-row > label,.ip-row > div{flex:1 1 260px;min-width:0}
+.ip-send{flex:1 1 300px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;box-sizing:border-box}
+.ip-h{margin:0;font-size:13px;font-weight:700;color:#0B1220;display:flex;align-items:center;gap:8px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563;min-width:0}
+.lbl .in{width:100%}
+.lbl .k{font-weight:500}
+.gmail{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;font-size:13px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.gmail .gf{font-weight:700;flex:none;width:126px;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs b{font-weight:700}
+.gmail .gs span{color:#5B6472}
+.gmail .gt{margin-left:auto;font-size:12px;font-weight:600;color:#5B6472;flex:none}
+.route{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;color:#0B1220;font-size:12.5px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.route:hover{background:#F3F4F6;color:#0B1220}
+.route .rb{display:flex;gap:2px;width:72px;height:8px;flex:none}
+.route .rb i{display:block;height:100%;border-radius:999px}
+
+/* editor body */
+.cwrap{display:flex;flex:1 1 auto;align-items:stretch;min-height:0}
+.lp{flex:0 0 248px;width:248px;background:#FFFFFF;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.cv{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;position:relative}
+.rp{flex:0 0 320px;width:320px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ptab button{padding:0 6px;white-space:nowrap}
+.ptab button .n{font-weight:600;color:#5B6472}
+.ptab button.on .n{color:#0B1220}
+.cfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:8px 16px;background:#FFFFFF;border-top:1px solid #E3E6EB;font-size:12px;box-sizing:border-box}
+.cfoot .hint{display:flex;flex-wrap:wrap;gap:4px 12px;color:#5B6472;font-weight:500}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;color:#374151;margin-right:4px}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.note{display:flex;gap:8px 10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;box-sizing:border-box}
+.note > :last-child{flex:1 1 auto;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+
+/* tablet: canvas first, panels stack below it */
+@media (max-width:1100px){
+  .cbar{padding:10px 16px}
+  .cb-left{order:1;flex:1 1 calc(100% - 300px)}
+  .cb-go{order:2}
+  .cb-mid{order:3;margin-left:0}
+  .cb-end{order:4;margin-left:auto}
+  .cb-pres .pt{display:none}
+  .is-i.pre{display:none}
+  .is-i.pre + .is-sep{display:none}
+  .ip-send{max-width:none;flex-basis:100%}
+  .cwrap{flex-wrap:wrap}
+  .cv{order:1;flex:1 1 100%}
+  .lp{order:2;flex:1 1 300px;width:auto;border-right:1px solid #E3E6EB;border-top:1px solid #E3E6EB}
+  .rp{order:3;flex:1 1 300px;width:auto;border-left:0;border-top:1px solid #E3E6EB}
+}
+/* phone */
+@media (max-width:767px){
+  .cbar{padding:8px 12px;gap:8px}
+  .cbar .btn{min-height:44px}
+  .cbar .btn.ic{width:44px}
+  .cb-left{flex:1 1 calc(100% - 160px);gap:8px}
+  .cb-id{flex-direction:column;align-items:flex-start;gap:2px}
+  .cb-name{width:100%;height:44px;font-size:15px;padding:0 4px;margin-left:-4px}
+  .stchip{height:auto;min-height:20px;font-size:11.5px;padding:2px 8px;white-space:normal;line-height:1.25;max-width:100%}
+  .cb-id{gap:0}
+  .cb-pres{display:none}
+  .cb-mid{flex:1 1 auto;min-width:0}
+  .modes{flex:1 1 auto;padding:0;gap:0;overflow:hidden}
+  .modes a,.modes button{flex:1 1 0%;height:44px;padding:0 8px;border-radius:0}
+  .modes a svg{display:none}
+  .devt{display:none}
+  .cb-end{margin-left:0;gap:6px;flex-wrap:nowrap}
+  .cb-end .btn{width:44px;padding:0}
+  .cb-end .btn .bi{display:inline}
+  .cb-end .btn .bt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .langb .ln,.langb .chev{display:none}
+  .rsend{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px!important;white-space:nowrap!important}
+  .rsend .rs-dot{display:none}
+  .rsend .rs-b{font-size:11px;font-weight:600}
+  .nt-phone{display:inline}
+  .istrip{flex-wrap:wrap;padding:8px 12px;gap:6px 10px}
+  .is-sum{flex-wrap:wrap;white-space:normal;flex:1 1 100%;order:3;gap:4px 8px}
+  .is-sep{display:none}
+  .is-i{flex:1 1 100%!important;max-width:100%!important}
+  .is-i.pre{display:inline-flex}
+  .is-edit{min-height:44px!important}
+  .btn.sm{min-height:44px}
+  .ipanel{padding:12px}
+  .ipanel .in,.ipanel select.in{height:44px}
+  .route{min-height:44px}
+  .gmail{flex-wrap:wrap;white-space:normal;padding:8px 12px;gap:2px 10px}
+  .gmail .gf{width:auto}
+  .gmail .gs{flex:1 1 100%;order:3}
+  .cfoot{padding:8px 12px}
+  footer.cfoot a{min-height:44px;display:inline-flex;align-items:center}
+  .in,select.in{height:44px}
+  label.rad{min-height:44px}
+  .ptab button{height:44px}
+  .lp,.rp{flex:1 1 100%}
+}
+
+/* ===== Composer (Design mode) ===== */
+.cvs{flex:1 1 auto;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center;align-items:flex-start;position:relative}
+.ctools{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:4px;padding:3px;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:9px;z-index:5}
+.ctools .btn.ic{width:32px;min-height:32px;border-color:transparent}
+.ctools .btn.ic:hover{background:#F3F4F6}
+.ctools select.in{height:30px;border-color:transparent;padding:0 4px;font-weight:600;color:#374151;width:auto}
+.email{box-sizing:border-box;max-width:100%}
+.email.mob{width:375px}
+.email .cols{display:flex;gap:16px}
+.email .col{min-width:0;position:relative}
+.email.mob .cols{flex-direction:column}
+.email.mob .col{flex:none!important}
+.email .e-h1{margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220}
+.email.mob .e-h1{font-size:23px}
+.email .e-h2{margin:0 0 6px;font-size:17px;line-height:1.3;font-weight:700;color:#0B1220}
+.email .e-p{margin:0;font-size:15px;line-height:1.55}
+.email .e-btn{display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600}
+.selsec{outline:2px solid #1D4ED8;outline-offset:-2px;margin-top:30px}
+.selb{outline:2px solid #1D4ED8;outline-offset:2px}
+.cvs .sec,.cvs .col,.cvs .ph,.cvs .e-btn{cursor:pointer}
+.lab{font-weight:600}
+.lab .lm{font-weight:500;opacity:.85;margin-left:6px}
+.hero{position:relative}
+.lq{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;margin:0 1px;border-radius:999px;border:1px solid transparent;background:#E3F1EE;color:#0F766E;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;line-height:1;vertical-align:1px;cursor:pointer;white-space:nowrap}
+.lq .fb{font-weight:500;color:#115E59}
+.lq:hover,.lq[aria-expanded="true"]{border-color:#0F766E}
+.lqpop{position:absolute;left:24px;bottom:88px;width:320px;max-width:calc(100% - 48px);background:#FFFFFF;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;color:#0B1220;z-index:8;box-sizing:border-box}
+.lqpop .ph-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lqpop .ph-h b{font-size:13px}
+.lqpop .lqprev{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px;background:#F9FAFB;border:1px solid #EEF0F3;font-size:12.5px}
+.lqpop .lqprev b{font-weight:600}
+.lqpop code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#4B5563;background:#F3F4F6;border-radius:6px;padding:4px 6px;overflow-wrap:anywhere}
+.lqpop .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.lqpop::after{content:"";position:absolute;left:28px;bottom:-7px;width:12px;height:12px;background:#FFFFFF;border-right:1px solid #D4D8DF;border-bottom:1px solid #D4D8DF;transform:rotate(45deg)}
+.pin{position:absolute;right:-44px;width:30px;height:30px;border-radius:50% 50% 50% 4px;border:2px solid #FFFFFF;box-shadow:0 1px 3px rgba(11,18,32,.18);display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;cursor:pointer;padding:0}
+.pin::before{content:"";position:absolute;inset:-7px}
+.qnote{display:none}
+/* left panel */
+.lp .lpb{display:flex;flex-direction:column;min-height:0}
+.lp .lhelp{margin:0;padding:8px 12px 0;line-height:1.6}
+.blk .sy{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:#0F766E}
+.tree{list-style:none;margin:0;padding:6px 8px 12px;font-size:12.5px}
+.tree ul{list-style:none;margin:0;padding:0 0 0 16px}
+.tree .ti{display:flex;align-items:center;gap:6px;min-height:30px;padding:0 8px;border-radius:7px;color:#374151;cursor:pointer}
+.tree .ti:hover{background:#F3F4F6}
+.tree .ti.sel{background:#E3F1EE;color:#0F766E;font-weight:600}
+.tree .ti .tk{margin-left:auto;font-size:11px;color:#5B6472;font-weight:500}
+.tree .ti.sel .tk{color:#0F766E}
+/* right panel */
+.rp-sel{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.rp-sel .rt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rp-sel b{font-weight:600}
+.seg.full{display:flex}
+.seg.full button{flex:1 1 0;justify-content:center}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.swr{display:flex;flex-wrap:wrap;gap:6px}
+.swb{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 9px 0 5px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
+.swb .sw{width:20px;height:20px;border-radius:5px}
+.swb[aria-pressed="true"]{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;color:#0B1220}
+.colopt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.co{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px 6px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
+.co .cb{display:flex;gap:3px;width:100%;height:18px}
+.co .cb i{display:block;border-radius:3px;background:#C9CED6}
+.co[aria-pressed="true"]{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;color:#0B1220}
+.co[aria-pressed="true"] .cb i{background:#0F766E}
+.adv{border-bottom:1px solid #EEF0F3}
+.adv > summary{display:flex;flex-direction:column;gap:2px;padding:10px 12px 10px 30px;cursor:pointer;list-style:none;position:relative;font-size:12px;font-weight:600}
+.adv > summary::-webkit-details-marker{display:none}
+.adv > summary::before{content:"";position:absolute;left:13px;top:15px;width:6px;height:6px;border-right:1.6px solid #4B5563;border-bottom:1.6px solid #4B5563;transform:rotate(-45deg)}
+.adv[open] > summary::before{transform:rotate(45deg);top:13px}
+.adv > summary .k{font-weight:500}
+.adv .advb{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px}
+.adv .advb .prop{padding:0;border:0}
+.rp-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;margin-top:auto;border-top:1px solid #EEF0F3}
+label.rad{display:flex;align-items:center;gap:8px;min-height:30px;font-size:13px;color:#0B1220;cursor:pointer}
+label.tgl{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;font-size:13px;color:#0B1220;cursor:pointer}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:36px;height:22px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#FFFFFF}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:16px}
+.ck-sum{display:flex;flex-direction:column;padding:4px 12px 8px;border-bottom:1px solid #EEF0F3}
+.ck-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid #EEF0F3}
+.ck-row:first-child{border-top:0}
+.ck-row .ck-k{font-weight:600}
+.ck-row .k{grid-column:1 / -1}
+.iss{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
+.iss .t{display:flex;gap:8px;align-items:flex-start;font-weight:600}
+.iss .acts{display:flex;gap:6px;flex-wrap:wrap}
+.ckp{margin:0;padding:0 12px 10px 30px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#374151}
+.ckp li::marker{color:#15803D}
+.cm{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
+.cm .ch{display:flex;align-items:center;gap:8px}
+.cm .ch b{font-weight:600}
+.cm .anc{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:2px 8px;border-radius:6px;background:#F3F4F6;font-size:12px;color:#4B5563;font-weight:500}
+.cm .tx{margin:0;font-size:13px;line-height:1.5}
+.cm textarea.in{height:auto;min-height:64px;padding:8px 9px;resize:vertical;line-height:1.45;width:100%}
+.mn{position:relative}
+.mnl{list-style:none;margin:4px 0 0;padding:4px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;box-shadow:0 12px 32px rgba(11,18,32,.16);display:flex;flex-direction:column;gap:2px}
+.mnl button{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 8px;border:0;border-radius:6px;background:none;font:inherit;font-size:12.5px;color:#0B1220;text-align:left;cursor:pointer}
+.mnl button:hover{background:#F3F4F6}
+.mnl .av{width:22px;height:22px;font-size:9.5px}
+/* phone: quick review, not the builder */
+.qbar{display:none}
+.qsheet-h{display:none}
+.qscrim{display:none}
+.ts{display:none}
+@media (max-width:1100px){
+  .ctools{position:static;align-self:flex-start;margin:0 0 12px}
+  .cvs{flex-direction:column;align-items:center}
+  .pin{right:-38px}
+}
+@media (max-width:767px){
+  .ds .istrip{display:none}
+  .ds .cb-end .hide-ds{display:none}
+  .ds .lp{display:none}
+  .ds .rp{display:none}
+  .ds .rp.as-sheet,.ds .ipanel.as-sheet,.ds .ts.on{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:65px;max-height:72vh;overflow:auto;z-index:62;border:1px solid #E3E6EB;border-bottom:0;border-radius:10px 10px 0 0;box-shadow:0 -12px 32px rgba(11,18,32,.16);background:#FFFFFF}
+  .ds .ipanel{display:none}
+  .ds .ipanel.as-sheet{flex-wrap:nowrap;padding:0 12px 16px}
+  .ds .ipanel.as-sheet .ip-send{max-width:none}
+  .ds .rp.as-sheet .ptab,.ds .rp.as-sheet .rp-sel{display:none}
+  .ds .qsheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border-bottom:1px solid #EEF0F3;position:sticky;top:0;background:#FFFFFF;z-index:1}
+  .ds .ipanel.as-sheet .qsheet-h{margin:0 -12px}
+  .ds .qsheet-h h2{margin:0;font-size:15px;font-weight:600}
+  .ds .qsheet-h .btn.ic{width:44px;min-height:44px;border-color:transparent}
+  .ds .qscrim.on{display:block;position:fixed;inset:0;background:rgba(11,18,32,.32);z-index:61}
+  .ds .ts .tsb{display:flex;flex-direction:column;gap:12px;padding:12px}
+  .ds .cfoot{display:none}
+  .ds .lab,.ds .tb,.ds .ctools,.ds .lqpop{display:none}
+  .ds .selsec{outline:none;margin-top:0}
+  .ds .selb{outline:none}
+  .ds .email,.ds .email.mob{width:100%}
+  .ds .email .cols{flex-direction:column}
+  .ds .email .col{flex:none!important}
+  .ds .email .sec{padding-left:16px!important;padding-right:16px!important}
+  .ds .email .e-h1{font-size:23px}
+  .ds .cvs{padding:12px 8px 96px}
+  .ds .pin{right:6px}
+  .ds .qnote{display:flex;margin:0 0 12px;width:100%;max-width:600px}
+  .ds .qbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:63;gap:2px;padding:6px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
+  .ds .qbar button{flex:1 1 0%;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:#4B5563;font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative;padding:0 2px}
+  .ds .qbar button[aria-expanded="true"],.ds .qbar button[aria-pressed="true"]{background:#E3F1EE;color:#0F766E}
+  .ds .qbar button.qap{color:#0F766E}
+  .ds .ts .kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+  .ds .ts .kv dt{color:#5B6472;font-weight:500;margin:0}.ds .ts .kv dd{margin:0}
+  .ds .qbar .qn{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+  .ds .qbar .qn.c{background:#EEF0F3;color:#4B5563}
+  .ds.edittext .e-p,.ds.edittext .e-h1,.ds.edittext .e-h2{outline:1px dashed #0F766E;outline-offset:3px;border-radius:2px}
+}
+/* Templates tab (R4.U4): each template's real email, laid out at 600 px and
+   drawn small, as ComposerEmpty's gallery draws it. Blank keeps its outline. */
+.tpls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tpls .tpl{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid #E3E6EB;border-radius:10px;background:#FFFFFF;cursor:pointer;text-align:left;font:inherit;font-size:12px;font-weight:600;color:#0B1220;min-width:0;min-height:44px}
+.tpls .tpl:hover{border-color:#0F766E}
+.tpls .thumb{display:flex;justify-content:center;height:86px;padding:5px 8px 0;border:1px solid #E3E6EB;border-radius:7px;background:#F3F4F6;overflow:hidden;box-sizing:border-box}
+.tpls .lv{display:block;width:72px;height:81px;flex:none;overflow:hidden;background:#FFFFFF;border-radius:3px 3px 0 0;box-shadow:0 0 0 1px #E3E6EB}
+.tpls .lv.blank{display:flex;flex-direction:column;gap:4px;padding:5px 5px 0;box-sizing:border-box}
+.tpls .lv.blank .bh{display:block;padding-bottom:4px;border-bottom:1px solid #EEF0F3}
+.tpls .lv.blank .bh i{display:block;width:16px;height:4px;border-radius:2px;background:#0B1220}
+.tpls .lv.blank .be{flex:1 1 auto;border:1px dashed #C9CED6;border-radius:3px}
+.tpls .lv.blank .bf{display:flex;flex-direction:column;align-items:center;gap:2px;margin:0 -5px;padding:4px 5px;background:#F3F4F6}
+.tpls .lv.blank .bf i{display:block;width:70%;height:2px;border-radius:2px;background:#C9CED6}
+.tpls .lv.blank .bf i + i{width:45%}
+.tpls .e6{display:block;width:600px;transform:scale(.12);transform-origin:0 0;background:#FFFFFF;font:400 15px/1.55 Georgia,'Times New Roman',serif;color:#1F2937;text-align:left}
+.tpls .e6 i,.tpls .e6 b,.tpls .e6 > span,.tpls .e6 .es > span,.tpls .e6 .ecol > span > span{display:block}
+.tpls .e6 .eh{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #EEF0F3;font:12px 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.tpls .e6 .elg{width:120px;height:32px;border-radius:4px;background:#0B1220}
+.tpls .e6 .eim{height:230px;margin-bottom:16px;border-radius:2px;background:#E3E6EB}
+.tpls .e6 .es{padding:20px 24px 8px}
+.tpls .e6 .h1{margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220}
+.tpls .e6 .h2{margin:0 0 6px;font-size:17px;line-height:1.3;font-weight:700;color:#0B1220}
+.tpls .e6 .p{margin:0 0 12px}
+.tpls .e6 .ebt{display:inline-block!important;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font:600 13px 'IBM Plex Sans',system-ui,sans-serif}
+.tpls .e6 .ecol{display:flex;gap:16px;padding:16px 24px}
+.tpls .e6 .ecol > span{display:block;flex:1 1 0%;min-width:0;font-size:14px;line-height:1.5}
+.tpls .e6 .ecol .eim{height:130px;margin-bottom:10px}
+.tpls .e6 .ef{padding:18px 24px;background:#F3F4F6;text-align:center;font:12px/1.6 'IBM Plex Sans',system-ui,sans-serif;color:#5B6472}
+.tpls .e6 .ef b{display:inline;font-weight:400;color:#0F766E}
+
+
+/* ===== Composer states ===== */
+.strip{display:flex;align-items:center;gap:10px;margin:0;padding:8px 12px;border-radius:8px;background:#0B1220;color:#FFFFFF;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.ver{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-top:1px solid #EEF0F3;font-size:12.5px}
+.ver > span:nth-child(2){flex:1 1 220px;min-width:0}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:16px;align-items:start}
+.mf{border:1px solid #E3E6EB;border-radius:10px;overflow:hidden;background:#FFFFFF;position:relative;display:flex;flex-direction:column}
+.mf .cbar{z-index:2}
+.mf .cb-name{display:block!important;line-height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mf-cv{background:#E9ECF0;padding:20px 24px 0;display:flex;justify-content:center;height:132px;overflow:hidden;box-sizing:border-box}
+.mf-cv .email{width:600px;max-width:100%}
+.mf-cv .ph{height:120px}
+.bnr{display:flex;gap:10px 14px;align-items:flex-start;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #E3E6EB;font-size:13px}
+.bnr.w{background:#FFFBEB;border-bottom-color:#FCD34D;color:#78350F}
+.bnr.b{background:#FFF5F5;border-bottom-color:#FCA5A5;color:#7F1D1D}
+.bnr .bi{flex:none;margin-top:2px}
+.bnr .bt{flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bnr .bt b{font-weight:600;color:#0B1220}
+.bnr .ba{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;color:#374151;font-size:12.5px}
+.pop{position:absolute;z-index:5;background:#FFFFFF;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;box-sizing:border-box}
+.pop.tip{background:#0B1220;border-color:#0B1220;color:#FFFFFF;font-weight:600;padding:8px 10px;box-shadow:0 12px 30px rgba(11,18,32,.25)}
+.ovl{position:absolute;inset:0;background:rgba(11,18,32,.45);display:flex;align-items:flex-start;justify-content:center;padding:56px 16px 24px;box-sizing:border-box;z-index:6}
+.dlg{width:100%;max-width:520px;display:flex;flex-direction:column;background:#FFFFFF;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3);font-size:13.5px}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.dh h3{margin:0;font-size:17px;font-weight:700}
+.db{padding:14px 22px 16px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.pop.sv{top:62px;left:240px;width:310px}
+.pop.tt{top:62px;right:200px}
+/* quick review on a phone: the Composer board's phone rules, in a 390 px frame */
+.mfp{width:390px;max-width:100%;min-height:680px;align-self:flex-start}
+.mfp .mf-cv{height:auto;flex:1;padding:12px 8px 96px}
+.mfp .mf-cv .email{width:100%}
+.mfp .qscrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:61}
+.mfp .ts{display:flex;flex-direction:column;position:absolute;left:0;right:0;bottom:65px;max-height:72%;overflow:auto;z-index:62;border:1px solid #E3E6EB;border-bottom:0;border-radius:10px 10px 0 0;box-shadow:0 -12px 32px rgba(11,18,32,.16);background:#FFFFFF}
+.mfp .qsheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border-bottom:1px solid #EEF0F3}
+.mfp .qsheet-h h3{margin:0;font-size:15px;font-weight:600}
+.mfp .qsheet-h .btn.ic{width:44px;min-height:44px;border-color:transparent}
+.mfp .tsb{display:flex;flex-direction:column;gap:12px;padding:12px}
+.mfp .qbar{display:flex;position:absolute;left:0;right:0;bottom:0;z-index:63;gap:2px;padding:6px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
+.mfp .qbar button{flex:1 1 0%;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:#4B5563;font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative;padding:0 2px}
+.mfp .qbar button[aria-expanded="true"]{background:#E3F1EE;color:#0F766E}
+.mfp .qbar button.qap{color:#0F766E}
+.mfp .qbar .qn{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.mfp .qbar .qn.c{background:#EEF0F3;color:#4B5563}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:12.5px;margin:0}
+.kv dt{color:#5B6472;font-weight:500;margin:0}.kv dd{margin:0;min-width:0}
+@media (max-width:1100px){
+  .choices{grid-template-columns:1fr}
+  .pop.sv{top:112px;left:16px}
+  .pop.tt{top:112px;right:16px}
+}
+@media (max-width:767px){
+  .stw{padding:12px!important;gap:16px!important}
+  .mf .cbar .cb-end .btn:not(.keep){display:none}
+  .mf-cv{padding:12px 8px 0;height:110px}
+  .bnr{padding:12px}
+  .bnr .ba .btn{min-height:44px}
+  .choice .btn{min-height:44px}
+  .ovl{padding:24px 12px}
+  .df .btn{min-height:44px;flex:1 1 140px}
+  .kv{grid-template-columns:1fr}
+  .pop.sv{top:186px;left:12px;right:12px;width:auto}
+  .pop.tt{top:128px;right:12px}
+  .ld-side{display:none!important}
+}
+/* ===== Contrast picker, as ComposerContrast draws it ===== */
+.cchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;flex:none;font-variant-numeric:tabular-nums}
+.cchip.f{background:#FEE2E2;color:#991B1B}
+.cchip.p{background:#DCFCE7;color:#166534}
+.cchip.u{background:#EEF0F3;color:#4B5563}
+.wcag{width:100%;border-collapse:collapse;font-size:12.5px}
+.wcag th,.wcag td{padding:6px 8px;border-bottom:1px solid #EEF0F3;text-align:left;white-space:nowrap}
+.wcag th{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5B6472}
+.wcag tr:last-child td{border-bottom:0}
+.pf{display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.pf.y{color:#166534}
+.pf.n{color:#991B1B}
+.sugg{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 7px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:12.5px;min-width:0}
+.sugg .swt{width:30px;height:30px;border-radius:6px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(11,18,32,.12)}
+.sugg .st{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;line-height:1.3}
+.sugg .st b{font-weight:600}
+.sugg.on{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E}
+</style>
+</helmet>
+<div class="ds" style="display:flex;flex-direction:column">
+  <a href="#main" class="skip">Skip to the email canvas</a>
+  <h1 class="vh">Composer, Design mode: Black Friday Early Access, editing the Countdown block</h1>
+  <header class="cbar">
+    <div class="cb-left">
+      <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+      <div class="cb-id">
+        <label class="vh" for="cname">Campaign name</label>
+        <input id="cname" class="cb-name" value="Black Friday Early Access" style="width:220px">
+        <span class="stchip" role="status"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Saved 09:54 · v6</span>
+      </div>
+    </div>
+    <div class="cb-mid">
+      <div class="modes" role="tablist" aria-label="Editing mode">
+        <a role="tab" href="ComposerWrite.dc.html" aria-selected="false" tabindex="-1">Write</a>
+        <a role="tab" href="ComposerTimedBlocks.dc.html" aria-selected="true" aria-controls="main">Design</a>
+        <a role="tab" href="ComposerCode.dc.html" aria-selected="false" tabindex="-1">Code</a>
+      </div>
+      <div class="devt" role="group" aria-label="Canvas width">
+        <button type="button" aria-pressed="true" aria-label="Desktop, 600 px" title="Desktop · 600 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2"></rect><path d="M5.5 14h5M8 11v3"></path></svg></button>
+        <button type="button" aria-pressed="false" aria-label="Mobile, 375 px" title="Mobile · 375 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4.5" y="1.5" width="7" height="13" rx="1.5"></rect><path d="M7.2 12.5h1.6"></path></svg></button>
+      </div>
+    </div>
+    <div class="cb-end">
+      <button type="button" class="btn langb" aria-haspopup="listbox" aria-expanded="false" aria-label="Language: English, the source. 1 of 4 workspace languages has a version. Change language"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span class="bt">English</span><span class="ln">· 1 of 4</span><svg class="chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+      <a href="ComposerPreview.dc.html" class="btn"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg><span class="bt">Preview</span></a>
+      <button type="button" class="btn hide-ds"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg><span class="bt">Send test</span></button>
+    </div>
+    <div class="cb-go">
+      <a href="SendReadiness.dc.html" class="btn pri rsend" aria-label="Review and send. Readiness: ready"><span class="rs-a">Review &amp; send</span><span class="rs-dot" aria-hidden="true">·</span><span class="rs-b">Ready</span></a>
+    </div>
+  </header>
+  <div class="istrip" role="region" aria-label="Inbox">
+    <span class="is-l"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</span>
+    <p class="is-sum">
+      <span class="is-i sub"><span class="is-k">Subject:</span><span class="is-v">Black Friday starts early for you</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i pre"><span class="is-k">Preheader:</span><span class="is-v">15% off everything at Acme Merch, two days before everyone else.</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i to"><span class="is-k">To</span><span class="is-v">Weekly Digest · 31,192</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i via"><span class="is-k">via</span><span class="is-v"><span class="dot" style="color:#4a3aa7;margin-right:4px"></span>SES 90% / <span class="dot" style="color:#e87ba4;margin:0 4px 0 2px"></span>Postal 10%</span></span>
+    </p>
+    <button type="button" class="btn sm is-edit" aria-expanded="false">Edit</button>
+  </div>
+  <div class="cwrap">
+    <aside class="lp" aria-label="Blocks, layers and templates">
+      <div class="ptab" role="tablist" aria-label="Left panel">
+        <button type="button" role="tab" id="lt-blocks" aria-controls="lp-blocks" aria-selected="true" tabindex="0" class="on">Blocks</button>
+        <button type="button" role="tab" id="lt-layers" aria-selected="false" tabindex="-1">Layers</button>
+        <button type="button" role="tab" id="lt-templates" aria-selected="false" tabindex="-1">Templates</button>
+      </div>
+      <div class="lpb" id="lp-blocks" role="tabpanel" aria-labelledby="lt-blocks">
+        <div style="padding:8px 12px 2px"><input aria-label="Search blocks" class="in" placeholder="Search blocks" style="width:100%"></div>
+        <p class="k lhelp">Drag a block onto the email, or select it and press Enter to add it under the selected section.</p>
+        <div class="grp">Layout</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg>1 column</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14" rx="2"></rect><rect x="13" y="5" width="8" height="14" rx="2"></rect></svg>2 columns</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="5" width="6" height="14" rx="1.5"></rect><rect x="9" y="5" width="6" height="14" rx="1.5"></rect><rect x="16" y="5" width="6" height="14" rx="1.5"></rect></svg>3 columns</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 15h10M7 11h6"></path></svg>Hero</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"></rect><rect x="6" y="7" width="12" height="10" rx="1"></rect></svg>Wrapper</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div>
+        </div>
+        <div class="grp">Content</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path><circle cx="16" cy="9" r="1.5"></circle></svg>Image</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="18" cy="12" r="2.5"></circle></svg>Social</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>Navbar</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9h8M8 13h8"></path></svg>Table</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 7-4 5 4 5M16 7l4 5-4 5"></path></svg>Raw HTML</div>
+          <div class="blk" draggable="true" tabindex="0" role="button" aria-label="Countdown: a timer image drawn when the email opens"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7"></circle><path d="M12 10v3.5l2.5 2M9.5 3.5h5M12 3.5v3"></path></svg>Countdown</div>
+        </div>
+        <div class="grp">Your blocks</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 12px">
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Header with logo, synced block"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="7.5" cy="9.5" r="1.5"></circle><path d="M12 9h6"></path></svg>Header + logo<span class="sy" aria-hidden="true">Synced</span></div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="7" rx="1"></rect><path d="M6 17h6"></path></svg>Product card</div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Footer with unsubscribe link, synced block"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="8" rx="2"></rect><path d="M6 16h8"></path></svg>Footer + unsubscribe<span class="sy" aria-hidden="true">Synced</span></div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Webinar banner, synced block"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Webinar banner<span class="sy" aria-hidden="true">Synced</span></div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Discount code: a code of its own for each reader"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"></path><path d="M15 7.5v2M15 11v2M15 14.5v2"></path></svg>Discount code</div>
+        </div>
+      </div>
+    </aside>
+    <main id="main" class="cv" tabindex="-1">
+      <div class="cvs">
+        <div class="ctools" role="group" aria-label="Undo, redo and zoom">
+          <button type="button" class="btn ic" aria-label="Undo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8"></path></svg></button>
+          <button type="button" class="btn ic" aria-label="Redo, nothing to redo" aria-disabled="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8"></path></svg></button>
+          <select class="in" aria-label="Zoom"><option>100%</option><option>75%</option><option>Fit</option></select>
+        </div>
+        <div class="note i qnote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="margin-top:2px;flex:none"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v4M8 4.9v.2"></path></svg><div><b>Quick review on this screen.</b> Edit text, the subject and comments here. Drag-and-drop layout editing works on larger screens.</div></div>
+        <div class="email">
+          <div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo · 96×28</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Shop · Blog</div></div>
+          <div class="sec" style="padding:20px 24px 8px"><h2 class="e-h1">Black Friday starts early for you</h2><p class="e-p">Hi <span class="lq" role="img" aria-label="Personalization: first name, fallback there">First name <span class="fb">· fallback “there”</span></span>, you're on the early list: 15% off everything at Acme Merch, two days before the doors open to everyone. The offer ends Friday at midnight.</p></div>
+          <div class="sec selsec" style="padding:8px 24px 16px">
+            <span class="lab">Countdown<span class="lm">Fri 27 Nov, 23:59 EST</span></span>
+            <div class="tb" role="toolbar" aria-label="Block tools"><button type="button" aria-label="Select parent"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"></path></svg></button><button type="button" aria-label="Move, or use Alt and arrow keys"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12M5 5 8 2l3 3M5 11l3 3 3-3"></path></svg></button><button type="button" aria-label="Duplicate"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg></button><button type="button" aria-label="Delete"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M5 4l.6 9h4.8L11 4"></path></svg></button></div>
+            <svg viewBox="0 0 600 150" width="552" role="img" aria-label="Offer ends Fri 27 Nov at 23:59 (EST)" style="display:block;width:100%;max-width:552px;height:auto;margin:0 auto"><rect width="600" height="150" fill="#0F172A"></rect><g font-family="'IBM Plex Mono',ui-monospace,monospace" font-weight="600" font-size="64" fill="#FFFFFF" text-anchor="middle"><text x="75" y="86">02</text><text x="225" y="86">14</text><text x="375" y="86">05</text><text x="525" y="86">09</text></g><g font-family="'IBM Plex Sans',system-ui,sans-serif" font-weight="500" font-size="17" fill="#CBD5E1" text-anchor="middle"><text x="75" y="122">Days</text><text x="225" y="122">Hours</text><text x="375" y="122">Minutes</text><text x="525" y="122">Seconds</text></g></svg>
+          </div>
+          <div class="sec" style="padding:8px 24px 24px;text-align:center"><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;color:#4B5563;margin-bottom:8px">Your code</div><div style="display:inline-block;padding:12px 18px;border:2px dashed #6B7280;border-radius:8px;background:#F9FAFB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:20px;font-weight:600;letter-spacing:.08em;color:#0B1220;user-select:all;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere">WELCOME-SAMPLE1</div><div style="margin-top:14px"><a href="https://shop.acme.io/discount/WELCOME-SAMPLE1" class="e-btn">Shop now</a></div></div>
+          <div class="sec" style="padding:18px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:center;line-height:1.6">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="PublicUnsubscribe.dc.html">Unsubscribe</a> · <a href="PublicPreferences.dc.html">Email preferences</a> · <a href="PublicArchive.dc.html">View in browser</a></div>
+        </div>
+      </div>
+    </main>
+    <aside class="rp" aria-label="Selected block: Countdown">
+      <div class="ptab" role="tablist" aria-label="Block panel"><button type="button" role="tab" id="rt-style" aria-selected="true" tabindex="0" class="on">Style</button><button type="button" role="tab" id="rt-settings" aria-selected="false" tabindex="-1">Settings</button><button type="button" role="tab" id="rt-checks" aria-selected="false" tabindex="-1">Checks</button><button type="button" role="tab" id="rt-comments" aria-selected="false" tabindex="-1">Comments</button></div>
+      <div class="rp-sel">
+        <div class="rt"><b>Countdown</b><span class="k">ends Fri 27 Nov, 23:59 EST</span></div>
+        <span class="k">Labels follow the language you're editing: English.</span>
+      </div>
+      <div class="prop"><span class="t" id="cd-end">Ends</span>
+        <div class="row2" role="group" aria-labelledby="cd-end"><input class="in" type="date" aria-label="End date" value="2026-11-27"><input class="in" type="time" aria-label="End time" value="23:59"></div>
+      </div>
+      <div class="prop"><label class="t" for="cd-tz">Time zone</label>
+        <select id="cd-tz" class="in"><option>America/New_York · workspace default</option><option>Europe/Berlin</option><option>Asia/Ho_Chi_Minh</option><option>UTC</option></select>
+        <span class="k">Every reader counts down to the same moment: Sat 28 Nov, 05:59 in Berlin and 11:59 in Hanoi.</span>
+      </div>
+      <div class="prop" role="radiogroup" aria-labelledby="cd-show"><span class="t" id="cd-show">Show</span>
+        <label class="rad"><input type="radio" name="cd-units" checked>Days, hours, minutes, seconds</label>
+        <label class="rad"><input type="radio" name="cd-units">Hours, minutes, seconds</label>
+        <label class="rad"><input type="radio" name="cd-units">Days, hours, minutes</label>
+      </div>
+      <div class="prop"><span class="t" id="cd-size">Size</span>
+        <div class="seg full" role="group" aria-labelledby="cd-size"><button type="button" aria-pressed="false" aria-label="Small, 360 by 96 pixels">S</button><button type="button" aria-pressed="false" aria-label="Medium, 480 by 120 pixels">M</button><button type="button" aria-pressed="true" aria-label="Large, 600 by 150 pixels">L</button></div>
+        <span class="k">600 × 150 px, as wide as the email. Phones scale it down.</span>
+      </div>
+      <div class="prop"><span class="t">Colours</span>
+        <div style="display:flex;gap:8px;align-items:center"><label class="k" for="cd-bg" style="width:76px;flex:none">Background</label><span class="sw" style="background:#0F172A"></span><input id="cd-bg" class="in mono" value="#0F172A" style="flex:1;min-width:0"></div>
+        <div style="display:flex;gap:8px;align-items:center"><label class="k" for="cd-dg" style="width:76px;flex:none">Digits</label><span class="sw" style="background:#FFFFFF"></span><input id="cd-dg" class="in mono" value="#FFFFFF" style="flex:1;min-width:0"></div>
+        <div style="display:flex;gap:8px;align-items:center"><label class="k" for="cd-lb" style="width:76px;flex:none">Labels</label><span class="sw" style="background:#CBD5E1"></span><input id="cd-lb" class="in mono" value="#CBD5E1" style="flex:1;min-width:0"></div>
+        <span class="k" id="cd-kit">From the brand kit</span>
+        <div class="swr" role="group" aria-labelledby="cd-kit"><button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#4338CA"></span>Acme indigo</button><button type="button" class="swb" aria-pressed="false"><span class="sw" style="background:#1F2937"></span>Text</button><button type="button" class="swb" aria-pressed="true"><span class="sw" style="background:#FFFFFF"></span>White</button></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="cchip p">17.9:1 · Passes AA</span><span class="k">Digits on the background</span></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="cchip p">12.0:1 · Passes AA</span><span class="k">Labels on the background</span></div>
+      </div>
+      <div class="prop" role="radiogroup" aria-labelledby="cd-ends"><span class="t" id="cd-ends">When it ends</span>
+        <label class="rad"><input type="radio" name="cd-ended" checked>Show zeros</label>
+        <label class="rad"><input type="radio" name="cd-ended">Show a message</label>
+      </div>
+      <div class="prop"><label class="t" for="cd-alt">Alt text</label>
+        <input id="cd-alt" class="in" value="Offer ends Fri 27 Nov at 23:59 (EST)">
+        <span class="k">Automatic: written from the end and the time zone. Type to write your own.</span>
+      </div>
+      <div class="rp-foot"><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">A 600 × 150 GIF drawn when the email opens, the same for every reader</span></div>
+    </aside>
+  </div>
+  <footer class="cfoot">
+    <nav class="bc" aria-label="Selection path"><span>Email</span><span aria-hidden="true">›</span><span>Body</span><span aria-hidden="true">›</span><b>Countdown</b></nav>
+    <span class="hint"><span><span class="kbd">Enter</span>edits text</span><span><span class="kbd">Esc</span>selects parent</span><span><span class="kbd">⌘Z</span>undo</span><span><span class="kbd">⌘/</span>shortcuts</span></span>
+    <span class="k" style="margin-left:auto">31 KB of 102 KB · 2 images · 6 links</span>
+    <a href="ComposerStates.dc.html" class="k">Version history · 6 versions</a>
+  </footer>
+  <div class="qbar" role="group" aria-label="Quick review"><button type="button" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5 13.5 5 6 12.5l-3.5 1 1-3.5z"></path></svg>Edit text</button><button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</button><button type="button" aria-expanded="false" aria-label="Checks, all passed"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg>Checks</button><button type="button" aria-expanded="false" aria-label="Comments, none open"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg>Comments</button><button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg>Send test</button></div>
+</div>
+
+<div class="stw" style="display:flex;flex-direction:column;gap:24px;padding:24px 28px 96px;box-sizing:border-box;border-top:1px solid #E3E6EB">
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-code">
+    <h2 class="strip" id="s-code"><span class="dot" style="color:#9CA3AF"></span>Discount code · the block selected and its inspector</h2>
+    <div class="sgrid">
+      <div class="mf">
+        <div class="mf-cv" aria-hidden="true" style="height:auto;padding:44px 24px 24px"><div class="email"><div class="sec selsec" style="padding:8px 24px 24px;text-align:center"><span class="lab">Discount code<span class="lm">Welcome 15%</span></span><div class="tb" role="toolbar" aria-label="Block tools"><button type="button" aria-label="Select parent"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"></path></svg></button><button type="button" aria-label="Move, or use Alt and arrow keys"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12M5 5 8 2l3 3M5 11l3 3 3-3"></path></svg></button><button type="button" aria-label="Duplicate"><svg aria-hidden="true" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg></button><button type="button" aria-label="Delete"><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M5 4l.6 9h4.8L11 4"></path></svg></button></div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;color:#4B5563;margin-bottom:8px">Your code</div><div style="display:inline-block;padding:12px 18px;border:2px dashed #6B7280;border-radius:8px;background:#F9FAFB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:20px;font-weight:600;letter-spacing:.08em;color:#0B1220;user-select:all;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere">WELCOME-SAMPLE1</div><div style="margin-top:14px"><a href="https://shop.acme.io/discount/WELCOME-SAMPLE1" class="e-btn">Shop now</a></div></div></div></div>
+        <div class="rp-sel"><span class="k">The canvas, previews and test sends show the pool's sample, WELCOME-SAMPLE1. Each reader's email gets a code of its own when it is sent; the code is selectable, so it can be copied.</span></div>
+      </div>
+      <div class="mf">
+        <div class="ptab" role="tablist" aria-label="Block panel"><button type="button" role="tab" id="dc-rt-style" aria-selected="true" tabindex="0" class="on">Style</button><button type="button" role="tab" id="dc-rt-settings" aria-selected="false" tabindex="-1">Settings</button><button type="button" role="tab" id="dc-rt-checks" aria-selected="false" tabindex="-1">Checks</button><button type="button" role="tab" id="dc-rt-comments" aria-selected="false" tabindex="-1">Comments</button></div>
+        <div class="rp-sel">
+          <div class="rt"><b>Discount code</b><span class="k">Welcome 15%</span></div>
+          <span class="k">One code per reader, given when the email is sent.</span>
+        </div>
+        <div class="prop"><label class="t" for="dc-pool">Pool</label>
+          <select id="dc-pool" class="in"><option>Welcome 15% · 2,540 free</option><option>Partner perks · 1,880 free</option></select>
+          <span class="k">Shopify · Acme Merch · 15% off · one code per contact · in Liquid <span class="mono">coupons.welcome15</span></span>
+        </div>
+        <div class="prop"><label class="t" for="dc-label">Label</label><input id="dc-label" class="in" value="Your code"></div>
+        <div class="prop"><label class="tgl">Button<input type="checkbox" class="tg" checked></label>
+          <input class="in" aria-label="Button text" value="Shop now">
+          <span class="k">Opens Acme Merch with the code applied: <span class="mono">{{lqUrl}}</span></span>
+        </div>
+        <div class="prop"><a href="DiscountCodes.dc.html" style="font-weight:600;align-self:flex-start">Manage discount codes</a><span class="k">Pools, their numbers and where each one is used, in Campaigns › Discount codes.</span></div>
+        <div class="rp-foot"><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">Review &amp; send checks there's a code for every recipient.</span></div>
+      </div>
+    </div>
+    <p class="k" style="margin:0;max-width:760px">The block's settings travel in the email as a marker (<span class="mono">rc:coupon</span>), expanded per reader into an email-safe table: the label, the code in a dashed box (IBM Plex Mono, 0.08em letter spacing) and, when the switch is on, the button. Neither block is offered in transactional templates.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-cd">
+    <h2 class="strip" id="s-cd"><span class="dot" style="color:#FBBF24"></span>Countdown · colours that fail, a message at the end, and the check once it has ended</h2>
+    <div class="sgrid">
+      <div class="mf">
+        <div class="rp-sel"><div class="rt"><b>Countdown</b><span class="k">Colours · digits picked too dark</span></div></div>
+        <div class="prop"><span class="t">Colours</span>
+          <div style="display:flex;gap:8px;align-items:center"><label class="k" for="ck-bg" style="width:76px;flex:none">Background</label><span class="sw" style="background:#0F172A"></span><input id="ck-bg" class="in mono" value="#0F172A" style="flex:1;min-width:0"></div>
+          <div style="display:flex;gap:8px;align-items:center"><label class="k" for="ck-dg" style="width:76px;flex:none">Digits</label><span class="sw" style="background:#64748B"></span><input id="ck-dg" class="in mono" value="#64748B" aria-invalid="true" aria-describedby="ck-err" style="flex:1;min-width:0;border-color:#B91C1C"></div>
+          <div role="dialog" aria-label="Digits colour" style="display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid #D4D8DF;border-radius:10px;background:#fff;box-shadow:0 12px 32px rgba(11,18,32,.16);margin-top:4px">
+          <div style="position:relative;height:130px;border-radius:8px;background:linear-gradient(to top,#000,rgba(0,0,0,0)),linear-gradient(to right,#fff,hsl(215,100%,50%))" role="slider" aria-label="Saturation and brightness" aria-valuetext="#64748B"><span style="position:absolute;left:28%;top:45%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(11,18,32,.5),0 2px 6px rgba(11,18,32,.3);background:#64748B"></span></div>
+          <div style="position:relative;height:12px;border-radius:999px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)" role="slider" aria-label="Hue" aria-valuenow="215"><span style="position:absolute;left:59.7%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(11,18,32,.5);background:hsl(215,100%,50%)"></span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid #EEF0F3">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="cchip f">3.8:1 · Fails AA</span></div>
+            <span class="k" id="ck-err" style="color:#991B1B">Digits need 4.5:1 against the background, so the image keeps #FFFFFF. Pick a lighter colour or a darker background.</span>
+            <span style="font-size:12px;font-weight:600;color:#4B5563;margin-top:2px">Suggestions</span>
+            <div class="sugg"><span class="swt" style="background:#0F172A;color:#FFFFFF" aria-hidden="true">Aa</span><span class="st"><b class="mono" style="font-size:12px">#FFFFFF</b><span class="k">From the brand kit</span></span><span class="num" style="font-weight:700;font-size:12.5px">17.9:1</span></div>
+            <div class="sugg"><span class="swt" style="background:#0F172A;color:#748297" aria-hidden="true">Aa</span><span class="st"><b class="mono" style="font-size:12px">#748297</b><span class="k">Nearest that passes AA</span></span><span class="num" style="font-weight:700;font-size:12.5px">4.6:1</span></div>
+            <div class="sugg"><span class="swt" style="background:#0F172A;color:#99A3B2" aria-hidden="true">Aa</span><span class="st"><b class="mono" style="font-size:12px">#99A3B2</b><span class="k">Passes AAA</span></span><span class="num" style="font-weight:700;font-size:12.5px">7.0:1</span></div>
+            <span class="k">Click one to apply it.</span>
+          </div>
+        </div>
+        </div>
+      </div>
+      <div class="mf">
+        <div class="mf-cv" aria-hidden="true" style="height:auto;padding:20px 24px"><div class="email"><div class="sec" style="padding:16px 24px"><svg viewBox="0 0 600 150" width="552" role="img" aria-label="Offer ends Fri 27 Nov at 23:59 (EST)" style="display:block;width:100%;max-width:552px;height:auto;margin:0 auto"><rect width="600" height="150" fill="#0F172A"></rect><g font-family="'IBM Plex Sans',system-ui,sans-serif" font-weight="500" font-size="30" fill="#FFFFFF" text-anchor="middle"><text x="300" y="64">Early access has ended.</text><text x="300" y="104">The sale is open to all.</text></g></svg></div></div></div>
+        <div class="prop" role="radiogroup" aria-labelledby="ck-ends"><span class="t" id="ck-ends">When it ends</span>
+          <label class="rad"><input type="radio" name="ck-ended">Show zeros</label>
+          <label class="rad"><input type="radio" name="ck-ended" checked>Show a message</label>
+          <input class="in" aria-label="Message when it ends" value="Early access has ended. The sale is open to all." maxlength="60" aria-describedby="ck-cnt">
+          <span class="k" id="ck-cnt">48 of 60 characters. After the end the image is this one frame, kept by mail apps for up to an hour.</span>
+        </div>
+      </div>
+      <div class="mf">
+        <div class="ptab" role="tablist" aria-label="Block panel"><button type="button" role="tab" id="ck-rt-style" aria-selected="false" tabindex="-1">Style</button><button type="button" role="tab" id="ck-rt-settings" aria-selected="false" tabindex="-1">Settings</button><button type="button" role="tab" id="ck-rt-checks" aria-selected="true" tabindex="0" class="on" aria-label="Checks, 1 warning">Checks <span class="n">· 1</span></button><button type="button" role="tab" id="ck-rt-comments" aria-selected="false" tabindex="-1">Comments</button></div>
+        <div class="ck-sum">
+          <div class="ck-row"><span class="ck-k">Deliverability</span><span class="badge warn"><span class="dot"></span>1 warning</span><span class="k">A countdown that has ended</span></div>
+          <div class="ck-row"><span class="ck-k">Accessibility</span><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">0 issues in English</span></div>
+          <div class="ck-row"><span class="ck-k">Workspace rules</span><span class="badge ok"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Pass</span><span class="k">2 rules</span></div>
+        </div>
+        <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>This countdown has already ended</span></div><span class="k">It ended Fri 27 Nov at 23:59 EST, so every reader sees zeros. Review &amp; send blocks a send while its countdown ends before the send time.</span><div class="acts"><button type="button" class="btn sm">Change the end</button><button type="button" class="btn sm">Show a message instead</button></div></div>
+        <p class="k" style="margin:0;padding:10px 12px">Checks rerun as you edit. Review &amp; send runs the full set before anything sends.</p>
+      </div>
+      <div class="mf mfp">
+        <div class="mf-cv" aria-hidden="true"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo · 96×28</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Shop · Blog</div></div><div class="sec" style="padding:16px"><svg viewBox="0 0 600 150" width="552" role="img" aria-label="Offer ends Fri 27 Nov at 23:59 (EST)" style="display:block;width:100%;max-width:552px;height:auto;margin:0 auto"><rect width="600" height="150" fill="#0F172A"></rect><g font-family="'IBM Plex Mono',ui-monospace,monospace" font-weight="600" font-size="64" fill="#FFFFFF" text-anchor="middle"><text x="75" y="86">00</text><text x="225" y="86">00</text><text x="375" y="86">00</text><text x="525" y="86">00</text></g><g font-family="'IBM Plex Sans',system-ui,sans-serif" font-weight="500" font-size="17" fill="#CBD5E1" text-anchor="middle"><text x="75" y="122">Days</text><text x="225" y="122">Hours</text><text x="375" y="122">Minutes</text><text x="525" y="122">Seconds</text></g></svg></div><div class="sec" style="padding:8px 24px 24px;text-align:center"><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;color:#4B5563;margin-bottom:8px">Your code</div><div style="display:inline-block;padding:12px 18px;border:2px dashed #6B7280;border-radius:8px;background:#F9FAFB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:20px;font-weight:600;letter-spacing:.08em;color:#0B1220;user-select:all;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere">WELCOME-SAMPLE1</div><div style="margin-top:14px"><a href="https://shop.acme.io/discount/WELCOME-SAMPLE1" class="e-btn">Shop now</a></div></div></div></div>
+        <div class="qscrim"></div>
+        <div class="ts" role="dialog" aria-labelledby="ck-ph">
+          <div class="qsheet-h"><h3 id="ck-ph">Checks</h3><span class="btn ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></span></div>
+          <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>This countdown has already ended</span></div><span class="k">It ended Fri 27 Nov at 23:59 EST, so every reader sees zeros. Change the end on a larger screen.</span></div>
+          <p class="k" style="margin:0;padding:10px 12px">Review &amp; send runs the full set before anything sends.</p>
+        </div>
+        <div class="qbar" role="group" aria-label="Quick review"><button type="button" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5 13.5 5 6 12.5l-3.5 1 1-3.5z"></path></svg>Edit text</button><button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</button><button type="button" aria-expanded="true" aria-label="Checks, 1 warning"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg>Checks<span class="qn" aria-hidden="true">1</span></button><button type="button" aria-expanded="false" aria-label="Comments, none open"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg>Comments</button><button type="button" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg>Send test</button></div>
+      </div>
+    </div>
+    <p class="k" style="margin:0;max-width:760px">Colours that leave the digits under 4.5:1 on the background are refused, with the ratio and suggestions the colour picker shows elsewhere; the labels' ratio is shown beside it. The composer warns once the end has passed; Review &amp; send blocks a send whose countdown ends before the send time and warns when it ends within an hour of the send's start. On a phone the composer is a quick review: the Checks sheet carries the warning, and the block's settings open on a tablet or a computer.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="s-read">
+    <h2 class="strip" id="s-read"><span class="dot" style="color:#4ADE80"></span>What a reader sees · Sam Rivera's email, opened Tue 25 Nov at 09:54 EST</h2>
+    <div class="sgrid">
+      <div class="mf">
+        <div class="rp-sel"><div class="rt"><b>Desktop · 600 px</b><span class="k">as Gmail on the web shows it</span></div></div>
+        <div class="mf-cv" style="height:auto;padding:20px 24px"><div class="email"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo · 96×28</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Shop · Blog</div></div><div class="sec" style="padding:20px 24px 8px"><h2 class="e-h1">Black Friday starts early for you</h2><p class="e-p">Hi Sam, you're on the early list: 15% off everything at Acme Merch, two days before the doors open to everyone. The offer ends Friday at midnight.</p></div><div class="sec" style="padding:8px 24px 16px"><svg viewBox="0 0 600 150" width="552" role="img" aria-label="Offer ends Fri 27 Nov at 23:59 (EST)" style="display:block;width:100%;max-width:552px;height:auto;margin:0 auto"><rect width="600" height="150" fill="#0F172A"></rect><g font-family="'IBM Plex Mono',ui-monospace,monospace" font-weight="600" font-size="64" fill="#FFFFFF" text-anchor="middle"><text x="75" y="86">02</text><text x="225" y="86">14</text><text x="375" y="86">05</text><text x="525" y="86">09</text></g><g font-family="'IBM Plex Sans',system-ui,sans-serif" font-weight="500" font-size="17" fill="#CBD5E1" text-anchor="middle"><text x="75" y="122">Days</text><text x="225" y="122">Hours</text><text x="375" y="122">Minutes</text><text x="525" y="122">Seconds</text></g></svg></div><div class="sec" style="padding:8px 24px 24px;text-align:center"><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;color:#4B5563;margin-bottom:8px">Your code</div><div style="display:inline-block;padding:12px 18px;border:2px dashed #6B7280;border-radius:8px;background:#F9FAFB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:20px;font-weight:600;letter-spacing:.08em;color:#0B1220;user-select:all;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere">WELCOME-7KQ4M2XA</div><div style="margin-top:14px"><a href="https://shop.acme.io/discount/WELCOME-7KQ4M2XA" class="e-btn">Shop now</a></div></div><div class="sec" style="padding:18px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:center;line-height:1.6">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="PublicUnsubscribe.dc.html">Unsubscribe</a> · <a href="PublicPreferences.dc.html">Email preferences</a> · <a href="PublicArchive.dc.html">View in browser</a></div></div></div>
+      </div>
+      <div class="mf" style="max-width:440px">
+        <div class="rp-sel"><div class="rt"><b>Phone · 375 px</b><span class="k">the image scales to the screen</span></div></div>
+        <div class="mf-cv" style="height:auto;padding:16px 8px"><div class="email mob"><div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #EEF0F3"><div class="ph" style="width:96px;height:28px">Logo · 96×28</div><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Shop · Blog</div></div><div class="sec" style="padding:20px 24px 8px"><h2 class="e-h1">Black Friday starts early for you</h2><p class="e-p">Hi Sam, you're on the early list: 15% off everything at Acme Merch, two days before the doors open to everyone. The offer ends Friday at midnight.</p></div><div class="sec" style="padding:8px 24px 16px"><svg viewBox="0 0 600 150" width="552" role="img" aria-label="Offer ends Fri 27 Nov at 23:59 (EST)" style="display:block;width:100%;max-width:552px;height:auto;margin:0 auto"><rect width="600" height="150" fill="#0F172A"></rect><g font-family="'IBM Plex Mono',ui-monospace,monospace" font-weight="600" font-size="64" fill="#FFFFFF" text-anchor="middle"><text x="75" y="86">02</text><text x="225" y="86">14</text><text x="375" y="86">05</text><text x="525" y="86">09</text></g><g font-family="'IBM Plex Sans',system-ui,sans-serif" font-weight="500" font-size="17" fill="#CBD5E1" text-anchor="middle"><text x="75" y="122">Days</text><text x="225" y="122">Hours</text><text x="375" y="122">Minutes</text><text x="525" y="122">Seconds</text></g></svg></div><div class="sec" style="padding:8px 24px 24px;text-align:center"><div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;color:#4B5563;margin-bottom:8px">Your code</div><div style="display:inline-block;padding:12px 18px;border:2px dashed #6B7280;border-radius:8px;background:#F9FAFB;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:20px;font-weight:600;letter-spacing:.08em;color:#0B1220;user-select:all;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere">WELCOME-7KQ4M2XA</div><div style="margin-top:14px"><a href="https://shop.acme.io/discount/WELCOME-7KQ4M2XA" class="e-btn">Shop now</a></div></div><div class="sec" style="padding:18px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;text-align:center;line-height:1.6">Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="PublicUnsubscribe.dc.html">Unsubscribe</a> · <a href="PublicPreferences.dc.html">Email preferences</a> · <a href="PublicArchive.dc.html">View in browser</a></div></div></div>
+      </div>
+    </div>
+    <p class="k" style="margin:0;max-width:760px">The image is drawn when the email opens, so it's right as of that open: it counts the next 60 seconds once and stays on its last frame. Gmail's and Apple's image proxies may keep their own copy, which is then right as of their fetch. The image has no reader in it, so it is the same for everyone and records nothing. Sam's code is his own: view online and the Shop now link show it again and never take a new one.</p>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4314}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var o = '{' + '{', c = '}' + '}';
+    return {
+      lqCode: o + ' coupons.welcome15.code ' + c,
+      lqUrl: o + ' coupons.welcome15.url ' + c
+    };
+  }
+}
+</script>
+</body>
+</html>
