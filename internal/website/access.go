@@ -101,6 +101,10 @@ type WebsiteAccess struct {
 	// none.
 	Comments       string `json:"comments" enum:"off,members,paid"`
 	CommentsReview string `json:"commentsReview" enum:"all,first,none"`
+	// CommentsWaiting counts the comments waiting for review; Moderators
+	// are the people who can moderate them (comments:moderate).
+	CommentsWaiting int64    `json:"commentsWaiting"`
+	Moderators      []string `json:"moderators"`
 }
 
 // WebsiteAccessInput saves Website › Access.
@@ -217,6 +221,10 @@ func (s *Service) Access(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		NeverFree: []WebsiteNeverFreePost{}, UpdatedAt: c.row.UpdatedAt, Comments: c.row.Comments, CommentsReview: c.row.CommentsReview}
 	if by, err := s.Q.WebsiteSettingsUpdatedBy(ctx, ws.ID); err == nil {
 		out.UpdatedBy = by
+	}
+	out.Moderators = s.helpers(ctx, ws, authz.CommentsModerate)
+	if n, err := s.Q.WebsiteCommentStatusCounts(ctx, store.WebsiteCommentStatusCountsParams{WorkspaceID: ws.ID}); err == nil {
+		out.CommentsWaiting = n.Pending
 	}
 	out.SenderName, out.SenderEmail = s.Forms.DefaultSender(ctx, ws)
 	out.SystemProvider = s.Forms.SystemProviderName(ctx, ws)
