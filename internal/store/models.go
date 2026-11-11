@@ -4835,6 +4835,14 @@ type TrackerSite struct {
 	DeletedAt            *time.Time `json:"deletedAt"`
 }
 
+type TrackerSiteRefusal struct {
+	SiteID  uuid.UUID `json:"siteId"`
+	Origin  string    `json:"origin"`
+	Count   int64     `json:"count"`
+	FirstAt time.Time `json:"firstAt"`
+	LastAt  time.Time `json:"lastAt"`
+}
+
 type TrackerTriggerEntry struct {
 	AutomationID uuid.UUID `json:"automationId"`
 	ContactID    uuid.UUID `json:"contactId"`

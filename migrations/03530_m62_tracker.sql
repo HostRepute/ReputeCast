@@ -22,6 +22,18 @@ CREATE TABLE tracker_sites (
 );
 CREATE UNIQUE INDEX tracker_sites_origin ON tracker_sites (workspace_id, origin) WHERE deleted_at IS NULL;
 
+-- Events refused because they came from another origin than the site's
+-- (Settings › Integrations › Website tracking says where from), counted
+-- in memory and flushed with the event batches; kept 7 days.
+CREATE TABLE tracker_site_refusals (
+    site_id  uuid        NOT NULL REFERENCES tracker_sites(id) ON DELETE CASCADE,
+    origin   text        NOT NULL CHECK (char_length(origin) <= 255),
+    count    bigint      NOT NULL DEFAULT 0,
+    first_at timestamptz NOT NULL,
+    last_at  timestamptz NOT NULL,
+    PRIMARY KEY (site_id, origin)
+);
+
 -- A browser the tracker has seen, by the hash of its random visitor id
 -- (the id itself is never stored), and the contact it was linked to by a
 -- signed click token, a form signup or a signed identify call.
@@ -114,4 +126,5 @@ DROP TABLE tracker_visitor_products;
 DROP TABLE tracker_product_views;
 DROP TABLE tracker_events;
 DROP TABLE tracker_visitors;
+DROP TABLE tracker_site_refusals;
 DROP TABLE tracker_sites;
