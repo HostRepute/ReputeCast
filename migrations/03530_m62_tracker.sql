@@ -76,14 +76,16 @@ CREATE INDEX tracker_events_visitor_idx ON tracker_events (visitor_id, occurred_
 CREATE INDEX tracker_events_site_idx ON tracker_events (site_id, occurred_at);
 
 -- The default partition catches what falls outside the monthly ones, so
--- an insert never fails; the months are made ahead of time.
+-- an insert never fails; the months are made ahead of time (the retention
+-- job keeps two ahead). The three months before this one exist too, so
+-- events from within the 90 days kept never land in the default.
 CREATE TABLE tracker_events_default PARTITION OF tracker_events DEFAULT;
 -- +goose StatementBegin
 DO $$
 DECLARE
     m date := date_trunc('month', now() AT TIME ZONE 'UTC')::date;
 BEGIN
-    FOR i IN 0..2 LOOP
+    FOR i IN -3..2 LOOP
         EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF tracker_events FOR VALUES FROM (%L) TO (%L)',
             'tracker_events_' || to_char(m + make_interval(months => i), 'YYYY_MM'),
             (m + make_interval(months => i))::timestamp AT TIME ZONE 'UTC',
