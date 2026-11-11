@@ -40,7 +40,7 @@ func (a *App) audience() *audience.Service {
 		},
 		// Poll answers and survey responses, what the contact bought, and
 		// their store orders and abandoned checkouts (X20).
-		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a), audienceStores(a)}, SourceNames: audienceSourceNames(a),
+		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a), audienceStores(a), audienceReplies(a)}, SourceNames: audienceSourceNames(a),
 		Erasure: erasureRegistry()}
 }
 
@@ -51,6 +51,10 @@ var audiencePurchases = func(*App) audience.ActivitySource { return nil }
 // audienceSourceNames names Grow's sources in the contacts list and the
 // profile; Grow sets it from its wire file.
 var audienceSourceNames = func(*App) audience.SourceNamer { return nil }
+
+// audienceReplies adds a contact's replies to the timeline (M58); the
+// inbound domain sets it from its wire file.
+var audienceReplies = func(*App) audience.ActivitySource { return nil }
 
 // audienceAnswers adds poll answers and survey responses to the contact
 // timeline; the polls domain sets it from its wire file.

@@ -47,6 +47,8 @@ func (a *App) placement() *placement.Service {
 		// Microsoft Graph and the token endpoints are fixed public hosts.
 		Guard: guard,
 		HTTP:  guard.Client(30 * time.Second),
+		// Copies carry the receiving route's mailto: and Reply-To (M58).
+		Inbound: a.inboundBox,
 	}
 }
 

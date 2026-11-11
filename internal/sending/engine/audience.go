@@ -155,6 +155,11 @@ type sendContent struct {
 	// with it, so a change mid-send never splits one send (nil = untagged,
 	// and sends started before the setting existed decode untagged).
 	UTM *clicktoken.UTM `json:"utm,omitempty"`
+	// Inbound is how the workspace received mail at send start (M58):
+	// replies kept in ReputeCast's inbox get the route's reply address as
+	// Reply-To, and mailto: unsubscribes go to the route while it receives
+	// (nil = neither, and sends started before M58 decode without it).
+	Inbound *InboundBox `json:"inbound,omitempty"`
 }
 
 // tracking is what every Prepare of the send tracks and tags.
@@ -293,11 +298,13 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			return err
 		}
 		e.resolveStore(ctx, cc.WorkspaceID, &content)
+		content.Inbound = e.inboundBox(ctx, cc.WorkspaceID)
 	} else if len(snd.Content) > 0 {
 		// A build that continues keeps the versions captured when it began.
 		var prev sendContent
 		if json.Unmarshal(snd.Content, &prev) == nil {
 			content.Source, content.DefaultLanguage, content.Fallback, content.Offered, content.Languages = prev.Source, prev.DefaultLanguage, prev.Fallback, prev.Offered, prev.Languages
+			content.Inbound = prev.Inbound
 		}
 	}
 	chooser, multilingual := content.chooser()

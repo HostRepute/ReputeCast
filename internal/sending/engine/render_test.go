@@ -166,7 +166,7 @@ func TestPrepareCantReadFiles(t *testing.T) {
 }
 
 func TestBulkHeaders(t *testing.T) {
-	h := bulkHeaders("https://reputecast.acme.io/p/acme-newsletter/unsubscribe/TOKEN", "TOKEN", "digest@news.acme.io", feedbackID("0199ab12-3456", "acme-newsletter", "broadcast"))
+	h := bulkHeaders("https://reputecast.acme.io/p/acme-newsletter/unsubscribe/TOKEN", "digest@news.acme.io", "unsubscribe TOKEN", feedbackID("0199ab12-3456", "acme-newsletter", "broadcast"))
 	if h["List-Unsubscribe-Post"] != "List-Unsubscribe=One-Click" {
 		t.Fatalf("List-Unsubscribe-Post %q", h["List-Unsubscribe-Post"])
 	}

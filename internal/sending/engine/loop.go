@@ -1189,19 +1189,22 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, ext
 	if err != nil {
 		return providers.Message{}, err
 	}
+	mailto, mailtoSubject := ListUnsubscribeMailto(rs.content.ListUnsubscribeMailto, rs.content.Inbound, e.Links, ws, m.ID, rs.content.ReplyTo, rs.content.FromEmail, unsub)
 	msg := providers.Message{
 		ID: m.ID, Stream: providers.StreamBroadcast,
 		From:    mail.Address{Name: rs.content.FromName, Address: rs.content.FromEmail},
 		To:      mail.Address{Name: strings.TrimSpace(m.FirstName + " " + m.LastName), Address: m.Email},
 		Subject: out.Subject, HTML: out.HTML, Text: out.Text,
-		Headers: bulkHeaders(links["unsubscribe_url"], unsub, unsubscribeMailto(rs.content.ListUnsubscribeMailto, rs.content.ReplyTo, rs.content.FromEmail),
-			feedbackID(rs.campaign.ID.String(), slug, "broadcast")),
-		Tags: map[string]string{"campaign": rs.campaign.ID.String(), "workspace": slug},
+		Headers: bulkHeaders(links["unsubscribe_url"], mailto, mailtoSubject, feedbackID(rs.campaign.ID.String(), slug, "broadcast")),
+		Tags:    map[string]string{"campaign": rs.campaign.ID.String(), "workspace": slug},
 	}
 	if rs.content.ReplyTo != "" {
 		if a, err := mail.ParseAddress(rs.content.ReplyTo); err == nil {
 			msg.ReplyTo = a
 		}
+	}
+	if a := rs.content.Inbound.ReplyTo(e.Links, ws, m.ID, ReplyName(rs.content.ReplyTo, rs.content.FromName)); a != nil {
+		msg.ReplyTo = a
 	}
 	if r.sim != nil {
 		msg.Tags[simulator.TagMailbox] = m.MailboxProvider
@@ -1246,17 +1249,17 @@ func contentKey(c sendContent, variant string) string {
 }
 
 // bulkHeaders are the headers every bulk message carries: one-click
-// unsubscribe (RFC 8058), with a mailto alternative when mailto isn't
-// empty, and Feedback-ID for Gmail's feedback loop. The Message-ID comes
-// from the message id.
-func bulkHeaders(unsubURL, token, mailto, feedback string) map[string]string {
+// unsubscribe (RFC 8058), with a mailto alternative (and its subject) when
+// mailto isn't empty, and Feedback-ID for Gmail's feedback loop. The
+// Message-ID comes from the message id.
+func bulkHeaders(unsubURL, mailto, subject, feedback string) map[string]string {
 	h := map[string]string{
 		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
 		"Feedback-ID":           feedback,
 	}
 	lu := "<" + unsubURL + ">"
 	if mailto != "" {
-		lu += ", <mailto:" + mailto + "?subject=" + url.PathEscape("unsubscribe "+token) + ">"
+		lu += ", <mailto:" + mailto + "?subject=" + url.PathEscape(subject) + ">"
 	}
 	h["List-Unsubscribe"] = lu
 	return h

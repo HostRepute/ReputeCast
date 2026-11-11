@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -198,6 +199,35 @@ func (n *Normalizer) ApplyAll(ctx context.Context, tx pgx.Tx, p store.Provider, 
 	return n.applyItems(ctx, tx, p, source, receivedAt, items)
 }
 
+// SourceInbound is the source of events from reports ReputeCast received
+// by email at the receiving domain (a feedback-loop report at fbl@, M58).
+const SourceInbound = "inbound"
+
+// ApplyReport records the events of a report received by email as the
+// events of the provider that sent the message they're about, in tx: the
+// report is kept as a raw event with its source, and its events follow the
+// rules unsigned mailbox reports follow (only for a message we sent, to
+// that recipient; a repeat is dropped). It returns how many addresses it
+// newly suppressed.
+func (n *Normalizer) ApplyReport(ctx context.Context, tx pgx.Tx, providerID uuid.UUID, source string, receivedAt time.Time, raw []byte, evs []providers.Event) (int, error) {
+	q := store.New(tx)
+	p, err := q.ProvGetAny(ctx, providerID)
+	if err != nil {
+		return 0, err
+	}
+	id := newID()
+	if err := q.IngestInsertRaw(ctx, store.IngestInsertRawParams{ID: id, WorkspaceID: p.WorkspaceID, ProviderID: p.ID, ReceivedAt: receivedAt,
+		ContentType: "message/rfc822", Body: raw, Headers: json.RawMessage(`{}`), SignatureOk: true, Source: source}); err != nil {
+		return 0, err
+	}
+	added, err := n.ApplyAll(ctx, tx, p, &id, source, receivedAt, evs)
+	if err != nil {
+		return 0, err
+	}
+	now := n.now()
+	return added, q.IngestMarkNormalized(ctx, store.IngestMarkNormalizedParams{ID: id, NormalizedAt: &now, Events: int32(len(evs))})
+}
+
 // rawItem is an event with the stored payload it came from.
 type rawItem struct {
 	raw uuid.UUID
@@ -378,9 +408,10 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 	if recipient == "" && msg != nil {
 		recipient = msg.Email
 	}
-	// Unsigned mailbox reports only count for a message we sent, to its recipient.
+	// Unsigned mailbox reports, and feedback-loop reports received by
+	// email (M58), only count for a message we sent, to its recipient.
 	trusted := true
-	if source == "bounce_mailbox" {
+	if source == "bounce_mailbox" || source == SourceInbound {
 		if msg != nil && !strings.EqualFold(recipient, msg.Email) {
 			msg = nil
 		}

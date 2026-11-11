@@ -1216,6 +1216,13 @@ func (s *Service) SendDue(ctx context.Context, id uuid.UUID) (*time.Time, error)
 	}
 	provs := map[uuid.UUID]store.Provider{}
 	mailto := domains.ListUnsubscribeMailto(ws.SendingDefaults)
+	var box *engine.InboundBox
+	if s.Inbound != nil {
+		if box, err = s.Inbound(ctx, ws.ID); err != nil {
+			s.Log.WarnContext(ctx, "inbound route", "workspace", ws.ID, "err", err)
+			box = nil
+		}
+	}
 	for _, c := range due {
 		if c.ProviderID == nil {
 			continue
@@ -1229,7 +1236,7 @@ func (s *Service) SendDue(ctx context.Context, id uuid.UUID) (*time.Time, error)
 			}
 			provs[p.ID] = p
 		}
-		msg := s.compose(&ws, t, c, tpl, mailto)
+		msg := s.compose(&ws, t, c, tpl, mailto, box)
 		at := s.now()
 		d, err := s.Deliver.Send(ctx, p, msg, Kind)
 		status, handed, errText := "sent", ptrTime(d.SentAt), ""
@@ -1278,8 +1285,10 @@ func (s *Service) SendDue(ctx context.Context, id uuid.UUID) (*time.Time, error)
 // compose builds a copy: the email with the fallbacks, link tracking on
 // (opens and clicks are never counted), the bulk headers a real send has,
 // and the test token. mailto adds the reply-to, else the From, to
-// List-Unsubscribe, when the workspace includes one (Settings › Senders).
-func (s *Service) compose(ws *store.Workspace, t store.PlacementTest, c store.PlacementCopy, tpl *engine.Template, mailto bool) providers.Message {
+// List-Unsubscribe, when the workspace includes one (Settings › Senders);
+// while the workspace receives mail (M58) it is the route's unsubscribe
+// address, and replies kept in the inbox get the route's reply address.
+func (s *Service) compose(ws *store.Workspace, t store.PlacementTest, c store.PlacementCopy, tpl *engine.Template, mailto bool, box *engine.InboundBox) providers.Message {
 	sign := func(k linktoken.Kind, link uint32) string {
 		return s.Links.Sign(linktoken.Claims{Kind: k, WorkspaceID: ws.ID, MessageID: c.ID, Link: link})
 	}
@@ -1306,8 +1315,8 @@ func (s *Service) compose(ws *store.Workspace, t store.PlacementTest, c store.Pl
 		feedback = feedbackID(t.ContentID.String(), ws.Slug, string(stream))
 	}
 	lu := "<" + links["unsubscribe_url"] + ">"
-	if to := firstNonEmpty(t.ReplyTo, t.FromEmail); mailto && to != "" {
-		lu += ", <mailto:" + to + "?subject=" + url.PathEscape("unsubscribe "+unsub) + ">"
+	if to, subject := engine.ListUnsubscribeMailto(mailto, box, s.Links, ws.ID, c.ID, t.ReplyTo, t.FromEmail, unsub); to != "" {
+		lu += ", <mailto:" + to + "?subject=" + url.PathEscape(subject) + ">"
 	}
 	h := map[string]string{
 		"List-Unsubscribe":      lu,
@@ -1316,6 +1325,7 @@ func (s *Service) compose(ws *store.Workspace, t store.PlacementTest, c store.Pl
 		seedbox.TestHeader:      c.Token,
 	}
 	return providers.Message{ID: c.ID, Stream: stream, From: mail.Address{Name: t.FromName, Address: t.FromEmail}, To: mail.Address{Address: c.SeedEmail},
+		ReplyTo: box.ReplyTo(s.Links, ws.ID, c.ID, engine.ReplyName(t.ReplyTo, t.FromName)),
 		Subject: r.Subject, HTML: r.HTML, Text: r.Text, Headers: h, Tags: map[string]string{"placement": t.ID.String(), "workspace": ws.Slug}}
 }
 

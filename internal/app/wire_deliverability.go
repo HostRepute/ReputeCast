@@ -41,7 +41,9 @@ func deliverabilityServices(a *App) (*hostrepute.Service, *deliverability.Servic
 	}
 	jobs := lazyJobs{a}
 	hr := &hostrepute.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Cfg: cfg, Log: a.Log, Jobs: jobs, PublicURL: a.URLs.Base}
-	dl := &deliverability.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, HostRepute: hr, Jobs: jobs, DNS: resolver}
+	dl := &deliverability.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, HostRepute: hr, Jobs: jobs, DNS: resolver,
+		// DMARC reports collected by email at the receiving domain (M58).
+		Inbound: a.inboundDeliverability}
 	hr.Status = dl.AssetStatuses
 	hr.Fallback = dl.Fallback
 	return hr, dl

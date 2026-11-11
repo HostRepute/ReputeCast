@@ -153,6 +153,8 @@ type outboxTemplate struct {
 	// source is set when the language version queued is no longer sent:
 	// the source language goes instead.
 	source string
+	// inbound is how the workspace receives mail (Reply-To and mailto:).
+	inbound *InboundBox
 }
 
 // RunOutbox sends queued automation emails per provider, within each
@@ -482,6 +484,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 				}
 			}
 			ot.sender, _ = e.Q.SendingAutomationSender(ctx, store.SendingAutomationSenderParams{WorkspaceID: em.WorkspaceID, EmailID: ref.Email})
+			ot.inbound = e.inboundBox(ctx, em.WorkspaceID)
 			if ot.sender.Email == "" && ot.missing == "" {
 				ot.missing = "the workspace has no default sender; set one in Settings › General"
 			}
@@ -548,18 +551,21 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	if row.AutomationID != nil {
 		auto = row.AutomationID.String()
 	}
+	mailto, mailtoSubject := ListUnsubscribeMailto(ot.sender.ListUnsubscribeMailto, ot.inbound, e.Links, row.WorkspaceID, row.ID, ot.sender.ReplyTo, ot.sender.Email, unsub)
 	msg := providers.Message{
 		ID: row.ID, Stream: providers.StreamAutomation,
 		From: mail.Address{Name: ot.sender.Name, Address: ot.sender.Email}, To: mail.Address{Name: strings.TrimSpace(row.FirstName + " " + row.LastName), Address: row.Email},
 		Subject: out.Subject, HTML: out.HTML, Text: out.Text,
-		Headers: bulkHeaders(links["unsubscribe_url"], unsub, unsubscribeMailto(ot.sender.ListUnsubscribeMailto, ot.sender.ReplyTo, ot.sender.Email),
-			feedbackID(auto, slug, "automation")),
-		Tags: map[string]string{"automation": auto, "workspace": slug},
+		Headers: bulkHeaders(links["unsubscribe_url"], mailto, mailtoSubject, feedbackID(auto, slug, "automation")),
+		Tags:    map[string]string{"automation": auto, "workspace": slug},
 	}
 	if ot.sender.ReplyTo != "" {
 		if a, err := mail.ParseAddress(ot.sender.ReplyTo); err == nil {
 			msg.ReplyTo = a
 		}
+	}
+	if a := ot.inbound.ReplyTo(e.Links, row.WorkspaceID, row.ID, ReplyName(ot.sender.ReplyTo, ot.sender.Name)); a != nil {
+		msg.ReplyTo = a
 	}
 	if r.sim != nil {
 		msg.Tags[simulator.TagMailbox] = row.MailboxProvider
