@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What shipped in October, and what we're retiring · comments · The Acme newsletter</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F3FF;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.5}
+a{color:#4338CA;text-decoration:none}a:hover{color:#3730A3}
+select{height:44px;padding:0 12px;border:1px solid #C9CED6;border-radius:9px;font:inherit;font-size:14px;width:100%;box-sizing:border-box;background:#fff}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* expansion components (phases 1-8) */
+.num,.tbl td.r{font-variant-numeric:tabular-nums}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl tr.sel td{background:#F0FDFA}
+.tbl tr.xp td{background:#FBFBFC}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;margin-top:2px}
+.stat .s{font-size:12px;color:#5B6472;font-weight:500}
+.stat.hot{border-color:#FCA5A5;background:#FFF5F5}
+.strip{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:#0B1220;color:#fff;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.sk{background:#E9ECF0;border-radius:6px;display:inline-block}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.ptab{display:flex;border-bottom:1px solid #E3E6EB}
+.ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent;padding:0 6px;white-space:nowrap}
+.ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
+.seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 11px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#4B5563;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button.on{background:#0B1220;color:#fff}
+.cbx{border-radius:10px;overflow:hidden;border:1px solid #1F2937;background:#0B1220;min-width:0}
+.cbh{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid #1F2937;background:#111827;flex-wrap:wrap}
+.cbh button{height:28px;padding:0 10px;border:0;border-radius:6px;background:none;color:#B4BAC4;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.cbh button.on{background:#273244;color:#fff}
+.cbh .cp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E5E7EB;border:1px solid #374151}
+.cbx pre{margin:0;padding:12px 14px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.6;color:#E5E7EB;white-space:pre-wrap;overflow-wrap:anywhere}
+.cbx .c1{color:#93C5FD}.cbx .c2{color:#86EFAC}.cbx .c3{color:#FCD34D}.cbx .c4{color:#9CA3AF}.cbx .c5{color:#F9A8D4}
+.cbx .cm{color:#9CA3AF}
+.ev{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #EEF0F3}
+.ev:first-child{border-top:0}
+.ev .ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ev .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ev .tm{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#5B6472;flex:none;padding-top:5px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.mask{display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#4B5563;white-space:nowrap}
+.mask svg{flex:none}
+.tok{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#EDE9FE;color:#5B21B6;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;font-weight:500;line-height:1.55;white-space:nowrap;vertical-align:baseline}
+.tok.s{background:#FEF3C7;color:#92400E}
+.tok.e{background:#FEE2E2;color:#991B1B;text-decoration:underline wavy #DC2626;text-underline-offset:3px}
+.mk{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:6px;background:#EEF0F3;color:#374151;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;white-space:nowrap}
+.toast{display:flex;gap:12px;align-items:center;padding:10px 12px 10px 14px;border-radius:10px;background:#0B1220;color:#fff;font-size:13.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:520px;box-sizing:border-box}
+.toast .t{flex:1;min-width:0}
+.toast .k{color:#C3C2B7}
+.toast .btn{min-height:28px;padding:0 10px;font-size:12px;background:transparent;border-color:#4B5563;color:#fff}
+.toast .x{width:28px;height:28px;border:0;background:transparent;color:#9CA3AF;border-radius:6px;font-size:16px;cursor:pointer}
+.ti{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.32);z-index:55}
+.drw{position:absolute;top:0;right:0;bottom:0;width:600px;max-width:100%;background:#fff;border-left:1px solid #E3E6EB;box-shadow:-18px 0 40px rgba(11,18,32,.18);z-index:60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
+.drw .dwh{display:flex;align-items:flex-start;gap:12px;padding:18px 22px 14px;border-bottom:1px solid #EEF0F3}
+.drw .dwb{padding:18px 22px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.drw h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.empty{padding:44px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;border-style:dashed}
+.empty .tt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.empty .ds{color:#4B5563;max-width:560px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 18px;border-bottom:1px solid #EEF0F3}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.fchip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.fchip b{font-weight:600;color:#5B6472;font-variant-numeric:tabular-nums}
+.fchip.on{background:#0B1220;border-color:#0B1220;color:#fff}.fchip.on b{color:#C9CED6}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#166534}
+.live .dot{box-shadow:0 0 0 4px rgba(22,101,52,.15)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid #EEF0F3}
+.spark{display:block}
+.lnk{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px}
+.ttl{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.lead{margin:0;color:#4B5563;font-size:14px;max-width:760px}
+.state-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(460px,100%),1fr));gap:16px;align-items:start}
+.flowr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.flowr .arw{color:#9AA3B2}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid #E3E6EB;background:#F9FAFB;font-size:12.5px;font-weight:600;white-space:nowrap}
+.vline{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.vline:first-child{border-top:0}
+.hl{background:#FEF2F2;box-shadow:inset 3px 0 0 #DC2626}
+.lines{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.7;background:#0B1220;color:#E5E7EB;border-radius:8px;overflow:hidden}
+.lines div{display:flex;gap:12px;padding:0 12px}
+.lines .ln{color:#9CA3AF;width:22px;text-align:right;flex:none;user-select:none}
+.lines .er{background:rgba(220,38,38,.22)}
+.callout{position:absolute;z-index:5}
+.only-phone{display:none}
+@media (max-width:1100px){.drw{width:520px}}
+@media (max-width:767px){.drw{width:100%;border-left:0}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ttl{font-size:19px}}
+
+.pcard{width:100%;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;background:#4338CA;color:#fff;font-weight:700;font-size:14px;border:0;cursor:pointer;text-decoration:none;font-family:inherit}
+.pbtn:hover{background:#3730A3;color:#fff}
+.pbtn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit}
+.pin{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:14px;box-sizing:border-box;background:#fff;min-width:0;width:100%}
+.pmut{color:#5B6472}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;background:#EEF0F3;color:#4B5563}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .m{width:40px;height:40px;border-radius:10px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+@media (max-width:767px){.pcard{padding:22px}.sc-host [style*="minmax(min("]{grid-template-columns:1fr!important}}
+
+/* phase 7a: the publication website (publisher branding: indigo #4338CA, lavender #F5F3FF). Container queries keep one markup for every width. */
+.st{container-type:inline-size;background:#fff;color:#1F2937;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.55;text-align:left}
+.st *{box-sizing:border-box}
+.st a{color:#4338CA;text-decoration:none}
+.st a:hover{color:#3730A3}
+.st p{margin:0}
+.st-w{max-width:1200px;margin:0 auto;padding-left:48px;padding-right:48px}
+.st-col{max-width:680px;margin:0 auto}
+.st-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;background:#4338CA;color:#fff!important;font:inherit;font-weight:700;font-size:14px;border:0;cursor:pointer;white-space:nowrap;text-decoration:none!important;flex:none}
+.st-btn:hover{background:#3730A3}
+.st-btn.lg{height:46px;padding:0 20px;font-size:15px}
+.st-btn.sm{height:34px;padding:0 12px;font-size:13px}
+.st-btn.full{width:100%}
+.st-btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937!important;font:inherit;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none!important;flex:none}
+.st-btn2.sm{height:34px;padding:0 12px;font-size:13px}
+.st-btn2.lg{height:46px;padding:0 20px;font-size:15px}
+.st-in{height:44px;padding:0 14px;border:1px solid #8B94A3;border-radius:9px;font:inherit;font-size:15px;background:#fff;color:#0B1220;min-width:0;width:100%}
+.st-in.lg{height:48px}
+.st-lnk{font-weight:600;text-decoration:underline!important;text-underline-offset:3px;text-decoration-thickness:1px}
+.st-mut{color:#5B6472}
+.st-sm{font-size:13.5px}
+.st-k{font-size:13px;color:#5B6472}
+.st-cov{display:block;width:100%;height:auto}
+/* header */
+.st-hd{background:#fff;border-bottom:1px solid #E3E6EB;position:relative;z-index:2}
+.st-hdi{display:flex;align-items:center;gap:24px;min-height:72px;flex-wrap:nowrap}
+.st-brand{display:inline-flex;align-items:center;gap:10px;color:#0B1220!important;font-weight:700;font-size:17px;letter-spacing:-.01em;flex:none;white-space:nowrap}
+.st-mark{width:36px;height:36px;border-radius:9px;background:#0B1220;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+.st-brand .short{display:none}
+.st-nav{display:flex;gap:2px;flex:1;min-width:0}
+.st-nav a{height:38px;padding:0 12px;border-radius:8px;display:inline-flex;align-items:center;color:#374151;font-weight:500;font-size:14.5px;white-space:nowrap;flex:none}
+.st-nav a:hover{background:#F5F3FF;color:#3730A3}
+.st-nav a.on{color:#3730A3;background:#F5F3FF;font-weight:600}
+.st-act{display:flex;align-items:center;gap:10px;margin-left:auto;flex:none}
+.st-menu{display:none;width:40px;height:40px;border-radius:9px;border:1px solid #C9CED6;background:#fff;color:#1F2937;align-items:center;justify-content:center;cursor:pointer;padding:0;flex:none}
+.st-me{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 10px 0 4px;border-radius:999px;border:1px solid #C9CED6;background:#fff;color:#1F2937!important;font:inherit;font-size:14px;font-weight:600;cursor:pointer;flex:none}
+.st-av{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+/* bands and sections */
+.st-band{background:#F5F3FF}
+.st-sec{padding-top:56px;padding-bottom:56px}
+.st-h2{margin:0;font-size:26px;line-height:1.2;letter-spacing:-.02em;font-weight:700;color:#0B1220}
+.st-h3{margin:0;font-size:19px;line-height:1.3;letter-spacing:-.01em;font-weight:700;color:#0B1220}
+.st-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.st-hero{padding-top:64px;padding-bottom:60px;text-align:center}
+.st-hero h1,.st-hero .st-ht{margin:0;font-size:52px;line-height:1.06;letter-spacing:-.03em;font-weight:700;color:#0B1220}
+.st-hero .tl{margin:16px auto 0;font-size:20px;line-height:1.5;color:#4B5563;max-width:620px}
+.st-sub{display:flex;gap:10px;max-width:520px;margin:28px auto 0}
+.st-sub .st-in{flex:1}
+.st .st-subnote{margin-top:14px;font-size:13.5px;color:#5B6472}
+/* labels */
+.st-lb{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;flex:none}
+.st-lb.ins{background:#EDE9FE;color:#3730A3}
+.st-lb.mem{background:#EEF0F3;color:#374151}
+.st-tag{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:#4338CA!important;white-space:nowrap}
+.st-meta{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;font-size:13.5px;color:#5B6472}
+.st-meta .sep{color:#5B6472}
+.st-meta .ds{display:none}
+.st-sc .tx{display:flex;flex-direction:column;gap:8px;min-width:0}
+/* post cards */
+.st-feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+.st-fc{display:flex;flex-direction:column;gap:14px;color:#1F2937!important;min-width:0}
+.st-fc h3{margin:0;font-size:25px;line-height:1.2;letter-spacing:-.02em;color:#0B1220}
+.st-fc .ex{font-size:16.5px;line-height:1.6;color:#4B5563}
+.st-list{display:flex;flex-direction:column}
+.st-row{display:flex;gap:28px;align-items:flex-start;padding:24px 0;border-top:1px solid #E3E6EB;color:#1F2937!important}
+.st-row:first-child{border-top:0;padding-top:4px}
+.st-row .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.st-row h3{margin:0;font-size:21px;line-height:1.3;letter-spacing:-.015em;color:#0B1220}
+.st-row .ex{font-size:15.5px;line-height:1.6;color:#4B5563}
+.st-row .th{width:200px;flex:none}
+.st-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.st-sc{display:flex;flex-direction:column;gap:10px;color:#1F2937!important;min-width:0}
+.st-sc h3{margin:0;font-size:18px;line-height:1.3;letter-spacing:-.01em;color:#0B1220}
+/* article */
+.st-art{padding:56px 0 8px}
+.st-kick{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.st-title{margin:0;font-size:46px;line-height:1.1;letter-spacing:-.03em;font-weight:700;color:#0B1220}
+.st .st-dek{margin:18px 0 0;font-size:21px;line-height:1.5;color:#4B5563}
+.st-by{display:flex;align-items:center;gap:12px;margin-top:26px;font-size:14.5px;color:#5B6472;flex-wrap:wrap}
+.st-by b{color:#0B1220;font-weight:600}
+.st-hero-img{max-width:1000px;margin:40px auto 0;padding:0 48px}
+.st-body{font-size:19px;line-height:1.75;color:#1F2937;margin-top:40px}
+.st-body p{margin:0 0 26px}
+.st-body h2{font-size:27px;line-height:1.25;letter-spacing:-.02em;margin:46px 0 14px;color:#0B1220}
+.st-body ol{margin:0 0 26px;padding-left:26px}
+.st-body li{margin-bottom:8px}
+.st-body code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.86em;background:#F5F3FF;border-radius:5px;padding:1px 6px;color:#3730A3}
+.st-pre{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14.5px;line-height:1.65;background:#0B1220;color:#E5E7EB;border-radius:12px;padding:18px 20px;margin:0 0 26px;white-space:pre-wrap;overflow-wrap:anywhere}
+/* notes on the page */
+.st-note{display:flex;gap:12px;align-items:flex-start;padding:14px 18px;border-radius:12px;border:1px solid #DDD6FE;background:#F5F3FF;font-size:15px;line-height:1.55;color:#1F2937}
+.st-note > svg{flex:none;margin-top:3px}
+.st-note .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.st-note .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+/* paywall card */
+.st-pw{border:1px solid #DDD6FE;background:#F5F3FF;border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:20px;margin:6px 0 8px}
+.st-pw .hd{display:flex;flex-direction:column;gap:8px}
+.st-pw h2{margin:0;font-size:26px;line-height:1.2;letter-spacing:-.02em;color:#0B1220}
+.st-pw .lead{font-size:16.5px;line-height:1.55;color:#374151}
+.st-tiers{display:flex;flex-direction:column;gap:12px}
+.st-tier{display:flex;align-items:center;gap:16px;padding:16px 18px;background:#fff;border:1px solid #DDD6FE;border-radius:12px;flex-wrap:wrap}
+.st-tier.hi{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA}
+.st-tier .tn{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-tier .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;font-size:16.5px;color:#0B1220}
+.st-tier .pr{font-size:15px;color:#1F2937}
+.st-tier .pr b{font-weight:700}
+.st-free{display:flex;flex-direction:column;gap:12px;padding-top:20px;border-top:1px solid #DDD6FE}
+.st-free .frm{display:flex;gap:10px}
+.st-free .frm .st-in{flex:1}
+.st-chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#374151}
+.st-chk input{margin-top:3px;accent-color:#4338CA;flex:none;width:16px;height:16px}
+.st-chks{display:flex;flex-direction:column;gap:8px}
+.st-pwf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:14.5px;color:#374151}
+/* tiers band */
+.st-tc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
+.st-tcard{background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative}
+.st-tcard.hi{border-color:#4338CA;box-shadow:0 0 0 1px #4338CA}
+.st-tcard .pop{position:absolute;top:-12px;left:24px;height:24px;padding:0 10px;border-radius:999px;background:#4338CA;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center}
+.st-tcard .nm{font-weight:700;font-size:18px;color:#0B1220}
+.st-tcard .pr{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.st-tcard .pr b{font-size:34px;letter-spacing:-.02em;color:#0B1220;line-height:1}
+.st-tcard ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;font-size:15px;line-height:1.45;flex:1}
+.st-tcard li{display:flex;gap:9px;align-items:flex-start}
+.st-tcard li svg{flex:none;margin-top:3px}
+.st-seg{display:inline-flex;border:1px solid #C9CED6;border-radius:999px;padding:3px;background:#fff}
+.st-seg button{height:32px;padding:0 14px;border:0;border-radius:999px;background:none;font:inherit;font-size:13.5px;font-weight:600;color:#374151;cursor:pointer}
+.st-seg button.on{background:#0B1220;color:#fff}
+/* subscribe band and about */
+.st-subband{display:flex;gap:40px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.st-subband .tx{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.st-subband form{flex:1 1 420px;display:flex;flex-direction:column;gap:10px;max-width:520px}
+.st-subband .frm{display:flex;gap:10px}
+.st-subband .frm .st-in{flex:1}
+.st-about{display:flex;gap:28px;align-items:flex-start}
+.st-about .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;font-size:17px;line-height:1.65;color:#374151}
+/* footer */
+.st-ft{border-top:1px solid #E3E6EB;background:#fff;padding:36px 0 40px}
+.st-fti{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.st-ftl{display:flex;gap:6px 20px;flex-wrap:wrap;font-size:14px}
+.st-ftl a{color:#4B5563!important}
+.st-rc{display:inline-flex;align-items:center;gap:6px}
+/* account */
+.st-acct{display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;align-items:start}
+.st-side{display:flex;flex-direction:column;gap:2px;position:sticky;top:24px}
+.st-side a{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:9px;color:#374151!important;font-weight:500;font-size:14.5px}
+.st-side a.on{background:#F5F3FF;color:#3730A3!important;font-weight:600}
+.st-card{background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:26px 28px;display:flex;flex-direction:column;gap:18px}
+.st-card h2{margin:0;font-size:20px;line-height:1.3;letter-spacing:-.01em;color:#0B1220}
+.st-card .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.st-line{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #EEF0F3;flex-wrap:wrap}
+.st-line:first-child{border-top:0;padding-top:0}
+.st-line .tx{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.st-line .tx b{font-weight:600;color:#0B1220}
+.st-line .pg{display:flex;gap:14px;align-items:flex-start;flex:1 1 320px;min-width:0}
+input[type=checkbox].st-sw{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:999px;background:#8B94A3;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].st-sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].st-sw:checked{background:#4338CA}input[type=checkbox].st-sw:checked::after{left:21px}
+.st-pill{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid #C9CED6;border-radius:9px;background:#fff;font-size:14px;font-weight:500;color:#1F2937;cursor:pointer}
+.st-pill.on{border-color:#4338CA;background:#F5F3FF;font-weight:600}
+.st-pill input{accent-color:#4338CA;margin:0}
+.st-pills{display:flex;gap:8px;flex-wrap:wrap}
+.st-code{display:flex;gap:8px}
+.st-code input{width:48px;height:56px;border:1px solid #8B94A3;border-radius:10px;text-align:center;font:inherit;font-size:24px;font-weight:600;color:#0B1220;background:#fff;padding:0;min-width:0;font-variant-numeric:tabular-nums}
+.st-code input.bad{border-color:#DC2626;background:#FFF5F5}
+.st-err{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;color:#991B1B;font-weight:500}
+.st-err svg{flex:none;margin-top:3px}
+.st-toast{display:flex;gap:12px;align-items:center;padding:12px 14px 12px 16px;border-radius:12px;background:#0B1220;color:#fff;font-size:14.5px;box-shadow:0 12px 30px rgba(11,18,32,.25);max-width:460px}
+.st-toast .t{flex:1;min-width:0}
+.st-toast .x{width:30px;height:30px;border:0;background:transparent;color:#C9CED6;border-radius:6px;font-size:18px;cursor:pointer;flex:none}
+.st-center{min-height:520px;display:flex;align-items:flex-start;justify-content:center;padding:64px 24px}
+.st-auth{width:100%;max-width:460px;background:#fff;border:1px solid #E3E6EB;border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:18px}
+.st-auth h1,.st-auth .st-ht{margin:0;font-size:28px;line-height:1.15;letter-spacing:-.02em;color:#0B1220}
+.st-lbl{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:#1F2937}
+.st-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:20px;border-top:1px solid #E3E6EB;font-size:14px;color:#5B6472}
+.st-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border:1px solid #8B94A3;border-radius:10px;background:#fff}
+.st-search input{border:0;outline:0;font:inherit;font-size:16px;flex:1;min-width:0;background:none;color:#0B1220}
+.st-chipr{display:flex;gap:8px;flex-wrap:wrap}
+.st-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;border:1px solid #C9CED6;background:#fff;font-size:13.5px;font-weight:600;color:#374151!important}
+.st-chip.on{background:#0B1220;border-color:#0B1220;color:#fff!important}
+mark.st-hl{background:#EDE9FE;color:#3730A3;border-radius:3px;padding:0 2px}
+/* the share row under a post (M56): the address with Copy link, then plain share links; on touch widths the field and Copy stack and the links are two columns of 44px buttons */
+.st-share{display:flex;flex-direction:column;gap:12px;margin-top:36px;padding-top:24px;border-top:1px solid #E3E6EB}
+.st-share .hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.st-share h2{margin:0;font-size:17px;line-height:1.3;color:#0B1220}
+.st-share .lnk{display:flex;gap:8px}
+.st-share .lnk .st-in{flex:1;height:40px;font-size:14px;font-weight:500;background:#F9FAFB;color:#1F2937}
+.st-shares{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.st-shares .st-btn2{height:36px;padding:0 12px;font-size:13px;gap:6px}
+.st-shares svg{flex:none;color:#4B5563}
+@container (max-width:767px){
+  .st-share .lnk{flex-direction:column}
+  .st-share .lnk .st-in,.st-share .lnk .st-btn{flex:none;width:100%;height:44px}
+  .st-shares{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .st-shares .st-btn2{width:100%;height:44px}
+}
+/* narrow (tablet, small windows): the navigation moves to its own scrolling row */
+@container (max-width:1079px){
+  .st-w{padding-left:32px;padding-right:32px}
+  .st-hdi{flex-wrap:wrap;min-height:0;padding-top:14px;row-gap:6px}
+  .st-nav{order:3;flex:1 1 100%;overflow-x:auto;margin:0 -12px;padding-bottom:6px}
+  .st-hero h1,.st-hero .st-ht{font-size:44px}
+  .st-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .st-cards > :nth-child(3){display:none}
+  .st-tc{grid-template-columns:1fr;max-width:560px;margin:0 auto}
+  .st-acct{grid-template-columns:1fr;gap:24px}
+  .st-side{position:static;flex-direction:row;flex-wrap:wrap;gap:4px}
+  .st-side a{flex:none}
+  .st-hero-img{padding:0 32px}
+}
+@container (max-width:759px){
+  .st-feat{grid-template-columns:1fr;gap:36px}
+  .st-row .th{width:132px}
+  .st-title{font-size:38px}
+}
+/* phones */
+@container (max-width:599px){
+  .st-w{padding-left:18px;padding-right:18px}
+  .st-hdi{flex-wrap:nowrap;min-height:60px;padding-top:0;gap:10px}
+  .st-nav{display:none}
+  .st-menu{display:inline-flex}
+  .st-brand .full{display:none}.st-brand .short{display:inline}
+  .st-mark{width:32px;height:32px;font-size:14px}
+  .st-act{gap:8px}
+  .st-act .st-signin{padding:0 10px}
+  .st-act .st-btn,.st-act .st-btn2{height:38px;padding:0 12px;font-size:13.5px}
+  .st-me{padding:0 4px;height:38px}.st-me .nm{display:none}
+  .st-hero{padding-top:40px;padding-bottom:36px}
+  .st-hero h1,.st-hero .st-ht{font-size:34px}
+  .st-hero .tl{font-size:17px}
+  .st-sub,.st-subband .frm,.st-free .frm{flex-direction:column}
+  .st-sub .st-in,.st-subband .frm .st-in,.st-free .frm .st-in{flex:none}
+  .st-free .st-btn2{width:100%;height:46px}
+  .st-sub .st-btn,.st-subband .st-btn,.st-free .st-btn{width:100%;height:46px}
+  .st-sec{padding-top:36px;padding-bottom:36px}
+  .st-h2{font-size:22px}
+  .st-fc h3{font-size:21px}
+  .st-row{gap:14px;padding:20px 0}
+  .st-row .th{width:88px}
+  .st-row h3{font-size:18px}
+  .st-row .ex{display:none}
+  .st-cards{grid-template-columns:1fr;gap:20px}
+  .st-cards > :nth-child(3){display:flex}
+  .st-sc{flex-direction:row;gap:14px;align-items:flex-start}
+  .st-sc .cv{width:112px;flex:none}
+  .st-sc h3{font-size:16.5px}
+  .st-meta .dl{display:none}.st-meta .ds{display:inline}
+  .st-art{padding:32px 0 4px}
+  .st-title{font-size:31px}
+  .st .st-dek{font-size:17.5px}
+  .st-hero-img{padding:0;margin-top:26px}
+  .st-hero-img .st-cov{border-radius:0!important}
+  .st-body{font-size:17.5px;margin-top:28px}
+  .st-body h2{font-size:23px}
+  .st-pw{padding:22px 18px;border-radius:14px}
+  .st-pw h2{font-size:22px}
+  .st-tier{gap:12px;padding:14px}
+  .st-tier .st-btn,.st-tier .st-btn2{width:100%}
+  .st-tcard{padding:22px}
+  .st-card{padding:20px 18px;border-radius:14px}
+  .st-auth{padding:24px 20px}
+  .st-center{padding:32px 16px;min-height:0}
+  .st-code input{width:44px;height:52px;font-size:22px}
+  .st-about{flex-direction:column;gap:14px}
+  .st-side{display:none}
+}
+/* targets: 44px on touch widths, 767px and below (phones and the tablet layout), as on the site */
+@container (max-width:767px){
+  .st-chip,.st-btn,.st-btn2,.st-btn.sm,.st-btn2.sm,.st-act .st-btn,.st-act .st-btn2,.st-seg a,.st-seg button,.st-me,.st-nav a{height:44px}
+  .st-chk{min-height:44px}
+}
+@container (max-width:599px){
+  .st-menu{width:44px;height:44px}
+}
+/* M61: comments under a post. Pinned first, then oldest first; one level of replies; the form only for a signed-in member who may comment. Frames as on PublicSiteStates. */
+.fr{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.frc{display:flex;flex-direction:column;gap:2px;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.frc b{font-size:14px;font-weight:700;color:#0B1220}
+.frc span{font-size:12.5px;color:#5B6472;line-height:1.4}
+.frv{position:relative;overflow:hidden;background:#fff}
+.mailh{display:flex;flex-direction:column;gap:6px;padding:16px 20px;border-bottom:1px solid #E3E6EB;background:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.mailh .sj{font-size:16px;font-weight:700;color:#0B1220;line-height:1.3}
+.mailh .mt{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;color:#5B6472}
+.mailb{background:#F3F4F6;padding:22px 16px;display:flex;justify-content:center}
+.em{width:100%;max-width:560px;background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(11,18,32,.12);overflow:hidden;font-family:Georgia,'Times New Roman',serif;color:#1F2937}
+.em .eh{padding:18px 24px;border-bottom:1px solid #EEF0F3;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;font-size:15px;color:#0B1220}
+.em .eb{padding:24px 24px 8px;display:flex;flex-direction:column;gap:14px;font-size:15.5px;line-height:1.6}
+.em h2{margin:0;font-size:23px;line-height:1.25;color:#0B1220}
+.em p{margin:0}
+.em .ebtn{display:inline-block;padding:12px 20px;border-radius:8px;background:#4338CA;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;font-weight:700;text-decoration:none}
+.em .ecode{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:30px;font-weight:600;letter-spacing:.12em;color:#0B1220;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px;padding:10px 16px;align-self:flex-start}
+.em .ef{margin-top:16px;padding:14px 24px;background:#F3F4F6;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472;line-height:1.6}
+.bframe{background:#fff;border:1px solid #D4D8DF;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(11,18,32,.10);min-width:0}
+.bbar{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;background:#F3F4F6;border-bottom:1px solid #E3E6EB}
+.bbar .u{flex:1;min-width:0;height:22px;border-radius:6px;background:#fff;border:1px solid #E3E6EB;display:flex;align-items:center;gap:6px;padding:0 8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#4B5563;white-space:nowrap;overflow:hidden}
+.sboard{padding:32px 20px 56px;display:flex;flex-direction:column;gap:22px;box-sizing:border-box;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#0B1220;background:#F3F4F6}
+.sbh{display:flex;flex-direction:column;gap:6px}
+.sbh h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+.sbh p{margin:0;color:#4B5563;font-size:14px;line-height:1.5}
+.frv .st-comments{margin-top:0;border-top:0}
+.frv .st-pad{padding:24px 28px 28px}
+.st-comments{display:flex;flex-direction:column;gap:20px;margin-top:36px;padding-top:28px;border-top:1px solid #E3E6EB}
+.st-cmhd{display:flex;align-items:baseline;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}
+.st-cmhd h2{margin:0;font-size:22px;line-height:1.25;letter-spacing:-.01em;color:#0B1220}
+.st-cms,.st-cmr{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.st-cms > li{padding:20px 0;border-top:1px solid #EEF0F3}
+.st-cms > li:first-child{border-top:0;padding-top:4px}
+.st-cmr{margin:16px 0 0 22px;padding-left:28px;border-left:2px solid #EDE9FE;gap:18px}
+.st-cm{display:flex;gap:12px;align-items:flex-start}
+.st-cm .st-av,.st-cm .st-mark{width:36px;height:36px;font-size:13px}
+.st-cm .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.st-cmh{display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap;font-size:14.5px;line-height:1.4}
+.st-cmh b{font-weight:600;color:#0B1220}
+.st-cmh time{font-size:13.5px;color:#5B6472}
+.st-cm .tx > p{margin:0;font-size:16px;line-height:1.6;color:#1F2937;overflow-wrap:anywhere}
+.st-cm .tx > p a{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.st-cm.mine{background:#F5F3FF;border-radius:12px;padding:12px;margin:-12px}
+.st-cma{display:flex;gap:4px 18px;flex-wrap:wrap;align-items:center;font-size:14px}
+.st-cma form{margin:0;display:inline}
+.st-lnkb{background:none;border:0;padding:0;font:inherit;font-weight:600;color:#4338CA;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
+.st-lnkb:hover{color:#3730A3}
+.st-gone{font-style:italic;color:#5B6472!important}
+.st-cm .st-av.gone{background:#EEF0F3;color:#5B6472}
+.st-cmf{display:flex;flex-direction:column;gap:10px;padding:18px 20px;border:1px solid #E3E6EB;border-radius:12px;background:#fff;margin:0}
+.st-ta{height:auto;min-height:112px;padding:12px 14px;resize:vertical;line-height:1.5}
+.st-cmff{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap}
+.st-cmff .who{display:flex;flex-direction:column;gap:2px;min-width:0}
+.st-cmff .acts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.st-cmmore{display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:20px;border-top:1px solid #EEF0F3}
+.st-flash{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:12px;border:1px solid #BBF7D0;background:#F0FDF4;font-size:15px;line-height:1.5;color:#14532D}
+.st-flash svg{flex:none;margin-top:3px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.st-quote{margin:0;padding:10px 16px;border-left:3px solid #DDD6FE;background:#F5F3FF;border-radius:0 8px 8px 0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;line-height:1.55;color:#1F2937}
+.em .eq{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;color:#5B6472}
+@container (max-width:767px){
+  .st-cma a,.st-cma .st-lnkb{min-height:44px;display:inline-flex;align-items:center}
+  .st-cmf .st-btn,.st-cmf .st-btn2{height:44px}
+  .frv .st-pad{padding:20px 18px 24px}
+}
+@container (max-width:599px){
+  .st-cmr{margin-left:8px;padding-left:14px}
+  .st-cm .st-av,.st-cm .st-mark{width:32px;height:32px;font-size:12px}
+  .st-cmf{padding:14px}
+  .st-cmff .acts{width:100%}
+  .st-cmff .acts .st-btn{flex:1 1 auto}
+  .st-cmmore .st-btn2{width:100%}
+}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#FFFFFF;position:relative">
+<div class="st">
+<header class="st-hd"><div class="st-w st-hdi"><a href="PublicHome.dc.html" class="st-brand" aria-label="The Acme newsletter, home"><span class="st-mark" aria-hidden="true">A</span><span class="full">The Acme newsletter</span><span class="short">Acme</span></a><nav class="st-nav" aria-label="Site"><a href="PublicHome.dc.html">Weekly Digest</a><a href="PublicHome.dc.html">Product Updates</a><a href="PublicSiteStates.dc.html">Engineering</a><a href="PublicSalesPage.dc.html">Field Guide</a><a href="PublicHome.dc.html">About</a></nav><div class="st-act"><a href="PublicSubscribe.dc.html" class="st-btn">Subscribe</a><a href="PublicAccount.dc.html" class="st-me" aria-label="Your account, signed in as Sam Rivera"><span class="st-av" style="width:30px;height:30px;background:#FCE7F3;color:#9D174D;font-size:11px" aria-hidden="true">SR</span><span class="nm">Sam</span></a><button class="st-menu" type="button" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path></svg></button></div></div></header>
+<main id="main">
+<article class="st-art" aria-labelledby="post-h"><div class="st-w"><header class="st-col"><div class="st-kick"><a href="PublicHome.dc.html" class="st-tag">Product Updates</a></div><h1 class="st-title" id="post-h">What shipped in October, and what we're retiring</h1><p class="st-dek">Feature flags are generally available, audit log exports stream to S3 or your SIEM, and the v1 API retires on 30 November. Plus the Q4 roadmap.</p><div class="st-by"><span class="st-mark" style="width:40px;height:40px" aria-hidden="true">A</span><span><b>The Acme team</b><br><span>Friday 9 October 2026 · 4 min read</span></span></div></header></div><div class="st-hero-img"><svg class="st-cov" viewBox="0 0 960 440" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A month calendar with most days ticked off and the last week struck through" style="border-radius:16px;background:#EDE9FE"><rect x="-200" y="-200" width="1360" height="840" fill="#EDE9FE"></rect><rect x="300" y="70" width="360" height="300" rx="22" fill="#fff" stroke="#4338CA" stroke-width="7"></rect><path d="M300 130h360" stroke="#4338CA" stroke-width="7"></path><path d="M335 165l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M385 165l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M435 165l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M485 165l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M535 165l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M585 165l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M335 210l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M385 210l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M435 210l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M485 210l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M535 210l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M585 210l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M335 255l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M385 255l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M435 255l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M485 255l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M535 255l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M585 255l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M335 300l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M385 300l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M435 300l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M485 300l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M535 300l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M585 300l10 10 18-20" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path><path d="M330 345h300" stroke="#3730A3" stroke-width="8" stroke-linecap="round"></path></svg></div><div class="st-w"><div class="st-col"><div class="st-body"><p>October was a big month. Feature flags left beta, audit log exports can stream to S3 or your SIEM, and the v1 API has a retirement date.</p><h2>Feature flags are generally available</h2><p>Every workspace can create flags, roll them out to a share of accounts and switch them off in seconds. Flags from the beta keep their history and their rollouts.</p><h2>Audit log exports</h2><p>Stream every audit event to an S3 bucket, or to Splunk, Datadog or any SIEM that takes HTTPS. Exports run all the time and pick up where they left off after an outage.</p><h2>The v1 API retires on 30 November</h2><p>v1 has been deprecated since March. From 30 November its endpoints answer 410 Gone. The migration guide maps every v1 endpoint to its v2 version.</p></div><section class="st-share" aria-labelledby="share-h"><div class="hd"><h2 id="share-h">Share this post</h2><span class="st-k" id="share-status" role="status"></span></div><div class="lnk"><label class="vh" for="share-url">Link to this post</label><input id="share-url" class="st-in" type="text" value="https://news.acme.io/posts/what-shipped-in-october" readonly spellcheck="false"><button type="button" class="st-btn"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"></path></svg>Copy link</button></div><ul class="st-shares" role="list"><li><a class="st-btn2" href="mailto:?subject=What%20shipped%20in%20October%2C%20and%20what%20we%27re%20retiring&amp;body=What%20shipped%20in%20October%2C%20and%20what%20we%27re%20retiring%20https%3A%2F%2Fnews.acme.io%2Fposts%2Fwhat-shipped-in-october"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email</a></li><li><a class="st-btn2" href="https://x.com/intent/post?text=What+shipped+in+October%2C+and+what+we%27re+retiring&amp;url=https%3A%2F%2Fnews.acme.io%2Fposts%2Fwhat-shipped-in-october" aria-label="Share on X (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>X</a></li><li><a class="st-btn2" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fnews.acme.io%2Fposts%2Fwhat-shipped-in-october" aria-label="Share on LinkedIn (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>LinkedIn</a></li><li><a class="st-btn2" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fnews.acme.io%2Fposts%2Fwhat-shipped-in-october" aria-label="Share on Facebook (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>Facebook</a></li><li><a class="st-btn2" href="https://bsky.app/intent/compose?text=What+shipped+in+October%2C+and+what+we%27re+retiring+https%3A%2F%2Fnews.acme.io%2Fposts%2Fwhat-shipped-in-october" aria-label="Share on Bluesky (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>Bluesky</a></li><li><a class="st-btn2" href="https://wa.me/?text=What+shipped+in+October%2C+and+what+we%27re+retiring+https%3A%2F%2Fnews.acme.io%2Fposts%2Fwhat-shipped-in-october" aria-label="Share on WhatsApp (opens in a new tab)" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4M13 3 7 9M11 9.5V13H3V5h3.5"></path></svg>WhatsApp</a></li></ul></section><section class="st-comments" id="comments" aria-labelledby="comments-h"><div class="st-cmhd"><h2 id="comments-h">Comments (13)</h2><span class="st-k">Pinned first, then oldest first</span></div><form class="st-cmf" id="comment-form" method="post" action="/posts/what-shipped-in-october/comments"><label class="st-lbl" for="cm-body">Add a comment</label><textarea id="cm-body" name="body" class="st-in st-ta" maxlength="5000" aria-describedby="cm-count"></textarea><div class="hp" aria-hidden="true"><label for="cm-hp">Website</label><input id="cm-hp" name="website" tabindex="-1" autocomplete="off"></div><div class="st-cmff"><span class="who"><span class="st-k" id="cm-as">Commenting as <b style="color:#0B1220">Sam Rivera</b> · <a href="PublicAccount.dc.html#a-comments" class="st-lnk">Change</a></span></span><span class="acts"><span class="st-k" id="cm-count" aria-live="polite">0 of 5,000</span><button type="submit" class="st-btn">Post comment</button></span></div></form><ol class="st-cms"><li><article class="st-cm" id="comment-a1" aria-labelledby="cn-a1"><span class="st-av" style="background:#FCE7F3;color:#9D174D" aria-hidden="true">SR</span><div class="tx"><div class="st-cmh"><b id="cn-a1">Sam Rivera</b><span class="st-lb mem"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4M7 2v4.2L4.5 9h7L9 6.2V2M8 9v5"></path></svg>Pinned</span><time datetime="2026-10-09T10:42-04:00">9 Oct, 10:42</time></div><p>The v1 retirement date is what I needed. We still call /v1/flags from two cron jobs. Is there a way to see which of our keys called v1 in the last 30 days, so we know what's left to move?</p><div class="st-cma"><a href="?reply=a1#comment-form" class="st-lnk" aria-label="Reply to Sam Rivera">Reply</a><form method="post" action="/posts/what-shipped-in-october/comments/a1/delete"><button type="submit" class="st-lnkb" aria-label="Delete your comment">Delete</button></form></div></div></article><ol class="st-cmr" aria-label="Replies to Sam Rivera"><li><article class="st-cm" id="comment-a2" aria-labelledby="cn-a2"><span class="st-mark" aria-hidden="true">A</span><div class="tx"><div class="st-cmh"><b id="cn-a2">The Acme newsletter</b><span class="st-lb ins">Team</span><time datetime="2026-10-09T11:20-04:00">9 Oct, 11:20</time></div><p>Yes: Settings › API keys has a “v1 calls, last 30 days” column, and each key's page lists the endpoints it called. We'll also email every account that still calls v1 on 2, 16 and 27 November.</p><div class="st-cma"><a href="?reply=a1#comment-form" class="st-lnk" aria-label="Reply to The Acme newsletter">Reply</a></div></div></article></li><li><article class="st-cm" id="comment-a3" aria-labelledby="cn-a3"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a3">Priya Natarajan</b><time datetime="2026-10-09T12:05-04:00">9 Oct, 12:05</time></div><p>That column just saved us an afternoon. Two keys left, both from an old staging setup.</p><div class="st-cma"><a href="?reply=a1#comment-form" class="st-lnk" aria-label="Reply to Priya Natarajan">Reply</a></div></div></article></li></ol></li><li><article class="st-cm" id="comment-a4" aria-labelledby="cn-a4"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">BO</span><div class="tx"><div class="st-cmh"><b id="cn-a4">Ben Okoro</b><time datetime="2026-10-09T10:58-04:00">9 Oct, 10:58</time></div><p>Feature flags going GA is great news. Do flags created during the beta keep their history, or do they start fresh?</p><div class="st-cma"><a href="?reply=a4#comment-form" class="st-lnk" aria-label="Reply to Ben Okoro">Reply</a></div></div></article><ol class="st-cmr" aria-label="Replies to Ben Okoro"><li><article class="st-cm" id="comment-a5" aria-labelledby="cn-a5"><span class="st-av" style="background:#DCFCE7;color:#166534" aria-hidden="true">MS</span><div class="tx"><div class="st-cmh"><b id="cn-a5">Mateo Silva</b><time datetime="2026-10-09T13:31-04:00">9 Oct, 13:31</time></div><p>Ours kept everything, including the rollout history from August. Only the Beta label went away.</p><div class="st-cma"><a href="?reply=a4#comment-form" class="st-lnk" aria-label="Reply to Mateo Silva">Reply</a></div></div></article></li></ol></li><li><article class="st-cm" id="comment-a6" aria-labelledby="cn-a6"><span class="st-av" style="background:#FEF3C7;color:#92400E" aria-hidden="true">GO</span><div class="tx"><div class="st-cmh"><b id="cn-a6">Grace Okafor</b><time datetime="2026-10-09T14:10-04:00">9 Oct, 14:10</time></div><p>Streaming audit log exports to our SIEM was the last item on our security review. What format does it send, and how far behind does it run?</p><div class="st-cma"><a href="?reply=a6#comment-form" class="st-lnk" aria-label="Reply to Grace Okafor">Reply</a></div></div></article><ol class="st-cmr" aria-label="Replies to Grace Okafor"><li><article class="st-cm" id="comment-a7" aria-labelledby="cn-a7"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">OB</span><div class="tx"><div class="st-cmh"><b id="cn-a7">Olga Bennett</b><time datetime="2026-10-09T15:02-04:00">9 Oct, 15:02</time></div><p>We send ours to Splunk over HTTPS. It's JSON lines, and events arrive within about a minute.</p><div class="st-cma"><a href="?reply=a6#comment-form" class="st-lnk" aria-label="Reply to Olga Bennett">Reply</a></div></div></article></li></ol></li><li><article class="st-cm" id="comment-a8" aria-labelledby="cn-a8"><span class="st-av" style="background:#DCFCE7;color:#166534" aria-hidden="true">DA</span><div class="tx"><div class="st-cmh"><b id="cn-a8">Diego Alvarez</b><time datetime="2026-10-10T08:47-04:00">10 Oct, 08:47</time></div><p>Thanks for seven weeks' notice on v1 instead of the usual two. That's enough to fit the move into a normal sprint.</p><div class="st-cma"><a href="?reply=a8#comment-form" class="st-lnk" aria-label="Reply to Diego Alvarez">Reply</a></div></div></article></li><li><article class="st-cm" id="comment-a9" aria-labelledby="cn-a9"><span class="st-av" style="background:#FCE7F3;color:#9D174D" aria-hidden="true">LF</span><div class="tx"><div class="st-cmh"><b id="cn-a9">Lena Fischer</b><time datetime="2026-10-10T16:23-04:00">10 Oct, 16:23</time></div><p>The Q4 roadmap mentions EU data residency. Is that this quarter or next?</p><div class="st-cma"><a href="?reply=a9#comment-form" class="st-lnk" aria-label="Reply to Lena Fischer">Reply</a></div></div></article><ol class="st-cmr" aria-label="Replies to Lena Fischer"><li><article class="st-cm" id="comment-a10" aria-labelledby="cn-a10"><span class="st-av" style="background:#E0F2FE;color:#075985" aria-hidden="true">HB</span><div class="tx"><div class="st-cmh"><b id="cn-a10">Hannah Berg</b><time datetime="2026-10-10T18:40-04:00">10 Oct, 18:40</time></div><p>They answered this on Tuesday's community call: the EU region comes first, in December.</p><div class="st-cma"><a href="?reply=a9#comment-form" class="st-lnk" aria-label="Reply to Hannah Berg">Reply</a></div></div></article></li></ol></li><li><article class="st-cm" id="comment-a11" aria-labelledby="cn-a11"><span class="st-av" style="background:#FEF3C7;color:#92400E" aria-hidden="true">TN</span><div class="tx"><div class="st-cmh"><b id="cn-a11">Tomasz Nowak</b><time datetime="2026-10-12T09:15-04:00">12 Oct, 09:15</time></div><p>Could the S3 export write one file per day instead of one per hour? Our retention rules work by day.</p><div class="st-cma"><a href="?reply=a11#comment-form" class="st-lnk" aria-label="Reply to Tomasz Nowak">Reply</a></div></div></article></li><li><article class="st-cm" id="comment-a12" aria-labelledby="cn-a12"><span class="st-av" style="background:#E0F2FE;color:#075985" aria-hidden="true">HB</span><div class="tx"><div class="st-cmh"><b id="cn-a12">Hannah Berg</b><time datetime="2026-10-13T11:02-04:00">13 Oct, 11:02</time></div><p>Flag cleanup reminders are the feature I didn't know I wanted. We had 300 flags nobody had touched since spring.</p><div class="st-cma"><a href="?reply=a12#comment-form" class="st-lnk" aria-label="Reply to Hannah Berg">Reply</a></div></div></article></li><li><article class="st-cm" id="comment-a13" aria-labelledby="cn-a13"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a13">Priya Natarajan</b><time datetime="2026-10-14T17:36-04:00">14 Oct, 17:36</time></div><p>Do the v1 webhooks stop on 30 November too, or only the REST endpoints?</p><div class="st-cma"><a href="?reply=a13#comment-form" class="st-lnk" aria-label="Reply to Priya Natarajan">Reply</a></div></div></article></li></ol></section></div></div></article></main>
+<footer class="st-ft"><div class="st-w st-fti"><div style="display:flex;flex-direction:column;gap:8px;max-width:560px"><span class="st-brand" style="font-size:15px"><span class="st-mark" style="width:30px;height:30px;font-size:13px" aria-hidden="true">A</span>The Acme newsletter</span><span class="st-k">What shipped, what's next and the occasional deep dive. © 2026 Acme Inc.</span></div><nav class="st-ftl" aria-label="Footer"><a href="PublicArchive.dc.html">Archive</a><a href="PublicHome.dc.html" class="st-rc"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11a2 2 0 1 1 0 .01M3 7a6 6 0 0 1 6 6M3 3a10 10 0 0 1 10 10"></path></svg>RSS</a><a href="https://acme.io/privacy">Privacy</a><a href="PublicPreferences.dc.html">Email preferences</a><a href="Landing.dc.html" class="st-rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>Sent with ReputeCast</a></nav></div></footer>
+</div>
+<section class="sboard" aria-labelledby="sb-h"><div class="sbh"><h2 id="sb-h">The comments section for each reader</h2><p>Frames are browser windows at the board's width. The comments come after Share this post on every post the reader can read; a post without access shows nothing about comments.</p></div><figure class="fr"><figcaption class="frc"><b>A visitor, signed out</b><span>The comments and a way in. No form, no token in the cached page, no Reply links.</span></figcaption><div class="bframe" role="group" aria-label="A visitor, signed out"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/what-shipped-in-october</span></div><div class="frv" style="height:760px"><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-v" aria-labelledby="comments-h-v"><div class="st-cmhd"><h2 id="comments-h-v">Comments (13)</h2><span class="st-k">Pinned first, then oldest first</span></div><div class="st-note" role="note"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg><div class="tx"><b style="color:#0B1220">Sign in to join the conversation</b><span class="st-k">Members of The Acme newsletter can comment. Signing up is free.</span><div class="acts"><a href="PublicSiteStates.dc.html" class="st-btn sm">Sign in</a><a href="PublicSubscribe.dc.html" class="st-lnk">Subscribe free</a></div></div></div><ol class="st-cms"><li><article class="st-cm" id="comment-a1-v" aria-labelledby="cn-a1-v"><span class="st-av" style="background:#FCE7F3;color:#9D174D" aria-hidden="true">SR</span><div class="tx"><div class="st-cmh"><b id="cn-a1-v">Sam Rivera</b><span class="st-lb mem"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4M7 2v4.2L4.5 9h7L9 6.2V2M8 9v5"></path></svg>Pinned</span><time datetime="2026-10-09T10:42-04:00">9 Oct, 10:42</time></div><p>The v1 retirement date is what I needed. We still call /v1/flags from two cron jobs. Is there a way to see which of our keys called v1 in the last 30 days, so we know what's left to move?</p></div></article><ol class="st-cmr" aria-label="Replies to Sam Rivera"><li><article class="st-cm" id="comment-a2-v" aria-labelledby="cn-a2-v"><span class="st-mark" aria-hidden="true">A</span><div class="tx"><div class="st-cmh"><b id="cn-a2-v">The Acme newsletter</b><span class="st-lb ins">Team</span><time datetime="2026-10-09T11:20-04:00">9 Oct, 11:20</time></div><p>Yes: Settings › API keys has a “v1 calls, last 30 days” column, and each key's page lists the endpoints it called. We'll also email every account that still calls v1 on 2, 16 and 27 November.</p></div></article></li><li><article class="st-cm" id="comment-a3-v" aria-labelledby="cn-a3-v"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a3-v">Priya Natarajan</b><time datetime="2026-10-09T12:05-04:00">9 Oct, 12:05</time></div><p>That column just saved us an afternoon. Two keys left, both from an old staging setup.</p></div></article></li></ol></li><li><article class="st-cm" id="comment-a4-v" aria-labelledby="cn-a4-v"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">BO</span><div class="tx"><div class="st-cmh"><b id="cn-a4-v">Ben Okoro</b><time datetime="2026-10-09T10:58-04:00">9 Oct, 10:58</time></div><p>Feature flags going GA is great news. Do flags created during the beta keep their history, or do they start fresh?</p></div></article><ol class="st-cmr" aria-label="Replies to Ben Okoro"><li><article class="st-cm" id="comment-a5-v" aria-labelledby="cn-a5-v"><span class="st-av" style="background:#DCFCE7;color:#166534" aria-hidden="true">MS</span><div class="tx"><div class="st-cmh"><b id="cn-a5-v">Mateo Silva</b><time datetime="2026-10-09T13:31-04:00">9 Oct, 13:31</time></div><p>Ours kept everything, including the rollout history from August. Only the Beta label went away.</p></div></article></li></ol></li><li><article class="st-cm" id="comment-a6-v" aria-labelledby="cn-a6-v"><span class="st-av" style="background:#FEF3C7;color:#92400E" aria-hidden="true">GO</span><div class="tx"><div class="st-cmh"><b id="cn-a6-v">Grace Okafor</b><time datetime="2026-10-09T14:10-04:00">9 Oct, 14:10</time></div><p>Streaming audit log exports to our SIEM was the last item on our security review. What format does it send, and how far behind does it run?</p></div></article><ol class="st-cmr" aria-label="Replies to Grace Okafor"><li><article class="st-cm" id="comment-a7-v" aria-labelledby="cn-a7-v"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">OB</span><div class="tx"><div class="st-cmh"><b id="cn-a7-v">Olga Bennett</b><time datetime="2026-10-09T15:02-04:00">9 Oct, 15:02</time></div><p>We send ours to Splunk over HTTPS. It's JSON lines, and events arrive within about a minute.</p></div></article></li></ol></li></ol></section></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>Alex Murphy, free member · his first comment</b><span>The form asks for a display name once, filled in from his name on the contact, never from his email.</span></figcaption><div class="bframe" role="group" aria-label="Alex Murphy, free member · his first comment"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/what-shipped-in-october</span></div><div class="frv" style="height:820px"><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-f" aria-labelledby="comments-h-f"><div class="st-cmhd"><h2 id="comments-h-f">Comments (13)</h2><span class="st-k">Pinned first, then oldest first</span></div><form class="st-cmf" id="comment-form-f" method="post" action="/posts/what-shipped-in-october/comments"><label class="st-lbl" for="cm-name-f">Display name<input id="cm-name-f" name="name" class="st-in" value="Alex Murphy" maxlength="60" autocomplete="nickname" aria-describedby="cm-name-h-f"></label><span class="st-k" id="cm-name-h-f" style="margin-top:-4px">Shown next to your comments. Your email address never is. Change it any time in your account.</span><label class="st-lbl" for="cm-body-f">Add a comment</label><textarea id="cm-body-f" name="body" class="st-in st-ta" maxlength="5000" aria-describedby="cm-count-f">Is there a v1 to v2 migration guide for the Python SDK? The changelog only links to the REST docs.</textarea><div class="hp" aria-hidden="true"><label for="cm-hp-f">Website</label><input id="cm-hp-f" name="website" tabindex="-1" autocomplete="off"></div><div class="st-cmff"><span class="who"><span class="st-k">Your first comment waits for a quick review by the Acme team.</span></span><span class="acts"><span class="st-k" id="cm-count-f" aria-live="polite">98 of 5,000</span><button type="submit" class="st-btn">Post comment</button></span></div></form><ol class="st-cms"><li><article class="st-cm" id="comment-a1-f" aria-labelledby="cn-a1-f"><span class="st-av" style="background:#FCE7F3;color:#9D174D" aria-hidden="true">SR</span><div class="tx"><div class="st-cmh"><b id="cn-a1-f">Sam Rivera</b><span class="st-lb mem"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4M7 2v4.2L4.5 9h7L9 6.2V2M8 9v5"></path></svg>Pinned</span><time datetime="2026-10-09T10:42-04:00">9 Oct, 10:42</time></div><p>The v1 retirement date is what I needed. We still call /v1/flags from two cron jobs. Is there a way to see which of our keys called v1 in the last 30 days, so we know what's left to move?</p><div class="st-cma"><a href="?reply=a1#comment-form" class="st-lnk" aria-label="Reply to Sam Rivera">Reply</a><form method="post" action="/posts/what-shipped-in-october/comments/a1/delete"><button type="submit" class="st-lnkb" aria-label="Delete your comment">Delete</button></form></div></div></article><ol class="st-cmr" aria-label="Replies to Sam Rivera"><li><article class="st-cm" id="comment-a2-f" aria-labelledby="cn-a2-f"><span class="st-mark" aria-hidden="true">A</span><div class="tx"><div class="st-cmh"><b id="cn-a2-f">The Acme newsletter</b><span class="st-lb ins">Team</span><time datetime="2026-10-09T11:20-04:00">9 Oct, 11:20</time></div><p>Yes: Settings › API keys has a “v1 calls, last 30 days” column, and each key's page lists the endpoints it called. We'll also email every account that still calls v1 on 2, 16 and 27 November.</p><div class="st-cma"><a href="?reply=a1#comment-form" class="st-lnk" aria-label="Reply to The Acme newsletter">Reply</a></div></div></article></li><li><article class="st-cm" id="comment-a3-f" aria-labelledby="cn-a3-f"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a3-f">Priya Natarajan</b><time datetime="2026-10-09T12:05-04:00">9 Oct, 12:05</time></div><p>That column just saved us an afternoon. Two keys left, both from an old staging setup.</p><div class="st-cma"><a href="?reply=a1#comment-form" class="st-lnk" aria-label="Reply to Priya Natarajan">Reply</a></div></div></article></li></ol></li></ol></section></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>Alex Murphy, after posting</b><span>Back on the post at his comment, with the flash. Only he sees the comment, on a page that is never cached, until the team publishes it.</span></figcaption><div class="bframe" role="group" aria-label="Alex Murphy, after posting"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/what-shipped-in-october#comment-a15</span></div><div class="frv" style=""><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-p" aria-labelledby="comments-h-p"><div class="st-cmhd"><h2 id="comments-h-p">Comments (13)</h2><span class="st-k">Pinned first, then oldest first</span></div><ol class="st-cms"><li><article class="st-cm" id="comment-a12-p" aria-labelledby="cn-a12-p"><span class="st-av" style="background:#E0F2FE;color:#075985" aria-hidden="true">HB</span><div class="tx"><div class="st-cmh"><b id="cn-a12-p">Hannah Berg</b><time datetime="2026-10-13T11:02-04:00">13 Oct, 11:02</time></div><p>Flag cleanup reminders are the feature I didn't know I wanted. We had 300 flags nobody had touched since spring.</p><div class="st-cma"><a href="?reply=a12#comment-form" class="st-lnk" aria-label="Reply to Hannah Berg">Reply</a></div></div></article></li><li><article class="st-cm" id="comment-a13-p" aria-labelledby="cn-a13-p"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a13-p">Priya Natarajan</b><time datetime="2026-10-14T17:36-04:00">14 Oct, 17:36</time></div><p>Do the v1 webhooks stop on 30 November too, or only the REST endpoints?</p><div class="st-cma"><a href="?reply=a13#comment-form" class="st-lnk" aria-label="Reply to Priya Natarajan">Reply</a></div></div></article></li><li><article class="st-cm mine" id="comment-a15-p" aria-labelledby="cn-a15-p"><span class="st-av" style="background:#DCFCE7;color:#166534" aria-hidden="true">AM</span><div class="tx"><div class="st-cmh"><b id="cn-a15-p">Alex Murphy</b><span class="st-lb mem">Waiting for review</span><time datetime="2026-10-15T09:21-04:00">15 Oct, 09:21</time></div><p>Is there a v1 to v2 migration guide for the Python SDK? The changelog only links to the REST docs.</p><span class="st-k">Only you can see it until the Acme team publishes it. You can edit it for 15 minutes.</span><div class="st-cma"><a href="?edit=a15#comment-form" class="st-lnk" aria-label="Edit your comment">Edit</a><form method="post" action="/posts/what-shipped-in-october/comments/a15/delete"><button type="submit" class="st-lnkb" aria-label="Delete your comment">Delete</button></form></div></div></article></li></ol></section></div></div></div><div style="position:absolute;left:16px;right:16px;bottom:16px;z-index:5;display:flex;justify-content:center"><div class="st-toast" role="status"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#A7F3D0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span class="t">Your comment is waiting for review.</span><button class="x" type="button" aria-label="Dismiss">×</button></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>Paid members only · Alex Murphy, free member</b><span>The setting is “Paid members only”: free members read the comments and see what it takes to join in.</span></figcaption><div class="bframe" role="group" aria-label="Paid members only · Alex Murphy, free member"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/what-shipped-in-october</span></div><div class="frv" style="height:700px"><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-q" aria-labelledby="comments-h-q"><div class="st-cmhd"><h2 id="comments-h-q">Comments (13)</h2><span class="st-k">Pinned first, then oldest first</span></div><div class="st-note" role="note"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4338CA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 1.8 1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z" stroke-linejoin="round"></path></svg><div class="tx"><b style="color:#0B1220">Comments are for paid members</b><span class="st-k">Weekly Digest Insider is $8 a month or $80 a year, with 14 days free.</span><div class="acts"><a href="PublicUpgrade.dc.html" class="st-btn sm">Upgrade to comment</a></div></div></div><ol class="st-cms"><li><article class="st-cm" id="comment-a1-q" aria-labelledby="cn-a1-q"><span class="st-av" style="background:#FCE7F3;color:#9D174D" aria-hidden="true">SR</span><div class="tx"><div class="st-cmh"><b id="cn-a1-q">Sam Rivera</b><span class="st-lb mem"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4M7 2v4.2L4.5 9h7L9 6.2V2M8 9v5"></path></svg>Pinned</span><time datetime="2026-10-09T10:42-04:00">9 Oct, 10:42</time></div><p>The v1 retirement date is what I needed. We still call /v1/flags from two cron jobs. Is there a way to see which of our keys called v1 in the last 30 days, so we know what's left to move?</p></div></article><ol class="st-cmr" aria-label="Replies to Sam Rivera"><li><article class="st-cm" id="comment-a2-q" aria-labelledby="cn-a2-q"><span class="st-mark" aria-hidden="true">A</span><div class="tx"><div class="st-cmh"><b id="cn-a2-q">The Acme newsletter</b><span class="st-lb ins">Team</span><time datetime="2026-10-09T11:20-04:00">9 Oct, 11:20</time></div><p>Yes: Settings › API keys has a “v1 calls, last 30 days” column, and each key's page lists the endpoints it called. We'll also email every account that still calls v1 on 2, 16 and 27 November.</p></div></article></li><li><article class="st-cm" id="comment-a3-q" aria-labelledby="cn-a3-q"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a3-q">Priya Natarajan</b><time datetime="2026-10-09T12:05-04:00">9 Oct, 12:05</time></div><p>That column just saved us an afternoon. Two keys left, both from an old staging setup.</p></div></article></li></ol></li><li><article class="st-cm" id="comment-a4-q" aria-labelledby="cn-a4-q"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">BO</span><div class="tx"><div class="st-cmh"><b id="cn-a4-q">Ben Okoro</b><time datetime="2026-10-09T10:58-04:00">9 Oct, 10:58</time></div><p>Feature flags going GA is great news. Do flags created during the beta keep their history, or do they start fresh?</p></div></article><ol class="st-cmr" aria-label="Replies to Ben Okoro"><li><article class="st-cm" id="comment-a5-q" aria-labelledby="cn-a5-q"><span class="st-av" style="background:#DCFCE7;color:#166534" aria-hidden="true">MS</span><div class="tx"><div class="st-cmh"><b id="cn-a5-q">Mateo Silva</b><time datetime="2026-10-09T13:31-04:00">9 Oct, 13:31</time></div><p>Ours kept everything, including the rollout history from August. Only the Beta label went away.</p></div></article></li></ol></li></ol></section></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>Sam Rivera replying to Ben Okoro</b><span>?reply=a4#comment-form: the form moves under the thread it answers. Replies stay one level deep.</span></figcaption><div class="bframe" role="group" aria-label="Sam Rivera replying to Ben Okoro"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/what-shipped-in-october?reply=a4#comment-form</span></div><div class="frv" style=""><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-r" aria-labelledby="comments-h-r"><div class="st-cmhd"><h2 id="comments-h-r">Comments (13)</h2><span class="st-k">Pinned first, then oldest first</span></div><ol class="st-cms"><li><article class="st-cm" id="comment-a4-r" aria-labelledby="cn-a4-r"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">BO</span><div class="tx"><div class="st-cmh"><b id="cn-a4-r">Ben Okoro</b><time datetime="2026-10-09T10:58-04:00">9 Oct, 10:58</time></div><p>Feature flags going GA is great news. Do flags created during the beta keep their history, or do they start fresh?</p><div class="st-cma"><a href="?reply=a4#comment-form" class="st-lnk" aria-label="Reply to Ben Okoro">Reply</a></div></div></article><ol class="st-cmr" aria-label="Replies to Ben Okoro"><li><article class="st-cm" id="comment-a5-r" aria-labelledby="cn-a5-r"><span class="st-av" style="background:#DCFCE7;color:#166534" aria-hidden="true">MS</span><div class="tx"><div class="st-cmh"><b id="cn-a5-r">Mateo Silva</b><time datetime="2026-10-09T13:31-04:00">9 Oct, 13:31</time></div><p>Ours kept everything, including the rollout history from August. Only the Beta label went away.</p><div class="st-cma"><a href="?reply=a4#comment-form" class="st-lnk" aria-label="Reply to Mateo Silva">Reply</a></div></div></article></li><li><form class="st-cmf" id="comment-form-r" method="post" action="/posts/what-shipped-in-october/comments"><input type="hidden" name="parent" value="a4"><label class="st-lbl" for="rp-body-r">Reply to Ben Okoro</label><textarea id="rp-body-r" name="body" class="st-in st-ta" maxlength="5000" aria-describedby="rp-count-r">Same for us: the beta flags kept their targeting rules too.</textarea><div class="hp" aria-hidden="true"><label for="rp-hp-r">Website</label><input id="rp-hp-r" name="website" tabindex="-1" autocomplete="off"></div><div class="st-cmff"><span class="st-k">Commenting as <b style="color:#0B1220">Sam Rivera</b></span><span class="acts"><span class="st-k" id="rp-count-r" aria-live="polite">59 of 5,000</span><a href="?#comments" class="st-btn2">Cancel</a><button type="submit" class="st-btn">Post reply</button></span></div></form></li></ol></li></ol></section></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>A removed comment with a reply</b><span>Ben Okoro deleted his comment. Mateo Silva's reply stays under it; a removed comment without replies leaves nothing.</span></figcaption><div class="bframe" role="group" aria-label="A removed comment with a reply"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/what-shipped-in-october</span></div><div class="frv" style=""><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-g" aria-labelledby="comments-h-g"><div class="st-cmhd"><h2 id="comments-h-g">Comments (12)</h2><span class="st-k">Pinned first, then oldest first</span></div><ol class="st-cms"><li><article class="st-cm" id="comment-a4-g" aria-label="Removed comment"><span class="st-av gone" aria-hidden="true">–</span><div class="tx"><p class="st-gone">This comment was removed.</p></div></article><ol class="st-cmr" aria-label="Replies to a removed comment"><li><article class="st-cm" id="comment-a5-g" aria-labelledby="cn-a5-g"><span class="st-av" style="background:#DCFCE7;color:#166534" aria-hidden="true">MS</span><div class="tx"><div class="st-cmh"><b id="cn-a5-g">Mateo Silva</b><time datetime="2026-10-09T13:31-04:00">9 Oct, 13:31</time></div><p>Ours kept everything, including the rollout history from August. Only the Beta label went away.</p><div class="st-cma"><a href="?reply=a4#comment-form" class="st-lnk" aria-label="Reply to Mateo Silva">Reply</a></div></div></article></li></ol></li></ol></section></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>A busier post: the end of the first page</b><span>50 comments a page, each with its replies. The next page loads on the server, so it works without JavaScript.</span></figcaption><div class="bframe" role="group" aria-label="A busier post: the end of the first page"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/inside-a-busy-thread#comments</span></div><div class="frv" style=""><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-m" aria-labelledby="comments-h-m"><div class="st-cmhd"><h2 id="comments-h-m">Comments (86)</h2><span class="st-k">Pinned first, then oldest first</span></div><ol class="st-cms"><li><article class="st-cm" id="comment-a13-m" aria-labelledby="cn-a13-m"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a13-m">Priya Natarajan</b><time datetime="2026-10-14T17:36-04:00">14 Oct, 17:36</time></div><p>Do the v1 webhooks stop on 30 November too, or only the REST endpoints?</p></div></article></li></ol><div class="st-cmmore"><span class="st-k">The oldest 50 comments and their replies are shown.</span><a href="?comments=2#comments" class="st-btn2">Show more comments</a></div></section></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>A member who was blocked</b><span>Blocking stops new comments only. It isn't a punishment on the rest of the site.</span></figcaption><div class="bframe" role="group" aria-label="A member who was blocked"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/posts/what-shipped-in-october</span></div><div class="frv" style="height:560px"><div class="st"><div class="st-w"><div class="st-col st-pad"><section class="st-comments" id="comments-b" aria-labelledby="comments-h-b"><div class="st-cmhd"><h2 id="comments-h-b">Comments (13)</h2><span class="st-k">Pinned first, then oldest first</span></div><div class="st-note" role="note" style="background:#F9FAFB;border-color:#E3E6EB"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#4B5563" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M3.6 3.6l8.8 8.8"></path></svg><div class="tx"><b style="color:#0B1220">You can't comment on The Acme newsletter</b><span class="st-k">You can still read every post you could before, and your newsletters don't change.</span></div></div><ol class="st-cms"><li><article class="st-cm" id="comment-a1-b" aria-labelledby="cn-a1-b"><span class="st-av" style="background:#FCE7F3;color:#9D174D" aria-hidden="true">SR</span><div class="tx"><div class="st-cmh"><b id="cn-a1-b">Sam Rivera</b><span class="st-lb mem"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h4M7 2v4.2L4.5 9h7L9 6.2V2M8 9v5"></path></svg>Pinned</span><time datetime="2026-10-09T10:42-04:00">9 Oct, 10:42</time></div><p>The v1 retirement date is what I needed. We still call /v1/flags from two cron jobs. Is there a way to see which of our keys called v1 in the last 30 days, so we know what's left to move?</p></div></article><ol class="st-cmr" aria-label="Replies to Sam Rivera"><li><article class="st-cm" id="comment-a2-b" aria-labelledby="cn-a2-b"><span class="st-mark" aria-hidden="true">A</span><div class="tx"><div class="st-cmh"><b id="cn-a2-b">The Acme newsletter</b><span class="st-lb ins">Team</span><time datetime="2026-10-09T11:20-04:00">9 Oct, 11:20</time></div><p>Yes: Settings › API keys has a “v1 calls, last 30 days” column, and each key's page lists the endpoints it called. We'll also email every account that still calls v1 on 2, 16 and 27 November.</p></div></article></li><li><article class="st-cm" id="comment-a3-b" aria-labelledby="cn-a3-b"><span class="st-av" style="background:#DBEAFE;color:#1E40AF" aria-hidden="true">PN</span><div class="tx"><div class="st-cmh"><b id="cn-a3-b">Priya Natarajan</b><time datetime="2026-10-09T12:05-04:00">9 Oct, 12:05</time></div><p>That column just saved us an afternoon. Two keys left, both from an old staging setup.</p></div></article></li></ol></li></ol></section></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>The reply email</b><span>System mail from the workspace's default sender, at most one an hour per member. Sent for replies to a member's own comments, when the account page allows it.</span></figcaption><div class="bframe" role="group" aria-label="The reply email"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>Inbox · sam.rivera@outlook.com</span></div><div class="frv" style="background:#F3F4F6"><div class="mailh"><span class="sj">The Acme newsletter replied to your comment on What shipped in October, and what we're retiring</span><span class="mt"><span>The Acme newsletter &lt;digest@news.acme.io&gt; · to sam.rivera@outlook.com</span><span>Fri 9 Oct, 11:25</span></span></div><div class="mailb"><div class="em"><div class="eh"><span class="st-mark" style="width:28px;height:28px;font-size:12px" aria-hidden="true">A</span>The Acme newsletter</div><div class="eb"><h2>The Acme newsletter replied to your comment on What shipped in October, and what we're retiring</h2><span class="eq">Your comment</span><p class="st-quote" style="color:#4B5563">The v1 retirement date is what I needed. We still call /v1/flags from two cron jobs. Is there a way to see which of our keys called v1 in the last 30 days…</p><span class="eq">The reply</span><p class="st-quote">Yes: Settings › API keys has a “v1 calls, last 30 days” column, and each key's page lists the endpoints it called. We'll also email every account that still calls v1 on 2, 16 and 27 November.</p><a href="#comment-a2" class="ebtn" style="align-self:flex-start">Read the reply</a></div><div class="ef">You get this email because you comment on news.acme.io. At most one an hour, in your language. <a href="#mute" style="color:#4338CA;text-decoration:underline">Stop these emails</a></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>Stop these emails</b><span>The link's landing page: one button that posts, as the unsubscribe page does. No sign-in needed: the link is the proof.</span></figcaption><div class="bframe" role="group" aria-label="Stop these emails"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/comments/mute/…</span></div><div class="frv" style=""><div class="st" style="background:#F5F3FF"><div class="st-center" style="min-height:0;padding:40px 20px"><div class="st-auth"><h3 class="st-ht" id="mute-h">Stop reply emails?</h3><p class="st-mut" style="margin:0">We'll stop emailing sam.rivera@outlook.com when someone replies to your comments on The Acme newsletter. Your newsletters don't change.</p><form method="post" action="/comments/mute/…" style="margin:0"><button type="submit" class="st-btn full lg">Stop these emails</button></form><span class="st-k">Nothing changes until you press the button, so a link checker opening this page doesn't turn them off.</span></div></div></div></div></div></figure>
+<figure class="fr"><figcaption class="frc"><b>After the button</b><span>The setting is off, on the account page too.</span></figcaption><div class="bframe" role="group" aria-label="After the button"><div class="bbar"><span aria-hidden="true" style="display:inline-flex;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span><span style="width:8px;height:8px;border-radius:50%;background:#D4D8DF"></span></span><span class="u"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#5B6472" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg>news.acme.io/comments/mute/…</span></div><div class="frv" style=""><div class="st" style="background:#F5F3FF"><div class="st-center" style="min-height:0;padding:40px 20px"><div class="st-auth" role="status"><h3 class="st-ht">Reply emails are off</h3><p class="st-mut" style="margin:0">You won't get an email when someone replies to your comments. Your newsletters don't change.</p><span class="st-k">Changed your mind? <a href="PublicAccount.dc.html#a-comments" class="st-lnk">Turn them back on in your account</a>.</span></div></div></div></div></div></figure></section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":12114}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
