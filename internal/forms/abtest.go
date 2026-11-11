@@ -180,14 +180,6 @@ type SignupFormABResult struct {
 	DoubleOptIn bool    `json:"doubleOptIn"`
 }
 
-func stepsIn(steps []SignupFormStep) []stepDoc {
-	out := make([]stepDoc, 0, len(steps))
-	for _, s := range steps {
-		out = append(out, stepDoc{ID: s.ID, Fields: slices.Clone(s.Fields), Heading: s.Heading, Description: s.Description, Button: s.Button})
-	}
-	return out
-}
-
 func variantContentOut(v variantDoc) *SignupFormVariantContent {
 	return &SignupFormVariantContent{Heading: v.Heading, Description: v.Description, Button: v.Button, AfterSubmitText: v.AfterSubmitText,
 		Steps: stepsOut(v.Steps), PopupDelay: v.PopupDelay, PopupScroll: v.PopupScroll, PopupExit: v.PopupExit}
@@ -400,7 +392,7 @@ func (s *Service) abResultOf(ctx context.Context, q *store.Queries, ws *store.Wo
 func abSnapshot(ab abDoc, vs []store.FormVariant) map[string]any {
 	variants := []map[string]any{}
 	for _, v := range vs {
-		variants = append(variants, map[string]any{"key": v.Key, "weight": v.Weight, "content": json.RawMessage(v.Content)})
+		variants = append(variants, map[string]any{"key": v.Key, "weight": v.Weight, "content": v.Content})
 	}
 	return map[string]any{"status": ab.Status, "startedOn": ab.StartedOn, "autoEnd": ab.AutoEnd, "minViews": ab.MinViews, "confidence": ab.Confidence, "variants": variants}
 }

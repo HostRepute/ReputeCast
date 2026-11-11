@@ -81,7 +81,7 @@ func stepsOut(steps []stepDoc) []SignupFormStep {
 func optionsOut(opts []optionDoc) []SignupFormChoiceOption {
 	out := make([]SignupFormChoiceOption, 0, len(opts))
 	for _, o := range opts {
-		out = append(out, SignupFormChoiceOption{Label: o.Label, Tag: o.Tag})
+		out = append(out, SignupFormChoiceOption(o))
 	}
 	return out
 }

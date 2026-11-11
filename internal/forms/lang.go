@@ -140,6 +140,7 @@ var (
 	mOptionLabel60   = msgs.M("problem.optionLabel60")
 	mNoStepText      = msgs.M("problem.noStepText")
 	mStepTextLong    = msgs.M("problem.stepTextLong")
+	mABRunningHosted = msgs.M("problem.abRunningHosted")
 )
 
 // say is a message in the request's language, for problems.

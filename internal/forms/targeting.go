@@ -132,7 +132,7 @@ func targetingOut(t *targetingDoc) SignupFormTargeting {
 		out.Pages.Mode = t.Pages.Mode
 	}
 	for _, r := range t.Pages.Rules {
-		out.Pages.Rules = append(out.Pages.Rules, SignupFormPageRule{Op: r.Op, Value: r.Value})
+		out.Pages.Rules = append(out.Pages.Rules, SignupFormPageRule(r))
 	}
 	out.Sources.UTMSource = append(out.Sources.UTMSource, t.Sources.UTMSource...)
 	out.Sources.UTMMedium = append(out.Sources.UTMMedium, t.Sources.UTMMedium...)

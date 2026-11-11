@@ -106,5 +106,6 @@
   "notify.abEndedBody": "{key} a gagné : {rate} % des vues se sont inscrites, avec {confidence} % de confiance. Le formulaire utilise maintenant cette version.",
   "problem.optionLabel60": "Gardez une réponse sous 60 caractères.",
   "problem.noStepText": "Le formulaire n'a plus d'étape qui prend ce texte. Rechargez la page.",
-  "problem.stepTextLong": "Restez sous {max} caractères."
+  "problem.stepTextLong": "Restez sous {max} caractères.",
+  "problem.abRunningHosted": "Terminez le test A/B avant de faire de ce formulaire une page hébergée : les pages hébergées affichent toujours A."
 }

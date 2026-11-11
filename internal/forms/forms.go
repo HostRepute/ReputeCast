@@ -958,6 +958,10 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	if name == "" {
 		return store.FormUpdateParams{}, api.Invalid("body.name", say(ctx, mNameForm, nil))
 	}
+	// A hosted page always shows A: a running test ends first (M60 G-25).
+	if in.Kind == KindHosted && before.Kind != KindHosted && ConfigOf(before).AB.Running() {
+		return store.FormUpdateParams{}, api.Err(409, "form.ab_running", say(ctx, mABRunningHosted, nil))
+	}
 	// Fields: email first and always required; built-ins or custom fields of the workspace.
 	customs, err := q.ListCustomFields(ctx, ws.ID)
 	if err != nil {

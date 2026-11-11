@@ -19,7 +19,7 @@ import (
 const formsABDays = 26
 
 var formsABVariants = []struct {
-	key                            string
+	key                           string
 	views, submissions, confirmed int64
 }{
 	{"A", 4096, 131, 118},

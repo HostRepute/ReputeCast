@@ -106,5 +106,6 @@
   "notify.abEndedBody": {"message": "{key} won: {rate}% of views signed up, with {confidence}% confidence. Its version is now the form's.", "note": "key: A, B or C; rate: 4.1; confidence: 97"},
   "problem.optionLabel60": "Keep an answer under 60 characters.",
   "problem.noStepText": "The form has no step there that takes that text any more. Reload the page.",
-  "problem.stepTextLong": {"message": "Keep it under {max} characters.", "note": "max: 40, 120 or 500"}
+  "problem.stepTextLong": {"message": "Keep it under {max} characters.", "note": "max: 40, 120 or 500"},
+  "problem.abRunningHosted": "End the A/B test before making this form a hosted page: hosted pages always show A."
 }
