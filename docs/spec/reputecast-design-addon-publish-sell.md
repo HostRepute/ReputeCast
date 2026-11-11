@@ -62,7 +62,7 @@ Read all of it before you start.
    - Buying something or having a store account never subscribes anyone by itself.
 6. **The money stays with the publisher.** Payments go through the publisher's Stripe account and their store. ReputeCast never sees card details. Refunds and disputes happen in Stripe and show up here.
 7. **Privacy-first numbers.**
-   - Views are counted on the server, without cookies.
+   - Views are counted on the server, without cookies. ReputeCast's own pages (the website, landing and sales pages, signup pages, the archive) never carry the site tracker (3.6a), and set no cookie that names a visitor.
    - ReputeCast doesn't track what members read, beyond the meter's count of gated posts.
 8. **Same access rules as the team add-on.**
    - Every action has a permission key. Publishing can need approval.
@@ -381,6 +381,31 @@ Read all of it before you start.
   - A revoked token or an uninstalled app: Disconnected, with Reconnect. Orders placed in the meantime are fetched on reconnect.
   - Rate limits: the sync slows down and says so.
 
+### 3.6a Site tracking and store flows (M62)
+- **What it is:** a small script, `/track/v1/rc.js`, that the publisher adds to their own sites and stores, so automations can follow up on what someone looked at and emails can show products they viewed. It is never added to ReputeCast's own pages, which stay cookie-less (principle 7).
+- **Where:** Settings › Integrations › Website tracking, in the Commerce group. A workspace lists its sites by origin (`https://shop.acme.io`), each optionally linked to a connected store, whose product ids its events then name.
+  - Adding a site shows the snippet: the script tag (`data-workspace`, `data-site`), the Shopify custom pixel (`page_viewed`, `product_viewed`, `product_added_to_cart`) and the WordPress plugin's "Site tracking" setting.
+  - "Waiting for the first event…" until the site's first event arrives, then the last 20 events (what, page or product, known contact or visitor, when; never an address).
+  - Writing needs `integrations:manage`; reading `integrations:view`. Sites created, changed, deleted and secrets rotated are audited; events aren't (as page views).
+- **Consent:**
+  - By default nothing is stored or sent until the site's consent banner calls `reputecast('consent', true)`. Each site has the switch "Wait for visitors' consent"; turned off, the site takes responsibility for its own legal basis.
+  - `reputecast('consent', false)` deletes the visitor id from the browser. A browser that sends Global Privacy Control is never tracked, whatever the setting.
+  - The visitor id is a random first-party cookie (`rc_vid`, 400 days), mirrored in local storage. ReputeCast stores only its hash.
+- **What's collected:** page views (the path, with only its `utm_*` parameters, and the referring domain), product views, add-to-carts and custom events (a name and at most 2 KB of properties). Never stored: IP addresses (only counted for rate limits), user agents (bots are dropped), full query strings, form contents.
+- **Who someone is** is never taken from an email address the page states:
+  - a click from an email: links to a tracked site carry the click token `rc`, as links to a store do;
+  - a signup on the same page: the form's answer carries a signed token, valid 10 minutes, that the form hands to the tracker;
+  - a signed identify call: the site's server signs the lowercased address with the site's identify secret (HMAC-SHA256), shown once and rotatable.
+  - Only an existing contact who hasn't been erased is linked; their last 30 days on the site are then joined to their profile.
+- **Kept:** events for 90 days, or the workspace's event-detail retention when shorter; visitors never linked to a contact are deleted 30 days after they were last seen; a contact's product interest for 180 days. Erasing a contact deletes all of it; the data export has a "Site activity" section.
+- **On the profile and in segments:** the timeline has one line per day ("Viewed 3 products on shop.acme.io"). Segment conditions: "Viewed a product in the last N days" (optionally in a collection) and "Last seen on the site".
+- **Triggers** (contacts who aren't active never enter; a flow takes the same person again only after 7 days):
+  - Viewed a product and didn't buy: after 1 to 24 hours without an order or a checkout, optionally only products in some collections, after 1 to 5 views.
+  - Added to cart and didn't check out: the same, for add-to-carts.
+  - Back in stock: people who asked to hear when a sold-out product is back (`reputecast('notifyWhenAvailable', …)` for a known visitor, or the API), and optionally people who viewed it in the last N days.
+  - Price drop: people who viewed it or added it to their cart in the last N days (default 14), when the price falls by at least a set share (default 10%).
+- **Blocks:** the store block gains Best sellers (by quantity over the last 30 days, optionally one collection's), Recently viewed and Bought together (per recipient, best sellers for someone without history), and Viewed products (in emails of browse and cart flows). Each keeps its number of products, so the email's links stay numbered the same.
+
 ### 3.7 Permissions
 New permission group, "Website and pages":
 - view posts, pages and website numbers (website:view)
@@ -444,7 +469,7 @@ Who gets what:
 - Physical products, inventory and shipping (that's the store's job), and changing store data from ReputeCast, except unsubscribes.
 - Subscriptions as products (Phase 6 tiers cover recurring payments), license keys, product discount codes and affiliates.
 - Invoices (Stripe's receipts and Stripe Tax cover them).
-- Store platforms other than Shopify and WooCommerce, and abandoned-browse triggers.
+- Store platforms other than Shopify and WooCommerce.
 - Custom domains per page, and A/B tests of pages.
 
 ---

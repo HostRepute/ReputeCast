@@ -113,3 +113,11 @@ range; the design for every screen is on the updated canvas.
 | R04 | **Send Readiness** | SR-1–SR-13 | SendReadiness*, SendReadinessFixes, SettingsSendingRules | `readiness`, `contentcheck`, `dnscheck`, `approvals` (send path), `review` web feature | 03150–03199 |
 | R05 | **Honest analytics** | AN-1–AN-16 | Report*, ReportStates | `reports`, `tracking`, `ingest` counters, `sending/engine/ab*.go`, `ai` summaries, share links, web-post views, `reports` web feature | 03200–03249 |
 | R06 | **Composer** | CO-1–CO-14 | Composer*, ComposerWrite, BrandKit | `campaigns` (content, versions, comments), `liquid`, `mjml`, `templates`, `media`, `composer` web feature | 03250–03299 |
+
+## Đợt 2 (M58–M66)
+
+The second batch from the November 2026 look at competitors (`docs/ROADMAP.md`), one branch per milestone, each with its own migration block of ten.
+
+| Milestone | IDs | Boards (plus Phone/Tablet) | Packages | Migrations |
+|---|---|---|---|---|
+| M62 Site tracker and store flows | G-28–G-31 | TrackingSites, TrackingSetup, TrackingStates; IntegrationsCatalog, AutomationsComplete, CommerceEmails, ContactProfile, SegmentBuilder | `tracker` (new), `commerce` store flows and blocks, `automations` store triggers, `segments` site conditions, the WordPress plugin's site tracking | 03530–03539 |
