@@ -170,7 +170,7 @@ func (s *Service) accessTx(ctx context.Context, q *store.Queries, ws *store.Work
 	}
 	for _, r := range rows {
 		x := r.PaidSubscription
-		if x.EndedAt == nil && x.Mode == "live" && hasAccess(x.Status, x.AccessPaused) {
+		if x.Mode == "live" && paidAccess(x) {
 			return &access{PaidSubscription: x, TierName: r.TierName}, nil
 		}
 	}
@@ -311,6 +311,7 @@ func (s *Service) CancelSubscription(ctx context.Context, ws *store.Workspace, p
 		}
 		return EarnMember{}, keyProblem(ctx, err)
 	}
+	var emails []memberEmail
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		status := paidStatus(updated, now)
@@ -324,11 +325,14 @@ func (s *Service) CancelSubscription(ctx context.Context, ws *store.Workspace, p
 			EndedAt: ended, EndReason: reason, StripeCustomerID: sub.StripeCustomerID, SyncedAt: maxTime(sub.StripeSyncedAt, now), At: now}); err != nil {
 			return err
 		}
-		// "Cancel now" ends access here at once; Stripe's own event for it
-		// arrives as already applied, so the transition is queued now.
-		if err := s.paidTransitions(ctx, q, ws, sub.Mode, &sub, sub.ID, now); err != nil {
+		// "Cancel now" ends access here at once (a team's seats too);
+		// Stripe's own event for it arrives as already applied, so the
+		// transition is queued now.
+		m, err := s.afterWrite(ctx, q, ws, sub.Mode, &sub, sub.ID, now, nil)
+		if err != nil {
 			return err
 		}
+		emails = m
 		kind := "canceled_by_team"
 		data := map[string]any{"when": in.When, "note": note}
 		if in.When != "now" && updated.CancelAt != nil {
@@ -342,6 +346,9 @@ func (s *Service) CancelSubscription(ctx context.Context, ws *store.Workspace, p
 	})
 	if err != nil {
 		return EarnMember{}, err
+	}
+	for _, m := range emails {
+		s.sendMemberEmail(ctx, ws, sub.Mode, m, nil)
 	}
 	if in.Email {
 		row, err := s.Q.EarnSubscription(ctx, store.EarnSubscriptionParams{ID: sub.ID, WorkspaceID: ws.ID})
@@ -357,7 +364,7 @@ func (s *Service) CancelSubscription(ctx context.Context, ws *store.Workspace, p
 
 // EarnResendInput resends a member email.
 type EarnResendInput struct {
-	Email string `json:"email" enum:"welcome,trial_ending,payment_failed,renewal_reminder,canceled"`
+	Email string `json:"email" enum:"welcome,trial_ending,payment_failed,renewal_reminder,canceled,group_welcome,paused,resuming_soon"`
 }
 
 // EarnResent says how resending went.

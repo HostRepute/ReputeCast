@@ -22,21 +22,32 @@ ORDER BY (s.ended_at IS NULL) DESC, coalesce(t.access_rank, 0) DESC, s.started_a
 SELECT * FROM paid_subscriptions WHERE workspace_id = @workspace_id AND mode = @mode AND stripe_customer_id = @stripe_customer_id;
 
 -- name: EarnSubscriptionInsert :exec
+-- quantity (1 when null), the Stripe item, a pause found on a subscription
+-- seen for the first time, and a team seat's group are optional.
 INSERT INTO paid_subscriptions (id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency,
     discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, ended_at, end_reason, paid_cents, refunded_cents,
     stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail,
-    grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, created_at, updated_at)
+    grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, created_at, updated_at,
+    quantity, stripe_item_id, paused_at, pause_resumes_at, last_paused_at, group_id)
 VALUES (@id, @workspace_id, @contact_id, @mode, @kind, sqlc.narg(tier_id), sqlc.narg(price_id), @stripe_price_id, @status, @period, @amount_cents, @currency,
     sqlc.narg(discount), @started_at, sqlc.narg(trial_end), sqlc.narg(current_period_end), sqlc.narg(cancel_at), sqlc.narg(canceled_at), sqlc.narg(ended_at), @end_reason,
     @paid_cents, @refunded_cents, @stripe_customer_id, @stripe_subscription_id, @billing_email, @source_kind, sqlc.narg(source_campaign_id), @source_label, @source_detail,
-    @grant_reason, @grant_note, sqlc.narg(granted_by), sqlc.narg(grant_until), sqlc.narg(import_id), sqlc.narg(stripe_synced_at), @at, @at);
+    @grant_reason, @grant_note, sqlc.narg(granted_by), sqlc.narg(grant_until), sqlc.narg(import_id), sqlc.narg(stripe_synced_at), @at, @at,
+    coalesce(sqlc.narg(quantity)::integer, 1), coalesce(sqlc.narg(stripe_item_id)::text, ''), sqlc.narg(paused_at), sqlc.narg(pause_resumes_at), sqlc.narg(paused_at),
+    sqlc.narg(group_id));
 
 -- name: EarnSubscriptionSetState :exec
--- A subscription's state as the provider last reported it.
+-- A subscription's state as the provider last reported it. quantity and
+-- the Stripe item stay when null; the pause changes only when the provider
+-- reported it (pause_known): paused since the first event that said so.
 UPDATE paid_subscriptions SET tier_id = sqlc.narg(tier_id), price_id = sqlc.narg(price_id), stripe_price_id = @stripe_price_id, status = @status,
     period = @period, amount_cents = @amount_cents, currency = @currency, discount = sqlc.narg(discount), trial_end = sqlc.narg(trial_end),
     current_period_end = sqlc.narg(current_period_end), cancel_at = sqlc.narg(cancel_at), canceled_at = sqlc.narg(canceled_at),
-    ended_at = sqlc.narg(ended_at), end_reason = @end_reason, stripe_customer_id = @stripe_customer_id, stripe_synced_at = @synced_at, updated_at = @at
+    ended_at = sqlc.narg(ended_at), end_reason = @end_reason, stripe_customer_id = @stripe_customer_id, stripe_synced_at = @synced_at, updated_at = @at,
+    quantity = coalesce(sqlc.narg(quantity)::integer, quantity), stripe_item_id = coalesce(sqlc.narg(stripe_item_id)::text, stripe_item_id),
+    paused_at = CASE WHEN NOT @pause_known::boolean THEN paused_at WHEN @paused::boolean THEN coalesce(paused_at, @at) ELSE NULL END,
+    pause_resumes_at = CASE WHEN NOT @pause_known::boolean THEN pause_resumes_at WHEN @paused::boolean THEN sqlc.narg(pause_until)::timestamptz ELSE NULL END,
+    last_paused_at = CASE WHEN @pause_known::boolean AND @paused::boolean THEN coalesce(paused_at, @at) ELSE last_paused_at END
 WHERE id = @id;
 
 -- name: EarnSubscriptionPaid :exec

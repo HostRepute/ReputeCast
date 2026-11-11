@@ -117,14 +117,15 @@ ALTER TABLE earn_mrr_changes ADD CONSTRAINT earn_mrr_changes_kind_check
 
 -- Paid access, in one place (its Go mirror is earn.hasAccess): access
 -- hasn't ended and isn't paused, and the row is trialing, active,
--- complimentary, a gift, a team's seat, or past due while Stripe retries
+-- complimentary, a gift, a team's seat (unless the access rule paused the
+-- buyer's, which the seat copies), or past due while Stripe retries
 -- (unless the access rule paused it). Callers choose the mode.
 -- +goose StatementBegin
 CREATE FUNCTION earn_paid_access(kind text, status text, ended_at timestamptz, access_paused boolean, paused_at timestamptz)
 RETURNS boolean LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
     SELECT ended_at IS NULL AND paused_at IS NULL AND (
         status IN ('trialing','active','complimentary','gift')
-        OR (status = 'group' AND kind = 'group')
+        OR (status = 'group' AND kind = 'group' AND NOT access_paused)
         OR (status = 'past_due' AND NOT access_paused))
 $$;
 -- +goose StatementEnd

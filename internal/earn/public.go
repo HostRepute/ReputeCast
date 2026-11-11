@@ -233,21 +233,36 @@ func (s *Service) accessOf(ctx context.Context, ws *store.Workspace, contact uui
 	}
 	for _, r := range rows {
 		p := r.PaidSubscription
-		if p.EndedAt == nil && hasAccess(p.Status, p.AccessPaused) && (mode == "" || p.Mode == mode) {
+		if paidAccess(p) && (mode == "" || p.Mode == mode) {
 			return &access{PaidSubscription: p, TierName: r.TierName}, nil
 		}
 	}
 	return nil, nil
 }
 
-func hasAccess(status string, paused bool) bool {
+// hasAccess is the SQL function earn_paid_access (migration 03560): access
+// hasn't ended and isn't paused, and the row is trialing, active,
+// complimentary, a gift, a team's seat, or past due while Stripe retries;
+// the access rule's pause (accessPaused) stops a past due row and a seat
+// (which copies its buyer's). The two must agree (access_test.go).
+func hasAccess(kind, status string, ended, accessPaused, paused bool) bool {
+	if ended || paused {
+		return false
+	}
 	switch status {
 	case StatusTrialing, StatusActive, StatusComplimentary, StatusGift:
 		return true
+	case StatusGroup:
+		return kind == KindGroup && !accessPaused
 	case StatusPastDue:
-		return !paused
+		return !accessPaused
 	}
 	return false
+}
+
+// paidAccess is hasAccess of a subscription row.
+func paidAccess(p store.PaidSubscription) bool {
+	return hasAccess(p.Kind, p.Status, p.EndedAt != nil, p.AccessPaused, p.PausedAt != nil)
 }
 
 // Upgrade builds the upgrade page.

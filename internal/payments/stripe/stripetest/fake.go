@@ -309,7 +309,8 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"client_reference_id": nilIfEmpty(form.Get("client_reference_id")), "metadata": prefixed(form, "metadata"), "livemode": live,
 			"success_url": form.Get("success_url"), "cancel_url": form.Get("cancel_url"),
 			"_price": form.Get("line_items[0][price]"), "_trial_days": form.Get("subscription_data[trial_period_days]"),
-			"_promotion_code": form.Get("discounts[0][promotion_code]"), "_tax": form.Get("automatic_tax[enabled]")}
+			"_promotion_code": form.Get("discounts[0][promotion_code]"), "_tax": form.Get("automatic_tax[enabled]"),
+			"_quantity": form.Get("line_items[0][quantity]"), "_tax_id": form.Get("tax_id_collection[enabled]")}
 		if mode == "payment" {
 			// A one-time payment (a gift): its amount and item.
 			amount, _ := strconv.ParseInt(form.Get("line_items[0][price_data][unit_amount]"), 10, 64)
@@ -403,6 +404,22 @@ func (f *Fake) object(w http.ResponseWriter, r *http.Request, d *data, seg []str
 					o["canceled_at"] = f.now().Unix()
 				} else {
 					o["cancel_at"], o["canceled_at"] = nil, nil
+				}
+				f.emitLocked(d, "customer.subscription.updated", o, prev, live)
+			}
+			if form.Has("items[0][quantity]") {
+				f.setQuantity(d, o, form.Get("items[0][id]"), form.Get("items[0][quantity]"), live)
+			}
+			if form.Has("pause_collection[behavior]") || form.Has("pause_collection") {
+				prev := obj{"pause_collection": o["pause_collection"]}
+				if b := form.Get("pause_collection[behavior]"); b != "" {
+					pc := obj{"behavior": b, "resumes_at": nil}
+					if at, err := strconv.ParseInt(form.Get("pause_collection[resumes_at]"), 10, 64); err == nil {
+						pc["resumes_at"] = at
+					}
+					o["pause_collection"] = pc
+				} else {
+					o["pause_collection"] = nil
 				}
 				f.emitLocked(d, "customer.subscription.updated", o, prev, live)
 			}
@@ -721,10 +738,13 @@ func (f *Fake) CompleteCheckout(mode payments.Mode, sessionID string, o Checkout
 		period = 365 * 86400
 	}
 	trial, _ := strconv.Atoi(fmt.Sprint(cs["_trial_days"]))
+	qty, _ := strconv.ParseInt(fmt.Sprint(cs["_quantity"]), 10, 64)
+	qty = max(qty, 1)
 	sub := newID("sub")
 	s := obj{"id": sub, "object": "subscription", "customer": cus, "status": "active", "start_date": now, "created": now, "livemode": live,
 		"cancel_at_period_end": false, "cancel_at": nil, "canceled_at": nil, "ended_at": nil, "trial_end": nil, "current_period_end": now + period,
-		"items": obj{"object": "list", "data": []obj{{"price": public(price), "current_period_end": now + period}}}, "metadata": cs["metadata"], "discount": nil}
+		"items": obj{"object": "list", "data": []obj{{"id": newID("si"), "quantity": qty, "price": public(price), "current_period_end": now + period}}},
+		"metadata": cs["metadata"], "discount": nil, "pause_collection": nil}
 	if trial > 0 {
 		s["status"] = "trialing"
 		s["trial_end"] = now + int64(trial)*86400
@@ -743,7 +763,7 @@ func (f *Fake) CompleteCheckout(mode payments.Mode, sessionID string, o Checkout
 	}
 	out := []Event{f.emitLocked(d, "customer.subscription.created", s, nil, live), f.emitLocked(d, "checkout.session.completed", cs, nil, live)}
 	if trial == 0 {
-		amount := num(price["unit_amount"])
+		amount := num(price["unit_amount"]) * qty
 		inv := obj{"id": newID("in"), "object": "invoice", "customer": cus, "customer_email": email, "subscription": sub, "amount_due": amount,
 			"amount_paid": amount, "currency": price["currency"], "billing_reason": "subscription_create", "status": "paid", "period_end": now + period,
 			"charge": newID("ch"), "lines": obj{"data": []obj{{"price": public(price), "period": obj{"end": now + period}}}}, "livemode": live}
@@ -767,6 +787,54 @@ func (f *Fake) Session(mode payments.Mode, id string) (price string, trialDays i
 	promo, _ = cs["_promotion_code"].(string)
 	tax = cs["_tax"] == "true"
 	return
+}
+
+// Quantity is the quantity a checkout session was opened with (1 when none).
+func (f *Fake) Quantity(mode payments.Mode, id string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	cs := f.modes[mode].objects[id]
+	if cs == nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(fmt.Sprint(cs["_quantity"]))
+	return max(n, 1)
+}
+
+// AutoResume resumes a paused subscription the way Stripe does at its
+// pause_collection[resumes_at], and returns the event Stripe sends.
+func (f *Fake) AutoResume(mode payments.Mode, subID string) (Event, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	d := f.modes[mode]
+	o, ok := d.objects[subID]
+	if !ok {
+		return Event{}, fmt.Errorf("stripetest: no subscription %s", subID)
+	}
+	prev := obj{"pause_collection": o["pause_collection"]}
+	o["pause_collection"] = nil
+	return f.emitLocked(d, "customer.subscription.updated", o, prev, mode == payments.Live), nil
+}
+
+// setQuantity changes a subscription item's quantity (the one with itemID,
+// else the first) and sends customer.subscription.updated with the old
+// quantity in previous_attributes.
+func (f *Fake) setQuantity(d *data, o obj, itemID, qty string, live bool) {
+	n, err := strconv.ParseInt(qty, 10, 64)
+	if err != nil || n < 1 {
+		return
+	}
+	items, _ := o["items"].(obj)
+	list, _ := items["data"].([]obj)
+	for i, it := range list {
+		if itemID != "" && it["id"] != itemID && i < len(list)-1 {
+			continue
+		}
+		prev := obj{"items": obj{"data": []obj{{"id": it["id"], "quantity": it["quantity"]}}}}
+		it["quantity"] = n
+		f.emitLocked(d, "customer.subscription.updated", o, prev, live)
+		return
+	}
 }
 
 // Deliver posts an event to a webhook URL with a valid signature (or one

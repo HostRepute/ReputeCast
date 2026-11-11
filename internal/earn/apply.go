@@ -31,7 +31,13 @@ const (
 	StatusCanceled      = "canceled"
 	StatusComplimentary = "complimentary"
 	StatusGift          = "gift"
+	// StatusGroup is a team seat's access (M65): it lasts while the
+	// buyer's subscription gives access.
+	StatusGroup = "group"
 )
+
+// KindGroup is a team seat's paid_subscriptions row (M65).
+const KindGroup = "group"
 
 func parseUUID(s string) (uuid.UUID, error) { return uuid.Parse(strings.TrimSpace(s)) }
 
@@ -71,7 +77,9 @@ func discounted(amount int64, d *payments.Discount) int64 {
 	return out
 }
 
-// discountJSON is a subscription's discount as paid_subscriptions keeps it.
+// discountJSON is a subscription's discount as paid_subscriptions keeps it:
+// amountCents is what a period costs after it, every seat of a team
+// together.
 func discountJSON(sub payments.Subscription) []byte {
 	d := sub.Discount
 	if d == nil {
@@ -81,7 +89,7 @@ func discountJSON(sub payments.Subscription) []byte {
 	if label == "" {
 		label = d.Name
 	}
-	m := map[string]any{"label": label, "coupon": d.CouponID, "duration": d.Duration, "amountCents": discounted(sub.AmountCents, d)}
+	m := map[string]any{"label": label, "coupon": d.CouponID, "duration": d.Duration, "amountCents": discounted(sub.AmountCents*int64(max(sub.Quantity, 1)), d)}
 	if d.PercentOff > 0 {
 		m["percent"] = d.PercentOff
 	}
@@ -121,6 +129,9 @@ type memberEmail struct {
 	// email's language: the version the send picks (data has them in
 	// English).
 	texts func(l i18n.Lang) map[string]any
+	// system is ReputeCast's own notice in System mail, not a template
+	// (a team buyer told their seats are too few; email names it).
+	system bool
 }
 
 // localized adds values written in the email's language.
@@ -463,11 +474,16 @@ func (s *Service) createSubscription(ctx context.Context, tx pgx.Tx, ws *store.W
 		srcDetail, _ = json.Marshal(src.detail)
 	}
 	billing := email
+	var pausedAt *time.Time
+	if sub.Paused {
+		pausedAt = &at
+	}
 	err = q.EarnSubscriptionInsert(ctx, store.EarnSubscriptionInsertParams{ID: id, WorkspaceID: ws.ID, ContactID: contact, Mode: conn.Mode, Kind: "stripe",
 		TierID: tier, PriceID: price, StripePriceID: sub.PriceID, Status: status, Period: periodOf(sub.Interval), AmountCents: sub.AmountCents, Currency: sub.Currency,
 		Discount: discountJSON(sub), StartedAt: nonZero(sub.StartedAt, at), TrialEnd: sub.TrialEnd, CurrentPeriodEnd: sub.CurrentPeriodEnd, CancelAt: sub.CancelAt,
 		CanceledAt: sub.CanceledAt, EndedAt: ended, EndReason: reason, StripeCustomerID: sub.CustomerID, StripeSubscriptionID: sub.ID, BillingEmail: billing,
-		SourceKind: srcKind, SourceCampaignID: srcCampaign, SourceLabel: srcLabel, SourceDetail: srcDetail, StripeSyncedAt: &at, At: at})
+		SourceKind: srcKind, SourceCampaignID: srcCampaign, SourceLabel: srcLabel, SourceDetail: srcDetail, StripeSyncedAt: &at, At: at,
+		Quantity: ptr(int32(max(sub.Quantity, 1))), StripeItemID: &sub.ItemID, PausedAt: pausedAt, PauseResumesAt: pauseUntil(sub)})
 	if err != nil {
 		return uuid.Nil, false, err
 	}
@@ -576,10 +592,15 @@ func (s *Service) applySubscription(ctx context.Context, tx pgx.Tx, ws *store.Wo
 	if err := q.EarnSubscriptionSetState(ctx, store.EarnSubscriptionSetStateParams{ID: row.ID, TierID: tier, PriceID: price, StripePriceID: sub.PriceID, Status: status,
 		Period: periodOf(sub.Interval), AmountCents: sub.AmountCents, Currency: sub.Currency, Discount: discountJSON(sub), TrialEnd: sub.TrialEnd,
 		CurrentPeriodEnd: sub.CurrentPeriodEnd, CancelAt: sub.CancelAt, CanceledAt: sub.CanceledAt, EndedAt: ended, EndReason: reason,
-		StripeCustomerID: sub.CustomerID, SyncedAt: &at, At: s.now()}); err != nil {
+		StripeCustomerID: sub.CustomerID, SyncedAt: &at, At: s.now(), Quantity: ptr(int32(max(sub.Quantity, 1))), StripeItemID: &sub.ItemID,
+		PauseKnown: true, Paused: sub.Paused, PauseUntil: pauseUntil(sub)}); err != nil {
 		return outcome{}, err
 	}
-	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, at); err != nil {
+	if status != StatusPastDue && row.AccessPaused {
+		_ = q.EarnSubscriptionSetAccessPaused(ctx, store.EarnSubscriptionSetAccessPausedParams{ID: row.ID, AccessPaused: false, At: s.now()})
+	}
+	emails, err := s.afterWrite(ctx, q, ws, conn.Mode, before, row.ID, at, &sub)
+	if err != nil {
 		return outcome{}, err
 	}
 	if d := sub.Discount; d != nil && d.PromoCode != "" {
@@ -589,17 +610,28 @@ func (s *Service) applySubscription(ctx context.Context, tx pgx.Tx, ws *store.Wo
 			}
 		}
 	}
-	if status != StatusPastDue && row.AccessPaused {
-		_ = q.EarnSubscriptionSetAccessPaused(ctx, store.EarnSubscriptionSetAccessPausedParams{ID: row.ID, AccessPaused: false, At: s.now()})
-	}
 	pid := pe.ID
 	data := map[string]any{"tier": tname, "period": periodOf(sub.Interval), "amount": sub.AmountCents, "currency": sub.Currency}
+	if sub.Quantity > 1 {
+		data["quantity"] = sub.Quantity
+	}
 	if d := sub.Discount; d != nil {
 		data["offer"] = firstNonEmpty(d.PromoCode, d.Name)
 		data["discounted"] = discounted(sub.AmountCents, d)
 	}
 	o := applied("updated", data)
 	o.contact, o.sub = &row.ContactID, &row.ID
+	o.emails = emails
+	team := sub.Metadata[MetaGroup] == "1"
+	welcome := func() {
+		email := EmailWelcome
+		if team {
+			email = EmailGroupWelcome
+		}
+		if !hasEmailed(row, email) {
+			o.emails = append(o.emails, s.memberEmailFor(email, row, ws, tname, at))
+		}
+	}
 	tl := func(kind string, extra map[string]any) error {
 		d := map[string]any{}
 		for k, v := range data {
@@ -639,9 +671,7 @@ func (s *Service) applySubscription(ctx context.Context, tx pgx.Tx, ws *store.Wo
 		if err := tl(kind, map[string]any{"trialEnd": o.detail["trialEnd"]}); err != nil {
 			return outcome{}, err
 		}
-		if !hasEmailed(row, "welcome") {
-			o.emails = append(o.emails, s.memberEmailFor("welcome", row, ws, tname, at))
-		}
+		welcome()
 	case cancelScheduled && !wasScheduled:
 		o.key = "cancel_scheduled"
 		if sub.CancelAt != nil {
@@ -659,6 +689,32 @@ func (s *Service) applySubscription(ctx context.Context, tx pgx.Tx, ws *store.Wo
 	case !cancelScheduled && wasScheduled:
 		o.key = "cancel_undone"
 		if err := tl("cancel_undone", nil); err != nil {
+			return outcome{}, err
+		}
+	case sub.Paused && row.PausedAt == nil:
+		// Paused in Stripe (its dashboard, or a pause asked here whose
+		// own write came after this event).
+		o.key = "paused"
+		extra := map[string]any{"source": "stripe"}
+		if sub.PausedUntil != nil {
+			extra["until"] = sub.PausedUntil.UTC().Format(time.RFC3339)
+			o.detail["until"] = extra["until"]
+		}
+		if err := tl("paused", extra); err != nil {
+			return outcome{}, err
+		}
+		fresh := row
+		fresh.PausedAt, fresh.PauseResumesAt = &at, sub.PausedUntil
+		o.emails = append(o.emails, s.pausedEmail(ctx, ws, fresh, at))
+	case !sub.Paused && row.PausedAt != nil:
+		o.key = "resumed"
+		if err := tl("resumed", map[string]any{"source": "stripe"}); err != nil {
+			return outcome{}, err
+		}
+	case !created && row.Quantity != int32(max(sub.Quantity, 1)):
+		o.key = "seats_changed"
+		o.detail["from"], o.detail["to"] = row.Quantity, max(sub.Quantity, 1)
+		if err := tl("seats_changed", map[string]any{"from": row.Quantity, "to": max(sub.Quantity, 1)}); err != nil {
 			return outcome{}, err
 		}
 	case row.PriceID != nil && price != nil && *row.PriceID != *price:
@@ -680,9 +736,7 @@ func (s *Service) applySubscription(ctx context.Context, tx pgx.Tx, ws *store.Wo
 		if err := tl(o.key, nil); err != nil {
 			return outcome{}, err
 		}
-		if !hasEmailed(row, "welcome") {
-			o.emails = append(o.emails, s.memberEmailFor("welcome", row, ws, tname, at))
-		}
+		welcome()
 	case status != prevStatus:
 		o.key = "status_" + status
 	}
@@ -822,7 +876,9 @@ func (s *Service) applyCheckout(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 			}
 		}
 	}
-	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, ev.Created); err != nil {
+	// The checkout's metadata names a team (its subscription carries the same).
+	emails, err := s.afterWrite(ctx, q, ws, conn.Mode, before, row.ID, ev.Created, &payments.Subscription{Metadata: cs.Metadata})
+	if err != nil {
 		return outcome{}, err
 	}
 	if found {
@@ -844,6 +900,7 @@ func (s *Service) applyCheckout(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 	}
 	o := applied("checkout_completed", data)
 	o.contact, o.sub = &row.ContactID, &row.ID
+	o.emails = emails
 	return o, nil
 }
 
@@ -904,12 +961,14 @@ func (s *Service) applyInvoicePaid(ctx context.Context, tx pgx.Tx, ws *store.Wor
 	if err := q.EarnSubscriptionPaid(ctx, store.EarnSubscriptionPaidParams{ID: row.ID, Amount: amount, At: s.now()}); err != nil {
 		return outcome{}, err
 	}
-	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, ev.Created); err != nil {
-		return outcome{}, err
-	}
 	if row.AccessPaused {
 		_ = q.EarnSubscriptionSetAccessPaused(ctx, store.EarnSubscriptionSetAccessPausedParams{ID: row.ID, AccessPaused: false, At: s.now()})
 	}
+	emails, err := s.afterWrite(ctx, q, ws, conn.Mode, before, row.ID, ev.Created, nil)
+	if err != nil {
+		return outcome{}, err
+	}
+	o.emails = emails
 	kind := "paid"
 	if inv.BillingReason == "subscription_cycle" {
 		kind, o.key = "renewed", "renewed"
@@ -972,7 +1031,8 @@ func (s *Service) applyPaymentFailed(ctx context.Context, tx pgx.Tx, ws *store.W
 			_ = q.EarnSubscriptionSetAccessPaused(ctx, store.EarnSubscriptionSetAccessPausedParams{ID: row.ID, AccessPaused: true, At: s.now()})
 		}
 	}
-	if err := s.paidTransitions(ctx, q, ws, conn.Mode, before, row.ID, ev.Created); err != nil {
+	emails, err := s.afterWrite(ctx, q, ws, conn.Mode, before, row.ID, ev.Created, nil)
+	if err != nil {
 		return outcome{}, err
 	}
 	tname := tierName(ctx, q, ws.ID, row.TierID)
@@ -981,6 +1041,7 @@ func (s *Service) applyPaymentFailed(ctx context.Context, tx pgx.Tx, ws *store.W
 		o.detail["retry"] = inv.NextAttempt.UTC().Format(time.RFC3339)
 	}
 	o.contact, o.sub, o.amount, o.currency = &row.ContactID, &row.ID, &amount, inv.Currency
+	o.emails = emails
 	pid := pe.ID
 	if err := s.timeline(ctx, q, ws.ID, row.ContactID, &row.ID, conn.Mode, "payment_failed", ev.Created, &amount, inv.Currency, &pid, ev.Type, nil,
 		map[string]any{"reason": reason, "retry": o.detail["retry"], "tier": tname}); err != nil {
@@ -1009,6 +1070,15 @@ func maxTime(a *time.Time, b time.Time) *time.Time {
 		return a
 	}
 	return &b
+}
+
+// pauseUntil is when the provider resumes a paused subscription (nil:
+// not paused, or until it is resumed).
+func pauseUntil(sub payments.Subscription) *time.Time {
+	if !sub.Paused {
+		return nil
+	}
+	return sub.PausedUntil
 }
 
 func (s *Service) applyUpcoming(ctx context.Context, tx pgx.Tx, ws *store.Workspace, conn store.PaymentConnection, pe store.PaymentEvent, ev payments.Event) (outcome, error) {

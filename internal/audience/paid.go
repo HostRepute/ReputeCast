@@ -37,9 +37,9 @@ type PaidQuery struct {
 func (q PaidQuery) filter() PaidFilter { return PaidFilter(q) }
 
 // accessCond is "s has paid access now" over paid_subscriptions s of
-// contact c.
-const accessCond = `s.contact_id = c.id AND s.mode = 'live' AND s.ended_at IS NULL
-	AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))`
+// contact c (earn_paid_access, migration 03560).
+const accessCond = `s.contact_id = c.id AND s.mode = 'live'
+	AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)`
 
 // canSeePaid reports whether the caller may read paid status.
 func canSeePaid(ctx context.Context) bool {
@@ -107,7 +107,7 @@ func (s *Service) contactPaid(ctx context.Context, wsID uuid.UUID, ids []uuid.UU
 		short[t.ID] = t.Short
 	}
 	rows, err := s.Pool.Query(ctx, `SELECT DISTINCT ON (s.contact_id) s.contact_id, s.id, s.status, s.tier_id, coalesce(t.name, ''), s.ended_at,
-			(s.ended_at IS NULL AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))) AS access
+			earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at) AS access
 		FROM paid_subscriptions s LEFT JOIN earn_tiers t ON t.id = s.tier_id
 		WHERE s.workspace_id = $1 AND s.contact_id = ANY ($2) AND s.mode = 'live' AND s.status <> 'incomplete'
 		ORDER BY s.contact_id, access DESC, coalesce(t.access_rank, 1) DESC, coalesce(s.ended_at, s.started_at) DESC`, wsID, ids)

@@ -605,11 +605,14 @@ const earnSubscriptionInsert = `-- name: EarnSubscriptionInsert :exec
 INSERT INTO paid_subscriptions (id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency,
     discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, ended_at, end_reason, paid_cents, refunded_cents,
     stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail,
-    grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, created_at, updated_at)
+    grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, created_at, updated_at,
+    quantity, stripe_item_id, paused_at, pause_resumes_at, last_paused_at, group_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
     $13, $14, $15, $16, $17, $18, $19, $20,
     $21, $22, $23, $24, $25, $26, $27, $28, $29,
-    $30, $31, $32, $33, $34, $35, $36, $36)
+    $30, $31, $32, $33, $34, $35, $36, $36,
+    coalesce($37::integer, 1), coalesce($38::text, ''), $39, $40, $39,
+    $41)
 `
 
 type EarnSubscriptionInsertParams struct {
@@ -649,8 +652,15 @@ type EarnSubscriptionInsertParams struct {
 	ImportID             *uuid.UUID      `json:"importId"`
 	StripeSyncedAt       *time.Time      `json:"stripeSyncedAt"`
 	At                   time.Time       `json:"at"`
+	Quantity             *int32          `json:"quantity"`
+	StripeItemID         *string         `json:"stripeItemId"`
+	PausedAt             *time.Time      `json:"pausedAt"`
+	PauseResumesAt       *time.Time      `json:"pauseResumesAt"`
+	GroupID              *uuid.UUID      `json:"groupId"`
 }
 
+// quantity (1 when null), the Stripe item, a pause found on a subscription
+// seen for the first time, and a team seat's group are optional.
 func (q *Queries) EarnSubscriptionInsert(ctx context.Context, arg EarnSubscriptionInsertParams) error {
 	_, err := q.db.Exec(ctx, earnSubscriptionInsert,
 		arg.ID,
@@ -689,6 +699,11 @@ func (q *Queries) EarnSubscriptionInsert(ctx context.Context, arg EarnSubscripti
 		arg.ImportID,
 		arg.StripeSyncedAt,
 		arg.At,
+		arg.Quantity,
+		arg.StripeItemID,
+		arg.PausedAt,
+		arg.PauseResumesAt,
+		arg.GroupID,
 	)
 	return err
 }
@@ -859,8 +874,12 @@ const earnSubscriptionSetState = `-- name: EarnSubscriptionSetState :exec
 UPDATE paid_subscriptions SET tier_id = $1, price_id = $2, stripe_price_id = $3, status = $4,
     period = $5, amount_cents = $6, currency = $7, discount = $8, trial_end = $9,
     current_period_end = $10, cancel_at = $11, canceled_at = $12,
-    ended_at = $13, end_reason = $14, stripe_customer_id = $15, stripe_synced_at = $16, updated_at = $17
-WHERE id = $18
+    ended_at = $13, end_reason = $14, stripe_customer_id = $15, stripe_synced_at = $16, updated_at = $17,
+    quantity = coalesce($18::integer, quantity), stripe_item_id = coalesce($19::text, stripe_item_id),
+    paused_at = CASE WHEN NOT $20::boolean THEN paused_at WHEN $21::boolean THEN coalesce(paused_at, $17) ELSE NULL END,
+    pause_resumes_at = CASE WHEN NOT $20::boolean THEN pause_resumes_at WHEN $21::boolean THEN $22::timestamptz ELSE NULL END,
+    last_paused_at = CASE WHEN $20::boolean AND $21::boolean THEN coalesce(paused_at, $17) ELSE last_paused_at END
+WHERE id = $23
 `
 
 type EarnSubscriptionSetStateParams struct {
@@ -881,10 +900,17 @@ type EarnSubscriptionSetStateParams struct {
 	StripeCustomerID string          `json:"stripeCustomerId"`
 	SyncedAt         *time.Time      `json:"syncedAt"`
 	At               time.Time       `json:"at"`
+	Quantity         *int32          `json:"quantity"`
+	StripeItemID     *string         `json:"stripeItemId"`
+	PauseKnown       bool            `json:"pauseKnown"`
+	Paused           bool            `json:"paused"`
+	PauseUntil       *time.Time      `json:"pauseUntil"`
 	ID               uuid.UUID       `json:"id"`
 }
 
-// A subscription's state as the provider last reported it.
+// A subscription's state as the provider last reported it. quantity and
+// the Stripe item stay when null; the pause changes only when the provider
+// reported it (pause_known): paused since the first event that said so.
 func (q *Queries) EarnSubscriptionSetState(ctx context.Context, arg EarnSubscriptionSetStateParams) error {
 	_, err := q.db.Exec(ctx, earnSubscriptionSetState,
 		arg.TierID,
@@ -904,6 +930,11 @@ func (q *Queries) EarnSubscriptionSetState(ctx context.Context, arg EarnSubscrip
 		arg.StripeCustomerID,
 		arg.SyncedAt,
 		arg.At,
+		arg.Quantity,
+		arg.StripeItemID,
+		arg.PauseKnown,
+		arg.Paused,
+		arg.PauseUntil,
 		arg.ID,
 	)
 	return err

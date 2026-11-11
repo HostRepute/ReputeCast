@@ -171,8 +171,9 @@ func (s *Service) loadFacts(ctx context.Context, ws *store.Workspace, mode strin
 	for _, l := range lists {
 		f.lists[l.ID] = l.Name
 	}
-	rows, err := s.Pool.Query(ctx, `SELECT tier_id, round(coalesce(sum(CASE WHEN period = 'year' THEN coalesce((discount->>'amountCents')::bigint, amount_cents) / 12.0
-		ELSE coalesce((discount->>'amountCents')::bigint, amount_cents) END), 0))::bigint
+	// earn_arr_cents with 'live' as the mode: the rows are already the
+	// page's mode (test mode shows its own MRR).
+	rows, err := s.Pool.Query(ctx, `SELECT tier_id, round(coalesce(sum(earn_arr_cents(kind, 'live', status, ended_at, period, amount_cents, discount, quantity, paused_at)), 0) / 12.0)::bigint
 		FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND kind = 'stripe' AND ended_at IS NULL AND status IN ('active','past_due') AND tier_id IS NOT NULL
 		GROUP BY tier_id`, ws.ID, mode)
 	if err != nil {

@@ -283,12 +283,14 @@ func (m earnMailer) Route(ctx context.Context, ws *store.Workspace) (earn.Route,
 }
 
 // earnSignup joins a paid member's lists with consent, through the
-// audience domain (the evidence: "paid_subscription").
+// audience domain (the evidence: "paid_subscription", or a team invite's
+// acceptance with its page's text).
 type earnSignup struct{ a *App }
 
 func (s earnSignup) Join(ctx context.Context, tx pgx.Tx, ws *store.Workspace, j earn.Join) (uuid.UUID, bool, error) {
 	res, err := s.a.audience().Signup(ctx, tx, ws, audience.SignupInput{Email: j.Email, FirstName: j.FirstName, LastName: j.LastName, Lists: j.Lists,
-		DoubleOptIn: j.Double, Evidence: audience.PublicEvidence{Source: j.Source, Note: j.Note, At: j.At}})
+		DoubleOptIn: j.Double, Evidence: audience.PublicEvidence{Source: j.Source, Note: j.Note, At: j.At, ConsentText: j.ConsentText, IP: j.IP,
+			UserAgent: j.UserAgent, Language: j.Language}})
 	if err != nil {
 		return uuid.Nil, false, err
 	}

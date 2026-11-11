@@ -26,6 +26,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -60,6 +61,12 @@ const (
 	TokenUpgrade linktoken.Kind = 160
 	TokenBilling linktoken.Kind = 161
 	TokenCancel  linktoken.Kind = 162
+	// A team buyer's manage page (M65): MessageID is the team, ContactID
+	// the buyer, Link the day it was issued; it works for a week.
+	TokenGroupManage linktoken.Kind = 164
+	// A team invite (M65): MessageID is the seat, Link the day it was
+	// issued; only a seat's newest invite works, for two weeks.
+	TokenGroupJoin linktoken.Kind = 165
 )
 
 // Mailer sends the member emails through transactional email and keeps
@@ -170,7 +177,10 @@ type Join struct {
 	Double                     bool
 	// Source and Note are the consent evidence ("paid_subscription").
 	Source, Note string
-	At           time.Time
+	// ConsentText, IP, UserAgent and Language are a page's evidence (a
+	// team invite accepted: M65).
+	ConsentText, IP, UserAgent, Language string
+	At                                    time.Time
 }
 
 // Service is the Earn domain.
@@ -216,6 +226,36 @@ type Service struct {
 	// OneTime takes one-time payments' events (gifts); X17, x17.go.
 	Offers  OfferHook
 	OneTime OneTimeHook
+	// linkThrottle keeps fresh team links to one every ten minutes per
+	// team.
+	linkThrottle throttle
+}
+
+// throttle allows one thing per key per window, in memory (one process;
+// several replicas each allow theirs).
+type throttle struct {
+	mu   sync.Mutex
+	last map[string]time.Time
+}
+
+func (t *throttle) allow(key string, now time.Time, every time.Duration) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.last == nil {
+		t.last = map[string]time.Time{}
+	}
+	if at, ok := t.last[key]; ok && now.Sub(at) < every {
+		return false
+	}
+	if len(t.last) > 10000 {
+		for k, at := range t.last {
+			if now.Sub(at) >= every {
+				delete(t.last, k)
+			}
+		}
+	}
+	t.last[key] = now
+	return true
 }
 
 // Brand is how the public pages look: who readers pay and the colours.

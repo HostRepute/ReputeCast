@@ -146,8 +146,10 @@ func (q *Queries) EarnCheckoutCounts(ctx context.Context, arg EarnCheckoutCounts
 }
 
 const earnCheckoutInsert = `-- name: EarnCheckoutInsert :exec
-INSERT INTO earn_checkouts (id, workspace_id, mode, tier_id, price_id, period, trial_days, contact_id, email, stripe_session_id, status, attribution, offer, started_by, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+INSERT INTO earn_checkouts (id, workspace_id, mode, tier_id, price_id, period, trial_days, contact_id, email, stripe_session_id, status, attribution, offer, started_by, created_at,
+    quantity, team_name)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+    coalesce($16::integer, 1), coalesce($17::text, ''))
 `
 
 type EarnCheckoutInsertParams struct {
@@ -166,8 +168,11 @@ type EarnCheckoutInsertParams struct {
 	Offer           string          `json:"offer"`
 	StartedBy       *uuid.UUID      `json:"startedBy"`
 	CreatedAt       time.Time       `json:"createdAt"`
+	Quantity        *int32          `json:"quantity"`
+	TeamName        *string         `json:"teamName"`
 }
 
+// quantity (1 when null) and team_name are a team checkout's.
 func (q *Queries) EarnCheckoutInsert(ctx context.Context, arg EarnCheckoutInsertParams) error {
 	_, err := q.db.Exec(ctx, earnCheckoutInsert,
 		arg.ID,
@@ -185,6 +190,8 @@ func (q *Queries) EarnCheckoutInsert(ctx context.Context, arg EarnCheckoutInsert
 		arg.Offer,
 		arg.StartedBy,
 		arg.CreatedAt,
+		arg.Quantity,
+		arg.TeamName,
 	)
 	return err
 }
@@ -460,8 +467,10 @@ func (q *Queries) EarnPriceDelete(ctx context.Context, id uuid.UUID) error {
 }
 
 const earnPriceInsert = `-- name: EarnPriceInsert :exec
-INSERT INTO earn_prices (id, workspace_id, tier_id, period, amount_cents, currency, status, stripe_live_id, stripe_test_id, origin, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO earn_prices (id, workspace_id, tier_id, period, amount_cents, currency, status, stripe_live_id, stripe_test_id, origin, created_at,
+    audience, seats_min, seats_max)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+    coalesce($12::text, 'individual'), $13, $14)
 `
 
 type EarnPriceInsertParams struct {
@@ -476,8 +485,12 @@ type EarnPriceInsertParams struct {
 	StripeTestID string    `json:"stripeTestId"`
 	Origin       string    `json:"origin"`
 	At           time.Time `json:"at"`
+	Audience     *string   `json:"audience"`
+	SeatsMin     *int32    `json:"seatsMin"`
+	SeatsMax     *int32    `json:"seatsMax"`
 }
 
+// audience is individual when null; a group price has its seat range.
 func (q *Queries) EarnPriceInsert(ctx context.Context, arg EarnPriceInsertParams) error {
 	_, err := q.db.Exec(ctx, earnPriceInsert,
 		arg.ID,
@@ -491,6 +504,9 @@ func (q *Queries) EarnPriceInsert(ctx context.Context, arg EarnPriceInsertParams
 		arg.StripeTestID,
 		arg.Origin,
 		arg.At,
+		arg.Audience,
+		arg.SeatsMin,
+		arg.SeatsMax,
 	)
 	return err
 }
@@ -506,6 +522,22 @@ type EarnPriceRetireParams struct {
 
 func (q *Queries) EarnPriceRetire(ctx context.Context, arg EarnPriceRetireParams) error {
 	_, err := q.db.Exec(ctx, earnPriceRetire, arg.At, arg.ID)
+	return err
+}
+
+const earnPriceSetSeats = `-- name: EarnPriceSetSeats :exec
+UPDATE earn_prices SET seats_min = $1, seats_max = $2 WHERE id = $3 AND audience = 'group'
+`
+
+type EarnPriceSetSeatsParams struct {
+	SeatsMin *int32    `json:"seatsMin"`
+	SeatsMax *int32    `json:"seatsMax"`
+	ID       uuid.UUID `json:"id"`
+}
+
+// A group price's seat range changes in place (Stripe prices are per seat).
+func (q *Queries) EarnPriceSetSeats(ctx context.Context, arg EarnPriceSetSeatsParams) error {
+	_, err := q.db.Exec(ctx, earnPriceSetSeats, arg.SeatsMin, arg.SeatsMax, arg.ID)
 	return err
 }
 

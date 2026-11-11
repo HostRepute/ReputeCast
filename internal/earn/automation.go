@@ -40,6 +40,11 @@ const (
 	// AutomationPaidTrialEnding: Stripe's notice three days before a
 	// trial ends ("Trial ends soon").
 	AutomationPaidTrialEnding = "paid_trial_ending"
+	// AutomationPaidPaused and AutomationPaidResumed: the subscription's
+	// payments paused, and started again (M65, "Pauses payments",
+	// "Resumes payments"), with the resume date.
+	AutomationPaidPaused  = "paid_paused"
+	AutomationPaidResumed = "paid_resumed"
 )
 
 // automationEndReasons are the ends "Stops paying" starts on. Other ends
@@ -129,6 +134,22 @@ func (s *Service) paidTransitions(ctx context.Context, q *store.Queries, ws *sto
 		if err := s.paidEvent(ctx, q, ws, row, AutomationPaidTierChanged, at, tier, from.name,
 			map[string]any{"direction": direction, "from_tier_id": from.id, "from_tier": from.name}); err != nil {
 			return err
+		}
+	}
+	if before != nil && row.EndedAt == nil {
+		switch {
+		case before.PausedAt == nil && row.PausedAt != nil:
+			extra := map[string]any{}
+			if row.PauseResumesAt != nil {
+				extra["resumes_at"] = row.PauseResumesAt.UTC().Format(time.RFC3339)
+			}
+			if err := s.paidEvent(ctx, q, ws, row, AutomationPaidPaused, at, tier, "", extra); err != nil {
+				return err
+			}
+		case before.PausedAt != nil && row.PausedAt == nil:
+			if err := s.paidEvent(ctx, q, ws, row, AutomationPaidResumed, at, tier, "", nil); err != nil {
+				return err
+			}
 		}
 	}
 	if row.EndedAt != nil {

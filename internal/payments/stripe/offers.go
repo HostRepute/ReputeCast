@@ -176,7 +176,7 @@ func (c *Client) CreatePaymentCheckout(ctx context.Context, r payments.PaymentCh
 	if r.Description != "" {
 		f.Set("line_items[0][price_data][product_data][description]", r.Description)
 	}
-	f.Set("line_items[0][quantity]", "1")
+	f.Set("line_items[0][quantity]", strconv.Itoa(payments.LineQuantity(r.Quantity)))
 	f.Set("success_url", r.SuccessURL)
 	f.Set("cancel_url", r.CancelURL)
 	if r.CustomerEmail != "" {
