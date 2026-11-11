@@ -341,7 +341,10 @@ func (s *Service) newListing(ctx context.Context, tx pgx.Tx, ws uuid.UUID, r dns
 }
 
 // authChecks runs the DNS authentication checks of every sending domain and
-// its organization domain, and reverse DNS of every dedicated IP.
+// its organization domain, and reverse DNS of every dedicated IP. While the
+// workspace receives mail, a sending domain under another organizational
+// domain than the receiving one also gets its DMARC external destination
+// record looked up (M58).
 func (s *Service) authChecks(ctx context.Context, ws uuid.UUID) error {
 	domains, err := s.Q.HostReputeAssetSources(ctx, ws)
 	if err != nil {
@@ -359,9 +362,13 @@ func (s *Service) authChecks(ctx context.Context, ws uuid.UUID) error {
 		}
 		return s.Q.UpsertDeliverabilityAssetCheck(ctx, store.UpsertDeliverabilityAssetCheckParams{WorkspaceID: ws, Asset: asset, AssetType: typ, Result: b, CheckedAt: now})
 	}
+	dest := s.reportDestination(ctx, ws)
 	for _, d := range domains {
-		auth := dnscheck.CheckDomain(ctx, s.DNS, d.Domain, Requirements(d.DnsRecords))
-		if err := save(d.Domain, "domain", map[string]any{"auth": auth}); err != nil {
+		result := map[string]any{"auth": dnscheck.CheckDomain(ctx, s.DNS, d.Domain, Requirements(d.DnsRecords))}
+		if dest != "" && needsReportRecord(d.Domain, dest) {
+			result["dmarcReport"] = s.checkReportRecord(ctx, d.Domain, dest)
+		}
+		if err := save(d.Domain, "domain", result); err != nil {
 			return err
 		}
 	}
@@ -385,6 +392,23 @@ func (s *Service) authChecks(ctx context.Context, ws uuid.UUID) error {
 		}
 	}
 	return nil
+}
+
+// reportDestination is the receiving domain DMARC reports go to, "" when
+// the workspace doesn't receive mail.
+func (s *Service) reportDestination(ctx context.Context, ws uuid.UUID) string {
+	if s.Inbound == nil {
+		return ""
+	}
+	receiving, domain, _, err := s.Inbound(ctx, ws)
+	if err != nil {
+		s.Log.WarnContext(ctx, "deliverability: receiving mail unknown, report records not checked", "workspace", ws, "err", err)
+		return ""
+	}
+	if !receiving {
+		return ""
+	}
+	return domain
 }
 
 // Requirements reads the provider records stored on a sending domain.

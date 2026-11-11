@@ -50,6 +50,8 @@ var (
 	mTriggerOther             = msg("trigger.other")
 	mTriggerLabel             = msg("trigger.label")
 	mTriggerNone              = msg("trigger.none")
+	mTriggerExitOnReply       = msg("trigger.exitOnReply")
+	mTriggerNoExitOnReply     = msg("trigger.noExitOnReply")
 
 	mRefAList          = msg("ref.aList")
 	mRefAForm          = msg("ref.aForm")
@@ -77,6 +79,8 @@ var (
 	mCondClickedURLWithin = msg("cond.clickedUrlWithin")
 	mCondClickedIn        = msg("cond.clickedIn")
 	mCondClickedInWithin  = msg("cond.clickedInWithin")
+	mCondReplied          = msg("cond.replied")
+	mCondRepliedWithin    = msg("cond.repliedWithin")
 	mCondTagged           = msg("cond.tagged")
 	mCondInList           = msg("cond.inList")
 	mCondSentEvent        = msg("cond.sentEvent")
@@ -118,6 +122,7 @@ var (
 	mGoalClickedURL  = msg("goal.clickedUrl")
 	mGoalClickedAny  = msg("goal.clickedAny")
 	mGoalOpened      = msg("goal.opened")
+	mGoalReplied     = msg("goal.replied")
 	mGoalTagged      = msg("goal.tagged")
 	mGoalJoined      = msg("goal.joined")
 	mGoalJoinedAny   = msg("goal.joinedAny")
@@ -362,6 +367,16 @@ func oneTriggerLabel(t *AutomationTrigger, refs *Refs) i18n.Text {
 	return txt(mTriggerLabel, "kind", triggerKindLabel(t.Kind), "ref", ref)
 }
 
+// replyStopText says whether a flow ends a contact's run when they reply
+// to one of its emails (M58): "Stops when the contact replies to an email
+// from this flow".
+func replyStopText(stops bool) i18n.Text {
+	if stops {
+		return txt(mTriggerExitOnReply)
+	}
+	return txt(mTriggerNoExitOnReply)
+}
+
 // DurationText reads "10 minutes", "1 day", "2 weeks".
 func DurationText(d *AutomationDuration) string { return say(english, durationText(d)) }
 
@@ -509,6 +524,8 @@ func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) i18n
 			return withWindow(mCondClickedURL, mCondClickedURLWithin, "url", c.URLContains)
 		}
 		return withWindow(mCondClickedIn, mCondClickedInWithin, "step", target)
+	case CondReplied:
+		return withWindow(mCondReplied, mCondRepliedWithin, "step", target)
 	case "tag":
 		return txt(mCondTagged, "tag", c.Tag)
 	case "list":
@@ -658,6 +675,8 @@ func goalTitle(c *AutomationCondition, refs *Refs) i18n.Text {
 		return txt(mGoalClickedAny)
 	case "opened":
 		return txt(mGoalOpened)
+	case CondReplied:
+		return txt(mGoalReplied)
 	case "tag":
 		return txt(mGoalTagged, "tag", c.Tag)
 	case "list":

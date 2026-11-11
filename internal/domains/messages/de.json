@@ -70,5 +70,6 @@
   "problem.cloudflareUnreachable": "Cloudflare war nicht erreichbar: {error}. Sonst wurde nichts geändert.",
   "problem.cloudflareAnswered": "Cloudflare hat mit {status} geantwortet{hasMessage, select, yes {: {message}} other {}}. Sonst wurde nichts geändert.",
   "problem.cloudflareNoZone": "für dieses Token ist keine Cloudflare-Zone für {domain} sichtbar. Sonst wurde nichts geändert.",
-  "problem.cloudflareFailed": "{error}. Sonst wurde nichts geändert."
+  "problem.cloudflareFailed": "{error}. Sonst wurde nichts geändert.",
+  "problem.receiveFirst": "Richte zuerst „E-Mails empfangen“ ein: Antworten gingen sonst an eine Adresse, die ReputeCast noch nicht liest."
 }

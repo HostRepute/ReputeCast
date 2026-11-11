@@ -185,6 +185,7 @@ func (s *Service) AttachProvider(ctx context.Context, ws *store.Workspace, domai
 		return "", err
 	}
 	rua, _ := s.Q.DomDMARCReports(ctx, ws.ID)
+	inbound := s.inboundRua(ctx, ws.ID)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.DomGetAny(ctx, d.ID)
@@ -192,7 +193,7 @@ func (s *Service) AttachProvider(ctx context.Context, ws *store.Workspace, domai
 			return err
 		}
 		recs := ReplaceProviderRecords(DecodeRecords(cur.DnsRecords), p.ID.String(), fresh)
-		recs = ensureDMARC(recs, d.Domain, rua)
+		recs = ensureDMARC(recs, d.Domain, rua, inbound)
 		if err := q.DomUpdateRecords(ctx, store.DomUpdateRecordsParams{ID: d.ID, DnsRecords: EncodeRecords(recs), UpdatedAt: s.now()}); err != nil {
 			return err
 		}
@@ -248,7 +249,7 @@ func (s *Service) CreateDomain(ctx context.Context, ws *store.Workspace, in Doma
 		recs = ReplaceProviderRecords(recs, p.ID.String(), fresh)
 	}
 	rua, _ := s.Q.DomDMARCReports(ctx, ws.ID)
-	recs = ensureDMARC(recs, name, rua)
+	recs = ensureDMARC(recs, name, rua, s.inboundRua(ctx, ws.ID))
 	id := newID()
 	var by *uuid.UUID
 	if pr := api.PrincipalFrom(ctx); pr != nil && pr.UserID != uuid.Nil {

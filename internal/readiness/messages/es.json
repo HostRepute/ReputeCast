@@ -1077,5 +1077,11 @@
   "tech.allOK": "HTTP 200 de {count, plural, one {el enlace} other {los # enlaces}}",
   "tech.error": "Error",
   "tech.sourceHostRepute": "Comprobación horaria de HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}",
-  "tech.sourceBuiltin": "Comprobación propia de ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}"
+  "tech.sourceBuiltin": "Comprobación propia de ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}",
+  "compliance.mailtoReceived": "ReputeCast procesa los correos de baja",
+  "compliance.mailtoReceivedShort": "correos de baja procesados",
+  "compliance.replyInbox": "Las respuestas van a ReputeCast, pero la recepción está fallando",
+  "compliance.replyInboxDetail": "Las respuestas a este envío no llegarán a la bandeja de entrada hasta que la recepción vuelva a funcionar.",
+  "label.replies": "Respuestas",
+  "fix.openSettings": "Abrir Configuración"
 }

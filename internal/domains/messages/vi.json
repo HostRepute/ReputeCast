@@ -70,5 +70,6 @@
   "problem.cloudflareUnreachable": "Không kết nối được Cloudflare: {error}. Không có gì khác bị thay đổi.",
   "problem.cloudflareAnswered": "Cloudflare trả về {status}{hasMessage, select, yes {: {message}} other {}}. Không có gì khác bị thay đổi.",
   "problem.cloudflareNoZone": "Token này không thấy zone Cloudflare nào cho {domain}. Không có gì khác bị thay đổi.",
-  "problem.cloudflareFailed": "{error}. Không có gì khác bị thay đổi."
+  "problem.cloudflareFailed": "{error}. Không có gì khác bị thay đổi.",
+  "problem.receiveFirst": "Hãy thiết lập Nhận thư trước: thư trả lời sẽ đến một địa chỉ mà ReputeCast chưa đọc."
 }

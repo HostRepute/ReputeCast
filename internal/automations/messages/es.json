@@ -504,5 +504,13 @@
   "webinar.hourBefore.subject": "Empieza en una hora: {title}",
   "webinar.hourBefore.preheader": "Únete desde el enlace de abajo.",
   "webinar.hourBefore.heading": "Empieza en una hora",
-  "webinar.hourBefore.body": "{title} empieza en una hora."
+  "webinar.hourBefore.body": "{title} empieza en una hora.",
+  "trigger.exitOnReply": "Se detiene cuando el contacto responde a un correo de este recorrido",
+  "trigger.noExitOnReply": "No se detiene cuando el contacto responde a un correo de este recorrido",
+  "cond.replied": "ha respondido a {step}",
+  "cond.repliedWithin": "ha respondido a {step} en {duration}",
+  "goal.replied": "Ha respondido a un correo",
+  "problem.replyWindow": "Indica cuánto tiempo esperar la respuesta.",
+  "diff.triggerReply": "Disparador: {change}",
+  "diff.triggerReplyDetail": "Se aplica a los contactos de la v{version} cuando esté publicada; los que siguen en una versión anterior conservan el ajuste de esa versión."
 }

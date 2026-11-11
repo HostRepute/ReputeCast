@@ -281,7 +281,7 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		done(stageCond, f)
 	}
 
-	f.Compliance = s.compliance(ws, f)
+	f.Compliance = s.compliance(ctx, ws, f)
 	f.Compliance.Gmail = s.postmaster(ctx, ws.ID, firstNonEmpty(f.Auth.Domain, c.SenderDomain), now)
 	f.Compliance.PostmasterConnected = f.Compliance.Gmail != nil || s.postmasterConnected(ctx, ws.ID, now)
 	done(stageComply, f)
@@ -942,11 +942,20 @@ func net4(s string) string {
 
 // compliance gathers the one-click unsubscribe link and the complaint rate.
 // The header carries a mailto address only when the workspace includes one
-// (Settings › Senders, off by default).
-func (s *Service) compliance(ws *store.Workspace, f Facts) ComplianceFacts {
+// (Settings › Senders, off by default). It also says how the workspace
+// receives mail (M58).
+func (s *Service) compliance(ctx context.Context, ws *store.Workspace, f Facts) ComplianceFacts {
 	out := ComplianceFacts{UnsubscribeURL: strings.ReplaceAll(s.URLs.Unsubscribe(ws.Slug, "TOKEN"), "TOKEN", "{token}")}
 	if domains.ListUnsubscribeMailto(ws.SendingDefaults) {
 		out.Mailto = firstNonEmpty(f.Campaign.ReplyTo, f.Campaign.SenderEmail)
+	}
+	if s.Inbound != nil {
+		receiving, inbox, domain, local, err := s.Inbound(ctx, ws.ID)
+		if err != nil {
+			s.Log.WarnContext(ctx, "readiness: receiving mail", "workspace", ws.ID, "err", err)
+		} else {
+			out.Receiving, out.Inbox, out.InboundDomain, out.InboundLocal = receiving, inbox, domain, local
+		}
 	}
 	out.HTTPS = strings.HasPrefix(out.UnsubscribeURL, "https://") || localURL(out.UnsubscribeURL)
 	var weighted, total float64

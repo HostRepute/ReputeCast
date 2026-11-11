@@ -1691,15 +1691,29 @@ func (b *builder) compliance() {
 			Detail: tx("compliance.oneClickHttpsDetail", A{"url": cf.UnsubscribeURL}), Raw: unsubscribeHeaders(cf),
 			Label: tx("label.oneClick", nil), Ack: tx("compliance.oneClickHttpsAck", nil)})
 	}
-	if cf.Mailto != "" {
+	switch {
+	case cf.Mailto != "" && cf.receivedMailto() != "":
+		// The mailto: address is on the receiving domain: ReputeCast
+		// applies the unsubscribe emails itself (M58).
+		b.add(check{Key: "compliance.unsubscribe_mailto", Group: GroupCompliance, Status: Pass, Label: RawText("mailto"),
+			Title: tx("compliance.mailtoReceived", nil), Short: tx("compliance.mailtoReceivedShort", nil)})
+	case cf.Mailto != "":
 		// The workspace includes a mailto: address in List-Unsubscribe
-		// (Settings › Senders). ReputeCast receives no mail, so someone has
-		// to remove the readers who unsubscribe by email.
+		// (Settings › Senders) and ReputeCast doesn't receive the mail sent
+		// to it, so someone has to remove the readers who unsubscribe by
+		// email.
 		b.add(check{Key: "compliance.unsubscribe_mailto", Group: GroupCompliance, Status: Warn, Label: RawText("mailto"),
 			Title:  tx("compliance.mailtoTitle", A{"mailto": cf.Mailto}),
 			Detail: tx("compliance.mailtoDetail", nil),
 			Ack:    tx("compliance.mailtoAck", A{"mailto": cf.Mailto}),
 			Fixes:  []fix{link(tx("fix.openSenders", nil), b.href("/settings/senders"))}})
+	}
+	if cf.Inbox && !cf.Receiving {
+		// Replies go to the receiving domain, which isn't receiving (M58).
+		b.add(check{Key: "compliance.reply_inbox", Group: GroupCompliance, Status: Warn, Label: tx("label.replies", nil),
+			Title:  tx("compliance.replyInbox", nil),
+			Detail: tx("compliance.replyInboxDetail", nil),
+			Fixes:  []fix{link(tx("fix.openSettings", nil), b.href("/settings/senders"))}})
 	}
 	ct := b.f.Content
 	footerBlocked := false

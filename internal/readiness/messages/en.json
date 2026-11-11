@@ -1077,5 +1077,11 @@
   "tech.allOK": "HTTP 200 from {count, plural, one {the link} other {all # links}}",
   "tech.error": {"message": "Error", "note": "a technical details row: the provider's error code (ECONNREFUSED)"},
   "tech.sourceHostRepute": "HostRepute hourly check{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listed since {day}}}",
-  "tech.sourceBuiltin": "ReputeCast's own check{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listed since {day}}}"
+  "tech.sourceBuiltin": "ReputeCast's own check{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listed since {day}}}",
+  "compliance.mailtoReceived": { "message": "Unsubscribe emails are processed by ReputeCast", "note": "The List-Unsubscribe header's mailto: address is on the workspace's receiving domain, and ReputeCast applies what arrives there" },
+  "compliance.mailtoReceivedShort": "unsubscribe emails processed",
+  "compliance.replyInbox": { "message": "Replies go to ReputeCast, but receiving is failing", "note": "Reply handling is \"Keep replies in ReputeCast inbox\" and the receiving route isn't receiving" },
+  "compliance.replyInboxDetail": "Replies to this send won't reach the inbox until receiving works again.",
+  "label.replies": "Replies",
+  "fix.openSettings": "Open Settings"
 }

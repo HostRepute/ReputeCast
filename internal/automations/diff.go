@@ -93,6 +93,8 @@ var (
 	mDiffTrigger        = msg("diff.trigger")
 	mDiffTriggerDetail  = msg("diff.triggerDetail")
 	mDiffTriggerAffects = msg("diff.triggerAffects")
+	mDiffTriggerReply   = msg("diff.triggerReply")
+	mDiffReplyDetail    = msg("diff.triggerReplyDetail")
 	mDiffBranch         = msg("diff.branch")
 	mDiffBranchDetail   = msg("diff.branchDetail")
 	mDiffSplitWeights   = msg("diff.splitWeights")
@@ -526,7 +528,16 @@ func describeChange(from, to AutomationGraph, a, b AutomationNode, dc DiffContex
 		}
 		item.DetailText = txt(mDiffEmailDetail)
 	case NodeTrigger:
-		item.TitleText = txt(mDiffTrigger, "from", triggerLabel(a.Data.Trigger, refsA), "to", triggerLabel(b.Data.Trigger, refsB))
+		ta, tb := a.Data.Trigger, b.Data.Trigger
+		from, to := triggerLabel(ta, refsA), triggerLabel(tb, refsB)
+		if ta.stopsOnReply() != tb.stopsOnReply() && say(english, from) == say(english, to) {
+			// Only "Stop when the contact replies" changed (M58): it holds
+			// for the runs on the version that has it.
+			item.TitleText = txt(mDiffTriggerReply, "change", lower(replyStopText(tb.stopsOnReply())))
+			item.DetailText = txt(mDiffReplyDetail, "version", itoaPlain(dc.ToVersion))
+			break
+		}
+		item.TitleText = txt(mDiffTrigger, "from", from, "to", to)
 		item.DetailText = txt(mDiffTriggerDetail)
 		if dc.InFlow != nil {
 			item.DetailText = txt(mDiffTriggerAffects, "version", itoaPlain(dc.ToVersion), "n", *dc.InFlow, "count", *dc.InFlow)

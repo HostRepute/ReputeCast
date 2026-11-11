@@ -1077,5 +1077,11 @@
   "tech.allOK": "HTTP 200 từ {count, plural, other {cả # liên kết}}",
   "tech.error": "Lỗi",
   "tech.sourceHostRepute": "Lần kiểm tra hằng giờ của HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}",
-  "tech.sourceBuiltin": "Lần kiểm tra của ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}"
+  "tech.sourceBuiltin": "Lần kiểm tra của ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}",
+  "compliance.mailtoReceived": "Email hủy đăng ký được ReputeCast xử lý",
+  "compliance.mailtoReceivedShort": "email hủy đăng ký được xử lý",
+  "compliance.replyInbox": "Thư trả lời được gửi về ReputeCast, nhưng việc nhận thư đang lỗi",
+  "compliance.replyInboxDetail": "Thư trả lời cho lần gửi này sẽ không vào hộp thư cho đến khi việc nhận thư hoạt động trở lại.",
+  "label.replies": "Thư trả lời",
+  "fix.openSettings": "Mở Cài đặt"
 }

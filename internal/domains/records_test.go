@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -214,4 +216,32 @@ func TestSendingDefaultsRoundTrip(t *testing.T) {
 		t.Errorf("defaults: %v", back)
 	}
 	_ = store.Sender{}
+}
+
+// M58: while ReputeCast receives mail the suggested DMARC record also sends
+// reports to dmarc@ the receiving domain, after HostRepute's when it is
+// connected; a domain created then gets it.
+func TestSuggestDMARCWithReceiving(t *testing.T) {
+	for _, c := range []struct {
+		rua  []string
+		want string
+	}{
+		{nil, "v=DMARC1; p=quarantine; adkim=s; aspf=r"},
+		{[]string{"dmarc@reports.hostrepute.com"}, "v=DMARC1; p=quarantine; rua=mailto:dmarc@reports.hostrepute.com; adkim=s; aspf=r"},
+		{[]string{"dmarc@reports.hostrepute.com", "dmarc@reply.news.acme.io"},
+			"v=DMARC1; p=quarantine; rua=mailto:dmarc@reports.hostrepute.com,mailto:dmarc@reply.news.acme.io; adkim=s; aspf=r"},
+		{[]string{"", "dmarc@reply.news.acme.io"}, "v=DMARC1; p=quarantine; rua=mailto:dmarc@reply.news.acme.io; adkim=s; aspf=r"},
+	} {
+		if got := SuggestDMARC(c.rua...); got != c.want {
+			t.Errorf("SuggestDMARC(%q) = %q, want %q", c.rua, got, c.want)
+		}
+	}
+	s := &Service{InboundReportAddress: func(context.Context, uuid.UUID) (string, bool) { return "dmarc@reply.news.acme.io", true }}
+	recs := ensureDMARC(nil, "news.example.com", "", s.inboundRua(context.Background(), uuid.New()))
+	if len(recs) != 1 || recs[0].Name != "_dmarc.news.example.com" || !strings.Contains(recs[0].Value, "rua=mailto:dmarc@reply.news.acme.io;") {
+		t.Fatalf("records: %+v", recs)
+	}
+	if got := (&Service{}).inboundRua(context.Background(), uuid.New()); got != "" {
+		t.Fatalf("without receiving: %q", got)
+	}
 }

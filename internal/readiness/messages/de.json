@@ -1077,5 +1077,11 @@
   "tech.allOK": "HTTP 200 von {count, plural, one {dem Link} other {allen # Links}}",
   "tech.error": "Fehler",
   "tech.sourceHostRepute": "Stündliche Prüfung von HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}",
-  "tech.sourceBuiltin": "Eigene Prüfung von ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}"
+  "tech.sourceBuiltin": "Eigene Prüfung von ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}",
+  "compliance.mailtoReceived": "Abmelde-E-Mails werden von ReputeCast verarbeitet",
+  "compliance.mailtoReceivedShort": "Abmelde-E-Mails verarbeitet",
+  "compliance.replyInbox": "Antworten gehen an ReputeCast, aber der E-Mail-Empfang schlägt fehl",
+  "compliance.replyInboxDetail": "Antworten auf diesen Versand erreichen den Posteingang erst, wenn der Empfang wieder funktioniert.",
+  "label.replies": "Antworten",
+  "fix.openSettings": "Einstellungen öffnen"
 }

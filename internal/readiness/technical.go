@@ -117,10 +117,26 @@ func dnsAnswerRow(trouble string) []techRow {
 // writes them; {token} stands for each recipient's.
 func unsubscribeHeaders(cf ComplianceFacts) []string {
 	lu := "<" + cf.UnsubscribeURL + ">"
-	if cf.Mailto != "" {
+	switch {
+	case cf.Mailto != "" && cf.receivedMailto() != "":
+		lu += ", <mailto:" + cf.receivedMailto() + "?subject=unsubscribe>"
+	case cf.Mailto != "":
 		lu += ", <mailto:" + cf.Mailto + "?subject=unsubscribe%20{token}>"
 	}
 	return []string{"List-Unsubscribe: " + lu, "List-Unsubscribe-Post: List-Unsubscribe=One-Click"}
+}
+
+// receivedMailto is the header's mailto: address while ReputeCast receives
+// the workspace's mail (M58): u-{token} on the receiving domain, after the
+// mailbox's local part and "+" for a mailbox route; "" when it doesn't.
+func (cf ComplianceFacts) receivedMailto() string {
+	if !cf.Receiving || cf.InboundDomain == "" {
+		return ""
+	}
+	if cf.InboundLocal != "" {
+		return cf.InboundLocal + "+u-{token}@" + cf.InboundDomain
+	}
+	return "u-{token}@" + cf.InboundDomain
 }
 
 // maxLinkRows is how many links' or images' responses technical details

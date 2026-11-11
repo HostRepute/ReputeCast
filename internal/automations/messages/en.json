@@ -504,5 +504,13 @@
   "webinar.hourBefore.subject": "Starting in an hour: {title}",
   "webinar.hourBefore.preheader": "Join from the link below.",
   "webinar.hourBefore.heading": "Starting in an hour",
-  "webinar.hourBefore.body": "{title} starts in an hour."
+  "webinar.hourBefore.body": "{title} starts in an hour.",
+  "trigger.exitOnReply": {"message": "Stops when the contact replies to an email from this flow", "note": "A flow's setting (M58): a reply from the contact ends their way through the flow"},
+  "trigger.noExitOnReply": "Doesn't stop when the contact replies to an email from this flow",
+  "cond.replied": {"message": "replied to {step}", "note": "A branch, filter or goal condition, in lower case (Replied to step 1 within 2 days?): step is another step as running text names it (step 1) or any email"},
+  "cond.repliedWithin": "replied to {step} within {duration}",
+  "goal.replied": "Replied to an email",
+  "problem.replyWindow": "Set how long to wait for the reply.",
+  "diff.triggerReply": {"message": "Trigger: {change}", "note": "The publish diff's line when only the flow's stop on reply changed: change is trigger.exitOnReply or trigger.noExitOnReply, in lower case"},
+  "diff.triggerReplyDetail": "It applies to the contacts on v{version} once it's live; contacts who stay on an earlier version keep that version's setting."
 }
