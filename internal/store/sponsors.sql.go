@@ -98,7 +98,7 @@ func (q *Queries) SponsorBookingEvents(ctx context.Context, bookingID uuid.UUID)
 }
 
 const sponsorBookingGet = `-- name: SponsorBookingGet :one
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
     coalesce(sp.contact_email, '')::text AS sponsor_email, coalesce(sp.terms_days, 14)::integer AS sponsor_terms,
     coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
     c.scheduled_at AS campaign_scheduled_at, c.started_at AS campaign_started_at
@@ -150,6 +150,12 @@ type SponsorBookingGetRow struct {
 	CreatedBy           *uuid.UUID      `json:"createdBy"`
 	CreatedAt           time.Time       `json:"createdAt"`
 	UpdatedAt           time.Time       `json:"updatedAt"`
+	Request             json.RawMessage `json:"request"`
+	StatusTokenHash     []byte          `json:"statusTokenHash"`
+	PaymentDueAt        *time.Time      `json:"paymentDueAt"`
+	CheckoutID          string          `json:"checkoutId"`
+	PaidSource          string          `json:"paidSource"`
+	DeclinedReason      string          `json:"declinedReason"`
 	SponsorName         string          `json:"sponsorName"`
 	SponsorContact      string          `json:"sponsorContact"`
 	SponsorEmail        string          `json:"sponsorEmail"`
@@ -200,6 +206,12 @@ func (q *Queries) SponsorBookingGet(ctx context.Context, arg SponsorBookingGetPa
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
 		&i.SponsorName,
 		&i.SponsorContact,
 		&i.SponsorEmail,
@@ -288,7 +300,7 @@ func (q *Queries) SponsorBookingNotified(ctx context.Context, arg SponsorBooking
 }
 
 const sponsorBookingOfCampaign = `-- name: SponsorBookingOfCampaign :one
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.website, '')::text AS sponsor_website, coalesce(sp.logo_url, '')::text AS sponsor_logo
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.website, '')::text AS sponsor_website, coalesce(sp.logo_url, '')::text AS sponsor_logo
 FROM sponsor_bookings b
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
 WHERE b.campaign_id = $1 AND b.status IN ('booked','sent')
@@ -296,45 +308,51 @@ ORDER BY b.issue_number DESC LIMIT 1
 `
 
 type SponsorBookingOfCampaignRow struct {
-	ID             uuid.UUID       `json:"id"`
-	WorkspaceID    uuid.UUID       `json:"workspaceId"`
-	SlotID         uuid.UUID       `json:"slotId"`
-	IssueNumber    int32           `json:"issueNumber"`
-	IssueOn        time.Time       `json:"issueOn"`
-	SponsorID      *uuid.UUID      `json:"sponsorId"`
-	CampaignID     *uuid.UUID      `json:"campaignId"`
-	CampaignByHand bool            `json:"campaignByHand"`
-	PriceCents     int64           `json:"priceCents"`
-	Currency       string          `json:"currency"`
-	Status         string          `json:"status"`
-	HoldUntil      *time.Time      `json:"holdUntil"`
-	Creative       json.RawMessage `json:"creative"`
-	CreativeStatus string          `json:"creativeStatus"`
-	CreativeDue    *time.Time      `json:"creativeDue"`
-	ReadyAt        *time.Time      `json:"readyAt"`
-	ReadyBy        *uuid.UUID      `json:"readyBy"`
-	PaymentStatus  string          `json:"paymentStatus"`
-	PaymentDue     *time.Time      `json:"paymentDue"`
-	PaidOn         *time.Time      `json:"paidOn"`
-	PaidCents      *int64          `json:"paidCents"`
-	PaidNote       string          `json:"paidNote"`
-	PaidBy         *uuid.UUID      `json:"paidBy"`
-	PaidRecordedAt *time.Time      `json:"paidRecordedAt"`
-	Notes          string          `json:"notes"`
-	CancelReason   string          `json:"cancelReason"`
-	CanceledAt     *time.Time      `json:"canceledAt"`
-	CanceledBy     *uuid.UUID      `json:"canceledBy"`
-	SentAt         *time.Time      `json:"sentAt"`
-	ProposedBy     *uuid.UUID      `json:"proposedBy"`
-	ProposedName   string          `json:"proposedName"`
-	ProposedNote   string          `json:"proposedNote"`
-	Notified       []string        `json:"notified"`
-	CreatedBy      *uuid.UUID      `json:"createdBy"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	UpdatedAt      time.Time       `json:"updatedAt"`
-	SponsorName    string          `json:"sponsorName"`
-	SponsorWebsite string          `json:"sponsorWebsite"`
-	SponsorLogo    string          `json:"sponsorLogo"`
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	SponsorID       *uuid.UUID      `json:"sponsorId"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	CampaignByHand  bool            `json:"campaignByHand"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	Status          string          `json:"status"`
+	HoldUntil       *time.Time      `json:"holdUntil"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeStatus  string          `json:"creativeStatus"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	ReadyAt         *time.Time      `json:"readyAt"`
+	ReadyBy         *uuid.UUID      `json:"readyBy"`
+	PaymentStatus   string          `json:"paymentStatus"`
+	PaymentDue      *time.Time      `json:"paymentDue"`
+	PaidOn          *time.Time      `json:"paidOn"`
+	PaidCents       *int64          `json:"paidCents"`
+	PaidNote        string          `json:"paidNote"`
+	PaidBy          *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt  *time.Time      `json:"paidRecordedAt"`
+	Notes           string          `json:"notes"`
+	CancelReason    string          `json:"cancelReason"`
+	CanceledAt      *time.Time      `json:"canceledAt"`
+	CanceledBy      *uuid.UUID      `json:"canceledBy"`
+	SentAt          *time.Time      `json:"sentAt"`
+	ProposedBy      *uuid.UUID      `json:"proposedBy"`
+	ProposedName    string          `json:"proposedName"`
+	ProposedNote    string          `json:"proposedNote"`
+	Notified        []string        `json:"notified"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	Request         json.RawMessage `json:"request"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	PaymentDueAt    *time.Time      `json:"paymentDueAt"`
+	CheckoutID      string          `json:"checkoutId"`
+	PaidSource      string          `json:"paidSource"`
+	DeclinedReason  string          `json:"declinedReason"`
+	SponsorName     string          `json:"sponsorName"`
+	SponsorWebsite  string          `json:"sponsorWebsite"`
+	SponsorLogo     string          `json:"sponsorLogo"`
 }
 
 func (q *Queries) SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorBookingOfCampaignRow, error) {
@@ -377,6 +395,12 @@ func (q *Queries) SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
 		&i.SponsorName,
 		&i.SponsorWebsite,
 		&i.SponsorLogo,
@@ -385,7 +409,7 @@ func (q *Queries) SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid
 }
 
 const sponsorBookingOfIssue = `-- name: SponsorBookingOfIssue :one
-SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status IN ('hold','booked','sent')
+SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at, request, status_token_hash, payment_due_at, checkout_id, paid_source, declined_reason FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status IN ('hold','booked','sent')
 ORDER BY created_at DESC LIMIT 1
 `
 
@@ -434,12 +458,18 @@ func (q *Queries) SponsorBookingOfIssue(ctx context.Context, arg SponsorBookingO
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
 	)
 	return i, err
 }
 
 const sponsorBookingProposals = `-- name: SponsorBookingProposals :many
-SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status = 'proposed' ORDER BY created_at DESC
+SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at, request, status_token_hash, payment_due_at, checkout_id, paid_source, declined_reason FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status = 'proposed' ORDER BY created_at DESC
 `
 
 type SponsorBookingProposalsParams struct {
@@ -493,6 +523,12 @@ func (q *Queries) SponsorBookingProposals(ctx context.Context, arg SponsorBookin
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 		); err != nil {
 			return nil, err
 		}
@@ -660,7 +696,7 @@ func (q *Queries) SponsorBookingSetTerms(ctx context.Context, arg SponsorBooking
 }
 
 const sponsorBookingsDue = `-- name: SponsorBookingsDue :many
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, w.slug AS workspace_slug, w.timezone AS workspace_timezone
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, w.slug AS workspace_slug, w.timezone AS workspace_timezone
 FROM sponsor_bookings b
 JOIN workspaces w ON w.id = b.workspace_id
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
@@ -704,6 +740,12 @@ type SponsorBookingsDueRow struct {
 	CreatedBy         *uuid.UUID      `json:"createdBy"`
 	CreatedAt         time.Time       `json:"createdAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
+	Request           json.RawMessage `json:"request"`
+	StatusTokenHash   []byte          `json:"statusTokenHash"`
+	PaymentDueAt      *time.Time      `json:"paymentDueAt"`
+	CheckoutID        string          `json:"checkoutId"`
+	PaidSource        string          `json:"paidSource"`
+	DeclinedReason    string          `json:"declinedReason"`
 	SponsorName       string          `json:"sponsorName"`
 	WorkspaceSlug     string          `json:"workspaceSlug"`
 	WorkspaceTimezone string          `json:"workspaceTimezone"`
@@ -757,6 +799,12 @@ func (q *Queries) SponsorBookingsDue(ctx context.Context) ([]SponsorBookingsDueR
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 			&i.SponsorName,
 			&i.WorkspaceSlug,
 			&i.WorkspaceTimezone,
@@ -772,7 +820,7 @@ func (q *Queries) SponsorBookingsDue(ctx context.Context) ([]SponsorBookingsDueR
 }
 
 const sponsorBookingsOfSlot = `-- name: SponsorBookingsOfSlot :many
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
     coalesce(sp.contact_email, '')::text AS sponsor_email, coalesce(sp.terms_days, 14)::integer AS sponsor_terms,
     coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
     c.scheduled_at AS campaign_scheduled_at, c.started_at AS campaign_started_at
@@ -826,6 +874,12 @@ type SponsorBookingsOfSlotRow struct {
 	CreatedBy           *uuid.UUID      `json:"createdBy"`
 	CreatedAt           time.Time       `json:"createdAt"`
 	UpdatedAt           time.Time       `json:"updatedAt"`
+	Request             json.RawMessage `json:"request"`
+	StatusTokenHash     []byte          `json:"statusTokenHash"`
+	PaymentDueAt        *time.Time      `json:"paymentDueAt"`
+	CheckoutID          string          `json:"checkoutId"`
+	PaidSource          string          `json:"paidSource"`
+	DeclinedReason      string          `json:"declinedReason"`
 	SponsorName         string          `json:"sponsorName"`
 	SponsorContact      string          `json:"sponsorContact"`
 	SponsorEmail        string          `json:"sponsorEmail"`
@@ -883,6 +937,12 @@ func (q *Queries) SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookings
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 			&i.SponsorName,
 			&i.SponsorContact,
 			&i.SponsorEmail,
@@ -903,7 +963,7 @@ func (q *Queries) SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookings
 }
 
 const sponsorBookingsOfWorkspace = `-- name: SponsorBookingsOfWorkspace :many
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
     coalesce(sp.contact_email, '')::text AS sponsor_email, coalesce(sp.terms_days, 14)::integer AS sponsor_terms,
     coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
     c.scheduled_at AS campaign_scheduled_at, c.started_at AS campaign_started_at
@@ -951,6 +1011,12 @@ type SponsorBookingsOfWorkspaceRow struct {
 	CreatedBy           *uuid.UUID      `json:"createdBy"`
 	CreatedAt           time.Time       `json:"createdAt"`
 	UpdatedAt           time.Time       `json:"updatedAt"`
+	Request             json.RawMessage `json:"request"`
+	StatusTokenHash     []byte          `json:"statusTokenHash"`
+	PaymentDueAt        *time.Time      `json:"paymentDueAt"`
+	CheckoutID          string          `json:"checkoutId"`
+	PaidSource          string          `json:"paidSource"`
+	DeclinedReason      string          `json:"declinedReason"`
 	SponsorName         string          `json:"sponsorName"`
 	SponsorContact      string          `json:"sponsorContact"`
 	SponsorEmail        string          `json:"sponsorEmail"`
@@ -1007,6 +1073,12 @@ func (q *Queries) SponsorBookingsOfWorkspace(ctx context.Context, workspaceID uu
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 			&i.SponsorName,
 			&i.SponsorContact,
 			&i.SponsorEmail,
@@ -1231,7 +1303,7 @@ func (q *Queries) SponsorGet(ctx context.Context, arg SponsorGetParams) (Sponsor
 }
 
 const sponsorHoldsLapsed = `-- name: SponsorHoldsLapsed :many
-SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at FROM sponsor_bookings WHERE status = 'hold' AND hold_until IS NOT NULL AND hold_until < $1::date
+SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at, request, status_token_hash, payment_due_at, checkout_id, paid_source, declined_reason FROM sponsor_bookings WHERE status = 'hold' AND hold_until IS NOT NULL AND hold_until < $1::date
 `
 
 func (q *Queries) SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]SponsorBooking, error) {
@@ -1280,6 +1352,12 @@ func (q *Queries) SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]Sp
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 		); err != nil {
 			return nil, err
 		}
@@ -1743,7 +1821,7 @@ func (q *Queries) SponsorSlotDelete(ctx context.Context, arg SponsorSlotDeletePa
 }
 
 const sponsorSlotGet = `-- name: SponsorSlotGet :one
-SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, l.name AS list_name
+SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, s.self_serve, s.description, s.lead_days, s.pay_days, l.name AS list_name
 FROM sponsor_slots s JOIN lists l ON l.id = s.list_id
 WHERE s.id = $1 AND s.workspace_id = $2 AND s.deleted_at IS NULL
 `
@@ -1770,6 +1848,10 @@ type SponsorSlotGetRow struct {
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 	DeletedAt    *time.Time `json:"deletedAt"`
+	SelfServe    bool       `json:"selfServe"`
+	Description  string     `json:"description"`
+	LeadDays     int32      `json:"leadDays"`
+	PayDays      int32      `json:"payDays"`
 	ListName     string     `json:"listName"`
 }
 
@@ -1793,6 +1875,10 @@ func (q *Queries) SponsorSlotGet(ctx context.Context, arg SponsorSlotGetParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SelfServe,
+		&i.Description,
+		&i.LeadDays,
+		&i.PayDays,
 		&i.ListName,
 	)
 	return i, err
@@ -1882,7 +1968,7 @@ func (q *Queries) SponsorSlotUpdate(ctx context.Context, arg SponsorSlotUpdatePa
 }
 
 const sponsorSlots = `-- name: SponsorSlots :many
-SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, l.name AS list_name
+SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, s.self_serve, s.description, s.lead_days, s.pay_days, l.name AS list_name
 FROM sponsor_slots s JOIN lists l ON l.id = s.list_id
 WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
 ORDER BY s.created_at
@@ -1905,6 +1991,10 @@ type SponsorSlotsRow struct {
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 	DeletedAt    *time.Time `json:"deletedAt"`
+	SelfServe    bool       `json:"selfServe"`
+	Description  string     `json:"description"`
+	LeadDays     int32      `json:"leadDays"`
+	PayDays      int32      `json:"payDays"`
 	ListName     string     `json:"listName"`
 }
 
@@ -1934,6 +2024,10 @@ func (q *Queries) SponsorSlots(ctx context.Context, workspaceID uuid.UUID) ([]Sp
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.SelfServe,
+			&i.Description,
+			&i.LeadDays,
+			&i.PayDays,
 			&i.ListName,
 		); err != nil {
 			return nil, err

@@ -2530,9 +2530,10 @@ type Querier interface {
 	// Paid access for the domains that choose recipients and content (design
 	// expansion X16): paid-only campaigns, paid-only blocks, paid tokens and
 	// the contacts table. A contact has paid access while a live subscription,
-	// complimentary grant or gift hasn't ended and is trialing, active,
-	// complimentary or a gift, or past due while Stripe retries (unless the
-	// access rule paused it). Test paid members never count.
+	// complimentary grant, gift or team seat has it (earn_paid_access: not
+	// ended, not paused, and trialing, active, complimentary, a gift, a seat,
+	// or past due while Stripe retries unless the access rule paused it).
+	// Test paid members never count.
 	// One row per contact with paid access at a tier ranked at least min_rank
 	// (1: any paid tier): the highest tier's subscription.
 	PaidAccessRows(ctx context.Context, arg PaidAccessRowsParams) ([]PaidAccessRowsRow, error)

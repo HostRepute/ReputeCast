@@ -618,7 +618,7 @@ func (q *Queries) OfferList(ctx context.Context, workspaceID uuid.UUID) ([]Offer
 const offerRedemptions = `-- name: OfferRedemptions :one
 SELECT count(*)::bigint AS redemptions,
        count(*) FILTER (WHERE s.started_at >= $1)::bigint AS new_members,
-       coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount)), 0)::bigint AS arr
+       coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount, s.quantity, s.paused_at)), 0)::bigint AS arr
 FROM paid_subscriptions s
 WHERE s.workspace_id = $2 AND s.mode = 'live' AND s.discount IS NOT NULL
   AND (s.discount->>'coupon' = ANY($3::text[]) OR ($4::text <> '' AND upper(s.discount->>'label') = upper($4::text)))

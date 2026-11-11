@@ -1,9 +1,10 @@
 -- Paid access for the domains that choose recipients and content (design
 -- expansion X16): paid-only campaigns, paid-only blocks, paid tokens and
 -- the contacts table. A contact has paid access while a live subscription,
--- complimentary grant or gift hasn't ended and is trialing, active,
--- complimentary or a gift, or past due while Stripe retries (unless the
--- access rule paused it). Test paid members never count.
+-- complimentary grant, gift or team seat has it (earn_paid_access: not
+-- ended, not paused, and trialing, active, complimentary, a gift, a seat,
+-- or past due while Stripe retries unless the access rule paused it).
+-- Test paid members never count.
 
 -- name: PaidAccessRows :many
 -- One row per contact with paid access at a tier ranked at least min_rank
@@ -11,8 +12,8 @@
 SELECT DISTINCT ON (s.contact_id) s.contact_id, s.status, s.kind, coalesce(t.access_rank, 1)::int AS tier_rank
 FROM paid_subscriptions s
 LEFT JOIN earn_tiers t ON t.id = s.tier_id
-WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND s.ended_at IS NULL
-  AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))
+WHERE s.workspace_id = @workspace_id AND s.mode = 'live'
+  AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)
   AND coalesce(t.access_rank, 1) >= @min_rank::int
 ORDER BY s.contact_id, coalesce(t.access_rank, 1) DESC, s.started_at DESC;
 
@@ -25,8 +26,8 @@ SELECT DISTINCT ON (s.contact_id) s.contact_id, s.status, s.kind, s.period, s.am
        coalesce(t.list_ids, '{}')::uuid[] AS tier_lists
 FROM paid_subscriptions s
 LEFT JOIN earn_tiers t ON t.id = s.tier_id
-WHERE s.workspace_id = @workspace_id AND s.contact_id = ANY (@contact_ids::uuid[]) AND s.mode = 'live' AND s.ended_at IS NULL
-  AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))
+WHERE s.workspace_id = @workspace_id AND s.contact_id = ANY (@contact_ids::uuid[]) AND s.mode = 'live'
+  AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)
 ORDER BY s.contact_id, coalesce(t.access_rank, 1) DESC, s.started_at DESC;
 
 -- name: PaidAccessTiers :many
@@ -58,8 +59,8 @@ WITH members AS (
     SELECT s.contact_id, max(coalesce(t.access_rank, 1))::int AS rank
     FROM paid_subscriptions s
     LEFT JOIN earn_tiers t ON t.id = s.tier_id
-    WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND s.ended_at IS NULL
-      AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))
+    WHERE s.workspace_id = @workspace_id AND s.mode = 'live'
+      AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)
     GROUP BY s.contact_id
 )
 SELECT count(*)::bigint AS everyone,
@@ -80,6 +81,6 @@ SELECT DISTINCT ON (s.contact_id) s.contact_id, s.status, coalesce(t.access_rank
 FROM paid_subscriptions s
 JOIN contacts c ON c.id = s.contact_id AND c.erased_at IS NULL
 LEFT JOIN earn_tiers t ON t.id = s.tier_id
-WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND s.ended_at IS NULL
-  AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))
+WHERE s.workspace_id = @workspace_id AND s.mode = 'live'
+  AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)
 ORDER BY s.contact_id, coalesce(t.access_rank, 1) DESC, s.started_at DESC;

@@ -490,8 +490,8 @@ ORDER BY r.read_at;
 -- The paid tiers a contact holds now (internal/earn's access rule).
 SELECT t.id, t.name, t.access_rank
 FROM paid_subscriptions s JOIN earn_tiers t ON t.id = s.tier_id AND t.deleted_at IS NULL
-WHERE s.workspace_id = @workspace_id AND s.contact_id = @contact_id AND s.mode = 'live' AND s.ended_at IS NULL
-  AND (s.status IN ('trialing','active','complimentary','gift') OR (s.status = 'past_due' AND NOT s.access_paused));
+WHERE s.workspace_id = @workspace_id AND s.contact_id = @contact_id AND s.mode = 'live'
+  AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at);
 
 -- name: WebsiteTiers :many
 -- The workspace's paid tiers that can be sold or held (not archived).

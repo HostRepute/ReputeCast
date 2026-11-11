@@ -58,7 +58,7 @@ UPDATE earn_offers SET status = 'live', ended_at = NULL, ended_reason = '', ende
 -- after the discount.
 SELECT count(*)::bigint AS redemptions,
        count(*) FILTER (WHERE s.started_at >= @started_at)::bigint AS new_members,
-       coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount)), 0)::bigint AS arr
+       coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount, s.quantity, s.paused_at)), 0)::bigint AS arr
 FROM paid_subscriptions s
 WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND s.discount IS NOT NULL
   AND (s.discount->>'coupon' = ANY(@coupons::text[]) OR (@code::text <> '' AND upper(s.discount->>'label') = upper(@code::text)));

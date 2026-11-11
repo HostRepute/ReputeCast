@@ -224,7 +224,7 @@ func (q *Queries) EarnEventInsert(ctx context.Context, arg EarnEventInsertParams
 }
 
 const earnGrantsToEnd = `-- name: EarnGrantsToEnd :many
-SELECT s.id, s.workspace_id, s.contact_id, s.mode, s.kind, s.tier_id, s.price_id, s.stripe_price_id, s.status, s.period, s.amount_cents, s.currency, s.discount, s.started_at, s.trial_end, s.current_period_end, s.cancel_at, s.canceled_at, s.canceled_by, s.ended_at, s.end_reason, s.cancel_reason, s.paid_cents, s.refunded_cents, s.failed_at, s.access_paused, s.failure_reason, s.next_retry_at, s.stripe_customer_id, s.stripe_subscription_id, s.billing_email, s.source_kind, s.source_campaign_id, s.source_label, s.source_detail, s.grant_reason, s.grant_note, s.granted_by, s.grant_until, s.import_id, s.stripe_synced_at, s.emailed, s.created_at, s.updated_at, s.automation_started_at, s.automation_ended_at FROM paid_subscriptions s
+SELECT s.id, s.workspace_id, s.contact_id, s.mode, s.kind, s.tier_id, s.price_id, s.stripe_price_id, s.status, s.period, s.amount_cents, s.currency, s.discount, s.started_at, s.trial_end, s.current_period_end, s.cancel_at, s.canceled_at, s.canceled_by, s.ended_at, s.end_reason, s.cancel_reason, s.paid_cents, s.refunded_cents, s.failed_at, s.access_paused, s.failure_reason, s.next_retry_at, s.stripe_customer_id, s.stripe_subscription_id, s.billing_email, s.source_kind, s.source_campaign_id, s.source_label, s.source_detail, s.grant_reason, s.grant_note, s.granted_by, s.grant_until, s.import_id, s.stripe_synced_at, s.emailed, s.created_at, s.updated_at, s.automation_started_at, s.automation_ended_at, s.quantity, s.stripe_item_id, s.group_id, s.paused_at, s.pause_resumes_at, s.last_paused_at, s.resume_notified_at FROM paid_subscriptions s
 WHERE s.ended_at IS NULL AND (
     (s.kind = 'complimentary' AND s.grant_until IS NOT NULL AND s.grant_until <= $1::timestamptz)
  OR (s.kind = 'gift' AND s.current_period_end IS NOT NULL AND s.current_period_end <= $1::timestamptz)
@@ -297,6 +297,13 @@ func (q *Queries) EarnGrantsToEnd(ctx context.Context, arg EarnGrantsToEndParams
 			&i.UpdatedAt,
 			&i.AutomationStartedAt,
 			&i.AutomationEndedAt,
+			&i.Quantity,
+			&i.StripeItemID,
+			&i.GroupID,
+			&i.PausedAt,
+			&i.PauseResumesAt,
+			&i.LastPausedAt,
+			&i.ResumeNotifiedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -310,7 +317,7 @@ func (q *Queries) EarnGrantsToEnd(ctx context.Context, arg EarnGrantsToEndParams
 
 const earnSubscription = `-- name: EarnSubscription :one
 
-SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at FROM paid_subscriptions WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at, quantity, stripe_item_id, group_id, paused_at, pause_resumes_at, last_paused_at, resume_notified_at FROM paid_subscriptions WHERE id = $1 AND workspace_id = $2
 `
 
 type EarnSubscriptionParams struct {
@@ -370,12 +377,19 @@ func (q *Queries) EarnSubscription(ctx context.Context, arg EarnSubscriptionPara
 		&i.UpdatedAt,
 		&i.AutomationStartedAt,
 		&i.AutomationEndedAt,
+		&i.Quantity,
+		&i.StripeItemID,
+		&i.GroupID,
+		&i.PausedAt,
+		&i.PauseResumesAt,
+		&i.LastPausedAt,
+		&i.ResumeNotifiedAt,
 	)
 	return i, err
 }
 
 const earnSubscriptionByStripeID = `-- name: EarnSubscriptionByStripeID :one
-SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND stripe_subscription_id = $3
+SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at, quantity, stripe_item_id, group_id, paused_at, pause_resumes_at, last_paused_at, resume_notified_at FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND stripe_subscription_id = $3
 `
 
 type EarnSubscriptionByStripeIDParams struct {
@@ -434,6 +448,13 @@ func (q *Queries) EarnSubscriptionByStripeID(ctx context.Context, arg EarnSubscr
 		&i.UpdatedAt,
 		&i.AutomationStartedAt,
 		&i.AutomationEndedAt,
+		&i.Quantity,
+		&i.StripeItemID,
+		&i.GroupID,
+		&i.PausedAt,
+		&i.PauseResumesAt,
+		&i.LastPausedAt,
+		&i.ResumeNotifiedAt,
 	)
 	return i, err
 }
@@ -516,7 +537,7 @@ func (q *Queries) EarnSubscriptionFailed(ctx context.Context, arg EarnSubscripti
 }
 
 const earnSubscriptionForUpdate = `-- name: EarnSubscriptionForUpdate :one
-SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at FROM paid_subscriptions WHERE id = $1 FOR UPDATE
+SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at, quantity, stripe_item_id, group_id, paused_at, pause_resumes_at, last_paused_at, resume_notified_at FROM paid_subscriptions WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) EarnSubscriptionForUpdate(ctx context.Context, id uuid.UUID) (PaidSubscription, error) {
@@ -569,6 +590,13 @@ func (q *Queries) EarnSubscriptionForUpdate(ctx context.Context, id uuid.UUID) (
 		&i.UpdatedAt,
 		&i.AutomationStartedAt,
 		&i.AutomationEndedAt,
+		&i.Quantity,
+		&i.StripeItemID,
+		&i.GroupID,
+		&i.PausedAt,
+		&i.PauseResumesAt,
+		&i.LastPausedAt,
+		&i.ResumeNotifiedAt,
 	)
 	return i, err
 }
@@ -882,7 +910,7 @@ func (q *Queries) EarnSubscriptionSetState(ctx context.Context, arg EarnSubscrip
 }
 
 const earnSubscriptionsOfContact = `-- name: EarnSubscriptionsOfContact :many
-SELECT s.id, s.workspace_id, s.contact_id, s.mode, s.kind, s.tier_id, s.price_id, s.stripe_price_id, s.status, s.period, s.amount_cents, s.currency, s.discount, s.started_at, s.trial_end, s.current_period_end, s.cancel_at, s.canceled_at, s.canceled_by, s.ended_at, s.end_reason, s.cancel_reason, s.paid_cents, s.refunded_cents, s.failed_at, s.access_paused, s.failure_reason, s.next_retry_at, s.stripe_customer_id, s.stripe_subscription_id, s.billing_email, s.source_kind, s.source_campaign_id, s.source_label, s.source_detail, s.grant_reason, s.grant_note, s.granted_by, s.grant_until, s.import_id, s.stripe_synced_at, s.emailed, s.created_at, s.updated_at, s.automation_started_at, s.automation_ended_at, coalesce(t.name, '')::text AS tier_name, coalesce(t.access_rank, 0)::int AS tier_rank
+SELECT s.id, s.workspace_id, s.contact_id, s.mode, s.kind, s.tier_id, s.price_id, s.stripe_price_id, s.status, s.period, s.amount_cents, s.currency, s.discount, s.started_at, s.trial_end, s.current_period_end, s.cancel_at, s.canceled_at, s.canceled_by, s.ended_at, s.end_reason, s.cancel_reason, s.paid_cents, s.refunded_cents, s.failed_at, s.access_paused, s.failure_reason, s.next_retry_at, s.stripe_customer_id, s.stripe_subscription_id, s.billing_email, s.source_kind, s.source_campaign_id, s.source_label, s.source_detail, s.grant_reason, s.grant_note, s.granted_by, s.grant_until, s.import_id, s.stripe_synced_at, s.emailed, s.created_at, s.updated_at, s.automation_started_at, s.automation_ended_at, s.quantity, s.stripe_item_id, s.group_id, s.paused_at, s.pause_resumes_at, s.last_paused_at, s.resume_notified_at, coalesce(t.name, '')::text AS tier_name, coalesce(t.access_rank, 0)::int AS tier_rank
 FROM paid_subscriptions s
 LEFT JOIN earn_tiers t ON t.id = s.tier_id
 WHERE s.contact_id = $1 AND s.workspace_id = $2 AND s.status <> 'incomplete'
@@ -957,6 +985,13 @@ func (q *Queries) EarnSubscriptionsOfContact(ctx context.Context, arg EarnSubscr
 			&i.PaidSubscription.UpdatedAt,
 			&i.PaidSubscription.AutomationStartedAt,
 			&i.PaidSubscription.AutomationEndedAt,
+			&i.PaidSubscription.Quantity,
+			&i.PaidSubscription.StripeItemID,
+			&i.PaidSubscription.GroupID,
+			&i.PaidSubscription.PausedAt,
+			&i.PaidSubscription.PauseResumesAt,
+			&i.PaidSubscription.LastPausedAt,
+			&i.PaidSubscription.ResumeNotifiedAt,
 			&i.TierName,
 			&i.TierRank,
 		); err != nil {
@@ -971,7 +1006,7 @@ func (q *Queries) EarnSubscriptionsOfContact(ctx context.Context, arg EarnSubscr
 }
 
 const earnSubscriptionsOfCustomer = `-- name: EarnSubscriptionsOfCustomer :many
-SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND stripe_customer_id = $3
+SELECT id, workspace_id, contact_id, mode, kind, tier_id, price_id, stripe_price_id, status, period, amount_cents, currency, discount, started_at, trial_end, current_period_end, cancel_at, canceled_at, canceled_by, ended_at, end_reason, cancel_reason, paid_cents, refunded_cents, failed_at, access_paused, failure_reason, next_retry_at, stripe_customer_id, stripe_subscription_id, billing_email, source_kind, source_campaign_id, source_label, source_detail, grant_reason, grant_note, granted_by, grant_until, import_id, stripe_synced_at, emailed, created_at, updated_at, automation_started_at, automation_ended_at, quantity, stripe_item_id, group_id, paused_at, pause_resumes_at, last_paused_at, resume_notified_at FROM paid_subscriptions WHERE workspace_id = $1 AND mode = $2 AND stripe_customer_id = $3
 `
 
 type EarnSubscriptionsOfCustomerParams struct {
@@ -1036,6 +1071,13 @@ func (q *Queries) EarnSubscriptionsOfCustomer(ctx context.Context, arg EarnSubsc
 			&i.UpdatedAt,
 			&i.AutomationStartedAt,
 			&i.AutomationEndedAt,
+			&i.Quantity,
+			&i.StripeItemID,
+			&i.GroupID,
+			&i.PausedAt,
+			&i.PauseResumesAt,
+			&i.LastPausedAt,
+			&i.ResumeNotifiedAt,
 		); err != nil {
 			return nil, err
 		}

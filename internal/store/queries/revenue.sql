@@ -4,8 +4,8 @@
 -- name: RevenueMRRNow :one
 -- The MRR definition: Active and Past due subscriptions, live only, after
 -- discounts, a yearly price as a twelfth (twelve times MRR, in minor units).
-SELECT coalesce(sum(earn_arr_cents(kind, mode, status, ended_at, period, amount_cents, discount)), 0)::bigint AS arr,
-       count(*) FILTER (WHERE earn_arr_cents(kind, mode, status, ended_at, period, amount_cents, discount) > 0)::bigint AS members
+SELECT coalesce(sum(earn_arr_cents(kind, mode, status, ended_at, period, amount_cents, discount, quantity, paused_at)), 0)::bigint AS arr,
+       count(*) FILTER (WHERE earn_arr_cents(kind, mode, status, ended_at, period, amount_cents, discount, quantity, paused_at) > 0)::bigint AS members
 FROM paid_subscriptions WHERE workspace_id = @workspace_id AND mode = 'live';
 
 -- name: RevenueMovement :many
@@ -19,7 +19,7 @@ GROUP BY kind;
 -- name: RevenueDeltaSince :many
 -- The ledger's change after each of several moments (the MRR line).
 SELECT p.at::timestamptz AS at, coalesce(sum(c.arr_after - c.arr_before), 0)::bigint AS arr,
-       (count(*) FILTER (WHERE c.kind IN ('new','reactivation')) - count(*) FILTER (WHERE c.kind = 'churn'))::bigint AS members
+       (count(*) FILTER (WHERE c.kind IN ('new','reactivation','resumed')) - count(*) FILTER (WHERE c.kind IN ('churn','paused')))::bigint AS members
 FROM unnest(@points::timestamptz[]) AS p(at)
 LEFT JOIN earn_mrr_changes c ON c.workspace_id = @workspace_id AND c.at > p.at
 GROUP BY p.at ORDER BY p.at;
@@ -27,11 +27,11 @@ GROUP BY p.at ORDER BY p.at;
 -- name: RevenueByTier :many
 -- Paying subscriptions by tier, period and discount, today.
 SELECT s.tier_id, coalesce(t.name, '')::text AS tier_name, coalesce(t.access_rank, 0)::integer AS access_rank, s.period, s.amount_cents,
-       coalesce(s.discount->>'label', '')::text AS offer, coalesce((s.discount->>'amountCents')::bigint, s.amount_cents)::bigint AS paid_cents,
+       coalesce(s.discount->>'label', '')::text AS offer, coalesce((s.discount->>'amountCents')::bigint, s.amount_cents * s.quantity)::bigint AS paid_cents,
        coalesce(s.discount->>'duration', '')::text AS duration, coalesce((s.discount->>'months')::integer, 0)::integer AS months,
-       count(*)::bigint AS members, coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount)), 0)::bigint AS arr
+       count(*)::bigint AS members, coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount, s.quantity, s.paused_at)), 0)::bigint AS arr
 FROM paid_subscriptions s LEFT JOIN earn_tiers t ON t.id = s.tier_id
-WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount) > 0
+WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount, s.quantity, s.paused_at) > 0
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
 ORDER BY 3, 2, 4, 6;
 
@@ -328,9 +328,10 @@ FROM campaigns c WHERE c.id = @id AND c.workspace_id = @workspace_id;
 -- Paid members credited to a campaign: what they pay first and whether
 -- they're still trialing.
 SELECT s.id, s.status, s.period, s.amount_cents, s.trial_end, s.started_at, coalesce(t.name, '')::text AS tier, coalesce(s.discount->>'label', '')::text AS offer,
-       coalesce((s.discount->>'amountCents')::bigint, s.amount_cents)::bigint AS first_cents,
-       earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount)::bigint AS arr,
-       (CASE WHEN s.period = 'year' THEN coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) ELSE coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) * 12 END)::bigint AS arr_if_paid
+       coalesce((s.discount->>'amountCents')::bigint, s.amount_cents * s.quantity)::bigint AS first_cents,
+       earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount, s.quantity, s.paused_at)::bigint AS arr,
+       (CASE WHEN s.period = 'year' THEN coalesce((s.discount->>'amountCents')::bigint, s.amount_cents * s.quantity)
+             ELSE coalesce((s.discount->>'amountCents')::bigint, s.amount_cents * s.quantity) * 12 END)::bigint AS arr_if_paid
 FROM paid_subscriptions s LEFT JOIN earn_tiers t ON t.id = s.tier_id
 WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND s.kind = 'stripe' AND s.source_kind = 'campaign' AND s.source_campaign_id = @campaign_id
   AND s.status <> 'incomplete';
