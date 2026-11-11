@@ -144,6 +144,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   page: (ctx, name) => lookup(ctx, 'pages', 'pages', (p) => p.name === name, `no page named ${name}`),
   // A connected store by its name ({store:Acme Merch}).
   store: (ctx, name) => lookup(ctx, 'stores', 'stores', (s) => s.name === name, `no store named ${name}`),
+  // A Meta Lead Ads connection by its name ({leadConnection:Acme Marketing}).
+  leadConnection: (ctx, name) => lookup(ctx, 'lead-ads/connections', 'items', (c) => c.name === name, `no lead ads connection named ${name}`),
 }
 
 /** The id of the first item of a workspace list that matches. */
