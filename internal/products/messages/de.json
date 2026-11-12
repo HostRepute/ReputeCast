@@ -32,6 +32,7 @@
   "file.mismatch": "Diese Datei hat die Endung .{ext}, enthält aber {content}. Käufer bekämen eine Datei, die ihr Computer nicht öffnen kann. Laden Sie die eigentliche {claimed}-Datei hoch oder die {actual}-Datei mit der Endung .{actualExt}.",
   "file.uploadGone": "Dieser Upload wurde abgebrochen, und nichts wurde behalten. Wählen Sie die Datei erneut.",
   "file.offset": "Ein Teil des Uploads kam doppelt an. Er wird ab {offset} Byte fortgesetzt.",
+  "file.chunks": "Dieser Upload kam in zu vielen kleinen Teilen an und wurde abgebrochen. Wählen Sie die Datei erneut.",
   "file.incomplete": "Der Upload ist nicht abgeschlossen: {have} von {size} Byte sind angekommen.",
   "file.notFound": "Diese Datei gehört nicht mehr zum Produkt.",
   "content.pdf": "eine PDF-Datei",

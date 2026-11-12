@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/pages"
@@ -78,10 +79,15 @@ func (w *sellSeed) day(m time.Month, d, h, mi int) time.Time {
 }
 
 func seedPagesProductsImpl(ctx context.Context, s *Seeder) error {
+	// The sample files go where the instance keeps files (storage.backend).
+	blobs, err := blobstore.Open(ctx, s.Cfg)
+	if err != nil {
+		return err
+	}
 	w := &sellSeed{s: s, ws: s.WS(), rng: rand.New(rand.NewPCG(19, 29)), //nolint:gosec // G404: the demo's sample numbers, the same every time
 		covers: map[string]string{}, files: map[string]uuid.UUID{}, forms: map[string]uuid.UUID{}, pages: map[string]uuid.UUID{}, prods: map[string]uuid.UUID{},
 		linh: s.Users["linh@acme.io"].ID, sofia: s.Users["sofia@acme.io"].ID, marcus: s.Users["marcus@acme.io"].ID, daniel: s.Users["daniel@acme.io"].ID,
-		digest: s.Lists["Weekly Digest"], store: products.Store{Dir: s.Cfg.FilesDir()}, taken: map[uuid.UUID]bool{}}
+		digest: s.Lists["Weekly Digest"], store: products.Store{Blobs: blobs}, taken: map[uuid.UUID]bool{}}
 	day := w.day(10, 29, 12, 0)
 	w.event = time.Date(day.Year(), day.Month(), day.Day(), 17, 0, 0, 0, time.UTC)
 	w.opens = w.day(10, 6, 9, 0)
@@ -284,7 +290,7 @@ func (w *sellSeed) sampleFiles(ctx context.Context) error {
 		{"dns", "form", "dns-records-checklist.pdf", "pdf", "application/pdf", append(append([]byte(nil), pdf...), '\n'), 389120, i32p(2), w.day(9, 22, 9, 20), w.sofia},
 	}
 	for _, f := range files {
-		key, sum, err := w.store.PutBytes(w.ws.ID, f.data)
+		key, sum, err := w.store.PutBytes(ctx, w.ws.ID, f.data)
 		if err != nil {
 			return fmt.Errorf("file %s: %w", f.name, err)
 		}

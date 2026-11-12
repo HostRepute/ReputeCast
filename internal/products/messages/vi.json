@@ -32,6 +32,7 @@
   "file.mismatch": "Tệp này có đuôi .{ext} nhưng chứa {content}. Người mua sẽ nhận một tệp máy tính của họ không mở được. Hãy tải lên chính tệp {claimed}, hoặc tệp {actual} với đuôi .{actualExt}.",
   "file.uploadGone": "Lần tải lên đó đã dừng và không có gì được giữ lại. Hãy chọn lại tệp.",
   "file.offset": "Một phần của tệp tải lên đã đến hai lần. Việc tải lên tiếp tục từ byte thứ {offset}.",
+  "file.chunks": "Lần tải lên đó gửi quá nhiều phần nhỏ nên đã dừng. Hãy chọn lại tệp.",
   "file.incomplete": "Việc tải lên chưa xong: mới nhận được {have} trên {size} byte.",
   "file.notFound": "Tệp đó không còn thuộc sản phẩm này.",
   "content.pdf": "tệp PDF",

@@ -384,7 +384,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Background jobs, queues, the database's size and largest tables, and the files folder */
+        /** Background jobs, queues, the database's size and largest tables, and the file storage */
         get: operations["get-instance-system"];
         put?: never;
         post?: never;
@@ -43047,17 +43047,23 @@ export interface components {
             version: string;
         };
         SystemFiles: {
+            /** @enum {string} */
+            backend: "local" | "s3";
+            bucket?: string;
             /** Format: int64 */
             bytes: number;
             /** Format: date-time */
             countedAt: string;
-            dir: string;
+            dir?: string;
+            endpoint?: string;
             error?: string;
             /** Format: int64 */
             files: number;
-            /** @description The folder doesn't exist yet (nothing uploaded) */
+            /** @description The local folder doesn't exist yet (nothing uploaded) */
             missing?: boolean;
             partial?: boolean;
+            prefix?: string;
+            region?: string;
         };
         SystemJob: {
             /** Format: int64 */

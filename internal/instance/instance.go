@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/accounts"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/mailer"
@@ -37,6 +38,8 @@ type Service struct {
 	Log      *slog.Logger
 	Accounts *accounts.Service
 	SSO      *sso.Service
+	// Blobs is the file storage the System tab counts.
+	Blobs blobstore.Store
 	// Mail returns the system mailer (set by a start hook after wiring).
 	Mail func() mailer.Sender
 	// Jobs returns the River client (it exists only after wiring).

@@ -62,7 +62,7 @@ func serve(t *testing.T, env *apptest.Env, tweak func(*instance.Service)) *appte
 	h.UseMiddleware(env.App.Auth.Middleware(h))
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	acc := &accounts.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, Box: env.App.Secrets, Cfg: env.App.Cfg, Mail: mailer.Unavailable{}, Log: log, Breach: authn.NewBreachChecker()}
-	svc := &instance.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, Box: env.App.Secrets, Cfg: env.App.Cfg, Log: log, Accounts: acc,
+	svc := &instance.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, Box: env.App.Secrets, Cfg: env.App.Cfg, Log: log, Accounts: acc, Blobs: env.App.Blobs,
 		SSO: &sso.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, Box: env.App.Secrets, Cfg: env.App.Cfg, Log: log, Accounts: acc}, OnPolicyChange: env.App.InvalidatePolicy}
 	tweak(svc)
 	instance.Register(h, svc)

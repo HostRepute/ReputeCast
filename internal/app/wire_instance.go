@@ -35,7 +35,7 @@ func (a *App) ssoService() *sso.Service {
 
 func (a *App) instanceService() *instance.Service {
 	return &instance.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Cfg: a.Cfg, Log: a.Log,
-		Accounts: a.accountsForSSO(), SSO: a.ssoService(),
+		Accounts: a.accountsForSSO(), SSO: a.ssoService(), Blobs: a.Blobs,
 		Mail:           func() mailer.Sender { return a.notifyMailer() },
 		Jobs:           func() *jobs.Client { return a.Jobs },
 		OnPolicyChange: a.InvalidatePolicy,

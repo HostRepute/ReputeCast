@@ -51,7 +51,7 @@ const jobName = (j: Job) => `${j.kind} #${j.id}`
 /**
  * Instance admin › System (InstanceSystem; review 2026-11 OP-10): failed
  * background jobs with retry, cancel and delete; the queues and their lag;
- * the database's largest tables; the files folder.
+ * the database's largest tables; the file storage (folder or bucket).
  */
 export function SystemPage() {
   const t = useT()
@@ -357,21 +357,42 @@ function Tables({ v }: { v: View }) {
 function Files({ v }: { v: View }) {
   const t = useT()
   const f = v.files
+  const s3 = f.backend === 's3'
   let holds: ReactNode
   if (f.missing) holds = t(m.filesMissing)
   else if (f.error) holds = <span className="text-bad-fg">{t(m.filesError, { error: f.error })}</span>
   else holds = t(f.partial ? m.filesHoldsPartial : m.filesHoldsValue, { count: f.files, size: byteSize(f.bytes) })
+  // Where the files are: the folder, or the bucket (never its keys).
+  const where: [ReactNode, ReactNode][] = s3
+    ? [
+        [t(m.filesBucket), <span key="bucket" className="mono break-all">{f.bucket}</span>],
+        ...(f.prefix ? [[t(m.filesPrefix), <span key="prefix" className="mono break-all">{f.prefix}</span>] as [ReactNode, ReactNode]] : []),
+        [
+          t(m.filesEndpoint),
+          f.endpoint ? (
+            <span key="endpoint" className="mono break-all">
+              {f.endpoint}
+            </span>
+          ) : f.region ? (
+            t(m.filesEndpointAwsRegion, { region: f.region })
+          ) : (
+            t(m.filesEndpointAws)
+          ),
+        ],
+      ]
+    : [[t(m.filesFolder), <span key="dir" className="mono break-all">{f.dir}</span>]]
   return (
     <section className="card" aria-labelledby="sys-files-h">
-      <CardSection title={<span id="sys-files-h">{t(m.filesTitle)}</span>} caption={t(m.filesCaption)} />
+      <CardSection title={<span id="sys-files-h">{t(m.filesTitle)}</span>} caption={t(s3 ? m.filesCaptionS3 : m.filesCaption)} />
       <div className="pad">
         <KeyValues
           className="m-0"
           items={[
-            [t(m.filesFolder), <span key="dir" className="mono break-all">{f.dir}</span>],
+            [t(m.filesStorage), t(s3 ? m.filesStorageS3 : m.filesStorageLocal)],
+            ...where,
             [t(m.filesHolds), holds],
             [t(m.filesCounted), t(m.filesCountedAt, { time: clock(f.countedAt) })],
-            [t(m.filesShared), t(m.filesSharedValue)],
+            [t(m.filesShared), t(s3 ? m.filesSharedValueS3 : m.filesSharedValue)],
           ]}
         />
       </div>

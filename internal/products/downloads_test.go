@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -367,7 +365,7 @@ func TestDownloadThatFailsIsNotCounted(t *testing.T) {
 	file := s.firstFile(s.fieldGuide)
 	var key string
 	s.scan(`SELECT storage_key FROM download_files WHERE id = $1`, []any{file}, &key)
-	if err := os.Remove(filepath.Join(s.svc.Files.Dir, filepath.FromSlash(key))); err != nil {
+	if err := s.env.App.Blobs.Delete(s.ctx, key); err != nil {
 		t.Fatal(err)
 	}
 	if _, served, err := s.open(s.token(o.ID, link.ID), file, true); err == nil || served {

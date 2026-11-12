@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io/fs"
 	"net/http"
-	"path/filepath"
+	"net/url"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -17,13 +17,15 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/blobstore"
+	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Instance admin › System (review 2026-11 OP-10): the background jobs that
 // failed, with retry, cancel and delete; the queues and their lag; the
-// database's size and largest tables; and the files folder.
+// database's size and largest tables; and the file storage.
 
 // SystemView is the System tab.
 type SystemView struct {
@@ -72,15 +74,25 @@ type SystemTable struct {
 	IndexBytes int64  `json:"indexBytes"`
 }
 
-// SystemFiles is the uploaded files folder.
+// SystemFiles is the file storage: the local files folder or an
+// S3-compatible bucket (storage.backend). Never its keys.
 type SystemFiles struct {
-	Dir       string    `json:"dir"`
+	Backend string `json:"backend" enum:"local,s3"`
+	// Dir is the local folder (local).
+	Dir string `json:"dir,omitempty"`
+	// Bucket, Endpoint, Region and Prefix are the bucket's (s3); Endpoint
+	// is empty for AWS.
+	Bucket    string    `json:"bucket,omitempty"`
+	Endpoint  string    `json:"endpoint,omitempty"`
+	Region    string    `json:"region,omitempty"`
+	Prefix    string    `json:"prefix,omitempty"`
 	Files     int64     `json:"files"`
 	Bytes     int64     `json:"bytes"`
 	CountedAt time.Time `json:"countedAt"`
-	// Partial is true when the count stopped early (a very large folder).
+	// Partial is true when the count stopped early (a very large folder
+	// or bucket).
 	Partial bool   `json:"partial,omitempty"`
-	Missing bool   `json:"missing,omitempty" doc:"The folder doesn't exist yet (nothing uploaded)"`
+	Missing bool   `json:"missing,omitempty" doc:"The local folder doesn't exist yet (nothing uploaded)"`
 	Error   string `json:"error,omitempty"`
 }
 
@@ -223,13 +235,13 @@ func (s *Service) System(ctx context.Context) (SystemView, error) {
 	return out, nil
 }
 
-// The files folder is counted at most every 5 minutes, and for at most 5
-// seconds or 200,000 entries.
+// The file storage is counted at most every 5 minutes, and for at most 5
+// seconds or 200,000 files.
 var filesCache struct {
 	sync.Mutex
-	dir string
-	at  time.Time
-	v   SystemFiles
+	where string
+	at    time.Time
+	v     SystemFiles
 }
 
 const (
@@ -238,42 +250,61 @@ const (
 	filesEntries = 200_000
 )
 
+// errEnough stops a count at filesEntries.
+var errEnough = errors.New("instance: enough files counted")
+
 func (s *Service) filesUsage(ctx context.Context) SystemFiles {
-	dir := s.Cfg.FilesDir()
+	v := SystemFiles{Backend: config.StorageLocal}
+	switch st := s.Blobs.(type) {
+	case blobstore.Local:
+		v.Dir = st.Dir
+	case *blobstore.S3:
+		c := s.Cfg.Storage.S3
+		v.Backend, v.Bucket, v.Region, v.Prefix, v.Endpoint = config.StorageS3, st.Bucket(), c.Region, st.Prefix(), safeEndpoint(c.Endpoint)
+	}
+	where := v.Backend + "|" + v.Dir + "|" + v.Endpoint + "|" + v.Bucket + "|" + v.Prefix
 	filesCache.Lock()
 	defer filesCache.Unlock()
 	now := s.now()
-	if filesCache.dir == dir && now.Sub(filesCache.at) < filesTTL {
+	if filesCache.where == where && now.Sub(filesCache.at) < filesTTL {
 		return filesCache.v
 	}
-	v := SystemFiles{Dir: dir, CountedAt: now}
-	deadline := time.Now().Add(filesBudget)
-	entries := 0
-	err := filepath.WalkDir(dir, func(_ string, e fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	v.CountedAt = now
+	if v.Dir != "" {
+		if _, err := os.Stat(v.Dir); errors.Is(err, os.ErrNotExist) {
+			v.Missing = true
 		}
-		entries++
-		if entries > filesEntries || time.Now().After(deadline) || ctx.Err() != nil {
-			v.Partial = true
-			return fs.SkipAll
-		}
-		if !e.IsDir() {
-			if info, err := e.Info(); err == nil {
-				v.Files++
-				v.Bytes += info.Size()
-			}
-		}
-		return nil
-	})
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		v.Missing = true
-	case err != nil:
-		v.Error = err.Error()
 	}
-	filesCache.dir, filesCache.at, filesCache.v = dir, now, v
+	if !v.Missing && s.Blobs != nil {
+		cctx, cancel := context.WithTimeout(ctx, filesBudget)
+		err := s.Blobs.List(cctx, "", func(_ string, info blobstore.Info) error {
+			v.Files++
+			v.Bytes += info.Size
+			if v.Files >= filesEntries {
+				return errEnough
+			}
+			return nil
+		})
+		cancel()
+		switch {
+		case errors.Is(err, errEnough), errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil:
+			v.Partial = true
+		case err != nil:
+			v.Error = err.Error()
+		}
+	}
+	filesCache.where, filesCache.at, filesCache.v = where, now, v
 	return v
+}
+
+// safeEndpoint is an endpoint URL without what it may carry beyond the
+// address (a user and password, a query).
+func safeEndpoint(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host + u.EscapedPath()
 }
 
 // jobError is one entry of River's errors column.
@@ -435,7 +466,7 @@ type SystemJobPath struct {
 func registerSystem(h huma.API, s *Service) {
 	tags := []string{"Instance admin · System"}
 	admin := api.InstanceAdmin
-	api.Get(h, api.Op{ID: "get-instance-system", Path: "/admin/system", Summary: "Background jobs, queues, the database's size and largest tables, and the files folder",
+	api.Get(h, api.Op{ID: "get-instance-system", Path: "/admin/system", Summary: "Background jobs, queues, the database's size and largest tables, and the file storage",
 		Tags: tags, Access: admin},
 		func(ctx context.Context, _ *struct{}) (*api.Body[SystemView], error) {
 			out, err := s.System(ctx)

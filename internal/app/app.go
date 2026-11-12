@@ -26,6 +26,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/countcache"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -79,6 +80,10 @@ type App struct {
 	// campaign report (geoip.database), loaded in the background at start;
 	// nil when it isn't configured. Its methods are nil-safe.
 	GeoIP *geoip.DB
+	// Blobs keeps the files stored outside the database (products' files,
+	// lead magnets, uploads in progress, audience exports): the files
+	// folder or an S3-compatible bucket (storage.backend).
+	Blobs blobstore.Store
 
 	httpMetrics *server.HTTPMetrics
 	// schema is behind while migrations are pending (schema.go); workersUp
@@ -109,6 +114,11 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		pool.Close()
 		return nil, err
 	}
+	blobs, err := blobstore.Open(ctx, cfg)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("storage: %w", err)
+	}
 	q := store.New(pool)
 	pub := publicurl.NewSource(cfg.HTTP.PublicURL)
 	a := &App{
@@ -127,6 +137,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		PublicURL: pub,
 		Counts:    countcache.New(0, 0, nil),
 		GeoIP:     geoip.Load(cfg.GeoIP.Database, log),
+		Blobs:     blobs,
 	}
 	a.Counts.MinCost = countcache.SlowCount
 	a.Audit.Observe(func(ws uuid.UUID, action string) {

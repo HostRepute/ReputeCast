@@ -3,7 +3,8 @@ import { defineMessages } from '@/i18n'
 /**
  * Instance admin › System (InstanceSystem; review 2026-11 OP-10): failed
  * background jobs with retry, cancel and delete, the queues, the largest
- * tables and the files folder. Job kinds, queue and table names, paths and
+ * tables and the file storage (the files folder or an S3-compatible
+ * bucket). Job kinds, queue and table names, paths, buckets, endpoints and
  * error text are arguments, never translated.
  */
 export const m = defineMessages('admin.system', {
@@ -23,7 +24,7 @@ export const m = defineMessages('admin.system', {
   tileDatabase: 'Database',
   // version: "16.4"; connections and max: numbers.
   tileDatabaseSub: 'PostgreSQL {version} · {connections, number} of {max, number} connections',
-  tileFiles: 'Files folder',
+  tileFiles: 'File storage',
   tileFilesSub: '{count, plural, one {# file} other {# files}}',
   tileFilesNone: 'nothing uploaded yet',
 
@@ -108,9 +109,19 @@ export const m = defineMessages('admin.system', {
   colIndexes: 'Of which indexes',
 
   // ── Files ─────────────────────────────────────────────────────────────
-  filesTitle: 'Files folder',
+  filesTitle: 'File storage',
   filesCaption: 'Uploads live here, not in the database: back the folder up with it',
+  filesCaptionS3: 'Uploads live in this bucket, not in the database: back the bucket up with it',
+  filesStorage: 'Storage',
+  filesStorageLocal: 'Local folder',
+  filesStorageS3: 'S3-compatible bucket',
   filesFolder: 'Folder',
+  filesBucket: 'Bucket',
+  filesPrefix: 'Prefix',
+  filesEndpoint: 'Endpoint',
+  filesEndpointAws: 'AWS S3',
+  // region: "eu-west-1".
+  filesEndpointAwsRegion: 'AWS S3 · {region}',
   filesHolds: 'Holds',
   // count: files; size: "1.3 GB".
   filesHoldsValue: '{count, plural, one {# file} other {# files}} · {size}',
@@ -121,7 +132,8 @@ export const m = defineMessages('admin.system', {
   filesCountedAt: 'at {time} · counted again every 5 minutes',
   filesShared: 'Several processes',
   filesSharedValue: 'Every web and worker process needs the same folder.',
+  filesSharedValueS3: 'Every web and worker process reads the same bucket.',
 
   cliTitle: 'From the command line',
-  cliBody: '{doctor} checks the database, the secret key and this folder after a restore; {reseal} moves stored secrets to a new key.',
+  cliBody: '{doctor} checks the database, the secret key and the file storage after a restore; {reseal} moves stored secrets to a new key.',
 })

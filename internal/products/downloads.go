@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -143,23 +143,20 @@ const ResumeWindow = 3 * time.Hour
 // byte) rather than the file.
 type Resumes func(size int64, modtime time.Time) bool
 
-// resumesOf asks resumes about an open file; nil, or a file that can't
-// be measured, is a download from the start.
-func resumesOf(resumes Resumes, file *os.File, modtime time.Time) bool {
-	if resumes == nil {
-		return false
-	}
-	st, err := file.Stat()
-	return err == nil && resumes(st.Size(), modtime)
+// resumesOf asks resumes about an open file; nil is a download from the
+// start.
+func resumesOf(resumes Resumes, file *blobstore.File, modtime time.Time) bool {
+	return resumes != nil && resumes(file.Size(), modtime)
 }
 
-// OpenFile counts a download and opens the file to send. The caller
+// OpenFile counts a download and opens the file to send (it reads the
+// file storage in order and seeks for byte ranges). The caller
 // closes it. The rest of a download (resumes) isn't counted again within
 // ResumeWindow of the link's last counted download, even once the link
 // is used up; never once the link has expired, was replaced or revoked.
 // (A request that only looked like a resume used to get a used-up or
 // expired link's whole file, for ever.)
-func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token string, fileID uuid.UUID, ip string, resumes Resumes) (store.DownloadFile, *os.File, string, error) {
+func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token string, fileID uuid.UUID, ip string, resumes Resumes) (store.DownloadFile, *blobstore.File, string, error) {
 	link, o, err := s.resolve(ctx, ws, token)
 	if err != nil {
 		return store.DownloadFile{}, nil, "", err
@@ -169,7 +166,7 @@ func (s *Service) OpenFile(ctx context.Context, ws *store.Workspace, token strin
 		return store.DownloadFile{}, nil, "", ErrNoDownload
 	}
 	// The file first: a download that can't be sent isn't counted.
-	file, err := s.Files.Open(f.StorageKey)
+	file, err := s.Files.Open(ctx, f.StorageKey)
 	if err != nil {
 		return f, nil, "", err
 	}

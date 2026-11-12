@@ -3,28 +3,35 @@ package products
 import (
 	"archive/zip"
 	"bytes"
+	"cmp"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
-	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/blobstore"
 )
 
-// Product files live on the instance's data volume (ROADMAP default: no
-// object storage), content-addressed under the workspace: one copy of
-// bytes however many products use them. Uploads arrive in chunks, so a
-// 500 MB file never meets the server's request timeouts, and a chunk that
-// fails can be sent again; nothing is kept of an upload that doesn't
-// finish.
+// Product files live in the instance's file storage (the files folder or
+// an S3-compatible bucket, storage.backend), content-addressed under the
+// workspace: one copy of bytes however many products use them. Uploads
+// arrive in chunks, each its own object until the upload finishes, so a
+// 500 MB file never meets the server's request timeouts, a chunk that
+// fails can be sent again, and several processes can take one upload's
+// chunks; nothing is kept of an upload that doesn't finish.
 
 // Limits (brief §3.5).
 const (
@@ -33,92 +40,91 @@ const (
 	// ChunkBytes is the size of an upload's chunks (the last one may be
 	// smaller).
 	ChunkBytes int64 = 4 << 20
+	// maxChunks is the most chunks an upload arrives in: eight times what
+	// the app sends for a 500 MB file.
+	maxChunks = 1000
 )
 
-// Store keeps files on disk under a folder.
+// Store keeps files in the instance's file storage.
 type Store struct {
-	Dir string
-}
-
-// path is where a stored key lives.
-func (st Store) path(key string) (string, error) {
-	if !keyRe.MatchString(key) {
-		return "", errors.New("products: bad storage key")
-	}
-	return filepath.Join(st.Dir, filepath.FromSlash(key)), nil
+	Blobs blobstore.Store
 }
 
 var (
 	keyRe    = regexp.MustCompile(`^[0-9a-f-]{36}/[0-9a-f]{2}/[0-9a-f]{64}$`)
 	uploadRe = regexp.MustCompile(`^[0-9a-f-]{36}$`)
+
+	errBadKey = errors.New("products: bad storage key")
 )
 
-// Open opens a stored file.
-func (st Store) Open(key string) (*os.File, error) {
-	p, err := st.path(key)
-	if err != nil {
-		return nil, err
+// contentKey is where bytes with that sum live in a workspace.
+func contentKey(wsID uuid.UUID, sum []byte) string {
+	hexsum := hex.EncodeToString(sum)
+	return wsID.String() + "/" + hexsum[:2] + "/" + hexsum
+}
+
+// Open opens a stored file to send: in order, or from a byte range.
+func (st Store) Open(ctx context.Context, key string) (*blobstore.File, error) {
+	if !keyRe.MatchString(key) {
+		return nil, errBadKey
 	}
-	return os.Open(p) //nolint:gosec // the key is checked against keyRe
+	return blobstore.OpenFile(ctx, st.Blobs, key)
 }
 
 // Remove deletes a stored file's bytes.
-func (st Store) Remove(key string) error {
-	p, err := st.path(key)
-	if err != nil {
-		return err
+func (st Store) Remove(ctx context.Context, key string) error {
+	if !keyRe.MatchString(key) {
+		return errBadKey
 	}
-	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	return nil
+	return st.Blobs.Delete(ctx, key)
 }
 
-// Put stores the bytes of a finished upload under the workspace and
-// returns their key; the upload's part file is moved, not copied.
-func (st Store) put(wsID uuid.UUID, part string, sum []byte) (string, error) {
-	hexsum := hex.EncodeToString(sum)
-	key := wsID.String() + "/" + hexsum[:2] + "/" + hexsum
-	p, err := st.path(key)
-	if err != nil {
-		return "", err
-	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
-		return "", err
-	}
-	if _, err := os.Stat(p); err == nil {
-		// The same bytes are stored already.
-		_ = os.Remove(part)
+// errChanged is an upload whose chunks read differently the second time.
+var errChanged = errors.New("products: the upload changed while it was kept")
+
+// keep stores a finished upload's bytes (its chunks, joined) under the
+// workspace and returns their key. Bytes stored already (the same file
+// uploaded twice) aren't copied again; a copy that doesn't match sum as
+// it streams stores nothing.
+func (st Store) keep(ctx context.Context, wsID uuid.UUID, chunks []blobstore.Part, size int64, sum []byte, contentType string) (string, error) {
+	key := contentKey(wsID, sum)
+	info, err := st.Blobs.Stat(ctx, key)
+	if err == nil && info.Size == size {
 		return key, nil
 	}
-	if err := os.Rename(part, p); err != nil {
+	if err != nil && !errors.Is(err, blobstore.ErrNotExist) {
 		return "", err
 	}
-	return key, nil
+	f := blobstore.Join(ctx, st.Blobs, chunks)
+	defer func() { _ = f.Close() }()
+	return key, st.Blobs.Put(ctx, key, &sumReader{r: f, h: sha256.New(), want: sum}, size, contentType)
+}
+
+// sumReader fails at its end when what it read doesn't have the sum.
+type sumReader struct {
+	r    io.Reader
+	h    hash.Hash
+	want []byte
+}
+
+func (s *sumReader) Read(p []byte) (int, error) {
+	n, err := s.r.Read(p)
+	s.h.Write(p[:n])
+	if errors.Is(err, io.EOF) && !bytes.Equal(s.h.Sum(nil), s.want) {
+		return n, errChanged
+	}
+	return n, err
 }
 
 // PutBytes stores a file's bytes under the workspace (the demo's sample
 // files) and returns their key and checksum.
-func (st Store) PutBytes(wsID uuid.UUID, data []byte) (string, []byte, error) {
+func (st Store) PutBytes(ctx context.Context, wsID uuid.UUID, data []byte) (string, []byte, error) {
 	sum := sha256.Sum256(data)
-	if err := os.MkdirAll(st.uploadDir(), 0o750); err != nil {
-		return "", nil, err
+	key := contentKey(wsID, sum[:])
+	if info, err := st.Blobs.Stat(ctx, key); err == nil && info.Size == int64(len(data)) {
+		return key, sum[:], nil
 	}
-	tmp, err := os.CreateTemp(st.uploadDir(), "put-*.part")
-	if err != nil {
-		return "", nil, err
-	}
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
-		return "", nil, err
-	}
-	if err := tmp.Close(); err != nil {
-		_ = os.Remove(tmp.Name())
-		return "", nil, err
-	}
-	key, err := st.put(wsID, tmp.Name(), sum[:])
-	return key, sum[:], err
+	return key, sum[:], st.Blobs.Put(ctx, key, bytes.NewReader(data), int64(len(data)), "")
 }
 
 // Upload is a file arriving in chunks.
@@ -134,61 +140,82 @@ type Upload struct {
 	Created     time.Time `json:"created"`
 }
 
-func (st Store) uploadDir() string { return filepath.Join(st.Dir, "uploads") }
+// An upload's objects: what it is (uploads/<id>/upload.json) and its
+// chunks, named by where they start (uploads/<id>/000004194304).
+const (
+	uploadsPrefix = "uploads/"
+	uploadMeta    = "upload.json"
+)
 
-func (st Store) uploadPaths(id string) (meta, part string, err error) {
-	if !uploadRe.MatchString(id) {
-		return "", "", errors.New("products: bad upload id")
-	}
-	d := st.uploadDir()
-	return filepath.Join(d, id+".json"), filepath.Join(d, id+".part"), nil
+func uploadPrefix(id string) string { return uploadsPrefix + id + "/" }
+
+func chunkKey(id string, offset int64) string {
+	return fmt.Sprintf("%s%012d", uploadPrefix(id), offset)
 }
 
 // begin starts an upload.
-func (st Store) begin(u Upload) (Upload, error) {
+func (st Store) begin(ctx context.Context, u Upload) (Upload, error) {
 	u.ID = uuid.Must(uuid.NewV7()).String()
-	if err := os.MkdirAll(st.uploadDir(), 0o750); err != nil {
-		return u, err
-	}
-	meta, part, _ := st.uploadPaths(u.ID)
 	b, _ := json.Marshal(u)
-	if err := os.WriteFile(meta, b, 0o600); err != nil {
-		return u, err
-	}
-	f, err := os.OpenFile(part, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) //nolint:gosec // the path is built from a fresh UUID
-	if err != nil {
-		return u, err
-	}
-	return u, f.Close()
+	return u, st.Blobs.Put(ctx, uploadPrefix(u.ID)+uploadMeta, bytes.NewReader(b), int64(len(b)), "application/json")
 }
 
-// upload reads an upload's state: what it is and how much arrived.
-func (st Store) upload(id string) (Upload, int64, error) {
-	meta, part, err := st.uploadPaths(id)
-	if err != nil {
-		return Upload{}, 0, err
+// upload reads an upload's state: what it is, how much arrived, and the
+// chunks that hold it, in order.
+func (st Store) upload(ctx context.Context, id string) (Upload, int64, []blobstore.Part, error) {
+	if !uploadRe.MatchString(id) {
+		return Upload{}, 0, nil, errors.New("products: bad upload id")
 	}
-	b, err := os.ReadFile(meta) //nolint:gosec // the path is built from a checked UUID
+	rc, err := st.Blobs.Open(ctx, uploadPrefix(id)+uploadMeta)
 	if err != nil {
-		return Upload{}, 0, err
+		return Upload{}, 0, nil, err
+	}
+	b, err := io.ReadAll(io.LimitReader(rc, 64<<10))
+	_ = rc.Close()
+	if err != nil {
+		return Upload{}, 0, nil, err
 	}
 	var u Upload
 	if err := json.Unmarshal(b, &u); err != nil {
-		return Upload{}, 0, err
+		return Upload{}, 0, nil, err
 	}
-	fi, err := os.Stat(part)
-	if err != nil {
-		return Upload{}, 0, err
+	type chunk struct {
+		off  int64
+		part blobstore.Part
 	}
-	return u, fi.Size(), nil
+	var chunks []chunk
+	prefix := uploadPrefix(id)
+	if err := st.Blobs.List(ctx, prefix, func(key string, info blobstore.Info) error {
+		if off, err := strconv.ParseInt(strings.TrimPrefix(key, prefix), 10, 64); err == nil {
+			chunks = append(chunks, chunk{off, blobstore.Part{Key: key, Size: info.Size}})
+		}
+		return nil
+	}); err != nil {
+		return Upload{}, 0, nil, err
+	}
+	slices.SortFunc(chunks, func(a, b chunk) int { return cmp.Compare(a.off, b.off) })
+	var have int64
+	parts := make([]blobstore.Part, 0, len(chunks))
+	for _, c := range chunks {
+		if c.off != have {
+			break
+		}
+		parts = append(parts, c.part)
+		have += c.part.Size
+	}
+	return u, have, parts, nil
 }
 
 // errOffset is a chunk that doesn't continue where the upload stands.
 var errOffset = errors.New("products: chunk offset")
 
-// write appends a chunk at offset (the bytes received so far).
-func (st Store) write(id string, offset int64, data []byte) (int64, error) {
-	u, have, err := st.upload(id)
+// errChunks is an upload sent in more chunks than maxChunks.
+var errChunks = errors.New("products: too many chunks")
+
+// write stores a chunk at offset (the bytes received so far). The same
+// chunk sent twice at once lands on one key, so it can't count twice.
+func (st Store) write(ctx context.Context, id string, offset int64, data []byte) (int64, error) {
+	u, have, parts, err := st.upload(ctx, id)
 	if err != nil {
 		return 0, err
 	}
@@ -198,67 +225,86 @@ func (st Store) write(id string, offset int64, data []byte) (int64, error) {
 	if have+int64(len(data)) > u.Size {
 		return have, errTooBig
 	}
-	_, part, _ := st.uploadPaths(id)
-	f, err := os.OpenFile(part, os.O_WRONLY|os.O_APPEND, 0o600) //nolint:gosec // checked UUID
-	if err != nil {
+	if len(data) == 0 {
+		return have, nil
+	}
+	if len(parts) >= maxChunks {
+		return have, errChunks
+	}
+	if err := st.Blobs.Put(ctx, chunkKey(id, offset), bytes.NewReader(data), int64(len(data)), "application/octet-stream"); err != nil {
 		return have, err
 	}
-	n, err := f.Write(data)
-	cerr := f.Close()
-	if err == nil {
-		err = cerr
-	}
-	return have + int64(n), err
+	return have + int64(len(data)), nil
 }
 
 var errTooBig = errors.New("products: more bytes than announced")
 
-// abort drops an upload and what arrived of it.
-func (st Store) abort(id string) {
-	meta, part, err := st.uploadPaths(id)
-	if err != nil {
+// abort drops an upload and what arrived of it, even when the request
+// that asks has ended.
+func (st Store) abort(ctx context.Context, id string) {
+	if !uploadRe.MatchString(id) {
 		return
 	}
-	_ = os.Remove(part)
-	_ = os.Remove(meta)
+	ctx = context.WithoutCancel(ctx)
+	var keys []string
+	_ = st.Blobs.List(ctx, uploadPrefix(id), func(key string, _ blobstore.Info) error {
+		keys = append(keys, key)
+		return nil
+	})
+	for _, k := range keys {
+		_ = st.Blobs.Delete(ctx, k)
+	}
 }
 
-// SweepUploads drops uploads older than a day that never finished.
-func (st Store) SweepUploads(before time.Time) {
-	entries, err := os.ReadDir(st.uploadDir())
-	if err != nil {
-		return
+// SweepUploads drops uploads that never finished and got nothing since
+// before (an upload still arriving is kept, however long it takes).
+func (st Store) SweepUploads(ctx context.Context, before time.Time) error {
+	newest := map[string]time.Time{}
+	keys := map[string][]string{}
+	if err := st.Blobs.List(ctx, uploadsPrefix, func(key string, info blobstore.Info) error {
+		// An upload's id; files kept by earlier releases (uploads/<id>.part)
+		// are each their own.
+		id, _, _ := strings.Cut(strings.TrimPrefix(key, uploadsPrefix), "/")
+		if info.ModTime.After(newest[id]) {
+			newest[id] = info.ModTime
+		}
+		keys[id] = append(keys[id], key)
+		return nil
+	}); err != nil {
+		return err
 	}
-	for _, e := range entries {
-		info, err := e.Info()
-		if err != nil || info.ModTime().After(before) {
+	var errs []error
+	for id, at := range newest {
+		if at.After(before) {
 			continue
 		}
-		_ = os.Remove(filepath.Join(st.uploadDir(), e.Name()))
+		for _, k := range keys[id] {
+			if err := st.Blobs.Delete(ctx, k); err != nil {
+				errs = append(errs, err)
+			}
+		}
 	}
+	return errors.Join(errs...)
 }
 
-// finish checks a complete upload: its sum and what its content is.
-func (st Store) finish(id string) (Upload, Detected, []byte, string, error) {
-	u, have, err := st.upload(id)
+// finish reads a complete upload once: its sum and what its content is.
+// It returns the chunks to keep.
+func (st Store) finish(ctx context.Context, id string) (Upload, Detected, []byte, []blobstore.Part, error) {
+	u, have, parts, err := st.upload(ctx, id)
 	if err != nil {
-		return u, Detected{}, nil, "", err
+		return u, Detected{}, nil, nil, err
 	}
 	if have != u.Size {
-		return u, Detected{}, nil, "", fmt.Errorf("products: upload incomplete: %d of %d bytes", have, u.Size)
+		return u, Detected{}, nil, nil, fmt.Errorf("products: upload incomplete: %d of %d bytes", have, u.Size)
 	}
-	_, part, _ := st.uploadPaths(id)
-	f, err := os.Open(part) //nolint:gosec // checked UUID
-	if err != nil {
-		return u, Detected{}, nil, "", err
-	}
+	f := blobstore.Join(ctx, st.Blobs, parts)
 	defer func() { _ = f.Close() }()
 	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return u, Detected{}, nil, "", err
+	var sn sniffer
+	if _, err := io.Copy(io.MultiWriter(h, &sn), f); err != nil {
+		return u, Detected{}, nil, nil, err
 	}
-	d, err := Detect(part)
-	return u, d, h.Sum(nil), part, err
+	return u, sn.detected(f, f.Size()), h.Sum(nil), parts, nil
 }
 
 // Detected is what a file's content is.
@@ -297,22 +343,47 @@ var kinds = map[string]struct {
 // KindProgram is a program (Windows, Linux or macOS): never sold.
 const KindProgram = "program"
 
-// Detect reads what a file contains from its bytes, never its name.
-func Detect(path string) (Detected, error) {
-	f, err := os.Open(path) //nolint:gosec // callers pass a stored or uploading file's path
-	if err != nil {
-		return Detected{}, err
+const (
+	headBytes = 4096
+	// Large PDFs: the first 64 MB tell enough.
+	pdfScanBytes = 64 << 20
+)
+
+// sniffer tells what a file contains from its bytes, never its name. It
+// is written the file's bytes from its start (as an upload's chunks are
+// read for its sum): it keeps the first 4 KB and, for a PDF, counts the
+// page objects of the first 64 MB as they pass, ignoring the rest; a ZIP
+// archive's directory is then read at its end (detected).
+type sniffer struct {
+	head  []byte
+	n     int64
+	pdf   bool
+	pages pageCounter
+}
+
+func (s *sniffer) Write(p []byte) (int, error) {
+	at := s.n
+	s.n += int64(len(p))
+	if len(s.head) < headBytes {
+		s.head = append(s.head, p[:min(len(p), headBytes-len(s.head))]...)
+		s.pdf = bytes.HasPrefix(s.head, []byte("%PDF-"))
 	}
-	defer func() { _ = f.Close() }()
-	head := make([]byte, 4096)
-	n, _ := io.ReadFull(f, head)
-	head = head[:n]
+	if s.pdf && at < pdfScanBytes {
+		s.pages.write(p[:min(int64(len(p)), pdfScanBytes-at)])
+	}
+	return len(p), nil
+}
+
+// detected is what the bytes written are; r reads the whole file (a ZIP
+// archive's directory is at its end).
+func (s *sniffer) detected(r io.ReaderAt, size int64) Detected {
+	head := s.head
 	kind := ""
 	switch {
 	case bytes.HasPrefix(head, []byte("%PDF-")):
 		kind = "pdf"
 	case bytes.HasPrefix(head, []byte("PK\x03\x04")):
-		kind = zipKind(path)
+		kind = zipKind(r, size)
 	case bytes.HasPrefix(head, []byte("\x89PNG\r\n\x1a\n")):
 		kind = "png"
 	case bytes.HasPrefix(head, []byte("\xff\xd8\xff")):
@@ -336,7 +407,7 @@ func Detect(path string) (Detected, error) {
 		bytes.HasPrefix(head, []byte("\xca\xfe\xba\xbe")):
 		// A Windows, Linux or macOS program.
 		kind = KindProgram
-	case n > 0 && utf8.Valid(head) && !bytes.ContainsRune(head, 0):
+	case len(head) > 0 && utf8.Valid(head) && !bytes.ContainsRune(head, 0):
 		kind = "text"
 	}
 	d := Detected{Kind: kind, ContentType: "application/octet-stream"}
@@ -344,20 +415,20 @@ func Detect(path string) (Detected, error) {
 		d.ContentType = k.ctype
 	}
 	if kind == "pdf" {
-		d.Pages = pdfPages(path)
+		d.Pages = s.pages.count()
 	}
-	return d, nil
+	return d
 }
 
-// zipKind tells an Office document or an EPUB from a plain ZIP archive.
-func zipKind(path string) string {
-	r, err := zip.OpenReader(path)
+// zipKind tells an Office document or an EPUB from a plain ZIP archive,
+// from its directory.
+func zipKind(r io.ReaderAt, size int64) string {
+	zr, err := zip.NewReader(r, size)
 	if err != nil {
 		return "zip"
 	}
-	defer func() { _ = r.Close() }()
 	has := map[string]bool{}
-	for _, f := range r.File {
+	for _, f := range zr.File {
 		name := f.Name
 		if i := strings.IndexByte(name, '/'); i > 0 {
 			has[name[:i+1]] = true
@@ -388,20 +459,38 @@ func zipKind(path string) string {
 
 var pageRe = regexp.MustCompile(`/Type\s*/Page[^s]`)
 
-// pdfPages counts a PDF's page objects (its pages, for a PDF that isn't
-// compressed in object streams); 0 when unsure.
-func pdfPages(path string) int {
-	f, err := os.Open(path) //nolint:gosec // a stored file's path
-	if err != nil {
-		return 0
+// pageTail is how far back a page object may begin and still be cut by
+// the end of what has arrived: it is matched once more bytes come.
+const pageTail = 1024
+
+// pageCounter counts a PDF's page objects (its pages, for a PDF that
+// isn't compressed in object streams) as its bytes stream past, keeping
+// only a short tail between writes.
+type pageCounter struct {
+	buf []byte
+	n   int
+}
+
+func (c *pageCounter) write(p []byte) {
+	c.buf = append(c.buf, p...)
+	keep := len(c.buf) - pageTail
+	if keep <= 0 {
+		return
 	}
-	defer func() { _ = f.Close() }()
-	// Large PDFs: the first 64 MB tell enough.
-	b, err := io.ReadAll(io.LimitReader(f, 64<<20))
-	if err != nil {
-		return 0
+	from := keep
+	for _, m := range pageRe.FindAllIndex(c.buf, -1) {
+		if m[0] >= keep {
+			break
+		}
+		c.n++
+		from = max(from, m[1])
 	}
-	return len(pageRe.FindAllIndex(b, -1))
+	c.buf = c.buf[:copy(c.buf, c.buf[from:])]
+}
+
+// count is the page objects found, the tail's too.
+func (c *pageCounter) count() int {
+	return c.n + len(pageRe.FindAllIndex(c.buf, -1))
 }
 
 // extOf is a file name's extension, lower case without the dot.

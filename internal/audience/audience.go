@@ -15,6 +15,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/countcache"
 	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/jobs"
@@ -47,10 +48,10 @@ type Service struct {
 	// Erasure is every package's personal data about contacts, for erasing
 	// and exporting (internal/app fills it; nil: the audience's own only).
 	Erasure *erasure.Registry
-	// Jobs queues background exports and resends (AU-4); FilesDir keeps
-	// the exports' files.
-	Jobs     func() *jobs.Client
-	FilesDir string
+	// Jobs queues background exports and resends (AU-4); Blobs keeps the
+	// exports' files.
+	Jobs  func() *jobs.Client
+	Blobs blobstore.Store
 	// ConfirmationEmail builds the opt-in email the team sends from the app
 	// as the forms' branded, localized one (AU-15; internal/app wires it);
 	// nil: plain text in English.

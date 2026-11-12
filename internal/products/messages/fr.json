@@ -32,6 +32,7 @@
   "file.mismatch": "Ce fichier porte l’extension .{ext} mais contient {content}. Les acheteurs recevraient un fichier que leur ordinateur ne peut pas ouvrir. Importez le fichier {claimed} lui-même, ou le fichier {actual} avec l’extension .{actualExt}.",
   "file.uploadGone": "Cet import s’est arrêté et rien n’a été conservé. Choisissez de nouveau le fichier.",
   "file.offset": "Une partie de l’import est arrivée deux fois. Il reprend à partir de {offset} octets.",
+  "file.chunks": "Cet import est arrivé en trop de petites parties et a été arrêté. Choisissez de nouveau le fichier.",
   "file.incomplete": "L’import n’est pas terminé\u00A0: {have} octets reçus sur {size}.",
   "file.notFound": "Ce fichier ne fait plus partie du produit.",
   "content.pdf": "un PDF",

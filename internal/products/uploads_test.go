@@ -6,14 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/products"
 )
 
@@ -167,17 +166,27 @@ func TestUploadChunks(t *testing.T) {
 	u.put(big.ID, 0, make([]byte, 1024)).MustStatus(t, 200)
 
 	// Cancelled: nothing kept.
-	dir := filepath.Join(u.env.App.Products().Files.Dir, "uploads")
+	stored := func(id string) []string {
+		var keys []string
+		if err := u.env.App.Blobs.List(context.Background(), "uploads/"+id+"/", func(k string, _ blobstore.Info) error {
+			keys = append(keys, k)
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return keys
+	}
 	drop := u.begin("draft.pdf", int64(len(data)))
 	u.put(drop.ID, 0, data[:half]).MustStatus(t, 200)
-	if _, err := os.Stat(filepath.Join(dir, drop.ID+".part")); err != nil {
-		t.Fatalf("no part file while uploading: %v", err)
+	if keys := stored(drop.ID); len(keys) != 2 {
+		t.Fatalf("while uploading, stored %v (want what it is and its chunk)", keys)
 	}
 	u.c.Do("DELETE", ws+"/products/"+u.product+"/uploads/"+drop.ID, nil).MustStatus(t, 204)
-	for _, ext := range []string{".part", ".json"} {
-		if _, err := os.Stat(filepath.Join(dir, drop.ID+ext)); !os.IsNotExist(err) {
-			t.Errorf("a cancelled upload's %s is still there: %v", ext, err)
-		}
+	if keys := stored(drop.ID); len(keys) != 0 {
+		t.Errorf("a cancelled upload left %v", keys)
+	}
+	if keys := stored(st.ID); len(keys) != 0 {
+		t.Errorf("a finished upload left %v", keys)
 	}
 	u.put(drop.ID, half, data[half:]).MustStatus(t, 404)
 	u.complete(drop.ID).MustStatus(t, 404)

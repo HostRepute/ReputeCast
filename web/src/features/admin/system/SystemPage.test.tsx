@@ -24,7 +24,7 @@ const view: Schemas['SystemView'] = {
     schemaCurrent: true,
     tables: [{ name: 'delivery_events', rows: 18_400_000, bytes: 2.1 * 1024 ** 3, indexBytes: 812 * 1024 ** 2 }],
   },
-  files: { dir: '/var/lib/reputecast/files', files: 2418, bytes: 1.3 * 1024 ** 3, countedAt: '2026-11-01T09:40:00Z' },
+  files: { backend: 'local', dir: '/var/lib/reputecast/files', files: 2418, bytes: 1.3 * 1024 ** 3, countedAt: '2026-11-01T09:40:00Z' },
 }
 const job = (o: Partial<Job>): Job => ({ id: 48213, kind: 'webhooks.deliver', queue: 'events', state: 'retrying', attempt: 4, maxAttempts: 12, error: 'dial tcp 203.0.113.40:443: i/o timeout', failedAt: '2026-11-01T09:38:00Z', nextAt: '2026-11-01T09:42:00Z', workspace: { id: 'ws-1', name: 'Acme Newsletter', slug: 'acme-newsletter' }, ...o })
 const jobs = [job({}), job({ id: 46102, kind: 'digests.build_issue', queue: 'default', state: 'given_up', attempt: 12, error: 'feed https://acme.io/blog/rss: 404 Not Found', nextAt: undefined, workspace: undefined })]
@@ -43,7 +43,7 @@ describe('Instance admin › System', () => {
   let unmock = () => {}
   afterEach(() => unmock())
 
-  it('shows the jobs, queues, largest tables and files folder', async () => {
+  it('shows the jobs, queues, largest tables and file storage', async () => {
     unmock = mockApi({
       'GET /api/v1/admin/system': () => json(view),
       'GET /api/v1/admin/system/jobs': () => json({ items: jobs }),
@@ -66,6 +66,40 @@ describe('Instance admin › System', () => {
     expect(within(queues).getAllByRole('row')[3]).toHaveTextContent('—')
     expect(screen.getByText('4.2 GB in all · schema 3384, current')).toBeInTheDocument()
     expect(screen.getByText('2,418 files · 1.3 GB')).toBeInTheDocument()
+    const files = screen.getByRole('region', { name: 'File storage' })
+    expect(within(files).getByText('Local folder')).toBeInTheDocument()
+    expect(within(files).getByText('/var/lib/reputecast/files')).toBeInTheDocument()
+    expect(within(files).getByText('Every web and worker process needs the same folder.')).toBeInTheDocument()
+  })
+
+  it('shows the bucket when files are in object storage, never its keys', async () => {
+    const bucket = { ...view, files: { backend: 's3' as const, bucket: 'acme-reputecast', prefix: 'prod/', endpoint: 'https://s3.eu-central-003.backblazeb2.com', files: 2418, bytes: 1.3 * 1024 ** 3, countedAt: '2026-11-01T09:40:00Z' } }
+    unmock = mockApi({
+      'GET /api/v1/admin/system': () => json(bucket),
+      'GET /api/v1/admin/system/jobs': () => json({ items: [] }),
+    })
+    await renderInWorkspace(<SystemPage />, { path: '/w/acme-newsletter/admin/system', seed: admin })
+    const files = await screen.findByRole('region', { name: 'File storage' })
+    expect(within(files).getByText('Uploads live in this bucket, not in the database: back the bucket up with it')).toBeInTheDocument()
+    expect(within(files).getByText('S3-compatible bucket')).toBeInTheDocument()
+    expect(within(files).getByText('acme-reputecast')).toBeInTheDocument()
+    expect(within(files).getByText('prod/')).toBeInTheDocument()
+    expect(within(files).getByText('https://s3.eu-central-003.backblazeb2.com')).toBeInTheDocument()
+    expect(within(files).getByText('Every web and worker process reads the same bucket.')).toBeInTheDocument()
+    expect(within(files).queryByText('Folder')).not.toBeInTheDocument()
+  })
+
+  it('names AWS when the bucket has no endpoint of its own', async () => {
+    const aws = { ...view, files: { backend: 's3' as const, bucket: 'acme-files', region: 'eu-west-1', files: 0, bytes: 0, countedAt: '2026-11-01T09:40:00Z' } }
+    unmock = mockApi({
+      'GET /api/v1/admin/system': () => json(aws),
+      'GET /api/v1/admin/system/jobs': () => json({ items: [] }),
+    })
+    await renderInWorkspace(<SystemPage />, { path: '/w/acme-newsletter/admin/system', seed: admin })
+    const files = await screen.findByRole('region', { name: 'File storage' })
+    expect(within(files).getByText('AWS S3 · eu-west-1')).toBeInTheDocument()
+    expect(within(files).queryByText('Prefix')).not.toBeInTheDocument()
+    expect(screen.getByText('nothing uploaded yet')).toBeInTheDocument()
   })
 
   it('retries a job, and cancels or deletes one after asking', async () => {
