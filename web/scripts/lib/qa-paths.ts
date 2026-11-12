@@ -27,6 +27,8 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   postImport: (status) => ['website/imports', 'items', (i) => i.status === status],
   // A Meta Lead Ads connection by its name ({leadConnection:Acme Marketing}, M66).
   leadConnection: (name) => ['lead-ads/connections', 'items', (c) => c.name === name],
+  // A connected store by its name ({store:Acme Merch}), as scripts/qa.ts does.
+  store: (name) => ['stores', 'stores', (s) => s.name === name],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */
