@@ -157,4 +157,6 @@ export const m = defineMessages('audience.profile', {
   removeTagLabel: 'Remove tag {tag}',
   actRemovedFrom: '<b>Removed</b> from {list} by the team',
   actEmailChanged: '<b>Address corrected</b>',
+  actReplied: "<b>Replied</b> to {subject} · <link>Open reply</link>",
+  actRepliedQuote: "\"{text}\"",
 })

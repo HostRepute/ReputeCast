@@ -22,7 +22,7 @@ export default translate(m, {
     '{filter, select, approvals {Không có thông báo nào về phê duyệt} sending {Không có thông báo nào về gửi thư} providers {Không có thông báo nào về nhà cung cấp} team {Không có thông báo nào về nhóm} hostrepute {Không có thông báo HostRepute nào} other {Không có thông báo nào}}',
   emptyBody: 'Phê duyệt, lần tự tạm dừng, sự cố nhà cung cấp, thay đổi trong nhóm và cảnh báo HostRepute sẽ hiện ở đây.',
   category:
-    '{category, select, approvals {Phê duyệt} sending {Gửi thư} providers {Nhà cung cấp} team {Nhóm} hostrepute {HostRepute} integrations {Tích hợp} transactional {Giao dịch} ai {AI} earn {Kiếm tiền} website {Trang web} grow {Tăng trưởng} other {Khác}}',
+    '{category, select, approvals {Phê duyệt} sending {Gửi thư} providers {Nhà cung cấp} team {Nhóm} hostrepute {HostRepute} integrations {Tích hợp} transactional {Giao dịch} ai {AI} earn {Kiếm tiền} website {Trang web} grow {Tăng trưởng} audience {Đối tượng} other {Khác}}',
   new: 'Mới',
   retention: 'Thông báo cũ hơn được giữ trong {days, plural, other {# ngày}}.',
 

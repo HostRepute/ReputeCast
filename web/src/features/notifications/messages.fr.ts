@@ -19,7 +19,7 @@ export default translate(m, {
   nothingUnread: 'Aucune non lue',
   noneInCategory: '{filter, select, approvals {Aucune notification Approbations} sending {Aucune notification Envois} providers {Aucune notification Fournisseurs} team {Aucune notification Équipe} hostrepute {Aucune notification HostRepute} other {Aucune notification}}',
   emptyBody: 'Les approbations, les pauses automatiques, les incidents des fournisseurs, les changements dans l’équipe et les alertes HostRepute s’affichent ici.',
-  category: '{category, select, approvals {Approbations} sending {Envois} providers {Fournisseurs} team {Équipe} hostrepute {HostRepute} integrations {Intégrations} transactional {Transactionnel} ai {IA} earn {Monétisation} website {Site web} grow {Croissance} other {Autre}}',
+  category: '{category, select, approvals {Approbations} sending {Envois} providers {Fournisseurs} team {Équipe} hostrepute {HostRepute} integrations {Intégrations} transactional {Transactionnel} ai {IA} earn {Monétisation} website {Site web} grow {Croissance} audience {Audience} other {Autre}}',
   new: 'Nouveau',
   retention: 'Les notifications plus anciennes sont conservées {days, plural, one {# jour} other {# jours}}.',
   prefsTitle: 'Mes préférences',

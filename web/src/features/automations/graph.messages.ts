@@ -125,4 +125,6 @@ export const mg = defineMessages('automations.graph', {
   noTrigger: 'No trigger yet',
   pathYes: 'Yes',
   pathNo: 'No',
+  condReplied: "replied to {step}",
+  condRepliedWithin: "replied to {step} within {duration}",
 })

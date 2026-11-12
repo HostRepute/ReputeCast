@@ -12477,6 +12477,9 @@
             },
             "type": "array"
           },
+          "repliesInbox": {
+            "type": "boolean"
+          },
           "scoreBands": {
             "$ref": "#/components/schemas/ScoringBands"
           },
@@ -12512,7 +12515,8 @@
           "segments",
           "campaigns",
           "tiers",
-          "paidConnected"
+          "paidConnected",
+          "repliesInbox"
         ],
         "type": "object"
       },
@@ -38458,6 +38462,10 @@
             ],
             "type": "string"
           },
+          "setUpAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "setup": {
             "$ref": "#/components/schemas/InboundSetupView"
           },
@@ -38471,6 +38479,16 @@
             "type": "string"
           },
           "statusDetail": {
+            "type": "string"
+          },
+          "statusReason": {
+            "enum": [
+              "mx",
+              "mailbox_auth",
+              "mailbox_unreachable",
+              "register",
+              "dropped_reports"
+            ],
             "type": "string"
           },
           "suggestion": {
@@ -115470,7 +115488,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "replies"
               ],
               "type": "string"
             }
@@ -115743,7 +115762,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "replies"
               ],
               "type": "string"
             }

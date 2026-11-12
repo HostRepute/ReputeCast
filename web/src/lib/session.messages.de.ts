@@ -42,4 +42,6 @@ export default translate(m, {
   'orders:manage': 'Bestellungen verwalten',
   'grow:edit': 'Das Empfehlungsprogramm bearbeiten',
   'grow:connect': 'Partnerlinks verwalten',
+  'replies:view': 'Antworten lesen',
+  'replies:manage': 'Antworten bearbeiten',
 })

@@ -11,7 +11,7 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
-import { andList, count, dayMonthDate, trimPct } from '@/lib/format'
+import { ago, andList, count, dayMonthDate, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { md } from './dmarc.messages'
 import { providerColor } from './words'
@@ -37,6 +37,7 @@ export function DmarcCard({ d, className }: { d: Schemas['DeliverabilityDMARCSum
             {t(md.title, { days: d.days })}
           </h2>
           <span className="k">{caption}</span>
+          {d.collect ? <CollectLine collect={d.collect} /> : null}
         </div>
         <Badge tone={pass >= 98 ? 'ok' : pass >= 90 ? 'warn' : 'bad'}>{t(md.passBadge, { rate: trimPct(d.passRate) })}</Badge>
       </div>
@@ -145,8 +146,18 @@ function InvestigateDialog({ ip, domain, onClose }: { ip: string; domain: string
   )
 }
 
+/** Where reports arrive by email while ReputeCast receives mail (M58). */
+function CollectLine({ collect }: { collect: Schemas['DeliverabilityDMARCCollect'] }) {
+  const t = useT()
+  return (
+    <span className="k">
+      {collect.lastReceivedAt ? t(md.collectAt, { address: collect.address, when: ago(collect.lastReceivedAt) }) : t(md.collectAtNone, { address: collect.address })}
+    </span>
+  )
+}
+
 /** DMARC report summary without reports (HostRepute not receiving them). */
-export function DmarcEmptyCard({ connected, rua }: { connected: boolean; rua?: string }) {
+export function DmarcEmptyCard({ connected, rua, collect }: { connected: boolean; rua?: string; collect?: Schemas['DeliverabilityDMARCCollect'] }) {
   const t = useT()
   const { slug } = useWorkspace()
   const [upload, setUpload] = useState(false)
@@ -159,6 +170,19 @@ export function DmarcEmptyCard({ connected, rua }: { connected: boolean; rua?: s
         <Badge tone="neutral">{t(md.noReports)}</Badge>
       </div>
       <span className="k">{connected && rua ? <T msg={md.emptyRua} values={{ rua, mono }} /> : <T msg={md.emptyNoRua} values={{ mono }} />}</span>
+      {collect ? (
+        <CollectLine collect={collect} />
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border border-line px-3 py-2.5">
+          <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-0.5">
+            <span className="font-semibold">{t(md.collectTitle)}</span>
+            <span className="k">{t(md.collectLine)}</span>
+          </div>
+          <ButtonLink size="sm" to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
+            {t(md.collectSetUp)}
+          </ButtonLink>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         {connected ? null : (
           <ButtonLink size="sm" to="/w/$workspace/deliverability/connect" params={{ workspace: slug }}>

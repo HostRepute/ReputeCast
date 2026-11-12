@@ -127,4 +127,6 @@ export default translate(m, {
   lastEmail: 'Último correo',
   sequenceEmpty: 'Todavía no hay correos en este recorrido.',
   nextShare: '{percent} pasó al siguiente correo',
+  exitOnReply: "Detener cuando el contacto responda a un correo de este recorrido",
+  exitOnReplyWhy: "Hace falta Recibir correo y «Guardar las respuestas en la bandeja de ReputeCast»",
 })

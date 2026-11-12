@@ -873,6 +873,8 @@ function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
   if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
   // Store orders and abandoned checkouts (X20).
   if (it.type === 'store_order') return ['check', 'green']
+  // Replies (M58).
+  if (it.type === 'replied') return ['mail', 'blue']
   if (it.type === 'checkout_abandoned') return it.store?.flow ? ['flow', 'purple'] : ['minus', 'grey']
   if (it.category === 'consent') {
     switch (it.type) {
@@ -1008,6 +1010,23 @@ function ActivityRow({ it }: { it: Item }) {
         title = <b>{tr(m.actConsentOther, { type: it.type, label: it.type.replace('_', ' ') })}</b>
         meta = [...meta, ...present(it.detail, it.note)]
     }
+  } else if (it.type === 'replied') {
+    // A reply received by email (M58), linked to Audience › Replies.
+    title = (
+      <T
+        msg={m.actReplied}
+        values={{
+          subject: it.subject,
+          b,
+          link: (c) => (
+            <Link to="/w/$workspace/audience/replies" params={{ workspace: me.workspace.slug }} search={{ reply: it.id }}>
+              {c}
+            </Link>
+          ),
+        }}
+      />
+    )
+    meta = [...meta, ...present(it.note ? tr(m.actRepliedQuote, { text: it.note }) : '')]
   } else if (it.type === 'open') {
     title = <T msg={it.machine ? m.actOpenedMachine : m.actOpenedHuman} values={{ subject: it.subject, b }} />
     const mins = it.afterDeliveryMin

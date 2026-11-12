@@ -22106,6 +22106,7 @@ export interface components {
             paidConnected: boolean;
             products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
+            repliesInbox: boolean;
             scoreBands?: components["schemas"]["ScoringBands"];
             segments: components["schemas"]["AutomationSegmentOption"][];
             tags: string[];
@@ -29526,10 +29527,14 @@ export interface components {
             provider?: components["schemas"]["InboundProviderRef"];
             /** @enum {string} */
             replyHandling: "forward" | "inbox";
+            /** Format: date-time */
+            setUpAt?: string;
             setup: components["schemas"]["InboundSetupView"];
             /** @enum {string} */
             status: "not_set_up" | "pending" | "receiving" | "failing";
             statusDetail: string;
+            /** @enum {string} */
+            statusReason?: "mx" | "mailbox_auth" | "mailbox_unreachable" | "register" | "dropped_reports";
             suggestion: string;
         };
         InboundSetupField: {
@@ -55165,7 +55170,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -55247,7 +55252,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */

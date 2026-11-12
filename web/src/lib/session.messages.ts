@@ -47,4 +47,6 @@ export const m = defineMessages('access.denied', {
   'orders:manage': 'Managing orders',
   'grow:edit': 'Editing the referral program',
   'grow:connect': 'Managing partner links',
+  'replies:view': 'Reading replies',
+  'replies:manage': 'Handling replies',
 })

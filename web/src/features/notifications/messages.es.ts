@@ -19,7 +19,7 @@ export default translate(m, {
   nothingUnread: 'Nada sin leer',
   noneInCategory: '{filter, select, approvals {No hay notificaciones de Aprobaciones} sending {No hay notificaciones de Envíos} providers {No hay notificaciones de Proveedores} team {No hay notificaciones de Equipo} hostrepute {No hay notificaciones de HostRepute} other {No hay notificaciones}}',
   emptyBody: 'Aquí aparecen las aprobaciones, las pausas automáticas, los incidentes de proveedores, los cambios en el equipo y las alertas de HostRepute.',
-  category: '{category, select, approvals {Aprobaciones} sending {Envíos} providers {Proveedores} team {Equipo} hostrepute {HostRepute} integrations {Integraciones} transactional {Transaccional} ai {IA} earn {Monetización} website {Sitio web} grow {Crecimiento} other {Otras}}',
+  category: '{category, select, approvals {Aprobaciones} sending {Envíos} providers {Proveedores} team {Equipo} hostrepute {HostRepute} integrations {Integraciones} transactional {Transaccional} ai {IA} earn {Monetización} website {Sitio web} grow {Crecimiento} audience {Audiencia} other {Otras}}',
   new: 'Nueva',
   retention: 'Las notificaciones más antiguas se conservan durante {days, plural, one {# día} other {# días}}.',
   prefsTitle: 'Mis preferencias',

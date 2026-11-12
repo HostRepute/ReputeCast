@@ -3,7 +3,8 @@ import { NavTabs } from '@/components/ui/Tabs'
 import { m as scoring } from '@/features/scoring/messages'
 import { useT } from '@/i18n'
 import { count } from '@/lib/format'
-import { useWorkspace } from '@/lib/session'
+import { m as replies } from '@/features/replies/messages'
+import { useCan, useWorkspace } from '@/lib/session'
 import { m as lf } from './listsfields.messages'
 import { m } from './messages'
 import { audienceSummaryQuery } from './queries'
@@ -15,7 +16,8 @@ export function useAudienceSummary() {
 }
 
 /**
- * Contacts · Segments · Lists & fields · List health · Suppression list,
+ * Contacts · Segments · Lists & fields · List health · Suppression list ·
+ * Replies (M58, with replies:view),
  * inline after the screen title. Counts appear once the summary has loaded
  * (and not at all while the workspace has no contacts, as on the empty-state
  * board).
@@ -28,6 +30,8 @@ export function AudienceTabs() {
   const show = s && s.contacts > 0
   // While the summary loads, the three tabs that show a count keep room for it.
   const reserve = (ch: number) => (summary.isPending ? ch : undefined)
+  // Replies (M58), for people who can read them.
+  const canReplies = useCan('replies:view')
   return (
     <NavTabs
       label={t(m.sections)}
@@ -46,6 +50,7 @@ export function AudienceTabs() {
           params: { workspace: slug },
           reserve: reserve(5),
         },
+        ...(canReplies ? [{ label: t(replies.tab), to: '/w/$workspace/audience/replies' as const, params: { workspace: slug } }] : []),
       ]}
     />
   )

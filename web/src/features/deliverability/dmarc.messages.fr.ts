@@ -45,4 +45,9 @@ export default translate(md, {
   uploadDescription: 'Le fichier .xml qu’un fournisseur de messagerie a envoyé à votre adresse rua=, ou le .xml.gz ou .zip qui le contenait. Seuls les chiffres du rapport sont stockés.',
   upload: 'Importer',
   reportFile: 'Fichier de rapport',
+  collectAt: "Les rapports arrivent à {address} · le dernier {when}",
+  collectAtNone: "Les rapports arrivent à {address}",
+  collectTitle: "Collecter les rapports dans ReputeCast",
+  collectLine: "Recevez les rapports agrégés DMARC à une adresse de votre domaine de réception.",
+  collectSetUp: "Configurer la réception",
 })

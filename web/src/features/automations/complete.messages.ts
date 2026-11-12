@@ -141,4 +141,6 @@ export const m = defineMessages('automations.complete', {
   lastEmail: 'Last email',
   sequenceEmpty: 'No emails in this flow yet.',
   nextShare: '{percent} went on to the next email',
+  exitOnReply: "Stop when the contact replies to an email from this flow",
+  exitOnReplyWhy: "Replies need Receiving mail and 'Keep replies in ReputeCast inbox'",
 })

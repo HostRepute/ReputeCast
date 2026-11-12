@@ -24,7 +24,7 @@ export type NotificationFilter = 'all' | 'unread' | 'approvals' | 'sending' | 'p
 const tabs: NotificationFilter[] = ['all', 'unread', 'approvals', 'sending', 'providers', 'team', 'hostrepute']
 
 /** The categories the server names; a category it adds later shows the server's own label. */
-const categories = new Set(['approvals', 'sending', 'providers', 'team', 'hostrepute', 'other', 'integrations', 'transactional', 'ai', 'earn', 'website', 'grow'])
+const categories = new Set(['approvals', 'sending', 'providers', 'team', 'hostrepute', 'other', 'integrations', 'transactional', 'ai', 'earn', 'website', 'grow', 'audience'])
 
 /** A5 §5.16: the notification center with category tabs and the preferences. */
 export function NotificationsPage({ filter }: { filter: NotificationFilter }) {

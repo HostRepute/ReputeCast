@@ -19,7 +19,7 @@ export default translate(m, {
   nothingUnread: 'Nichts ungelesen',
   noneInCategory: '{filter, select, approvals {Keine Benachrichtigungen zu Freigaben} sending {Keine Benachrichtigungen zum Versand} providers {Keine Benachrichtigungen zu Anbietern} team {Keine Benachrichtigungen zum Team} hostrepute {Keine Benachrichtigungen zu HostRepute} other {Keine Benachrichtigungen}}',
   emptyBody: 'Freigaben, automatische Pausen, Störungen bei Anbietern, Änderungen im Team und Warnungen von HostRepute erscheinen hier.',
-  category: '{category, select, approvals {Freigaben} sending {Versand} providers {Anbieter} team {Team} hostrepute {HostRepute} integrations {Integrationen} transactional {Transaktional} ai {KI} earn {Einnahmen} website {Website} grow {Wachstum} other {Sonstiges}}',
+  category: '{category, select, approvals {Freigaben} sending {Versand} providers {Anbieter} team {Team} hostrepute {HostRepute} integrations {Integrationen} transactional {Transaktional} ai {KI} earn {Einnahmen} website {Website} grow {Wachstum} audience {Zielgruppe} other {Sonstiges}}',
   new: 'Neu',
   retention: 'Ältere Benachrichtigungen werden {days, plural, one {# Tag} other {# Tage}} lang aufbewahrt.',
   prefsTitle: 'Meine Einstellungen',

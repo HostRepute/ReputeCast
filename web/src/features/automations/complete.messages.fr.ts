@@ -127,4 +127,6 @@ export default translate(m, {
   lastEmail: 'Dernier e-mail',
   sequenceEmpty: 'Aucun e-mail dans ce scénario pour l’instant.',
   nextShare: '{percent} sont passés à l’e-mail suivant',
+  exitOnReply: "Arrêter quand le contact répond à un e-mail de ce scénario",
+  exitOnReplyWhy: "Il faut la Réception des e-mails et « Garder les réponses dans la boîte ReputeCast »",
 })

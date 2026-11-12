@@ -213,4 +213,5 @@ export const mp = defineMessages('automations.panels', {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'No calls yet.',
+  condReplied: "Replied to the email",
 })

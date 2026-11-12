@@ -7,6 +7,7 @@ import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { GO_KEYS, modKeyLabel, runShortcutHandler, SEQUENCE_MS, shortcutFor, type GoTarget } from '@/lib/shortcuts'
 import { toast } from '../ui/Toast'
 import { CommandPalette } from './CommandPalette'
+import { m as rm } from '@/features/replies/messages'
 import { m } from './messages'
 import { NAV } from './nav'
 
@@ -102,6 +103,20 @@ export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenC
                     {section(g.to)}
                   </Row>
                 ))}
+            </ul>
+            {/* Audience › Replies' own keys (M58). */}
+            <span className="lbl mt-1">{t(rm.shortcutsSection)}</span>
+            <ul className="kbgrid">
+              <Row>
+                <span>
+                  <kbd>J</kbd> / <kbd>K</kbd>
+                </span>{' '}
+                {t(rm.shortcutNav)}
+              </Row>
+              <Row>
+                <Keys keys={['E']} />
+                {t(rm.shortcutDone)}
+              </Row>
             </ul>
             <span className="k">{t(m.shortcutsFootnote)}</span>
           </RDialog.Content>
