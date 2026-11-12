@@ -161,6 +161,8 @@ export function CommentsPage({ overview, search, onSearch }: { overview: Overvie
           to="/w/$workspace/forms/website/comments"
           params={{ workspace: slug }}
           search={{ ...search, status: key === 'pending' ? undefined : key }}
+          // Every tab is the same page: only its own search makes it the current one.
+          activeOptions={{ exact: true, includeSearch: true }}
           className={status === key ? 'ws-fchip on' : 'ws-fchip'}
           aria-current={status === key ? 'page' : undefined}
         >

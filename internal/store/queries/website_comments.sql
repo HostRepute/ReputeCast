@@ -160,8 +160,9 @@ WHERE c.workspace_id = @workspace_id
   AND (sqlc.narg(id)::uuid IS NULL OR c.id = sqlc.narg(id)::uuid)
   AND (sqlc.narg(post)::uuid IS NULL OR c.post_id = sqlc.narg(post)::uuid)
   AND (sqlc.narg(q)::text IS NULL OR c.body ILIKE sqlc.narg(q)::text OR m.display_name ILIKE sqlc.narg(q)::text OR ct.email ILIKE sqlc.narg(q)::text)
-  AND (sqlc.narg(before_at)::timestamptz IS NULL OR (c.created_at, c.id) < (sqlc.narg(before_at)::timestamptz, sqlc.narg(before_id)::uuid))
-ORDER BY c.created_at DESC, c.id DESC
+  AND (sqlc.narg(before_at)::timestamptz IS NULL
+       OR ((c.pinned_at IS NOT NULL)::int, c.created_at, c.id) < (sqlc.narg(before_pinned)::int, sqlc.narg(before_at)::timestamptz, sqlc.narg(before_id)::uuid))
+ORDER BY (c.pinned_at IS NOT NULL) DESC, c.created_at DESC, c.id DESC
 LIMIT @lim;
 
 -- name: WebsiteCommentStatusCounts :one

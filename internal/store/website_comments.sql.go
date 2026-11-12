@@ -264,20 +264,22 @@ WHERE c.workspace_id = $1
   AND ($3::uuid IS NULL OR c.id = $3::uuid)
   AND ($4::uuid IS NULL OR c.post_id = $4::uuid)
   AND ($5::text IS NULL OR c.body ILIKE $5::text OR m.display_name ILIKE $5::text OR ct.email ILIKE $5::text)
-  AND ($6::timestamptz IS NULL OR (c.created_at, c.id) < ($6::timestamptz, $7::uuid))
-ORDER BY c.created_at DESC, c.id DESC
-LIMIT $8
+  AND ($6::timestamptz IS NULL
+       OR ((c.pinned_at IS NOT NULL)::int, c.created_at, c.id) < ($7::int, $6::timestamptz, $8::uuid))
+ORDER BY (c.pinned_at IS NOT NULL) DESC, c.created_at DESC, c.id DESC
+LIMIT $9
 `
 
 type WebsiteCommentListParams struct {
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	Status      *string    `json:"status"`
-	ID          *uuid.UUID `json:"id"`
-	Post        *uuid.UUID `json:"post"`
-	Q           *string    `json:"q"`
-	BeforeAt    *time.Time `json:"beforeAt"`
-	BeforeID    *uuid.UUID `json:"beforeId"`
-	Lim         int32      `json:"lim"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	Status       *string    `json:"status"`
+	ID           *uuid.UUID `json:"id"`
+	Post         *uuid.UUID `json:"post"`
+	Q            *string    `json:"q"`
+	BeforeAt     *time.Time `json:"beforeAt"`
+	BeforePinned *int32     `json:"beforePinned"`
+	BeforeID     *uuid.UUID `json:"beforeId"`
+	Lim          int32      `json:"lim"`
 }
 
 type WebsiteCommentListRow struct {
@@ -306,6 +308,7 @@ func (q *Queries) WebsiteCommentList(ctx context.Context, arg WebsiteCommentList
 		arg.Post,
 		arg.Q,
 		arg.BeforeAt,
+		arg.BeforePinned,
 		arg.BeforeID,
 		arg.Lim,
 	)

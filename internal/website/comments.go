@@ -391,25 +391,31 @@ func registerComments(h huma.API, s *Service) {
 	}
 }
 
-func encodeCommentCursor(at time.Time, id uuid.UUID) string {
-	return base64.RawURLEncoding.EncodeToString([]byte(at.UTC().Format(time.RFC3339Nano) + "|" + id.String()))
+func encodeCommentCursor(pinned bool, at time.Time, id uuid.UUID) string {
+	p := "0"
+	if pinned {
+		p = "1"
+	}
+	return base64.RawURLEncoding.EncodeToString([]byte(p + "|" + at.UTC().Format(time.RFC3339Nano) + "|" + id.String()))
 }
 
-func decodeCommentCursor(c string) (time.Time, uuid.UUID, error) {
+// decodeCommentCursor reads a page's cursor: the last comment's pin, time
+// and id (pinned comments come first).
+func decodeCommentCursor(c string) (bool, time.Time, uuid.UUID, error) {
 	b, err := base64.RawURLEncoding.DecodeString(c)
 	if err != nil {
-		return time.Time{}, uuid.Nil, err
+		return false, time.Time{}, uuid.Nil, err
 	}
-	at, id, ok := strings.Cut(string(b), "|")
-	if !ok {
-		return time.Time{}, uuid.Nil, fmt.Errorf("bad cursor")
+	parts := strings.Split(string(b), "|")
+	if len(parts) != 3 || (parts[0] != "0" && parts[0] != "1") {
+		return false, time.Time{}, uuid.Nil, fmt.Errorf("bad cursor")
 	}
-	t, err := time.Parse(time.RFC3339Nano, at)
+	t, err := time.Parse(time.RFC3339Nano, parts[1])
 	if err != nil {
-		return time.Time{}, uuid.Nil, err
+		return false, time.Time{}, uuid.Nil, err
 	}
-	u, err := uuid.Parse(id)
-	return t, u, err
+	u, err := uuid.Parse(parts[2])
+	return parts[0] == "1", t, u, err
 }
 
 // likeOf is a search's ILIKE pattern.
@@ -494,11 +500,15 @@ func (s *Service) Comments(ctx context.Context, ws *store.Workspace, f WebsiteCo
 	}
 	params := store.WebsiteCommentListParams{WorkspaceID: ws.ID, Status: &status, Post: post, Q: likeOf(f.Search), Lim: int32(limit + 1)}
 	if f.Cursor != "" {
-		at, id, err := decodeCommentCursor(f.Cursor)
+		pinned, at, id, err := decodeCommentCursor(f.Cursor)
 		if err != nil {
 			return out, api.Invalid("cursor", tr(ctx, "comments.cursorInvalid", nil))
 		}
-		params.BeforeAt, params.BeforeID = &at, &id
+		pin := int32(0)
+		if pinned {
+			pin = 1
+		}
+		params.BeforePinned, params.BeforeAt, params.BeforeID = &pin, &at, &id
 	}
 	rows, err := s.Q.WebsiteCommentList(ctx, params)
 	if err != nil {
@@ -520,7 +530,7 @@ func (s *Service) Comments(ctx context.Context, ws *store.Workspace, f WebsiteCo
 	for i, r := range rows {
 		if i == limit {
 			last := rows[limit-1].WebsiteComment
-			out.NextCursor = encodeCommentCursor(last.CreatedAt, last.ID)
+			out.NextCursor = encodeCommentCursor(last.PinnedAt != nil, last.CreatedAt, last.ID)
 			break
 		}
 		out.Items = append(out.Items, commentItem(r, base, out.Publication))
