@@ -405,6 +405,7 @@ Read all of it before you start.
   - Back in stock: people who asked to hear when a sold-out product is back (`reputecast('notifyWhenAvailable', …)` for a known visitor, or the API), and optionally people who viewed it in the last N days.
   - Price drop: people who viewed it or added it to their cart in the last N days (default 14), when the price falls by at least a set share (default 10%).
 - **Blocks:** the store block gains Best sellers (by quantity over the last 30 days, optionally one collection's), Recently viewed and Bought together (per recipient, best sellers for someone without history), and Viewed products (in emails of browse and cart flows). Each keeps its number of products, so the email's links stay numbered the same.
+- **Forms by segment (G-32):** a popup or embedded form's Where and when › Visitors can be "In a segment" or "Not in a segment". The embed script sends the tracker's visitor id to the form's session; the server finds the contact that browser was linked to and checks the segment's materialised members (live forms' dynamic segments are evaluated on the same schedule as segments flows start on). A visitor nobody knows is in no segment: "In a segment" doesn't show to them, "Not in a segment" does. It needs Website tracking on the same site, and hosted forms don't take it.
 
 ### 3.7 Permissions
 New permission group, "Website and pages":

@@ -483,7 +483,9 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
               </div>
               <div role="group" aria-labelledby="fs-ww-vis" style="display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid #EEF0F3">
                 <h3 id="fs-ww-vis" style="margin:0;font-size:13.5px;font-weight:600">Visitors</h3>
-                <div style="display:flex;gap:8px 18px;flex-wrap:wrap"><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v" checked>Everyone</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">New visitors</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">Returning visitors</label></div>
+                <div style="display:flex;gap:8px 18px;flex-wrap:wrap"><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">Everyone</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">New visitors</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">Returning visitors</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v" checked>In a segment</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">Not in a segment</label></div>
+                <select class="in" aria-label="Segment"><option>Active in last 30 days</option></select>
+                <div class="note i"><span>Needs Website tracking on the same site. The form shows only to visitors ReputeCast knows who are in the segment; it doesn't show to anyone else.</span></div>
                 <span class="k">Returning visitors have seen one of your forms in this browser before today.</span>
               </div>
               <div role="group" aria-labelledby="fs-ww-sch" style="display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid #EEF0F3">
