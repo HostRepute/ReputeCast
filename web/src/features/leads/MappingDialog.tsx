@@ -61,7 +61,7 @@ export function MappingDialog({ form, onOpenChange }: { form: LeadForm; onOpenCh
         <>
           <div className="note b" role="alert">
             <AttentionIcon size={16} color="var(--bad-fg)" />
-            <div className="min-w-0 flex-[1_1_320px]">{errorMessage(q.error) || t(mm.loadError)}</div>
+            <div className="min-w-0 flex-1">{errorMessage(q.error) || t(mm.loadError)}</div>
           </div>
           <DialogFooter>
             <Button onClick={() => onOpenChange(false)}>{t(mm.cancel)}</Button>

@@ -50,7 +50,7 @@ function FormError({ children }: { children: ReactNode }) {
   return (
     <div className="note b" role="alert">
       <AttentionIcon size={16} color="var(--bad-fg)" />
-      <div className="min-w-0 flex-[1_1_320px]">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   )
 }
@@ -153,7 +153,7 @@ function AppStep({ setup, onCancel, onNext }: { setup: ReturnType<typeof useSetu
       </ol>
       <div className="note i" role="note">
         <Icon name="info" size={16} className="mt-px flex-none" />
-        <div className="min-w-0 flex-[1_1_320px]">{t(mc.appReview)}</div>
+        <div className="min-w-0 flex-1">{t(mc.appReview)}</div>
       </div>
       {setup.isError ? (
         <FormError>{errorMessage(setup.error)}</FormError>

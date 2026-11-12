@@ -356,7 +356,7 @@ function HowCard({ c }: { c: Connection }) {
       </div>
       <div className="pad">
         <KeyValues
-          className="cm-kv gap-x-[18px] gap-y-[7px]"
+          className="la-kv"
           items={[
             [
               t(ml.kvWebhook),
@@ -741,7 +741,7 @@ function WhoCard({ c }: { c: Connection }) {
         {c.canManage ? null : (
           <div className="note i" role="note">
             <Icon name="info" size={16} className="mt-px flex-none" />
-            <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <b className="font-semibold">{t(ml.readOnlyTitle, { name: user?.user.name ?? '', role: me.workspace.roleName })}</b>
               <span>{c.helpers.length ? t(ml.readOnlyBody, { helpers }) : t(ml.readOnlyAlone)}</span>
             </div>
@@ -802,7 +802,7 @@ function DisconnectDialog({ connection: c, onOpenChange }: { connection: Connect
       </ul>
       <div className="note i" role="note">
         <Icon name="info" size={16} className="mt-px flex-none" />
-        <div className="min-w-0 flex-[1_1_320px]">{t(ml.dcSafer)}</div>
+        <div className="min-w-0 flex-1">{t(ml.dcSafer)}</div>
       </div>
     </Dialog>
   )

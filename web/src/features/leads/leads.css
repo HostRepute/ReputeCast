@@ -20,6 +20,11 @@
     min-width: 0;
   }
 
+  /* How leads arrive: the boards' key-value list, a little more air than .kv. */
+  .kv.la-kv {
+    gap: 7px 18px;
+  }
+
   /* "What ReputeCast receives": a ticked list. */
   .la-wd {
     padding: 14px 18px;
@@ -240,6 +245,12 @@
     .la-grid,
     .la-col {
       gap: 12px;
+    }
+    .kv.la-kv {
+      gap: 2px 0;
+    }
+    .kv.la-kv dd {
+      margin-bottom: 8px;
     }
     .la-qrow {
       grid-template-columns: 1fr;
