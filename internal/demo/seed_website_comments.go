@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 )
 
 func init() { seedWebsiteComments = seedWebsiteCommentsImpl }
@@ -125,10 +127,12 @@ func seedWebsiteCommentsImpl(ctx context.Context, s *Seeder) error {
 	for key, c := range demoCommenters {
 		id, ok := s.contactByEmail(ctx, c.email)
 		if !ok {
-			id = ID()
-			attrs, _ := json.Marshal(map[string]any{})
-			if _, err := s.Tx.Exec(ctx, `INSERT INTO contacts (id, workspace_id, email, first_name, last_name, source, attributes, created_at, updated_at)
-				VALUES ($1,$2,$3,$4,$5,'website',$6,$7,$7)`, id, ws.ID, c.email, c.first, c.last, attrs, s.designDay(20, 9, 0)); err != nil {
+			// A commenter the other seeders didn't make takes the place of a
+			// generated Weekly Digest subscriber with the same mailbox
+			// provider (as Earn's paid members do), so every audience total
+			// stays as the boards count it.
+			var err error
+			if id, err = s.standIn(ctx, c.email, c.first, c.last); err != nil {
 				return fmt.Errorf("commenter %s: %w", c.email, err)
 			}
 		}
@@ -196,4 +200,23 @@ func seedWebsiteCommentsImpl(ctx context.Context, s *Seeder) error {
 		}
 	}
 	return nil
+}
+
+// standIn turns the newest generated Weekly Digest subscriber with the same
+// mailbox provider into a named reader, and returns its id.
+func (s *Seeder) standIn(ctx context.Context, email, first, last string) (uuid.UUID, error) {
+	ws := s.WS()
+	var id uuid.UUID
+	err := s.Tx.QueryRow(ctx, `SELECT c.id FROM contacts c
+		JOIN list_memberships m ON m.contact_id = c.id AND m.list_id = $2 AND m.status = 'subscribed'
+		WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL AND c.first_name <> '' AND c.mailbox_provider = $3
+		  AND NOT EXISTS (SELECT 1 FROM website_members wm WHERE wm.contact_id = c.id)
+		  AND NOT EXISTS (SELECT 1 FROM paid_subscriptions ps WHERE ps.contact_id = c.id)
+		ORDER BY c.created_at DESC, c.id DESC LIMIT 1`, ws.ID, s.Lists["Weekly Digest"], emailaddr.MailboxProvider(emailaddr.Domain(email))).Scan(&id)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	_, err = s.Tx.Exec(ctx, `UPDATE contacts SET email = $2, first_name = $3, last_name = $4, role_address = $5 WHERE id = $1`,
+		id, email, first, last, emailaddr.IsRole(email))
+	return id, err
 }
