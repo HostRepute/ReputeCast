@@ -148,6 +148,18 @@ func seedInboundAfter(ctx context.Context, s *Seeder) error {
 				  AND EXISTS (SELECT 1 FROM suppressions su WHERE su.workspace_id = $1 AND su.email = lower(ct.email) AND su.reason = 'unsubscribe') = $3
 				  AND (ct.status = 'active' OR $3)
 				ORDER BY m.id IS NULL, ct.email LIMIT 1`, ws.ID, campaign, unsubscribed, used).Scan(&c, &email, &first, &last, &msg)
+			if errors.Is(err, pgx.ErrNoRows) && unsubscribed {
+				// The demo's unsubscribes keep only the suppressed address.
+				if err := s.Tx.QueryRow(ctx, `SELECT email FROM suppressions WHERE workspace_id = $1 AND reason = 'unsubscribe' ORDER BY created_at DESC, email LIMIT 1`,
+					ws.ID).Scan(&email); err != nil {
+					if errors.Is(err, pgx.ErrNoRows) {
+						continue
+					}
+					return err
+				}
+				name = ""
+				break
+			}
 			if errors.Is(err, pgx.ErrNoRows) {
 				continue
 			}
