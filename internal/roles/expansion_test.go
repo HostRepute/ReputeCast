@@ -51,8 +51,10 @@ func TestRolesExpansionCatalogue(t *testing.T) {
 			marks[p.Key] = "no-agents"
 		}
 	}
-	if len(marks) != 5 || marks["integrations:manage"] != "people" || marks["ai:use"] != "people" ||
-		marks["subscribers:verify"] != "no-agents" || marks["placement:run"] != "no-agents" || marks["placement:manage"] != "no-agents" {
+	// comments:moderate (M61) is people only too: moderating readers' comments isn't an agent's call.
+	if len(marks) != 6 || marks["integrations:manage"] != "people" || marks["ai:use"] != "people" ||
+		marks["subscribers:verify"] != "no-agents" || marks["placement:run"] != "no-agents" || marks["placement:manage"] != "no-agents" ||
+		marks["comments:moderate"] != "no-agents" {
 		t.Fatalf("people-only and no-agents marks: %v", marks)
 	}
 
