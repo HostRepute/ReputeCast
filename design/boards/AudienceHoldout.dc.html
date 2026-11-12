@@ -434,22 +434,23 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   <h2 id="ho-v" style="margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;line-height:1.3">Marketing added 18% more revenue per contact (96% confidence).</h2>
   <span class="k">2,316 contacts in the holdout group (5%) got no campaigns or automations from 15 Aug to 14 Oct; 44,021 contacts got them.</span>
 </section>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px">
   <div class="card stat"><span class="k">Conversion rate</span><span class="v"><span class="vh">Marketing group: </span>7.6%</span><span class="s">Holdout 6.4%</span><span class="badge ok" style="align-self:flex-start;margin-top:6px"><span class="dot"></span>+19% · 97% confidence</span></div>
   <div class="card stat"><span class="k">Revenue per contact</span><span class="v"><span class="vh">Marketing group: </span>$5.45</span><span class="s">Holdout $4.62</span><span class="badge ok" style="align-self:flex-start;margin-top:6px"><span class="dot"></span>+18% · 96% confidence</span></div>
   <div class="card stat"><span class="k">Orders per contact</span><span class="v"><span class="vh">Marketing group: </span>0.083</span><span class="s">Holdout 0.071</span><span class="badge mut" style="align-self:flex-start;margin-top:6px"><span class="dot"></span>+17% · 94% confidence</span></div>
+  <div class="card stat"><span class="k">Site visitors</span><span class="v"><span class="vh">Marketing group: </span>3.8%</span><span class="s">Holdout 3.0%</span><span class="badge ok" style="align-self:flex-start;margin-top:6px"><span class="dot"></span>+28% · 95% confidence</span></div>
 </div>
 <section class="card" aria-labelledby="ho-cmp">
   <div class="sec"><h2 class="h2" id="ho-cmp">Revenue per contact</h2><div class="seg" role="group" aria-label="View"><button type="button" class="on" aria-pressed="true">Chart</button><button type="button" aria-pressed="false">Table</button></div></div>
   <div class="pad"><div role="img" aria-label="Revenue per contact: marketing group $5.45, holdout group $4.62" style="display:flex;flex-direction:column;gap:14px"><div style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span style="font-weight:600">Marketing group</span><span class="num" style="font-weight:700">$5.45</span></span><div class="bar" style="height:12px;border-radius:6px"><i style="width:100%;background:#0F766E;border-radius:6px"></i></div></div><div style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span style="font-weight:600">Holdout group</span><span class="num" style="font-weight:700">$4.62</span></span><div class="bar" style="height:12px;border-radius:6px"><i style="width:84.8%;background:#0B1220;border-radius:6px"></i></div></div></div></div>
 </section>
 <div class="note i" role="note"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#1D4ED8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 320px"><span style="font-weight:700">Campaigns that included the holdout: 8</span><div>They went to the holdout group too, so what they add isn't part of the difference.</div></div></div>
-<div style="display:flex;flex-direction:column;gap:4px"><span class="k">A converter placed an order, recorded a conversion or started a paid subscription. Revenue is orders minus refunds plus conversion values, in USD.</span><span class="k">Transactional and system mail always reach everyone.</span><a href="SettingsSendingRules.dc.html" class="lnk" style="align-self:flex-start">Holdout settings</a></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span class="k">A converter placed an order, recorded a conversion or started a paid subscription. Revenue is orders minus refunds plus conversion values, in USD.</span><span class="k">A site visitor was seen on one of your tracked sites (Website tracking).</span><span class="k">Transactional and system mail always reach everyone.</span><a href="SettingsSendingRules.dc.html" class="lnk" style="align-self:flex-start">Holdout settings</a></div>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":780}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":801}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

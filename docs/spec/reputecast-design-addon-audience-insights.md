@@ -311,9 +311,9 @@ Added after this phase: measure what marketing adds by keeping a random share of
 - **Audience › Holdout** (a tab once a workspace has had a holdout group; reports:view):
   - Window: since the period started (default), the last 30 or the last 90 days, never before the period started. "Computed {ago}" and **Recompute** (at most once every 10 minutes; otherwise "Results were computed {ago}. You can recompute once every 10 minutes.").
   - The verdict on revenue per contact first: "Marketing added 18% more revenue per contact (96% confidence).", "Contacts in the holdout brought 9% more revenue per contact (95% confidence).", "No measurable difference yet.", "Too few contacts in the holdout: 640 of 1,000 needed." or "Too early to tell: the holdout group started 9 Oct. Give it at least two weeks."
-  - Tiles for conversion rate, revenue per contact and orders per contact: the marketing group's value, the holdout's, the lift and its confidence. A two-bar comparison with a table view. "Campaigns that included the holdout: {n}" (what they add isn't part of the difference).
+  - Tiles for conversion rate, revenue per contact and orders per contact, and site visitors when the workspace tracks a site (Website tracking): the marketing group's value, the holdout's, the lift and its confidence. A two-bar comparison with a table view. "Campaigns that included the holdout: {n}" (what they add isn't part of the difference).
   - Revenue is store orders minus refunds plus conversion values, in the workspace's main currency (Earn's); other currencies are listed, never converted.
-- **Measurement:** every night at 04:00 workspace time, and on Recompute. For the open period and the last closed one, over each window: the contacts not erased, created before the window's end and not suppressed before its start, split into the two groups. Stored as each group's sums; the metrics are computed when read, so a metric can be added (site visitors, with M62's tracker) without measuring again. Conversion rate is compared with a two-proportion z-test, revenue and orders per contact with Welch's t-test; a difference counts at 95% confidence. Under 1,000 contacts in the holdout group, or a period younger than two weeks, the verdict says so instead.
+- **Measurement:** every night at 04:00 workspace time, and on Recompute. For the open period and the last closed one, over each window: the contacts not erased, created before the window's end and not suppressed before its start, split into the two groups. Stored as each group's sums; the metrics are computed when read. Site visitors are the contacts seen on a tracked site in the window (M62's tracker events with a contact), counted only when the workspace tracks a site. Conversion rate and the share of site visitors are compared with a two-proportion z-test, revenue and orders per contact with Welch's t-test; a difference counts at 95% confidence. Under 1,000 contacts in the holdout group, or a period younger than two weeks, the verdict says so instead.
 - **Not in this phase:** per-campaign or per-flow holdouts, several groups at once, and converting currencies.
 
 ---
@@ -548,7 +548,7 @@ Added by Linh Nguyen on Thu 2 Oct 2026, two days before Postal's warm-up started
 
 ### Holdout group (M63)
 - On since Fri 15 Aug at 5% of campaigns and automations: 2,397 contacts held out today.
-- Since 15 Aug: 2,316 contacts in the holdout group and 44,021 in the marketing group. Conversion rate 7.6% vs 6.4% (+19%, 97% confidence); revenue per contact $5.45 vs $4.62 (+18%, 96%); orders per contact 0.083 vs 0.071 (+17%, 94%).
+- Since 15 Aug: 2,316 contacts in the holdout group and 44,021 in the marketing group. Conversion rate 7.6% vs 6.4% (+19%, 97% confidence); revenue per contact $5.45 vs $4.62 (+18%, 96%); orders per contact 0.083 vs 0.071 (+17%, 94%); site visitors 3.8% vs 3.0% (1,673 and 69 contacts seen on shop.acme.io, +28%, 95%).
 - The eight Weekly Digests sent since, and #142, include the holdout group: subscribers get the digest they signed up for. #142 reaches 1,560 of its contacts.
 - The Welcome series held out 67, 41 and 26 contacts at its three emails.
 
