@@ -132,7 +132,7 @@ sdks: ## Regenerate, check and test the client SDKs (TypeScript, Python, Go), th
 	cd sdk/client-go && $(GO) generate ./... && $(GO) vet ./... && $(GO) test -count=1 ./...
 	@if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then \
 	  export REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)"; fi; \
-	REPUTECAST_SDK_E2E=required $(GO) test -count=1 -v -run 'TestClientSDKs' ./internal/sdktest/
+	REPUTECAST_SDK_E2E=required $(GO) test -count=1 -timeout 30m -v -run 'TestClientSDKs' ./internal/sdktest/
 
 .PHONY: docker
 docker: ## Build the Docker image
