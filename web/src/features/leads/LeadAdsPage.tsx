@@ -797,7 +797,7 @@ function DisconnectDialog({ connection: c, onOpenChange }: { connection: Connect
         </>
       }
     >
-      <ul className="m-0 flex flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
+      <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
         <li>{t(ml.dcPages, { count: c.pages.length })}</li>
         <li>{t(ml.dcCredentials)}</li>
         <li>{t(ml.dcContacts)}</li>
