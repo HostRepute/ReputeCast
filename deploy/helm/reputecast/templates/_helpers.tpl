@@ -78,11 +78,16 @@ app.kubernetes.io/component: {{ .component }}
 {{- end }}
 
 {{/*
-Checks that would otherwise fail late, each with what to do. Every template
-that renders a workload includes it.
+Checks that would otherwise fail late, each with what to do, the mode
+against the storage first. Every template that renders a workload includes
+it.
 */}}
 {{- define "reputecast.validate" -}}
 {{- $v := .Values }}
+{{- /* The layout first: it decides what the other values must be. */}}
+{{- if and (eq $v.mode "split") (ne $v.storage.backend "s3") }}
+{{- fail "\n\nmode split needs storage.backend s3: the web and worker pods can't share a local folder, so uploaded files must live in an S3-compatible bucket. Set storage.backend=s3 and storage.s3.bucket, or use mode single." }}
+{{- end }}
 {{- if not $v.publicURL }}
 {{- fail "\n\nSet publicURL to the address people and sending providers reach, such as --set publicURL=https://news.example.com." }}
 {{- end }}
@@ -95,9 +100,6 @@ that renders a workload includes it.
 {{- end }}
 {{- if and $v.database.url $v.database.existingSecret }}
 {{- fail "\n\nSet database.url or database.existingSecret, not both." }}
-{{- end }}
-{{- if and (eq $v.mode "split") (ne $v.storage.backend "s3") }}
-{{- fail "\n\nmode split needs storage.backend s3: the web and worker pods can't share a local folder, so uploaded files must live in an S3-compatible bucket. Set storage.backend=s3 and storage.s3.bucket, or use mode single." }}
 {{- end }}
 {{- if and (eq $v.storage.backend "s3") (not $v.storage.s3.bucket) }}
 {{- fail "\n\nstorage.backend s3 needs storage.s3.bucket." }}
