@@ -468,7 +468,6 @@ Work on your branch and commit often. Commit messages follow
   - Mark a breaking change with `!` after the type or scope, plus a `BREAKING CHANGE:` footer.
 - **Scope:** optional. Use the feature or package the change is about, in lower case: `audience`, `sending`, `composer`, `providers`, `approvals`, `forms`, `site` and so on.
 - **Description:** imperative, lower case after the colon, no full stop. The whole first line is at most 100 characters. Explain why in the body.
-- **No attribution trailers:** no `Co-Authored-By` lines or other AI attribution.
 
 ```
 fix(campaigns): count only blocking issues for a blocked draft

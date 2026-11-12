@@ -241,9 +241,23 @@ Who gets what:
 
 ### 3.10 Out of scope for this phase
 - Language variants of templates (phase 2).
-- Inbound email and reply parsing.
 - SMS and push notifications (phase 8).
 - Scheduling more than 72 hours ahead.
+
+### 3.11 Receiving mail (M58)
+Inbound email was out of scope here until M58; it is now built for the whole workspace (boards `InboundSetup`, `InboundStates`, `Replies`, `RepliesStates`). Transactional mail keeps its own reply-to: nothing below changes it.
+- **One route per workspace:** a connected provider's receiving (Amazon SES and Postal are set up by hand with the steps ReputeCast shows; Mailgun, Postmark, SendGrid, Resend, SparkPost, Mailjet and Brevo are set up by ReputeCast) or an IMAP/POP3 mailbox ReputeCast reads every minute. ReputeCast runs no mail server. Providers that can't receive (Azure Communication Services, HTTP generic, SMTP, community adapters) are listed with "{provider} doesn't receive mail. Use a mailbox instead."
+- **Domain:** a provider route receives on a domain that is, or is under, a verified sending domain, and only one workspace receives on a domain. A domain that already receives mail elsewhere is refused with "{domain} already receives mail at {host}. Use a subdomain only for ReputeCast, such as reply.{domain}." A mailbox route's local part is at most 22 characters, so its tagged addresses stay within 64.
+- **Addresses:** replies come back to `r-<tag>@<domain>`, `mailto:` unsubscribes go to `u-<tag>@<domain>`, the setup's test to `t-<tag>@<domain>`; mailbox routes put the tag after a plus (`replies+r-…@acme.io`). A tag is the message id and a keyed digest (39 lowercase base32 characters); a tag that doesn't verify for the workspace is "other mail". Reports go to `dmarc@` and `fbl@` the domain.
+- **The hook:** `POST /hooks/inbound/{token}` checks the request at once (25 MiB at most, 16 at a time), stores it and answers; a job parses it. Unverified requests are kept 2 KB deep for diagnosis only. What arrived is kept 7 days, received messages a year; attachments only by name, type and size, text up to 64 KiB.
+- **Status:** Waiting for the first message until any message arrives, then Receiving; Failing when the MX record no longer names the provider (checked every 15 minutes) or the mailbox refuses the sign-in, with one notification to the people who manage domains. The next message makes it Receiving again.
+- **Reply handling "Keep replies in ReputeCast inbox":** possible only while the route receives; campaigns, automation emails and placement copies then carry the route's reply address as Reply-To (under the sender's reply-to name). Removing the route sets reply handling back to forwarding; replies already received stay.
+- **`mailto:` unsubscribes:** while the route receives, List-Unsubscribe's `mailto:` is the message's `u-` address with subject "unsubscribe", and an email to it unsubscribes the contact as the one-click link does (consent source "mailto"). Send Readiness then passes "Unsubscribe emails are processed by ReputeCast", and warns "Replies go to ReputeCast, but receiving is failing" when replies go to the inbox while the route fails.
+- **Audience › Replies:** views Open, Done, Auto-replies, Spam, Other mail and Unsubscribes, search over the sender, subject and text, Mark done / Mark open (one at a time or in bulk), Reply by email, Unsubscribe contact (needs `subscribers:edit` too) and Open contact; `j`/`k`/`e` keys. Permissions `replies:view` and `replies:manage` (people only; Editors have both, Viewers neither). Members with `replies:view` get "{count} new replies" at most every 15 minutes, for people's replies only.
+- **Flows:** a trigger can "Stop when the contact replies to an email from this flow" (a person's reply ends the run, reason "replied"; auto-replies don't), and email branches gain "Replied to the email". Both need replies to reach the inbox.
+- **Reports:** DMARC aggregate reports at `dmarc@` are stored as reports received by email (only for the workspace's sending domains), and the suggested DMARC record adds `mailto:dmarc@<domain>` to `rua`; ARF reports at `fbl@` become complaints through the same rules as provider events (only for a message ReputeCast sent to that recipient).
+- **Webhooks:** `email.replied` (replies and auto-replies to ReputeCast's messages) and `email.received` (other mail), needing `replies:view`.
+- **Erasure:** a contact's received messages (by contact or address) and what arrived for them are deleted; the export has a "replies" section.
 
 ---
 
