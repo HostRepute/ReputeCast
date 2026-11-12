@@ -99,9 +99,10 @@ INSERT INTO earn_offer_uses (id, workspace_id, offer_id, contact_id, subscriptio
 VALUES (@id, @workspace_id, @offer_id, @contact_id, sqlc.narg(subscription_id), @mode, @used_at, @source);
 
 -- name: OfferTierPrices :many
--- The tiers and their current prices, for an offer's lines.
+-- The tiers and their current prices, for an offer's lines (a team's
+-- per-seat prices take no offer).
 SELECT t.id AS tier_id, t.name AS tier, t.stripe_product_live, t.stripe_product_test, p.period, p.amount_cents, p.currency
-FROM earn_tiers t JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current'
+FROM earn_tiers t JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current' AND p.audience = 'individual'
 WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL
 ORDER BY t.access_rank, t.name, p.period;
 

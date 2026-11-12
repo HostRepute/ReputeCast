@@ -505,7 +505,7 @@ ORDER BY t.access_rank, t.created_at;
 SELECT t.id, t.name, t.slug, t.access_rank, t.trial_days, t.visibility, t.benefits, t.description,
        p.period, p.amount_cents, p.currency
 FROM earn_tiers t
-JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current'
+JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current' AND p.audience = 'individual'
 WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL AND t.archived_at IS NULL
 ORDER BY t.access_rank, t.created_at, p.period;
 

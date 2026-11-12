@@ -67,6 +67,9 @@ func Erasure() erasure.Source {
 				 WHERE contact_id = ANY ($1) AND kind = 'group' AND ended_at IS NULL`,
 				`UPDATE earn_group_seats SET email = '', contact_id = NULL, invite_hash = NULL, status = 'removed', removed_at = coalesce(removed_at, now())
 				 WHERE contact_id = ANY ($1) OR (workspace_id = $4 AND lower(email) = ANY ($2))`,
+				// A team's timeline (the buyer's) names the people it invited.
+				`UPDATE paid_events SET data = data - 'email' - 'name'
+				 WHERE workspace_id = $4 AND kind LIKE 'team\_%' AND lower(data->>'email') = ANY ($2)`,
 				`UPDATE earn_checkouts SET email = '' WHERE email <> '' AND (contact_id = ANY ($1) OR (workspace_id = $4 AND lower(email) = ANY ($2)))`,
 				`UPDATE earn_import_rows r SET email = '', name = '', customer_id = '', stripe_customer_id = '', stripe_subscription_id = '', candidates = '[]', subscription = '{}'
 				 WHERE r.contact_id = ANY ($1)

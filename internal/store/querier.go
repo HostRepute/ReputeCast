@@ -2485,7 +2485,8 @@ type Querier interface {
 	// months).
 	OfferRetentionUsedSince(ctx context.Context, arg OfferRetentionUsedSinceParams) (bool, error)
 	OfferSetStripe(ctx context.Context, arg OfferSetStripeParams) error
-	// The tiers and their current prices, for an offer's lines.
+	// The tiers and their current prices, for an offer's lines (a team's
+	// per-seat prices take no offer).
 	OfferTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]OfferTierPricesRow, error)
 	OfferUpdate(ctx context.Context, arg OfferUpdateParams) error
 	OfferUseInsert(ctx context.Context, arg OfferUseInsertParams) error

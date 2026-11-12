@@ -313,7 +313,7 @@ ORDER BY grp, e.occurred_at DESC;
 SELECT id, name, access_rank, visibility FROM earn_tiers WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY access_rank, name;
 
 -- name: RevenueTierPrices :many
-SELECT tier_id, period, amount_cents, currency FROM earn_prices WHERE workspace_id = @workspace_id AND status = 'current';
+SELECT tier_id, period, amount_cents, currency FROM earn_prices WHERE workspace_id = @workspace_id AND status = 'current' AND audience = 'individual';
 
 -- name: RevenueSponsorLinks :many
 -- The sponsor links of a campaign's booking: the click token never goes on them.

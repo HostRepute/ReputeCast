@@ -1702,7 +1702,7 @@ func (q *Queries) RevenueTierGrowth(ctx context.Context, arg RevenueTierGrowthPa
 }
 
 const revenueTierPrices = `-- name: RevenueTierPrices :many
-SELECT tier_id, period, amount_cents, currency FROM earn_prices WHERE workspace_id = $1 AND status = 'current'
+SELECT tier_id, period, amount_cents, currency FROM earn_prices WHERE workspace_id = $1 AND status = 'current' AND audience = 'individual'
 `
 
 type RevenueTierPricesRow struct {
