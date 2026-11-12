@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/holdout"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
@@ -178,6 +179,10 @@ func (lp limitPlan) later(i int, now time.Time) time.Time {
 	return now.Add(24 * time.Hour)
 }
 
+// reasonHoldout skips a campaign's message to a contact in the holdout
+// group (M63 G-33).
+const reasonHoldout = "holdout"
+
 // planned is a campaign's people in the message log.
 type planned struct {
 	rows []outgoing
@@ -196,8 +201,26 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, c store.WhatsAp
 		r  recipient
 		at time.Time
 	}
+	ids := make([]uuid.UUID, 0, len(aud))
+	for _, r := range aud {
+		ids = append(ids, r.ContactID)
+	}
+	held, err := holdout.HeldFromCampaigns(ctx, s.Q, ws.ID, ids)
+	if err != nil {
+		return out, err
+	}
 	slots := make([]slot, 0, len(aud))
 	for _, r := range aud {
+		if held[r.ContactID] {
+			// The holdout group gets no campaigns (M63 G-33): logged as
+			// skipped, and not counted against the messaging limit.
+			params := paramsFor(keys, vars, r)
+			out.rows = append(out.rows, outgoing{id: uuid.Must(uuid.NewV7()), kind: "campaign", campaignID: &c.ID, contactID: &r.ContactID, listID: uuidPtr(r.ListID),
+				recipient: r.Phone, country: r.Country, timeZone: r.Zone, zoneSource: r.ZoneSource, body: render(tpl.Body, params), status: "skipped",
+				reason: reasonHoldout, template: tpl.Name, language: tpl.Language, category: tpl.Category, params: params})
+			out.left[reasonHoldout]++
+			continue
+		}
 		loc, _ := zoneOf(r, ws)
 		at := now
 		switch c.ScheduleMode {

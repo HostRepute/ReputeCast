@@ -14,6 +14,7 @@ import { andList, clock, decimal, shortDate } from '@/lib/format'
 import { useOptimistic } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { HoldoutCard } from './HoldoutCard'
 import { MarketingCapCard } from './MarketingCapCard'
 import { m } from './messages'
 import './sending-rules.css'
@@ -174,6 +175,8 @@ function RulesBody({ view }: { view: View }) {
           <DefaultsCard key={JSON.stringify(view.defaults)} view={view} read={read} reason={reason} onSaved={refresh} />
           {/* The marketing cap (review 2026-11 AT-9). */}
           <MarketingCapCard key={JSON.stringify(view.marketingCap)} cap={view.marketingCap} read={read} reason={reason} onSaved={refresh} />
+          {/* The holdout group (M63 G-33). */}
+          <HoldoutCard key={JSON.stringify(view.holdout)} holdout={view.holdout} read={read} reason={reason} onSaved={refresh} />
         </div>
       </div>
     </>

@@ -1,0 +1,73 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+/** Spanish for Audience › Holdout (docs/i18n/glossary-es.md: grupo de control). */
+export default translate(m, {
+  audience: 'Audiencia',
+  documentTitle: 'Grupo de control · Audiencia',
+  tab: 'Grupo de control',
+  loading: 'Cargando los resultados del grupo de control',
+
+  window: 'Periodo',
+  since: 'Desde el {date}',
+  last30: 'Últimos 30 días',
+  last90: 'Últimos 90 días',
+  computedAgo: 'Calculado {ago}',
+  computing: 'Calculando los resultados… Tarda un minuto.',
+  recompute: 'Recalcular',
+  recomputeSoon: 'Los resultados se calcularon {ago}.',
+  recomputeEvery: 'Puedes recalcular una vez cada 10 minutos.',
+  recomputeFailed: 'No se pudieron recalcular los resultados',
+
+  added: 'El marketing aportó un {lift} más de ingresos por contacto ({confidence} de confianza).',
+  lost: 'Los contactos del grupo de control aportaron un {lift} más de ingresos por contacto ({confidence} de confianza).',
+  noDifference: 'Aún no hay una diferencia medible.',
+  tooFew: 'Muy pocos contactos en el grupo de control: {count} de los {needed} necesarios.',
+  tooFewHelp: 'Sube el porcentaje en <link>Configuración › Reglas de envío</link> o espera a que crezca la audiencia.',
+  tooEarly: 'Aún es pronto: el grupo de control empezó el {date}. Dale al menos dos semanas.',
+  pending: 'Aún no hay resultados. ReputeCast los calcula cada noche a las 04:00, o ahora con Recalcular.',
+  groups:
+    '{holdout, plural, one {# contacto} other {# contactos}} del grupo de control ({percent}) no {holdout, plural, one {recibió} other {recibieron}} {scope, select, campaigns {campañas} automations {automatizaciones} other {campañas ni automatizaciones}} del {from} al {to}; {marketing, plural, one {# contacto las recibió} other {# contactos las recibieron}}.',
+
+  conversionRate: 'Tasa de conversión',
+  revenuePerContact: 'Ingresos por contacto',
+  ordersPerContact: 'Pedidos por contacto',
+  marketingValue: '<vh>Grupo de marketing:</vh> {value}',
+  holdoutValue: 'Grupo de control {value}',
+  liftConfidence: '{lift} · {confidence} de confianza',
+
+  view: 'Vista',
+  chart: 'Gráfico',
+  table: 'Tabla',
+  chartLabel: 'Ingresos por contacto: grupo de marketing {marketing}, grupo de control {holdout}',
+  marketingGroup: 'Grupo de marketing',
+  holdoutGroup: 'Grupo de control',
+  tableCaption: 'Ingresos por contacto, grupo de marketing y grupo de control',
+  colGroup: 'Grupo',
+  colContacts: 'Contactos',
+  colConverters: 'Conversores',
+  colConversionRate: 'Tasa de conversión',
+  colOrders: 'Pedidos',
+  colRevenue: 'Ingresos',
+  colRevenuePerContact: 'Ingresos por contacto',
+  otherCurrencies: 'También registrado, sin contar: {amounts}.',
+  otherCurrency: '{amount} en {currency}',
+
+  includedTitle: 'Campañas que incluyeron el grupo de control: {count}',
+  includedBody: 'También llegaron al grupo de control, así que lo que aportan no forma parte de la diferencia.',
+  converterNote: 'Un conversor hizo un pedido, registró una conversión o empezó una suscripción de pago. Los ingresos son los pedidos menos los reembolsos más los valores de conversión, en {currency}.',
+  alwaysNote: 'Los correos transaccionales y del sistema siempre llegan a todos.',
+  settingsLink: 'Configuración del grupo de control',
+
+  off: 'El grupo de control está desactivado. Estos resultados van del {from} al {to}.',
+  turnOn: 'Actívalo en Configuración › Reglas de envío',
+  noneTitle: 'Aún no hay grupo de control.',
+  setUp: 'Configurar un grupo de control',
+  loadFailed: 'Los resultados no se cargaron.',
+  loadFailedKept: 'ReputeCast conserva los últimos resultados que calculó; no se perdió nada.',
+  loadFailedDo: 'Revisa tu conexión y vuelve a intentarlo.',
+  retry: 'Reintentar',
+  siteVisitors: 'Visitantes del sitio',
+  colSiteVisitors: 'Visitantes del sitio',
+  visitorNote: 'Un visitante del sitio es un contacto visto en uno de tus sitios con seguimiento (Seguimiento del sitio web).',
+})

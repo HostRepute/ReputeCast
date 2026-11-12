@@ -245,21 +245,21 @@ WITH page AS (
     -- staged segment members), so a page reads about a page per source
     -- wherever the cursor is, not every member after it.
     SELECT DISTINCT u.id FROM (
-        SELECT x.id FROM unnest(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($7::uuid[]) AND ll.deleted_at IS NULL)) AS l(list_id)
+        SELECT x.id FROM unnest(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($9::uuid[]) AND ll.deleted_at IS NULL)) AS l(list_id)
         CROSS JOIN LATERAL (
             SELECT m.contact_id AS id FROM list_memberships m
-            WHERE m.list_id = l.list_id AND m.contact_id > $8::uuid AND m.status = 'subscribed'
+            WHERE m.list_id = l.list_id AND m.contact_id > $10::uuid AND m.status = 'subscribed'
             ORDER BY m.contact_id
-            LIMIT $9
+            LIMIT $11
         ) x
         UNION ALL
         (SELECT st.contact_id FROM campaign_audience_stage st
-         WHERE st.campaign_id = $5 AND NOT st.exclude AND st.contact_id > $8::uuid
+         WHERE st.campaign_id = $5 AND NOT st.exclude AND st.contact_id > $10::uuid
          ORDER BY st.contact_id
-         LIMIT $9)
+         LIMIT $11)
     ) u
     ORDER BY u.id
-    LIMIT $9
+    LIMIT $11
 ), ids AS (
     -- One array of the page's ids: the lookups below see a list of known
     -- size (an index lookup or a hashed check) instead of a join the
@@ -268,12 +268,12 @@ WITH page AS (
 ), member_lists AS (
     SELECT m.contact_id, array_agg(m.list_id ORDER BY m.list_id)::uuid[] AS lists
     FROM list_memberships m
-    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($7::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
+    WHERE m.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($9::uuid[]) AND ll.deleted_at IS NULL)) AND m.status = 'subscribed'
     GROUP BY m.contact_id
 ), excluded AS (
     SELECT DISTINCT x.contact_id
     FROM list_memberships x
-    WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($10::uuid[]) AND x.status = 'subscribed'
+    WHERE x.contact_id = ANY((SELECT a FROM ids)::uuid[]) AND x.list_id = ANY($12::uuid[]) AND x.status = 'subscribed'
 ), excluded_staged AS (
     SELECT st.contact_id FROM campaign_audience_stage st
     WHERE st.campaign_id = $5 AND st.exclude AND st.contact_id = ANY((SELECT a FROM ids)::uuid[])
@@ -299,7 +299,10 @@ SELECT page.id::uuid AS id,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
-       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> $6::uuid)::boolean AS gone
+       -- In the holdout group (M63 G-33): holdout_bp is 0 when no open
+       -- period holds out campaigns or the campaign includes the group.
+       ($6::int > 0 AND rc_holdout_bucket(page.id, $7::bigint) < $6::int)::boolean AS held_out,
+       (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> $8::uuid)::boolean AS gone
 FROM page
 LEFT JOIN contacts c ON c.id = page.id
 LEFT JOIN member_lists ON member_lists.contact_id = page.id
@@ -314,6 +317,8 @@ type SendingAudiencePageParams struct {
 	CapCount     int32       `json:"capCount"`
 	CapSince     time.Time   `json:"capSince"`
 	CampaignID   uuid.UUID   `json:"campaignId"`
+	HoldoutBp    int32       `json:"holdoutBp"`
+	HoldoutSeed  int64       `json:"holdoutSeed"`
 	WorkspaceID  uuid.UUID   `json:"workspaceId"`
 	Lists        []uuid.UUID `json:"lists"`
 	After        uuid.UUID   `json:"after"`
@@ -345,6 +350,7 @@ type SendingAudiencePageRow struct {
 	ExcludedList    bool            `json:"excludedList"`
 	ExcludedSegment bool            `json:"excludedSegment"`
 	Lists           []uuid.UUID     `json:"lists"`
+	HeldOut         bool            `json:"heldOut"`
 	Gone            bool            `json:"gone"`
 }
 
@@ -362,6 +368,8 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 		arg.CapCount,
 		arg.CapSince,
 		arg.CampaignID,
+		arg.HoldoutBp,
+		arg.HoldoutSeed,
 		arg.WorkspaceID,
 		arg.Lists,
 		arg.After,
@@ -399,6 +407,7 @@ func (q *Queries) SendingAudiencePage(ctx context.Context, arg SendingAudiencePa
 			&i.ExcludedList,
 			&i.ExcludedSegment,
 			&i.Lists,
+			&i.HeldOut,
 			&i.Gone,
 		); err != nil {
 			return nil, err

@@ -936,13 +936,17 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        -- The rhythm they chose doesn't take this campaign (review 2026-11
        -- CA-6): frequencies lists the choices it reaches, empty (or NULL) for all.
        (coalesce(cardinality($6::text[]), 0) > 0
-        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY($6::text[]))::boolean AS off_cadence
+        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY($6::text[]))::boolean AS off_cadence,
+       -- In the holdout group (M63 G-33): holdout_bp is 0 when no open
+       -- period holds out campaigns. Counted whether the campaign includes
+       -- the group or not (the count says how many it reaches then).
+       ($7::int > 0 AND rc_holdout_bucket(c.id, $8::bigint) < $7::int)::boolean AS held_out
 FROM contacts c
-WHERE c.workspace_id = $7 AND c.status = 'active' AND c.erased_at IS NULL
-  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($8::uuid[]) AND ll.deleted_at IS NULL)))
-       OR c.id = ANY($9::uuid[]))
-  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($10::uuid[]))
-  AND NOT (c.id = ANY($11::uuid[]))
+WHERE c.workspace_id = $9 AND c.status = 'active' AND c.erased_at IS NULL
+  AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($10::uuid[]) AND ll.deleted_at IS NULL)))
+       OR c.id = ANY($11::uuid[]))
+  AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($12::uuid[]))
+  AND NOT (c.id = ANY($13::uuid[]))
 `
 
 type ReadinessRecipientsParams struct {
@@ -952,6 +956,8 @@ type ReadinessRecipientsParams struct {
 	CapSince        time.Time   `json:"capSince"`
 	CampaignID      *uuid.UUID  `json:"campaignId"`
 	Frequencies     []string    `json:"frequencies"`
+	HoldoutBp       int32       `json:"holdoutBp"`
+	HoldoutSeed     int64       `json:"holdoutSeed"`
 	WorkspaceID     uuid.UUID   `json:"workspaceId"`
 	Lists           []uuid.UUID `json:"lists"`
 	Contacts        []uuid.UUID `json:"contacts"`
@@ -973,6 +979,7 @@ type ReadinessRecipientsRow struct {
 	Bounced           bool        `json:"bounced"`
 	OverCap           bool        `json:"overCap"`
 	OffCadence        bool        `json:"offCadence"`
+	HeldOut           bool        `json:"heldOut"`
 }
 
 // The audience before suppressions and exclusions by address: active
@@ -989,6 +996,8 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 		arg.CapSince,
 		arg.CampaignID,
 		arg.Frequencies,
+		arg.HoldoutBp,
+		arg.HoldoutSeed,
 		arg.WorkspaceID,
 		arg.Lists,
 		arg.Contacts,
@@ -1016,6 +1025,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.Bounced,
 			&i.OverCap,
 			&i.OffCadence,
+			&i.HeldOut,
 		); err != nil {
 			return nil, err
 		}

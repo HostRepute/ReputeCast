@@ -1085,5 +1085,10 @@
   "compliance.replyInboxDetail": "Cách xử lý thư trả lời là \"Giữ thư trả lời trong hộp thư ReputeCast\", và Nhận thư chưa nhận được thư đầu tiên. Thư trả lời cho lần gửi này sẽ không vào Người đăng ký › Thư trả lời cho đến khi nhận được. Hãy gửi thư thử từ Cài đặt › Người gửi, hoặc chuyển tiếp thư trả lời đến {replyTo}.",
   "compliance.replyInboxFailing": "Cách xử lý thư trả lời là \"Giữ thư trả lời trong hộp thư ReputeCast\", và Nhận thư đang báo Đang lỗi: {detail} Thư trả lời cho lần gửi này sẽ không vào Người đăng ký › Thư trả lời cho đến khi sự cố được khắc phục. Hãy khắc phục, hoặc chuyển tiếp thư trả lời đến {replyTo}.",
   "label.replies": "Thư trả lời",
-  "fix.openSettings": "Mở Cài đặt"
+  "fix.openSettings": "Mở Cài đặt",
+  "estimate.holdout": "Nhóm đối chứng: {count, number} người không nhận ({percent})",
+  "problem.holdoutShare": "Hãy nhập tỷ lệ từ 0,1% đến 20%.",
+  "problem.holdoutScope": "Hãy chọn chiến dịch, tự động hóa hoặc cả hai.",
+  "problem.holdoutOff": "Hãy bật nhóm đối chứng trước khi bắt đầu lại.",
+  "problem.scheduledAudience": "Chiến dịch đã được lên lịch. Hãy hủy lịch để thay đổi người nhận."
 }

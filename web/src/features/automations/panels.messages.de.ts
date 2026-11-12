@@ -182,4 +182,6 @@ export default translate(mp, {
   callTime: '{date}, {time}',
   noCalls: 'Noch keine Aufrufe.',
   condReplied: "Hat auf die E-Mail geantwortet",
+  statHeldOut: 'Ausgenommen <b>{value}</b>',
+  rowHeldOut: 'Ausgenommen (Kontrollgruppe) <b>{value}</b>',
 })

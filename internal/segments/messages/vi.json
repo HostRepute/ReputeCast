@@ -201,5 +201,8 @@
   "source.leadAd": "Quảng cáo khách hàng tiềm năng",
   "field.site_viewed_product": "Đã xem một sản phẩm",
   "field.site_last_seen": "Lần cuối thấy trên trang web",
-  "problem.pickCollection": "Hãy chọn một bộ sưu tập của cửa hàng, hoặc bất kỳ sản phẩm nào."
+  "problem.pickCollection": "Hãy chọn một bộ sưu tập của cửa hàng, hoặc bất kỳ sản phẩm nào.",
+  "field.in_holdout": "Trong nhóm đối chứng",
+  "option.in_holdout.yes": "Có",
+  "option.in_holdout.no": "Không"
 }

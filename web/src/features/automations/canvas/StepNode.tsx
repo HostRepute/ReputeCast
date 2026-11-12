@@ -122,6 +122,15 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
             </span>
           </div>,
         )
+        // Contacts in the holdout group passed the step without an email (M63).
+        if ((st?.heldOut ?? 0) > 0)
+          lines.push(
+            <div className="st" key="h">
+              <span>
+                <T msg={mf.statHeldOut} values={{ count: n(st?.heldOut ?? 0), b: bold }} />
+              </span>
+            </div>,
+          )
         if (showProviders)
           lines.push(
             <div className="st" key="p">
@@ -232,6 +241,15 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
         )
       break
   }
+  // Text, push and WhatsApp steps let the holdout group pass too (M63).
+  if (stat && (type === 'sms' || type === 'push' || type === 'whatsapp') && (st?.heldOut ?? 0) > 0)
+    lines.push(
+      <div className="st" key="h">
+        <span>
+          <T msg={mf.statHeldOut} values={{ count: n(st?.heldOut ?? 0), b: bold }} />
+        </span>
+      </div>,
+    )
   if (noStats)
     lines.push(
       <div className="st" key="n">

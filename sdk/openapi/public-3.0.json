@@ -4699,6 +4699,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "holdout": {
+            "type": "boolean"
+          },
           "lists": {
             "items": {
               "$ref": "#/components/schemas/AudienceListSummary"
@@ -4737,7 +4740,8 @@
           "tiers",
           "lists",
           "paidTiers",
-          "stripe"
+          "stripe",
+          "holdout"
         ],
         "type": "object"
       },
@@ -7522,6 +7526,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "heldOut": {
+            "description": "Contacts in the holdout group who passed the step without a message (M63)",
+            "format": "int64",
+            "type": "integer"
+          },
           "inFlowNow": {
             "format": "int64",
             "type": "integer"
@@ -7554,7 +7563,7 @@
             "type": "integer"
           },
           "skipped": {
-            "description": "Emails skipped by a rule, or because the contact paused email on the preference center",
+            "description": "Emails skipped by a rule, because the contact paused email on the preference center, or because they are in the holdout group (heldOut counts those)",
             "format": "int64",
             "type": "integer"
           },
@@ -7572,6 +7581,7 @@
           "dropped",
           "goalReached",
           "skipped",
+          "heldOut",
           "failed",
           "sent",
           "delivered",
@@ -30220,6 +30230,293 @@
         ],
         "type": "object"
       },
+      "HoldoutGroupResult": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "converters": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "revenueCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "visitors": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contacts",
+          "converters",
+          "visitors",
+          "orders",
+          "revenueCents"
+        ],
+        "type": "object"
+      },
+      "HoldoutMetric": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "holdout": {
+            "format": "double",
+            "type": "number"
+          },
+          "key": {
+            "enum": [
+              "conversion_rate",
+              "revenue_per_contact",
+              "orders_per_contact",
+              "site_visitors"
+            ],
+            "type": "string"
+          },
+          "lift": {
+            "format": "double",
+            "type": "number"
+          },
+          "marketing": {
+            "format": "double",
+            "type": "number"
+          },
+          "significant": {
+            "type": "boolean"
+          },
+          "tested": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "holdout",
+          "marketing",
+          "lift",
+          "confidence",
+          "tested",
+          "significant"
+        ],
+        "type": "object"
+      },
+      "HoldoutOtherCurrency": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "holdoutCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "marketingCents": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "holdoutCents",
+          "marketingCents"
+        ],
+        "type": "object"
+      },
+      "HoldoutPeriodItem": {
+        "additionalProperties": false,
+        "properties": {
+          "automations": {
+            "type": "boolean"
+          },
+          "basisPoints": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaigns": {
+            "type": "boolean"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "startedAt",
+          "basisPoints",
+          "percent",
+          "campaigns",
+          "automations",
+          "open"
+        ],
+        "type": "object"
+      },
+      "HoldoutResults": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignsIncluded": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "computedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "computing": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "holdout": {
+            "$ref": "#/components/schemas/HoldoutGroupResult"
+          },
+          "marketing": {
+            "$ref": "#/components/schemas/HoldoutGroupResult"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/HoldoutMetric"
+            },
+            "type": "array"
+          },
+          "minHoldout": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextMeasureAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "otherCurrencies": {
+            "items": {
+              "$ref": "#/components/schemas/HoldoutOtherCurrency"
+            },
+            "type": "array"
+          },
+          "period": {
+            "$ref": "#/components/schemas/HoldoutPeriodItem"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/HoldoutPeriodItem"
+            },
+            "type": "array"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tracking": {
+            "type": "boolean"
+          },
+          "verdict": {
+            "enum": [
+              "none",
+              "pending",
+              "too_few",
+              "too_early",
+              "added",
+              "lost",
+              "no_difference"
+            ],
+            "type": "string"
+          },
+          "window": {
+            "enum": [
+              "period",
+              "30d",
+              "90d"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "periods",
+          "window",
+          "verdict",
+          "computing",
+          "holdout",
+          "marketing",
+          "metrics",
+          "currency",
+          "otherCurrencies",
+          "campaignsIncluded",
+          "minHoldout",
+          "tracking"
+        ],
+        "type": "object"
+      },
+      "HoldoutSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "automations": {
+            "type": "boolean"
+          },
+          "basisPoints": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "campaigns": {
+            "type": "boolean"
+          },
+          "heldOut": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "measured": {
+            "type": "boolean"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "on",
+          "basisPoints",
+          "percent",
+          "campaigns",
+          "automations",
+          "heldOut",
+          "measured"
+        ],
+        "type": "object"
+      },
       "HostReputeAPIKeyInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -36517,6 +36814,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "holdout": {
+            "format": "int64",
+            "type": "integer"
+          },
           "paused": {
             "format": "int64",
             "type": "integer"
@@ -36552,7 +36853,8 @@
           "duplicates",
           "sunset",
           "excluded",
-          "tiers"
+          "tiers",
+          "holdout"
         ],
         "type": "object"
       },
@@ -51996,6 +52298,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "holdout": {
+            "$ref": "#/components/schemas/ReadinessHoldout"
+          },
           "lists": {
             "items": {
               "type": "string"
@@ -52545,6 +52850,33 @@
         ],
         "type": "object"
       },
+      "ReadinessHoldout": {
+        "additionalProperties": false,
+        "properties": {
+          "included": {
+            "type": "boolean"
+          },
+          "leftOut": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          },
+          "reached": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "percent",
+          "included",
+          "leftOut",
+          "reached"
+        ],
+        "type": "object"
+      },
       "ReadinessPoll": {
         "additionalProperties": false,
         "properties": {
@@ -53057,6 +53389,9 @@
       "ReadinessSendSettings": {
         "additionalProperties": false,
         "properties": {
+          "includeHoldout": {
+            "type": "boolean"
+          },
           "schedule": {
             "$ref": "#/components/schemas/ReadinessSchedule"
           },
@@ -60667,6 +61002,9 @@
           "from": {
             "type": "string"
           },
+          "holdout": {
+            "$ref": "#/components/schemas/ReviewHoldout"
+          },
           "id": {
             "type": "string"
           },
@@ -60900,6 +61238,23 @@
         "required": [
           "kind",
           "text"
+        ],
+        "type": "object"
+      },
+      "ReviewHoldout": {
+        "additionalProperties": false,
+        "properties": {
+          "included": {
+            "type": "boolean"
+          },
+          "percent": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "percent",
+          "included"
         ],
         "type": "object"
       },
@@ -65213,6 +65568,9 @@
           "defaults": {
             "$ref": "#/components/schemas/SendDefaults"
           },
+          "holdout": {
+            "$ref": "#/components/schemas/HoldoutSettings"
+          },
           "managers": {
             "items": {
               "type": "string"
@@ -65240,6 +65598,7 @@
           "rules",
           "defaults",
           "marketingCap",
+          "holdout",
           "sunsetDays",
           "canManage",
           "managers"
@@ -102042,7 +102401,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings": {
       "patch": {
-        "description": "The schedule is part of what an approval covers: changing it invalidates the approval.",
+        "description": "The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.",
         "operationId": "update-send-settings",
         "parameters": [
           {
@@ -102097,7 +102456,7 @@
             "bearer": []
           }
         ],
-        "summary": "Change the auto-pause thresholds or the schedule",
+        "summary": "Change the auto-pause thresholds, the schedule or whether the send includes the holdout group",
         "tags": [
           "Review \u0026 send"
         ],
@@ -117007,6 +117366,138 @@
         ],
         "x-access": "workspace",
         "x-permission": "subscribers:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/holdout/measure": {
+      "post": {
+        "description": "At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.",
+        "operationId": "measure-holdout",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "example": "acme-newsletter",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldoutResults"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recompute the holdout group's results",
+        "tags": [
+          "Holdout group"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/holdout/results": {
+      "get": {
+        "description": "The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.",
+        "operationId": "get-holdout-results",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "example": "acme-newsletter",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "A period's id; the newest by default",
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "description": "A period's id; the newest by default",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The whole period (default) or its last 30 or 90 days",
+            "explode": false,
+            "in": "query",
+            "name": "window",
+            "schema": {
+              "description": "The whole period (default) or its last 30 or 90 days",
+              "enum": [
+                "period",
+                "30d",
+                "90d"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldoutResults"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What marketing added, measured against the holdout group",
+        "tags": [
+          "Holdout group"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
       }
     },
     "/api/v1/workspaces/{workspace}/imports": {
@@ -148056,6 +148547,9 @@
     },
     {
       "name": "Growth"
+    },
+    {
+      "name": "Holdout group"
     },
     {
       "name": "Imports"

@@ -1,0 +1,35 @@
+import { translate } from '@/i18n'
+import { m } from './holdout.messages'
+
+/** Spanish for Settings › Sending rules › Holdout group (docs/i18n/glossary-es.md). */
+export default translate(m, {
+  title: 'Grupo de control',
+  caption: 'Mide lo que aporta tu marketing',
+  switchLabel: 'Grupo de control',
+  sentence: 'Deja fuera del marketing a un <share></share> % de contactos al azar para medir lo que aporta.',
+  shareLabel: 'Porcentaje de contactos',
+  scope: 'Dejarlos fuera de',
+  campaigns: 'Campañas',
+  automations: 'Automatizaciones',
+  noteAlways: 'Los correos transaccionales y del sistema siempre llegan a todos.',
+  noteRaise: 'Subir el porcentaje mantiene a todos los que ya están fuera. Empezar de nuevo elige a otras personas.',
+  status: '{count, plural, one {# contacto fuera} other {# contactos fuera}} desde el {date}. <link>Ver los resultados</link>',
+  off: 'Desactivado. Todos los contactos reciben tus campañas y automatizaciones.',
+  startOver: 'Empezar de nuevo…',
+  save: 'Guardar',
+  saved: 'Grupo de control guardado',
+  turnedOn: 'El grupo de control está activado',
+  turnedOff: 'El grupo de control está desactivado',
+  shareRange: 'Escribe un porcentaje de 0,1 % a 20 %.',
+  scopeRequired: 'Elige campañas, automatizaciones o ambas.',
+  notChanged: 'El grupo de control no cambió.',
+  dialogTitle: '¿Empezar de nuevo con otras personas?',
+  dialogEnds: 'El grupo actual termina hoy. Sus resultados se quedan en Audiencia › Grupo de control.',
+  dialogNew: 'A partir de ahora queda fuera un {percent} de contactos nuevo, elegido al azar.',
+  dialogAgain: 'Los resultados empiezan de nuevo desde hoy.',
+  dialogReason: '¿Por qué empezar de nuevo? (opcional, se guarda en el registro de auditoría)',
+  cancel: 'Cancelar',
+  dialogConfirm: 'Empezar de nuevo',
+  restarted: 'Empezaste de nuevo con otras personas',
+  restartFailed: 'No se pudo empezar de nuevo',
+})

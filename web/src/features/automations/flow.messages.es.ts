@@ -185,4 +185,5 @@ export default translate(mf, {
   preheader: 'Preencabezado',
   html: 'HTML',
   htmlHint: 'Las etiquetas Liquid como {example} y {unsubscribe} se rellenan al enviar.',
+  statHeldOut: '<b>{count}</b> fuera (grupo de control)',
 })

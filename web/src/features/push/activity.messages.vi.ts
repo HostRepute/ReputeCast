@@ -52,4 +52,5 @@ export default translate(m, {
   byActor: 'bởi {name}',
   consentVersion: 'nội dung đồng ý v{version}',
   ip: 'IP {ip}',
+  reasonHoldout: 'thuộc nhóm đối chứng',
 })

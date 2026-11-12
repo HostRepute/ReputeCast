@@ -201,5 +201,8 @@
   "source.leadAd": "Lead-Anzeigen",
   "field.site_viewed_product": "Hat ein Produkt angesehen",
   "field.site_last_seen": "Zuletzt auf der Website gesehen",
-  "problem.pickCollection": "Wählen Sie eine Kollektion eines Shops oder ein beliebiges Produkt."
+  "problem.pickCollection": "Wählen Sie eine Kollektion eines Shops oder ein beliebiges Produkt.",
+  "field.in_holdout": "In der Kontrollgruppe",
+  "option.in_holdout.yes": "Ja",
+  "option.in_holdout.no": "Nein"
 }

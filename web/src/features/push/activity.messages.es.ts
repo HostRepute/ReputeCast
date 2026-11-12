@@ -46,4 +46,5 @@ export default translate(m, {
   byActor: 'por {name}',
   consentVersion: 'texto de consentimiento v{version}',
   ip: 'IP {ip}',
+  reasonHoldout: 'en el grupo de control',
 })

@@ -459,6 +459,28 @@
       min-height: 44px;
     }
   }
+  /* "Include the holdout group" under Final recipients (M63, SendReadiness). */
+  .rv-hold {
+    border-top: 1px solid var(--line-2);
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .rv-hold-chk {
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .rv-hold-chk input {
+    flex: none;
+  }
+  @media (max-width: 767px) {
+    .rv-hold-chk {
+      min-height: 44px;
+    }
+  }
 }
 
 /* "Delivered to Gmail" stays one pill and the line beside it wraps

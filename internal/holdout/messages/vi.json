@@ -1,0 +1,4 @@
+{
+  "problem.noHoldout": "Chưa có nhóm đối chứng. Hãy thiết lập trong Cài đặt › Quy tắc gửi.",
+  "problem.measureSoon": "Bạn chỉ có thể tính lại 10 phút một lần. Hãy thử lại sau {minutes, plural, other {# phút}}."
+}

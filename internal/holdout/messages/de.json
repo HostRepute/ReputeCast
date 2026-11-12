@@ -1,0 +1,4 @@
+{
+  "problem.noHoldout": "Es gibt noch keine Kontrollgruppe. Richten Sie eine unter Einstellungen › Versandregeln ein.",
+  "problem.measureSoon": "Sie können höchstens alle 10 Minuten neu berechnen. Versuchen Sie es in {minutes, plural, one {# Minute} other {# Minuten}} erneut."
+}

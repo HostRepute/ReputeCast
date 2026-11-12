@@ -1,0 +1,4 @@
+{
+  "problem.noHoldout": "Todavía no hay un grupo de control. Configúralo en Configuración › Reglas de envío.",
+  "problem.measureSoon": "Puedes volver a calcular una vez cada 10 minutos. Inténtalo de nuevo en {minutes, plural, one {# minuto} other {# minutos}}."
+}

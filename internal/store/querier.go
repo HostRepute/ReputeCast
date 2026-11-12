@@ -2043,6 +2043,53 @@ type Querier interface {
 	GrowthWorkspaces(ctx context.Context) ([]GrowthWorkspacesRow, error)
 	HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]SavedView, error)
 	HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) (int64, error)
+	// Email campaigns started in the window that included the holdout group.
+	HoldoutCampaignsIncluded(ctx context.Context, arg HoldoutCampaignsIncludedParams) (int64, error)
+	// Whether the open period holds a contact out of automations (or, with
+	// automations false, out of campaigns).
+	HoldoutContactHeldOut(ctx context.Context, arg HoldoutContactHeldOutParams) (bool, error)
+	// The workspace's main currency (Earn › Settings), USD by default.
+	HoldoutCurrency(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	HoldoutEndPeriod(ctx context.Context, arg HoldoutEndPeriodParams) error
+	// Whether the workspace ever had a holdout group (Audience shows the tab).
+	HoldoutExists(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	HoldoutGetPeriod(ctx context.Context, arg HoldoutGetPeriodParams) (HoldoutPeriod, error)
+	// Which of the contacts are in the buckets under basis_points.
+	HoldoutHeldContacts(ctx context.Context, arg HoldoutHeldContactsParams) ([]uuid.UUID, error)
+	// The active contacts the open period holds out now.
+	HoldoutHeldOutCount(ctx context.Context, arg HoldoutHeldOutCountParams) (int64, error)
+	HoldoutInsertPeriod(ctx context.Context, arg HoldoutInsertPeriodParams) error
+	HoldoutLatestPeriod(ctx context.Context, workspaceID uuid.UUID) (HoldoutPeriod, error)
+	// Serializes changes of a workspace's holdout settings.
+	HoldoutLockWorkspace(ctx context.Context, workspaceID uuid.UUID) error
+	// Workspaces with a period the nightly measurement should compute (an
+	// open one, or one that ended since it was last computed), with their
+	// time zone and when they were last computed (the epoch for never).
+	HoldoutMeasureDue(ctx context.Context) ([]HoldoutMeasureDueRow, error)
+	// The measurement of one window, per group (held out or not): the
+	// population is the contacts that weren't erased, existed before the
+	// window's end and weren't on the suppression list before its start. A
+	// converter placed a store order (not a test, not cancelled), recorded a
+	// conversion or started a live paid subscription in the window; revenue
+	// is orders minus refunds plus conversion values in the main currency, in
+	// cents, with the sums of squares the variance needs; a visitor was seen
+	// on one of the workspace's tracked sites (counted only when it has one).
+	HoldoutMeasureGroups(ctx context.Context, arg HoldoutMeasureGroupsParams) ([]HoldoutMeasureGroupsRow, error)
+	// Holdout group (M63 G-33): periods, who is held out, the measurement.
+	// The workspace's open period: while it's open its contacts in the buckets
+	// under basis_points are held out.
+	HoldoutOpenPeriod(ctx context.Context, workspaceID uuid.UUID) (HoldoutPeriod, error)
+	// What the window recorded in other currencies, per group: counted and
+	// named apart, never converted.
+	HoldoutOtherCurrencies(ctx context.Context, arg HoldoutOtherCurrenciesParams) ([]HoldoutOtherCurrenciesRow, error)
+	// The newest periods first: the open one and the last closed ones.
+	HoldoutRecentPeriods(ctx context.Context, arg HoldoutRecentPeriodsParams) ([]HoldoutPeriod, error)
+	HoldoutRequestMeasure(ctx context.Context, arg HoldoutRequestMeasureParams) error
+	HoldoutResult(ctx context.Context, arg HoldoutResultParams) (HoldoutResult, error)
+	HoldoutSaveResult(ctx context.Context, arg HoldoutSaveResultParams) error
+	// Whether the workspace tracks a site (Website tracking, M62): the
+	// measurement then counts site visitors.
+	HoldoutTracking(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	// Marks a failing endpoint as alerted, once per failing spell: after an
 	// hour of failures, or when a delivery is given up on (review 2026-11
 	// IN-2). No row when there is nothing to tell.

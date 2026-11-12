@@ -1085,5 +1085,10 @@
   "compliance.replyInboxDetail": "Reply handling is \"Keep replies in ReputeCast inbox\", and Receiving mail hasn't received its first message yet. Replies to this send won't reach Audience › Replies until it does. Send a test message from Settings › Senders, or forward replies to {replyTo} instead.",
   "compliance.replyInboxFailing": "Reply handling is \"Keep replies in ReputeCast inbox\", and Receiving mail says Failing: {detail} Replies to this send won't reach Audience › Replies until it's fixed. Fix it, or forward replies to {replyTo} instead.",
   "label.replies": "Replies",
-  "fix.openSettings": "Open Settings"
+  "fix.openSettings": "Open Settings",
+  "estimate.holdout": {"message": "Holdout group: {count, number} left out ({percent})", "note": "An audience line on Review & send: the random share of contacts the workspace keeps out of marketing to measure what it adds (M63)"},
+  "problem.holdoutShare": "Enter a share from 0.1% to 20%.",
+  "problem.holdoutScope": "Pick campaigns, automations or both.",
+  "problem.holdoutOff": "Turn the holdout group on before starting over.",
+  "problem.scheduledAudience": "The campaign is scheduled. Unschedule it to change who gets it."
 }

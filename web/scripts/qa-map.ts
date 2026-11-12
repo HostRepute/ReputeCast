@@ -643,4 +643,10 @@ export const entries: Entry[] = [
   // test dialog is drawn under the builder and opens with a click: compare the builder only.
   { board: 'FormBuilderABTest', path: `${ws}/forms?form={form:Footer mini form}&variant=B`, widths: [1440], viewportOnly: true, height: 1583 },
   { board: 'FormBuilderABTestPhone', path: `${ws}/forms?form={form:Footer mini form}&variant=B`, widths: [390], viewportOnly: true, height: 3269 },
+  // M63 · the holdout group. AudienceHoldoutStates draws loading, computing, the verdicts, off,
+  // never set up, error, the table view and the Sending rules card's states: data changes or clicks.
+  { board: 'AudienceHoldout', path: `${ws}/audience/holdout`, widths: [1440] },
+  { board: 'AudienceHoldoutTablet', path: `${ws}/audience/holdout`, widths: [834] },
+  { board: 'AudienceHoldoutPhone', path: `${ws}/audience/holdout`, widths: [390] },
+  { board: 'AudienceHoldoutStates', manual: true, widths: [1440] },
 ]

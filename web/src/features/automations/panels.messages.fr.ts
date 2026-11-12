@@ -182,4 +182,6 @@ export default translate(mp, {
   callTime: '{date}, {time}',
   noCalls: 'Aucun appel pour l’instant.',
   condReplied: "A répondu à l'e-mail",
+  statHeldOut: 'Tenus à l’écart <b>{value}</b>',
+  rowHeldOut: 'Tenus à l’écart (groupe témoin) <b>{value}</b>',
 })

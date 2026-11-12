@@ -46,4 +46,5 @@ export const m = defineMessages('channelActivity', {
   byActor: 'by {name}',
   consentVersion: 'consent text v{version}',
   ip: 'IP {ip}',
+  reasonHoldout: 'in the holdout group',
 })

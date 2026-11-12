@@ -230,4 +230,5 @@ export const mf = defineMessages('automations.flow', {
   html: 'HTML',
   /** {example} and {unsubscribe} are Liquid tags, shown as code. */
   htmlHint: 'Liquid tags like {example} and {unsubscribe} are filled in when it sends.',
+  statHeldOut: '<b>{count}</b> held out',
 })

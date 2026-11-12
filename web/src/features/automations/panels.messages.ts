@@ -214,4 +214,6 @@ export const mp = defineMessages('automations.panels', {
   callTime: '{date}, {time}',
   noCalls: 'No calls yet.',
   condReplied: "Replied to the email",
+  statHeldOut: 'Held out <b>{value}</b>',
+  rowHeldOut: 'Held out (holdout group) <b>{value}</b>',
 })

@@ -173,6 +173,7 @@ func SeedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *se
 		{"website import", seedWebsiteImport},
 		{"website comments", seedWebsiteComments},
 		{"lead ads", seedLeads},
+		{"holdout", seedHoldout},
 	}
 	for _, st := range steps {
 		if err := st.fn(ctx, s); err != nil {

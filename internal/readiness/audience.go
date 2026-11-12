@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/cadence"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/holdout"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/retryaudience"
@@ -55,6 +56,9 @@ type AudienceDef struct {
 	// preference center it reaches (review 2026-11 CA-6).
 	Cadence         string `json:"cadence,omitempty"`
 	DigestFrequency string `json:"-"`
+	// IncludeHoldout sends to the holdout group too (Review & send's
+	// "Include the holdout group", M63 G-33).
+	IncludeHoldout bool `json:"include_holdout,omitempty"`
 }
 
 // campaignAudience is a campaign's audience definition, with its digest's
@@ -78,12 +82,16 @@ func (a AudienceDef) frequencies() []string {
 func ParseAudience(raw json.RawMessage) AudienceDef {
 	var a AudienceDef
 	_ = json.Unmarshal(raw, &a)
-	if a.IncludeUnengaged == nil {
+	if a.IncludeUnengaged == nil || !a.IncludeHoldout {
 		var camel struct {
 			IncludeUnengaged *bool `json:"includeUnengaged"`
+			IncludeHoldout   bool  `json:"includeHoldout"`
 		}
 		_ = json.Unmarshal(raw, &camel)
-		a.IncludeUnengaged = camel.IncludeUnengaged
+		if a.IncludeUnengaged == nil {
+			a.IncludeUnengaged = camel.IncludeUnengaged
+		}
+		a.IncludeHoldout = a.IncludeHoldout || camel.IncludeHoldout
 	}
 	a.Paid = paidaccess.Parse(raw)
 	return a
@@ -267,10 +275,20 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 	}
 	out.CapCount, out.CapDays = int(limit.MarketingCapCount), int(limit.MarketingCapDays)
 	out.Announcement, out.DigestFrequency = def.Cadence == cadence.Announcement, def.DigestFrequency
+	// The holdout group (M63 G-33): counted whether the campaign includes it
+	// or not, so Review & send can say how many it reaches then.
+	held, err := holdout.ForCampaigns(ctx, q, wsID)
+	if err != nil {
+		return out, nil, err
+	}
+	if held.On() {
+		out.HoldoutPercent, out.HoldoutIncluded = held.Percent(), def.IncludeHoldout
+	}
 	rows, err := q.ReadinessRecipients(ctx, store.ReadinessRecipientsParams{
 		WithLists: withRecipients, BouncedSince: now.AddDate(0, 0, -30), WorkspaceID: wsID, Lists: ids(def.Lists), Contacts: contacts,
 		ExcludeLists: ids(def.ExcludeLists), ExcludeContacts: exclude,
 		CapCount: limit.MarketingCapCount, CapSince: now.AddDate(0, 0, -int(limit.MarketingCapDays)), Frequencies: def.frequencies(),
+		HoldoutSeed: held.Seed, HoldoutBp: held.BasisPoints,
 	})
 	if err != nil {
 		return out, nil, err
@@ -338,6 +356,11 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 			continue
 		}
 		seen[key] = true
+		if r.HeldOut && !def.IncludeHoldout {
+			// The holdout group, at the sending engine's step (M63 G-33).
+			out.Holdout++
+			continue
+		}
 		if r.OffCadence {
 			// They chose a weekly or monthly rhythm this campaign doesn't
 			// reach (review 2026-11 CA-6).
@@ -362,6 +385,10 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 			continue
 		}
 		out.Final++
+		if r.HeldOut {
+			// In the holdout group, which the campaign includes.
+			out.HoldoutReached++
+		}
 		if r.Tier == "sunset" {
 			out.Unengaged++
 		}

@@ -526,4 +526,9 @@ export default translate(m, {
   composerFromReview: 'Từ Kiểm tra và gửi',
   composerFromReviewAt: 'Từ Kiểm tra và gửi · danh sách chặn được kiểm tra lúc {time}',
   openInReview: 'Mở trong Kiểm tra và gửi',
+  includeHoldout: 'Gửi cho cả nhóm đối chứng',
+  includeHoldoutHint: 'Dùng cho thư mà ai cũng phải nhận, chẳng hạn khi điều khoản của bạn thay đổi.',
+  includeHoldoutReached: '{count, plural, other {# liên hệ}} trong nhóm đối chứng ({percent}) sẽ nhận lần gửi này.',
+  holdoutScheduled: 'Chiến dịch đã được lên lịch. Hãy hủy lịch để thay đổi người nhận.',
+  holdoutFailed: 'Không thể thay đổi người nhận lần gửi này',
 })

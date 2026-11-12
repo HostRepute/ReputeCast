@@ -111,9 +111,18 @@ function Report({ r }: { r: Report }) {
         <div className="flex flex-wrap gap-2">
           {skipped.map(([reason, n]) => (
             <span key={reason} className="chip">
-              {t(reason === 'frequency_cap' ? m.skippedCap : reason === 'quiet_hours' ? m.skippedQuiet : reason === 'worker_missing' ? m.skippedWorker : m.skippedOther, {
-                n: count(n),
-              })}
+              {t(
+                reason === 'frequency_cap'
+                  ? m.skippedCap
+                  : reason === 'quiet_hours'
+                    ? m.skippedQuiet
+                    : reason === 'worker_missing'
+                      ? m.skippedWorker
+                      : reason === 'holdout'
+                        ? m.skippedHoldout
+                        : m.skippedOther,
+                { n: count(n) },
+              )}
             </span>
           ))}
         </div>

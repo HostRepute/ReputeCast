@@ -66,4 +66,5 @@ export const m = defineMessages('pushReport', {
   retry: 'Retry',
   campaigns: 'Campaigns',
   request: 'request {id}',
+  skippedHoldout: 'Skipped: holdout group {n}',
 })

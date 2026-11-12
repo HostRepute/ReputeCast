@@ -226,6 +226,9 @@ SELECT page.id::uuid AS id,
        (excluded.contact_id IS NOT NULL)::boolean AS excluded_list,
        (excluded_staged.contact_id IS NOT NULL)::boolean AS excluded_segment,
        coalesce(member_lists.lists, '{}'::uuid[])::uuid[] AS lists,
+       -- In the holdout group (M63 G-33): holdout_bp is 0 when no open
+       -- period holds out campaigns or the campaign includes the group.
+       (@holdout_bp::int > 0 AND rc_holdout_bucket(page.id, @holdout_seed::bigint) < @holdout_bp::int)::boolean AS held_out,
        (c.id IS NULL OR c.erased_at IS NOT NULL OR c.workspace_id <> @workspace_id::uuid)::boolean AS gone
 FROM page
 LEFT JOIN contacts c ON c.id = page.id

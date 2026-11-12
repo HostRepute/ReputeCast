@@ -63,4 +63,5 @@ export default translate(m, {
   retry: 'Réessayer',
   campaigns: 'Campagnes',
   request: 'requête {id}',
+  skippedHoldout: 'Ignorées\u00A0: groupe témoin {n}',
 })

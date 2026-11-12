@@ -355,6 +355,22 @@ function ReviewBody({
     }
   }
 
+  // "Include the holdout group" (M63 G-33): part of the campaign's audience,
+  // saved through send-settings (which reruns the checks); the box shows the
+  // choice while it saves and falls back on an error.
+  const [holdoutPending, setHoldoutPending] = useState<boolean>()
+  const saveHoldout = async (include: boolean) => {
+    setHoldoutPending(include)
+    try {
+      await http.PATCH('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings', { params: { path }, body: { includeHoldout: include } })
+      await refresh()
+    } catch (e) {
+      fail(t(m.holdoutFailed))(e)
+    } finally {
+      setHoldoutPending(undefined)
+    }
+  }
+
   const sendTest = async (to: string, language?: string): Promise<boolean> => {
     try {
       const lang = language === EACH ? { eachLanguage: true } : language ? { language } : {}
@@ -861,6 +877,18 @@ function ReviewBody({
             audience={run.estimates.audience}
             including={busy === 'include_unengaged'}
             onInclude={a.canEdit && c.editable ? () => void applyActions([{ action: 'include_unengaged' }], 'include_unengaged') : undefined}
+            holdout={
+              c.holdout
+                ? {
+                    included: holdoutPending ?? c.holdout.included,
+                    percent: c.holdout.percent,
+                    reached: holdoutPending === undefined && run.estimates.audience.holdout?.included ? run.estimates.audience.holdout.reached : undefined,
+                    saving: holdoutPending !== undefined,
+                    disabledReason: editReason ?? (scheduled ? t(m.holdoutScheduled) : undefined),
+                    onChange: (include) => void saveHoldout(include),
+                  }
+                : undefined
+            }
           >
             <ByVersion checks={run.checks} />
           </AudienceCard>

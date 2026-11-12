@@ -36,7 +36,11 @@ SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        -- The rhythm they chose doesn't take this campaign (review 2026-11
        -- CA-6): frequencies lists the choices it reaches, empty (or NULL) for all.
        (coalesce(cardinality(@frequencies::text[]), 0) > 0
-        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY(@frequencies::text[]))::boolean AS off_cadence
+        AND NOT coalesce((SELECT p.frequency FROM contact_preferences p WHERE p.contact_id = c.id), 'all') = ANY(@frequencies::text[]))::boolean AS off_cadence,
+       -- In the holdout group (M63 G-33): holdout_bp is 0 when no open
+       -- period holds out campaigns. Counted whether the campaign includes
+       -- the group or not (the count says how many it reaches then).
+       (@holdout_bp::int > 0 AND rc_holdout_bucket(c.id, @holdout_seed::bigint) < @holdout_bp::int)::boolean AS held_out
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
   AND (EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL)))

@@ -201,5 +201,8 @@
   "source.leadAd": "Publicités à formulaire",
   "field.site_viewed_product": "A consulté un produit",
   "field.site_last_seen": "Vu pour la dernière fois sur le site",
-  "problem.pickCollection": "Choisissez une collection d’une boutique, ou n’importe quel produit."
+  "problem.pickCollection": "Choisissez une collection d’une boutique, ou n’importe quel produit.",
+  "field.in_holdout": "Dans le groupe témoin",
+  "option.in_holdout.yes": "Oui",
+  "option.in_holdout.no": "Non"
 }

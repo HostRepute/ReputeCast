@@ -481,4 +481,9 @@ export default translate(m, {
   composerFromReview: 'Desde Revisar y enviar',
   composerFromReviewAt: 'Desde Revisar y enviar · listas de bloqueo comprobadas a las {time}',
   openInReview: 'Abrir en Revisar y enviar',
+  includeHoldout: 'Incluir el grupo de control',
+  includeHoldoutHint: 'Úsalo para mensajes que todos deben recibir, como un cambio en tus condiciones.',
+  includeHoldoutReached: '{count, plural, one {El # contacto} other {Los # contactos}} del grupo de control ({percent}) {count, plural, one {recibe} other {reciben}} este envío.',
+  holdoutScheduled: 'La campaña está programada. Desprográmala para cambiar quién la recibe.',
+  holdoutFailed: 'No se pudo cambiar quién recibe este envío',
 })

@@ -82,6 +82,9 @@ var (
 	seedWebsiteComments = noop
 	// lead ads from Meta: Acme Marketing, its Pages, forms and leads (seed_leads.go)
 	seedLeads = noop
+	// the holdout group: 5% of contacts since 60 days ago, its results and
+	// the upgrades they come from (seed_holdout.go, M63)
+	seedHoldout = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

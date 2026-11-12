@@ -1085,5 +1085,10 @@
   "compliance.replyInboxDetail": "Die Antwortverarbeitung ist „Antworten im ReputeCast-Posteingang behalten“, und E-Mails empfangen hat noch keine erste Nachricht erhalten. Antworten auf diesen Versand erreichen Zielgruppe › Antworten erst danach. Senden Sie eine Testnachricht unter Einstellungen › Absender, oder leiten Sie Antworten stattdessen an {replyTo} weiter.",
   "compliance.replyInboxFailing": "Die Antwortverarbeitung ist „Antworten im ReputeCast-Posteingang behalten“, und E-Mails empfangen meldet Gestört: {detail} Antworten auf diesen Versand erreichen Zielgruppe › Antworten erst, wenn das behoben ist. Beheben Sie es, oder leiten Sie Antworten stattdessen an {replyTo} weiter.",
   "label.replies": "Antworten",
-  "fix.openSettings": "Einstellungen öffnen"
+  "fix.openSettings": "Einstellungen öffnen",
+  "estimate.holdout": "Kontrollgruppe: {count, number} ausgelassen ({percent})",
+  "problem.holdoutShare": "Geben Sie einen Anteil von 0,1 % bis 20 % ein.",
+  "problem.holdoutScope": "Wählen Sie Kampagnen, Automationen oder beides.",
+  "problem.holdoutOff": "Schalten Sie die Kontrollgruppe ein, bevor Sie neu beginnen.",
+  "problem.scheduledAudience": "Die Kampagne ist geplant. Heben Sie die Planung auf, um die Empfänger zu ändern."
 }

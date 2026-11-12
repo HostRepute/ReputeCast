@@ -117,6 +117,9 @@ type AudienceSummary struct {
 	// Stripe: the workspace keeps paid members in Stripe (connected now or
 	// before), so erasing contacts reminds that Stripe keeps its records.
 	Stripe bool `json:"stripe"`
+	// Holdout: the workspace has had a holdout group (Audience shows the
+	// Holdout tab, M63).
+	Holdout bool `json:"holdout"`
 }
 
 // headerCounts are the Summary's counts that read every contact,
@@ -169,6 +172,9 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSum
 		return out, err
 	}
 	if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM payment_connections WHERE workspace_id = $1 AND status <> 'setup')`, ws.ID).Scan(&out.Stripe); err != nil {
+		return out, err
+	}
+	if out.Holdout, err = s.Q.HoldoutExists(ctx, ws.ID); err != nil {
 		return out, err
 	}
 	return out, nil

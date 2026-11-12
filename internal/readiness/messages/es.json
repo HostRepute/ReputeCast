@@ -1085,5 +1085,10 @@
   "compliance.replyInboxDetail": "La gestión de respuestas es «Guardar las respuestas en la bandeja de ReputeCast», y Recibir correo aún no ha recibido su primer mensaje. Las respuestas a este envío no llegarán a Audiencia › Respuestas hasta entonces. Envía un mensaje de prueba desde Configuración › Remitentes, o reenvía las respuestas a {replyTo}.",
   "compliance.replyInboxFailing": "La gestión de respuestas es «Guardar las respuestas en la bandeja de ReputeCast», y Recibir correo indica Con fallos: {detail} Las respuestas a este envío no llegarán a Audiencia › Respuestas hasta que se arregle. Arréglalo, o reenvía las respuestas a {replyTo}.",
   "label.replies": "Respuestas",
-  "fix.openSettings": "Abrir Configuración"
+  "fix.openSettings": "Abrir Configuración",
+  "estimate.holdout": "Grupo de control: {count, number} excluidos ({percent})",
+  "problem.holdoutShare": "Introduce un porcentaje del 0,1 % al 20 %.",
+  "problem.holdoutScope": "Elige campañas, automatizaciones o ambas.",
+  "problem.holdoutOff": "Activa el grupo de control antes de empezar de nuevo.",
+  "problem.scheduledAudience": "La campaña está programada. Desprográmala para cambiar quién la recibe."
 }

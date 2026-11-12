@@ -246,7 +246,9 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	// 31,604 − 412 unengaged the send leaves out = 31,192 (SR-11).
 	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest list", GroupLabel: "Weekly Digest", BaseKind: readiness.BaseList, BaseName: "Weekly Digest", Lists: []string{"Weekly Digest"}, Base: 31988, Suppressed: 331,
 		Role: 27, Duplicates: 26, Final: 31192, SunsetExcluded: 412, UnengagedExcluded: true, UnengagedDays: 180,
-		Mailboxes: map[string]int64{"gmail": 14348, "outlook": 6551, "yahoo": 2807, "icloud": 2495, "other": 4991}}
+		Mailboxes: map[string]int64{"gmail": 14348, "outlook": 6551, "yahoo": 2807, "icloud": 2495, "other": 4991},
+		// The digest includes the holdout group (M63): 1,560 of its readers are in it.
+		HoldoutPercent: 5, HoldoutIncluded: true, HoldoutReached: 1560}
 	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28073, 90), r.postal(3119, 10)}}
 	f.Content = readiness.ContentFacts{Checked: true, Address: "Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105", InlineCSSBytes: 11 * 1024,
 		URIBlocklists: readiness.URIBlocklists, OwnDomain: "acme.io",

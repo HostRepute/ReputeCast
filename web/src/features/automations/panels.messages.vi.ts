@@ -193,4 +193,6 @@ export default translate(mp, {
   callTime: '{date}, {time}',
   noCalls: 'Chưa có lệnh gọi nào.',
   condReplied: "Đã trả lời email",
+  statHeldOut: 'Nhóm đối chứng <b>{value}</b>',
+  rowHeldOut: 'Giữ ngoài (nhóm đối chứng) <b>{value}</b>',
 })

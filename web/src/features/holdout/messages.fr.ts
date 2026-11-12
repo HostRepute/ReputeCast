@@ -1,0 +1,73 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+/** French for Audience › Holdout (docs/i18n/glossary-fr.md: groupe témoin). */
+export default translate(m, {
+  audience: 'Audience',
+  documentTitle: 'Groupe témoin · Audience',
+  tab: 'Groupe témoin',
+  loading: 'Chargement des résultats du groupe témoin',
+
+  window: 'Période',
+  since: 'Depuis le {date}',
+  last30: '30 derniers jours',
+  last90: '90 derniers jours',
+  computedAgo: 'Calculé {ago}',
+  computing: 'Calcul des résultats… Cela prend une minute.',
+  recompute: 'Recalculer',
+  recomputeSoon: 'Les résultats ont été calculés {ago}.',
+  recomputeEvery: 'Vous pouvez recalculer une fois toutes les 10 minutes.',
+  recomputeFailed: 'Impossible de recalculer les résultats',
+
+  added: 'Le marketing a apporté {lift} de revenu en plus par contact ({confidence} de confiance).',
+  lost: 'Les contacts du groupe témoin ont apporté {lift} de revenu en plus par contact ({confidence} de confiance).',
+  noDifference: 'Pas encore de différence mesurable.',
+  tooFew: 'Trop peu de contacts dans le groupe témoin : {count} sur les {needed} nécessaires.',
+  tooFewHelp: 'Augmentez la part dans <link>Paramètres › Règles d’envoi</link>, ou attendez que l’audience grandisse.',
+  tooEarly: 'Trop tôt pour conclure : le groupe témoin a commencé le {date}. Laissez-lui au moins deux semaines.',
+  pending: 'Pas encore de résultats. ReputeCast les calcule chaque nuit à 04:00, ou maintenant avec Recalculer.',
+  groups:
+    '{holdout, plural, one {# contact} other {# contacts}} du groupe témoin ({percent}) {holdout, plural, one {n’a reçu} other {n’ont reçu}} aucune {scope, select, campaigns {campagne} automations {automatisation} other {campagne ni automatisation}} du {from} au {to} ; {marketing, plural, one {# contact les a reçues} other {# contacts les ont reçues}}.',
+
+  conversionRate: 'Taux de conversion',
+  revenuePerContact: 'Revenu par contact',
+  ordersPerContact: 'Commandes par contact',
+  marketingValue: '<vh>Groupe marketing :</vh> {value}',
+  holdoutValue: 'Groupe témoin {value}',
+  liftConfidence: '{lift} · {confidence} de confiance',
+
+  view: 'Vue',
+  chart: 'Graphique',
+  table: 'Tableau',
+  chartLabel: 'Revenu par contact : groupe marketing {marketing}, groupe témoin {holdout}',
+  marketingGroup: 'Groupe marketing',
+  holdoutGroup: 'Groupe témoin',
+  tableCaption: 'Revenu par contact, groupe marketing et groupe témoin',
+  colGroup: 'Groupe',
+  colContacts: 'Contacts',
+  colConverters: 'Convertis',
+  colConversionRate: 'Taux de conversion',
+  colOrders: 'Commandes',
+  colRevenue: 'Revenu',
+  colRevenuePerContact: 'Revenu par contact',
+  otherCurrencies: 'Aussi enregistré, non compté : {amounts}.',
+  otherCurrency: '{amount} en {currency}',
+
+  includedTitle: 'Campagnes qui incluaient le groupe témoin : {count}',
+  includedBody: 'Elles sont aussi parvenues au groupe témoin, donc ce qu’elles apportent ne fait pas partie de la différence.',
+  converterNote: 'Un contact converti a passé une commande, enregistré une conversion ou commencé un abonnement payant. Le revenu correspond aux commandes moins les remboursements plus les valeurs de conversion, en {currency}.',
+  alwaysNote: 'Les e-mails transactionnels et système parviennent toujours à tout le monde.',
+  settingsLink: 'Paramètres du groupe témoin',
+
+  off: 'Le groupe témoin est désactivé. Ces résultats vont du {from} au {to}.',
+  turnOn: 'L’activer dans Paramètres › Règles d’envoi',
+  noneTitle: 'Pas encore de groupe témoin.',
+  setUp: 'Configurer un groupe témoin',
+  loadFailed: 'Les résultats ne se sont pas chargés.',
+  loadFailedKept: 'ReputeCast conserve les derniers résultats calculés ; rien n’a été perdu.',
+  loadFailedDo: 'Vérifiez votre connexion et réessayez.',
+  retry: 'Réessayer',
+  siteVisitors: 'Visiteurs du site',
+  colSiteVisitors: 'Visiteurs du site',
+  visitorNote: 'Un visiteur du site est un contact vu sur l’un de vos sites suivis (Suivi du site web).',
+})

@@ -543,4 +543,9 @@ export const m = defineMessages('review', {
   composerFromReview: 'From Review & send',
   composerFromReviewAt: 'From Review & send · blocklists checked {time}',
   openInReview: 'Open in Review & send',
+  includeHoldout: 'Include the holdout group',
+  includeHoldoutHint: 'Use it for messages everyone must get, such as a change to your terms.',
+  includeHoldoutReached: 'The {count, plural, one {# contact} other {# contacts}} in the holdout group ({percent}) get this send.',
+  holdoutScheduled: 'The campaign is scheduled. Unschedule it to change who gets it.',
+  holdoutFailed: "Couldn't change who gets this send",
 })

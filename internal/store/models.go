@@ -579,6 +579,7 @@ type AutomationStepStat struct {
 	Unsubscribed int64           `json:"unsubscribed"`
 	Paths        json.RawMessage `json:"paths"`
 	Providers    json.RawMessage `json:"providers"`
+	HeldOut      int64           `json:"heldOut"`
 }
 
 type AutomationVersion struct {
@@ -2044,6 +2045,27 @@ type GrowthState struct {
 	AttributedThrough *time.Time `json:"attributedThrough"`
 	RolledUpThrough   *time.Time `json:"rolledUpThrough"`
 	UpdatedAt         time.Time  `json:"updatedAt"`
+}
+
+type HoldoutPeriod struct {
+	ID                 uuid.UUID  `json:"id"`
+	WorkspaceID        uuid.UUID  `json:"workspaceId"`
+	Seed               int64      `json:"seed"`
+	BasisPoints        int32      `json:"basisPoints"`
+	Campaigns          bool       `json:"campaigns"`
+	Automations        bool       `json:"automations"`
+	StartedAt          time.Time  `json:"startedAt"`
+	EndedAt            *time.Time `json:"endedAt"`
+	StartedBy          *uuid.UUID `json:"startedBy"`
+	Reason             string     `json:"reason"`
+	MeasureRequestedAt *time.Time `json:"measureRequestedAt"`
+}
+
+type HoldoutResult struct {
+	PeriodID   uuid.UUID       `json:"periodId"`
+	Span       string          `json:"span"`
+	ComputedAt time.Time       `json:"computedAt"`
+	Data       json.RawMessage `json:"data"`
 }
 
 type HostreputeConnection struct {

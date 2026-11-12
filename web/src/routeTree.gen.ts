@@ -45,6 +45,7 @@ import { Route as WWorkspaceAppApprovalsApprovalIdRouteImport } from './routes/w
 import { Route as WWorkspaceAppAudienceIndexRouteImport } from './routes/w/$workspace/_app/audience/index'
 import { Route as WWorkspaceAppAudienceGrowthRouteImport } from './routes/w/$workspace/_app/audience/growth'
 import { Route as WWorkspaceAppAudienceHealthRouteImport } from './routes/w/$workspace/_app/audience/health'
+import { Route as WWorkspaceAppAudienceHoldoutRouteImport } from './routes/w/$workspace/_app/audience/holdout'
 import { Route as WWorkspaceAppAudienceListsRouteImport } from './routes/w/$workspace/_app/audience/lists'
 import { Route as WWorkspaceAppAudienceRepliesRouteImport } from './routes/w/$workspace/_app/audience/replies'
 import { Route as WWorkspaceAppAudienceScoringRouteImport } from './routes/w/$workspace/_app/audience/scoring'
@@ -369,6 +370,12 @@ const WWorkspaceAppAudienceHealthRoute =
   WWorkspaceAppAudienceHealthRouteImport.update({
     id: '/audience/health',
     path: '/audience/health',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAudienceHoldoutRoute =
+  WWorkspaceAppAudienceHoldoutRouteImport.update({
+    id: '/audience/holdout',
+    path: '/audience/holdout',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAudienceListsRoute =
@@ -1200,6 +1207,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
   '/w/$workspace/audience/lists': typeof WWorkspaceAppAudienceListsRoute
   '/w/$workspace/audience/replies': typeof WWorkspaceAppAudienceRepliesRoute
   '/w/$workspace/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
@@ -1368,6 +1376,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
   '/w/$workspace/audience/lists': typeof WWorkspaceAppAudienceListsRoute
   '/w/$workspace/audience/replies': typeof WWorkspaceAppAudienceRepliesRoute
   '/w/$workspace/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
@@ -1540,6 +1549,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/_app/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
+  '/w/$workspace/_app/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
   '/w/$workspace/_app/audience/lists': typeof WWorkspaceAppAudienceListsRoute
   '/w/$workspace/_app/audience/replies': typeof WWorkspaceAppAudienceRepliesRoute
   '/w/$workspace/_app/audience/scoring': typeof WWorkspaceAppAudienceScoringRoute
@@ -1712,6 +1722,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/holdout'
     | '/w/$workspace/audience/lists'
     | '/w/$workspace/audience/replies'
     | '/w/$workspace/audience/scoring'
@@ -1880,6 +1891,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
+    | '/w/$workspace/audience/holdout'
     | '/w/$workspace/audience/lists'
     | '/w/$workspace/audience/replies'
     | '/w/$workspace/audience/scoring'
@@ -2051,6 +2063,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/approvals/$approvalId'
     | '/w/$workspace/_app/audience/growth'
     | '/w/$workspace/_app/audience/health'
+    | '/w/$workspace/_app/audience/holdout'
     | '/w/$workspace/_app/audience/lists'
     | '/w/$workspace/_app/audience/replies'
     | '/w/$workspace/_app/audience/scoring'
@@ -2452,6 +2465,13 @@ declare module '@tanstack/react-router' {
       path: '/audience/health'
       fullPath: '/w/$workspace/audience/health'
       preLoaderRoute: typeof WWorkspaceAppAudienceHealthRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/audience/holdout': {
+      id: '/w/$workspace/_app/audience/holdout'
+      path: '/audience/holdout'
+      fullPath: '/w/$workspace/audience/holdout'
+      preLoaderRoute: typeof WWorkspaceAppAudienceHoldoutRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/audience/lists': {
@@ -3414,6 +3434,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
   WWorkspaceAppAudienceGrowthRoute: typeof WWorkspaceAppAudienceGrowthRoute
   WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
+  WWorkspaceAppAudienceHoldoutRoute: typeof WWorkspaceAppAudienceHoldoutRoute
   WWorkspaceAppAudienceListsRoute: typeof WWorkspaceAppAudienceListsRoute
   WWorkspaceAppAudienceRepliesRoute: typeof WWorkspaceAppAudienceRepliesRoute
   WWorkspaceAppAudienceScoringRoute: typeof WWorkspaceAppAudienceScoringRoute
@@ -3543,6 +3564,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppApprovalsApprovalIdRoute: WWorkspaceAppApprovalsApprovalIdRoute,
   WWorkspaceAppAudienceGrowthRoute: WWorkspaceAppAudienceGrowthRoute,
   WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
+  WWorkspaceAppAudienceHoldoutRoute: WWorkspaceAppAudienceHoldoutRoute,
   WWorkspaceAppAudienceListsRoute: WWorkspaceAppAudienceListsRoute,
   WWorkspaceAppAudienceRepliesRoute: WWorkspaceAppAudienceRepliesRoute,
   WWorkspaceAppAudienceScoringRoute: WWorkspaceAppAudienceScoringRoute,

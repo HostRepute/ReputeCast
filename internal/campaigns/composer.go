@@ -73,9 +73,11 @@ type dbAudience struct {
 	PaidTier        string   `json:"paid_tier,omitempty"`
 	Cadence         string   `json:"cadence,omitempty"`
 	// IncludeSunset and IncludeUnengaged are set on Review & send (the
-	// sunset policy's override, "Include them"); a save keeps them.
+	// sunset policy's override, "Include them"), as IncludeHoldout is
+	// ("Include the holdout group", M63); a save keeps them.
 	IncludeSunset    bool  `json:"include_sunset,omitempty"`
 	IncludeUnengaged *bool `json:"include_unengaged,omitempty"`
+	IncludeHoldout   bool  `json:"include_holdout,omitempty"`
 	// RetryOf makes the campaign a retry of an issue (retry.go): a save
 	// keeps it, so the retry still goes only to the blocked addresses.
 	RetryOf string `json:"retry_of,omitempty"`

@@ -182,4 +182,6 @@ export default translate(mp, {
   callTime: '{date}, {time}',
   noCalls: 'Aún no hay llamadas.',
   condReplied: "Respondió al correo",
+  statHeldOut: 'Fuera <b>{value}</b>',
+  rowHeldOut: 'Fuera (grupo de control) <b>{value}</b>',
 })

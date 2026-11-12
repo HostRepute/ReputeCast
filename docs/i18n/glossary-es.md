@@ -1373,3 +1373,14 @@ they are.
 | click · click rate | clic · tasa de clics |
 | bounce · complaint | rebote · queja |
 | dashboard | panel |
+
+## Holdout group (M63)
+
+| English | Español |
+|---|---|
+| holdout group | grupo de control |
+| marketing group (everyone else, on Audience › Holdout) | grupo de marketing |
+| held out (of a send or an automation step) | fuera ("dejar fuera") |
+| start over (the holdout group, new people) | empezar de nuevo |
+| lift · confidence | aumento · confianza ("+18 % · 96 % de confianza") |
+| converter · revenue per contact | conversor · ingresos por contacto |

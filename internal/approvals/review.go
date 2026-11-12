@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/domains"
+	"github.com/hostrepute/reputecast/internal/holdout"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -63,6 +64,16 @@ type ReviewCampaign struct {
 	// UTMDefault is the workspace's "Add UTM tags to links" (Settings ›
 	// Senders), which applies when Settings has no choice of its own.
 	UTMDefault bool `json:"utmDefault"`
+	// Holdout is the holdout group Review & send's audience card offers to
+	// include (M63 G-33); omitted when no open period holds out campaigns.
+	Holdout *ReviewHoldout `json:"holdout,omitempty"`
+}
+
+// ReviewHoldout is the holdout group's share and whether the campaign
+// includes it ("Include the holdout group").
+type ReviewHoldout struct {
+	Percent  float64 `json:"percent"`
+	Included bool    `json:"included"`
 }
 
 // ReviewUTM are the UTM tags a send adds to its links.
@@ -277,6 +288,11 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if out.Campaign.Settings.UTMOn(out.Campaign.UTMDefault) {
 		u := clicktoken.ForEmail(ws.Slug, c.Name, "campaign")
 		out.Campaign.UTM = &ReviewUTM{Source: u.Source, Medium: u.Medium, Campaign: u.Campaign}
+	}
+	if sh, err := holdout.ForCampaigns(ctx, s.Q, ws.ID); err != nil {
+		return out, err
+	} else if sh.On() {
+		out.Campaign.Holdout = &ReviewHoldout{Percent: sh.Percent(), Included: readiness.ParseAudience(c.Audience).IncludeHoldout}
 	}
 	switch c.Status {
 	case "draft", "approval", "approved", "scheduled":

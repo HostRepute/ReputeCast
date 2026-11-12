@@ -56,9 +56,11 @@ type Digests struct {
 
 // AudienceDigest identifies who a campaign goes to as it is defined: its
 // lists and segments, the lists and segments it excludes, whether it leaves
-// out the unengaged, and who on the lists gets it (Earn's paid audience).
-// The order lists were picked in doesn't count; contacts joining or leaving
-// the lists do not change it (the recipient count does).
+// out the unengaged, who on the lists gets it (Earn's paid audience) and
+// whether it includes the holdout group (M63; left out of the digest when
+// it doesn't, so digests from before stay the same). The order lists were
+// picked in doesn't count; contacts joining or leaving the lists do not
+// change it (the recipient count does).
 func AudienceDigest(raw json.RawMessage) string {
 	a := ParseAudience(raw)
 	set := func(s []string) []string {
@@ -71,7 +73,9 @@ func AudienceDigest(raw json.RawMessage) string {
 		IncludeSunset                                                bool
 		IncludeUnengaged                                             *bool
 		Paid, PaidTier                                               string
-	}{set(a.Lists), set(a.Segments), set(a.ExcludeLists), set(a.ExcludeSegments), set(a.ExcludeTiers), a.IncludeSunset, a.IncludeUnengaged, a.Paid.Who, a.Paid.Tier}
+		IncludeHoldout                                               bool `json:",omitempty"`
+	}{set(a.Lists), set(a.Segments), set(a.ExcludeLists), set(a.ExcludeSegments), set(a.ExcludeTiers), a.IncludeSunset, a.IncludeUnengaged, a.Paid.Who, a.Paid.Tier,
+		a.IncludeHoldout}
 	b, _ := json.Marshal(canon)
 	sum := sha256.Sum256(b)
 	return hex.EncodeToString(sum[:])[:32]

@@ -185,4 +185,5 @@ export default translate(mf, {
   preheader: 'Vorschautext',
   html: 'HTML',
   htmlHint: 'Liquid-Tags wie {example} und {unsubscribe} werden beim Versand ausgefüllt.',
+  statHeldOut: '<b>{count}</b> ausgenommen',
 })

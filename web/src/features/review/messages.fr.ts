@@ -481,4 +481,9 @@ export default translate(m, {
   composerFromReview: 'Depuis Vérifier et envoyer',
   composerFromReviewAt: 'Depuis Vérifier et envoyer · listes de blocage vérifiées à {time}',
   openInReview: 'Ouvrir dans Vérifier et envoyer',
+  includeHoldout: 'Inclure le groupe témoin',
+  includeHoldoutHint: 'Pour les messages que tout le monde doit recevoir, comme une modification de vos conditions.',
+  includeHoldoutReached: '{count, plural, one {Le # contact} other {Les # contacts}} du groupe témoin ({percent}) {count, plural, one {reçoit} other {reçoivent}} cet envoi.',
+  holdoutScheduled: 'La campagne est programmée. Déprogrammez-la pour changer ses destinataires.',
+  holdoutFailed: 'Impossible de changer les destinataires de cet envoi',
 })
