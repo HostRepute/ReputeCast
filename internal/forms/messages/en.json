@@ -107,5 +107,7 @@
   "problem.optionLabel60": "Keep an answer under 60 characters.",
   "problem.noStepText": "The form has no step there that takes that text any more. Reload the page.",
   "problem.stepTextLong": {"message": "Keep it under {max} characters.", "note": "max: 40, 120 or 500"},
-  "problem.abRunningHosted": "End the A/B test before making this form a hosted page: hosted pages always show A."
+  "problem.abRunningHosted": "End the A/B test before making this form a hosted page: hosted pages always show A.",
+  "problem.targetSegment": { "message": "Pick the segment the form shows to (or hides from).", "note": "Where and when › Visitors: in or not in a segment, with no segment picked" },
+  "problem.targetSegmentGone": { "message": "That segment no longer exists. Pick another one.", "note": "Where and when › Visitors: the segment was deleted" }
 }

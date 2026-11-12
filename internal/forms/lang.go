@@ -258,3 +258,9 @@ func pageDefault(code string, m i18n.Msg, stored string) string {
 	}
 	return m.Text(pagelabels.Lang(code), nil)
 }
+
+// Form targeting by segment (M62 G-32).
+var (
+	mTargetSegment     = msgs.M("problem.targetSegment")
+	mTargetSegmentGone = msgs.M("problem.targetSegmentGone")
+)

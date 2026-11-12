@@ -341,3 +341,15 @@ RETURNING *;
 -- name: FormsABAutoEnd :many
 -- Running tests that end on their own once a variant wins.
 SELECT * FROM forms WHERE ab @> '{"status": "running", "autoEnd": true}'::jsonb ORDER BY id;
+
+-- name: FormVisitorSegment :one
+-- Form targeting by segment (M62 G-32): whether the site tracker knows the
+-- browser as a contact, and whether that contact is in the segment (its
+-- materialised members: static segments, and dynamic ones live forms or
+-- flows watch).
+SELECT (v.contact_id IS NOT NULL)::boolean AS known,
+       coalesce(EXISTS (SELECT 1 FROM segment_members m WHERE m.segment_id = @segment_id AND m.contact_id = v.contact_id), false)::boolean AS member
+FROM (SELECT (SELECT t.contact_id FROM tracker_visitors t WHERE t.workspace_id = @workspace_id AND t.vid_hash = @vid_hash) AS contact_id) v;
+
+-- name: FormSegmentInWorkspace :one
+SELECT EXISTS (SELECT 1 FROM segments WHERE id = @id AND workspace_id = @workspace_id)::boolean;

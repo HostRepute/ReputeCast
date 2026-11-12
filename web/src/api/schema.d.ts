@@ -40893,12 +40893,13 @@ export interface components {
             devices: ("desktop" | "tablet" | "mobile")[];
             pages: components["schemas"]["SignupFormPageRules"];
             schedule: components["schemas"]["SignupFormSchedule"];
+            segmentId?: string;
             sources: components["schemas"]["SignupFormSources"];
             /**
-             * @description Returning: this browser has seen one of the workspace's forms before today
+             * @description Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
              * @enum {string}
              */
-            visitors: "all" | "new" | "returning";
+            visitors: "all" | "new" | "returning" | "in_segment" | "not_in_segment";
         };
         SignupFormURLs: {
             hosted: string;

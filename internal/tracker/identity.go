@@ -110,3 +110,13 @@ func (s *Service) identified(ctx context.Context, c collectSite, in *identifyBod
 	m.Write([]byte(email))
 	return email, hmac.Equal(m.Sum(nil), want)
 }
+
+// VisitorHash is how a browser's tracker id (the rc_vid cookie) is stored,
+// for other packages that look a visitor up (form targeting by segment,
+// M62 G-32). ok is false for a value that isn't a tracker id.
+func VisitorHash(ws uuid.UUID, vid string) (hash []byte, ok bool) {
+	if !vidRe.MatchString(vid) {
+		return nil, false
+	}
+	return vidHash(ws, vid), true
+}

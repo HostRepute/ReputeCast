@@ -897,7 +897,8 @@ func (h *Handler) formSession(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	peek := q.Get("peek") == "1"
-	ans := h.Forms.Session(r.Context(), s.ws, c, forms.SessionRequest{IP: ip, UserAgent: r.UserAgent(), VisitorID: clipTo(q.Get("vid"), 64), InTest: q.Get("ab") == "1", Peek: peek})
+	ans := h.Forms.Session(r.Context(), s.ws, c, forms.SessionRequest{IP: ip, UserAgent: r.UserAgent(), VisitorID: clipTo(q.Get("vid"), 64), InTest: q.Get("ab") == "1", Peek: peek,
+		TrackerVisitor: clipTo(q.Get("rcv"), 64)})
 	if !ans.Show || peek {
 		writeJSON(w, http.StatusOK, map[string]any{"show": ans.Show, "variant": ans.Variant})
 		return

@@ -569,8 +569,9 @@ type Querier interface {
 	// price-drop flows learn who viewed what through one of them.
 	AutomationTrackedStores(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTrackedStoresRow, error)
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
-	// Dynamic segments a live flow starts on entering or leaving (AT-10), the
-	// quick ones first (AT-15).
+	// Dynamic segments a live flow starts on entering or leaving (AT-10), or a
+	// live form shows to (or hides from) by its visitors (M62 G-32): their
+	// members are kept in segment_members. The quick ones first (AT-15).
 	AutomationWatchedSegments(ctx context.Context) ([]AutomationWatchedSegmentsRow, error)
 	// Totals per automation since a day, for the KPI row.
 	AutomationWorkspaceStatsSince(ctx context.Context, arg AutomationWorkspaceStatsSinceParams) ([]AutomationWorkspaceStatsSinceRow, error)
@@ -1653,6 +1654,7 @@ type Querier interface {
 	FormPublicIDTaken(ctx context.Context, arg FormPublicIDTakenParams) (bool, error)
 	FormRecordRejection(ctx context.Context, arg FormRecordRejectionParams) error
 	FormRename(ctx context.Context, arg FormRenameParams) (Form, error)
+	FormSegmentInWorkspace(ctx context.Context, arg FormSegmentInWorkspaceParams) (bool, error)
 	FormSetAB(ctx context.Context, arg FormSetABParams) (Form, error)
 	// Saves a form's own text from its language view: the copy, the field
 	// labels and the consent text, whose version moves when the words change.
@@ -1694,6 +1696,11 @@ type Querier interface {
 	FormVariantsDelete(ctx context.Context, formID uuid.UUID) error
 	FormVariantsDeleteExcept(ctx context.Context, arg FormVariantsDeleteExceptParams) error
 	FormVariantsList(ctx context.Context, formID uuid.UUID) ([]FormVariant, error)
+	// Form targeting by segment (M62 G-32): whether the site tracker knows the
+	// browser as a contact, and whether that contact is in the segment (its
+	// materialised members: static segments, and dynamic ones live forms or
+	// flows watch).
+	FormVisitorSegment(ctx context.Context, arg FormVisitorSegmentParams) (FormVisitorSegmentRow, error)
 	FormWaitingCount(ctx context.Context, arg FormWaitingCountParams) (int64, error)
 	// Double opt-in signups of a form whose confirmation email hasn't gone out
 	// (nothing could send System mail, or the provider refused it), newest

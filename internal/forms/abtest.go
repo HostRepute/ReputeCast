@@ -29,6 +29,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/tracker"
 )
 
 // A/B tests of a form (M60 G-25). Variant A is the form itself; B and C
@@ -236,6 +237,10 @@ type SessionRequest struct {
 	VisitorID string
 	InTest    bool
 	Peek      bool
+	// TrackerVisitor is the site tracker's id of the browser (its rc_vid
+	// cookie, when the tracker runs on the page): a segment rule (M62
+	// G-32) looks its contact up.
+	TrackerVisitor string
 }
 
 // SessionAnswer says whether the form shows and in which variant ("" outside a test).
@@ -248,7 +253,7 @@ type SessionAnswer struct {
 // and countries; the script has checked the rest) and, while an A/B test
 // runs, in which variant. A form that shows counts a view.
 func (s *Service) Session(ctx context.Context, ws *store.Workspace, c Config, req SessionRequest) SessionAnswer {
-	if !c.Open(s.now()) || !c.CountryShown(s.country(req.IP)) {
+	if !c.Open(s.now()) || !c.CountryShown(s.country(req.IP)) || !s.segmentShown(ctx, ws, c, req.TrackerVisitor) {
 		return SessionAnswer{}
 	}
 	variant := ""
@@ -677,4 +682,24 @@ func (s *Service) autoEnd(ctx context.Context, f store.Form) error {
 func registerABJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &ABAutoEndWorker{S: s})
 	reg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return ABAutoEndArgs{}, nil }, true)
+}
+
+// segmentShown applies a form's segment rule (M62 G-32): the browser's
+// contact, as Website tracking on the same site knows it, in the segment's
+// materialised members. A visitor nobody knows isn't in any segment.
+func (s *Service) segmentShown(ctx context.Context, ws *store.Workspace, c Config, trackerVisitor string) bool {
+	seg := c.segmentRule()
+	if seg == uuid.Nil {
+		return true
+	}
+	known, member := false, false
+	if hash, ok := tracker.VisitorHash(ws.ID, trackerVisitor); ok {
+		r, err := s.Q.FormVisitorSegment(ctx, store.FormVisitorSegmentParams{SegmentID: seg, WorkspaceID: ws.ID, VidHash: hash})
+		if err != nil {
+			s.log().WarnContext(ctx, "form segment rule", "form", c.ID, "err", err)
+		} else {
+			known, member = r.Known, r.Member
+		}
+	}
+	return c.SegmentShown(known, member)
 }
