@@ -34,15 +34,6 @@ SET first_name = CASE WHEN first_name = '' THEN @first_name ELSE first_name END,
     updated_at = @at
 WHERE id = @id;
 
--- name: SignupAddTags :exec
--- Adds the tags a signup gives (a lead form's, M66), keeping the contact's
--- own; a contact that has them all is left alone, so "Tag added" flows
--- start only for tags it didn't have.
-UPDATE contacts
-SET tags = (SELECT coalesce(array_agg(DISTINCT t ORDER BY t), '{}')::text[] FROM unnest(tags || @tags::text[]) AS t),
-    updated_at = @at
-WHERE id = @id AND NOT (tags @> @tags::text[]);
-
 -- name: SignupSetFirstName :exec
 UPDATE contacts SET first_name = @first_name, updated_at = @at WHERE id = @id;
 
@@ -157,3 +148,11 @@ LIMIT 1;
 -- lists of signups.
 SELECT id, email, first_name FROM contacts
 WHERE workspace_id = @workspace_id AND id = ANY (@ids::uuid[]) AND erased_at IS NULL;
+
+-- name: SignupAddContactTags :exec
+-- Adds tags a signup brought (a form's choice questions, M60 G-23) to the
+-- contact's own, kept sorted and once each; updating tags fires the
+-- tag_added automation trigger for the new ones.
+UPDATE contacts
+SET tags = (SELECT array_agg(DISTINCT t ORDER BY t) FROM unnest(tags || @tags::text[]) AS t), updated_at = @at::timestamptz
+WHERE id = @id AND NOT (tags @> @tags::text[]);

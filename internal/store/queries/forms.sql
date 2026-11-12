@@ -71,9 +71,10 @@ WHERE form_id = ANY (@form_ids::uuid[]) AND day >= @since::date
 GROUP BY form_id;
 
 -- name: FormBumpDaily :exec
-INSERT INTO form_daily (form_id, day, views, submissions, confirmed, blocked)
-VALUES (@form_id, @day, @views, @submissions, @confirmed, @blocked)
-ON CONFLICT (form_id, day) DO UPDATE
+-- variant is the A/B test's variant the numbers belong to ('' outside a test).
+INSERT INTO form_daily (form_id, day, variant, views, submissions, confirmed, blocked)
+VALUES (@form_id, @day, @variant, @views, @submissions, @confirmed, @blocked)
+ON CONFLICT (form_id, day, variant) DO UPDATE
 SET views = form_daily.views + excluded.views,
     submissions = form_daily.submissions + excluded.submissions,
     confirmed = form_daily.confirmed + excluded.confirmed,
@@ -102,8 +103,8 @@ UPDATE form_rejections SET dismissed_at = @at
 WHERE form_id = @form_id AND reason = 'origin' AND origin = @origin AND dismissed_at IS NULL;
 
 -- name: FormSubmissionInsert :exec
-INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, language, created_at, confirmed_at)
-VALUES (@id, @workspace_id, @form_id, @contact_id, @list_ids, @double_opt_in, @language, @at, @confirmed_at);
+INSERT INTO form_submissions (id, workspace_id, form_id, contact_id, list_ids, double_opt_in, language, variant, created_at, confirmed_at)
+VALUES (@id, @workspace_id, @form_id, @contact_id, @list_ids, @double_opt_in, @language, @variant, @at, @confirmed_at);
 
 -- name: FormSubmissionsConfirm :many
 -- Marks a contact's waiting submissions confirmed once none of their lists
@@ -114,7 +115,7 @@ SET confirmed_at = @at
 WHERE fs.contact_id = @contact_id AND fs.double_opt_in AND fs.confirmed_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = fs.contact_id
                   AND m.status = 'pending' AND m.list_id = ANY (fs.list_ids))
-RETURNING fs.id, fs.form_id, fs.created_at;
+RETURNING fs.id, fs.form_id, fs.created_at, fs.variant;
 
 -- name: FormSubmissionOfContact :one
 -- The signup a confirmation link was sent for.
@@ -278,3 +279,65 @@ UPDATE workspaces SET branding = branding - @keys::text[], updated_at = now() WH
 
 -- name: FormsDefaultSender :one
 SELECT s.email, s.name FROM workspaces w JOIN senders s ON s.id = w.default_sender_id WHERE w.id = @workspace_id;
+
+-- M60 G-23–G-25: steps, A/B tests.
+
+-- name: FormBumpStep :exec
+-- One view of a step after the first, per day and variant.
+INSERT INTO form_step_daily (form_id, day, variant, step, views)
+VALUES (@form_id, @day, @variant, @step, 1)
+ON CONFLICT (form_id, day, variant, step) DO UPDATE SET views = form_step_daily.views + 1;
+
+-- name: FormStepViewsSince :many
+-- The step funnel of the form itself (outside a test, or its variant A).
+SELECT step::int AS step, coalesce(sum(views), 0)::bigint AS views
+FROM form_step_daily
+WHERE form_id = @form_id AND day >= @since::date AND variant IN ('', 'A')
+GROUP BY step
+ORDER BY step;
+
+-- name: FormOwnStatsSince :one
+-- Views and submissions of the form itself (outside a test, or its variant
+-- A): the first and last bars of the step funnel.
+SELECT coalesce(sum(views), 0)::bigint AS views, coalesce(sum(submissions), 0)::bigint AS submissions
+FROM form_daily
+WHERE form_id = @form_id AND day >= @since::date AND variant IN ('', 'A');
+
+-- name: FormVariantStatsSince :many
+-- An A/B test's numbers per variant since it started.
+SELECT variant,
+       coalesce(sum(views), 0)::bigint AS views,
+       coalesce(sum(submissions), 0)::bigint AS submissions,
+       coalesce(sum(confirmed), 0)::bigint AS confirmed
+FROM form_daily
+WHERE form_id = @form_id AND day >= @since::date AND variant <> ''
+GROUP BY variant;
+
+-- name: FormVariantsList :many
+SELECT * FROM form_variants WHERE form_id = @form_id ORDER BY key;
+
+-- name: FormVariantUpsert :exec
+INSERT INTO form_variants (id, form_id, key, weight, content, created_at, updated_at)
+VALUES (@id, @form_id, @key, @weight, @content, @at, @at)
+ON CONFLICT (form_id, key) DO UPDATE SET weight = excluded.weight, content = excluded.content, updated_at = excluded.updated_at;
+
+-- name: FormVariantsDeleteExcept :exec
+DELETE FROM form_variants WHERE form_id = @form_id AND NOT (key = ANY (@keys::text[]));
+
+-- name: FormVariantsDelete :exec
+DELETE FROM form_variants WHERE form_id = @form_id;
+
+-- name: FormSetAB :one
+UPDATE forms SET ab = @ab, updated_by = @updated_by, updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id
+RETURNING *;
+
+-- name: FormEndAB :one
+-- Ends a test: the kept variant's overrides become the form's content.
+UPDATE forms SET ab = @ab, content = @content, updated_by = @updated_by, updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id
+RETURNING *;
+
+-- name: FormsABAutoEnd :many
+-- Running tests that end on their own once a variant wins.
+SELECT * FROM forms WHERE ab @> '{"status": "running", "autoEnd": true}'::jsonb ORDER BY id;

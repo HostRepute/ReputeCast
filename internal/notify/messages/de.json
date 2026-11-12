@@ -55,6 +55,7 @@
   "short.coupon_codes_low": "knappe Rabattcodes",
   "short.comments_waiting": "Kommentare, die auf Prüfung warten",
   "short.post_import_done": "Beitragsimporte",
+  "short.form_test_ended": "beendete Formulartests",
 
   "event.approval_requested": "Freigabe angefordert",
   "event.approval_decided": "Freigabe erteilt, abgelehnt oder Änderungen angefordert",
@@ -108,6 +109,7 @@
   "event.coupon_codes_low": "Rabattcodes werden knapp",
   "event.comments_waiting": "Kommentare warten auf Prüfung",
   "event.post_import_done": "Beitragsimport abgeschlossen",
+  "event.form_test_ended": "A/B-Test eines Anmeldeformulars beendet",
 
   "audience.approval_requested": "Nur für freigebende Personen",
   "audience.approval_decided": "Nur für den Autor",
@@ -161,6 +163,7 @@
   "audience.coupon_codes_low": "Alle, die Rabattcodes verwalten dürfen",
   "audience.comments_waiting": "Alle, die Kommentare moderieren dürfen · danach höchstens einmal pro Stunde, solange Kommentare warten",
   "audience.post_import_done": "Wer den Import gestartet hat",
+  "audience.form_test_ended": "Wer Formulare bearbeiten darf · wenn ein Test von selbst endet",
 
   "category.approvals": "Freigaben",
   "category.sending": "Versand",

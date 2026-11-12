@@ -525,6 +525,11 @@ func (l PageLinks) FormSession(publicID string) string {
 	return l.forms(url.PathEscape(publicID) + "/session")
 }
 
+// FormStep counts step views of a multi-step form (M60 G-23).
+func (l PageLinks) FormStep(publicID string) string {
+	return l.forms(url.PathEscape(publicID) + "/step")
+}
+
 // Theme is the workspace's colours and font as a stylesheet.
 func (l PageLinks) Theme(version string) string {
 	return l.origin + "/p/" + url.PathEscape(l.slug) + "/theme.css?v=" + url.QueryEscape(version)

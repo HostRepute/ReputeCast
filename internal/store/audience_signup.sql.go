@@ -14,24 +14,23 @@ import (
 	"github.com/google/uuid"
 )
 
-const signupAddTags = `-- name: SignupAddTags :exec
+const signupAddContactTags = `-- name: SignupAddContactTags :exec
 UPDATE contacts
-SET tags = (SELECT coalesce(array_agg(DISTINCT t ORDER BY t), '{}')::text[] FROM unnest(tags || $1::text[]) AS t),
-    updated_at = $2
+SET tags = (SELECT array_agg(DISTINCT t ORDER BY t) FROM unnest(tags || $1::text[]) AS t), updated_at = $2::timestamptz
 WHERE id = $3 AND NOT (tags @> $1::text[])
 `
 
-type SignupAddTagsParams struct {
+type SignupAddContactTagsParams struct {
 	Tags []string  `json:"tags"`
 	At   time.Time `json:"at"`
 	ID   uuid.UUID `json:"id"`
 }
 
-// Adds the tags a signup gives (a lead form's, M66), keeping the contact's
-// own; a contact that has them all is left alone, so "Tag added" flows
-// start only for tags it didn't have.
-func (q *Queries) SignupAddTags(ctx context.Context, arg SignupAddTagsParams) error {
-	_, err := q.db.Exec(ctx, signupAddTags, arg.Tags, arg.At, arg.ID)
+// Adds tags a signup brought (a form's choice questions, M60 G-23) to the
+// contact's own, kept sorted and once each; updating tags fires the
+// tag_added automation trigger for the new ones.
+func (q *Queries) SignupAddContactTags(ctx context.Context, arg SignupAddContactTagsParams) error {
+	_, err := q.db.Exec(ctx, signupAddContactTags, arg.Tags, arg.At, arg.ID)
 	return err
 }
 

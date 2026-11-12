@@ -306,6 +306,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Options("/forms/{id}/session", h.formPreflight)
 	r.Post("/forms/{id}/submit", h.formSubmit)
 	r.Options("/forms/{id}/submit", h.formPreflight)
+	r.Post("/forms/{id}/step", h.formStep)
 	// The publication website (design expansion phase 7, site.go).
 	h.siteRoutes(r)
 	// Polls and surveys (design expansion, X11): GET records nothing.

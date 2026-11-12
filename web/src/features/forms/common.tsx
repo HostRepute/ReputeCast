@@ -7,6 +7,7 @@ import { useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { m as tabs } from './tabs.messages'
 import { m as builder } from './builder.messages'
+import { cloneTargeting, emptyTargeting } from './targeting'
 import './forms.css'
 
 export type Overview = Schemas['SignupFormsOverview']
@@ -144,13 +145,13 @@ export function fieldLabel(f: Schemas['SignupFormField'], customs: Schemas['Sign
   return customs.find((c) => c.key === f.key)?.label ?? f.key
 }
 
-/** The input a form edits, from the stored form. */
+/** The input a form edits, from the stored form: a deep copy, steps, targeting and choice answers included. */
 export function inputOf(f: SignupForm): FormInput {
   return {
     name: f.name,
     // The builder never loads a push prompt (X22): those open in their designer.
     kind: f.kind === 'push' ? 'embedded' : f.kind,
-    fields: f.fields.map((x) => ({ ...x })),
+    fields: f.fields.map((x) => ({ ...x, options: x.options?.map((o) => ({ ...o })) })),
     listIds: [...f.listIds],
     defaultListIds: [...f.defaultListIds],
     listChoice: f.listChoice,
@@ -160,14 +161,37 @@ export function inputOf(f: SignupForm): FormInput {
     afterSubmit: f.afterSubmit,
     redirectUrl: f.redirectUrl,
     allowedOrigins: [...f.allowedOrigins],
-    content: { ...f.content },
+    content: {
+      ...f.content,
+      steps: f.content.steps?.map((s) => ({ ...s, fields: [...s.fields] })),
+      targeting: cloneTargeting(f.content.targeting ?? emptyTargeting()),
+    },
     publish: true,
   }
 }
 
-/** Whether two inputs differ (the Discard and leave guards). */
+/**
+ * The input as two forms compare: keys in one order, empty text as none
+ * (the server leaves it out), one step as no steps, and the schedule's
+ * moments as instants (the dialog writes them in another format than the
+ * server's).
+ */
+function comparable(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(comparable)
+  if (value === null || typeof value !== 'object') return value
+  const out: Record<string, unknown> = {}
+  for (const k of Object.keys(value).sort()) {
+    const v = (value as Record<string, unknown>)[k]
+    if (v === undefined || v === '') continue
+    if (k === 'steps' && Array.isArray(v) && v.length < 2) continue
+    out[k] = (k === 'startsAt' || k === 'endsAt') && typeof v === 'string' ? Date.parse(v) : comparable(v)
+  }
+  return out
+}
+
+/** Whether two inputs are the same form (the Discard and leave guards): steps, targeting and choice questions included. */
 export function sameInput(a: FormInput, b: FormInput): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
+  return JSON.stringify(comparable(a)) === JSON.stringify(comparable(b))
 }
 
 /** The embed snippet, laid out as on the board. */

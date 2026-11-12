@@ -107,6 +107,9 @@ const (
 	KindCouponCodesLow = "coupon_codes_low"
 	// Lead ads from Meta (M66).
 	KindLeadAdsAttention = "lead_ads_attention" // Meta refused a lead ads connection's token: leads wait at Meta
+	// KindFormTestEnded: a signup form's A/B test ended on its own and kept
+	// the winner (M60 G-25).
+	KindFormTestEnded = "form_test_ended"
 )
 
 // Notification is what appears in the notification center.

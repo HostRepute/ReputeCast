@@ -55,6 +55,7 @@
   "short.coupon_codes_low": "mã giảm giá sắp hết",
   "short.comments_waiting": "bình luận chờ duyệt",
   "short.post_import_done": "nhập bài viết",
+  "short.form_test_ended": "thử nghiệm biểu mẫu đã kết thúc",
 
   "event.approval_requested": "Yêu cầu phê duyệt",
   "event.approval_decided": "Yêu cầu phê duyệt được duyệt, bị từ chối hoặc cần thay đổi",
@@ -108,6 +109,7 @@
   "event.coupon_codes_low": "Mã giảm giá sắp hết",
   "event.comments_waiting": "Bình luận đang chờ duyệt",
   "event.post_import_done": "Đã nhập xong bài viết",
+  "event.form_test_ended": "Thử nghiệm A/B của biểu mẫu đăng ký đã kết thúc",
 
   "audience.approval_requested": "Chỉ dành cho người phê duyệt",
   "audience.approval_decided": "Chỉ dành cho tác giả",
@@ -161,6 +163,7 @@
   "audience.coupon_codes_low": "Những người có thể quản lý mã giảm giá",
   "audience.comments_waiting": "Những người có thể kiểm duyệt bình luận · sau đó tối đa mỗi giờ một lần khi còn bình luận chờ duyệt",
   "audience.post_import_done": "Người bắt đầu lượt nhập",
+  "audience.form_test_ended": "Những người có thể sửa biểu mẫu · khi thử nghiệm tự kết thúc",
 
   "category.approvals": "Phê duyệt",
   "category.sending": "Gửi thư",

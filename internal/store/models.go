@@ -1948,6 +1948,7 @@ type Form struct {
 	ConsentChangedAt *time.Time      `json:"consentChangedAt"`
 	DownloadFileID   *uuid.UUID      `json:"downloadFileId"`
 	DownloadDays     int32           `json:"downloadDays"`
+	Ab               json.RawMessage `json:"ab"`
 }
 
 type FormChallenge struct {
@@ -1978,6 +1979,7 @@ type FormDaily struct {
 	Submissions int64     `json:"submissions"`
 	Confirmed   int64     `json:"confirmed"`
 	Blocked     int64     `json:"blocked"`
+	Variant     string    `json:"variant"`
 }
 
 type FormRejection struct {
@@ -1988,6 +1990,14 @@ type FormRejection struct {
 	Count       int64      `json:"count"`
 	LastAt      time.Time  `json:"lastAt"`
 	DismissedAt *time.Time `json:"dismissedAt"`
+}
+
+type FormStepDaily struct {
+	FormID  uuid.UUID `json:"formId"`
+	Day     time.Time `json:"day"`
+	Variant string    `json:"variant"`
+	Step    int16     `json:"step"`
+	Views   int64     `json:"views"`
 }
 
 type FormSubmission struct {
@@ -2003,6 +2013,17 @@ type FormSubmission struct {
 	RemindedAt    *time.Time  `json:"remindedAt"`
 	ConfirmedAt   *time.Time  `json:"confirmedAt"`
 	Language      string      `json:"language"`
+	Variant       string      `json:"variant"`
+}
+
+type FormVariant struct {
+	ID        uuid.UUID       `json:"id"`
+	FormID    uuid.UUID       `json:"formId"`
+	Key       string          `json:"key"`
+	Weight    int32           `json:"weight"`
+	Content   json.RawMessage `json:"content"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt time.Time       `json:"updatedAt"`
 }
 
 type GrowthQualityDaily struct {

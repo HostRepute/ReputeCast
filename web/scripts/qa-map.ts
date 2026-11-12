@@ -629,4 +629,8 @@ export const entries: Entry[] = [
   { board: 'LeadAdsConnectPhone', widths: [390], manual: true },
   { board: 'LeadAdsFormMapping', manual: true },
   { board: 'LeadAdsStates', manual: true },
+  // M60 G-25: the Footer mini form's running A/B test with B selected and the winner card. The End
+  // test dialog is drawn under the builder and opens with a click: compare the builder only.
+  { board: 'FormBuilderABTest', path: `${ws}/forms?form={form:Footer mini form}&variant=B`, widths: [1440], viewportOnly: true, height: 1583 },
+  { board: 'FormBuilderABTestPhone', path: `${ws}/forms?form={form:Footer mini form}&variant=B`, widths: [390], viewportOnly: true, height: 3269 },
 ]

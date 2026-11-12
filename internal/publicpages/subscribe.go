@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -32,6 +34,28 @@ type fieldView struct {
 	// The phone field's country picker (phase 8).
 	Countries             []forms.TextCountry
 	Country, CountryLabel string
+	// A choice question (Type "choice", M60 G-23): its answers, as
+	// checkboxes (Multiple) or radio buttons.
+	Multiple bool
+	Choices  []answerView
+	// A multi-step form shows every step at once here, each a fieldset:
+	// CloseStep ends the previous step's before this field, OpenStep starts
+	// one.
+	CloseStep bool
+	OpenStep  *stepView
+}
+
+// answerView is one answer of a choice question.
+type answerView struct {
+	ID, Value, Label string
+	Checked          bool
+}
+
+// stepView is a step of a multi-step form on a page without the embed
+// script: its heading is the fieldset's legend ("Step 2 of 3" when it has
+// none).
+type stepView struct {
+	Legend, Description string
 }
 
 type listView struct {
@@ -80,6 +104,8 @@ type subscribeBody struct {
 	// Typo is "Did you mean …?" under the email field: its Use and Keep
 	// buttons (nil when the address has no likely typo).
 	Typo *typoChoice
+	// StepsOpen: the last step's fieldset closes after the consent boxes.
+	StepsOpen bool
 }
 
 // typoChoice is the two buttons that answer "Did you mean …?": they send
@@ -225,9 +251,41 @@ func (h *Handler) subscribeBody(ctx context.Context, s *site, fl formLang, page 
 	if err != nil {
 		return b, err
 	}
-	for _, f := range c.Fields {
+	// A multi-step form shows its steps one after another, each a fieldset.
+	order := c.Fields
+	starts := map[int]stepView{}
+	if steps := c.FormSteps(); steps != nil {
+		order = nil
+		for i, st := range steps {
+			legend := st.Heading
+			if legend == "" {
+				legend = l.Text("form.step.of", i18n.Args{"n": i + 1, "total": len(steps)})
+			}
+			starts[len(order)] = stepView{Legend: legend, Description: st.Description}
+			order = append(order, st.Fields...)
+		}
+		b.StepsOpen = true
+	}
+	for i, f := range order {
 		fv := fieldView{Key: f.Key, Name: forms.FieldName(f.Key), ID: "f-" + f.Key, Label: forms.FieldLabelIn(f, customs, l), Type: "text",
 			Required: f.Required || f.Key == forms.FieldEmail, Optional: !f.Required && f.Key != forms.FieldEmail}
+		if st, ok := starts[i]; ok {
+			fv.OpenStep, fv.CloseStep = &st, i > 0
+		}
+		if f.Type == forms.FieldChoice {
+			fv.Type, fv.Name, fv.Multiple = forms.FieldChoice, forms.ChoiceName(f.Key), f.Multiple
+			var picked []string
+			if values != nil {
+				picked = values.Choices[f.Key]
+			}
+			for j, o := range f.Options {
+				v := strconv.Itoa(j)
+				fv.Choices = append(fv.Choices, answerView{ID: fv.ID + "-" + v, Value: v, Label: o.Label, Checked: slices.Contains(picked, v)})
+			}
+			fv.Error = out.Errors[f.Key]
+			b.Fields = append(b.Fields, fv)
+			continue
+		}
 		switch f.Key {
 		case forms.FieldEmail:
 			fv.Type, fv.Placeholder, fv.Autocomplete = "email", c.Content.EmailPlaceholder, "email"
@@ -408,7 +466,8 @@ func (h *Handler) subscribePage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
-	if c.Status == forms.StatusPaused {
+	// Paused, or outside its schedule (M60 G-24): the form is closed.
+	if c.Status == forms.StatusPaused || !c.Open(h.now()) {
 		h.closed(w, r, s, "")
 		return
 	}
@@ -453,6 +512,7 @@ func (h *Handler) closed(w http.ResponseWriter, r *http.Request, s *site, code s
 func submissionFrom(r *http.Request) forms.Submission {
 	f := r.PostForm
 	sub := forms.Submission{
+		Variant: clipTo(f.Get("_v"), 1), Choices: map[string][]string{},
 		Email: f.Get("email"), FirstName: f.Get("first_name"), LastName: f.Get("last_name"), Company: f.Get("company"),
 		Lists: f["list"], Consent: f.Get("consent") != "", Honeypot: f.Get("website"), Token: f.Get("_t"), Plain: f.Get("_plain") == "1",
 		Origin: forms.OriginHost(r.Header.Get("Origin"), r.Header.Get("Referer")), IP: clientIP(r), UserAgent: r.UserAgent(),
@@ -472,6 +532,11 @@ func submissionFrom(r *http.Request) forms.Submission {
 	for k, v := range f {
 		if strings.HasPrefix(k, "f.") && len(v) > 0 && n < 50 {
 			sub.Fields[strings.TrimPrefix(k, "f.")] = v[0]
+			n++
+		}
+		// Choice questions (M60 G-23): the picked answers' indexes.
+		if strings.HasPrefix(k, "c.") && len(v) > 0 && n < 50 {
+			sub.Choices[strings.TrimPrefix(k, "c.")] = v[:min(len(v), 12)]
 			n++
 		}
 	}
@@ -817,8 +882,71 @@ func (h *Handler) formSession(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"status": forms.OutcomeRejected})
 		return
 	}
-	h.Forms.RecordView(r.Context(), s.ws, c, r.UserAgent())
-	writeJSON(w, http.StatusOK, map[string]string{"t": h.Forms.FormToken(formKey(c), h.now())})
+	// The form's schedule and countries (M60 G-24) decide whether it shows,
+	// and a running A/B test which variant (G-25); a form that doesn't show
+	// counts no view. One address asks at most 60 times a minute.
+	ip := clientIP(r)
+	key := "unknown"
+	if ip != nil {
+		key = forms.ClientKey(*ip)
+	}
+	if !h.Forms.AllowPerMinute("fs:"+s.ws.ID.String()+":"+key, 60) {
+		w.Header().Set("Retry-After", "60")
+		writeJSON(w, http.StatusTooManyRequests, map[string]any{"status": forms.OutcomeRateLimited, "show": false})
+		return
+	}
+	q := r.URL.Query()
+	peek := q.Get("peek") == "1"
+	ans := h.Forms.Session(r.Context(), s.ws, c, forms.SessionRequest{IP: ip, UserAgent: r.UserAgent(), VisitorID: clipTo(q.Get("vid"), 64), InTest: q.Get("ab") == "1", Peek: peek})
+	if !ans.Show || peek {
+		writeJSON(w, http.StatusOK, map[string]any{"show": ans.Show, "variant": ans.Variant})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"t": h.Forms.FormToken(formKey(c), h.now()), "show": true, "variant": ans.Variant})
+}
+
+// formStep counts a view of a multi-step form's later step (the embed
+// script's beacon, M60 G-23): only from the form's sites, with the
+// session's token, at most 60 a minute from one address. It answers 204
+// whatever happens: a beacon reads nothing.
+func (h *Handler) formStep(w http.ResponseWriter, r *http.Request) {
+	s, err := h.site(r)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	c, err := h.embedForm(r.Context(), s, chi.URLParam(r, "id"))
+	if err != nil || c.Status != forms.StatusLive {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if !forms.OriginAllowed(forms.OriginHost(r.Header.Get("Origin"), r.Header.Get("Referer")), c.AllowedOrigins, h.Forms.OwnOrigins(s.set)) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	ip := clientIP(r)
+	key := "unknown"
+	if ip != nil {
+		key = forms.ClientKey(*ip)
+	}
+	if !h.Forms.AllowPerMinute("fstep:"+s.ws.ID.String()+":"+key, 60) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		return
+	}
+	// sendBeacon posts text/plain: the body is read as a query string.
+	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<10))
+	if err != nil {
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		return
+	}
+	v, err := url.ParseQuery(string(raw))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	n, _ := strconv.Atoi(v.Get("n"))
+	h.Forms.RecordStep(r.Context(), s.ws, c, n, clipTo(v.Get("v"), 1), v.Get("t"), r.UserAgent())
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // formSubmit receives an embedded form's submission and answers in JSON.

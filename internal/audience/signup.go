@@ -126,9 +126,8 @@ type SignupInput struct {
 	// it came through ("Newsletter signup"; empty for the subscribe page).
 	BrowserLanguage string
 	FormName        string
-	// Tags are added to the contact (cleaned as the profile does: trimmed,
-	// lower-cased, at most 60 characters, no duplicates), through the
-	// contact's tags, so "Tag added" automations start as for any tag.
+	// Tags are added to the contact (a form's choice questions, M60 G-23),
+	// through the contact's tags so tag triggers start automations.
 	Tags []string
 }
 
@@ -238,7 +237,7 @@ func (s *Service) Signup(ctx context.Context, tx pgx.Tx, ws *store.Workspace, in
 		return out, err
 	}
 	if tags := cleanTags(in.Tags); len(tags) > 0 {
-		if err := q.SignupAddTags(ctx, store.SignupAddTagsParams{ID: c.ID, Tags: tags, At: at}); err != nil {
+		if err := q.SignupAddContactTags(ctx, store.SignupAddContactTagsParams{ID: c.ID, Tags: tags, At: at}); err != nil {
 			return out, err
 		}
 	}

@@ -56,6 +56,9 @@
   "form.typo.keep": "Giữ {email}",
   "form.inbox.open": "Mở {provider}",
   "form.inbox.newTab": "(mở trong thẻ mới)",
+  "form.step.next": "Tiếp",
+  "form.step.back": "Quay lại",
+  "form.step.of": "Bước {n}/{total}",
 
   "challenge.title": "Thêm một bước nữa",
   "challenge.text": "Lượt đăng ký của bạn trông như tự động, nên chúng tôi muốn chắc chắn bạn là người thật. Chỉ mất một giây.",

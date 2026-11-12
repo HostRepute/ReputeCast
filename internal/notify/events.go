@@ -94,6 +94,8 @@ var Events = []EventType{
 	{Key: KindSponsorRequest, Label: "Sponsor booking requested or paid", Audience: "People who can manage sponsors", Short: "sponsor requests", DefaultEmail: true, Kinds: []string{KindSponsorRequest}},
 	// Lead ads from Meta (M66).
 	{Key: KindLeadAdsAttention, Label: "Meta refused the lead ads token", Audience: "People who can manage integrations", Short: "lead ads problems", DefaultEmail: true, Kinds: []string{KindLeadAdsAttention}},
+	// Signup forms (M60 G-25).
+	{Key: KindFormTestEnded, Label: "Signup form A/B test ended", Audience: "People who can edit forms · when a test ends on its own", Short: "ended form tests", DefaultEmail: true, Kinds: []string{KindFormTestEnded}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):

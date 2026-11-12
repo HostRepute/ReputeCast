@@ -709,7 +709,7 @@ func TestEmbedScript(t *testing.T) {
 	// A failed submit shows the error's sentence (FormsStates: "We couldn't
 	// save your subscription just now…"), never the message object.
 	if en.Messages["error"].Text != "We couldn't save your subscription just now. Nothing was lost; please try again in a minute." ||
-		strings.Count(js, "t.messages.error.text") != 2 || strings.Contains(js, "t.messages.error)") {
+		strings.Count(js, "messages.error.text") != 2 || strings.Contains(js, "messages.error)") {
 		t.Errorf("error message: %+v", en.Messages["error"])
 	}
 	if strings.ContainsRune(js, '\u2028') || strings.ContainsRune(js, '\u2029') {

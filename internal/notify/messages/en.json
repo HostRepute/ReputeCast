@@ -55,6 +55,7 @@
   "short.coupon_codes_low": "discount codes running low",
   "short.comments_waiting": "comments waiting for review",
   "short.post_import_done": "post imports",
+  "short.form_test_ended": "ended form tests",
 
   "event.approval_requested": {"message": "Approval requested", "note": "Notification preferences: one row per event type, which the member turns on in-app or by email"},
   "event.approval_decided": "Approval approved, rejected or changes requested",
@@ -108,6 +109,7 @@
   "event.coupon_codes_low": "Discount codes running low",
   "event.comments_waiting": "Comments waiting for review",
   "event.post_import_done": "Post import finished",
+  "event.form_test_ended": "Signup form A/B test ended",
 
   "audience.approval_requested": {"message": "Only for approvers", "note": "who gets an event type, under its name in Notification preferences; it names who in people's words (\"People who can send campaigns\"), never a permission key"},
   "audience.approval_decided": "Only for the author",
@@ -161,6 +163,7 @@
   "audience.coupon_codes_low": "People who can manage discount codes",
   "audience.comments_waiting": "People who can moderate comments · then at most once an hour while comments wait",
   "audience.post_import_done": "Whoever started the import",
+  "audience.form_test_ended": "People who can edit forms · when a test ends on its own",
 
   "category.approvals": {"message": "Approvals", "note": "the notification center's tabs, and the badge on each notification"},
   "category.sending": "Sending",

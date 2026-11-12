@@ -69,6 +69,9 @@ type Service struct {
 	// Texts adds the phone field and SMS consent (phase 8, internal/texting);
 	// nil offers neither.
 	Texts Texts
+	// GeoIP places a visitor's address in a country for forms that show
+	// only in some countries (M60 G-24); nil: country rules find no country.
+	GeoIP GeoIP
 
 	limitsOnce sync.Once
 	limits     *limiter
@@ -130,6 +133,11 @@ type fieldDoc struct {
 	Key      string `json:"key"`
 	Label    string `json:"label,omitempty"`
 	Required bool   `json:"required,omitempty"`
+	// Type is FieldChoice for a choice question (M60 G-23), whose answers
+	// (Options, one or several when Multiple) add tags; "" is a contact field.
+	Type     string      `json:"type,omitempty"`
+	Multiple bool        `json:"multiple,omitempty"`
+	Options  []optionDoc `json:"options,omitempty"`
 }
 
 // contentDoc is the stored copy and look of a form (forms.content).
@@ -161,6 +169,11 @@ type contentDoc struct {
 	SmsConsent        bool   `json:"smsConsent,omitempty"`
 	SmsConsentText    string `json:"smsConsentText,omitempty"`
 	SmsConsentVersion int    `json:"smsConsentVersion,omitempty"`
+	// Steps show the fields a step at a time (M60 G-23); fewer than two is
+	// one step. Targeting is where and when the form shows (G-24; nil:
+	// everywhere, always).
+	Steps     []stepDoc     `json:"steps,omitempty"`
+	Targeting *targetingDoc `json:"targeting,omitempty"`
 }
 
 // spamDoc is the stored spam protection (forms.spam_protection).
@@ -212,6 +225,8 @@ type Config struct {
 	publisher  string
 	// texts is the SMS offer in Language, for the embed script (phase 8).
 	texts *TextOffer
+	// AB is the form's A/B test (M60 G-25; Status "" when never tested).
+	AB abDoc
 }
 
 // HasField reports whether the form shows a field.
@@ -282,6 +297,9 @@ func ConfigOf(f store.Form) Config {
 	}
 	if c.Spam.RateLimitPerIP <= 0 {
 		c.Spam.RateLimitPerIP = 5
+	}
+	if len(f.Ab) > 0 {
+		_ = json.Unmarshal(f.Ab, &c.AB)
 	}
 	return c
 }
@@ -354,9 +372,14 @@ func nonNilStrings(xs []string) []string {
 }
 
 type SignupFormField struct {
-	Key      string `json:"key" pattern:"^[a-z][a-z0-9_]{0,62}$" doc:"email, first_name, last_name, company or a custom field key"`
-	Label    string `json:"label" maxLength:"80" doc:"Shown above the input; empty uses the field's name"`
+	Key      string `json:"key" pattern:"^[a-z][a-z0-9_]{0,62}$" doc:"email, first_name, last_name, company, a custom field key, or a choice question's own key"`
+	Label    string `json:"label" maxLength:"80" doc:"Shown above the input; empty uses the field's name (a choice question needs its question)"`
 	Required bool   `json:"required"`
+	// Type "choice" is a choice question: each picked answer adds its tag
+	// to the contact. Omitted: a contact field.
+	Type     string                   `json:"type,omitempty" enum:"choice"`
+	Multiple bool                     `json:"multiple,omitempty" doc:"A choice question that takes several answers"`
+	Options  []SignupFormChoiceOption `json:"options,omitempty" maxItems:"12" doc:"A choice question's answers (2 to 12)"`
 }
 
 // SignupFormContent is the copy of a form.
@@ -388,6 +411,13 @@ type SignupFormContent struct {
 	SmsConsent        bool   `json:"smsConsent,omitempty"`
 	SmsConsentText    string `json:"smsConsentText,omitempty" maxLength:"600"`
 	SmsConsentVersion int    `json:"smsConsentVersion,omitempty" minimum:"0"`
+	// Steps show the fields a step at a time (two to four steps, every
+	// field in one; the last step has the lists, consent and submit).
+	// Omitted or one step: everything at once.
+	Steps []SignupFormStep `json:"steps,omitempty" maxItems:"4"`
+	// Targeting is where and when the form shows; omitted: everywhere,
+	// always. Always set in answers.
+	Targeting *SignupFormTargeting `json:"targeting,omitempty"`
 }
 
 // SignupFormSpam is a form's spam protection.
@@ -414,6 +444,18 @@ type SignupFormStats struct {
 	ConfirmedRate float64 `json:"confirmedRate"`
 	Blocked       int64   `json:"blocked" doc:"Submissions blocked as spam"`
 	Pending       int64   `json:"pending" doc:"Double opt-in confirmations not clicked yet"`
+	// Steps is the step funnel of a form with several steps: step 1's views
+	// are the form's, then each later step's; StepSignups the submissions
+	// that came from it (variant A only while an A/B test runs). Empty and
+	// 0 for a one-step form.
+	Steps       []SignupFormStepStat `json:"steps"`
+	StepSignups int64                `json:"stepSignups"`
+}
+
+// SignupFormStepStat is one bar of the step funnel.
+type SignupFormStepStat struct {
+	Step  int   `json:"step" doc:"1 to 4"`
+	Views int64 `json:"views"`
 }
 
 // SignupFormBlockedOrigin is a site whose submissions were rejected today.
@@ -534,6 +576,9 @@ type SignupFormsOverview struct {
 	Domain         PublicCustomDomain `json:"domain"`
 	// Origins that may always submit: the instance and the custom domain.
 	OwnOrigins []string `json:"ownOrigins"`
+	// GeoIP says whether the server has a GeoIP database (geoip.database),
+	// which country rules need.
+	GeoIP bool `json:"geoip"`
 }
 
 var errFormNotFound = api.NotFound("Form")
@@ -594,6 +639,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SignupForm
 	out.Turnstile = set.turnstile(l)
 	out.Branding = s.brandingOut(l, ws, set)
 	out.Domain = set.domain(l, s.URLs)
+	out.GeoIP = s.GeoIPLoaded()
 	return out, nil
 }
 
@@ -632,7 +678,8 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 			ListsLabel: c.Content.ListsLabel, EmailPlaceholder: c.Content.EmailPlaceholder, NamePlaceholder: c.Content.NamePlaceholder,
 			PopupDelay: c.Content.PopupDelay, PopupScroll: c.Content.PopupScroll, PopupRepeatDays: c.Content.PopupRepeatDays, AfterSubmitText: c.Content.AfterSubmitText,
 			PopupExit: c.Content.PopupExit, HideSubscribed: new(c.HideSubscribed()),
-			SmsConsent: c.Content.SmsConsent, SmsConsentText: c.Content.SmsConsentText, SmsConsentVersion: c.Content.SmsConsentVersion},
+			SmsConsent: c.Content.SmsConsent, SmsConsentText: c.Content.SmsConsentText, SmsConsentVersion: c.Content.SmsConsentVersion,
+			Steps: stepsOut(c.Content.Steps), Targeting: new(targetingOut(c.Content.Targeting))},
 		BlockedOrigins: []SignupFormBlockedOrigin{}, PublishedAt: f.PublishedAt, UpdatedAt: f.UpdatedAt,
 	}
 	// Phase 8: the SMS consent text starts from the default one.
@@ -640,7 +687,11 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 		out.Content.SmsConsentText = offer.ConsentText
 	}
 	for _, fd := range c.Fields {
-		out.Fields = append(out.Fields, SignupFormField{Key: fd.Key, Label: fd.Label, Required: fd.Required || fd.Key == FieldEmail})
+		sf := SignupFormField{Key: fd.Key, Label: fd.Label, Required: fd.Required || fd.Key == FieldEmail}
+		if fd.Type == FieldChoice {
+			sf.Type, sf.Multiple, sf.Options = FieldChoice, fd.Multiple, optionsOut(fd.Options)
+		}
+		out.Fields = append(out.Fields, sf)
 	}
 	out.URLs = SignupFormURLs{Hosted: out.HostedURL, Script: links.Script(f.PublicID), Submit: links.Submit(f.PublicID)}
 	lists, err := s.Audience.PublicLists(ctx, s.Q, ws)
@@ -664,7 +715,7 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 	if err != nil {
 		return out, err
 	}
-	out.Stats = SignupFormStats{Days: 30}
+	out.Stats = SignupFormStats{Days: 30, Steps: []SignupFormStepStat{}}
 	for _, r := range rows {
 		out.Stats.Views, out.Stats.Submissions, out.Stats.Confirmed, out.Stats.Blocked = r.Views, r.Submissions, r.Confirmed, r.Blocked
 	}
@@ -672,6 +723,11 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 	out.Stats.ConfirmedRate = ratio(out.Stats.Confirmed, out.Stats.Submissions)
 	if f.DoubleOptIn {
 		out.Stats.Pending = max(out.Stats.Submissions-out.Stats.Confirmed, 0)
+	}
+	if n := len(c.Content.Steps); n >= 2 {
+		if err := s.stepFunnel(ctx, f.ID, since, n, &out.Stats); err != nil {
+			return out, err
+		}
 	}
 	blocked, err := s.Q.FormBlockedOrigins(ctx, store.FormBlockedOriginsParams{FormID: f.ID, Day: dayOf(today, loc)})
 	if err != nil {
@@ -882,6 +938,11 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id string, in
 		if err != nil {
 			return err
 		}
+		// A running A/B test follows the form: variants keep step groupings
+		// that fit its fields, and a change to A's copy restarts the count.
+		if after, err = s.keepTestInStep(ctx, q, ws, before, after); err != nil {
+			return err
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "form.update", TargetType: "form", TargetID: after.ID.String(), TargetName: after.Name,
 			Before: formSnapshot(before), After: formSnapshot(after)})
 	})
@@ -896,6 +957,10 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
 		return store.FormUpdateParams{}, api.Invalid("body.name", say(ctx, mNameForm, nil))
+	}
+	// A hosted page always shows A: a running test ends first (M60 G-25).
+	if in.Kind == KindHosted && before.Kind != KindHosted && ConfigOf(before).AB.Running() {
+		return store.FormUpdateParams{}, api.Err(409, "form.ab_running", say(ctx, mABRunningHosted, nil))
 	}
 	// Fields: email first and always required; built-ins or custom fields of the workspace.
 	customs, err := q.ListCustomFields(ctx, ws.ID)
@@ -912,11 +977,25 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		if f.Key == FieldEmail || seen[f.Key] {
 			continue
 		}
-		if _, ok := builtinFields[f.Key]; !ok && !customKeys[f.Key] {
-			return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), say(ctx, mNotContactField, i18n.Args{"key": f.Key}))
-		}
 		if !keyPattern.MatchString(f.Key) {
 			return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), say(ctx, mNotFieldKey, nil))
+		}
+		_, builtin := builtinFields[f.Key]
+		if f.Type == FieldChoice {
+			// A choice question has its own key: no contact field's.
+			if builtin || customKeys[f.Key] {
+				return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), say(ctx, mChoiceKey, i18n.Args{"key": f.Key}))
+			}
+			d, err := parseChoice(ctx, f, fmt.Sprintf("body.fields[%d]", i))
+			if err != nil {
+				return store.FormUpdateParams{}, err
+			}
+			seen[f.Key] = true
+			fields = append(fields, d)
+			continue
+		}
+		if !builtin && !customKeys[f.Key] {
+			return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), say(ctx, mNotContactField, i18n.Args{"key": f.Key}))
 		}
 		seen[f.Key] = true
 		fields = append(fields, fieldDoc{Key: f.Key, Label: strings.TrimSpace(f.Label), Required: f.Required})
@@ -971,6 +1050,12 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		PopupExit: c.PopupExit, HideSubscribed: c.HideSubscribed,
 	}
 	if err := smsConsentOf(ctx, &content, c, fields, before.Content); err != nil {
+		return store.FormUpdateParams{}, err
+	}
+	if content.Steps, err = parseSteps(ctx, c.Steps, fields, "body.content.steps"); err != nil {
+		return store.FormUpdateParams{}, err
+	}
+	if content.Targeting, err = parseTargeting(ctx, c.Targeting, in.Kind); err != nil {
 		return store.FormUpdateParams{}, err
 	}
 	fieldsJSON, _ := json.Marshal(fields)

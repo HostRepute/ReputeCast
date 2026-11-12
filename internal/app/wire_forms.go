@@ -35,6 +35,9 @@ var (
 	formsPages    = map[*App]*publicpages.Handler{}
 )
 
+// Forms is the signup forms service (tests swap its clock or GeoIP).
+func (a *App) Forms() *forms.Service { return a.formsService() }
+
 func (a *App) formsService() *forms.Service {
 	formsMu.Lock()
 	defer formsMu.Unlock()
@@ -62,6 +65,11 @@ func (a *App) formsService() *forms.Service {
 		Hooks:     func() []forms.SignupHook { return signupHooks(a) },
 		// The phone field and SMS consent (phase 8).
 		Texts: formTexts(a),
+	}
+	// Forms shown only in some countries (M60 G-24) need the server's
+	// GeoIP database; a nil interface finds no country.
+	if a.GeoIP != nil {
+		s.GeoIP = a.GeoIP
 	}
 	formsServices[a] = s
 	return s

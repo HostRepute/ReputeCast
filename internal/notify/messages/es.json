@@ -55,6 +55,7 @@
   "short.coupon_codes_low": "códigos de descuento por agotarse",
   "short.comments_waiting": "comentarios pendientes de revisión",
   "short.post_import_done": "importaciones de artículos",
+  "short.form_test_ended": "pruebas de formularios terminadas",
 
   "event.approval_requested": "Aprobación solicitada",
   "event.approval_decided": "Solicitud aprobada, rechazada o con cambios solicitados",
@@ -108,6 +109,7 @@
   "event.coupon_codes_low": "Códigos de descuento por agotarse",
   "event.comments_waiting": "Comentarios pendientes de revisión",
   "event.post_import_done": "Importación de artículos terminada",
+  "event.form_test_ended": "Terminó la prueba A/B de un formulario de suscripción",
 
   "audience.approval_requested": "Solo para quien aprueba",
   "audience.approval_decided": "Solo para quien la creó",
@@ -161,6 +163,7 @@
   "audience.coupon_codes_low": "Personas que pueden gestionar los códigos de descuento",
   "audience.comments_waiting": "Personas que pueden moderar comentarios · después, como máximo una vez por hora mientras haya comentarios esperando",
   "audience.post_import_done": "Quien inició la importación",
+  "audience.form_test_ended": "Quienes pueden editar formularios · cuando una prueba termina sola",
 
   "category.approvals": "Aprobaciones",
   "category.sending": "Envíos",
