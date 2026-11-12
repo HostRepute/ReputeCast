@@ -38,6 +38,7 @@ var notSealed = map[string]string{
 	"river_job.unique_key":      "the job queue's dedupe hash",
 	"webhook_tokens.token_hash": "hash", "webhook_tokens.payload_hash": "hash",
 	"whatsapp_accounts.callback_token_hash": "hash",
+	"lead_connections.callback_token_hash":  "hash", "lead_events.body": "raw webhook (ids only)",
 }
 
 // Every bytea column is either a known sealed column or known not to be

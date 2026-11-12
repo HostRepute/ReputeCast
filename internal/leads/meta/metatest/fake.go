@@ -7,6 +7,7 @@
 package metatest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -322,7 +323,8 @@ func (f *Fake) subscribeApp(w http.ResponseWriter, r *http.Request, appID string
 			return
 		}
 		vq := url.Values{"hub.mode": {"subscribe"}, "hub.challenge": {"1158201444"}, "hub.verify_token": {verify}}
-		req := httptest.NewRequestWithContext(r.Context(), http.MethodGet, u.Path+"?"+vq.Encode(), nil)
+		// Meta calls from outside: none of the caller's request values.
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, u.Path+"?"+vq.Encode(), nil)
 		rec := httptest.NewRecorder()
 		f.Callback.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK || strings.TrimSpace(rec.Body.String()) != "1158201444" {

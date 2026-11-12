@@ -100,6 +100,11 @@ var Columns = []Column{
 	{Table: "whatsapp_accounts", Column: "credentials_enc", Key: ids("id:uuid"), AD: `'whatsapp_account:' || id::text || ':credentials'`},
 	{Table: "whatsapp_accounts", Column: "callback_token_enc", Key: ids("id:uuid"), AD: `'whatsapp_account:' || id::text || ':callback_token'`},
 	{Table: "workspaces", Column: "audit_stream_secret_enc", Key: ids("id:uuid"), AD: `'workspace:' || id::text || ':audit_stream_secret'`},
+	// Lead ads from Meta (M66).
+	{Table: "lead_connections", Column: "credentials_sealed", Key: ids("id:uuid"), AD: `'lead_connection:' || id::text || ':credentials'`},
+	{Table: "lead_connections", Column: "callback_token_sealed", Key: ids("id:uuid"), AD: `'lead_connection:' || id::text || ':callback_token'`},
+	{Table: "lead_connections", Column: "verify_token_sealed", Key: ids("id:uuid"), AD: `'lead_connection:' || id::text || ':verify_token'`},
+	{Table: "lead_pages", Column: "page_token_sealed", Key: ids("id:uuid"), AD: `'lead_page:' || id::text || ':token'`},
 }
 
 // value is the SQL expression of a column's sealed bytes.
