@@ -10,7 +10,6 @@ export const mi = defineMessages('website.import', {
   stepUpload: 'Upload',
   stepReview: 'Review',
   stepImport: 'Import',
-  stepDone: 'Done:',
 
   // Upload
   uploadTitle: 'Upload the export',

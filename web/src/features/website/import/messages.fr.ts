@@ -11,7 +11,6 @@ export default translate(mi, {
   stepUpload: 'Envoi',
   stepReview: 'Revue',
   stepImport: 'Import',
-  stepDone: 'Terminé :',
 
   uploadTitle: 'Envoyer l’export',
   dropTitle: 'Déposez l’export ici, ou choisissez un fichier',

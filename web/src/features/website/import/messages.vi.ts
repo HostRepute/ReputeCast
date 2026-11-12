@@ -11,7 +11,6 @@ export default translate(mi, {
   stepUpload: 'Tải lên',
   stepReview: 'Xem lại',
   stepImport: 'Nhập',
-  stepDone: 'Xong:',
 
   uploadTitle: 'Tải tệp xuất lên',
   dropTitle: 'Thả tệp xuất vào đây, hoặc chọn tệp',

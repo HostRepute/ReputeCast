@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton, Spinner } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { StepTrail } from '@/components/ui/Stepper'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
@@ -113,28 +114,12 @@ export function ImportPage({ overview, importId, onImport }: { overview: Overvie
 /** Upload › Review › Import, with the steps done ticked. */
 function Trail({ step }: { step: number }) {
   const t = useT()
-  const steps = [t(mi.stepUpload), t(mi.stepReview), t(mi.stepImport)]
-  return (
-    <ol className="wi-trail" aria-label={t(mi.steps)}>
-      {steps.map((label, i) => {
-        const n = i + 1
-        const done = n < step
-        const on = n === step
-        return (
-          <li key={label} className={done ? 'done' : on ? 'on' : undefined} aria-current={on ? 'step' : undefined}>
-            <span className="n">{done ? <Icon name="check" size={12} /> : n}</span>
-            {done ? <span className="vh">{t(mi.stepDone)} </span> : null}
-            {label}
-            {n < 3 ? (
-              <span className="sep" aria-hidden="true">
-                ›
-              </span>
-            ) : null}
-          </li>
-        )
-      })}
-    </ol>
-  )
+  const steps = [
+    { key: 'upload', title: t(mi.stepUpload) },
+    { key: 'review', title: t(mi.stepReview) },
+    { key: 'import', title: t(mi.stepImport) },
+  ]
+  return <StepTrail steps={steps} current={step} label={t(mi.steps)} />
 }
 
 function Upload({ onUploaded }: { onUploaded: (i: Import) => void }) {
