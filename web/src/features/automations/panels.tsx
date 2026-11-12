@@ -143,7 +143,7 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
           item(kind, triggerKindLabel(kind), typeColors.trigger, { type: 'trigger', trigger: kind }),
         )}
       </div>
-      {/* Store triggers, with Website tracking's store flows (M62, AutomationsComplete strip 8). */}
+      {/* Store triggers, with Website tracking's store flows (M62, AutomationsComplete strip 9). */}
       <div className="grp">{tr(cf.storeGroup)}</div>
       <div className="flex flex-col gap-1.5 px-3 pb-2">
         {TRIGGER_KINDS.filter((kind) => isStoreTrigger(kind) || isTrackerTrigger(kind)).map((kind) =>

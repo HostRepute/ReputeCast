@@ -279,7 +279,7 @@ export function RevenueCell({ revenue }: { revenue?: Schemas['AutomationRevenue'
 }
 
 /*
- * Store flows from Website tracking (M62, AutomationsComplete strip 8):
+ * Store flows from Website tracking (M62, AutomationsComplete strip 9):
  * Viewed a product, Added to cart, Back in stock and Price drop.
  */
 

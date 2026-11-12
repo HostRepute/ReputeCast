@@ -22,7 +22,7 @@ import (
 func init() { seedTracker = seedTrackerImpl }
 
 // Website tracking (M62, TrackingSites, TrackingStates, AutomationsComplete
-// strip 8, ContactProfile): Acme Merch (https://shop.acme.io, linked to the
+// strip 9, ContactProfile): Acme Merch (https://shop.acme.io, linked to the
 // demo's Shopify store, added by Marcus Chen on 8 Oct) and Docs
 // (https://docs.acme.io, no store); 30 days of events from 400 known
 // contacts and 2,000 visitors, with about 1,240 and 312 events today; Sam

@@ -1,14 +1,14 @@
 import { defineMessages } from '@/i18n'
 
 /**
- * Store flows from Website tracking (M62, AutomationsComplete strip 8) and
+ * Store flows from Website tracking (M62, AutomationsComplete strip 9) and
  * the product grid's reader-dependent modes (CommerceEmails): the trigger
  * panels of Viewed a product, Added to cart, Back in stock and Price drop,
  * and the Products select of the product grid.
  */
 export const cf = defineMessages('commerce.flows', {
   // ── Trigger names and their canvas line ───────────────────────────────
-  /** The palette's group of store triggers (AutomationsComplete strip 8). */
+  /** The palette's group of store triggers (AutomationsComplete strip 9). */
   storeGroup: 'Store',
   kindViewedProduct: 'Viewed a product',
   kindAddedToCart: 'Added to cart',
