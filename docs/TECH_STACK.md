@@ -13,6 +13,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | Docker image (app) | `gcr.io/distroless/static-debian13:nonroot` | CGO is disabled, so the binary is static. |
 | Docker image (DB) | `postgres:18-alpine` or `postgres:18-trixie` | Mount the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`; the path changed in 18. |
 | Mailpit (dev/test SMTP) | **1.31.5** | `axllent/mailpit` |
+| MinIO (CI only: the S3 storage tests) | `cgr.dev/chainguard/minio:latest` | MinIO's own images (`minio/minio`, `quay.io/minio/minio`) can no longer be pulled since September 2026; Chainguard builds the AGPL source and publishes its latest tag freely. Any S3-compatible server works for `REPUTECAST_S3_TEST_ENDPOINT`. |
 | Node.js (build only) | **24 LTS (24.21)** | Node 26 becomes LTS on 2026-10-28; switch then. Node is never needed at runtime. |
 | pnpm | **12.11** | |
 
@@ -34,6 +35,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | Server-side MJML (API/automation sends only) | github.com/preslavrachev/gomjml | v0.13.0 (targets MJML 4.15.3) |
 | AWS SES | github.com/aws/aws-sdk-go-v2 + service/sesv2 | v1.47.6 / v1.79.6 |
 | AWS SES events and setup: the SNS topic SES publishes to; the SQS queue ReputeCast long-polls when nothing may reach it from the internet (review PR-4); STS for the account a key belongs to and for assuming a role | github.com/aws/aws-sdk-go-v2/service/sns + service/sqs + service/sts | v1.47.8 / v1.52.9 / v1.51.7 |
+| File storage in an S3-compatible bucket (`storage.backend: s3`): products' files, lead magnets, chunked uploads and audience exports, so several web and worker replicas share them without a ReadWriteMany volume; large objects go up in parts, downloads read ranges | github.com/aws/aws-sdk-go-v2/service/s3 + feature/s3/transfermanager | v1.114.7 / v0.5.3 (pre-1.0, pinned: AWS's successor to feature/s3/manager, which is deprecated; both from the SDK release the other AWS modules above come from) |
 | SMTP | github.com/wneessen/go-mail | v0.8.1 |
 | Bounce mailbox (IMAP) | github.com/emersion/go-imap/v2 | v2.0.0-beta.8 (beta; isolated in one package) |
 | DNS checks | github.com/miekg/dns | v1.1.73 (behind `internal/dnscheck`; see notes) |
@@ -66,6 +68,7 @@ Dev tools:
 - golangci-lint v2.14.0
 - GoReleaser v2.18.3
 - sqlc and goose, pinned with `go get -tool`
+- Helm v4.3.1 (the chart in `deploy/helm/reputecast` is `apiVersion: v2`, so Helm 3.8+ installs it too), kubeconform v0.8.0 and kind v0.33.0, for `make helm` and the CI `helm` job
 
 ## Frontend (npm)
 
@@ -90,6 +93,23 @@ Dev tools:
 | Lint | eslint + typescript-eslint + eslint-plugin-react-hooks | 10.13 / 8.72 / 7.1 |
 | Unit tests | vitest | 5.0.5 |
 | E2E tests | @playwright/test | 1.64.1 |
+
+## Client SDKs (`sdk/client-*`)
+
+Generated from the public OpenAPI document (`sdk/openapi`, `reputecast openapi --public`); see note 13.
+
+| Purpose | Tool or package | Version |
+|---|---|---|
+| TypeScript client: types | openapi-typescript (dev) | 7.13.0, as web/ |
+| TypeScript client: requests (the package's only runtime dependency, `^0.17.0`) | openapi-fetch | 0.17.0, as web/ |
+| TypeScript client: tests | vitest + typescript + @types/node (dev) | 5.0.5 / 6.0.3 / 24.19.2, as the adapter SDK |
+| Python client: generator (dev, pinned) | openapi-python-client | 0.29.1 (not 0.30: see note 13) |
+| Python client: HTTP and models (runtime, the generated code's own ranges) | httpx + attrs | `>=0.23.1,<0.29.0` (0.28.1 today) / `>=22.2.0` |
+| Python client: build backend | hatchling | `>=1.27` (PEP 639 license metadata; 1.33.0 today) |
+| Python client: tests | pytest (dev) | 9.2.0 |
+| Python client: sdist and wheel (release only) | build | 1.6.1 |
+| Go client: generator (a `tool` of `sdk/client-go/go.mod`) | github.com/oapi-codegen/oapi-codegen/v2 | v2.8.2 |
+| Go client: runtime of the generated code | github.com/oapi-codegen/runtime | v1.9.0 |
 
 ## Notes and decisions
 
@@ -121,3 +141,7 @@ Dev tools:
     - **zod** is used in 67 files, nearly all for route search parameters, where it belongs.
 
     The recommendation is to keep zod; drop recharts (nothing to migrate); and either drop react-hook-form (move its one dialog to the state pattern the other forms use) or adopt it everywhere, not both. Nothing is removed or swapped until the owner answers (`CLAUDE.md`); until then the rule for new forms is the dominant pattern: state plus `Field` errors from the API's problem details.
+13. **Client SDKs** (`sdk/client-ts`, `sdk/client-python`, `sdk/client-go`, M64). Each is generated from the public document: the 3.1 one for openapi-typescript, the 3.0 one (Huma's `Downgrade`) for the Python and Go generators, which read 3.0 best. Generated code is committed and CI fails when it differs from what `make sdks` generates; a construct a generator rejects is fixed in the Go type it comes from, never by editing the document (the first: `PushPromptStatus`, a schema name that clashed with the enum of `PushPrompt.status`, is now `PushPromptStatusChange`).
+    - **openapi-python-client 0.29.x, not 0.30.** 0.30.0 (2026-11-07) moved generated clients from httpx to httpx2 (pydantic's fork, first released 2026-05); 0.29.1 has the fix for the advisory GHSA-5293-mq8x-g3xj and generates for httpx. Its generated code needs Python 3.11 (`StrEnum`; 0.29 dropped 3.10, and 3.9 and 3.10 are past their end of life), so the package needs 3.11, not the 3.9 first planned. Move to httpx2 with a later generator once it is established.
+    - **oapi-codegen** is a `tool` of the Go module, which has its own `go.mod` (module `github.com/hostrepute/reputecast/sdk/client-go`, tagged `sdk/client-go/vX.Y.Z` by the release workflow), so the server module's `./...` never reaches it. A v2 server release needs the module path's `/v2` first (the workflow refuses to tag it otherwise).
+    - **License**: the SDKs are AGPL-3.0 like the rest (the adapter SDK's choice); an application that links them is then a work based on them. Whether the client libraries should take a permissive license, as the n8n nodes and the WordPress plugin do for their platforms, is the owner's decision.
