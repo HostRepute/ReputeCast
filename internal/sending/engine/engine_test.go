@@ -47,8 +47,9 @@ func TestSending(t *testing.T) {
 
 // testListUnsubscribeMailto: by default List-Unsubscribe carries only the
 // one-click link; with the workspace's "Include a mailto: address in
-// List-Unsubscribe" on, also the reply-to address, as the send started:
-// turning it off mid-send doesn't split the send.
+// List-Unsubscribe" on, also the reply-to address (the workspace doesn't
+// receive mail: the demo's route is removed), as the send started: turning
+// it off mid-send doesn't split the send.
 func testListUnsubscribeMailto(t *testing.T, s *sendtest.Suite) {
 	send := func(f *sendtest.Fixture, started func()) string {
 		f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
@@ -75,6 +76,7 @@ func testListUnsubscribeMailto(t *testing.T, s *sendtest.Suite) {
 	}
 	on := s.Fixture(t, "Mailto on")
 	on.Exec(`UPDATE workspaces SET sending_defaults = sending_defaults || '{"list_unsubscribe_mailto": true}' WHERE id = $1`, on.WS)
+	on.Exec(`DELETE FROM inbound_routes WHERE workspace_id = $1`, on.WS)
 	turnOff := func() {
 		on.Exec(`UPDATE workspaces SET sending_defaults = sending_defaults - 'list_unsubscribe_mailto' WHERE id = $1`, on.WS)
 	}
