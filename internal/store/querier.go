@@ -5220,6 +5220,7 @@ type Querier interface {
 	WebsiteCommentLabels(ctx context.Context, arg WebsiteCommentLabelsParams) ([]WebsiteCommentLabelsRow, error)
 	// Moderation
 	// Website › Comments: one tab's comments, newest first, after a cursor.
+	// The first published reply, for the thread's preview.
 	WebsiteCommentList(ctx context.Context, arg WebsiteCommentListParams) ([]WebsiteCommentListRow, error)
 	WebsiteCommentLock(ctx context.Context, arg WebsiteCommentLockParams) (WebsiteComment, error)
 	// What a reply email says: the reply, who wrote it and its post.

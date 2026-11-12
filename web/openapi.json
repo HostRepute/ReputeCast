@@ -97176,6 +97176,9 @@
           "email": {
             "type": "string"
           },
+          "firstReply": {
+            "$ref": "#/components/schemas/WebsiteCommentReply"
+          },
           "heldReason": {
             "enum": [
               "first_comment",
@@ -97399,6 +97402,34 @@
           "id",
           "title",
           "comments"
+        ],
+        "type": "object"
+      },
+      "WebsiteCommentReply": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "team": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "team",
+          "body",
+          "createdAt"
         ],
         "type": "object"
       },

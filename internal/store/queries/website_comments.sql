@@ -145,9 +145,24 @@ SELECT sqlc.embed(c), p.title AS post_title, p.slug AS post_slug,
        coalesce(mb.name, '')::text AS moderated_by_name,
        coalesce(nullif(pm.display_name, ''), nullif(trim(coalesce(pcc.first_name, '') || ' ' || coalesce(pcc.last_name, '')), ''), '')::text AS parent_name,
        coalesce(pc.team, false)::boolean AS parent_team,
-       (SELECT count(*) FROM website_comments r WHERE r.parent_id = c.id AND r.status = 'published')::bigint AS replies
+       (SELECT count(*) FROM website_comments r WHERE r.parent_id = c.id AND r.status = 'published')::bigint AS replies,
+       coalesce(fr.body, '')::text AS first_reply_body, coalesce(fr.team, false)::boolean AS first_reply_team,
+       coalesce(fr.name, '')::text AS first_reply_name, coalesce(fr.by_name, '')::text AS first_reply_by,
+       coalesce(fr.created_at, c.created_at)::timestamptz AS first_reply_at
 FROM website_comments c
 JOIN website_posts p ON p.id = c.post_id
+-- The first published reply, for the thread's preview.
+LEFT JOIN LATERAL (
+    SELECT r.body, r.team, r.created_at, coalesce(ru.name, '') AS by_name,
+           coalesce(nullif(rm.display_name, ''), nullif(trim(coalesce(rc.first_name, '') || ' ' || coalesce(rc.last_name, '')), ''), '') AS name
+    FROM website_comments r
+    LEFT JOIN website_members rm ON rm.contact_id = r.contact_id
+    LEFT JOIN contacts rc ON rc.id = r.contact_id
+    LEFT JOIN users ru ON ru.id = r.user_id
+    WHERE r.parent_id = c.id AND r.status = 'published'
+    ORDER BY r.created_at, r.id
+    LIMIT 1
+) fr ON true
 LEFT JOIN website_members m ON m.contact_id = c.contact_id
 LEFT JOIN contacts ct ON ct.id = c.contact_id
 LEFT JOIN users u ON u.id = c.user_id

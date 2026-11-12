@@ -46532,6 +46532,7 @@ export interface components {
             /** Format: date-time */
             editedAt?: string;
             email?: string;
+            firstReply?: components["schemas"]["WebsiteCommentReply"];
             /** @enum {string} */
             heldReason?: "first_comment" | "review_all" | "links" | "blocked" | "";
             id: string;
@@ -46591,6 +46592,14 @@ export interface components {
             comments: number;
             id: string;
             title: string;
+        };
+        WebsiteCommentReply: {
+            body: string;
+            by?: string;
+            /** Format: date-time */
+            createdAt: string;
+            name: string;
+            team: boolean;
         };
         WebsiteCommentReplyInput: {
             body: string;

@@ -115,6 +115,18 @@ type WebsiteComment struct {
 	PublishedAt *time.Time `json:"publishedAt,omitempty"`
 	ModeratedBy string     `json:"moderatedBy,omitempty"`
 	ModeratedAt *time.Time `json:"moderatedAt,omitempty"`
+	// FirstReply is the first published reply, for the thread's preview.
+	FirstReply *WebsiteCommentReply `json:"firstReply,omitempty"`
+}
+
+// WebsiteCommentReply is a reply as a thread's preview shows it: who (the
+// publication for a team reply, By who wrote it) and its text.
+type WebsiteCommentReply struct {
+	Name      string    `json:"name"`
+	Team      bool      `json:"team"`
+	By        string    `json:"by,omitempty"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // WebsiteCommentCounts are the tabs' counts.
@@ -451,6 +463,14 @@ func commentItem(r store.WebsiteCommentListRow, base, publication string) Websit
 		out.ContactID = c.ContactID.String()
 		out.Name = CommenterName(r.DisplayName, r.FirstName, r.LastName)
 		out.Email = r.Email
+	}
+	if r.FirstReplyBody != "" {
+		// A published reply always has text.
+		reply := &WebsiteCommentReply{Name: CommenterName(r.FirstReplyName, "", ""), Team: r.FirstReplyTeam, Body: r.FirstReplyBody, CreatedAt: r.FirstReplyAt}
+		if reply.Team {
+			reply.Name, reply.By = publication, r.FirstReplyBy
+		}
+		out.FirstReply = reply
 	}
 	if c.ParentID != nil {
 		out.ParentID = c.ParentID.String()
