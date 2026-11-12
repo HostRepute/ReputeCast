@@ -4,7 +4,7 @@ Settings › Integrations connects Zapier, Make, n8n and WordPress sites. The
 ReputeCast project publishes a Zapier app, a Make app, the n8n community node
 `n8n-nodes-reputecast` and the "ReputeCast" WordPress plugin. They use only
 the public API described here, so anyone can build another integration the
-same way. Every endpoint is in the OpenAPI document (`/api/v1/openapi.json`,
+same way. Every endpoint is in the OpenAPI document (`/api/openapi.json`,
 tags **Integration API**, **Contacts**, **WordPress sites** and
 **Integrations hub**); this page explains how they fit together.
 

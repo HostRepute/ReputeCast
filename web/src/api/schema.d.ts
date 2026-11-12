@@ -35372,7 +35372,7 @@ export interface components {
             since: string;
             sinceSnippet: boolean;
         };
-        PushPromptStatus: {
+        PushPromptStatusChange: {
             /** @enum {string} */
             status: "live" | "paused";
         };
@@ -78722,7 +78722,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PushPromptStatus"];
+                "application/json": components["schemas"]["PushPromptStatusChange"];
             };
         };
         responses: {

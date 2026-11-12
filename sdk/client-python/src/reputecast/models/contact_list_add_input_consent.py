@@ -1,0 +1,8 @@
+from enum import StrEnum
+
+class ContactListAddInputConsent(StrEnum):
+    DOUBLE = "double"
+    SINGLE = "single"
+
+    def __str__(self) -> str:
+        return str(self.value)

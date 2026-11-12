@@ -482,7 +482,8 @@ func hideAddresses(b json.RawMessage, with string) json.RawMessage {
 }
 
 // clientLabel turns a User-Agent into the app that called: "Zapier,
-// ReputeCast app 1.2.0", "Make, ReputeCast app 1.0.4", "WordPress 6.9.2".
+// ReputeCast app 1.2.0", "Make, ReputeCast app 1.0.4", "ReputeCast SDK for
+// Python 1.7.0" (sdk/client-*), "WordPress 6.9.2".
 func clientLabel(ua string) string {
 	l := strings.ToLower(ua)
 	app := ""
@@ -498,6 +499,12 @@ func clientLabel(ua string) string {
 			app = "n8n, ReputeCast node"
 		case "wordpress":
 			app = "WordPress, ReputeCast plugin"
+		case "sdk-ts":
+			app = "ReputeCast SDK for TypeScript"
+		case "sdk-python":
+			app = "ReputeCast SDK for Python"
+		case "sdk-go":
+			app = "ReputeCast SDK for Go"
 		}
 		if app != "" && ver != "" {
 			return app + " " + ver

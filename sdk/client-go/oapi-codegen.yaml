@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+# The client and its models, generated from the public document by
+# `go generate` (make sdks).
+package: reputecast
+output: client.gen.go
+generate:
+  client: true
+  models: true

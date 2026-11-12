@@ -28,6 +28,13 @@ node_modules/
 *.out
 coverage.*
 
+# Python (the client SDK in sdk/client-python)
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+/sdk/client-python/dist/
+
 # Editors and OS
 .DS_Store
 .idea/

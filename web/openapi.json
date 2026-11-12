@@ -59002,7 +59002,7 @@
         ],
         "type": "object"
       },
-      "PushPromptStatus": {
+      "PushPromptStatusChange": {
         "additionalProperties": false,
         "properties": {
           "status": {
@@ -163372,7 +163372,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PushPromptStatus"
+                "$ref": "#/components/schemas/PushPromptStatusChange"
               }
             }
           },

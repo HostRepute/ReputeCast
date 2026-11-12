@@ -1,6 +1,7 @@
 packages:
   - adapter-sdk
   - adapter-template
+  - client-ts
 
 # The template depends on the SDK by version; inside this repository it is
 # linked to the workspace copy, and a copy of the template outside it
@@ -13,3 +14,9 @@ minimumReleaseAgeExclude:
   - '@vitest/mocker@5.0.4'
   - '@vitest/spy@5.0.4'
   - vitest@5.0.4
+
+# openapi-typescript 7.13 works with TypeScript 6 (verified), but its peer
+# range still says 5 (docs/TECH_STACK.md, note 1).
+peerDependencyRules:
+  allowedVersions:
+    openapi-typescript>typescript: '6'

@@ -245,7 +245,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
 			FormID string `path:"formId" format:"uuid"`
-			Body   PushPromptStatus
+			Body   PushPromptStatusChange
 		}) (*api.Body[PushPrompt], error) {
 			id, err := parseID(in.FormID, "Push prompt")
 			if err != nil {
