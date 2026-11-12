@@ -72,6 +72,7 @@ export default translate(m, {
   removeConfirm: "Dừng nhận thư",
   removed: "Đã dừng nhận thư",
   removedForward: "Xử lý thư trả lời đã quay về chuyển tiếp thư trả lời.",
+  removedForwardTo: "Xử lý thư trả lời đã quay về chuyển tiếp thư trả lời đến {address}.",
   removeFailed: "Không dừng được việc nhận thư",
   keepInInbox: "Giữ thư trả lời trong hộp thư ReputeCast",
   inboxWhy: "Giữ thư trả lời trong hộp thư ReputeCast: hãy thiết lập Nhận thư trước.",

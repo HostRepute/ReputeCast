@@ -416,6 +416,9 @@ const icons = {
     ),
   },
   barChart: { body: <path d="M2 14h12M4.2 11.5V8.2M8 11.5V3.8M11.8 11.5V6.2" /> },
+  // Audience › Replies (M58): its empty states.
+  reply: { body: <path d="M6.5 4 2.5 8l4 4M2.5 8h7a4 4 0 0 1 4 4v1" /> },
+  attachment: { body: <path d="M10.5 4.5 5.2 9.8a1.6 1.6 0 0 0 2.3 2.3l5.6-5.6a3 3 0 0 0-4.2-4.2L3.3 7.9a4.4 4.4 0 0 0 6.2 6.2L13 10.6" /> },
 } satisfies Record<string, IconDef>
 
 export type IconName = keyof typeof icons

@@ -3,7 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { $api, ApiError, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
-import { Icon } from '@/components/icons/Icon'
+import { Icon, type IconName } from '@/components/icons/Icon'
 import { Avatar, type AvatarColor } from '@/components/ui/Avatar'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -53,6 +53,16 @@ const VIEWS: { view: ReplyView; chip: keyof typeof m; head: keyof typeof m; name
 ]
 
 /** Audience › Replies (M58 G-17): what readers wrote back, by view. */
+
+/** The icon above an empty state, on its tone's tint (RepliesStates). */
+function Tile({ tone, icon }: { tone: 'accent' | 'neutral' | 'bad'; icon: IconName }) {
+  const look = { accent: 'bg-accent-soft text-accent', neutral: 'bg-neutral-bg text-ink-2', bad: 'bg-bad-bg text-bad-strong' }[tone]
+  return (
+    <span className={cn('inline-flex h-[52px] w-[52px] items-center justify-center rounded-xl', look)} aria-hidden="true">
+      <Icon name={icon} size={24} />
+    </span>
+  )
+}
 export function RepliesPage({ search }: { search: RepliesSearch }) {
   const t = useT()
   const { slug } = useWorkspace()
@@ -73,7 +83,7 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
   const list = useInfiniteQuery({
     queryKey: key,
     initialPageParam: '',
-    enabled: can,
+    // Asked even without replies:view: the refusal names who can help.
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }) => {
       const { data } = await http.GET(listPath, {
@@ -177,6 +187,7 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
     body = (
       <EmptyState
         title={t(m.deniedTitle)}
+        icon={<Tile tone="neutral" icon="lock" />}
         action={
           helpers.length ? (
             <>
@@ -195,7 +206,7 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
     )
   } else if (list.isError && !first) {
     body = (
-      <EmptyState title={t(m.errorTitle)} action={<Button onClick={() => void list.refetch()}>{t(m.tryAgain)}</Button>}>
+      <EmptyState title={t(m.errorTitle)} icon={<Tile tone="bad" icon="alertCircle" />} action={<Button onClick={() => void list.refetch()}>{t(m.tryAgain)}</Button>}>
         {t(m.errorBody)}
       </EmptyState>
     )
@@ -205,6 +216,7 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
     body = (
       <EmptyState
         title={t(m.noRouteTitle)}
+        icon={<Tile tone="accent" icon="reply" />}
         action={
           <ButtonLink variant="primary" to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
             {t(m.setUp)}
@@ -218,13 +230,14 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
     body = (
       <EmptyState
         title={t(m.emptyTitle)}
+        icon={<Tile tone="neutral" icon="reply" />}
         action={
           <ButtonLink to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
             {t(m.openReceiving)}
           </ButtonLink>
         }
       >
-        {t(m.emptyBodyNoDomain)}
+        {first.domain ? t(m.emptyBody, { domain: first.domain }) : t(m.emptyBodyNoDomain)}
       </EmptyState>
     )
   } else {
@@ -253,6 +266,7 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
           search.q ? (
             <EmptyState
               title={t(m.noResultsTitle, { q: search.q })}
+              icon={<Tile tone="neutral" icon="search" />}
               action={
                 <Button
                   onClick={() => {
@@ -464,7 +478,9 @@ function ReplyDetail({ id, color, onBack, onMark }: { id: string; color: AvatarC
   return (
     <section className="card rp-detail" aria-labelledby="rd-h">
       <div className="hidden border-b border-line-2 px-3 py-2 max-[1100px]:block">
-        <Button onClick={onBack}>{t(m.back)}</Button>
+        <Button icon="chevronLeft" onClick={onBack}>
+          {t(m.back)}
+        </Button>
       </div>
       <div className="flex flex-col gap-2.5 border-b border-line-2 px-5 py-4 max-md:px-3.5">
         <div className="flex flex-wrap items-center gap-2">
@@ -528,6 +544,7 @@ function ReplyDetail({ id, color, onBack, onMark }: { id: string; color: AvatarC
             <ul className="m-0 flex list-none flex-col gap-1 p-0">
               {d.attachments.map((a) => (
                 <li key={a.name} className="flex min-w-0 items-center gap-2">
+                  <Icon name="attachment" size={14} className="flex-none text-ink-2" />
                   <span className="mono text-[12.5px] [overflow-wrap:anywhere]">{t(m.attachmentLine, { name: a.name, size: size(a.size) })}</span>
                 </li>
               ))}
@@ -656,6 +673,7 @@ function RepliesSkeleton() {
           <Skeleton w="100%" h={56} />
           <Skeleton w="90%" h={12} />
           <Skeleton w="80%" h={12} />
+          <Skeleton w="60%" h={12} />
         </div>
       </section>
     </div>

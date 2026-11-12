@@ -72,6 +72,7 @@ export default translate(m, {
   removeConfirm: "Arrêter la réception",
   removed: "Réception des e-mails arrêtée",
   removedForward: "La gestion des réponses revient au transfert des réponses.",
+  removedForwardTo: "La gestion des réponses revient au transfert des réponses vers {address}.",
   removeFailed: "La réception des e-mails n'a pas pu être arrêtée",
   keepInInbox: "Garder les réponses dans la boîte ReputeCast",
   inboxWhy: "Garder les réponses dans la boîte ReputeCast : configurez d'abord la Réception des e-mails.",

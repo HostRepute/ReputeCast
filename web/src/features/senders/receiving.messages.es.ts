@@ -72,6 +72,7 @@ export default translate(m, {
   removeConfirm: "Dejar de recibir",
   removed: "Se dejó de recibir correo",
   removedForward: "La gestión de respuestas vuelve a reenviar las respuestas.",
+  removedForwardTo: "La gestión de respuestas vuelve a reenviar las respuestas a {address}.",
   removeFailed: "No se pudo dejar de recibir correo",
   keepInInbox: "Guardar las respuestas en la bandeja de ReputeCast",
   inboxWhy: "Guardar las respuestas en la bandeja de ReputeCast: configura primero Recibir correo.",

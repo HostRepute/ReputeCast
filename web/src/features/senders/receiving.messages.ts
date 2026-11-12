@@ -84,6 +84,7 @@ export const m = defineMessages('senders.receiving', {
   removeConfirm: 'Stop receiving',
   removed: 'Receiving mail stopped',
   removedForward: 'Reply handling is back to forwarding replies.',
+  removedForwardTo: 'Reply handling is back to forwarding replies to {address}.',
   removeFailed: "Couldn't stop receiving mail",
   // ── Reply handling and mailto: in Defaults ──────────────────────────
   keepInInbox: 'Keep replies in ReputeCast inbox',

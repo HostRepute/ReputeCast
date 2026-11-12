@@ -105,6 +105,7 @@ export default translate(m, {
   eventsLegend: 'Eventos · {events}',
   eventsLegendNone: 'Eventos · ninguno todavía',
   allGroup: 'Todos los eventos {group} <mono>{pattern}</mono>',
+  groupReplies: 'Respuestas',
   batchLabel: 'Enviar los eventos de correo por lotes',
   batchHint: 'Una solicitud lleva hasta 100 eventos <mono>email.*</mono>, como <mono>email.batch</mono>. Menos solicitudes en los envíos grandes; los demás eventos siguen yendo de uno en uno.',
   sendTest: 'Enviar un evento de prueba',

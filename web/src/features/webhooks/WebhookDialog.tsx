@@ -23,15 +23,29 @@ const queryKey = ['get', '/api/v1/workspaces/{workspace}/webhooks'] as const
 
 const mono = (c: ReactNode) => <span className="mono">{c}</span>
 
-/** Groups the event catalogue by prefix: email → email.sent, email.delivered… */
+/**
+ * Groups the event catalogue by prefix: email → email.sent, email.delivered…
+ * An event the catalogue puts in a group of its own though it shares the
+ * prefix (email.replied and email.received, in Replies: SettingsAPI) gets
+ * its own group, which the prefix's wildcard still covers.
+ */
 function byGroup(events: Events) {
-  const out = new Map<string, Events>()
+  const out = new Map<string, { prefix: string; group?: string; events: Events }>()
+  const first = new Map<string, string>()
   for (const e of events) {
-    const g = e.name.split('.')[0]!
-    out.set(g, [...(out.get(g) ?? []), e])
+    const prefix = e.name.split('.')[0]!
+    if (!first.has(prefix)) first.set(prefix, e.group)
+    const own = first.get(prefix) === e.group
+    const key = own ? prefix : `${prefix}:${e.group}`
+    const g = out.get(key) ?? { prefix, group: own ? undefined : e.group, events: [] }
+    g.events.push(e)
+    out.set(key, g)
   }
-  return [...out.entries()]
+  return [...out.values()]
 }
+
+/** The names of the groups byGroup sets apart. */
+const groupNames: Record<string, keyof typeof m> = { Replies: 'groupReplies' }
 
 /**
  * Add or edit an endpoint; events can be picked by whole group (a wildcard).
@@ -222,15 +236,20 @@ export function WebhookDialog({
       </label>
       <fieldset className="m-0 flex flex-col gap-2 rounded-lg border border-line px-3.5 py-2.5" aria-describedby={error?.field === 'events' ? 'wh-ev-err' : undefined}>
         <legend className="px-1 text-[12px] font-semibold text-ink-2">{picked.length === 0 ? t(m.eventsLegendNone) : t(m.eventsLegend, { events: picked.join(', ') })}</legend>
-        {byGroup(events).map(([g, evs]) => {
-          const all = `${g}.*`
+        {byGroup(events).map(({ prefix, group, events: evs }) => {
+          const all = `${prefix}.*`
           const allOn = picked.includes(all)
+          const name = group ? groupNames[group] : undefined
           return (
-            <div key={g} className="flex flex-col gap-1.5 border-t border-line-2 pt-2 first-of-type:border-t-0 first-of-type:pt-0">
-              <label className="row gap-2 text-[13px] font-semibold">
-                <input type="checkbox" checked={allOn} onChange={(e) => toggle(all, e.target.checked)} />
-                <T msg={m.allGroup} values={{ group: g, pattern: all, mono: (c) => <span className="k mono">{c}</span> }} />
-              </label>
+            <div key={group ? `${prefix}:${group}` : prefix} className="flex flex-col gap-1.5 border-t border-line-2 pt-2 first-of-type:border-t-0 first-of-type:pt-0">
+              {group ? (
+                <span className="pl-7 text-[13px] font-semibold">{name ? t(m[name]) : group}</span>
+              ) : (
+                <label className="row gap-2 text-[13px] font-semibold">
+                  <input type="checkbox" checked={allOn} onChange={(e) => toggle(all, e.target.checked)} />
+                  <T msg={m.allGroup} values={{ group: prefix, pattern: all, mono: (c) => <span className="k mono">{c}</span> }} />
+                </label>
+              )}
               <div className="row gap-x-3.5 gap-y-1.5 pl-6">
                 {evs.map((e) => (
                   <label key={e.name} className="row gap-1.5 text-[12.5px]" title={e.description}>

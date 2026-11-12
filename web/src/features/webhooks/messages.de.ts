@@ -105,6 +105,7 @@ export default translate(m, {
   eventsLegend: 'Ereignisse · {events}',
   eventsLegendNone: 'Ereignisse · noch keine',
   allGroup: 'Alle Ereignisse der Gruppe {group} <mono>{pattern}</mono>',
+  groupReplies: 'Antworten',
   batchLabel: 'E-Mail-Ereignisse in Batches senden',
   batchHint: 'Eine Anfrage enthält bis zu 100 <mono>email.*</mono>-Ereignisse als <mono>email.batch</mono>. Weniger Anfragen bei großen Versänden; andere Ereignisse gehen weiterhin einzeln.',
   sendTest: 'Testereignis senden',

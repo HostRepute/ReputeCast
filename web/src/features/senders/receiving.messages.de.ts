@@ -72,6 +72,7 @@ export default translate(m, {
   removeConfirm: "Empfang beenden",
   removed: "E-Mail-Empfang beendet",
   removedForward: "Die Antwortbehandlung leitet Antworten wieder weiter.",
+  removedForwardTo: "Die Antwortbehandlung leitet Antworten wieder an {address} weiter.",
   removeFailed: "Der E-Mail-Empfang konnte nicht beendet werden",
   keepInInbox: "Antworten im ReputeCast-Posteingang behalten",
   inboxWhy: "Antworten im ReputeCast-Posteingang behalten: Richten Sie zuerst „E-Mails empfangen“ ein.",

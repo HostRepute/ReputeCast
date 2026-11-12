@@ -101,9 +101,11 @@ export function SendersPage() {
           {/* Phase 8: the short-link domain of texts, with its record and status. */}
           <SmsShortLinkCard />
 
-          {data ? <DefaultsCard data={data} reason={reason} /> : null}
+          {/* Keyed by reply handling: when Stop receiving puts it back to
+              forwarding, the form shows that instead of the inbox. */}
+          {data ? <DefaultsCard key={`${data.defaults.replyHandling}-${data.defaults.receiving}`} data={data} reason={reason} /> : null}
           {/* M58: how ReputeCast receives replies, unsubscribe emails and reports. */}
-          <ReceivingCard />
+          <ReceivingCard replyTo={data?.defaults.replyTo} />
         </>
       )}
       {data ? (

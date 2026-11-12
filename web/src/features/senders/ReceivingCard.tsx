@@ -1,10 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type ReactNode } from 'react'
 import { $api, ApiError, type Schemas } from '@/api/client'
+import { Icon } from '@/components/icons/Icon'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
-import { Skeleton } from '@/components/ui/Feedback'
+import { Skeleton, Spinner } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
@@ -146,6 +147,18 @@ function mxHost(r: InboundRoute) {
   return v.split(/\s+/).pop()?.replace(/\.$/, '') ?? ''
 }
 
+/** A note's text after its icon, as the InboundStates notes draw them. */
+function Lead({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-[1_1_320px] items-start gap-2.5">
+      <span className="mt-px flex shrink-0" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="flex min-w-0 flex-col gap-1">{children}</div>
+    </div>
+  )
+}
+
 /** The test message's state, under the route line. */
 export function TestResult({ route, state }: { route: InboundRoute; state: TestState }) {
   const t = useT()
@@ -154,20 +167,20 @@ export function TestResult({ route, state }: { route: InboundRoute; state: TestS
   if (state === 'waiting') {
     return (
       <Note tone="neutral" role="status">
-        <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+        <Lead icon={<Spinner />}>
           <span className="font-bold">{t(m.testSent, { time: sentAt })}</span>
           <div>{t(m.testSentBody, { domain: route.domain })}</div>
-        </div>
+        </Lead>
       </Note>
     )
   }
   if (state === 'received') {
     return (
       <Note tone="ok" role="status">
-        <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+        <Lead icon={<Icon name="check" size={16} className="text-ok-fg" />}>
           <span className="font-bold">{t(m.testReceived, { time: route.lastTest.receivedAt ? clock(route.lastTest.receivedAt) : '' })}</span>
           <div>{t(m.testReceivedBody, { via })}</div>
-        </div>
+        </Lead>
       </Note>
     )
   }
@@ -180,10 +193,10 @@ export function TestResult({ route, state }: { route: InboundRoute; state: TestS
           : t(m.testMissingManual, { host: mxHost(route), provider: via })
     return (
       <Note tone="warn" role="status">
-        <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+        <Lead icon={<Icon name="alertCircle" size={16} className="text-warn-fg" />}>
           <span className="font-bold">{t(m.testMissing)}</span>
           <div>{why}</div>
-        </div>
+        </Lead>
       </Note>
     )
   }
@@ -205,9 +218,10 @@ export function useSendTest() {
 /**
  * Settings › Senders › Receiving mail (M58, InboundStates): how the
  * workspace receives replies, unsubscribe emails and reports, the MX record
- * and the report addresses, the test message, Edit and Remove.
+ * and the report addresses, the test message, Edit and Remove. replyTo is
+ * where replies go once receiving stops (the workspace's reply-to).
  */
-export function ReceivingCard() {
+export function ReceivingCard({ replyTo }: { replyTo?: string }) {
   const t = useT()
   const { q, now } = useInboundRoute()
   const [setup, setSetup] = useState(false)
@@ -227,10 +241,10 @@ export function ReceivingCard() {
         </div>
         <div className="flex flex-col gap-3 px-4.5 py-3.5">
           <Note tone="bad">
-            <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+            <Lead icon={<Icon name="alertCircle" size={16} className="text-bad-strong" />}>
               <span className="font-bold">{t(m.loadFailed)}</span>
               <div>{t(m.loadFailedBody)}</div>
-            </div>
+            </Lead>
           </Note>
           <div>
             <Button size="sm" onClick={() => void q.refetch()}>
@@ -287,13 +301,13 @@ export function ReceivingCard() {
             : ''
     note = (
       <Note tone="bad">
-        <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+        <Lead icon={<Icon name="alertCircle" size={16} className="text-bad-strong" />}>
           <span className="font-bold">{r.statusDetail}</span>
           {after ? <div>{after}</div> : null}
-        </div>
+        </Lead>
       </Note>
     )
-  } else if (r.status === 'pending' && state === 'none') {
+  } else if (r.status === 'pending') {
     const body = mailbox
       ? mailbox.lastPolledAt
         ? t(m.pendingMailbox)
@@ -301,7 +315,11 @@ export function ReceivingCard() {
       : r.setup.automatic
         ? t(m.pendingAutomatic, { provider, domain: r.domain })
         : t(m.pendingManual, { provider })
-    note = <Note tone="info" role="note">{body}</Note>
+    note = (
+      <Note tone="info" role="note">
+        <Lead icon={<Icon name="info" size={16} className="text-info-fg" />}>{body}</Lead>
+      </Note>
+    )
   } else if (r.statusReason === 'dropped_reports' && r.statusDetail) {
     note = (
       <Note tone="neutral" role="note">
@@ -364,7 +382,7 @@ export function ReceivingCard() {
       ) : null}
       <ReportAddresses route={r} />
       {dialog}
-      <RemoveDialog open={removing} onOpenChange={setRemoving} route={r} />
+      <RemoveDialog open={removing} onOpenChange={setRemoving} route={r} replyTo={replyTo} />
     </section>
   )
 }
@@ -423,7 +441,7 @@ function ReceivingSkeleton() {
 }
 
 /** Stop receiving mail? — the consequences first (InboundStates › Remove). */
-function RemoveDialog({ open, onOpenChange, route }: { open: boolean; onOpenChange: (o: boolean) => void; route: InboundRoute }) {
+function RemoveDialog({ open, onOpenChange, route, replyTo }: { open: boolean; onOpenChange: (o: boolean) => void; route: InboundRoute; replyTo?: string }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
@@ -436,7 +454,7 @@ function RemoveDialog({ open, onOpenChange, route }: { open: boolean; onOpenChan
           onOpenChange(false)
           void qc.invalidateQueries({ queryKey: ['get', inboundPath] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/senders'] })
-          toast({ title: t(m.removed), detail: t(m.removedForward) })
+          toast({ title: t(m.removed), detail: replyTo ? t(m.removedForwardTo, { address: replyTo }) : t(m.removedForward) })
         },
         onError: failed(t(m.removeFailed), run),
       },
