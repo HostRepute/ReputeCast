@@ -180,5 +180,8 @@
   "problem.badCursor": "Curseur non valide.",
   "problem.unknownEvent": "Type d’événement inconnu\u00A0: {type}.",
   "problem.quietFormat": "Utilisez des heures comme 22:00 et 07:00.",
-  "problem.quietSame": "Les heures de silence nécessitent une heure de début et une heure de fin différentes."
+  "problem.quietSame": "Les heures de silence nécessitent une heure de début et une heure de fin différentes.",
+  "short.sponsor_request": "demandes de sponsors",
+  "event.sponsor_request": "Un sponsor a demandé ou payé une réservation",
+  "audience.sponsor_request": "Personnes pouvant gérer les sponsors"
 }

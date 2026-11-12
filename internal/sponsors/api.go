@@ -403,4 +403,7 @@ func Register(h huma.API, s *Service) {
 			out, err := s.CampaignBlock(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Layout, in.Label)
 			return api.OK(out), err
 		})
+	// Self-serve booking (M65): the sponsor page's settings and the
+	// requests sponsors send from it.
+	registerSelfServe(h, s)
 }

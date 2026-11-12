@@ -41,6 +41,7 @@ var notSealed = map[string]string{
 	"inbound_raw.body":                      "received mail, as the provider posted it", "inbound_routes.hook_token_hash": "hash",
 	// Importing posts (M61): the uploaded export and the run's report.
 	"website_import_files.data": "uploaded file", "website_imports.report_csv": "report file",
+	"earn_group_seats.invite_hash":          "hash", "sponsor_bookings.status_token_hash": "hash",
 }
 
 // Every bytea column is either a known sealed column or known not to be

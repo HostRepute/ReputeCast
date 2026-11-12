@@ -364,5 +364,6 @@
   "type.coupon_pool": "réserve de codes de réduction",
   "type.countdown": "compte à rebours",
   "type.website_comment": "commentaire du site",
-  "type.website_import": "import d’articles"
+  "type.website_import": "import d’articles",
+  "type.sponsor_settings": "réglages de la page sponsors"
 }

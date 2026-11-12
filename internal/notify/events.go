@@ -90,6 +90,8 @@ var Events = []EventType{
 	{Key: KindCommentsWaiting, Label: "Comments waiting for review", Audience: "People who can moderate comments · then at most once an hour while comments wait", Short: "comments waiting for review", DefaultEmail: true, Kinds: []string{KindCommentsWaiting}},
 	// Importing posts from Substack, Ghost and WordPress (M61).
 	{Key: KindPostImportDone, Label: "Post import finished", Audience: "Whoever started the import", Short: "post imports", DefaultEmail: false, Kinds: []string{KindPostImportDone}},
+	// Sponsor self-booking (M65).
+	{Key: KindSponsorRequest, Label: "Sponsor booking requested or paid", Audience: "People who can manage sponsors", Short: "sponsor requests", DefaultEmail: true, Kinds: []string{KindSponsorRequest}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -142,7 +144,7 @@ var categoryKinds = map[string][]string{
 	CategoryIntegrations:  {KindIntegrationAttention, KindWebhookFailing, KindPostDraftCreated, KindStoreProblem},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
-	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
+	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment, KindSponsorRequest},
 	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed, KindCommentsWaiting, KindPostImportDone},
 	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 	CategoryAudience:      {KindReplyReceived},
@@ -191,3 +193,7 @@ const KindCommentsWaiting = "comments_waiting"
 // KindPostImportDone: an import of posts from Substack, Ghost or WordPress
 // ended (whoever started it; M61).
 const KindPostImportDone = "post_import_done"
+
+// KindSponsorRequest is a sponsor's request from the sponsor page, or its
+// payment (M65).
+const KindSponsorRequest = "sponsor_request"

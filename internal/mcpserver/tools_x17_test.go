@@ -71,13 +71,13 @@ func TestEarnAgentTools(t *testing.T) {
 		t.Errorf("bookings carry the sponsor's contact: %s", text(res))
 	}
 
-	res, err = cs.CallTool(ctx, &mcp.CallToolParams{Name: "propose_sponsor_booking", Arguments: map[string]any{"slot": "Main sponsor", "issue": 150, "sponsor": "Contoso Cloud",
+	res, err = cs.CallTool(ctx, &mcp.CallToolParams{Name: "propose_sponsor_booking", Arguments: map[string]any{"slot": "Main sponsor", "issue": 149, "sponsor": "Contoso Cloud",
 		"note": "They asked for a December issue."}})
 	if err != nil || res.IsError || !strings.Contains(text(res), `"status":"proposed"`) {
 		t.Fatalf("propose: %v %s", err, text(res))
 	}
 	var status, proposedBy string
-	if err := env.App.Pool.QueryRow(ctx, `SELECT status, proposed_name FROM sponsor_bookings WHERE issue_number = 150`).Scan(&status, &proposedBy); err != nil ||
+	if err := env.App.Pool.QueryRow(ctx, `SELECT status, proposed_name FROM sponsor_bookings WHERE issue_number = 149`).Scan(&status, &proposedBy); err != nil ||
 		status != "proposed" || proposedBy != "Revenue analyst" {
 		t.Fatalf("proposed booking: %s %s %v", status, proposedBy, err)
 	}

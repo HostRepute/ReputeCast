@@ -36,7 +36,7 @@ var views = []struct{ name, body string }{
 	// paid is what it brought in (paid minus refunded, before tax).
 	{"paid_members", `SELECT s.contact_id, s.status, s.kind, s.period, s.started_at, s.ended_at, s.tier_id,
            coalesce(t.access_rank, 1) AS tier_rank,
-           (s.ended_at IS NULL AND (s.status IN ('trialing', 'active', 'complimentary', 'gift') OR (s.status = 'past_due' AND NOT s.access_paused))) AS access,
+           public.earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at) AS access,
            (s.paid_cents - s.refunded_cents) / 100.0 AS paid
     FROM public.paid_subscriptions s
     LEFT JOIN public.earn_tiers t ON t.id = s.tier_id

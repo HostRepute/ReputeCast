@@ -311,6 +311,15 @@ type Subscription struct {
 	Discount          *Discount
 	Metadata          map[string]string
 	Livemode          bool
+	// Quantity is the seats a team pays for (1 otherwise), on the
+	// subscription's first item, ItemID.
+	Quantity int
+	ItemID   string
+	// Paused: payment collection is paused (Stripe's pause_collection),
+	// until PausedUntil when the provider resumes it on its own (nil: until
+	// it is resumed). The provider's status stays active meanwhile.
+	Paused      bool
+	PausedUntil *time.Time
 }
 
 // Customer is a reader as the provider knows them.
@@ -399,6 +408,11 @@ type CheckoutRequest struct {
 	Metadata      map[string]string
 	// TrialEndCancel ends access when a trial ends without a card on file.
 	TrialEndCancel bool
+	// Quantity is the seats of a team's checkout (0 means 1).
+	Quantity int
+	// Business collects the buyer's tax ID and billing address (a team
+	// bought by a company).
+	Business bool
 }
 
 // PortalFlow opens the portal on one step (the cancel step of a subscription).
@@ -456,6 +470,8 @@ type PaymentCheckoutRequest struct {
 	CancelURL     string
 	ClientRef     string
 	Metadata      map[string]string
+	// Quantity is how many of the item (0 means 1).
+	Quantity int
 }
 
 // Offers is what offers need from a provider that has coupons and
@@ -477,6 +493,23 @@ type Offers interface {
 type OneTimePayments interface {
 	CreatePaymentCheckout(ctx context.Context, r PaymentCheckoutRequest) (CheckoutSession, error)
 }
+
+// Seats is what teams need: changing a subscription's quantity, prorated
+// (M65). A client may implement it; a team's seats can't change without it.
+type Seats interface {
+	SetQuantity(ctx context.Context, subscriptionID, itemID string, qty int) error
+}
+
+// Pauser pauses a subscription's payment collection until a moment, when
+// the provider resumes it on its own, and resumes it early (M65). A client
+// may implement it; members can't pause without it.
+type Pauser interface {
+	Pause(ctx context.Context, subscriptionID string, resumesAt time.Time) error
+	Resume(ctx context.Context, subscriptionID string) error
+}
+
+// LineQuantity is a checkout line's quantity: at least one.
+func LineQuantity(n int) int { return max(n, 1) }
 
 // EventKind is what an event means, whatever the provider calls it.
 type EventKind string

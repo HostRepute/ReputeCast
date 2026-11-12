@@ -60,7 +60,7 @@ type SponsorBlock struct {
 	SlotName  string     `json:"slotName,omitempty"`
 	ListName  string     `json:"listName,omitempty"`
 	BookingID string     `json:"bookingId,omitempty"`
-	Booking   string     `json:"bookingStatus,omitempty" enum:"hold,booked,sent,"`
+	Booking   string     `json:"bookingStatus,omitempty" enum:"hold,awaiting_payment,booked,sent,"`
 	Sponsor   string     `json:"sponsor,omitempty"`
 	Initials  string     `json:"initials,omitempty"`
 	// CreativeDue is when a waiting creative is due.
@@ -246,7 +246,9 @@ func (s *Service) block(ctx context.Context, ws *store.Workspace, bb blockBookin
 		if b.CreativeStatus == "ready" {
 			out.State = BlockReady
 		}
-	} else if b != nil && b.Status == "hold" {
+	} else if b != nil && (b.Status == "hold" || b.Status == "awaiting_payment") {
+		// Held, or approved from the sponsor page and waiting for its
+		// payment: no creative goes out yet.
 		out.BookingID, out.Booking = b.ID.String(), b.Status
 	}
 	out.MJML = s.blockMJML(ctx, ws, out)

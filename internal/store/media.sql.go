@@ -99,6 +99,65 @@ func (q *Queries) HideMediaAsset(ctx context.Context, arg HideMediaAssetParams) 
 	return result.RowsAffected(), nil
 }
 
+const insertHiddenMediaAsset = `-- name: InsertHiddenMediaAsset :one
+INSERT INTO media_assets (id, workspace_id, file_name, content_type, size_bytes, width, height, has_alpha, sha256, data, created_at, hidden_at,
+                          original_size_bytes, original_width, original_height, original_content_type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11,
+        $12, $13, $14, $15)
+ON CONFLICT (workspace_id, sha256) DO UPDATE SET sha256 = EXCLUDED.sha256
+RETURNING id, file_name, size_bytes
+`
+
+type InsertHiddenMediaAssetParams struct {
+	ID                  uuid.UUID `json:"id"`
+	WorkspaceID         uuid.UUID `json:"workspaceId"`
+	FileName            string    `json:"fileName"`
+	ContentType         string    `json:"contentType"`
+	SizeBytes           int32     `json:"sizeBytes"`
+	Width               int32     `json:"width"`
+	Height              int32     `json:"height"`
+	HasAlpha            bool      `json:"hasAlpha"`
+	Sha256              []byte    `json:"sha256"`
+	Data                []byte    `json:"data"`
+	CreatedAt           time.Time `json:"createdAt"`
+	OriginalSizeBytes   *int32    `json:"originalSizeBytes"`
+	OriginalWidth       *int32    `json:"originalWidth"`
+	OriginalHeight      *int32    `json:"originalHeight"`
+	OriginalContentType *string   `json:"originalContentType"`
+}
+
+type InsertHiddenMediaAssetRow struct {
+	ID        uuid.UUID `json:"id"`
+	FileName  string    `json:"fileName"`
+	SizeBytes int32     `json:"sizeBytes"`
+}
+
+// An image that isn't the library's (a sponsor's creative sent with a
+// request): stored hidden, and the same bytes again find the stored image
+// without showing it in the library or hiding one the library has.
+func (q *Queries) InsertHiddenMediaAsset(ctx context.Context, arg InsertHiddenMediaAssetParams) (InsertHiddenMediaAssetRow, error) {
+	row := q.db.QueryRow(ctx, insertHiddenMediaAsset,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.FileName,
+		arg.ContentType,
+		arg.SizeBytes,
+		arg.Width,
+		arg.Height,
+		arg.HasAlpha,
+		arg.Sha256,
+		arg.Data,
+		arg.CreatedAt,
+		arg.OriginalSizeBytes,
+		arg.OriginalWidth,
+		arg.OriginalHeight,
+		arg.OriginalContentType,
+	)
+	var i InsertHiddenMediaAssetRow
+	err := row.Scan(&i.ID, &i.FileName, &i.SizeBytes)
+	return i, err
+}
+
 const insertMediaAsset = `-- name: InsertMediaAsset :one
 INSERT INTO media_assets (id, workspace_id, file_name, content_type, size_bytes, width, height, has_alpha, sha256, data, created_by, created_at,
                           original_size_bytes, original_width, original_height, original_content_type)

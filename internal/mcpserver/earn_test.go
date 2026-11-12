@@ -44,7 +44,7 @@ func TestPaidMemberCountsTool(t *testing.T) {
 	if err := json.Unmarshal([]byte(text(res)), &out); err != nil {
 		t.Fatalf("result: %v %s", err, text(res))
 	}
-	if out.Counts.WithAccess != 1252 || out.Counts.Paying != 1184 || out.Counts.Trialing != 37 || out.Counts.PastDue != 14 || out.MRRCents != 896000 || out.Mode != "live" {
+	if out.Counts.WithAccess != 1260 || out.Counts.Paying != 1185 || out.Counts.Trialing != 37 || out.Counts.PastDue != 14 || out.MRRCents != 901000 || out.Mode != "live" {
 		t.Fatalf("counts: %s", text(res))
 	}
 	if body := text(res); strings.Contains(body, "@") {

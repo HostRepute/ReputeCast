@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/Feedback'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { andList, count, dayMonthYear, orList, pct, shortDate, weekdayName } from '@/lib/format'
+import { andList, count, dayMonthDate, dayMonthYear, orList, pct, shortDate, weekdayName } from '@/lib/format'
 import { useMediaQuery } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { downloadCsv } from '@/lib/download'
@@ -21,6 +21,8 @@ import { me } from '../messages'
 import { BookingPanel, IssuePanel } from './BookingPanel'
 import { CancelDialog, ExtendHoldDialog, LinkCampaignDialog, PaymentDialog, SlotDialog, SponsorDialog, type CancelTarget, type PaymentTarget } from './dialogs'
 import { msp } from './messages'
+import { OpenKitButton, RequestPanel, RequestsTab, SelfServeCard } from './RequestsTab'
+import { mr } from './requests.messages'
 import {
   BookingCell,
   CreativeCell,
@@ -41,7 +43,7 @@ import {
 } from './parts'
 import './sponsors.css'
 
-export type SponsorsTab = 'bookings' | 'sponsors' | 'slots'
+export type SponsorsTab = 'bookings' | 'requests' | 'sponsors' | 'slots'
 export type SponsorsRange = 'around' | 'upcoming' | 'recent' | 'all'
 
 export interface SponsorsSearch {
@@ -52,6 +54,8 @@ export interface SponsorsSearch {
   booking?: string
   /** An open issue of the slot shown in the panel. */
   issue?: number
+  /** A request from the media kit shown in the panel. */
+  request?: string
 }
 
 type Notice = Schemas['SponsorNotice']
@@ -82,9 +86,9 @@ export function SponsorsPage({ search, onSearch }: { search: SponsorsSearch; onS
   const [dialog, setDialog] = useState<PageDialog>()
   const data = q.data
   const slotId = search.slot ?? data?.slotId
-  const close = () => onSearch({ ...search, booking: undefined, issue: undefined })
-  const openBooking = (id: string) => onSearch({ ...search, booking: id, issue: undefined })
-  const openIssue = (n: number) => onSearch({ ...search, booking: undefined, issue: n, slot: slotId })
+  const close = () => onSearch({ ...search, booking: undefined, issue: undefined, request: undefined })
+  const openBooking = (id: string) => onSearch({ ...search, booking: id, issue: undefined, request: undefined })
+  const openIssue = (n: number) => onSearch({ ...search, booking: undefined, issue: n, slot: slotId, request: undefined })
   const rows = data ? [...data.past, ...data.upcoming] : []
   const canManage = data?.canManage ?? false
   // "Book an issue": the first open issue to come, or the one after the shown range.
@@ -117,7 +121,9 @@ export function SponsorsPage({ search, onSearch }: { search: SponsorsSearch; onS
           setDialog={setDialog}
         />
       )}
-      {search.booking ? (
+      {search.request ? (
+        <RequestPanel id={search.request} onClose={close} />
+      ) : search.booking ? (
         <BookingPanel id={search.booking} onClose={close} />
       ) : search.issue && slotId ? (
         <IssuePanel slotId={slotId} number={search.issue} library={data?.library ?? []} onClose={close} onBooked={(id) => onSearch({ ...search, booking: id, issue: undefined }, true)} />
@@ -169,10 +175,16 @@ function Body({
   const setTab = (next: SponsorsTab) => onSearch({ ...search, tab: next === 'bookings' ? undefined : next }, true)
   const tabs: { value: SponsorsTab; label: string; count: number }[] = [
     { value: 'bookings', label: t(msp.tabBookings), count: rows.length },
+    { value: 'requests', label: t(mr.tab), count: data.requests },
     { value: 'sponsors', label: t(msp.tabSponsors), count: data.library.length },
     { value: 'slots', label: t(msp.tabSlots), count: data.slots.length },
   ]
-  const label = tab === 'bookings' ? t(msp.bookingsLabel) : tab === 'sponsors' ? t(msp.libraryLabel) : t(msp.tabSlots)
+  const label = tab === 'bookings' ? t(msp.bookingsLabel) : tab === 'requests' ? t(mr.listLabel) : tab === 'sponsors' ? t(msp.libraryLabel) : t(msp.tabSlots)
+  // A booked request opens its booking; the others open the request.
+  const openRequest = (r: Schemas['SponsorRequestItem']) =>
+    r.status === 'booked' || r.status === 'canceled'
+      ? onSearch({ ...search, booking: r.id, issue: undefined, request: undefined })
+      : onSearch({ ...search, request: r.id, booking: undefined, issue: undefined })
   return (
     <div className="flex flex-col gap-5">
       <Tiles data={data} />
@@ -238,6 +250,8 @@ function Body({
                 {t(dm.exportCsv)}
               </Button>
             </div>
+          ) : tab === 'requests' ? (
+            <OpenKitButton />
           ) : canManage && tab === 'sponsors' ? (
             <Button size="sm" icon="plus" onClick={() => setDialog({ kind: 'sponsor' })}>
               {t(msp.newSponsor)}
@@ -251,6 +265,8 @@ function Body({
         <div id="sp-tabpanel" role="tabpanel" aria-labelledby={`sp-tab-${tab}`}>
           {tab === 'bookings' ? (
             <Bookings data={data} selected={selected} openBooking={openBooking} openIssue={openIssue} />
+          ) : tab === 'requests' ? (
+            <RequestsTab selected={search.request ?? search.booking} onOpen={openRequest} />
           ) : tab === 'sponsors' ? (
             <Library data={data} onEdit={(sponsor) => setDialog({ kind: 'sponsor', sponsor })} />
           ) : (
@@ -258,6 +274,7 @@ function Body({
           )}
         </div>
       </section>
+      {tab === 'requests' ? <SelfServeCard slots={data.slots} onEditSlot={(slot) => setDialog({ kind: 'slot', slot })} /> : null}
     </div>
   )
 }
@@ -492,7 +509,7 @@ function Bookings({ data, selected, openBooking, openIssue }: { data: Overview; 
               {r.booking?.sponsor ? t(msp.slotSponsor, { slot: r.slotName, sponsor: r.booking.sponsor.name }) : t(msp.openForBooking, { slot: r.slotName })}
             </span>
             <span className="sp-lst-badges">
-              <BookingCell row={r} />
+              <BookingCell row={r} link={false} />
               {r.booking?.status === 'booked' ? <CreativeCell b={r.booking} /> : null}
               {r.booking && r.booking.status !== 'hold' ? <PaymentCell b={r.booking} /> : null}
             </span>
@@ -605,7 +622,19 @@ function Library({ data, onEdit }: { data: Overview; onEdit: (s: SponsorItem) =>
           </thead>
           <tbody>
             {data.library.map((s) => {
-              const issues = [...new Set([...s.issues, ...s.hold])].sort((a, b) => a - b).map((n) => `#${n}`)
+              const issues = [...new Set([...s.issues, ...s.hold, ...s.awaiting])].sort((a, b) => a - b).map((n) => `#${n}`)
+              const cur = s.currency || data.currency
+              // A sponsor known only from the media kit's requests (or waiting to pay) has nothing booked or paid yet.
+              const nothing = !s.issues.length && !s.hold.length
+              let issuesSub: string | undefined
+              if (s.hold.length) issuesSub = s.hold.length === 1 ? t(msp.onHold, { issue: s.hold[0]! }) : t(msp.holdsOn, { issues: andList(s.hold.map((n) => `#${n}`)) })
+              else if (s.awaiting.length) issuesSub = t(mr.libAwaiting)
+              else if (s.fromRequest.length && s.fromRequest.length === s.issues.length) issuesSub = t(mr.libFromRequest)
+              else if (s.requests) issuesSub = t(mr.oneRequest, { count: s.requests })
+              let paidSub: string | undefined
+              if (s.stripePaidOn) paidSub = t(mr.byStripe, { date: dayMonthDate(s.stripePaidOn) })
+              else if (s.awaitingDue && nothing) paidSub = t(mr.payBy, { date: shortDate(s.awaitingDue) })
+              else if (!nothing) paidSub = t(msp.paysAfter, { days: s.termsDays })
               return (
                 <tr key={s.id}>
                   <td className="nw">
@@ -629,26 +658,30 @@ function Library({ data, onEdit }: { data: Overview; onEdit: (s: SponsorItem) =>
                   </td>
                   <td className="nw">
                     <div className="sp-col start">
-                      <span>{issues.length ? issues.join(', ') : <span className="k">{t(msp.noBookings)}</span>}</span>
-                      {s.hold.length ? <span className="k">{s.hold.length === 1 ? t(msp.onHold, { issue: s.hold[0]! }) : t(msp.holdsOn, { issues: andList(s.hold.map((n) => `#${n}`)) })}</span> : null}
+                      <span>{issues.length ? issues.join(', ') : s.requests ? '–' : <span className="k">{t(msp.noBookings)}</span>}</span>
+                      {issuesSub ? <span className="k">{issuesSub}</span> : null}
                     </div>
                   </td>
                   <td className="r num nw">
                     <div className="sp-col end">
-                      <span>{money(s.bookedCents, s.currency || data.currency, 'never')}</span>
-                      {s.holdCents ? <span className="k">{t(msp.plusHold, { amount: money(s.holdCents, s.currency || data.currency, 'never') })}</span> : null}
+                      <span>{nothing && !s.bookedCents ? '–' : money(s.bookedCents, cur, 'never')}</span>
+                      {s.holdCents ? (
+                        <span className="k">{t(msp.plusHold, { amount: money(s.holdCents, cur, 'never') })}</span>
+                      ) : s.awaitingCents ? (
+                        <span className="k">{t(mr.libIfPaid, { amount: money(s.awaitingCents, cur, 'never') })}</span>
+                      ) : null}
                     </div>
                   </td>
                   <td className="r num nw">
                     <div className="sp-col end">
-                      <span>{money(s.paidCents, s.currency || data.currency, 'never')}</span>
-                      <span className="k">{t(msp.paysAfter, { days: s.termsDays })}</span>
+                      <span>{nothing && !s.paidCents ? '–' : money(s.paidCents, cur, 'never')}</span>
+                      {paidSub ? <span className="k">{paidSub}</span> : null}
                     </div>
                   </td>
                   <td className="r num nw">
                     <div className="sp-col end">
-                      <span>{s.clickRate === undefined || s.clickRate === null ? '—' : pct(s.clickRate, 1)}</span>
-                      {s.clickRateIssue ? <span className="k">#{s.clickRateIssue}</span> : null}
+                      <span>{s.clickRate === undefined || s.clickRate === null ? '–' : pct(s.clickRate, 1)}</span>
+                      {s.clickRateIssue ? <span className="k">#{s.clickRateIssue}</span> : s.issues.length && (s.clickRate === undefined || s.clickRate === null) ? <span className="k">{t(mr.libNotSent)}</span> : null}
                     </div>
                   </td>
                   <td className="act">
@@ -665,7 +698,9 @@ function Library({ data, onEdit }: { data: Overview; onEdit: (s: SponsorItem) =>
         </table>
       </div>
       <div className="sp-foot">
-        <span className="k">{t(msp.libraryFoot)}</span>
+        <span className="k">
+          {t(msp.libraryFoot)} {t(mr.libFootRequests)}
+        </span>
       </div>
     </>
   )
@@ -713,6 +748,18 @@ function Slots({ data, onEdit }: { data: Overview; onEdit: (s: SlotItem) => void
               <dd>{t(msp.slotCreativeValue, { days: s.creativeDays })}</dd>
               <dt>{t(msp.slotCampaign)}</dt>
               <dd>{t(msp.slotCampaignValue)}</dd>
+              {s.selfServe ? (
+                <>
+                  <dt>{t(mr.slotSelfServe)}</dt>
+                  <dd>{t(mr.slotRowSelfServe, { lead: s.leadDays, pay: s.payDays })}</dd>
+                  {s.description ? (
+                    <>
+                      <dt>{t(mr.slotDescription)}</dt>
+                      <dd>{s.description}</dd>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
             </dl>
           </div>
           {/* A thumbnail of the email with the slot in it: emails keep the light theme. */}

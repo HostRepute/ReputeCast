@@ -1994,8 +1994,8 @@ const websiteReaderTiers = `-- name: WebsiteReaderTiers :many
 
 SELECT t.id, t.name, t.access_rank
 FROM paid_subscriptions s JOIN earn_tiers t ON t.id = s.tier_id AND t.deleted_at IS NULL
-WHERE s.workspace_id = $1 AND s.contact_id = $2 AND s.mode = 'live' AND s.ended_at IS NULL
-  AND (s.status IN ('trialing','active','complimentary','gift') OR (s.status = 'past_due' AND NOT s.access_paused))
+WHERE s.workspace_id = $1 AND s.contact_id = $2 AND s.mode = 'live'
+  AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)
 `
 
 type WebsiteReaderTiersParams struct {
@@ -2929,7 +2929,7 @@ const websiteTierPrices = `-- name: WebsiteTierPrices :many
 SELECT t.id, t.name, t.slug, t.access_rank, t.trial_days, t.visibility, t.benefits, t.description,
        p.period, p.amount_cents, p.currency
 FROM earn_tiers t
-JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current'
+JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current' AND p.audience = 'individual'
 WHERE t.workspace_id = $1 AND t.deleted_at IS NULL AND t.archived_at IS NULL
 ORDER BY t.access_rank, t.created_at, p.period
 `

@@ -43,4 +43,9 @@ export default translate(m, {
   wordCanceled: 'đã hủy',
   wordFailed: 'thanh toán thất bại',
   wordTrialEnded: 'hết dùng thử mà không trả phí',
+  kindPaused: 'Tạm dừng thanh toán',
+  kindResumed: 'Tiếp tục thanh toán',
+  pausedNote: 'Bắt đầu khi một hội viên tạm dừng trên trang hủy, hoặc nhóm của bạn tạm dừng cho họ trong Hội viên trả phí.',
+  resumedNote: 'Bắt đầu khi thanh toán hoạt động lại: sớm hơn bằng Tiếp tục ngay, hoặc vào ngày tiếp tục.',
+  liquidPaused: 'Email của luồng này có thể dùng {tier} và {resumes}.',
 })

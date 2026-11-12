@@ -537,7 +537,7 @@ func (c *Client) CreateCheckout(ctx context.Context, r payments.CheckoutRequest)
 	f := url.Values{}
 	f.Set("mode", "subscription")
 	f.Set("line_items[0][price]", r.PriceID)
-	f.Set("line_items[0][quantity]", "1")
+	f.Set("line_items[0][quantity]", strconv.Itoa(payments.LineQuantity(r.Quantity)))
 	f.Set("success_url", r.SuccessURL)
 	f.Set("cancel_url", r.CancelURL)
 	switch {
@@ -564,6 +564,16 @@ func (c *Client) CreateCheckout(ctx context.Context, r payments.CheckoutRequest)
 		f.Set("discounts[0][promotion_code]", r.PromotionCode)
 	case r.AllowCodes:
 		f.Set("allow_promotion_codes", "true")
+	}
+	if r.Business {
+		// A company buying seats: its tax ID and billing address on the invoices.
+		f.Set("tax_id_collection[enabled]", "true")
+		f.Set("billing_address_collection", "required")
+		if r.CustomerID != "" {
+			// Stripe saves the tax ID's business name on an existing customer only when asked.
+			f.Set("customer_update[name]", "auto")
+			f.Set("customer_update[address]", "auto")
+		}
 	}
 	if r.ClientRef != "" {
 		f.Set("client_reference_id", r.ClientRef)
@@ -704,6 +714,33 @@ func (c *Client) CancelSubscription(ctx context.Context, id string, atPeriodEnd 
 		return payments.Subscription{}, err
 	}
 	return parseSubscription(raw)
+}
+
+// SetQuantity implements payments.Seats: a team's seats, prorated on the
+// next invoice.
+func (c *Client) SetQuantity(ctx context.Context, subscriptionID, itemID string, qty int) error {
+	f := url.Values{}
+	f.Set("items[0][id]", itemID)
+	f.Set("items[0][quantity]", strconv.Itoa(qty))
+	f.Set("proration_behavior", "create_prorations")
+	return c.call(ctx, http.MethodPost, "/v1/subscriptions/"+url.PathEscape(subscriptionID), f, nil)
+}
+
+// Pause implements payments.Pauser: payment collection pauses and the
+// invoices of the paused periods are voided (nothing is owed for them);
+// Stripe resumes it at resumesAt.
+func (c *Client) Pause(ctx context.Context, subscriptionID string, resumesAt time.Time) error {
+	f := url.Values{}
+	f.Set("pause_collection[behavior]", "void")
+	f.Set("pause_collection[resumes_at]", strconv.FormatInt(resumesAt.Unix(), 10))
+	return c.call(ctx, http.MethodPost, "/v1/subscriptions/"+url.PathEscape(subscriptionID), f, nil)
+}
+
+// Resume implements payments.Pauser: an empty pause_collection unsets it.
+func (c *Client) Resume(ctx context.Context, subscriptionID string) error {
+	f := url.Values{}
+	f.Set("pause_collection", "")
+	return c.call(ctx, http.MethodPost, "/v1/subscriptions/"+url.PathEscape(subscriptionID), f, nil)
 }
 
 // ListSubscriptions implements payments.Client (every status).

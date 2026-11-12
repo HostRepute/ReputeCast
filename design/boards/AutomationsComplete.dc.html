@@ -172,7 +172,7 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
     </section>
   </figure>
   <figure><figcaption>Trigger picker · new kinds</figcaption>
-    <div class="menu" role="listbox"><div class="mh">Audience</div><button>Joined list</button><button>Tag added</button><button class="hl">Enters a segment</button><button>Leaves a segment</button><div class="mh">Engagement</div><button>Clicked a link</button><button>Score crosses</button><div class="mh">Paid members</div><button>Becomes a paid member</button><button>Changes tier</button><button>Stops paying</button><button>Trial ends soon</button></div>
+    <div class="menu" role="listbox"><div class="mh">Audience</div><button>Joined list</button><button>Tag added</button><button class="hl">Enters a segment</button><button>Leaves a segment</button><div class="mh">Engagement</div><button>Clicked a link</button><button>Score crosses</button><div class="mh">Paid members</div><button>Becomes a paid member</button><button>Changes tier</button><button>Stops paying</button><button>Trial ends soon</button><button>Pauses payments</button><button>Resumes payments</button></div>
     <section class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div class="field"><label class="lbl">Clicked a link in</label><select class="in"><option>October Product Update (campaign)</option></select></div><div class="field"><label class="lbl">Link contains (optional)</label><input class="in" value="/pricing"></div><span class="hint">Human clicks only, after bot filtering settles (about 10 minutes).</span></section> <section class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div class="field"><label class="lbl">Enters a segment</label><select class="in"><option>Churn risk (SQL)</option></select></div><span class="hint">Checked every 10 minutes. Contacts already in it when the flow goes live don't count as entering.</span><div style="font-size:12.5px;padding:8px 10px;border-radius:8px;background:#FFFBEB;border:1px solid #FDE68A;color:#78350F">This segment takes 90 seconds to evaluate, so it is checked every 30 minutes instead of 10. Contacts enter the flow up to that long after they join it.</div></section>
   </figure>
 </div>
@@ -205,7 +205,7 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
   </figure>
 </div>
 
-<div class="strip">7 · Paid members <span>With Stripe connected in live mode, four triggers start flows from paid subscriptions: becoming a paid member, changing tier, stopping paying and a trial about to end. Becoming a paid member and stopping paying happen once per subscription; people who paid before this release never start them.</span></div>
+<div class="strip">7 · Paid members <span>With Stripe connected in live mode, six triggers start flows from paid subscriptions: becoming a paid member, changing tier, stopping paying, a trial about to end, and pausing and resuming payments. Becoming a paid member and stopping paying happen once per subscription; people who paid before this release never start them.</span></div>
 <div class="grid three">
   <figure><figcaption>Trigger panel · Changes tier</figcaption>
     <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="field"><label class="lbl" for="pt-kind">Starts when</label><select id="pt-kind" class="in"><option>Changes tier</option></select></div>
@@ -230,7 +230,7 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
     <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="stack">
       <div class="tcard"><span class="ey">Trigger · Changes tier</span><b>Upgrades to Founding member</b></div>
       <div class="tcard"><span class="ey">Trigger · Stops paying</span><b>canceled or payment failed</b></div>
-      <div class="tcard"><span class="ey">Trigger · Becomes a paid member</span><b>any tier</b></div></div>
+      <div class="tcard"><span class="ey">Trigger · Becomes a paid member</span><b>any tier</b></div><div class="tcard"><span class="ey">Trigger · Pauses payments</span><b>any tier</b></div></div>
       <div class="note i"><span>Only Stripe subscriptions in live mode start these flows: complimentary access, gifts and test mode never do. Without a live connection the Paid members group isn't in the picker.</span></div>
     </section>
   </figure>
@@ -238,7 +238,7 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3440}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3574}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

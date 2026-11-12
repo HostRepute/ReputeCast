@@ -9,6 +9,9 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/earn"
+	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sponsors"
@@ -25,8 +28,20 @@ func sponsorService(a *App) *sponsors.Service {
 	if v, ok := sponsorServices.Load(a); ok {
 		return v.(*sponsors.Service)
 	}
+	m := &media.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}
 	s := &sponsors.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, URLs: a.URLs, Log: a.Log,
-		Images: sponsorImages{&media.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}}}
+		Images: sponsorImages{m},
+		// Self-serve booking (M65): sponsors pay through Earn's payment
+		// connection; the images a request sends stay out of the library.
+		Earn:   func() *earn.Service { return earnService(a) },
+		Hidden: m,
+		Mail:   func() mailer.Sender { return a.Mail },
+		Jobs:   func() *jobs.Client { return a.Jobs },
+		Brand: func(ctx context.Context, ws *store.Workspace) sponsors.Brand {
+			b := earnBrand(ctx, a, ws)
+			return sponsors.Brand{Publisher: firstNonEmptyString(b.Publisher, ws.Name), Accent: firstNonEmptyString(b.Accent, "#0F766E"),
+				OnAccent: firstNonEmptyString(b.OnAccent, "#FFFFFF"), Background: firstNonEmptyString(b.Ground, "#F6F7F9")}
+		}}
 	v, _ := sponsorServices.LoadOrStore(a, s)
 	return v.(*sponsors.Service)
 }
@@ -72,5 +87,11 @@ func init() {
 	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		sponsors.RegisterJobs(a.JobReg, sponsorService(a))
+	})
+	// A sponsor's Stripe payment (self-serve booking, M65) arrives on the
+	// payment connection's webhook, like a product's.
+	startHooks = append(startHooks, func(a *App) error {
+		earn.RegisterPaymentConsumer(earnService(a), sponsorService(a).Consume)
+		return nil
 	})
 }

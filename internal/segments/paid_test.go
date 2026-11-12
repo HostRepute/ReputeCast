@@ -31,7 +31,7 @@ func TestPaidSubscriptionConditions(t *testing.T) {
 		AND NOT EXISTS (SELECT 1 FROM suppressions x WHERE x.workspace_id = c.workspace_id AND x.email = c.email)
 		WHERE s.workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter') AND s.mode = 'live' AND s.ended_at IS NULL `
 	trials := one(`SELECT count(DISTINCT s.contact_id) ` + live + `AND s.status = 'trialing'`)
-	paid := one(`SELECT count(DISTINCT s.contact_id) ` + live + `AND (s.status IN ('trialing','active','complimentary','gift') OR (s.status = 'past_due' AND NOT s.access_paused))`)
+	paid := one(`SELECT count(DISTINCT s.contact_id) ` + live + `AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)`)
 
 	var cat struct {
 		Fields []struct {

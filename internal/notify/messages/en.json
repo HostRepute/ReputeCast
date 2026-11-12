@@ -180,5 +180,8 @@
   "problem.badCursor": {"message": "Invalid cursor.", "note": "a page of the notification center that doesn't exist"},
   "problem.unknownEvent": {"message": "Unknown event type {type}.", "note": "type: the event type's key, as sent (approval_requested)"},
   "problem.quietFormat": "Use times like 22:00 and 07:00.",
-  "problem.quietSame": "Quiet hours need a different start and end time."
+  "problem.quietSame": "Quiet hours need a different start and end time.",
+  "short.sponsor_request": "sponsor requests",
+  "event.sponsor_request": "Sponsor booking requested or paid",
+  "audience.sponsor_request": "People who can manage sponsors"
 }

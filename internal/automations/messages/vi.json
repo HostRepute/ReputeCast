@@ -512,5 +512,7 @@
   "goal.replied": "Đã trả lời một email",
   "problem.replyWindow": "Hãy đặt thời gian chờ tin trả lời.",
   "diff.triggerReply": "Trình kích hoạt: {change}",
-  "diff.triggerReplyDetail": "Thay đổi áp dụng cho các liên hệ ở v{version} khi phiên bản được phát hành; liên hệ còn ở phiên bản trước giữ thiết lập của phiên bản đó."
+  "diff.triggerReplyDetail": "Thay đổi áp dụng cho các liên hệ ở v{version} khi phiên bản được phát hành; liên hệ còn ở phiên bản trước giữ thiết lập của phiên bản đó.",
+  "trigger.paidPaused": "Tạm dừng thanh toán",
+  "trigger.paidResumed": "Tiếp tục thanh toán"
 }

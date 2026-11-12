@@ -30,6 +30,29 @@ type T = ReturnType<typeof useT>
 
 const trials = [0, 7, 14, 30] as const
 
+/** A tier's group prices as the editor holds them (M65): each period on or off, per seat, and the seats a team can buy. */
+type Group = { monthlyOn: boolean; yearlyOn: boolean; monthly: number; yearly: number; seatsMin: number; seatsMax: number }
+
+function toGroup(tier?: Tier): Group {
+  const g = tier?.group
+  return {
+    monthlyOn: Boolean(g?.monthly),
+    yearlyOn: Boolean(g?.yearly),
+    monthly: g?.monthly?.amountCents ?? 0,
+    yearly: g?.yearly?.amountCents ?? 0,
+    seatsMin: g?.seatsMin ?? 2,
+    seatsMax: g?.seatsMax ?? 1000,
+  }
+}
+
+/** The tier input's group part: prices when one is on, "off" when the tier had some, nothing otherwise. */
+function groupBody(g: Group, had: boolean): Input['group'] {
+  const monthly = g.monthlyOn ? g.monthly : 0
+  const yearly = g.yearlyOn ? g.yearly : 0
+  if (!monthly && !yearly) return had ? { off: true } : undefined
+  return { monthly, yearly, seatsMin: g.seatsMin, seatsMax: g.seatsMax }
+}
+
 function toInput(tier?: Tier): Input {
   if (!tier) return { name: '', slug: '', description: '', benefits: [''], monthly: 0, yearly: 0, trialDays: 0, lists: [], accessRank: 1, visibility: 'public', highlight: '' }
   return {
@@ -97,6 +120,8 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
   const [v, setV] = useState<Input>(saved)
   const [monthlyOn, setMonthlyOn] = useState(tier ? Boolean(saved.monthly) : true)
   const [yearlyOn, setYearlyOn] = useState(tier ? Boolean(saved.yearly) : true)
+  const savedGroup = useMemo(() => toGroup(tier), [tier])
+  const [group, setGroup] = useState<Group>(savedGroup)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [deleting, setDeleting] = useState(false)
   const [archiving, setArchiving] = useState(false)
@@ -115,7 +140,14 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
   const major = (minor: number | undefined) => (minor ? String(minor / 100) : '')
   const minor = (s: string) => Math.round(Number(s.replace(/[^0-9.]/g, '')) * 100) || 0
   const back = () => void navigate({ to: '/w/$workspace/earn/plans', params: { workspace: slug } })
-  const body: Input = { ...v, benefits: v.benefits.map((b) => b.trim()).filter(Boolean), monthly: monthlyOn ? v.monthly : 0, yearly: yearlyOn ? v.yearly : 0 }
+  const hadGroup = Boolean(tier?.group)
+  const body: Input = {
+    ...v,
+    benefits: v.benefits.map((b) => b.trim()).filter(Boolean),
+    monthly: monthlyOn ? v.monthly : 0,
+    yearly: yearlyOn ? v.yearly : 0,
+    group: groupBody(group, hadGroup),
+  }
   const benefits = useReorder((from, to) => set('benefits', moved(v.benefits, from, to)), v.benefits.length)
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['get', `${EARN}/plans`] })
@@ -153,6 +185,11 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
     const next: Record<string, string> = {}
     if (!body.name.trim()) next.name = t(mt.errName)
     if (!body.monthly && !body.yearly) next.monthly = t(mt.errPrice)
+    if (body.group && !body.group.off) {
+      const { seatsMin = 0, seatsMax = 0 } = body.group
+      if (seatsMin < 2 || seatsMax > 1000) next['group.seatsMax'] = t(mt.groupSeatsError)
+      else if (seatsMin > seatsMax) next['group.seatsMax'] = t(mt.groupSeatsOrder)
+    }
     setErrors(next)
     if (Object.keys(next).length) return
     // Archiving a tier people pay for is confirmed first.
@@ -164,8 +201,15 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
   }
   const busy = create.isPending || update.isPending
   const pristine = useMemo(
-    () => JSON.stringify({ ...saved, benefits: saved.benefits.map((b) => b.trim()).filter(Boolean), monthly: tier && !saved.monthly ? 0 : saved.monthly, yearly: tier && !saved.yearly ? 0 : saved.yearly }),
-    [saved, tier],
+    () =>
+      JSON.stringify({
+        ...saved,
+        benefits: saved.benefits.map((b) => b.trim()).filter(Boolean),
+        monthly: tier && !saved.monthly ? 0 : saved.monthly,
+        yearly: tier && !saved.yearly ? 0 : saved.yearly,
+        group: groupBody(savedGroup, Boolean(tier?.group)),
+      }),
+    [saved, savedGroup, tier],
   )
   const dirty = !ro && !leaving && JSON.stringify(body) !== pristine
   const title = tier ? tier.name : t(mt.newTier)
@@ -307,6 +351,18 @@ function TierForm({ tier, plans, account }: { tier?: Tier; plans: Plans; account
             changedYear={changedYear}
             yearlyMore={yearlyMore}
             free={free}
+          />
+          <GroupPricesCard
+            g={group}
+            set={(patch) => setGroup((p) => ({ ...p, ...patch }))}
+            tier={tier}
+            currency={cur}
+            ro={ro}
+            major={major}
+            minor={minor}
+            host={plans.upgradePage.host}
+            slug={body.slug || v.slug || ''}
+            error={errors['group.seatsMax'] ?? errors['group.monthly']}
           />
           <section className="card">
             <div className="sec">
@@ -705,6 +761,19 @@ function TierPreview({
               ))}
             </ul>
           ) : null}
+          {v.group && !v.group.off && (v.group.yearly || v.group.monthly) ? (
+            <span className="ea-tcard-team">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="6" cy="5" r="2.5" />
+                <path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8" />
+              </svg>
+              <span>
+                {t(mt.teamLink, {
+                  price: v.group.yearly ? `${money(v.group.yearly, currency)} ${t(mt.aYear)}` : `${money(v.group.monthly ?? 0, currency)} ${t(mt.aMonth)}`,
+                })}
+              </span>
+            </span>
+          ) : null}
           <div className="ea-tcard-buy">
             <span className={v.highlight ? 'ea-tcard-btn pri' : 'ea-tcard-btn'}>{v.trialDays ? t(mt.startTrial) : short ? t(mt.become, { article, tier: short }) : t(mt.becomeMember)}</span>
             {amount ? (
@@ -803,6 +872,17 @@ function StripeCard({
                 </div>
               )
             })}
+            {[tier.group?.monthly, tier.group?.yearly]
+              .filter((p): p is Schemas['EarnPrice'] => p !== undefined)
+              .map((p) => (
+                <div key={p.id} className="ea-vline">
+                  <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-2">
+                    <b className="num">{t(mt.perSeatSlash, { price: money(p.amountCents, p.currency), period: p.period })}</b>
+                    {p.stripeId ? <span className="mono k">{p.stripeId}</span> : null}
+                  </span>
+                  <span className="k">{t(mt.groupPriceRow, { teams: p.paying ? t(mt.groupTeams, { count: p.paying }) : t(mt.groupNoTeams) })}</span>
+                </div>
+              ))}
           </div>
           <dl className="ea-kv">
             <dt>{t(mt.legacyPrices)}</dt>
@@ -905,6 +985,133 @@ function SyncFailedCard({ tier, currency, busy, onRetry }: { tier: Tier; currenc
               </div>
             )
           })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** Group prices (EarnPlanEditors, M65): per seat for teams, with the seats a team can buy. */
+function GroupPricesCard({
+  g,
+  set,
+  tier,
+  currency,
+  ro,
+  major,
+  minor,
+  host,
+  slug,
+  error,
+}: {
+  g: Group
+  set: (patch: Partial<Group>) => void
+  tier?: Tier
+  currency: string
+  ro: boolean
+  major: (minor: number | undefined) => string
+  minor: (s: string) => number
+  host: string
+  slug: string
+  error?: string
+}) {
+  const t = useT()
+  const cur = currency.toUpperCase()
+  const teamsLine = (p: Schemas['EarnPrice'] | undefined) => (p && p.paying > 0 ? t(mt.groupTeams, { count: p.paying }) : t(mt.groupNoTeams))
+  const rows = [
+    { period: 'month' as const, on: g.monthlyOn, amount: g.monthly, line: teamsLine(tier?.group?.monthly) },
+    { period: 'year' as const, on: g.yearlyOn, amount: g.yearly, line: teamsLine(tier?.group?.yearly) },
+  ]
+  const shown = g.yearlyOn && g.yearly ? { price: g.yearly, period: 'year' as const } : g.monthlyOn && g.monthly ? { price: g.monthly, period: 'month' as const } : undefined
+  const pageHost = host.replace(/\/upgrade$/, '')
+  return (
+    <section className="card" aria-labelledby="ea-group">
+      <div className="sec">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className="h2" id="ea-group">
+            {t(mt.groupTitle)}
+          </h2>
+          <span className="k">{t(mt.groupHint)}</span>
+        </div>
+      </div>
+      {rows.map((r, i) => (
+        <div key={r.period} className={`ea-srow${i === 0 ? ' border-t-0' : ''}`}>
+          <div className="d">
+            <span className="font-semibold">{r.period === 'month' ? t(mt.groupMonthly) : t(mt.groupYearly)}</span>
+            <span className="k">{r.line}</span>
+          </div>
+          <div className="c">
+            <SwitchInput
+              aria-label={r.period === 'month' ? t(mt.groupOfferMonthly) : t(mt.groupOfferYearly)}
+              checked={r.on}
+              disabled={ro}
+              onChange={(e) => set(r.period === 'month' ? { monthlyOn: e.target.checked } : { yearlyOn: e.target.checked })}
+            />
+            <div className="row gap-1.5" style={{ flexWrap: 'nowrap' }}>
+              <span className="k">$</span>
+              <input
+                className="in num w-[90px]"
+                inputMode="decimal"
+                aria-label={r.period === 'month' ? t(mt.groupMonthlyIn, { currency: cur }) : t(mt.groupYearlyIn, { currency: cur })}
+                disabled={ro || !r.on}
+                value={major(r.amount)}
+                onChange={(e) => set(r.period === 'month' ? { monthly: minor(e.target.value) } : { yearly: minor(e.target.value) })}
+              />
+              <span className="k whitespace-nowrap">{r.period === 'month' ? t(mt.perSeatMonth) : t(mt.perSeatYear)}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="ea-srow">
+        <div className="d">
+          <span className="font-semibold">{t(mt.groupSeats)}</span>
+          <span className="k">{t(mt.groupSeatsHint)}</span>
+        </div>
+        <div className="c">
+          <div className="flex flex-col items-end gap-1">
+            <div className="row gap-1.5" style={{ flexWrap: 'nowrap' }}>
+              <span className="k">{t(mt.groupFrom)}</span>
+              <input
+                className="in num w-[70px]"
+                inputMode="numeric"
+                aria-label={t(mt.groupFewest)}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'ea-group-err' : undefined}
+                disabled={ro}
+                value={g.seatsMin || ''}
+                onChange={(e) => set({ seatsMin: Number(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
+              />
+              <span className="k">{t(mt.groupTo)}</span>
+              <input
+                className="in num w-[70px]"
+                inputMode="numeric"
+                aria-label={t(mt.groupMost)}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'ea-group-err' : undefined}
+                disabled={ro}
+                value={g.seatsMax || ''}
+                onChange={(e) => set({ seatsMax: Number(e.target.value.replace(/[^0-9]/g, '')) || 0 })}
+              />
+            </div>
+            {error ? (
+              <span className="err" id="ea-group-err" role="alert">
+                {error}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="pad flex flex-col gap-2.5 border-t border-line-2">
+        {shown ? (
+          <span className="text-[13px]">
+            <span className="k">{t(mt.readersSee)} </span>
+            <b>{t(mt.groupSee, { price: money(shown.price, currency), period: shown.period })}</b> · {t(mt.groupSeeRange, { min: count(g.seatsMin), max: count(g.seatsMax) })} ·{' '}
+            {t(mt.groupOn)} <span className="mono text-[12.5px]">{`${pageHost}/upgrade/${slug || '…'}/team`}</span>
+          </span>
+        ) : null}
+        <div className="note n" role="note">
+          <Icon name="info" size={16} />
+          <div>{t(mt.groupNote)}</div>
         </div>
       </div>
     </section>

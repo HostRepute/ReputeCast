@@ -30,8 +30,9 @@ func (s *Service) bookingBrief(ws *store.Workspace, b store.SponsorBookingsOfSlo
 	if status == "booked" && b.CampaignStatus == "sent" {
 		status = "sent"
 	}
-	out := &SponsorBookingBrief{ID: b.ID.String(), Status: status, HoldUntil: noonPtr(b.HoldUntil, ws), PriceCents: b.PriceCents, CreativeStatus: b.CreativeStatus,
-		CreativeDue: noonPtr(b.CreativeDue, ws), Payment: paymentOf(ws, b.PaymentStatus, b.PaymentDue, b.PaidOn, b.PaidCents, b.PaidNote, today)}
+	out := &SponsorBookingBrief{ID: b.ID.String(), Status: status, HoldUntil: noonPtr(b.HoldUntil, ws), PaymentDueAt: b.PaymentDueAt, PriceCents: b.PriceCents,
+		CreativeStatus: b.CreativeStatus, CreativeDue: noonPtr(b.CreativeDue, ws),
+		Payment: paymentOf(ws, b.PaymentStatus, b.PaymentDue, b.PaidOn, b.PaidCents, b.PaidNote, b.PaidSource, today)}
 	if b.SponsorID != nil {
 		out.Sponsor = refOf(*b.SponsorID, b.SponsorName, "")
 	}
@@ -79,8 +80,11 @@ func firstTime(ts ...*time.Time) *time.Time {
 
 // paymentOf is a payment's status: overdue once an unpaid booking's due
 // date has passed.
-func paymentOf(ws *store.Workspace, status string, due, paidOn *time.Time, paid *int64, note string, today time.Time) SponsorPayment {
+func paymentOf(ws *store.Workspace, status string, due, paidOn *time.Time, paid *int64, note, source string, today time.Time) SponsorPayment {
 	out := SponsorPayment{Status: status, Due: noonPtr(due, ws), PaidOn: noonPtr(paidOn, ws), PaidCents: paid, Note: note}
+	if status == "paid" {
+		out.Source = source
+	}
 	if status == "unpaid" && due != nil && civil(*due).Before(today) {
 		out.Status = "overdue"
 	}
@@ -100,6 +104,11 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	} else {
 		out.Helpers = []string{}
 	}
+	n, err := s.Q.SponsorRequestCount(ctx, ws.ID)
+	if err != nil {
+		return out, err
+	}
+	out.Requests = int(n)
 	lib, err := s.library(ctx, ws)
 	if err != nil {
 		return out, err
@@ -160,7 +169,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		switch {
 		case r.Booking == nil:
 			t.NextOpen++
-		case r.Booking.Status == "hold":
+		case r.Booking.Status == "hold" || r.Booking.Status == "awaiting_payment":
 			t.NextHold++
 		default:
 			t.NextBooked++
@@ -197,7 +206,7 @@ func (s *Service) issueRows(ctx context.Context, ws *store.Workspace, sl store.S
 		from, to = NextNumber(slotRow(sl), today.AddDate(0, 0, -30)), next-1
 	case "all":
 		var lo, hi *int32
-		_ = s.Pool.QueryRow(ctx, `SELECT min(issue_number), max(issue_number) FROM sponsor_bookings WHERE slot_id = $1 AND status IN ('hold','booked','sent')`, sl.ID).Scan(&lo, &hi)
+		_ = s.Pool.QueryRow(ctx, `SELECT min(issue_number), max(issue_number) FROM sponsor_bookings WHERE slot_id = $1 AND status IN ('hold','booked','sent','awaiting_payment')`, sl.ID).Scan(&lo, &hi)
 		from, to = next, next+4
 		if lo != nil && int(*lo) < from {
 			from = int(*lo)
@@ -260,10 +269,18 @@ func (s *Service) issueRowsBetween(ctx context.Context, ws *store.Workspace, sl 
 		}
 		rows.Close()
 	}
+	requests := map[int]int{}
+	rq, err := s.Q.SponsorRequestsPerIssue(ctx, store.SponsorRequestsPerIssueParams{SlotID: sl.ID, FromNumber: int32(from), ToNumber: int32(to)})
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range rq {
+		requests[int(x.IssueNumber)] = int(x.Requests)
+	}
 	out := []SponsorIssueRow{}
 	for n := from; n <= to; n++ {
 		on := IssueOn(slot, n)
-		r := SponsorIssueRow{SlotID: sl.ID.String(), SlotName: sl.Name, Number: n, IssueOn: noonOn(on, ws), Past: on.Before(today)}
+		r := SponsorIssueRow{SlotID: sl.ID.String(), SlotName: sl.Name, Number: n, IssueOn: noonOn(on, ws), Past: on.Before(today), Requests: requests[n]}
 		if b, ok := byIssue[n]; ok {
 			r.Booking = s.bookingBrief(ws, b, stats, shared, today)
 			if r.Booking.Status == "sent" {

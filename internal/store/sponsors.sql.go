@@ -13,6 +13,177 @@ import (
 	"github.com/google/uuid"
 )
 
+const sponsorBookingApprove = `-- name: SponsorBookingApprove :execrows
+UPDATE sponsor_bookings SET status = 'awaiting_payment', slot_id = $1, issue_number = $2, issue_on = $3, price_cents = $4,
+    currency = $5, campaign_id = $6, creative = $7, creative_due = $8, payment_due = $9,
+    payment_due_at = $10::timestamptz, status_token_hash = $11, updated_at = $12
+WHERE id = $13 AND workspace_id = $14 AND status = 'requested'
+`
+
+type SponsorBookingApproveParams struct {
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	PaymentDue      *time.Time      `json:"paymentDue"`
+	PaymentDueAt    time.Time       `json:"paymentDueAt"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	At              time.Time       `json:"at"`
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+}
+
+// An approved request waits for its payment: it holds its issue until
+// payment_due_at, and the sponsor's status page link is new.
+func (q *Queries) SponsorBookingApprove(ctx context.Context, arg SponsorBookingApproveParams) (int64, error) {
+	result, err := q.db.Exec(ctx, sponsorBookingApprove,
+		arg.SlotID,
+		arg.IssueNumber,
+		arg.IssueOn,
+		arg.PriceCents,
+		arg.Currency,
+		arg.CampaignID,
+		arg.Creative,
+		arg.CreativeDue,
+		arg.PaymentDue,
+		arg.PaymentDueAt,
+		arg.StatusTokenHash,
+		arg.At,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const sponsorBookingByToken = `-- name: SponsorBookingByToken :one
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sl.name, '')::text AS slot_name, coalesce(sl.placement, '')::text AS slot_placement,
+    coalesce(l.name, '')::text AS list_name, coalesce(sl.pay_days, 3)::integer AS slot_pay_days
+FROM sponsor_bookings b
+LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+LEFT JOIN sponsor_slots sl ON sl.id = b.slot_id
+LEFT JOIN lists l ON l.id = sl.list_id
+WHERE b.workspace_id = $1 AND b.status_token_hash = $2
+`
+
+type SponsorBookingByTokenParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	TokenHash   []byte    `json:"tokenHash"`
+}
+
+type SponsorBookingByTokenRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	SponsorID       *uuid.UUID      `json:"sponsorId"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	CampaignByHand  bool            `json:"campaignByHand"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	Status          string          `json:"status"`
+	HoldUntil       *time.Time      `json:"holdUntil"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeStatus  string          `json:"creativeStatus"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	ReadyAt         *time.Time      `json:"readyAt"`
+	ReadyBy         *uuid.UUID      `json:"readyBy"`
+	PaymentStatus   string          `json:"paymentStatus"`
+	PaymentDue      *time.Time      `json:"paymentDue"`
+	PaidOn          *time.Time      `json:"paidOn"`
+	PaidCents       *int64          `json:"paidCents"`
+	PaidNote        string          `json:"paidNote"`
+	PaidBy          *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt  *time.Time      `json:"paidRecordedAt"`
+	Notes           string          `json:"notes"`
+	CancelReason    string          `json:"cancelReason"`
+	CanceledAt      *time.Time      `json:"canceledAt"`
+	CanceledBy      *uuid.UUID      `json:"canceledBy"`
+	SentAt          *time.Time      `json:"sentAt"`
+	ProposedBy      *uuid.UUID      `json:"proposedBy"`
+	ProposedName    string          `json:"proposedName"`
+	ProposedNote    string          `json:"proposedNote"`
+	Notified        []string        `json:"notified"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	Request         json.RawMessage `json:"request"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	PaymentDueAt    *time.Time      `json:"paymentDueAt"`
+	CheckoutID      string          `json:"checkoutId"`
+	PaidSource      string          `json:"paidSource"`
+	DeclinedReason  string          `json:"declinedReason"`
+	SponsorName     string          `json:"sponsorName"`
+	SlotName        string          `json:"slotName"`
+	SlotPlacement   string          `json:"slotPlacement"`
+	ListName        string          `json:"listName"`
+	SlotPayDays     int32           `json:"slotPayDays"`
+}
+
+// A sponsor's booking by its status page's token, with its slot (deleted
+// or not) and list.
+func (q *Queries) SponsorBookingByToken(ctx context.Context, arg SponsorBookingByTokenParams) (SponsorBookingByTokenRow, error) {
+	row := q.db.QueryRow(ctx, sponsorBookingByToken, arg.WorkspaceID, arg.TokenHash)
+	var i SponsorBookingByTokenRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.SlotID,
+		&i.IssueNumber,
+		&i.IssueOn,
+		&i.SponsorID,
+		&i.CampaignID,
+		&i.CampaignByHand,
+		&i.PriceCents,
+		&i.Currency,
+		&i.Status,
+		&i.HoldUntil,
+		&i.Creative,
+		&i.CreativeStatus,
+		&i.CreativeDue,
+		&i.ReadyAt,
+		&i.ReadyBy,
+		&i.PaymentStatus,
+		&i.PaymentDue,
+		&i.PaidOn,
+		&i.PaidCents,
+		&i.PaidNote,
+		&i.PaidBy,
+		&i.PaidRecordedAt,
+		&i.Notes,
+		&i.CancelReason,
+		&i.CanceledAt,
+		&i.CanceledBy,
+		&i.SentAt,
+		&i.ProposedBy,
+		&i.ProposedName,
+		&i.ProposedNote,
+		&i.Notified,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
+		&i.SponsorName,
+		&i.SlotName,
+		&i.SlotPlacement,
+		&i.ListName,
+		&i.SlotPayDays,
+	)
+	return i, err
+}
+
 const sponsorBookingCancel = `-- name: SponsorBookingCancel :exec
 UPDATE sponsor_bookings SET status = 'canceled', cancel_reason = $1, canceled_at = $2::timestamptz, canceled_by = $3, updated_at = $2
 WHERE id = $4 AND workspace_id = $5
@@ -35,6 +206,31 @@ func (q *Queries) SponsorBookingCancel(ctx context.Context, arg SponsorBookingCa
 		arg.WorkspaceID,
 	)
 	return err
+}
+
+const sponsorBookingDecline = `-- name: SponsorBookingDecline :execrows
+UPDATE sponsor_bookings SET status = 'declined', declined_reason = $1, updated_at = $2
+WHERE id = $3 AND workspace_id = $4 AND status = 'requested'
+`
+
+type SponsorBookingDeclineParams struct {
+	Reason      string    `json:"reason"`
+	At          time.Time `json:"at"`
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+func (q *Queries) SponsorBookingDecline(ctx context.Context, arg SponsorBookingDeclineParams) (int64, error) {
+	result, err := q.db.Exec(ctx, sponsorBookingDecline,
+		arg.Reason,
+		arg.At,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const sponsorBookingEventInsert = `-- name: SponsorBookingEventInsert :exec
@@ -97,8 +293,26 @@ func (q *Queries) SponsorBookingEvents(ctx context.Context, bookingID uuid.UUID)
 	return items, nil
 }
 
+const sponsorBookingExpire = `-- name: SponsorBookingExpire :execrows
+UPDATE sponsor_bookings SET status = 'expired', updated_at = $1
+WHERE id = $2 AND status = 'awaiting_payment' AND payment_due_at < $1
+`
+
+type SponsorBookingExpireParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SponsorBookingExpire(ctx context.Context, arg SponsorBookingExpireParams) (int64, error) {
+	result, err := q.db.Exec(ctx, sponsorBookingExpire, arg.At, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const sponsorBookingGet = `-- name: SponsorBookingGet :one
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
     coalesce(sp.contact_email, '')::text AS sponsor_email, coalesce(sp.terms_days, 14)::integer AS sponsor_terms,
     coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
     c.scheduled_at AS campaign_scheduled_at, c.started_at AS campaign_started_at
@@ -150,6 +364,12 @@ type SponsorBookingGetRow struct {
 	CreatedBy           *uuid.UUID      `json:"createdBy"`
 	CreatedAt           time.Time       `json:"createdAt"`
 	UpdatedAt           time.Time       `json:"updatedAt"`
+	Request             json.RawMessage `json:"request"`
+	StatusTokenHash     []byte          `json:"statusTokenHash"`
+	PaymentDueAt        *time.Time      `json:"paymentDueAt"`
+	CheckoutID          string          `json:"checkoutId"`
+	PaidSource          string          `json:"paidSource"`
+	DeclinedReason      string          `json:"declinedReason"`
 	SponsorName         string          `json:"sponsorName"`
 	SponsorContact      string          `json:"sponsorContact"`
 	SponsorEmail        string          `json:"sponsorEmail"`
@@ -200,6 +420,12 @@ func (q *Queries) SponsorBookingGet(ctx context.Context, arg SponsorBookingGetPa
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
 		&i.SponsorName,
 		&i.SponsorContact,
 		&i.SponsorEmail,
@@ -273,6 +499,60 @@ func (q *Queries) SponsorBookingInsert(ctx context.Context, arg SponsorBookingIn
 	return err
 }
 
+const sponsorBookingLock = `-- name: SponsorBookingLock :one
+SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at, request, status_token_hash, payment_due_at, checkout_id, paid_source, declined_reason FROM sponsor_bookings WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) SponsorBookingLock(ctx context.Context, id uuid.UUID) (SponsorBooking, error) {
+	row := q.db.QueryRow(ctx, sponsorBookingLock, id)
+	var i SponsorBooking
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.SlotID,
+		&i.IssueNumber,
+		&i.IssueOn,
+		&i.SponsorID,
+		&i.CampaignID,
+		&i.CampaignByHand,
+		&i.PriceCents,
+		&i.Currency,
+		&i.Status,
+		&i.HoldUntil,
+		&i.Creative,
+		&i.CreativeStatus,
+		&i.CreativeDue,
+		&i.ReadyAt,
+		&i.ReadyBy,
+		&i.PaymentStatus,
+		&i.PaymentDue,
+		&i.PaidOn,
+		&i.PaidCents,
+		&i.PaidNote,
+		&i.PaidBy,
+		&i.PaidRecordedAt,
+		&i.Notes,
+		&i.CancelReason,
+		&i.CanceledAt,
+		&i.CanceledBy,
+		&i.SentAt,
+		&i.ProposedBy,
+		&i.ProposedName,
+		&i.ProposedNote,
+		&i.Notified,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
+	)
+	return i, err
+}
+
 const sponsorBookingNotified = `-- name: SponsorBookingNotified :exec
 UPDATE sponsor_bookings SET notified = array_append(notified, $1::text) WHERE id = $2 AND NOT ($1::text = ANY(notified))
 `
@@ -288,7 +568,7 @@ func (q *Queries) SponsorBookingNotified(ctx context.Context, arg SponsorBooking
 }
 
 const sponsorBookingOfCampaign = `-- name: SponsorBookingOfCampaign :one
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.website, '')::text AS sponsor_website, coalesce(sp.logo_url, '')::text AS sponsor_logo
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.website, '')::text AS sponsor_website, coalesce(sp.logo_url, '')::text AS sponsor_logo
 FROM sponsor_bookings b
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
 WHERE b.campaign_id = $1 AND b.status IN ('booked','sent')
@@ -296,45 +576,51 @@ ORDER BY b.issue_number DESC LIMIT 1
 `
 
 type SponsorBookingOfCampaignRow struct {
-	ID             uuid.UUID       `json:"id"`
-	WorkspaceID    uuid.UUID       `json:"workspaceId"`
-	SlotID         uuid.UUID       `json:"slotId"`
-	IssueNumber    int32           `json:"issueNumber"`
-	IssueOn        time.Time       `json:"issueOn"`
-	SponsorID      *uuid.UUID      `json:"sponsorId"`
-	CampaignID     *uuid.UUID      `json:"campaignId"`
-	CampaignByHand bool            `json:"campaignByHand"`
-	PriceCents     int64           `json:"priceCents"`
-	Currency       string          `json:"currency"`
-	Status         string          `json:"status"`
-	HoldUntil      *time.Time      `json:"holdUntil"`
-	Creative       json.RawMessage `json:"creative"`
-	CreativeStatus string          `json:"creativeStatus"`
-	CreativeDue    *time.Time      `json:"creativeDue"`
-	ReadyAt        *time.Time      `json:"readyAt"`
-	ReadyBy        *uuid.UUID      `json:"readyBy"`
-	PaymentStatus  string          `json:"paymentStatus"`
-	PaymentDue     *time.Time      `json:"paymentDue"`
-	PaidOn         *time.Time      `json:"paidOn"`
-	PaidCents      *int64          `json:"paidCents"`
-	PaidNote       string          `json:"paidNote"`
-	PaidBy         *uuid.UUID      `json:"paidBy"`
-	PaidRecordedAt *time.Time      `json:"paidRecordedAt"`
-	Notes          string          `json:"notes"`
-	CancelReason   string          `json:"cancelReason"`
-	CanceledAt     *time.Time      `json:"canceledAt"`
-	CanceledBy     *uuid.UUID      `json:"canceledBy"`
-	SentAt         *time.Time      `json:"sentAt"`
-	ProposedBy     *uuid.UUID      `json:"proposedBy"`
-	ProposedName   string          `json:"proposedName"`
-	ProposedNote   string          `json:"proposedNote"`
-	Notified       []string        `json:"notified"`
-	CreatedBy      *uuid.UUID      `json:"createdBy"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	UpdatedAt      time.Time       `json:"updatedAt"`
-	SponsorName    string          `json:"sponsorName"`
-	SponsorWebsite string          `json:"sponsorWebsite"`
-	SponsorLogo    string          `json:"sponsorLogo"`
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	SponsorID       *uuid.UUID      `json:"sponsorId"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	CampaignByHand  bool            `json:"campaignByHand"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	Status          string          `json:"status"`
+	HoldUntil       *time.Time      `json:"holdUntil"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeStatus  string          `json:"creativeStatus"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	ReadyAt         *time.Time      `json:"readyAt"`
+	ReadyBy         *uuid.UUID      `json:"readyBy"`
+	PaymentStatus   string          `json:"paymentStatus"`
+	PaymentDue      *time.Time      `json:"paymentDue"`
+	PaidOn          *time.Time      `json:"paidOn"`
+	PaidCents       *int64          `json:"paidCents"`
+	PaidNote        string          `json:"paidNote"`
+	PaidBy          *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt  *time.Time      `json:"paidRecordedAt"`
+	Notes           string          `json:"notes"`
+	CancelReason    string          `json:"cancelReason"`
+	CanceledAt      *time.Time      `json:"canceledAt"`
+	CanceledBy      *uuid.UUID      `json:"canceledBy"`
+	SentAt          *time.Time      `json:"sentAt"`
+	ProposedBy      *uuid.UUID      `json:"proposedBy"`
+	ProposedName    string          `json:"proposedName"`
+	ProposedNote    string          `json:"proposedNote"`
+	Notified        []string        `json:"notified"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	Request         json.RawMessage `json:"request"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	PaymentDueAt    *time.Time      `json:"paymentDueAt"`
+	CheckoutID      string          `json:"checkoutId"`
+	PaidSource      string          `json:"paidSource"`
+	DeclinedReason  string          `json:"declinedReason"`
+	SponsorName     string          `json:"sponsorName"`
+	SponsorWebsite  string          `json:"sponsorWebsite"`
+	SponsorLogo     string          `json:"sponsorLogo"`
 }
 
 func (q *Queries) SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorBookingOfCampaignRow, error) {
@@ -377,6 +663,12 @@ func (q *Queries) SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
 		&i.SponsorName,
 		&i.SponsorWebsite,
 		&i.SponsorLogo,
@@ -385,7 +677,7 @@ func (q *Queries) SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid
 }
 
 const sponsorBookingOfIssue = `-- name: SponsorBookingOfIssue :one
-SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status IN ('hold','booked','sent')
+SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at, request, status_token_hash, payment_due_at, checkout_id, paid_source, declined_reason FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status IN ('hold','booked','sent','awaiting_payment')
 ORDER BY created_at DESC LIMIT 1
 `
 
@@ -394,6 +686,8 @@ type SponsorBookingOfIssueParams struct {
 	IssueNumber int32     `json:"issueNumber"`
 }
 
+// The booking holding an issue: on hold, waiting for its payment, booked
+// or sent.
 func (q *Queries) SponsorBookingOfIssue(ctx context.Context, arg SponsorBookingOfIssueParams) (SponsorBooking, error) {
 	row := q.db.QueryRow(ctx, sponsorBookingOfIssue, arg.SlotID, arg.IssueNumber)
 	var i SponsorBooking
@@ -434,12 +728,18 @@ func (q *Queries) SponsorBookingOfIssue(ctx context.Context, arg SponsorBookingO
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
 	)
 	return i, err
 }
 
 const sponsorBookingProposals = `-- name: SponsorBookingProposals :many
-SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status = 'proposed' ORDER BY created_at DESC
+SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at, request, status_token_hash, payment_due_at, checkout_id, paid_source, declined_reason FROM sponsor_bookings WHERE slot_id = $1 AND issue_number = $2 AND status = 'proposed' ORDER BY created_at DESC
 `
 
 type SponsorBookingProposalsParams struct {
@@ -493,6 +793,12 @@ func (q *Queries) SponsorBookingProposals(ctx context.Context, arg SponsorBookin
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 		); err != nil {
 			return nil, err
 		}
@@ -540,6 +846,21 @@ func (q *Queries) SponsorBookingSetCampaign(ctx context.Context, arg SponsorBook
 		arg.ID,
 		arg.WorkspaceID,
 	)
+	return err
+}
+
+const sponsorBookingSetCheckout = `-- name: SponsorBookingSetCheckout :exec
+UPDATE sponsor_bookings SET checkout_id = $1, updated_at = $2 WHERE id = $3
+`
+
+type SponsorBookingSetCheckoutParams struct {
+	CheckoutID string    `json:"checkoutId"`
+	At         time.Time `json:"at"`
+	ID         uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SponsorBookingSetCheckout(ctx context.Context, arg SponsorBookingSetCheckoutParams) error {
+	_, err := q.db.Exec(ctx, sponsorBookingSetCheckout, arg.CheckoutID, arg.At, arg.ID)
 	return err
 }
 
@@ -594,8 +915,8 @@ func (q *Queries) SponsorBookingSetNotes(ctx context.Context, arg SponsorBooking
 
 const sponsorBookingSetPayment = `-- name: SponsorBookingSetPayment :exec
 UPDATE sponsor_bookings SET payment_status = $1, paid_on = $2, paid_cents = $3, paid_note = $4,
-    paid_by = $5, paid_recorded_at = $6, updated_at = $7
-WHERE id = $8 AND workspace_id = $9
+    paid_by = $5, paid_recorded_at = $6, paid_source = $7, updated_at = $8
+WHERE id = $9 AND workspace_id = $10
 `
 
 type SponsorBookingSetPaymentParams struct {
@@ -605,6 +926,7 @@ type SponsorBookingSetPaymentParams struct {
 	PaidNote       string     `json:"paidNote"`
 	PaidBy         *uuid.UUID `json:"paidBy"`
 	PaidRecordedAt *time.Time `json:"paidRecordedAt"`
+	PaidSource     string     `json:"paidSource"`
 	At             time.Time  `json:"at"`
 	ID             uuid.UUID  `json:"id"`
 	WorkspaceID    uuid.UUID  `json:"workspaceId"`
@@ -618,6 +940,7 @@ func (q *Queries) SponsorBookingSetPayment(ctx context.Context, arg SponsorBooki
 		arg.PaidNote,
 		arg.PaidBy,
 		arg.PaidRecordedAt,
+		arg.PaidSource,
 		arg.At,
 		arg.ID,
 		arg.WorkspaceID,
@@ -659,8 +982,40 @@ func (q *Queries) SponsorBookingSetTerms(ctx context.Context, arg SponsorBooking
 	return err
 }
 
+const sponsorBookingStripePaid = `-- name: SponsorBookingStripePaid :exec
+UPDATE sponsor_bookings SET status = $1, payment_status = 'paid', paid_source = 'stripe', paid_cents = $2, paid_on = $3::date,
+    paid_note = '', paid_by = NULL, paid_recorded_at = $4::timestamptz, checkout_id = $5,
+    creative_status = CASE WHEN $1::text = 'booked' THEN 'ready' ELSE creative_status END,
+    ready_at = CASE WHEN $1::text = 'booked' THEN coalesce(ready_at, $4::timestamptz) ELSE ready_at END, updated_at = $4
+WHERE id = $6
+`
+
+type SponsorBookingStripePaidParams struct {
+	Status     string    `json:"status"`
+	PaidCents  *int64    `json:"paidCents"`
+	PaidOn     time.Time `json:"paidOn"`
+	At         time.Time `json:"at"`
+	CheckoutID string    `json:"checkoutId"`
+	ID         uuid.UUID `json:"id"`
+}
+
+// A payment through Stripe Checkout: the booking's status (booked, or as it
+// was when the issue was taken meanwhile), paid by Stripe, and its creative
+// ready to go out once booked.
+func (q *Queries) SponsorBookingStripePaid(ctx context.Context, arg SponsorBookingStripePaidParams) error {
+	_, err := q.db.Exec(ctx, sponsorBookingStripePaid,
+		arg.Status,
+		arg.PaidCents,
+		arg.PaidOn,
+		arg.At,
+		arg.CheckoutID,
+		arg.ID,
+	)
+	return err
+}
+
 const sponsorBookingsDue = `-- name: SponsorBookingsDue :many
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, w.slug AS workspace_slug, w.timezone AS workspace_timezone
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, w.slug AS workspace_slug, w.timezone AS workspace_timezone
 FROM sponsor_bookings b
 JOIN workspaces w ON w.id = b.workspace_id
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
@@ -704,6 +1059,12 @@ type SponsorBookingsDueRow struct {
 	CreatedBy         *uuid.UUID      `json:"createdBy"`
 	CreatedAt         time.Time       `json:"createdAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
+	Request           json.RawMessage `json:"request"`
+	StatusTokenHash   []byte          `json:"statusTokenHash"`
+	PaymentDueAt      *time.Time      `json:"paymentDueAt"`
+	CheckoutID        string          `json:"checkoutId"`
+	PaidSource        string          `json:"paidSource"`
+	DeclinedReason    string          `json:"declinedReason"`
 	SponsorName       string          `json:"sponsorName"`
 	WorkspaceSlug     string          `json:"workspaceSlug"`
 	WorkspaceTimezone string          `json:"workspaceTimezone"`
@@ -757,6 +1118,12 @@ func (q *Queries) SponsorBookingsDue(ctx context.Context) ([]SponsorBookingsDueR
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 			&i.SponsorName,
 			&i.WorkspaceSlug,
 			&i.WorkspaceTimezone,
@@ -772,14 +1139,14 @@ func (q *Queries) SponsorBookingsDue(ctx context.Context) ([]SponsorBookingsDueR
 }
 
 const sponsorBookingsOfSlot = `-- name: SponsorBookingsOfSlot :many
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
     coalesce(sp.contact_email, '')::text AS sponsor_email, coalesce(sp.terms_days, 14)::integer AS sponsor_terms,
     coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
     c.scheduled_at AS campaign_scheduled_at, c.started_at AS campaign_started_at
 FROM sponsor_bookings b
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
 LEFT JOIN campaigns c ON c.id = b.campaign_id AND c.deleted_at IS NULL
-WHERE b.slot_id = $1 AND b.issue_number BETWEEN $2 AND $3 AND b.status <> 'canceled'
+WHERE b.slot_id = $1 AND b.issue_number BETWEEN $2 AND $3 AND b.status NOT IN ('canceled','requested','declined','expired')
 ORDER BY b.issue_number, b.created_at
 `
 
@@ -826,6 +1193,12 @@ type SponsorBookingsOfSlotRow struct {
 	CreatedBy           *uuid.UUID      `json:"createdBy"`
 	CreatedAt           time.Time       `json:"createdAt"`
 	UpdatedAt           time.Time       `json:"updatedAt"`
+	Request             json.RawMessage `json:"request"`
+	StatusTokenHash     []byte          `json:"statusTokenHash"`
+	PaymentDueAt        *time.Time      `json:"paymentDueAt"`
+	CheckoutID          string          `json:"checkoutId"`
+	PaidSource          string          `json:"paidSource"`
+	DeclinedReason      string          `json:"declinedReason"`
 	SponsorName         string          `json:"sponsorName"`
 	SponsorContact      string          `json:"sponsorContact"`
 	SponsorEmail        string          `json:"sponsorEmail"`
@@ -837,6 +1210,8 @@ type SponsorBookingsOfSlotRow struct {
 }
 
 // A slot's bookings of a range of issues, with their sponsor and campaign.
+// Requests and what became of them (declined, expired) aren't on the
+// calendar: they never held the issue.
 func (q *Queries) SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookingsOfSlotParams) ([]SponsorBookingsOfSlotRow, error) {
 	rows, err := q.db.Query(ctx, sponsorBookingsOfSlot, arg.SlotID, arg.FromNumber, arg.ToNumber)
 	if err != nil {
@@ -883,6 +1258,12 @@ func (q *Queries) SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookings
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 			&i.SponsorName,
 			&i.SponsorContact,
 			&i.SponsorEmail,
@@ -903,14 +1284,14 @@ func (q *Queries) SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookings
 }
 
 const sponsorBookingsOfWorkspace = `-- name: SponsorBookingsOfWorkspace :many
-SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
     coalesce(sp.contact_email, '')::text AS sponsor_email, coalesce(sp.terms_days, 14)::integer AS sponsor_terms,
     coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
     c.scheduled_at AS campaign_scheduled_at, c.started_at AS campaign_started_at
 FROM sponsor_bookings b
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
 LEFT JOIN campaigns c ON c.id = b.campaign_id AND c.deleted_at IS NULL
-WHERE b.workspace_id = $1 AND b.status <> 'canceled'
+WHERE b.workspace_id = $1 AND b.status NOT IN ('canceled','requested','declined','expired')
 ORDER BY b.issue_on, b.issue_number
 `
 
@@ -951,6 +1332,12 @@ type SponsorBookingsOfWorkspaceRow struct {
 	CreatedBy           *uuid.UUID      `json:"createdBy"`
 	CreatedAt           time.Time       `json:"createdAt"`
 	UpdatedAt           time.Time       `json:"updatedAt"`
+	Request             json.RawMessage `json:"request"`
+	StatusTokenHash     []byte          `json:"statusTokenHash"`
+	PaymentDueAt        *time.Time      `json:"paymentDueAt"`
+	CheckoutID          string          `json:"checkoutId"`
+	PaidSource          string          `json:"paidSource"`
+	DeclinedReason      string          `json:"declinedReason"`
 	SponsorName         string          `json:"sponsorName"`
 	SponsorContact      string          `json:"sponsorContact"`
 	SponsorEmail        string          `json:"sponsorEmail"`
@@ -1007,6 +1394,12 @@ func (q *Queries) SponsorBookingsOfWorkspace(ctx context.Context, workspaceID uu
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 			&i.SponsorName,
 			&i.SponsorContact,
 			&i.SponsorEmail,
@@ -1055,6 +1448,38 @@ func (q *Queries) SponsorBookingsToSend(ctx context.Context) ([]SponsorBookingsT
 		return nil, err
 	}
 	return items, nil
+}
+
+const sponsorByContactEmail = `-- name: SponsorByContactEmail :one
+SELECT id, workspace_id, name, website, logo_url, contact_name, contact_email, terms_days, notes, created_by, created_at, updated_at, deleted_at FROM sponsors WHERE workspace_id = $1 AND lower(contact_email) = lower($2::text) AND deleted_at IS NULL
+ORDER BY created_at LIMIT 1
+`
+
+type SponsorByContactEmailParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Email       string    `json:"email"`
+}
+
+// The library's sponsor a request's address belongs to.
+func (q *Queries) SponsorByContactEmail(ctx context.Context, arg SponsorByContactEmailParams) (Sponsor, error) {
+	row := q.db.QueryRow(ctx, sponsorByContactEmail, arg.WorkspaceID, arg.Email)
+	var i Sponsor
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Name,
+		&i.Website,
+		&i.LogoUrl,
+		&i.ContactName,
+		&i.ContactEmail,
+		&i.TermsDays,
+		&i.Notes,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const sponsorCampaignBrief = `-- name: SponsorCampaignBrief :one
@@ -1200,6 +1625,35 @@ func (q *Queries) SponsorDelete(ctx context.Context, arg SponsorDeleteParams) er
 	return err
 }
 
+const sponsorFillBlanks = `-- name: SponsorFillBlanks :exec
+UPDATE sponsors SET website = CASE WHEN website = '' THEN $1 ELSE website END,
+    contact_name = CASE WHEN contact_name = '' THEN $2 ELSE contact_name END,
+    logo_url = CASE WHEN logo_url = '' THEN $3 ELSE logo_url END, updated_at = $4
+WHERE id = $5 AND workspace_id = $6
+`
+
+type SponsorFillBlanksParams struct {
+	Website     string    `json:"website"`
+	ContactName string    `json:"contactName"`
+	LogoUrl     string    `json:"logoUrl"`
+	At          time.Time `json:"at"`
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// A request fills what the library's sponsor doesn't have yet.
+func (q *Queries) SponsorFillBlanks(ctx context.Context, arg SponsorFillBlanksParams) error {
+	_, err := q.db.Exec(ctx, sponsorFillBlanks,
+		arg.Website,
+		arg.ContactName,
+		arg.LogoUrl,
+		arg.At,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	return err
+}
+
 const sponsorGet = `-- name: SponsorGet :one
 SELECT id, workspace_id, name, website, logo_url, contact_name, contact_email, terms_days, notes, created_by, created_at, updated_at, deleted_at FROM sponsors WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
 `
@@ -1231,7 +1685,7 @@ func (q *Queries) SponsorGet(ctx context.Context, arg SponsorGetParams) (Sponsor
 }
 
 const sponsorHoldsLapsed = `-- name: SponsorHoldsLapsed :many
-SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at FROM sponsor_bookings WHERE status = 'hold' AND hold_until IS NOT NULL AND hold_until < $1::date
+SELECT id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, campaign_id, campaign_by_hand, price_cents, currency, status, hold_until, creative, creative_status, creative_due, ready_at, ready_by, payment_status, payment_due, paid_on, paid_cents, paid_note, paid_by, paid_recorded_at, notes, cancel_reason, canceled_at, canceled_by, sent_at, proposed_by, proposed_name, proposed_note, notified, created_by, created_at, updated_at, request, status_token_hash, payment_due_at, checkout_id, paid_source, declined_reason FROM sponsor_bookings WHERE status = 'hold' AND hold_until IS NOT NULL AND hold_until < $1::date
 `
 
 func (q *Queries) SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]SponsorBooking, error) {
@@ -1280,6 +1734,12 @@ func (q *Queries) SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]Sp
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
 		); err != nil {
 			return nil, err
 		}
@@ -1325,6 +1785,56 @@ func (q *Queries) SponsorInsert(ctx context.Context, arg SponsorInsertParams) er
 		arg.At,
 	)
 	return err
+}
+
+const sponsorIssuesHeld = `-- name: SponsorIssuesHeld :many
+SELECT b.slot_id, b.issue_number, b.status, b.hold_until, b.payment_due_at, coalesce(sp.name, '')::text AS sponsor_name
+FROM sponsor_bookings b LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+WHERE b.slot_id = ANY($1::uuid[]) AND b.issue_on BETWEEN $2::date AND $3::date AND b.status IN ('hold','booked','sent','awaiting_payment')
+`
+
+type SponsorIssuesHeldParams struct {
+	SlotIds []uuid.UUID `json:"slotIds"`
+	FromOn  time.Time   `json:"fromOn"`
+	ToOn    time.Time   `json:"toOn"`
+}
+
+type SponsorIssuesHeldRow struct {
+	SlotID       uuid.UUID  `json:"slotId"`
+	IssueNumber  int32      `json:"issueNumber"`
+	Status       string     `json:"status"`
+	HoldUntil    *time.Time `json:"holdUntil"`
+	PaymentDueAt *time.Time `json:"paymentDueAt"`
+	SponsorName  string     `json:"sponsorName"`
+}
+
+// The issues of some slots between two dates that a booking holds, with
+// who holds them and until when.
+func (q *Queries) SponsorIssuesHeld(ctx context.Context, arg SponsorIssuesHeldParams) ([]SponsorIssuesHeldRow, error) {
+	rows, err := q.db.Query(ctx, sponsorIssuesHeld, arg.SlotIds, arg.FromOn, arg.ToOn)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SponsorIssuesHeldRow{}
+	for rows.Next() {
+		var i SponsorIssuesHeldRow
+		if err := rows.Scan(
+			&i.SlotID,
+			&i.IssueNumber,
+			&i.Status,
+			&i.HoldUntil,
+			&i.PaymentDueAt,
+			&i.SponsorName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sponsorLastIssueOfCampaign = `-- name: SponsorLastIssueOfCampaign :one
@@ -1389,6 +1899,45 @@ func (q *Queries) SponsorList(ctx context.Context, workspaceID uuid.UUID) ([]Spo
 	return items, nil
 }
 
+const sponsorListEngagement = `-- name: SponsorListEngagement :one
+SELECT coalesce(sum(cc.delivered), 0)::bigint AS delivered, coalesce(sum(cc.opened_human), 0)::bigint AS human_opens, coalesce(sum(cc.clicked), 0)::bigint AS clicked
+FROM campaigns c JOIN campaign_counters cc ON cc.campaign_id = c.id
+WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.status = 'sent' AND c.started_at >= $2::timestamptz
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) x(id) WHERE x.id = $3::text)
+`
+
+type SponsorListEngagementParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+	ListID      string    `json:"listId"`
+}
+
+type SponsorListEngagementRow struct {
+	Delivered  int64 `json:"delivered"`
+	HumanOpens int64 `json:"humanOpens"`
+	Clicked    int64 `json:"clicked"`
+}
+
+// A list's campaigns sent since a moment: delivered, human opens and
+// clickers, for the media kit's rates.
+func (q *Queries) SponsorListEngagement(ctx context.Context, arg SponsorListEngagementParams) (SponsorListEngagementRow, error) {
+	row := q.db.QueryRow(ctx, sponsorListEngagement, arg.WorkspaceID, arg.Since, arg.ListID)
+	var i SponsorListEngagementRow
+	err := row.Scan(&i.Delivered, &i.HumanOpens, &i.Clicked)
+	return i, err
+}
+
+const sponsorListSubscribers = `-- name: SponsorListSubscribers :one
+SELECT count(*)::bigint FROM list_memberships WHERE list_id = $1 AND status = 'subscribed'
+`
+
+func (q *Queries) SponsorListSubscribers(ctx context.Context, listID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, sponsorListSubscribers, listID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const sponsorNameTaken = `-- name: SponsorNameTaken :one
 SELECT EXISTS (SELECT 1 FROM sponsors WHERE workspace_id = $1 AND lower(name) = lower($2::text) AND id <> $3 AND deleted_at IS NULL)::boolean
 `
@@ -1404,6 +1953,125 @@ func (q *Queries) SponsorNameTaken(ctx context.Context, arg SponsorNameTakenPara
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const sponsorPaymentsLapsed = `-- name: SponsorPaymentsLapsed :many
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, w.slug AS workspace_slug, w.timezone AS workspace_timezone
+FROM sponsor_bookings b JOIN workspaces w ON w.id = b.workspace_id
+WHERE b.status = 'awaiting_payment' AND b.payment_due_at < $1::timestamptz
+`
+
+type SponsorPaymentsLapsedRow struct {
+	ID                uuid.UUID       `json:"id"`
+	WorkspaceID       uuid.UUID       `json:"workspaceId"`
+	SlotID            uuid.UUID       `json:"slotId"`
+	IssueNumber       int32           `json:"issueNumber"`
+	IssueOn           time.Time       `json:"issueOn"`
+	SponsorID         *uuid.UUID      `json:"sponsorId"`
+	CampaignID        *uuid.UUID      `json:"campaignId"`
+	CampaignByHand    bool            `json:"campaignByHand"`
+	PriceCents        int64           `json:"priceCents"`
+	Currency          string          `json:"currency"`
+	Status            string          `json:"status"`
+	HoldUntil         *time.Time      `json:"holdUntil"`
+	Creative          json.RawMessage `json:"creative"`
+	CreativeStatus    string          `json:"creativeStatus"`
+	CreativeDue       *time.Time      `json:"creativeDue"`
+	ReadyAt           *time.Time      `json:"readyAt"`
+	ReadyBy           *uuid.UUID      `json:"readyBy"`
+	PaymentStatus     string          `json:"paymentStatus"`
+	PaymentDue        *time.Time      `json:"paymentDue"`
+	PaidOn            *time.Time      `json:"paidOn"`
+	PaidCents         *int64          `json:"paidCents"`
+	PaidNote          string          `json:"paidNote"`
+	PaidBy            *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt    *time.Time      `json:"paidRecordedAt"`
+	Notes             string          `json:"notes"`
+	CancelReason      string          `json:"cancelReason"`
+	CanceledAt        *time.Time      `json:"canceledAt"`
+	CanceledBy        *uuid.UUID      `json:"canceledBy"`
+	SentAt            *time.Time      `json:"sentAt"`
+	ProposedBy        *uuid.UUID      `json:"proposedBy"`
+	ProposedName      string          `json:"proposedName"`
+	ProposedNote      string          `json:"proposedNote"`
+	Notified          []string        `json:"notified"`
+	CreatedBy         *uuid.UUID      `json:"createdBy"`
+	CreatedAt         time.Time       `json:"createdAt"`
+	UpdatedAt         time.Time       `json:"updatedAt"`
+	Request           json.RawMessage `json:"request"`
+	StatusTokenHash   []byte          `json:"statusTokenHash"`
+	PaymentDueAt      *time.Time      `json:"paymentDueAt"`
+	CheckoutID        string          `json:"checkoutId"`
+	PaidSource        string          `json:"paidSource"`
+	DeclinedReason    string          `json:"declinedReason"`
+	WorkspaceSlug     string          `json:"workspaceSlug"`
+	WorkspaceTimezone string          `json:"workspaceTimezone"`
+}
+
+// Approved bookings whose payment didn't arrive in time.
+func (q *Queries) SponsorPaymentsLapsed(ctx context.Context, now time.Time) ([]SponsorPaymentsLapsedRow, error) {
+	rows, err := q.db.Query(ctx, sponsorPaymentsLapsed, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SponsorPaymentsLapsedRow{}
+	for rows.Next() {
+		var i SponsorPaymentsLapsedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.SlotID,
+			&i.IssueNumber,
+			&i.IssueOn,
+			&i.SponsorID,
+			&i.CampaignID,
+			&i.CampaignByHand,
+			&i.PriceCents,
+			&i.Currency,
+			&i.Status,
+			&i.HoldUntil,
+			&i.Creative,
+			&i.CreativeStatus,
+			&i.CreativeDue,
+			&i.ReadyAt,
+			&i.ReadyBy,
+			&i.PaymentStatus,
+			&i.PaymentDue,
+			&i.PaidOn,
+			&i.PaidCents,
+			&i.PaidNote,
+			&i.PaidBy,
+			&i.PaidRecordedAt,
+			&i.Notes,
+			&i.CancelReason,
+			&i.CanceledAt,
+			&i.CanceledBy,
+			&i.SentAt,
+			&i.ProposedBy,
+			&i.ProposedName,
+			&i.ProposedNote,
+			&i.Notified,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
+			&i.WorkspaceSlug,
+			&i.WorkspaceTimezone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const sponsorReportStats = `-- name: SponsorReportStats :one
@@ -1530,6 +2198,510 @@ func (q *Queries) SponsorReportsToRefresh(ctx context.Context) ([]SponsorReports
 		return nil, err
 	}
 	return items, nil
+}
+
+const sponsorRequestCount = `-- name: SponsorRequestCount :one
+SELECT count(*)::integer FROM sponsor_bookings WHERE workspace_id = $1 AND status = 'requested'
+`
+
+func (q *Queries) SponsorRequestCount(ctx context.Context, workspaceID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, sponsorRequestCount, workspaceID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const sponsorRequestGet = `-- name: SponsorRequestGet :one
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.logo_url, '')::text AS sponsor_logo, coalesce(sl.name, '')::text AS slot_name,
+    coalesce(l.name, '')::text AS list_name, (sl.deleted_at IS NOT NULL)::boolean AS slot_deleted
+FROM sponsor_bookings b
+LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+LEFT JOIN sponsor_slots sl ON sl.id = b.slot_id
+LEFT JOIN lists l ON l.id = sl.list_id
+WHERE b.id = $1 AND b.workspace_id = $2 AND b.request <> '{}'::jsonb
+`
+
+type SponsorRequestGetParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type SponsorRequestGetRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	SponsorID       *uuid.UUID      `json:"sponsorId"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	CampaignByHand  bool            `json:"campaignByHand"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	Status          string          `json:"status"`
+	HoldUntil       *time.Time      `json:"holdUntil"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeStatus  string          `json:"creativeStatus"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	ReadyAt         *time.Time      `json:"readyAt"`
+	ReadyBy         *uuid.UUID      `json:"readyBy"`
+	PaymentStatus   string          `json:"paymentStatus"`
+	PaymentDue      *time.Time      `json:"paymentDue"`
+	PaidOn          *time.Time      `json:"paidOn"`
+	PaidCents       *int64          `json:"paidCents"`
+	PaidNote        string          `json:"paidNote"`
+	PaidBy          *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt  *time.Time      `json:"paidRecordedAt"`
+	Notes           string          `json:"notes"`
+	CancelReason    string          `json:"cancelReason"`
+	CanceledAt      *time.Time      `json:"canceledAt"`
+	CanceledBy      *uuid.UUID      `json:"canceledBy"`
+	SentAt          *time.Time      `json:"sentAt"`
+	ProposedBy      *uuid.UUID      `json:"proposedBy"`
+	ProposedName    string          `json:"proposedName"`
+	ProposedNote    string          `json:"proposedNote"`
+	Notified        []string        `json:"notified"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	Request         json.RawMessage `json:"request"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	PaymentDueAt    *time.Time      `json:"paymentDueAt"`
+	CheckoutID      string          `json:"checkoutId"`
+	PaidSource      string          `json:"paidSource"`
+	DeclinedReason  string          `json:"declinedReason"`
+	SponsorName     string          `json:"sponsorName"`
+	SponsorLogo     string          `json:"sponsorLogo"`
+	SlotName        string          `json:"slotName"`
+	ListName        string          `json:"listName"`
+	SlotDeleted     bool            `json:"slotDeleted"`
+}
+
+// One self-serve booking with its slot (deleted or not), list and sponsor.
+func (q *Queries) SponsorRequestGet(ctx context.Context, arg SponsorRequestGetParams) (SponsorRequestGetRow, error) {
+	row := q.db.QueryRow(ctx, sponsorRequestGet, arg.ID, arg.WorkspaceID)
+	var i SponsorRequestGetRow
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.SlotID,
+		&i.IssueNumber,
+		&i.IssueOn,
+		&i.SponsorID,
+		&i.CampaignID,
+		&i.CampaignByHand,
+		&i.PriceCents,
+		&i.Currency,
+		&i.Status,
+		&i.HoldUntil,
+		&i.Creative,
+		&i.CreativeStatus,
+		&i.CreativeDue,
+		&i.ReadyAt,
+		&i.ReadyBy,
+		&i.PaymentStatus,
+		&i.PaymentDue,
+		&i.PaidOn,
+		&i.PaidCents,
+		&i.PaidNote,
+		&i.PaidBy,
+		&i.PaidRecordedAt,
+		&i.Notes,
+		&i.CancelReason,
+		&i.CanceledAt,
+		&i.CanceledBy,
+		&i.SentAt,
+		&i.ProposedBy,
+		&i.ProposedName,
+		&i.ProposedNote,
+		&i.Notified,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Request,
+		&i.StatusTokenHash,
+		&i.PaymentDueAt,
+		&i.CheckoutID,
+		&i.PaidSource,
+		&i.DeclinedReason,
+		&i.SponsorName,
+		&i.SponsorLogo,
+		&i.SlotName,
+		&i.ListName,
+		&i.SlotDeleted,
+	)
+	return i, err
+}
+
+const sponsorRequestInsert = `-- name: SponsorRequestInsert :exec
+INSERT INTO sponsor_bookings (id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, price_cents, currency, status, creative, creative_status,
+    creative_due, request, status_token_hash, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'requested', $9, 'waiting',
+    $10, $11, $12, $13, $13)
+`
+
+type SponsorRequestInsertParams struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	SponsorID       *uuid.UUID      `json:"sponsorId"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	Request         json.RawMessage `json:"request"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	At              time.Time       `json:"at"`
+}
+
+func (q *Queries) SponsorRequestInsert(ctx context.Context, arg SponsorRequestInsertParams) error {
+	_, err := q.db.Exec(ctx, sponsorRequestInsert,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.SlotID,
+		arg.IssueNumber,
+		arg.IssueOn,
+		arg.SponsorID,
+		arg.PriceCents,
+		arg.Currency,
+		arg.Creative,
+		arg.CreativeDue,
+		arg.Request,
+		arg.StatusTokenHash,
+		arg.At,
+	)
+	return err
+}
+
+const sponsorRequestsOf = `-- name: SponsorRequestsOf :many
+SELECT b.id, b.workspace_id, b.slot_id, b.issue_number, b.issue_on, b.sponsor_id, b.campaign_id, b.campaign_by_hand, b.price_cents, b.currency, b.status, b.hold_until, b.creative, b.creative_status, b.creative_due, b.ready_at, b.ready_by, b.payment_status, b.payment_due, b.paid_on, b.paid_cents, b.paid_note, b.paid_by, b.paid_recorded_at, b.notes, b.cancel_reason, b.canceled_at, b.canceled_by, b.sent_at, b.proposed_by, b.proposed_name, b.proposed_note, b.notified, b.created_by, b.created_at, b.updated_at, b.request, b.status_token_hash, b.payment_due_at, b.checkout_id, b.paid_source, b.declined_reason, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.logo_url, '')::text AS sponsor_logo, coalesce(sl.name, '')::text AS slot_name,
+    coalesce(l.name, '')::text AS list_name, (sl.deleted_at IS NOT NULL)::boolean AS slot_deleted
+FROM sponsor_bookings b
+LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+LEFT JOIN sponsor_slots sl ON sl.id = b.slot_id
+LEFT JOIN lists l ON l.id = sl.list_id
+WHERE b.workspace_id = $1 AND b.status = ANY($2::text[]) AND b.request <> '{}'::jsonb AND b.updated_at >= $3::timestamptz
+ORDER BY b.created_at, b.id
+`
+
+type SponsorRequestsOfParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Statuses    []string  `json:"statuses"`
+	Since       time.Time `json:"since"`
+}
+
+type SponsorRequestsOfRow struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	SponsorID       *uuid.UUID      `json:"sponsorId"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	CampaignByHand  bool            `json:"campaignByHand"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	Status          string          `json:"status"`
+	HoldUntil       *time.Time      `json:"holdUntil"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeStatus  string          `json:"creativeStatus"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	ReadyAt         *time.Time      `json:"readyAt"`
+	ReadyBy         *uuid.UUID      `json:"readyBy"`
+	PaymentStatus   string          `json:"paymentStatus"`
+	PaymentDue      *time.Time      `json:"paymentDue"`
+	PaidOn          *time.Time      `json:"paidOn"`
+	PaidCents       *int64          `json:"paidCents"`
+	PaidNote        string          `json:"paidNote"`
+	PaidBy          *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt  *time.Time      `json:"paidRecordedAt"`
+	Notes           string          `json:"notes"`
+	CancelReason    string          `json:"cancelReason"`
+	CanceledAt      *time.Time      `json:"canceledAt"`
+	CanceledBy      *uuid.UUID      `json:"canceledBy"`
+	SentAt          *time.Time      `json:"sentAt"`
+	ProposedBy      *uuid.UUID      `json:"proposedBy"`
+	ProposedName    string          `json:"proposedName"`
+	ProposedNote    string          `json:"proposedNote"`
+	Notified        []string        `json:"notified"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	Request         json.RawMessage `json:"request"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	PaymentDueAt    *time.Time      `json:"paymentDueAt"`
+	CheckoutID      string          `json:"checkoutId"`
+	PaidSource      string          `json:"paidSource"`
+	DeclinedReason  string          `json:"declinedReason"`
+	SponsorName     string          `json:"sponsorName"`
+	SponsorLogo     string          `json:"sponsorLogo"`
+	SlotName        string          `json:"slotName"`
+	ListName        string          `json:"listName"`
+	SlotDeleted     bool            `json:"slotDeleted"`
+}
+
+// Self-serve bookings in some states (requests first of all), oldest first.
+func (q *Queries) SponsorRequestsOf(ctx context.Context, arg SponsorRequestsOfParams) ([]SponsorRequestsOfRow, error) {
+	rows, err := q.db.Query(ctx, sponsorRequestsOf, arg.WorkspaceID, arg.Statuses, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SponsorRequestsOfRow{}
+	for rows.Next() {
+		var i SponsorRequestsOfRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.SlotID,
+			&i.IssueNumber,
+			&i.IssueOn,
+			&i.SponsorID,
+			&i.CampaignID,
+			&i.CampaignByHand,
+			&i.PriceCents,
+			&i.Currency,
+			&i.Status,
+			&i.HoldUntil,
+			&i.Creative,
+			&i.CreativeStatus,
+			&i.CreativeDue,
+			&i.ReadyAt,
+			&i.ReadyBy,
+			&i.PaymentStatus,
+			&i.PaymentDue,
+			&i.PaidOn,
+			&i.PaidCents,
+			&i.PaidNote,
+			&i.PaidBy,
+			&i.PaidRecordedAt,
+			&i.Notes,
+			&i.CancelReason,
+			&i.CanceledAt,
+			&i.CanceledBy,
+			&i.SentAt,
+			&i.ProposedBy,
+			&i.ProposedName,
+			&i.ProposedNote,
+			&i.Notified,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Request,
+			&i.StatusTokenHash,
+			&i.PaymentDueAt,
+			&i.CheckoutID,
+			&i.PaidSource,
+			&i.DeclinedReason,
+			&i.SponsorName,
+			&i.SponsorLogo,
+			&i.SlotName,
+			&i.ListName,
+			&i.SlotDeleted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sponsorRequestsPerIssue = `-- name: SponsorRequestsPerIssue :many
+SELECT issue_number, count(*)::integer AS requests FROM sponsor_bookings
+WHERE slot_id = $1 AND issue_number BETWEEN $2 AND $3 AND status = 'requested'
+GROUP BY issue_number
+`
+
+type SponsorRequestsPerIssueParams struct {
+	SlotID     uuid.UUID `json:"slotId"`
+	FromNumber int32     `json:"fromNumber"`
+	ToNumber   int32     `json:"toNumber"`
+}
+
+type SponsorRequestsPerIssueRow struct {
+	IssueNumber int32 `json:"issueNumber"`
+	Requests    int32 `json:"requests"`
+}
+
+// How many requests wait for each issue of a slot in a range.
+func (q *Queries) SponsorRequestsPerIssue(ctx context.Context, arg SponsorRequestsPerIssueParams) ([]SponsorRequestsPerIssueRow, error) {
+	rows, err := q.db.Query(ctx, sponsorRequestsPerIssue, arg.SlotID, arg.FromNumber, arg.ToNumber)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SponsorRequestsPerIssueRow{}
+	for rows.Next() {
+		var i SponsorRequestsPerIssueRow
+		if err := rows.Scan(&i.IssueNumber, &i.Requests); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sponsorRequestsPerSponsor = `-- name: SponsorRequestsPerSponsor :many
+SELECT sponsor_id, count(*)::integer AS requests FROM sponsor_bookings
+WHERE workspace_id = $1 AND status = 'requested' AND sponsor_id IS NOT NULL
+GROUP BY sponsor_id
+`
+
+type SponsorRequestsPerSponsorRow struct {
+	SponsorID *uuid.UUID `json:"sponsorId"`
+	Requests  int32      `json:"requests"`
+}
+
+// How many requests wait for each sponsor of the library.
+func (q *Queries) SponsorRequestsPerSponsor(ctx context.Context, workspaceID uuid.UUID) ([]SponsorRequestsPerSponsorRow, error) {
+	rows, err := q.db.Query(ctx, sponsorRequestsPerSponsor, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SponsorRequestsPerSponsorRow{}
+	for rows.Next() {
+		var i SponsorRequestsPerSponsorRow
+		if err := rows.Scan(&i.SponsorID, &i.Requests); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sponsorSelfServeSlots = `-- name: SponsorSelfServeSlots :many
+SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, s.self_serve, s.description, s.lead_days, s.pay_days, l.name AS list_name
+FROM sponsor_slots s JOIN lists l ON l.id = s.list_id
+WHERE s.workspace_id = $1 AND s.deleted_at IS NULL AND s.self_serve AND s.selling
+ORDER BY s.created_at
+`
+
+type SponsorSelfServeSlotsRow struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	ListID       uuid.UUID  `json:"listId"`
+	Name         string     `json:"name"`
+	Placement    string     `json:"placement"`
+	PriceCents   int64      `json:"priceCents"`
+	Currency     string     `json:"currency"`
+	FirstNumber  int32      `json:"firstNumber"`
+	FirstOn      time.Time  `json:"firstOn"`
+	EveryDays    int32      `json:"everyDays"`
+	CreativeDays int32      `json:"creativeDays"`
+	Selling      bool       `json:"selling"`
+	CreatedBy    *uuid.UUID `json:"createdBy"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	DeletedAt    *time.Time `json:"deletedAt"`
+	SelfServe    bool       `json:"selfServe"`
+	Description  string     `json:"description"`
+	LeadDays     int32      `json:"leadDays"`
+	PayDays      int32      `json:"payDays"`
+	ListName     string     `json:"listName"`
+}
+
+// The slots sponsors book themselves: self-serve and on sale.
+func (q *Queries) SponsorSelfServeSlots(ctx context.Context, workspaceID uuid.UUID) ([]SponsorSelfServeSlotsRow, error) {
+	rows, err := q.db.Query(ctx, sponsorSelfServeSlots, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SponsorSelfServeSlotsRow{}
+	for rows.Next() {
+		var i SponsorSelfServeSlotsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.ListID,
+			&i.Name,
+			&i.Placement,
+			&i.PriceCents,
+			&i.Currency,
+			&i.FirstNumber,
+			&i.FirstOn,
+			&i.EveryDays,
+			&i.CreativeDays,
+			&i.Selling,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.SelfServe,
+			&i.Description,
+			&i.LeadDays,
+			&i.PayDays,
+			&i.ListName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sponsorSettingsGet = `-- name: SponsorSettingsGet :one
+
+SELECT workspace_id, self_serve, media_kit, contact_email, updated_by, updated_at FROM sponsor_settings WHERE workspace_id = $1
+`
+
+// Self-serve booking (M65, G-40): the sponsor page's settings and media
+// kit, requests, their review, payment through Stripe Checkout and
+// expiry.
+func (q *Queries) SponsorSettingsGet(ctx context.Context, workspaceID uuid.UUID) (SponsorSetting, error) {
+	row := q.db.QueryRow(ctx, sponsorSettingsGet, workspaceID)
+	var i SponsorSetting
+	err := row.Scan(
+		&i.WorkspaceID,
+		&i.SelfServe,
+		&i.MediaKit,
+		&i.ContactEmail,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const sponsorSettingsSave = `-- name: SponsorSettingsSave :exec
+INSERT INTO sponsor_settings (workspace_id, self_serve, media_kit, contact_email, updated_by, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (workspace_id) DO UPDATE SET self_serve = EXCLUDED.self_serve, media_kit = EXCLUDED.media_kit, contact_email = EXCLUDED.contact_email,
+    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+`
+
+type SponsorSettingsSaveParams struct {
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	SelfServe    bool            `json:"selfServe"`
+	MediaKit     json.RawMessage `json:"mediaKit"`
+	ContactEmail string          `json:"contactEmail"`
+	UpdatedBy    *uuid.UUID      `json:"updatedBy"`
+	At           time.Time       `json:"at"`
+}
+
+func (q *Queries) SponsorSettingsSave(ctx context.Context, arg SponsorSettingsSaveParams) error {
+	_, err := q.db.Exec(ctx, sponsorSettingsSave,
+		arg.WorkspaceID,
+		arg.SelfServe,
+		arg.MediaKit,
+		arg.ContactEmail,
+		arg.UpdatedBy,
+		arg.At,
+	)
+	return err
 }
 
 const sponsorShareByToken = `-- name: SponsorShareByToken :one
@@ -1743,7 +2915,7 @@ func (q *Queries) SponsorSlotDelete(ctx context.Context, arg SponsorSlotDeletePa
 }
 
 const sponsorSlotGet = `-- name: SponsorSlotGet :one
-SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, l.name AS list_name
+SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, s.self_serve, s.description, s.lead_days, s.pay_days, l.name AS list_name
 FROM sponsor_slots s JOIN lists l ON l.id = s.list_id
 WHERE s.id = $1 AND s.workspace_id = $2 AND s.deleted_at IS NULL
 `
@@ -1770,6 +2942,10 @@ type SponsorSlotGetRow struct {
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 	DeletedAt    *time.Time `json:"deletedAt"`
+	SelfServe    bool       `json:"selfServe"`
+	Description  string     `json:"description"`
+	LeadDays     int32      `json:"leadDays"`
+	PayDays      int32      `json:"payDays"`
 	ListName     string     `json:"listName"`
 }
 
@@ -1793,14 +2969,20 @@ func (q *Queries) SponsorSlotGet(ctx context.Context, arg SponsorSlotGetParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SelfServe,
+		&i.Description,
+		&i.LeadDays,
+		&i.PayDays,
 		&i.ListName,
 	)
 	return i, err
 }
 
 const sponsorSlotInsert = `-- name: SponsorSlotInsert :exec
-INSERT INTO sponsor_slots (id, workspace_id, list_id, name, placement, price_cents, currency, first_number, first_on, every_days, creative_days, selling, created_by, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
+INSERT INTO sponsor_slots (id, workspace_id, list_id, name, placement, price_cents, currency, first_number, first_on, every_days, creative_days, selling,
+    self_serve, description, lead_days, pay_days, created_by, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+    $13, $14, $15, $16, $17, $18, $18)
 `
 
 type SponsorSlotInsertParams struct {
@@ -1816,6 +2998,10 @@ type SponsorSlotInsertParams struct {
 	EveryDays    int32      `json:"everyDays"`
 	CreativeDays int32      `json:"creativeDays"`
 	Selling      bool       `json:"selling"`
+	SelfServe    bool       `json:"selfServe"`
+	Description  string     `json:"description"`
+	LeadDays     int32      `json:"leadDays"`
+	PayDays      int32      `json:"payDays"`
 	CreatedBy    *uuid.UUID `json:"createdBy"`
 	At           time.Time  `json:"at"`
 }
@@ -1834,6 +3020,10 @@ func (q *Queries) SponsorSlotInsert(ctx context.Context, arg SponsorSlotInsertPa
 		arg.EveryDays,
 		arg.CreativeDays,
 		arg.Selling,
+		arg.SelfServe,
+		arg.Description,
+		arg.LeadDays,
+		arg.PayDays,
 		arg.CreatedBy,
 		arg.At,
 	)
@@ -1842,8 +3032,9 @@ func (q *Queries) SponsorSlotInsert(ctx context.Context, arg SponsorSlotInsertPa
 
 const sponsorSlotUpdate = `-- name: SponsorSlotUpdate :exec
 UPDATE sponsor_slots SET list_id = $1, name = $2, placement = $3, price_cents = $4, currency = $5,
-    first_number = $6, first_on = $7, every_days = $8, creative_days = $9, selling = $10, updated_at = $11
-WHERE id = $12 AND workspace_id = $13 AND deleted_at IS NULL
+    first_number = $6, first_on = $7, every_days = $8, creative_days = $9, selling = $10,
+    self_serve = $11, description = $12, lead_days = $13, pay_days = $14, updated_at = $15
+WHERE id = $16 AND workspace_id = $17 AND deleted_at IS NULL
 `
 
 type SponsorSlotUpdateParams struct {
@@ -1857,6 +3048,10 @@ type SponsorSlotUpdateParams struct {
 	EveryDays    int32     `json:"everyDays"`
 	CreativeDays int32     `json:"creativeDays"`
 	Selling      bool      `json:"selling"`
+	SelfServe    bool      `json:"selfServe"`
+	Description  string    `json:"description"`
+	LeadDays     int32     `json:"leadDays"`
+	PayDays      int32     `json:"payDays"`
 	At           time.Time `json:"at"`
 	ID           uuid.UUID `json:"id"`
 	WorkspaceID  uuid.UUID `json:"workspaceId"`
@@ -1874,6 +3069,10 @@ func (q *Queries) SponsorSlotUpdate(ctx context.Context, arg SponsorSlotUpdatePa
 		arg.EveryDays,
 		arg.CreativeDays,
 		arg.Selling,
+		arg.SelfServe,
+		arg.Description,
+		arg.LeadDays,
+		arg.PayDays,
 		arg.At,
 		arg.ID,
 		arg.WorkspaceID,
@@ -1882,7 +3081,7 @@ func (q *Queries) SponsorSlotUpdate(ctx context.Context, arg SponsorSlotUpdatePa
 }
 
 const sponsorSlots = `-- name: SponsorSlots :many
-SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, l.name AS list_name
+SELECT s.id, s.workspace_id, s.list_id, s.name, s.placement, s.price_cents, s.currency, s.first_number, s.first_on, s.every_days, s.creative_days, s.selling, s.created_by, s.created_at, s.updated_at, s.deleted_at, s.self_serve, s.description, s.lead_days, s.pay_days, l.name AS list_name
 FROM sponsor_slots s JOIN lists l ON l.id = s.list_id
 WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
 ORDER BY s.created_at
@@ -1905,6 +3104,10 @@ type SponsorSlotsRow struct {
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 	DeletedAt    *time.Time `json:"deletedAt"`
+	SelfServe    bool       `json:"selfServe"`
+	Description  string     `json:"description"`
+	LeadDays     int32      `json:"leadDays"`
+	PayDays      int32      `json:"payDays"`
 	ListName     string     `json:"listName"`
 }
 
@@ -1934,6 +3137,10 @@ func (q *Queries) SponsorSlots(ctx context.Context, workspaceID uuid.UUID) ([]Sp
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.SelfServe,
+			&i.Description,
+			&i.LeadDays,
+			&i.PayDays,
 			&i.ListName,
 		); err != nil {
 			return nil, err

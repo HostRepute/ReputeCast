@@ -2,6 +2,7 @@ package sponsors
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,9 +19,10 @@ import (
 )
 
 // TickArgs is the periodic sponsorship job: bookings whose issue went out
-// become sent, holds past their date release the issue, reports still
-// coming in are counted again, and the people with sponsors:manage hear
-// about a creative due tomorrow or late and a payment overdue.
+// become sent, holds past their date release the issue, approved requests
+// not paid by their deadline expire, reports still coming in are counted
+// again, and the people with sponsors:manage hear about a creative due
+// tomorrow or late and a payment overdue.
 type TickArgs struct{}
 
 // Kind implements river.JobArgs.
@@ -43,9 +45,11 @@ func (w *TickWorker) Timeout(*river.Job[TickArgs]) time.Duration { return 5 * ti
 // Work implements river.Worker.
 func (w *TickWorker) Work(ctx context.Context, _ *river.Job[TickArgs]) error { return w.S.Tick(ctx) }
 
-// RegisterJobs adds the sponsorship job, every 5 minutes.
+// RegisterJobs adds the sponsorship job, every 5 minutes, and the sponsor
+// emails' worker.
 func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &TickWorker{S: s})
+	river.AddWorker(reg.Workers, &mailWorker{S: s})
 	reg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return TickArgs{}, nil }, true)
 }
 
@@ -55,6 +59,9 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	if err := s.lapseHolds(ctx); err != nil {
+		return err
+	}
+	if err := s.expireUnpaid(ctx); err != nil {
 		return err
 	}
 	if err := s.refreshReports(ctx); err != nil {
@@ -116,6 +123,51 @@ func (s *Service) lapseHolds(ctx context.Context) error {
 			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &b.WorkspaceID, Action: "sponsors.hold_lapsed", TargetType: "sponsor_booking", TargetID: b.ID.String(),
 				TargetName: issueName(slot.ListName, int(b.IssueNumber), slot.Name), Before: map[string]any{"status": "hold", "holdUntil": dayString(b.HoldUntil)},
 				Actor: &audit.Actor{Type: authz.ActorSystem, Name: "ReputeCast"}})
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// expireUnpaid ends the approved requests whose payment didn't arrive by
+// their deadline: the issue opens again, the sponsor is told, and so are
+// the people who manage sponsors.
+func (s *Service) expireUnpaid(ctx context.Context) error {
+	now := s.now()
+	rows, err := s.Q.SponsorPaymentsLapsed(ctx, now)
+	if err != nil {
+		return err
+	}
+	for _, b := range rows {
+		slot, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: b.SlotID, WorkspaceID: b.WorkspaceID})
+		name := "#" + strconv.Itoa(int(b.IssueNumber))
+		if err == nil {
+			name = issueName(slot.ListName, int(b.IssueNumber), slot.Name)
+		}
+		d, _ := parseRequest(b.Request)
+		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			n, err := q.SponsorBookingExpire(ctx, store.SponsorBookingExpireParams{ID: b.ID, At: now})
+			if err != nil || n == 0 {
+				return err
+			}
+			if err := s.event(ctx, q, b.ID, nil, "expired", map[string]any{"paymentDueAt": b.PaymentDueAt}); err != nil {
+				return err
+			}
+			if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &b.WorkspaceID, Action: "sponsor_booking.expired", TargetType: "sponsor_booking",
+				TargetID: b.ID.String(), TargetName: name, Before: map[string]any{"status": "awaiting_payment"}, After: map[string]any{"status": "expired"},
+				Actor: &audit.Actor{Type: authz.ActorSystem, Name: "ReputeCast"}}); err != nil {
+				return err
+			}
+			args := i18n.Args{"company": d.Company, "issue": b.IssueNumber, "amount": money(b.PriceCents, b.Currency)}
+			if err := notify.ToMembersWith(ctx, tx, b.WorkspaceID, authz.SponsorsManage, notify.Notification{WorkspaceID: &b.WorkspaceID, Kind: notify.KindSponsorPayment,
+				Severity: "warn", TitleText: msgs.M("notify.expiredTitle").Keep(args), BodyText: msgs.M("notify.expiredBody").Keep(args),
+				Link: requestLink(&store.Workspace{Slug: b.WorkspaceSlug}, b.ID), Data: map[string]any{"booking": b.ID.String()}}); err != nil {
+				return err
+			}
+			return s.queueMail(ctx, tx, MailArgs{WorkspaceID: b.WorkspaceID, BookingID: b.ID, Email: MailExpired})
 		})
 		if err != nil {
 			return err

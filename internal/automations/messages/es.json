@@ -512,5 +512,7 @@
   "goal.replied": "Ha respondido a un correo",
   "problem.replyWindow": "Indica cuánto tiempo esperar la respuesta.",
   "diff.triggerReply": "Disparador: {change}",
-  "diff.triggerReplyDetail": "Se aplica a los contactos de la v{version} cuando esté publicada; los que siguen en una versión anterior conservan el ajuste de esa versión."
+  "diff.triggerReplyDetail": "Se aplica a los contactos de la v{version} cuando esté publicada; los que siguen en una versión anterior conservan el ajuste de esa versión.",
+  "trigger.paidPaused": "Pausa los pagos",
+  "trigger.paidResumed": "Reanuda los pagos"
 }

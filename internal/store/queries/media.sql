@@ -30,3 +30,14 @@ SELECT id, file_name, content_type, size_bytes, sha256, data, created_at FROM me
 
 -- name: HideMediaAsset :execrows
 UPDATE media_assets SET hidden_at = @now WHERE workspace_id = @workspace_id AND id = @id AND hidden_at IS NULL;
+
+-- name: InsertHiddenMediaAsset :one
+-- An image that isn't the library's (a sponsor's creative sent with a
+-- request): stored hidden, and the same bytes again find the stored image
+-- without showing it in the library or hiding one the library has.
+INSERT INTO media_assets (id, workspace_id, file_name, content_type, size_bytes, width, height, has_alpha, sha256, data, created_at, hidden_at,
+                          original_size_bytes, original_width, original_height, original_content_type)
+VALUES (@id, @workspace_id, @file_name, @content_type, @size_bytes, @width, @height, @has_alpha, @sha256, @data, @created_at, @created_at,
+        sqlc.narg(original_size_bytes), sqlc.narg(original_width), sqlc.narg(original_height), sqlc.narg(original_content_type))
+ON CONFLICT (workspace_id, sha256) DO UPDATE SET sha256 = EXCLUDED.sha256
+RETURNING id, file_name, size_bytes;

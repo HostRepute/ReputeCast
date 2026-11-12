@@ -1367,3 +1367,49 @@
     font-size: 13px;
   }
 }
+
+/* A team's chip beside a paid member's status (M65, EarnMembers): "Team · 8 of 10", "Seat in Acme Inc". */
+.ea-teamchip {
+  height: 22px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-nav);
+  white-space: nowrap;
+}
+
+/* A team's seats in the buyer's panel (M65, EarnMemberPanelStates). */
+.ea-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ea-seats li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-2);
+}
+.ea-seats li:first-child {
+  border-top: 0;
+}
+
+/* The tier preview's team link (M65, EarnPlanEditors). */
+.ea-tcard-team {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 24px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ea-text);
+}
+.ea-tcard-team svg {
+  flex: none;
+  margin-top: 2px;
+}

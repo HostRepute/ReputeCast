@@ -38,6 +38,31 @@ type CancelOffer struct {
 	Button string
 }
 
+// CancelPause is the cancel page's "Pause instead" (M65): the lengths the
+// workspace allows, each with when it comes back and its button.
+type CancelPause struct {
+	Title   string
+	Text    string
+	Legend  string
+	Options []CancelPauseOption
+}
+
+// CancelPauseOption is one pause length.
+type CancelPauseOption struct {
+	Months int
+	Label  string
+	Back   string
+	Button string
+}
+
+// CancelPaused is the box of the page after pausing: the tier and price,
+// and when the pause runs.
+type CancelPaused struct {
+	Line  string
+	Price string
+	Range string
+}
+
 // CancelView is the cancel page in one of its states: ask (the page),
 // kept (took the offer), done (back from the provider), expired (the link)
 // or none (nothing to cancel).
@@ -50,7 +75,9 @@ type CancelView struct {
 	PastDue    bool
 	BillingURL string
 	Reasons    []CancelReason
+	Pause      *CancelPause
 	Offer      *CancelOffer
+	Paused     *CancelPaused
 	// Keep is the keep button without an offer (none: no button).
 	Continue string
 	Note     string
@@ -162,6 +189,7 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 	case end != nil:
 		v.Lead = page(ctx, "cancel.leadNoList", a)
 	}
+	v.Pause = s.cancelPause(ctx, ws, t)
 	mode := t.Sub.Mode
 	ret, err := s.RetentionFor(ctx, ws, mode, t.Sub)
 	if err != nil {
@@ -179,6 +207,49 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 	}
 	v.VisitID = visit.String()
 	return v, nil
+}
+
+// cancelPause is "Pause instead" for a subscription that may pause (Earn ›
+// Settings › Pausing allows lengths, it's active and hasn't paused in the
+// last 12 months); nil otherwise.
+func (s *Service) cancelPause(ctx context.Context, ws *store.Workspace, t *earn.CancelTarget) *CancelPause {
+	months := s.Earn.CancelPauseChoices(ctx, ws, t.Sub)
+	if len(months) == 0 {
+		return nil
+	}
+	l := i18n.LangFrom(ctx)
+	price := earn.PublicPriceIn(l, t.Sub.AmountCents*int64(max(t.Sub.Quantity, 1)), t.Sub.Currency, t.Sub.Period)
+	a := i18n.Args{"tier": t.Short, "free": freeName(t)}
+	p := &CancelPause{Title: page(ctx, "cancel.pause.title", nil), Legend: page(ctx, "cancel.pause.legend", nil)}
+	if freeName(t) != "" {
+		p.Text = page(ctx, "cancel.pause.text", a)
+	} else {
+		p.Text = page(ctx, "cancel.pause.textNoList", a)
+	}
+	loc, now := location(ws), s.now()
+	for _, m := range months {
+		back := dayOf(l, now.AddDate(0, m, 0), loc, now)
+		p.Options = append(p.Options, CancelPauseOption{Months: m, Label: page(ctx, "cancel.pause.option", i18n.Args{"months": m}),
+			Back: page(ctx, "cancel.pause.back", i18n.Args{"date": back, "price": price}), Button: page(ctx, "cancel.pause.button", i18n.Args{"months": m})})
+	}
+	return p
+}
+
+// pausedView is the page after pausing from it.
+func (s *Service) pausedView(ctx context.Context, ws *store.Workspace, t *earn.CancelTarget, until time.Time) CancelView {
+	l := i18n.LangFrom(ctx)
+	loc, now := location(ws), s.now()
+	price := earn.PublicPriceIn(l, t.Sub.AmountCents*int64(max(t.Sub.Quantity, 1)), t.Sub.Currency, t.Sub.Period)
+	a := i18n.Args{"tier": t.Short, "free": freeName(t), "date": dayOf(l, until, loc, now), "price": price}
+	v := CancelView{State: "paused", Words: words(ctx), Heading: page(ctx, "cancel.paused.title", a)}
+	if freeName(t) != "" {
+		v.Text = page(ctx, "cancel.paused.text", a)
+	} else {
+		v.Text = page(ctx, "cancel.paused.textNoList", a)
+	}
+	v.Paused = &CancelPaused{Line: page(ctx, "cancel.paused.line", i18n.Args{"name": t.Tier, "period": t.Sub.Period}), Price: price,
+		Range: page(ctx, "cancel.paused.range", i18n.Args{"from": dayOf(l, now, loc, now), "to": dayOf(l, until, loc, now)})}
+	return v
 }
 
 // dayOf is "2 Nov", with the year when it isn't this year's.
@@ -227,9 +298,10 @@ func (s *Service) providerSub(ctx context.Context, ws *store.Workspace, sub stor
 	return client.GetSubscription(ctx, sub.StripeSubscriptionID)
 }
 
-// CancelDecide takes the page's answer: keep (with the offer) or continue
-// to the provider's cancel step. The reason, when given, goes with it.
-func (s *Service) CancelDecide(ctx context.Context, ws *store.Workspace, token, visitID, reason, decision, returnURL string) (CancelResult, error) {
+// CancelDecide takes the page's answer: pause (for months), keep (with the
+// offer) or continue to the provider's cancel step. The reason, when
+// given, goes with it.
+func (s *Service) CancelDecide(ctx context.Context, ws *store.Workspace, token, visitID, reason, decision string, months int, returnURL string) (CancelResult, error) {
 	t, err := s.Earn.CancelTargetOf(ctx, ws, token)
 	if err != nil {
 		v, perr := s.CancelPage(ctx, ws, token, false)
@@ -253,6 +325,24 @@ func (s *Service) CancelDecide(ctx context.Context, ws *store.Workspace, token, 
 		visit = store.EarnCancelVisit{ID: id}
 	}
 	now := s.now()
+	if decision == "pause" {
+		until, err := s.Earn.PauseFromCancel(ctx, ws, t.Sub, months, visit.ID)
+		if errors.Is(err, earn.ErrCantPause) {
+			// Not allowed (any more): the page again.
+			v, err := s.CancelPage(ctx, ws, token, false)
+			return CancelResult{View: &v}, err
+		}
+		if err != nil {
+			return CancelResult{}, err
+		}
+		if reason != "" {
+			if err := s.Q.CancelSetReason(ctx, store.CancelSetReasonParams{ID: t.Sub.ID, Reason: reason, At: now}); err != nil {
+				return CancelResult{}, err
+			}
+		}
+		v := s.pausedView(ctx, ws, t, until)
+		return CancelResult{View: &v}, nil
+	}
 	if decision == "keep" {
 		ret, err := s.RetentionFor(ctx, ws, t.Sub.Mode, t.Sub)
 		if err != nil {

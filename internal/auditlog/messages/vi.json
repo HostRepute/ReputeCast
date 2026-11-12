@@ -364,5 +364,6 @@
   "type.coupon_pool": "kho mã giảm giá",
   "type.countdown": "bộ đếm ngược",
   "type.website_comment": "bình luận trên trang web",
-  "type.website_import": "lượt nhập bài viết"
+  "type.website_import": "lượt nhập bài viết",
+  "type.sponsor_settings": "cài đặt trang tài trợ"
 }

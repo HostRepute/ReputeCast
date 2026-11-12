@@ -41,10 +41,20 @@ const (
 	// EmailGiftPaymentFailed tells a gift's buyer their bank payment
 	// didn't go through (review 2026-11 EN-9).
 	EmailGiftPaymentFailed = "gift_payment_failed"
+	// The team emails (M65, G-38): the buyer's welcome with the manage
+	// link, an invite, and the end of a seat's access.
+	EmailGroupWelcome     = "group_welcome"
+	EmailGroupInvite      = "group_invite"
+	EmailGroupAccessEnded = "group_access_ended"
+	// The pause emails (M65, G-39): paused until a date, and a week before
+	// payments resume.
+	EmailPaused       = "paused"
+	EmailResumingSoon = "resuming_soon"
 )
 
 // MemberEmailOrder lists them in order.
-var MemberEmailOrder = []string{EmailWelcome, EmailTrialEnding, EmailPaymentFailed, EmailRenewalReminder, EmailCanceled, EmailGiftPurchased, EmailGiftPaymentFailed, EmailGiftReceived, EmailGiftEnding}
+var MemberEmailOrder = []string{EmailWelcome, EmailTrialEnding, EmailPaymentFailed, EmailRenewalReminder, EmailCanceled, EmailGiftPurchased, EmailGiftPaymentFailed, EmailGiftReceived, EmailGiftEnding,
+	EmailGroupWelcome, EmailGroupInvite, EmailGroupAccessEnded, EmailPaused, EmailResumingSoon}
 
 // starter is a member email's template as the drafts start.
 type starter struct {
@@ -130,6 +140,42 @@ var starters = []starter{
 		body:    []string{"Hi {{ first_name }},", "Your gift of {{ tier }} ends on {{ ends_at }}. After that you'll still get the free issues.", "Want to keep {{ tier }}? You can continue from the link below."},
 		button:  "Keep {{ tier }}", href: "{{ upgrade_url }}",
 		vars: vars(TemplateVariable{Name: "ends_at", Type: "text", Required: true, Sample: "11 Oct 2027"}, TemplateVariable{Name: "upgrade_url", Type: "url", Required: true, Sensitive: true, Sample: "https://news.example/upgrade?r=sample-token"})},
+	{email: EmailGroupWelcome, key: "group-welcome", name: "Team welcome", description: "To a team's buyer when the team's subscription starts",
+		subject: "Your team's {{ tier }} is ready", preheader: "Invite your team to their {{ seats }} seats.",
+		heading: "Welcome to {{ tier }}, {{ team }}",
+		body:    []string{"Hi {{ first_name }},", "Thank you for buying {{ tier }} for {{ team }}. Your team has {{ seats }} seats, and you use one of them.", "Invite the others from your team page: each person accepts with their own address."},
+		button:  "Invite your team", href: "{{ manage_team_url }}",
+		after: "Stripe emails your receipts. The team page also changes the number of seats and opens your invoices.",
+		vars: vars(TemplateVariable{Name: "team", Type: "text", Required: true, Sample: "Acme Inc"}, TemplateVariable{Name: "seats", Type: "text", Required: true, Sample: "10"},
+			TemplateVariable{Name: "manage_team_url", Type: "url", Required: true, Sensitive: true, Sample: "https://news.example/team/sample-token"})},
+	{email: EmailGroupInvite, key: "group-invite", name: "Team invite", description: "When a team's buyer invites someone",
+		subject: "{{ team }} gave you access to {{ tier }}", preheader: "Accept to start reading.",
+		heading: "{{ team }} gave you access to {{ tier }}",
+		body:    []string{"Hi,", "{{ inviter }} invited you to a seat in {{ team }}'s {{ tier }} membership. There's nothing to pay.", "The invite works until {{ expires_at }}."},
+		button:  "Accept the invite", href: "{{ join_url }}",
+		vars: []TemplateVariable{{Name: "tier", Type: "text", Required: true, Sample: "Insider"}, {Name: "team", Type: "text", Required: true, Sample: "Acme Inc"},
+			{Name: "inviter", Type: "text", Required: true, Sample: "Priya Natarajan"}, {Name: "expires_at", Type: "text", Required: true, Sample: "29 Oct"},
+			{Name: "join_url", Type: "url", Required: true, Sensitive: true, Sample: "https://news.example/team/join/sample-token"}}},
+	{email: EmailGroupAccessEnded, key: "group-access-ended", name: "Team access ended", description: "When a team seat's access ends",
+		subject: "Your {{ tier }} access through {{ team }} has ended", preheader: "You'll keep getting the free issues.",
+		heading: "Your team access has ended",
+		body:    []string{"Hi {{ first_name }},", "Your seat in {{ team }}'s {{ tier }} membership has ended, so the members-only issues stop. You'll still get the free issues.", "Want to keep reading {{ tier }}? You can join on your own from the link below."},
+		button:  "Keep {{ tier }}", href: "{{ upgrade_url }}",
+		vars: vars(TemplateVariable{Name: "team", Type: "text", Required: true, Sample: "Acme Inc"},
+			TemplateVariable{Name: "upgrade_url", Type: "url", Required: true, Sensitive: true, Sample: "https://news.example/upgrade?r=sample-token"})},
+	{email: EmailPaused, key: "member-paused", name: "Membership paused", description: "When a subscription's payments pause",
+		subject: "Your {{ tier }} membership is paused until {{ resumes_at }}", preheader: "Nothing is charged until then.",
+		heading: "Paused until {{ resumes_at }}",
+		body:    []string{"Hi {{ first_name }},", "Your {{ tier }} membership is paused: nothing is charged, and the members-only issues stop until {{ resumes_at }}. You'll still get the free issues.", "Payments and access start again on {{ resumes_at }}, at {{ price }}. Want them back sooner? Resume any time."},
+		button:  "Resume now", href: "{{ resume_url }}",
+		vars: vars(TemplateVariable{Name: "resumes_at", Type: "text", Required: true, Sample: "15 Jan"}, TemplateVariable{Name: "price", Type: "text", Required: true, Sample: "$8 a month"},
+			TemplateVariable{Name: "resume_url", Type: "url", Required: true, Sensitive: true, Sample: "https://news.example/resume/sample-token"})},
+	{email: EmailResumingSoon, key: "member-resuming-soon", name: "Pause ending", description: "7 days before a paused subscription resumes",
+		subject: "Your {{ tier }} membership resumes on {{ resumes_at }}", preheader: "{{ price }} from then on.",
+		heading: "Resuming on {{ resumes_at }}",
+		body:    []string{"Hi {{ first_name }},", "Your paused {{ tier }} membership resumes on {{ resumes_at }}: the members-only issues come back, and you'll pay {{ price }}.", "To change your plan or cancel before then, use the link below."},
+		button:  "Manage your subscription", href: "{{ manage_subscription_url }}",
+		vars: vars(TemplateVariable{Name: "resumes_at", Type: "text", Required: true, Sample: "15 Jan"}, TemplateVariable{Name: "price", Type: "text", Required: true, Sample: "$8 a month"}, manageVar)},
 }
 
 // in is a starter in a language: its words from the catalog
@@ -338,7 +384,8 @@ func (s *Service) UpgradeURL(ctx context.Context, ws *store.Workspace, contact, 
 func (s *Service) memberEmailFor(email string, row store.PaidSubscription, ws *store.Workspace, tier string, at time.Time) memberEmail {
 	m := memberEmail{email: email, sub: row.ID, contact: row.ContactID, key: "earn:" + row.ID.String() + ":" + email, data: map[string]any{"tier": tier}}
 	cur := row.Currency
-	amount := row.AmountCents
+	// A team pays per seat: its price is the seats' total.
+	amount := row.AmountCents * int64(max(row.Quantity, 1))
 	m.localized(func(l i18n.Lang) map[string]any {
 		data := map[string]any{}
 		if amount > 0 {
@@ -349,6 +396,9 @@ func (s *Service) memberEmailFor(email string, row store.PaidSubscription, ws *s
 		}
 		if row.CurrentPeriodEnd != nil {
 			data["renews_at"] = s.dateTextIn(l, ws, *row.CurrentPeriodEnd)
+		}
+		if row.PauseResumesAt != nil {
+			data["resumes_at"] = s.dateTextIn(l, ws, *row.PauseResumesAt)
 		}
 		if end := firstTime(row.CancelAt, row.EndedAt, row.CurrentPeriodEnd); end != nil {
 			data["ends_at"] = s.dateTextIn(l, ws, *end)
@@ -372,6 +422,9 @@ func (s *Service) memberEmailFor(email string, row store.PaidSubscription, ws *s
 // and puts it on the paid member's timeline: sent, or why not (no
 // published version, no Transactional route, a suppressed address).
 func (s *Service) sendMemberEmail(ctx context.Context, ws *store.Workspace, mode string, m memberEmail, pe *uuid.UUID) string {
+	if m.system {
+		return s.sendNotice(ctx, ws, m)
+	}
 	status, reason, version := "sent", "", 0
 	var msgID *uuid.UUID
 	var key string
@@ -393,7 +446,7 @@ func (s *Service) sendMemberEmail(ctx context.Context, ws *store.Workspace, mode
 			subp = &sub
 		}
 		_ = s.timeline(ctx, s.Q, ws.ID, m.contact, subp, mode, kind, s.now(), nil, "", pe, "", nil, data)
-		if subp != nil && (m.email == EmailWelcome || m.email == EmailCanceled) {
+		if subp != nil && (m.email == EmailWelcome || m.email == EmailCanceled || m.email == EmailGroupWelcome) {
 			_ = s.Q.EarnSubscriptionEmailed(ctx, store.EarnSubscriptionEmailedParams{ID: sub, Email: m.email})
 		}
 		if msgID != nil {
@@ -426,6 +479,15 @@ func (s *Service) sendMemberEmail(ctx context.Context, ws *store.Workspace, mode
 	data["upgrade_url"] = s.UpgradeURL(ctx, ws, c.ID, uuid.Nil)
 	if _, ok := data["next_issue_line"]; !ok && m.email == EmailWelcome {
 		data["next_issue_line"] = ""
+	}
+	switch m.email {
+	case EmailGroupWelcome:
+		if g, err := s.Q.EarnGroupBySubscription(ctx, m.sub); err == nil {
+			data["team"], data["seats"] = g.Name, fmt.Sprint(g.Seats)
+			data["manage_team_url"] = s.manageURL(ctx, ws, g)
+		}
+	case EmailPaused:
+		data["resume_url"] = s.ResumeURL(ctx, ws, c.ID)
 	}
 	res, err := s.Mailer.Send(ctx, ws, MemberMessage{Template: tpl.Key, To: c.Email, ToName: strings.TrimSpace(c.FirstName + " " + c.LastName), Data: data, Key: m.key,
 		Localize: s.localizer(ctx, ws, m.texts)})

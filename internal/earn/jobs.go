@@ -130,6 +130,10 @@ func (s *Service) Hourly(ctx context.Context) error {
 			errs = append(errs, err)
 		}
 	}
+	// "Resuming soon" a week before a paused subscription resumes (M65).
+	if err := s.remindResuming(ctx); err != nil {
+		errs = append(errs, err)
+	}
 	return errors.Join(errs...)
 }
 

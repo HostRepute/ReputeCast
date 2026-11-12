@@ -15,6 +15,7 @@ import { copyText } from '../EarnPage'
 import { money } from '../format'
 import { mb } from './booking.messages'
 import { md } from './dialogs.messages'
+import { mr } from './requests.messages'
 import { Initials, NoteIcon, WS, inputDay, sponsorKeys, type SlotItem, type SponsorItem, type SponsorPayment } from './parts'
 
 // Currencies without minor units (Stripe's zero-decimal currencies).
@@ -264,7 +265,7 @@ export interface CancelTarget {
   bookingId: string
   issue: number
   sponsor: string
-  status: 'hold' | 'booked' | 'proposed'
+  status: 'hold' | 'booked' | 'proposed' | 'awaiting_payment'
   holdUntil?: string
   amountCents: number
   currency: string
@@ -613,6 +614,13 @@ export function SlotDialog({ slot, onClose }: { slot?: SlotItem; onClose: () => 
   const [every, setEvery] = useState(String(slot?.everyDays ?? 7))
   const [creative, setCreative] = useState(String(slot?.creativeDays ?? 4))
   const [selling, setSelling] = useState(slot?.selling ?? true)
+  // Self-serve (M65): sponsors request the slot on the media kit and pay through Stripe.
+  const [selfServe, setSelfServe] = useState(slot?.selfServe ?? false)
+  const [description, setDescription] = useState(slot?.description ?? '')
+  const [lead, setLead] = useState(String(slot?.leadDays ?? 7))
+  const [pay, setPay] = useState(String(slot?.payDays ?? 3))
+  const page = $api.useQuery('get', `${WS}/sponsor-page`, { params: { path: { workspace: slug } } })
+  const host = (page.data?.pageUrl ?? '').replace(/^https?:\/\//, '')
   const [error, setError] = useState<Record<string, string>>({})
   const [removing, setRemoving] = useState(false)
   const create = $api.useMutation('post', `${WS}/sponsor-slots`)
@@ -637,6 +645,10 @@ export function SlotDialog({ slot, onClose }: { slot?: SlotItem; onClose: () => 
       everyDays: Number(every) || 7,
       creativeDays: Number(creative) || 0,
       selling,
+      selfServe,
+      description: description.trim(),
+      leadDays: lead === '' ? 7 : Number(lead),
+      payDays: pay === '' ? 3 : Number(pay),
     }
     const done = (msg: string) => {
       refresh()
@@ -712,6 +724,22 @@ export function SlotDialog({ slot, onClose }: { slot?: SlotItem; onClose: () => 
             <SuffixInput value={creative} onChange={setCreative} suffix={t(md.creativeSuffix, { days: Number(creative) || 0 })} max={30} />
           </Field>
           <Toggle label={t(md.selling)} description={t(md.sellingHint)} checked={selling} onChange={(e) => setSelling(e.target.checked)} />
+          <Toggle label={t(mr.slotSelfServe)} description={t(mr.slotSelfServeHint, { host: host || '/sponsor' })} checked={selfServe} onChange={(e) => setSelfServe(e.target.checked)} />
+          {selfServe ? (
+            <>
+              <Field label={t(mr.slotDescription)} hint={t(mr.slotDescriptionHint, { count: [...description].length })} error={error.description}>
+                <Textarea rows={3} maxLength={300} value={description} onChange={(e) => setDescription(e.target.value)} />
+              </Field>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3">
+                <Field label={t(mr.slotLead)} hint={t(mr.slotLeadHint)} error={error.leadDays}>
+                  <SuffixInput value={lead} onChange={setLead} suffix={t(mr.slotLeadUnit)} max={60} />
+                </Field>
+                <Field label={t(mr.slotPay)} hint={t(mr.slotPayHint)} error={error.payDays}>
+                  <SuffixInput value={pay} onChange={setPay} suffix={t(mr.slotPayUnit)} max={14} />
+                </Field>
+              </div>
+            </>
+          ) : null}
         </div>
       </Dialog>
       {slot ? (

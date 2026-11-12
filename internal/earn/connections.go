@@ -213,6 +213,9 @@ type EarnPayments struct {
 	// CanEditPrices maps unmapped prices (earn:edit).
 	CanEditPrices bool     `json:"canEditPrices"`
 	Helpers       []string `json:"helpers"`
+	// PauseMonths are the pause lengths members may choose on the cancel
+	// page (M65; none: they can't pause).
+	PauseMonths []int `json:"pauseMonths"`
 }
 
 // EarnStatus is the connection chip on every Earn screen.
@@ -461,6 +464,12 @@ func (s *Service) Payments(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	out := EarnPayments{Providers: catalogCards(), Permissions: permissionChecks(d, nil), WebhookEvents: d.WebhookEvents, Unmapped: []EarnUnmappedPrice{},
 		CanManage: p.Can(authz.PaymentsManage), CanEditPrices: p.Can(authz.EarnEdit), Helpers: s.helpers(ctx, ws.ID, authz.PaymentsManage, p.UserID)}
 	out.ActiveSubscriptions = s.activeSubscriptions(ctx, ws.ID, "live")
+	out.PauseMonths = []int{}
+	if st, err := s.settingsRow(ctx, s.Q, ws.ID); err == nil {
+		for _, m := range st.PauseMonths {
+			out.PauseMonths = append(out.PauseMonths, int(m))
+		}
+	}
 	for _, c := range conns {
 		if c.Status != "connected" {
 			continue
@@ -968,7 +977,7 @@ func (s *Service) portalConfig(ctx context.Context, ws *store.Workspace, pc Earn
 			if mode == "test" {
 				id = pr.StripeTestID
 			}
-			if pr.TierID == t.ID && pr.Status == "current" && id != "" {
+			if pr.TierID == t.ID && pr.Status == "current" && pr.Audience != AudienceGroup && id != "" {
 				out.Products[product] = append(out.Products[product], id)
 			}
 		}

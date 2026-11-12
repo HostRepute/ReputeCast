@@ -59,7 +59,7 @@ func (c *Client) CreatePriceCheckout(ctx context.Context, r payments.PriceChecko
 	f := url.Values{}
 	f.Set("mode", "payment")
 	f.Set("line_items[0][price]", r.PriceID)
-	f.Set("line_items[0][quantity]", "1")
+	f.Set("line_items[0][quantity]", strconv.Itoa(payments.LineQuantity(r.Quantity)))
 	f.Set("success_url", r.SuccessURL)
 	f.Set("cancel_url", r.CancelURL)
 	if r.CustomerEmail != "" {

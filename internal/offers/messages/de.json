@@ -90,5 +90,17 @@
   "referral.discount": "{type, select, percent {{percent} % Rabatt} other {{amount} Rabatt}} {duration, select, once {einmalig} months {für {months, plural, one {# Monat} other {# Monate}}} other {dauerhaft}}",
 
   "problem.notFound": "Angebot nicht gefunden.",
-  "sync.unreachable": "nicht erreichbar"
+  "sync.unreachable": "nicht erreichbar",
+  "cancel.pause.title": "Stattdessen pausieren",
+  "cancel.pause.text": "Machen Sie eine Zahlungspause. {tier} ruht während der Pause und kommt von selbst zurück; der kostenlose {free} kommt weiter.",
+  "cancel.pause.textNoList": "Machen Sie eine Zahlungspause. {tier} ruht während der Pause und kommt von selbst zurück.",
+  "cancel.pause.legend": "Wie lange pausieren",
+  "cancel.pause.option": "{months, plural, one {# Monat} other {# Monate}}",
+  "cancel.pause.back": "Zurück am {date}, zu {price}. Sie können einmal in 12 Monaten pausieren.",
+  "cancel.pause.button": "{months, plural, one {# Monat} other {# Monate}} pausieren",
+  "cancel.paused.title": "{tier} ist bis {date} pausiert",
+  "cancel.paused.text": "Bis dahin wird nichts berechnet, und {tier} kommt am {date} von selbst zurück, zu {price}. Den kostenlosen {free} erhalten Sie weiterhin.",
+  "cancel.paused.textNoList": "Bis dahin wird nichts berechnet, und {tier} kommt am {date} von selbst zurück, zu {price}.",
+  "cancel.paused.line": "{name} · {period, select, year {jährlich} other {monatlich}}",
+  "cancel.paused.range": "Pausiert vom {from} bis {to} · wir haben Ihnen einen Link geschickt, um früher fortzusetzen"
 }

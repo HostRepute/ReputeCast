@@ -212,8 +212,14 @@ func parseSubscription(raw []byte) (payments.Subscription, error) {
 		Livemode          bool            `json:"livemode"`
 		Discount          *stripeDiscount `json:"discount"`
 		Discounts         []json.RawMessage
-		Items             struct {
+		PauseCollection   *struct {
+			Behavior  string `json:"behavior"`
+			ResumesAt *int64 `json:"resumes_at"`
+		} `json:"pause_collection"`
+		Items struct {
 			Data []struct {
+				ID               string      `json:"id"`
+				Quantity         *int        `json:"quantity"`
 				Price            stripePrice `json:"price"`
 				CurrentPeriodEnd *int64      `json:"current_period_end"`
 			} `json:"data"`
@@ -225,16 +231,24 @@ func parseSubscription(raw []byte) (payments.Subscription, error) {
 	}
 	out := payments.Subscription{ID: s.ID, CustomerID: idOf(s.Customer), Status: s.Status, StartedAt: unix(s.StartDate), TrialEnd: unixPtr(s.TrialEnd),
 		CurrentPeriodEnd: unixPtr(s.CurrentPeriodEnd), CancelAt: unixPtr(s.CancelAt), CancelAtPeriodEnd: s.CancelAtPeriodEnd, CanceledAt: unixPtr(s.CanceledAt),
-		EndedAt: unixPtr(s.EndedAt), Livemode: s.Livemode, Discount: s.Discount.discount(), Metadata: s.Metadata}
+		EndedAt: unixPtr(s.EndedAt), Livemode: s.Livemode, Discount: s.Discount.discount(), Metadata: s.Metadata, Quantity: 1}
 	if out.StartedAt.IsZero() {
 		out.StartedAt = unix(s.Created)
 	}
+	if pc := s.PauseCollection; pc != nil && pc.Behavior != "" {
+		out.Paused, out.PausedUntil = true, unixPtr(pc.ResumesAt)
+	}
 	if len(s.Items.Data) > 0 {
-		p := s.Items.Data[0].Price.price()
+		it := s.Items.Data[0]
+		p := it.Price.price()
 		out.PriceID, out.ProductID, out.Interval, out.AmountCents, out.Currency = p.ID, p.ProductID, p.Interval, p.AmountCents, p.Currency
+		out.ItemID = it.ID
+		if it.Quantity != nil && *it.Quantity > 0 {
+			out.Quantity = *it.Quantity
+		}
 		// Newer API versions keep the period on the item.
 		if out.CurrentPeriodEnd == nil {
-			out.CurrentPeriodEnd = unixPtr(s.Items.Data[0].CurrentPeriodEnd)
+			out.CurrentPeriodEnd = unixPtr(it.CurrentPeriodEnd)
 		}
 	}
 	if out.CancelAtPeriodEnd && out.CancelAt == nil {

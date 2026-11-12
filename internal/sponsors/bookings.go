@@ -281,7 +281,7 @@ func (s *Service) UpdateBooking(ctx context.Context, ws *store.Workspace, p *aut
 	if err != nil {
 		return SponsorBookingDetail{}, err
 	}
-	if b.Status == "canceled" || b.Status == "proposed" {
+	if closedForChanges(b.Status) {
 		return SponsorBookingDetail{}, problem(ctx, 409, api.CodeConflict, "problem.bookingClosed", nil)
 	}
 	sponsorID := b.SponsorID
@@ -458,7 +458,7 @@ func (s *Service) SetCreative(ctx context.Context, ws *store.Workspace, p *authz
 	if err != nil {
 		return SponsorBookingDetail{}, err
 	}
-	if b.Status == "canceled" || b.Status == "sent" {
+	if b.Status == "canceled" || b.Status == "sent" || b.Status == "declined" || b.Status == "expired" {
 		return SponsorBookingDetail{}, problem(ctx, 409, api.CodeConflict, "problem.creativeLocked", nil)
 	}
 	in, err = cleanCreative(ctx, in)
@@ -525,7 +525,7 @@ func (s *Service) RecordPayment(ctx context.Context, ws *store.Workspace, p *aut
 	if err != nil {
 		return SponsorBookingDetail{}, err
 	}
-	if b.Status == "canceled" || b.Status == "proposed" || b.SponsorID == nil {
+	if closedForChanges(b.Status) || b.SponsorID == nil {
 		return SponsorBookingDetail{}, problem(ctx, 409, api.CodeConflict, "problem.bookingClosed", nil)
 	}
 	status := "unpaid"
@@ -557,6 +557,13 @@ func (s *Service) RecordPayment(ctx context.Context, ws *store.Workspace, p *aut
 	if b.PaymentStatus == "paid" {
 		action = "sponsors.payment_updated"
 	}
+	source := ""
+	if in.Paid {
+		source = "manual"
+	}
+	// Paid by hand while it waited for its checkout (a bank transfer): the
+	// issue is booked.
+	books := in.Paid && b.Status == "awaiting_payment"
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		by := userID(p)
@@ -564,8 +571,17 @@ func (s *Service) RecordPayment(ctx context.Context, ws *store.Workspace, p *aut
 			by = nil
 		}
 		if err := q.SponsorBookingSetPayment(ctx, store.SponsorBookingSetPaymentParams{ID: id, WorkspaceID: ws.ID, PaymentStatus: status, PaidOn: paidOn, PaidCents: amount,
-			PaidNote: note, PaidBy: by, PaidRecordedAt: recorded, At: now}); err != nil {
+			PaidNote: note, PaidBy: by, PaidRecordedAt: recorded, PaidSource: source, At: now}); err != nil {
 			return err
+		}
+		if books {
+			if err := q.SponsorBookingSetTerms(ctx, store.SponsorBookingSetTermsParams{ID: id, WorkspaceID: ws.ID, SponsorID: b.SponsorID, PriceCents: b.PriceCents,
+				Status: "booked", CreativeDue: b.CreativeDue, PaymentDue: b.PaymentDue, At: now}); err != nil {
+				return err
+			}
+			if err := s.event(ctx, q, id, p, "booked", map[string]any{"sponsor": b.SponsorName, "priceCents": b.PriceCents, "paidByHand": true}); err != nil {
+				return err
+			}
 		}
 		kind := "paid"
 		if !in.Paid {
@@ -574,10 +590,14 @@ func (s *Service) RecordPayment(ctx context.Context, ws *store.Workspace, p *aut
 		if err := s.event(ctx, q, id, p, kind, map[string]any{"amountCents": amount, "paidOn": dayString(paidOn), "note": note}); err != nil {
 			return err
 		}
+		after := map[string]any{"payment": status, "paidOn": dayString(paidOn), "paidCents": amount, "note": note, "source": source}
+		if books {
+			after["status"] = "booked"
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "sponsor_booking", TargetID: id.String(),
 			TargetName: issueName(slot.ListName, int(b.IssueNumber), slot.Name),
-			Before:     map[string]any{"payment": b.PaymentStatus, "paidOn": dayString(b.PaidOn), "paidCents": b.PaidCents},
-			After:      map[string]any{"payment": status, "paidOn": dayString(paidOn), "paidCents": amount, "note": note}})
+			Before:     map[string]any{"payment": b.PaymentStatus, "paidOn": dayString(b.PaidOn), "paidCents": b.PaidCents, "source": b.PaidSource, "status": b.Status},
+			After:      after})
 	})
 	if err != nil {
 		return SponsorBookingDetail{}, err
@@ -592,11 +612,13 @@ func (s *Service) CancelBooking(ctx context.Context, ws *store.Workspace, p *aut
 	if err != nil {
 		return err
 	}
-	if b.Status == "canceled" {
+	switch b.Status {
+	case "canceled", "declined", "expired":
 		return nil
-	}
-	if b.Status == "sent" {
+	case "sent":
 		return problem(ctx, 409, api.CodeConflict, "problem.cancelSent", map[string]any{"issue": b.IssueNumber})
+	case "requested":
+		return problem(ctx, 409, api.CodeConflict, "problem.declineRequest", nil)
 	}
 	reason := strings.TrimSpace(in.Reason)
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -703,4 +725,15 @@ func (s *Service) ConfirmProposal(ctx context.Context, ws *store.Workspace, p *a
 		return SponsorBookingDetail{}, err
 	}
 	return s.Booking(ctx, ws, p, id)
+}
+
+// closedForChanges reports a booking whose terms and payment don't change
+// in the booking panel: canceled, a proposal still to confirm, a request
+// still to review, and what became of a request that was never paid.
+func closedForChanges(status string) bool {
+	switch status {
+	case "canceled", "proposed", "requested", "declined", "expired":
+		return true
+	}
+	return false
 }

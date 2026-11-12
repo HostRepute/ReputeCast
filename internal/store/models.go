@@ -1569,6 +1569,8 @@ type EarnCheckout struct {
 	CreatedAt       time.Time       `json:"createdAt"`
 	CompletedAt     *time.Time      `json:"completedAt"`
 	SubscriptionID  *uuid.UUID      `json:"subscriptionId"`
+	Quantity        int32           `json:"quantity"`
+	TeamName        string          `json:"teamName"`
 }
 
 type EarnGift struct {
@@ -1635,6 +1637,35 @@ type EarnGiftOption struct {
 	CreatedAt   time.Time       `json:"createdAt"`
 	UpdatedAt   time.Time       `json:"updatedAt"`
 	DeletedAt   *time.Time      `json:"deletedAt"`
+}
+
+type EarnGroup struct {
+	ID             uuid.UUID  `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	SubscriptionID uuid.UUID  `json:"subscriptionId"`
+	OwnerContactID uuid.UUID  `json:"ownerContactId"`
+	Name           string     `json:"name"`
+	Seats          int32      `json:"seats"`
+	OverNotifiedAt *time.Time `json:"overNotifiedAt"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+	EndedAt        *time.Time `json:"endedAt"`
+}
+
+type EarnGroupSeat struct {
+	ID              uuid.UUID  `json:"id"`
+	GroupID         uuid.UUID  `json:"groupId"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Email           string     `json:"email"`
+	ContactID       *uuid.UUID `json:"contactId"`
+	SubscriptionID  *uuid.UUID `json:"subscriptionId"`
+	Status          string     `json:"status"`
+	InviteHash      []byte     `json:"inviteHash"`
+	InvitedAt       time.Time  `json:"invitedAt"`
+	InviteSentAt    time.Time  `json:"inviteSentAt"`
+	InviteExpiresAt *time.Time `json:"inviteExpiresAt"`
+	AcceptedAt      *time.Time `json:"acceptedAt"`
+	RemovedAt       *time.Time `json:"removedAt"`
 }
 
 type EarnImport struct {
@@ -1790,6 +1821,9 @@ type EarnPrice struct {
 	Origin       string     `json:"origin"`
 	CreatedAt    time.Time  `json:"createdAt"`
 	RetiredAt    *time.Time `json:"retiredAt"`
+	Audience     string     `json:"audience"`
+	SeatsMin     *int32     `json:"seatsMin"`
+	SeatsMax     *int32     `json:"seatsMax"`
 }
 
 type EarnSetting struct {
@@ -1814,6 +1848,7 @@ type EarnSetting struct {
 	GiftPage           json.RawMessage `json:"giftPage"`
 	ClickTokenOn       bool            `json:"clickTokenOn"`
 	ClickTokenDomains  []string        `json:"clickTokenDomains"`
+	PauseMonths        []int32         `json:"pauseMonths"`
 }
 
 type EarnTier struct {
@@ -2621,6 +2656,13 @@ type PaidSubscription struct {
 	UpdatedAt            time.Time       `json:"updatedAt"`
 	AutomationStartedAt  *time.Time      `json:"automationStartedAt"`
 	AutomationEndedAt    *time.Time      `json:"automationEndedAt"`
+	Quantity             int32           `json:"quantity"`
+	StripeItemID         string          `json:"stripeItemId"`
+	GroupID              *uuid.UUID      `json:"groupId"`
+	PausedAt             *time.Time      `json:"pausedAt"`
+	PauseResumesAt       *time.Time      `json:"pauseResumesAt"`
+	LastPausedAt         *time.Time      `json:"lastPausedAt"`
+	ResumeNotifiedAt     *time.Time      `json:"resumeNotifiedAt"`
 }
 
 type PartnerCode struct {
@@ -4414,42 +4456,48 @@ type Sponsor struct {
 }
 
 type SponsorBooking struct {
-	ID             uuid.UUID       `json:"id"`
-	WorkspaceID    uuid.UUID       `json:"workspaceId"`
-	SlotID         uuid.UUID       `json:"slotId"`
-	IssueNumber    int32           `json:"issueNumber"`
-	IssueOn        time.Time       `json:"issueOn"`
-	SponsorID      *uuid.UUID      `json:"sponsorId"`
-	CampaignID     *uuid.UUID      `json:"campaignId"`
-	CampaignByHand bool            `json:"campaignByHand"`
-	PriceCents     int64           `json:"priceCents"`
-	Currency       string          `json:"currency"`
-	Status         string          `json:"status"`
-	HoldUntil      *time.Time      `json:"holdUntil"`
-	Creative       json.RawMessage `json:"creative"`
-	CreativeStatus string          `json:"creativeStatus"`
-	CreativeDue    *time.Time      `json:"creativeDue"`
-	ReadyAt        *time.Time      `json:"readyAt"`
-	ReadyBy        *uuid.UUID      `json:"readyBy"`
-	PaymentStatus  string          `json:"paymentStatus"`
-	PaymentDue     *time.Time      `json:"paymentDue"`
-	PaidOn         *time.Time      `json:"paidOn"`
-	PaidCents      *int64          `json:"paidCents"`
-	PaidNote       string          `json:"paidNote"`
-	PaidBy         *uuid.UUID      `json:"paidBy"`
-	PaidRecordedAt *time.Time      `json:"paidRecordedAt"`
-	Notes          string          `json:"notes"`
-	CancelReason   string          `json:"cancelReason"`
-	CanceledAt     *time.Time      `json:"canceledAt"`
-	CanceledBy     *uuid.UUID      `json:"canceledBy"`
-	SentAt         *time.Time      `json:"sentAt"`
-	ProposedBy     *uuid.UUID      `json:"proposedBy"`
-	ProposedName   string          `json:"proposedName"`
-	ProposedNote   string          `json:"proposedNote"`
-	Notified       []string        `json:"notified"`
-	CreatedBy      *uuid.UUID      `json:"createdBy"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	UpdatedAt      time.Time       `json:"updatedAt"`
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	SlotID          uuid.UUID       `json:"slotId"`
+	IssueNumber     int32           `json:"issueNumber"`
+	IssueOn         time.Time       `json:"issueOn"`
+	SponsorID       *uuid.UUID      `json:"sponsorId"`
+	CampaignID      *uuid.UUID      `json:"campaignId"`
+	CampaignByHand  bool            `json:"campaignByHand"`
+	PriceCents      int64           `json:"priceCents"`
+	Currency        string          `json:"currency"`
+	Status          string          `json:"status"`
+	HoldUntil       *time.Time      `json:"holdUntil"`
+	Creative        json.RawMessage `json:"creative"`
+	CreativeStatus  string          `json:"creativeStatus"`
+	CreativeDue     *time.Time      `json:"creativeDue"`
+	ReadyAt         *time.Time      `json:"readyAt"`
+	ReadyBy         *uuid.UUID      `json:"readyBy"`
+	PaymentStatus   string          `json:"paymentStatus"`
+	PaymentDue      *time.Time      `json:"paymentDue"`
+	PaidOn          *time.Time      `json:"paidOn"`
+	PaidCents       *int64          `json:"paidCents"`
+	PaidNote        string          `json:"paidNote"`
+	PaidBy          *uuid.UUID      `json:"paidBy"`
+	PaidRecordedAt  *time.Time      `json:"paidRecordedAt"`
+	Notes           string          `json:"notes"`
+	CancelReason    string          `json:"cancelReason"`
+	CanceledAt      *time.Time      `json:"canceledAt"`
+	CanceledBy      *uuid.UUID      `json:"canceledBy"`
+	SentAt          *time.Time      `json:"sentAt"`
+	ProposedBy      *uuid.UUID      `json:"proposedBy"`
+	ProposedName    string          `json:"proposedName"`
+	ProposedNote    string          `json:"proposedNote"`
+	Notified        []string        `json:"notified"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
+	Request         json.RawMessage `json:"request"`
+	StatusTokenHash []byte          `json:"statusTokenHash"`
+	PaymentDueAt    *time.Time      `json:"paymentDueAt"`
+	CheckoutID      string          `json:"checkoutId"`
+	PaidSource      string          `json:"paidSource"`
+	DeclinedReason  string          `json:"declinedReason"`
 }
 
 type SponsorBookingEvent struct {
@@ -4491,6 +4539,15 @@ type SponsorReportStat struct {
 	ComputedAt     time.Time       `json:"computedAt"`
 }
 
+type SponsorSetting struct {
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	SelfServe    bool            `json:"selfServe"`
+	MediaKit     json.RawMessage `json:"mediaKit"`
+	ContactEmail string          `json:"contactEmail"`
+	UpdatedBy    *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
+}
+
 type SponsorSlot struct {
 	ID           uuid.UUID  `json:"id"`
 	WorkspaceID  uuid.UUID  `json:"workspaceId"`
@@ -4508,6 +4565,10 @@ type SponsorSlot struct {
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    time.Time  `json:"updatedAt"`
 	DeletedAt    *time.Time `json:"deletedAt"`
+	SelfServe    bool       `json:"selfServe"`
+	Description  string     `json:"description"`
+	LeadDays     int32      `json:"leadDays"`
+	PayDays      int32      `json:"payDays"`
 }
 
 type SsoProvider struct {

@@ -31,22 +31,29 @@ const (
 	FilterComplimentary = "complimentary"
 	FilterGift          = "gift"
 	FilterEnded         = "ended"
+	// FilterPaused: payments paused (M65).
+	FilterPaused = "paused"
 )
 
 // EndedWindow is how far back the Ended chip looks.
 const EndedWindow = 30 * 24 * time.Hour
 
-// accessSQL is "has paid access": past due keeps it unless the access rule
-// ended it at once.
-const accessSQL = `(s.ended_at IS NULL AND (s.status IN ('trialing','active','complimentary','gift') OR (s.status = 'past_due' AND NOT s.access_paused)))`
+// accessSQL is "has paid access" (earn_paid_access, migration 03560): past
+// due keeps it unless the access rule ended it at once; a pause ends it
+// while it lasts.
+const accessSQL = `earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)`
+
+// payingSQL is a Stripe subscription that pays now: active or past due,
+// not paused.
+const payingSQL = `(s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due') AND s.paused_at IS NULL)`
 
 // EarnMemberFilter narrows the paid members list.
 type EarnMemberFilter struct {
-	Status string `query:"status" enum:"with_access,paying,trialing,past_due,cancels_soon,complimentary,gift,ended" default:"with_access"`
+	Status string `query:"status" enum:"with_access,paying,trialing,past_due,cancels_soon,complimentary,gift,ended,paused" default:"with_access"`
 	Q      string `query:"q" maxLength:"200" doc:"Name, email, billing email or Stripe customer ID"`
 	Tier   string `query:"tier" doc:"Tier id"`
 	Period string `query:"period" enum:"month,year,"`
-	Source string `query:"source" enum:"campaign,automation,page,offer,website,import,gift,grant,direct,"`
+	Source string `query:"source" enum:"campaign,automation,page,offer,website,import,gift,grant,direct,group,"`
 	Offer  string `query:"offer" maxLength:"60" doc:"An offer's label (FALL26)"`
 	Since  string `query:"since" enum:"7d,30d,90d,1y,"`
 	// Campaign is the email a paid member came from (Weekly Digest #141).
@@ -72,7 +79,7 @@ type EarnMemberDiscount struct {
 
 // EarnMemberSource is how a paid member got here.
 type EarnMemberSource struct {
-	Kind       string `json:"kind" enum:"campaign,automation,page,offer,website,import,gift,grant,direct,"`
+	Kind       string `json:"kind" enum:"campaign,automation,page,offer,website,import,gift,grant,direct,group,"`
 	Label      string `json:"label"`
 	CampaignID string `json:"campaignId,omitempty"`
 	// GrantedBy and Reason name complimentary access.
@@ -96,7 +103,7 @@ type EarnMemberRow struct {
 	// with no name or address ("Erased contact").
 	Erased      bool                `json:"erased"`
 	Test        bool                `json:"test"`
-	Kind        string              `json:"kind" enum:"stripe,complimentary,gift"`
+	Kind        string              `json:"kind" enum:"stripe,complimentary,gift,group"`
 	Tier        string              `json:"tier"`
 	TierName    string              `json:"tierName"`
 	Period      string              `json:"period" enum:"month,year,"`
@@ -104,13 +111,21 @@ type EarnMemberRow struct {
 	Currency    string              `json:"currency"`
 	Discount    *EarnMemberDiscount `json:"discount,omitempty"`
 	Legacy      bool                `json:"legacy"`
-	Status      string              `json:"status" enum:"trialing,active,past_due,canceled,complimentary,gift"`
+	Status      string              `json:"status" enum:"trialing,active,past_due,canceled,complimentary,gift,group"`
 	CancelAt    *time.Time          `json:"cancelAt,omitempty"`
 	Since       time.Time           `json:"since"`
 	// Next is what comes next: renews, ends, retries (past due),
-	// trial_ends, no_end (complimentary without an end), ended.
-	Next     string           `json:"next" enum:"renews,ends,retries,trial_ends,no_end,ended"`
-	NextAt   *time.Time       `json:"nextAt,omitempty"`
+	// trial_ends, no_end (complimentary without an end), resumes (paused),
+	// ended.
+	Next   string     `json:"next" enum:"renews,ends,retries,trial_ends,no_end,resumes,ended"`
+	NextAt *time.Time `json:"nextAt,omitempty"`
+	// Quantity is a team's seats (1 otherwise); AmountCents is per seat.
+	Quantity int `json:"quantity"`
+	// PausedAt and PausedUntil: payments paused ("Paused until 15 Jan").
+	PausedAt    *time.Time `json:"pausedAt,omitempty"`
+	PausedUntil *time.Time `json:"pausedUntil,omitempty"`
+	// Team is the buyer's team or a seat holder's.
+	Team     *EarnMemberTeam  `json:"team,omitempty"`
 	LTVCents int64            `json:"ltvCents"`
 	Refunded int64            `json:"refundedCents"`
 	Source   EarnMemberSource `json:"source"`
@@ -140,6 +155,7 @@ type EarnMemberCounts struct {
 	Complimentary int64 `json:"complimentary"`
 	Gift          int64 `json:"gift"`
 	Ended         int64 `json:"ended"`
+	Paused        int64 `json:"paused"`
 }
 
 // EarnMemberList is Earn › Paid members.
@@ -206,7 +222,7 @@ func (s *Service) memberWhere(ws *store.Workspace, f EarnMemberFilter, b *sqlBui
 	case FilterWithAccess:
 		b.add(accessSQL)
 	case FilterPaying:
-		b.add("s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due')")
+		b.add(payingSQL)
 	case FilterTrialing:
 		b.add("s.ended_at IS NULL AND s.status = 'trialing'")
 	case FilterPastDue:
@@ -219,6 +235,8 @@ func (s *Service) memberWhere(ws *store.Workspace, f EarnMemberFilter, b *sqlBui
 		b.add("s.ended_at IS NULL AND s.status = 'gift'")
 	case FilterEnded:
 		b.add("s.ended_at IS NOT NULL AND s.ended_at >= ? AND NOT "+unpaidTrialSQL, s.now().Add(-EndedWindow))
+	case FilterPaused:
+		b.add("s.ended_at IS NULL AND s.paused_at IS NOT NULL")
 	}
 	if q != "" {
 		like := "%" + strings.ToLower(q) + "%"
@@ -281,7 +299,7 @@ const memberColumns = `s.id, s.contact_id, coalesce(c.email, ''), coalesce(c.fir
 	coalesce(t.name, ''), s.period, s.amount_cents, s.currency, s.discount, coalesce(p.status, 'current'), s.status, s.cancel_at, s.started_at,
 	s.trial_end, s.current_period_end, s.ended_at, s.next_retry_at, s.grant_until, s.paid_cents, s.refunded_cents, s.source_kind, s.source_label,
 	s.source_campaign_id, s.source_detail, s.grant_reason, coalesce(u.name, ''), s.end_reason, s.cancel_reason, s.access_paused, s.billing_email,
-	c.erased_at IS NOT NULL`
+	c.erased_at IS NOT NULL, s.quantity, s.paused_at, s.pause_resumes_at`
 
 const memberFrom = `FROM paid_subscriptions s
 	JOIN contacts c ON c.id = s.contact_id
@@ -297,11 +315,14 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 	var discount, detail []byte
 	var trialEnd, periodEnd, ended, retry, grantUntil *time.Time
 	var paid, refunded int64
+	var quantity int32
 	if err := rows.Scan(&id, &contact, &r.Email, &first, &last, &mode, &r.Kind, &tier, &r.TierName, &r.Period, &r.AmountCents, &r.Currency, &discount,
 		&priceStatus, &r.Status, &r.CancelAt, &r.Since, &trialEnd, &periodEnd, &ended, &retry, &grantUntil, &paid, &refunded, &r.Source.Kind,
-		&r.Source.Label, &campaign, &detail, &r.Source.Reason, &grantedBy, &r.EndReason, &r.CancelReason, &r.AccessPaused, &billing, &r.Erased); err != nil {
+		&r.Source.Label, &campaign, &detail, &r.Source.Reason, &grantedBy, &r.EndReason, &r.CancelReason, &r.AccessPaused, &billing, &r.Erased,
+		&quantity, &r.PausedAt, &r.PausedUntil); err != nil {
 		return r, err
 	}
+	r.Quantity = int(quantity)
 	r.ID, r.ContactID = id.String(), contact.String()
 	r.Name = strings.TrimSpace(first + " " + last)
 	if r.Erased {
@@ -353,6 +374,8 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 	switch {
 	case ended != nil:
 		r.Next, r.NextAt = "ended", ended
+	case r.PausedAt != nil:
+		r.Next, r.NextAt = "resumes", r.PausedUntil
 	case r.Status == StatusPastDue:
 		r.Next, r.NextAt = "retries", retry
 	case r.Status == StatusTrialing && trialEnd != nil:
@@ -365,6 +388,9 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 		r.Next, r.NextAt = "ends", r.CancelAt
 	case r.Kind == "gift":
 		r.Next, r.NextAt = "ends", periodEnd
+	case r.Kind == KindGroup:
+		// A seat lasts with its team's subscription.
+		r.Next = "no_end"
 	default:
 		r.Next, r.NextAt = "renews", periodEnd
 	}
@@ -381,7 +407,7 @@ func (s *Service) tierPeriods(ctx context.Context, wsID uuid.UUID) map[string]bo
 	}
 	seen := map[string]map[string]bool{}
 	for _, p := range prices {
-		if p.Status != "current" {
+		if p.Status != "current" || p.Audience == AudienceGroup {
 			continue
 		}
 		k := p.TierID.String()
@@ -471,6 +497,21 @@ func (s *Service) Members(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return out, err
+	}
+	ids := make([]uuid.UUID, 0, len(out.Items))
+	for _, r := range out.Items {
+		if id, err := uuid.Parse(r.ID); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	teams, err := s.teamsOf(ctx, ids)
+	if err != nil {
+		return out, err
+	}
+	for i := range out.Items {
+		if id, err := uuid.Parse(out.Items[i].ID); err == nil {
+			out.Items[i].Team = teams[id]
+		}
 	}
 	counts, mrr, err := s.countMembers(ctx, ws.ID)
 	if err != nil {
@@ -590,6 +631,12 @@ type EarnMember struct {
 	// amounts are before tax, which checkout adds.
 	Lists    []string `json:"lists"`
 	TaxAdded bool     `json:"taxAdded"`
+	// Seats are a team buyer's people, the buyer first (M65).
+	Seats []EarnTeamSeat `json:"seats"`
+	// CanPause: payments can pause (active, Stripe, not ending); CanResume:
+	// they're paused.
+	CanPause  bool `json:"canPause"`
+	CanResume bool `json:"canResume"`
 }
 
 // Member is the member panel of a paid subscription.
@@ -710,6 +757,19 @@ func (s *Service) Member(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if st, err := s.settingsRow(ctx, s.Q, ws.ID); err == nil {
 		out.TaxAdded = st.TaxAtCheckout && !st.PricesIncludeTax
 	}
+	if teams, err := s.teamsOf(ctx, []uuid.UUID{sub.ID}); err == nil {
+		out.Team = teams[sub.ID]
+	}
+	out.Seats = []EarnTeamSeat{}
+	if seats, err := s.teamSeats(ctx, sub, row.Email, row.Name, out.Hidden); err != nil {
+		return out, err
+	} else if seats != nil {
+		out.Seats = seats
+	}
+	out.CanPause, out.CanResume = pausable(sub), sub.PausedAt != nil && sub.EndedAt == nil
+	if sub.PausedAt != nil {
+		out.Emails = append(out.Emails, EmailPaused)
+	}
 	return out, nil
 }
 
@@ -820,26 +880,26 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	return buf.Bytes(), n, err
 }
 
-// countMembers counts the live paid members by status, with the MRR: yearly
-// prices count a twelfth, after any discount; trials, complimentary access
-// and gifts count nothing (ROADMAP defaults).
+// countMembers counts the live paid members by status, with the MRR
+// (earn_arr_cents: yearly prices count a twelfth, after any discount, a
+// team's seats together; trials, pauses, complimentary access, gifts and
+// seats count nothing).
 func (s *Service) countMembers(ctx context.Context, wsID uuid.UUID) (EarnMemberCounts, int64, error) {
 	var c EarnMemberCounts
 	var mrr int64
 	err := s.Pool.QueryRow(ctx, `SELECT
 		count(*) FILTER (WHERE `+accessSQL+`),
-		count(*) FILTER (WHERE s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due')),
+		count(*) FILTER (WHERE `+payingSQL+`),
 		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'trialing'),
 		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'past_due'),
 		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'active' AND s.cancel_at IS NOT NULL),
 		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'complimentary'),
 		count(*) FILTER (WHERE s.ended_at IS NULL AND s.status = 'gift'),
 		count(*) FILTER (WHERE s.ended_at IS NOT NULL AND s.ended_at >= $2 AND NOT `+unpaidTrialSQL+`),
-		round(coalesce(sum(CASE WHEN s.ended_at IS NULL AND s.kind = 'stripe' AND s.status IN ('active','past_due') THEN
-			CASE WHEN s.period = 'year' THEN coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) / 12.0
-			ELSE coalesce((s.discount->>'amountCents')::bigint, s.amount_cents) END ELSE 0 END), 0))::bigint
+		count(*) FILTER (WHERE s.ended_at IS NULL AND s.paused_at IS NOT NULL),
+		round(coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount, s.quantity, s.paused_at)), 0) / 12.0)::bigint
 		FROM paid_subscriptions s WHERE s.workspace_id = $1 AND s.mode = 'live' AND s.status <> 'incomplete'`, wsID, s.now().Add(-EndedWindow)).Scan(
 		&c.WithAccess, &c.Paying, &c.Trialing, &c.PastDue, &c.CancelsSoon, &c.Complimentary,
-		&c.Gift, &c.Ended, &mrr)
+		&c.Gift, &c.Ended, &c.Paused, &mrr)
 	return c, mrr, err
 }

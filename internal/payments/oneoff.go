@@ -42,6 +42,8 @@ type PriceCheckoutRequest struct {
 	// Metadata goes on the session and on the payment, so refunds and
 	// disputes can be traced back.
 	Metadata map[string]string
+	// Quantity is how many of the item (0 means 1).
+	Quantity int
 }
 
 // OneTimePrices is implemented by clients that sell one-time prices.

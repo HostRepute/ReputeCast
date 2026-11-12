@@ -28,6 +28,8 @@ func init() {
 		webhooks.WebhookEventInfo{Name: "gift.purchased", Group: "Paid members", Description: "A reader bought a gift subscription.", DescriptionText: msgs.M("webhook.gift.purchased").Keep(nil)},
 		webhooks.WebhookEventInfo{Name: "gift.redeemed", Group: "Paid members", Description: "A gift was redeemed by its recipient.", DescriptionText: msgs.M("webhook.gift.redeemed").Keep(nil)},
 		webhooks.WebhookEventInfo{Name: "conversion.recorded", Group: "Paid members", Description: "An upgrade or a conversion was credited to an email.", DescriptionText: msgs.M("webhook.conversion.recorded").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.paused", Group: "Paid members", Description: "A subscription's payments paused until a date; paid access stops meanwhile.", DescriptionText: msgs.M("webhook.subscription.paused").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.resumed", Group: "Paid members", Description: "A paused subscription's payments and paid access started again.", DescriptionText: msgs.M("webhook.subscription.resumed").Keep(nil)},
 	)
 }
 
@@ -41,6 +43,8 @@ var hookEvents = map[string]string{
 	"plan_changed":     "subscription.changed",
 	"granted":          "access.complimentary_granted",
 	"grant_removed":    "access.complimentary_ended",
+	"paused":           "subscription.paused",
+	"resumed":          "subscription.resumed",
 }
 
 // PaidMemberEvent is the data of a "Paid members" webhook event.

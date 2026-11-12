@@ -364,5 +364,6 @@
   "type.coupon_pool": "Rabattcode-Pool",
   "type.countdown": "Countdown",
   "type.website_comment": "Website-Kommentar",
-  "type.website_import": "Beitragsimport"
+  "type.website_import": "Beitragsimport",
+  "type.sponsor_settings": "Einstellungen der Sponsorenseite"
 }

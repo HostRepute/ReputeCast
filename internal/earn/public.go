@@ -125,6 +125,10 @@ type TierCardView struct {
 	Primary   bool
 	Note      string
 	Period    string
+	// Team links to the tier's team page ("Buying for a team? From $60 a
+	// year per seat") when it has a group price.
+	Team     string
+	TeamHref string
 }
 
 // PaidView is the "already a paid member" card. Its personal link never
@@ -148,10 +152,12 @@ func (s *Service) t(l i18n.Lang, key string, args i18n.Args) string { return msg
 
 // pageTier is a tier the page can sell: its prices in the page's mode.
 type pageTier struct {
-	t        store.EarnTier
-	short    string
-	monthly  *store.EarnPrice
-	yearly   *store.EarnPrice
+	t       store.EarnTier
+	short   string
+	monthly *store.EarnPrice
+	yearly  *store.EarnPrice
+	// team is a group price the mode sells (the yearly one first).
+	team     *store.EarnPrice
 	stripeID map[string]string // period → provider price id
 }
 
@@ -187,6 +193,13 @@ func (s *Service) sellable(ctx context.Context, ws *store.Workspace, page Upgrad
 				sid = p.StripeTestID
 			}
 			if mode != "" && sid == "" {
+				continue
+			}
+			if p.Audience == AudienceGroup {
+				// A team price: the card links to the tier's team page.
+				if pt.team == nil || p.Period == "year" {
+					pt.team = &prices[i]
+				}
 				continue
 			}
 			pt.stripeID[p.Period] = sid
@@ -233,21 +246,36 @@ func (s *Service) accessOf(ctx context.Context, ws *store.Workspace, contact uui
 	}
 	for _, r := range rows {
 		p := r.PaidSubscription
-		if p.EndedAt == nil && hasAccess(p.Status, p.AccessPaused) && (mode == "" || p.Mode == mode) {
+		if paidAccess(p) && (mode == "" || p.Mode == mode) {
 			return &access{PaidSubscription: p, TierName: r.TierName}, nil
 		}
 	}
 	return nil, nil
 }
 
-func hasAccess(status string, paused bool) bool {
+// hasAccess is the SQL function earn_paid_access (migration 03560): access
+// hasn't ended and isn't paused, and the row is trialing, active,
+// complimentary, a gift, a team's seat, or past due while Stripe retries;
+// the access rule's pause (accessPaused) stops a past due row and a seat
+// (which copies its buyer's). The two must agree (access_test.go).
+func hasAccess(kind, status string, ended, accessPaused, paused bool) bool {
+	if ended || paused {
+		return false
+	}
 	switch status {
 	case StatusTrialing, StatusActive, StatusComplimentary, StatusGift:
 		return true
+	case StatusGroup:
+		return kind == KindGroup && !accessPaused
 	case StatusPastDue:
-		return !paused
+		return !accessPaused
 	}
 	return false
+}
+
+// paidAccess is hasAccess of a subscription row.
+func paidAccess(p store.PaidSubscription) bool {
+	return hasAccess(p.Kind, p.Status, p.EndedAt != nil, p.AccessPaused, p.PausedAt != nil)
 }
 
 // Upgrade builds the upgrade page.
@@ -410,6 +438,10 @@ func (s *Service) card(ctx context.Context, ws *store.Workspace, l i18n.Lang, t 
 	c := TierCardView{ID: t.t.ID.String(), Name: t.t.Name, Benefits: t.t.Benefits, Period: period, Amount: money(p.AmountCents, p.Currency, true)}
 	if c.Benefits == nil {
 		c.Benefits = []string{}
+	}
+	if g := t.team; g != nil {
+		c.Team = s.t(l, "page.teamLink", i18n.Args{"price": publicPriceIn(l, g.AmountCents, g.Currency, g.Period)})
+		c.TeamHref = s.pageURL(ctx, ws, "upgrade/"+t.t.Slug+"/team")
 	}
 	if page.Highlight == t.t.ID.String() {
 		c.Highlight = page.HighlightLabel

@@ -43,4 +43,9 @@ export default translate(m, {
   wordCanceled: 'résilié',
   wordFailed: 'paiement échoué',
   wordTrialEnded: 'essai terminé sans paiement',
+  kindPaused: 'Suspend ses paiements',
+  kindResumed: 'Reprend ses paiements',
+  pausedNote: 'Démarre quand un membre suspend sur la page de résiliation, ou quand votre équipe le suspend dans Membres payants.',
+  resumedNote: 'Démarre quand les paiements reprennent\u00A0: plus tôt avec «\u00A0Reprendre maintenant\u00A0», ou à la date de reprise.',
+  liquidPaused: 'Les e-mails de ce parcours peuvent utiliser {tier} et {resumes}.',
 })

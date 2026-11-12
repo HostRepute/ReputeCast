@@ -20,7 +20,7 @@ import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { fileName, saveBlob } from '../audience/download'
 import { ComplimentaryDialog } from './ComplimentaryDialog'
 import { EARN, EarnPage, copyText } from './EarnPage'
-import { memberName, money, nextLine, platformName, priceLine, sourceLine, statusLabel, statusTone, tierLine, type MemberRow } from './format'
+import { day, memberName, money, nextLine, platformName, priceLine, sourceLine, statusLabel, statusTone, tierLine, type MemberRow } from './format'
 import { ImportDialog } from './ImportDialog'
 import { MemberPanel } from './MemberPanel'
 import { mm } from './members.messages'
@@ -45,10 +45,10 @@ export type MembersSearch = {
   comp?: boolean
 }
 
-type Status = 'with_access' | 'paying' | 'trialing' | 'past_due' | 'cancels_soon' | 'complimentary' | 'gift' | 'ended'
+type Status = 'with_access' | 'paying' | 'trialing' | 'past_due' | 'cancels_soon' | 'paused' | 'complimentary' | 'gift' | 'ended'
 type List = Schemas['EarnMemberList']
 
-const statuses: Status[] = ['with_access', 'paying', 'trialing', 'past_due', 'cancels_soon', 'complimentary', 'gift', 'ended']
+const statuses: Status[] = ['with_access', 'paying', 'trialing', 'past_due', 'cancels_soon', 'paused', 'complimentary', 'gift', 'ended']
 
 /** Earn › Paid members (EarnMembers): the summary line, filters, status chips, the list and the member panel. */
 export function MembersPage({ search, onSearch }: { search: MembersSearch; onSearch: (next: MembersSearch, replace?: boolean) => void }) {
@@ -206,13 +206,16 @@ export function MembersPage({ search, onSearch }: { search: MembersSearch; onSea
               </label>
             </div>
             {status === 'past_due' && d.counts.pastDue > 0 ? <PastDueBanner list={d} search={search} /> : null}
+            {status === 'paused' && d.counts.paused > 0 ? <PausedBanner count={d.counts.paused} /> : null}
             {search.test && d.testMembers > 0 ? <TestBanner list={d} /> : null}
             <MembersTable list={d} search={search} onOpen={(id) => onSearch({ ...search, member: id })} onClear={() => onSearch({ ...search, q: undefined, page: undefined })} onSearchEnded={() => onSearch({ ...search, status: 'ended' })} />
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-2 px-[18px] py-3">
               <span className="k">
                 {search.test && d.testShown > 0
                   ? t(mm.showingTest, { test: d.testShown, shown: d.items.length - d.testShown, total: d.counts.withAccess })
-                  : t(mm.showing, { shown: d.items.length, total: d.total, status })}
+                  : status === 'paused'
+                    ? t(mm.showingPaused, { shown: d.items.length, total: d.total })
+                    : t(mm.showing, { shown: d.items.length, total: d.total, status })}
               </span>
               <div className="flex gap-2">
                 <Button size="sm" disabled={(search.page ?? 1) <= 1} onClick={() => set({ page: (search.page ?? 1) - 1 })}>
@@ -253,6 +256,7 @@ function chipLabel(t: ReturnType<typeof useT>, s: Status): string {
     trialing: t(mm.trialing),
     past_due: t(mm.pastDue),
     cancels_soon: t(mm.cancelsSoon),
+    paused: t(mm.paused),
     complimentary: t(mm.complimentary),
     gift: t(mm.gift),
     ended: t(mm.ended),
@@ -266,6 +270,7 @@ function chipCount(c: Schemas['EarnMemberCounts'], s: Status): number {
     trialing: c.trialing,
     past_due: c.pastDue,
     cancels_soon: c.cancelsSoon,
+    paused: c.paused,
     complimentary: c.complimentary,
     gift: c.gift,
     ended: c.ended,
@@ -350,6 +355,28 @@ function PastDueBanner({ list, search }: { list: List; search: MembersSearch }) 
                 {t(mm.exportThese, { count: list.counts.pastDue })}
               </Button>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** The Paused filter's note (EarnMembersStates): what a pause means, and the settings. */
+function PausedBanner({ count: n }: { count: number }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  return (
+    <div className="px-[18px] pt-3.5">
+      <div className="note i" role="note">
+        <Icon name="info" size={16} />
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="font-semibold">{t(mm.pausedTitle, { count: n })}</span>
+          <div className="flex flex-col items-start gap-2">
+            {t(mm.pausedText)}
+            <ButtonLink to="/w/$workspace/earn/settings" params={{ workspace: slug }} size="sm">
+              {t(mm.pausingSettings)}
+            </ButtonLink>
           </div>
         </div>
       </div>
@@ -503,9 +530,14 @@ export function StatusBadges({ r, row }: { r: MemberRow; row?: boolean }) {
           <GiftIcon />
           {statusLabel(t, r.status)}
         </span>
+      ) : r.pausedAt && r.status !== 'canceled' ? (
+        <Badge tone="info">{r.pausedUntil ? t(me.pausedUntil, { date: day(r.pausedUntil) }) : t(me.pausedNoDate)}</Badge>
       ) : (
         <Badge tone={statusTone(r.status)}>{statusLabel(t, r.status)}</Badge>
       )}
+      {r.team && r.status !== 'canceled' ? (
+        <span className="chip ea-teamchip">{r.team.role === 'buyer' ? t(me.teamChip, { used: r.team.used - r.team.invites, seats: r.team.seats }) : t(me.seatChip, { team: r.team.name })}</span>
+      ) : null}
       {r.cancelAt && r.status !== 'canceled' ? <span className="badge sm mut">{t(me.cancelsOn, { date: dayMonthDate(r.cancelAt) })}</span> : null}
       {r.accessPaused ? <span className="badge sm warn">{t(me.accessPaused)}</span> : null}
     </span>

@@ -4,14 +4,20 @@
 // recorded by hand, and the sponsor reports, shared as read-only links.
 //
 // Sponsorships work without a payment provider: ReputeCast sends no
-// invoices and moves no money. The Sponsor block of an issue fills itself
-// from the issue's booking and is always labelled "Sponsored"; Send
-// Readiness won't let an issue go out while the creative is missing. A
-// sponsor report counts only human opens and real clicks of the
-// recipients who got the block, and is final 72 hours after the send.
+// invoices. The Sponsor block of an issue fills itself from the issue's
+// booking and is always labelled "Sponsored"; Send Readiness won't let an
+// issue go out while the creative is missing. A sponsor report counts only
+// human opens and real clicks of the recipients who got the block, and is
+// final 72 hours after the send.
 //
-// Every change a person makes is audited (the "sponsors.*" actions); MCP
-// agents can read bookings and propose one for a person to confirm.
+// With a payment connection, sponsors can also book self-serve slots from
+// the workspace's sponsor page (M65, settings.go, selfserve.go): they
+// request an issue with their creative, a person approves it, and they pay
+// through Stripe Checkout before a deadline (requests.go, payment.go).
+//
+// Every change a person makes is audited (the "sponsors.*" actions, and
+// "sponsor_settings.*" and "sponsor_booking.*" for self-serve booking);
+// MCP agents can read bookings and propose one for a person to confirm.
 package sponsors
 
 import (
@@ -22,6 +28,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,7 +39,11 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -62,11 +73,34 @@ type Service struct {
 	// Images stores a creative's uploaded logo or image in the media
 	// library and returns its address (nil: uploads are refused).
 	Images ImageStore
+	// Self-serve booking (M65). Earn is the payment connection sponsors pay
+	// through; Hidden keeps the images a request sends outside the library;
+	// Mail sends the sponsor's emails, Jobs queues them; Brand is how the
+	// emails look. Without Earn the sponsor page stays off.
+	Earn   func() *earn.Service
+	Hidden HiddenImages
+	Mail   func() mailer.Sender
+	Jobs   func() *jobs.Client
+	Brand  func(ctx context.Context, ws *store.Workspace) Brand
+
+	kitOnce sync.Once
+	kits    *kitCache
 }
 
 // ImageStore keeps uploaded images (internal/media).
 type ImageStore interface {
 	Upload(ctx context.Context, ws *store.Workspace, p *authz.Principal, name string, data []byte) (string, error)
+}
+
+// HiddenImages keeps an image a sponsor sent with a request, outside the
+// media library, inside the request's transaction (internal/media).
+type HiddenImages interface {
+	Hidden(ctx context.Context, q *store.Queries, ws *store.Workspace, name string, data []byte) (media.MediaAsset, error)
+}
+
+// Brand is how the sponsor emails look: the publisher's name and colours.
+type Brand struct {
+	Publisher, Accent, OnAccent, Background string
 }
 
 func (s *Service) now() time.Time {

@@ -44,7 +44,8 @@ type SponsorUTMs struct {
 	Campaign string `json:"campaign,omitempty" maxLength:"100"`
 }
 
-// SponsorPayment is a booking's payment, recorded by hand.
+// SponsorPayment is a booking's payment: recorded by hand, or paid through
+// Stripe Checkout from the sponsor page (Source).
 type SponsorPayment struct {
 	// Status: unpaid, paid, or overdue once the due date passed.
 	Status     string     `json:"status" enum:"unpaid,paid,overdue"`
@@ -54,14 +55,19 @@ type SponsorPayment struct {
 	Note       string     `json:"note"`
 	RecordedBy string     `json:"recordedBy,omitempty"`
 	RecordedAt *time.Time `json:"recordedAt,omitempty"`
+	// Source: manual (recorded by a person), stripe (paid through the
+	// sponsor page's checkout), empty while unpaid.
+	Source string `json:"source" enum:"manual,stripe,"`
 }
 
 // SponsorBookingBrief is a booking on an issue's row.
 type SponsorBookingBrief struct {
 	ID string `json:"id"`
-	// Status: hold, booked, sent (the issue went out with it).
-	Status         string          `json:"status" enum:"hold,booked,sent"`
+	// Status: hold, awaiting_payment (approved from the sponsor page, held
+	// until PaymentDueAt), booked, sent (the issue went out with it).
+	Status         string          `json:"status" enum:"hold,awaiting_payment,booked,sent"`
 	HoldUntil      *time.Time      `json:"holdUntil,omitempty"`
+	PaymentDueAt   *time.Time      `json:"paymentDueAt,omitempty"`
 	Sponsor        *SponsorRef     `json:"sponsor,omitempty"`
 	PriceCents     int64           `json:"priceCents"`
 	CreativeStatus string          `json:"creativeStatus" enum:"waiting,ready"`
@@ -96,6 +102,9 @@ type SponsorIssueRow struct {
 	// Proposal is an agent's proposal for an open issue.
 	Proposal *SponsorPropose `json:"proposal,omitempty"`
 	Past     bool            `json:"past"`
+	// Requests counts the sponsor page's requests for the issue (they
+	// don't hold it).
+	Requests int `json:"requests"`
 }
 
 // SponsorSlotItem is a slot with its schedule.
@@ -116,6 +125,13 @@ type SponsorSlotItem struct {
 	CreativeDays int       `json:"creativeDays"`
 	Selling      bool      `json:"selling"`
 	Bookings     int       `json:"bookings"`
+	// Self-serve: sponsors book it from the sponsor page, at least
+	// LeadDays ahead, and pay within PayDays of the approval; Description
+	// is what the page says about it.
+	SelfServe   bool   `json:"selfServe"`
+	Description string `json:"description"`
+	LeadDays    int    `json:"leadDays"`
+	PayDays     int    `json:"payDays"`
 }
 
 // SponsorItem is a sponsor of the library, with its bookings.
@@ -129,13 +145,24 @@ type SponsorItem struct {
 	ContactEmail string `json:"contactEmail"`
 	TermsDays    int    `json:"termsDays"`
 	Notes        string `json:"notes"`
-	// Issues lists its bookings' numbers; Hold its holds.
-	Issues      []int  `json:"issues"`
-	Hold        []int  `json:"hold"`
-	BookedCents int64  `json:"bookedCents"`
-	HoldCents   int64  `json:"holdCents"`
-	PaidCents   int64  `json:"paidCents"`
-	Currency    string `json:"currency"`
+	// Issues lists its bookings' numbers; Hold its holds; Awaiting the
+	// approved requests waiting for their payment (AwaitingCents, the
+	// first due AwaitingDue); FromRequest the bookings that came from the
+	// sponsor page; Requests the requests still to review.
+	Issues        []int      `json:"issues"`
+	Hold          []int      `json:"hold"`
+	Awaiting      []int      `json:"awaiting"`
+	FromRequest   []int      `json:"fromRequest"`
+	Requests      int        `json:"requests"`
+	BookedCents   int64      `json:"bookedCents"`
+	HoldCents     int64      `json:"holdCents"`
+	AwaitingCents int64      `json:"awaitingCents"`
+	AwaitingDue   *time.Time `json:"awaitingDue,omitempty"`
+	PaidCents     int64      `json:"paidCents"`
+	// StripePaidOn is the day of its latest payment through the sponsor
+	// page's checkout.
+	StripePaidOn *time.Time `json:"stripePaidOn,omitempty"`
+	Currency     string     `json:"currency"`
 	// ClickRate is the latest final report's (unique clickers ÷ delivered)
 	// with its issue.
 	ClickRate      *float64 `json:"clickRate,omitempty"`
@@ -191,6 +218,8 @@ type SponsorOverview struct {
 	Library  []SponsorItem     `json:"library"`
 	Notices  []SponsorNotice   `json:"notices"`
 	Currency string            `json:"currency"`
+	// Requests counts the sponsor page's requests waiting for a person.
+	Requests int `json:"requests"`
 	// CanManage: the person holds sponsors:manage; Helpers can help when not.
 	CanManage bool     `json:"canManage"`
 	Helpers   []string `json:"helpers"`
@@ -258,33 +287,54 @@ type SponsorReport struct {
 	Label        string          `json:"label"`
 }
 
+// SponsorRequestFrom is who sent a booking from the sponsor page, as they
+// wrote it.
+type SponsorRequestFrom struct {
+	Company string    `json:"company"`
+	Name    string    `json:"name"`
+	Email   string    `json:"email"`
+	Website string    `json:"website"`
+	Notes   string    `json:"notes"`
+	At      time.Time `json:"at"`
+	// ApprovedBy and ApprovedAt name the approval, once approved.
+	ApprovedBy string     `json:"approvedBy,omitempty"`
+	ApprovedAt *time.Time `json:"approvedAt,omitempty"`
+}
+
 // SponsorBookingDetail is the booking panel.
 type SponsorBookingDetail struct {
-	ID          string                `json:"id"`
-	SlotID      string                `json:"slotId"`
-	SlotName    string                `json:"slotName"`
-	ListName    string                `json:"listName"`
-	Placement   string                `json:"placement"`
-	Issue       int                   `json:"issue"`
-	IssueOn     time.Time             `json:"issueOn"`
-	Status      string                `json:"status" enum:"proposed,hold,booked,sent,canceled"`
-	HoldUntil   *time.Time            `json:"holdUntil,omitempty"`
-	Sponsor     *SponsorItem          `json:"sponsor,omitempty"`
-	PriceCents  int64                 `json:"priceCents"`
-	SlotPrice   int64                 `json:"slotPriceCents"`
-	Currency    string                `json:"currency"`
-	Campaign    *SponsorCampaignRef   `json:"campaign,omitempty"`
-	Creative    SponsorCreative       `json:"creative"`
-	CreativeSt  string                `json:"creativeStatus" enum:"waiting,ready"`
-	CreativeDue *time.Time            `json:"creativeDue,omitempty"`
-	ReadyAt     *time.Time            `json:"readyAt,omitempty"`
-	Payment     SponsorPayment        `json:"payment"`
-	Notes       string                `json:"notes"`
-	Activity    []SponsorBookingEvent `json:"activity"`
-	Report      *SponsorReport        `json:"report,omitempty"`
-	Shares      []SponsorShareLink    `json:"shares"`
-	Proposal    *SponsorPropose       `json:"proposal,omitempty"`
-	CanceledAt  *time.Time            `json:"canceledAt,omitempty"`
+	ID        string     `json:"id"`
+	SlotID    string     `json:"slotId"`
+	SlotName  string     `json:"slotName"`
+	ListName  string     `json:"listName"`
+	Placement string     `json:"placement"`
+	Issue     int        `json:"issue"`
+	IssueOn   time.Time  `json:"issueOn"`
+	Status    string     `json:"status" enum:"proposed,hold,booked,sent,canceled,requested,awaiting_payment,declined,expired"`
+	HoldUntil *time.Time `json:"holdUntil,omitempty"`
+	// PaymentDueAt is when an approved request's payment must arrive
+	// (awaiting_payment); the issue opens again after it.
+	PaymentDueAt *time.Time            `json:"paymentDueAt,omitempty"`
+	Sponsor      *SponsorItem          `json:"sponsor,omitempty"`
+	PriceCents   int64                 `json:"priceCents"`
+	SlotPrice    int64                 `json:"slotPriceCents"`
+	Currency     string                `json:"currency"`
+	Campaign     *SponsorCampaignRef   `json:"campaign,omitempty"`
+	Creative     SponsorCreative       `json:"creative"`
+	CreativeSt   string                `json:"creativeStatus" enum:"waiting,ready"`
+	CreativeDue  *time.Time            `json:"creativeDue,omitempty"`
+	ReadyAt      *time.Time            `json:"readyAt,omitempty"`
+	Payment      SponsorPayment        `json:"payment"`
+	Notes        string                `json:"notes"`
+	Activity     []SponsorBookingEvent `json:"activity"`
+	Report       *SponsorReport        `json:"report,omitempty"`
+	Shares       []SponsorShareLink    `json:"shares"`
+	Proposal     *SponsorPropose       `json:"proposal,omitempty"`
+	CanceledAt   *time.Time            `json:"canceledAt,omitempty"`
+	// Request is who sent the booking from the sponsor page;
+	// DeclinedReason what they were told when it was declined.
+	Request        *SponsorRequestFrom `json:"request,omitempty"`
+	DeclinedReason string              `json:"declinedReason,omitempty"`
 	// Label is the block's label for this sponsor ("Sponsored by …").
 	Label     string   `json:"label"`
 	CanManage bool     `json:"canManage"`

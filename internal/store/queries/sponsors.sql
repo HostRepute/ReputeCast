@@ -35,12 +35,15 @@ FROM sponsor_slots s JOIN lists l ON l.id = s.list_id
 WHERE s.id = @id AND s.workspace_id = @workspace_id AND s.deleted_at IS NULL;
 
 -- name: SponsorSlotInsert :exec
-INSERT INTO sponsor_slots (id, workspace_id, list_id, name, placement, price_cents, currency, first_number, first_on, every_days, creative_days, selling, created_by, created_at, updated_at)
-VALUES (@id, @workspace_id, @list_id, @name, @placement, @price_cents, @currency, @first_number, @first_on, @every_days, @creative_days, @selling, sqlc.narg(created_by), @at, @at);
+INSERT INTO sponsor_slots (id, workspace_id, list_id, name, placement, price_cents, currency, first_number, first_on, every_days, creative_days, selling,
+    self_serve, description, lead_days, pay_days, created_by, created_at, updated_at)
+VALUES (@id, @workspace_id, @list_id, @name, @placement, @price_cents, @currency, @first_number, @first_on, @every_days, @creative_days, @selling,
+    @self_serve, @description, @lead_days, @pay_days, sqlc.narg(created_by), @at, @at);
 
 -- name: SponsorSlotUpdate :exec
 UPDATE sponsor_slots SET list_id = @list_id, name = @name, placement = @placement, price_cents = @price_cents, currency = @currency,
-    first_number = @first_number, first_on = @first_on, every_days = @every_days, creative_days = @creative_days, selling = @selling, updated_at = @at
+    first_number = @first_number, first_on = @first_on, every_days = @every_days, creative_days = @creative_days, selling = @selling,
+    self_serve = @self_serve, description = @description, lead_days = @lead_days, pay_days = @pay_days, updated_at = @at
 WHERE id = @id AND workspace_id = @workspace_id AND deleted_at IS NULL;
 
 -- name: SponsorSlotDelete :exec
@@ -48,6 +51,8 @@ UPDATE sponsor_slots SET deleted_at = @at::timestamptz, updated_at = @at WHERE i
 
 -- name: SponsorBookingsOfSlot :many
 -- A slot's bookings of a range of issues, with their sponsor and campaign.
+-- Requests and what became of them (declined, expired) aren't on the
+-- calendar: they never held the issue.
 SELECT b.*, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_name, '')::text AS sponsor_contact,
     coalesce(sp.contact_email, '')::text AS sponsor_email, coalesce(sp.terms_days, 14)::integer AS sponsor_terms,
     coalesce(c.name, '')::text AS campaign_name, coalesce(c.status, '')::text AS campaign_status,
@@ -55,7 +60,7 @@ SELECT b.*, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_nam
 FROM sponsor_bookings b
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
 LEFT JOIN campaigns c ON c.id = b.campaign_id AND c.deleted_at IS NULL
-WHERE b.slot_id = @slot_id AND b.issue_number BETWEEN @from_number AND @to_number AND b.status <> 'canceled'
+WHERE b.slot_id = @slot_id AND b.issue_number BETWEEN @from_number AND @to_number AND b.status NOT IN ('canceled','requested','declined','expired')
 ORDER BY b.issue_number, b.created_at;
 
 -- name: SponsorBookingsOfWorkspace :many
@@ -66,7 +71,7 @@ SELECT b.*, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.contact_nam
 FROM sponsor_bookings b
 LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
 LEFT JOIN campaigns c ON c.id = b.campaign_id AND c.deleted_at IS NULL
-WHERE b.workspace_id = @workspace_id AND b.status <> 'canceled'
+WHERE b.workspace_id = @workspace_id AND b.status NOT IN ('canceled','requested','declined','expired')
 ORDER BY b.issue_on, b.issue_number;
 
 -- name: SponsorBookingGet :one
@@ -80,7 +85,9 @@ LEFT JOIN campaigns c ON c.id = b.campaign_id AND c.deleted_at IS NULL
 WHERE b.id = @id AND b.workspace_id = @workspace_id;
 
 -- name: SponsorBookingOfIssue :one
-SELECT * FROM sponsor_bookings WHERE slot_id = @slot_id AND issue_number = @issue_number AND status IN ('hold','booked','sent')
+-- The booking holding an issue: on hold, waiting for its payment, booked
+-- or sent.
+SELECT * FROM sponsor_bookings WHERE slot_id = @slot_id AND issue_number = @issue_number AND status IN ('hold','booked','sent','awaiting_payment')
 ORDER BY created_at DESC LIMIT 1;
 
 -- name: SponsorBookingProposals :many
@@ -125,7 +132,7 @@ WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: SponsorBookingSetPayment :exec
 UPDATE sponsor_bookings SET payment_status = @payment_status, paid_on = sqlc.narg(paid_on), paid_cents = sqlc.narg(paid_cents), paid_note = @paid_note,
-    paid_by = sqlc.narg(paid_by), paid_recorded_at = sqlc.narg(paid_recorded_at), updated_at = @at
+    paid_by = sqlc.narg(paid_by), paid_recorded_at = sqlc.narg(paid_recorded_at), paid_source = @paid_source, updated_at = @at
 WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: SponsorBookingCancel :exec
@@ -226,3 +233,144 @@ SELECT b.campaign_id, sp.name AS sponsor
 FROM sponsor_bookings b JOIN sponsors sp ON sp.id = b.sponsor_id
 WHERE b.workspace_id = @workspace_id AND b.campaign_id IS NOT NULL AND b.status IN ('booked','sent')
 ORDER BY b.issue_on DESC;
+
+-- Self-serve booking (M65, G-40): the sponsor page's settings and media
+-- kit, requests, their review, payment through Stripe Checkout and
+-- expiry.
+
+-- name: SponsorSettingsGet :one
+SELECT * FROM sponsor_settings WHERE workspace_id = @workspace_id;
+
+-- name: SponsorSettingsSave :exec
+INSERT INTO sponsor_settings (workspace_id, self_serve, media_kit, contact_email, updated_by, updated_at)
+VALUES (@workspace_id, @self_serve, @media_kit, @contact_email, sqlc.narg(updated_by), @at)
+ON CONFLICT (workspace_id) DO UPDATE SET self_serve = EXCLUDED.self_serve, media_kit = EXCLUDED.media_kit, contact_email = EXCLUDED.contact_email,
+    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at;
+
+-- name: SponsorSelfServeSlots :many
+-- The slots sponsors book themselves: self-serve and on sale.
+SELECT s.*, l.name AS list_name
+FROM sponsor_slots s JOIN lists l ON l.id = s.list_id
+WHERE s.workspace_id = @workspace_id AND s.deleted_at IS NULL AND s.self_serve AND s.selling
+ORDER BY s.created_at;
+
+-- name: SponsorIssuesHeld :many
+-- The issues of some slots between two dates that a booking holds, with
+-- who holds them and until when.
+SELECT b.slot_id, b.issue_number, b.status, b.hold_until, b.payment_due_at, coalesce(sp.name, '')::text AS sponsor_name
+FROM sponsor_bookings b LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+WHERE b.slot_id = ANY(@slot_ids::uuid[]) AND b.issue_on BETWEEN @from_on::date AND @to_on::date AND b.status IN ('hold','booked','sent','awaiting_payment');
+
+-- name: SponsorRequestsPerIssue :many
+-- How many requests wait for each issue of a slot in a range.
+SELECT issue_number, count(*)::integer AS requests FROM sponsor_bookings
+WHERE slot_id = @slot_id AND issue_number BETWEEN @from_number AND @to_number AND status = 'requested'
+GROUP BY issue_number;
+
+-- name: SponsorRequestsPerSponsor :many
+-- How many requests wait for each sponsor of the library.
+SELECT sponsor_id, count(*)::integer AS requests FROM sponsor_bookings
+WHERE workspace_id = @workspace_id AND status = 'requested' AND sponsor_id IS NOT NULL
+GROUP BY sponsor_id;
+
+-- name: SponsorListSubscribers :one
+SELECT count(*)::bigint FROM list_memberships WHERE list_id = @list_id AND status = 'subscribed';
+
+-- name: SponsorListEngagement :one
+-- A list's campaigns sent since a moment: delivered, human opens and
+-- clickers, for the media kit's rates.
+SELECT coalesce(sum(cc.delivered), 0)::bigint AS delivered, coalesce(sum(cc.opened_human), 0)::bigint AS human_opens, coalesce(sum(cc.clicked), 0)::bigint AS clicked
+FROM campaigns c JOIN campaign_counters cc ON cc.campaign_id = c.id
+WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.status = 'sent' AND c.started_at >= @since::timestamptz
+  AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) x(id) WHERE x.id = @list_id::text);
+
+-- name: SponsorByContactEmail :one
+-- The library's sponsor a request's address belongs to.
+SELECT * FROM sponsors WHERE workspace_id = @workspace_id AND lower(contact_email) = lower(@email::text) AND deleted_at IS NULL
+ORDER BY created_at LIMIT 1;
+
+-- name: SponsorFillBlanks :exec
+-- A request fills what the library's sponsor doesn't have yet.
+UPDATE sponsors SET website = CASE WHEN website = '' THEN @website ELSE website END,
+    contact_name = CASE WHEN contact_name = '' THEN @contact_name ELSE contact_name END,
+    logo_url = CASE WHEN logo_url = '' THEN @logo_url ELSE logo_url END, updated_at = @at
+WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: SponsorRequestInsert :exec
+INSERT INTO sponsor_bookings (id, workspace_id, slot_id, issue_number, issue_on, sponsor_id, price_cents, currency, status, creative, creative_status,
+    creative_due, request, status_token_hash, created_at, updated_at)
+VALUES (@id, @workspace_id, @slot_id, @issue_number, @issue_on, @sponsor_id, @price_cents, @currency, 'requested', @creative, 'waiting',
+    sqlc.narg(creative_due), @request, @status_token_hash, @at, @at);
+
+-- name: SponsorBookingByToken :one
+-- A sponsor's booking by its status page's token, with its slot (deleted
+-- or not) and list.
+SELECT b.*, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sl.name, '')::text AS slot_name, coalesce(sl.placement, '')::text AS slot_placement,
+    coalesce(l.name, '')::text AS list_name, coalesce(sl.pay_days, 3)::integer AS slot_pay_days
+FROM sponsor_bookings b
+LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+LEFT JOIN sponsor_slots sl ON sl.id = b.slot_id
+LEFT JOIN lists l ON l.id = sl.list_id
+WHERE b.workspace_id = @workspace_id AND b.status_token_hash = @token_hash;
+
+-- name: SponsorRequestsOf :many
+-- Self-serve bookings in some states (requests first of all), oldest first.
+SELECT b.*, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.logo_url, '')::text AS sponsor_logo, coalesce(sl.name, '')::text AS slot_name,
+    coalesce(l.name, '')::text AS list_name, (sl.deleted_at IS NOT NULL)::boolean AS slot_deleted
+FROM sponsor_bookings b
+LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+LEFT JOIN sponsor_slots sl ON sl.id = b.slot_id
+LEFT JOIN lists l ON l.id = sl.list_id
+WHERE b.workspace_id = @workspace_id AND b.status = ANY(@statuses::text[]) AND b.request <> '{}'::jsonb AND b.updated_at >= @since::timestamptz
+ORDER BY b.created_at, b.id;
+
+-- name: SponsorRequestGet :one
+-- One self-serve booking with its slot (deleted or not), list and sponsor.
+SELECT b.*, coalesce(sp.name, '')::text AS sponsor_name, coalesce(sp.logo_url, '')::text AS sponsor_logo, coalesce(sl.name, '')::text AS slot_name,
+    coalesce(l.name, '')::text AS list_name, (sl.deleted_at IS NOT NULL)::boolean AS slot_deleted
+FROM sponsor_bookings b
+LEFT JOIN sponsors sp ON sp.id = b.sponsor_id
+LEFT JOIN sponsor_slots sl ON sl.id = b.slot_id
+LEFT JOIN lists l ON l.id = sl.list_id
+WHERE b.id = @id AND b.workspace_id = @workspace_id AND b.request <> '{}'::jsonb;
+
+-- name: SponsorRequestCount :one
+SELECT count(*)::integer FROM sponsor_bookings WHERE workspace_id = @workspace_id AND status = 'requested';
+
+-- name: SponsorBookingLock :one
+SELECT * FROM sponsor_bookings WHERE id = @id FOR UPDATE;
+
+-- name: SponsorBookingApprove :execrows
+-- An approved request waits for its payment: it holds its issue until
+-- payment_due_at, and the sponsor's status page link is new.
+UPDATE sponsor_bookings SET status = 'awaiting_payment', slot_id = @slot_id, issue_number = @issue_number, issue_on = @issue_on, price_cents = @price_cents,
+    currency = @currency, campaign_id = sqlc.narg(campaign_id), creative = @creative, creative_due = sqlc.narg(creative_due), payment_due = sqlc.narg(payment_due),
+    payment_due_at = @payment_due_at::timestamptz, status_token_hash = @status_token_hash, updated_at = @at
+WHERE id = @id AND workspace_id = @workspace_id AND status = 'requested';
+
+-- name: SponsorBookingDecline :execrows
+UPDATE sponsor_bookings SET status = 'declined', declined_reason = @reason, updated_at = @at
+WHERE id = @id AND workspace_id = @workspace_id AND status = 'requested';
+
+-- name: SponsorBookingSetCheckout :exec
+UPDATE sponsor_bookings SET checkout_id = @checkout_id, updated_at = @at WHERE id = @id;
+
+-- name: SponsorBookingStripePaid :exec
+-- A payment through Stripe Checkout: the booking's status (booked, or as it
+-- was when the issue was taken meanwhile), paid by Stripe, and its creative
+-- ready to go out once booked.
+UPDATE sponsor_bookings SET status = @status, payment_status = 'paid', paid_source = 'stripe', paid_cents = @paid_cents, paid_on = @paid_on::date,
+    paid_note = '', paid_by = NULL, paid_recorded_at = @at::timestamptz, checkout_id = @checkout_id,
+    creative_status = CASE WHEN @status::text = 'booked' THEN 'ready' ELSE creative_status END,
+    ready_at = CASE WHEN @status::text = 'booked' THEN coalesce(ready_at, @at::timestamptz) ELSE ready_at END, updated_at = @at
+WHERE id = @id;
+
+-- name: SponsorPaymentsLapsed :many
+-- Approved bookings whose payment didn't arrive in time.
+SELECT b.*, w.slug AS workspace_slug, w.timezone AS workspace_timezone
+FROM sponsor_bookings b JOIN workspaces w ON w.id = b.workspace_id
+WHERE b.status = 'awaiting_payment' AND b.payment_due_at < @now::timestamptz;
+
+-- name: SponsorBookingExpire :execrows
+UPDATE sponsor_bookings SET status = 'expired', updated_at = @at
+WHERE id = @id AND status = 'awaiting_payment' AND payment_due_at < @at;

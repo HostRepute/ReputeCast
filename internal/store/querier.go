@@ -1512,12 +1512,14 @@ type Querier interface {
 	DownloadFilesOfOwners(ctx context.Context, arg DownloadFilesOfOwnersParams) ([]DownloadFile, error)
 	DownloadFilesSize(ctx context.Context, arg DownloadFilesSizeParams) (int64, error)
 	EarnCampaignName(ctx context.Context, id uuid.UUID) (string, error)
+	EarnCancelVisitPaused(ctx context.Context, arg EarnCancelVisitPausedParams) error
 	EarnCheckout(ctx context.Context, id uuid.UUID) (EarnCheckout, error)
 	EarnCheckoutBySession(ctx context.Context, stripeSessionID string) (EarnCheckout, error)
 	EarnCheckoutCanceled(ctx context.Context, id uuid.UUID) error
 	EarnCheckoutComplete(ctx context.Context, arg EarnCheckoutCompleteParams) error
 	// Live checkouts started and completed since a moment.
 	EarnCheckoutCounts(ctx context.Context, arg EarnCheckoutCountsParams) (EarnCheckoutCountsRow, error)
+	// quantity (1 when null) and team_name are a team checkout's.
 	EarnCheckoutInsert(ctx context.Context, arg EarnCheckoutInsertParams) error
 	EarnCheckoutSetSession(ctx context.Context, arg EarnCheckoutSetSessionParams) error
 	EarnClearTestCheckouts(ctx context.Context, workspaceID uuid.UUID) error
@@ -1541,6 +1543,47 @@ type Querier interface {
 	// Complimentary access whose date has passed, and paid access a
 	// disconnected account can no longer renew, past its period.
 	EarnGrantsToEnd(ctx context.Context, arg EarnGrantsToEndParams) ([]PaidSubscription, error)
+	EarnGroup(ctx context.Context, arg EarnGroupParams) (EarnGroup, error)
+	EarnGroupBySubscription(ctx context.Context, subscriptionID uuid.UUID) (EarnGroup, error)
+	EarnGroupForUpdate(ctx context.Context, arg EarnGroupForUpdateParams) (EarnGroup, error)
+	// Teams (M65, G-38): a group checkout's buyer subscription carries a team
+	// (earn_groups) whose seats (earn_group_seats) give invited people access
+	// through their own paid_subscriptions row (kind and status 'group').
+	// A team, once per buyer subscription.
+	EarnGroupInsert(ctx context.Context, arg EarnGroupInsertParams) (EarnGroup, error)
+	// Marks that the buyer was told the seats are fewer than the people: once.
+	EarnGroupOverNotified(ctx context.Context, arg EarnGroupOverNotifiedParams) (uuid.UUID, error)
+	// The people in a team besides the buyer: invited and active seats.
+	EarnGroupPeople(ctx context.Context, groupID uuid.UUID) (EarnGroupPeopleRow, error)
+	EarnGroupSeat(ctx context.Context, arg EarnGroupSeatParams) (EarnGroupSeat, error)
+	// The invite's link keeps working once accepted: it shows the welcome.
+	EarnGroupSeatAccept(ctx context.Context, arg EarnGroupSeatAcceptParams) error
+	EarnGroupSeatByInvite(ctx context.Context, inviteHash []byte) (EarnGroupSeat, error)
+	// A removed seat's access ends now.
+	EarnGroupSeatEndAccess(ctx context.Context, arg EarnGroupSeatEndAccessParams) (uuid.UUID, error)
+	EarnGroupSeatForUpdate(ctx context.Context, arg EarnGroupSeatForUpdateParams) (EarnGroupSeat, error)
+	EarnGroupSeatInsert(ctx context.Context, arg EarnGroupSeatInsertParams) error
+	// The seat a seat holder's subscription belongs to.
+	EarnGroupSeatOfSubscription(ctx context.Context, subscriptionID *uuid.UUID) (EarnGroupSeat, error)
+	// A new invite link: the older one stops working.
+	EarnGroupSeatReinvite(ctx context.Context, arg EarnGroupSeatReinviteParams) error
+	EarnGroupSeatRemove(ctx context.Context, arg EarnGroupSeatRemoveParams) error
+	// A team's seats with their contact's name: active first, then invited,
+	// newest first.
+	EarnGroupSeats(ctx context.Context, groupID uuid.UUID) ([]EarnGroupSeatsRow, error)
+	EarnGroupSetEnded(ctx context.Context, arg EarnGroupSetEndedParams) error
+	// The seats follow the subscription's quantity; the notice of too few seats
+	// is sent again only after the team fits again.
+	EarnGroupSetSeats(ctx context.Context, arg EarnGroupSetSeatsParams) error
+	// A team's seats follow its buyer: tier, the access rule's pause, the
+	// pause and the end (status canceled, reason group_ended). Returns the
+	// seats changed, and whether their access ended.
+	EarnGroupSyncSeats(ctx context.Context, arg EarnGroupSyncSeatsParams) ([]EarnGroupSyncSeatsRow, error)
+	// The teams a contact bought that haven't ended (the reader's account page).
+	EarnGroupsOfOwner(ctx context.Context, arg EarnGroupsOfOwnerParams) ([]EarnGroupsOfOwnerRow, error)
+	// The teams of some subscriptions, as buyer or seat (the members list), with
+	// the people in each.
+	EarnGroupsOfSubscriptions(ctx context.Context, ids []uuid.UUID) ([]EarnGroupsOfSubscriptionsRow, error)
 	EarnImportByID(ctx context.Context, id uuid.UUID) (EarnImport, error)
 	EarnImportCancel(ctx context.Context, arg EarnImportCancelParams) (int64, error)
 	EarnImportConflicts(ctx context.Context, importID uuid.UUID) ([]EarnImportRow, error)
@@ -1585,17 +1628,28 @@ type Querier interface {
 	// Subscriptions per price and period that have access, for tier cards and legacy prices.
 	EarnPriceCounts(ctx context.Context, arg EarnPriceCountsParams) ([]EarnPriceCountsRow, error)
 	EarnPriceDelete(ctx context.Context, id uuid.UUID) error
+	// audience is individual when null; a group price has its seat range.
 	EarnPriceInsert(ctx context.Context, arg EarnPriceInsertParams) error
 	EarnPriceRetire(ctx context.Context, arg EarnPriceRetireParams) error
+	// A group price's seat range changes in place (Stripe prices are per seat).
+	EarnPriceSetSeats(ctx context.Context, arg EarnPriceSetSeatsParams) error
 	EarnPriceSetStripe(ctx context.Context, arg EarnPriceSetStripeParams) error
 	// Every price of the workspace's tiers, current first.
 	EarnPrices(ctx context.Context, workspaceID uuid.UUID) ([]EarnPrice, error)
+	// Claims the "resuming soon" email of a resume date: once.
+	EarnResumeNotified(ctx context.Context, arg EarnResumeNotifiedParams) (uuid.UUID, error)
+	// Paused subscriptions Stripe resumes within the window whose "resuming
+	// soon" email wasn't sent for this resume date.
+	EarnResumingSoon(ctx context.Context, arg EarnResumingSoonParams) ([]PaidSubscription, error)
 	EarnSettings(ctx context.Context, workspaceID uuid.UUID) (EarnSetting, error)
 	EarnSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
 	EarnSettingsSetAccess(ctx context.Context, arg EarnSettingsSetAccessParams) error
 	EarnSettingsSetCheckout(ctx context.Context, arg EarnSettingsSetCheckoutParams) error
 	EarnSettingsSetCurrency(ctx context.Context, arg EarnSettingsSetCurrencyParams) error
 	EarnSettingsSetPages(ctx context.Context, arg EarnSettingsSetPagesParams) error
+	// Pausing a subscription (M65, G-39): Stripe's pause_collection, mirrored
+	// on paid_subscriptions (paused_at, pause_resumes_at, last_paused_at).
+	EarnSettingsSetPauseMonths(ctx context.Context, arg EarnSettingsSetPauseMonthsParams) error
 	EarnSettingsSetUpgradePage(ctx context.Context, arg EarnSettingsSetUpgradePageParams) error
 	// The highlighted tier, saved with the tier editor.
 	EarnSettingsSetUpgradePageOnly(ctx context.Context, arg EarnSettingsSetUpgradePageOnlyParams) (int64, error)
@@ -1608,6 +1662,8 @@ type Querier interface {
 	EarnSubscriptionEnd(ctx context.Context, arg EarnSubscriptionEndParams) error
 	EarnSubscriptionFailed(ctx context.Context, arg EarnSubscriptionFailedParams) error
 	EarnSubscriptionForUpdate(ctx context.Context, id uuid.UUID) (PaidSubscription, error)
+	// quantity (1 when null), the Stripe item, a pause found on a subscription
+	// seen for the first time, and a team seat's group are optional.
 	EarnSubscriptionInsert(ctx context.Context, arg EarnSubscriptionInsertParams) error
 	// Marks a subscription's "Stops paying" automation event as queued; no row
 	// means it was queued before.
@@ -1621,8 +1677,15 @@ type Querier interface {
 	EarnSubscriptionSetAccessPaused(ctx context.Context, arg EarnSubscriptionSetAccessPausedParams) error
 	EarnSubscriptionSetBillingEmail(ctx context.Context, arg EarnSubscriptionSetBillingEmailParams) error
 	EarnSubscriptionSetGrant(ctx context.Context, arg EarnSubscriptionSetGrantParams) error
+	// A pause or resume asked here, applied at once; Stripe's event that
+	// follows finds it in place.
+	EarnSubscriptionSetPause(ctx context.Context, arg EarnSubscriptionSetPauseParams) error
+	// A team's seats changed here; Stripe's event that follows finds them in place.
+	EarnSubscriptionSetQuantity(ctx context.Context, arg EarnSubscriptionSetQuantityParams) error
 	EarnSubscriptionSetSource(ctx context.Context, arg EarnSubscriptionSetSourceParams) error
-	// A subscription's state as the provider last reported it.
+	// A subscription's state as the provider last reported it. quantity and
+	// the Stripe item stay when null; the pause changes only when the provider
+	// reported it (pause_known): paused since the first event that said so.
 	EarnSubscriptionSetState(ctx context.Context, arg EarnSubscriptionSetStateParams) error
 	// Every paid subscription of a contact, the ones with access first.
 	EarnSubscriptionsOfContact(ctx context.Context, arg EarnSubscriptionsOfContactParams) ([]EarnSubscriptionsOfContactRow, error)
@@ -2074,6 +2137,10 @@ type Querier interface {
 	// texts keeps the messages of the title and detail ({} for HostRepute's alerts).
 	InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error)
 	InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error
+	// An image that isn't the library's (a sponsor's creative sent with a
+	// request): stored hidden, and the same bytes again find the stored image
+	// without showing it in the library or hiding one the library has.
+	InsertHiddenMediaAsset(ctx context.Context, arg InsertHiddenMediaAssetParams) (InsertHiddenMediaAssetRow, error)
 	InsertImportLog(ctx context.Context, arg InsertImportLogParams) error
 	// Uploading the same bytes twice returns the existing asset (and shows it again).
 	// sha256 is the uploaded file's; data may be its resized, compressed copy,
@@ -2581,7 +2648,8 @@ type Querier interface {
 	// months).
 	OfferRetentionUsedSince(ctx context.Context, arg OfferRetentionUsedSinceParams) (bool, error)
 	OfferSetStripe(ctx context.Context, arg OfferSetStripeParams) error
-	// The tiers and their current prices, for an offer's lines.
+	// The tiers and their current prices, for an offer's lines (a team's
+	// per-seat prices take no offer).
 	OfferTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]OfferTierPricesRow, error)
 	OfferUpdate(ctx context.Context, arg OfferUpdateParams) error
 	OfferUseInsert(ctx context.Context, arg OfferUseInsertParams) error
@@ -2693,9 +2761,10 @@ type Querier interface {
 	// Paid access for the domains that choose recipients and content (design
 	// expansion X16): paid-only campaigns, paid-only blocks, paid tokens and
 	// the contacts table. A contact has paid access while a live subscription,
-	// complimentary grant or gift hasn't ended and is trialing, active,
-	// complimentary or a gift, or past due while Stripe retries (unless the
-	// access rule paused it). Test paid members never count.
+	// complimentary grant, gift or team seat has it (earn_paid_access: not
+	// ended, not paused, and trialing, active, complimentary, a gift, a seat,
+	// or past due while Stripe retries unless the access rule paused it).
+	// Test paid members never count.
 	// One row per contact with paid access at a tier ranked at least min_rank
 	// (1: any paid tier): the highest tier's subscription.
 	PaidAccessRows(ctx context.Context, arg PaidAccessRowsParams) ([]PaidAccessRowsRow, error)
@@ -4629,30 +4698,50 @@ type Querier interface {
 	// paused, for a restore.
 	SoftDeleteList(ctx context.Context, arg SoftDeleteListParams) (int64, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	// An approved request waits for its payment: it holds its issue until
+	// payment_due_at, and the sponsor's status page link is new.
+	SponsorBookingApprove(ctx context.Context, arg SponsorBookingApproveParams) (int64, error)
+	// A sponsor's booking by its status page's token, with its slot (deleted
+	// or not) and list.
+	SponsorBookingByToken(ctx context.Context, arg SponsorBookingByTokenParams) (SponsorBookingByTokenRow, error)
 	SponsorBookingCancel(ctx context.Context, arg SponsorBookingCancelParams) error
+	SponsorBookingDecline(ctx context.Context, arg SponsorBookingDeclineParams) (int64, error)
 	SponsorBookingEventInsert(ctx context.Context, arg SponsorBookingEventInsertParams) error
 	SponsorBookingEvents(ctx context.Context, bookingID uuid.UUID) ([]SponsorBookingEvent, error)
+	SponsorBookingExpire(ctx context.Context, arg SponsorBookingExpireParams) (int64, error)
 	SponsorBookingGet(ctx context.Context, arg SponsorBookingGetParams) (SponsorBookingGetRow, error)
 	SponsorBookingInsert(ctx context.Context, arg SponsorBookingInsertParams) error
+	SponsorBookingLock(ctx context.Context, id uuid.UUID) (SponsorBooking, error)
 	SponsorBookingNotified(ctx context.Context, arg SponsorBookingNotifiedParams) error
 	SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorBookingOfCampaignRow, error)
+	// The booking holding an issue: on hold, waiting for its payment, booked
+	// or sent.
 	SponsorBookingOfIssue(ctx context.Context, arg SponsorBookingOfIssueParams) (SponsorBooking, error)
 	SponsorBookingProposals(ctx context.Context, arg SponsorBookingProposalsParams) ([]SponsorBooking, error)
 	SponsorBookingSent(ctx context.Context, arg SponsorBookingSentParams) error
 	SponsorBookingSetCampaign(ctx context.Context, arg SponsorBookingSetCampaignParams) error
+	SponsorBookingSetCheckout(ctx context.Context, arg SponsorBookingSetCheckoutParams) error
 	SponsorBookingSetCreative(ctx context.Context, arg SponsorBookingSetCreativeParams) error
 	SponsorBookingSetNotes(ctx context.Context, arg SponsorBookingSetNotesParams) error
 	SponsorBookingSetPayment(ctx context.Context, arg SponsorBookingSetPaymentParams) error
 	// The booking's sponsor, price, status, hold and dates.
 	SponsorBookingSetTerms(ctx context.Context, arg SponsorBookingSetTermsParams) error
+	// A payment through Stripe Checkout: the booking's status (booked, or as it
+	// was when the issue was taken meanwhile), paid by Stripe, and its creative
+	// ready to go out once booked.
+	SponsorBookingStripePaid(ctx context.Context, arg SponsorBookingStripePaidParams) error
 	// Booked issues and unpaid sent issues, for the creative and payment
 	// reminders.
 	SponsorBookingsDue(ctx context.Context) ([]SponsorBookingsDueRow, error)
 	// A slot's bookings of a range of issues, with their sponsor and campaign.
+	// Requests and what became of them (declined, expired) aren't on the
+	// calendar: they never held the issue.
 	SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookingsOfSlotParams) ([]SponsorBookingsOfSlotRow, error)
 	SponsorBookingsOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]SponsorBookingsOfWorkspaceRow, error)
 	// Booked issues whose campaign has been sent.
 	SponsorBookingsToSend(ctx context.Context) ([]SponsorBookingsToSendRow, error)
+	// The library's sponsor a request's address belongs to.
+	SponsorByContactEmail(ctx context.Context, arg SponsorByContactEmailParams) (Sponsor, error)
 	SponsorCampaignBrief(ctx context.Context, arg SponsorCampaignBriefParams) (SponsorCampaignBriefRow, error)
 	// The sponsor of each campaign with a booking: the Campaigns list's chip.
 	SponsorCampaignChips(ctx context.Context, workspaceID uuid.UUID) ([]SponsorCampaignChipsRow, error)
@@ -4660,9 +4749,14 @@ type Querier interface {
 	// list and date.
 	SponsorCampaignsOfList(ctx context.Context, arg SponsorCampaignsOfListParams) ([]SponsorCampaignsOfListRow, error)
 	SponsorDelete(ctx context.Context, arg SponsorDeleteParams) error
+	// A request fills what the library's sponsor doesn't have yet.
+	SponsorFillBlanks(ctx context.Context, arg SponsorFillBlanksParams) error
 	SponsorGet(ctx context.Context, arg SponsorGetParams) (Sponsor, error)
 	SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]SponsorBooking, error)
 	SponsorInsert(ctx context.Context, arg SponsorInsertParams) error
+	// The issues of some slots between two dates that a booking holds, with
+	// who holds them and until when.
+	SponsorIssuesHeld(ctx context.Context, arg SponsorIssuesHeldParams) ([]SponsorIssuesHeldRow, error)
 	// The issue of the last booking linked to a campaign, whatever became of it:
 	// a canceled booking leaves the campaign its issue number.
 	SponsorLastIssueOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorLastIssueOfCampaignRow, error)
@@ -4670,12 +4764,35 @@ type Querier interface {
 	// with their creative and payment, booking events, report stats and the
 	// read-only report links.
 	SponsorList(ctx context.Context, workspaceID uuid.UUID) ([]Sponsor, error)
+	// A list's campaigns sent since a moment: delivered, human opens and
+	// clickers, for the media kit's rates.
+	SponsorListEngagement(ctx context.Context, arg SponsorListEngagementParams) (SponsorListEngagementRow, error)
+	SponsorListSubscribers(ctx context.Context, listID uuid.UUID) (int64, error)
 	SponsorNameTaken(ctx context.Context, arg SponsorNameTakenParams) (bool, error)
+	// Approved bookings whose payment didn't arrive in time.
+	SponsorPaymentsLapsed(ctx context.Context, now time.Time) ([]SponsorPaymentsLapsedRow, error)
 	SponsorReportStats(ctx context.Context, bookingID uuid.UUID) (SponsorReportStat, error)
 	SponsorReportStatsOf(ctx context.Context, ids []uuid.UUID) ([]SponsorReportStat, error)
 	SponsorReportStatsUpsert(ctx context.Context, arg SponsorReportStatsUpsertParams) error
 	// Sent bookings whose report isn't final yet.
 	SponsorReportsToRefresh(ctx context.Context) ([]SponsorReportsToRefreshRow, error)
+	SponsorRequestCount(ctx context.Context, workspaceID uuid.UUID) (int32, error)
+	// One self-serve booking with its slot (deleted or not), list and sponsor.
+	SponsorRequestGet(ctx context.Context, arg SponsorRequestGetParams) (SponsorRequestGetRow, error)
+	SponsorRequestInsert(ctx context.Context, arg SponsorRequestInsertParams) error
+	// Self-serve bookings in some states (requests first of all), oldest first.
+	SponsorRequestsOf(ctx context.Context, arg SponsorRequestsOfParams) ([]SponsorRequestsOfRow, error)
+	// How many requests wait for each issue of a slot in a range.
+	SponsorRequestsPerIssue(ctx context.Context, arg SponsorRequestsPerIssueParams) ([]SponsorRequestsPerIssueRow, error)
+	// How many requests wait for each sponsor of the library.
+	SponsorRequestsPerSponsor(ctx context.Context, workspaceID uuid.UUID) ([]SponsorRequestsPerSponsorRow, error)
+	// The slots sponsors book themselves: self-serve and on sale.
+	SponsorSelfServeSlots(ctx context.Context, workspaceID uuid.UUID) ([]SponsorSelfServeSlotsRow, error)
+	// Self-serve booking (M65, G-40): the sponsor page's settings and media
+	// kit, requests, their review, payment through Stripe Checkout and
+	// expiry.
+	SponsorSettingsGet(ctx context.Context, workspaceID uuid.UUID) (SponsorSetting, error)
+	SponsorSettingsSave(ctx context.Context, arg SponsorSettingsSaveParams) error
 	SponsorShareByToken(ctx context.Context, tokenHash []byte) (SponsorReportShare, error)
 	SponsorShareGet(ctx context.Context, arg SponsorShareGetParams) (SponsorReportShare, error)
 	SponsorShareInsert(ctx context.Context, arg SponsorShareInsertParams) error

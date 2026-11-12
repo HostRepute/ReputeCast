@@ -364,5 +364,6 @@
   "type.coupon_pool": "discount code pool",
   "type.countdown": "countdown",
   "type.website_comment": "website comment",
-  "type.website_import": "post import"
+  "type.website_import": "post import",
+  "type.sponsor_settings": "sponsor page settings"
 }

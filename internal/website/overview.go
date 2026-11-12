@@ -325,8 +325,8 @@ func (s *Service) membersFacts(ctx context.Context, ws *store.Workspace, c *conf
 	}
 	out.SignedIn, out.LastWeek = m.Since, m.Week
 	if err := s.Pool.QueryRow(ctx, `SELECT count(DISTINCT contact_id) FROM paid_subscriptions
-		WHERE workspace_id = $1 AND mode = 'live' AND ended_at IS NULL
-		  AND (status IN ('trialing','active','complimentary','gift') OR (status = 'past_due' AND NOT access_paused))`, ws.ID).Scan(&out.Paid); err != nil {
+		WHERE workspace_id = $1 AND mode = 'live'
+		  AND earn_paid_access(kind, status, ended_at, access_paused, paused_at)`, ws.ID).Scan(&out.Paid); err != nil {
 		return out, err
 	}
 	return out, nil

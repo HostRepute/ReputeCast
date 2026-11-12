@@ -1,0 +1,46 @@
+{{define "content"}}{{with .Body}}{{$w := .Words}}{{if .Test}}<div class="ea-ribbon" role="note">{{index $w "test"}}</div>
+{{end}}<main class="sp" id="main">
+  <div class="ea-top">{{template "brand" $}}<a href="{{.ArchiveHref}}">{{.ArchiveText}}</a></div>
+  {{if eq .State "off"}}<section class="card tm-card">
+    <h1 class="tm-h1 s24">{{.OffTitle}}</h1>
+    <p class="tm-lead">{{.OffText}}</p>
+  </section>
+  {{else}}<section class="sp-head">
+    <h1 class="sp-h1">{{.Title}}</h1>
+    <p class="sp-intro">{{.Intro}}</p>
+  </section>
+  {{if .Stats}}<section class="tm-sec" aria-labelledby="kit-st">
+    <h2 class="vh" id="kit-st">{{.StatsTitle}}</h2>
+    <div class="sp-stats">{{range .Stats}}<div class="sp-stat"><span class="l">{{.Label}}</span><span class="v num">{{.Value}}</span><span class="s">{{.Sub}}</span></div>{{end}}</div>
+    <span class="pnote">{{.StatsNote}}</span>
+  </section>
+  {{end}}{{if or .About .Audience}}<section class="card tm-card g16" aria-label="{{index $w "about"}}">
+    {{with .About}}<div class="col8"><h2 class="tm-h2">{{index $w "about"}}</h2><p class="tm-lead">{{.}}</p></div>{{end}}
+    {{with .Audience}}<div class="col8{{if $.Body.About}} sp-line{{end}}"><h2 class="tm-h2">{{index $w "audience"}}</h2><p class="tm-lead">{{.}}</p></div>{{end}}
+  </section>
+  {{end}}<section class="card tm-card g16" aria-labelledby="kit-sl">
+    <h2 class="tm-h2" id="kit-sl">{{index $w "book"}}</h2>
+    {{range .Slots}}<article class="sp-slot" aria-label="{{.Name}}">
+      <div class="sp-slot-h"><h3>{{.Name}}</h3><span class="tm-total"><span class="num tm-amt">{{.Price}}</span><span class="tm-per">{{index $w "perIssue"}}</span></span></div>
+      {{with .Description}}<p class="sp-desc">{{.}}</p>{{end}}
+      <span class="pnote">{{.Terms}}</span>
+    </article>
+    {{end}}{{if eq .State "full"}}<div class="tm-box" role="note"><div class="col4"><strong>{{.OffTitle}}</strong><span>{{.OffText}}</span></div></div>
+    {{else}}<div class="col10">
+      <h3 class="sp-h3">{{index $w "available"}}</h3>
+      <span class="pnote">{{index $w "availableNote"}}</span>
+      <div class="sp-issues">{{range .Slots}}{{range .Issues}}<a class="sp-issue" href="{{.Href}}"><span class="vh">{{.Label}}: </span><b>{{.Date}}</b><span class="pnote">{{.Line}}</span></a>{{end}}{{end}}</div>
+    </div>
+    <a class="btn-pri" href="{{.RequestHref}}">{{index $w "request"}}</a>
+    {{end}}
+  </section>
+  {{with .Questions}}<div class="tm-box" role="note"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v3.8M8 5v.1"></path></svg><span class="grow">{{.}}</span></div>{{end}}
+  {{with .PriceNote}}<span class="pnote tm-c">{{.}}</span>{{end}}
+  {{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.TermsURL}}<a href="{{.}}">{{$.Body.TermsLabel}}</a>{{end}}
+  {{- if and .Body.TermsURL .Privacy}}{{template "sep"}}{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
+  {{- if and (or .Body.TermsURL .Privacy) .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

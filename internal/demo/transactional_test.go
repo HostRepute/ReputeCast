@@ -35,12 +35,12 @@ func TestTransactionalDemo(t *testing.T) {
 		}
 	}
 	c.Do("GET", base+"/templates?period=7d", nil).MustStatus(t, 200).JSON(t, &list)
-	// Earn's member emails (phase 6, and EN-9's ninth) are in the list too, in their
+	// Earn's member emails (phase 6, EN-9's ninth and M65's team and pause emails) are in the list too, in their
 	// Memberships category, and the products' product-delivery (X19) in
 	// Purchases; the boards' numbers are Acme Cloud's six.
 	items := list.Items[:0]
 	for _, it := range list.Items {
-		if !strings.HasPrefix(it.Key, "member-") && !strings.HasPrefix(it.Key, "gift-") && it.Key != "product-delivery" {
+		if !strings.HasPrefix(it.Key, "member-") && !strings.HasPrefix(it.Key, "gift-") && !strings.HasPrefix(it.Key, "group-") && it.Key != "product-delivery" {
 			items = append(items, it)
 		}
 	}
@@ -102,14 +102,15 @@ func TestTransactionalDemo(t *testing.T) {
 	}
 	c.Do("GET", base+"/overview?period=7d", nil).MustStatus(t, 200).JSON(t, &ov)
 	st := ov.Stats
-	// The products' delivery emails (X19) were sent at the pages' design
-	// times: which of them fall in a window depends on the time of day the
-	// demo was seeded, so they're counted here. They were all delivered.
+	// The products' delivery emails (X19) and the team and pause emails
+	// (M65) were sent at the design's times: which of them fall in a window
+	// depends on the time of day the demo was seeded, so they're counted
+	// here. They were all delivered.
 	extra := func(since string, test bool) int64 {
 		t.Helper()
 		var n int64
 		if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM transactional_messages
-			WHERE template_key = 'product-delivery' AND test = $2 AND accepted_at >= now() - $1::interval AND accepted_at < now()`, since, test).Scan(&n); err != nil {
+			WHERE template_key IN ('product-delivery', 'group-welcome', 'group-invite', 'group-access-ended', 'member-paused', 'member-resuming-soon') AND test = $2 AND accepted_at >= now() - $1::interval AND accepted_at < now()`, since, test).Scan(&n); err != nil {
 			t.Fatal(err)
 		}
 		return n

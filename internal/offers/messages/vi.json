@@ -90,5 +90,17 @@
   "referral.discount": "{type, select, percent {Giảm {percent}%} other {Giảm {amount}}} {duration, select, once {một lần} months {trong {months} tháng} other {vĩnh viễn}}",
 
   "problem.notFound": "Không tìm thấy ưu đãi.",
-  "sync.unreachable": "không kết nối được"
+  "sync.unreachable": "không kết nối được",
+  "cancel.pause.title": "Tạm dừng thay vì hủy",
+  "cancel.pause.text": "Tạm nghỉ thanh toán. {tier} dừng lại trong lúc tạm dừng và tự quay lại; {free} miễn phí vẫn tiếp tục gửi đến.",
+  "cancel.pause.textNoList": "Tạm nghỉ thanh toán. {tier} dừng lại trong lúc tạm dừng và tự quay lại.",
+  "cancel.pause.legend": "Tạm dừng trong bao lâu",
+  "cancel.pause.option": "{months, plural, other {# tháng}}",
+  "cancel.pause.back": "Quay lại vào {date}, với giá {price}. Bạn có thể tạm dừng một lần trong 12 tháng.",
+  "cancel.pause.button": "Tạm dừng {months, plural, other {# tháng}}",
+  "cancel.paused.title": "{tier} đang tạm dừng đến {date}",
+  "cancel.paused.text": "Không có khoản nào bị trừ cho đến lúc đó, và {tier} sẽ tự quay lại vào {date} với giá {price}. Bạn vẫn nhận {free} miễn phí.",
+  "cancel.paused.textNoList": "Không có khoản nào bị trừ cho đến lúc đó, và {tier} sẽ tự quay lại vào {date} với giá {price}.",
+  "cancel.paused.line": "{name} · {period, select, year {hằng năm} other {hằng tháng}}",
+  "cancel.paused.range": "Tạm dừng từ {from} đến {to} · chúng tôi đã email cho bạn liên kết để tiếp tục sớm hơn"
 }

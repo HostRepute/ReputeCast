@@ -156,14 +156,27 @@ func (h *Handler) log() *slog.Logger {
 
 // pages are the templates, each rendered inside layout.html.
 var pages = []string{"subscribe", "confirm", "confirm-ask", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome", "smsterms",
-	"cancel", "gift", "giftdone", "redeem", "sponsorreport", "grow-hub", "grow-join", "grow-board", "grow-recommends", "grow-request"}
+	"cancel", "gift", "giftdone", "redeem", "sponsorreport", "grow-hub", "grow-join", "grow-board", "grow-recommends", "grow-request",
+	"team", "teammanage", "teamjoin", "resume", "sponsorkit", "sponsorrequest", "sponsorstatus"}
+
+// dict makes a map of its key and value pairs, for a template's sub-template
+// ("spfield" in sponsorrequest.html).
+func dict(kv ...any) map[string]any {
+	out := make(map[string]any, len(kv)/2)
+	for i := 0; i+1 < len(kv); i += 2 {
+		if k, ok := kv[i].(string); ok {
+			out[k] = kv[i+1]
+		}
+	}
+	return out
+}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
 	if h.tmpl != nil {
 		return nil
 	}
-	funcs := template.FuncMap{"add": func(a, b int) int { return a + b }, "runes": utf8.RuneCountInString}
+	funcs := template.FuncMap{"add": func(a, b int) int { return a + b }, "runes": utf8.RuneCountInString, "dict": dict}
 	h.tmpl = map[string]*template.Template{}
 	for _, p := range pages {
 		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+p+".html", "templates/grow-parts.html")
@@ -769,6 +782,9 @@ func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 		ctype = "text/javascript; charset=utf-8"
 	case "gift.js":
 		data, _ = fs.ReadFile(staticFS, "static/gift.js")
+		ctype = "text/javascript; charset=utf-8"
+	case "team.js", "sponsor.js", "pause.js":
+		data, _ = fs.ReadFile(staticFS, "static/"+name)
 		ctype = "text/javascript; charset=utf-8"
 	default:
 		http.NotFound(w, r)

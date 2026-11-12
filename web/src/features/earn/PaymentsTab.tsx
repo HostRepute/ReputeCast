@@ -55,6 +55,7 @@ export function PaymentsTab({ pay }: { pay: Payments }) {
       </div>
       {main.webhook.status === 'silent' || main.webhook.status === 'missing' ? <GapRuns c={main} /> : null}
       <CheckoutCard pay={pay} c={main} />
+      <PausingCard pay={pay} />
       <EventLog test={showTest} />
     </div>
   )
@@ -682,7 +683,9 @@ function eventStatus(t: T, e: Schemas['EarnEvent']): { label: string; tone: Tone
       const tone: Tone =
         e.outcome === 'past_due'
           ? 'warn'
-          : ['access_ended', 'refunded', 'refund_recorded', 'gift_refunded', 'gift_payment_failed', 'order_refunded', 'order_payment_failed', 'cancel_scheduled', 'ended', 'canceled'].includes(e.outcome)
+          : ['access_ended', 'refunded', 'refund_recorded', 'gift_refunded', 'gift_payment_failed', 'order_refunded', 'order_payment_failed', 'cancel_scheduled', 'ended', 'canceled', 'paused'].includes(
+                e.outcome,
+              )
             ? 'neutral'
             : 'ok'
       return { label: t(ms.stApplied), tone }
@@ -760,8 +763,84 @@ export function outcomeText(t: T, e: Schemas['EarnEvent']): string {
       return t(ms.oOrderPaymentFailed)
     case 'billing_email':
       return t(ms.oBilling)
+    // Pausing and teams (M65).
+    case 'paused':
+      return s('by') ? t(ms.oPausedBy, { date: day(s('until')), by: s('by') }) : t(ms.oPaused, { date: day(s('until')) })
+    case 'resumed':
+      return t(ms.oResumed)
+    case 'seats_changed':
+      return t(ms.oSeats, { from: num('from'), to: num('to') })
+    // Self-serve sponsor bookings paid through Stripe (M65).
+    case 'sponsor_paid':
+      return t(ms.oSponsorPaid, { issue: num('issue') })
+    case 'sponsor_paid_late':
+      return t(ms.oSponsorPaidLate, { issue: num('issue') })
+    case 'sponsor_paid_twice':
+      return t(ms.oSponsorPaidTwice, { issue: num('issue') })
   }
   return e.outcome
+}
+
+/** Earn › Settings › Pausing (M65): the lengths members may pause for on the cancel page. */
+function PausingCard({ pay }: { pay: Payments }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const [months, setMonths] = useState<number[]>(pay.pauseMonths)
+  const save = $api.useMutation('put', `${EARN}/settings/pausing`)
+  const ro = pay.canManage ? undefined : t(ms.needsPaymentsManage)
+  const dirty = [1, 3, 6].some((n) => months.includes(n) !== pay.pauseMonths.includes(n))
+  const toggle = (n: number, on: boolean) => setMonths((cur) => [1, 3, 6].filter((x) => (x === n ? on : cur.includes(x))))
+  const submit = () =>
+    save.mutate(
+      { params: { path: { workspace: slug } }, body: { months } },
+      {
+        onSuccess: () => {
+          void qc.invalidateQueries({ queryKey: ['get', `${EARN}/payments`] })
+          toast({ kind: 'success', title: t(ms.pausingSaved) })
+        },
+        onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
+      },
+    )
+  return (
+    <section className="card" aria-labelledby="ea-pausing">
+      <div className="sec">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className="h2" id="ea-pausing">
+            {t(ms.pausingTitle)}
+          </h2>
+          <span className="k">{t(ms.pausingCaption)}</span>
+        </div>
+        <div className="row gap-2">
+          <Badge tone={pay.pauseMonths.length ? 'ok' : 'neutral'}>{pay.pauseMonths.length ? t(ms.pausingOn) : t(ms.pausingOff)}</Badge>
+        </div>
+      </div>
+      <div className="pad flex flex-col gap-3">
+        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0" disabled={Boolean(ro)}>
+          <legend className="mb-2 p-0 font-semibold">{t(ms.pausingLegend)}</legend>
+          <div className="flex flex-wrap gap-2">
+            {[1, 3, 6].map((n) => (
+              <label key={n} className={`opt px-3 py-2.5 ${months.includes(n) ? 'on' : ''}`} style={{ flex: '1 1 140px' }}>
+                <input type="checkbox" checked={months.includes(n)} onChange={(e) => toggle(n, e.target.checked)} />
+                <span className="font-semibold">{t(ms.pausingMonths, { count: n })}</span>
+              </label>
+            ))}
+          </div>
+          <span className="k text-ink-2">{t(ms.pausingHint)}</span>
+        </fieldset>
+        <div className="note n" role="note">
+          <Icon name="info" size={16} />
+          <div>{t(ms.pausingNote)}</div>
+        </div>
+      </div>
+      <div className="ea-foot">
+        <span className="k">{t(ms.pausingRecorded)}</span>
+        <Button size="sm" variant="primary" disabledReason={ro} disabled={!dirty} loading={save.isPending} onClick={submit}>
+          {t(ms.pausingSave)}
+        </Button>
+      </div>
+    </section>
+  )
 }
 
 function shortTier(name: string): string {

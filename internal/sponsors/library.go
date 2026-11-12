@@ -5,6 +5,7 @@ import (
 	"net/mail"
 	"net/url"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/google/uuid"
@@ -155,7 +156,7 @@ func (s *Service) DeleteSponsor(ctx context.Context, ws *store.Workspace, p *aut
 		return mapErr(ctx, err, "sponsor")
 	}
 	var upcoming int
-	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sponsor_bookings WHERE sponsor_id = $1 AND status IN ('hold','booked') AND issue_on >= $2`, id, s.today(ws)).Scan(&upcoming)
+	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sponsor_bookings WHERE sponsor_id = $1 AND status IN ('hold','booked','awaiting_payment') AND issue_on >= $2`, id, s.today(ws)).Scan(&upcoming)
 	if upcoming > 0 {
 		return problem(ctx, 409, api.CodeConflict, "problem.sponsorHasBookings", map[string]any{"name": old.Name, "count": upcoming})
 	}
@@ -207,11 +208,23 @@ func (s *Service) library(ctx context.Context, ws *store.Workspace) ([]SponsorIt
 			stats[r.BookingID] = r
 		}
 	}
+	requests := map[uuid.UUID]int{}
+	rq, err := s.Q.SponsorRequestsPerSponsor(ctx, ws.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range rq {
+		if x.SponsorID != nil {
+			requests[*x.SponsorID] = int(x.Requests)
+		}
+	}
 	out := make([]SponsorItem, 0, len(rows))
 	for _, r := range rows {
 		it := SponsorItem{ID: r.ID.String(), Name: r.Name, Initials: initials(r.Name), Website: r.Website, LogoURL: r.LogoUrl, ContactName: r.ContactName,
-			ContactEmail: r.ContactEmail, TermsDays: int(r.TermsDays), Notes: r.Notes, Issues: []int{}, Hold: []int{}, Currency: "usd"}
+			ContactEmail: r.ContactEmail, TermsDays: int(r.TermsDays), Notes: r.Notes, Issues: []int{}, Hold: []int{}, Awaiting: []int{}, FromRequest: []int{},
+			Requests: requests[r.ID], Currency: "usd"}
 		latest := -1
+		var stripeDay *time.Time
 		for _, b := range bookings {
 			if b.SponsorID == nil || *b.SponsorID != r.ID {
 				continue
@@ -221,14 +234,28 @@ func (s *Service) library(ctx context.Context, ws *store.Workspace) ([]SponsorIt
 			case "hold":
 				it.Hold = append(it.Hold, int(b.IssueNumber))
 				it.HoldCents += b.PriceCents
+			case "awaiting_payment":
+				it.Awaiting = append(it.Awaiting, int(b.IssueNumber))
+				it.AwaitingCents += b.PriceCents
+				if b.PaymentDueAt != nil && (it.AwaitingDue == nil || b.PaymentDueAt.Before(*it.AwaitingDue)) {
+					due := *b.PaymentDueAt
+					it.AwaitingDue = &due
+				}
 			case "booked", "sent":
 				it.Issues = append(it.Issues, int(b.IssueNumber))
 				it.BookedCents += b.PriceCents
+				if _, ok := parseRequest(b.Request); ok {
+					it.FromRequest = append(it.FromRequest, int(b.IssueNumber))
+				}
 			default:
 				continue
 			}
 			if b.PaymentStatus == "paid" && b.PaidCents != nil {
 				it.PaidCents += *b.PaidCents
+				if b.PaidSource == "stripe" && b.PaidOn != nil && (stripeDay == nil || b.PaidOn.After(*stripeDay)) {
+					stripeDay = b.PaidOn
+					it.StripePaidOn = noonPtr(b.PaidOn, ws)
+				}
 			}
 			if st, ok := stats[b.ID]; ok && st.Final && st.Delivered > 0 && int(b.IssueNumber) > latest {
 				latest = int(b.IssueNumber)

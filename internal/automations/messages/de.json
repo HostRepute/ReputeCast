@@ -512,5 +512,7 @@
   "goal.replied": "Auf eine E-Mail geantwortet",
   "problem.replyWindow": "Legen Sie fest, wie lange auf die Antwort gewartet wird.",
   "diff.triggerReply": "Auslöser: {change}",
-  "diff.triggerReplyDetail": "Gilt für die Kontakte auf v{version}, sobald sie live ist; Kontakte, die auf einer früheren Version bleiben, behalten deren Einstellung."
+  "diff.triggerReplyDetail": "Gilt für die Kontakte auf v{version}, sobald sie live ist; Kontakte, die auf einer früheren Version bleiben, behalten deren Einstellung.",
+  "trigger.paidPaused": "Pausiert Zahlungen",
+  "trigger.paidResumed": "Setzt Zahlungen fort"
 }

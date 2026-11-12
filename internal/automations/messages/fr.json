@@ -512,5 +512,7 @@
   "goal.replied": "A répondu à un e-mail",
   "problem.replyWindow": "Définissez le délai d’attente de la réponse.",
   "diff.triggerReply": "Déclencheur\u00A0: {change}",
-  "diff.triggerReplyDetail": "S’applique aux contacts de la v{version} dès qu’elle est en ligne\u202F; ceux qui restent sur une version antérieure en gardent le réglage."
+  "diff.triggerReplyDetail": "S’applique aux contacts de la v{version} dès qu’elle est en ligne\u202F; ceux qui restent sur une version antérieure en gardent le réglage.",
+  "trigger.paidPaused": "Suspend ses paiements",
+  "trigger.paidResumed": "Reprend ses paiements"
 }

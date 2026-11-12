@@ -58,7 +58,7 @@ UPDATE earn_offers SET status = 'live', ended_at = NULL, ended_reason = '', ende
 -- after the discount.
 SELECT count(*)::bigint AS redemptions,
        count(*) FILTER (WHERE s.started_at >= @started_at)::bigint AS new_members,
-       coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount)), 0)::bigint AS arr
+       coalesce(sum(earn_arr_cents(s.kind, s.mode, s.status, s.ended_at, s.period, s.amount_cents, s.discount, s.quantity, s.paused_at)), 0)::bigint AS arr
 FROM paid_subscriptions s
 WHERE s.workspace_id = @workspace_id AND s.mode = 'live' AND s.discount IS NOT NULL
   AND (s.discount->>'coupon' = ANY(@coupons::text[]) OR (@code::text <> '' AND upper(s.discount->>'label') = upper(@code::text)));
@@ -99,9 +99,10 @@ INSERT INTO earn_offer_uses (id, workspace_id, offer_id, contact_id, subscriptio
 VALUES (@id, @workspace_id, @offer_id, @contact_id, sqlc.narg(subscription_id), @mode, @used_at, @source);
 
 -- name: OfferTierPrices :many
--- The tiers and their current prices, for an offer's lines.
+-- The tiers and their current prices, for an offer's lines (a team's
+-- per-seat prices take no offer).
 SELECT t.id AS tier_id, t.name AS tier, t.stripe_product_live, t.stripe_product_test, p.period, p.amount_cents, p.currency
-FROM earn_tiers t JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current'
+FROM earn_tiers t JOIN earn_prices p ON p.tier_id = t.id AND p.status = 'current' AND p.audience = 'individual'
 WHERE t.workspace_id = @workspace_id AND t.deleted_at IS NULL
 ORDER BY t.access_rank, t.name, p.period;
 

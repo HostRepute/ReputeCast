@@ -364,5 +364,6 @@
   "type.coupon_pool": "grupo de códigos de descuento",
   "type.countdown": "cuenta atrás",
   "type.website_comment": "comentario del sitio web",
-  "type.website_import": "importación de artículos"
+  "type.website_import": "importación de artículos",
+  "type.sponsor_settings": "ajustes de la página de patrocinio"
 }

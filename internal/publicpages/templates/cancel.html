@@ -12,7 +12,17 @@
       {{range .Reasons}}<label><input type="radio" name="reason" value="{{.Value}}">{{.Label}}</label>
       {{end}}
     </fieldset>
-    {{with .Offer}}<section class="cn-offer" aria-label="{{index $w "offerLabel"}}">
+    {{with .Pause}}<div class="cn-pause" role="group" aria-labelledby="pz-t">
+      <p class="cn-offer-t" id="pz-t"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3" width="3" height="10" rx=".8"></rect><rect x="9.5" y="3" width="3" height="10" rx=".8"></rect></svg><strong>{{.Title}}</strong></p>
+      <p>{{.Text}}</p>
+      <fieldset class="pills cn-months"><legend class="vh">{{.Legend}}</legend>
+        {{range $i, $o := .Options}}<label><input type="radio" name="months" value="{{$o.Months}}" data-back="{{$o.Back}}" data-button="{{$o.Button}}"{{if eq $i 0}} checked{{end}}>{{$o.Label}}</label>
+        {{end}}
+      </fieldset>
+      {{with index .Options 0}}<span class="pnote" data-pause-back aria-live="polite">{{.Back}}</span>
+      <button class="btn-out cn-pz" type="submit" name="decision" value="pause" data-pause-button{{if $.Preview}} disabled{{end}}>{{.Button}}</button>{{end}}
+    </div>
+    {{end}}{{with .Offer}}<section class="cn-offer" aria-label="{{index $w "offerLabel"}}">
       <p class="cn-offer-t"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="12" height="8" rx="1.2"></rect><path d="M1.5 4h13v2h-13zM8 4v10M8 4c-1.2-2.4-4.2-2.4-3.6-.6C4.8 4.4 8 4 8 4zM8 4c1.2-2.4 4.2-2.4 3.6-.6C11.2 4.4 8 4 8 4z"></path></svg><strong>{{.Name}}</strong></p>
       <p>{{.Line}}</p>
     </section>{{end}}
@@ -32,6 +42,13 @@
     <div class="hp" aria-hidden="true"><label>{{$.T "form.honeypot"}} <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
     <button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>{{index $w "emailMe"}}</button>
   </form>
+  {{else if eq .State "paused"}}<div class="tm-hero">
+    <span class="tm-icon pub"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3" width="3" height="10" rx=".8"></rect><rect x="9.5" y="3" width="3" height="10" rx=".8"></rect></svg></span>
+    <h1 class="tm-h1 s24">{{.Heading}}</h1>
+    <p class="tm-lead">{{.Text}}</p>
+  </div>
+  {{with .Paused}}<div class="tm-facts"><span><b>{{.Line}}</b> · {{.Price}}</span><span class="tm-lead">{{.Range}}</span></div>{{end}}
+  <a class="btn-out tm-wide" href="{{.Preferences}}">{{index $w "back"}}</a>
   {{else}}{{if or (eq .State "kept") (eq .State "done")}}<div class="headrow">
     <svg class="tick" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
     <h1 class="h26">{{.Heading}}</h1>

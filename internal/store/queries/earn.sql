@@ -94,8 +94,15 @@ WHERE p.workspace_id = @workspace_id
 LIMIT 1;
 
 -- name: EarnPriceInsert :exec
-INSERT INTO earn_prices (id, workspace_id, tier_id, period, amount_cents, currency, status, stripe_live_id, stripe_test_id, origin, created_at)
-VALUES (@id, @workspace_id, @tier_id, @period, @amount_cents, @currency, @status, @stripe_live_id, @stripe_test_id, @origin, @at);
+-- audience is individual when null; a group price has its seat range.
+INSERT INTO earn_prices (id, workspace_id, tier_id, period, amount_cents, currency, status, stripe_live_id, stripe_test_id, origin, created_at,
+    audience, seats_min, seats_max)
+VALUES (@id, @workspace_id, @tier_id, @period, @amount_cents, @currency, @status, @stripe_live_id, @stripe_test_id, @origin, @at,
+    coalesce(sqlc.narg(audience)::text, 'individual'), sqlc.narg(seats_min), sqlc.narg(seats_max));
+
+-- name: EarnPriceSetSeats :exec
+-- A group price's seat range changes in place (Stripe prices are per seat).
+UPDATE earn_prices SET seats_min = @seats_min, seats_max = @seats_max WHERE id = @id AND audience = 'group';
 
 -- name: EarnPriceRetire :exec
 UPDATE earn_prices SET status = 'legacy', retired_at = @at WHERE id = @id AND status = 'current';
@@ -167,8 +174,11 @@ SELECT count(*)::bigint AS started, count(*) FILTER (WHERE status = 'completed')
 FROM earn_checkouts WHERE workspace_id = @workspace_id AND mode = 'live' AND created_at >= @since;
 
 -- name: EarnCheckoutInsert :exec
-INSERT INTO earn_checkouts (id, workspace_id, mode, tier_id, price_id, period, trial_days, contact_id, email, stripe_session_id, status, attribution, offer, started_by, created_at)
-VALUES (@id, @workspace_id, @mode, @tier_id, @price_id, @period, @trial_days, sqlc.narg(contact_id), @email, @stripe_session_id, @status, @attribution, @offer, sqlc.narg(started_by), @created_at);
+-- quantity (1 when null) and team_name are a team checkout's.
+INSERT INTO earn_checkouts (id, workspace_id, mode, tier_id, price_id, period, trial_days, contact_id, email, stripe_session_id, status, attribution, offer, started_by, created_at,
+    quantity, team_name)
+VALUES (@id, @workspace_id, @mode, @tier_id, @price_id, @period, @trial_days, sqlc.narg(contact_id), @email, @stripe_session_id, @status, @attribution, @offer, sqlc.narg(started_by), @created_at,
+    coalesce(sqlc.narg(quantity)::integer, 1), coalesce(sqlc.narg(team_name)::text, ''));
 
 -- name: EarnCheckoutSetSession :exec
 UPDATE earn_checkouts SET stripe_session_id = @stripe_session_id, status = @status WHERE id = @id;

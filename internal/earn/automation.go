@@ -40,6 +40,11 @@ const (
 	// AutomationPaidTrialEnding: Stripe's notice three days before a
 	// trial ends ("Trial ends soon").
 	AutomationPaidTrialEnding = "paid_trial_ending"
+	// AutomationPaidPaused and AutomationPaidResumed: the subscription's
+	// payments paused, and started again (M65, "Pauses payments",
+	// "Resumes payments"), with the resume date.
+	AutomationPaidPaused  = "paid_paused"
+	AutomationPaidResumed = "paid_resumed"
 )
 
 // automationEndReasons are the ends "Stops paying" starts on. Other ends
@@ -131,6 +136,22 @@ func (s *Service) paidTransitions(ctx context.Context, q *store.Queries, ws *sto
 			return err
 		}
 	}
+	if before != nil && row.EndedAt == nil {
+		switch {
+		case before.PausedAt == nil && row.PausedAt != nil:
+			extra := map[string]any{}
+			if row.PauseResumesAt != nil {
+				extra["resumes_at"] = row.PauseResumesAt.UTC().Format(time.RFC3339)
+			}
+			if err := s.paidEvent(ctx, q, ws, row, AutomationPaidPaused, at, tier, "", extra); err != nil {
+				return err
+			}
+		case before.PausedAt != nil && row.PausedAt == nil:
+			if err := s.paidEvent(ctx, q, ws, row, AutomationPaidResumed, at, tier, "", nil); err != nil {
+				return err
+			}
+		}
+	}
 	if row.EndedAt != nil {
 		ended, err := marked(q.EarnSubscriptionMarkEnded(ctx, store.EarnSubscriptionMarkEndedParams{ID: row.ID, At: at}))
 		if err != nil {
@@ -171,6 +192,9 @@ func (s *Service) paidEvent(ctx context.Context, q *store.Queries, ws *store.Wor
 	vars := map[string]any{"tier": tier.name, "previous_tier": previous, "trial_ends_at": ""}
 	if row.TrialEnd != nil {
 		vars["trial_ends_at"] = longDate(ws, *row.TrialEnd)
+	}
+	if kind == AutomationPaidPaused && row.PauseResumesAt != nil {
+		vars["resumes_at"] = longDate(ws, *row.PauseResumesAt)
 	}
 	payload := map[string]any{"tier_id": tier.id, "tier": tier.name, "liquid": map[string]any{"subscription": vars}}
 	maps.Copy(payload, extra)
