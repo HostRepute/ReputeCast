@@ -87,7 +87,9 @@ func seedCampaignsImpl(ctx context.Context, s *Seeder) error {
 	// suppressions, minus the 412 unengaged a send leaves out (SR-11).
 	n := int64(31192)
 	created := s.Ago(3 * 24 * time.Hour)
-	id, err := insert("Weekly Digest #142", "scheduled", audiences["Weekly Digest"], &n, map[string]any{
+	// The digest goes to everyone who signed up for it, the holdout group
+	// included (M63: SendReadiness's "Include the holdout group" is ticked).
+	id, err := insert("Weekly Digest #142", "scheduled", map[string]any{"lists": []uuid.UUID{digest}, "include_holdout": true}, &n, map[string]any{
 		"subject": "Three launches, one deprecation, and the roadmap for Q4", "preheader": "Feature flags are GA, audit log exports, and what we're retiring in November.", "created": created,
 	})
 	if err != nil {

@@ -2,12 +2,15 @@ package holdout_test
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/holdout"
 )
 
@@ -156,5 +159,106 @@ func TestSettingsAndResults(t *testing.T) {
 	}
 	if r := viewer.Do(http.MethodPost, ws+"/holdout/measure", nil); r.Status != http.StatusTooManyRequests || r.Header.Get("Retry-After") == "" {
 		t.Errorf("second measure: %d %v", r.Status, r.Header)
+	}
+}
+
+// The demo's holdout group (demo.SeedHoldout, as `reputecast seed` adds
+// it): measured from the demo's orders, conversions and paid
+// subscriptions, marketing added 18% more revenue per contact with 96%
+// confidence, and the eight Weekly Digests sent since included the group.
+func TestMeasureOnTheDemo(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	var wsID uuid.UUID
+	if err := env.App.Pool.QueryRow(ctx, `SELECT id FROM workspaces WHERE slug = 'acme-newsletter'`).Scan(&wsID); err != nil {
+		t.Fatal(err)
+	}
+	tx, err := env.App.Pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := demo.SeedHoldout(ctx, tx, wsID, time.Now()); err != nil {
+		_ = tx.Rollback(ctx)
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	c := env.Client()
+	c.SignInDemo("aisha@acme.io")
+	r := c.Do(http.MethodGet, ws+"/holdout/results", nil)
+	if r.Status != http.StatusOK {
+		t.Fatalf("results: %d %s", r.Status, r.Body)
+	}
+	var res holdout.HoldoutResults
+	r.JSON(t, &res)
+	if res.Verdict != holdout.VerdictAdded || res.Period == nil || res.Period.BasisPoints != 500 || !res.Period.Campaigns || !res.Period.Automations {
+		t.Fatalf("results: %s", r.Body)
+	}
+	var rev *holdout.HoldoutMetric
+	for i := range res.Metrics {
+		if res.Metrics[i].Key == holdout.MetricRevenue {
+			rev = &res.Metrics[i]
+		}
+	}
+	if rev == nil || math.Round(rev.Lift) != 18 || math.Floor(rev.Confidence*100) != 96 || !rev.Significant {
+		t.Fatalf("revenue per contact: %+v", rev)
+	}
+	if share := float64(res.Holdout.Contacts) / float64(res.Holdout.Contacts+res.Marketing.Contacts) * 100; share < 4.5 || share > 5.5 {
+		t.Errorf("the holdout group is %.2f%% of the population", share)
+	}
+	if res.CampaignsIncluded != 8 {
+		t.Errorf("%d campaigns included the holdout group, want the 8 digests", res.CampaignsIncluded)
+	}
+	// A second run adds nothing: the open period stays as it is.
+	tx, err = env.App.Pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := demo.SeedHoldout(ctx, tx, wsID, time.Now()); err != nil {
+		_ = tx.Rollback(ctx)
+		t.Fatal(err)
+	}
+	_ = tx.Commit(ctx)
+	var periods int64
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM holdout_periods WHERE workspace_id = $1`, wsID).Scan(&periods); err != nil || periods != 1 {
+		t.Errorf("%d periods after seeding twice (%v)", periods, err)
+	}
+}
+
+// Review & send's "Include the holdout group": saved in the campaign's
+// audience and audited on a draft, refused while the send is scheduled.
+func TestIncludeTheHoldoutGroup(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	id := func(name string) string {
+		var v uuid.UUID
+		if err := env.App.Pool.QueryRow(ctx, `SELECT c.id FROM campaigns c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter' AND c.name = $1`, name).Scan(&v); err != nil {
+			t.Fatal(name, err)
+		}
+		return v.String()
+	}
+	draft := id("Flash sale: 48 hours only")
+	c.Do(http.MethodPatch, ws+"/campaigns/"+draft+"/send-settings", map[string]any{"includeHoldout": true}).MustStatus(t, http.StatusNoContent)
+	var included bool
+	if err := env.App.Pool.QueryRow(ctx, `SELECT coalesce((audience->>'include_holdout')::boolean, false) FROM campaigns WHERE id = $1`, draft).Scan(&included); err != nil || !included {
+		t.Fatalf("include_holdout %v (%v)", included, err)
+	}
+	var audits int64
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'campaign.send_settings_updated' AND target_id = $1 AND (after->>'include_holdout')::boolean`, draft).Scan(&audits); err != nil || audits != 1 {
+		t.Fatalf("%d audit entries (%v)", audits, err)
+	}
+	c.Do(http.MethodPatch, ws+"/campaigns/"+draft+"/send-settings", map[string]any{"includeHoldout": false}).MustStatus(t, http.StatusNoContent)
+	if err := env.App.Pool.QueryRow(ctx, `SELECT audience ? 'include_holdout' FROM campaigns WHERE id = $1`, draft).Scan(&included); err != nil || included {
+		t.Fatalf("include_holdout still set (%v)", err)
+	}
+	// Weekly Digest #142 is scheduled: who gets it can't change.
+	r := c.Do(http.MethodPatch, ws+"/campaigns/"+id("Weekly Digest #142")+"/send-settings", map[string]any{"includeHoldout": false})
+	if r.Status != http.StatusConflict || r.Problem(t)["detail"] != "The campaign is scheduled. Unschedule it to change who gets it." {
+		t.Fatalf("scheduled: %d %s", r.Status, r.Body)
 	}
 }

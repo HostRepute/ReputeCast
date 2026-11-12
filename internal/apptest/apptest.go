@@ -62,6 +62,11 @@ type sample struct {
 
 var demoSample, northwindSample sample
 
+// Tests seed the demo without its holdout group (M63): holding out a
+// random 5% of contacts would leave part of every test's audience out.
+// The holdout tests add it to their copy with demo.SeedHoldout.
+func init() { demo.SkipHoldout = true }
+
 // midMonthSamples are the demo seeded at fixed moments (SeedDemoAt), by key.
 var (
 	midMonthMu      sync.Mutex

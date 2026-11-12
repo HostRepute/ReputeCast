@@ -64,6 +64,9 @@ var (
 	// the brand kit: Acme's logos, colours, fonts and buttons, and the synced
 	// Header and Footer Weekly Digest #142 holds (seed_brandkit.go)
 	seedBrandKit = noop
+	// the holdout group: 5% of contacts since 60 days ago, its results and
+	// the upgrades they come from (seed_holdout.go, M63)
+	seedHoldout = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }
