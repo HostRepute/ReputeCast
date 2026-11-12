@@ -66651,6 +66651,9 @@
           "counts": {
             "$ref": "#/components/schemas/ReplyCounts"
           },
+          "domain": {
+            "type": "string"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/ReplyListItem"

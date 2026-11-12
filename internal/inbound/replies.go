@@ -56,8 +56,10 @@ type ReplyList struct {
 	NextCursor string          `json:"nextCursor,omitempty"`
 	Counts     ReplyCounts     `json:"counts"`
 	// Receiving says whether the workspace has an inbound route (the empty
-	// state differs).
-	Receiving bool `json:"receiving"`
+	// state differs), and Domain where it receives ("Receiving mail is on
+	// at reply.news.acme.io").
+	Receiving bool   `json:"receiving"`
+	Domain    string `json:"domain,omitempty"`
 	// CanManage: the caller may mark replies and unsubscribe contacts.
 	CanManage bool `json:"canManage"`
 }
@@ -224,8 +226,8 @@ func (s *Service) Replies(ctx context.Context, ws *store.Workspace, p ReplyListP
 		return out, err
 	}
 	out.Counts = ReplyCounts(c)
-	if _, err := s.Q.InboundRouteGet(ctx, ws.ID); err == nil {
-		out.Receiving = true
+	if r, err := s.Q.InboundRouteGet(ctx, ws.ID); err == nil {
+		out.Receiving, out.Domain = true, r.Domain
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}

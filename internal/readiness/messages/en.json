@@ -1079,9 +1079,11 @@
   "tech.sourceHostRepute": "HostRepute hourly check{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listed since {day}}}",
   "tech.sourceBuiltin": "ReputeCast's own check{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listed since {day}}}",
   "compliance.mailtoReceived": { "message": "Unsubscribe emails are processed by ReputeCast", "note": "The List-Unsubscribe header's mailto: address is on the workspace's receiving domain, and ReputeCast applies what arrives there" },
+  "compliance.mailtoReceivedDetail": "Receiving mail is on, so the mailto: address is on {domain} and ReputeCast applies those unsubscribes within a minute. No one has to remove readers by hand.",
   "compliance.mailtoReceivedShort": "unsubscribe emails processed",
   "compliance.replyInbox": { "message": "Replies go to ReputeCast, but receiving is failing", "note": "Reply handling is \"Keep replies in ReputeCast inbox\" and the receiving route isn't receiving" },
-  "compliance.replyInboxDetail": "Replies to this send won't reach the inbox until receiving works again.",
+  "compliance.replyInboxDetail": "Reply handling is \"Keep replies in ReputeCast inbox\", and Receiving mail hasn't received its first message yet. Replies to this send won't reach Audience › Replies until it does. Send a test message from Settings › Senders, or forward replies to {replyTo} instead.",
+  "compliance.replyInboxFailing": "Reply handling is \"Keep replies in ReputeCast inbox\", and Receiving mail says Failing: {detail} Replies to this send won't reach Audience › Replies until it's fixed. Fix it, or forward replies to {replyTo} instead.",
   "label.replies": "Replies",
   "fix.openSettings": "Open Settings"
 }

@@ -950,11 +950,12 @@ func (s *Service) compliance(ctx context.Context, ws *store.Workspace, f Facts) 
 		out.Mailto = firstNonEmpty(f.Campaign.ReplyTo, f.Campaign.SenderEmail)
 	}
 	if s.Inbound != nil {
-		receiving, inbox, domain, local, err := s.Inbound(ctx, ws.ID)
+		in, err := s.Inbound(ctx, ws.ID)
 		if err != nil {
 			s.Log.WarnContext(ctx, "readiness: receiving mail", "workspace", ws.ID, "err", err)
 		} else {
-			out.Receiving, out.Inbox, out.InboundDomain, out.InboundLocal = receiving, inbox, domain, local
+			out.Receiving, out.Inbox, out.InboundDomain, out.InboundLocal = in.Receiving, in.Inbox, in.Domain, in.Local
+			out.InboundFailing, out.InboundDetail = in.Failing, in.Detail
 		}
 	}
 	out.HTTPS = strings.HasPrefix(out.UnsubscribeURL, "https://") || localURL(out.UnsubscribeURL)

@@ -49,6 +49,21 @@ func keepDetail(t i18n.Text) string {
 	return string(b)
 }
 
+// storedDetail is a stored status sentence as a message another package
+// can write in its reader's language; one stored as text stays as it is.
+func storedDetail(raw string) i18n.Text {
+	if strings.HasPrefix(raw, "{") {
+		var t i18n.Text
+		if err := json.Unmarshal([]byte(raw), &t); err == nil && !t.IsZero() {
+			return t
+		}
+	}
+	if raw == "" {
+		return i18n.Text{}
+	}
+	return i18n.Text{Args: i18n.Args{"text": raw}}
+}
+
 // detailIn writes a stored status sentence in a reader's language; a
 // sentence stored as text stays as it is.
 func detailIn(raw string, l i18n.Lang) string {

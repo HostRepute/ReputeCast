@@ -1696,7 +1696,8 @@ func (b *builder) compliance() {
 		// The mailto: address is on the receiving domain: ReputeCast
 		// applies the unsubscribe emails itself (M58).
 		b.add(check{Key: "compliance.unsubscribe_mailto", Group: GroupCompliance, Status: Pass, Label: RawText("mailto"),
-			Title: tx("compliance.mailtoReceived", nil), Short: tx("compliance.mailtoReceivedShort", nil)})
+			Title: tx("compliance.mailtoReceived", nil), Detail: tx("compliance.mailtoReceivedDetail", A{"domain": cf.InboundDomain}),
+			Short: tx("compliance.mailtoReceivedShort", nil)})
 	case cf.Mailto != "":
 		// The workspace includes a mailto: address in List-Unsubscribe
 		// (Settings › Senders) and ReputeCast doesn't receive the mail sent
@@ -1709,10 +1710,16 @@ func (b *builder) compliance() {
 			Fixes:  []fix{link(tx("fix.openSenders", nil), b.href("/settings/senders"))}})
 	}
 	if cf.Inbox && !cf.Receiving {
-		// Replies go to the receiving domain, which isn't receiving (M58).
+		// Replies go to the receiving domain, which isn't receiving (M58):
+		// what Receiving mail says about it, and where replies could go.
+		replyTo := firstNonEmpty(b.f.Campaign.ReplyTo, b.f.Campaign.SenderEmail)
+		detail := tx("compliance.replyInboxDetail", A{"replyTo": replyTo})
+		if cf.InboundFailing && !cf.InboundDetail.Empty() {
+			detail = tx("compliance.replyInboxFailing", A{"detail": cf.InboundDetail, "replyTo": replyTo})
+		}
 		b.add(check{Key: "compliance.reply_inbox", Group: GroupCompliance, Status: Warn, Label: tx("label.replies", nil),
 			Title:  tx("compliance.replyInbox", nil),
-			Detail: tx("compliance.replyInboxDetail", nil),
+			Detail: detail,
 			Fixes:  []fix{link(tx("fix.openSettings", nil), b.href("/settings/senders"))}})
 	}
 	ct := b.f.Content

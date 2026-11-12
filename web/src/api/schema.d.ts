@@ -37627,6 +37627,7 @@ export interface components {
         ReplyList: {
             canManage: boolean;
             counts: components["schemas"]["ReplyCounts"];
+            domain?: string;
             items: components["schemas"]["ReplyListItem"][];
             nextCursor?: string;
             receiving: boolean;

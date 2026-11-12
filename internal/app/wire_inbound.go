@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/inbound"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
+	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -144,9 +145,15 @@ func (a *App) inboundDeliverability(ctx context.Context, workspaceID uuid.UUID) 
 }
 
 // inboundReadiness is what Send Readiness checks about receiving.
-func (a *App) inboundReadiness(ctx context.Context, workspaceID uuid.UUID) (bool, bool, string, string, error) {
+func (a *App) inboundReadiness(ctx context.Context, workspaceID uuid.UUID) (readiness.InboundFacts, error) {
 	st, err := a.inboundState(ctx, workspaceID)
-	return st.Receiving, st.Inbox, st.Domain, st.Local, err
+	f := readiness.InboundFacts{Receiving: st.Receiving, Inbox: st.Inbox, Domain: st.Domain, Local: st.Local, Failing: st.Failing}
+	if !st.Detail.IsZero() {
+		f.Detail = readiness.Kept(st.Detail)
+	} else if s, _ := st.Detail.Args["text"].(string); s != "" {
+		f.Detail = readiness.RawText(s)
+	}
+	return f, err
 }
 
 // inboundBox is how a send rewrites Reply-To and mailto: (nil: no route).

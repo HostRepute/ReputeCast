@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -27,6 +28,11 @@ type State struct {
 	Domain, Local string
 	// LastDMARC is when the last DMARC report arrived by email.
 	LastDMARC *time.Time
+	// Failing: the route stopped receiving; Detail is the sentence
+	// Receiving mail shows about it (an MX record that moved, a mailbox
+	// that refused the sign-in).
+	Failing bool
+	Detail  i18n.Text
 }
 
 // Box is where the route receives.
@@ -45,7 +51,8 @@ func StateOf(ctx context.Context, q *store.Queries, workspaceID uuid.UUID) (Stat
 	if err != nil {
 		return State{}, err
 	}
-	st := State{Route: true, Receiving: r.Status == "receiving", Inbox: replyHandling(ws.SendingDefaults) == "inbox", Domain: r.Domain, Local: r.MailboxLocal}
+	st := State{Route: true, Receiving: r.Status == "receiving", Inbox: replyHandling(ws.SendingDefaults) == "inbox", Domain: r.Domain, Local: r.MailboxLocal,
+		Failing: r.Status == "failing", Detail: storedDetail(r.StatusDetail)}
 	if at, err := q.InboundLastDMARC(ctx, workspaceID); err == nil {
 		st.LastDMARC = &at
 	} else if !errors.Is(err, pgx.ErrNoRows) {

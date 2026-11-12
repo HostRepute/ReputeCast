@@ -1079,9 +1079,11 @@
   "tech.sourceHostRepute": "Lần kiểm tra hằng giờ của HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}",
   "tech.sourceBuiltin": "Lần kiểm tra của ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · bị liệt kê từ {day}}}",
   "compliance.mailtoReceived": "Email hủy đăng ký được ReputeCast xử lý",
+  "compliance.mailtoReceivedDetail": "Tính năng nhận thư đang bật, nên địa chỉ mailto: nằm trên {domain} và ReputeCast áp dụng các yêu cầu hủy đăng ký đó trong vòng một phút. Không ai phải gỡ người đọc thủ công.",
   "compliance.mailtoReceivedShort": "email hủy đăng ký được xử lý",
   "compliance.replyInbox": "Thư trả lời được gửi về ReputeCast, nhưng việc nhận thư đang lỗi",
-  "compliance.replyInboxDetail": "Thư trả lời cho lần gửi này sẽ không vào hộp thư cho đến khi việc nhận thư hoạt động trở lại.",
+  "compliance.replyInboxDetail": "Cách xử lý thư trả lời là \"Giữ thư trả lời trong hộp thư ReputeCast\", và Nhận thư chưa nhận được thư đầu tiên. Thư trả lời cho lần gửi này sẽ không vào Người đăng ký › Thư trả lời cho đến khi nhận được. Hãy gửi thư thử từ Cài đặt › Người gửi, hoặc chuyển tiếp thư trả lời đến {replyTo}.",
+  "compliance.replyInboxFailing": "Cách xử lý thư trả lời là \"Giữ thư trả lời trong hộp thư ReputeCast\", và Nhận thư đang báo Đang lỗi: {detail} Thư trả lời cho lần gửi này sẽ không vào Người đăng ký › Thư trả lời cho đến khi sự cố được khắc phục. Hãy khắc phục, hoặc chuyển tiếp thư trả lời đến {replyTo}.",
   "label.replies": "Thư trả lời",
   "fix.openSettings": "Mở Cài đặt"
 }
