@@ -81,6 +81,8 @@ var Events = []EventType{
 	// Web push and WhatsApp (design expansion, phase 8).
 	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "People who can view sending providers", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "People who can view sending providers", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
+	// Discount codes (M59).
+	{Key: KindCouponCodesLow, Label: "Discount codes running low", Audience: "People who can manage discount codes", Short: "discount codes running low", DefaultEmail: true, Kinds: []string{KindCouponCodesLow}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -124,7 +126,7 @@ const (
 
 var categoryKinds = map[string][]string{
 	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindResultsFinal, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused, KindAutomationAttention},
+	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindResultsFinal, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused, KindAutomationAttention, KindCouponCodesLow},
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested, KindCommentMention},
 	CategoryHostRepute:    {KindHostReputeAlert},

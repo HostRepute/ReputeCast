@@ -32,7 +32,7 @@ func (a *App) audience() *audience.Service {
 		cfg = &d
 	}
 	files := cfg.FilesDir()
-	return &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Counts: a.Counts, Mail: a.Mail, Links: a.Links, URLs: a.URLs,
+	s := &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Counts: a.Counts, Mail: a.Mail, Links: a.Links, URLs: a.URLs,
 		Jobs: func() *jobs.Client { return a.Jobs }, FilesDir: files,
 		// The team's opt-in emails are the forms' branded ones (review 2026-11 AU-15).
 		ConfirmationEmail: func(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, language, link string) (mailer.Message, error) {
@@ -42,6 +42,11 @@ func (a *App) audience() *audience.Service {
 		// their store orders and abandoned checkouts (X20).
 		Answers: audience.ActivitySources{audienceAnswers(a), audiencePurchases(a), audienceStores(a)}, SourceNames: audienceSourceNames(a),
 		Erasure: erasureRegistry()}
+	// The data export opens the contact's sealed discount codes (M59).
+	if a.Secrets != nil {
+		s.Opener = a.Secrets
+	}
+	return s
 }
 
 // audiencePurchases adds what a contact bought to the timeline; the

@@ -4,7 +4,9 @@
 // content), digests, saved views, transactional templates and Liquid in
 // their content (AU-18). A form's confirmation email is built from its
 // branding and the contact's first name only, so it names no custom field. It reads each kind once and matches in memory, so a page
-// listing every field asks a handful of queries.
+// listing every field asks a handful of queries. It also finds the
+// campaigns, automation emails and templates that show a discount code
+// pool's codes (Coupon, M59).
 package dependents
 
 import (
@@ -28,6 +30,9 @@ const (
 	// KindTransactional is a transactional template, its draft or live
 	// version (review 2026-11 AU-18).
 	KindTransactional = "transactional"
+	// KindTemplate is a saved template or section: only Coupon lists them
+	// (the discount code pool's page has its own kinds).
+	KindTemplate = "template"
 )
 
 // Use is one thing that would stop working without the field or segment.
@@ -141,4 +146,56 @@ func (idx Index) Segment(id uuid.UUID) []Use {
 
 func (it item) use() Use {
 	return Use{Kind: it.kind, ID: it.id, Name: it.name}
+}
+
+// couponCandidates read the campaigns that haven't finished sending, every
+// automation email (by its automation, its latest version and the
+// version its live flow sends) and the templates, narrowed in SQL to
+// those naming the pool's slug.
+var couponCandidates = []struct{ kind, sql string }{
+	{KindCampaign, `SELECT c.id, c.name, concat_ws(' ', c.subject, c.preheader, c.mjml, c.html, c.ab_test::text) FROM campaigns c
+		WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.status IN ('draft', 'approval', 'approved', 'scheduled', 'sending', 'paused')
+		  AND concat_ws(' ', c.subject, c.preheader, c.mjml, c.html, c.ab_test::text) LIKE '%' || $2 || '%'`},
+	{KindAutomation, `SELECT DISTINCT a.id, a.name, concat_ws(' ', v.subject, v.preheader, v.mjml, v.html) FROM automation_emails e
+		JOIN automations a ON a.id = e.automation_id AND a.deleted_at IS NULL
+		JOIN automation_email_versions v ON v.email_id = e.id
+		WHERE e.workspace_id = $1 AND e.deleted_at IS NULL AND concat_ws(' ', v.subject, v.preheader, v.mjml, v.html) LIKE '%' || $2 || '%'
+		  AND (v.version = e.latest_version OR v.version = ANY (SELECT (n -> 'data' -> 'email' ->> 'emailVersion')::int
+		       FROM automation_versions av, jsonb_array_elements(av.graph -> 'nodes') n
+		       WHERE av.automation_id = a.id AND av.version = a.live_version AND n -> 'data' -> 'email' ->> 'emailId' = e.id::text))`},
+	{KindTemplate, `SELECT t.id, t.name, concat_ws(' ', t.mjml, t.html) FROM templates t
+		WHERE t.workspace_id = $1 AND concat_ws(' ', t.mjml, t.html) LIKE '%' || $2 || '%'`},
+}
+
+// Coupon lists what shows the discount code pool slug's codes: Liquid that
+// reads it ({{ coupons.welcome15.code }}) or a Discount code block set to it
+// (<!-- rc:coupon {"pool":"welcome15",…} -->). Each user is listed once.
+func Coupon(ctx context.Context, q Querier, ws uuid.UUID, slug string) ([]Use, error) {
+	s := regexp.QuoteMeta(slug)
+	re := regexp.MustCompile(`\bcoupons\.` + s + `\b|rc:coupon\s*\{[^}]*"pool"\s*:\s*"` + s + `"`)
+	out := []Use{}
+	seen := map[string]bool{}
+	for _, k := range couponCandidates {
+		rows, err := q.Query(ctx, k.sql, ws, slug)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var id uuid.UUID
+			var name, text string
+			if err := rows.Scan(&id, &name, &text); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			if key := k.kind + ":" + id.String(); !seen[key] && re.MatchString(text) {
+				seen[key] = true
+				out = append(out, Use{Kind: k.kind, ID: id.String(), Name: name})
+			}
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }

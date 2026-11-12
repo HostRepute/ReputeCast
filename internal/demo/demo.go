@@ -134,6 +134,7 @@ func SeedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *se
 		{"providers", seedProviders},
 		{"deliverability", seedDeliverability},
 		{"campaigns", seedCampaigns},
+		{"countdown", seedCountdown},
 		{"composer", seedComposer},
 		{"readiness", seedReadiness},
 		{"sending", seedSending},
@@ -163,6 +164,7 @@ func SeedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *se
 		{"push and whatsapp", seedPushWhatsApp},
 		{"pages and products", seedPagesProducts},
 		{"stores", seedStores},
+		{"coupons", seedCoupons},
 		{"agency", seedAgency},
 		{"brand kit", seedBrandKit},
 	}

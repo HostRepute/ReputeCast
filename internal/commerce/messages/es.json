@@ -37,5 +37,8 @@
   "list.description": "Clientes de {store} que aceptaron recibir marketing",
   "check.removedTitle": "{product} ya no está en {store}",
   "check.removedTag": "Ya no está en la tienda",
-  "check.removedDetail": "Se eliminó en {platform} el {when}. Los envíos lo omiten. Quítalo o elige otro producto."
+  "check.removedDetail": "Se eliminó en {platform} el {when}. Los envíos lo omiten. Quítalo o elige otro producto.",
+  "discounts.notGranted": "{name} aún no permite códigos de descuento. Abre la página de la tienda y elige Permitir códigos de descuento.",
+  "discounts.readOnly": "La clave de la tienda no puede crear cupones. Usa una clave de lectura y escritura.",
+  "discounts.unsupported": "{platform} no puede crear códigos de descuento desde ReputeCast. Sube los códigos en su lugar."
 }

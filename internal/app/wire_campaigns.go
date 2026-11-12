@@ -51,6 +51,9 @@ func (a *App) campaigns() *campaigns.Service {
 		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 		// Review links' tokens are sealed (CO-10).
 		Box: a.Secrets,
+		// The workspace's own tokens in the token menu (discount code
+		// pools, wire_coupons.go).
+		MoreTokens: campaignTokensOf(a),
 	}
 }
 
@@ -88,6 +91,21 @@ func campaignMoreOf(a *App) []campaigns.MoreChecks {
 	for _, f := range campaignMore {
 		if m := f(a); m != nil {
 			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// campaignTokens add a workspace's own tokens to the composer's token
+// menu (its discount code pools); each domain appends its own.
+var campaignTokens []func(*App) campaigns.TokenSource
+
+// campaignTokensOf builds the token sources every domain added.
+func campaignTokensOf(a *App) []campaigns.TokenSource {
+	out := make([]campaigns.TokenSource, 0, len(campaignTokens))
+	for _, f := range campaignTokens {
+		if t := f(a); t != nil {
+			out = append(out, t)
 		}
 	}
 	return out

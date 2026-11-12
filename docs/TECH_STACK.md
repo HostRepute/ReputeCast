@@ -41,7 +41,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | SMS through AWS End User Messaging | github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 | v1.42.5 |
 | Phone numbers (E.164, country, type) | github.com/nyaruka/phonenumbers | v1.8.1 |
 | Country and city of readers (campaign report), from an operator-supplied MaxMind DB file | github.com/oschwald/maxminddb-golang/v2 | v2.9.0 (ISC, pure Go; the file is read into memory and verified, never memory-mapped) |
-| App languages: language names, plural rules, collation, currencies, Unicode normalization | golang.org/x/text | v0.43.0 |
+| App languages: language names, plural rules, collation, currencies, Unicode normalization | golang.org/x/text | v0.44.0 |
 | Password hashing | golang.org/x/crypto/argon2 (argon2id) | v0.58.0 |
 | TOTP 2FA | github.com/pquerna/otp | v1.5.0 |
 | Passkeys | github.com/go-webauthn/webauthn | v0.18.2 |
@@ -60,6 +60,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | Future plugins (WASM) | github.com/tetratelabs/wazero (+ Extism go-sdk v1.7.1, re-evaluate) | v1.12.0 |
 | Deferred: SAML | github.com/russellhaering/gosaml2 (not crewjam/saml, which is stale) | v0.12.0 |
 | Deferred: SCIM | github.com/elimity-com/scim | untagged (pseudo-version 2026-07) |
+| Server-drawn images: TrueType fonts and glyph rasterising (the email Countdown block's GIF) | golang.org/x/image (`font`, `font/opentype`, `math/fixed`) | v0.48.0. Text in five languages (Vietnamese included) is drawn on an image the server makes when an email is opened, and the standard library has no font rasteriser. The fonts are IBM Plex Mono SemiBold and IBM Plex Sans Medium TTFs (SIL OFL 1.1), embedded in `internal/countdown/fonts/` with their licence. Pulled in golang.org/x/text v0.44.0, x/sync v0.25.0 and x/sys v0.50.0. |
 
 Dev tools:
 - air v1.67.4

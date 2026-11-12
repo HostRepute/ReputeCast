@@ -49,11 +49,21 @@ var automationStoreEmail = func(*App) func(context.Context, uuid.UUID, uuid.UUID
 // emails (countdowns, discount codes); each domain appends its own.
 var automationEmailChecks []func(*App) automations.EmailPublishChecker
 
+// automationEmailHolds make an email step wait for what its email needs
+// (a discount code pool's codes); each domain appends its own.
+var automationEmailHolds []func(*App) automations.EmailHold
+
 func newAutomations(a *App) *automations.Service {
 	var emailChecks []automations.EmailPublishChecker
 	for _, f := range automationEmailChecks {
 		if c := f(a); c != nil {
 			emailChecks = append(emailChecks, c)
+		}
+	}
+	var emailHolds []automations.EmailHold
+	for _, f := range automationEmailHolds {
+		if h := f(a); h != nil {
+			emailHolds = append(emailHolds, h)
 		}
 	}
 	return &automations.Service{
@@ -77,6 +87,7 @@ func newAutomations(a *App) *automations.Service {
 		Mail:        func() mailer.Sender { return a.Mail },
 		URLs:        a.URLs,
 		EmailChecks: emailChecks,
+		EmailHolds:  emailHolds,
 	}
 }
 

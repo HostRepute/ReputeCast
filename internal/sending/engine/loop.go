@@ -912,6 +912,18 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 			out.drop(m.ID, "cancelled", "On the shared suppression list since the send started.")
 			continue
 		}
+		// A reader a block couldn't serve (a discount code pool that ran
+		// out) isn't sent the email without it.
+		if m.ContactID != nil {
+			if why, short := shortOf(extra[*m.ContactID]); short {
+				if why == liquid.ShortNoCodes {
+					out.drop(m.ID, "failed", shortText(extra[*m.ContactID]))
+				} else {
+					out.retry(m.ID, int(m.Attempts), now, "Discount codes couldn't be read; the message goes out on the next try.")
+				}
+				continue
+			}
+		}
 		pm, err := e.compose(rs, r, m, extra)
 		if err != nil {
 			out.drop(m.ID, "failed", err.Error())
@@ -1232,7 +1244,26 @@ func (e *Engine) readerVars(ctx context.Context, rs *runState, claimed []store.S
 			recipients = append(recipients, liquid.Recipient{ContactID: *m.ContactID, MessageID: m.ID})
 		}
 	}
-	return liquid.FillBatch(ctx, providers, rs.campaign.WorkspaceID, recipients, src.String())
+	// A real send: blocks that hand something out once per message (a
+	// discount code) hand it out now, and give the same back on a retry.
+	return liquid.FillBatch(liquid.WithAllocation(ctx), providers, rs.campaign.WorkspaceID, recipients, src.String())
+}
+
+// shortOf reports whether a reader's per-reader variables say a block
+// couldn't serve them (liquid.ShortKey), and why.
+func shortOf(vars map[string]any) (string, bool) {
+	why, ok := vars[liquid.ShortKey].(string)
+	return why, ok && why != ""
+}
+
+// shortText is a failed message's error when a pool had no code left for
+// the reader (no_codes).
+func shortText(vars map[string]any) string {
+	what, _ := vars[liquid.ShortWhat].(string)
+	if what == "" {
+		what = "a discount code pool"
+	}
+	return "Not sent: " + what + " had no code left for this reader (" + liquid.ShortNoCodes + ")."
 }
 
 // contentKey is the variant whose content (and links) a message renders.

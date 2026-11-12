@@ -145,6 +145,17 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Install(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
+	api.Post(h, api.Op{ID: "allow-store-discounts", Path: base + "/{id}/allow-discounts", Summary: "Shopify: the approval page that allows discount codes",
+		Description: "Shopify asks the merchant to approve the app again with write_discounts and read_discounts, so discount code pools can create codes in the store. " +
+			"The store keeps syncing meanwhile.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *idPath) (*api.Body[CommerceInstall], error) {
+			id, err := s.parse(ctx, in.ID)
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.AllowDiscounts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			return api.OK(out), err
+		})
 	api.Post(h, api.Op{ID: "start-store-sync", Path: base + "/{id}/start", Summary: "Choose what syncs and start: the list, the first import, the webhooks",
 		Description: "Only customers who accepted marketing join the list.", Tags: tags, Access: manage},
 		func(ctx context.Context, in *idBody[CommerceSyncInput]) (*api.Body[CommerceConnectState], error) {

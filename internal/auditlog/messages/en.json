@@ -34,6 +34,7 @@
   "category.push": "Push",
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agency",
+  "category.coupons": "Discount codes",
 
   "link.open": { "message": "Open", "note": "the button that opens an entry's target" },
   "link.routing": "Open routing",
@@ -58,6 +59,7 @@
   "link.authentication": "Open authentication",
   "link.workspaces": "Open workspaces",
   "link.instance": "Open instance settings",
+  "link.couponPool": "Open pool",
 
   "client.on": { "message": "{browser} on {os}", "note": "the browser and system of a request: Chrome 141 on macOS 26" },
   "related.entry": { "message": "{action} by {name} at {at, time}", "note": "a related entry; action: an audit action name, never translated" },
@@ -171,6 +173,10 @@
   "what.changedSync": "{hasName, select, yes {Changed what syncs from {type} {name}} other {Changed what syncs from {type}}}",
   "what.startedSync": "{hasName, select, yes {Started a sync of {type} {name}} other {Started a sync of {type}}}",
   "what.registeredWebhooks": "{hasName, select, yes {Registered the webhooks of {type} {name}} other {Registered the webhooks of {type}}}",
+  "what.uploadedCodes": "{hasName, select, yes {Uploaded codes to {type} {name}} other {Uploaded codes to {type}}}",
+  "what.requestedCodes": "{hasName, select, yes {Asked for new codes in {type} {name}} other {Asked for new codes in {type}}}",
+  "what.removedCodes": "{hasName, select, yes {Removed the unused codes of {type} {name}} other {Removed the unused codes of {type}}}",
+  "what.exportedCodes": "{hasName, select, yes {Exported the codes of {type} {name}} other {Exported the codes of {type}}}",
 
   "type.access": { "message": "access", "note": "what an audit entry acted on, in the middle of a sentence" },
   "type.account": "account",
@@ -342,5 +348,7 @@
   "type.whatsapp_settings": "whatsapp settings",
   "type.whatsapp_templates": "whatsapp templates",
   "type.wordpress": "wordpress",
-  "type.workspace": "workspace"
+  "type.workspace": "workspace",
+  "type.coupon_pool": "discount code pool",
+  "type.countdown": "countdown"
 }

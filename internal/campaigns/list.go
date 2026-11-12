@@ -63,7 +63,14 @@ type Service struct {
 	// Box seals review links' tokens so members can copy a link again
 	// (review.go); review links need it.
 	Box *secrets.Box
+	// MoreTokens add a workspace's own tokens to the composer's token menu
+	// (its discount code pools' coupons.<slug>.code and .url, in the
+	// member's language), after the catalog's; none adds nothing.
+	MoreTokens []TokenSource
 }
+
+// TokenSource gives a workspace's tokens of one kind for the composer.
+type TokenSource func(ctx context.Context, ws *store.Workspace) []liquid.PersonalizationToken
 
 // ChannelRows fills in the list's rows of one channel's campaigns
 // (internal/texting for SMS).

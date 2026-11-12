@@ -64,6 +64,12 @@ var (
 	// the brand kit: Acme's logos, colours, fonts and buttons, and the synced
 	// Header and Footer Weekly Digest #142 holds (seed_brandkit.go)
 	seedBrandKit = noop
+	// discount codes: Welcome 15% in Acme Merch and the uploaded Partner
+	// perks, and the Welcome code in Abandoned cart's second email (seed_coupons.go)
+	seedCoupons = noop
+	// the email countdown: the draft Black Friday Early Access with its
+	// Countdown and Discount code blocks (seed_countdown.go)
+	seedCountdown = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

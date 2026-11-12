@@ -69,6 +69,8 @@ var erasureExempt = map[string]string{
 	"website_post_conversions": "web post conversion counts; the contact is scrubbed",
 	// Sealed and short-lived.
 	"partner_requests_out": "a sealed address sent to a partner, deleted after its retention (recommendations jobs)",
+	// A pool's setting (M59), not a contact.
+	"coupon_pools": "a boolean (one code per contact), not a contact",
 }
 
 // TestErasureCoversPersonalData: every table with personal-data columns is

@@ -301,6 +301,17 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 			continue
 		}
 		msg, err := e.composeAutomation(ctx, r, row, cache)
+		// The flow's step waited until the pool had a code (automations'
+		// email holds); another send took the last one meanwhile.
+		var short *shortReader
+		if errors.As(err, &short) {
+			if short.why == liquid.ShortNoCodes {
+				out.drop(row.ID, "failed", short.text)
+			} else {
+				out.retry(row.ID, int(row.Attempts), now, short.text)
+			}
+			continue
+		}
 		if err != nil {
 			out.drop(row.ID, "failed", err.Error())
 			// The flow shows "step failing" with why (no sender, a deleted
@@ -534,7 +545,15 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 		}
 	}
 	if e.Recipients != nil && contact != uuid.Nil {
-		vars = liquid.Fill(ctx, e.Recipients(), row.WorkspaceID, liquid.Recipient{ContactID: contact, MessageID: row.ID, EmailID: ref.Email}, ot.tpl.Source(), vars)
+		// A real send: a discount code is handed out to this message now.
+		vars = liquid.Fill(liquid.WithAllocation(ctx), e.Recipients(), row.WorkspaceID, liquid.Recipient{ContactID: contact, MessageID: row.ID, EmailID: ref.Email}, ot.tpl.Source(), vars)
+		if why, ok := shortOf(vars); ok {
+			text := "Discount codes couldn't be read; the email goes out on the next try."
+			if why == liquid.ShortNoCodes {
+				text = shortText(vars)
+			}
+			return providers.Message{}, &shortReader{why: why, text: text}
+		}
 	}
 	out, err := ot.tpl.Render(vars, tracked)
 	if err != nil {
@@ -569,3 +588,10 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	}
 	return msg, nil
 }
+
+// shortReader is an automation email a block couldn't serve its reader
+// (liquid.ShortKey): a pool with no code left fails it, anything else is
+// tried again.
+type shortReader struct{ why, text string }
+
+func (s *shortReader) Error() string { return s.text }

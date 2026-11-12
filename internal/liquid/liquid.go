@@ -45,7 +45,7 @@ const MaxRange = 1000
 type PersonalizationToken struct {
 	Key   string `json:"key" example:"first_name"`
 	Label string `json:"label" example:"First name"`
-	Kind  string `json:"kind" enum:"contact,custom,system,referral,paid"`
+	Kind  string `json:"kind" enum:"contact,custom,system,referral,paid,coupon"`
 	// Fallback is the suggested default for contacts without a value.
 	Fallback string `json:"fallback,omitempty"`
 	// LabelText is the label's message when the package that registers the

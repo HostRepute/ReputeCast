@@ -205,7 +205,7 @@ func (s *Service) notFound(ctx context.Context, err error) error {
 func (s *Service) connectState(ctx context.Context, ws *store.Workspace, st store.Store) CommerceConnectState {
 	out := CommerceConnectState{Store: s.summary(ctx, st), Step: st.Step, AppURL: s.AppURL(), RedirectURL: s.CallbackURL(),
 		Scopes: slices.Clone(shopify.Scopes), OptionalScope: shopify.OptionalScope, InstalledAt: st.InstalledAt, Granted: st.Scopes,
-		WriteGranted: slices.Contains(st.Scopes, shopify.OptionalScope), Error: st.ConnectError, Lists: s.listOptions(ctx, ws.ID),
+		WriteGranted: slices.Contains(st.Scopes, shopify.OptionalScope), DiscountsGranted: discountsGranted(st), Error: st.ConnectError, Lists: s.listOptions(ctx, ws.ID),
 		NewListName: st.Name, Months: int(st.ImportMonths), KeyHint: st.KeyHint, Demo: st.Demo}
 	if out.Granted == nil {
 		out.Granted = []string{}
@@ -326,6 +326,23 @@ func (s *Service) Install(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if st.ClientID == "" || len(st.CredentialsSealed) == 0 {
 		return CommerceInstall{}, api.Conflict(mKeysMissing.Text(l, nil))
 	}
+	return s.approval(ctx, st, p, installScopes(st, false))
+}
+
+// installScopes are the scopes the approval asks for: the app's, the
+// optional write_customers, and the discount scopes when asked for now or
+// granted before (approving again never takes a grant back).
+func installScopes(st store.Store, discounts bool) []string {
+	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope)
+	if discounts || discountsGranted(st) {
+		scopes = append(scopes, shopify.DiscountScopes...)
+	}
+	return scopes
+}
+
+// approval returns Shopify's approval page for scopes. The state names the
+// person who started it; it works once, for 30 minutes.
+func (s *Service) approval(ctx context.Context, st store.Store, p *authz.Principal, scopes []string) (CommerceInstall, error) {
 	by := "-"
 	if u := userID(p); u != nil {
 		by = u.String()
@@ -335,7 +352,6 @@ func (s *Service) Install(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err := s.Q.CommerceStoreSetState(ctx, store.CommerceStoreSetStateParams{ID: st.ID, OauthState: &state, ExpiresAt: ptr(now.Add(stateTTL)), At: now}); err != nil {
 		return CommerceInstall{}, err
 	}
-	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope)
 	if st.Demo && s.DemoApprove != nil {
 		// The demo's store approves at once, in process.
 		return CommerceInstall{URL: s.DemoApprove(s.CallbackURL(), state)}, nil

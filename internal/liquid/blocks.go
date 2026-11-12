@@ -198,9 +198,17 @@ func Allocating(ctx context.Context) bool {
 
 // ShortKey is the variable a RecipientData provider sets on a reader it
 // couldn't give what the email needs (a discount code once a pool ran
-// out); its value is the reason ("no_codes"). The sending engine doesn't
-// send that reader's message.
+// out); its value is the reason. The sending engine doesn't send that
+// reader's message: ShortNoCodes fails it; any other reason (the codes
+// couldn't be read just now) sends it again later.
 const ShortKey = "rc_short"
+
+// ShortNoCodes is ShortKey's reason when a pool had no code left.
+const ShortNoCodes = "no_codes"
+
+// ShortWhat names, in English, what a reader with ShortKey went without
+// ("the discount code pool Welcome 15%"), for the message's record.
+const ShortWhat = "rc_short_what"
 
 var pathRes sync.Map // root → *regexp.Regexp
 

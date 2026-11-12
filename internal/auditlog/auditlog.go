@@ -123,7 +123,7 @@ type AuditCategory struct {
 
 // Categories are the action filter's choices, in the order of the board.
 var Categories = []AuditCategory{
-	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation"}},
+	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation", "countdown"}},
 	{Key: "routing", Label: "Routing & providers", Groups: []string{"routing", "provider", "warmup", "deliverability", "domain", "sender"}},
 	{Key: "audience", Label: "Audience & consent", Groups: []string{"contact", "contacts", "subscriber", "subscribers", "list", "segment", "form", "consent", "suppression", "import", "growth"}},
 	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},
@@ -159,6 +159,8 @@ var Categories = []AuditCategory{
 	{Key: "whatsapp", Label: "WhatsApp", Groups: []string{"whatsapp", "whatsapp_templates", "whatsapp_rates", "whatsapp_settings"}},
 	// Agency accounts (design expansion, phase 8).
 	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
+	// Discount code pools and their codes (M59).
+	{Key: "coupons", Label: "Discount codes", Groups: []string{"coupon_pool"}},
 }
 
 // Filter narrows the log.
@@ -575,6 +577,10 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 		if targetID != "" {
 			path, key = "/settings/integrations/stores/"+targetID, "link.store"
 		}
+	case "coupon_pool":
+		if targetID != "" {
+			path, key = "/campaigns/codes/"+targetID, "link.couponPool"
+		}
 	}
 	if key == "" {
 		return "", ""
@@ -611,6 +617,9 @@ var verbs = map[string]string{
 	"reconnected": "reconnected", "disconnected": "disconnected", "data_deleted": "deletedStoreData", "list_updated": "changedList",
 	"writeback_updated": "changedWriteback", "attribution_updated": "changedAttribution",
 	"sync_updated": "changedSync", "sync_started": "startedSync", "webhooks_registered": "registeredWebhooks",
+	// Discount code pools (M59).
+	"archived": "archived", "codes_uploaded": "uploadedCodes", "codes_requested": "requestedCodes", "codes_removed": "removedCodes",
+	"codes_exported": "exportedCodes",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences

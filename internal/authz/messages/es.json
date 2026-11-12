@@ -73,6 +73,7 @@
   "action.workspace:manage": "Cambiar la configuración del espacio de trabajo",
   "action.workspace:transfer": "Transferir la propiedad",
   "action.workspace:delete": "Eliminar el espacio de trabajo",
+  "action.coupons:manage": "Gestionar códigos de descuento",
 
   "group.campaigns": "Campañas",
   "group.templates": "Plantillas",
@@ -249,6 +250,8 @@
   "perm.agency:library.about": "Añadir, cambiar y quitar elementos de la biblioteca y plantillas de espacio de trabajo, y copiarlos a los clientes.",
   "perm.agency:manage": "Crear y eliminar espacios de trabajo de clientes, y gestionar el personal y las asignaciones",
   "perm.agency:manage.about": "Crear y eliminar clientes, añadir y quitar personal, y asignarlo a clientes.",
+  "perm.coupons:manage": "Gestionar los grupos de códigos de descuento y sus códigos",
+  "perm.coupons:manage.about": "Crear, cambiar y archivar grupos, y subir, crear, quitar o exportar sus códigos. Para ver los grupos se necesita “Ver campañas”.",
 
   "role.owner.about": "Todo, incluido transferir la propiedad y eliminar el espacio de trabajo",
   "role.admin.about": "Todo excepto transferir la propiedad y eliminar el espacio de trabajo",

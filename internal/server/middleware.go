@@ -149,11 +149,12 @@ func SecurityHeaders(httpsOnly bool) func(http.Handler) http.Handler {
 }
 
 // secretSegments match paths whose last part is a bearer secret: tracking
-// and email links (opens, clicks and the hidden link), push notification
-// clicks, SMS short links, shared reports, provider webhooks, invitations,
-// password resets and composer review links (API and app routes).
+// and email links (opens, clicks and the hidden link), countdown images,
+// push notification clicks, SMS short links, shared reports, provider
+// webhooks, invitations, password resets and composer review links (API
+// and app routes).
 var secretSegments = []*regexp.Regexp{
-	regexp.MustCompile(`^(/t/[ochps]/)[^/]+`),
+	regexp.MustCompile(`^(/t/(?:[ochps]|cd)/)[^/]+`),
 	regexp.MustCompile(`^(/p/[^/]+/(?:unsubscribe|preferences|confirm|view)/)[^/]+`),
 	regexp.MustCompile(`^(/r/)[^/]+`),
 	// SMS webhooks name their adapter before the token, WhatsApp's the

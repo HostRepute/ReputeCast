@@ -99,6 +99,9 @@ const (
 	// KindResultsFinal: a campaign report's results are final, for someone
 	// who asked to be emailed then ("Email me when it's final").
 	KindResultsFinal = "results_final"
+	// Discount codes (M59): a pool's free codes fell under its low mark
+	// (coupons:manage).
+	KindCouponCodesLow = "coupon_codes_low"
 )
 
 // Notification is what appears in the notification center.

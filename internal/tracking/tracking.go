@@ -207,6 +207,11 @@ func noStore(h http.Header) {
 	h.Set("X-Robots-Tag", "noindex, nofollow")
 }
 
+// NoStore sets the headers that keep the tracking endpoints' answers out of
+// caches, referrers and search engines; the countdown image
+// (internal/countdown) answers with them too.
+func NoStore(h http.Header) { noStore(h) }
+
 // open answers the pixel at once with the GIF; the open is recorded in the
 // background (the response doesn't wait for more than a few milliseconds).
 func (s *Service) open(w http.ResponseWriter, r *http.Request) {

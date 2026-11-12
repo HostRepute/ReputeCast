@@ -1230,6 +1230,63 @@ type Conversion struct {
 	Test           bool            `json:"test"`
 }
 
+type CouponBatch struct {
+	ID            uuid.UUID  `json:"id"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	PoolID        uuid.UUID  `json:"poolId"`
+	Kind          string     `json:"kind"`
+	Reason        string     `json:"reason"`
+	AutomationID  *uuid.UUID `json:"automationId"`
+	Requested     int32      `json:"requested"`
+	Created       int32      `json:"created"`
+	Failed        int32      `json:"failed"`
+	Status        string     `json:"status"`
+	Error         string     `json:"error"`
+	ExternalJobID string     `json:"externalJobId"`
+	WaitingUntil  *time.Time `json:"waitingUntil"`
+	PendingSealed []byte     `json:"pendingSealed"`
+	CreatedBy     *uuid.UUID `json:"createdBy"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	FinishedAt    *time.Time `json:"finishedAt"`
+}
+
+type CouponCode struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	PoolID      uuid.UUID  `json:"poolId"`
+	CodeSealed  []byte     `json:"codeSealed"`
+	CodeHash    []byte     `json:"codeHash"`
+	BatchID     *uuid.UUID `json:"batchId"`
+	ExternalID  string     `json:"externalId"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	AssignedAt  *time.Time `json:"assignedAt"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	MessageID   *uuid.UUID `json:"messageId"`
+	RedeemedAt  *time.Time `json:"redeemedAt"`
+	OrderID     *uuid.UUID `json:"orderId"`
+	RemovedAt   *time.Time `json:"removedAt"`
+}
+
+type CouponPool struct {
+	ID                 uuid.UUID       `json:"id"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	Name               string          `json:"name"`
+	Slug               string          `json:"slug"`
+	Source             string          `json:"source"`
+	StoreID            *uuid.UUID      `json:"storeId"`
+	Settings           json.RawMessage `json:"settings"`
+	Prefix             string          `json:"prefix"`
+	OnePerContact      bool            `json:"onePerContact"`
+	LowAt              int32           `json:"lowAt"`
+	Status             string          `json:"status"`
+	ExternalDiscountID string          `json:"externalDiscountId"`
+	NotifiedLowAt      *time.Time      `json:"notifiedLowAt"`
+	RefillCheckedAt    *time.Time      `json:"refillCheckedAt"`
+	CreatedBy          *uuid.UUID      `json:"createdBy"`
+	CreatedAt          time.Time       `json:"createdAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+}
+
 type CustomField struct {
 	ID          uuid.UUID       `json:"id"`
 	WorkspaceID uuid.UUID       `json:"workspaceId"`
@@ -1807,6 +1864,17 @@ type EmailChange struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	ExpiresAt time.Time  `json:"expiresAt"`
 	UsedAt    *time.Time `json:"usedAt"`
+}
+
+type EmailCountdown struct {
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	Hash         []byte          `json:"hash"`
+	Settings     json.RawMessage `json:"settings"`
+	EndsAt       time.Time       `json:"endsAt"`
+	CreatedBy    *uuid.UUID      `json:"createdBy"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	LastServedAt *time.Time      `json:"lastServedAt"`
 }
 
 type Form struct {

@@ -114,6 +114,10 @@ func (s *Service) Context(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	// The tokens other packages register (Grow's) in the member's language.
 	out.Tokens = liquid.InLanguage(out.Tokens, i18n.LangFrom(ctx))
+	// The workspace's own tokens (its discount code pools).
+	for _, more := range s.MoreTokens {
+		out.Tokens = append(out.Tokens, more(ctx, ws)...)
+	}
 	members, err := s.Q.ComposerTestRecipients(ctx, ws.ID)
 	if err != nil {
 		return out, err

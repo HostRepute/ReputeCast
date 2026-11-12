@@ -1064,6 +1064,20 @@ type Querier interface {
 	CountUsers(ctx context.Context) (int64, error)
 	CountWorkspaceSegments(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountWorkspaceSuppressions(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	CountdownByHash(ctx context.Context, arg CountdownByHashParams) (CountdownByHashRow, error)
+	// When a campaign's send starts (Send Readiness's countdown rows).
+	CountdownCampaignSchedule(ctx context.Context, arg CountdownCampaignScheduleParams) (json.RawMessage, error)
+	// The image's row, for the workspace its token names.
+	CountdownGet(ctx context.Context, arg CountdownGetParams) (CountdownGetRow, error)
+	// Countdown timers in email (M59 G-21): one row per workspace and set of
+	// settings, drawn as an animated GIF when the email is opened.
+	// A new set of settings; no row when the workspace has it already.
+	CountdownInsert(ctx context.Context, arg CountdownInsertParams) (uuid.UUID, error)
+	// When the image was last opened, at most once a minute (before is a
+	// minute earlier than at).
+	CountdownServed(ctx context.Context, arg CountdownServedParams) error
+	// The countdowns an email shows (the composer's and Send Readiness's checks).
+	CountdownsByIDs(ctx context.Context, arg CountdownsByIDsParams) ([]CountdownsByIDsRow, error)
 	CountersBuildSave(ctx context.Context, arg CountersBuildSaveParams) error
 	// Adds counter deltas, one row per cell, locking the rows in key order.
 	CountersBump(ctx context.Context, arg CountersBumpParams) error
@@ -1156,6 +1170,96 @@ type Querier interface {
 	// A send's first build: from now on the campaign's people's first
 	// engagements keep their client, system, device, place and local time.
 	CountersStartBreakdown(ctx context.Context, id uuid.UUID) error
+	// Gives a page of messages their code from one pool, in one statement: a
+	// message keeps the code it was given (a page sent again), a contact
+	// keeps their earlier code when the pool gives one per contact, and the
+	// others take free codes (skipping those another send is taking), paired
+	// by row number. Messages left without a row found no code.
+	CouponAllocate(ctx context.Context, arg CouponAllocateParams) ([]CouponAllocateRow, error)
+	CouponAssignedSince(ctx context.Context, arg CouponAssignedSinceParams) (int64, error)
+	// An automation email version's subject, preheader and HTML (0: its latest).
+	CouponAutomationEmailContent(ctx context.Context, arg CouponAutomationEmailContentParams) (string, error)
+	CouponBatch(ctx context.Context, id uuid.UUID) (CouponBatch, error)
+	CouponBatchFinish(ctx context.Context, arg CouponBatchFinishParams) error
+	// ── Batches ─────────────────────────────────────────────────────────────
+	CouponBatchInsert(ctx context.Context, arg CouponBatchInsertParams) (uuid.UUID, error)
+	CouponBatchLatest(ctx context.Context, poolID uuid.UUID) (CouponBatch, error)
+	// A step of a batch: the codes confirmed so far and the step under way.
+	CouponBatchProgress(ctx context.Context, arg CouponBatchProgressParams) error
+	// The store didn't answer: the batch tries again at until.
+	CouponBatchRetrying(ctx context.Context, arg CouponBatchRetryingParams) error
+	CouponBatchRunning(ctx context.Context, poolID uuid.UUID) (CouponBatch, error)
+	// The store asked to slow down; the batch goes on at until.
+	CouponBatchWaiting(ctx context.Context, arg CouponBatchWaitingParams) error
+	// A pool's batches, newest first, with who asked or the flow refilled for.
+	CouponBatches(ctx context.Context, poolID uuid.UUID) ([]CouponBatchesRow, error)
+	// The workspace's pools creating codes now.
+	CouponBatchesRunning(ctx context.Context, workspaceID uuid.UUID) ([]CouponBatch, error)
+	CouponBatchesRunningAll(ctx context.Context) ([]uuid.UUID, error)
+	CouponCodesExport(ctx context.Context, poolID uuid.UUID) ([]CouponCodesExportRow, error)
+	// ── Codes ───────────────────────────────────────────────────────────────
+	// Codes a duplicate of one the pool has are left out (ON CONFLICT).
+	CouponCodesInsert(ctx context.Context, arg CouponCodesInsertParams) ([]uuid.UUID, error)
+	// The codes messages were given (view online, link redirects): by
+	// message, or the contact's when the pool gives one per contact.
+	CouponCodesOfMessages(ctx context.Context, arg CouponCodesOfMessagesParams) ([]CouponCodesOfMessagesRow, error)
+	// Removes every code nobody got yet; a store pool's removal job then
+	// removes them at the store (CouponCodesUnstored).
+	CouponCodesRemoveFree(ctx context.Context, arg CouponCodesRemoveFreeParams) (int64, error)
+	CouponCodesStoreRemoved(ctx context.Context, ids []uuid.UUID) error
+	// Removed codes the store still has.
+	CouponCodesUnstored(ctx context.Context, arg CouponCodesUnstoredParams) ([]CouponCodesUnstoredRow, error)
+	CouponContactHasCode(ctx context.Context, arg CouponContactHasCodeParams) (bool, error)
+	// Runs of these automations whose email step waits for a discount code.
+	CouponHeldRuns(ctx context.Context, arg CouponHeldRunsParams) ([]CouponHeldRunsRow, error)
+	// ── What uses a pool ────────────────────────────────────────────────────
+	// The emails live automations send (each email step of their live
+	// version), to find the flows a pool keeps sending to.
+	CouponLiveAutomationEmails(ctx context.Context, workspaceID uuid.UUID) ([]CouponLiveAutomationEmailsRow, error)
+	CouponPoolArchive(ctx context.Context, arg CouponPoolArchiveParams) error
+	// ── Jobs ────────────────────────────────────────────────────────────────
+	CouponPoolByID(ctx context.Context, id uuid.UUID) (CouponPool, error)
+	CouponPoolClearLow(ctx context.Context, id uuid.UUID) error
+	// ── Numbers ─────────────────────────────────────────────────────────────
+	CouponPoolCounts(ctx context.Context, poolIds []uuid.UUID) ([]CouponPoolCountsRow, error)
+	CouponPoolFree(ctx context.Context, poolID uuid.UUID) (int64, error)
+	CouponPoolHasBatch(ctx context.Context, poolID uuid.UUID) (bool, error)
+	CouponPoolHasFree(ctx context.Context, poolID uuid.UUID) (bool, error)
+	CouponPoolInsert(ctx context.Context, arg CouponPoolInsertParams) (uuid.UUID, error)
+	// The low alert goes out once; the row says it went.
+	CouponPoolMarkLow(ctx context.Context, arg CouponPoolMarkLowParams) (uuid.UUID, error)
+	CouponPoolRefillChecked(ctx context.Context, arg CouponPoolRefillCheckedParams) error
+	// What orders that used the pools' codes brought in: refunds taken off,
+	// cancelled and test orders left out.
+	CouponPoolRevenue(ctx context.Context, poolIds []uuid.UUID) ([]CouponPoolRevenueRow, error)
+	// The store's discount the pool's codes belong to, once created.
+	CouponPoolSetDiscount(ctx context.Context, arg CouponPoolSetDiscountParams) error
+	CouponPoolUpdate(ctx context.Context, arg CouponPoolUpdateParams) error
+	// Discount code pools (internal/coupons, M59 G-22): pools, their codes
+	// (sealed, with a keyed hash) and the batches that upload or create them;
+	// giving a code to each message that shows one, and matching store orders.
+	// ── Pools ───────────────────────────────────────────────────────────────
+	// A workspace's pools with their store (one pool by id, or the pools a
+	// template names by slug: {{ coupons.<slug>.code }}).
+	CouponPools(ctx context.Context, arg CouponPoolsParams) ([]CouponPoolsRow, error)
+	// Every active pool with its free codes, for the hourly refill and the
+	// low alert.
+	CouponPoolsActive(ctx context.Context) ([]CouponPoolsActiveRow, error)
+	// Pools with removed codes the store still has.
+	CouponPoolsUnstored(ctx context.Context) ([]uuid.UUID, error)
+	// An order used these codes: the first matching code of the workspace for
+	// each (one already matched to this order counts once) is redeemed.
+	CouponRedeem(ctx context.Context, arg CouponRedeemParams) (int64, error)
+	// ── Stores ──────────────────────────────────────────────────────────────
+	// Who first approved a store's discount scopes (the store page's row).
+	CouponStoreAllowed(ctx context.Context, storeID string) (CouponStoreAllowedRow, error)
+	// The active pools that create their codes in a store.
+	CouponStorePools(ctx context.Context, storeID *uuid.UUID) ([]string, error)
+	// The emails of each automation's draft and live versions whose latest
+	// version mentions a pool (narrowed further in Go), with their flow.
+	CouponUsedAutomationEmails(ctx context.Context, arg CouponUsedAutomationEmailsParams) ([]CouponUsedAutomationEmailsRow, error)
+	// The campaigns a pool's page lists: status, audience size and list names.
+	CouponUsedCampaigns(ctx context.Context, arg CouponUsedCampaignsParams) ([]CouponUsedCampaignsRow, error)
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateAutomation(ctx context.Context, arg CreateAutomationParams) (Automation, error)
 	CreateAutomationEmail(ctx context.Context, arg CreateAutomationEmailParams) error

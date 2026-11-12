@@ -16660,6 +16660,9 @@
           "demo": {
             "type": "boolean"
           },
+          "discountsGranted": {
+            "type": "boolean"
+          },
           "error": {
             "enum": [
               "",
@@ -16755,6 +16758,7 @@
           "reachable",
           "granted",
           "writeGranted",
+          "discountsGranted",
           "error",
           "lists",
           "newListName",
@@ -17506,6 +17510,36 @@
         },
         "type": "object"
       },
+      "CommerceStoreDiscounts": {
+        "additionalProperties": false,
+        "properties": {
+          "allowedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "allowedBy": {
+            "type": "string"
+          },
+          "granted": {
+            "type": "boolean"
+          },
+          "pools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "supported": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "supported",
+          "granted",
+          "pools"
+        ],
+        "type": "object"
+      },
       "CommerceStoreList": {
         "additionalProperties": false,
         "properties": {
@@ -17568,6 +17602,9 @@
           },
           "consent": {
             "$ref": "#/components/schemas/CommerceConsent"
+          },
+          "discounts": {
+            "$ref": "#/components/schemas/CommerceStoreDiscounts"
           },
           "flows": {
             "items": {
@@ -17636,7 +17673,8 @@
           "canManage",
           "helpers",
           "lists",
-          "recovered"
+          "recovered",
+          "discounts"
         ],
         "type": "object"
       },
@@ -25440,6 +25478,153 @@
         ],
         "type": "object"
       },
+      "CountdownEnded": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "zeros",
+              "text"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "description": "The message shown when mode is text, up to 60 characters",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
+      "CountdownImage": {
+        "additionalProperties": false,
+        "properties": {
+          "alt": {
+            "examples": [
+              "Offer ends Fri 28 Nov at 23:59 (EST)"
+            ],
+            "type": "string"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "url": {
+            "description": "The animated GIF, drawn when the email is opened",
+            "type": "string"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "endsAt",
+          "alt",
+          "width",
+          "height"
+        ],
+        "type": "object"
+      },
+      "CountdownSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "background": {
+            "description": "#RRGGBB",
+            "examples": [
+              "#0F172A"
+            ],
+            "maxLength": 7,
+            "type": "string"
+          },
+          "digits": {
+            "description": "#RRGGBB, at least 4.5:1 on the background",
+            "examples": [
+              "#FFFFFF"
+            ],
+            "maxLength": 7,
+            "type": "string"
+          },
+          "ended": {
+            "$ref": "#/components/schemas/CountdownEnded"
+          },
+          "endsAt": {
+            "description": "The local date and time the countdown ends, YYYY-MM-DDTHH:MM",
+            "examples": [
+              "2026-11-28T23:59"
+            ],
+            "maxLength": 16,
+            "type": "string"
+          },
+          "labels": {
+            "description": "#RRGGBB",
+            "examples": [
+              "#CBD5E1"
+            ],
+            "maxLength": 7,
+            "type": "string"
+          },
+          "language": {
+            "description": "The labels' and the alt text's language: the language version being edited",
+            "enum": [
+              "en",
+              "de",
+              "es",
+              "fr",
+              "vi"
+            ],
+            "type": "string"
+          },
+          "size": {
+            "enum": [
+              "s",
+              "m",
+              "l"
+            ],
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "IANA time zone of endsAt",
+            "examples": [
+              "America/New_York"
+            ],
+            "maxLength": 64,
+            "type": "string"
+          },
+          "units": {
+            "enum": [
+              "dhms",
+              "hms",
+              "dhm"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "endsAt",
+          "timeZone",
+          "units",
+          "language",
+          "size",
+          "background",
+          "digits",
+          "labels",
+          "ended"
+        ],
+        "type": "object"
+      },
       "CountryLine": {
         "additionalProperties": false,
         "properties": {
@@ -25498,6 +25683,781 @@
           "price",
           "pendingPrice",
           "cost"
+        ],
+        "type": "object"
+      },
+      "CouponArchiveInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "description": "Archive even though live automations send its codes",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "CouponBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "automation": {
+            "type": "string"
+          },
+          "by": {
+            "description": "Who asked, by name",
+            "type": "string"
+          },
+          "created": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "failed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "upload",
+              "generate"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "pool",
+              "request",
+              "refill"
+            ],
+            "type": "string"
+          },
+          "requested": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "done",
+              "failed"
+            ],
+            "type": "string"
+          },
+          "waitingUntil": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "reason",
+          "requested",
+          "created",
+          "failed",
+          "status",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "CouponCodesResult": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "free": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invalid": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "invalidLines": {
+            "items": {
+              "$ref": "#/components/schemas/CouponInvalidLine"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "added",
+          "duplicates",
+          "invalid",
+          "invalidLines",
+          "free"
+        ],
+        "type": "object"
+      },
+      "CouponGenerateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "maximum": 50000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "type": "object"
+      },
+      "CouponInvalidLine": {
+        "additionalProperties": false,
+        "properties": {
+          "line": {
+            "description": "1 is the first line",
+            "format": "int64",
+            "type": "integer"
+          },
+          "text": {
+            "description": "The line, up to 40 characters",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "text"
+        ],
+        "type": "object"
+      },
+      "CouponPool": {
+        "additionalProperties": false,
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/CouponBatch"
+          },
+          "batches": {
+            "items": {
+              "$ref": "#/components/schemas/CouponBatch"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "Who created the pool, by name",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "firstSentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "free": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "low": {
+            "description": "Free codes are under the low mark",
+            "type": "boolean"
+          },
+          "lowAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "onePerContact": {
+            "type": "boolean"
+          },
+          "orders": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "redeemed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refill": {
+            "type": "boolean"
+          },
+          "refillCheckedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "removed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "revenueCents": {
+            "description": "Orders that used the pool's codes: refunds taken off, cancelled and test orders left out",
+            "format": "int64",
+            "type": "integer"
+          },
+          "running": {
+            "$ref": "#/components/schemas/CouponBatch"
+          },
+          "sampleUrl": {
+            "type": "string"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/CouponPoolSettings"
+          },
+          "slug": {
+            "description": "The name templates use: {{ coupons.\u003cslug\u003e.code }}",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "upload",
+              "shopify",
+              "woocommerce"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "archived"
+            ],
+            "type": "string"
+          },
+          "store": {
+            "$ref": "#/components/schemas/CouponPoolStore"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/CouponPoolTokens"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "usedIn": {
+            "items": {
+              "$ref": "#/components/schemas/CouponPoolUse"
+            },
+            "type": "array"
+          },
+          "waiting": {
+            "items": {
+              "$ref": "#/components/schemas/CouponPoolWaiting"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "removed",
+          "tokens",
+          "sampleUrl",
+          "orders",
+          "createdBy",
+          "batches",
+          "usedIn",
+          "refill",
+          "waiting",
+          "helpers",
+          "updatedAt",
+          "id",
+          "name",
+          "slug",
+          "source",
+          "status",
+          "prefix",
+          "total",
+          "free",
+          "sent",
+          "redeemed",
+          "revenueCents",
+          "currency",
+          "lowAt",
+          "low",
+          "settings",
+          "onePerContact",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "CouponPoolChange": {
+        "additionalProperties": false,
+        "properties": {
+          "lowAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "onePerContact": {
+            "type": "boolean"
+          },
+          "prefix": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/CouponPoolSettings"
+          }
+        },
+        "type": "object"
+      },
+      "CouponPoolInput": {
+        "additionalProperties": false,
+        "properties": {
+          "lowAt": {
+            "description": "Default 200",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "onePerContact": {
+            "description": "Default true",
+            "type": "boolean"
+          },
+          "prefix": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/CouponPoolSettings"
+          },
+          "slug": {
+            "description": "1–32 lowercase letters, digits or _; never changes",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "upload",
+              "shopify",
+              "woocommerce"
+            ],
+            "type": "string"
+          },
+          "storeId": {
+            "maxLength": 40,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "source"
+        ],
+        "type": "object"
+      },
+      "CouponPoolList": {
+        "additionalProperties": false,
+        "properties": {
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CouponPoolListItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "CouponPoolListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "free": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "low": {
+            "description": "Free codes are under the low mark",
+            "type": "boolean"
+          },
+          "lowAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "onePerContact": {
+            "type": "boolean"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "redeemed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "revenueCents": {
+            "description": "Orders that used the pool's codes: refunds taken off, cancelled and test orders left out",
+            "format": "int64",
+            "type": "integer"
+          },
+          "running": {
+            "$ref": "#/components/schemas/CouponBatch"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/CouponPoolSettings"
+          },
+          "slug": {
+            "description": "The name templates use: {{ coupons.\u003cslug\u003e.code }}",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "upload",
+              "shopify",
+              "woocommerce"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "archived"
+            ],
+            "type": "string"
+          },
+          "store": {
+            "$ref": "#/components/schemas/CouponPoolStore"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "source",
+          "status",
+          "prefix",
+          "total",
+          "free",
+          "sent",
+          "redeemed",
+          "revenueCents",
+          "currency",
+          "lowAt",
+          "low",
+          "settings",
+          "onePerContact",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "CouponPoolSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "applyUrl": {
+            "description": "Upload pools: the address that applies a code, with {code} where it goes",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "collectionIds": {
+            "description": "Store pools: the collections the discount applies to; none is the whole store",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "endsDays": {
+            "description": "Store pools: the discount ends this many days after the pool was created; 0 never",
+            "format": "int64",
+            "maximum": 365,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "kind": {
+            "description": "Store pools: what the discount takes off",
+            "enum": [
+              "percentage",
+              "fixed_amount",
+              "free_shipping",
+              ""
+            ],
+            "type": "string"
+          },
+          "minimumCents": {
+            "description": "Store pools: the smallest order the code works on, in cents",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "value": {
+            "description": "Percent off (1–100) for percentage, cents off for fixed_amount",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "CouponPoolStore": {
+        "additionalProperties": false,
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "shopify",
+              "woocommerce"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "platform",
+          "domain",
+          "connected"
+        ],
+        "type": "object"
+      },
+      "CouponPoolTokens": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "examples": [
+              "{{ coupons.welcome15.code }}"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "examples": [
+              "{{ coupons.welcome15.url }}"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "url"
+        ],
+        "type": "object"
+      },
+      "CouponPoolUse": {
+        "additionalProperties": false,
+        "properties": {
+          "block": {
+            "type": "boolean"
+          },
+          "emailId": {
+            "type": "string"
+          },
+          "emailName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "automation",
+              "template"
+            ],
+            "type": "string"
+          },
+          "lists": {
+            "type": "string"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "recipients",
+          "block",
+          "live"
+        ],
+        "type": "object"
+      },
+      "CouponPoolWaiting": {
+        "additionalProperties": false,
+        "properties": {
+          "emails": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "emails"
+        ],
+        "type": "object"
+      },
+      "CouponRemoveResult": {
+        "additionalProperties": false,
+        "properties": {
+          "removed": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "removed"
+        ],
+        "type": "object"
+      },
+      "CouponSource": {
+        "additionalProperties": false,
+        "properties": {
+          "can": {
+            "type": "boolean"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "shopify",
+              "woocommerce"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "not_connected",
+              "not_granted",
+              "unsupported",
+              "read_only",
+              ""
+            ],
+            "type": "string"
+          },
+          "storeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "storeId",
+          "platform",
+          "name",
+          "domain",
+          "currency",
+          "can"
+        ],
+        "type": "object"
+      },
+      "CouponSourceList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CouponSource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
         ],
         "type": "object"
       },
@@ -49684,7 +50644,8 @@
               "custom",
               "system",
               "referral",
-              "paid"
+              "paid",
+              "coupon"
             ],
             "type": "string"
           },
@@ -132251,6 +133212,766 @@
         "x-permission": "subscribers:export"
       }
     },
+    "/api/v1/workspaces/{workspace}/countdowns": {
+      "post": {
+        "description": "The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.",
+        "operationId": "create-countdown",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CountdownSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountdownImage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The image of a Countdown block's settings",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/pools": {
+      "get": {
+        "operationId": "list-coupon-pools",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponPoolList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List discount code pools with their numbers (never their codes)",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "post": {
+        "operationId": "create-coupon-pool",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponPoolInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponPool"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create a discount code pool (uploaded codes, or codes created in a store)",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "coupons:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}": {
+      "get": {
+        "operationId": "get-coupon-pool",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pool id",
+            "in": "path",
+            "name": "pool",
+            "required": true,
+            "schema": {
+              "description": "Pool id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponPool"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A discount code pool: numbers, settings, the latest batch and what uses it",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "patch": {
+        "operationId": "update-coupon-pool",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pool id",
+            "in": "path",
+            "name": "pool",
+            "required": true,
+            "schema": {
+              "description": "Pool id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponPoolChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponPool"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a pool's name, prefix, low mark, one code per contact or settings",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "coupons:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/archive": {
+      "post": {
+        "operationId": "archive-coupon-pool",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pool id",
+            "in": "path",
+            "name": "pool",
+            "required": true,
+            "schema": {
+              "description": "Pool id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponArchiveInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponPool"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Archive a pool: it gives no more codes (409 when live automations use it, unless confirmed)",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "coupons:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/codes": {
+      "post": {
+        "operationId": "upload-coupon-codes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pool id",
+            "in": "path",
+            "name": "pool",
+            "required": true,
+            "schema": {
+              "description": "Pool id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponCodesResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add codes to an upload pool from text or a CSV (counts only are logged)",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "coupons:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/codes/remove-unused": {
+      "post": {
+        "operationId": "remove-unused-coupon-codes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pool id",
+            "in": "path",
+            "name": "pool",
+            "required": true,
+            "schema": {
+              "description": "Pool id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponRemoveResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove the codes nobody got yet (in the store too)",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "coupons:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/export.csv": {
+      "get": {
+        "operationId": "export-coupon-codes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pool id",
+            "in": "path",
+            "name": "pool",
+            "required": true,
+            "schema": {
+              "description": "Pool id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The pool's codes as CSV: code, status, given and redeemed times, order (logged)",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "coupons:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/generate": {
+      "post": {
+        "operationId": "generate-coupon-codes",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Pool id",
+            "in": "path",
+            "name": "pool",
+            "required": true,
+            "schema": {
+              "description": "Pool id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponGenerateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponBatch"
+                }
+              }
+            },
+            "description": "Accepted"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create more codes in the pool's store, in the background",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "coupons:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/coupons/sources": {
+      "get": {
+        "operationId": "list-coupon-sources",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponSourceList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The connected stores a pool can create codes in, and why a store can't",
+        "tags": [
+          "Discount codes"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/delete": {
       "post": {
         "operationId": "delete-workspace",
@@ -172795,6 +174516,72 @@
         ],
         "x-access": "workspace",
         "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/stores/{id}/allow-discounts": {
+      "post": {
+        "description": "Shopify asks the merchant to approve the app again with write_discounts and read_discounts, so discount code pools can create codes in the store. The store keeps syncing meanwhile.",
+        "operationId": "allow-store-discounts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The store's id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The store's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommerceInstall"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Shopify: the approval page that allows discount codes",
+        "tags": [
+          "Stores"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/stores/{id}/app-keys": {

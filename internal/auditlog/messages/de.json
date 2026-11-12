@@ -34,6 +34,7 @@
   "category.push": "Push",
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agentur",
+  "category.coupons": "Rabattcodes",
 
   "link.open": "Öffnen",
   "link.routing": "Routing öffnen",
@@ -58,6 +59,7 @@
   "link.authentication": "Authentifizierung öffnen",
   "link.workspaces": "Arbeitsbereiche öffnen",
   "link.instance": "Instanzeinstellungen öffnen",
+  "link.couponPool": "Pool öffnen",
 
   "client.on": "{browser} unter {os}",
   "related.entry": "{action} von {name} um {at, time}",
@@ -171,6 +173,10 @@
   "what.changedSync": "{hasName, select, yes {Synchronisierungsumfang geändert: {type} {name}} other {Synchronisierungsumfang geändert: {type}}}",
   "what.startedSync": "{hasName, select, yes {Synchronisierung gestartet: {type} {name}} other {Synchronisierung gestartet: {type}}}",
   "what.registeredWebhooks": "{hasName, select, yes {Webhooks registriert: {type} {name}} other {Webhooks registriert: {type}}}",
+  "what.uploadedCodes": "{hasName, select, yes {Codes hochgeladen: {type} {name}} other {Codes hochgeladen: {type}}}",
+  "what.requestedCodes": "{hasName, select, yes {Neue Codes angefordert: {type} {name}} other {Neue Codes angefordert: {type}}}",
+  "what.removedCodes": "{hasName, select, yes {Unbenutzte Codes entfernt: {type} {name}} other {Unbenutzte Codes entfernt: {type}}}",
+  "what.exportedCodes": "{hasName, select, yes {Codes exportiert: {type} {name}} other {Codes exportiert: {type}}}",
 
   "type.access": "Zugriff",
   "type.account": "Konto",
@@ -342,5 +348,7 @@
   "type.whatsapp_settings": "WhatsApp-Einstellungen",
   "type.whatsapp_templates": "WhatsApp-Vorlagen",
   "type.wordpress": "WordPress",
-  "type.workspace": "Arbeitsbereich"
+  "type.workspace": "Arbeitsbereich",
+  "type.coupon_pool": "Rabattcode-Pool",
+  "type.countdown": "Countdown"
 }

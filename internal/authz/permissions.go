@@ -109,6 +109,10 @@ const (
 	// or agents; only the built-in Owner role holds them.
 	WorkspaceTransfer Permission = "workspace:transfer"
 	WorkspaceDelete   Permission = "workspace:delete"
+
+	// Discount code pools: create, change and archive them, upload, create,
+	// remove and export their codes (M59). Seeing them is campaigns:view.
+	CouponsManage Permission = "coupons:manage"
 )
 
 // Def describes a permission for the role editor and API docs.
@@ -236,6 +240,8 @@ var Defs = described([]Def{
 
 	{Key: WorkspaceTransfer, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
 	{Key: WorkspaceDelete, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
+
+	{Key: CouponsManage, Group: g("campaigns"), Sensitive: true, NoAgents: true, Implies: []Permission{CampaignsView}},
 })
 
 var defByKey = func() map[Permission]Def {
@@ -445,7 +451,7 @@ var BuiltinRoles = []BuiltinRole{
 		SubscribersCreate, SubscribersEdit, SubscribersImport, ListsManage, SegmentsEdit, FormsEdit, ReportsShare,
 		TransactionalEdit, TransactionalPublish, AIUse, ScoringEdit, PlacementRun, GrowEdit, GrowReview,
 		SponsorsManage, WebsiteEdit, WebsitePublish, WebsiteManage, ProductsEdit, ProductsPublish, OrdersManage,
-		SMSSend, PushSend, WhatsAppSend)...)},
+		SMSSend, PushSend, WhatsAppSend, CouponsManage)...)},
 	{Key: RoleViewer, Name: "Viewer", Description: roleAbout(RoleViewer), Permissions: NewSet(viewAll...)},
 }
 

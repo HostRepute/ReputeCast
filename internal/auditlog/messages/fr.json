@@ -34,6 +34,7 @@
   "category.push": "Push",
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agence",
+  "category.coupons": "Codes de réduction",
 
   "link.open": "Ouvrir",
   "link.routing": "Ouvrir le routage",
@@ -58,6 +59,7 @@
   "link.authentication": "Ouvrir l’authentification",
   "link.workspaces": "Ouvrir les espaces",
   "link.instance": "Ouvrir les paramètres de l’instance",
+  "link.couponPool": "Ouvrir la réserve",
 
   "client.on": "{browser} sur {os}",
   "related.entry": "{action} par {name} à {at, time}",
@@ -171,6 +173,10 @@
   "what.changedSync": "{hasName, select, yes {Modification des éléments synchronisés\u00A0: {type} {name}} other {Modification des éléments synchronisés\u00A0: {type}}}",
   "what.startedSync": "{hasName, select, yes {Lancement d’une synchronisation\u00A0: {type} {name}} other {Lancement d’une synchronisation\u00A0: {type}}}",
   "what.registeredWebhooks": "{hasName, select, yes {Enregistrement des webhooks\u00A0: {type} {name}} other {Enregistrement des webhooks\u00A0: {type}}}",
+  "what.uploadedCodes": "{hasName, select, yes {Import de codes\u00A0: {type} {name}} other {Import de codes\u00A0: {type}}}",
+  "what.requestedCodes": "{hasName, select, yes {Demande de nouveaux codes\u00A0: {type} {name}} other {Demande de nouveaux codes\u00A0: {type}}}",
+  "what.removedCodes": "{hasName, select, yes {Retrait des codes inutilisés\u00A0: {type} {name}} other {Retrait des codes inutilisés\u00A0: {type}}}",
+  "what.exportedCodes": "{hasName, select, yes {Export des codes\u00A0: {type} {name}} other {Export des codes\u00A0: {type}}}",
 
   "type.access": "accès",
   "type.account": "compte",
@@ -342,5 +348,7 @@
   "type.whatsapp_settings": "paramètres WhatsApp",
   "type.whatsapp_templates": "modèles WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "espace de travail"
+  "type.workspace": "espace de travail",
+  "type.coupon_pool": "réserve de codes de réduction",
+  "type.countdown": "compte à rebours"
 }

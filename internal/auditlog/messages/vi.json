@@ -34,6 +34,7 @@
   "category.push": "Thông báo đẩy",
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agency",
+  "category.coupons": "Mã giảm giá",
 
   "link.open": "Mở",
   "link.routing": "Mở định tuyến",
@@ -58,6 +59,7 @@
   "link.authentication": "Mở xác thực",
   "link.workspaces": "Mở không gian làm việc",
   "link.instance": "Mở cài đặt hệ thống",
+  "link.couponPool": "Mở kho mã",
 
   "client.on": "{browser} trên {os}",
   "related.entry": "{action} bởi {name} lúc {at, time}",
@@ -171,6 +173,10 @@
   "what.changedSync": "{hasName, select, yes {Đã đổi nội dung đồng bộ từ {type} {name}} other {Đã đổi nội dung đồng bộ từ {type}}}",
   "what.startedSync": "{hasName, select, yes {Đã bắt đầu đồng bộ {type} {name}} other {Đã bắt đầu đồng bộ {type}}}",
   "what.registeredWebhooks": "{hasName, select, yes {Đã đăng ký webhook của {type} {name}} other {Đã đăng ký webhook của {type}}}",
+  "what.uploadedCodes": "{hasName, select, yes {Đã tải mã lên {type} {name}} other {Đã tải mã lên {type}}}",
+  "what.requestedCodes": "{hasName, select, yes {Đã yêu cầu tạo mã mới trong {type} {name}} other {Đã yêu cầu tạo mã mới trong {type}}}",
+  "what.removedCodes": "{hasName, select, yes {Đã gỡ các mã chưa dùng của {type} {name}} other {Đã gỡ các mã chưa dùng của {type}}}",
+  "what.exportedCodes": "{hasName, select, yes {Đã xuất mã của {type} {name}} other {Đã xuất mã của {type}}}",
 
   "type.access": "quyền truy cập",
   "type.account": "tài khoản",
@@ -342,5 +348,7 @@
   "type.whatsapp_settings": "cài đặt WhatsApp",
   "type.whatsapp_templates": "mẫu WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "không gian làm việc"
+  "type.workspace": "không gian làm việc",
+  "type.coupon_pool": "kho mã giảm giá",
+  "type.countdown": "bộ đếm ngược"
 }

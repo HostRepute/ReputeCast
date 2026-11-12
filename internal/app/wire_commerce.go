@@ -23,6 +23,7 @@ import (
 
 	// The store platforms. Commerce reaches them through internal/stores
 	// only.
+	"github.com/hostrepute/reputecast/internal/stores/shopify"
 	"github.com/hostrepute/reputecast/internal/stores/shopify/shopifytest"
 	_ "github.com/hostrepute/reputecast/internal/stores/woocommerce"
 	"github.com/hostrepute/reputecast/internal/stores/woocommerce/wootest"
@@ -65,12 +66,22 @@ func commerceService(a *App) *commerce.Service {
 		cfg := a.Cfg
 		s.AllowPrivate = func() bool { return cfg.Providers.AllowPrivateNetworks }
 	}
+	// Orders mark the discount codes they used redeemed (wire_coupons.go).
+	if f := commerceRedeemed(a); f != nil {
+		s.Redeemed = f
+	}
 	v, _ := commerceServices.LoadOrStore(a, s)
 	return v.(*commerce.Service)
 }
 
 // Commerce is the stores' domain (tests set its clock and its stores).
 func (a *App) Commerce() *commerce.Service { return commerceService(a) }
+
+// commerceRedeemed matches orders' discount codes to the pools' codes;
+// set from wire_coupons.go. Nil matches nothing.
+var commerceRedeemed = func(*App) func(context.Context, *store.Queries, uuid.UUID, uuid.UUID, []string, time.Time) error {
+	return nil
+}
 
 // The demo's Shopify and WooCommerce: in process, accepting any credentials
 // (the demo's store holds a sealed token they never issued) and never
@@ -80,6 +91,8 @@ var (
 	demoShopify = sync.OnceValue(func() *shopifytest.Fake {
 		f := shopifytest.New()
 		f.Permissive = true
+		// Acme Merch allowed discount codes (the Welcome 15% pool).
+		f.Scopes = append(f.Scopes, shopify.DiscountScopes...)
 		return f
 	})
 	demoWoo = sync.OnceValue(func() *wootest.Fake {

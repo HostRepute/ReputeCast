@@ -101,8 +101,9 @@ func TestListCampaigns(t *testing.T) {
 		t.Fatalf("A/B note: %+v", oct)
 	}
 
+	// Ten drafts, Black Friday Early Access (the Countdown block, M59) among them.
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?status=drafts", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 9 {
+	if list.Total != 10 {
 		t.Fatalf("drafts: %d", list.Total)
 	}
 	// The channel chips: SMS has the two text campaigns.

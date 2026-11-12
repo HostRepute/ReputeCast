@@ -110,6 +110,21 @@ type CommerceStorePage struct {
 	Helpers     []string                `json:"helpers"`
 	Lists       []CommerceListOption    `json:"lists"`
 	Recovered   CommerceRecoveredOrders `json:"recovered"`
+	// Discounts: whether ReputeCast may create discount codes in the store
+	// (M59), who allowed it and the pools that create codes there.
+	Discounts CommerceStoreDiscounts `json:"discounts"`
+}
+
+// CommerceStoreDiscounts is the store page's "Discount codes" row.
+type CommerceStoreDiscounts struct {
+	// Supported: the platform asks for its own permission (Shopify);
+	// Granted: it was given.
+	Supported bool       `json:"supported"`
+	Granted   bool       `json:"granted"`
+	AllowedBy string     `json:"allowedBy,omitempty"`
+	AllowedAt *time.Time `json:"allowedAt,omitempty"`
+	// Pools are the active pools that create their codes in the store.
+	Pools []string `json:"pools"`
 }
 
 // CommerceNumbers are the page's tiles.
@@ -319,6 +334,9 @@ type CommerceConnectState struct {
 	InstalledAt        *time.Time `json:"installedAt,omitempty"`
 	Granted            []string   `json:"granted"`
 	WriteGranted       bool       `json:"writeGranted"`
+	// DiscountsGranted: the app may create discount codes (Shopify's
+	// write_discounts, asked for by "Allow discount codes").
+	DiscountsGranted bool `json:"discountsGranted"`
 	// Error: the last refused client secret or key.
 	Error string `json:"error" enum:",secret_refused,state_expired,not_installed"`
 	// Step 5: the lists customers can join, and the new list's name.

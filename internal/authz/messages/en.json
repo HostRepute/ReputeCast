@@ -73,6 +73,7 @@
   "action.workspace:manage": "Changing workspace settings",
   "action.workspace:transfer": "Transfer ownership",
   "action.workspace:delete": "Delete the workspace",
+  "action.coupons:manage": "Managing discount codes",
 
   "group.campaigns": {"message": "Campaigns", "note": "a group of permissions in the role editor, an overline"},
   "group.templates": "Templates",
@@ -249,6 +250,8 @@
   "perm.agency:library.about": "Add, change and remove library items and workspace templates, and copy them into clients.",
   "perm.agency:manage": "Create and delete client workspaces, and manage staff and assignments",
   "perm.agency:manage.about": "Create and delete clients, add and remove staff, and assign them to clients.",
+  "perm.coupons:manage": "Manage discount code pools and their codes",
+  "perm.coupons:manage.about": "Create, change and archive pools, and upload, create, remove or export their codes. Seeing pools needs “View campaigns”.",
 
   "role.owner.about": "Everything, including transferring ownership and deleting the workspace",
   "role.admin.about": "Everything except transferring ownership and deleting the workspace",

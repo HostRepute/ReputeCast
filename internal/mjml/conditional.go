@@ -15,6 +15,7 @@ import (
 //	rc-poll     a Poll block's settings (internal/polls)
 //	rc-omit     a block the editor shows and the email leaves out (a Sponsor
 //	            block without a booking, internal/sponsors)
+//	rc-countdown a Countdown block's settings, on its mj-image (internal/countdown)
 //
 // They are content: versioned, copied with a block, kept by language
 // versions. Before an email is compiled they come out (both compilers would
@@ -26,15 +27,16 @@ import (
 // so the compiled HTML of the whole email can be cut down to one version
 // per recipient without compiling it again (internal/visibility.Apply).
 
-// AttrVisible, AttrName, AttrPoll and AttrOmit are ReputeCast's own attributes;
-// AttrShowOn is a block's "Show on" (the publication website, design
-// expansion phase 7): "email", "web", or absent for both.
+// AttrVisible, AttrName, AttrPoll, AttrOmit and AttrCountdown are ReputeCast's
+// own attributes; AttrShowOn is a block's "Show on" (the publication website,
+// design expansion phase 7): "email", "web", or absent for both.
 const (
-	AttrVisible = "rc-visible"
-	AttrName    = "rc-name"
-	AttrPoll    = "rc-poll"
-	AttrOmit    = "rc-omit"
-	AttrShowOn  = "rc-show-on"
+	AttrVisible   = "rc-visible"
+	AttrName      = "rc-name"
+	AttrPoll      = "rc-poll"
+	AttrOmit      = "rc-omit"
+	AttrShowOn    = "rc-show-on"
+	AttrCountdown = "rc-countdown"
 	// ShowOnWeb is a Web only block: it isn't part of the email.
 	ShowOnWeb = "web"
 )

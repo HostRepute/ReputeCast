@@ -7,6 +7,7 @@ func TestBuilder(t *testing.T) {
 	cases := map[string]string{
 		b.Open("tok"):                           "https://reputecast.acme.io/t/o/tok",
 		b.Click("tok"):                          "https://reputecast.acme.io/t/c/tok",
+		b.Countdown("tok"):                      "https://reputecast.acme.io/t/cd/tok.gif",
 		b.Unsubscribe("acme-newsletter", "tok"): "https://reputecast.acme.io/p/acme-newsletter/unsubscribe/tok",
 		b.Preferences("acme-newsletter", "tok"): "https://reputecast.acme.io/p/acme-newsletter/preferences/tok",
 		b.Confirm("acme-newsletter", "tok"):     "https://reputecast.acme.io/p/acme-newsletter/confirm/tok",

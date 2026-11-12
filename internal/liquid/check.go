@@ -39,8 +39,9 @@ var (
 // flagged even when they have a fallback, since {{ frist_name | default:
 // "there" }} greets everyone with "there". fields are the fields that exist
 // (Catalog keys); contact.*, the system links, loop and assigned variables
-// and the per-recipient poll and survey links are always known. With no
-// fields, only the syntax is checked.
+// and the per-recipient poll and survey links are always known, and so are
+// discount codes (coupons.*: their pools are checked by internal/coupons).
+// With no fields, only the syntax is checked.
 func Check(src string, fields []string) []Issue {
 	out := []Issue{}
 	if !strings.Contains(src, "{{") && !strings.Contains(src, "{%") {
@@ -68,7 +69,7 @@ func Check(src string, fields []string) []Issue {
 	}
 	for _, u := range Uses(src) {
 		root := strings.SplitN(u.Key, ".", 2)[0]
-		if known[u.Key] || known[root] || strings.HasPrefix(root, "rc_poll_") || strings.HasPrefix(root, "rc_survey_") {
+		if known[u.Key] || known[root] || strings.HasPrefix(root, "rc_poll_") || strings.HasPrefix(root, "rc_survey_") || strings.HasPrefix(u.Key, "coupons.") {
 			continue
 		}
 		out = append(out, Issue{Kind: IssueUnknownField, Field: u.Key, HasFallback: u.HasFallback, Fallback: u.Fallback})

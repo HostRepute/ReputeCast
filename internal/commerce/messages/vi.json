@@ -37,5 +37,8 @@
   "list.description": "Khách hàng của {store} đã đồng ý nhận tiếp thị",
   "check.removedTitle": "{product} không còn trong {store}",
   "check.removedTag": "Không còn trong cửa hàng",
-  "check.removedDetail": "Đã bị xóa trên {platform} lúc {when}. Các đợt gửi sẽ bỏ qua sản phẩm này. Hãy gỡ khối này hoặc chọn sản phẩm khác."
+  "check.removedDetail": "Đã bị xóa trên {platform} lúc {when}. Các đợt gửi sẽ bỏ qua sản phẩm này. Hãy gỡ khối này hoặc chọn sản phẩm khác.",
+  "discounts.notGranted": "{name} chưa cho phép tạo mã giảm giá. Hãy mở trang cửa hàng và chọn Cho phép mã giảm giá.",
+  "discounts.readOnly": "Khóa của cửa hàng không tạo được phiếu giảm giá. Hãy dùng khóa có quyền Đọc/Ghi.",
+  "discounts.unsupported": "{platform} không tạo được mã giảm giá từ ReputeCast. Hãy tải mã lên thay vào đó."
 }

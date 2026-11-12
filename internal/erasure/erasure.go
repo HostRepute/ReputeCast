@@ -110,10 +110,14 @@ type Refusal struct {
 // $2 the workspace id, $3 the contact's address (lower-cased) and $4 the
 // phone number. Needs, when set, is the permission a section also needs
 // (paid membership needs earn:view); without it the section says so.
+// Sealed names columns holding a value sealed with the instance's secrets
+// (a discount code), each with the column that holds its associated data:
+// the export opens them and leaves the associated data out.
 type Export struct {
 	Section string
 	SQL     string
 	Needs   authz.Permission
+	Sealed  map[string]string
 }
 
 // Source is one package's personal data about contacts.

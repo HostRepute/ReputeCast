@@ -37,5 +37,8 @@
   "list.description": { "message": "Customers of {store} who accepted marketing", "note": "the description of the list a store's customers join; readers may see it on the public pages" },
   "check.removedTitle": { "message": "{product} is no longer in {store}", "note": "a composer check on a product block" },
   "check.removedTag": "No longer in the store",
-  "check.removedDetail": { "message": "Deleted in {platform} on {when}. Sends leave it out. Remove it or pick another product.", "note": "when: 14 Oct, 09:05" }
+  "check.removedDetail": { "message": "Deleted in {platform} on {when}. Sends leave it out. Remove it or pick another product.", "note": "when: 14 Oct, 09:05" },
+  "discounts.notGranted": "{name} hasn't allowed discount codes yet. Open the store's page and choose Allow discount codes.",
+  "discounts.readOnly": "The store's key can't create coupons. Use a Read/Write key.",
+  "discounts.unsupported": "{platform} can't create discount codes from ReputeCast. Upload codes instead."
 }

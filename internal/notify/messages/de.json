@@ -50,6 +50,7 @@
   "short.store_problem": "Shop-Probleme",
   "short.push_worker_missing": "fehlende Push-Service-Worker",
   "short.whatsapp_attention": "WhatsApp-Vorlagen und -Qualität",
+  "short.coupon_codes_low": "knappe Rabattcodes",
 
   "event.approval_requested": "Freigabe angefordert",
   "event.approval_decided": "Freigabe erteilt, abgelehnt oder Änderungen angefordert",
@@ -98,6 +99,7 @@
   "event.store_problem": "Shop getrennt oder Webhooks fehlen",
   "event.push_worker_missing": "Push-Service-Worker fehlt",
   "event.whatsapp_attention": "WhatsApp-Vorlage abgelehnt oder Qualität gesunken",
+  "event.coupon_codes_low": "Rabattcodes werden knapp",
 
   "audience.approval_requested": "Nur für freigebende Personen",
   "audience.approval_decided": "Nur für den Autor",
@@ -146,6 +148,7 @@
   "audience.store_problem": "Alle, die Integrationen verwalten dürfen",
   "audience.push_worker_missing": "Alle, die Versandanbieter ansehen dürfen",
   "audience.whatsapp_attention": "Alle, die Versandanbieter ansehen dürfen",
+  "audience.coupon_codes_low": "Alle, die Rabattcodes verwalten dürfen",
 
   "category.approvals": "Freigaben",
   "category.sending": "Versand",

@@ -37,5 +37,8 @@
   "list.description": "Kunden von {store}, die Marketing zugestimmt haben",
   "check.removedTitle": "{product} ist nicht mehr in {store}",
   "check.removedTag": "Nicht mehr im Shop",
-  "check.removedDetail": "Am {when} in {platform} gelöscht. Beim Versand wird es weggelassen. Entfernen Sie es oder wählen Sie ein anderes Produkt."
+  "check.removedDetail": "Am {when} in {platform} gelöscht. Beim Versand wird es weggelassen. Entfernen Sie es oder wählen Sie ein anderes Produkt.",
+  "discounts.notGranted": "{name} hat Rabattcodes noch nicht erlaubt. Öffnen Sie die Seite des Shops und wählen Sie „Rabattcodes erlauben“.",
+  "discounts.readOnly": "Der Schlüssel des Shops kann keine Gutscheine anlegen. Verwenden Sie einen Schlüssel mit Lese-/Schreibzugriff.",
+  "discounts.unsupported": "{platform} kann keine Rabattcodes aus ReputeCast anlegen. Laden Sie stattdessen Codes hoch."
 }

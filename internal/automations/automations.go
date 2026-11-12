@@ -80,6 +80,31 @@ type Service struct {
 	// publish dialog (a countdown that ends while the flow still sends,
 	// a discount code pool running low), in order; none adds nothing.
 	EmailChecks []EmailPublishChecker
+	// EmailHolds say why an email step can't send to a contact yet (a
+	// discount code pool with no code left); none holds nothing.
+	EmailHolds []EmailHold
+}
+
+// EmailHold says why an email (its version; 0 is the latest) can't go to a
+// contact yet: "" when it can, else the reason ("no_codes"). The run waits
+// and asks again every EmailHoldRecheck, and skips the email with the
+// reason once it has waited EmailHoldMax.
+type EmailHold func(ctx context.Context, wsID, emailID uuid.UUID, version int, contactID uuid.UUID) (string, error)
+
+// How long an email step waits for a hold to lift, and how often it asks.
+const (
+	EmailHoldRecheck = 15 * time.Minute
+	EmailHoldMax     = 24 * time.Hour
+)
+
+// emailHold is the first reason an email step can't send to a contact yet.
+func (s *Service) emailHold(ctx context.Context, wsID, emailID uuid.UUID, version int, contactID uuid.UUID) (string, error) {
+	for _, h := range s.EmailHolds {
+		if why, err := h(ctx, wsID, emailID, version, contactID); err != nil || why != "" {
+			return why, err
+		}
+	}
+	return "", nil
 }
 
 // EmailPublishChecker gives publish badges about a flow's emails (each
