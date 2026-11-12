@@ -16,12 +16,20 @@ import (
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/inbound"
+	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/providers/smtp/bouncebox"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
 const wsPath = "/workspaces/acme-newsletter"
+
+// The simulator is a test adapter: the app's build doesn't register it.
+func init() {
+	if _, ok := providers.Lookup(simulator.Adapter); !ok {
+		providers.Register(simulator.Descriptor())
+	}
+}
 
 // fixture is the demo workspace receiving through a simulator route on
 // in.news.acme.io (a subdomain of its verified news.acme.io).
