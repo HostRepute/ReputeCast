@@ -29,11 +29,15 @@ func (w *sweepWorker) Work(ctx context.Context, _ *river.Job[SweepArgs]) error {
 	return w.S.Sweep(ctx)
 }
 
-// Sweep drops uploads older than a day that never finished, and marks
-// checkouts older than a day expired (Stripe's sessions last 24 hours).
+// Sweep drops uploads that got nothing for a day and never finished, and
+// marks checkouts older than a day expired (Stripe's sessions last 24
+// hours).
 func (s *Service) Sweep(ctx context.Context) error {
 	day := s.now().Add(-24 * time.Hour)
-	s.Files.SweepUploads(day)
+	if err := s.Files.SweepUploads(ctx, day); err != nil {
+		// The next sweep, in an hour, tries again.
+		s.log().WarnContext(ctx, "products: sweeping unfinished uploads", "err", err)
+	}
 	return s.Q.ProductCheckoutsExpire(ctx, day)
 }
 

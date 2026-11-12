@@ -1,0 +1,46 @@
+{{- if eq .Values.mode "single" }}
+{{- include "reputecast.validate" . }}
+{{- $fullname := include "reputecast.fullname" . }}
+{{- $p := .Values.persistence }}
+{{- $data := dict "emptyDir" (dict) }}
+{{- if and $p.enabled $p.existingClaim }}
+{{- $data = dict "persistentVolumeClaim" (dict "claimName" $p.existingClaim) }}
+{{- else if $p.enabled }}
+{{- $data = dict }}
+{{- end }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+spec:
+  # One pod runs every role; the volume holds the uploaded files.
+  replicas: 1
+  serviceName: {{ $fullname }}-headless
+  selector:
+    matchLabels:
+      {{- include "reputecast.componentSelector" (dict "root" . "component" "app") | nindent 6 }}
+  template:
+    {{- include "reputecast.podTemplate" (dict "root" . "component" "app" "args" (list "serve") "probePort" "http" "web" true "data" $data) | nindent 4 }}
+  {{- if and $p.enabled (not $p.existingClaim) }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "reputecast.selectorLabels" . | nindent 10 }}
+        {{- with $p.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          {{- toYaml $p.accessModes | nindent 10 }}
+        {{- with $p.storageClass }}
+        storageClassName: {{ if eq . "-" }}""{{ else }}{{ . }}{{ end }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $p.size }}
+  {{- end }}
+{{- end }}

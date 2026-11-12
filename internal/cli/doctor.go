@@ -1,21 +1,25 @@
 package cli
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 
 	"github.com/hostrepute/reputecast/internal/app"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/geoip"
@@ -25,8 +29,8 @@ import (
 
 // doctor checks what a restore or a move to another host can get wrong
 // (review 2026-11 OP-4): the database and its schema, the secret key
-// against the values it sealed, the files folder and the role SQL
-// segments run as, which pg_dump doesn't carry.
+// against the values it sealed, the file storage (the files folder or the
+// bucket) and the role SQL segments run as, which pg_dump doesn't carry.
 
 type checkLevel int
 
@@ -45,10 +49,11 @@ type check struct {
 func newDoctorCmd(o *rootOpts) *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
-		Short: "Check the database, schema, secret key, files folder and roles (after a restore or a move)",
+		Short: "Check the database, schema, secret key, file storage and roles (after a restore or a move)",
 		Long: "Check what a restore or a move to another host can get wrong: the database and its schema,\n" +
-			"whether the secret key opens the values it sealed, the files folder, the GeoIP database, and the role\n" +
-			"SQL segments run as (pg_dump doesn't carry roles). Exits 1 when a check fails. See docs/deploy/backup-restore.md.",
+			"whether the secret key opens the values it sealed, the file storage (the files folder, or the bucket:\n" +
+			"it must answer and take a test object), the GeoIP database, and the role SQL segments run as\n" +
+			"(pg_dump doesn't carry roles). Exits 1 when a check fails. See docs/deploy/backup-restore.md.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, log, err := o.load(cmd)
@@ -90,7 +95,7 @@ func runDoctor(ctx context.Context, cfg *config.Config, openBox func(*config.Con
 	pool, err := db.Open(ctx, cfg.Database.URL, 2)
 	if err != nil {
 		add("Database", checkFail, "can't connect: %v", err)
-		return append(out, filesCheck(cfg), geoipCheck(cfg))
+		return append(out, filesCheck(ctx, cfg), geoipCheck(cfg))
 	}
 	defer pool.Close()
 	var num int
@@ -116,7 +121,7 @@ func runDoctor(ctx context.Context, cfg *config.Config, openBox func(*config.Con
 	}
 
 	out = append(out, keyChecks(ctx, cfg, pool, openBox)...)
-	out = append(out, filesCheck(cfg), geoipCheck(cfg))
+	out = append(out, filesCheck(ctx, cfg), geoipCheck(cfg))
 	out = append(out, segmentsRoleCheck(ctx, pool))
 	if u, err := url.Parse(cfg.HTTP.PublicURL); err != nil || u.Host == "" {
 		add("Public URL", checkFail, "http.public_url isn't a URL: %q", cfg.HTTP.PublicURL)
@@ -173,35 +178,91 @@ func keyChecks(ctx context.Context, cfg *config.Config, pool *pgxpool.Pool, open
 	return out
 }
 
-// filesCheck checks the files folder exists, can be written and how much
-// it holds.
-func filesCheck(cfg *config.Config) check {
-	dir := cfg.FilesDir()
-	fi, err := os.Stat(dir)
-	if errors.Is(err, fs.ErrNotExist) {
-		return check{"Files folder", checkWarn, dir + " doesn't exist yet: it is created with the first upload. Restore it with the database when you have one."}
-	}
-	if err != nil || !fi.IsDir() {
-		return check{"Files folder", checkFail, fmt.Sprintf("%s isn't a folder: %v", dir, err)}
-	}
-	f, err := os.CreateTemp(dir, ".doctor-*")
+// filesCheck checks the file storage: the files folder exists and can be
+// written, or the bucket answers and takes and lets go of a test object
+// (.doctor/<random>); and what it holds.
+func filesCheck(ctx context.Context, cfg *config.Config) check {
+	const name = "File storage"
+	st, err := blobstore.Open(ctx, cfg)
 	if err != nil {
-		return check{"Files folder", checkFail, fmt.Sprintf("%s can't be written: %v", dir, err)}
+		return check{name, checkFail, err.Error()}
 	}
-	_ = f.Close()
-	_ = os.Remove(f.Name())
-	var size int64
-	var files int
-	_ = filepath.WalkDir(dir, func(_ string, d fs.DirEntry, err error) error {
-		if err == nil && !d.IsDir() {
-			if info, err := d.Info(); err == nil {
-				size += info.Size()
-				files++
-			}
+	switch s := st.(type) {
+	case blobstore.Local:
+		dir := s.Dir
+		fi, err := os.Stat(dir)
+		if errors.Is(err, fs.ErrNotExist) {
+			return check{name, checkWarn, "local folder " + dir + " doesn't exist yet: it is created with the first upload. Restore it with the database when you have one."}
+		}
+		if err != nil || !fi.IsDir() {
+			return check{name, checkFail, fmt.Sprintf("local folder %s isn't a folder: %v", dir, err)}
+		}
+		f, err := os.CreateTemp(dir, ".doctor-*")
+		if err != nil {
+			return check{name, checkFail, fmt.Sprintf("local folder %s can't be written: %v", dir, err)}
+		}
+		_ = f.Close()
+		_ = os.Remove(f.Name())
+		files, size, partial := storedFiles(ctx, st)
+		return check{name, checkOK, fmt.Sprintf("local folder %s: %s files, %s", dir, files, humanBytes(size)) + partial}
+	case *blobstore.S3:
+		where := "s3 bucket " + s.Bucket()
+		if cfg.Storage.S3.Endpoint != "" {
+			where += " at " + cfg.Storage.S3.Endpoint
+		}
+		if err := s.Check(ctx); err != nil {
+			return check{name, checkFail, fmt.Sprintf("%s: %v", where, err)}
+		}
+		if err := storageProbe(ctx, s); err != nil {
+			return check{name, checkFail, fmt.Sprintf("%s answers but %v: the credentials need s3:PutObject, s3:GetObject, s3:DeleteObject and s3:ListBucket", where, err)}
+		}
+		files, size, partial := storedFiles(ctx, st)
+		return check{name, checkOK, fmt.Sprintf("%s: %s objects, %s; a test object was written and deleted", where, files, humanBytes(size)) + partial}
+	}
+	return check{name, checkFail, fmt.Sprintf("unknown storage %T", st)}
+}
+
+// storageProbe writes, reads and deletes a test object.
+func storageProbe(ctx context.Context, s blobstore.Store) error {
+	var b [8]byte
+	_, _ = rand.Read(b[:])
+	key := ".doctor/" + hex.EncodeToString(b[:])
+	body := []byte("reputecast doctor " + time.Now().UTC().Format(time.RFC3339))
+	if err := s.Put(ctx, key, bytes.NewReader(body), int64(len(body)), "text/plain"); err != nil {
+		return fmt.Errorf("a test object can't be written: %w", err)
+	}
+	if info, err := s.Stat(ctx, key); err != nil || info.Size != int64(len(body)) {
+		_ = s.Delete(ctx, key)
+		return fmt.Errorf("a test object written can't be read back: %w", err)
+	}
+	if err := s.Delete(ctx, key); err != nil {
+		return fmt.Errorf("a test object can't be deleted (%s is left): %w", key, err)
+	}
+	return nil
+}
+
+// storedFiles counts what the storage holds, for 10 seconds or 200,000
+// files at most ("at least" then).
+func storedFiles(ctx context.Context, st blobstore.Store) (files string, size int64, partial string) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	stop := errors.New("enough")
+	var n int64
+	err := st.List(ctx, "", func(_ string, info blobstore.Info) error {
+		n++
+		size += info.Size
+		if n >= 200_000 {
+			return stop
 		}
 		return nil
 	})
-	return check{"Files folder", checkOK, fmt.Sprintf("%s: %d files, %s", dir, files, humanBytes(size))}
+	switch {
+	case errors.Is(err, stop), errors.Is(err, context.DeadlineExceeded):
+		return "at least " + strconv.FormatInt(n, 10), size, " (counting stopped early)"
+	case err != nil:
+		return strconv.FormatInt(n, 10), size, fmt.Sprintf(" (counting stopped: %v)", err)
+	}
+	return strconv.FormatInt(n, 10), size, ""
 }
 
 // geoipCheck opens the GeoIP database the way serve does, but at once.

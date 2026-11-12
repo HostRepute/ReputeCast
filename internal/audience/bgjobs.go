@@ -1,14 +1,15 @@
 package audience
 
 import (
-	"bufio"
+	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/csvexport"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
@@ -30,7 +32,9 @@ import (
 // 2026-11 AU-4): an export of everything a filter matches, and a bulk
 // "Resend opt-in". The job walks the contacts by id in batches, so a
 // million rows take constant memory, records how far it got, and shows in
-// the jobs tray. An export's file is kept for exportDays.
+// the jobs tray. An export's file is kept for exportDays, in the file
+// storage (the files folder or a bucket: object storage can't append, so
+// each batch is a part object of its own, joined into the file at the end).
 
 // Job kinds.
 const (
@@ -188,26 +192,25 @@ func (s *Service) OpenExport(ctx context.Context, ws *store.Workspace, id uuid.U
 	if me := actorID(ctx); row.Kind != JobExport || row.FileKey == "" || me == nil || row.CreatedBy == nil || *me != *row.CreatedBy {
 		return nil, 0, api.NotFound("Export")
 	}
-	f, err := os.Open(s.jobPath(row.FileKey))
+	info, err := s.Blobs.Stat(ctx, row.FileKey)
 	if err != nil {
 		return nil, 0, api.NotFound("Export")
 	}
-	st, err := f.Stat()
+	f, err := s.Blobs.Open(ctx, row.FileKey)
 	if err != nil {
-		_ = f.Close()
-		return nil, 0, err
+		return nil, 0, api.NotFound("Export")
 	}
 	if err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "contacts.export_downloaded", TargetType: "audience_job", TargetID: id.String(),
 		Metadata: map[string]any{"rows": row.Done}}); err != nil {
 		_ = f.Close()
 		return nil, 0, err
 	}
-	return f, st.Size(), nil
+	return f, info.Size, nil
 }
 
-func (s *Service) jobPath(key string) string {
-	return filepath.Join(s.FilesDir, filepath.FromSlash(key))
-}
+// exportParts is where an export's batches are kept until they are
+// joined: <file>.parts/<contacts before the batch, 12 digits>.
+func exportParts(key string) string { return key + ".parts/" }
 
 // AudienceJobArgs runs one audience job.
 type AudienceJobArgs struct {
@@ -271,6 +274,10 @@ func (s *Service) RunJob(ctx context.Context, id uuid.UUID) error {
 	if err != nil && ctx.Err() == nil {
 		b, _ := json.Marshal(res)
 		_ = s.Q.AudienceJobFinished(ctx, store.AudienceJobFinishedParams{ID: id, Status: "failed", Done: done, Result: b, Error: clipErr(err), At: s.now()})
+		if row.Kind == JobExport {
+			// Nobody downloads a failed export: its rows don't stay.
+			s.dropExport(ctx, exportKey(ws.ID, row.ID), true)
+		}
 		return nil
 	}
 	return err
@@ -321,43 +328,34 @@ func (s *Service) batches(ctx context.Context, ws *store.Workspace, row store.Au
 	}
 }
 
-// runExport writes the contacts as the CSV export does, a batch at a time,
-// appending to the job's file.
+// runExport writes the contacts as the CSV export does, a batch at a time.
+// Each batch is a part object named by the contacts done before it, so a
+// batch run again after a failure replaces its part rather than adding
+// its rows twice; once the walk ends, the parts are joined in order into
+// the export's file.
 func (s *Service) runExport(ctx context.Context, ws *store.Workspace, row store.AudienceJob, sel Selection, res *AudienceJobResult) (int64, error) {
-	key := row.FileKey
-	if key == "" {
-		key = fmt.Sprintf("exports/%s/%s.csv", ws.ID, row.ID)
-	}
-	path := s.jobPath(key)
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return row.Done, err
-	}
+	key := exportKey(ws.ID, row.ID)
 	fields, err := s.Q.ListCustomFields(ctx, ws.ID)
 	if err != nil {
 		return row.Done, err
 	}
-	flags := os.O_CREATE | os.O_WRONLY | os.O_APPEND
-	if row.AfterID == nil {
-		flags = os.O_CREATE | os.O_WRONLY | os.O_TRUNC
-	}
-	f, err := os.OpenFile(filepath.Clean(path), flags, 0o600)
-	if err != nil {
-		return row.Done, err
-	}
-	defer func() { _ = f.Close() }()
-	buf := bufio.NewWriterSize(f, 64<<10)
-	w := csvexport.NewWriter(buf)
-	if row.AfterID == nil {
-		_ = w.Write(exportHeader(fields))
-	}
 	done := row.Done
+	var buf bytes.Buffer
 	err = s.batches(ctx, ws, row, sel, func(ids []uuid.UUID) error {
+		buf.Reset()
+		w := csvexport.NewWriter(&buf)
+		if done == 0 {
+			_ = w.Write(exportHeader(fields))
+		}
 		n, err := s.writeExportRows(ctx, w, fields, ids)
 		if err != nil {
 			return err
 		}
 		w.Flush()
-		if err := buf.Flush(); err != nil {
+		if err := w.Error(); err != nil {
+			return err
+		}
+		if err := s.Blobs.Put(ctx, exportParts(key)+partName(done), bytes.NewReader(buf.Bytes()), int64(buf.Len()), "text/csv; charset=utf-8"); err != nil {
 			return err
 		}
 		done += int64(len(ids))
@@ -369,13 +367,13 @@ func (s *Service) runExport(ctx context.Context, ws *store.Workspace, row store.
 	if err != nil {
 		return done, err
 	}
-	if err := f.Sync(); err != nil {
+	if err := s.joinExport(ctx, key, done); err != nil {
 		return done, err
 	}
 	now := s.now()
 	expires := now.AddDate(0, 0, exportDays)
 	b, _ := json.Marshal(res)
-	return done, pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
+	err = pgx.BeginFunc(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.AudienceJobFinished(ctx, store.AudienceJobFinishedParams{ID: row.ID, Status: "done", Done: done, Result: b, At: now, ExpiresAt: &expires}); err != nil {
 			return err
@@ -383,6 +381,79 @@ func (s *Service) runExport(ctx context.Context, ws *store.Workspace, row store.
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "contacts.export", TargetType: "contact", Actor: jobAuditActor(row),
 			Metadata: map[string]any{"rows": res.Rows, "selection": selectionMeta(sel), "job": row.ID.String()}})
 	})
+	if err != nil {
+		return done, err
+	}
+	// Joined: the parts go (the sweep takes any left), and an export of
+	// nothing keeps no file.
+	s.dropExport(ctx, key, done == 0)
+	return done, nil
+}
+
+// exportKey is an export's file.
+func exportKey(ws, job uuid.UUID) string { return fmt.Sprintf("exports/%s/%s.csv", ws, job) }
+
+// partName names the part of the batch that begins after done contacts.
+func partName(done int64) string { return fmt.Sprintf("%012d", done) }
+
+// joinExport writes an export's file from its parts, in order: those of
+// the done contacts (a part written past them, by a batch whose progress
+// wasn't recorded, is left out). An export of nothing has no file.
+func (s *Service) joinExport(ctx context.Context, key string, done int64) error {
+	if done == 0 {
+		return nil
+	}
+	var parts []blobstore.Part
+	prefix := exportParts(key)
+	if err := s.Blobs.List(ctx, prefix, func(k string, info blobstore.Info) error {
+		if from, err := strconv.ParseInt(strings.TrimPrefix(k, prefix), 10, 64); err == nil && from < done {
+			parts = append(parts, blobstore.Part{Key: k, Size: info.Size})
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	// Fixed-width names sort as their numbers.
+	slices.SortFunc(parts, func(a, b blobstore.Part) int { return cmp.Compare(a.Key, b.Key) })
+	if first := prefix + partName(0); len(parts) == 0 || parts[0].Key != first {
+		// Begun by a release that appended to the file: what that file
+		// holds is the export's start, its first part from now on.
+		info, err := s.Blobs.Stat(ctx, key)
+		if err != nil {
+			return fmt.Errorf("audience: the export's first rows are missing: %w", err)
+		}
+		start := blobstore.Join(ctx, s.Blobs, []blobstore.Part{{Key: key, Size: info.Size}})
+		err = s.Blobs.Put(ctx, first, start, info.Size, "text/csv; charset=utf-8")
+		_ = start.Close()
+		if err != nil {
+			return err
+		}
+		parts = append([]blobstore.Part{{Key: first, Size: info.Size}}, parts...)
+	}
+	var size int64
+	for _, p := range parts {
+		size += p.Size
+	}
+	f := blobstore.Join(ctx, s.Blobs, parts)
+	defer func() { _ = f.Close() }()
+	return s.Blobs.Put(ctx, key, f, size, "text/csv; charset=utf-8")
+}
+
+// dropExport deletes an export's parts, and its file too when asked, even
+// once the job's context has ended.
+func (s *Service) dropExport(ctx context.Context, key string, file bool) {
+	ctx = context.WithoutCancel(ctx)
+	var keys []string
+	_ = s.Blobs.List(ctx, exportParts(key), func(k string, _ blobstore.Info) error {
+		keys = append(keys, k)
+		return nil
+	})
+	if file {
+		keys = append(keys, key)
+	}
+	for _, k := range keys {
+		_ = s.Blobs.Delete(ctx, k)
+	}
 }
 
 // jobAuditActor is the job's starter in the audit log.
@@ -511,15 +582,25 @@ func (s *Service) runResend(ctx context.Context, ws *store.Workspace, row store.
 	})
 }
 
-// SweepJobFiles removes export files past their date.
+// SweepJobFiles removes export files past their date, with any parts a
+// finished export left.
 func (s *Service) SweepJobFiles(ctx context.Context) error {
 	rows, err := s.Q.AudienceJobsExpired(ctx, s.now())
 	if err != nil {
 		return err
 	}
 	for _, r := range rows {
-		if err := os.Remove(s.jobPath(r.FileKey)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		var keys []string
+		if err := s.Blobs.List(ctx, exportParts(r.FileKey), func(k string, _ blobstore.Info) error {
+			keys = append(keys, k)
+			return nil
+		}); err != nil {
 			return err
+		}
+		for _, k := range append(keys, r.FileKey) {
+			if err := s.Blobs.Delete(ctx, k); err != nil {
+				return err
+			}
 		}
 		if err := s.Q.AudienceJobFileGone(ctx, r.ID); err != nil {
 			return err

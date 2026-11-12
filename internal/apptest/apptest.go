@@ -14,7 +14,6 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,6 +26,8 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/blobstore"
+	"github.com/hostrepute/reputecast/internal/blobstore/blobstoretest"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/demo"
@@ -144,8 +145,13 @@ func (e *Env) start(pool *pgxpool.Pool) {
 	cfg.Providers.AllowPrivateNetworks = true
 	// Packages test in parallel against one server: keep each app's pool small.
 	cfg.Database.MaxConns = 6
-	// Uploaded files (digital products, lead magnets) go to the test's own folder.
+	// Uploaded files (digital products, lead magnets, exports) go to the
+	// test's own folder, or, with REPUTECAST_S3_TEST_ENDPOINT set, to the
+	// test bucket under a prefix of the test's own (package blobstoretest).
 	cfg.Files.Dir = t.TempDir()
+	if s3, ok := blobstoretest.S3Config(t); ok {
+		cfg.Storage = config.StorageConfig{Backend: config.StorageS3, S3: s3}
+	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	if testing.Verbose() {
 		log = slog.New(slog.NewTextHandler(&testWriter{t}, &slog.HandlerOptions{Level: slog.LevelWarn}))
@@ -347,7 +353,8 @@ func (e *Env) SeedDemo() {
 	}
 	name, files, err := demoSample.template(ctx, key, acmeZones, func(pool *pgxpool.Pool, dir string) error {
 		cfg := *e.App.Cfg
-		cfg.Files.Dir = dir
+		// The sample's files go to its folder, which every clone copies.
+		cfg.Files.Dir, cfg.Storage = dir, config.StorageConfig{Backend: config.StorageLocal}
 		_, err := demo.Seed(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
 		return err
 	})
@@ -360,9 +367,19 @@ func (e *Env) SeedDemo() {
 	e.start(testdb.NewFrom(e.T, name))
 	// Cleanups run last first: this app stops before its clone is dropped.
 	e.T.Cleanup(e.stop)
-	// The sample files, in this app's own folder.
-	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(files)); err != nil {
-		e.T.Fatalf("demo files: %v", err)
+	// The sample files, in this app's own storage.
+	e.copyFiles(files)
+}
+
+// copyFiles puts a seeded sample's files (its folder) into the app's file
+// storage.
+func (e *Env) copyFiles(dir string) {
+	e.T.Helper()
+	var failed []string
+	if _, err := blobstore.Copy(context.Background(), e.App.Blobs, blobstore.Local{Dir: dir}, blobstore.CopyOptions{Failed: func(key string, err error) {
+		failed = append(failed, key+": "+err.Error())
+	}, Workers: 1}); err != nil || len(failed) > 0 {
+		e.T.Fatalf("sample files: %v %v", err, failed)
 	}
 }
 
@@ -399,7 +416,7 @@ func (e *Env) SeedDemoAt(at time.Time) {
 	midMonthMu.Unlock()
 	name, files, err := smp.template(ctx, key, acmeZones, func(pool *pgxpool.Pool, dir string) error {
 		cfg := *e.App.Cfg
-		cfg.Files.Dir = dir
+		cfg.Files.Dir, cfg.Storage = dir, config.StorageConfig{Backend: config.StorageLocal}
 		_, err := demo.SeedAt(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), at)
 		return err
 	})
@@ -409,9 +426,7 @@ func (e *Env) SeedDemoAt(at time.Time) {
 	e.stop()
 	e.start(testdb.NewFrom(e.T, name))
 	e.T.Cleanup(e.stop)
-	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(files)); err != nil {
-		e.T.Fatalf("demo files: %v", err)
-	}
+	e.copyFiles(files)
 	started := time.Now()
 	e.App.Now = func() time.Time { return at.Add(time.Since(started)) }
 }
@@ -423,7 +438,7 @@ func (e *Env) SeedNorthwind() {
 	ctx := context.Background()
 	name, files, err := northwindSample.template(ctx, "northwind", northwindZones, func(pool *pgxpool.Pool, dir string) error {
 		cfg := *e.App.Cfg
-		cfg.Files.Dir = dir
+		cfg.Files.Dir, cfg.Storage = dir, config.StorageConfig{Backend: config.StorageLocal}
 		// A fortieth of the contacts: the same sample, cloned in moments.
 		_, err := demo.SeedNorthwindWith(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), demo.NorthwindOptions{ContactsDivisor: 40})
 		return err
@@ -433,9 +448,7 @@ func (e *Env) SeedNorthwind() {
 	}
 	e.stop()
 	e.start(testdb.NewFrom(e.T, name))
-	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(files)); err != nil {
-		e.T.Fatalf("northwind files: %v", err)
-	}
+	e.copyFiles(files)
 }
 
 // SignInDemo signs in as a demo user. Demo users with an authenticator get

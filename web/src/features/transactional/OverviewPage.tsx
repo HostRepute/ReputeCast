@@ -32,6 +32,7 @@ import {
   TxTabs,
   VersionBadges,
   type CodeLang,
+  type CodeStyle,
   type TxPeriod,
 } from './shared'
 
@@ -444,9 +445,10 @@ function SendCard({ o, items }: { o: Overview; items: Item[] }) {
   const t = useT()
   const { slug } = useWorkspace()
   const [lang, setLang] = useState<CodeLang>('node')
+  const [style, setStyle] = useState<CodeStyle>('sdk')
   const tpl = items.find((it) => it.key === 'password-reset' && it.liveVersion) ?? items.find((it) => it.liveVersion) ?? items[0]
   const vars = useTemplateVariables(tpl?.key)
-  const code = codeSample(lang, { endpoint: o.endpoint, template: tpl?.key ?? 'password-reset', variables: vars, compact: true })
+  const code = codeSample(lang, { endpoint: o.endpoint, template: tpl?.key ?? 'password-reset', variables: vars, compact: true, style })
   return (
     <section className="card">
       <div className="sec">
@@ -462,7 +464,7 @@ function SendCard({ o, items }: { o: Overview; items: Item[] }) {
             {o.endpoint}
           </span>
         </div>
-        <CodeBox lang={lang} onLang={setLang} code={code}>
+        <CodeBox lang={lang} onLang={setLang} style={style} onStyle={setStyle} code={code}>
           {highlight(code, lang)}
         </CodeBox>
         <div className="flex flex-wrap items-center gap-2.5">

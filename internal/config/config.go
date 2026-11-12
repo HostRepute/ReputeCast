@@ -7,10 +7,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -55,17 +57,58 @@ type Config struct {
 	Connect    ConnectConfig    `koanf:"connect"`
 	I18n       I18nConfig       `koanf:"i18n"`
 	Files      FilesConfig      `koanf:"files"`
+	Storage    StorageConfig    `koanf:"storage"`
 	GeoIP      GeoIPConfig      `koanf:"geoip"`
 }
 
-// FilesConfig is where uploaded files live: digital products' files and
-// lead magnets (design expansion phase 7). They can be large, so they stay
-// out of the database. When the process is split with --role, every web
-// and worker process needs the same folder.
+// FilesConfig is the local files folder: with storage.backend "local" (the
+// default) every file ReputeCast keeps outside the database lives there
+// (digital products' files, lead magnets, chunked uploads, audience
+// exports). When the process is split with --role, every web and worker
+// process needs the same folder, so a split install uses storage.backend
+// "s3" instead.
 type FilesConfig struct {
 	// Dir defaults to a "files" folder next to the secret key file (the
 	// data volume, /var/lib/reputecast, in the container image).
 	Dir string `koanf:"dir"`
+}
+
+// Storage backends.
+const (
+	StorageLocal = "local"
+	StorageS3    = "s3"
+)
+
+// StorageConfig chooses where files kept outside the database live: the
+// local files folder (files.dir) or an S3-compatible bucket, so several web
+// and worker replicas share them without a ReadWriteMany volume.
+type StorageConfig struct {
+	// Backend is "local" (default) or "s3".
+	Backend string   `koanf:"backend"`
+	S3      S3Config `koanf:"s3"`
+}
+
+// S3Config is an S3-compatible bucket (AWS S3, MinIO, Cloudflare R2,
+// DigitalOcean Spaces, Backblaze B2, Wasabi…). Without an access key the
+// default AWS credential chain is used (environment, shared files, IAM
+// role, IRSA).
+type S3Config struct {
+	Bucket string `koanf:"bucket"`
+	Region string `koanf:"region"`
+	// Endpoint is the service's URL for a provider other than AWS
+	// (https://nyc3.digitaloceanspaces.com, http://minio:9000); empty is AWS.
+	Endpoint string `koanf:"endpoint"`
+	// PathStyle addresses the bucket in the path (MinIO and most
+	// self-hosted services) instead of the host name.
+	PathStyle bool `koanf:"path_style"`
+	// Prefix is prepended to every key ("reputecast/"), to share a bucket.
+	Prefix          string `koanf:"prefix"`
+	AccessKeyID     string `koanf:"access_key_id"`
+	SecretAccessKey string `koanf:"secret_access_key"`
+	// SSE is server-side encryption: "" (the bucket's default), "AES256" or
+	// "aws:kms" (with KMSKeyID, else the account's default key).
+	SSE      string `koanf:"sse"`
+	KMSKeyID string `koanf:"kms_key_id"`
 }
 
 // FilesDir is the folder uploaded files are kept in.
@@ -150,7 +193,10 @@ type HTTPConfig struct {
 	// who runs the instance for someone else and owns its DNS and TLS
 	// (REPUTECAST_HTTP__PUBLIC_URL_LOCKED).
 	PublicURLLocked bool `koanf:"public_url_locked"`
-	// TrustedProxies lists CIDRs whose X-Forwarded-For header is trusted.
+	// TrustedProxies lists CIDRs or addresses whose X-Forwarded-For header
+	// is trusted. The keyword "private" stands for every private, shared
+	// (carrier-grade NAT) and loopback network: the router in front of a
+	// platform such as Render, Railway or Kubernetes (PrivateNetworks).
 	TrustedProxies []string `koanf:"trusted_proxies"`
 	// RateLimitAuth and RateLimitAPI are requests per minute: sign-in
 	// endpoints per client IP, and the API per key, per signed-in session,
@@ -292,6 +338,7 @@ func Defaults() Config {
 		DNS:     DNSConfig{Timeout: 4 * time.Second},
 		Mail:    MailConfig{DevSMTP: "localhost:1025"},
 		Connect: ConnectConfig{SESTemplateURL: "https://reputecast.com/cf/reputecast-ses.yaml"},
+		Storage: StorageConfig{Backend: StorageLocal},
 	}
 }
 
@@ -332,6 +379,15 @@ func Load(configFile string, flags *pflag.FlagSet) (*Config, error) {
 	// DATABASE_URL is the de-facto standard; honour it when the specific key is unset.
 	if v := os.Getenv("DATABASE_URL"); v != "" && os.Getenv(EnvPrefix+"DATABASE__URL") == "" {
 		_ = k.Set("database.url", v)
+	}
+	// PORT is how platforms (Render, Railway, Heroku-style hosts, Cloud
+	// Run) tell a process where to listen; REPUTECAST_HTTP__ADDR and
+	// --addr still win.
+	if v := os.Getenv("PORT"); v != "" && os.Getenv(EnvPrefix+"HTTP__ADDR") == "" {
+		if p, err := strconv.Atoi(strings.TrimSpace(v)); err != nil || p < 1 || p > 65535 {
+			return nil, fmt.Errorf("PORT must be a port number (1-65535), got %q", v)
+		}
+		_ = k.Set("http.addr", ":"+strings.TrimSpace(v))
 	}
 	if flags != nil {
 		if err := k.Load(posflag.ProviderWithFlag(flags, ".", k, flagKey), nil); err != nil {
@@ -397,7 +453,83 @@ func (c *Config) Validate() error {
 	if c.Metrics.Token != "" && len(c.Metrics.Token) < metricsTokenMin {
 		errs = append(errs, fmt.Errorf("metrics.token must be at least %d characters", metricsTokenMin))
 	}
+	errs = append(errs, c.Storage.validate()...)
 	return errors.Join(errs...)
+}
+
+// validate checks the storage settings.
+func (s StorageConfig) validate() []error {
+	var errs []error
+	switch s.Backend {
+	case StorageLocal:
+	case StorageS3:
+		if strings.TrimSpace(s.S3.Bucket) == "" {
+			errs = append(errs, errors.New("storage.s3.bucket is required with storage.backend s3"))
+		}
+		if s.S3.Endpoint != "" {
+			if u, err := url.Parse(s.S3.Endpoint); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+				errs = append(errs, fmt.Errorf("storage.s3.endpoint must be an http(s) URL, got %q", s.S3.Endpoint))
+			}
+		}
+		if (s.S3.AccessKeyID == "") != (s.S3.SecretAccessKey == "") {
+			errs = append(errs, errors.New("storage.s3.access_key_id and storage.s3.secret_access_key go together: set both, or neither for the default AWS credential chain"))
+		}
+		if strings.HasPrefix(s.S3.Prefix, "/") {
+			errs = append(errs, errors.New("storage.s3.prefix must not start with /"))
+		}
+		switch s.S3.SSE {
+		case "", "AES256", "aws:kms":
+		default:
+			errs = append(errs, fmt.Errorf("storage.s3.sse must be empty, AES256 or aws:kms, got %q", s.S3.SSE))
+		}
+		if s.S3.KMSKeyID != "" && s.S3.SSE != "aws:kms" {
+			errs = append(errs, errors.New("storage.s3.kms_key_id needs storage.s3.sse aws:kms"))
+		}
+	default:
+		errs = append(errs, fmt.Errorf("storage.backend must be local or s3, got %q", s.Backend))
+	}
+	return errs
+}
+
+// PrivateNetworks is what the trusted-proxy keyword "private" stands for:
+// RFC 1918, shared address space (RFC 6598), loopback and IPv6 unique
+// local and loopback addresses.
+var PrivateNetworks = []netip.Prefix{
+	netip.MustParsePrefix("10.0.0.0/8"),
+	netip.MustParsePrefix("172.16.0.0/12"),
+	netip.MustParsePrefix("192.168.0.0/16"),
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("127.0.0.0/8"),
+	netip.MustParsePrefix("fc00::/7"),
+	netip.MustParsePrefix("::1/128"),
+}
+
+// ParseTrustedProxies reads http.trusted_proxies: CIDRs, single addresses
+// and the keyword "private". It returns the networks and the entries that
+// are none of those.
+func ParseTrustedProxies(list []string) (nets []netip.Prefix, invalid []string) {
+	for _, c := range list {
+		c = strings.TrimSpace(c)
+		switch {
+		case c == "":
+			continue
+		case strings.EqualFold(c, "private"):
+			nets = append(nets, PrivateNetworks...)
+			continue
+		case !strings.Contains(c, "/"):
+			if ip, err := netip.ParseAddr(c); err == nil {
+				nets = append(nets, netip.PrefixFrom(ip, ip.BitLen()))
+				continue
+			}
+		default:
+			if p, err := netip.ParsePrefix(c); err == nil {
+				nets = append(nets, p.Masked())
+				continue
+			}
+		}
+		invalid = append(invalid, c)
+	}
+	return nets, invalid
 }
 
 // HasRole reports whether this process runs the given role.

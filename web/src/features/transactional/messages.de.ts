@@ -47,6 +47,7 @@ export default {
     loading: 'Wird geladen…',
     forbiddenTitle: 'Ihre Rolle darf Transaktions-E-Mails nicht sehen',
     forbiddenBody: 'Ihre Rolle darf Transaktions-E-Mails nicht sehen. Fragen Sie einen Inhaber oder Admin von {workspace}.',
+    codeStyle: 'SDK oder reines HTTP',
   }),
   ...translate(mo, {
     route: 'Route',

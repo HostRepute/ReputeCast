@@ -20,7 +20,7 @@ import { me } from './errors.messages'
 import { mt } from './messages'
 import { useTemplateVariables } from './OverviewPage'
 import { ms } from './setup.messages'
-import { CodeBox, KeyBadges, RichList, TxTabs, type CodeLang } from './shared'
+import { CodeBox, KeyBadges, RichList, TxTabs, type CodeLang, type CodeStyle } from './shared'
 
 type Setup = Schemas['TransactionalSetup']
 type SendingKey = Schemas['TransactionalSendingKey']
@@ -296,10 +296,11 @@ function SamplesCard({ s }: { s: Setup }) {
   const live = (list.data?.items ?? []).filter((it) => it.liveVersion && !it.archived)
   const [key, setKey] = useState<string>()
   const [lang, setLang] = useState<CodeLang>('python')
+  const [style, setStyle] = useState<CodeStyle>('sdk')
   const tpl = key ?? live.find((it) => it.key === 'password-reset')?.key ?? live[0]?.key
   const vars = useTemplateVariables(tpl)
   const endpoint = `${s.baseUrl}/messages`
-  const code = tpl ? codeSample(lang, { endpoint, template: tpl, variables: vars }) : ''
+  const code = tpl ? codeSample(lang, { endpoint, template: tpl, variables: vars, style }) : ''
   return (
     <section className="card">
       <div className="sec">
@@ -322,7 +323,7 @@ function SamplesCard({ s }: { s: Setup }) {
           </label>
         ) : null}
         {tpl ? (
-          <CodeBox lang={lang} onLang={setLang} code={code}>
+          <CodeBox lang={lang} onLang={setLang} style={style} onStyle={setStyle} code={code}>
             {highlight(code, lang)}
           </CodeBox>
         ) : (

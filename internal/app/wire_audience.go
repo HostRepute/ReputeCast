@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audience"
-	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -26,14 +25,8 @@ func init() {
 func (a *App) Audience() *audience.Service { return a.audience() }
 
 func (a *App) audience() *audience.Service {
-	cfg := a.Cfg
-	if cfg == nil { // the OpenAPI command registers operations without config
-		d := config.Defaults()
-		cfg = &d
-	}
-	files := cfg.FilesDir()
 	s := &audience.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Segments: a.segments(), Counts: a.Counts, Mail: a.Mail, Links: a.Links, URLs: a.URLs,
-		Jobs: func() *jobs.Client { return a.Jobs }, FilesDir: files,
+		Jobs: func() *jobs.Client { return a.Jobs }, Blobs: a.Blobs,
 		// The team's opt-in emails are the forms' branded ones (review 2026-11 AU-15).
 		ConfirmationEmail: func(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, language, link string) (mailer.Message, error) {
 			return a.formsService().AppConfirmation(ctx, ws, contactID, language, link)

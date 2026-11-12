@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"os"
 	"strings"
 
 	"github.com/google/uuid"
@@ -111,7 +110,7 @@ func (s *Service) StartUpload(ctx context.Context, ws *store.Workspace, p *authz
 	if p != nil {
 		uid = p.UserID
 	}
-	u, err := s.Files.begin(Upload{WorkspaceID: ws.ID, OwnerKind: kind, OwnerID: owner, Name: SafeName(in.Name), Size: in.Size, Replaces: in.Replaces,
+	u, err := s.Files.begin(ctx, Upload{WorkspaceID: ws.ID, OwnerKind: kind, OwnerID: owner, Name: SafeName(in.Name), Size: in.Size, Replaces: in.Replaces,
 		UserID: uid, Created: s.now()})
 	if err != nil {
 		return UploadState{}, err
@@ -121,7 +120,7 @@ func (s *Service) StartUpload(ctx context.Context, ws *store.Workspace, p *authz
 
 // upload reads an upload of the owner.
 func (s *Service) upload(ctx context.Context, ws *store.Workspace, kind string, owner uuid.UUID, id string) (Upload, int64, error) {
-	u, have, err := s.Files.upload(id)
+	u, have, _, err := s.Files.upload(ctx, id)
 	if err != nil || u.WorkspaceID != ws.ID || u.OwnerKind != kind || u.OwnerID != owner {
 		return Upload{}, 0, api.Err(404, "upload_gone", word(lang(ctx), "file.uploadGone", nil))
 	}
@@ -134,13 +133,16 @@ func (s *Service) WriteChunk(ctx context.Context, ws *store.Workspace, kind stri
 	if err != nil {
 		return UploadState{}, err
 	}
-	got, err := s.Files.write(id, offset, data)
+	got, err := s.Files.write(ctx, id, offset, data)
 	switch {
 	case errors.Is(err, errOffset):
 		return UploadState{}, api.Err(409, "upload_offset", word(lang(ctx), "file.offset", map[string]any{"offset": got})).WithMeta("received", got)
 	case errors.Is(err, errTooBig):
-		s.Files.abort(id)
+		s.Files.abort(ctx, id)
 		return UploadState{}, api.Invalid("body", word(lang(ctx), "file.tooBig", map[string]any{"size": humanSizeIn(lang(ctx), offset+int64(len(data)))}))
+	case errors.Is(err, errChunks):
+		s.Files.abort(ctx, id)
+		return UploadState{}, api.Invalid("body", word(lang(ctx), "file.chunks", nil))
 	case err != nil:
 		return UploadState{}, err
 	}
@@ -152,7 +154,7 @@ func (s *Service) CancelUpload(ctx context.Context, ws *store.Workspace, kind st
 	if _, _, err := s.upload(ctx, ws, kind, owner, id); err != nil {
 		return err
 	}
-	s.Files.abort(id)
+	s.Files.abort(ctx, id)
 	return nil
 }
 
@@ -167,17 +169,17 @@ func (s *Service) FinishUpload(ctx context.Context, ws *store.Workspace, p *auth
 	if have != u.Size {
 		return ProductFile{}, api.Err(409, "upload_incomplete", word(l, "file.incomplete", map[string]any{"have": have, "size": u.Size})).WithMeta("received", have)
 	}
-	_, det, sum, part, err := s.Files.finish(id)
+	_, det, sum, chunks, err := s.Files.finish(ctx, id)
 	if err != nil {
-		s.Files.abort(id)
+		s.Files.abort(ctx, id)
 		return ProductFile{}, err
 	}
 	if det.Kind == KindProgram {
-		s.Files.abort(id)
+		s.Files.abort(ctx, id)
 		return ProductFile{}, api.Err(422, "file_program", word(l, "file.program", nil))
 	}
 	if claimed, bad := Mismatch(u.Name, det); bad {
-		s.Files.abort(id)
+		s.Files.abort(ctx, id)
 		actualExt := "file"
 		if k, ok := kinds[det.Kind]; ok && len(k.exts) > 0 {
 			actualExt = k.exts[0]
@@ -186,13 +188,12 @@ func (s *Service) FinishUpload(ctx context.Context, ws *store.Workspace, p *auth
 			"ext": extOf(u.Name), "content": word(l, "content."+det.Kind, nil), "claimed": strings.ToUpper(claimed),
 			"actual": strings.ToUpper(det.Kind), "actualExt": actualExt})).WithMeta("claimed", claimed, "actual", det.Kind)
 	}
-	key, err := s.Files.put(ws.ID, part, sum)
+	key, err := s.Files.keep(ctx, ws.ID, chunks, u.Size, sum, det.ContentType)
+	// Kept or not, the upload is over.
+	s.Files.abort(ctx, id)
 	if err != nil {
-		s.Files.abort(id)
 		return ProductFile{}, err
 	}
-	meta, _, _ := s.Files.uploadPaths(id)
-	_ = os.Remove(meta)
 	fid := newID()
 	var pages *int32
 	if det.Pages > 0 {
@@ -278,7 +279,7 @@ func (s *Service) dropBytes(ctx context.Context, f store.DownloadFile) {
 	if err != nil || inUse {
 		return
 	}
-	if err := s.Files.Remove(f.StorageKey); err != nil {
+	if err := s.Files.Remove(ctx, f.StorageKey); err != nil {
 		s.log().WarnContext(ctx, "products: removing a file's bytes", "err", err)
 	}
 }

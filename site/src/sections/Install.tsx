@@ -8,10 +8,27 @@ const commands = `curl -fsSLO ${links.composeUrl}
 REPUTECAST_ADMIN_EMAIL=you@example.com docker compose up -d
 docker compose logs app | grep -A4 "${INSTALLED_LINE}"`
 
-/** The dark install band: one command, four steps, requirements. */
+/** The Helm chart's install, with the values it can't start without. */
+export const HELM_COMMAND = `helm install reputecast \\
+  ${links.chartUrl} \\
+  --set publicURL=https://news.example.com \\
+  --set database.url=postgres://… \\
+  --set admin.email=you@example.com`
+
+/** One-click installs; each brings its own Postgres. */
+export const DEPLOY_PLATFORMS = [
+  { name: 'Render', href: links.render },
+  { name: 'Railway', href: links.railway },
+  { name: 'DigitalOcean', href: links.digitalOcean },
+  { name: 'Coolify', href: links.coolify },
+] as const
+
+/** The dark install band: one command, four steps, the chart and the platforms, requirements. */
 export function Install() {
   const term = useRef<HTMLPreElement>(null)
   const scrollable = useScrollable(term)
+  const helm = useRef<HTMLPreElement>(null)
+  const helmScrollable = useScrollable(helm)
   return (
     <section className="bg-ink text-white" id="install" aria-labelledby="install-h">
       <div className="wrap flex flex-wrap items-center gap-10 pt-16 pb-16">
@@ -53,9 +70,33 @@ export function Install() {
               Releases
             </a>
           </div>
+          <div className="flex flex-col gap-3 border-t border-dark-line pt-4">
+            <span className="text-[13px] text-ink-4">On Kubernetes, with your own Postgres:</span>
+            <pre
+              ref={helm}
+              className="border border-dark-line bg-dark-surface"
+              role={helmScrollable ? 'region' : undefined}
+              aria-label={helmScrollable ? 'Helm install command, scroll sideways' : undefined}
+              tabIndex={helmScrollable ? 0 : undefined}
+            >
+              {HELM_COMMAND}
+            </pre>
+            <div role="group" aria-labelledby="install-platforms" className="flex flex-col gap-3">
+              <span id="install-platforms" className="text-[13px] text-ink-4">
+                On a platform, with Postgres beside it:
+              </span>
+              <div className="flex flex-wrap gap-2.5">
+                {DEPLOY_PLATFORMS.map((p) => (
+                  <a key={p.name} href={p.href} className="btn border-[#374151] bg-transparent text-white hover:bg-transparent hover:text-white">
+                    {p.name}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
           <span className="text-[13px] text-ink-4">
-            Requirements: Docker 24+ with Compose and a domain you control. Load-tested with a million contacts on 4 vCPUs; the docs cover the binary, TLS,
-            Postgres, backups and scaling.
+            Requirements: Docker 24+ with Compose and a domain you control; for the chart, Kubernetes 1.29+ and Postgres 16–18. Load-tested with a million
+            contacts on 4 vCPUs; the docs cover the binary, Helm, TLS, Postgres, backups and scaling.
           </span>
         </div>
       </div>

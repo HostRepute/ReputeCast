@@ -32,6 +32,7 @@
   "file.mismatch": "Este archivo dice .{ext}, pero contiene {content}. Los compradores recibirían un archivo que su equipo no puede abrir. Sube el {claimed} real o el {actual} con la extensión .{actualExt}.",
   "file.uploadGone": "Esa subida se detuvo y no se conservó nada. Vuelve a elegir el archivo.",
   "file.offset": "Parte de la subida llegó dos veces. Continúa a partir de {offset} bytes.",
+  "file.chunks": "Esa subida llegó en demasiadas partes pequeñas y se detuvo. Vuelve a elegir el archivo.",
   "file.incomplete": "La subida no ha terminado: llegaron {have} de {size} bytes.",
   "file.notFound": "Ese archivo ya no forma parte del producto.",
   "content.pdf": "un PDF",

@@ -9,7 +9,7 @@ import (
 
 // Instance admin › System (review 2026-11 OP-10): failed jobs can be run
 // again, cancelled or deleted, each audited; queues, the database and the
-// files folder show.
+// file storage show.
 func TestSystemTab(t *testing.T) {
 	env, admin := setup(t)
 	ctx := context.Background()
@@ -51,16 +51,19 @@ func TestSystemTab(t *testing.T) {
 			}
 		}
 		Files struct {
-			Dir     string
-			Missing bool
+			Backend, Dir, Bucket string
+			Missing              bool
 		}
 	}
 	admin.Do("GET", "/admin/system", nil).MustStatus(t, 200).JSON(t, &view)
 	if view.Jobs.Retrying < 1 || view.Jobs.GivenUp < 2 || len(view.Queues) < 5 || view.Queues[0].Name != "sending" {
 		t.Fatalf("jobs and queues: %+v", view)
 	}
-	if view.Database.Bytes == 0 || !view.Database.SchemaCurrent || len(view.Database.Tables) == 0 || view.Database.Tables[0].Bytes == 0 || view.Files.Dir == "" {
-		t.Fatalf("database and files: %+v", view)
+	if view.Database.Bytes == 0 || !view.Database.SchemaCurrent || len(view.Database.Tables) == 0 || view.Database.Tables[0].Bytes == 0 {
+		t.Fatalf("database: %+v", view)
+	}
+	if f := view.Files; (f.Backend != "local" || f.Dir == "") && (f.Backend != "s3" || f.Bucket == "") {
+		t.Fatalf("file storage: %+v", f)
 	}
 
 	var list struct {

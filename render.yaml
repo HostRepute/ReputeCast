@@ -1,0 +1,47 @@
+# Render Blueprint (https://render.com/docs/blueprint-spec), for the Deploy to
+# Render button:
+#   https://render.com/deploy?repo=https://github.com/hostrepute/reputecast
+# One web service from the release image with a 10 GB disk at
+# /var/lib/reputecast (the secret key file and uploaded files) and a Render
+# Postgres database. Render asks for the public URL and the first Owner's
+# email; the temporary password is in the service's logs (search for
+# "ReputeCast is installed"). Migrations run when the service starts.
+services:
+  - type: web
+    name: reputecast
+    runtime: image
+    image:
+      url: ghcr.io/hostrepute/reputecast:latest
+    # A disk needs a paid plan; 512 MB of memory is enough to start.
+    plan: 0.5c-512mb
+    healthCheckPath: /readyz
+    disk:
+      name: reputecast-data
+      mountPath: /var/lib/reputecast
+      sizeGB: 10
+    envVars:
+      # https://reputecast.onrender.com, or your own domain once it's added.
+      - key: REPUTECAST_PUBLIC_URL
+        sync: false
+      - key: REPUTECAST_ADMIN_EMAIL
+        sync: false
+      # ReputeCast reads DATABASE_URL when REPUTECAST_DATABASE__URL isn't set.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reputecast-db
+          property: connectionString
+      # Render's proxy reaches the service over a private network.
+      - key: REPUTECAST_HTTP__TRUSTED_PROXIES
+        value: private
+      # The port the image listens on; Render routes to PORT.
+      - key: PORT
+        value: "8080"
+
+databases:
+  - name: reputecast-db
+    databaseName: reputecast
+    user: reputecast
+    postgresMajorVersion: "18"
+    plan: 0.1c-256mb
+    # Only the service, over Render's private network.
+    ipAllowList: []

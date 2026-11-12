@@ -1,0 +1,16 @@
+{{- if and (eq .Values.mode "split") .Values.ingest.separate }}
+{{- include "reputecast.validate" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reputecast.fullname" . }}-ingest
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "ingest") | nindent 4 }}
+spec:
+  replicas: {{ .Values.ingest.replicas }}
+  selector:
+    matchLabels:
+      {{- include "reputecast.componentSelector" (dict "root" . "component" "ingest") | nindent 6 }}
+  template:
+    {{- include "reputecast.podTemplate" (dict "root" . "component" "ingest" "args" (list "serve" "--role=ingest") "probePort" "http" "web" false "resources" .Values.ingest.resources "data" (dict "emptyDir" (dict))) | nindent 4 }}
+{{- end }}

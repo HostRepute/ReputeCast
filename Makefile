@@ -4,6 +4,8 @@ SHELL := /bin/bash
 
 GO        ?= go
 PNPM      ?= pnpm
+# The Python the client SDK's virtual environment (sdk/client-python/.venv) is made with.
+PYTHON    ?= python3
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT    ?= $(shell git rev-parse HEAD 2>/dev/null)
 DATE      ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -51,9 +53,11 @@ migrate: ## Apply migrations to the dev database
 	REPUTECAST_DATABASE__URL="$(DEV_DB)" $(GO) run ./cmd/reputecast migrate up
 
 .PHONY: generate
-generate: ## Regenerate sqlc code, the OpenAPI document and the web API types
+generate: ## Regenerate sqlc code, the OpenAPI documents (web app and client SDKs) and the web API types
 	$(GO) tool sqlc generate
 	$(GO) run ./cmd/reputecast openapi > web/openapi.json
+	$(GO) run ./cmd/reputecast openapi --public > sdk/openapi/public.json
+	$(GO) run ./cmd/reputecast openapi --public --openapi 3.0 > sdk/openapi/public-3.0.json
 	cd web && $(PNPM) api:types
 
 .PHONY: test
@@ -114,9 +118,38 @@ sdk: ## Check, build and test the adapter SDK and template, then run the templat
 	cd sdk && $(PNPM) install --frozen-lockfile && $(PNPM) typecheck && $(PNPM) build && $(PNPM) test
 	REPUTECAST_ADAPTER_E2E=required $(GO) test -count=1 -run 'TestTemplateAdapterEndToEnd' ./internal/providers/remote/
 
+SDK_PYTHON := sdk/client-python/.venv/bin/python
+
+.PHONY: sdks
+sdks: ## Regenerate, check and test the client SDKs (TypeScript, Python, Go), then run each against the app with the demo
+	cd sdk && $(PNPM) install --frozen-lockfile
+	cd sdk/client-ts && $(PNPM) generate && $(PNPM) typecheck && $(PNPM) test && $(PNPM) build
+	test -x $(SDK_PYTHON) || $(PYTHON) -m venv sdk/client-python/.venv
+	$(SDK_PYTHON) -m pip install --quiet --upgrade 'pip>=25.1'
+	$(SDK_PYTHON) -m pip install --quiet --group sdk/client-python/pyproject.toml:dev -e sdk/client-python
+	$(SDK_PYTHON) sdk/client-python/scripts/generate.py
+	cd sdk/client-python && .venv/bin/python -m pytest -q
+	cd sdk/client-go && $(GO) generate ./... && $(GO) vet ./... && $(GO) test -count=1 ./...
+	@if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then \
+	  export REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)"; fi; \
+	REPUTECAST_SDK_E2E=required $(GO) test -count=1 -timeout 30m -v -run 'TestClientSDKs' ./internal/sdktest/
+
 .PHONY: docker
 docker: ## Build the Docker image
 	docker build -t reputecast:$(VERSION) --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) .
+
+.PHONY: helm
+helm: ## Lint the Helm chart and validate what it renders in both modes (helm, kubeconform)
+	@for v in single split; do \
+	  helm lint --strict deploy/helm/reputecast -f deploy/helm/reputecast/ci/$$v-values.yaml && \
+	  helm template reputecast deploy/helm/reputecast -f deploy/helm/reputecast/ci/$$v-values.yaml | \
+	    kubeconform -strict -summary -ignore-missing-schemas || exit 1; \
+	done
+	@if out=$$(helm template reputecast deploy/helm/reputecast -f deploy/helm/reputecast/ci/split-values.yaml --set storage.backend=local 2>&1); then \
+	  echo "split mode with local storage rendered; it must stop"; exit 1; \
+	elif echo "$$out" | grep -q 'mode split needs storage.backend s3'; then \
+	  echo "split mode with local storage stops with its message"; \
+	else echo "$$out"; exit 1; fi
 
 .PHONY: loadtest
 loadtest: ## Seed a million contacts into REPUTECAST_LOAD_DATABASE_URL's database and time the hot queries (docs/deploy/performance.md)

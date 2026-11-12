@@ -1,0 +1,262 @@
+# ReputeCast Helm chart values. The chart README (README.md next to this
+# file) walks through an install; docs/deploy/configuration.md lists every
+# setting the app reads.
+
+# The address people and sending providers reach, such as
+# https://news.example.com. Required: links in emails, provider webhooks,
+# passkeys and sign-in redirects are built from it.
+publicURL: ""
+
+image:
+  repository: ghcr.io/hostrepute/reputecast
+  # Defaults to the chart's appVersion: the release the chart was published
+  # with.
+  tag: ""
+  # An image digest (sha256:…); it wins over the tag.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# single: one StatefulSet pod runs every role (web, worker and webhook
+# ingest) with a volume at /var/lib/reputecast for uploaded files.
+# split: Deployments for the web app and the workers (and webhook ingest when
+# ingest.separate is true), which share files through an S3-compatible
+# bucket, so split needs storage.backend s3.
+mode: single
+
+database:
+  # A Postgres 16, 17 or 18 URL, such as
+  # postgres://reputecast:secret@db.example.com:5432/reputecast?sslmode=require.
+  # The chart keeps it in a Secret. The chart bundles no Postgres: see the
+  # README for CloudNativePG and managed databases.
+  url: ""
+  # Or a Secret that already holds the URL. CloudNativePG's <cluster>-app
+  # Secret has it under "uri".
+  existingSecret: ""
+  existingSecretKey: uri
+
+secretKey:
+  # A Secret holding the base64 32-byte key that encrypts provider
+  # credentials, OIDC secrets and other secrets at rest
+  # (`reputecast secrets generate-key` prints one). Without it the chart
+  # generates a key at install into <release>-key, keeps it across upgrades
+  # and leaves that Secret in place when the release is uninstalled. Set one
+  # when a tool renders the chart without a cluster (Argo CD): it would
+  # generate a new key at every sync. Back the key up with the database.
+  existingSecret: ""
+  existingSecretKey: secret-key
+
+admin:
+  # The first Owner, created by a Job after the first install. Without a
+  # password Secret, the Job's log has a temporary password:
+  #   kubectl logs job/<release>-install
+  # Leave it empty on a database that already has users (a restore): the Job
+  # refuses to install twice.
+  email: ""
+  name: ""
+  passwordSecret: ""
+  passwordSecretKey: password
+
+web:
+  # split mode: web app and API pods (and webhook ingest unless
+  # ingest.separate is true).
+  replicas: 2
+  # Replaces the top-level resources for these pods when set.
+  resources: {}
+
+worker:
+  # split mode: background job pods.
+  replicas: 1
+  resources: {}
+
+ingest:
+  # split mode: provider webhooks (/hooks/) in pods of their own, which the
+  # Ingress routes /hooks/ to.
+  separate: false
+  replicas: 2
+  resources: {}
+
+storage:
+  # Where uploaded files live (digital products, lead magnets, imports and
+  # exports): local is /var/lib/reputecast/files on the single-mode volume;
+  # s3 is an S3-compatible bucket (AWS S3, MinIO, Cloudflare R2,
+  # DigitalOcean Spaces, Backblaze B2, Wasabi…).
+  backend: local
+  s3:
+    bucket: ""
+    region: ""
+    # The service's URL for a provider other than AWS, such as
+    # https://nyc3.digitaloceanspaces.com or http://minio.storage:9000.
+    endpoint: ""
+    # Address the bucket in the path (MinIO and most self-hosted services).
+    pathStyle: false
+    # Prepended to every key ("reputecast/"), to share a bucket.
+    prefix: ""
+    # Server-side encryption: "" (the bucket's default), AES256 or aws:kms.
+    sse: ""
+    kmsKeyID: ""
+    # Access keys; without them the default AWS credential chain is used
+    # (IRSA or EKS Pod Identity through serviceAccount.annotations).
+    accessKeyID: ""
+    secretAccessKey: ""
+    # Or a Secret holding both keys.
+    existingSecret: ""
+    accessKeyIDKey: access-key-id
+    secretAccessKeyKey: secret-access-key
+
+http:
+  # Addresses whose X-Forwarded-For header is trusted. "private" stands for
+  # every private, shared and loopback network: the Ingress controller in
+  # front of the pods. CIDRs and single addresses work too.
+  trustedProxies:
+    - private
+
+log:
+  # debug, info, warn or error. Logs are JSON.
+  level: info
+
+geoip:
+  # A volume holding a MaxMind DB file (GeoLite2-City or -Country, DB-IP Lite)
+  # that places readers' opens and clicks in campaign reports, mounted
+  # read-only at /var/lib/geoip. Any volume source, for example:
+  #   volume:
+  #     persistentVolumeClaim:
+  #       claimName: geoip
+  # Empty is off. Replace the file and restart the pods to update it.
+  volume: {}
+  file: GeoLite2-City.mmdb
+
+smtpRelay:
+  # The SMTP relay for transactional email listens in the web pods once an
+  # instance admin turns it on (Instance admin › Instance settings). This
+  # Service publishes its ports; keep them the same as the ports set there.
+  service:
+    enabled: false
+    type: LoadBalancer
+    annotations: {}
+    # Local keeps the client's address, which the relay's limits count by.
+    externalTrafficPolicy: Local
+    loadBalancerSourceRanges: []
+  starttlsPort: 587
+  tlsPort: 465
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # Defaults to publicURL's host. Add the SMTP relay's hostname when it uses
+  # a Let's Encrypt certificate: the challenge is answered over HTTP.
+  hosts: []
+  tls: []
+  #  - secretName: reputecast-tls
+  #    hosts: [news.example.com]
+
+persistence:
+  # single mode: the volume at /var/lib/reputecast (uploaded files with
+  # storage.backend local). Off is an emptyDir, which a restart empties.
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+  # A PersistentVolumeClaim to use instead of the one the chart creates.
+  existingClaim: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 1Gi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+serviceAccount:
+  create: true
+  # Defaults to the release's full name.
+  name: ""
+  # For IRSA: eks.amazonaws.com/role-arn: arn:aws:iam::…:role/reputecast
+  annotations: {}
+  # ReputeCast never calls the Kubernetes API.
+  automount: false
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+priorityClassName: ""
+terminationGracePeriodSeconds: 60
+
+# Database migrations run in a Job before every install and upgrade
+# (`reputecast migrate up`); the pods never migrate. Give a large upgrade
+# time with `helm upgrade --timeout 30m`.
+migrations:
+  backoffLimit: 4
+  resources: {}
+
+serviceMonitor:
+  # A Prometheus Operator ServiceMonitor for /metrics on port 9464.
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+networkPolicy:
+  # Ingress rules for the pods: the HTTP port from httpFrom (empty is
+  # anywhere: the Ingress controller), the metrics port from metricsFrom
+  # (empty is pods in the release's namespace), the SMTP relay's ports from
+  # anywhere when its Service is on. Egress is left open: sending providers,
+  # DNS, Postgres and the bucket are wherever they are.
+  enabled: false
+  httpFrom: []
+  metricsFrom: []
+  #  - namespaceSelector:
+  #      matchLabels:
+  #        kubernetes.io/metadata.name: monitoring
+  extraIngress: []
+
+pdb:
+  # split mode: a PodDisruptionBudget for the web and ingest pods.
+  enabled: true
+  maxUnavailable: 1
+
+hpa:
+  # split mode: scale the web pods on CPU.
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+# Extra environment for every ReputeCast container (docs/deploy/configuration.md).
+extraEnv: []
+#  - name: REPUTECAST_UPDATES__MANAGED_BY
+#    value: Northwind Hosting
+extraEnvFrom: []
+#  - secretRef:
+#      name: reputecast-extra

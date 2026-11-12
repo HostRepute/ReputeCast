@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "reputecast"
+dynamic = ["version"]
+description = "The ReputeCast API client for Python: typed operations, retries, RFC 9457 errors and webhook verification."
+license = "AGPL-3.0-only"
+requires-python = ">=3.11"
+authors = [{ name = "The ReputeCast authors" }]
+keywords = ["reputecast", "newsletter", "email", "api", "sdk"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Communications :: Email",
+  "Typing :: Typed",
+]
+# The generated code's own requirements (openapi-python-client 0.29).
+dependencies = [
+  "attrs>=22.2.0",
+  "httpx>=0.23.1,<0.29.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/hostrepute/reputecast"
+Documentation = "https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md#client-sdks"
+Source = "https://github.com/hostrepute/reputecast/tree/main/sdk/client-python"
+
+[dependency-groups]
+dev = [
+  "openapi-python-client==0.29.1",
+  "pytest==9.2.0",
+]
+
+[tool.hatch.version]
+path = "src/reputecast/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reputecast"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/reputecast", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

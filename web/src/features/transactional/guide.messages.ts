@@ -153,4 +153,5 @@ export const mu = defineMessages('transactional.guide', {
   templates: 'Templates',
   apiReference: 'API reference',
   importMore: 'Import more templates',
+  firstCallSdks: 'For Node.js, Python and Go the sample uses the ReputeCast SDK; HTTP shows the plain request.',
 })

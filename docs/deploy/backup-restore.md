@@ -6,7 +6,7 @@ A ReputeCast instance is three things, and a restore needs all three:
 |---|---|---|
 | The database | Postgres | Everything except uploaded files. |
 | The secret key | `REPUTECAST_SECRETS__KEY`, or the key file (`data/secret.key`; `/var/lib/reputecast/secret.key` in Docker) | Provider credentials, API secrets, two-factor seeds and other secrets are encrypted with it, and links in sent emails are signed with it. A database without its key restores, but none of those open. |
-| The files folder | `REPUTECAST_FILES__DIR` (`files` next to the key file) | Digital products, lead magnets and other uploads. |
+| The files | The files folder, `REPUTECAST_FILES__DIR` (`files` next to the key file); or the bucket, with `REPUTECAST_STORAGE__BACKEND=s3` ([file storage](configuration.md#file-storage)) | Digital products' files, lead magnets, audience exports and other uploads. |
 
 Keep the key apart from the database backups (a password manager or a
 secrets store): whoever holds both can read every stored credential.
@@ -30,6 +30,13 @@ docker compose cp app:/var/lib/reputecast/files ./files
 With the binary, run `pg_dump -Fc` against the database and copy the key
 file and the files folder. A dump taken while ReputeCast runs is consistent;
 files uploaded during the dump may be missing from it, which is harmless.
+
+With the files in a bucket, back the bucket up instead of the folder:
+turn on versioning, or replicate it (S3 replication to a bucket in another
+account or region), or copy it with your provider's tools
+(`aws s3 sync s3://<bucket>/<prefix> ./files`, `rclone sync`,
+`mc mirror`). A copy taken this way restores into a folder or a bucket
+alike: both use the same keys.
 
 Restore a backup on a spare host from time to time. That is the only way to
 know it works.
@@ -60,8 +67,9 @@ nothing by itself, so a new server needs it before the restore.
    pg_restore --no-owner --no-privileges -d "postgres://reputecast:…@db/reputecast" reputecast.dump
    ```
 
-4. Put the secret key and the files folder in place (the same paths, or set
-   `REPUTECAST_SECRETS__KEY_FILE` and `REPUTECAST_FILES__DIR`).
+4. Put the secret key and the files in place: the files folder at the same
+   path (or set `REPUTECAST_SECRETS__KEY_FILE` and `REPUTECAST_FILES__DIR`),
+   or the bucket's objects in the bucket `REPUTECAST_STORAGE__S3__*` names.
 5. Apply the migrations of a newer release, if any, and hand the segments
    function back to its role (the restore made the app's user its owner):
 
@@ -81,8 +89,9 @@ nothing by itself, so a new server needs it before the restore.
 
    Every line should read `ok`. `doctor` checks the database and its schema,
    opens a few sealed values of every kind with the key (a wrong key fails
-   here, not later in a provider call), checks the files folder can be
-   written and the segments role.
+   here, not later in a provider call), checks the file storage (the
+   folder can be written; the bucket answers and takes a test object) and
+   the segments role.
 7. Start ReputeCast. If the public address changed, set
    `REPUTECAST_PUBLIC_URL` (or Instance admin › Instance & updates), which
    also moves provider webhooks.

@@ -11,7 +11,6 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/automations"
-	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/media"
@@ -32,14 +31,9 @@ func productsService(a *App) *products.Service {
 	if v, ok := productsServices.Load(a); ok {
 		return v.(*products.Service)
 	}
-	cfg := a.Cfg
-	if cfg == nil { // the OpenAPI command registers operations without config
-		d := config.Defaults()
-		cfg = &d
-	}
 	s := &products.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, URLs: a.URLs, Links: a.Links,
-		Files:         products.Store{Dir: cfg.FilesDir()},
+		Files:         products.Store{Blobs: a.Blobs},
 		Forms:         a.formsService(),
 		Earn:          func() *earn.Service { return earnService(a) },
 		Transactional: func() *transactional.Service { return transactionalService(a) },

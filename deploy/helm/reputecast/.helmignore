@@ -1,0 +1,13 @@
+# Patterns to ignore when building the chart package.
+.DS_Store
+.git/
+.gitignore
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+.idea/
+.vscode/
+# Values and manifests CI installs the chart with (kind, kubeconform).
+ci/

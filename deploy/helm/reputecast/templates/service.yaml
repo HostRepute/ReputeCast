@@ -1,0 +1,78 @@
+{{- include "reputecast.validate" . }}
+{{- $fullname := include "reputecast.fullname" . }}
+{{- $web := include "reputecast.webComponent" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" $web) | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "reputecast.componentSelector" (dict "root" . "component" $web) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- if eq .Values.mode "single" }}
+---
+# The StatefulSet's governing Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-headless
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "reputecast.componentSelector" (dict "root" . "component" "app") | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+{{- end }}
+{{- if and (eq .Values.mode "split") .Values.ingest.separate }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-ingest
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "ingest") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "reputecast.componentSelector" (dict "root" . "component" "ingest") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}
+---
+# Every pod's metrics listener (/metrics, and a worker's health), for
+# Prometheus. Keep it off the internet.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-metrics
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "metrics") | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "reputecast.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: 9464
+      targetPort: metrics
+      protocol: TCP

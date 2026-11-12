@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/blobstore"
+	"github.com/hostrepute/reputecast/internal/blobstore/blobstoretest"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/secrets"
 )
@@ -29,7 +31,7 @@ func TestDoctor(t *testing.T) {
 	if err := printChecks(&out, runDoctor(ctx, &cfg, right)); err != nil {
 		t.Fatalf("%v\n%s", err, out.String())
 	}
-	for _, want := range []string{"[ok  ] Database", "[ok  ] Schema", "[ok  ] Secret key", "opens the", "[ok  ] Files folder", "[ok  ] GeoIP", "[ok  ] Public URL"} {
+	for _, want := range []string{"[ok  ] Database", "[ok  ] Schema", "[ok  ] Secret key", "opens the", "[ok  ] File storage", "[ok  ] GeoIP", "[ok  ] Public URL"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("missing %q in\n%s", want, out.String())
 		}
@@ -75,11 +77,43 @@ func TestDoctor(t *testing.T) {
 		t.Fatalf("previous key:\n%s", out.String())
 	}
 
-	// The database can't be reached: the files folder is still checked.
+	// The database can't be reached: the file storage is still checked.
 	cfg.Database.URL = "postgres://nobody@127.0.0.1:1/none?sslmode=disable&connect_timeout=1"
 	out.Reset()
-	if err := printChecks(&out, runDoctor(ctx, &cfg, right)); err == nil || !strings.Contains(out.String(), "[FAIL] Database") || !strings.Contains(out.String(), "Files folder") {
+	if err := printChecks(&out, runDoctor(ctx, &cfg, right)); err == nil || !strings.Contains(out.String(), "[FAIL] Database") || !strings.Contains(out.String(), "File storage") {
 		t.Fatalf("no database: %v\n%s", err, out.String())
+	}
+}
+
+// The file storage: a files folder that doesn't exist yet warns, one that
+// does is counted; a bucket must answer and take a test object, which
+// doesn't stay.
+func TestDoctorFileStorage(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Defaults()
+	cfg.Files.Dir = filepath.Join(t.TempDir(), "files")
+	if c := filesCheck(ctx, &cfg); c.level != checkWarn || !strings.Contains(c.text, "doesn't exist yet") {
+		t.Fatalf("no folder: %+v", c)
+	}
+	if err := (blobstore.Local{Dir: cfg.Files.Dir}).Put(ctx, "ws/ab/one", strings.NewReader("12345"), 5, ""); err != nil {
+		t.Fatal(err)
+	}
+	if c := filesCheck(ctx, &cfg); c.level != checkOK || !strings.Contains(c.text, "1 files, 5 B") {
+		t.Fatalf("a folder: %+v", c)
+	}
+	s3, ok := blobstoretest.S3Config(t)
+	if !ok {
+		t.Skip(blobstoretest.EnvEndpoint + " isn't set: the bucket checks need an S3-compatible server")
+	}
+	cfg.Storage = config.StorageConfig{Backend: config.StorageS3, S3: s3}
+	c := filesCheck(ctx, &cfg)
+	if c.level != checkOK || !strings.Contains(c.text, "s3 bucket "+s3.Bucket) || !strings.Contains(c.text, "0 objects") {
+		t.Fatalf("a bucket: %+v", c)
+	}
+	missing := cfg
+	missing.Storage.S3.Bucket = "reputecast-no-such-bucket"
+	if c := filesCheck(ctx, &missing); c.level != checkFail || !strings.Contains(c.text, "doesn't exist") {
+		t.Fatalf("a missing bucket: %+v", c)
 	}
 }
 

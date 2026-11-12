@@ -612,14 +612,16 @@ func (s *Service) Discard(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	return s.Prompt(ctx, ws, p, id)
 }
 
-// PushPromptStatus pauses or resumes a live prompt.
-type PushPromptStatus struct {
+// PushPromptStatusChange pauses or resumes a live prompt. (Named
+// PushPromptStatus, it would clash in the client SDKs with the enum of
+// PushPrompt's status.)
+type PushPromptStatusChange struct {
 	Status string `json:"status" enum:"live,paused"`
 }
 
 // SetStatus pauses a prompt (readers stop seeing it; subscriptions stay) or
 // resumes it.
-func (s *Service) SetStatus(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in PushPromptStatus) (PushPrompt, error) {
+func (s *Service) SetStatus(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in PushPromptStatusChange) (PushPrompt, error) {
 	r, err := s.promptRow(ctx, ws, id)
 	if err != nil {
 		return PushPrompt{}, err

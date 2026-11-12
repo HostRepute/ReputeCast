@@ -51,6 +51,7 @@ const common = translate(mt, {
   loading: 'Đang tải…',
   forbiddenTitle: 'Vai trò của bạn không xem được thư giao dịch',
   forbiddenBody: 'Vai trò của bạn không xem được thư giao dịch. Hãy hỏi Chủ sở hữu hoặc Quản trị viên của {workspace}.',
+  codeStyle: 'SDK hoặc HTTP thuần',
 })
 
 const overview = translate(mo, {

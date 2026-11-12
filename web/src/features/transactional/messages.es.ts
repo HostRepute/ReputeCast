@@ -47,6 +47,7 @@ export default {
     loading: 'Cargando…',
     forbiddenTitle: 'Tu rol no puede ver el correo transaccional',
     forbiddenBody: 'Tu rol no puede ver el correo transaccional. Pídeselo a alguien con el rol Propietario o Administrador de {workspace}.',
+    codeStyle: 'SDK o HTTP directo',
   }),
   ...translate(mo, {
     route: 'Ruta',

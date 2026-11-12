@@ -46,6 +46,7 @@ export const mt = defineMessages('transactional.common', {
   loading: 'Loading…',
   forbiddenTitle: "Your role can't see transactional mail",
   forbiddenBody: "Your role can't see transactional mail. Ask an Owner or Admin of {workspace}.",
+  codeStyle: 'SDK or plain HTTP',
 })
 
 /** Templates tab (Transactional, TransactionalStates). */

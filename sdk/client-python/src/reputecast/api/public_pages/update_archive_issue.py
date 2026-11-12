@@ -1,0 +1,208 @@
+from http import HTTPStatus
+from typing import Any, cast
+from urllib.parse import quote
+
+import httpx
+
+from ...client import AuthenticatedClient, Client
+from ...types import Response, UNSET
+from ... import errors
+
+from ...models.archive_issue_input import ArchiveIssueInput
+from ...models.archive_issue_item import ArchiveIssueItem
+from ...models.problem import Problem
+from typing import cast
+from uuid import UUID
+
+
+
+def _get_kwargs(
+    workspace: str,
+    campaign: UUID,
+    *,
+    body: ArchiveIssueInput,
+
+) -> dict[str, Any]:
+    headers: dict[str, Any] = {}
+
+
+    
+
+    
+
+    _kwargs: dict[str, Any] = {
+        "method": "put",
+        "url": "/api/v1/workspaces/{workspace}/public-pages/archive/issues/{campaign}".format(workspace=quote(str(workspace), safe=""),campaign=quote(str(campaign), safe=""),),
+    }
+
+    _kwargs["json"] = body.to_dict()
+
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
+    return _kwargs
+
+
+
+def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> ArchiveIssueItem | Problem:
+    if response.status_code == 200:
+        response_200 = ArchiveIssueItem.from_dict(response.json())
+
+
+
+        return response_200
+
+    response_default = Problem.from_dict(response.json())
+
+
+
+    return response_default
+
+
+
+def _build_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> Response[ArchiveIssueItem | Problem]:
+    return Response(
+        status_code=HTTPStatus(response.status_code),
+        content=response.content,
+        headers=response.headers,
+        parsed=_parse_response(client=client, response=response),
+    )
+
+
+def sync_detailed(
+    workspace: str,
+    campaign: UUID,
+    *,
+    client: AuthenticatedClient,
+    body: ArchiveIssueInput,
+
+) -> Response[ArchiveIssueItem | Problem]:
+    """ Hide, show or retitle an archived issue
+
+    Args:
+        workspace (str): Workspace slug Example: acme-newsletter.
+        campaign (UUID): The issue's campaign id
+        body (ArchiveIssueInput):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[ArchiveIssueItem | Problem]
+     """
+
+
+    kwargs = _get_kwargs(
+        workspace=workspace,
+campaign=campaign,
+body=body,
+
+    )
+
+    response = client.get_httpx_client().request(
+        **kwargs,
+    )
+
+    return _build_response(client=client, response=response)
+
+def sync(
+    workspace: str,
+    campaign: UUID,
+    *,
+    client: AuthenticatedClient,
+    body: ArchiveIssueInput,
+
+) -> ArchiveIssueItem | Problem | None:
+    """ Hide, show or retitle an archived issue
+
+    Args:
+        workspace (str): Workspace slug Example: acme-newsletter.
+        campaign (UUID): The issue's campaign id
+        body (ArchiveIssueInput):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        ArchiveIssueItem | Problem
+     """
+
+
+    return sync_detailed(
+        workspace=workspace,
+campaign=campaign,
+client=client,
+body=body,
+
+    ).parsed
+
+async def asyncio_detailed(
+    workspace: str,
+    campaign: UUID,
+    *,
+    client: AuthenticatedClient,
+    body: ArchiveIssueInput,
+
+) -> Response[ArchiveIssueItem | Problem]:
+    """ Hide, show or retitle an archived issue
+
+    Args:
+        workspace (str): Workspace slug Example: acme-newsletter.
+        campaign (UUID): The issue's campaign id
+        body (ArchiveIssueInput):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[ArchiveIssueItem | Problem]
+     """
+
+
+    kwargs = _get_kwargs(
+        workspace=workspace,
+campaign=campaign,
+body=body,
+
+    )
+
+    response = await client.get_async_httpx_client().request(
+        **kwargs
+    )
+
+    return _build_response(client=client, response=response)
+
+async def asyncio(
+    workspace: str,
+    campaign: UUID,
+    *,
+    client: AuthenticatedClient,
+    body: ArchiveIssueInput,
+
+) -> ArchiveIssueItem | Problem | None:
+    """ Hide, show or retitle an archived issue
+
+    Args:
+        workspace (str): Workspace slug Example: acme-newsletter.
+        campaign (UUID): The issue's campaign id
+        body (ArchiveIssueInput):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        ArchiveIssueItem | Problem
+     """
+
+
+    return (await asyncio_detailed(
+        workspace=workspace,
+campaign=campaign,
+client=client,
+body=body,
+
+    )).parsed

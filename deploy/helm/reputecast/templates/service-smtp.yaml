@@ -1,0 +1,36 @@
+{{- if .Values.smtpRelay.service.enabled }}
+{{- include "reputecast.validate" . }}
+{{- $s := .Values.smtpRelay.service }}
+{{- $web := include "reputecast.webComponent" . }}
+# The SMTP relay's ports on the pods that run the web role.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "reputecast.fullname" . }}-smtp
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" $web) | nindent 4 }}
+  {{- with $s.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $s.type }}
+  {{- if and (has $s.type (list "LoadBalancer" "NodePort")) $s.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ $s.externalTrafficPolicy }}
+  {{- end }}
+  {{- if and (eq $s.type "LoadBalancer") $s.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml $s.loadBalancerSourceRanges | nindent 4 }}
+  {{- end }}
+  selector:
+    {{- include "reputecast.componentSelector" (dict "root" . "component" $web) | nindent 4 }}
+  ports:
+    - name: smtp-starttls
+      port: {{ .Values.smtpRelay.starttlsPort }}
+      targetPort: smtp-starttls
+      protocol: TCP
+    - name: smtp-tls
+      port: {{ .Values.smtpRelay.tlsPort }}
+      targetPort: smtp-tls
+      protocol: TCP
+{{- end }}

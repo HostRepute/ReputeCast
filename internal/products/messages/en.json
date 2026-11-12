@@ -32,6 +32,7 @@
   "file.mismatch": "This file says .{ext} but contains {content}. Buyers would get a file their computer can't open. Upload the {claimed} itself, or the {actual} with a .{actualExt} name.",
   "file.uploadGone": "That upload stopped and nothing was kept. Choose the file again.",
   "file.offset": "Part of the upload arrived twice. It continues from {offset} bytes.",
+  "file.chunks": "That upload arrived in too many small parts and was stopped. Choose the file again.",
   "file.incomplete": "The upload isn't finished: {have} of {size} bytes arrived.",
   "file.notFound": "That file isn't part of the product any more.",
   "content.pdf": "a PDF",

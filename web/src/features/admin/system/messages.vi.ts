@@ -15,7 +15,7 @@ export default translate(m, {
   tileFailedSub: '{retrying, number} đang thử lại, {givenUp, number} đã bỏ',
   tileDatabase: 'Cơ sở dữ liệu',
   tileDatabaseSub: 'PostgreSQL {version} · {connections, number} / {max, number} kết nối',
-  tileFiles: 'Thư mục tệp',
+  tileFiles: 'Nơi lưu tệp',
   tileFilesSub: '{count, plural, other {# tệp}}',
   tileFilesNone: 'chưa có tệp nào được tải lên',
 
@@ -91,9 +91,18 @@ export default translate(m, {
   colSize: 'Dung lượng',
   colIndexes: 'Trong đó chỉ mục',
 
-  filesTitle: 'Thư mục tệp',
+  filesTitle: 'Nơi lưu tệp',
   filesCaption: 'Tệp tải lên nằm ở đây, không nằm trong cơ sở dữ liệu: hãy sao lưu thư mục này cùng với nó',
+  filesCaptionS3: 'Tệp tải lên nằm trong bucket này, không nằm trong cơ sở dữ liệu: hãy sao lưu bucket cùng với nó',
+  filesStorage: 'Nơi lưu',
+  filesStorageLocal: 'Thư mục cục bộ',
+  filesStorageS3: 'Bucket tương thích S3',
   filesFolder: 'Thư mục',
+  filesBucket: 'Bucket',
+  filesPrefix: 'Tiền tố',
+  filesEndpoint: 'Endpoint',
+  filesEndpointAws: 'AWS S3',
+  filesEndpointAwsRegion: 'AWS S3 · {region}',
   filesHolds: 'Chứa',
   filesHoldsValue: '{count, plural, other {# tệp}} · {size}',
   filesHoldsPartial: 'ít nhất {count, plural, other {# tệp}} · {size} (việc đếm dừng sớm)',
@@ -103,7 +112,8 @@ export default translate(m, {
   filesCountedAt: 'lúc {time} · đếm lại mỗi 5 phút',
   filesShared: 'Nhiều tiến trình',
   filesSharedValue: 'Mọi tiến trình web và worker cần dùng chung một thư mục.',
+  filesSharedValueS3: 'Mọi tiến trình web và worker đọc chung một bucket.',
 
   cliTitle: 'Từ dòng lệnh',
-  cliBody: '{doctor} kiểm tra cơ sở dữ liệu, khoá bí mật và thư mục này sau khi khôi phục; {reseal} chuyển các secret đã lưu sang khoá mới.',
+  cliBody: '{doctor} kiểm tra cơ sở dữ liệu, khoá bí mật và nơi lưu tệp sau khi khôi phục; {reseal} chuyển các secret đã lưu sang khoá mới.',
 })

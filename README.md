@@ -201,9 +201,32 @@ For a server with a domain and TLS, or to run the release binary, follow the
 [self-hosting guide](docs/deploy/README.md). To explore the Acme demo data
 from a checkout, see [CONTRIBUTING.md](CONTRIBUTING.md#development-setup).
 
+### Deploy to a platform
+
+<a href="https://render.com/deploy?repo=https://github.com/hostrepute/reputecast"><img alt="Deploy to Render" src="https://render.com/images/deploy-to-render-button.svg" height="32"></a>
+<a href="https://cloud.digitalocean.com/apps/new?repo=https://github.com/hostrepute/reputecast/tree/main"><img alt="Deploy to DigitalOcean" src="https://www.deploytodo.com/do-btn-blue.svg" height="32"></a>
+
+- **Render** and **DigitalOcean**: the buttons above, from
+  [`render.yaml`](render.yaml) and [`.do/deploy.template.yaml`](.do/deploy.template.yaml).
+  DigitalOcean keeps uploads in a Spaces bucket, since App Platform has no disks.
+- **Railway**: [`deploy/railway`](deploy/railway/README.md).
+- **Coolify**: paste [`deploy/coolify/reputecast.yaml`](deploy/coolify/reputecast.yaml)
+  into a Docker Compose Empty resource.
+- **Kubernetes**: the [Helm chart](deploy/helm/reputecast/README.md), with
+  your own Postgres:
+
+  ```bash
+  helm install reputecast oci://ghcr.io/hostrepute/charts/reputecast \
+    --set publicURL=https://news.example.com \
+    --set database.existingSecret=reputecast-db-app --set admin.email=you@example.com
+  ```
+
+[One-click installs](docs/deploy/README.md#one-click-installs) lists what
+each one needs.
+
 ## Documentation
 
-- [Self-hosting](docs/deploy/README.md): Docker, the binary, commands, upgrades, backups and scaling
+- [Self-hosting](docs/deploy/README.md): Docker, one-click installs, Kubernetes (Helm), the binary, commands, upgrades, backups and scaling
 - [Configuration](docs/deploy/configuration.md) · [Reverse proxy and TLS](docs/deploy/reverse-proxy.md) · [Postgres](docs/deploy/postgres-tuning.md)
 - [API, webhooks and MCP](docs/api/README.md)
 - [Integrations](docs/integrations/hub.md): the Zapier, Make and n8n apps and the WordPress plugin in `integrations/`

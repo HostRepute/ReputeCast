@@ -61,6 +61,7 @@ func newRoot() *cobra.Command {
 		newDemoCmd(o),
 		newOpenAPICmd(),
 		newSecretsCmd(o),
+		newStorageCmd(o),
 		newAdapterCmd(o),
 		newHealthcheckCmd(o),
 		newDoctorCmd(o),

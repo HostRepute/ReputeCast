@@ -1,6 +1,6 @@
 import { createElement, Fragment, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
-import type { CodeLang } from './shared'
+import type { CodeLang, CodeStyle } from './shared'
 
 /**
  * The code samples of the Templates tab, Setup and the first-send guide: a
@@ -15,8 +15,13 @@ export interface CodeInput {
   endpoint: string
   template: string
   variables: Variable[]
-  /** Node.js reads the base URL from RC (the Templates tab's short sample). */
+  /**
+   * The Templates tab's short sample: plain HTTP in Node.js reads the base
+   * URL from RC, an SDK sample leaves out its install line.
+   */
   compact?: boolean
+  /** Node.js, Python and Go through the ReputeCast SDK (default) or plain HTTP; cURL and PHP are always HTTP. */
+  style?: CodeStyle
   /**
    * cURL sends literal values: these (a test data set), else the variables'
    * samples; with tags and metadata when the guide knows how the app calls it.
@@ -74,11 +79,99 @@ function lit(v: string | number, q: '"' | "'" = '"'): string {
   return typeof v === 'number' ? String(v) : quote(v, q)
 }
 
+/** The instance's base URL and the workspace slug of a send endpoint, for the SDKs' clients. */
+function target(endpoint: string): { base: string; workspace: string } {
+  const [, base, workspace] = /^(.*?)\/api\/v1\/workspaces\/([^/]+)\//.exec(endpoint) ?? []
+  return base !== undefined && workspace ? { base, workspace } : { base: endpoint.replace(/\/api\/.*$/, ''), workspace: '' }
+}
+
+/** The same call through the ReputeCast SDK (sdk/client-ts, sdk/client-python, sdk/client-go). */
+function sdkSample(lang: 'node' | 'python' | 'go', s: CodeInput, key: string, ref: string): string {
+  const vars = s.variables
+  const { base, workspace } = target(s.endpoint)
+  switch (lang) {
+    case 'node': {
+      const data = vars.map((v) => {
+        const x = valueOf(v, 'camel')
+        return `        ${v.name}: ${x.expr ?? lit(x.literal!)},`
+      })
+      return [
+        ...(s.compact ? [] : [`// npm install @reputecast/client`]),
+        `import { createClient, unwrap } from "@reputecast/client";`,
+        ``,
+        `const rc = createClient({ baseUrl: ${quote(base)}, apiKey: process.env.REPUTECAST_KEY });`,
+        ``,
+        `const msg = unwrap(`,
+        `  await rc.POST("/api/v1/workspaces/{workspace}/transactional/messages", {`,
+        `    params: {`,
+        `      path: { workspace: ${quote(workspace)} },`,
+        `      header: { "Idempotency-Key": \`${key}-\${user.id}-\${${ref}.id}\` },`,
+        `    },`,
+        `    body: {`,
+        `      template: ${quote(s.template)},`,
+        `      to: { email: user.email, name: user.name },`,
+        ...(data.length ? [`      data: {`, ...data, `      },`] : [`      data: {},`]),
+        `    },`,
+        `  }),`,
+        `);`,
+        `// msg → { id: "0192f1c4-…-2c44", status: "queued" }`,
+      ].join('\n')
+    }
+    case 'python': {
+      const data = vars.map((v) => {
+        const x = valueOf(v, 'snake')
+        return `            ${quote(v.name)}: ${x.expr ?? lit(x.literal!)},`
+      })
+      return [
+        ...(s.compact ? [] : [`# pip install reputecast`]),
+        `import os`,
+        `from reputecast import ReputeCast, unwrap`,
+        `from reputecast.api.transactional_messages import send_transactional_message`,
+        `from reputecast.models import TransactionalSend`,
+        ``,
+        `rc = ReputeCast(os.environ["REPUTECAST_KEY"], base_url=${quote(base)})`,
+        ``,
+        `msg = unwrap(send_transactional_message.sync_detailed(`,
+        `    client=rc,`,
+        `    workspace=${quote(workspace)},`,
+        `    idempotency_key=f"${key}-{user.id}-{${ref}.id}",`,
+        `    body=TransactionalSend.from_dict({`,
+        `        "template": ${quote(s.template)},`,
+        `        "to": {"email": user.email, "name": user.name},`,
+        ...(data.length ? [`        "data": {`, ...data, `        },`] : [`        "data": {},`]),
+        `    }),`,
+        `))`,
+        `# msg.id → "0192f1c4-…", msg.status → "queued"`,
+      ].join('\n')
+    }
+  }
+  const width = Math.max(0, ...vars.map((v) => v.name.length + 2))
+  const data = vars.map((v) => {
+    const x = valueOf(v, 'pascal')
+    const k = `${quote(v.name)}:`.padEnd(width + 1)
+    return `\t\t\t${k} ${x.expr ?? lit(x.literal!)},`
+  })
+  return [
+    ...(s.compact ? [] : [`// go get github.com/hostrepute/reputecast/sdk/client-go`]),
+    `rc, err := reputecast.New(${quote(base)}, os.Getenv("REPUTECAST_KEY"))`,
+    `key := "${key}-" + user.ID + "-" + ${ref}.ID`,
+    `res, err := rc.SendTransactionalMessageWithResponse(ctx, ${quote(workspace)},`,
+    `\t&reputecast.SendTransactionalMessageParams{IdempotencyKey: &key},`,
+    `\treputecast.TransactionalSend{`,
+    `\t\tTemplate: ${quote(s.template)},`,
+    `\t\tTo:       reputecast.TransactionalAddress{Email: user.Email, Name: &user.Name},`,
+    ...(data.length ? [`\t\tData: &map[string]any{`, ...data, `\t\t},`] : []),
+    `\t})`,
+    `// res.JSON202 → {Id: "0192f1c4-…", Status: "queued"}`,
+  ].join('\n')
+}
+
 export function codeSample(lang: CodeLang, s: CodeInput): string {
   const vars = s.variables
   const key = idempotency(s.template)
   // A reset or sign-in link is one per token; other mail one per event.
   const ref = /reset|magic|sign-?in|verif/.test(s.template) ? 'token' : 'event'
+  if (s.style !== 'http' && (lang === 'node' || lang === 'python' || lang === 'go')) return sdkSample(lang, s, key, ref)
   switch (lang) {
     case 'node': {
       const data = vars.map((v) => {
@@ -219,7 +312,7 @@ function masked(v: unknown): string {
 }
 
 const keywords: Record<CodeLang, string[]> = {
-  node: ['const', 'await', 'async', 'let', 'return', 'new'],
+  node: ['const', 'await', 'async', 'let', 'return', 'new', 'import', 'from'],
   python: ['import', 'from', 'return', 'def', 'True', 'False', 'None'],
   go: ['func', 'return', 'var', 'if', 'nil', 'err'],
   php: ['new', 'return'],

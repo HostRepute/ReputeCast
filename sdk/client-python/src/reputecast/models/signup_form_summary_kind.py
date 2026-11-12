@@ -1,0 +1,10 @@
+from enum import StrEnum
+
+class SignupFormSummaryKind(StrEnum):
+    EMBEDDED = "embedded"
+    HOSTED = "hosted"
+    POPUP = "popup"
+    PUSH = "push"
+
+    def __str__(self) -> str:
+        return str(self.value)

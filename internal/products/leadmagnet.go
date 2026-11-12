@@ -3,7 +3,6 @@ package products
 import (
 	"context"
 	"errors"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/blobstore"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -20,7 +20,7 @@ import (
 // Lead magnets (design expansion phase 7): a signup form's "After
 // confirmation: offer a download". The confirmation page offers the file
 // with a link of its own (signed from its id, working for the form's
-// number of days); the file lives on the data volume like products'.
+// number of days); the file lives in the file storage like products'.
 
 // FormDownload is a form's download, for the form builder.
 type FormDownload struct {
@@ -136,7 +136,7 @@ var ErrLinkExpired = errors.New("products: the download link expired")
 // OpenLeadMagnet counts a lead magnet's download and opens its file. The
 // rest of a download (resumes, as OpenFile's) isn't counted again; the
 // link has no limit, only its days.
-func (s *Service) OpenLeadMagnet(ctx context.Context, ws *store.Workspace, token string, resumes Resumes) (store.DownloadFile, *os.File, error) {
+func (s *Service) OpenLeadMagnet(ctx context.Context, ws *store.Workspace, token string, resumes Resumes) (store.DownloadFile, *blobstore.File, error) {
 	if s.Links == nil {
 		return store.DownloadFile{}, nil, ErrNoDownload
 	}
@@ -156,7 +156,7 @@ func (s *Service) OpenLeadMagnet(ctx context.Context, ws *store.Workspace, token
 		return store.DownloadFile{}, nil, ErrNoDownload
 	}
 	// The file first: a download that can't be sent isn't counted.
-	file, err := s.Files.Open(f.StorageKey)
+	file, err := s.Files.Open(ctx, f.StorageKey)
 	if err != nil {
 		return f, nil, err
 	}

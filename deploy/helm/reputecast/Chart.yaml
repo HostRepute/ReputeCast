@@ -1,0 +1,29 @@
+apiVersion: v2
+name: reputecast
+description: Open-source, self-hosted newsletters that reach the inbox. Bring your own Postgres and sending providers.
+type: application
+# The release job stamps both from the tag (v1.7.0 → version 1.7.0, appVersion
+# v1.7.0, the image's tag). A chart from a checkout runs the latest image.
+version: 0.0.0-dev
+appVersion: latest
+kubeVersion: ">=1.29.0-0"
+home: https://reputecast.com
+icon: https://raw.githubusercontent.com/hostrepute/reputecast/main/brand/logo/reputecast-mark.svg
+sources:
+  - https://github.com/hostrepute/reputecast
+keywords:
+  - newsletter
+  - email
+  - email-marketing
+  - transactional-email
+  - amazon-ses
+maintainers:
+  - name: HostRepute
+    url: https://hostrepute.com
+annotations:
+  artifacthub.io/license: AGPL-3.0-only
+  artifacthub.io/links: |
+    - name: Self-hosting guide
+      url: https://github.com/hostrepute/reputecast/blob/main/docs/deploy/README.md
+    - name: Configuration
+      url: https://github.com/hostrepute/reputecast/blob/main/docs/deploy/configuration.md

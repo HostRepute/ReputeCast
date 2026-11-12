@@ -9,7 +9,7 @@ import { links } from './content/links'
 import { APP_LANGUAGE_NAMES, groups } from './sections/AllFeatures'
 import { PLATFORMS, RIVALS, rows, slug } from './sections/Compare'
 import { HERO_COMMAND } from './sections/Hero'
-import { INSTALLED_LINE } from './sections/Install'
+import { DEPLOY_PLATFORMS, HELM_COMMAND, INSTALLED_LINE } from './sections/Install'
 import { formatStars } from './content/stars'
 
 const repoFile = (path: string) => readFileSync(join(import.meta.dirname, '../..', path), 'utf8')
@@ -71,6 +71,39 @@ describe('the prerendered page', () => {
     expect(prerendered().querySelector('#install pre')?.textContent).toContain(`docker compose logs app | grep -A4 "${INSTALLED_LINE}"`)
   })
 
+  it('offers the Helm chart and the platforms next to the Compose command, each from a file in the repository', () => {
+    const install = prerendered().querySelector('#install')!
+    const pres = [...install.querySelectorAll('pre')]
+    expect(pres).toHaveLength(2)
+    expect(pres[1]?.textContent).toBe(HELM_COMMAND)
+    expect(HELM_COMMAND).toContain(`helm install reputecast \\\n  ${links.chartUrl} \\`)
+    expect(links.chartUrl).toBe('oci://ghcr.io/hostrepute/charts/reputecast')
+    expect(repoFile('.github/workflows/release.yml')).toContain('helm push dist/reputecast-*.tgz oci://ghcr.io/hostrepute/charts')
+    // Every value the command sets is one the chart's schema knows.
+    const schema = JSON.parse(repoFile('deploy/helm/reputecast/values.schema.json')) as { properties: Record<string, { properties?: object }> }
+    const sets = [...HELM_COMMAND.matchAll(/--set ([\w.]+)=/g)].map((m) => m[1]!)
+    expect(sets).toEqual(['publicURL', 'database.url', 'admin.email'])
+    for (const path of sets) {
+      const [top, sub] = path.split('.')
+      expect(schema.properties[top!]).toBeDefined()
+      if (sub) expect(schema.properties[top!]?.properties).toHaveProperty(sub)
+    }
+
+    const group = install.querySelector('[role="group"]')!
+    expect(install.querySelector(`#${group.getAttribute('aria-labelledby')}`)?.textContent).toBe('On a platform, with Postgres beside it:')
+    const buttons = [...group.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')])
+    expect(buttons).toEqual(DEPLOY_PLATFORMS.map((p) => [p.name, p.href]))
+    expect(links.render).toBe('https://render.com/deploy?repo=https://github.com/hostrepute/reputecast')
+    expect(links.digitalOcean).toBe('https://cloud.digitalocean.com/apps/new?repo=https://github.com/hostrepute/reputecast/tree/main')
+    // The buttons read these files from the repository; the other two open them.
+    expect(repoFile('render.yaml')).toContain('url: ghcr.io/hostrepute/reputecast:latest')
+    expect(repoFile('.do/deploy.template.yaml')).toMatch(/^spec:$/m)
+    expect(links.railway).toBe(`${links.repo}/tree/main/deploy/railway`)
+    expect(repoFile('deploy/railway/README.md')).toContain('${{Postgres.DATABASE_URL}}')
+    expect(links.coolify).toBe(`${links.repo}/blob/main/deploy/coolify/reputecast.yaml`)
+    expect(repoFile('deploy/coolify/reputecast.yaml')).toMatch(/^# port: 8080$/m)
+  })
+
   it('names every language the app ships in (web/src/i18n/languages.ts)', () => {
     const source = repoFile('web/src/i18n/languages.ts')
     const list = /export const APP_LANGUAGES[^=]*=\s*\[([\s\S]*?)\n\]/.exec(source)?.[1] ?? ''
@@ -81,10 +114,10 @@ describe('the prerendered page', () => {
     expect(prerendered().textContent).toContain(`The app itself in ${APP_LANGUAGE_NAMES.slice(0, -1).join(', ')} and ${APP_LANGUAGE_NAMES.at(-1)}`)
   })
 
-  it('links only to the repository, the docs and HostRepute (there is no hosted demo or Discord server)', () => {
+  it('links only to the repository, the docs, HostRepute and the platforms that deploy it (there is no hosted demo or Discord server)', () => {
     const page = prerendered()
     const hosts = [...page.querySelectorAll('a[href^="http"]')].map((a) => new URL(a.getAttribute('href')!).host)
-    expect([...new Set(hosts)].sort()).toEqual(['docs.reputecast.com', 'github.com', 'hostrepute.com'])
+    expect([...new Set(hosts)].sort()).toEqual(['cloud.digitalocean.com', 'docs.reputecast.com', 'github.com', 'hostrepute.com', 'render.com'])
     for (const a of page.querySelectorAll('a[href^="#"]')) expect(page.querySelector(a.getAttribute('href')!)).not.toBeNull()
   })
 

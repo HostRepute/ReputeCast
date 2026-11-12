@@ -61740,7 +61740,7 @@
         ],
         "type": "object"
       },
-      "PushPromptStatus": {
+      "PushPromptStatusChange": {
         "additionalProperties": false,
         "properties": {
           "status": {
@@ -90534,6 +90534,16 @@
       "SystemFiles": {
         "additionalProperties": false,
         "properties": {
+          "backend": {
+            "enum": [
+              "local",
+              "s3"
+            ],
+            "type": "string"
+          },
+          "bucket": {
+            "type": "string"
+          },
           "bytes": {
             "format": "int64",
             "type": "integer"
@@ -90545,6 +90555,9 @@
           "dir": {
             "type": "string"
           },
+          "endpoint": {
+            "type": "string"
+          },
           "error": {
             "type": "string"
           },
@@ -90553,15 +90566,21 @@
             "type": "integer"
           },
           "missing": {
-            "description": "The folder doesn't exist yet (nothing uploaded)",
+            "description": "The local folder doesn't exist yet (nothing uploaded)",
             "type": "boolean"
           },
           "partial": {
             "type": "boolean"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string"
           }
         },
         "required": [
-          "dir",
+          "backend",
           "files",
           "bytes",
           "countedAt"
@@ -110312,7 +110331,7 @@
             "session": []
           }
         ],
-        "summary": "Background jobs, queues, the database's size and largest tables, and the files folder",
+        "summary": "Background jobs, queues, the database's size and largest tables, and the file storage",
         "tags": [
           "Instance admin · System"
         ],
@@ -171342,7 +171361,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PushPromptStatus"
+                "$ref": "#/components/schemas/PushPromptStatusChange"
               }
             }
           },

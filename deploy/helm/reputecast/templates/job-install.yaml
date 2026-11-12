@@ -1,0 +1,89 @@
+{{- /*
+The first Owner, after the first install only. Without a password Secret the
+Job's log has a temporary password, replaced at first sign-in; the Job stays
+seven days so the log can be read (kubectl logs job/<release>-install).
+*/}}
+{{- if .Values.admin.email }}
+{{- include "reputecast.validate" . }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "reputecast.fullname" . }}-install
+  labels:
+    {{- include "reputecast.componentLabels" (dict "root" . "component" "install") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 1
+  # Long enough to read the temporary password; Helm leaves hooks behind.
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        {{- include "reputecast.componentLabels" (dict "root" . "component" "install") | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "reputecast.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: install
+          image: {{ include "reputecast.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["install"]
+          envFrom:
+            {{- include "reputecast.envFrom" . | nindent 12 }}
+          env:
+            {{- include "reputecast.secretEnv" . | nindent 12 }}
+            - name: REPUTECAST_ADMIN_EMAIL
+              value: {{ .Values.admin.email | quote }}
+            {{- with .Values.admin.name }}
+            - name: REPUTECAST_ADMIN_NAME
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.admin.passwordSecret }}
+            - name: REPUTECAST_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: {{ $.Values.admin.passwordSecretKey }}
+            {{- end }}
+          resources:
+            {{- toYaml (default .Values.resources .Values.migrations.resources) | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
