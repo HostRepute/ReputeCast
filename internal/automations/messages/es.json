@@ -504,5 +504,7 @@
   "webinar.hourBefore.subject": "Empieza en una hora: {title}",
   "webinar.hourBefore.preheader": "Únete desde el enlace de abajo.",
   "webinar.hourBefore.heading": "Empieza en una hora",
-  "webinar.hourBefore.body": "{title} empieza en una hora."
+  "webinar.hourBefore.body": "{title} empieza en una hora.",
+  "trigger.paidPaused": "Pausa los pagos",
+  "trigger.paidResumed": "Reanuda los pagos"
 }

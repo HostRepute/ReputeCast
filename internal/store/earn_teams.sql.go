@@ -205,7 +205,7 @@ func (q *Queries) EarnGroupSeat(ctx context.Context, arg EarnGroupSeatParams) (E
 }
 
 const earnGroupSeatAccept = `-- name: EarnGroupSeatAccept :exec
-UPDATE earn_group_seats SET status = 'active', contact_id = $1, subscription_id = $2, invite_hash = NULL, accepted_at = $3::timestamptz
+UPDATE earn_group_seats SET status = 'active', contact_id = $1, subscription_id = $2, accepted_at = $3::timestamptz
 WHERE id = $4 AND status = 'invited'
 `
 
@@ -216,6 +216,7 @@ type EarnGroupSeatAcceptParams struct {
 	ID             uuid.UUID  `json:"id"`
 }
 
+// The invite's link keeps working once accepted: it shows the welcome.
 func (q *Queries) EarnGroupSeatAccept(ctx context.Context, arg EarnGroupSeatAcceptParams) error {
 	_, err := q.db.Exec(ctx, earnGroupSeatAccept,
 		arg.ContactID,
@@ -604,8 +605,13 @@ func (q *Queries) EarnGroupsOfOwner(ctx context.Context, arg EarnGroupsOfOwnerPa
 
 const earnGroupsOfSubscriptions = `-- name: EarnGroupsOfSubscriptions :many
 SELECT g.id, g.subscription_id, g.name, g.seats, g.ended_at,
-       (SELECT count(*) FROM earn_group_seats x WHERE x.group_id = g.id AND x.status IN ('invited','active'))::bigint AS people
+       (SELECT count(*) FROM earn_group_seats x WHERE x.group_id = g.id AND x.status IN ('invited','active'))::bigint AS people,
+       (SELECT count(*) FROM earn_group_seats x WHERE x.group_id = g.id AND x.status = 'invited')::bigint AS invites,
+       coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), c.email, '')::text AS buyer_name,
+       b.current_period_end AS renews_at
 FROM earn_groups g
+JOIN paid_subscriptions b ON b.id = g.subscription_id
+LEFT JOIN contacts c ON c.id = g.owner_contact_id
 WHERE g.subscription_id = ANY ($1::uuid[])
    OR g.id IN (SELECT s.group_id FROM paid_subscriptions s WHERE s.id = ANY ($1::uuid[]) AND s.group_id IS NOT NULL)
 `
@@ -617,6 +623,9 @@ type EarnGroupsOfSubscriptionsRow struct {
 	Seats          int32      `json:"seats"`
 	EndedAt        *time.Time `json:"endedAt"`
 	People         int64      `json:"people"`
+	Invites        int64      `json:"invites"`
+	BuyerName      string     `json:"buyerName"`
+	RenewsAt       *time.Time `json:"renewsAt"`
 }
 
 // The teams of some subscriptions, as buyer or seat (the members list), with
@@ -637,6 +646,9 @@ func (q *Queries) EarnGroupsOfSubscriptions(ctx context.Context, ids []uuid.UUID
 			&i.Seats,
 			&i.EndedAt,
 			&i.People,
+			&i.Invites,
+			&i.BuyerName,
+			&i.RenewsAt,
 		); err != nil {
 			return nil, err
 		}

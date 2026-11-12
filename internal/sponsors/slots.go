@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -28,12 +29,18 @@ type SlotInput struct {
 	EveryDays    int    `json:"everyDays,omitempty" minimum:"1" maximum:"31" doc:"7 when absent (weekly)."`
 	CreativeDays *int   `json:"creativeDays,omitempty" minimum:"0" maximum:"30" doc:"The creative is due this many days before the issue (4 when absent)."`
 	Selling      *bool  `json:"selling,omitempty"`
+	// Self-serve booking (M65): sponsors book the slot from the sponsor
+	// page. A change that leaves them out keeps the slot's.
+	SelfServe   *bool   `json:"selfServe,omitempty" doc:"Sponsors can book it from the sponsor page (off for a new slot when absent)."`
+	Description *string `json:"description,omitempty" maxLength:"300" doc:"What the sponsor page says about the slot."`
+	LeadDays    *int    `json:"leadDays,omitempty" minimum:"0" maximum:"60" doc:"Sponsors book at least this many days ahead (7 for a new slot when absent)."`
+	PayDays     *int    `json:"payDays,omitempty" minimum:"1" maximum:"14" doc:"Sponsors pay within this many days of the approval (3 for a new slot when absent)."`
 }
 
 func slotItem(r store.SponsorSlotsRow, ws *store.Workspace, bookings int) SponsorSlotItem {
 	it := SponsorSlotItem{ID: r.ID.String(), Name: r.Name, ListID: r.ListID.String(), ListName: r.ListName, Placement: r.Placement, PriceCents: r.PriceCents,
 		Currency: r.Currency, FirstNumber: int(r.FirstNumber), FirstOn: noonOn(r.FirstOn, ws), EveryDays: int(r.EveryDays), CreativeDays: int(r.CreativeDays),
-		Selling: r.Selling, Bookings: bookings}
+		Selling: r.Selling, Bookings: bookings, SelfServe: r.SelfServe, Description: r.Description, LeadDays: int(r.LeadDays), PayDays: int(r.PayDays)}
 	if r.EveryDays == 7 {
 		it.Weekday = civil(r.FirstOn).Weekday().String()
 	}
@@ -45,9 +52,17 @@ func slotOf(r store.SponsorSlotGetRow) store.SponsorSlotsRow {
 	return store.SponsorSlotsRow(r)
 }
 
-func (s *Service) cleanSlot(ctx context.Context, ws *store.Workspace, in SlotInput) (store.SponsorSlotInsertParams, error) {
+// cleanSlot checks a slot's fields; old is the slot a change is for (its
+// self-serve settings stay when the change leaves them out).
+func (s *Service) cleanSlot(ctx context.Context, ws *store.Workspace, in SlotInput, old *store.SponsorSlotGetRow) (store.SponsorSlotInsertParams, error) {
 	out := store.SponsorSlotInsertParams{Name: strings.TrimSpace(in.Name), Placement: strings.TrimSpace(in.Placement), PriceCents: in.PriceCents,
-		FirstNumber: int32(in.FirstNumber), EveryDays: int32(in.EveryDays), CreativeDays: 4, Selling: true}
+		FirstNumber: int32(in.FirstNumber), EveryDays: int32(in.EveryDays), CreativeDays: 4, Selling: true, LeadDays: 7, PayDays: 3}
+	if old != nil {
+		out.SelfServe, out.Description, out.LeadDays, out.PayDays = old.SelfServe, old.Description, old.LeadDays, old.PayDays
+	}
+	if in.Description != nil {
+		out.Description = strings.TrimSpace(*in.Description)
+	}
 	if out.Name == "" {
 		return out, invalid(ctx, "body.name", "problem.slotName", nil)
 	}
@@ -75,6 +90,21 @@ func (s *Service) cleanSlot(ctx context.Context, ws *store.Workspace, in SlotInp
 	if in.Selling != nil {
 		out.Selling = *in.Selling
 	}
+	if in.SelfServe != nil {
+		out.SelfServe = *in.SelfServe
+	}
+	if in.LeadDays != nil {
+		out.LeadDays = int32(*in.LeadDays)
+	}
+	if in.PayDays != nil {
+		out.PayDays = int32(*in.PayDays)
+	}
+	if utf8.RuneCountInString(out.Description) > 300 {
+		return out, invalid(ctx, "body.description", "problem.slotDescription", nil)
+	}
+	if out.SelfServe && out.PriceCents <= 0 {
+		return out, invalid(ctx, "body.priceCents", "problem.selfServePrice", nil)
+	}
 	out.Currency = strings.ToLower(strings.TrimSpace(in.Currency))
 	if out.Currency == "" {
 		out.Currency = s.currency(ctx, ws)
@@ -94,7 +124,7 @@ func (s *Service) currency(ctx context.Context, ws *store.Workspace) string {
 
 // CreateSlot adds a slot.
 func (s *Service) CreateSlot(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SlotInput) (SponsorSlotItem, error) {
-	row, err := s.cleanSlot(ctx, ws, in)
+	row, err := s.cleanSlot(ctx, ws, in, nil)
 	if err != nil {
 		return SponsorSlotItem{}, err
 	}
@@ -106,7 +136,8 @@ func (s *Service) CreateSlot(ctx context.Context, ws *store.Workspace, p *authz.
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "sponsors.slot_created", TargetType: "sponsor_slot", TargetID: row.ID.String(),
 			TargetName: row.Name, After: map[string]any{"list": row.ListID.String(), "placement": row.Placement, "priceCents": row.PriceCents,
-				"firstNumber": row.FirstNumber, "firstOn": row.FirstOn.Format("2006-01-02"), "everyDays": row.EveryDays, "creativeDays": row.CreativeDays}})
+				"firstNumber": row.FirstNumber, "firstOn": row.FirstOn.Format("2006-01-02"), "everyDays": row.EveryDays, "creativeDays": row.CreativeDays,
+				"selfServe": row.SelfServe, "description": row.Description, "leadDays": row.LeadDays, "payDays": row.PayDays}})
 	})
 	if err != nil {
 		return SponsorSlotItem{}, err
@@ -120,7 +151,7 @@ func (s *Service) UpdateSlot(ctx context.Context, ws *store.Workspace, p *authz.
 	if err != nil {
 		return SponsorSlotItem{}, mapErr(ctx, err, "slot")
 	}
-	row, err := s.cleanSlot(ctx, ws, in)
+	row, err := s.cleanSlot(ctx, ws, in, &old)
 	if err != nil {
 		return SponsorSlotItem{}, err
 	}
@@ -128,15 +159,18 @@ func (s *Service) UpdateSlot(ctx context.Context, ws *store.Workspace, p *authz.
 		q := store.New(tx)
 		if err := q.SponsorSlotUpdate(ctx, store.SponsorSlotUpdateParams{ID: id, WorkspaceID: ws.ID, ListID: row.ListID, Name: row.Name, Placement: row.Placement,
 			PriceCents: row.PriceCents, Currency: row.Currency, FirstNumber: row.FirstNumber, FirstOn: row.FirstOn, EveryDays: row.EveryDays,
-			CreativeDays: row.CreativeDays, Selling: row.Selling, At: s.now()}); err != nil {
+			CreativeDays: row.CreativeDays, Selling: row.Selling, SelfServe: row.SelfServe, Description: row.Description, LeadDays: row.LeadDays,
+			PayDays: row.PayDays, At: s.now()}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "sponsors.slot_updated", TargetType: "sponsor_slot", TargetID: id.String(),
 			TargetName: row.Name,
 			Before: map[string]any{"name": old.Name, "placement": old.Placement, "priceCents": old.PriceCents, "firstNumber": old.FirstNumber,
-				"firstOn": old.FirstOn.Format("2006-01-02"), "everyDays": old.EveryDays, "creativeDays": old.CreativeDays, "selling": old.Selling},
+				"firstOn": old.FirstOn.Format("2006-01-02"), "everyDays": old.EveryDays, "creativeDays": old.CreativeDays, "selling": old.Selling,
+				"selfServe": old.SelfServe, "description": old.Description, "leadDays": old.LeadDays, "payDays": old.PayDays},
 			After: map[string]any{"name": row.Name, "placement": row.Placement, "priceCents": row.PriceCents, "firstNumber": row.FirstNumber,
-				"firstOn": row.FirstOn.Format("2006-01-02"), "everyDays": row.EveryDays, "creativeDays": row.CreativeDays, "selling": row.Selling}})
+				"firstOn": row.FirstOn.Format("2006-01-02"), "everyDays": row.EveryDays, "creativeDays": row.CreativeDays, "selling": row.Selling,
+				"selfServe": row.SelfServe, "description": row.Description, "leadDays": row.LeadDays, "payDays": row.PayDays}})
 	})
 	if err != nil {
 		return SponsorSlotItem{}, err
@@ -151,7 +185,7 @@ func (s *Service) DeleteSlot(ctx context.Context, ws *store.Workspace, p *authz.
 		return mapErr(ctx, err, "slot")
 	}
 	var upcoming int
-	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sponsor_bookings WHERE slot_id = $1 AND status IN ('hold','booked') AND issue_on >= $2`, id, s.today(ws)).Scan(&upcoming)
+	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sponsor_bookings WHERE slot_id = $1 AND status IN ('hold','booked','awaiting_payment') AND issue_on >= $2`, id, s.today(ws)).Scan(&upcoming)
 	if upcoming > 0 {
 		return problem(ctx, 409, api.CodeConflict, "problem.slotHasBookings", map[string]any{"name": old.Name, "count": upcoming})
 	}

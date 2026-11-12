@@ -25,6 +25,8 @@ type seatPath struct {
 	api.WorkspaceInput
 	ID     string `path:"id" format:"uuid" doc:"The team buyer's paid subscription id"`
 	SeatID string `path:"seatId" format:"uuid" doc:"Seat id"`
+	// SkipEmail doesn't send "Team access ended" to the person removed.
+	SkipEmail bool `query:"skipEmail"`
 }
 
 type body[T any] struct {
@@ -306,7 +308,14 @@ func Register(h huma.API, s *Service) {
 	api.Delete(h, api.Op{ID: "remove-team-seat", Path: base + "/members/{id}/seats/{seatId}", Summary: "Remove a person from a team: an invite stops working, a seat's access ends now",
 		Tags: tags, Access: manage},
 		func(ctx context.Context, in *seatPath) (*api.Body[EarnMember], error) {
-			out, err := s.RemoveSeat(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.ID, in.SeatID)
+			out, err := s.RemoveSeat(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.ID, in.SeatID, !in.SkipEmail)
+			return api.OK(out), err
+		})
+
+	api.Put(h, api.Op{ID: "save-earn-pausing", Path: base + "/settings/pausing", Summary: "Pausing: the lengths paid members may pause for on the cancel page",
+		Description: "Any of 1, 3 and 6 months; none turns pausing off for members (the team can still pause a member).", Tags: tags, Access: pay},
+		func(ctx context.Context, in *body[EarnPausingInput]) (*api.Body[EarnPausing], error) {
+			out, err := s.SavePausing(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 

@@ -344,3 +344,13 @@ func (s *Service) WelcomeLine(ctx context.Context, ws *store.Workspace, tier *uu
 	}
 	return strings.TrimSpace(rest)
 }
+
+// PublicPriceIn is a price as public pages write it, in a language: "$8 a
+// month" (the cancel page's pause step).
+func PublicPriceIn(l i18n.Lang, cents int64, currency, period string) string {
+	return publicPriceIn(l, cents, currency, period)
+}
+
+// CurrencyNameIn names a currency in a sentence in a language: "US
+// dollars" (the sponsor pages).
+func CurrencyNameIn(l i18n.Lang, code string) string { return currencyNameIn(l, code) }

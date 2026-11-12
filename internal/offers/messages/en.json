@@ -90,5 +90,17 @@
   "referral.discount": { "message": "{type, select, percent {{percent}% off} other {{amount} off}} {duration, select, once {once} months {for {months, plural, one {# month} other {# months}}} other {forever}}", "note": "a referral reward offer's discount in Grow › Referrals (\"100% off for 3 months\"); amount: money with its currency" },
 
   "problem.notFound": "Offer not found.",
-  "sync.unreachable": { "message": "unreachable", "note": "the payment provider didn't answer when an offer was saved there; shown after “Saving in Stripe failed:”" }
+  "sync.unreachable": { "message": "unreachable", "note": "the payment provider didn't answer when an offer was saved there; shown after “Saving in Stripe failed:”" },
+  "cancel.pause.title": "Pause instead",
+  "cancel.pause.text": "Take a break from paying. {tier} stops while it's paused and comes back on its own; the free {free} keeps coming.",
+  "cancel.pause.textNoList": "Take a break from paying. {tier} stops while it's paused and comes back on its own.",
+  "cancel.pause.legend": "How long to pause",
+  "cancel.pause.option": "{months, plural, one {# month} other {# months}}",
+  "cancel.pause.back": "Back on {date}, at {price}. You can pause once in 12 months.",
+  "cancel.pause.button": "Pause for {months, plural, one {# month} other {# months}}",
+  "cancel.paused.title": "{tier} is paused until {date}",
+  "cancel.paused.text": "Nothing is charged until then, and {tier} comes back on its own on {date} at {price}. You still get the free {free}.",
+  "cancel.paused.textNoList": "Nothing is charged until then, and {tier} comes back on its own on {date} at {price}.",
+  "cancel.paused.line": "{name} · {period, select, year {yearly} other {monthly}}",
+  "cancel.paused.range": "Paused {from} to {to} · we've emailed you a link to resume sooner"
 }

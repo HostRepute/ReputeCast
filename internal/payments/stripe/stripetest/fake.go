@@ -743,7 +743,7 @@ func (f *Fake) CompleteCheckout(mode payments.Mode, sessionID string, o Checkout
 	sub := newID("sub")
 	s := obj{"id": sub, "object": "subscription", "customer": cus, "status": "active", "start_date": now, "created": now, "livemode": live,
 		"cancel_at_period_end": false, "cancel_at": nil, "canceled_at": nil, "ended_at": nil, "trial_end": nil, "current_period_end": now + period,
-		"items": obj{"object": "list", "data": []obj{{"id": newID("si"), "quantity": qty, "price": public(price), "current_period_end": now + period}}},
+		"items":    obj{"object": "list", "data": []obj{{"id": newID("si"), "quantity": qty, "price": public(price), "current_period_end": now + period}}},
 		"metadata": cs["metadata"], "discount": nil, "pause_collection": nil}
 	if trial > 0 {
 		s["status"] = "trialing"

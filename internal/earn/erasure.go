@@ -36,6 +36,9 @@ func Erasure() erasure.Source {
 			{Name: "earn_mrr_changes", Action: "keep", Kept: map[string]string{"contact_id": "MRR history; amounts only, the contact is scrubbed"}},
 			{Name: "earn_offer_uses", Action: "keep", Kept: map[string]string{"contact_id": "offer limits and counts; the contact is scrubbed"}},
 			{Name: "earn_cancel_visits", Action: "keep", Kept: map[string]string{"contact_id": "cancel-page counts and chosen reasons; the contact is scrubbed"}},
+			// A team seat (M65): the address invited goes, the seat is removed
+			// and its access ends.
+			{Name: "earn_group_seats", Action: "anonymize", Columns: []string{"email", "contact_id"}},
 		},
 		Guard: func(ctx context.Context, tx pgx.Tx, b *erasure.Batch) (*erasure.Refusal, error) {
 			rows, err := tx.Query(ctx, `SELECT DISTINCT contact_id FROM paid_subscriptions
@@ -60,6 +63,10 @@ func Erasure() erasure.Source {
 				    grant_note = '', failure_reason = '', updated_at = now()
 				 WHERE contact_id = ANY ($1)`,
 				`UPDATE payment_events SET payload = '{}' WHERE contact_id = ANY ($1) AND payload IS NOT NULL`,
+				`UPDATE paid_subscriptions SET status = 'canceled', ended_at = now(), end_reason = 'seat_removed', updated_at = now()
+				 WHERE contact_id = ANY ($1) AND kind = 'group' AND ended_at IS NULL`,
+				`UPDATE earn_group_seats SET email = '', contact_id = NULL, invite_hash = NULL, status = 'removed', removed_at = coalesce(removed_at, now())
+				 WHERE contact_id = ANY ($1) OR (workspace_id = $4 AND lower(email) = ANY ($2))`,
 				`UPDATE earn_checkouts SET email = '' WHERE email <> '' AND (contact_id = ANY ($1) OR (workspace_id = $4 AND lower(email) = ANY ($2)))`,
 				`UPDATE earn_import_rows r SET email = '', name = '', customer_id = '', stripe_customer_id = '', stripe_subscription_id = '', candidates = '[]', subscription = '{}'
 				 WHERE r.contact_id = ANY ($1)
@@ -75,6 +82,8 @@ func Erasure() erasure.Source {
 				FROM paid_events WHERE contact_id = $1 ORDER BY occurred_at`},
 			{Section: "paidCheckouts", Needs: authz.EarnView, SQL: `SELECT mode, period, email, status, offer, created_at, completed_at
 				FROM earn_checkouts WHERE contact_id = $1 ORDER BY created_at`},
+			{Section: "teamSeats", Needs: authz.EarnView, SQL: `SELECT g.name AS team, s.email, s.status, s.invited_at, s.accepted_at, s.removed_at
+				FROM earn_group_seats s JOIN earn_groups g ON g.id = s.group_id WHERE s.contact_id = $1 ORDER BY s.invited_at`},
 		},
 	}
 }

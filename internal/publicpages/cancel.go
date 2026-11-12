@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -43,6 +44,9 @@ func (h *Handler) cancelBody(ctx context.Context, s *site, v offers.CancelView, 
 
 func (h *Handler) renderCancel(w http.ResponseWriter, r *http.Request, s *site, b cancelBody, status int, pl pageLang) {
 	vw := h.earnView(r, s, h.earnTitle(s, b.Heading), b, pl)
+	if b.Pause != nil {
+		vw.Scripts = []string{s.links.Static("pause.js?v=" + h.version)}
+	}
 	// Continue to cancel goes to Stripe's portal.
 	h.render(w, r, s, "cancel", status, vw, csp{formAction: []string{"https://billing.stripe.com"}}, true)
 }
@@ -87,7 +91,8 @@ func (h *Handler) cancelPost(w http.ResponseWriter, r *http.Request) {
 	pl, r := h.earnLinkLang(w, r, s, token, earn.TokenCancel)
 	f := r.PostForm
 	back := h.Earn.PageURL(r.Context(), s.ws, "cancel/"+token+"?done=1")
-	res, err := h.Offers.CancelDecide(r.Context(), s.ws, token, f.Get("visit"), f.Get("reason"), f.Get("decision"), back)
+	months, _ := strconv.Atoi(f.Get("months"))
+	res, err := h.Offers.CancelDecide(r.Context(), s.ws, token, f.Get("visit"), f.Get("reason"), f.Get("decision"), months, back)
 	switch {
 	case errors.Is(err, earn.ErrLinkInvalid):
 		h.notFound(w, r, s)

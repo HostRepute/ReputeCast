@@ -504,5 +504,7 @@
   "webinar.hourBefore.subject": "Starting in an hour: {title}",
   "webinar.hourBefore.preheader": "Join from the link below.",
   "webinar.hourBefore.heading": "Starting in an hour",
-  "webinar.hourBefore.body": "{title} starts in an hour."
+  "webinar.hourBefore.body": "{title} starts in an hour.",
+  "trigger.paidPaused": {"message": "Pauses payments", "note": "A paid member's payments pause until a date (from the cancel page or Earn › Members)"},
+  "trigger.paidResumed": {"message": "Resumes payments", "note": "A paused subscription's payments start again, early or on the resume date"}
 }

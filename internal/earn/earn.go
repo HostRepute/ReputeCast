@@ -180,7 +180,7 @@ type Join struct {
 	// ConsentText, IP, UserAgent and Language are a page's evidence (a
 	// team invite accepted: M65).
 	ConsentText, IP, UserAgent, Language string
-	At                                    time.Time
+	At                                   time.Time
 }
 
 // Service is the Earn domain.

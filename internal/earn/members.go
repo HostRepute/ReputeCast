@@ -125,7 +125,7 @@ type EarnMemberRow struct {
 	PausedAt    *time.Time `json:"pausedAt,omitempty"`
 	PausedUntil *time.Time `json:"pausedUntil,omitempty"`
 	// Team is the buyer's team or a seat holder's.
-	Team *EarnMemberTeam `json:"team,omitempty"`
+	Team     *EarnMemberTeam  `json:"team,omitempty"`
 	LTVCents int64            `json:"ltvCents"`
 	Refunded int64            `json:"refundedCents"`
 	Source   EarnMemberSource `json:"source"`
@@ -388,6 +388,9 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 		r.Next, r.NextAt = "ends", r.CancelAt
 	case r.Kind == "gift":
 		r.Next, r.NextAt = "ends", periodEnd
+	case r.Kind == KindGroup:
+		// A seat lasts with its team's subscription.
+		r.Next = "no_end"
 	default:
 		r.Next, r.NextAt = "renews", periodEnd
 	}
@@ -404,7 +407,7 @@ func (s *Service) tierPeriods(ctx context.Context, wsID uuid.UUID) map[string]bo
 	}
 	seen := map[string]map[string]bool{}
 	for _, p := range prices {
-		if p.Status != "current" {
+		if p.Status != "current" || p.Audience == AudienceGroup {
 			continue
 		}
 		k := p.TierID.String()

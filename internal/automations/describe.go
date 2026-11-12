@@ -46,6 +46,8 @@ var (
 	mTriggerPaidTierChanged   = msg("trigger.paidTierChanged")
 	mTriggerPaidEnded         = msg("trigger.paidEnded")
 	mTriggerPaidTrialEnding   = msg("trigger.paidTrialEnding")
+	mTriggerPaidPaused        = msg("trigger.paidPaused")
+	mTriggerPaidResumed       = msg("trigger.paidResumed")
 	mTriggerOr                = msg("trigger.or")
 	mTriggerOther             = msg("trigger.other")
 	mTriggerLabel             = msg("trigger.label")
@@ -209,6 +211,10 @@ func triggerKindLabel(kind string) i18n.Text {
 		return txt(mTriggerPaidEnded)
 	case TriggerPaidTrialEnding:
 		return txt(mTriggerPaidTrialEnding)
+	case TriggerPaidPaused:
+		return txt(mTriggerPaidPaused)
+	case TriggerPaidResumed:
+		return txt(mTriggerPaidResumed)
 	}
 	return txt(mTriggerOther)
 }
@@ -292,7 +298,7 @@ func triggerRef(t *AutomationTrigger, refs *Refs) i18n.Text {
 			}
 		}
 		return txt(mRefAnEmail)
-	case TriggerPaidStarted, TriggerPaidTierChanged, TriggerPaidEnded, TriggerPaidTrialEnding:
+	case TriggerPaidStarted, TriggerPaidTierChanged, TriggerPaidEnded, TriggerPaidTrialEnding, TriggerPaidPaused, TriggerPaidResumed:
 		return paidTriggerRef(t, refs)
 	}
 	return i18n.Text{}

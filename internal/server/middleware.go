@@ -179,6 +179,11 @@ var secretSegments = []*regexp.Regexp{
 	// An SMS short link's code at the root of a short-link domain
 	// (go.acme.io/Xk7Pq2).
 	regexp.MustCompile(`^(/)[A-Za-z0-9]{6}$`),
+	// A team's manage link and its invites, a paused member's resume link
+	// and a sponsor's booking status (M65), under /p/{workspace}/ and at a
+	// custom domain's root.
+	regexp.MustCompile(`^(/p/[^/]+/(?:team/join|team|resume|sponsor/b)/)[^/]+`),
+	regexp.MustCompile(`^(/(?:team/join|team|resume|sponsor/b)/)[^/]+`),
 }
 
 // rootWords are the instance's own six-letter paths at the root, which a

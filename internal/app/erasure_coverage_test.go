@@ -56,6 +56,7 @@ var erasureExempt = map[string]string{
 	"earn_member_emails":   "a kind of member email, not an address",
 	"earn_settings":        "the publisher's support address",
 	"sponsors":             "a sponsor's business contact",
+	"sponsor_settings":     "the publisher's own address for sponsors",
 	"stores":               "the shop's web address",
 	"wordpress_sites":      "the WordPress site's web address",
 	"webhooks":             "an endpoint's settings (batch_email is a switch, not an address)",

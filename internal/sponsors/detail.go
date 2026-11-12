@@ -36,11 +36,11 @@ func (s *Service) Booking(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		status = "sent"
 	}
 	out := SponsorBookingDetail{ID: b.ID.String(), SlotID: slot.ID.String(), SlotName: slot.Name, ListName: slot.ListName, Placement: slot.Placement,
-		Issue: int(b.IssueNumber), IssueOn: noonOn(b.IssueOn, ws), Status: status, HoldUntil: noonPtr(b.HoldUntil, ws), PriceCents: b.PriceCents,
+		Issue: int(b.IssueNumber), IssueOn: noonOn(b.IssueOn, ws), Status: status, HoldUntil: noonPtr(b.HoldUntil, ws), PaymentDueAt: b.PaymentDueAt, PriceCents: b.PriceCents,
 		SlotPrice: slot.PriceCents, Currency: b.Currency, Creative: parseCreative(b.Creative), CreativeSt: b.CreativeStatus, CreativeDue: noonPtr(b.CreativeDue, ws),
-		ReadyAt: b.ReadyAt, Payment: paymentOf(ws, b.PaymentStatus, b.PaymentDue, b.PaidOn, b.PaidCents, b.PaidNote, today), Notes: b.Notes,
-		Activity: []SponsorBookingEvent{}, Shares: []SponsorShareLink{}, CanceledAt: b.CanceledAt,
-		CanManage: p.Can(authz.SponsorsManage), CanShare: p.Can(authz.ReportsShare), Library: s.libraryRefs(ctx, ws)}
+		ReadyAt: b.ReadyAt, Payment: paymentOf(ws, b.PaymentStatus, b.PaymentDue, b.PaidOn, b.PaidCents, b.PaidNote, b.PaidSource, today), Notes: b.Notes,
+		Activity: []SponsorBookingEvent{}, Shares: []SponsorShareLink{}, CanceledAt: b.CanceledAt, Request: requestFromRaw(b.Request, b.CreatedAt),
+		DeclinedReason: b.DeclinedReason, CanManage: p.Can(authz.SponsorsManage), CanShare: p.Can(authz.ReportsShare), Library: s.libraryRefs(ctx, ws)}
 	if !out.CanManage {
 		out.Helpers = s.helpers(ctx, ws.ID, authz.SponsorsManage, p.UserID, 3)
 	} else {
@@ -79,6 +79,10 @@ func (s *Service) Booking(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			d = map[string]any{}
 		}
 		out.Activity = append(out.Activity, SponsorBookingEvent{Kind: e.Kind, At: e.OccurredAt, Actor: e.ActorName, Data: d})
+		if e.Kind == "approved" && out.Request != nil && out.Request.ApprovedAt == nil {
+			at := e.OccurredAt
+			out.Request.ApprovedBy, out.Request.ApprovedAt = e.ActorName, &at
+		}
 	}
 	if r, err := s.report(ctx, ws, b, slot); err != nil {
 		return out, err

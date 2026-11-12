@@ -61,6 +61,13 @@ type earnSeed struct {
 	monthly []earnRow
 	yearly  []earnRow
 	order   int
+
+	// The team and the pause (M65, seed_earn_teams.go).
+	gMonth, gYear uuid.UUID
+	teamBuyer     earnContact
+	teamPeople    []teamPerson
+	teamContacts  []earnContact
+	err           error
 }
 
 type earnContact struct {
@@ -110,6 +117,12 @@ type earnRow struct {
 	updated    time.Time
 	// billing is a billing email that differs from the contact's.
 	billing string
+	// A team's seats (M65): the quantity and the Stripe item it's on; a
+	// pause: since, until and the last one.
+	quantity     int
+	itemID       string
+	pausedAt     *time.Time
+	pauseResumes *time.Time
 }
 
 // earnDay is a moment of the Earn sample's calendar, where today is Wed 15
@@ -141,7 +154,7 @@ func seedEarnImpl(ctx context.Context, s *Seeder) error {
 		e.marcus = &u.ID
 	}
 	for _, step := range []func(context.Context) error{e.settings, e.connections, e.tiers, e.memberEmails, e.people, e.importRun, e.members,
-		e.write, e.eventLog, e.checkouts, e.visits, e.audit, e.savedView} {
+		e.teamsAndPauses, e.write, e.teamSeats, e.eventLog, e.checkouts, e.visits, e.audit, e.savedView} {
 		if err := step(ctx); err != nil {
 			return err
 		}
@@ -542,9 +555,15 @@ func (e *earnSeed) add(r earnRow) uuid.UUID {
 	cus, sub := "", ""
 	if r.kind == "stripe" {
 		cus, sub = e.cus(), e.sub()
-		if r.key == "sam" {
+		switch r.key {
+		case "sam":
 			cus, sub = "cus_QmT4wE8sLd", "sub_1Q8xRb2Va7"
+		case "team":
+			cus, sub = "cus_R4tLm8QaZp", "sub_1R2kVx9Nt4"
 		}
+	}
+	if r.quantity == 0 {
+		r.quantity = 1
 	}
 	if r.emailed == nil {
 		r.emailed = []string{}
@@ -552,7 +571,7 @@ func (e *earnSeed) add(r earnRow) uuid.UUID {
 	e.subs = append(e.subs, []any{id, e.ws.ID, r.c.id, r.mode, r.kind, r.tier, r.price, r.stripePr, r.status, r.period, r.amount, "usd", discount,
 		r.started, r.trialEnd, r.periodEnd, r.cancelAt, r.canceled, r.canceledBy, r.ended, r.endReason, r.cancelWhy, r.paid, r.refunded, r.failedAt,
 		r.failure, r.retryAt, cus, sub, r.billing, r.srcKind, r.srcCamp, r.srcLabel, mustJSON(r.srcDetail), r.grantWhy, r.grantNote, r.grantedBy, r.grantTill,
-		importID, tp(r.updated), r.emailed, r.started, r.updated})
+		importID, tp(r.updated), r.emailed, r.started, r.updated, r.quantity, r.itemID, r.pausedAt, r.pauseResumes, r.pausedAt})
 	if r.key != "" {
 		e.byKey[r.key] = id
 	}
@@ -1056,7 +1075,8 @@ func (e *earnSeed) write(ctx context.Context) error {
 		"stripe_price_id", "status", "period", "amount_cents", "currency", "discount", "started_at", "trial_end", "current_period_end", "cancel_at", "canceled_at",
 		"canceled_by", "ended_at", "end_reason", "cancel_reason", "paid_cents", "refunded_cents", "failed_at", "failure_reason", "next_retry_at",
 		"stripe_customer_id", "stripe_subscription_id", "billing_email", "source_kind", "source_campaign_id", "source_label", "source_detail", "grant_reason",
-		"grant_note", "granted_by", "grant_until", "import_id", "stripe_synced_at", "emailed", "created_at", "updated_at"}, pgx.CopyFromRows(e.subs)); err != nil {
+		"grant_note", "granted_by", "grant_until", "import_id", "stripe_synced_at", "emailed", "created_at", "updated_at",
+		"quantity", "stripe_item_id", "paused_at", "pause_resumes_at", "last_paused_at"}, pgx.CopyFromRows(e.subs)); err != nil {
 		return fmt.Errorf("paid subscriptions: %w", err)
 	}
 	// The demo's members paid, or ended, before today: they are history to
@@ -1111,6 +1131,9 @@ func (e *earnSeed) eventLog(ctx context.Context) error {
 	add(s.earnDay(2026, 10, 12, 14, 22), "invoice.paid", "ben", i64(400), "renewed", map[string]any{"tier": "Weekly Digest Insider", "period": "month", "offer": "Stay for half price"})
 	add(s.earnDay(2026, 10, 12, 11, 5), "customer.subscription.updated", "olga", nil, "cancel_scheduled", map[string]any{"date": s.earnDay(2026, 11, 2, 18, 30).UTC().Format(time.RFC3339),
 		"reason": "not_reading"})
+	// Chloé Martin's pause (M65), asked by Marcus Chen from her panel.
+	add(s.earnDay(2026, 10, 12, 10, 20), "customer.subscription.updated", "paused", nil, "paused", map[string]any{"until": s.earnDay(2027, 1, 12, 10, 20).UTC().Format(time.RFC3339),
+		"by": "Marcus Chen"})
 	// The rest of the last 24 hours, so the day reads 71 events: invoice.paid
 	// 52, customer.subscription.updated 9, invoice.upcoming 6,
 	// customer.subscription.trial_will_end 3, invoice.payment_failed 1.
@@ -1124,8 +1147,8 @@ func (e *earnSeed) eventLog(ctx context.Context) error {
 			rows = append(rows, e.generated(s.Now.Add(-time.Duration(12+k*19)*time.Minute), d.typ, k))
 		}
 	}
-	// The six days before: 415 more, 486 in the week.
-	for i := 0; i < 415; i++ {
+	// The six days before: 414 more and the pause, 486 in the week.
+	for i := 0; i < 414; i++ {
 		typ := "invoice.paid"
 		switch {
 		case i%10 == 6:

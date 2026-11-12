@@ -504,5 +504,7 @@
   "webinar.hourBefore.subject": "Bắt đầu sau một giờ: {title}",
   "webinar.hourBefore.preheader": "Tham gia từ liên kết bên dưới.",
   "webinar.hourBefore.heading": "Bắt đầu sau một giờ",
-  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ."
+  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ.",
+  "trigger.paidPaused": "Tạm dừng thanh toán",
+  "trigger.paidResumed": "Tiếp tục thanh toán"
 }

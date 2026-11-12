@@ -193,6 +193,9 @@ func (s *Service) paidEvent(ctx context.Context, q *store.Queries, ws *store.Wor
 	if row.TrialEnd != nil {
 		vars["trial_ends_at"] = longDate(ws, *row.TrialEnd)
 	}
+	if kind == AutomationPaidPaused && row.PauseResumesAt != nil {
+		vars["resumes_at"] = longDate(ws, *row.PauseResumesAt)
+	}
 	payload := map[string]any{"tier_id": tier.id, "tier": tier.name, "liquid": map[string]any{"subscription": vars}}
 	maps.Copy(payload, extra)
 	b, err := json.Marshal(payload)

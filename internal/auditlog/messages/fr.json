@@ -342,5 +342,6 @@
   "type.whatsapp_settings": "paramètres WhatsApp",
   "type.whatsapp_templates": "modèles WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "espace de travail"
+  "type.workspace": "espace de travail",
+  "type.sponsor_settings": "réglages de la page sponsors"
 }

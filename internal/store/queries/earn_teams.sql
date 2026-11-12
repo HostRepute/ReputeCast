@@ -65,7 +65,8 @@ UPDATE earn_group_seats SET invite_hash = @invite_hash, invite_sent_at = @at, in
 WHERE id = @id AND status = 'invited';
 
 -- name: EarnGroupSeatAccept :exec
-UPDATE earn_group_seats SET status = 'active', contact_id = @contact_id, subscription_id = @subscription_id, invite_hash = NULL, accepted_at = @at::timestamptz
+-- The invite's link keeps working once accepted: it shows the welcome.
+UPDATE earn_group_seats SET status = 'active', contact_id = @contact_id, subscription_id = @subscription_id, accepted_at = @at::timestamptz
 WHERE id = @id AND status = 'invited';
 
 -- name: EarnGroupSeatRemove :exec
@@ -103,8 +104,13 @@ ORDER BY g.created_at DESC;
 -- The teams of some subscriptions, as buyer or seat (the members list), with
 -- the people in each.
 SELECT g.id, g.subscription_id, g.name, g.seats, g.ended_at,
-       (SELECT count(*) FROM earn_group_seats x WHERE x.group_id = g.id AND x.status IN ('invited','active'))::bigint AS people
+       (SELECT count(*) FROM earn_group_seats x WHERE x.group_id = g.id AND x.status IN ('invited','active'))::bigint AS people,
+       (SELECT count(*) FROM earn_group_seats x WHERE x.group_id = g.id AND x.status = 'invited')::bigint AS invites,
+       coalesce(nullif(trim(c.first_name || ' ' || c.last_name), ''), c.email, '')::text AS buyer_name,
+       b.current_period_end AS renews_at
 FROM earn_groups g
+JOIN paid_subscriptions b ON b.id = g.subscription_id
+LEFT JOIN contacts c ON c.id = g.owner_contact_id
 WHERE g.subscription_id = ANY (@ids::uuid[])
    OR g.id IN (SELECT s.group_id FROM paid_subscriptions s WHERE s.id = ANY (@ids::uuid[]) AND s.group_id IS NOT NULL);
 

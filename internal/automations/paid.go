@@ -25,6 +25,11 @@ const (
 	TriggerPaidTierChanged = "paid_tier_changed"
 	TriggerPaidEnded       = "paid_ended"
 	TriggerPaidTrialEnding = "paid_trial_ending"
+	// TriggerPaidPaused and TriggerPaidResumed (M65): the subscription's
+	// payments paused ({{ subscription.resumes_at }} says until when), and
+	// started again.
+	TriggerPaidPaused  = "paid_paused"
+	TriggerPaidResumed = "paid_resumed"
 )
 
 // paidEndReasons are the reasons "Stops paying" can be limited to, in the
@@ -32,7 +37,8 @@ const (
 var paidEndReasons = []string{"canceled", "payment_failed", "trial_ended"}
 
 func isPaidTrigger(kind string) bool {
-	return kind == TriggerPaidStarted || kind == TriggerPaidTierChanged || kind == TriggerPaidEnded || kind == TriggerPaidTrialEnding
+	return kind == TriggerPaidStarted || kind == TriggerPaidTierChanged || kind == TriggerPaidEnded || kind == TriggerPaidTrialEnding ||
+		kind == TriggerPaidPaused || kind == TriggerPaidResumed
 }
 
 // AutomationTierOption is a paid tier a paid-member trigger can name.

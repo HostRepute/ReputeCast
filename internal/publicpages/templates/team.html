@@ -1,0 +1,47 @@
+{{define "content"}}{{with .Body}}{{$v := .View}}{{$w := $v.Words}}{{if $v.TestMode}}<div class="ea-ribbon" role="note">{{index $w "testRibbon"}}</div>
+{{end}}<main class="tm" id="main">
+  <div class="ea-top">{{template "brand" $}}<a href="{{.BackHref}}">{{index $w "back"}}</a></div>
+  <section class="card tm-card" aria-labelledby="tm-h">
+    <div class="col6"><h1 class="tm-h1" id="tm-h">{{$v.Heading}}</h1><p class="tm-lead">{{$v.Intro}}</p></div>
+    {{if $v.Errors}}<div class="tm-box bad" role="alert"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 4.8v3.6M8 10.9v.1"></path></svg><div class="col4"><strong>{{$v.ErrorsTitle}}</strong><span>{{index $w "errorsText"}}</span></div></div>
+    {{end}}{{with $v.Notice}}<div class="tm-box {{.Tone}}" role="{{if eq .Tone "bad"}}alert{{else}}status{{end}}"><div class="col4">{{with .Title}}<strong>{{.}}</strong>{{end}}<span>{{.Text}}</span></div></div>
+    {{end}}{{if $v.TestMode}}<p class="pnote">{{index $w "testNote"}}</p>
+    {{end}}<form class="tm-form" method="post" action="{{.Action}}" novalidate data-team-form>
+      <input type="hidden" name="period" value="{{$v.Period}}">
+      {{with .Token}}<input type="hidden" name="r" value="{{.}}">{{end}}
+      {{with .Test}}<input type="hidden" name="test" value="{{.}}">{{end}}
+      {{if $v.Toggle}}<nav class="tm-period" aria-label="{{index $w "billingPeriod"}}">
+        <a href="{{.MonthHref}}"{{if eq $v.Period "month"}} aria-current="true"{{end}}>{{$v.Monthly}}</a>
+        <a href="{{.YearHref}}"{{if eq $v.Period "year"}} aria-current="true"{{end}}>{{$v.Yearly}}{{with $v.Saving}} <span class="sv">· {{.}}</span>{{end}}</a>
+      </nav>
+      {{end}}<fieldset class="tm-fs">
+        <legend>{{index $w "seats"}}</legend>
+        <div class="tm-step">
+          <button class="tm-sb" type="button" data-step="-1" aria-label="{{index $w "fewer"}}" aria-controls="tm-seats"{{if $.Preview}} disabled{{end}}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10"></path></svg></button>
+          <input class="tm-in tm-num num" id="tm-seats" type="number" name="seats" inputmode="numeric" min="{{$v.SeatsMin}}" max="{{$v.SeatsMax}}" value="{{$v.SeatsText}}" aria-label="{{index $w "seats"}}" aria-describedby="{{if index $v.Errors "seats"}}tm-seats-err {{end}}tm-seats-hint"{{if index $v.Errors "seats"}} aria-invalid="true"{{end}}>
+          <button class="tm-sb" type="button" data-step="1" aria-label="{{index $w "more"}}" aria-controls="tm-seats"{{if $.Preview}} disabled{{end}}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3 8h10"></path></svg></button>
+        </div>
+        {{with index $v.Errors "seats"}}<span class="tm-err" id="tm-seats-err">{{.}}</span>{{end}}
+        <span class="pnote" id="tm-seats-hint">{{$v.SeatsHint}}</span>
+      </fieldset>
+      <label class="tm-lbl"><span>{{index $w "teamName"}}</span><input class="tm-in" type="text" name="team" value="{{$v.Team}}" maxlength="80" autocomplete="organization" placeholder="{{index $w "teamNamePlaceholder"}}" aria-describedby="{{if index $v.Errors "team"}}tm-team-err {{end}}tm-team-hint"{{if index $v.Errors "team"}} aria-invalid="true"{{end}}>
+        {{with index $v.Errors "team"}}<span class="tm-err" id="tm-team-err">{{.}}</span>{{end}}<span class="tm-hint" id="tm-team-hint">{{index $w "teamNameHint"}}</span></label>
+      <label class="tm-lbl"><span>{{index $w "email"}}</span><input class="tm-in" type="email" name="email" value="{{$v.Email}}" maxlength="254" autocomplete="email" placeholder="{{index $w "emailPlaceholder"}}" aria-describedby="{{if index $v.Errors "email"}}tm-email-err {{end}}tm-email-hint"{{if index $v.Errors "email"}} aria-invalid="true"{{end}}>
+        {{with index $v.Errors "email"}}<span class="tm-err" id="tm-email-err">{{.}}</span>{{end}}<span class="tm-hint" id="tm-email-hint">{{index $w "emailHint"}}</span></label>
+      <div class="tm-sum" aria-live="polite" data-team-total data-unit="{{$v.UnitCents}}" data-sym="{{$v.MoneySymbol}}" data-whole="{{$v.MoneyWhole}}" data-min="{{$v.SeatsMin}}" data-max="{{$v.SeatsMax}}" data-one="{{index $v.TimesForms "one"}}" data-other="{{index $v.TimesForms "other"}}" data-lang="{{$.Lang}}">
+        {{if $v.TotalHint}}<span class="tm-sum-l"><b>{{$v.UnitText}}</b> · {{$v.TotalHint}}</span>
+        {{else}}<div class="tm-sum-r"><span class="tm-sum-l"><b>{{$v.UnitText}}</b> <span data-times>{{$v.Times}}</span></span><span class="tm-total"><span class="num tm-amt" data-amount>{{$v.Total}}</span><span class="tm-per">{{$v.Per}}</span></span></div>
+        <span class="pnote">{{$v.Renews}}</span>{{end}}
+      </div>
+      <div class="hp" aria-hidden="true"><label>{{$.T "form.honeypot"}} <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <button class="btn-pri" type="submit"{{if or $.Preview $v.Unavailable}} disabled{{end}}>{{index $w "continue"}}</button>
+      <span class="pnote tm-c">{{index $w "secure"}}</span>
+    </form>
+  </section>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.TermsURL}}<a href="{{.}}">{{$.Body.TermsLabel}}</a>{{end}}
+  {{- if and .Body.TermsURL .Privacy}}{{template "sep"}}{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
+  {{- if and (or .Body.TermsURL .Privacy) .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

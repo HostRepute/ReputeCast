@@ -1,0 +1,30 @@
+{{define "content"}}{{with .Body}}{{$v := .View}}<main class="tm" id="main">
+  <section class="card tm-card" aria-labelledby="jn-t">
+    {{template "brand" $}}
+    {{if or (eq $v.State "ask") (eq $v.State "accepted") (eq $v.State "full")}}<div class="tm-hero{{if eq $v.State "full"}} s22{{end}}">
+      <span class="tm-icon {{if eq $v.State "accepted"}}ok{{else}}pub{{end}}">{{if eq $v.State "accepted"}}<svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg>{{else}}<svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg>{{end}}</span>
+      <h1 class="tm-h1" id="jn-t">{{$v.Heading}}</h1>
+      {{if ne $v.State "full"}}<p class="tm-lead">{{$v.Text}}</p>{{end}}
+    </div>
+    {{if eq $v.State "full"}}<p class="tm-lead">{{$v.Text}}</p>{{end}}
+    {{if $v.Benefits}}<section class="tm-sec" aria-label="{{$v.Included}}">
+      <span class="tm-label">{{$v.Included}}</span>
+      <ul class="tm-ben">{{range $v.Benefits}}<li><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.5 3.5L13 5"></path></svg><span>{{.}}</span></li>{{end}}</ul>
+    </section>
+    {{end}}{{if eq $v.State "ask"}}<form class="tm-form g12" method="post" action="{{.Action}}">
+      <span class="pnote">{{$v.Consent}}</span>
+      <button class="btn-pri" type="submit"{{if $.Preview}} disabled{{end}}>{{$v.Button}}</button>
+    </form>
+    {{with $v.Ignore}}<p class="tm-div">{{.}}</p>{{end}}
+    {{else if eq $v.State "accepted"}}<span class="pnote">{{$v.Note}}</span>
+    {{end}}{{else}}<h1 class="tm-h1 s24" id="jn-t">{{$v.Heading}}</h1>
+    <p class="tm-lead">{{$v.Text}}</p>
+    {{end}}
+  </section>
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.TermsURL}}<a href="{{.}}">{{$.Body.TermsLabel}}</a>{{end}}
+  {{- if and .Body.TermsURL .Privacy}}{{template "sep"}}{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
+  {{- if and (or .Body.TermsURL .Privacy) .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

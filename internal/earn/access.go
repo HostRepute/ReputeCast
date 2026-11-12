@@ -703,7 +703,7 @@ func (s *Service) MapPrice(ctx context.Context, ws *store.Workspace, p *authz.Pr
 				return err
 			}
 			for _, pr := range prices {
-				if pr.Period == period && pr.Status == "current" {
+				if pr.Period == period && pr.Status == "current" && pr.Audience != AudienceGroup {
 					if err := q.EarnPriceRetire(ctx, store.EarnPriceRetireParams{ID: pr.ID, At: &now}); err != nil {
 						return err
 					}

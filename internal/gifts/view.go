@@ -353,7 +353,7 @@ func (s *Service) tiers(ctx context.Context, ws *store.Workspace) ([]GiftTier, e
 		}
 		g := GiftTier{ID: t.ID.String(), Name: t.Name, Short: s.tierShort(ctx, t.Name, t.ListIds)}
 		for _, pr := range prices {
-			if pr.TierID != t.ID || pr.Status != "current" {
+			if pr.TierID != t.ID || pr.Status != "current" || pr.Audience == "group" {
 				continue
 			}
 			switch pr.Period {

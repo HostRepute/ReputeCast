@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -202,10 +203,12 @@ func (s *Service) seatsOverEmail(ctx context.Context, q *store.Queries, ws *stor
 // EarnGroupPriceInput is a tier's group prices: per seat, for seatsMin to
 // seatsMax seats (2–1000). An amount of 0 turns that period off.
 type EarnGroupPriceInput struct {
+	// Off removes the tier's group prices (teams that pay them keep them).
+	Off      bool  `json:"off,omitempty"`
 	Monthly  int64 `json:"monthly,omitempty" minimum:"0" maximum:"10000000" doc:"Per seat per month, in minor units"`
 	Yearly   int64 `json:"yearly,omitempty" minimum:"0" maximum:"100000000" doc:"Per seat per year, in minor units"`
-	SeatsMin int   `json:"seatsMin" minimum:"2" maximum:"1000"`
-	SeatsMax int   `json:"seatsMax" minimum:"2" maximum:"1000"`
+	SeatsMin int   `json:"seatsMin,omitempty" minimum:"0" maximum:"1000"`
+	SeatsMax int   `json:"seatsMax,omitempty" minimum:"0" maximum:"1000"`
 }
 
 // EarnGroupPrices is a tier's group prices.
@@ -221,7 +224,7 @@ type EarnGroupPrices struct {
 
 // validateGroup checks a tier's group prices.
 func validateGroup(ctx context.Context, g *EarnGroupPriceInput) error {
-	if g == nil {
+	if g == nil || g.Off {
 		return nil
 	}
 	if g.Monthly <= 0 && g.Yearly <= 0 {
@@ -297,24 +300,25 @@ func deref32(p *int32) int32 {
 
 // TeamCheckoutRequest is a team's checkout from the team page.
 type TeamCheckoutRequest struct {
-	Tier      string // the tier's slug
-	Period    string
-	Seats     int
+	Tier   string // the tier's slug
+	Period string
+	// Seats is the number typed (the stepper's).
+	Seats     string
 	Team      string
 	Email     string
 	Token     string
 	TestToken string
+	// Lang is the page's: the form's errors are written in it.
+	Lang i18n.Lang
 }
 
-// TeamFormError is a field the team page's form got wrong, with its
-// sentence in the page's language.
+// TeamFormError is what the team page's form got wrong: a sentence per
+// field, in the page's language.
 type TeamFormError struct {
-	Field string
-	Key   string
-	Args  i18n.Args
+	Fields map[string]string
 }
 
-func (e *TeamFormError) Error() string { return "earn: team form: " + e.Field }
+func (e *TeamFormError) Error() string { return "earn: the team form has errors" }
 
 // teamTier finds the tier a team page sells: by slug, not archived, with a
 // group price in the mode.
@@ -373,25 +377,34 @@ func (s *Service) StartTeamCheckout(ctx context.Context, ws *store.Workspace, r 
 	}
 	team := strings.TrimSpace(r.Team)
 	email := strings.ToLower(strings.TrimSpace(r.Email))
-	min, max := int(deref32(p.price.SeatsMin)), int(deref32(p.price.SeatsMax))
+	lo, hi := int(deref32(p.price.SeatsMin)), int(deref32(p.price.SeatsMax))
+	seats, serr := strconv.Atoi(strings.TrimSpace(r.Seats))
+	bad := map[string]string{}
+	if serr != nil || seats < lo || seats > hi {
+		bad["seats"] = s.t(r.Lang, "team.form.seats", i18n.Args{"min": lo, "max": hi})
+	}
 	switch {
-	case team == "" || len([]rune(team)) > 80:
-		return "", &TeamFormError{Field: "team", Key: "team.form.teamName"}
-	case !emailaddr.Valid(email):
-		return "", &TeamFormError{Field: "email", Key: "team.form.email"}
-	case r.Seats < min || r.Seats > max:
-		return "", &TeamFormError{Field: "seats", Key: "team.form.seats", Args: i18n.Args{"min": min, "max": max}}
+	case team == "":
+		bad["team"] = s.t(r.Lang, "team.form.teamName", nil)
+	case len([]rune(team)) > 80:
+		bad["team"] = s.t(r.Lang, "team.form.teamLong", nil)
+	}
+	if !emailaddr.Valid(email) {
+		bad["email"] = s.t(r.Lang, "team.form.email", nil)
+	}
+	if len(bad) > 0 {
+		return "", &TeamFormError{Fields: bad}
 	}
 	st, err := s.settingsRow(ctx, s.Q, ws.ID)
 	if err != nil {
 		return "", err
 	}
 	chkID := newID()
-	req := payments.CheckoutRequest{PriceID: p.stripeID, Quantity: r.Seats, Business: true, AllowCodes: true, Tax: st.TaxAtCheckout && conn.TaxEnabled,
+	req := payments.CheckoutRequest{PriceID: p.stripeID, Quantity: seats, Business: true, AllowCodes: true, Tax: st.TaxAtCheckout && conn.TaxEnabled,
 		CustomerEmail: email, ClientRef: chkID.String(),
 		SuccessURL: s.pageURL(ctx, ws, "upgrade/welcome?session={CHECKOUT_SESSION_ID}"),
 		CancelURL:  s.pageURL(ctx, ws, "upgrade/"+t.Slug+"/team") + "?canceled=1",
-		Metadata: map[string]string{"reputecast_checkout": chkID.String(), "reputecast_tier": t.ID.String(), MetaGroup: "1", MetaTeam: team}}
+		Metadata:   map[string]string{"reputecast_checkout": chkID.String(), "reputecast_tier": t.ID.String(), MetaGroup: "1", MetaTeam: team}}
 	attribution := map[string]any{"kind": "page"}
 	var contact *uuid.UUID
 	if ct, claims, ok := s.readerOf(ctx, ws, r.Token); ok {
@@ -410,7 +423,7 @@ func (s *Service) StartTeamCheckout(ctx context.Context, ws *store.Workspace, r 
 	now := s.now()
 	pid := p.price.ID
 	if err := s.Q.EarnCheckoutInsert(ctx, store.EarnCheckoutInsertParams{ID: chkID, WorkspaceID: ws.ID, Mode: conn.Mode, TierID: &t.ID, PriceID: &pid, Period: r.Period,
-		ContactID: contact, Email: email, Status: "open", Attribution: attr, CreatedAt: now, Quantity: ptr(int32(r.Seats)), TeamName: &team}); err != nil {
+		ContactID: contact, Email: email, Status: "open", Attribution: attr, CreatedAt: now, Quantity: ptr(int32(seats)), TeamName: &team}); err != nil {
 		return "", err
 	}
 	client, err := s.open(conn.PaymentConnection)
@@ -440,6 +453,8 @@ type EarnTeamSeat struct {
 	Status     string     `json:"status" enum:"buyer,invited,active"`
 	InvitedAt  time.Time  `json:"invitedAt"`
 	AcceptedAt *time.Time `json:"acceptedAt,omitempty"`
+	// InviteExpiresAt is when an invite stops working.
+	InviteExpiresAt *time.Time `json:"inviteExpiresAt,omitempty"`
 	// MemberID opens an active seat holder's own panel.
 	MemberID string `json:"memberId,omitempty"`
 }
@@ -454,8 +469,16 @@ type EarnMemberTeam struct {
 	// Used counts the buyer and every invited or active seat.
 	Used  int        `json:"used"`
 	Ended *time.Time `json:"endedAt,omitempty"`
-	// BuyerID opens the buyer's panel from a seat holder's.
-	BuyerID string `json:"buyerId,omitempty"`
+	// BuyerID opens the buyer's panel from a seat holder's; BuyerName
+	// names them. Invites counts the invites still open.
+	BuyerID   string `json:"buyerId,omitempty"`
+	BuyerName string `json:"buyerName,omitempty"`
+	Invites   int    `json:"invites"`
+	// RenewsAt is when the team's subscription renews (its seats last
+	// with it).
+	RenewsAt *time.Time `json:"renewsAt,omitempty"`
+	// SeatID is a seat holder's seat (Remove seat from their panel).
+	SeatID string `json:"seatId,omitempty"`
 }
 
 // teamsOf names the teams of a page of members, by subscription id.
@@ -472,25 +495,29 @@ func (s *Service) teamsOf(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]*
 	for _, r := range rows {
 		byGroup[r.ID] = r
 		if slices.Contains(ids, r.SubscriptionID) {
-			out[r.SubscriptionID] = &EarnMemberTeam{ID: r.ID.String(), Name: r.Name, Role: "buyer", Seats: int(r.Seats), Used: int(r.People) + 1, Ended: r.EndedAt}
+			out[r.SubscriptionID] = &EarnMemberTeam{ID: r.ID.String(), Name: r.Name, Role: "buyer", Seats: int(r.Seats), Used: int(r.People) + 1, Ended: r.EndedAt,
+				Invites: int(r.Invites), BuyerName: r.BuyerName, RenewsAt: r.RenewsAt}
 		}
 	}
 	if len(byGroup) == 0 {
 		return out, nil
 	}
-	seats, err := s.Pool.Query(ctx, `SELECT id, group_id FROM paid_subscriptions WHERE id = ANY($1) AND group_id IS NOT NULL AND kind = 'group'`, ids)
+	seats, err := s.Pool.Query(ctx, `SELECT s.id, s.group_id, coalesce(g.id::text, '') FROM paid_subscriptions s
+		LEFT JOIN earn_group_seats g ON g.subscription_id = s.id AND g.status = 'active'
+		WHERE s.id = ANY($1) AND s.group_id IS NOT NULL AND s.kind = 'group'`, ids)
 	if err != nil {
 		return nil, err
 	}
 	defer seats.Close()
 	for seats.Next() {
 		var id, gid uuid.UUID
-		if err := seats.Scan(&id, &gid); err != nil {
+		var seat string
+		if err := seats.Scan(&id, &gid, &seat); err != nil {
 			return nil, err
 		}
 		if r, ok := byGroup[gid]; ok {
 			out[id] = &EarnMemberTeam{ID: r.ID.String(), Name: r.Name, Role: "seat", Seats: int(r.Seats), Used: int(r.People) + 1, Ended: r.EndedAt,
-				BuyerID: r.SubscriptionID.String()}
+				BuyerID: r.SubscriptionID.String(), BuyerName: r.BuyerName, Invites: int(r.Invites), RenewsAt: r.RenewsAt, SeatID: seat}
 		}
 	}
 	return out, seats.Err()
@@ -512,7 +539,7 @@ func (s *Service) teamSeats(ctx context.Context, buyer store.PaidSubscription, b
 	}
 	for _, r := range rows {
 		seat := EarnTeamSeat{ID: r.ID.String(), Email: r.Email, Name: strings.TrimSpace(r.FirstName + " " + r.LastName), Status: r.Status, InvitedAt: r.InvitedAt,
-			AcceptedAt: r.AcceptedAt}
+			AcceptedAt: r.AcceptedAt, InviteExpiresAt: r.InviteExpiresAt}
 		if r.SubscriptionID != nil {
 			seat.MemberID = r.SubscriptionID.String()
 		}
@@ -526,7 +553,7 @@ func (s *Service) teamSeats(ctx context.Context, buyer store.PaidSubscription, b
 
 // RemoveSeat removes a person from a team from Earn › Members (the
 // buyer's panel): an invite stops working, an active seat's access ends now.
-func (s *Service) RemoveSeat(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID, seatID string) (EarnMember, error) {
+func (s *Service) RemoveSeat(ctx context.Context, ws *store.Workspace, p *authz.Principal, memberID, seatID string, email bool) (EarnMember, error) {
 	sid, err1 := uuid.Parse(memberID)
 	seat, err2 := uuid.Parse(seatID)
 	if err1 != nil || err2 != nil {
@@ -555,7 +582,9 @@ func (s *Service) RemoveSeat(ctx context.Context, ws *store.Workspace, p *authz.
 		return EarnMember{}, err
 	}
 	for _, m := range emails {
-		s.sendMemberEmail(ctx, ws, buyer.Mode, m, nil)
+		if email {
+			s.sendMemberEmail(ctx, ws, buyer.Mode, m, nil)
+		}
 	}
 	return s.Member(ctx, ws, p, buyer.ID.String())
 }
@@ -602,4 +631,36 @@ func (s *Service) removeSeat(ctx context.Context, q *store.Queries, ws *store.Wo
 		}
 	}
 	return row, out, nil
+}
+
+// groupView adds a current group price to a tier's group prices.
+func (s *Service) groupView(g *EarnGroupPrices, p store.EarnPrice, mode payments.Mode, counts map[string]int64) *EarnGroupPrices {
+	if g == nil {
+		g = &EarnGroupPrices{}
+	}
+	ep := EarnPrice{ID: p.ID.String(), Period: p.Period, AmountCents: p.AmountCents, Currency: p.Currency, Status: p.Status, StripeLiveID: p.StripeLiveID,
+		StripeTestID: p.StripeTestID, Origin: p.Origin, Paying: counts[StatusActive] + counts[StatusPastDue], Offers: []EarnPriceOffer{}}
+	ep.Members = ep.Paying + counts[StatusTrialing]
+	ep.StripeID = p.StripeLiveID
+	if mode == payments.Test {
+		ep.StripeID = p.StripeTestID
+	}
+	if ep.StripeID != "" {
+		ep.StripeURL = dashboard(DefaultProvider, mode, "prices", ep.StripeID)
+	}
+	if p.Period == "month" {
+		g.Monthly = &ep
+	} else {
+		g.Yearly = &ep
+	}
+	g.SeatsMin, g.SeatsMax = int(deref32(p.SeatsMin)), int(deref32(p.SeatsMax))
+	return g
+}
+
+// teamsOfTier counts the teams that pay for a tier now and their seats.
+func (s *Service) teamsOfTier(ctx context.Context, tier uuid.UUID) (int64, int64) {
+	var teams, seats int64
+	_ = s.Pool.QueryRow(ctx, `SELECT count(*), coalesce(sum(g.seats), 0) FROM earn_groups g JOIN paid_subscriptions s ON s.id = g.subscription_id
+		WHERE s.tier_id = $1 AND g.ended_at IS NULL AND s.ended_at IS NULL`, tier).Scan(&teams, &seats)
+	return teams, seats
 }

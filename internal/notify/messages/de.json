@@ -164,5 +164,8 @@
   "problem.badCursor": "Ungültiger Cursor.",
   "problem.unknownEvent": "Unbekannter Ereignistyp {type}.",
   "problem.quietFormat": "Verwenden Sie Uhrzeiten wie 22:00 und 07:00.",
-  "problem.quietSame": "Für Ruhezeiten müssen Beginn und Ende verschieden sein."
+  "problem.quietSame": "Für Ruhezeiten müssen Beginn und Ende verschieden sein.",
+  "short.sponsor_request": "Sponsoranfragen",
+  "event.sponsor_request": "Sponsor hat eine Buchung angefragt oder bezahlt",
+  "audience.sponsor_request": "Alle, die Sponsoren verwalten dürfen"
 }

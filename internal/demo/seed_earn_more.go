@@ -49,7 +49,7 @@ func seedEarnMoreImpl(ctx context.Context, s *Seeder) error {
 			*p = &id
 		}
 	}
-	for _, step := range []func(context.Context) error{e.sponsors, e.bookingsSeed, e.sponsorAudit, e.offersSeed, e.cancelVisitsSeed, e.ledgerSeed, e.sourcesSeed, e.checkoutsSeed, e.conversionsSeed, e.giftsSeed} {
+	for _, step := range []func(context.Context) error{e.sponsors, e.bookingsSeed, e.selfServe, e.sponsorAudit, e.offersSeed, e.cancelVisitsSeed, e.ledgerSeed, e.sourcesSeed, e.checkoutsSeed, e.conversionsSeed, e.giftsSeed} {
 		if err := step(ctx); err != nil {
 			return err
 		}
@@ -87,7 +87,8 @@ func (e *earnMore) sponsors(ctx context.Context) error {
 	e.slot = ID()
 	return e.q.SponsorSlotInsert(ctx, store.SponsorSlotInsertParams{ID: e.slot, WorkspaceID: e.ws.ID, ListID: e.digest, Name: "Main sponsor", Placement: "After the first story",
 		PriceCents: 75000, Currency: "usd", FirstNumber: 142, FirstOn: e.day(10, 14), EveryDays: 7, CreativeDays: 4, Selling: true, CreatedBy: e.sofia,
-		At: s.earnDay(2026, 9, 19, 15, 30)})
+		SelfServe: true, Description: "One sponsor per issue, right after the first story: your logo, a headline, two sentences and a button. Nothing else is sold in the issue.",
+		LeadDays: 7, PayDays: 3, At: s.earnDay(2026, 9, 19, 15, 30)})
 }
 
 type sponsorCreativeSeed struct {

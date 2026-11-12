@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/netip"
 	"slices"
 	"sync"
 
@@ -288,8 +289,12 @@ func (m earnMailer) Route(ctx context.Context, ws *store.Workspace) (earn.Route,
 type earnSignup struct{ a *App }
 
 func (s earnSignup) Join(ctx context.Context, tx pgx.Tx, ws *store.Workspace, j earn.Join) (uuid.UUID, bool, error) {
+	var ip *netip.Addr
+	if a, err := netip.ParseAddr(j.IP); err == nil {
+		ip = &a
+	}
 	res, err := s.a.audience().Signup(ctx, tx, ws, audience.SignupInput{Email: j.Email, FirstName: j.FirstName, LastName: j.LastName, Lists: j.Lists,
-		DoubleOptIn: j.Double, Evidence: audience.PublicEvidence{Source: j.Source, Note: j.Note, At: j.At, ConsentText: j.ConsentText, IP: j.IP,
+		DoubleOptIn: j.Double, Evidence: audience.PublicEvidence{Source: j.Source, Note: j.Note, At: j.At, ConsentText: j.ConsentText, IP: ip,
 			UserAgent: j.UserAgent, Language: j.Language}})
 	if err != nil {
 		return uuid.Nil, false, err

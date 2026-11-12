@@ -270,7 +270,7 @@ func (s *Service) Checklist(ctx context.Context, ws *store.Workspace, p *authz.P
 	for _, t := range tiers {
 		var parts []string
 		for _, pr := range prices {
-			if pr.TierID == t.ID && pr.Status == "current" {
+			if pr.TierID == t.ID && pr.Status == "current" && pr.Audience != AudienceGroup {
 				parts = append(parts, priceTextIn(lang(ctx), pr.AmountCents, pr.Currency, pr.Period))
 			}
 		}

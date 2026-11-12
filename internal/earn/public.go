@@ -125,6 +125,10 @@ type TierCardView struct {
 	Primary   bool
 	Note      string
 	Period    string
+	// Team links to the tier's team page ("Buying for a team? From $60 a
+	// year per seat") when it has a group price.
+	Team     string
+	TeamHref string
 }
 
 // PaidView is the "already a paid member" card. Its personal link never
@@ -148,10 +152,12 @@ func (s *Service) t(l i18n.Lang, key string, args i18n.Args) string { return msg
 
 // pageTier is a tier the page can sell: its prices in the page's mode.
 type pageTier struct {
-	t        store.EarnTier
-	short    string
-	monthly  *store.EarnPrice
-	yearly   *store.EarnPrice
+	t       store.EarnTier
+	short   string
+	monthly *store.EarnPrice
+	yearly  *store.EarnPrice
+	// team is a group price the mode sells (the yearly one first).
+	team     *store.EarnPrice
 	stripeID map[string]string // period → provider price id
 }
 
@@ -187,6 +193,13 @@ func (s *Service) sellable(ctx context.Context, ws *store.Workspace, page Upgrad
 				sid = p.StripeTestID
 			}
 			if mode != "" && sid == "" {
+				continue
+			}
+			if p.Audience == AudienceGroup {
+				// A team price: the card links to the tier's team page.
+				if pt.team == nil || p.Period == "year" {
+					pt.team = &prices[i]
+				}
 				continue
 			}
 			pt.stripeID[p.Period] = sid
@@ -425,6 +438,10 @@ func (s *Service) card(ctx context.Context, ws *store.Workspace, l i18n.Lang, t 
 	c := TierCardView{ID: t.t.ID.String(), Name: t.t.Name, Benefits: t.t.Benefits, Period: period, Amount: money(p.AmountCents, p.Currency, true)}
 	if c.Benefits == nil {
 		c.Benefits = []string{}
+	}
+	if g := t.team; g != nil {
+		c.Team = s.t(l, "page.teamLink", i18n.Args{"price": publicPriceIn(l, g.AmountCents, g.Currency, g.Period)})
+		c.TeamHref = s.pageURL(ctx, ws, "upgrade/"+t.t.Slug+"/team")
 	}
 	if page.Highlight == t.t.ID.String() {
 		c.Highlight = page.HighlightLabel

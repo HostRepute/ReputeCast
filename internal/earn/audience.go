@@ -235,7 +235,7 @@ func (s *Service) Composer(ctx context.Context, ws *store.Workspace) (EarnCompos
 		var parts []string
 		for _, period := range []string{"month", "year"} {
 			for _, p := range prices {
-				if p.TierID == t.ID && p.Status == "current" && p.Period == period {
+				if p.TierID == t.ID && p.Status == "current" && p.Audience != AudienceGroup && p.Period == period {
 					parts = append(parts, priceTextIn(el, p.AmountCents, p.Currency, p.Period))
 				}
 			}

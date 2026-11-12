@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -125,6 +126,12 @@ func (s *Service) PauseFromCancel(ctx context.Context, ws *store.Workspace, sub 
 // transaction (the timeline, the team's seats, the automation event, the
 // MRR ledger's movement by its trigger), and sends the "paused" email.
 func (s *Service) pause(ctx context.Context, ws *store.Workspace, sub store.PaidSubscription, until time.Time, p *authz.Principal, source string, more func(q *store.Queries) error) error {
+	return s.pauseWith(ctx, ws, sub, until, p, source, "", true, more)
+}
+
+// pauseWith is pause with a note for the timeline, and the email or not.
+func (s *Service) pauseWith(ctx context.Context, ws *store.Workspace, sub store.PaidSubscription, until time.Time, p *authz.Principal, source, note string, email bool,
+	more func(q *store.Queries) error) error {
 	pauser, conn, err := s.pauserFor(ctx, ws, sub)
 	if err != nil {
 		return err
@@ -143,8 +150,11 @@ func (s *Service) pause(ctx context.Context, ws *store.Workspace, sub store.Paid
 		if err := q.EarnSubscriptionSetPause(ctx, store.EarnSubscriptionSetPauseParams{ID: sub.ID, PausedAt: &now, PauseResumesAt: &until, At: now}); err != nil {
 			return err
 		}
-		if err := s.timeline(ctx, q, ws.ID, sub.ContactID, &sub.ID, sub.Mode, "paused", now, nil, "", nil, "", userID(p),
-			map[string]any{"until": until.UTC().Format(time.RFC3339), "source": source}); err != nil {
+		data := map[string]any{"until": until.UTC().Format(time.RFC3339), "source": source}
+		if note != "" {
+			data["note"] = note
+		}
+		if err := s.timeline(ctx, q, ws.ID, sub.ContactID, &sub.ID, sub.Mode, "paused", now, nil, "", nil, "", userID(p), data); err != nil {
 			return err
 		}
 		m, err := s.afterWrite(ctx, q, ws, sub.Mode, &before, sub.ID, now, nil)
@@ -167,7 +177,7 @@ func (s *Service) pause(ctx context.Context, ws *store.Workspace, sub store.Paid
 		return err
 	}
 	row, err := s.Q.EarnSubscription(ctx, store.EarnSubscriptionParams{ID: sub.ID, WorkspaceID: ws.ID})
-	if err == nil {
+	if err == nil && email {
 		emails = append(emails, s.pausedEmail(ctx, ws, row, now))
 	}
 	for _, m := range emails {
@@ -239,6 +249,10 @@ func (s *Service) resume(ctx context.Context, ws *store.Workspace, sub store.Pai
 type EarnPauseInput struct {
 	Months int    `json:"months,omitempty" enum:"0,1,3,6"`
 	Until  string `json:"until,omitempty" format:"date" doc:"YYYY-MM-DD, in the workspace's time zone; at most 6 months away"`
+	// Note goes on the member's timeline ("Asked by email: travelling").
+	Note string `json:"note,omitempty" maxLength:"300"`
+	// SkipEmail doesn't send the "Membership paused" email.
+	SkipEmail bool `json:"skipEmail,omitempty"`
 }
 
 // PauseMember pauses a paid member's payments from the member panel.
@@ -267,7 +281,7 @@ func (s *Service) PauseMember(ctx context.Context, ws *store.Workspace, p *authz
 	default:
 		return EarnMember{}, invalid(ctx, "body.months", "pause.length", nil)
 	}
-	if err := s.pause(ctx, ws, sub, until, p, "team", nil); err != nil {
+	if err := s.pauseWith(ctx, ws, sub, until, p, "team", strings.TrimSpace(in.Note), !in.SkipEmail, nil); err != nil {
 		if errors.Is(err, ErrUnavailable) {
 			return EarnMember{}, problem(ctx, http.StatusConflict, CodeNotConnected, "cancel.notConnected", nil)
 		}
@@ -313,15 +327,16 @@ func (s *Service) ResumeURL(ctx context.Context, ws *store.Workspace, contact uu
 	return s.pageURL(ctx, ws, "resume/"+s.memberToken(ws.ID, TokenBilling, contact, LinkValidInEmail))
 }
 
-// ResumeView is the page of a "Resume now" link.
+// ResumeView is the page of a "Resume now" link (PublicEarnStates).
 type ResumeView struct {
-	// State is ask (the page), resumed, none (nothing paused) or expired.
+	// State is ask (the page), resumed or none (nothing paused).
 	State   string
 	Heading string
 	Text    string
 	Email   string
 	Button  string
-	Words   map[string]string
+	// Later says when it resumes on its own.
+	Later string
 }
 
 // resumeTarget verifies a resume link and finds the paused subscription.
@@ -349,23 +364,30 @@ func (s *Service) resumeTarget(ctx context.Context, ws *store.Workspace, token s
 // ResumePage is the page of a resume link, in a language.
 func (s *Service) ResumePage(ctx context.Context, ws *store.Workspace, token string, l i18n.Lang) (ResumeView, error) {
 	acc, ct, err := s.resumeTarget(ctx, ws, token)
-	words := map[string]string{"for": s.t(l, "resume.for", nil)}
 	if err != nil {
 		return ResumeView{}, err
 	}
 	if acc == nil || acc.PausedAt == nil {
-		return ResumeView{State: "none", Heading: s.t(l, "resume.noneTitle", nil), Text: s.t(l, "resume.noneText", nil), Words: words}, nil
+		return ResumeView{State: "none", Heading: s.t(l, "resume.noneTitle", nil), Text: s.t(l, "resume.noneText", nil)}, nil
 	}
 	short := s.tierShortName(ctx, s.Q, ws.ID, acc.TierID)
-	a := i18n.Args{"tier": firstNonEmpty(short, "none"), "price": publicPriceIn(l, acc.AmountCents*int64(max(acc.Quantity, 1)), acc.Currency, acc.Period)}
+	a := i18n.Args{"tier": firstNonEmpty(short, "none"), "price": publicPriceIn(l, acc.AmountCents*int64(max(acc.Quantity, 1)), acc.Currency, acc.Period),
+		"next": s.nextIssue(ctx, ws, acc.TierID, l)}
+	v := ResumeView{State: "ask", Email: ct.Email, Button: s.t(l, "resume.button", nil), Heading: s.t(l, "resume.titleNoDate", a)}
 	if acc.PauseResumesAt != nil {
-		a["date"] = s.dateTextIn(l, ws, *acc.PauseResumesAt)
+		a["date"] = longDateIn(l, ws, *acc.PauseResumesAt)
+		v.Heading = s.t(l, "resume.title", a)
+		v.Later = s.t(l, "resume.later", a)
 	}
-	key := "resume.text"
-	if acc.PauseResumesAt == nil {
-		key = "resume.textNoDate"
+	// Stripe charges again at the end of the period that was paid before
+	// the pause: the next invoice after today.
+	if end := acc.CurrentPeriodEnd; end != nil && end.After(s.now()) {
+		a["charge"] = s.dateTextIn(l, ws, *end)
+		v.Text = s.t(l, "resume.text", a)
+	} else {
+		v.Text = s.t(l, "resume.textNoCharge", a)
 	}
-	return ResumeView{State: "ask", Heading: s.t(l, "resume.title", a), Text: s.t(l, key, a), Email: ct.Email, Button: s.t(l, "resume.button", nil), Words: words}, nil
+	return v, nil
 }
 
 // ResumeFromLink resumes a member's paused subscription from their link.
@@ -382,7 +404,7 @@ func (s *Service) ResumeFromLink(ctx context.Context, ws *store.Workspace, token
 	}
 	short := s.tierShortName(ctx, s.Q, ws.ID, acc.TierID)
 	return ResumeView{State: "resumed", Heading: s.t(l, "resume.doneTitle", i18n.Args{"tier": firstNonEmpty(short, "none")}),
-		Text: s.t(l, "resume.doneText", nil), Words: map[string]string{"for": s.t(l, "resume.for", nil)}}, nil
+		Text: s.t(l, "resume.doneText", nil)}, nil
 }
 
 // remindResuming sends "resuming soon" a week before Stripe resumes a
@@ -409,4 +431,54 @@ func (s *Service) remindResuming(ctx context.Context) error {
 		s.sendMemberEmail(ctx, &ws, row.Mode, m, nil)
 	}
 	return nil
+}
+
+// EarnPausingInput sets the pause lengths members may choose on the cancel
+// page.
+type EarnPausingInput struct {
+	Months []int `json:"months" maxItems:"3" doc:"Any of 1, 3 and 6; none turns pausing off."`
+}
+
+// EarnPausing is Earn › Settings › Pausing.
+type EarnPausing struct {
+	Months []int `json:"months"`
+}
+
+// SavePausing saves the pause lengths members may choose.
+func (s *Service) SavePausing(ctx context.Context, ws *store.Workspace, p *authz.Principal, in EarnPausingInput) (EarnPausing, error) {
+	months := []int32{}
+	for _, m := range PauseMonths {
+		if slices.Contains(in.Months, m) {
+			months = append(months, int32(m))
+		}
+	}
+	for _, m := range in.Months {
+		if !slices.Contains(PauseMonths, m) {
+			return EarnPausing{}, invalid(ctx, "body.months", "pause.length", nil)
+		}
+	}
+	st, err := s.settingsRow(ctx, s.Q, ws.ID)
+	if err != nil {
+		return EarnPausing{}, err
+	}
+	now := s.now()
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := q.EarnSettingsEnsure(ctx, ws.ID); err != nil {
+			return err
+		}
+		if err := q.EarnSettingsSetPauseMonths(ctx, store.EarnSettingsSetPauseMonthsParams{WorkspaceID: ws.ID, PauseMonths: months, At: now, UpdatedBy: userID(p)}); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "earn.pausing_updated", TargetType: "earn_settings", TargetID: ws.ID.String(),
+			TargetName: "Pausing", Before: map[string]any{"months": st.PauseMonths}, After: map[string]any{"months": months}})
+	})
+	if err != nil {
+		return EarnPausing{}, err
+	}
+	out := EarnPausing{Months: []int{}}
+	for _, m := range months {
+		out.Months = append(out.Months, int(m))
+	}
+	return out, nil
 }

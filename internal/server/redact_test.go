@@ -83,6 +83,18 @@ func TestRedactPath(t *testing.T) {
 		"/recommends/tok":                              "/recommends/{token}",
 		"/api/v1/invitations/tok/request":              "/api/v1/invitations/{token}/request",
 		"/api/v1/auth/password-reset":                  "/api/v1/auth/password-reset",
+		// Teams, pauses and sponsor bookings (M65).
+		"/p/acme-newsletter/team/tok":             "/p/acme-newsletter/team/{token}",
+		"/p/acme-newsletter/team/join/tok":        "/p/acme-newsletter/team/join/{token}",
+		"/p/acme-newsletter/resume/tok":           "/p/acme-newsletter/resume/{token}",
+		"/p/acme-newsletter/sponsor/b/tok":        "/p/acme-newsletter/sponsor/b/{token}",
+		"/p/acme-newsletter/sponsor/b/tok/pay":    "/p/acme-newsletter/sponsor/b/{token}/pay",
+		"/team/tok":                               "/team/{token}",
+		"/team/join/tok":                          "/team/join/{token}",
+		"/resume/tok":                             "/resume/{token}",
+		"/sponsor/b/tok/pay":                      "/sponsor/b/{token}/pay",
+		"/p/acme-newsletter/sponsor/request":      "/p/acme-newsletter/sponsor/request",
+		"/p/acme-newsletter/upgrade/insider/team": "/p/acme-newsletter/upgrade/insider/team",
 	} {
 		if got := RedactPath(in); got != want {
 			t.Errorf("RedactPath(%q) = %q, want %q", in, got, want)

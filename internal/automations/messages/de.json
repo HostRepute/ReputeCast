@@ -504,5 +504,7 @@
   "webinar.hourBefore.subject": "In einer Stunde geht es los: {title}",
   "webinar.hourBefore.preheader": "Nehmen Sie über den Link unten teil.",
   "webinar.hourBefore.heading": "In einer Stunde geht es los",
-  "webinar.hourBefore.body": "{title} beginnt in einer Stunde."
+  "webinar.hourBefore.body": "{title} beginnt in einer Stunde.",
+  "trigger.paidPaused": "Pausiert Zahlungen",
+  "trigger.paidResumed": "Setzt Zahlungen fort"
 }

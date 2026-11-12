@@ -51,10 +51,14 @@ func (h *Handler) earnRoutes(r chi.Router) {
 	r.Head("/cancel/{token}", h.headOnly)
 	// The gift pages (X17, gift.go).
 	h.giftRoutes(r)
+	// The team and pause pages (M65, team.go), and the sponsor page
+	// (sponsor.go).
+	h.teamRoutes(r)
+	h.sponsorRoutes(r)
 }
 
 // earnRootPaths are the Earn pages on a verified custom domain.
-var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing", "/billing/*", "/cancel/*", "/gift", "/gift/*"}
+var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing", "/billing/*", "/cancel/*", "/gift", "/gift/*", "/team/*", "/resume/*", "/sponsor", "/sponsor/*"}
 
 // upgradeBody is the upgrade page.
 type upgradeBody struct {

@@ -342,5 +342,6 @@
   "type.whatsapp_settings": "whatsapp settings",
   "type.whatsapp_templates": "whatsapp templates",
   "type.wordpress": "wordpress",
-  "type.workspace": "workspace"
+  "type.workspace": "workspace",
+  "type.sponsor_settings": "sponsor page settings"
 }

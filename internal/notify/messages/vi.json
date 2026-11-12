@@ -164,5 +164,8 @@
   "problem.badCursor": "Trang này không hợp lệ.",
   "problem.unknownEvent": "Không có loại sự kiện {type}.",
   "problem.quietFormat": "Hãy nhập giờ dạng 22:00 và 07:00.",
-  "problem.quietSame": "Giờ yên lặng cần giờ bắt đầu và giờ kết thúc khác nhau."
+  "problem.quietSame": "Giờ yên lặng cần giờ bắt đầu và giờ kết thúc khác nhau.",
+  "short.sponsor_request": "yêu cầu tài trợ",
+  "event.sponsor_request": "Nhà tài trợ gửi yêu cầu đặt chỗ hoặc đã thanh toán",
+  "audience.sponsor_request": "Những người có thể quản lý nhà tài trợ"
 }

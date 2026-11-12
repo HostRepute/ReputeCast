@@ -90,5 +90,17 @@
   "referral.discount": "{type, select, percent {−{percent}\u00A0%} other {−{amount}}} {duration, select, once {une fois} months {pendant {months, plural, one {# mois} other {# mois}}} other {pour toujours}}",
 
   "problem.notFound": "Offre introuvable.",
-  "sync.unreachable": "injoignable"
+  "sync.unreachable": "injoignable",
+  "cancel.pause.title": "Suspendre plutôt",
+  "cancel.pause.text": "Faites une pause dans vos paiements. {tier} s’arrête pendant la suspension et revient de lui-même ; {free} gratuit continue d’arriver.",
+  "cancel.pause.textNoList": "Faites une pause dans vos paiements. {tier} s’arrête pendant la suspension et revient de lui-même.",
+  "cancel.pause.legend": "Durée de la suspension",
+  "cancel.pause.option": "{months, plural, one {# mois} other {# mois}}",
+  "cancel.pause.back": "Retour le {date}, à {price}. Vous pouvez suspendre une fois tous les 12 mois.",
+  "cancel.pause.button": "Suspendre {months, plural, one {# mois} other {# mois}}",
+  "cancel.paused.title": "{tier} est suspendu jusqu’au {date}",
+  "cancel.paused.text": "Rien n’est débité d’ici là, et {tier} revient de lui-même le {date} à {price}. Vous recevez toujours {free} gratuit.",
+  "cancel.paused.textNoList": "Rien n’est débité d’ici là, et {tier} revient de lui-même le {date} à {price}.",
+  "cancel.paused.line": "{name} · {period, select, year {annuel} other {mensuel}}",
+  "cancel.paused.range": "Suspendu du {from} au {to} · nous vous avons envoyé un lien pour reprendre plus tôt"
 }

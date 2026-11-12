@@ -124,6 +124,8 @@ type EarnTier struct {
 	ArchivedAt       *time.Time `json:"archivedAt,omitempty"`
 	CanDelete        bool       `json:"canDelete"`
 	DiscountedYearly int64      `json:"discountedYearly"`
+	// Group is the tier's group prices for teams (M65), when it has any.
+	Group *EarnGroupPrices `json:"group,omitempty"`
 }
 
 // tierFacts are the prices and paying members of every tier.
@@ -245,6 +247,12 @@ func (s *Service) tierView(ctx context.Context, ws *store.Workspace, t store.Ear
 	}
 	out.HiddenLink = s.pageHost(ctx, ws, "upgrade/"+t.Slug)
 	for _, p := range f.prices[t.ID] {
+		if p.Audience == AudienceGroup {
+			if p.Status == "current" {
+				out.Group = s.groupView(out.Group, p, mode, f.counts[p.ID])
+			}
+			continue
+		}
 		c := f.counts[p.ID]
 		ep := EarnPrice{ID: p.ID.String(), Period: p.Period, AmountCents: p.AmountCents, Currency: p.Currency, Status: p.Status, StripeLiveID: p.StripeLiveID,
 			StripeTestID: p.StripeTestID, Origin: p.Origin, Paying: c[StatusActive] + c[StatusPastDue], Discounted: f.disc[p.ID], Offers: f.offers[p.ID]}
@@ -276,6 +284,9 @@ func (s *Service) tierView(ctx context.Context, ws *store.Workspace, t store.Ear
 				out.Yearly = &cp
 			}
 		}
+	}
+	if out.Group != nil {
+		out.Group.Teams, out.Group.Seats = s.teamsOfTier(ctx, t.ID)
 	}
 	out.MRRCents = f.mrr[t.ID]
 	for _, o := range all {
@@ -447,6 +458,9 @@ type EarnTierInput struct {
 	// Highlight puts the tier forward on the upgrade page with this label
 	// ("Most popular"); empty takes the highlight off it.
 	Highlight string `json:"highlight,omitempty" maxLength:"30"`
+	// Group sets the tier's group prices (teams, M65); omitted keeps them
+	// as they are.
+	Group *EarnGroupPriceInput `json:"group,omitempty"`
 }
 
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
@@ -506,6 +520,9 @@ func (s *Service) validateTier(ctx context.Context, ws *store.Workspace, in *Ear
 	}
 	if in.Monthly <= 0 && in.Yearly <= 0 {
 		return nil, invalid(ctx, "body.monthly", "tier.noPrice", nil)
+	}
+	if err := validateGroup(ctx, in.Group); err != nil {
+		return nil, err
 	}
 	if in.Slug = strings.TrimSpace(in.Slug); in.Slug == "" {
 		in.Slug = slugFrom(shortTierFromLists(ctx, s, ws, in))
@@ -598,6 +615,11 @@ func (s *Service) CreateTier(ctx context.Context, ws *store.Workspace, p *authz.
 				return err
 			}
 		}
+		if in.Group != nil && !in.Group.Off {
+			if _, err := saveGroupPrices(ctx, q, ws, id, cur, in.Group, nil, now); err != nil {
+				return err
+			}
+		}
 		if err := q.EarnSettingsEnsure(ctx, ws.ID); err != nil {
 			return err
 		}
@@ -627,6 +649,15 @@ func tierAudit(in EarnTierInput, cur string) map[string]any {
 	}
 	if in.Highlight != "" {
 		m["highlight"] = in.Highlight
+	}
+	if g := in.Group; g != nil && !g.Off {
+		if g.Monthly > 0 {
+			m["group_monthly"] = priceText(g.Monthly, cur, "month")
+		}
+		if g.Yearly > 0 {
+			m["group_yearly"] = priceText(g.Yearly, cur, "year")
+		}
+		m["group_seats"] = fmt.Sprintf("%d–%d", g.SeatsMin, g.SeatsMax)
 	}
 	return m
 }
@@ -682,7 +713,7 @@ func (s *Service) UpdateTier(ctx context.Context, ws *store.Workspace, p *authz.
 		}{{"month", in.Monthly}, {"year", in.Yearly}} {
 			var current *store.EarnPrice
 			for i := range prices {
-				if prices[i].Period == pr.period && prices[i].Status == "current" {
+				if prices[i].Period == pr.period && prices[i].Status == "current" && prices[i].Audience != AudienceGroup {
 					current = &prices[i]
 				}
 			}
@@ -711,6 +742,17 @@ func (s *Service) UpdateTier(ctx context.Context, ws *store.Workspace, p *authz.
 			}
 			replaced = append(replaced, r)
 		}
+		if in.Group != nil {
+			g := in.Group
+			if g.Off {
+				g = nil
+			}
+			lines, err := saveGroupPrices(ctx, q, ws, tid, cur, g, prices, now)
+			if err != nil {
+				return err
+			}
+			replaced = append(replaced, lines...)
+		}
 		if err := s.setHighlight(ctx, q, ws, tid, in.Highlight, false); err != nil {
 			return err
 		}
@@ -729,6 +771,14 @@ func (s *Service) UpdateTier(ctx context.Context, ws *store.Workspace, p *authz.
 			}
 			if r["new"] == nil {
 				act = "earn.price_removed"
+			}
+			if r["seats"] != nil {
+				act = "earn.price_seats_changed"
+				if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: act, TargetType: "earn_tier", TargetID: tid.String(), TargetName: in.Name,
+					After: map[string]any{"seats": r["seats"]}, Metadata: map[string]any{"period": r["period"]}}); err != nil {
+					return err
+				}
+				continue
 			}
 			if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: act, TargetType: "earn_tier", TargetID: tid.String(), TargetName: in.Name,
 				Before: map[string]any{"price": r["old"]}, After: map[string]any{"price": r["new"]}, Metadata: map[string]any{"period": r["period"]}}); err != nil {

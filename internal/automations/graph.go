@@ -135,7 +135,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout,segment_entered,segment_left,link_clicked,paid_started,paid_tier_changed,paid_ended,paid_trial_ending"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout,segment_entered,segment_left,link_clicked,paid_started,paid_tier_changed,paid_ended,paid_trial_ending,paid_paused,paid_resumed"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`

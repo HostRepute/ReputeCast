@@ -1037,7 +1037,7 @@ func (s *Service) RunImport(ctx context.Context, id uuid.UUID) error {
 				}
 				status = "current"
 				for _, p := range prices {
-					if p.Period == period && p.Status == "current" {
+					if p.Period == period && p.Status == "current" && p.Audience != AudienceGroup {
 						if p.AmountCents == pc.Amount && ((imp.Mode == "live" && p.StripeLiveID == "") || (imp.Mode == "test" && p.StripeTestID == "")) {
 							// The tier's price, not in the provider yet: it is this one.
 							if err := q.EarnPriceSetStripe(ctx, store.EarnPriceSetStripeParams{ID: p.ID, Mode: imp.Mode, StripeID: pc.StripePriceID}); err != nil {

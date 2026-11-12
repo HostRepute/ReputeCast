@@ -81,6 +81,8 @@ var Events = []EventType{
 	// Web push and WhatsApp (design expansion, phase 8).
 	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "People who can view sending providers", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "People who can view sending providers", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
+	// Sponsor self-booking (M65).
+	{Key: KindSponsorRequest, Label: "Sponsor booking requested or paid", Audience: "People who can manage sponsors", Short: "sponsor requests", DefaultEmail: true, Kinds: []string{KindSponsorRequest}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -131,7 +133,7 @@ var categoryKinds = map[string][]string{
 	CategoryIntegrations:  {KindIntegrationAttention, KindWebhookFailing, KindPostDraftCreated, KindStoreProblem},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
-	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
+	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment, KindSponsorRequest},
 	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed},
 	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
@@ -169,3 +171,7 @@ func CategoryLabel(c string) string { return categoryLabels[c] }
 
 // KindsOf returns the kinds of a category tab.
 func KindsOf(category string) []string { return categoryKinds[category] }
+
+// KindSponsorRequest is a sponsor's request from the sponsor page, or its
+// payment (M65).
+const KindSponsorRequest = "sponsor_request"
