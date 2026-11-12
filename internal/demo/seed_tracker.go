@@ -230,9 +230,11 @@ func (g *trackerSeed) events() error {
 	refs := []string{"", "", "", "google.com", "news.acme.io", "duckduckgo.com", "github.com"}
 	// One visit: a page, then on the shop maybe a product and maybe the cart.
 	visit := func(site uuid.UUID, at time.Time, budget *int) {
-		visitor := g.rng.IntN(len(g.visitors))
-		if g.rng.IntN(3) == 0 {
-			visitor = g.rng.IntN(len(g.known))
+		// Visitor 0 is Sam Rivera's browser: only the three views the
+		// profile board draws are his.
+		visitor := 1 + g.rng.IntN(len(g.visitors)-1)
+		if g.rng.IntN(3) == 0 && len(g.known) > 1 {
+			visitor = 1 + g.rng.IntN(len(g.known)-1)
 		}
 		if site == g.docs {
 			add(site, visitor, 1, nil, docsPaths[g.rng.IntN(len(docsPaths))], refs[g.rng.IntN(len(refs))], at)
