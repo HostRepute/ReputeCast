@@ -163,6 +163,8 @@ var Categories = []AuditCategory{
 	{Key: "replies", Label: "Receiving & replies", Groups: []string{"inbound", "reply"}},
 	// Discount code pools and their codes (M59).
 	{Key: "coupons", Label: "Discount codes", Groups: []string{"coupon_pool"}},
+	// Lead ads from Meta (M66).
+	{Key: "leads", Label: "Lead ads", Groups: []string{"lead_connection", "lead_form"}},
 }
 
 // Filter narrows the log.
@@ -595,6 +597,10 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 	case "website_import":
 		if targetID != "" {
 			path, key = "/forms/website/import?import="+targetID, "link.import"
+		}
+	case "lead_connection":
+		if targetID != "" {
+			path, key = "/settings/integrations/leads/"+targetID, "link.leadConnection"
 		}
 	}
 	if key == "" {

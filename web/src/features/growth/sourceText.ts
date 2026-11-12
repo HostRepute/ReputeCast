@@ -33,6 +33,9 @@ export function sourceName(s: Source): string {
       return s.carriedLabel || s.name || t(m.srcUnknown)
     case 'other':
       return t(m.srcOther)
+    case 'lead_ad':
+      // A Facebook or Instagram lead form (M66): "Lead ads · Field Guide download".
+      return t(m.srcLeadAd, { name: s.name || t(m.srcUnknown) })
   }
   return s.name || t(m.srcUnknown)
 }
@@ -66,6 +69,8 @@ export function sourceLine(s: Source, list?: string): string {
     case 'carried':
       if ((s.carried ?? '').startsWith('import')) return t(list ? m.lineCarriedImportList : m.lineCarriedImport)
       return t(m.lineCarried)
+    case 'lead_ad':
+      return t(m.lineLeadAd)
   }
   return ''
 }

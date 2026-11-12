@@ -422,6 +422,25 @@ Who gets what:
 - App languages beyond English and Vietnamese, until the community adds them.
 - Accessibility checks that need a person: reading order, whether alt text is accurate, color as the only signal.
 
+### 3.14 Lead ads from Meta (M66)
+Facebook and Instagram Lead Ads, added after this phase (competitor gaps 2026-11, item 20). LinkedIn isn't covered.
+- **Where:** a new "Lead ads" group in the catalog (after Commerce) with one card, Meta Lead Ads; its page is Settings › Integrations › Meta Lead Ads (5.14). Reading needs integrations:view; connecting, mapping, pausing, importing and disconnecting need integrations:manage and a signed-in member.
+- **Your own Meta app:** each workspace brings a Meta app of the Business type and a system user's token with `leads_retrieval`, `pages_show_list`, `pages_read_engagement`, `pages_manage_metadata` and `ads_management`, as WhatsApp does. App Review isn't needed for Pages the business manages. The app ID, app secret and token are sealed (`lead_connection:<id>:credentials`) and never shown again; Replace credentials swaps them.
+- **Connecting** (three steps): create the app (the steps and permissions, and whether Meta can reach the instance), paste the credentials (the token is checked by listing its Pages; the app is subscribed to the Pages' `leadgen` webhook at a callback URL with its own token, `/hooks/meta-leads/{token}`), choose Pages (each chosen Page subscribes the app with `subscribed_fields=leadgen`; a Page left out is unsubscribed). One Meta connection per workspace.
+- **Forms:** each chosen Page's lead forms are listed with their questions and consent checkboxes, refreshed every 15 minutes and on Refresh forms. A form collects leads once it's mapped:
+  - each question is saved as Email (required), First name, Last name, First and last name, Company, Phone, a custom field, or not kept
+  - at least one list, and tags added to every contact from the form
+  - consent: double opt-in (a confirmation email; the lead joins on the click) or single opt-in, offered only when the form has a consent checkbox. With single opt-in the checkbox's text, as Meta returns it, is the consent text and its hash the version, and a lead who didn't tick it isn't added.
+  - Pause and Resume; Import past leads brings in the last 90 days.
+  Leads for forms that aren't mapped, or are paused, are counted ("3 leads arrived before this form was mapped") and not stored.
+- **Receiving:** Meta's webhook carries only ids (`leadgen_id`, `page_id`, `form_id`, `ad_id`, `created_time`). The callback answers Meta's verification request when its verify token matches, checks `X-Hub-Signature-256` with the app secret (401 otherwise, kept 2 KB for diagnosis), stores the delivery and answers 200; a job then fetches the lead with the Page's token, maps it and signs the person up with consent evidence (source `lead_ad:<form>`, the consent text and version, the lead's time, "Facebook/Instagram lead form {name}"). A lead is applied once (by its id per form). Meta's test leads (`test@meta.com`, "<test lead: …>" answers) are recorded as Test lead and create nobody. Deliveries are kept 30 days.
+- **When the webhook is quiet:** with no delivery for 24 hours while forms are active, or when the instance isn't reachable from the internet, each active form is polled every 15 minutes for leads since the last poll, within Meta's rate limits. A token Meta refuses turns the connection to Needs attention and notifies people who can manage integrations ("Meta refused the lead ads token"); leads wait at Meta until a new token is pasted.
+- **Growth and automations:** joins count under the source "Lead ads · {form}" in Audience › Growth. The trigger "Submitted a lead ad form" (any form or one) starts when the lead is recorded, or once they confirm with double opt-in.
+- **Recent leads:** the last 50 leads with time, form, outcome and contact; answers aren't shown there.
+- **Disconnect:** unsubscribes the Pages, deletes the credentials and stops collecting; contacts and their consent records stay.
+- **Erasure:** a contact's lead entries are deleted. Stored deliveries are kept until their 30 days are up: they hold only Meta's ids, never answers.
+- **Audit:** connection created, updated (credentials, Pages) and disconnected; a form mapped, paused, resumed or imported. Leads themselves aren't audited (their consent records are the evidence).
+
 ---
 
 ## 4. Sample data
@@ -958,6 +977,14 @@ States to show:
 - Vietnamese as a draft: a Warn row
 - everything up to date and no issues (Weekly Digest #142)
 - checks running, error
+
+### 5.14 Meta Lead Ads (M66)
+Boards: `IntegrationsLeadAds` (+Tablet, +Phone), `LeadAdsConnect` (+Phone), `LeadAdsFormMapping`, `LeadAdsStates`; changes to `IntegrationsCatalog`, `AutomationsComplete` and `GrowthSources`.
+- **Page:** the connection ("Acme Marketing", Receiving), How leads arrive (webhook, Meta app, token, connected), Pages and forms (form, Page, leads in 30 days, lists, consent, status; Map, Pause or Resume, Import past leads), Recent leads (time, form, outcome, contact), What ReputeCast receives.
+- **Connect dialog:** Create the app · Paste the credentials · Choose Pages.
+- **Mapping dialog:** each question to a contact field, lists, tags, double or single opt-in with the form's consent checkbox quoted.
+- **States:** token refused, polling (no webhook for 24 hours, or not reachable), Page without forms, rate limited, form without a consent checkbox, leads waiting for a mapping, import running, disconnect, loading, error, read-only.
+- **Sample:** Acme Marketing; Pages Acme Inc and Acme Labs (Acme Careers not chosen); Spring webinar signup (24 leads in 30 days, double opt-in), Field Guide download (17, single opt-in), Beta waitlist (paused).
 
 ---
 

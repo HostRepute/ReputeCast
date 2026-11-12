@@ -34,6 +34,15 @@ SET first_name = CASE WHEN first_name = '' THEN @first_name ELSE first_name END,
     updated_at = @at
 WHERE id = @id;
 
+-- name: SignupAddTags :exec
+-- Adds the tags a signup gives (a lead form's, M66), keeping the contact's
+-- own; a contact that has them all is left alone, so "Tag added" flows
+-- start only for tags it didn't have.
+UPDATE contacts
+SET tags = (SELECT coalesce(array_agg(DISTINCT t ORDER BY t), '{}')::text[] FROM unnest(tags || @tags::text[]) AS t),
+    updated_at = @at
+WHERE id = @id AND NOT (tags @> @tags::text[]);
+
 -- name: SignupSetFirstName :exec
 UPDATE contacts SET first_name = @first_name, updated_at = @at WHERE id = @id;
 

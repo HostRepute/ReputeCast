@@ -146,6 +146,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   store: (ctx, name) => lookup(ctx, 'stores', 'stores', (s) => s.name === name, `no store named ${name}`),
   // A discount code pool by its name ({pool:Welcome 15%}).
   pool: (ctx, name) => lookup(ctx, 'coupons/pools', 'items', (p) => p.name === name, `no discount code pool named ${name}`),
+  // A Meta Lead Ads connection by its name ({leadConnection:Acme Marketing}).
+  leadConnection: (ctx, name) => lookup(ctx, 'lead-ads/connections', 'items', (c) => c.name === name, `no lead ads connection named ${name}`),
 }
 
 /** The id of the first item of a workspace list that matches. */

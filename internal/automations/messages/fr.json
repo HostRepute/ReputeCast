@@ -514,5 +514,9 @@
   "diff.triggerReply": "Déclencheur\u00A0: {change}",
   "diff.triggerReplyDetail": "S’applique aux contacts de la v{version} dès qu’elle est en ligne\u202F; ceux qui restent sur une version antérieure en gardent le réglage.",
   "trigger.paidPaused": "Suspend ses paiements",
-  "trigger.paidResumed": "Reprend ses paiements"
+  "trigger.paidResumed": "Reprend ses paiements",
+  "trigger.leadAdSubmitted": "Envoie un formulaire de publicité à formulaire",
+  "ref.anyLeadForm": "n’importe quel formulaire de prospects",
+  "ref.aLeadForm": "un formulaire de prospects",
+  "problem.triggerLeadFormDeleted": "Le formulaire de prospects du déclencheur n’existe plus : sa Page a été déconnectée. Choisissez un autre formulaire, ou n’importe quel formulaire de prospects."
 }

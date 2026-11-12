@@ -365,5 +365,9 @@
   "type.countdown": "compte à rebours",
   "type.website_comment": "commentaire du site",
   "type.website_import": "import d’articles",
-  "type.sponsor_settings": "réglages de la page sponsors"
+  "type.sponsor_settings": "réglages de la page sponsors",
+  "category.leads": "Publicités à formulaire",
+  "type.lead_connection": "connexion de publicités à formulaire",
+  "type.lead_form": "formulaire de prospects",
+  "link.leadConnection": "Ouvrir la connexion"
 }

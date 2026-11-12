@@ -618,4 +618,15 @@ export const entries: Entry[] = [
   { board: 'WebsiteCommentsStates', manual: true },
   { board: 'PublicPostComments', manual: true, widths: [720] },
   { board: 'PublicPostCommentsPhone', manual: true, widths: [390] },
+  // M66 · Meta Lead Ads. Acme Marketing is the demo's connection (Acme Inc and Acme Labs). The connect
+  // dialog, the mapping dialog and the states (token refused, polling, a Page without forms, rate
+  // limited, a form without a consent checkbox, leads waiting for a mapping, an import, disconnect,
+  // loading, error, read-only as aisha@acme.io) need clicks or data changes.
+  { board: 'IntegrationsLeadAds', path: `${ws}/settings/integrations/leads/{leadConnection:Acme Marketing}`, widths: [1440] },
+  { board: 'IntegrationsLeadAdsTablet', path: `${ws}/settings/integrations/leads/{leadConnection:Acme Marketing}`, widths: [834] },
+  { board: 'IntegrationsLeadAdsPhone', path: `${ws}/settings/integrations/leads/{leadConnection:Acme Marketing}`, widths: [390] },
+  { board: 'LeadAdsConnect', manual: true },
+  { board: 'LeadAdsConnectPhone', widths: [390], manual: true },
+  { board: 'LeadAdsFormMapping', manual: true },
+  { board: 'LeadAdsStates', manual: true },
 ]

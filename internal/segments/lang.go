@@ -107,6 +107,8 @@ var (
 	mSourcePartner = msgs.M("source.partner")
 	mSourceUnknown = msgs.M("source.unknown")
 	mImporterFile  = msgs.M("source.importerFile")
+	// A lead ads form's signups (M66).
+	mSourceLeadAd = msgs.M("source.leadAd")
 )
 
 // fieldLabel is a field's name in a reader's language: "Mailbox provider",

@@ -820,4 +820,12 @@ export default translate(m, {
   // ── HostRepute ───────────────────────────────────────────────────────
   hrAdds: 'Bổ sung',
   hrAddsValue: 'Google Postmaster Tools: trạng thái tuân thủ, tỷ lệ spam và vòng phản hồi · Microsoft SNDS: uy tín IP cho Outlook.com',
+  groupLeads: 'Quảng cáo khách hàng tiềm năng',
+  groupLeadsLine: 'Lượt đăng ký từ quảng cáo trên các nền tảng khác, kèm sự đồng ý mà mọi người đã đưa ra ở đó.',
+  metaLeadAds: 'Meta Lead Ads',
+  byOwnMetaApp: 'Ứng dụng Meta của riêng bạn',
+  metaLeadAdsLine: 'Biểu mẫu khách hàng tiềm năng trên Facebook và Instagram trở thành liên hệ, kèm sự đồng ý trên biểu mẫu.',
+  capInstantLeads: 'Nhận ngay',
+  capFormConsent: 'Đồng ý từ biểu mẫu',
+  capPast90: '90 ngày qua',
 })

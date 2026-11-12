@@ -163,6 +163,8 @@ var secretSegments = []*regexp.Regexp{
 	regexp.MustCompile(`^(/hooks/whatsapp/[^/]+/)[^/]+`),
 	// Receiving mail's hook (M58): the token, then Mailgun's /mime.
 	regexp.MustCompile(`^(/hooks/inbound/)[^/]+`),
+	// Meta's lead ads callback (M66).
+	regexp.MustCompile(`^(/hooks/meta-leads/)[^/]+`),
 	regexp.MustCompile(`^(/hooks/[^/]+/)[^/]+`),
 	regexp.MustCompile(`^(/(?:invite|reset-password|review)/)[^/]+`),
 	regexp.MustCompile(`^(/api/v1/(?:auth/password-reset|invitations|shared-reports|review)/)[^/]+`),

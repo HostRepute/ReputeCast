@@ -2395,7 +2395,7 @@
    "x": 0,
    "y": 0,
    "w": 1440,
-   "h": 3026,
+   "h": 3321,
    "title": "Integrations · catalog",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2625,7 +2625,7 @@
    "x": 0,
    "y": 38128,
    "w": 834,
-   "h": 4341,
+   "h": 4641,
    "title": "Integrations · catalog · tablet",
    "page": "p2-connect",
    "is_interactive": true
@@ -2670,7 +2670,7 @@
    "x": 0,
    "y": 42949,
    "w": 390,
-   "h": 6644,
+   "h": 6962,
    "title": "Integrations · catalog · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -3094,7 +3094,7 @@
    "x": 0,
    "y": 24644,
    "w": 1440,
-   "h": 2529,
+   "h": 2590,
    "title": "Audience · growth sources",
    "page": "p4-insights",
    "is_interactive": true,
@@ -3132,7 +3132,7 @@
    "x": 1908,
    "y": 29673,
    "w": 834,
-   "h": 3435,
+   "h": 3497,
    "title": "Audience · growth sources · tablet",
    "page": "p4-insights",
    "is_interactive": true
@@ -3159,7 +3159,7 @@
    "x": 1020,
    "y": 33603,
    "w": 390,
-   "h": 5003,
+   "h": 5113,
    "title": "Audience · growth sources · phone",
    "page": "p4-insights",
    "is_interactive": true
@@ -4585,10 +4585,10 @@
   },
   "AutomationsComplete.dc.html": {
    "expand": "fill",
-   "h": 3574,
+   "h": 3954,
    "is_interactive": true,
    "page": "automations",
-   "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats, paid-member triggers",
+   "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats, paid-member triggers, lead ad trigger",
    "w": 1440,
    "x": 6080,
    "y": 0
@@ -4861,6 +4861,73 @@
    "h": 14397,
    "title": "Public · comments under a post (Sam Rivera) · phone",
    "page": "p7-publish",
+   "is_interactive": true
+  },
+  "IntegrationsLeadAds.dc.html": {
+   "x": 0,
+   "y": 50391,
+   "w": 1440,
+   "h": 1172,
+   "title": "Integrations · Meta Lead Ads (Acme Marketing)",
+   "page": "p2-connect",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "LeadAdsConnect.dc.html": {
+   "x": 1560,
+   "y": 50391,
+   "w": 1440,
+   "h": 3817,
+   "title": "Meta Lead Ads · connect: create the app, paste the credentials, choose Pages, what Meta refused",
+   "page": "p2-connect",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "LeadAdsFormMapping.dc.html": {
+   "x": 3120,
+   "y": 50391,
+   "w": 1440,
+   "h": 2323,
+   "title": "Meta Lead Ads · map a form: questions, lists, tags, double or single opt-in, no email question",
+   "page": "p2-connect",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "LeadAdsStates.dc.html": {
+   "x": 4680,
+   "y": 50391,
+   "w": 1440,
+   "h": 5977,
+   "title": "Meta Lead Ads · token refused, polling, a Page without forms, rate limited, no consent checkbox, not mapped, import, disconnect, loading, error, read-only",
+   "page": "p2-connect",
+   "is_interactive": true,
+   "expand": "fill"
+  },
+  "IntegrationsLeadAdsTablet.dc.html": {
+   "x": 0,
+   "y": 56848,
+   "w": 834,
+   "h": 1607,
+   "title": "Integrations · Meta Lead Ads (Acme Marketing) · tablet",
+   "page": "p2-connect",
+   "is_interactive": true
+  },
+  "IntegrationsLeadAdsPhone.dc.html": {
+   "x": 954,
+   "y": 56848,
+   "w": 390,
+   "h": 2209,
+   "title": "Integrations · Meta Lead Ads (Acme Marketing) · phone",
+   "page": "p2-connect",
+   "is_interactive": true
+  },
+  "LeadAdsConnectPhone.dc.html": {
+   "x": 1464,
+   "y": 56848,
+   "w": 390,
+   "h": 7041,
+   "title": "Meta Lead Ads · connect · phone",
+   "page": "p2-connect",
    "is_interactive": true
   }
  },
@@ -6423,7 +6490,14 @@
   "WebsiteCommentsTablet.dc.html",
   "WebsiteImportPhone.dc.html",
   "WebsiteCommentsPhone.dc.html",
-  "PublicPostCommentsPhone.dc.html"
+  "PublicPostCommentsPhone.dc.html",
+  "IntegrationsLeadAds.dc.html",
+  "LeadAdsConnect.dc.html",
+  "LeadAdsFormMapping.dc.html",
+  "LeadAdsStates.dc.html",
+  "IntegrationsLeadAdsTablet.dc.html",
+  "IntegrationsLeadAdsPhone.dc.html",
+  "LeadAdsConnectPhone.dc.html"
  ],
  "pages": [
   {

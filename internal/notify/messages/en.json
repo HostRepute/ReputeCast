@@ -183,5 +183,8 @@
   "problem.quietSame": "Quiet hours need a different start and end time.",
   "short.sponsor_request": "sponsor requests",
   "event.sponsor_request": "Sponsor booking requested or paid",
-  "audience.sponsor_request": "People who can manage sponsors"
+  "audience.sponsor_request": "People who can manage sponsors",
+  "short.lead_ads_attention": "lead ads problems",
+  "event.lead_ads_attention": "Meta refused the lead ads token",
+  "audience.lead_ads_attention": "People who can manage integrations"
 }

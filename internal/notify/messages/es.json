@@ -183,5 +183,8 @@
   "problem.quietSame": "Las horas de silencio necesitan una hora de inicio y una de fin distintas.",
   "short.sponsor_request": "solicitudes de patrocinio",
   "event.sponsor_request": "Un patrocinador solicitó o pagó una reserva",
-  "audience.sponsor_request": "Personas que pueden gestionar los patrocinadores"
+  "audience.sponsor_request": "Personas que pueden gestionar los patrocinadores",
+  "short.lead_ads_attention": "problemas con los anuncios de clientes potenciales",
+  "event.lead_ads_attention": "Meta rechazó el token de los anuncios de clientes potenciales",
+  "audience.lead_ads_attention": "Personas que pueden gestionar las integraciones"
 }

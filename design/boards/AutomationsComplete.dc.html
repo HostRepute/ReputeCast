@@ -172,7 +172,7 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
     </section>
   </figure>
   <figure><figcaption>Trigger picker · new kinds</figcaption>
-    <div class="menu" role="listbox"><div class="mh">Audience</div><button>Joined list</button><button>Tag added</button><button class="hl">Enters a segment</button><button>Leaves a segment</button><div class="mh">Engagement</div><button>Clicked a link</button><button>Score crosses</button><div class="mh">Paid members</div><button>Becomes a paid member</button><button>Changes tier</button><button>Stops paying</button><button>Trial ends soon</button><button>Pauses payments</button><button>Resumes payments</button></div>
+    <div class="menu" role="listbox"><div class="mh">Audience</div><button>Joined list</button><button>Tag added</button><button class="hl">Enters a segment</button><button>Leaves a segment</button><div class="mh">Engagement</div><button>Clicked a link</button><button>Score crosses</button><div class="mh">Paid members</div><button>Becomes a paid member</button><button>Changes tier</button><button>Stops paying</button><button>Trial ends soon</button><button>Pauses payments</button><button>Resumes payments</button><div class="mh">Lead ads</div><button style="flex-direction:column;align-items:flex-start;justify-content:center;gap:0;padding:6px 10px">Submitted a lead ad form<span class="hint">Someone sent one of your Facebook or Instagram lead forms</span></button></div>
     <section class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div class="field"><label class="lbl">Clicked a link in</label><select class="in"><option>October Product Update (campaign)</option></select></div><div class="field"><label class="lbl">Link contains (optional)</label><input class="in" value="/pricing"></div><span class="hint">Human clicks only, after bot filtering settles (about 10 minutes).</span></section> <section class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px"><div class="field"><label class="lbl">Enters a segment</label><select class="in"><option>Churn risk (SQL)</option></select></div><span class="hint">Checked every 10 minutes. Contacts already in it when the flow goes live don't count as entering.</span><div style="font-size:12.5px;padding:8px 10px;border-radius:8px;background:#FFFBEB;border:1px solid #FDE68A;color:#78350F">This segment takes 90 seconds to evaluate, so it is checked every 30 minutes instead of 10. Contacts enter the flow up to that long after they join it.</div></section>
   </figure>
 </div>
@@ -236,9 +236,28 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
   </figure>
 </div>
 
+<div class="strip">8 · Lead ads <span>With Meta Lead Ads connected, a flow can start when someone sends one of your Facebook or Instagram lead forms, any form or one. It starts when the lead is recorded, or once the lead confirms with double opt-in.</span></div>
+<div class="grid three">
+  <figure><figcaption>Trigger panel · Submitted a lead ad form</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="field"><label class="lbl" for="la-kind">Starts when</label><select id="la-kind" class="in"><option>Submitted a lead ad form</option></select></div>
+      <div class="field"><label class="lbl" for="la-form">Lead form</label><select id="la-form" class="in"><option>Any lead form</option><option selected>Spring webinar signup · Acme Inc</option><option>Field Guide download · Acme Inc</option><option>Beta waitlist · Acme Labs</option></select></div>
+      <div class="note i"><span>With double opt-in, the flow starts once the lead confirms.</span></div>
+    </section>
+  </figure>
+  <figure><figcaption>Lead form · the choices</figcaption>
+    <div class="menu" role="listbox" aria-label="Lead form"><button role="option" aria-selected="false">Any lead form</button><button role="option" aria-selected="true" class="hl">Spring webinar signup · Acme Inc</button><button role="option" aria-selected="false">Field Guide download · Acme Inc</button><button role="option" aria-selected="false">Beta waitlist · Acme Labs</button></div>
+  </figure>
+  <figure><figcaption>On the canvas</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="stack">
+      <div class="tcard"><span class="ey">Trigger · Submitted a lead ad form</span><b>Spring webinar signup · Acme Inc</b></div>
+      <div class="tcard"><span class="ey">Trigger · Submitted a lead ad form</span><b>Any lead form</b></div></div>
+    </section>
+  </figure>
+</div>
+
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3574}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3954}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

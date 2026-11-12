@@ -96,7 +96,7 @@ func TestScoringGrowthSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if g.Tiles.Joined != 1756 || g.Tiles.Left != 472 || g.Tiles.Net != 1284 || g.Tiles.Imports != 9509 || math.Round(g.Tiles.NetPct*1000) != 27 {
+	if g.Tiles.Joined != 1773 || g.Tiles.Left != 472 || g.Tiles.Net != 1301 || g.Tiles.Imports != 9509 || math.Round(g.Tiles.NetPct*1000) != 28 {
 		t.Errorf("tiles: %+v", g.Tiles)
 	}
 	if g.Departures != (growth.GrowthDepartures{Unsubscribed: 333, HardBounced: 104, Complained: 27, Erased: 8}) {
@@ -108,7 +108,7 @@ func TestScoringGrowthSample(t *testing.T) {
 			joined[r.Source.Name] = *r.Joined
 		}
 	}
-	for name, want := range map[string]int64{"Newsletter signup": 731, "Footer mini form": 612, "Beta apply": 43, "Website signup form": 214, "Zapier · Beta application (Typeform)": 38} {
+	for name, want := range map[string]int64{"Newsletter signup": 731, "Footer mini form": 612, "Beta apply": 43, "Website signup form": 214, "Zapier · Beta application (Typeform)": 38, "Field Guide download": 17} {
 		if joined[name] != want {
 			t.Errorf("%s joined %d, want %d", name, joined[name], want)
 		}

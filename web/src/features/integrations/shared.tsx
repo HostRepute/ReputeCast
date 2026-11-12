@@ -83,6 +83,7 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   ...paymentEntryName,
   shopify: cm.shopify,
   woocommerce: cm.woocommerce,
+  meta_lead_ads: m.metaLeadAds,
 }
 
 export const maintainer: Record<EntryKey, MessageDescriptor> = {
@@ -103,6 +104,7 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   ...paymentMaintainer,
   shopify: cm.byShopify,
   woocommerce: cm.byWoo,
+  meta_lead_ads: m.byOwnMetaApp,
 }
 
 export const entryLine: Record<EntryKey, MessageDescriptor> = {
@@ -123,6 +125,7 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   ...paymentEntryLine,
   shopify: cm.shopifyLine,
   woocommerce: cm.wooLine,
+  meta_lead_ads: m.metaLeadAdsLine,
 }
 
 export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
@@ -143,6 +146,7 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   ...paymentCapabilities,
   shopify: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capWriteBack, cm.capAttribution],
   woocommerce: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capAttribution],
+  meta_lead_ads: [m.capInstantLeads, m.capFormConsent, m.capPast90],
 }
 
 /** The store platforms (the Commerce group, X20). */
@@ -176,6 +180,7 @@ export function Tile({ k, size }: { k: EntryKey; size?: 'sm' | 'lg' }) {
     ...paymentLetters,
     shopify: 'Sh',
     woocommerce: 'Woo',
+    meta_lead_ads: 'Meta',
   }
   let inner: ReactNode = letters[k]
   if (k === 'hostrepute') inner = <ShieldTick size={px} />

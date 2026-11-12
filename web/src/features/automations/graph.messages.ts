@@ -40,7 +40,7 @@ export const mg = defineMessages('automations.graph', {
   kindLinkClicked: 'Clicked a link',
   /** After the type in a trigger's header, shown in capitals: "Trigger · joined list". */
   kindWord:
-    '{kind, select, joined_list {joined list} form_submitted {form submitted} tag_added {tag added} api_event {api event} date_field {date field} score_crosses {score crosses} poll_answered {poll answered} bought_product {bought product} milestone_reached {milestone reached} order_placed {order placed} first_order {first order} abandoned_checkout {abandoned checkout} segment_entered {enters a segment} segment_left {leaves a segment} link_clicked {clicked a link} paid_started {becomes a paid member} paid_tier_changed {changes tier} paid_ended {stops paying} paid_trial_ending {trial ends soon} paid_paused {pauses payments} paid_resumed {resumes payments} other {{kind}}}',
+    '{kind, select, joined_list {joined list} form_submitted {form submitted} tag_added {tag added} api_event {api event} date_field {date field} score_crosses {score crosses} poll_answered {poll answered} bought_product {bought product} milestone_reached {milestone reached} order_placed {order placed} first_order {first order} abandoned_checkout {abandoned checkout} segment_entered {enters a segment} segment_left {leaves a segment} link_clicked {clicked a link} paid_started {becomes a paid member} paid_tier_changed {changes tier} paid_ended {stops paying} paid_trial_ending {trial ends soon} paid_paused {pauses payments} paid_resumed {resumes payments} lead_ad_submitted {submitted a lead ad form} other {{kind}}}',
 
   /** A wait or a window: "10 minutes", "2 days". */
   duration:

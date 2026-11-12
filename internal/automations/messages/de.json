@@ -514,5 +514,9 @@
   "diff.triggerReply": "Auslöser: {change}",
   "diff.triggerReplyDetail": "Gilt für die Kontakte auf v{version}, sobald sie live ist; Kontakte, die auf einer früheren Version bleiben, behalten deren Einstellung.",
   "trigger.paidPaused": "Pausiert Zahlungen",
-  "trigger.paidResumed": "Setzt Zahlungen fort"
+  "trigger.paidResumed": "Setzt Zahlungen fort",
+  "trigger.leadAdSubmitted": "Lead-Anzeigen-Formular gesendet",
+  "ref.anyLeadForm": "beliebiges Lead-Formular",
+  "ref.aLeadForm": "Lead-Formular",
+  "problem.triggerLeadFormDeleted": "Das Lead-Formular des Auslösers gibt es nicht mehr: Seine Seite wurde getrennt. Wählen Sie ein anderes Formular oder ein beliebiges Lead-Formular."
 }

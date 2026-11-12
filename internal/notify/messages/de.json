@@ -183,5 +183,8 @@
   "problem.quietSame": "Für Ruhezeiten müssen Beginn und Ende verschieden sein.",
   "short.sponsor_request": "Sponsoranfragen",
   "event.sponsor_request": "Sponsor hat eine Buchung angefragt oder bezahlt",
-  "audience.sponsor_request": "Alle, die Sponsoren verwalten dürfen"
+  "audience.sponsor_request": "Alle, die Sponsoren verwalten dürfen",
+  "short.lead_ads_attention": "Lead-Anzeigen-Probleme",
+  "event.lead_ads_attention": "Meta hat das Token für Lead-Anzeigen abgelehnt",
+  "audience.lead_ads_attention": "Alle, die Integrationen verwalten dürfen"
 }

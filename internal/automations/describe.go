@@ -220,6 +220,8 @@ func triggerKindLabel(kind string) i18n.Text {
 		return txt(mTriggerPaidPaused)
 	case TriggerPaidResumed:
 		return txt(mTriggerPaidResumed)
+	case TriggerLeadAdSubmitted:
+		return txt(mTriggerLeadAdSubmitted)
 	}
 	return txt(mTriggerOther)
 }
@@ -305,6 +307,8 @@ func triggerRef(t *AutomationTrigger, refs *Refs) i18n.Text {
 		return txt(mRefAnEmail)
 	case TriggerPaidStarted, TriggerPaidTierChanged, TriggerPaidEnded, TriggerPaidTrialEnding, TriggerPaidPaused, TriggerPaidResumed:
 		return paidTriggerRef(t, refs)
+	case TriggerLeadAdSubmitted:
+		return leadTriggerRef(t, refs)
 	}
 	return i18n.Text{}
 }

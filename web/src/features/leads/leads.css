@@ -1,0 +1,271 @@
+/*
+ * Lead ads from Meta (M66): the IntegrationsLeadAds, LeadAdsConnect,
+ * LeadAdsFormMapping and LeadAdsStates boards' own classes ("M66 · lead
+ * ads"), copied value for value and prefixed `la-`. The page also uses the
+ * integrations hub's `ih-` classes (its detail-page header, banners, card
+ * footers, lists below 1100 px and on phones).
+ */
+@layer components {
+  /* The page's main and side columns, stacked at 1100px and below. */
+  .la-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
+    align-items: start;
+  }
+  .la-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  /* How leads arrive: the boards' key-value list, a little more air than .kv. */
+  .kv.la-kv {
+    gap: 7px 18px;
+  }
+
+  /* "What ReputeCast receives": a ticked list. */
+  .la-wd {
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .la-wd ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .la-wd li {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .la-wd li > svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* A row's actions: Map and the 30px menu button. */
+  .la-acts {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  .la-acts .ibtn {
+    width: 30px;
+    height: 30px;
+  }
+  /* A form's card in the list below 1100px and a lead's on phones. */
+  .la-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line-2);
+  }
+  .la-item > .la-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  /* The mapping dialog: sections, question rows, the quoted checkbox. */
+  .la-sect {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .la-sect > h3,
+  .la-sect > legend {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .la-qrow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 6px 14px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .la-qrow.qh {
+    padding: 0 0 6px;
+    border-top: 0;
+  }
+  .la-sbox {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--surface);
+    min-width: 0;
+  }
+  .la-sbox blockquote {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-nav);
+  }
+  /* Consent: radio cards, the chosen one in the accent's tint. */
+  .la-radio {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--field);
+    cursor: pointer;
+  }
+  .la-radio.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .la-radio.off {
+    cursor: not-allowed;
+  }
+  .la-radio.off > input,
+  .la-radio.off .la-rt {
+    opacity: 0.55;
+  }
+  .la-radio > input {
+    margin-top: 2px;
+    flex: none;
+  }
+  /* Lists to join: checkbox chips, the chosen ones in the accent's tint. */
+  .la-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .la-chips .chip {
+    gap: 8px;
+    cursor: pointer;
+  }
+  .la-chips .chip.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  /* Tags: chips inside the field, then the text input. */
+  .la-tags {
+    height: auto;
+    min-height: 36px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0 6px;
+    box-sizing: border-box;
+  }
+  .la-tags .chip {
+    height: 24px;
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+  }
+  .la-tags .chip > button {
+    border: 0;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--ink-3);
+    display: inline-flex;
+  }
+  .la-tags > input {
+    border: 0;
+    outline: 0;
+    font: inherit;
+    font-size: 13px;
+    flex: 1 1 80px;
+    min-width: 80px;
+    align-self: stretch;
+    background: none;
+    color: var(--ink);
+    padding: 0 4px;
+  }
+  /* Choose Pages: one checkbox row per Page. */
+  .la-page {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--field);
+    cursor: pointer;
+    font-size: 13.5px;
+  }
+  .la-page.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .la-line {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 13px;
+    color: var(--ink-nav);
+  }
+  .la-line > svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  @media (max-width: 1100px) {
+    .la-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .la-col {
+      gap: 16px;
+    }
+  }
+  @media (max-width: 767px) {
+    .la-grid,
+    .la-col {
+      gap: 12px;
+    }
+    .kv.la-kv {
+      gap: 2px 0;
+    }
+    .kv.la-kv dd {
+      margin-bottom: 8px;
+    }
+    .la-qrow {
+      grid-template-columns: 1fr;
+    }
+    .la-qrow.qh {
+      display: none;
+    }
+    .la-acts .ibtn {
+      width: 44px;
+      height: 44px;
+    }
+    .la-tags .chip > button {
+      box-sizing: content-box;
+      padding: 10px;
+      margin: -10px;
+    }
+  }
+}

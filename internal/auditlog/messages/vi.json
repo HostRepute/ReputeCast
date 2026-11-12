@@ -365,5 +365,9 @@
   "type.countdown": "bộ đếm ngược",
   "type.website_comment": "bình luận trên trang web",
   "type.website_import": "lượt nhập bài viết",
-  "type.sponsor_settings": "cài đặt trang tài trợ"
+  "type.sponsor_settings": "cài đặt trang tài trợ",
+  "category.leads": "Quảng cáo khách hàng tiềm năng",
+  "type.lead_connection": "kết nối quảng cáo khách hàng tiềm năng",
+  "type.lead_form": "biểu mẫu khách hàng tiềm năng",
+  "link.leadConnection": "Mở kết nối"
 }

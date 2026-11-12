@@ -191,6 +191,9 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 	if err := loadTierRefs(ctx, q, wsID, r); err != nil {
 		return nil, err
 	}
+	if err := loadLeadFormRefs(ctx, q, wsID, r); err != nil {
+		return nil, err
+	}
 	lists, err := q.AutomationLists(ctx, wsID)
 	if err != nil {
 		return nil, err

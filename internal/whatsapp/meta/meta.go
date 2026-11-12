@@ -127,6 +127,13 @@ type graphError struct {
 	} `json:"error"`
 }
 
+// Call makes one Graph API request with the client's access token and
+// decodes the answer into out: lead ads (internal/leads/meta) read Pages,
+// forms and leads through the same client and its errors.
+func (c *Client) Call(ctx context.Context, method, path string, query url.Values, body any, out any) error {
+	return c.call(ctx, method, path, query, body, out)
+}
+
 // call makes one Graph API request and decodes the answer into out.
 func (c *Client) call(ctx context.Context, method, path string, query url.Values, body any, out any) error {
 	u := c.base() + path

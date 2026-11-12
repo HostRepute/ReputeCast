@@ -203,4 +203,6 @@ export default translate(m, {
   retry: 'Erneut versuchen',
   listHealth: 'Listenqualität',
   requestRef: 'Anfrage {ref}',
+  srcLeadAd: 'Lead-Anzeigen · {name}',
+  lineLeadAd: 'Lead-Formular auf Facebook und Instagram',
 })

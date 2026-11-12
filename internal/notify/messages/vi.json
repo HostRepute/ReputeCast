@@ -183,5 +183,8 @@
   "problem.quietSame": "Giờ yên lặng cần giờ bắt đầu và giờ kết thúc khác nhau.",
   "short.sponsor_request": "yêu cầu tài trợ",
   "event.sponsor_request": "Nhà tài trợ gửi yêu cầu đặt chỗ hoặc đã thanh toán",
-  "audience.sponsor_request": "Những người có thể quản lý nhà tài trợ"
+  "audience.sponsor_request": "Những người có thể quản lý nhà tài trợ",
+  "short.lead_ads_attention": "sự cố quảng cáo khách hàng tiềm năng",
+  "event.lead_ads_attention": "Meta từ chối token quảng cáo khách hàng tiềm năng",
+  "audience.lead_ads_attention": "Những người có thể quản lý tích hợp"
 }

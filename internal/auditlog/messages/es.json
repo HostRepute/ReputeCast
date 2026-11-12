@@ -365,5 +365,9 @@
   "type.countdown": "cuenta atrás",
   "type.website_comment": "comentario del sitio web",
   "type.website_import": "importación de artículos",
-  "type.sponsor_settings": "ajustes de la página de patrocinio"
+  "type.sponsor_settings": "ajustes de la página de patrocinio",
+  "category.leads": "Anuncios de clientes potenciales",
+  "type.lead_connection": "conexión de anuncios de clientes potenciales",
+  "type.lead_form": "formulario de clientes potenciales",
+  "link.leadConnection": "Abrir la conexión"
 }

@@ -183,5 +183,8 @@
   "problem.quietSame": "Les heures de silence nécessitent une heure de début et une heure de fin différentes.",
   "short.sponsor_request": "demandes de sponsors",
   "event.sponsor_request": "Un sponsor a demandé ou payé une réservation",
-  "audience.sponsor_request": "Personnes pouvant gérer les sponsors"
+  "audience.sponsor_request": "Personnes pouvant gérer les sponsors",
+  "short.lead_ads_attention": "problèmes de publicités à formulaire",
+  "event.lead_ads_attention": "Meta a refusé le jeton des publicités à formulaire",
+  "audience.lead_ads_attention": "Personnes pouvant gérer les intégrations"
 }

@@ -514,5 +514,9 @@
   "diff.triggerReply": {"message": "Trigger: {change}", "note": "The publish diff's line when only the flow's stop on reply changed: change is trigger.exitOnReply or trigger.noExitOnReply, in lower case"},
   "diff.triggerReplyDetail": "It applies to the contacts on v{version} once it's live; contacts who stay on an earlier version keep that version's setting.",
   "trigger.paidPaused": {"message": "Pauses payments", "note": "A paid member's payments pause until a date (from the cancel page or Earn › Members)"},
-  "trigger.paidResumed": {"message": "Resumes payments", "note": "A paused subscription's payments start again, early or on the resume date"}
+  "trigger.paidResumed": {"message": "Resumes payments", "note": "A paused subscription's payments start again, early or on the resume date"},
+  "trigger.leadAdSubmitted": "Submitted a lead ad form",
+  "ref.anyLeadForm": "any lead form",
+  "ref.aLeadForm": "a lead form",
+  "problem.triggerLeadFormDeleted": "The trigger's lead form is gone: its Page was disconnected. Pick another form, or any lead form."
 }

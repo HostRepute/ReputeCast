@@ -165,6 +165,9 @@ func SourceLabelIn(l i18n.Lang, src string) string {
 			return "WooCommerce"
 		}
 		return "Shopify"
+	case "lead_ad":
+		// "lead_ad:<form id>": a Facebook or Instagram lead form (M66).
+		return mSourceLeadAd.Text(l, nil)
 	case "":
 		return mSourceUnknown.Text(l, nil)
 	}

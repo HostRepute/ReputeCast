@@ -365,5 +365,9 @@
   "type.countdown": "countdown",
   "type.website_comment": "website comment",
   "type.website_import": "post import",
-  "type.sponsor_settings": "sponsor page settings"
+  "type.sponsor_settings": "sponsor page settings",
+  "category.leads": "Lead ads",
+  "type.lead_connection": "lead ads connection",
+  "type.lead_form": "lead form",
+  "link.leadConnection": "Open the connection"
 }

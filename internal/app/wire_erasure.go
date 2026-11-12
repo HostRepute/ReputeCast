@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/imports"
 	"github.com/hostrepute/reputecast/internal/inbound"
 	"github.com/hostrepute/reputecast/internal/integrations"
+	"github.com/hostrepute/reputecast/internal/leads"
 	"github.com/hostrepute/reputecast/internal/offers"
 	"github.com/hostrepute/reputecast/internal/polls"
 	"github.com/hostrepute/reputecast/internal/products"
@@ -40,6 +41,7 @@ func erasureSources() []erasure.Source {
 		// Discount codes given to contacts (M59).
 		coupons.Erasure(),
 		website.CommentsErasure(),
+		leads.Erasure(),
 	}
 }
 

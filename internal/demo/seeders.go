@@ -77,6 +77,8 @@ var (
 	seedWebsiteImport = noop
 	// comments on two posts, three waiting for review (M61, seed_website_comments.go)
 	seedWebsiteComments = noop
+	// lead ads from Meta: Acme Marketing, its Pages, forms and leads (seed_leads.go)
+	seedLeads = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

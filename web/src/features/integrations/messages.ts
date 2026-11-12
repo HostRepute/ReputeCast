@@ -821,4 +821,12 @@ export const m = defineMessages('integrations', {
   // ── HostRepute ───────────────────────────────────────────────────────
   hrAdds: 'Adds',
   hrAddsValue: 'Google Postmaster Tools: compliance status, spam rate and feedback loop · Microsoft SNDS: IP reputation for Outlook.com',
+  groupLeads: 'Lead ads',
+  groupLeadsLine: 'Signups from ads on other platforms, with the consent people gave there.',
+  metaLeadAds: 'Meta Lead Ads',
+  byOwnMetaApp: 'Your own Meta app',
+  metaLeadAdsLine: 'Facebook and Instagram lead forms become contacts, with the form\'s consent.',
+  capInstantLeads: 'Instant leads',
+  capFormConsent: 'Consent from the form',
+  capPast90: 'Past 90 days',
 })

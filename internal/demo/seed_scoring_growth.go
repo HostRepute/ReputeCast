@@ -63,6 +63,8 @@ type sgWorld struct {
 	forms                 map[string]uuid.UUID // by name
 	apiKey                uuid.UUID
 	zapier                uuid.UUID
+	// leadForm is Field Guide download, the lead ads seeder's form (M66).
+	leadForm uuid.UUID
 	// periodStart is the first day of Growth's 30 days; liveSince is when
 	// "Sales-ready handoff" went live.
 	periodStart time.Time
@@ -127,6 +129,7 @@ func sgLoad(ctx context.Context, s *Seeder) (*sgWorld, error) {
 	if id, ok := s.Extra["integration:Acme ops"].(uuid.UUID); ok {
 		w.zapier = id
 	}
+	w.leadForm = leadAdsFormID(s, "Field Guide download")
 	if err := s.Tx.QueryRow(ctx, `SELECT id, created_at FROM imports WHERE workspace_id = $1 AND source = 'brevo' AND status = 'done' ORDER BY created_at LIMIT 1`, ws.ID).
 		Scan(&w.brevoImport, &w.brevoAt); err != nil {
 		return nil, fmt.Errorf("brevo import: %w", err)

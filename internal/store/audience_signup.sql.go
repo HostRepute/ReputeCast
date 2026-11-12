@@ -14,6 +14,27 @@ import (
 	"github.com/google/uuid"
 )
 
+const signupAddTags = `-- name: SignupAddTags :exec
+UPDATE contacts
+SET tags = (SELECT coalesce(array_agg(DISTINCT t ORDER BY t), '{}')::text[] FROM unnest(tags || $1::text[]) AS t),
+    updated_at = $2
+WHERE id = $3 AND NOT (tags @> $1::text[])
+`
+
+type SignupAddTagsParams struct {
+	Tags []string  `json:"tags"`
+	At   time.Time `json:"at"`
+	ID   uuid.UUID `json:"id"`
+}
+
+// Adds the tags a signup gives (a lead form's, M66), keeping the contact's
+// own; a contact that has them all is left alone, so "Tag added" flows
+// start only for tags it didn't have.
+func (q *Queries) SignupAddTags(ctx context.Context, arg SignupAddTagsParams) error {
+	_, err := q.db.Exec(ctx, signupAddTags, arg.Tags, arg.At, arg.ID)
+	return err
+}
+
 const signupAddUnsubscribe = `-- name: SignupAddUnsubscribe :exec
 INSERT INTO suppressions (id, workspace_id, email, reason, source, detail, scope, campaign_id, context, created_at, texts)
 VALUES ($1, $2, $3, 'unsubscribe', $4, $5, 'marketing', $6, $7, $8, coalesce($9::jsonb, '{}'))

@@ -92,6 +92,8 @@ var Events = []EventType{
 	{Key: KindPostImportDone, Label: "Post import finished", Audience: "Whoever started the import", Short: "post imports", DefaultEmail: false, Kinds: []string{KindPostImportDone}},
 	// Sponsor self-booking (M65).
 	{Key: KindSponsorRequest, Label: "Sponsor booking requested or paid", Audience: "People who can manage sponsors", Short: "sponsor requests", DefaultEmail: true, Kinds: []string{KindSponsorRequest}},
+	// Lead ads from Meta (M66).
+	{Key: KindLeadAdsAttention, Label: "Meta refused the lead ads token", Audience: "People who can manage integrations", Short: "lead ads problems", DefaultEmail: true, Kinds: []string{KindLeadAdsAttention}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -141,7 +143,7 @@ var categoryKinds = map[string][]string{
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails, KindInboundFailing},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested, KindCommentMention},
 	CategoryHostRepute:    {KindHostReputeAlert},
-	CategoryIntegrations:  {KindIntegrationAttention, KindWebhookFailing, KindPostDraftCreated, KindStoreProblem},
+	CategoryIntegrations:  {KindIntegrationAttention, KindWebhookFailing, KindPostDraftCreated, KindStoreProblem, KindLeadAdsAttention},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment, KindSponsorRequest},

@@ -25,6 +25,8 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   pool: (name) => ['coupons/pools', 'items', (p) => p.name === name],
   // An import of posts by its status ({postImport:ready}, M61).
   postImport: (status) => ['website/imports', 'items', (i) => i.status === status],
+  // A Meta Lead Ads connection by its name ({leadConnection:Acme Marketing}, M66).
+  leadConnection: (name) => ['lead-ads/connections', 'items', (c) => c.name === name],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */

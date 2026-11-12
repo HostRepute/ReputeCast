@@ -514,5 +514,9 @@
   "diff.triggerReply": "Disparador: {change}",
   "diff.triggerReplyDetail": "Se aplica a los contactos de la v{version} cuando esté publicada; los que siguen en una versión anterior conservan el ajuste de esa versión.",
   "trigger.paidPaused": "Pausa los pagos",
-  "trigger.paidResumed": "Reanuda los pagos"
+  "trigger.paidResumed": "Reanuda los pagos",
+  "trigger.leadAdSubmitted": "Envía un formulario de anuncios de clientes potenciales",
+  "ref.anyLeadForm": "cualquier formulario de clientes potenciales",
+  "ref.aLeadForm": "un formulario de clientes potenciales",
+  "problem.triggerLeadFormDeleted": "El formulario de clientes potenciales del disparador ya no existe: se desconectó su página. Elige otro formulario o cualquier formulario de clientes potenciales."
 }

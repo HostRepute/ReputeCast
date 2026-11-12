@@ -105,6 +105,8 @@ const (
 	// Discount codes (M59): a pool's free codes fell under its low mark
 	// (coupons:manage).
 	KindCouponCodesLow = "coupon_codes_low"
+	// Lead ads from Meta (M66).
+	KindLeadAdsAttention = "lead_ads_attention" // Meta refused a lead ads connection's token: leads wait at Meta
 )
 
 // Notification is what appears in the notification center.
