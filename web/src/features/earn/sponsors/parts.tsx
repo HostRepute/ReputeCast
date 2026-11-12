@@ -9,6 +9,7 @@ import { dayMonthDate, shortDate, zonedParts } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { money } from '../format'
 import { msp } from './messages'
+import { mr } from './requests.messages'
 
 export type IssueRow = Schemas['SponsorIssueRow']
 export type BookingBrief = Schemas['SponsorBookingBrief']
@@ -25,6 +26,9 @@ export const sponsorKeys = [
   ['get', `${WS}/sponsors/overview`],
   ['get', `${WS}/sponsor-bookings/{id}`],
   ['get', `${WS}/sponsor-slots/{id}/issues/{number}`],
+  ['get', `${WS}/sponsor-requests`],
+  ['get', `${WS}/sponsor-requests/{id}`],
+  ['get', `${WS}/sponsor-page`],
 ] as const
 
 function dayKey(d: string | Date): number {
@@ -91,20 +95,40 @@ export function Two({ badge, detail }: { badge: ReactNode; detail?: ReactNode })
 }
 
 /** The Booking column: Open, Hold until …, Booked, Sent · report shared … */
-export function BookingCell({ row }: { row: IssueRow }) {
+export function BookingCell({ row, link = true }: { row: IssueRow; link?: boolean }) {
   const t = useT()
+  const { slug } = useWorkspace()
   const b = row.booking
   if (!b) {
-    return row.proposal ? (
-      <span className="sp-two">
-        <OpenBadge />
-        <Badge tone="purple">{t(msp.badgeProposed)}</Badge>
-      </span>
+    if (row.proposal) {
+      return (
+        <span className="sp-two">
+          <OpenBadge />
+          <Badge tone="purple">{t(msp.badgeProposed)}</Badge>
+        </span>
+      )
+    }
+    // Requests from the media kit don't hold the issue: it stays Open, with a link to them.
+    return row.requests ? (
+      <Two
+        badge={<OpenBadge />}
+        detail={
+          link ? (
+            <Link to="/w/$workspace/earn/sponsors" params={{ workspace: slug }} search={{ tab: 'requests' }} className="k">
+              {t(mr.oneRequest, { count: row.requests })}
+            </Link>
+          ) : (
+            t(mr.oneRequest, { count: row.requests })
+          )
+        }
+      />
     ) : (
       <OpenBadge />
     )
   }
   switch (b.status) {
+    case 'awaiting_payment':
+      return <Two badge={<Badge tone="info">{t(mr.stAwaiting)}</Badge>} detail={b.paymentDueAt ? t(mr.payBy, { date: shortDate(b.paymentDueAt) }) : undefined} />
     case 'hold':
       return <Two badge={<Badge tone="info">{t(msp.badgeHold)}</Badge>} detail={b.holdUntil ? t(msp.holdUntil, { date: shortDate(b.holdUntil) }) : undefined} />
     case 'booked':
@@ -129,13 +153,16 @@ export function CreativeCell({ b }: { b?: BookingBrief }) {
 
 /** The Payment column: Paid 3 Oct, Unpaid · due 28 Oct, Overdue · was due 28 Oct; a dash while on hold. */
 export function PaymentCell({ b }: { b?: BookingBrief }) {
-  if (!b || b.status === 'hold') return <span className="k">–</span>
+  if (!b || b.status === 'hold' || b.status === 'awaiting_payment') return <span className="k">–</span>
   return <PaymentBadge p={b.payment} />
 }
 
 export function PaymentBadge({ p }: { p: SponsorPayment }) {
   const t = useT()
-  if (p.status === 'paid') return <Two badge={<Badge tone="ok">{t(msp.paymentPaid)}</Badge>} detail={p.paidOn ? dayMonthDate(p.paidOn) : undefined} />
+  if (p.status === 'paid') {
+    const on = p.paidOn ? dayMonthDate(p.paidOn) : undefined
+    return <Two badge={<Badge tone="ok">{t(msp.paymentPaid)}</Badge>} detail={on && p.source === 'stripe' ? t(mr.byStripe, { date: on }) : on} />
+  }
   if (p.status === 'overdue') return <Two badge={<Badge tone="warn">{t(msp.paymentOverdue)}</Badge>} detail={p.due ? t(msp.paymentWasDue, { date: dayMonthDate(p.due) }) : undefined} />
   return <Two badge={<Badge tone="neutral">{t(msp.paymentUnpaid)}</Badge>} detail={p.due ? t(msp.dueOn, { date: dayMonthDate(p.due) }) : undefined} />
 }

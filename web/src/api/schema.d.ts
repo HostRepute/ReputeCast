@@ -8090,6 +8090,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pause a subscription's payments for 1, 3 or 6 months or until a date
+         * @description Paid access stops while payments are paused; the free membership stays. Stripe resumes payments on the date.
+         */
+        post: operations["pause-paid-subscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/members/{id}/resend": {
         parameters: {
             query?: never;
@@ -8102,6 +8122,40 @@ export interface paths {
         /** Send a member email to a paid member again */
         post: operations["resend-member-email"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused subscription's payments now */
+        post: operations["resume-paid-subscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/seats/{seatId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a person from a team: an invite stops working, a seat's access ends now */
+        delete: operations["remove-team-seat"];
         options?: never;
         head?: never;
         patch?: never;
@@ -8340,6 +8394,26 @@ export interface paths {
         get: operations["get-earn-pages"];
         /** Save the terms of sale and support email */
         put: operations["save-earn-pages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/settings/pausing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pausing: the lengths paid members may pause for on the cancel page
+         * @description Any of 1, 3 and 6 months; none turns pausing off for members (the team can still pause a member).
+         */
+        put: operations["save-earn-pausing"];
         post?: never;
         delete?: never;
         options?: never;
@@ -15306,6 +15380,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/sponsor-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sponsor page's settings: self-serve booking, its media kit and address */
+        get: operations["get-sponsor-page-settings"];
+        /**
+         * Turn self-serve booking on or off and set the sponsor page's media kit
+         * @description Turning it on needs a payment account connected in Earn: sponsors pay through its Stripe Checkout.
+         */
+        put: operations["update-sponsor-page-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/sponsor-report-shares/{id}": {
         parameters: {
             query?: never;
@@ -15318,6 +15413,77 @@ export interface paths {
         post?: never;
         /** Revoke a sponsor report's read-only link */
         delete: operations["revoke-sponsor-share"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sponsor page's requests: waiting for review, approved and waiting for payment, recently declined or expired */
+        get: operations["list-sponsor-requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A request from the sponsor page: who sent it, its creative and where it can be booked */
+        get: operations["get-sponsor-request"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a request: hold the issue until the payment's deadline and email the sponsor the link to pay
+         * @description The deadline is the slot's pay_days from now, at the latest when the creative is due. The issue, slot and price may change.
+         */
+        post: operations["approve-sponsor-request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-requests/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a request; the sponsor is emailed the reason */
+        post: operations["decline-sponsor-request"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -21225,6 +21391,23 @@ export interface components {
             key: string;
             source: string;
         };
+        ApproveInput: {
+            /**
+             * Format: int64
+             * @description The request's issue when absent.
+             */
+            issue?: number;
+            /**
+             * Format: int64
+             * @description The request's price when absent.
+             */
+            priceCents?: number;
+            /**
+             * Format: uuid
+             * @description The request's slot when absent.
+             */
+            slotId?: string;
+        };
         ArchiveIssueInput: {
             /** @description Empty uses the preheader */
             excerpt: string;
@@ -22322,7 +22505,7 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending" | "paid_paused" | "paid_resumed";
             listId?: string;
             milestoneId?: string;
             /** Format: int64 */
@@ -25725,6 +25908,9 @@ export interface components {
         CustomFieldList: {
             items: components["schemas"]["CustomFieldDef"][];
         };
+        DeclineInput: {
+            reason: string;
+        };
         DeletedField: {
             /** Format: date-time */
             createdAt: string;
@@ -27124,6 +27310,35 @@ export interface components {
             /** @description YYYY-MM-DD; empty for no end date */
             until?: string;
         };
+        EarnGroupPriceInput: {
+            /**
+             * Format: int64
+             * @description Per seat per month, in minor units
+             */
+            monthly?: number;
+            off?: boolean;
+            /** Format: int64 */
+            seatsMax?: number;
+            /** Format: int64 */
+            seatsMin?: number;
+            /**
+             * Format: int64
+             * @description Per seat per year, in minor units
+             */
+            yearly?: number;
+        };
+        EarnGroupPrices: {
+            monthly?: components["schemas"]["EarnPrice"];
+            /** Format: int64 */
+            seats: number;
+            /** Format: int64 */
+            seatsMax: number;
+            /** Format: int64 */
+            seatsMin: number;
+            /** Format: int64 */
+            teams: number;
+            yearly?: components["schemas"]["EarnPrice"];
+        };
         EarnImport: {
             account: string;
             active?: components["schemas"]["EarnImportGroup"];
@@ -27294,6 +27509,8 @@ export interface components {
             billingDiffers: boolean;
             billingEmail?: string;
             canManage: boolean;
+            canPause: boolean;
+            canResume: boolean;
             /** Format: date-time */
             cancelAt?: string;
             cancelReason?: string;
@@ -27327,7 +27544,7 @@ export interface components {
             /** Format: date-time */
             importedAt?: string;
             /** @enum {string} */
-            kind: "stripe" | "complimentary" | "gift";
+            kind: "stripe" | "complimentary" | "gift" | "group";
             legacy: boolean;
             link: string;
             lists: string[];
@@ -27336,26 +27553,34 @@ export interface components {
             matchedBy?: string;
             name: string;
             /** @enum {string} */
-            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "ended";
+            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "resumes" | "ended";
             /** Format: date-time */
             nextAt?: string;
             /** Format: int64 */
             paidCents: number;
+            /** Format: date-time */
+            pausedAt?: string;
+            /** Format: date-time */
+            pausedUntil?: string;
             /** @enum {string} */
             period: "month" | "year" | "";
             periodShown: boolean;
             /** Format: int64 */
+            quantity: number;
+            /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
             renewalReminder?: string;
+            seats: components["schemas"]["EarnTeamSeat"][];
             /** Format: date-time */
             since: string;
             source: components["schemas"]["EarnMemberSource"];
             /** @enum {string} */
-            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
+            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift" | "group";
             subscriptionId?: string;
             subscriptionUrl?: string;
             taxAdded: boolean;
+            team?: components["schemas"]["EarnMemberTeam"];
             test: boolean;
             tier: string;
             tierId?: string;
@@ -27374,6 +27599,8 @@ export interface components {
             gift: number;
             /** Format: int64 */
             pastDue: number;
+            /** Format: int64 */
+            paused: number;
             /** Format: int64 */
             paying: number;
             /** Format: int64 */
@@ -27469,25 +27696,32 @@ export interface components {
             hidden: boolean;
             id: string;
             /** @enum {string} */
-            kind: "stripe" | "complimentary" | "gift";
+            kind: "stripe" | "complimentary" | "gift" | "group";
             legacy: boolean;
             /** Format: int64 */
             ltvCents: number;
             name: string;
             /** @enum {string} */
-            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "ended";
+            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "resumes" | "ended";
             /** Format: date-time */
             nextAt?: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            /** Format: date-time */
+            pausedUntil?: string;
             /** @enum {string} */
             period: "month" | "year" | "";
             periodShown: boolean;
+            /** Format: int64 */
+            quantity: number;
             /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
             since: string;
             source: components["schemas"]["EarnMemberSource"];
             /** @enum {string} */
-            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
+            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift" | "group";
+            team?: components["schemas"]["EarnMemberTeam"];
             test: boolean;
             tier: string;
             tierId?: string;
@@ -27498,10 +27732,29 @@ export interface components {
             grantedBy?: string;
             importId?: string;
             /** @enum {string} */
-            kind: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+            kind: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "group" | "";
             label: string;
             platform?: string;
             reason?: string;
+        };
+        EarnMemberTeam: {
+            buyerId?: string;
+            buyerName?: string;
+            /** Format: date-time */
+            endedAt?: string;
+            id: string;
+            /** Format: int64 */
+            invites: number;
+            name: string;
+            /** Format: date-time */
+            renewsAt?: string;
+            /** @enum {string} */
+            role: "buyer" | "seat";
+            seatId?: string;
+            /** Format: int64 */
+            seats: number;
+            /** Format: int64 */
+            used: number;
         };
         EarnPageTier: {
             id: string;
@@ -27529,6 +27782,27 @@ export interface components {
             /** Format: int64 */
             visits: number;
         };
+        EarnPauseInput: {
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            months?: 0 | 1 | 3 | 6;
+            note?: string;
+            skipEmail?: boolean;
+            /**
+             * Format: date
+             * @description YYYY-MM-DD, in the workspace's time zone; at most 6 months away
+             */
+            until?: string;
+        };
+        EarnPausing: {
+            months: number[];
+        };
+        EarnPausingInput: {
+            /** @description Any of 1, 3 and 6; none turns pausing off. */
+            months: number[];
+        };
         EarnPayments: {
             /** @enum {string} */
             active: "live" | "test" | "";
@@ -27539,6 +27813,7 @@ export interface components {
             checkout: components["schemas"]["EarnCheckoutSettings"];
             helpers: string[];
             live?: components["schemas"]["EarnConnection"];
+            pauseMonths: number[];
             permissions: components["schemas"]["EarnPermissionCheck"][];
             providers: components["schemas"]["EarnProviderCard"][];
             test?: components["schemas"]["EarnConnection"];
@@ -27633,7 +27908,7 @@ export interface components {
         };
         EarnResendInput: {
             /** @enum {string} */
-            email: "welcome" | "trial_ending" | "payment_failed" | "renewal_reminder" | "canceled";
+            email: "welcome" | "trial_ending" | "payment_failed" | "renewal_reminder" | "canceled" | "group_welcome" | "paused" | "resuming_soon";
         };
         EarnResent: {
             reason?: string;
@@ -27673,6 +27948,20 @@ export interface components {
         EarnSyncWarning: {
             subscriptions: components["schemas"]["EarnMemberRow"][];
         };
+        EarnTeamSeat: {
+            /** Format: date-time */
+            acceptedAt?: string;
+            email: string;
+            id: string;
+            /** Format: date-time */
+            inviteExpiresAt?: string;
+            /** Format: date-time */
+            invitedAt: string;
+            memberId?: string;
+            name: string;
+            /** @enum {string} */
+            status: "buyer" | "invited" | "active";
+        };
         EarnTestDataCleared: {
             /** Format: int64 */
             members: number;
@@ -27689,6 +27978,7 @@ export interface components {
             description: string;
             /** Format: int64 */
             discountedYearly: number;
+            group?: components["schemas"]["EarnGroupPrices"];
             hiddenLink: string;
             highlight?: string;
             id: string;
@@ -27734,6 +28024,7 @@ export interface components {
             accessRank: number;
             benefits: string[];
             description?: string;
+            group?: components["schemas"]["EarnGroupPriceInput"];
             highlight?: string;
             lists: string[];
             /** Format: int64 */
@@ -40583,6 +40874,8 @@ export interface components {
             creativeDays?: number;
             /** @description ISO 4217; the workspace's currency when absent. */
             currency?: string;
+            /** @description What the sponsor page says about the slot. */
+            description?: string;
             /**
              * Format: int64
              * @description 7 when absent (weekly).
@@ -40595,9 +40888,19 @@ export interface components {
              * @description The date of issue FirstNumber, in the workspace's time zone.
              */
             firstOn: string;
+            /**
+             * Format: int64
+             * @description Sponsors book at least this many days ahead (7 for a new slot when absent).
+             */
+            leadDays?: number;
             /** Format: uuid */
             listId: string;
             name: string;
+            /**
+             * Format: int64
+             * @description Sponsors pay within this many days of the approval (3 for a new slot when absent).
+             */
+            payDays?: number;
             /** @description Where it sits in the issue ("After the first story"). */
             placement?: string;
             /**
@@ -40605,6 +40908,8 @@ export interface components {
              * @description The default price of a booking, in minor units.
              */
             priceCents: number;
+            /** @description Sponsors can book it from the sponsor page (off for a new slot when absent). */
+            selfServe?: boolean;
             selling?: boolean;
         };
         SmsAudienceRef: {
@@ -42194,7 +42499,7 @@ export interface components {
         SponsorBlock: {
             bookingId?: string;
             /** @enum {string} */
-            bookingStatus?: "hold" | "booked" | "sent" | "";
+            bookingStatus?: "hold" | "awaiting_payment" | "booked" | "sent" | "";
             canSeePrice: boolean;
             creative: components["schemas"]["SponsorCreative"];
             /** Format: date-time */
@@ -42235,6 +42540,8 @@ export interface components {
             holdUntil?: string;
             id: string;
             payment: components["schemas"]["SponsorPayment"];
+            /** Format: date-time */
+            paymentDueAt?: string;
             /** Format: int64 */
             priceCents: number;
             proposal?: components["schemas"]["SponsorPropose"];
@@ -42246,7 +42553,7 @@ export interface components {
             sharedAt?: string;
             sponsor?: components["schemas"]["SponsorRef"];
             /** @enum {string} */
-            status: "hold" | "booked" | "sent";
+            status: "hold" | "awaiting_payment" | "booked" | "sent";
         };
         SponsorBookingDetail: {
             activity: components["schemas"]["SponsorBookingEvent"][];
@@ -42261,6 +42568,7 @@ export interface components {
             /** @enum {string} */
             creativeStatus: "waiting" | "ready";
             currency: string;
+            declinedReason?: string;
             helpers: string[];
             /** Format: date-time */
             holdUntil?: string;
@@ -42274,6 +42582,8 @@ export interface components {
             listName: string;
             notes: string;
             payment: components["schemas"]["SponsorPayment"];
+            /** Format: date-time */
+            paymentDueAt?: string;
             placement: string;
             /** Format: int64 */
             priceCents: number;
@@ -42281,6 +42591,7 @@ export interface components {
             /** Format: date-time */
             readyAt?: string;
             report?: components["schemas"]["SponsorReport"];
+            request?: components["schemas"]["SponsorRequestFrom"];
             shares: components["schemas"]["SponsorShareLink"][];
             slotId: string;
             slotName: string;
@@ -42288,7 +42599,7 @@ export interface components {
             slotPriceCents: number;
             sponsor?: components["schemas"]["SponsorItem"];
             /** @enum {string} */
-            status: "proposed" | "hold" | "booked" | "sent" | "canceled";
+            status: "proposed" | "hold" | "booked" | "sent" | "canceled" | "requested" | "awaiting_payment" | "declined" | "expired";
         };
         SponsorBookingEvent: {
             actor?: string;
@@ -42368,10 +42679,17 @@ export interface components {
             number: number;
             past: boolean;
             proposal?: components["schemas"]["SponsorPropose"];
+            /** Format: int64 */
+            requests: number;
             slotId: string;
             slotName: string;
         };
         SponsorItem: {
+            awaiting: number[];
+            /** Format: int64 */
+            awaitingCents: number;
+            /** Format: date-time */
+            awaitingDue?: string;
             /** Format: int64 */
             bookedCents: number;
             /** Format: double */
@@ -42381,6 +42699,7 @@ export interface components {
             contactEmail: string;
             contactName: string;
             currency: string;
+            fromRequest: number[];
             hold: number[];
             /** Format: int64 */
             holdCents: number;
@@ -42393,8 +42712,29 @@ export interface components {
             /** Format: int64 */
             paidCents: number;
             /** Format: int64 */
+            requests: number;
+            /** Format: date-time */
+            stripePaidOn?: string;
+            /** Format: int64 */
             termsDays: number;
             website: string;
+        };
+        SponsorKitStats: {
+            /** Format: double */
+            clickRate?: number;
+            listId: string;
+            listName: string;
+            /** Format: double */
+            openRate?: number;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        SponsorMediaKit: {
+            about: string;
+            audience: string;
+            clickRate: boolean;
+            openRate: boolean;
+            subscribers: boolean;
         };
         SponsorNotice: {
             /** Format: int64 */
@@ -42425,6 +42765,8 @@ export interface components {
             past: components["schemas"]["SponsorIssueRow"][];
             /** @enum {string} */
             range: "around" | "upcoming" | "recent" | "all";
+            /** Format: int64 */
+            requests: number;
             slotId: string;
             slots: components["schemas"]["SponsorSlotItem"][];
             tiles: components["schemas"]["SponsorTiles"];
@@ -42441,6 +42783,8 @@ export interface components {
             /** Format: date-time */
             recordedAt?: string;
             recordedBy?: string;
+            /** @enum {string} */
+            source: "manual" | "stripe" | "";
             /** @enum {string} */
             status: "unpaid" | "paid" | "overdue";
         };
@@ -42507,6 +42851,167 @@ export interface components {
             /** Format: double */
             share: number;
         };
+        SponsorRequestDetail: {
+            activity: components["schemas"]["SponsorBookingEvent"][];
+            /** Format: date-time */
+            approvedAt?: string;
+            approvedBy?: string;
+            canManage: boolean;
+            /** Format: date-time */
+            closedAt?: string;
+            company: string;
+            creative: components["schemas"]["SponsorCreative"];
+            currency: string;
+            declinedReason?: string;
+            email: string;
+            files: components["schemas"]["SponsorRequestFile"][];
+            heldBy?: string;
+            /** Format: date-time */
+            heldUntil?: string;
+            helpers: string[];
+            id: string;
+            initials: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            /** @enum {string} */
+            issueState: "open" | "held";
+            label: string;
+            listName: string;
+            logo?: string;
+            name: string;
+            notes: string;
+            /** Format: date-time */
+            paidOn?: string;
+            /** @enum {string} */
+            paidSource?: "manual" | "stripe" | "";
+            /** Format: int64 */
+            payDays: number;
+            /** Format: date-time */
+            paymentDueAt?: string;
+            /** Format: int64 */
+            priceCents: number;
+            slotDeleted: boolean;
+            slotId: string;
+            slotName: string;
+            slots: components["schemas"]["SponsorRequestSlot"][];
+            sponsor?: components["schemas"]["SponsorRef"];
+            /** @enum {string} */
+            status: "requested" | "awaiting_payment" | "booked" | "declined" | "expired" | "canceled";
+            /** Format: date-time */
+            submittedAt: string;
+            website: string;
+        };
+        SponsorRequestFile: {
+            /** @enum {string} */
+            kind: "logo" | "image";
+            name: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            url: string;
+        };
+        SponsorRequestFrom: {
+            /** Format: date-time */
+            approvedAt?: string;
+            approvedBy?: string;
+            /** Format: date-time */
+            at: string;
+            company: string;
+            email: string;
+            name: string;
+            notes: string;
+            website: string;
+        };
+        SponsorRequestIssue: {
+            heldBy?: string;
+            /** Format: date-time */
+            heldUntil?: string;
+            /** Format: date-time */
+            issueOn: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paymentDueAt: string;
+            taken: boolean;
+        };
+        SponsorRequestItem: {
+            /** Format: date-time */
+            closedAt?: string;
+            company: string;
+            currency: string;
+            declinedReason?: string;
+            email: string;
+            heldBy?: string;
+            /** Format: date-time */
+            heldUntil?: string;
+            id: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            /** @enum {string} */
+            issueState: "open" | "held";
+            listName: string;
+            name: string;
+            /** Format: date-time */
+            paidOn?: string;
+            /** @enum {string} */
+            paidSource?: "manual" | "stripe" | "";
+            /** Format: date-time */
+            paymentDueAt?: string;
+            /** Format: int64 */
+            priceCents: number;
+            slotDeleted: boolean;
+            slotId: string;
+            slotName: string;
+            sponsor?: components["schemas"]["SponsorRef"];
+            /** @enum {string} */
+            status: "requested" | "awaiting_payment" | "booked" | "declined" | "expired" | "canceled";
+            /** Format: date-time */
+            submittedAt: string;
+        };
+        SponsorRequestList: {
+            canManage: boolean;
+            helpers: string[];
+            items: components["schemas"]["SponsorRequestItem"][];
+            pageUrl: string;
+            selfServe: boolean;
+        };
+        SponsorRequestSlot: {
+            /** Format: int64 */
+            creativeDays: number;
+            currency: string;
+            id: string;
+            issues: components["schemas"]["SponsorRequestIssue"][];
+            listName: string;
+            name: string;
+            /** Format: int64 */
+            payDays: number;
+            /** Format: int64 */
+            priceCents: number;
+        };
+        SponsorSelfServe: {
+            canManage: boolean;
+            contactEmail: string;
+            helpers: string[];
+            mediaKit: components["schemas"]["SponsorMediaKit"];
+            pageUrl: string;
+            paymentsConnected: boolean;
+            paymentsTest: boolean;
+            selfServe: boolean;
+            /** Format: int64 */
+            slots: number;
+            stats: components["schemas"]["SponsorKitStats"][];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        SponsorSelfServeInput: {
+            /** @description Where sponsors write with questions; Earn's support address when empty. */
+            contactEmail?: string;
+            mediaKit: components["schemas"]["SponsorMediaKit"];
+            selfServe: boolean;
+        };
         SponsorShareLink: {
             /** Format: date-time */
             createdAt: string;
@@ -42530,6 +43035,7 @@ export interface components {
             /** Format: int64 */
             creativeDays: number;
             currency: string;
+            description: string;
             /** Format: int64 */
             everyDays: number;
             /** Format: int64 */
@@ -42537,12 +43043,17 @@ export interface components {
             /** Format: date-time */
             firstOn: string;
             id: string;
+            /** Format: int64 */
+            leadDays: number;
             listId: string;
             listName: string;
             name: string;
+            /** Format: int64 */
+            payDays: number;
             placement: string;
             /** Format: int64 */
             priceCents: number;
+            selfServe: boolean;
             selling: boolean;
             weekday?: string;
         };
@@ -65781,13 +66292,13 @@ export interface operations {
     "list-paid-members": {
         parameters: {
             query?: {
-                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended";
+                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended" | "paused";
                 /** @description Name, email, billing email or Stripe customer ID */
                 q?: string;
                 /** @description Tier id */
                 tier?: string;
                 period?: "month" | "year" | "";
-                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "group" | "";
                 /** @description An offer's label (FALL26) */
                 offer?: string;
                 since?: "7d" | "30d" | "90d" | "1y" | "";
@@ -65868,13 +66379,13 @@ export interface operations {
     "export-paid-members": {
         parameters: {
             query?: {
-                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended";
+                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended" | "paused";
                 /** @description Name, email, billing email or Stripe customer ID */
                 q?: string;
                 /** @description Tier id */
                 tier?: string;
                 period?: "month" | "year" | "";
-                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "group" | "";
                 /** @description An offer's label (FALL26) */
                 offer?: string;
                 since?: "7d" | "30d" | "90d" | "1y" | "";
@@ -66061,6 +66572,44 @@ export interface operations {
             };
         };
     };
+    "pause-paid-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnPauseInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "resend-member-email": {
         parameters: {
             query?: never;
@@ -66086,6 +66635,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnResent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-paid-subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-team-seat": {
+        parameters: {
+            query?: {
+                skipEmail?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The team buyer's paid subscription id */
+                id: string;
+                /** @description Seat id */
+                seatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnMember"];
                 };
             };
             /** @description Error */
@@ -66682,6 +67303,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnPagesSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-earn-pausing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EarnPausingInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnPausing"];
                 };
             };
             /** @description Error */
@@ -82956,6 +83613,74 @@ export interface operations {
             };
         };
     };
+    "get-sponsor-page-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorSelfServe"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sponsor-page-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorSelfServeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorSelfServe"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "revoke-sponsor-share": {
         parameters: {
             query?: never;
@@ -82976,6 +83701,148 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sponsor-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorRequestList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorRequestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "approve-sponsor-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorRequestDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decline-sponsor-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclineInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorRequestDetail"];
+                };
             };
             /** @description Error */
             default: {

@@ -19,12 +19,13 @@ import { clock, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { ComplimentaryDialog } from './ComplimentaryDialog'
 import { EARN, copyText } from './EarnPage'
-import { cancelReason, day, memberName, money, nextLine, platformName, priceLine, reasonLabel, sourceLine, statusLabel, statusTone, tierLine } from './format'
+import { cancelReason, day, memberName, money, nextLine, platformName, priceA, priceLine, reasonLabel, sourceLine, statusLabel, statusTone, tierLine } from './format'
 import { mm } from './members.messages'
 import { me } from './messages'
 
 type Member = Schemas['EarnMember']
 type Item = Schemas['EarnTimelineItem']
+type Seat = Schemas['EarnTeamSeat']
 
 /** The paid member panel (EarnMemberPanel): a sheet on the right with the summary, Stripe's ids, the timeline and the actions. */
 export function MemberPanel({ id, onClose }: { id: string; onClose: () => void }) {
@@ -63,19 +64,51 @@ export function MemberPanel({ id, onClose }: { id: string; onClose: () => void }
 function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
-  const [dialog, setDialog] = useState<'cancel' | 'resend' | 'change' | 'remove' | 'give'>()
+  const [dialog, setDialog] = useState<'cancel' | 'resend' | 'change' | 'remove' | 'give' | 'pause' | 'resume' | 'seat'>()
+  const [seat, setSeat] = useState<Seat>()
   const [resendEmail, setResendEmail] = useState<string>()
   const name = memberName(t, m)
   const statusIcon: IconName = m.status === 'past_due' ? 'alert' : m.status === 'canceled' ? 'close' : m.status === 'trialing' ? 'clock' : 'check'
-  const tone = { trialing: 'info', active: '', past_due: 'warn', canceled: 'mut', complimentary: 'pur', gift: 'pur' }[m.status] ?? ''
+  const tone = { trialing: 'info', active: '', group: '', past_due: 'warn', canceled: 'mut', complimentary: 'pur', gift: 'pur' }[m.status] ?? ''
   const tierRow = m.kind === 'stripe' && m.period ? `${m.tierName} · ${m.period === 'year' ? t(me.yearly) : t(me.monthly)}` : m.tierName || m.tier
   const rows: [ReactNode, ReactNode][] = [
     [t(mm.tier), m.warning ? <Two key="t" a={tierRow} b={t(mm.higherOf, { count: m.warning.subscriptions.length })} /> : tierRow],
   ]
-  if (!m.warning && m.kind !== 'gift') rows.push([t(mm.price), m.kind === 'complimentary' ? t(me.complimentaryNoPayment) : priceLine(t, m, { percent: true, refund: false })])
+  if (!m.warning && m.kind !== 'gift')
+    rows.push([
+      t(mm.price),
+      m.kind === 'complimentary'
+        ? t(me.complimentaryNoPayment)
+        : m.kind === 'group'
+          ? t(mm.seatPrice, { team: m.team?.name ?? '' })
+          : m.pausedAt
+            ? t(mm.pricePaused, { price: priceLine(t, m, { percent: true, refund: false }) })
+            : priceLine(t, m, { percent: true, refund: false }),
+    ])
   rows.push([t(mm.status), <StatusLine key="s" m={m} />])
-  rows.push([t(mm.memberSince), dayMonthYear(m.since)])
-  if (m.warning) {
+  if (m.team && m.team.role === 'buyer')
+    rows.push([
+      t(mm.team),
+      t(mm.teamValue, {
+        team: m.team.name,
+        used: m.team.used - m.team.invites,
+        seats: m.team.seats,
+        invites: m.team.invites,
+        free: Math.max(m.team.seats - m.team.used, 0),
+      }),
+    ])
+  else if (m.team) rows.push([t(mm.team), t(mm.teamOfSeat, { team: m.team.name, buyer: m.team.buyerName ?? '' })])
+  if (m.pausedAt) {
+    const pausedBy = m.timeline.find((x) => x.kind === 'paused')?.actor
+    const reminder = m.pausedUntil ? new Date(new Date(m.pausedUntil).getTime() - 7 * 864e5).toISOString() : ''
+    rows.push([t(mm.pausedRow), t(mm.pausedRowValue, { date: day(m.pausedAt), by: pausedBy || 'none', reminder: reminder ? day(reminder) : 'none' })])
+  }
+  rows.push([m.kind === 'group' ? t(mm.seatSince) : t(mm.memberSince), dayMonthYear(m.since)])
+  if (m.kind === 'group') {
+    rows.push([t(mm.endsLabel), t(mm.seatEnds)])
+  } else if (m.pausedAt) {
+    // The pause's row says when it ends.
+  } else if (m.warning) {
     // The higher tier's row stands for the person; its renewal is in the warning.
   } else if (m.next === 'renews' && m.nextAt) rows.push([t(mm.renewsLabel), m.renewalReminder ? t(mm.renewsWithReminder, { date: day(m.nextAt), reminder: day(m.renewalReminder) }) : day(m.nextAt)])
   else if (m.next === 'ends' && m.nextAt) rows.push([t(mm.endsLabel), day(m.nextAt)])
@@ -174,6 +207,10 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
             ))}
           </dl>
         </section>
+        {m.seats.length && m.team ? <SeatsSection m={m} onRemove={(s) => (setSeat(s), setDialog('seat'))} /> : null}
+        {m.kind === 'group' && m.team ? (
+          <Note tone="info">{t(mm.seatHolderNote, { name: (m.name || m.email).split(' ')[0] ?? '', team: m.team.name })}</Note>
+        ) : null}
         {m.customerId || m.subscriptionId ? (
           <section aria-labelledby="ea-stripe" className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
@@ -201,7 +238,11 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
               ) : m.subscriptionId ? (
                 <>
                   <dt>{t(mm.subscription)}</dt>
-                  <dd className="ea-mono">{m.subscriptionId}</dd>
+                  <dd>
+                    <span className="ea-mono">{m.subscriptionId}</span>
+                    {m.pausedUntil ? <span className="k"> · {t(mm.stripePaused, { date: day(m.pausedUntil) })}</span> : null}
+                    {m.quantity > 1 ? <span className="k"> · {t(mm.stripeQuantity, { count: m.quantity })}</span> : null}
+                  </dd>
                 </>
               ) : null}
             </dl>
@@ -234,11 +275,38 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
                 {t(mm.removeComp)}
               </Button>
             </>
+          ) : m.kind === 'group' && m.team ? (
+            <>
+              <ButtonLink size="sm" to="/w/$workspace/earn/members" params={{ workspace: slug }} search={{ member: m.team.buyerId }}>
+                {t(mm.openTeam, { team: m.team.name })}
+              </ButtonLink>
+              {m.team.seatId && m.status !== 'canceled' ? (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => {
+                    setSeat({ id: m.team?.seatId ?? '', email: m.email, name: m.name, status: 'active', invitedAt: m.since })
+                    setDialog('seat')
+                  }}
+                >
+                  {t(mm.removeSeatButton)}
+                </Button>
+              ) : null}
+            </>
           ) : (
             <>
               <Button size="sm" onClick={() => setDialog('give')}>
                 {t(mm.giveComp)}
               </Button>
+              {m.canResume ? (
+                <Button size="sm" variant="primary" onClick={() => setDialog('resume')}>
+                  {t(mm.resumeNow)}
+                </Button>
+              ) : m.canPause ? (
+                <Button size="sm" onClick={() => setDialog('pause')}>
+                  {t(mm.pausePayments)}
+                </Button>
+              ) : null}
               {m.kind === 'stripe' && m.status !== 'canceled' ? (
                 <Button size="sm" variant="danger" onClick={() => setDialog('cancel')}>
                   {t(mm.cancelSub)}
@@ -292,6 +360,9 @@ function PanelBody({ m, onClose }: { m: Member; onClose: () => void }) {
       {dialog === 'change' ? <ComplimentaryDialog member={m} onClose={() => setDialog(undefined)} /> : null}
       {dialog === 'give' ? <ComplimentaryDialog person={{ id: m.contactId, name: m.name, email: m.email, lists: m.lists }} onClose={() => setDialog(undefined)} /> : null}
       {dialog === 'remove' ? <RemoveDialog m={m} onClose={() => setDialog(undefined)} onRemoved={onClose} /> : null}
+      {dialog === 'pause' ? <PauseDialog m={m} onClose={() => setDialog(undefined)} /> : null}
+      {dialog === 'resume' ? <ResumeDialog m={m} onClose={() => setDialog(undefined)} /> : null}
+      {dialog === 'seat' && seat ? <RemoveSeatDialog m={m} seat={seat} onClose={() => setDialog(undefined)} /> : null}
     </>
   )
 }
@@ -302,7 +373,16 @@ export function StatusLine({ m }: { m: Member }) {
   return (
     <span className="inline-flex flex-col items-start gap-0.5">
       <span className="inline-flex flex-wrap items-center gap-1.5">
-        <Badge tone={statusTone(m.status)}>{statusLabel(t, m.status)}</Badge>
+        {m.pausedAt && m.status !== 'canceled' ? (
+          <Badge tone="info">{m.pausedUntil ? t(me.pausedUntil, { date: day(m.pausedUntil) }) : t(me.pausedNoDate)}</Badge>
+        ) : (
+          <Badge tone={statusTone(m.status)}>{statusLabel(t, m.status)}</Badge>
+        )}
+        {m.team && m.status !== 'canceled' ? (
+          <span className="chip ea-teamchip">
+            {m.team.role === 'buyer' ? t(me.teamChip, { used: m.team.used - m.team.invites, seats: m.team.seats }) : t(me.seatChip, { team: m.team.name })}
+          </span>
+        ) : null}
         {m.cancelAt && m.status !== 'canceled' ? <span className="badge sm mut">{t(me.cancelsOn, { date: dayMonthDate(m.cancelAt) })}</span> : null}
         {m.accessPaused ? <span className="badge sm warn">{t(me.accessPaused)}</span> : null}
       </span>
@@ -348,6 +428,35 @@ function StatusSentence({ m }: { m: Member }) {
     )
   }
   const next = nextLine(t, m)
+  if (m.pausedAt && m.status !== 'canceled') {
+    return (
+      <>
+        <b>{m.pausedUntil ? t(me.pausedUntil, { date: day(m.pausedUntil) }) : t(me.pausedNoDate)}</b> ·{' '}
+        {t(mm.stPausedRest, { plan: tierLine(t, { ...m, periodShown: true }), price: priceLine(t, m, { words: true }) })}
+      </>
+    )
+  }
+  if (m.kind === 'group' && m.team) {
+    return (
+      <>
+        <b>{statusLabel(t, m.status)}</b> · {t(mm.stSeat, { team: m.team.name, tier: m.tier, buyer: m.team.buyerName ?? '' })}
+      </>
+    )
+  }
+  if (m.team?.role === 'buyer' && m.period) {
+    return (
+      <>
+        <b>{statusLabel(t, m.status)}</b> ·{' '}
+        {t(mm.stBuyer, {
+          plan: tierLine(t, { ...m, team: undefined, periodShown: true }),
+          team: m.team.name,
+          seats: m.quantity,
+          unit: priceA(t, m.amountCents, m.currency, m.period),
+          next: lowerFirstInSentence(next),
+        })}
+      </>
+    )
+  }
   return (
     <>
       <b>{statusLabel(t, m.status)}</b> · {tierLine(t, m)}
@@ -396,6 +505,16 @@ export function memberEmailName(t: ReturnType<typeof useT>, email: string, tier:
       return t(mm.emailGiftReceived)
     case 'gift_ending':
       return t(mm.emailGiftEnding)
+    case 'group_welcome':
+      return t(mm.emailGroupWelcome)
+    case 'group_invite':
+      return t(mm.emailGroupInvite)
+    case 'group_access_ended':
+      return t(mm.emailGroupEnded)
+    case 'paused':
+      return t(mm.emailPaused)
+    case 'resuming_soon':
+      return t(mm.emailResuming)
   }
   return email
 }
@@ -482,7 +601,54 @@ export function TimelineRow({ it, m }: { it: Item; m: Member }) {
       icon = 'close'
       tone = 'mut'
       title = t(mm.tlEnded)
-      detail = it.stripeEvent || (s('by') ? t(mm.tlBy, { name: s('by') }) : null)
+      detail =
+        s('reason') === 'group_ended'
+          ? t(mm.tlGroupEnded)
+          : s('reason') === 'seat_removed'
+            ? t(mm.tlSeatRemoved)
+            : it.stripeEvent || (s('by') ? t(mm.tlBy, { name: s('by') }) : null)
+      break
+    // Pausing and teams (M65).
+    case 'paused':
+      icon = 'clock'
+      tone = 'info'
+      title = t(mm.tlPaused, { date: day(s('until')) })
+      detail =
+        s('source') === 'team'
+          ? [it.actor ? t(mm.tlBy, { name: it.actor }) : '', s('note') ? `“${s('note')}”` : '', t(mm.tlAudited)].filter(Boolean).join(' · ')
+          : t(mm.tlPausedFrom, { source: s('source') || 'other' })
+      break
+    case 'resumed':
+      icon = 'refresh'
+      tone = 'ok'
+      title = it.actor ? t(mm.tlResumedBy, { name: it.actor }) : t(mm.tlResumed)
+      detail = [t(mm.tlResumedDetail, { source: s('source') || 'other' }), it.actor ? t(mm.tlAudited) : ''].filter(Boolean).join(' · ')
+      break
+    case 'team_invited':
+      icon = 'mail'
+      tone = 'info'
+      title = t(mm.tlInvited, { name: s('name') || s('email') })
+      detail = s('until') ? t(mm.tlInvitedDetail, { date: day(s('until')) }) : null
+      break
+    case 'team_joined':
+      tone = 'ok'
+      title = t(mm.tlJoined, { team: s('team') })
+      detail = t(mm.tlJoinedDetail)
+      break
+    case 'team_accepted':
+      tone = 'ok'
+      title = t(mm.tlAccepted, { name: s('name') || s('email') })
+      detail = typeof d.used === 'number' ? t(mm.tlAcceptedDetail, { used: d.used as number, seats: (d.seats as number) ?? 0 }) : t(mm.tlJoinedDetail)
+      break
+    case 'team_removed':
+      icon = 'close'
+      tone = 'mut'
+      title = t(mm.tlTeamRemoved, { email: s('email'), team: s('team') })
+      break
+    case 'seats_changed':
+      icon = 'refresh'
+      tone = 'info'
+      title = t(mm.tlSeats, { from: (d.from as number) ?? 0, to: (d.to as number) ?? 0 })
       break
     case 'plan_changed':
       icon = 'refresh'
@@ -745,5 +911,242 @@ function RemoveDialog({ m, onClose, onRemoved }: { m: Member; onClose: () => voi
         onRemoved()
       }}
     />
+  )
+}
+
+/** A team buyer's seats (EarnMemberPanelStates): the buyer first, then each person with Remove…. */
+function SeatsSection({ m, onRemove }: { m: Member; onRemove: (s: Seat) => void }) {
+  const t = useT()
+  const team = m.team
+  if (!team) return null
+  return (
+    <section aria-labelledby="ea-seats" className="flex flex-col gap-2">
+      <h3 className="ea-eyebrow" id="ea-seats">
+        {t(mm.seatsTitle, { used: team.used, seats: team.seats })}
+      </h3>
+      <ul className="ea-seats">
+        {m.seats.map((s) => (
+          <li key={s.id}>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="font-semibold">{s.name || s.email}</span>
+              {s.name ? <span className="k break-anywhere">{s.email}</span> : null}
+            </span>
+            <span className="flex flex-wrap items-center gap-2">
+              <Badge tone={s.status === 'invited' ? 'info' : 'ok'}>{s.status === 'invited' ? t(me.statusInvited) : t(me.statusActive)}</Badge>
+              {s.status === 'buyer' ? <span className="k">{t(mm.seatBuyer)}</span> : null}
+              {s.status === 'invited' && s.inviteExpiresAt ? <span className="k">{t(mm.seatUntil, { date: day(s.inviteExpiresAt) })}</span> : null}
+              {s.status !== 'buyer' && m.canManage ? (
+                <Button size="sm" aria-label={t(mm.seatRemoveLabel, { name: s.name || s.email })} onClick={() => onRemove(s)}>
+                  {t(mm.seatRemove)}
+                </Button>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <span className="k">{t(mm.seatsNote, { name: (m.name || m.email).split(' ')[0] ?? '' })}</span>
+    </section>
+  )
+}
+
+/** Pause payments (EarnMemberPanelStates): 1, 3 or 6 months, or until a date at most 6 months away. */
+function PauseDialog({ m, onClose }: { m: Member; onClose: () => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const [choice, setChoice] = useState<'1' | '3' | '6' | 'date'>('1')
+  const [until, setUntil] = useState('')
+  const [email, setEmail] = useState(true)
+  const [note, setNote] = useState('')
+  const pause = $api.useMutation('post', `${EARN}/members/{id}/pause`)
+  const first = (m.name || m.email).split(' ')[0] ?? ''
+  const plan = tierLine(t, { ...m, periodShown: true })
+  // Today, read once when the dialog opens.
+  const [now] = useState(() => Date.now())
+  const months = (n: number) => {
+    const d = new Date(now)
+    d.setMonth(d.getMonth() + n)
+    return d
+  }
+  const latest = months(6)
+  const iso = (d: Date) => d.toISOString().slice(0, 10)
+  const tomorrow = new Date(now + 864e5)
+  return (
+    <Dialog
+      open
+      size="sm"
+      hideClose
+      onOpenChange={(o) => !o && onClose()}
+      eyebrow={<span className="k">{t(mm.pauseEyebrow)}</span>}
+      title={t(mm.pauseTitle, { name: m.name || m.email })}
+      footer={
+        <>
+          <Button onClick={onClose}>{t(mm.pauseCancel)}</Button>
+          <Button
+            variant="primary"
+            loading={pause.isPending}
+            disabled={choice === 'date' && !until}
+            onClick={() =>
+              pause.mutate(
+                {
+                  params: { path: { workspace: slug, id: m.id } },
+                  body: {
+                    ...(choice === 'date' ? { until } : { months: Number(choice) as 1 | 3 | 6 }),
+                    ...(note.trim() ? { note: note.trim() } : {}),
+                    ...(email ? {} : { skipEmail: true }),
+                  },
+                },
+                {
+                  onSuccess: (r) => {
+                    void qc.invalidateQueries({ queryKey: ['get', `${EARN}/members`] })
+                    void qc.invalidateQueries({ queryKey: ['get', `${EARN}/members/{id}`] })
+                    toast({ kind: 'success', title: t(mm.pausedToast, { date: day(r.pausedUntil ?? '') }) })
+                    onClose()
+                  },
+                  onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
+                },
+              )
+            }
+          >
+            {t(mm.pauseConfirm)}
+          </Button>
+        </>
+      }
+    >
+      <span className="k">{t(mm.pauseText, { plan, price: priceLine(t, m), first })}</span>
+      <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend className="lbl mb-1">{t(mm.pauseFor)}</legend>
+        {([1, 3, 6] as const).map((n) => (
+          <label key={n} className={`ea-radio${choice === String(n) ? ' on' : ''}`}>
+            <input type="radio" name="pause-for" checked={choice === String(n)} onChange={() => setChoice(String(n) as '1' | '3' | '6')} />
+            <span className="flex min-w-0 flex-col gap-0.5 font-semibold">
+              {t(mm.pauseMonths, { count: n })}
+              <span className="k font-medium">{t(mm.pauseResumes, { date: day(months(n).toISOString()) })}</span>
+            </span>
+          </label>
+        ))}
+        <label className={`ea-radio${choice === 'date' ? ' on' : ''}`}>
+          <input type="radio" name="pause-for" checked={choice === 'date'} onChange={() => setChoice('date')} />
+          <span className="flex min-w-0 flex-col gap-1 font-semibold">
+            {t(mm.pauseUntil)}
+            <span className="k font-medium">{t(mm.pauseUntilHint, { date: day(latest.toISOString()) })}</span>
+            {choice === 'date' ? (
+              <input
+                type="date"
+                className="in w-[160px]"
+                aria-label={t(mm.pauseDate)}
+                min={iso(tomorrow)}
+                max={iso(latest)}
+                value={until}
+                onChange={(e) => setUntil(e.target.value)}
+              />
+            ) : null}
+          </span>
+        </label>
+      </fieldset>
+      <label className="flex items-start gap-2.5">
+        <input type="checkbox" className="mt-0.5" checked={email} onChange={(e) => setEmail(e.target.checked)} />
+        <span className="flex min-w-0 flex-col gap-0.5 font-semibold">
+          {t(mm.pauseEmail, { first })}
+          <span className="k font-medium">{t(mm.pauseEmailHint)}</span>
+        </span>
+      </label>
+      <label className="lbl">
+        {t(mm.pauseNote)}
+        <textarea className="in ea-ta" style={{ height: 64 }} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
+        <span className="k font-medium">{t(mm.pauseNoteHint)}</span>
+      </label>
+    </Dialog>
+  )
+}
+
+/** Resume now: the pause ends today. */
+function ResumeDialog({ m, onClose }: { m: Member; onClose: () => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const resume = $api.useMutation('post', `${EARN}/members/{id}/resume`)
+  return (
+    <ConfirmDialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      badge={t(mm.resumeConfirm)}
+      tone="ok"
+      title={t(mm.resumeTitle, { name: m.name || m.email })}
+      description={t(mm.resumeText, { price: priceLine(t, m, { words: true }) })}
+      confirmLabel={t(mm.resumeConfirm)}
+      onConfirm={async () => {
+        await resume.mutateAsync({ params: { path: { workspace: slug, id: m.id } } })
+        void qc.invalidateQueries({ queryKey: ['get', `${EARN}/members`] })
+        void qc.invalidateQueries({ queryKey: ['get', `${EARN}/members/{id}`] })
+        toast({ kind: 'success', title: t(mm.resumedToast) })
+        onClose()
+      }}
+    />
+  )
+}
+
+/** Remove a person from a team (EarnMemberPanelStates): from the buyer's panel, or the seat holder's own. */
+function RemoveSeatDialog({ m, seat, onClose }: { m: Member; seat: Seat; onClose: () => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const qc = useQueryClient()
+  const [email, setEmail] = useState(true)
+  const remove = $api.useMutation('delete', `${EARN}/members/{id}/seats/{seatId}`)
+  const team = m.team
+  if (!team) return null
+  const buyerId = team.role === 'buyer' ? m.id : (team.buyerId ?? '')
+  const name = seat.name || seat.email
+  const first = name.split(' ')[0] ?? name
+  const buyer = team.role === 'buyer' ? m.name || m.email : (team.buyerName ?? '')
+  return (
+    <Dialog
+      open
+      size="sm"
+      hideClose
+      onOpenChange={(o) => !o && onClose()}
+      eyebrow={<span className="k">{t(mm.teamEyebrow, { team: team.name })}</span>}
+      title={t(mm.removeSeatTitle, { name, team: team.name })}
+      footer={
+        <>
+          <Button onClick={onClose}>{t(mm.removeSeatKeep)}</Button>
+          <Button
+            variant="danger-primary"
+            loading={remove.isPending}
+            onClick={() =>
+              remove.mutate(
+                { params: { path: { workspace: slug, id: buyerId, seatId: seat.id }, query: email ? {} : { skipEmail: true } } },
+                {
+                  onSuccess: () => {
+                    void qc.invalidateQueries({ queryKey: ['get', `${EARN}/members`] })
+                    void qc.invalidateQueries({ queryKey: ['get', `${EARN}/members/{id}`] })
+                    toast({ kind: 'deleted', title: t(mm.seatRemovedToast, { name, team: team.name }) })
+                    onClose()
+                  },
+                  onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
+                },
+              )
+            }
+          >
+            {t(mm.removeSeatConfirm)}
+          </Button>
+        </>
+      }
+    >
+      <span className="k">
+        {seat.status === 'invited'
+          ? t(mm.removeInviteText, { name, team: team.name, seats: team.seats })
+          : t(mm.removeSeatText, { name: first, tier: m.tier, team: team.name, seats: team.seats, buyer })}
+      </span>
+      {seat.status === 'invited' ? null : (
+        <label className="flex items-start gap-2.5">
+          <input type="checkbox" className="mt-0.5" checked={email} onChange={(e) => setEmail(e.target.checked)} />
+          <span className="flex min-w-0 flex-col gap-0.5 font-semibold">
+            {t(mm.removeSeatEmail, { name: first })}
+            <span className="k font-medium">{t(mm.removeSeatEmailHint)}</span>
+          </span>
+        </label>
+      )}
+    </Dialog>
   )
 }

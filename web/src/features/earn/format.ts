@@ -66,6 +66,7 @@ export function statusTone(status: string): Tone {
     case 'trialing':
       return 'info'
     case 'active':
+    case 'group':
       return 'ok'
     case 'past_due':
       return 'warn'
@@ -81,6 +82,7 @@ export function statusLabel(t: T, status: string): string {
     case 'trialing':
       return t(me.statusTrialing)
     case 'active':
+    case 'group':
       return t(me.statusActive)
     case 'past_due':
       return t(me.statusPastDue)
@@ -169,7 +171,10 @@ export function memberName(t: T, r: Pick<MemberRow, 'hidden' | 'erased' | 'name'
  * tier sold for one period only, and "Insider" for access without a price.
  */
 export function tierLine(t: T, r: MemberRow): string {
-  if (r.kind !== 'stripe' || !r.period || !r.periodShown) return r.tier
+  if (r.kind !== 'stripe' || !r.period) return r.tier
+  // A team's buyer: "Insider yearly · team".
+  if (r.team?.role === 'buyer') return t(me.tierTeam, { tier: r.tier, period: r.period })
+  if (!r.periodShown) return r.tier
   return t(me.tierPeriod, { tier: r.tier, period: r.period })
 }
 
@@ -181,6 +186,16 @@ export function tierLine(t: T, r: MemberRow): string {
  */
 export function priceLine(t: T, r: MemberRow, opts: { words?: boolean; percent?: boolean; refund?: boolean } = {}): string {
   if (r.kind === 'complimentary') return t(me.complimentaryNoPayment)
+  // A team's seat: the team pays.
+  if (r.kind === 'group') return t(me.paidBy, { team: r.team?.name ?? '' })
+  // A team's buyer: "$60 per seat a year × 10 seats = $600/year".
+  if (r.team?.role === 'buyer' && r.quantity > 1 && r.period) {
+    return t(me.teamPrice, {
+      unit: t(me.perSeat, { price: money(r.amountCents, r.currency), period: r.period }),
+      seats: r.quantity,
+      total: pricePer(t, r.amountCents * r.quantity, r.currency, r.period),
+    })
+  }
   if (r.kind === 'gift') {
     const months = r.giftMonths ?? 12
     const length = months === 12 ? 'year' : 'months'
@@ -214,7 +229,10 @@ export function nextLine(t: T, r: MemberRow): string {
     case 'trial_ends':
       return r.nextAt ? t(me.trialEnds, { date: day(r.nextAt) }) : '—'
     case 'no_end':
+      if (r.kind === 'group') return r.team?.renewsAt ? t(me.withTeam, { date: day(r.team.renewsAt) }) : t(me.withTeamNoDate)
       return t(me.noEnd)
+    case 'resumes':
+      return r.nextAt ? t(me.resumes, { date: day(r.nextAt) }) : t(me.pausedNoDate)
     case 'ended': {
       const base = r.nextAt ? t(me.ended, { date: day(r.nextAt) }) : t(me.statusCanceled)
       const why = r.cancelReason ? cancelReason(t, r.cancelReason) : endReason(t, r.endReason)

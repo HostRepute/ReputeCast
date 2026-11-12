@@ -120,7 +120,7 @@ export function ContactPaidCard({ contactId }: { contactId: string }) {
 export function ContactTierChip({ contactId }: { contactId: string }) {
   const m = useContactPaid(contactId).data
   if (!m || m.status === 'canceled') return null
-  return <PaidTierChip paid={{ tier: m.tier, status: m.status, memberId: m.id }} />
+  return <PaidTierChip paid={{ tier: m.tier, status: m.status === 'group' ? 'active' : m.status, memberId: m.id }} />
 }
 
 /** Whether the profile's Activity offers the Paid filter: the contact had paid access. */

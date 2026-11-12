@@ -20,6 +20,8 @@ import { copyText } from '../EarnPage'
 import { day, money } from '../format'
 import { me } from '../messages'
 import { mb } from './booking.messages'
+import { mr } from './requests.messages'
+import { RequestBody } from './RequestsTab'
 import { AmountInput, CancelDialog, IconButton, LinkCampaignDialog, PaymentDialog, ShareDialog, SponsorDialog, parseAmount, useRefresh } from './dialogs'
 import { CampaignLink, Initials, ends, MoneyIcon, NoteIcon, OpenBadge, PaymentBadge, Two, WS, daysUntil, inputDay, isPastDay, isToday, type SponsorItem } from './parts'
 
@@ -29,7 +31,7 @@ type Creative = Schemas['SponsorCreative']
 type Proposal = Schemas['SponsorPropose']
 
 /** The panel: a 640 px sheet on the right, with its own link. */
-function Sheet({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
+export function Sheet({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
   return (
     <RDialog.Root open onOpenChange={(o) => !o && onClose()}>
       <RDialog.Portal>
@@ -42,7 +44,7 @@ function Sheet({ label, onClose, children }: { label: string; onClose: () => voi
   )
 }
 
-function PanelLoading({ onClose }: { onClose: () => void }) {
+export function PanelLoading({ onClose }: { onClose: () => void }) {
   const t = useT()
   return (
     <>
@@ -63,7 +65,7 @@ function PanelLoading({ onClose }: { onClose: () => void }) {
   )
 }
 
-function PanelError({ error, onRetry, onClose }: { error: unknown; onRetry: () => void; onClose: () => void }) {
+export function PanelError({ error, onRetry, onClose }: { error: unknown; onRetry: () => void; onClose: () => void }) {
   const t = useT()
   return (
     <>
@@ -87,10 +89,22 @@ export function BookingPanel({ id, onClose }: { id: string; onClose: () => void 
   const q = $api.useQuery('get', `${WS}/sponsor-bookings/{id}`, { params: { path: { workspace: slug, id } } })
   return (
     <Sheet label={q.data ? t(mb.title, { issue: q.data.issue, date: shortDate(q.data.issueOn), slot: q.data.slotName }) : t(mb.loading)} onClose={onClose}>
-      {q.error ? <PanelError error={q.error} onRetry={() => void q.refetch()} onClose={onClose} /> : !q.data ? <PanelLoading onClose={onClose} /> : <BookingBody b={q.data} onClose={onClose} />}
+      {q.error ? (
+        <PanelError error={q.error} onRetry={() => void q.refetch()} onClose={onClose} />
+      ) : !q.data ? (
+        <PanelLoading onClose={onClose} />
+      ) : requestStates.has(q.data.status) ? (
+        // A self-serve booking that isn't booked yet (or never was) opens as its request (EarnSponsorRequests).
+        <RequestBody id={id} onClose={onClose} />
+      ) : (
+        <BookingBody b={q.data} onClose={onClose} />
+      )}
     </Sheet>
   )
 }
+
+/** The states of a self-serve booking that the request panel shows. */
+const requestStates = new Set(['requested', 'awaiting_payment', 'declined', 'expired'])
 
 /** An open issue: book it or hold it, or confirm an agent's proposal. */
 export function IssuePanel({ slotId, number, library, onClose, onBooked }: { slotId: string; number: number; library: SponsorItem[]; onClose: () => void; onBooked: (id: string) => void }) {
@@ -116,7 +130,7 @@ export function IssuePanel({ slotId, number, library, onClose, onBooked }: { slo
 }
 
 /** The panel's head: eyebrow, "#143 · Tue 21 Oct · Main sponsor", its badges, Copy link and Close. */
-function Head({ eyebrow, title, badges, onClose }: { eyebrow: string; title: string; badges: ReactNode; onClose: () => void }) {
+export function Head({ eyebrow, title, badges, onClose }: { eyebrow: string; title: string; badges: ReactNode; onClose: () => void }) {
   const t = useT()
   return (
     <div className="ea-sheet-head">
@@ -133,7 +147,7 @@ function Head({ eyebrow, title, badges, onClose }: { eyebrow: string; title: str
   )
 }
 
-function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
     <section className="sp-dsec">
       <div className="sp-dsec-head">
@@ -370,6 +384,14 @@ function BookingSection({ b, onLink, onCancel }: { b: Detail; onLink: () => void
             </>
           ) : null}
         </dd>
+        {b.request ? (
+          <>
+            <dt>{t(mr.from)}</dt>
+            <dd>
+              {b.request.approvedBy && b.request.approvedAt ? t(mr.fromValue, { name: b.request.approvedBy, date: dayMonthDate(b.request.approvedAt) }) : t(mr.fromRequest)}
+            </dd>
+          </>
+        ) : null}
       </dl>
     </Section>
   )
@@ -384,7 +406,7 @@ function campaignWords(t: ReturnType<typeof useT>, c: Schemas['SponsorCampaignRe
   return t(mb.campaignNoAuthor, { status: c.status, when: '' }).replace(/ · $/, '')
 }
 
-function complete(c: Creative): boolean {
+export function complete(c: Creative): boolean {
   return Boolean(c.headline?.trim() && c.text?.trim() && c.link?.trim())
 }
 
@@ -502,7 +524,9 @@ function CreativeEditor({ b }: { b: Detail }) {
   return (
     <Section title={t(mb.secCreative)} aside={isReady ? <Badge tone="ok">{t(mb.creativeReady)}</Badge> : <Badge tone="warn">{t(mb.creativeWaiting)}</Badge>}>
       <span className="k" style={{ color: 'var(--ink-nav)' }}>
-        {isReady
+        {isReady && b.request
+          ? t(mr.creativeFromRequest)
+          : isReady
           ? t(mb.creativeReadyText, { when: b.readyAt ? `${dayMonthDate(b.readyAt)}, ${clock(b.readyAt)}` : '', issue: b.issue })
           : b.creativeDue && isPastDay(b.creativeDue)
             ? t(mb.creativeLateText, { date: shortDate(b.creativeDue), issue: b.issue })
@@ -649,11 +673,13 @@ function PaymentSection({ b, onRecord }: { b: Detail; onRecord: () => void }) {
   const ro = !b.canManage
   const sp = b.sponsor
   if (p.status === 'paid') {
+    const stripe = p.source === 'stripe'
+    const receiptTo = b.request?.email || sp?.contactEmail
     return (
       <Section
         title={t(mb.secPayment)}
         aside={
-          ro ? (
+          ro || stripe ? (
             <Badge tone="ok">{t(mb.paymentPaid)}</Badge>
           ) : (
             <Button size="sm" onClick={onRecord}>
@@ -667,6 +693,20 @@ function PaymentSection({ b, onRecord }: { b: Detail; onRecord: () => void }) {
           <dd>
             <T msg={mb.paidValue} values={{ amount: <span className="ea-num">{money(p.paidCents ?? b.priceCents, b.currency, 'always')}</span>, date: p.paidOn ? day(p.paidOn) : '' }} />
           </dd>
+          {stripe ? (
+            <>
+              <dt>{t(mr.paidBy)}</dt>
+              <dd>{t(mr.paidViaValue)}</dd>
+              {receiptTo ? (
+                <>
+                  <dt>{t(mr.receipt)}</dt>
+                  <dd>
+                    <T msg={mr.receiptLine} values={{ email: <span className="mono">{receiptTo}</span> }} />
+                  </dd>
+                </>
+              ) : null}
+            </>
+          ) : null}
           {p.note ? (
             <>
               <dt>{t(mb.noteLabel)}</dt>
@@ -754,7 +794,7 @@ function str(v: unknown): string {
 }
 
 /** Activity: what happened to the booking, oldest first. */
-function ActivitySection({ b }: { b: Detail }) {
+export function ActivitySection({ b }: { b: { activity: Schemas['SponsorBookingEvent'][]; currency: string } }) {
   const t = useT()
   if (!b.activity.length) return null
   return (
@@ -762,6 +802,7 @@ function ActivitySection({ b }: { b: Detail }) {
       <ol className="ea-tl">
         {[...b.activity].sort((x, y) => new Date(x.at).getTime() - new Date(y.at).getTime()).map((e, i) => {
           const line = eventLine(t, e, b.currency)
+          if (!line) return null
           return (
             <li key={i}>
               <span className={`ic ${line.tone}`} aria-hidden="true">
@@ -780,13 +821,37 @@ function ActivitySection({ b }: { b: Detail }) {
   )
 }
 
-function eventLine(t: ReturnType<typeof useT>, e: Schemas['SponsorBookingEvent'], currency: string): { title: string; detail?: string; icon: 'check' | 'more' | 'close' | 'clock' | 'link' | 'edit'; tone: string } {
+function eventLine(t: ReturnType<typeof useT>, e: Schemas['SponsorBookingEvent'], currency: string): { title: string; detail?: string; icon: 'check' | 'more' | 'close' | 'clock' | 'link' | 'edit'; tone: string } | null {
   const actor = e.actor || t(mb.someone)
   const when = `${dayMonthDate(e.at)}, ${clock(e.at)}`
   const d = e.data ?? {}
   const amount = typeof d.priceCents === 'number' ? money(d.priceCents, currency) : typeof d.amountCents === 'number' ? money(d.amountCents, currency, 'always') : ''
   switch (e.kind) {
+    // Self-serve booking (M65): requested on the media kit, approved or declined, paid through Stripe Checkout.
+    case 'requested':
+      return { title: t(mr.evRequested), detail: t(mr.evRequestedDetail, { when, name: str(d.name) || str(d.company) }), icon: 'more', tone: 'mut' }
+    case 'approved':
+      return {
+        title: t(mr.evApproved, { actor }),
+        detail: t(mr.evApprovedDetail, { when, date: d.paymentDueAt ? shortDate(str(d.paymentDueAt)) : '' }),
+        icon: 'check',
+        tone: '',
+      }
+    case 'declined':
+      return { title: t(mr.evDeclined, { actor }), detail: d.reason ? t(mr.evDeclinedDetail, { when, reason: str(d.reason) }) : when, icon: 'close', tone: 'bad' }
+    case 'expired':
+      return { title: t(mr.evExpired), detail: t(mr.evExpiredDetail, { when }), icon: 'clock', tone: 'mut' }
+    case 'payment_failed':
+      return { title: t(mr.evPaymentFailed), detail: when, icon: 'close', tone: 'bad' }
+    case 'refunded':
+      return { title: t(mr.evRefunded), detail: t(mr.evRefundedDetail, { when, amount }), icon: 'edit', tone: 'mut' }
+    case 'disputed':
+      return { title: t(mr.evDisputed), detail: d.reason ? t(mr.evDisputedDetail, { when, reason: str(d.reason).replace(/_/g, ' ') }) : when, icon: 'close', tone: 'bad' }
+    case 'paid_again':
+      return { title: t(mr.evPaidAgain), detail: t(mr.evPaidAgainDetail, { when, amount }), icon: 'more', tone: 'mut' }
     case 'booked': {
+      // A Stripe payment books the issue: "Paid by Stripe" already says so.
+      if (d.paidBy === 'stripe') return null
       const title = d.fromHold ? t(mb.evBookedFromHold, { actor }) : d.fromProposal ? t(mb.evBookedFromProposal, { actor, agent: str(d.fromProposal) }) : t(mb.evBooked, { actor })
       const withIssues = Array.isArray(d.with) ? (d.with as number[]).map((n) => `#${n}`) : []
       const detail =
@@ -808,6 +873,7 @@ function eventLine(t: ReturnType<typeof useT>, e: Schemas['SponsorBookingEvent']
     case 'creative_requested':
       return { title: t(mb.evCreativeRequested), detail: t(mb.evCreativeRequestedDetail, { date: dayMonthDate(e.at), actor, contact: str(d.contact) }), icon: 'more', tone: 'mut' }
     case 'paid':
+      if (d.source === 'stripe') return { title: t(mr.evPaid), detail: t(mr.evPaidDetail, { when, amount }), icon: 'check', tone: '' }
       return { title: t(mb.evPaid, { actor }), detail: t(mb.evPaidDetail, { when, amount, date: d.paidOn ? day(`${str(d.paidOn)}T12:00:00`) : '' }), icon: 'check', tone: '' }
     case 'payment_cleared':
       return { title: t(mb.evPaymentCleared, { actor }), detail: when, icon: 'edit', tone: 'mut' }

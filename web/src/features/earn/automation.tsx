@@ -18,10 +18,10 @@ type Trigger = Schemas['AutomationTrigger']
 type Kind = Trigger['kind']
 type TierOption = Schemas['AutomationTierOption']
 
-export const paidTriggerKinds = ['paid_started', 'paid_tier_changed', 'paid_ended', 'paid_trial_ending'] as const satisfies readonly Kind[]
+export const paidTriggerKinds = ['paid_started', 'paid_tier_changed', 'paid_ended', 'paid_trial_ending', 'paid_paused', 'paid_resumed'] as const satisfies readonly Kind[]
 
 export function isPaidTrigger(kind: string | undefined): boolean {
-  return kind === 'paid_started' || kind === 'paid_tier_changed' || kind === 'paid_ended' || kind === 'paid_trial_ending'
+  return (paidTriggerKinds as readonly string[]).includes(kind ?? '')
 }
 
 /** A paid trigger's settings when it's picked: a member who comes back can go through again. */
@@ -38,6 +38,10 @@ export function paidTriggerName(kind: Kind): string {
       return tt(m.kindTierChanged)
     case 'paid_ended':
       return tt(m.kindEnded)
+    case 'paid_paused':
+      return tt(m.kindPaused)
+    case 'paid_resumed':
+      return tt(m.kindResumed)
   }
   return tt(m.kindTrialEnding)
 }
@@ -103,7 +107,14 @@ export function PaidTriggerFields({ t: trig, set, disabled, tiers }: { t: Trigge
     const next = reasonOrder.filter((x) => (x === r ? on : reasons.includes(x)))
     set({ endReasons: next.length ? next : undefined })
   }
-  const note = { paid_started: m.startedNote, paid_tier_changed: m.directionHint, paid_ended: m.endedNote, paid_trial_ending: m.trialEndingNote }[trig.kind as (typeof paidTriggerKinds)[number]]
+  const note = {
+    paid_started: m.startedNote,
+    paid_tier_changed: m.directionHint,
+    paid_ended: m.endedNote,
+    paid_trial_ending: m.trialEndingNote,
+    paid_paused: m.pausedNote,
+    paid_resumed: m.resumedNote,
+  }[trig.kind as (typeof paidTriggerKinds)[number]]
   return (
     <div className="flex flex-col gap-2">
       {tiers && tiers.length === 0 ? (
@@ -148,7 +159,11 @@ export function PaidTriggerFields({ t: trig, set, disabled, tiers }: { t: Trigge
       {note ? <span className="k">{t(note)}</span> : null}
       <span className="k">{t(m.liveOnly)}</span>
       <span className="k">
-        <T msg={m.liquid} values={{ tier: liquid('subscription.tier'), previous: liquid('subscription.previous_tier'), trialEnds: liquid('subscription.trial_ends_at') }} />
+        {trig.kind === 'paid_paused' ? (
+          <T msg={m.liquidPaused} values={{ tier: liquid('subscription.tier'), resumes: liquid('subscription.resumes_at') }} />
+        ) : (
+          <T msg={m.liquid} values={{ tier: liquid('subscription.tier'), previous: liquid('subscription.previous_tier'), trialEnds: liquid('subscription.trial_ends_at') }} />
+        )}
       </span>
     </div>
   )

@@ -43,4 +43,9 @@ export default translate(m, {
   wordCanceled: 'gekündigt',
   wordFailed: 'Zahlung fehlgeschlagen',
   wordTrialEnded: 'Testphase ohne Zahlung beendet',
+  kindPaused: 'Pausiert Zahlungen',
+  kindResumed: 'Setzt Zahlungen fort',
+  pausedNote: 'Startet, wenn ein Mitglied auf der Kündigungsseite pausiert oder Ihr Team es unter Zahlende Mitglieder pausiert.',
+  resumedNote: 'Startet, wenn die Zahlungen wieder laufen: früher mit „Jetzt fortsetzen“ oder am Fortsetzungsdatum.',
+  liquidPaused: 'Die E-Mails dieses Ablaufs können {tier} und {resumes} verwenden.',
 })

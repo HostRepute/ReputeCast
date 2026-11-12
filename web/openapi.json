@@ -9824,6 +9824,29 @@
         ],
         "type": "object"
       },
+      "ApproveInput": {
+        "additionalProperties": false,
+        "properties": {
+          "issue": {
+            "description": "The request's issue when absent.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "priceCents": {
+            "description": "The request's price when absent.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "slotId": {
+            "description": "The request's slot when absent.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ArchiveIssueInput": {
         "additionalProperties": false,
         "properties": {
@@ -13531,7 +13554,9 @@
               "paid_started",
               "paid_tier_changed",
               "paid_ended",
-              "paid_trial_ending"
+              "paid_trial_ending",
+              "paid_paused",
+              "paid_resumed"
             ],
             "type": "string"
           },
@@ -25648,6 +25673,20 @@
         ],
         "type": "object"
       },
+      "DeclineInput": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
       "DeletedField": {
         "additionalProperties": false,
         "properties": {
@@ -30589,6 +30628,75 @@
         ],
         "type": "object"
       },
+      "EarnGroupPriceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "monthly": {
+            "description": "Per seat per month, in minor units",
+            "format": "int64",
+            "maximum": 10000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "off": {
+            "type": "boolean"
+          },
+          "seatsMax": {
+            "format": "int64",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "seatsMin": {
+            "format": "int64",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "yearly": {
+            "description": "Per seat per year, in minor units",
+            "format": "int64",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "EarnGroupPrices": {
+        "additionalProperties": false,
+        "properties": {
+          "monthly": {
+            "$ref": "#/components/schemas/EarnPrice"
+          },
+          "seats": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "seatsMax": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "seatsMin": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "teams": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "yearly": {
+            "$ref": "#/components/schemas/EarnPrice"
+          }
+        },
+        "required": [
+          "seatsMin",
+          "seatsMax",
+          "teams",
+          "seats"
+        ],
+        "type": "object"
+      },
       "EarnImport": {
         "additionalProperties": false,
         "properties": {
@@ -31147,6 +31255,12 @@
           "canManage": {
             "type": "boolean"
           },
+          "canPause": {
+            "type": "boolean"
+          },
+          "canResume": {
+            "type": "boolean"
+          },
           "cancelAt": {
             "format": "date-time",
             "type": "string"
@@ -31239,7 +31353,8 @@
             "enum": [
               "stripe",
               "complimentary",
-              "gift"
+              "gift",
+              "group"
             ],
             "type": "string"
           },
@@ -31272,6 +31387,7 @@
               "retries",
               "trial_ends",
               "no_end",
+              "resumes",
               "ended"
             ],
             "type": "string"
@@ -31284,6 +31400,14 @@
             "format": "int64",
             "type": "integer"
           },
+          "pausedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
           "period": {
             "enum": [
               "month",
@@ -31295,6 +31419,10 @@
           "periodShown": {
             "type": "boolean"
           },
+          "quantity": {
+            "format": "int64",
+            "type": "integer"
+          },
           "refundedCents": {
             "format": "int64",
             "type": "integer"
@@ -31302,6 +31430,12 @@
           "renewalReminder": {
             "format": "date-time",
             "type": "string"
+          },
+          "seats": {
+            "items": {
+              "$ref": "#/components/schemas/EarnTeamSeat"
+            },
+            "type": "array"
           },
           "since": {
             "format": "date-time",
@@ -31317,7 +31451,8 @@
               "past_due",
               "canceled",
               "complimentary",
-              "gift"
+              "gift",
+              "group"
             ],
             "type": "string"
           },
@@ -31329,6 +31464,9 @@
           },
           "taxAdded": {
             "type": "boolean"
+          },
+          "team": {
+            "$ref": "#/components/schemas/EarnMemberTeam"
           },
           "test": {
             "type": "boolean"
@@ -31362,6 +31500,9 @@
           "link",
           "lists",
           "taxAdded",
+          "seats",
+          "canPause",
+          "canResume",
           "id",
           "contactId",
           "name",
@@ -31379,6 +31520,7 @@
           "status",
           "since",
           "next",
+          "quantity",
           "ltvCents",
           "refundedCents",
           "source",
@@ -31410,6 +31552,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "paused": {
+            "format": "int64",
+            "type": "integer"
+          },
           "paying": {
             "format": "int64",
             "type": "integer"
@@ -31431,7 +31577,8 @@
           "cancelsSoon",
           "complimentary",
           "gift",
-          "ended"
+          "ended",
+          "paused"
         ],
         "type": "object"
       },
@@ -31759,7 +31906,8 @@
             "enum": [
               "stripe",
               "complimentary",
-              "gift"
+              "gift",
+              "group"
             ],
             "type": "string"
           },
@@ -31780,11 +31928,20 @@
               "retries",
               "trial_ends",
               "no_end",
+              "resumes",
               "ended"
             ],
             "type": "string"
           },
           "nextAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pausedUntil": {
             "format": "date-time",
             "type": "string"
           },
@@ -31798,6 +31955,10 @@
           },
           "periodShown": {
             "type": "boolean"
+          },
+          "quantity": {
+            "format": "int64",
+            "type": "integer"
           },
           "refundedCents": {
             "format": "int64",
@@ -31817,9 +31978,13 @@
               "past_due",
               "canceled",
               "complimentary",
-              "gift"
+              "gift",
+              "group"
             ],
             "type": "string"
+          },
+          "team": {
+            "$ref": "#/components/schemas/EarnMemberTeam"
           },
           "test": {
             "type": "boolean"
@@ -31852,6 +32017,7 @@
           "status",
           "since",
           "next",
+          "quantity",
           "ltvCents",
           "refundedCents",
           "source",
@@ -31883,6 +32049,7 @@
               "gift",
               "grant",
               "direct",
+              "group",
               ""
             ],
             "type": "string"
@@ -31900,6 +32067,62 @@
         "required": [
           "kind",
           "label"
+        ],
+        "type": "object"
+      },
+      "EarnMemberTeam": {
+        "additionalProperties": false,
+        "properties": {
+          "buyerId": {
+            "type": "string"
+          },
+          "buyerName": {
+            "type": "string"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "invites": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "renewsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "buyer",
+              "seat"
+            ],
+            "type": "string"
+          },
+          "seatId": {
+            "type": "string"
+          },
+          "seats": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "used": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "seats",
+          "used",
+          "invites"
         ],
         "type": "object"
       },
@@ -32007,6 +32230,68 @@
         ],
         "type": "object"
       },
+      "EarnPauseInput": {
+        "additionalProperties": false,
+        "properties": {
+          "months": {
+            "enum": [
+              0,
+              1,
+              3,
+              6
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "note": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "skipEmail": {
+            "type": "boolean"
+          },
+          "until": {
+            "description": "YYYY-MM-DD, in the workspace's time zone; at most 6 months away",
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EarnPausing": {
+        "additionalProperties": false,
+        "properties": {
+          "months": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "months"
+        ],
+        "type": "object"
+      },
+      "EarnPausingInput": {
+        "additionalProperties": false,
+        "properties": {
+          "months": {
+            "description": "Any of 1, 3 and 6; none turns pausing off.",
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "type": "array"
+          }
+        },
+        "required": [
+          "months"
+        ],
+        "type": "object"
+      },
       "EarnPayments": {
         "additionalProperties": false,
         "properties": {
@@ -32039,6 +32324,13 @@
           },
           "live": {
             "$ref": "#/components/schemas/EarnConnection"
+          },
+          "pauseMonths": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
           },
           "permissions": {
             "items": {
@@ -32083,7 +32375,8 @@
           "testMembers",
           "canManage",
           "canEditPrices",
-          "helpers"
+          "helpers",
+          "pauseMonths"
         ],
         "type": "object"
       },
@@ -32412,7 +32705,10 @@
               "trial_ending",
               "payment_failed",
               "renewal_reminder",
-              "canceled"
+              "canceled",
+              "group_welcome",
+              "paused",
+              "resuming_soon"
             ],
             "type": "string"
           }
@@ -32560,6 +32856,51 @@
         ],
         "type": "object"
       },
+      "EarnTeamSeat": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inviteExpiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "invitedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "memberId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "buyer",
+              "invited",
+              "active"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "status",
+          "invitedAt"
+        ],
+        "type": "object"
+      },
       "EarnTestDataCleared": {
         "additionalProperties": false,
         "properties": {
@@ -32603,6 +32944,9 @@
           "discountedYearly": {
             "format": "int64",
             "type": "integer"
+          },
+          "group": {
+            "$ref": "#/components/schemas/EarnGroupPrices"
           },
           "hiddenLink": {
             "type": "string"
@@ -32765,6 +33109,9 @@
           "description": {
             "maxLength": 500,
             "type": "string"
+          },
+          "group": {
+            "$ref": "#/components/schemas/EarnGroupPriceInput"
           },
           "highlight": {
             "maxLength": 30,
@@ -77359,6 +77706,11 @@
             "maxLength": 3,
             "type": "string"
           },
+          "description": {
+            "description": "What the sponsor page says about the slot.",
+            "maxLength": 300,
+            "type": "string"
+          },
           "everyDays": {
             "description": "7 when absent (weekly).",
             "format": "int64",
@@ -77377,6 +77729,13 @@
             "format": "date",
             "type": "string"
           },
+          "leadDays": {
+            "description": "Sponsors book at least this many days ahead (7 for a new slot when absent).",
+            "format": "int64",
+            "maximum": 60,
+            "minimum": 0,
+            "type": "integer"
+          },
           "listId": {
             "format": "uuid",
             "type": "string"
@@ -77385,6 +77744,13 @@
             "maxLength": 60,
             "minLength": 1,
             "type": "string"
+          },
+          "payDays": {
+            "description": "Sponsors pay within this many days of the approval (3 for a new slot when absent).",
+            "format": "int64",
+            "maximum": 14,
+            "minimum": 1,
+            "type": "integer"
           },
           "placement": {
             "description": "Where it sits in the issue (\"After the first story\").",
@@ -77396,6 +77762,10 @@
             "format": "int64",
             "minimum": 0,
             "type": "integer"
+          },
+          "selfServe": {
+            "description": "Sponsors can book it from the sponsor page (off for a new slot when absent).",
+            "type": "boolean"
           },
           "selling": {
             "type": "boolean"
@@ -83191,6 +83561,7 @@
           "bookingStatus": {
             "enum": [
               "hold",
+              "awaiting_payment",
               "booked",
               "sent",
               ""
@@ -83324,6 +83695,10 @@
           "payment": {
             "$ref": "#/components/schemas/SponsorPayment"
           },
+          "paymentDueAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "priceCents": {
             "format": "int64",
             "type": "integer"
@@ -83349,6 +83724,7 @@
           "status": {
             "enum": [
               "hold",
+              "awaiting_payment",
               "booked",
               "sent"
             ],
@@ -83404,6 +83780,9 @@
           "currency": {
             "type": "string"
           },
+          "declinedReason": {
+            "type": "string"
+          },
           "helpers": {
             "items": {
               "type": "string"
@@ -83443,6 +83822,10 @@
           "payment": {
             "$ref": "#/components/schemas/SponsorPayment"
           },
+          "paymentDueAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "placement": {
             "type": "string"
           },
@@ -83459,6 +83842,9 @@
           },
           "report": {
             "$ref": "#/components/schemas/SponsorReport"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SponsorRequestFrom"
           },
           "shares": {
             "items": {
@@ -83485,7 +83871,11 @@
               "hold",
               "booked",
               "sent",
-              "canceled"
+              "canceled",
+              "requested",
+              "awaiting_payment",
+              "declined",
+              "expired"
             ],
             "type": "string"
           }
@@ -83774,6 +84164,10 @@
           "proposal": {
             "$ref": "#/components/schemas/SponsorPropose"
           },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
           "slotId": {
             "type": "string"
           },
@@ -83786,13 +84180,29 @@
           "slotName",
           "number",
           "issueOn",
-          "past"
+          "past",
+          "requests"
         ],
         "type": "object"
       },
       "SponsorItem": {
         "additionalProperties": false,
         "properties": {
+          "awaiting": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "awaitingCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "awaitingDue": {
+            "format": "date-time",
+            "type": "string"
+          },
           "bookedCents": {
             "format": "int64",
             "type": "integer"
@@ -83813,6 +84223,13 @@
           },
           "currency": {
             "type": "string"
+          },
+          "fromRequest": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
           },
           "hold": {
             "items": {
@@ -83851,6 +84268,14 @@
             "format": "int64",
             "type": "integer"
           },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "stripePaidOn": {
+            "format": "date-time",
+            "type": "string"
+          },
           "termsDays": {
             "format": "int64",
             "type": "integer"
@@ -83871,10 +84296,73 @@
           "notes",
           "issues",
           "hold",
+          "awaiting",
+          "fromRequest",
+          "requests",
           "bookedCents",
           "holdCents",
+          "awaitingCents",
           "paidCents",
           "currency"
+        ],
+        "type": "object"
+      },
+      "SponsorKitStats": {
+        "additionalProperties": false,
+        "properties": {
+          "clickRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "openRate": {
+            "format": "double",
+            "type": "number"
+          },
+          "subscribers": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "listId",
+          "listName",
+          "subscribers"
+        ],
+        "type": "object"
+      },
+      "SponsorMediaKit": {
+        "additionalProperties": false,
+        "properties": {
+          "about": {
+            "maxLength": 600,
+            "type": "string"
+          },
+          "audience": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "clickRate": {
+            "type": "boolean"
+          },
+          "openRate": {
+            "type": "boolean"
+          },
+          "subscribers": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subscribers",
+          "openRate",
+          "clickRate",
+          "about",
+          "audience"
         ],
         "type": "object"
       },
@@ -83986,6 +84474,10 @@
             ],
             "type": "string"
           },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
           "slotId": {
             "type": "string"
           },
@@ -84015,6 +84507,7 @@
           "library",
           "notices",
           "currency",
+          "requests",
           "canManage",
           "helpers"
         ],
@@ -84045,6 +84538,14 @@
           "recordedBy": {
             "type": "string"
           },
+          "source": {
+            "enum": [
+              "manual",
+              "stripe",
+              ""
+            ],
+            "type": "string"
+          },
           "status": {
             "enum": [
               "unpaid",
@@ -84056,7 +84557,8 @@
         },
         "required": [
           "status",
-          "note"
+          "note",
+          "source"
         ],
         "type": "object"
       },
@@ -84266,6 +84768,570 @@
         ],
         "type": "object"
       },
+      "SponsorRequestDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/SponsorBookingEvent"
+            },
+            "type": "array"
+          },
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "closedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "creative": {
+            "$ref": "#/components/schemas/SponsorCreative"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "declinedReason": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/SponsorRequestFile"
+            },
+            "type": "array"
+          },
+          "heldBy": {
+            "type": "string"
+          },
+          "heldUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "issue": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issueOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issueState": {
+            "enum": [
+              "open",
+              "held"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "paidOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "paidSource": {
+            "enum": [
+              "manual",
+              "stripe",
+              ""
+            ],
+            "type": "string"
+          },
+          "payDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paymentDueAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "priceCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "slotDeleted": {
+            "type": "boolean"
+          },
+          "slotId": {
+            "type": "string"
+          },
+          "slotName": {
+            "type": "string"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/SponsorRequestSlot"
+            },
+            "type": "array"
+          },
+          "sponsor": {
+            "$ref": "#/components/schemas/SponsorRef"
+          },
+          "status": {
+            "enum": [
+              "requested",
+              "awaiting_payment",
+              "booked",
+              "declined",
+              "expired",
+              "canceled"
+            ],
+            "type": "string"
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "website",
+          "notes",
+          "creative",
+          "label",
+          "initials",
+          "files",
+          "payDays",
+          "slots",
+          "activity",
+          "canManage",
+          "helpers",
+          "id",
+          "status",
+          "company",
+          "name",
+          "email",
+          "slotId",
+          "slotName",
+          "listName",
+          "slotDeleted",
+          "issue",
+          "issueOn",
+          "issueState",
+          "priceCents",
+          "currency",
+          "submittedAt"
+        ],
+        "type": "object"
+      },
+      "SponsorRequestFile": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "logo",
+              "image"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "sizeBytes",
+          "url"
+        ],
+        "type": "object"
+      },
+      "SponsorRequestFrom": {
+        "additionalProperties": false,
+        "properties": {
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "name",
+          "email",
+          "website",
+          "notes",
+          "at"
+        ],
+        "type": "object"
+      },
+      "SponsorRequestIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "heldBy": {
+            "type": "string"
+          },
+          "heldUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issueOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paymentDueAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "taken": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "number",
+          "issueOn",
+          "taken",
+          "paymentDueAt"
+        ],
+        "type": "object"
+      },
+      "SponsorRequestItem": {
+        "additionalProperties": false,
+        "properties": {
+          "closedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "declinedReason": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "heldBy": {
+            "type": "string"
+          },
+          "heldUntil": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "issue": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issueOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issueState": {
+            "enum": [
+              "open",
+              "held"
+            ],
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "paidOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "paidSource": {
+            "enum": [
+              "manual",
+              "stripe",
+              ""
+            ],
+            "type": "string"
+          },
+          "paymentDueAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "priceCents": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "slotDeleted": {
+            "type": "boolean"
+          },
+          "slotId": {
+            "type": "string"
+          },
+          "slotName": {
+            "type": "string"
+          },
+          "sponsor": {
+            "$ref": "#/components/schemas/SponsorRef"
+          },
+          "status": {
+            "enum": [
+              "requested",
+              "awaiting_payment",
+              "booked",
+              "declined",
+              "expired",
+              "canceled"
+            ],
+            "type": "string"
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "company",
+          "name",
+          "email",
+          "slotId",
+          "slotName",
+          "listName",
+          "slotDeleted",
+          "issue",
+          "issueOn",
+          "issueState",
+          "priceCents",
+          "currency",
+          "submittedAt"
+        ],
+        "type": "object"
+      },
+      "SponsorRequestList": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SponsorRequestItem"
+            },
+            "type": "array"
+          },
+          "pageUrl": {
+            "type": "string"
+          },
+          "selfServe": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "selfServe",
+          "pageUrl",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "SponsorRequestSlot": {
+        "additionalProperties": false,
+        "properties": {
+          "creativeDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/SponsorRequestIssue"
+            },
+            "type": "array"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "payDays": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "priceCents": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "listName",
+          "priceCents",
+          "currency",
+          "payDays",
+          "creativeDays",
+          "issues"
+        ],
+        "type": "object"
+      },
+      "SponsorSelfServe": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mediaKit": {
+            "$ref": "#/components/schemas/SponsorMediaKit"
+          },
+          "pageUrl": {
+            "type": "string"
+          },
+          "paymentsConnected": {
+            "type": "boolean"
+          },
+          "paymentsTest": {
+            "type": "boolean"
+          },
+          "selfServe": {
+            "type": "boolean"
+          },
+          "slots": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "stats": {
+            "items": {
+              "$ref": "#/components/schemas/SponsorKitStats"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "selfServe",
+          "pageUrl",
+          "mediaKit",
+          "contactEmail",
+          "paymentsConnected",
+          "paymentsTest",
+          "slots",
+          "stats",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "SponsorSelfServeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "contactEmail": {
+            "description": "Where sponsors write with questions; Earn's support address when empty.",
+            "maxLength": 254,
+            "type": "string"
+          },
+          "mediaKit": {
+            "$ref": "#/components/schemas/SponsorMediaKit"
+          },
+          "selfServe": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "selfServe",
+          "mediaKit"
+        ],
+        "type": "object"
+      },
       "SponsorShareLink": {
         "additionalProperties": false,
         "properties": {
@@ -84336,6 +85402,9 @@
           "currency": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
           "everyDays": {
             "format": "int64",
             "type": "integer"
@@ -84351,6 +85420,10 @@
           "id": {
             "type": "string"
           },
+          "leadDays": {
+            "format": "int64",
+            "type": "integer"
+          },
           "listId": {
             "type": "string"
           },
@@ -84360,12 +85433,19 @@
           "name": {
             "type": "string"
           },
+          "payDays": {
+            "format": "int64",
+            "type": "integer"
+          },
           "placement": {
             "type": "string"
           },
           "priceCents": {
             "format": "int64",
             "type": "integer"
+          },
+          "selfServe": {
+            "type": "boolean"
           },
           "selling": {
             "type": "boolean"
@@ -84387,7 +85467,11 @@
           "everyDays",
           "creativeDays",
           "selling",
-          "bookings"
+          "bookings",
+          "selfServe",
+          "description",
+          "leadDays",
+          "payDays"
         ],
         "type": "object"
       },
@@ -137345,7 +138429,8 @@
                 "cancels_soon",
                 "complimentary",
                 "gift",
-                "ended"
+                "ended",
+                "paused"
               ],
               "type": "string"
             }
@@ -137399,6 +138484,7 @@
                 "gift",
                 "grant",
                 "direct",
+                "group",
                 ""
               ],
               "type": "string"
@@ -137626,7 +138712,8 @@
                 "cancels_soon",
                 "complimentary",
                 "gift",
-                "ended"
+                "ended",
+                "paused"
               ],
               "type": "string"
             }
@@ -137680,6 +138767,7 @@
                 "gift",
                 "grant",
                 "direct",
+                "group",
                 ""
               ],
               "type": "string"
@@ -138102,6 +139190,82 @@
         "x-permission": "earn:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/pause": {
+      "post": {
+        "description": "Paid access stops while payments are paused; the free membership stays. Stripe resumes payments on the date.",
+        "operationId": "pause-paid-subscription",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EarnPauseInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnMember"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pause a subscription's payments for 1, 3 or 6 months or until a date",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/earn/members/{id}/resend": {
       "post": {
         "operationId": "resend-member-email",
@@ -138170,6 +139334,155 @@
           }
         ],
         "summary": "Send a member email to a paid member again",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/resume": {
+      "post": {
+        "operationId": "resume-paid-subscription",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnMember"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Resume a paused subscription's payments now",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/members/{id}/seats/{seatId}": {
+      "delete": {
+        "operationId": "remove-team-seat",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The team buyer's paid subscription id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "The team buyer's paid subscription id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Seat id",
+            "in": "path",
+            "name": "seatId",
+            "required": true,
+            "schema": {
+              "description": "Seat id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "skipEmail",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnMember"
+                }
+              }
+            },
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a person from a team: an invite stops working, a seat's access ends now",
         "tags": [
           "Earn"
         ],
@@ -139413,6 +140726,71 @@
         ],
         "x-access": "workspace",
         "x-permission": "earn:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/earn/settings/pausing": {
+      "put": {
+        "description": "Any of 1, 3 and 6 months; none turns pausing off for members (the team can still pause a member).",
+        "operationId": "save-earn-pausing",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EarnPausingInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarnPausing"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pausing: the lengths paid members may pause for on the cancel page",
+        "tags": [
+          "Earn"
+        ],
+        "x-access": "workspace",
+        "x-permission": "payments:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/earn/status": {
@@ -171563,6 +172941,126 @@
         "x-permission": "reports:share"
       }
     },
+    "/api/v1/workspaces/{workspace}/sponsor-page": {
+      "get": {
+        "operationId": "get-sponsor-page-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorSelfServe"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The sponsor page's settings: self-serve booking, its media kit and address",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      },
+      "put": {
+        "description": "Turning it on needs a payment account connected in Earn: sponsors pay through its Stripe Checkout.",
+        "operationId": "update-sponsor-page-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SponsorSelfServeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorSelfServe"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn self-serve booking on or off and set the sponsor page's media kit",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "sponsors:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/sponsor-report-shares/{id}": {
       "delete": {
         "operationId": "revoke-sponsor-share",
@@ -171622,6 +173120,282 @@
         ],
         "x-access": "workspace",
         "x-permission": "reports:share"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sponsor-requests": {
+      "get": {
+        "operationId": "list-sponsor-requests",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorRequestList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The sponsor page's requests: waiting for review, approved and waiting for payment, recently declined or expired",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sponsor-requests/{id}": {
+      "get": {
+        "operationId": "get-sponsor-request",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorRequestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A request from the sponsor page: who sent it, its creative and where it can be booked",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sponsor-requests/{id}/approve": {
+      "post": {
+        "description": "The deadline is the slot's pay_days from now, at the latest when the creative is due. The issue, slot and price may change.",
+        "operationId": "approve-sponsor-request",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorRequestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Approve a request: hold the issue until the payment's deadline and email the sponsor the link to pay",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "sponsors:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sponsor-requests/{id}/decline": {
+      "post": {
+        "operationId": "decline-sponsor-request",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorRequestDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Decline a request; the sponsor is emailed the reason",
+        "tags": [
+          "Sponsors"
+        ],
+        "x-access": "workspace",
+        "x-permission": "sponsors:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/sponsor-slots": {

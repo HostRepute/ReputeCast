@@ -95,6 +95,11 @@ function emailWhen(t: ReturnType<typeof useT>, email: string): string {
       gift_payment_failed: t(ms.whenGiftPaymentFailed),
       gift_received: t(ms.whenGiftReceived),
       gift_ending: t(ms.whenGiftEnding),
+      group_welcome: t(ms.whenGroupWelcome),
+      group_invite: t(ms.whenGroupInvite),
+      group_access_ended: t(ms.whenGroupEnded),
+      paused: t(ms.whenPaused),
+      resuming_soon: t(ms.whenResuming),
     }[email] ?? ''
   )
 }

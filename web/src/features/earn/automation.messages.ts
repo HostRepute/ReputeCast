@@ -43,4 +43,9 @@ export const m = defineMessages('earn.automation', {
   wordCanceled: 'canceled',
   wordFailed: 'payment failed',
   wordTrialEnded: 'trial ended without paying',
+  kindPaused: 'Pauses payments',
+  kindResumed: 'Resumes payments',
+  pausedNote: 'Starts when a member pauses on the cancel page, or your team pauses them in Paid members.',
+  resumedNote: 'Starts when payments start again: early with Resume now, or on the resume date.',
+  liquidPaused: 'This flow’s emails can use {tier} and {resumes}.',
 })

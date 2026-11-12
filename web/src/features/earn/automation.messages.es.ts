@@ -43,4 +43,9 @@ export default translate(m, {
   wordCanceled: 'cancelada',
   wordFailed: 'pago fallido',
   wordTrialEnded: 'prueba terminada sin pagar',
+  kindPaused: 'Pausa los pagos',
+  kindResumed: 'Reanuda los pagos',
+  pausedNote: 'Empieza cuando un miembro pausa en la página de cancelación, o tu equipo lo pausa en Miembros de pago.',
+  resumedNote: 'Empieza cuando los pagos vuelven: antes con Reanudar ahora, o en la fecha de reanudación.',
+  liquidPaused: 'Los correos de este flujo pueden usar {tier} y {resumes}.',
 })

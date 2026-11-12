@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { MembersPage, type MembersSearch } from '@/features/earn/MembersPage'
 
 const search = z.object({
-  status: z.enum(['with_access', 'paying', 'trialing', 'past_due', 'cancels_soon', 'complimentary', 'gift', 'ended']).optional().catch(undefined),
+  status: z.enum(['with_access', 'paying', 'trialing', 'past_due', 'cancels_soon', 'paused', 'complimentary', 'gift', 'ended']).optional().catch(undefined),
   q: z.string().max(200).optional().catch(undefined),
   tier: z.string().max(64).optional().catch(undefined),
   period: z.enum(['month', 'year']).optional().catch(undefined),

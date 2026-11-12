@@ -114,6 +114,9 @@ export const TRIGGER_KINDS: readonly TriggerConfig['kind'][] = [
   'paid_tier_changed',
   'paid_ended',
   'paid_trial_ending',
+  // Pausing (M65, G-39).
+  'paid_paused',
+  'paid_resumed',
 ]
 
 /** The triggers that can be a flow's second or third (AT-11). */
@@ -156,6 +159,8 @@ export function triggerKindLabel(kind: TriggerConfig['kind']): string {
     case 'paid_tier_changed':
     case 'paid_ended':
     case 'paid_trial_ending':
+    case 'paid_paused':
+    case 'paid_resumed':
       return paidTriggerName(kind)
   }
   return kind
@@ -323,6 +328,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
     case 'paid_tier_changed':
     case 'paid_ended':
     case 'paid_trial_ending':
+    case 'paid_paused':
+    case 'paid_resumed':
       return paidTriggerRef(t, refs.tiers)
   }
   return ''
