@@ -7,7 +7,7 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
-import { Th } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import '@/features/integrations/integrations.css'
 import { T, useT } from '@/i18n'
@@ -611,7 +611,7 @@ function Batches({ p }: { p: Pool }) {
       {p.batches.length === 0 ? (
         <p className="k m-0 px-4.5 py-4">{t(m.noBatches)}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <TableScroll label={t(m.batchesTitle)}>
           <table className="tbl" aria-labelledby="cp-bh-h">
             <thead>
               <tr>
@@ -654,7 +654,7 @@ function Batches({ p }: { p: Pool }) {
               })}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
     </section>
   )

@@ -5,7 +5,7 @@ import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Th } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import '@/features/integrations/integrations.css'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
@@ -136,7 +136,7 @@ export function PoolsPage({ status, creating }: { status: 'active' | 'archived';
             ) : (
               <>
                 <div className="ih-no-phone">
-                  <div className="overflow-x-auto">
+                  <TableScroll label={t(m.tableLabel)}>
                     <table className="tbl" aria-label={t(m.tableLabel)}>
                       <thead>
                         <tr>
@@ -190,7 +190,7 @@ export function PoolsPage({ status, creating }: { status: 'active' | 'archived';
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </TableScroll>
                 </div>
                 <div className="ih-only-phone">
                   {shown.map((p) => (
