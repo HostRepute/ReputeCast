@@ -5,8 +5,13 @@
     grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
     gap: 12px;
   }
+  /* Four tiles (with Site visitors) sit in one row on desktop and two by two on tablets. */
+  .ho-tiles.four {
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  }
   @media (max-width: 767px) {
-    .ho-tiles {
+    .ho-tiles,
+    .ho-tiles.four {
       grid-template-columns: minmax(0, 1fr);
     }
   }

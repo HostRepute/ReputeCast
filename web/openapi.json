@@ -36181,11 +36181,16 @@
           "revenueCents": {
             "format": "int64",
             "type": "integer"
+          },
+          "visitors": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
           "contacts",
           "converters",
+          "visitors",
           "orders",
           "revenueCents"
         ],
@@ -36233,7 +36238,8 @@
             "enum": [
               "conversion_rate",
               "revenue_per_contact",
-              "orders_per_contact"
+              "orders_per_contact",
+              "site_visitors"
             ],
             "type": "string"
           },
@@ -36398,6 +36404,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "tracking": {
+            "type": "boolean"
+          },
           "verdict": {
             "enum": [
               "none",
@@ -36430,7 +36439,8 @@
           "currency",
           "otherCurrencies",
           "campaignsIncluded",
-          "minHoldout"
+          "minHoldout",
+          "tracking"
         ],
         "type": "object"
       },

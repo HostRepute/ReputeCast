@@ -26,8 +26,8 @@ const board = (patch: Partial<Results> = {}): Results => ({
   verdict: 'added',
   computedAt: '2026-10-14T08:00:00Z',
   computing: false,
-  holdout: { contacts: 2316, converters: 148, orders: 164, revenueCents: 1070000 },
-  marketing: { contacts: 44021, converters: 3346, orders: 3654, revenueCents: 23991400 },
+  holdout: { contacts: 2316, converters: 148, visitors: 0, orders: 164, revenueCents: 1070000 },
+  marketing: { contacts: 44021, converters: 3346, visitors: 0, orders: 3654, revenueCents: 23991400 },
   metrics: [
     { key: 'conversion_rate', holdout: 6.39, marketing: 7.6, lift: 18.9, confidence: 0.972, tested: true, significant: true },
     { key: 'revenue_per_contact', holdout: 462, marketing: 545, lift: 18.0, confidence: 0.961, tested: true, significant: true },
@@ -37,8 +37,21 @@ const board = (patch: Partial<Results> = {}): Results => ({
   otherCurrencies: [],
   campaignsIncluded: 8,
   minHoldout: 1000,
+  tracking: false,
   ...patch,
 })
+
+/** The board with Website tracking on (M62): the Site visitors tile, column and note. */
+const tracked = (): Results => {
+  const b = board()
+  return {
+    ...b,
+    tracking: true,
+    holdout: { ...b.holdout, visitors: 69 },
+    marketing: { ...b.marketing, visitors: 1673 },
+    metrics: [...b.metrics, { key: 'site_visitors', holdout: 2.979275, marketing: 3.800459, lift: 27.5634, confidence: 0.957138, tested: true, significant: true }],
+  }
+}
 
 const summary = { contacts: 48213, holdout: true, lists: [], paidTiers: [], segments: 7, stripe: false, suppressions: 1874, tiers: { active: 0, atRisk: 0, cooling: 0, sunset: 0 } }
 const path = '/w/acme-newsletter/audience/holdout'
@@ -75,11 +88,34 @@ describe('Audience › Holdout', () => {
     const rows = within(table).getAllByRole('row')
     expect(rows[1]).toHaveTextContent('Marketing group44,0213,3467.6%3,654$239,914$5.45')
     expect(rows[2]).toHaveTextContent('Holdout group2,3161486.4%164$10,700$4.62')
+    // No tracked site: no Site visitors tile, column or note.
+    expect(screen.queryByText('Site visitors')).not.toBeInTheDocument()
+    expect(screen.queryByText(/A site visitor was seen/)).not.toBeInTheDocument()
+  })
+
+  it('adds Site visitors when the workspace tracks a site', async () => {
+    mockApi({
+      'GET /api/v1/workspaces/acme-newsletter/holdout/results': () => json(tracked()),
+      'GET /api/v1/workspaces/acme-newsletter/audience': () => json(summary),
+    })
+    await renderInWorkspace(<HoldoutPage search={{}} />, { me: viewer, path })
+    const tile = (await screen.findByText('Site visitors')).closest('.ho-stat') as HTMLElement
+    expect(tile).toHaveTextContent('Marketing group: 3.8%')
+    expect(tile).toHaveTextContent('Holdout 3.0%')
+    expect(tile).toHaveTextContent('+28% · 95% confidence')
+    expect(tile.parentElement).toHaveClass('four')
+    expect(screen.getByText('A site visitor was seen on one of your tracked sites (Website tracking).')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Table' }))
+    const rows = within(screen.getByRole('table', { name: 'Revenue per contact, marketing group and holdout group' })).getAllByRole('row')
+    expect(rows[0]).toHaveTextContent('Site visitors')
+    expect(rows[1]).toHaveTextContent('$5.451,673')
+    expect(rows[2]).toHaveTextContent('$4.6269')
   })
 
   it('says why there is no verdict yet', async () => {
     mockApi({
-      'GET /api/v1/workspaces/acme-newsletter/holdout/results': () => json(board({ verdict: 'too_few', holdout: { contacts: 640, converters: 3, orders: 3, revenueCents: 1000 } })),
+      'GET /api/v1/workspaces/acme-newsletter/holdout/results': () =>
+        json(board({ verdict: 'too_few', holdout: { contacts: 640, converters: 3, visitors: 0, orders: 3, revenueCents: 1000 } })),
       'GET /api/v1/workspaces/acme-newsletter/audience': () => json(summary),
     })
     await renderInWorkspace(<HoldoutPage search={{}} />, { me: viewer, path })

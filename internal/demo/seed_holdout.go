@@ -31,7 +31,9 @@ import (
 // measurable answer, placed before the last 30 days the Earn and store
 // screens count. Their number per group is solved from what the demo
 // already holds, so the measurement says what the boards say: marketing
-// added 18% more revenue per contact, with 96% confidence.
+// added 18% more revenue per contact, with 96% confidence. With M62's
+// tracker, identified visits to Acme Merch in that same first month make
+// 3.8% of the marketing group and 3.0% of the holdout group site visitors.
 
 func init() { seedHoldout = seedHoldoutImpl }
 
@@ -48,6 +50,11 @@ const (
 	holdoutDemoValue int64 = 2900 // Acme Cloud's Team plan, in cents
 	// The verdict the boards show.
 	holdoutDemoLift = 18.0
+	// The shares of each group seen on Acme Merch during the period
+	// (AudienceHoldout's Site visitors): marketing brings people to the
+	// store.
+	holdoutDemoVisitedHoldout   = 0.030
+	holdoutDemoVisitedMarketing = 0.038
 )
 
 func seedHoldoutImpl(ctx context.Context, s *Seeder) error {
@@ -107,6 +114,9 @@ func seedHoldoutGroup(ctx context.Context, tx pgx.Tx, wsID uuid.UUID, now time.T
 	// Measured 6 hours ago ("Computed 6 h ago"), as the nightly job does.
 	measured := now.Add(-6 * time.Hour)
 	if err := holdoutConversions(ctx, tx, wsID, start, measured); err != nil {
+		return err
+	}
+	if err := holdoutVisits(ctx, tx, wsID, start, measured); err != nil {
 		return err
 	}
 	svc := &holdout.Service{Q: q, Now: func() time.Time { return measured }}
@@ -315,6 +325,94 @@ func holdoutSolve(base [2]holdout.Group, freeH, freeM int64) (int64, int64, bool
 	}
 	return 0, 0, false
 }
+
+// holdoutVisits adds identified visits to Acme Merch in the period's
+// first month, before the 30 days the tracker's own screens count, so the
+// share of each group seen on the site comes to holdoutDemoVisited*: the
+// marketing group visits more. Nothing happens without a tracked site.
+func holdoutVisits(ctx context.Context, tx pgx.Tx, wsID uuid.UUID, start, until time.Time) error {
+	var site uuid.UUID
+	err := tx.QueryRow(ctx, `SELECT id FROM tracker_sites WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY (store_id IS NULL), created_at LIMIT 1`, wsID).Scan(&site)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	rows, err := tx.Query(ctx, holdoutVisitorsSQL, wsID, holdoutDemoSeed, holdoutDemoBP, start, until)
+	if err != nil {
+		return err
+	}
+	var contacts [2]int64
+	var visited [2]int64
+	var free [2][]uuid.UUID // 0: holdout, 1: marketing
+	for rows.Next() {
+		var id uuid.UUID
+		var held, seen bool
+		if err := rows.Scan(&id, &held, &seen); err != nil {
+			rows.Close()
+			return err
+		}
+		g := 1
+		if held {
+			g = 0
+		}
+		contacts[g]++
+		if seen {
+			visited[g]++
+		} else {
+			free[g] = append(free[g], id)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	rng := rand.New(rand.NewPCG(uint64(holdoutDemoSeed), 62)) //nolint:gosec // deterministic sample data
+	from, to := start.Add(2*time.Hour), until.AddDate(0, 0, -31)
+	span := to.Sub(from)
+	var visitors, events [][]any
+	for g, share := range []float64{holdoutDemoVisitedHoldout, holdoutDemoVisitedMarketing} {
+		k := min(max(int64(math.Round(share*float64(contacts[g])))-visited[g], 0), int64(len(free[g])))
+		rng.Shuffle(len(free[g]), func(i, j int) { free[g][i], free[g][j] = free[g][j], free[g][i] })
+		for _, c := range free[g][:k] {
+			at := from.Add(time.Duration(rng.Int64N(int64(span))))
+			var vid [32]byte
+			for i := range vid {
+				vid[i] = byte(rng.IntN(256))
+			}
+			id, contact := ID(), c
+			visitors = append(visitors, []any{id, wsID, vid[:], &contact, "click", at, at.Add(3 * time.Minute), &at})
+			events = append(events, []any{ID(), wsID, site, id, &contact, int16(1), "/", "", at})
+		}
+	}
+	if len(visitors) == 0 {
+		return nil
+	}
+	if _, err := tx.CopyFrom(ctx, pgx.Identifier{"tracker_visitors"}, []string{"id", "workspace_id", "vid_hash", "contact_id", "identified_by", "first_seen",
+		"last_seen", "identified_at"}, pgx.CopyFromRows(visitors)); err != nil {
+		return err
+	}
+	_, err = tx.CopyFrom(ctx, pgx.Identifier{"tracker_events"}, []string{"id", "workspace_id", "site_id", "visitor_id", "contact_id", "kind", "path",
+		"referrer_domain", "occurred_at"}, pgx.CopyFromRows(events))
+	return err
+}
+
+// holdoutVisitorsSQL is the measurement's population with whether each
+// contact was seen on a tracked site in the period (HoldoutMeasureGroups).
+const holdoutVisitorsSQL = `
+WITH pop AS (
+    SELECT c.id, (rc_holdout_bucket(c.id, $2::bigint) < $3::int) AS held
+    FROM contacts c
+    WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.created_at < $5::timestamptz
+      AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email AND s.created_at < $4::timestamptz)
+), vis AS (
+    SELECT DISTINCT e.contact_id FROM tracker_events e
+    WHERE e.workspace_id = $1 AND e.contact_id IS NOT NULL AND e.occurred_at >= $4::timestamptz AND e.occurred_at < $5::timestamptz
+)
+SELECT pop.id, pop.held, (vis.contact_id IS NOT NULL)
+FROM pop LEFT JOIN vis ON vis.contact_id = pop.id
+ORDER BY pop.id`
 
 // holdoutOutcomesSQL is the measurement's population and outcomes
 // (queries/holdout.sql, HoldoutMeasureGroups) per contact.

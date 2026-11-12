@@ -67,4 +67,7 @@ export default translate(m, {
   loadFailedKept: 'ReputeCast vẫn giữ kết quả đã tính lần gần nhất; không có gì bị mất.',
   loadFailedDo: 'Hãy kiểm tra kết nối rồi thử lại.',
   retry: 'Thử lại',
+  siteVisitors: 'Khách truy cập website',
+  colSiteVisitors: 'Khách truy cập website',
+  visitorNote: 'Khách truy cập website là liên hệ đã được ghi nhận trên một trong các trang bạn theo dõi (Theo dõi website).',
 })

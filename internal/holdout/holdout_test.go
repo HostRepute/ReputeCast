@@ -151,7 +151,8 @@ func TestSettingsAndResults(t *testing.T) {
 	}
 	var res holdout.HoldoutResults
 	r.JSON(t, &res)
-	if res.Period == nil || res.Verdict == "none" || res.Verdict == "pending" || len(res.Metrics) != 3 || res.Holdout.Contacts == 0 {
+	// The demo tracks Acme Merch (M62), so site visitors make a fourth metric.
+	if res.Period == nil || res.Verdict == "none" || res.Verdict == "pending" || len(res.Metrics) != 4 || !res.Tracking || res.Holdout.Contacts == 0 {
 		t.Fatalf("results: %s", r.Body)
 	}
 	if r := viewer.Do(http.MethodPost, ws+"/holdout/measure", nil); r.Status != http.StatusAccepted {
@@ -211,6 +212,39 @@ func TestMeasureOnTheDemo(t *testing.T) {
 	if res.CampaignsIncluded != 8 {
 		t.Errorf("%d campaigns included the holdout group, want the 8 digests", res.CampaignsIncluded)
 	}
+	// Site visitors (M62's tracker is in the demo): each group's count is
+	// its contacts seen on a tracked site in the window, and marketing
+	// brings more of them to the store.
+	if !res.Tracking {
+		t.Fatalf("the demo tracks Acme Merch, results say no tracking: %s", r.Body)
+	}
+	var visitors *holdout.HoldoutMetric
+	for i := range res.Metrics {
+		if res.Metrics[i].Key == holdout.MetricVisitors {
+			visitors = &res.Metrics[i]
+		}
+	}
+	var seed int64
+	if err := env.App.Pool.QueryRow(ctx, `SELECT seed FROM holdout_periods WHERE workspace_id = $1 AND ended_at IS NULL`, wsID).Scan(&seed); err != nil {
+		t.Fatal(err)
+	}
+	var heldVisitors, otherVisitors int64
+	if err := env.App.Pool.QueryRow(ctx, `
+		WITH vis AS (SELECT DISTINCT e.contact_id FROM tracker_events e
+			WHERE e.workspace_id = $1 AND e.contact_id IS NOT NULL AND e.occurred_at >= $2 AND e.occurred_at < $3)
+		SELECT count(*) FILTER (WHERE rc_holdout_bucket(c.id, $4) < 500), count(*) FILTER (WHERE rc_holdout_bucket(c.id, $4) >= 500)
+		FROM vis JOIN contacts c ON c.id = vis.contact_id
+		WHERE c.erased_at IS NULL AND c.created_at < $3
+		  AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email AND s.created_at < $2)`,
+		wsID, res.From, res.To, seed).Scan(&heldVisitors, &otherVisitors); err != nil {
+		t.Fatal(err)
+	}
+	if res.Holdout.Visitors != heldVisitors || res.Marketing.Visitors != otherVisitors || heldVisitors == 0 {
+		t.Fatalf("visitors %d / %d, the tracker says %d / %d", res.Holdout.Visitors, res.Marketing.Visitors, heldVisitors, otherVisitors)
+	}
+	if visitors == nil || !visitors.Tested || visitors.Lift <= 0 || visitors.Marketing <= visitors.Holdout {
+		t.Fatalf("site visitors: %+v", visitors)
+	}
 	// A second run adds nothing: the open period stays as it is.
 	tx, err = env.App.Pool.Begin(ctx)
 	if err != nil {
@@ -260,5 +294,39 @@ func TestIncludeTheHoldoutGroup(t *testing.T) {
 	r := c.Do(http.MethodPatch, ws+"/campaigns/"+id("Weekly Digest #142")+"/send-settings", map[string]any{"includeHoldout": false})
 	if r.Status != http.StatusConflict || r.Problem(t)["detail"] != "The campaign is scheduled. Unschedule it to change who gets it." {
 		t.Fatalf("scheduled: %d %s", r.Status, r.Body)
+	}
+}
+
+// Without a tracked site there are no site visitors: the results say so
+// and leave the metric out.
+func TestSiteVisitorsNeedTracking(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	var wsID uuid.UUID
+	if err := env.App.Pool.QueryRow(ctx, `SELECT id FROM workspaces WHERE slug = 'acme-newsletter'`).Scan(&wsID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE tracker_sites SET deleted_at = now() WHERE workspace_id = $1`, wsID); err != nil {
+		t.Fatal(err)
+	}
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	c.Do(http.MethodPut, ws+"/holdout", map[string]any{"on": true, "basisPoints": 500, "campaigns": true, "automations": true}).MustStatus(t, http.StatusOK)
+	if err := env.App.Holdout().Measure(ctx, wsID); err != nil {
+		t.Fatal(err)
+	}
+	var res holdout.HoldoutResults
+	c.Do(http.MethodGet, ws+"/holdout/results", nil).MustStatus(t, http.StatusOK).JSON(t, &res)
+	if res.Tracking || res.Holdout.Visitors != 0 || res.Marketing.Visitors != 0 {
+		t.Fatalf("no tracked site, results: tracking %v, visitors %d / %d", res.Tracking, res.Holdout.Visitors, res.Marketing.Visitors)
+	}
+	for _, m := range res.Metrics {
+		if m.Key == holdout.MetricVisitors {
+			t.Fatalf("site visitors without a tracked site: %+v", m)
+		}
+	}
+	if len(res.Metrics) != 3 {
+		t.Fatalf("%d metrics, want the three without site visitors", len(res.Metrics))
 	}
 }

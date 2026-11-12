@@ -88,12 +88,14 @@ func (s *Service) log() *slog.Logger {
 // sums of squares that their variances need. Revenue is in minor units of
 // Measured.Currency.
 type Group struct {
-	Contacts   int64   `json:"contacts"`
-	Converters int64   `json:"converters"`
-	Orders     float64 `json:"orders"`
-	OrdersSq   float64 `json:"orders_sq"`
-	Revenue    float64 `json:"revenue"`
-	RevenueSq  float64 `json:"revenue_sq"`
+	Contacts   int64 `json:"contacts"`
+	Converters int64 `json:"converters"`
+	// Visitors were seen on a tracked site (Measured.Tracking).
+	Visitors  int64   `json:"visitors"`
+	Orders    float64 `json:"orders"`
+	OrdersSq  float64 `json:"orders_sq"`
+	Revenue   float64 `json:"revenue"`
+	RevenueSq float64 `json:"revenue_sq"`
 }
 
 // OtherCurrency is what a span recorded in a currency other than the main
@@ -113,6 +115,9 @@ type Measured struct {
 	Marketing         Group           `json:"marketing"`
 	OtherCurrencies   []OtherCurrency `json:"other_currencies"`
 	CampaignsIncluded int64           `json:"campaigns_included"`
+	// Tracking: the workspace tracked a site (M62) when this was measured,
+	// so the groups count site visitors.
+	Tracking bool `json:"tracking,omitempty"`
 }
 
 // spanWindow is when a span of a period runs: back from its end (now for
@@ -129,9 +134,9 @@ func spanWindow(p store.HoldoutPeriod, span string, now time.Time) (time.Time, t
 }
 
 // measureSpan measures one span of a period.
-func measureSpan(ctx context.Context, q *store.Queries, p store.HoldoutPeriod, span, currency string, now time.Time) (Measured, error) {
+func measureSpan(ctx context.Context, q *store.Queries, p store.HoldoutPeriod, span, currency string, tracking bool, now time.Time) (Measured, error) {
 	from, to := spanWindow(p, span, now)
-	out := Measured{From: from, To: to, Currency: currency, OtherCurrencies: []OtherCurrency{}}
+	out := Measured{From: from, To: to, Currency: currency, OtherCurrencies: []OtherCurrency{}, Tracking: tracking}
 	rows, err := q.HoldoutMeasureGroups(ctx, store.HoldoutMeasureGroupsParams{Seed: p.Seed, BasisPoints: p.BasisPoints, WorkspaceID: p.WorkspaceID,
 		Since: from, Until: to, Currency: currency})
 	if err != nil {
@@ -139,6 +144,9 @@ func measureSpan(ctx context.Context, q *store.Queries, p store.HoldoutPeriod, s
 	}
 	for _, r := range rows {
 		g := Group{Contacts: r.Contacts, Converters: r.Converters, Orders: r.Orders, OrdersSq: r.OrdersSq, Revenue: r.Revenue, RevenueSq: r.RevenueSq}
+		if tracking {
+			g.Visitors = r.Visitors
+		}
 		if r.Held {
 			out.Holdout = g
 		} else {
@@ -172,6 +180,10 @@ func (s *Service) Measure(ctx context.Context, workspaceID uuid.UUID) error {
 	if err != nil {
 		return err
 	}
+	tracking, err := s.Q.HoldoutTracking(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
 	now := s.now()
 	closed := false
 	for _, p := range periods {
@@ -182,7 +194,7 @@ func (s *Service) Measure(ctx context.Context, workspaceID uuid.UUID) error {
 			closed = true
 		}
 		for _, span := range Spans {
-			m, err := measureSpan(ctx, s.Q, p, span, currency, now)
+			m, err := measureSpan(ctx, s.Q, p, span, currency, tracking, now)
 			if err != nil {
 				return fmt.Errorf("holdout %s %s: %w", p.ID, span, err)
 			}
@@ -204,6 +216,9 @@ const (
 	MetricConversion = "conversion_rate"
 	MetricRevenue    = "revenue_per_contact"
 	MetricOrders     = "orders_per_contact"
+	// MetricVisitors is the share of a group seen on a tracked site (M62),
+	// only when the workspace tracks one.
+	MetricVisitors = "site_visitors"
 )
 
 // Metric compares the two groups on one measure: the holdout group's
@@ -251,10 +266,11 @@ func metricOf(key string, holdout, marketing, p float64, ok bool) Metric {
 }
 
 // Metrics compares the groups of a span: conversion rate (a two-proportion
-// z-test), revenue and orders per contact (Welch's t-test).
+// z-test), revenue and orders per contact (Welch's t-test), and, when the
+// workspace tracks a site, the share of site visitors (z-test).
 func (m Measured) Metrics() []Metric {
 	h, k := m.Holdout, m.Marketing
-	out := make([]Metric, 0, 3)
+	out := make([]Metric, 0, 4)
 	rh, _ := abstats.Rate(h.Converters, h.Contacts)
 	rk, _ := abstats.Rate(k.Converters, k.Contacts)
 	_, _, p, ok := abstats.ZTest(h.Converters, h.Contacts, k.Converters, k.Contacts)
@@ -267,6 +283,12 @@ func (m Measured) Metrics() []Metric {
 	ok2, vok := meanVar(k.Orders, k.OrdersSq, k.Contacts)
 	_, _, p, ok = abstats.WelchT(oh, voh, h.Contacts, ok2, vok, k.Contacts)
 	out = append(out, metricOf(MetricOrders, oh, ok2, p, ok))
+	if m.Tracking {
+		vh, _ := abstats.Rate(h.Visitors, h.Contacts)
+		vk, _ := abstats.Rate(k.Visitors, k.Contacts)
+		_, _, p, ok = abstats.ZTest(h.Visitors, h.Contacts, k.Visitors, k.Contacts)
+		out = append(out, metricOf(MetricVisitors, vh, vk, p, ok))
+	}
 	return out
 }
 

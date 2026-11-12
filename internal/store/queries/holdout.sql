@@ -74,7 +74,8 @@ SELECT coalesce((SELECT lower(e.currency) FROM earn_settings e WHERE e.workspace
 -- converter placed a store order (not a test, not cancelled), recorded a
 -- conversion or started a live paid subscription in the window; revenue
 -- is orders minus refunds plus conversion values in the main currency, in
--- cents, with the sums of squares the variance needs.
+-- cents, with the sums of squares the variance needs; a visitor was seen
+-- on one of the workspace's tracked sites (counted only when it has one).
 WITH pop AS (
     SELECT c.id, (rc_holdout_bucket(c.id, @seed::bigint) < @basis_points::int) AS held
     FROM contacts c
@@ -97,25 +98,38 @@ WITH pop AS (
     SELECT DISTINCT p.contact_id FROM paid_subscriptions p
     WHERE p.workspace_id = @workspace_id AND p.mode = 'live' AND p.kind = 'stripe' AND p.status <> 'incomplete'
       AND p.started_at >= @since::timestamptz AND p.started_at < @until::timestamptz
+), vis AS (
+    -- Site visitors (M62's tracker): contacts seen on a tracked site.
+    SELECT DISTINCT e.contact_id FROM tracker_events e
+    WHERE e.workspace_id = @workspace_id AND e.contact_id IS NOT NULL
+      AND e.occurred_at >= @since::timestamptz AND e.occurred_at < @until::timestamptz
 ), per AS (
     SELECT pop.held,
            (coalesce(ord.cents, 0) + coalesce(conv.cents, 0))::float8 AS revenue,
            coalesce(ord.orders, 0)::float8 AS orders,
-           (ord.contact_id IS NOT NULL OR conv.contact_id IS NOT NULL OR paid.contact_id IS NOT NULL) AS converted
+           (ord.contact_id IS NOT NULL OR conv.contact_id IS NOT NULL OR paid.contact_id IS NOT NULL) AS converted,
+           (vis.contact_id IS NOT NULL) AS visited
     FROM pop
     LEFT JOIN ord ON ord.contact_id = pop.id
     LEFT JOIN conv ON conv.contact_id = pop.id
     LEFT JOIN paid ON paid.contact_id = pop.id
+    LEFT JOIN vis ON vis.contact_id = pop.id
 )
 SELECT per.held::boolean AS held,
        count(*)::bigint AS contacts,
        (count(*) FILTER (WHERE per.converted))::bigint AS converters,
+       (count(*) FILTER (WHERE per.visited))::bigint AS visitors,
        coalesce(sum(per.orders), 0)::float8 AS orders,
        coalesce(sum(per.orders * per.orders), 0)::float8 AS orders_sq,
        coalesce(sum(per.revenue), 0)::float8 AS revenue,
        coalesce(sum(per.revenue * per.revenue), 0)::float8 AS revenue_sq
 FROM per
 GROUP BY per.held;
+
+-- name: HoldoutTracking :one
+-- Whether the workspace tracks a site (Website tracking, M62): the
+-- measurement then counts site visitors.
+SELECT EXISTS (SELECT 1 FROM tracker_sites WHERE workspace_id = @workspace_id AND deleted_at IS NULL)::boolean;
 
 -- name: HoldoutOtherCurrencies :many
 -- What the window recorded in other currencies, per group: counted and

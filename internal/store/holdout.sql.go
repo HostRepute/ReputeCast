@@ -299,19 +299,27 @@ WITH pop AS (
     SELECT DISTINCT p.contact_id FROM paid_subscriptions p
     WHERE p.workspace_id = $3 AND p.mode = 'live' AND p.kind = 'stripe' AND p.status <> 'incomplete'
       AND p.started_at >= $5::timestamptz AND p.started_at < $4::timestamptz
+), vis AS (
+    -- Site visitors (M62's tracker): contacts seen on a tracked site.
+    SELECT DISTINCT e.contact_id FROM tracker_events e
+    WHERE e.workspace_id = $3 AND e.contact_id IS NOT NULL
+      AND e.occurred_at >= $5::timestamptz AND e.occurred_at < $4::timestamptz
 ), per AS (
     SELECT pop.held,
            (coalesce(ord.cents, 0) + coalesce(conv.cents, 0))::float8 AS revenue,
            coalesce(ord.orders, 0)::float8 AS orders,
-           (ord.contact_id IS NOT NULL OR conv.contact_id IS NOT NULL OR paid.contact_id IS NOT NULL) AS converted
+           (ord.contact_id IS NOT NULL OR conv.contact_id IS NOT NULL OR paid.contact_id IS NOT NULL) AS converted,
+           (vis.contact_id IS NOT NULL) AS visited
     FROM pop
     LEFT JOIN ord ON ord.contact_id = pop.id
     LEFT JOIN conv ON conv.contact_id = pop.id
     LEFT JOIN paid ON paid.contact_id = pop.id
+    LEFT JOIN vis ON vis.contact_id = pop.id
 )
 SELECT per.held::boolean AS held,
        count(*)::bigint AS contacts,
        (count(*) FILTER (WHERE per.converted))::bigint AS converters,
+       (count(*) FILTER (WHERE per.visited))::bigint AS visitors,
        coalesce(sum(per.orders), 0)::float8 AS orders,
        coalesce(sum(per.orders * per.orders), 0)::float8 AS orders_sq,
        coalesce(sum(per.revenue), 0)::float8 AS revenue,
@@ -333,6 +341,7 @@ type HoldoutMeasureGroupsRow struct {
 	Held       bool    `json:"held"`
 	Contacts   int64   `json:"contacts"`
 	Converters int64   `json:"converters"`
+	Visitors   int64   `json:"visitors"`
 	Orders     float64 `json:"orders"`
 	OrdersSq   float64 `json:"ordersSq"`
 	Revenue    float64 `json:"revenue"`
@@ -345,7 +354,8 @@ type HoldoutMeasureGroupsRow struct {
 // converter placed a store order (not a test, not cancelled), recorded a
 // conversion or started a live paid subscription in the window; revenue
 // is orders minus refunds plus conversion values in the main currency, in
-// cents, with the sums of squares the variance needs.
+// cents, with the sums of squares the variance needs; a visitor was seen
+// on one of the workspace's tracked sites (counted only when it has one).
 func (q *Queries) HoldoutMeasureGroups(ctx context.Context, arg HoldoutMeasureGroupsParams) ([]HoldoutMeasureGroupsRow, error) {
 	rows, err := q.db.Query(ctx, holdoutMeasureGroups,
 		arg.Seed,
@@ -366,6 +376,7 @@ func (q *Queries) HoldoutMeasureGroups(ctx context.Context, arg HoldoutMeasureGr
 			&i.Held,
 			&i.Contacts,
 			&i.Converters,
+			&i.Visitors,
 			&i.Orders,
 			&i.OrdersSq,
 			&i.Revenue,
@@ -575,4 +586,17 @@ func (q *Queries) HoldoutSaveResult(ctx context.Context, arg HoldoutSaveResultPa
 		arg.Data,
 	)
 	return err
+}
+
+const holdoutTracking = `-- name: HoldoutTracking :one
+SELECT EXISTS (SELECT 1 FROM tracker_sites WHERE workspace_id = $1 AND deleted_at IS NULL)::boolean
+`
+
+// Whether the workspace tracks a site (Website tracking, M62): the
+// measurement then counts site visitors.
+func (q *Queries) HoldoutTracking(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, holdoutTracking, workspaceID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }

@@ -66,4 +66,7 @@ export const m = defineMessages('holdout', {
   loadFailedKept: 'ReputeCast keeps the results it computed last; nothing was lost.',
   loadFailedDo: 'Check your connection and try again.',
   retry: 'Retry',
+  siteVisitors: 'Site visitors',
+  colSiteVisitors: 'Site visitors',
+  visitorNote: 'A site visitor was seen on one of your tracked sites (Website tracking).',
 })

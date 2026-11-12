@@ -67,4 +67,7 @@ export default translate(m, {
   loadFailedKept: 'ReputeCast conserva los últimos resultados que calculó; no se perdió nada.',
   loadFailedDo: 'Revisa tu conexión y vuelve a intentarlo.',
   retry: 'Reintentar',
+  siteVisitors: 'Visitantes del sitio',
+  colSiteVisitors: 'Visitantes del sitio',
+  visitorNote: 'Un visitante del sitio es un contacto visto en uno de tus sitios con seguimiento (Seguimiento del sitio web).',
 })

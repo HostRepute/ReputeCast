@@ -44,7 +44,7 @@ export function confidenceText(confidence: number): string {
 /** A metric's value in its unit: a rate in percent, money per contact, orders per contact. */
 function metricValue(x: Metric, currency: string, side: 'holdout' | 'marketing'): string {
   const v = x[side]
-  if (x.key === 'conversion_rate') return pct(v, 1)
+  if (x.key === 'conversion_rate' || x.key === 'site_visitors') return pct(v, 1)
   if (x.key === 'revenue_per_contact') return money(v, currency, 'always')
   return decimal(v, 3)
 }
@@ -130,6 +130,8 @@ function HoldoutBody({ d, onWindow, onMeasured }: { d: Results; onWindow: (w: Wi
           ) : null}
           <div className="flex flex-col gap-1">
             <span className="k">{tr(m.converterNote, { currency: d.currency.toUpperCase() })}</span>
+            {/* Site visitors come from Website tracking (M62), when a site is tracked. */}
+            {d.tracking ? <span className="k">{tr(m.visitorNote)}</span> : null}
             <span className="k">{tr(m.alwaysNote)}</span>
             <Link to="/w/$workspace/settings/sending-rules" params={{ workspace: slug }} className="ho-lnk self-start">
               {tr(m.settingsLink)}
@@ -263,6 +265,7 @@ const tileLabel: Record<Metric['key'], typeof m.conversionRate> = {
   conversion_rate: m.conversionRate,
   revenue_per_contact: m.revenuePerContact,
   orders_per_contact: m.ordersPerContact,
+  site_visitors: m.siteVisitors,
 }
 
 /** A tile per measure: the marketing group's value, the holdout's, the lift and its confidence. */
@@ -270,7 +273,7 @@ function Tiles({ d }: { d: Results }) {
   const tr = useT()
   const busy = d.computing
   return (
-    <div className="ho-tiles" role="group" aria-busy={busy || undefined} aria-label={busy ? tr(m.computing) : undefined}>
+    <div className={cn('ho-tiles', d.metrics.length > 3 && 'four')} role="group" aria-busy={busy || undefined} aria-label={busy ? tr(m.computing) : undefined}>
       {d.metrics.map((x) => (
         <div key={x.key} className={cn('card ho-stat', busy && 'dim')}>
           <span className="k">{tr(tileLabel[x.key])}</span>
@@ -369,6 +372,11 @@ function Comparison({ d }: { d: Results }) {
                 <th scope="col" className="r">
                   {tr(m.colRevenuePerContact)}
                 </th>
+                {d.tracking ? (
+                  <th scope="col" className="r">
+                    {tr(m.colSiteVisitors)}
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -386,6 +394,7 @@ function Comparison({ d }: { d: Results }) {
                   <td className="r num">{count(g.orders)}</td>
                   <td className="r num">{money(g.revenueCents, d.currency, 'never')}</td>
                   <td className="r num">{money(perContact, d.currency, 'always')}</td>
+                  {d.tracking ? <td className="r num">{count(g.visitors)}</td> : null}
                 </tr>
               ))}
             </tbody>

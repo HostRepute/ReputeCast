@@ -67,4 +67,7 @@ export default translate(m, {
   loadFailedKept: 'ReputeCast behält die zuletzt berechneten Ergebnisse; nichts ging verloren.',
   loadFailedDo: 'Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
   retry: 'Erneut versuchen',
+  siteVisitors: 'Website-Besucher',
+  colSiteVisitors: 'Website-Besucher',
+  visitorNote: 'Als Website-Besucher zählt, wer auf einer Ihrer erfassten Websites gesehen wurde (Website-Tracking).',
 })

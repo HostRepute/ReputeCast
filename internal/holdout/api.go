@@ -35,19 +35,23 @@ type HoldoutPeriodItem struct {
 // HoldoutGroupResult is what one group did: its contacts, how many of them
 // converted, their orders and revenue (minor units of the main currency).
 type HoldoutGroupResult struct {
-	Contacts     int64 `json:"contacts"`
-	Converters   int64 `json:"converters"`
+	Contacts   int64 `json:"contacts"`
+	Converters int64 `json:"converters"`
+	// Visitors were seen on a tracked site (HoldoutResults.Tracking).
+	Visitors     int64 `json:"visitors"`
 	Orders       int64 `json:"orders"`
 	RevenueCents int64 `json:"revenueCents"`
 }
 
 // HoldoutMetric compares the groups on one measure. Values are in the
-// metric's unit: conversion_rate in percent, revenue_per_contact in minor
-// units of the main currency, orders_per_contact in orders. Lift is the
+// metric's unit: conversion_rate and site_visitors in percent,
+// revenue_per_contact in minor units of the main currency,
+// orders_per_contact in orders. site_visitors is there only when the
+// workspace tracks a site (Website tracking). Lift is the
 // marketing group's over the holdout group's, in percent; Confidence is
 // 1 − p (two-sided); Tested is false when there was nothing to test.
 type HoldoutMetric struct {
-	Key         string  `json:"key" enum:"conversion_rate,revenue_per_contact,orders_per_contact"`
+	Key         string  `json:"key" enum:"conversion_rate,revenue_per_contact,orders_per_contact,site_visitors"`
 	Holdout     float64 `json:"holdout"`
 	Marketing   float64 `json:"marketing"`
 	Lift        float64 `json:"lift"`
@@ -93,6 +97,9 @@ type HoldoutResults struct {
 	// to the holdout group too.
 	CampaignsIncluded int64 `json:"campaignsIncluded"`
 	MinHoldout        int64 `json:"minHoldout"`
+	// Tracking: the workspace tracked a site when this span was measured,
+	// so the groups count site visitors and the metrics include them.
+	Tracking bool `json:"tracking"`
 }
 
 func periodItem(p store.HoldoutPeriod) HoldoutPeriodItem {
@@ -101,7 +108,8 @@ func periodItem(p store.HoldoutPeriod) HoldoutPeriodItem {
 }
 
 func groupResult(g Group) HoldoutGroupResult {
-	return HoldoutGroupResult{Contacts: g.Contacts, Converters: g.Converters, Orders: int64(math.Round(g.Orders)), RevenueCents: int64(math.Round(g.Revenue))}
+	return HoldoutGroupResult{Contacts: g.Contacts, Converters: g.Converters, Visitors: g.Visitors, Orders: int64(math.Round(g.Orders)),
+		RevenueCents: int64(math.Round(g.Revenue))}
 }
 
 // Results reads a period's span (the newest period when periodID is nil).
@@ -183,6 +191,7 @@ func (s *Service) Results(ctx context.Context, ws *store.Workspace, periodID *uu
 		out.OtherCurrencies = append(out.OtherCurrencies, HoldoutOtherCurrency(o))
 	}
 	out.CampaignsIncluded = m.CampaignsIncluded
+	out.Tracking = m.Tracking
 	out.Verdict = m.Verdict(p)
 	return out, nil
 }

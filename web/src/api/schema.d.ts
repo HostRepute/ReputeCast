@@ -28995,6 +28995,8 @@ export interface components {
             orders: number;
             /** Format: int64 */
             revenueCents: number;
+            /** Format: int64 */
+            visitors: number;
         };
         HoldoutInput: {
             automations: boolean;
@@ -29009,7 +29011,7 @@ export interface components {
             /** Format: double */
             holdout: number;
             /** @enum {string} */
-            key: "conversion_rate" | "revenue_per_contact" | "orders_per_contact";
+            key: "conversion_rate" | "revenue_per_contact" | "orders_per_contact" | "site_visitors";
             /** Format: double */
             lift: number;
             /** Format: double */
@@ -29062,6 +29064,7 @@ export interface components {
             periods: components["schemas"]["HoldoutPeriodItem"][];
             /** Format: date-time */
             to?: string;
+            tracking: boolean;
             /** @enum {string} */
             verdict: "none" | "pending" | "too_few" | "too_early" | "added" | "lost" | "no_difference";
             /** @enum {string} */

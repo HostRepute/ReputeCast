@@ -1898,7 +1898,8 @@ type Querier interface {
 	// converter placed a store order (not a test, not cancelled), recorded a
 	// conversion or started a live paid subscription in the window; revenue
 	// is orders minus refunds plus conversion values in the main currency, in
-	// cents, with the sums of squares the variance needs.
+	// cents, with the sums of squares the variance needs; a visitor was seen
+	// on one of the workspace's tracked sites (counted only when it has one).
 	HoldoutMeasureGroups(ctx context.Context, arg HoldoutMeasureGroupsParams) ([]HoldoutMeasureGroupsRow, error)
 	// Holdout group (M63 G-33): periods, who is held out, the measurement.
 	// The workspace's open period: while it's open its contacts in the buckets
@@ -1912,6 +1913,9 @@ type Querier interface {
 	HoldoutRequestMeasure(ctx context.Context, arg HoldoutRequestMeasureParams) error
 	HoldoutResult(ctx context.Context, arg HoldoutResultParams) (HoldoutResult, error)
 	HoldoutSaveResult(ctx context.Context, arg HoldoutSaveResultParams) error
+	// Whether the workspace tracks a site (Website tracking, M62): the
+	// measurement then counts site visitors.
+	HoldoutTracking(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	// Marks a failing endpoint as alerted, once per failing spell: after an
 	// hour of failures, or when a delivery is given up on (review 2026-11
 	// IN-2). No row when there is nothing to tell.
