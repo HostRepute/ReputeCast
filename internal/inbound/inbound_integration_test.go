@@ -362,12 +362,15 @@ func TestStopOnReply(t *testing.T) {
 	var run, flow, contact, msg uuid.UUID
 	var version int32
 	var email string
-	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT r.id, r.automation_id, r.contact_id, r.version, m.id, m.email FROM automation_runs r
-		JOIN automations a ON a.id = r.automation_id
-		JOIN messages m ON m.automation_id = r.automation_id AND m.contact_id = r.contact_id
-		WHERE a.name = 'Welcome series' AND r.status = 'waiting' ORDER BY r.id LIMIT 1`).Scan(&run, &flow, &contact, &version, &msg, &email); err != nil {
+	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT r.id, r.automation_id, r.contact_id, r.version, ct.email FROM automation_runs r
+		JOIN automations a ON a.id = r.automation_id JOIN contacts ct ON ct.id = r.contact_id
+		WHERE a.name = 'Welcome series' AND r.status = 'waiting' ORDER BY r.id LIMIT 1`).Scan(&run, &flow, &contact, &version, &email); err != nil {
 		t.Fatal(err)
 	}
+	// The flow's email to that contact: one of the flow's sent messages, as theirs.
+	msg = uuid.Must(uuid.NewV7())
+	f.exec(`INSERT INTO messages SELECT (jsonb_populate_record(m, jsonb_build_object('id', $1::uuid, 'contact_id', $2::uuid, 'email', $3::text,
+		'provider_message_id', NULL))).* FROM messages m WHERE m.automation_id = $4 ORDER BY m.id LIMIT 1`, msg, contact, email, flow)
 	var raw []byte
 	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT graph FROM automation_versions WHERE automation_id = $1 AND version = $2`, flow, version).Scan(&raw); err != nil {
 		t.Fatal(err)
