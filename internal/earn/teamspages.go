@@ -717,7 +717,8 @@ func (s *Service) TeamSetSeats(ctx context.Context, ws *store.Workspace, token, 
 	if err != nil || done != nil {
 		return deref(done), err
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(seats))
+	n64, err := strconv.ParseInt(strings.TrimSpace(seats), 10, 32)
+	n := int(n64)
 	v, verr := s.manageView(ctx, ws, g, buyer, l, "")
 	if verr != nil {
 		return TeamResult{}, verr

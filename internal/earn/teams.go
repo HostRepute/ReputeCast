@@ -378,7 +378,8 @@ func (s *Service) StartTeamCheckout(ctx context.Context, ws *store.Workspace, r 
 	team := strings.TrimSpace(r.Team)
 	email := strings.ToLower(strings.TrimSpace(r.Email))
 	lo, hi := int(deref32(p.price.SeatsMin)), int(deref32(p.price.SeatsMax))
-	seats, serr := strconv.Atoi(strings.TrimSpace(r.Seats))
+	seats64, serr := strconv.ParseInt(strings.TrimSpace(r.Seats), 10, 32)
+	seats := int(seats64)
 	bad := map[string]string{}
 	if serr != nil || seats < lo || seats > hi {
 		bad["seats"] = s.t(r.Lang, "team.form.seats", i18n.Args{"min": lo, "max": hi})

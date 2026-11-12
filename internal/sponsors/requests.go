@@ -335,7 +335,7 @@ func (s *Service) approveSlots(ctx context.Context, ws *store.Workspace, r reqRo
 			CreativeDays: int(sl.CreativeDays), Issues: []SponsorRequestIssue{}}
 		for n := max(NextNumber(row, today), 1); ; n++ {
 			on := IssueOn(row, n)
-			if on.After(last) && !(sl.ID == r.SlotID && n <= int(r.IssueNumber)) {
+			if on.After(last) && (sl.ID != r.SlotID || n > int(r.IssueNumber)) {
 				break
 			}
 			due := payDue(now, sl.PayDays, on, sl.CreativeDays, ws)

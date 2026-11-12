@@ -466,7 +466,8 @@ func (s *Service) Request(ctx context.Context, ws *store.Workspace, in RequestIn
 	gone := 0
 	if slot != nil && issue == nil {
 		// An issue of the slot that another booking took meanwhile.
-		if n, err := strconv.Atoi(strings.TrimSpace(in.Issue)); err == nil && n > 0 {
+		if n64, err := strconv.ParseInt(strings.TrimSpace(in.Issue), 10, 32); err == nil && n64 > 0 {
+			n := int(n64)
 			if _, err := s.Q.SponsorBookingOfIssue(ctx, store.SponsorBookingOfIssueParams{SlotID: slot.ID, IssueNumber: int32(n)}); err == nil {
 				gone = n
 				errs["issue"] = text(ctx, "request.error.issueGone", nil)
