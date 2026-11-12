@@ -27,7 +27,7 @@ export const m = defineMessages('notifications', {
   emptyBody: 'Approvals, auto-pauses, provider incidents, team changes and HostRepute alerts show up here.',
   // A notification's category, on its badge.
   category:
-    '{category, select, approvals {Approvals} sending {Sending} providers {Providers} team {Team} hostrepute {HostRepute} integrations {Integrations} transactional {Transactional} ai {AI} earn {Earn} website {Website} grow {Grow} other {Other}}',
+    '{category, select, approvals {Approvals} sending {Sending} providers {Providers} team {Team} hostrepute {HostRepute} integrations {Integrations} transactional {Transactional} ai {AI} earn {Earn} website {Website} grow {Grow} audience {Audience} other {Other}}',
   new: 'New',
   retention: 'Older notifications are kept for {days, plural, one {# day} other {# days}}.',
 

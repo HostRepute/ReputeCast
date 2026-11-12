@@ -107,4 +107,6 @@ export default translate(mg, {
   noTrigger: 'Chưa có trình kích hoạt',
   pathYes: 'Có',
   pathNo: 'Không',
+  condReplied: "đã trả lời {step}",
+  condRepliedWithin: "đã trả lời {step} trong vòng {duration}",
 })

@@ -287,12 +287,12 @@ function Body({ o }: { o: Overview }) {
         <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-5">
           {o.postmaster ? <PostmasterCard p={o.postmaster} /> : <PanelPlaceholder title={'Google Postmaster Tools'} text={t(m.postmasterPlaceholder)} />}
           {o.snds ? <SndsCard s={o.snds} /> : o.assets.some((a) => a.type === 'ip') ? <PanelPlaceholder title={'Microsoft SNDS'} text={t(m.sndsPlaceholder)} /> : null}
-          {connected ? null : o.dmarc.sources.length ? <DmarcCard d={o.dmarc} className="card min-w-0" /> : <DmarcEmptyCard connected={false} />}
+          {connected ? null : o.dmarc.sources.length ? <DmarcCard d={o.dmarc} className="card min-w-0" /> : <DmarcEmptyCard connected={false} collect={o.dmarc.collect} />}
         </div>
       </div>
       {connected ? (
         <div className="flex flex-wrap items-start gap-5">
-          {o.dmarc.sources.length ? <DmarcCard d={o.dmarc} /> : <div className="min-w-0 flex-[1_1_440px]"><DmarcEmptyCard connected rua={hr.dmarcRua} /></div>}
+          {o.dmarc.sources.length ? <DmarcCard d={o.dmarc} /> : <div className="min-w-0 flex-[1_1_440px]"><DmarcEmptyCard connected rua={hr.dmarcRua} collect={o.dmarc.collect} /></div>}
           <IncidentTimeline t={o.incidents} connected className="flex-[1_1_440px]" />
         </div>
       ) : (

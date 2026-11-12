@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { OptionCard } from '@/components/ui/Field'
@@ -257,10 +257,22 @@ function LongChoice({ id, value, options, disabled, onChange }: { id: string; va
   )
 }
 
-function Check({ checked, onChange, disabled, children }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean; children: ReactNode }) {
+function Check({
+  checked,
+  onChange,
+  disabled,
+  children,
+  describedBy,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  disabled?: boolean
+  children: ReactNode
+  describedBy?: string
+}) {
   return (
     <label className="fe-chk">
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" checked={checked} disabled={disabled} aria-describedby={describedBy} onChange={(e) => onChange(e.target.checked)} />
       {children}
     </label>
   )
@@ -310,6 +322,8 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
     ...(allowNone ? [{ value: '' as const, label: tr(mp.condReaching) }] : []),
     { value: 'opened', label: tr(mp.condOpened) },
     { value: 'clicked', label: tr(mp.condClicked) },
+    // Receiving mail (M58): a person's reply to the email.
+    { value: 'replied', label: tr(mp.condReplied) },
     { value: 'tag', label: tr(mp.condTag) },
     { value: 'list', label: tr(mp.condList) },
     { value: 'event', label: tr(mp.condEvent) },
@@ -338,7 +352,11 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
         onChange={(e) => {
           const k = e.target.value as FlowCondition['kind'] | ''
           if (!k) return onChange(undefined)
-          onChange({ kind: k, ...(withWindow && (k === 'opened' || k === 'clicked' || k === 'sms_clicked' || k === 'sms_replied') ? { within: c?.within ?? { amount: 2, unit: 'days' } } : {}), humanOnly: k === 'opened' ? true : undefined })
+          onChange({
+            kind: k,
+            ...(withWindow && (k === 'opened' || k === 'clicked' || k === 'replied' || k === 'sms_clicked' || k === 'sms_replied') ? { within: c?.within ?? { amount: 2, unit: 'days' } } : {}),
+            humanOnly: k === 'opened' ? true : undefined,
+          })
         }}
       >
         {kinds.map((k) => (
@@ -347,7 +365,7 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
           </option>
         ))}
       </select>
-      {c && (c.kind === 'opened' || c.kind === 'clicked') ? (
+      {c && (c.kind === 'opened' || c.kind === 'clicked' || c.kind === 'replied') ? (
         <>
           <select className="in" aria-label={tr(mp.whichEmail)} disabled={disabled} value={c.step ?? ''} onChange={(e) => set({ step: e.target.value || undefined })}>
             <option value="">{tr(mp.anyEmail)}</option>
@@ -366,11 +384,11 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
               value={c.urlContains ?? ''}
               onChange={(e) => set({ urlContains: e.target.value || undefined })}
             />
-          ) : (
+          ) : c.kind === 'opened' ? (
             <Check checked={Boolean(c.humanOnly)} disabled={disabled} onChange={(v) => set({ humanOnly: v || undefined })}>
               {tr(mp.humanOnly)}
             </Check>
-          )}
+          ) : null}
           {withWindow ? (
             <>
               <span className="k">{tr(mp.waitUpTo)}</span>
@@ -785,6 +803,8 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
         ) : null}
         {/* Segments and links (review 2026-11 AT-10). */}
         <NewKindFields t={t} set={set} options={options} disabled={disabled} />
+        {/* Stop on reply (M58): needs replies to reach ReputeCast's inbox. */}
+        <ExitOnReply checked={Boolean(t.exitOnReply)} disabled={disabled} available={Boolean(options?.repliesInbox)} onChange={(v) => set({ exitOnReply: v || undefined })} />
         {t.kind === 'form_submitted' ? (
           <select className="in" aria-label={tr(mp.form)} disabled={disabled} value={t.formId ?? ''} onChange={(e) => set({ formId: e.target.value })}>
             <option value="">{tr(mp.pickForm)}</option>
@@ -1142,3 +1162,22 @@ export function graphOrder(g: FlowGraph): string[] {
 }
 
 export { inEdges }
+
+/** "Stop when the contact replies to an email from this flow" (M58 G-18), off with its reason until replies reach the inbox. */
+function ExitOnReply({ checked, disabled, available, onChange }: { checked: boolean; disabled?: boolean; available: boolean; onChange: (v: boolean) => void }) {
+  const tr = useT()
+  const why = useId()
+  const off = !available && !checked
+  return (
+    <>
+      <Check checked={checked} disabled={disabled || off} onChange={onChange} describedBy={off ? why : undefined}>
+        {tr(mc.exitOnReply)}
+      </Check>
+      {off ? (
+        <span className="k" id={why}>
+          {tr(mc.exitOnReplyWhy)}
+        </span>
+      ) : null}
+    </>
+  )
+}

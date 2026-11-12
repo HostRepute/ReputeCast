@@ -17,5 +17,7 @@
   "tracking.on": "La cuenta hace seguimiento de aperturas y clics por defecto, pero ReputeCast lo desactiva en cada transmisión que envía.",
   "tracking.off": "El seguimiento de aperturas y clics está desactivado por defecto y en cada transmisión que envía ReputeCast.",
   "error.notRegistered": "Ningún webhook de SparkPost apunta a {url}. Regístralo primero.",
-  "error.endpointStatus": "el endpoint respondió {status} al lote de prueba de SparkPost"
+  "error.endpointStatus": "el endpoint respondió {status} al lote de prueba de SparkPost",
+
+  "inbound.step.enterprise": "En una cuenta de SparkPost Enterprise, apunta el registro MX de {domain} al host propio de tu cuenta (termina en .mx.e.sparkpost.com) en lugar de a los registros de abajo. ReputeCast añade el dominio de entrada y su relay webhook."
 }

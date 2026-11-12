@@ -44,7 +44,7 @@ type ProviderLogEvent struct {
 	Provider   string    `json:"provider"`
 	// Channel is how the event arrived: a webhook, the bounce mailbox, a
 	// provider's queue (SES through SQS), a backfill, or ReputeCast itself.
-	Channel       string `json:"channel" enum:"webhook,bounce_mailbox,queue,backfill,test,internal"`
+	Channel       string `json:"channel" enum:"webhook,bounce_mailbox,queue,backfill,test,internal,inbound"`
 	RawType       string `json:"rawType"`
 	Type          string `json:"type" enum:"delivered,deferred,hard_bounce,soft_bounce,complaint,rejected"`
 	Code          string `json:"code"`

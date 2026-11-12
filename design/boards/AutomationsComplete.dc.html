@@ -162,7 +162,9 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
       <button class="btn sm" style="align-self:flex-start">Add another trigger</button></div>
       <div class="field"><label class="lbl" for="re">Re-entry</label><select id="re" class="in"><option>Once</option><option>Every time</option><option selected>Once every N days</option></select><span style="display:flex;gap:8px;align-items:center;font-size:13px">Once every <input class="in" style="width:64px" value="30" aria-label="Days between entries"> days</span></div>
       <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" checked style="margin-top:3px"><span>Leave the flow when they leave Weekly Digest</span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" style="margin-top:3px"><span>Stop when the contact replies to an email from this flow</span></label>
     </section>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span class="hint">Without Receiving mail, or with replies forwarded</span><label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#4B5563;cursor:not-allowed"><input type="checkbox" disabled aria-describedby="exr-why" style="margin-top:3px"><span>Stop when the contact replies to an email from this flow</span></label><span class="hint" id="exr-why">Replies need Receiving mail and 'Keep replies in ReputeCast inbox'</span></section>
   </figure>
   <figure><figcaption>Date field · at the contact's own time</figcaption>
     <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="tcard"><span class="ey">Trigger · Date field</span><b>Birthday · every year at 09:00</b></div>

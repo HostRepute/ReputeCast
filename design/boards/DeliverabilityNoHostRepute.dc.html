@@ -298,6 +298,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           <section class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-style:dashed">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h2 class="h2">DMARC report summary</h2><span class="badge mut">No reports yet</span></div>
             <span class="k">Aggregate reports need a mailbox to land in. Point <span class="mono">rua=</span> at HostRepute (parsed for you) or at any mailbox you own and paste the XML reports here.</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px"><div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 240px"><span style="font-weight:600">Collect reports in ReputeCast</span><span class="k">Receive DMARC aggregate reports at an address on your receiving domain.</span></div><a href="InboundSetup.dc.html" class="btn sm">Set up receiving</a></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap"><a href="Deliverability.dc.html" class="btn sm">Use HostRepute as rua</a><button class="btn sm">Upload report XML</button></div>
           </section>
         </div>
@@ -313,7 +314,7 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1693}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1718}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

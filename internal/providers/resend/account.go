@@ -265,15 +265,21 @@ func sameURL(a, b string) bool { return strings.TrimRight(a, "/") == strings.Tri
 // signing secret arrives with the answer, or is read back from the API when
 // events arrive.
 func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
+	return p.registerHook(ctx, hookURL, webhookEvents)
+}
+
+// registerHook points one webhook at hookURL for events: the one already
+// there is updated and enabled, or a new one is created.
+func (p *Provider) registerHook(ctx context.Context, hookURL string, events []string) error {
 	existing, err := p.findWebhook(ctx, func(e string) bool { return sameURL(e, hookURL) })
 	if err != nil {
 		return err
 	}
 	if existing != nil {
-		body := map[string]any{"endpoint": hookURL, "events": webhookEvents, "status": "enabled"}
+		body := map[string]any{"endpoint": hookURL, "events": events, "status": "enabled"}
 		return p.api.Do(ctx, "PATCH /webhooks/{id}", http.MethodPatch, apiclient.Path("/webhooks/%s", existing.ID), body, nil)
 	}
-	body := map[string]any{"endpoint": hookURL, "events": webhookEvents}
+	body := map[string]any{"endpoint": hookURL, "events": events}
 	var created struct {
 		SigningSecret string `json:"signing_secret"`
 	}

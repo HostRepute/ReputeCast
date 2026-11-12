@@ -109,6 +109,10 @@ const (
 	// or agents; only the built-in Owner role holds them.
 	WorkspaceTransfer Permission = "workspace:transfer"
 	WorkspaceDelete   Permission = "workspace:delete"
+
+	// Receiving mail (M58): the replies inbox.
+	RepliesView   Permission = "replies:view"
+	RepliesManage Permission = "replies:manage"
 )
 
 // Def describes a permission for the role editor and API docs.
@@ -236,6 +240,11 @@ var Defs = described([]Def{
 
 	{Key: WorkspaceTransfer, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
 	{Key: WorkspaceDelete, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
+
+	// Replies carry what readers wrote, often more than their address: no
+	// agent reads or handles them (M58).
+	{Key: RepliesView, Group: g("contacts"), NoAgents: true},
+	{Key: RepliesManage, Group: g("contacts"), NoAgents: true, Implies: []Permission{RepliesView}},
 })
 
 var defByKey = func() map[Permission]Def {
@@ -445,7 +454,7 @@ var BuiltinRoles = []BuiltinRole{
 		SubscribersCreate, SubscribersEdit, SubscribersImport, ListsManage, SegmentsEdit, FormsEdit, ReportsShare,
 		TransactionalEdit, TransactionalPublish, AIUse, ScoringEdit, PlacementRun, GrowEdit, GrowReview,
 		SponsorsManage, WebsiteEdit, WebsitePublish, WebsiteManage, ProductsEdit, ProductsPublish, OrdersManage,
-		SMSSend, PushSend, WhatsAppSend)...)},
+		SMSSend, PushSend, WhatsAppSend, RepliesView, RepliesManage)...)},
 	{Key: RoleViewer, Name: "Viewer", Description: roleAbout(RoleViewer), Permissions: NewSet(viewAll...)},
 }
 

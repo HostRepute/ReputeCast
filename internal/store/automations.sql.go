@@ -341,6 +341,57 @@ func (q *Queries) AutomationContactPaused(ctx context.Context, arg AutomationCon
 	return exists, err
 }
 
+const automationContactRunsForReply = `-- name: AutomationContactRunsForReply :many
+SELECT r.id, r.version, r.node_id, v.graph
+FROM automation_runs r
+JOIN automations a ON a.id = r.automation_id
+JOIN automation_versions v ON v.automation_id = r.automation_id AND v.version = r.version
+WHERE r.automation_id = $1 AND a.workspace_id = $2 AND r.contact_id = $3
+  AND r.status IN ('active', 'waiting')
+FOR UPDATE OF r
+`
+
+type AutomationContactRunsForReplyParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	WorkspaceID  uuid.UUID `json:"workspaceId"`
+	ContactID    uuid.UUID `json:"contactId"`
+}
+
+type AutomationContactRunsForReplyRow struct {
+	ID      uuid.UUID       `json:"id"`
+	Version int32           `json:"version"`
+	NodeID  string          `json:"nodeId"`
+	Graph   json.RawMessage `json:"graph"`
+}
+
+// A contact's runs in progress in a flow, locked, with their version's
+// graph: a reply from them ends the runs whose version stops on reply
+// (M58).
+func (q *Queries) AutomationContactRunsForReply(ctx context.Context, arg AutomationContactRunsForReplyParams) ([]AutomationContactRunsForReplyRow, error) {
+	rows, err := q.db.Query(ctx, automationContactRunsForReply, arg.AutomationID, arg.WorkspaceID, arg.ContactID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationContactRunsForReplyRow{}
+	for rows.Next() {
+		var i AutomationContactRunsForReplyRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Version,
+			&i.NodeID,
+			&i.Graph,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationContactSentEvent = `-- name: AutomationContactSentEvent :one
 SELECT EXISTS (
     SELECT 1 FROM automation_events
@@ -559,13 +610,17 @@ func (q *Queries) AutomationEmailSenders(ctx context.Context, arg AutomationEmai
 }
 
 const automationEngaged = `-- name: AutomationEngaged :one
-SELECT EXISTS (
+SELECT (EXISTS (
     SELECT 1 FROM delivery_events de
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = $1 AND m.automation_id = $2 AND de.occurred_at >= $3
       AND (($4::text = 'opened' AND de.type = 'open' AND (NOT $5::boolean OR NOT de.machine))
         OR ($4::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
             AND ($6::text = '' OR de.url ILIKE '%' || $6::text || '%'))))
+  OR ($4::text = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.contact_id = $1 AND im.automation_id = $2 AND im.received_at >= $3
+      AND im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam)))::boolean AS engaged
 `
 
 type AutomationEngagedParams struct {
@@ -577,8 +632,9 @@ type AutomationEngagedParams struct {
 	UrlContains  string     `json:"urlContains"`
 }
 
-// Whether the contact opened or clicked any email of this flow since a time
-// (a person's settled clicks only, review AN-2).
+// Whether the contact opened, clicked or replied to any email of this flow
+// since a time (a person's settled clicks only, review AN-2; a person's
+// replies only, M58).
 func (q *Queries) AutomationEngaged(ctx context.Context, arg AutomationEngagedParams) (bool, error) {
 	row := q.db.QueryRow(ctx, automationEngaged,
 		arg.ContactID,
@@ -588,9 +644,9 @@ func (q *Queries) AutomationEngaged(ctx context.Context, arg AutomationEngagedPa
 		arg.HumanOnly,
 		arg.UrlContains,
 	)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+	var engaged bool
+	err := row.Scan(&engaged)
+	return engaged, err
 }
 
 const automationEventNames = `-- name: AutomationEventNames :many
@@ -682,13 +738,17 @@ func (q *Queries) AutomationForms(ctx context.Context, workspaceID uuid.UUID) ([
 const automationGoalRunsEngaged = `-- name: AutomationGoalRunsEngaged :many
 SELECT r.id, r.node_id FROM automation_runs r
 WHERE r.automation_id = $1 AND r.version = $2 AND r.status IN ('active', 'waiting')
-  AND EXISTS (
+  AND (EXISTS (
     SELECT 1 FROM delivery_events de
     JOIN messages m ON m.id = de.message_id
     WHERE de.contact_id = r.contact_id AND m.automation_id = r.automation_id AND de.occurred_at >= r.entered_at
       AND (($3::text = 'opened' AND de.type = 'open' AND (NOT $4::boolean OR NOT de.machine))
         OR ($3::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
             AND ($5::text = '' OR de.url ILIKE '%' || $5::text || '%'))))
+    OR ($3::text = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.contact_id = r.contact_id AND im.automation_id = r.automation_id AND im.received_at >= r.entered_at
+      AND im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam)))
 LIMIT 1000
 FOR UPDATE OF r SKIP LOCKED
 `
@@ -706,8 +766,9 @@ type AutomationGoalRunsEngagedRow struct {
 	NodeID string    `json:"nodeId"`
 }
 
-// Runs whose contact opened or clicked an email of this flow since entering
-// (a person's settled clicks only, review AN-2).
+// Runs whose contact opened, clicked or replied to an email of this flow
+// since entering (a person's settled clicks only, review AN-2; a person's
+// replies only, M58).
 func (q *Queries) AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error) {
 	rows, err := q.db.Query(ctx, automationGoalRunsEngaged,
 		arg.AutomationID,
@@ -996,12 +1057,15 @@ func (q *Queries) AutomationMarketingSent(ctx context.Context, arg AutomationMar
 }
 
 const automationMessageEngaged = `-- name: AutomationMessageEngaged :one
-SELECT EXISTS (
+SELECT (EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = $1
       AND (($2::text = 'opened' AND de.type = 'open' AND (NOT $3::boolean OR NOT de.machine))
         OR ($2::text = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'
             AND ($4::text = '' OR de.url ILIKE '%' || $4::text || '%'))))
+  OR ($2::text = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.message_id = $1 AND im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam)))::boolean AS engaged
 `
 
 type AutomationMessageEngagedParams struct {
@@ -1011,8 +1075,9 @@ type AutomationMessageEngagedParams struct {
 	UrlContains string     `json:"urlContains"`
 }
 
-// Whether an email was opened or clicked: clicks only once they settled as
-// a person's (review AN-2).
+// Whether an email was opened, clicked or replied to: clicks only once they
+// settled as a person's (review AN-2), replies only a person's, not
+// auto-replies or spam (M58).
 func (q *Queries) AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error) {
 	row := q.db.QueryRow(ctx, automationMessageEngaged,
 		arg.MessageID,
@@ -1020,9 +1085,9 @@ func (q *Queries) AutomationMessageEngaged(ctx context.Context, arg AutomationMe
 		arg.HumanOnly,
 		arg.UrlContains,
 	)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+	var engaged bool
+	err := row.Scan(&engaged)
+	return engaged, err
 }
 
 const automationMessageForStats = `-- name: AutomationMessageForStats :one
@@ -4000,18 +4065,25 @@ func (q *Queries) UpsertAutomationStepSecret(ctx context.Context, arg UpsertAuto
 const wakeAutomationBranchRuns = `-- name: WakeAutomationBranchRuns :execrows
 UPDATE automation_runs r SET next_at = $1
 WHERE r.status = 'waiting' AND r.next_at > $1 AND r.state ->> 'wait' = 'branch'
-  AND (r.state ->> 'message') IS NOT NULL
-  AND EXISTS (
+  AND (((r.state ->> 'message') IS NOT NULL AND EXISTS (
     SELECT 1 FROM delivery_events de
     WHERE de.message_id = (r.state ->> 'message')::uuid
       AND ((r.state ->> 'want' = 'opened' AND de.type = 'open' AND (NOT coalesce((r.state ->> 'human')::boolean, false) OR NOT de.machine))
-        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending')))
+        OR (r.state ->> 'want' = 'clicked' AND de.type = 'click' AND NOT de.machine AND de.class <> 'pending'))))
+    OR (r.state ->> 'want' = 'replied' AND EXISTS (
+    SELECT 1 FROM inbound_messages im
+    WHERE im.kind = 'reply' AND NOT im.auto_reply AND NOT im.spam
+      AND (im.message_id = (r.state ->> 'message')::uuid
+        OR ((r.state ->> 'message') IS NULL AND im.contact_id = r.contact_id AND im.automation_id = r.automation_id AND im.received_at >= r.entered_at)))))
 `
 
-// Runs waiting at a branch for an open or click: wake them as soon as the
-// email they wait on has one, instead of at the end of the window. A click
-// is a person's once it settled as one (review AN-2): a scanner's click is
-// filed as a bot's, and one still waiting to settle wakes nobody yet.
+// Runs waiting at a branch for an open, a click or a reply: wake them as
+// soon as the email they wait on has one, instead of at the end of the
+// window. A click is a person's once it settled as one (review AN-2): a
+// scanner's click is filed as a bot's, and one still waiting to settle
+// wakes nobody yet. A reply is a person's (not an auto-reply or spam), to
+// the email the run waits on, or to any email of the flow since the
+// contact entered when the branch names none (M58).
 func (q *Queries) WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error) {
 	result, err := q.db.Exec(ctx, wakeAutomationBranchRuns, now)
 	if err != nil {

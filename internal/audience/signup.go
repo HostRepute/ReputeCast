@@ -34,6 +34,10 @@ const (
 	SourcePreferences     = "preference_center"
 	SourceUnsubscribePage = "unsubscribe_page"
 	SourceOneClick        = "one_click"
+	// An email to the mailto: address of List-Unsubscribe, received by
+	// ReputeCast (M58), and an unsubscribe from the replies inbox.
+	SourceMailto = "mailto"
+	SourceReply  = "reply"
 )
 
 // ErrContactGone is returned when a link points at a contact that was
@@ -765,8 +769,13 @@ func (s *Service) Unsubscribe(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 		}
 	}
 	where := kept(mContextUnsubPage, nil)
-	if ev.Source == SourceOneClick {
+	switch ev.Source {
+	case SourceOneClick:
 		where = kept(mContextOneClick, nil)
+	case SourceMailto:
+		where = kept(mContextMailto, nil)
+	case SourceReply:
+		where = kept(mContextReply, nil)
 	}
 	if err := q.SignupAddUnsubscribe(ctx, store.SignupAddUnsubscribeParams{
 		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Email: c.Email, Source: ev.Source, Detail: ev.Note, CampaignID: campaignID, Context: where.English,

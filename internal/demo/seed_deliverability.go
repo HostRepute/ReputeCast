@@ -80,6 +80,8 @@ func DeliverabilityDNSZone() (*dnscheck.Zone, []string) {
 	sendersDemoZone(z) // the other sending domains' records (seed_senders.go)
 	// notify.acme.io and the SMTP relay's host (seed_transactional.go)
 	transactionalDemoZone(z)
+	// reply.news.acme.io's MX (seed_inbound.go)
+	inboundDemoZone(z)
 	owned := []string{"acme.io"}
 	for _, l := range dnscheck.Builtin {
 		for _, a := range []string{"news.acme.io", "203.0.113.25"} {

@@ -12,5 +12,9 @@
 
   "account": "Postal{hasVersion, select, yes { {version}} other {}} · truy cập được",
   "error.badKey": "Khóa API không được chấp nhận.",
-  "error.suspended": "Máy chủ thư Postal đang bị tạm ngưng."
+  "error.suspended": "Máy chủ thư Postal đang bị tạm ngưng.",
+
+  "inbound.step.endpoint": "Trong Postal, mở Routing › HTTP Endpoints của máy chủ thư và thêm một endpoint với URL {url}, encoding Sent in the body as JSON và format Delivered as the raw message.",
+  "inbound.step.route": "Trong Routing › Routes, thêm một route có tên * và tên miền {domain}, chọn HTTP endpoint vừa tạo làm endpoint. Tên miền phải là một tên miền đã xác minh của máy chủ thư.",
+  "inbound.step.mx": "Trỏ bản ghi MX của {domain} đến máy chủ Postal của bạn, {host}, trừ khi bản cài đặt Postal của bạn khai báo máy chủ MX khác trong thiết lập dns.mx_records."
 }

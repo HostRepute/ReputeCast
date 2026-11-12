@@ -1077,5 +1077,13 @@
   "tech.allOK": "HTTP 200 pour {count, plural, one {le lien} other {les # liens}}",
   "tech.error": "Erreur",
   "tech.sourceHostRepute": "Contrôle horaire HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listé depuis le {day}}}",
-  "tech.sourceBuiltin": "Contrôle propre à ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listé depuis le {day}}}"
+  "tech.sourceBuiltin": "Contrôle propre à ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · listé depuis le {day}}}",
+  "compliance.mailtoReceived": "Les e-mails de désabonnement sont traités par ReputeCast",
+  "compliance.mailtoReceivedDetail": "La réception des e-mails est activée : l’adresse mailto: est sur {domain} et ReputeCast applique ces désabonnements en moins d’une minute. Personne n’a à retirer des lecteurs à la main.",
+  "compliance.mailtoReceivedShort": "e-mails de désabonnement traités",
+  "compliance.replyInbox": "Les réponses vont à ReputeCast, mais la réception échoue",
+  "compliance.replyInboxDetail": "Le traitement des réponses est « Garder les réponses dans la boîte ReputeCast », et Réception des e-mails n’a pas encore reçu de premier message. Les réponses à cet envoi n’arriveront pas dans Audience › Réponses avant. Envoyez un message de test depuis Paramètres › Expéditeurs, ou transférez plutôt les réponses à {replyTo}.",
+  "compliance.replyInboxFailing": "Le traitement des réponses est « Garder les réponses dans la boîte ReputeCast », et Réception des e-mails indique En échec : {detail} Les réponses à cet envoi n’arriveront pas dans Audience › Réponses tant que ce n’est pas corrigé. Corrigez-le, ou transférez plutôt les réponses à {replyTo}.",
+  "label.replies": "Réponses",
+  "fix.openSettings": "Ouvrir les paramètres"
 }

@@ -133,4 +133,6 @@ export default translate(m, {
   lastEmail: 'Email cuối',
   sequenceEmpty: 'Quy trình này chưa có email nào.',
   nextShare: '{percent} đã sang email tiếp theo',
+  exitOnReply: "Dừng khi liên hệ trả lời một email của quy trình này",
+  exitOnReplyWhy: "Cần bật Nhận thư và 'Giữ thư trả lời trong hộp thư ReputeCast'",
 })

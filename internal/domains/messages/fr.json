@@ -70,5 +70,6 @@
   "problem.cloudflareUnreachable": "impossible de joindre Cloudflare\u00A0: {error}. Rien d’autre n’a été modifié.",
   "problem.cloudflareAnswered": "Cloudflare a répondu {status}{hasMessage, select, yes {\u00A0: {message}} other {}}. Rien d’autre n’a été modifié.",
   "problem.cloudflareNoZone": "aucune zone Cloudflare pour {domain} n’est visible avec ce jeton. Rien d’autre n’a été modifié.",
-  "problem.cloudflareFailed": "{error}. Rien d’autre n’a été modifié."
+  "problem.cloudflareFailed": "{error}. Rien d’autre n’a été modifié.",
+  "problem.receiveFirst": "Configurez d'abord Réception des e-mails : les réponses iraient à une adresse que ReputeCast ne lit pas encore."
 }

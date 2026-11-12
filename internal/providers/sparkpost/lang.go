@@ -24,6 +24,8 @@ var (
 	mTrackingOff    = msgs.M("tracking.off")
 	mNotRegistered  = msgs.M("error.notRegistered")
 	mEndpointStatus = msgs.M("error.endpointStatus")
+
+	mInboundEnterprise = msgs.M("inbound.step.enterprise")
 )
 
 // say returns a message's English and the message, kept for its readers.

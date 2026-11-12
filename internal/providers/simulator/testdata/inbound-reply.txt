@@ -1,0 +1,15 @@
+Return-Path: <ana@example.com>
+From: Ana Lima <ana@example.com>
+To: r-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test
+Subject: Re: October newsletter
+Date: Mon, 12 Oct 2026 13:41:02 +0000
+Message-ID: <CAF-reply-1@mail.example.com>
+In-Reply-To: <0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40@news.acme.io>
+References: <0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40@news.acme.io>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+
+Thanks, this was useful.
+
+On Mon, 12 Oct 2026, Acme Newsletter wrote:
+> Hello from the contract suite.

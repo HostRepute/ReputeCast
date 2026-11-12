@@ -42,5 +42,13 @@
 
   "status.incident": "AWS meldet eine SES-Störung in {region}.",
 
-  "error.dedicatedIpsDenied": "Die Rolle oder Schlüssel, die ReputeCast verwendet, können die dedizierten IPs des Kontos nicht auflisten: Erlauben Sie ses:GetDedicatedIps in der IAM-Richtlinie (die CloudFormation-Vorlage tut das) und prüfen Sie dann erneut."
+  "error.dedicatedIpsDenied": "Die Rolle oder Schlüssel, die ReputeCast verwendet, können die dedizierten IPs des Kontos nicht auflisten: Erlauben Sie ses:GetDedicatedIps in der IAM-Richtlinie (die CloudFormation-Vorlage tut das) und prüfen Sie dann erneut.",
+
+  "inbound.field.topic_arn.label": "SNS-Topic-ARN",
+  "inbound.field.topic_arn.help": "Das Topic, an das die Empfangsregel veröffentlicht, etwa arn:aws:sns:{region}:123456789012:reputecast-inbound.",
+  "inbound.step.noReceiving": "Amazon SES empfängt in {region} keine E-Mails. Legen Sie die Empfangsregel und ihr SNS-Topic stattdessen in einer dieser Regionen an: {regions}.",
+  "inbound.step.rule": "Öffnen Sie in der Amazon-SES-Konsole ({region}) Email receiving › Rule sets und fügen Sie dem aktiven Rule Set eine Regel für die Empfängerdomain {domain} hinzu, mit der Aktion Publish to Amazon SNS topic, der Kodierung Base64 und einem SNS-Topic in {region}.",
+  "inbound.step.topic": "Geben Sie unten die ARN des Topics ein. ReputeCast nimmt nur E-Mails von diesem Topic an.",
+  "inbound.step.subscribe": "Fügen Sie in Amazon SNS dem Topic ein Abonnement mit dem Protokoll HTTPS und dem Endpunkt {url} hinzu. Bestätigen Sie es nicht selbst: ReputeCast bestätigt es, sobald SNS danach fragt.",
+  "inbound.step.size": "Amazon SES weist eine Nachricht über {size} KB zurück, statt sie an SNS zu veröffentlichen. Eine Antwort mit großen Anhängen erreicht ReputeCast deshalb nicht."
 }

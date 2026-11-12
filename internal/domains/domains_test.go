@@ -214,7 +214,14 @@ func TestSenderDefaults(t *testing.T) {
 	if err := env.App.Pool.QueryRow(context.Background(), `SELECT default_sender_id::text FROM workspaces WHERE slug = 'acme-newsletter'`).Scan(&defaultSender); err != nil || defaultSender != product {
 		t.Fatalf("workspace default sender: %s %v", defaultSender, err)
 	}
-	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "inbox", "footerAddress": ""}).MustStatus(t, 422)
+	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "elsewhere", "footerAddress": ""}).MustStatus(t, 422)
+	// "Keep replies in ReputeCast inbox" (M58) needs a route that receives:
+	// the demo's, once failing, is refused.
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE inbound_routes SET status = 'failing'
+		WHERE workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter')`); err != nil {
+		t.Fatal(err)
+	}
+	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "inbox", "footerAddress": ""}).MustStatus(t, 409)
 	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "forward", "replyTo": "not an address", "footerAddress": ""}).MustStatus(t, 422)
 	c.Do("PUT", ws+"/senders/defaults", map[string]any{"replyHandling": "forward", "footerAddress": "", "trackingDomain": "go.unknown.example"}).MustStatus(t, 422)
 	if auditCount(t, env, "senders.defaults_update") != 1 {

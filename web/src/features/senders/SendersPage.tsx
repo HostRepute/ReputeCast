@@ -19,6 +19,8 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { DomainDialog } from './DomainDialog'
 import { m } from './messages'
 import { ReadOnlyNote } from './ReadOnlyNote'
+import { ReceivingCard } from './ReceivingCard'
+import { m as rm } from './receiving.messages'
 import { SenderDialog } from './SenderDialog'
 import './senders.css'
 
@@ -99,7 +101,11 @@ export function SendersPage() {
           {/* Phase 8: the short-link domain of texts, with its record and status. */}
           <SmsShortLinkCard />
 
-          {data ? <DefaultsCard data={data} reason={reason} /> : null}
+          {/* Keyed by reply handling: when Stop receiving puts it back to
+              forwarding, the form shows that instead of the inbox. */}
+          {data ? <DefaultsCard key={`${data.defaults.replyHandling}-${data.defaults.receiving}`} data={data} reason={reason} /> : null}
+          {/* M58: how ReputeCast receives replies, unsubscribe emails and reports. */}
+          <ReceivingCard replyTo={data?.defaults.replyTo} />
         </>
       )}
       {data ? (
@@ -243,6 +249,10 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
   const txSenders = data.senders.filter((x) => x.transactional)
   // Where replies go: one address for every sender, or "" for each sender's own reply-to.
   const [reply, setReply] = useState(d.replyTo)
+  // Or ReputeCast's inbox (M58), once the workspace receives mail.
+  const [handling, setHandling] = useState(d.replyHandling)
+  const inboxOff = !d.receiving && d.replyHandling !== 'inbox'
+  const inboxWhy = useId()
   const [footer, setFooter] = useState(d.footerAddress)
   const [tracking, setTracking] = useState(d.trackingDomain)
   // Off by default: List-Unsubscribe carries only the one-click link.
@@ -258,7 +268,7 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
         body: {
           defaultSenderId: senderId || undefined,
           transactionalSenderId: txSenderId || undefined,
-          replyHandling: 'forward',
+          replyHandling: handling,
           replyTo: reply || undefined,
           footerAddress: footer.trim(),
           trackingDomain: tracking,
@@ -303,14 +313,35 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
         ) : null}
         <label className="lbl">
           {t(m.replyHandling)}
-          <select className="in" value={reply} onChange={(e) => setReply(e.target.value)} disabled={Boolean(reason)}>
+          <select
+            className="in"
+            value={handling === 'inbox' ? INBOX : reply}
+            onChange={(e) => {
+              if (e.target.value === INBOX) {
+                setHandling('inbox')
+                return
+              }
+              setHandling('forward')
+              setReply(e.target.value)
+            }}
+            disabled={Boolean(reason)}
+            aria-describedby={inboxOff ? inboxWhy : undefined}
+          >
             {(d.replyOptions.length ? d.replyOptions : [d.replyTo].filter(Boolean)).map((a) => (
               <option key={a} value={a}>
                 {t(m.forwardReplies, { address: a })}
               </option>
             ))}
             <option value="">{t(m.ownReplyTo)}</option>
+            <option value={INBOX} disabled={inboxOff}>
+              {t(rm.keepInInbox)}
+            </option>
           </select>
+          {inboxOff ? (
+            <span className="k font-normal" id={inboxWhy}>
+              {t(rm.inboxWhy)}
+            </span>
+          ) : null}
         </label>
         <label className="lbl">
           {t(m.footerAddress)}
@@ -331,7 +362,7 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
       <Toggle
         className="sd-trow"
         label={t(m.listUnsubscribeMailto)}
-        description={t(m.listUnsubscribeMailtoHelp)}
+        description={d.receiving ? t(rm.mailtoReceiving) : t(m.listUnsubscribeMailtoHelp)}
         checked={mailto}
         disabled={Boolean(reason)}
         onChange={(e) => setMailto(e.target.checked)}
@@ -366,6 +397,9 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
     </section>
   )
 }
+
+/** The reply handling choice that keeps replies in Audience › Replies (M58). */
+const INBOX = '__inbox'
 
 /** The hint for transactional mail: its own subdomain keeps its reputation apart (SettingsSenders). */
 function TransactionalHint({ data }: { data: Overview }) {

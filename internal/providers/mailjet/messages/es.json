@@ -16,5 +16,7 @@
   "tracking.scope": "Todos los mensajes que envía ReputeCast",
   "tracking.detail": "ReputeCast envía todos los mensajes con TrackOpens y TrackClicks de Mailjet desactivados, sea cual sea la configuración de la cuenta.",
   "error.domainMissing": "{domain} no está configurado en Mailjet",
-  "error.callbackTaken": "Mailjet admite una URL de callback por evento y clave de API, y los eventos {events} ya se envían a otra URL. Usa una clave de API que solo use ReputeCast o quita esos callbacks en Mailjet, y vuelve a hacer el registro."
+  "error.callbackTaken": "Mailjet admite una URL de callback por evento y clave de API, y los eventos {events} ya se envían a otra URL. Usa una clave de API que solo use ReputeCast o quita esos callbacks en Mailjet, y vuelve a hacer el registro.",
+
+  "inbound.step.domain": "{domain} debe ser un dominio validado en Mailjet (Account settings › Senders & domains), y la Parse API de Mailjet requiere un plan de pago (Premium o superior). ReputeCast añade la parse route para todas las direcciones del dominio."
 }

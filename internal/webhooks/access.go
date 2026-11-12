@@ -80,6 +80,10 @@ var groupNeeds = map[string]EventNeeds{
 var eventNeeds = map[string]EventNeeds{
 	// A template's name and status.
 	"whatsapp.template_status": {Permissions: []authz.Permission{authz.ProvidersView}},
+	// What people wrote back, with their address (M58): the replies inbox
+	// shows it to replies:view.
+	"email.replied":  {Permissions: []authz.Permission{authz.RepliesView}, Contacts: true},
+	"email.received": {Permissions: []authz.Permission{authz.RepliesView}, Contacts: true},
 }
 
 // NeedsOf returns what receiving an event needs (an email.batch as its

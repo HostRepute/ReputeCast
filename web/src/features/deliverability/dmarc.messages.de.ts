@@ -45,4 +45,9 @@ export default translate(md, {
   uploadDescription: 'Die .xml-Datei, die ein Postfachanbieter an Ihre rua=-Adresse gesendet hat, oder die .xml.gz- oder .zip-Datei, in der sie kam. Gespeichert werden nur die Zahlen des Berichts.',
   upload: 'Hochladen',
   reportFile: 'Berichtsdatei',
+  collectAt: "Berichte kommen an {address} an · der letzte {when}",
+  collectAtNone: "Berichte kommen an {address} an",
+  collectTitle: "Berichte in ReputeCast sammeln",
+  collectLine: "DMARC-Sammelberichte an einer Adresse auf Ihrer Empfangsdomain empfangen.",
+  collectSetUp: "Empfang einrichten",
 })

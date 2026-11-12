@@ -12,11 +12,13 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
 	"github.com/hostrepute/reputecast/internal/providers/postal"
@@ -118,23 +120,30 @@ func newProvider(t *testing.T, env *contracttest.Env) providers.Provider {
 
 func webhook(file string) func(t *testing.T, env *contracttest.Env) (*http.Request, []byte) {
 	return func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
-		body, err := os.ReadFile("testdata/" + file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		body = bytes.TrimSpace(body)
-		sum := sha256.Sum256(body)
-		sig, err := rsa.SignPKCS1v15(rand.Reader, signingKey(t), crypto.SHA256, sum[:])
-		if err != nil {
-			t.Fatal(err)
-		}
-		r, _ := http.NewRequest(http.MethodPost, "https://reputecast.acme.io/hooks/postal/token", bytes.NewReader(body))
-		r.Header.Set("Content-Type", "application/json")
-		r.Header.Set("X-Postal-Signature-256", base64.StdEncoding.EncodeToString(sig))
-		r.Header.Set("X-Postal-Signature-KID", kid)
-		r.Header.Set("User-Agent", "Postal/3.3.4")
-		return r, body
+		return signedPost(t, file, "https://reputecast.acme.io/hooks/postal/token")
 	}
+}
+
+// signedPost is a request Postal signs with the server's key, as it signs
+// webhooks and HTTP endpoint deliveries alike.
+func signedPost(t *testing.T, file, target string) (*http.Request, []byte) {
+	t.Helper()
+	body, err := os.ReadFile("testdata/" + file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body = bytes.TrimSpace(body)
+	sum := sha256.Sum256(body)
+	sig, err := rsa.SignPKCS1v15(rand.Reader, signingKey(t), crypto.SHA256, sum[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, _ := http.NewRequest(http.MethodPost, target, bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("X-Postal-Signature-256", base64.StdEncoding.EncodeToString(sig))
+	r.Header.Set("X-Postal-Signature-KID", kid)
+	r.Header.Set("User-Agent", "Postal/3.3.4")
+	return r, body
 }
 
 func TestContract(t *testing.T) {
@@ -172,7 +181,41 @@ func TestContract(t *testing.T) {
 				MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e52"), OriginalType: "MessageDelayed · SoftFail", OriginalCode: "421 4.7.0", BounceClass: "reputation",
 			}}},
 		},
+		Inbound: []contracttest.InboundCase{{
+			// An HTTP endpoint with the format Delivered as the raw message
+			// and the encoding Sent in the body as JSON.
+			Name: "RawMessage",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				return signedPost(t, "inbound-raw.json", "https://reputecast.contract.test/hooks/inbound/contract-token")
+			},
+			Want: []providers.InboundMessage{{Raw: []byte{1}, Recipients: []string{"r-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test"}, ProviderMessageID: "12345"}},
+		}},
 	})
+}
+
+func TestInboundRawMessage(t *testing.T) {
+	env := contracttest.NewEnv(t, fakeAPI)
+	p := newProvider(t, env).(providers.InboundReceiver)
+	r, body := signedPost(t, "inbound-raw.json", "https://reputecast.acme.io/hooks/inbound/tok")
+	msgs, err := p.ParseInbound(context.Background(), providers.InboundRoute{}, r, body)
+	if err != nil || len(msgs) != 1 {
+		t.Fatalf("ParseInbound: %v, %v", msgs, err)
+	}
+	if !strings.HasPrefix(string(msgs[0].Raw), "Return-Path: <test@example.com>\r\n") || !strings.HasSuffix(string(msgs[0].Raw), "\r\n\r\nHello there!\r\n") {
+		t.Fatalf("raw: %q", msgs[0].Raw)
+	}
+	// The same as form data.
+	form := "id=12345&base64=true&rcpt_to=a%40reply.acme.io&message=" + url.QueryEscape(base64.StdEncoding.EncodeToString(msgs[0].Raw))
+	r, _ = http.NewRequest(http.MethodPost, "https://reputecast.acme.io/hooks/inbound/tok", strings.NewReader(form))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	again, err := p.ParseInbound(context.Background(), providers.InboundRoute{}, r, []byte(form))
+	if err != nil || len(again) != 1 || !bytes.Equal(again[0].Raw, msgs[0].Raw) || again[0].Recipients[0] != "a@reply.acme.io" {
+		t.Fatalf("form data: %+v, %v", again, err)
+	}
+	setup := p.InboundSetup(providers.InboundRoute{Domain: "reply.acme.io", URL: "https://rc.acme.io/hooks/inbound/tok"})
+	if len(setup.MX) != 1 || setup.MX[0].Value != "10 127.0.0.1" || len(setup.Steps) != 3 || !strings.Contains(setup.Steps[0].In(i18n.Default), "https://rc.acme.io/hooks/inbound/tok") {
+		t.Fatalf("setup: %+v", setup)
+	}
 }
 
 func TestVerify(t *testing.T) {

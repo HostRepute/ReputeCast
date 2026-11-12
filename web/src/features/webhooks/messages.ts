@@ -124,6 +124,7 @@ export const m = defineMessages('webhooks', {
   eventsLegendNone: 'Events · none yet',
   // group: an event prefix (email); pattern: its wildcard (email.*).
   allGroup: 'All {group} events <mono>{pattern}</mono>',
+  groupReplies: 'Replies',
   batchLabel: 'Send email events in batches',
   batchHint: 'One request carries up to 100 <mono>email.*</mono> events, as <mono>email.batch</mono>. Fewer requests for large sends; other events still go one by one.',
   sendTest: 'Send a test event',

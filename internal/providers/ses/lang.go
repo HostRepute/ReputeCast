@@ -44,6 +44,14 @@ var (
 	mDoneQueuePolicy = msgs.M("provision.queuePolicyDone")
 
 	mDedicatedIPsDenied = msgs.M("error.dedicatedIpsDenied")
+
+	mInboundTopicLabel  = msgs.M("inbound.field.topic_arn.label")
+	mInboundTopicHelp   = msgs.M("inbound.field.topic_arn.help")
+	mInboundNoReceiving = msgs.M("inbound.step.noReceiving")
+	mInboundRule        = msgs.M("inbound.step.rule")
+	mInboundTopic       = msgs.M("inbound.step.topic")
+	mInboundSubscribe   = msgs.M("inbound.step.subscribe")
+	mInboundSize        = msgs.M("inbound.step.size")
 )
 
 // say returns a message's English and the message, kept for its readers.

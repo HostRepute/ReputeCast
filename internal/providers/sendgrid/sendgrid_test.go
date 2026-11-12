@@ -12,6 +12,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"maps"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path"
@@ -22,6 +24,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
@@ -83,6 +87,10 @@ type fake struct {
 	tracking    map[string]bool
 	// assigned is GET /v3/ips/assigned's answer.
 	assigned string
+	// parse are the Inbound Parse settings by hostname, policies the
+	// security policies.
+	parse    map[string]map[string]any
+	policies []map[string]any
 	n        atomic.Int64
 }
 
@@ -290,6 +298,100 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 	mux.HandleFunc("GET /v3/stats", readOnly(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, `[{"date":"2026-10-11","stats":[{"metrics":{"requests":1000,"delivered":960,"bounces":20,"spam_reports":1}}]},{"date":"2026-10-12","stats":[{"metrics":{"requests":1000,"delivered":980,"bounces":10,"spam_reports":0}}]}]`)
 	}))
+	mux.HandleFunc("GET /v3/user/webhooks/parse/settings/{hostname}", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		s, ok := f.parse[r.PathValue("hostname")]
+		if !ok {
+			writeErr(w, http.StatusNotFound, "Not found")
+			return
+		}
+		_ = json.NewEncoder(w).Encode(s)
+	}))
+	mux.HandleFunc("POST /v3/user/webhooks/parse/settings", guard(func(w http.ResponseWriter, r *http.Request) {
+		var s map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&s)
+		host, _ := s["hostname"].(string)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if _, ok := f.parse[host]; ok || host == "" || s["url"] == nil {
+			writeErr(w, http.StatusBadRequest, "A setting for this hostname already exists")
+			return
+		}
+		f.parse[host] = s
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(s)
+	}))
+	mux.HandleFunc("PATCH /v3/user/webhooks/parse/settings/{hostname}", guard(func(w http.ResponseWriter, r *http.Request) {
+		var in map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		s, ok := f.parse[r.PathValue("hostname")]
+		if !ok {
+			writeErr(w, http.StatusNotFound, "Not found")
+			return
+		}
+		for k, v := range in {
+			s[k] = v
+		}
+		_ = json.NewEncoder(w).Encode(s)
+	}))
+	mux.HandleFunc("DELETE /v3/user/webhooks/parse/settings/{hostname}", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if _, ok := f.parse[r.PathValue("hostname")]; !ok {
+			writeErr(w, http.StatusNotFound, "Not found")
+			return
+		}
+		delete(f.parse, r.PathValue("hostname"))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	mux.HandleFunc("GET /v3/user/webhooks/security/policies", guard(func(w http.ResponseWriter, _ *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		_ = json.NewEncoder(w).Encode(map[string]any{"policies": f.policies})
+	}))
+	mux.HandleFunc("GET /v3/user/webhooks/security/policies/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		for _, p := range f.policies {
+			if p["id"] == r.PathValue("id") {
+				_ = json.NewEncoder(w).Encode(map[string]any{"policy": p})
+				return
+			}
+		}
+		writeErr(w, http.StatusNotFound, "Not found")
+	}))
+	mux.HandleFunc("POST /v3/user/webhooks/security/policies", guard(func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Name      string          `json:"name"`
+			Signature map[string]bool `json:"signature"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		if in.Name == "" || !in.Signature["enabled"] {
+			writeErr(w, http.StatusBadRequest, "a policy needs a name and a security method")
+			return
+		}
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		p := map[string]any{"id": "dd677638-a16d-4e19-95ea-" + strconv.FormatInt(200000000000+f.n.Add(1), 10), "name": in.Name, "signature": map[string]string{"public_key": f.pubKey}}
+		f.policies = append(f.policies, p)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{"policy": p})
+	}))
+	mux.HandleFunc("DELETE /v3/user/webhooks/security/policies/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		for i, p := range f.policies {
+			if p["id"] == r.PathValue("id") {
+				f.policies = slices.Delete(f.policies, i, i+1)
+				_ = json.NewEncoder(w).Encode(map[string]any{"policy": nil})
+				return
+			}
+		}
+		writeErr(w, http.StatusNotFound, "Not found")
+	}))
 	return mux
 }
 
@@ -301,7 +403,7 @@ func (f *fake) with(fn func()) {
 }
 
 func newFake(t *testing.T) *fake {
-	return &fake{pubKey: publicKey(t), tracking: map[string]bool{"click": true, "open": true}, assigned: assignedIPs}
+	return &fake{pubKey: publicKey(t), tracking: map[string]bool{"click": true, "open": true}, assigned: assignedIPs, parse: map[string]map[string]any{}}
 }
 
 func newProvider(t *testing.T, env *contracttest.Env, withKey bool) providers.Provider {
@@ -400,6 +502,126 @@ func TestContract(t *testing.T) {
 					MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e44"), OriginalType: "spamreport"},
 			},
 		}},
+		InboundRoute: providers.InboundRoute{Secret: inboundSecret},
+		Inbound: []contracttest.InboundCase{{
+			// SendGrid's raw-format sample, posted by a parse setting with a
+			// signing policy.
+			Name: "RawSigned",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				f.with(func() {
+					f.policies = append(f.policies, map[string]any{"id": "pol-contract", "name": "contract", "signature": map[string]string{"public_key": f.pubKey}})
+					f.parse["reply.contract.test"] = map[string]any{"hostname": "reply.contract.test", "url": "https://reputecast:" + inboundSecret + "@reputecast.contract.test/hooks/inbound/contract-token", "send_raw": true, "spam_check": true, "security_policy": "pol-contract"}
+				})
+				return parsePost(t, "inbound-raw.json", true)
+			},
+			Want: []providers.InboundMessage{{Raw: []byte{1}, Recipients: []string{"example@example.com"}, Spam: "pass", SPF: "pass", DKIM: "pass"}},
+			Tamper: func(r *http.Request, body []byte) (*http.Request, []byte) {
+				r.SetBasicAuth(providers.InboundUser, "wrong-secret")
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				return r, body
+			},
+		}},
+	})
+}
+
+const inboundSecret = "route-secret-sendgrid"
+
+// parsePost is an Inbound Parse post in the raw format: multipart form
+// data with the hook's basic authentication, signed when sign is set.
+func parsePost(t *testing.T, file string, sign bool) (*http.Request, []byte) {
+	t.Helper()
+	raw, err := os.ReadFile("testdata/" + file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]string
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	for _, k := range slices.Sorted(maps.Keys(fields)) {
+		_ = mw.WriteField(k, fields[k])
+	}
+	_ = mw.Close()
+	body := buf.Bytes()
+	var r *http.Request
+	if sign {
+		r = signedRequest(t, "/hooks/inbound/contract-token", body)
+	} else {
+		r, _ = http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token", bytes.NewReader(body))
+	}
+	r.Header.Set("Content-Type", mw.FormDataContentType())
+	r.SetBasicAuth(providers.InboundUser, inboundSecret)
+	return r, body
+}
+
+func TestInboundParseSetting(t *testing.T) {
+	f := newFake(t)
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env, false)
+	reg := p.(providers.InboundRegistrar)
+	in := p.(providers.InboundReceiver)
+	route := providers.InboundRoute{ID: uuid.MustParse("019a7b2c-0000-7000-8000-0000000000bb"), Domain: "Reply.Acme.io", Secret: inboundSecret}
+	hook := "https://rc.acme.io/hooks/inbound/tok"
+	ctx := context.Background()
+	for range 2 { // registering again updates the setting and keeps the policy
+		if err := reg.RegisterInbound(ctx, route, hook); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.with(func() {
+		s := f.parse["reply.acme.io"]
+		if s["url"] != "https://reputecast:"+inboundSecret+"@rc.acme.io/hooks/inbound/tok" || s["send_raw"] != true || s["spam_check"] != true {
+			t.Fatalf("parse setting: %v", s)
+		}
+		if len(f.policies) != 1 || s["security_policy"] != f.policies[0]["id"] || f.policies[0]["name"] != "ReputeCast "+route.ID.String() {
+			t.Fatalf("policy: %v, setting %v", f.policies, s)
+		}
+	})
+	// A post signed with the policy's key passes; an unsigned one doesn't,
+	// even with the right password.
+	route.Domain = "reply.acme.io"
+	r, body := parsePost(t, "inbound-raw.json", true)
+	if err := in.VerifyInbound(ctx, route, r, body); err != nil {
+		t.Fatalf("signed post: %v", err)
+	}
+	r, body = parsePost(t, "inbound-raw.json", false)
+	if err := in.VerifyInbound(ctx, route, r, body); !errors.Is(err, providers.ErrBadSignature) {
+		t.Fatalf("unsigned post: %v", err)
+	}
+	if err := reg.UnregisterInbound(ctx, route, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		if len(f.parse) != 0 || len(f.policies) != 0 {
+			t.Fatalf("left: %v %v", f.parse, f.policies)
+		}
+	})
+	if mx := in.InboundSetup(route).MX; len(mx) != 1 || mx[0].Value != "10 mx.sendgrid.net" || mx[0].Name != "reply.acme.io" {
+		t.Fatalf("MX: %+v", mx)
+	}
+}
+
+// A parse setting set up by hand, without a policy, is checked by its basic
+// authentication alone; and one that posts elsewhere isn't removed.
+func TestInboundWithoutPolicy(t *testing.T) {
+	f := newFake(t)
+	f.parse["parse.acme.io"] = map[string]any{"hostname": "parse.acme.io", "url": "https://helpdesk.example/sendgrid", "send_raw": true}
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env, false)
+	route := providers.InboundRoute{Domain: "parse.acme.io", Secret: inboundSecret}
+	r, body := parsePost(t, "inbound-raw.json", false)
+	if err := p.(providers.InboundReceiver).VerifyInbound(context.Background(), route, r, body); err != nil {
+		t.Fatalf("unsigned post without a policy: %v", err)
+	}
+	if err := p.(providers.InboundRegistrar).UnregisterInbound(context.Background(), route, "https://rc.acme.io/hooks/inbound/tok"); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		if f.parse["parse.acme.io"] == nil {
+			t.Fatal("someone else's parse setting was removed")
+		}
 	})
 }
 

@@ -36,7 +36,7 @@ type runState struct {
 	// Wait says what a waiting run waits for: delay, branch, window, webhook.
 	Wait  string     `json:"wait,omitempty"`
 	Until *time.Time `json:"until,omitempty"`
-	// Branch waits watch one message for an open or click.
+	// Branch waits watch one message for an open, a click or a reply.
 	Message string `json:"message,omitempty"`
 	Want    string `json:"want,omitempty"`
 	Human   bool   `json:"human,omitempty"`
@@ -868,8 +868,9 @@ func (e *executor) overCap(ctx context.Context) (bool, time.Time, error) {
 	return true, got.Oldest.Add(days + time.Minute), nil
 }
 
-// branch evaluates a condition. Engagement conditions (opened / clicked)
-// wait until the email is opened or clicked, or the window closes.
+// branch evaluates a condition. Engagement conditions (opened / clicked /
+// replied) wait until the email is opened, clicked or replied to, or the
+// window closes.
 func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string, bool, error) {
 	c := n.Data.Condition
 	path := PathNo
@@ -897,7 +898,7 @@ func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string
 				return "", "", true, e.wait(ctx, "branch", deadline)
 			}
 		}
-	} else if c != nil && (c.Kind == "opened" || c.Kind == "clicked") {
+	} else if c != nil && emailEngagement(c.Kind) {
 		met, msg, sentAt, pending, err := e.engaged(ctx, c)
 		if err != nil {
 			return "", "", true, err
@@ -944,11 +945,12 @@ func (e *executor) branch(ctx context.Context, n AutomationNode) (string, string
 	return e.g.NextOnPath(n.ID, path), path, false, nil
 }
 
-// engaged reports whether the contact opened or clicked the email the
-// condition is about (any email of the flow when Step is empty). sentAt is
-// when that email left; pending is true while it is still queued or held
-// (an outage, a warm-up cap), so the window hasn't started (review 2026-11
-// EN-3).
+// engaged reports whether the contact opened, clicked or replied to the
+// email the condition is about (any email of the flow when Step is empty).
+// sentAt is when that email left; pending is true while it is still queued
+// or held (an outage, a warm-up cap), so the window hasn't started (review
+// 2026-11 EN-3). A reply is a person's (not an auto-reply or spam), and
+// HumanOnly and URLContains don't apply to it (M58).
 func (e *executor) engaged(ctx context.Context, c *AutomationCondition) (met bool, msg string, sentAt time.Time, pending bool, err error) {
 	if c.Step != "" {
 		if id, ok := e.st.Messages[c.Step]; ok {
@@ -986,6 +988,12 @@ func (e *executor) engaged(ctx context.Context, c *AutomationCondition) (met boo
 // looks again.
 const pendingRecheck = 15 * time.Minute
 
+// emailEngagement reports a condition on what the contact did with an
+// email of the flow: opened it, clicked a link, replied (M58).
+func emailEngagement(kind string) bool {
+	return kind == "opened" || kind == "clicked" || kind == CondReplied
+}
+
 // eval checks a condition right now.
 func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, error) {
 	if c == nil {
@@ -996,7 +1004,7 @@ func (e *executor) eval(ctx context.Context, c *AutomationCondition) (bool, erro
 		return met, err
 	}
 	switch c.Kind {
-	case "opened", "clicked":
+	case "opened", "clicked", CondReplied:
 		met, _, _, _, err := e.engaged(ctx, c)
 		return met, err
 	case "tag":
@@ -1258,7 +1266,7 @@ func (s *Service) detectGoals(ctx context.Context, now time.Time) error {
 				var ids []uuid.UUID
 				c := goal.Data.Condition
 				switch c.Kind {
-				case "opened", "clicked":
+				case "opened", "clicked", CondReplied:
 					rows, err := q.AutomationGoalRunsEngaged(ctx, store.AutomationGoalRunsEngagedParams{AutomationID: v.AutomationID, Version: v.Version, Want: c.Kind, HumanOnly: c.HumanOnly, UrlContains: c.URLContains})
 					if err != nil {
 						return err

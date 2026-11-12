@@ -25,6 +25,7 @@ var (
 	mTrackingOff   = msgs.M("tracking.off")
 	mDomainUnknown = msgs.M("error.domainUnknown")
 	mTooManyURLs   = msgs.M("error.tooManyURLs")
+	mInboundDomain = msgs.M("inbound.step.domain")
 )
 
 // say returns a message's English and the message, kept for its readers.

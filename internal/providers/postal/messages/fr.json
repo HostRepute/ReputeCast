@@ -12,5 +12,9 @@
 
   "account": "Postal{hasVersion, select, yes { {version}} other {}} · joignable",
   "error.badKey": "La clé API n’a pas été acceptée.",
-  "error.suspended": "Le serveur de messagerie Postal est suspendu."
+  "error.suspended": "Le serveur de messagerie Postal est suspendu.",
+
+  "inbound.step.endpoint": "Dans Postal, ouvrez Routing › HTTP Endpoints du serveur de messagerie et ajoutez un endpoint avec l’URL {url}, l’encodage Sent in the body as JSON et le format Delivered as the raw message.",
+  "inbound.step.route": "Dans Routing › Routes, ajoutez une route avec le nom * et le domaine {domain}, avec cet HTTP endpoint comme endpoint. Le domaine doit être l’un des domaines vérifiés du serveur de messagerie.",
+  "inbound.step.mx": "Faites pointer l’enregistrement MX de {domain} vers votre serveur Postal, {host}, sauf si votre installation Postal indique d’autres hôtes MX dans son réglage dns.mx_records."
 }

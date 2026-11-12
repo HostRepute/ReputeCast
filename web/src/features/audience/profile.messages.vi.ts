@@ -154,4 +154,6 @@ export default translate(m, {
   removeTagLabel: 'Gỡ thẻ {tag}',
   actRemovedFrom: '<b>Đã gỡ</b> khỏi {list} bởi nhóm',
   actEmailChanged: '<b>Đã sửa địa chỉ</b>',
+  actReplied: "<b>Đã trả lời</b> {subject} · <link>Mở thư trả lời</link>",
+  actRepliedQuote: "“{text}”",
 })

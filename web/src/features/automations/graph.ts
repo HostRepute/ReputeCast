@@ -348,6 +348,8 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
     case 'clicked':
       if (c.urlContains) return duration ? tt(mg.condClickedUrlWithin, { url: c.urlContains, duration }) : tt(mg.condClickedUrl, { url: c.urlContains })
       return duration ? tt(mg.condClickedInWithin, { step, duration }) : tt(mg.condClickedIn, { step })
+    case 'replied':
+      return duration ? tt(mg.condRepliedWithin, { step, duration }) : tt(mg.condReplied, { step })
     case 'tag':
       return tt(mg.condTagged, { tag: c.tag ?? '' })
     case 'list':

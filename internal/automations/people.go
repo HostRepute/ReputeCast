@@ -188,6 +188,37 @@ func (s *Service) RemoveRun(ctx context.Context, ws *store.Workspace, id, run uu
 	})
 }
 
+// EndRunsOnReply ends the contact's runs in a flow whose version stops on
+// reply ("Stop when the contact replies to an email from this flow", M58):
+// they get none of its remaining steps. The inbound job calls it, in its
+// transaction, for a person's reply (not an auto-reply or spam) to an
+// email of the flow. It returns how many runs ended.
+func (s *Service) EndRunsOnReply(ctx context.Context, tx pgx.Tx, workspaceID, automationID, contactID uuid.UUID, at time.Time) (int, error) {
+	q := store.New(tx)
+	runs, err := q.AutomationContactRunsForReply(ctx, store.AutomationContactRunsForReplyParams{AutomationID: automationID, WorkspaceID: workspaceID, ContactID: contactID})
+	if err != nil {
+		return 0, err
+	}
+	stats := statsBuf{}
+	ended := 0
+	for _, r := range runs {
+		if !s.graphOf(r.Graph).StopsOnReply() {
+			continue
+		}
+		if err := q.UpdateAutomationRun(ctx, store.UpdateAutomationRunParams{ID: r.ID, Version: r.Version, NodeID: r.NodeID, Status: "exited",
+			State: json.RawMessage(`{}`), NodeEnteredAt: at, FinishedAt: &at, ExitReason: ExitReplied}); err != nil {
+			return ended, err
+		}
+		stats.at(automationID, r.Version, r.NodeID, at).Dropped++
+		ended++
+	}
+	return ended, stats.flush(ctx, q)
+}
+
+// ExitReplied is the exit reason of a run that ended because the contact
+// replied (EndRunsOnReply).
+const ExitReplied = "replied"
+
 // pgxNoRows turns a run that isn't this flow's into "not found".
 func pgxNoRows(err error) error {
 	if err == nil {

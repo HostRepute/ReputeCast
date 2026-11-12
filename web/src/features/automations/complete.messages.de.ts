@@ -127,4 +127,6 @@ export default translate(m, {
   lastEmail: 'Letzte E-Mail',
   sequenceEmpty: 'Noch keine E-Mails in diesem Ablauf.',
   nextShare: '{percent} gingen zur nächsten E-Mail weiter',
+  exitOnReply: "Beenden, wenn der Kontakt auf eine E-Mail dieses Ablaufs antwortet",
+  exitOnReplyWhy: "Dafür braucht es „E-Mails empfangen“ und „Antworten im ReputeCast-Posteingang behalten“",
 })

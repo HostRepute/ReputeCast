@@ -52,6 +52,12 @@ const (
 	TriggerLinkClicked = "link_clicked"
 )
 
+// CondReplied is an email branch, filter or goal condition: the contact
+// replied to the step's email (any email of the flow when it names no
+// step), within the window. Only replies from a person count, not
+// auto-replies or spam (M58: what the inbound route received).
+const CondReplied = "replied"
+
 // alsoKinds are the triggers that can be the second or third of a flow
 // (AT-11): the ones an event matches on its own, with no rules of their
 // own about who enters.
@@ -71,6 +77,17 @@ func (t *AutomationTrigger) Triggers() []AutomationTrigger {
 		}
 	}
 	return out
+}
+
+// StopsOnReply reports whether the flow ends a contact's run when they
+// reply to one of its emails: one of its triggers says so (M58).
+func (g AutomationGraph) StopsOnReply() bool {
+	tn := g.Trigger()
+	return tn != nil && tn.Data.Trigger.stopsOnReply()
+}
+
+func (t *AutomationTrigger) stopsOnReply() bool {
+	return t != nil && (t.ExitOnReply || slices.ContainsFunc(t.Also, func(a AutomationTrigger) bool { return a.ExitOnReply }))
 }
 
 // Branch paths.
@@ -159,6 +176,10 @@ type AutomationTrigger struct {
 	// ExitOnLeave ends a Joined list flow's runs when the contact leaves
 	// the list (AT-8).
 	ExitOnLeave bool `json:"exitOnLeave,omitempty"`
+	// ExitOnReply ends the contact's run when they reply to an email of
+	// this flow (M58, any trigger kind): replies need the workspace to
+	// receive mail and keep replies in ReputeCast's inbox.
+	ExitOnReply bool `json:"exitOnReply,omitempty"`
 	// ContactTime fires a date trigger at At in each contact's own time
 	// zone, the workspace's when they have none (AT-7).
 	ContactTime bool `json:"contactTime,omitempty"`
@@ -245,9 +266,10 @@ type AutomationSendWindow struct {
 
 // AutomationCondition is what a branch asks, a filter keeps or a goal waits for.
 type AutomationCondition struct {
-	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event,bought_product,sms_consent,sms_clicked,sms_replied,placed_order"`
-	// Opened / clicked: the email step (empty = any email in this flow), the
-	// window and whether machine opens (Apple Mail Privacy Protection) count.
+	Kind string `json:"kind" enum:"opened,clicked,replied,field,tag,list,event,bought_product,sms_consent,sms_clicked,sms_replied,placed_order"`
+	// Opened / clicked / replied: the email step (empty = any email in this
+	// flow), the window and whether machine opens (Apple Mail Privacy
+	// Protection) count.
 	Step        string              `json:"step,omitempty" maxLength:"40"`
 	Within      *AutomationDuration `json:"within,omitempty"`
 	HumanOnly   bool                `json:"humanOnly,omitempty"`
@@ -645,6 +667,7 @@ var (
 	mProblemSendWindow              = msg("problem.sendWindow")
 	mProblemCondition               = msg("problem.condition")
 	mProblemOpenClickWindow         = msg("problem.openClickWindow")
+	mProblemReplyWindow             = msg("problem.replyWindow")
 	mProblemPickField               = msg("problem.pickField")
 	mProblemConditionFieldDeleted   = msg("problem.conditionFieldDeleted")
 	mProblemFieldOp                 = msg("problem.fieldOp")
@@ -884,6 +907,10 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		case "opened", "clicked":
 			if n.Type == NodeBranch && (c.Within == nil || c.Within.Amount <= 0) {
 				bad("invalid_window", txt(mProblemOpenClickWindow))
+			}
+		case CondReplied:
+			if n.Type == NodeBranch && (c.Within == nil || c.Within.Amount <= 0) {
+				bad("invalid_window", txt(mProblemReplyWindow))
 			}
 		case "field":
 			if c.Field == "" {

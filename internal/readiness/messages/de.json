@@ -1077,5 +1077,13 @@
   "tech.allOK": "HTTP 200 von {count, plural, one {dem Link} other {allen # Links}}",
   "tech.error": "Fehler",
   "tech.sourceHostRepute": "Stündliche Prüfung von HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}",
-  "tech.sourceBuiltin": "Eigene Prüfung von ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}"
+  "tech.sourceBuiltin": "Eigene Prüfung von ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · gelistet seit {day}}}",
+  "compliance.mailtoReceived": "Abmelde-E-Mails werden von ReputeCast verarbeitet",
+  "compliance.mailtoReceivedDetail": "Der E-Mail-Empfang ist aktiv, daher liegt die mailto:-Adresse auf {domain} und ReputeCast wendet diese Abmeldungen innerhalb einer Minute an. Niemand muss Leser von Hand entfernen.",
+  "compliance.mailtoReceivedShort": "Abmelde-E-Mails verarbeitet",
+  "compliance.replyInbox": "Antworten gehen an ReputeCast, aber der E-Mail-Empfang schlägt fehl",
+  "compliance.replyInboxDetail": "Die Antwortverarbeitung ist „Antworten im ReputeCast-Posteingang behalten“, und E-Mails empfangen hat noch keine erste Nachricht erhalten. Antworten auf diesen Versand erreichen Zielgruppe › Antworten erst danach. Senden Sie eine Testnachricht unter Einstellungen › Absender, oder leiten Sie Antworten stattdessen an {replyTo} weiter.",
+  "compliance.replyInboxFailing": "Die Antwortverarbeitung ist „Antworten im ReputeCast-Posteingang behalten“, und E-Mails empfangen meldet Gestört: {detail} Antworten auf diesen Versand erreichen Zielgruppe › Antworten erst, wenn das behoben ist. Beheben Sie es, oder leiten Sie Antworten stattdessen an {replyTo} weiter.",
+  "label.replies": "Antworten",
+  "fix.openSettings": "Einstellungen öffnen"
 }

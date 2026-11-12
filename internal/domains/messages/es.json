@@ -70,5 +70,6 @@
   "problem.cloudflareUnreachable": "no se pudo conectar con Cloudflare: {error}. No se cambió nada más.",
   "problem.cloudflareAnswered": "Cloudflare respondió {status}{hasMessage, select, yes {: {message}} other {}}. No se cambió nada más.",
   "problem.cloudflareNoZone": "este token no ve ninguna zona de Cloudflare para {domain}. No se cambió nada más.",
-  "problem.cloudflareFailed": "{error}. No se cambió nada más."
+  "problem.cloudflareFailed": "{error}. No se cambió nada más.",
+  "problem.receiveFirst": "Configura primero Recibir correo: las respuestas irían a una dirección que ReputeCast aún no lee."
 }

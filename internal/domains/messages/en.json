@@ -70,5 +70,6 @@
   "problem.cloudflareUnreachable": { "message": "couldn't reach Cloudflare: {error}. Nothing else was changed.", "note": "error: the network error, in English" },
   "problem.cloudflareAnswered": { "message": "Cloudflare answered {status}{hasMessage, select, yes {: {message}} other {}}. Nothing else was changed.", "note": "status: an HTTP status; message: Cloudflare's own words, in English" },
   "problem.cloudflareNoZone": "no Cloudflare zone for {domain} is visible to this token. Nothing else was changed.",
-  "problem.cloudflareFailed": { "message": "{error}. Nothing else was changed.", "note": "error: what went wrong talking to Cloudflare, in English" }
+  "problem.cloudflareFailed": { "message": "{error}. Nothing else was changed.", "note": "error: what went wrong talking to Cloudflare, in English" },
+  "problem.receiveFirst": "Set up Receiving mail first: replies would go to an address ReputeCast doesn't read yet."
 }

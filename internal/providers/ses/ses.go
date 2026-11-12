@@ -102,6 +102,7 @@ func Descriptor() providers.Descriptor {
 			EventQueue:      "SQS",
 			Tenants:         true,
 			ReportsIPs:      true,
+			Inbound:         providers.InboundManual,
 			// Pricing, DedicatedIPs and every other text people read (the
 			// terms' note, the Adapters tab's words, the fields' labels and
 			// hints) are in messages/en.json: WithMessages fills them.

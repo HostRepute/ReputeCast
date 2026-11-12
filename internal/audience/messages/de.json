@@ -113,6 +113,8 @@
 
   "source.preference_center": "Präferenzcenter",
   "source.one_click": "List-Unsubscribe mit einem Klick",
+  "source.mailto": "Abmelde-E-Mail (mailto:)",
+  "source.reply": "Posteingang für Antworten",
   "source.repermission": "Re-Permission-E-Mail",
   "source.team": "Team",
   "source.api": "API",
@@ -122,6 +124,8 @@
 
   "suppressionSource.preference_center": "Präferenzcenter",
   "suppressionSource.one_click": "List-Unsubscribe mit einem Klick",
+  "suppressionSource.mailto": "Abmelde-E-Mail (mailto:)",
+  "suppressionSource.reply": "Posteingang für Antworten",
   "suppressionSource.bounce_mailbox": "SMTP-Bounce-Postfach",
   "suppressionSource.api": "API",
   "suppressionSource.import": "Import aus {importer}",
@@ -155,6 +159,8 @@
   "detail.pauseLifted": "Pause aufgehoben",
   "context.unsubscribePage": "Abmeldeseite",
   "context.oneClick": "List-Unsubscribe mit einem Klick",
+  "context.mailto": "Abmelde-E-Mail (mailto:)",
+  "context.reply": "Posteingang für Antworten",
   "context.repermissionExpired": "Keine Antwort auf die Re-Permission-E-Mail nach {days, plural, one {# Tag} other {# Tagen}}",
   "context.csvUpload": "CSV-Upload · {file}",
   "job.exportTitle": "Export · {count, plural, one {# Kontakt} other {# Kontakte}}",

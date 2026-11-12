@@ -1,0 +1,290 @@
+/*
+ * Audience › Replies (M58; Replies, RepliesStates). Values copied from the
+ * boards' .rpanes, .rp-list, .rrow, .fchip, .isearch and .rtext, prefixed so
+ * they never meet another screen's classes.
+ */
+@layer components {
+  .rp-tools {
+    display: flex;
+    gap: 10px 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .rp-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .rp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    cursor: pointer;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+  .rp-chip:hover {
+    background: var(--hover);
+  }
+  .rp-chip[aria-pressed='true'] {
+    background: var(--inverse);
+    border-color: var(--inverse);
+    color: var(--on-strong);
+  }
+  .rp-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--line-input);
+    border-radius: 8px;
+    background: var(--field);
+    box-sizing: border-box;
+    width: 300px;
+    max-width: 100%;
+    margin-left: auto;
+  }
+  .rp-search svg {
+    color: var(--ink-3);
+    flex: none;
+  }
+  .rp-search input {
+    border: 0;
+    outline: 0;
+    font: inherit;
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+    background: none;
+    color: var(--ink);
+    align-self: stretch;
+  }
+  .rp-search:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .rpanes {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .rp-list {
+    flex: 0 0 400px;
+    max-width: 400px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .rp-detail {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .rp-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line-2);
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+  .rp-bulk {
+    display: flex;
+    gap: 8px 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--accent-tint);
+    border-bottom: 1px solid var(--accent-line);
+  }
+  .rrow {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border-top: 1px solid var(--line-2);
+  }
+  .rp-head + .rrow,
+  .rp-bulk + .rp-head + .rrow {
+    border-top: 0;
+  }
+  .rrow.on {
+    background: var(--accent-tint);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .rck {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 32px;
+    flex: none;
+    cursor: pointer;
+  }
+  .rrow > a.rl {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .rrow > a.rl:hover {
+    color: var(--ink);
+  }
+  .rrow .r1 {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  .rrow .tr {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .rrow .rn {
+    font-weight: 600;
+    flex: 0 1 auto;
+  }
+  .rrow .re {
+    flex: 1 1 0;
+    font-size: 12px;
+  }
+  .rrow .ra {
+    flex: none;
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .rrow .rs {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .rrow .rv {
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .rrow .rm {
+    display: flex;
+    gap: 4px 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 2px;
+  }
+  .rrow .rm .badge {
+    height: 20px;
+    font-size: 11px;
+  }
+  .rtext {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 72ch;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .rcontact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+  .rp-detail kbd,
+  .rp-keys kbd {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    padding: 1px 6px;
+    border: 1px solid var(--line-strong);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--ground-2);
+  }
+}
+
+@media (min-width: 1101px) {
+  /* The board's content: 20 px above and below, 14 px between the parts. */
+  .content.rp-main {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 1100px) {
+  /* The list takes the width; a reply opens as its own view with Back. */
+  .rpanes .rp-list {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .rpanes.rp-has-detail .rp-list {
+    display: none;
+  }
+  .rpanes:not(.rp-has-detail) .rp-detail {
+    display: none;
+  }
+  .rpanes .rrow.on {
+    background: none;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .rp-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    max-width: 100%;
+  }
+  .rp-chips .rp-chip {
+    flex: none;
+    height: 44px;
+  }
+  .rp-search {
+    width: 100%;
+    margin-left: 0;
+    height: 44px;
+  }
+  .rck {
+    width: 44px;
+    height: 44px;
+    margin: -6px -8px -6px -12px;
+  }
+  .rp-head .rck {
+    margin: 0 -8px 0 -12px;
+  }
+  .rrow .ra {
+    font-size: 11.5px;
+  }
+  .rp-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .rp-actions .btn {
+    min-height: 44px;
+  }
+  .rp-detail .lnk {
+    min-height: 44px;
+  }
+}

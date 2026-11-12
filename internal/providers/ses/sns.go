@@ -141,6 +141,12 @@ func (p *Provider) verify(ctx context.Context, e Envelope) error {
 	if !slices.Contains(p.s.TopicARNs, e.TopicArn) {
 		return fmt.Errorf("%w: SNS topic %q isn't this connection's", providers.ErrBadSignature, e.TopicArn)
 	}
+	return p.verifySignature(ctx, e)
+}
+
+// verifySignature checks that SNS signed the envelope; the caller checks
+// the topic.
+func (p *Provider) verifySignature(ctx context.Context, e Envelope) error {
 	sig, err := base64.StdEncoding.DecodeString(e.Signature)
 	if err != nil || len(sig) == 0 {
 		return providers.ErrBadSignature
@@ -193,32 +199,38 @@ func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []by
 func (p *Provider) Handshake(ctx context.Context, _ *http.Request, body []byte) (bool, []byte, error) {
 	e, err := parseEnvelope(body)
 	if err != nil || e.Type == "Notification" {
-		return false, nil, nil
+		return false, nil, nil //nolint:nilerr // not a handshake: ParseWebhook judges the body
 	}
 	if err := p.verify(ctx, e); err != nil {
 		return true, nil, err
 	}
+	return true, nil, p.confirm(ctx, e)
+}
+
+// confirm answers a verified SubscriptionConfirmation by visiting its
+// SubscribeURL; an UnsubscribeConfirmation needs nothing.
+func (p *Provider) confirm(ctx context.Context, e Envelope) error {
 	if e.Type != "SubscriptionConfirmation" {
-		return true, nil, nil // UnsubscribeConfirmation: nothing to do
+		return nil
 	}
 	u, err := url.Parse(e.SubscribeURL)
 	if err != nil || u.Scheme != "https" || !snsHost.MatchString(u.Hostname()) {
-		return true, nil, fmt.Errorf("%w: SubscribeURL is not an SNS URL", providers.ErrBadSignature)
+		return fmt.Errorf("%w: SubscribeURL is not an SNS URL", providers.ErrBadSignature)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, e.SubscribeURL, nil)
 	if err != nil {
-		return true, nil, err
+		return err
 	}
 	resp, err := p.http.Do(req)
 	if err != nil {
-		return true, nil, err
+		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
 	if resp.StatusCode != http.StatusOK {
-		return true, nil, fmt.Errorf("confirm SNS subscription: HTTP %d", resp.StatusCode)
+		return fmt.Errorf("confirm SNS subscription: HTTP %d", resp.StatusCode)
 	}
-	return true, nil, nil
+	return nil
 }
 
 // sesEvent is an SES event (configuration-set event publishing) or a

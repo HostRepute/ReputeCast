@@ -502,7 +502,19 @@ type ComplianceFacts struct {
 	// address, else the From address), as the send writes it: "" unless
 	// the workspace includes one (Settings › Senders, off by default).
 	Mailto string
-	HTTPS  bool
+	// Receiving says ReputeCast receives the workspace's mail (M58): the
+	// header's mailto address is then an unsubscribe address on the
+	// receiving domain (InboundDomain; a mailbox route's addresses start
+	// with InboundLocal and "+"), and ReputeCast applies what arrives
+	// there. Inbox says replies are kept in ReputeCast's inbox (reply
+	// handling "Keep replies in ReputeCast inbox"), which needs Receiving.
+	Receiving, Inbox            bool
+	InboundDomain, InboundLocal string
+	// InboundFailing says the route stopped receiving, and InboundDetail
+	// is what Receiving mail says about it.
+	InboundFailing bool
+	InboundDetail  Text
+	HTTPS          bool
 	// ComplaintRate is the route's 7-day complaint rate in percent.
 	ComplaintRate *float64
 	// Gmail is Gmail Postmaster Tools' latest day for the sending domain
@@ -536,3 +548,15 @@ const (
 	PostmasterFloor     = 98.0
 	PostmasterSpamLimit = 0.3
 )
+
+// InboundFacts is how the workspace receives mail (M58), for
+// Service.Inbound: whether its route receives, whether replies are kept in
+// ReputeCast's inbox, the route's domain and a mailbox route's local part
+// ("" for a provider's), and, when the route is failing, what Receiving
+// mail says about it.
+type InboundFacts struct {
+	Receiving, Inbox bool
+	Domain, Local    string
+	Failing          bool
+	Detail           Text
+}

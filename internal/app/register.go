@@ -78,7 +78,7 @@ func countIngest(next http.Handler) http.Handler {
 		next.ServeHTTP(ww, r)
 		channel := "email"
 		switch seg, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/hooks/"), "/"); seg {
-		case "sms", "whatsapp", "stripe":
+		case "sms", "whatsapp", "stripe", "inbound":
 			channel = seg
 		case "shopify", "woocommerce":
 			channel = "store"

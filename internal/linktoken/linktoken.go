@@ -154,8 +154,25 @@ func (s *Signer) Verify(token string, want Kind) (Claims, error) {
 // Digest is a keyed hash of parts that must not be reversible, such as the
 // daily key that counts a referral link's visits once per network and
 // browser without cookies. It is stable for the instance.
-func (s *Signer) Digest(parts ...[]byte) []byte {
-	m := hmac.New(sha256.New, append([]byte("digest:"), s.key...))
+func (s *Signer) Digest(parts ...[]byte) []byte { return digestWith(s.key, parts) }
+
+// VerifyDigest reports whether sum is Digest(parts...), or its first
+// len(sum) bytes (at least 8), under the instance key or a previous one, so
+// a digest handed out before a key rotation (an inbound reply address)
+// still verifies. The comparison takes constant time.
+func (s *Signer) VerifyDigest(sum []byte, parts ...[]byte) bool {
+	if len(sum) < 8 || len(sum) > sha256.Size {
+		return false
+	}
+	ok := hmac.Equal(sum, digestWith(s.key, parts)[:len(sum)])
+	for _, k := range s.previous {
+		ok = hmac.Equal(sum, digestWith(k, parts)[:len(sum)]) || ok
+	}
+	return ok
+}
+
+func digestWith(key []byte, parts [][]byte) []byte {
+	m := hmac.New(sha256.New, append([]byte("digest:"), key...))
 	for _, p := range parts {
 		m.Write(binary.AppendUvarint(nil, uint64(len(p))))
 		m.Write(p)

@@ -94,4 +94,6 @@ export default translate(mg, {
   noTrigger: 'Pas encore de déclencheur',
   pathYes: 'Oui',
   pathNo: 'Non',
+  condReplied: "a répondu à {step}",
+  condRepliedWithin: "a répondu à {step} sous {duration}",
 })

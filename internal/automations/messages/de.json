@@ -504,5 +504,13 @@
   "webinar.hourBefore.subject": "In einer Stunde geht es los: {title}",
   "webinar.hourBefore.preheader": "Nehmen Sie über den Link unten teil.",
   "webinar.hourBefore.heading": "In einer Stunde geht es los",
-  "webinar.hourBefore.body": "{title} beginnt in einer Stunde."
+  "webinar.hourBefore.body": "{title} beginnt in einer Stunde.",
+  "trigger.exitOnReply": "Endet, wenn der Kontakt auf eine E-Mail dieses Ablaufs antwortet",
+  "trigger.noExitOnReply": "Endet nicht, wenn der Kontakt auf eine E-Mail dieses Ablaufs antwortet",
+  "cond.replied": "{step} beantwortet",
+  "cond.repliedWithin": "{step} beantwortet (Frist: {duration})",
+  "goal.replied": "Auf eine E-Mail geantwortet",
+  "problem.replyWindow": "Legen Sie fest, wie lange auf die Antwort gewartet wird.",
+  "diff.triggerReply": "Auslöser: {change}",
+  "diff.triggerReplyDetail": "Gilt für die Kontakte auf v{version}, sobald sie live ist; Kontakte, die auf einer früheren Version bleiben, behalten deren Einstellung."
 }

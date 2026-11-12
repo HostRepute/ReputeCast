@@ -192,4 +192,5 @@ export default translate(mp, {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'Chưa có lệnh gọi nào.',
+  condReplied: "Đã trả lời email",
 })

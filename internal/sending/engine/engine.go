@@ -89,6 +89,10 @@ type Engine struct {
 	// StreamHeartbeat is how often the live stream says it's alive while
 	// nothing changes (15 s when zero; review GS-14).
 	StreamHeartbeat time.Duration
+	// Inbound says how a workspace receives mail (internal/inbound, M58):
+	// its route, whether it receives and whether replies stay in the
+	// inbox; nil, or a nil box, means it doesn't.
+	Inbound func(ctx context.Context, workspaceID uuid.UUID) (*InboundBox, error)
 	// Seeds sends a canary's copies to the workspace's seed mailboxes and
 	// reads where they landed (internal/placement; review GS-10); nil
 	// leaves the seed gate out.

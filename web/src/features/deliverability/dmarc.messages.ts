@@ -64,4 +64,9 @@ export const md = defineMessages('deliverability.dmarc', {
   uploadDescription: "The .xml file a mailbox provider sent to your rua= address, or the .xml.gz or .zip it came in. Only the report's counts are stored.",
   upload: 'Upload',
   reportFile: 'Report file',
+  collectAt: "Reports arrive at {address} · last one {when}",
+  collectAtNone: "Reports arrive at {address}",
+  collectTitle: "Collect reports in ReputeCast",
+  collectLine: "Receive DMARC aggregate reports at an address on your receiving domain.",
+  collectSetUp: "Set up receiving",
 })

@@ -113,6 +113,8 @@
 
   "source.preference_center": { "message": "the preference center", "note": "where a consent change came from, inside a sentence: Unsubscribed in the preference center" },
   "source.one_click": "List-Unsubscribe one-click",
+  "source.mailto": "Unsubscribe email (mailto:)",
+  "source.reply": "Replies inbox",
   "source.repermission": "re-permission email",
   "source.team": "the team",
   "source.api": "the API",
@@ -122,6 +124,8 @@
 
   "suppressionSource.preference_center": "Preference center",
   "suppressionSource.one_click": "List-Unsubscribe one-click",
+  "suppressionSource.mailto": "Unsubscribe email (mailto:)",
+  "suppressionSource.reply": "Replies inbox",
   "suppressionSource.bounce_mailbox": "SMTP bounce mailbox",
   "suppressionSource.api": "API",
   "suppressionSource.import": { "message": "{importer} import", "note": "importer: Brevo, Mailchimp, CSV… (a name)" },
@@ -155,6 +159,8 @@
   "detail.pauseLifted": "pause lifted",
   "context.unsubscribePage": "Unsubscribe page",
   "context.oneClick": "List-Unsubscribe one-click",
+  "context.mailto": "Unsubscribe email (mailto:)",
+  "context.reply": "Replies inbox",
   "context.repermissionExpired": { "message": "No answer to the re-permission email after {days, plural, one {# day} other {# days}}", "note": "why an imported address was suppressed: it never confirmed the re-permission email" },
   "context.csvUpload": { "message": "CSV upload · {file}", "note": "file: the uploaded file's name" },
   "job.exportTitle": "Export · {count, plural, one {# contact} other {# contacts}}",

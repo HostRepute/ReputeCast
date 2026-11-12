@@ -273,7 +273,7 @@ type DeliverabilitySNDS struct {
 
 // DeliverabilityDMARCSummary is the DMARC aggregate report summary, last 7 days.
 type DeliverabilityDMARCSummary struct {
-	Via      string `json:"via" enum:"hostrepute,upload,none"`
+	Via      string `json:"via" enum:"hostrepute,inbound,upload,none"`
 	Days     int    `json:"days"`
 	Rua      string `json:"rua,omitempty"`
 	Domain   string `json:"domain,omitempty"`
@@ -285,6 +285,34 @@ type DeliverabilityDMARCSummary struct {
 	Sources  []DeliverabilityDMARCSource `json:"sources"`
 	// Unknown is the largest source that isn't one of the providers.
 	Unknown *DeliverabilityDMARCSource `json:"unknown,omitempty"`
+	// Collect is where reports arrive by email while ReputeCast receives
+	// mail (M58); absent when it doesn't.
+	Collect *DeliverabilityDMARCCollect `json:"collect,omitempty"`
+}
+
+// DeliverabilityDMARCCollect is the address on the receiving domain that
+// collects DMARC aggregate reports, and the records it needs (M58).
+type DeliverabilityDMARCCollect struct {
+	Address string `json:"address" doc:"dmarc@reply.news.acme.io, for the rua of DMARC records"`
+	// LastReceivedAt is when the last report arrived there.
+	LastReceivedAt *time.Time `json:"lastReceivedAt,omitempty"`
+	// ExternalRecords let the receiving domain take the reports of sending
+	// domains under another organizational domain (RFC 7489 §7.1): one per
+	// such sending domain, with what the last check found.
+	ExternalRecords []DeliverabilityDMARCExternalRecord `json:"externalRecords"`
+}
+
+// DeliverabilityDMARCExternalRecord is an external report destination
+// record: "news.acme.com._report._dmarc.reply.news.acme.io TXT v=DMARC1".
+type DeliverabilityDMARCExternalRecord struct {
+	// Domain is the sending domain the record is for.
+	Domain string `json:"domain"`
+	Name   string `json:"name"`
+	Type   string `json:"type" enum:"TXT"`
+	Value  string `json:"value"`
+	// Status is what the last check found; unknown before the first check
+	// or when DNS didn't answer.
+	Status string `json:"status" enum:"found,missing,unknown"`
 }
 
 // DeliverabilityDMARCSource is one sending source in the reports.

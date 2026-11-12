@@ -1077,5 +1077,13 @@
   "tech.allOK": "HTTP 200 de {count, plural, one {el enlace} other {los # enlaces}}",
   "tech.error": "Error",
   "tech.sourceHostRepute": "Comprobación horaria de HostRepute{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}",
-  "tech.sourceBuiltin": "Comprobación propia de ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}"
+  "tech.sourceBuiltin": "Comprobación propia de ReputeCast{checked, select, yes {, {time}} other {}}{since, select, none {} other { · en la lista desde el {day}}}",
+  "compliance.mailtoReceived": "ReputeCast procesa los correos de baja",
+  "compliance.mailtoReceivedDetail": "La recepción de correo está activada, así que la dirección mailto: está en {domain} y ReputeCast aplica esas bajas en menos de un minuto. Nadie tiene que quitar lectores a mano.",
+  "compliance.mailtoReceivedShort": "correos de baja procesados",
+  "compliance.replyInbox": "Las respuestas van a ReputeCast, pero la recepción está fallando",
+  "compliance.replyInboxDetail": "La gestión de respuestas es «Guardar las respuestas en la bandeja de ReputeCast», y Recibir correo aún no ha recibido su primer mensaje. Las respuestas a este envío no llegarán a Audiencia › Respuestas hasta entonces. Envía un mensaje de prueba desde Configuración › Remitentes, o reenvía las respuestas a {replyTo}.",
+  "compliance.replyInboxFailing": "La gestión de respuestas es «Guardar las respuestas en la bandeja de ReputeCast», y Recibir correo indica Con fallos: {detail} Las respuestas a este envío no llegarán a Audiencia › Respuestas hasta que se arregle. Arréglalo, o reenvía las respuestas a {replyTo}.",
+  "label.replies": "Respuestas",
+  "fix.openSettings": "Abrir Configuración"
 }

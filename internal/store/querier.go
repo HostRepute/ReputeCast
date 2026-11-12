@@ -456,6 +456,10 @@ type Querier interface {
 	// The contact paused email on the preference center (30 or 90 days), as
 	// campaigns read it (sending.sql's audience).
 	AutomationContactPaused(ctx context.Context, arg AutomationContactPausedParams) (bool, error)
+	// A contact's runs in progress in a flow, locked, with their version's
+	// graph: a reply from them ends the runs whose version stops on reply
+	// (M58).
+	AutomationContactRunsForReply(ctx context.Context, arg AutomationContactRunsForReplyParams) ([]AutomationContactRunsForReplyRow, error)
 	AutomationContactSentEvent(ctx context.Context, arg AutomationContactSentEventParams) (bool, error)
 	AutomationContactSuppressed(ctx context.Context, arg AutomationContactSuppressedParams) (bool, error)
 	// The time zones a workspace's contacts have ('' for none).
@@ -471,8 +475,9 @@ type Querier interface {
 	// default. The sender's sending domain, and its address for a sender whose
 	// domain is gone; empty for none.
 	AutomationEmailSenders(ctx context.Context, arg AutomationEmailSendersParams) ([]AutomationEmailSendersRow, error)
-	// Whether the contact opened or clicked any email of this flow since a time
-	// (a person's settled clicks only, review AN-2).
+	// Whether the contact opened, clicked or replied to any email of this flow
+	// since a time (a person's settled clicks only, review AN-2; a person's
+	// replies only, M58).
 	AutomationEngaged(ctx context.Context, arg AutomationEngagedParams) (bool, error)
 	AutomationEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	AutomationFields(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFieldsRow, error)
@@ -480,8 +485,9 @@ type Querier interface {
 	// Runs of a version whose contact bought the product (any product when
 	// empty) since entering, not refunded in full.
 	AutomationGoalRunsBought(ctx context.Context, arg AutomationGoalRunsBoughtParams) ([]uuid.UUID, error)
-	// Runs whose contact opened or clicked an email of this flow since entering
-	// (a person's settled clicks only, review AN-2).
+	// Runs whose contact opened, clicked or replied to an email of this flow
+	// since entering (a person's settled clicks only, review AN-2; a person's
+	// replies only, M58).
 	AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error)
 	AutomationGoalRunsEvent(ctx context.Context, arg AutomationGoalRunsEventParams) ([]AutomationGoalRunsEventRow, error)
 	AutomationGoalRunsInList(ctx context.Context, arg AutomationGoalRunsInListParams) ([]AutomationGoalRunsInListRow, error)
@@ -499,8 +505,9 @@ type Querier interface {
 	// Campaign and automation emails a contact got since a time, and the
 	// oldest of them (AT-9).
 	AutomationMarketingSent(ctx context.Context, arg AutomationMarketingSentParams) (AutomationMarketingSentRow, error)
-	// Whether an email was opened or clicked: clicks only once they settled as
-	// a person's (review AN-2).
+	// Whether an email was opened, clicked or replied to: clicks only once they
+	// settled as a person's (review AN-2), replies only a person's, not
+	// auto-replies or spam (M58).
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
 	// When an automation email actually left (NULL while it is queued or held).
@@ -1865,6 +1872,58 @@ type Querier interface {
 	ImportJobs(ctx context.Context, arg ImportJobsParams) ([]ImportJobsRow, error)
 	ImportRowsAfter(ctx context.Context, arg ImportRowsAfterParams) ([]ImportRow, error)
 	ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([]ImportStatusCountsRow, error)
+	// A contact's replies for the timeline, newest first.
+	InboundContactActivity(ctx context.Context, arg InboundContactActivityParams) ([]InboundContactActivityRow, error)
+	InboundContactActivityCount(ctx context.Context, arg InboundContactActivityCountParams) (int64, error)
+	InboundContactCount(ctx context.Context, arg InboundContactCountParams) (int64, error)
+	InboundEraseContact(ctx context.Context, arg InboundEraseContactParams) (int64, error)
+	// Erasure: what arrived for a contact's messages (by contact or address).
+	InboundEraseContactRaw(ctx context.Context, arg InboundEraseContactRawParams) (int64, error)
+	InboundExportContact(ctx context.Context, arg InboundExportContactParams) ([]InboundExportContactRow, error)
+	InboundFreshReplies(ctx context.Context, arg InboundFreshRepliesParams) (int64, error)
+	InboundLastDMARC(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
+	// A message of ours by the Message-ID it went out with (<uuid@domain>).
+	InboundMessageByHeader(ctx context.Context, arg InboundMessageByHeaderParams) (InboundMessageByHeaderRow, error)
+	InboundMessageInsert(ctx context.Context, arg InboundMessageInsertParams) (uuid.UUID, error)
+	InboundMessagesPurge(ctx context.Context, before time.Time) (int64, error)
+	// The message of ours a tagged address names, in the workspace.
+	InboundOurMessage(ctx context.Context, arg InboundOurMessageParams) (InboundOurMessageRow, error)
+	InboundRawGet(ctx context.Context, id uuid.UUID) (InboundRaw, error)
+	InboundRawInsert(ctx context.Context, arg InboundRawInsertParams) error
+	InboundRawProcessed(ctx context.Context, arg InboundRawProcessedParams) error
+	InboundRawPurge(ctx context.Context, before time.Time) (int64, error)
+	// Verified rows still waiting after a while: their job was lost.
+	InboundRawStale(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	// Whether replies reach ReputeCast's inbox: the workspace has a receiving
+	// route and keeps replies in it (stop on reply needs both).
+	InboundRepliesInbox(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	InboundRouteByID(ctx context.Context, id uuid.UUID) (InboundRoute, error)
+	InboundRouteByTokenHash(ctx context.Context, hookTokenHash []byte) (InboundRoute, error)
+	// Claims a replies notice: only the process that moves notified_at sends it.
+	InboundRouteClaimNotice(ctx context.Context, arg InboundRouteClaimNoticeParams) (uuid.UUID, error)
+	InboundRouteDelete(ctx context.Context, workspaceID uuid.UUID) (InboundRoute, error)
+	// Whether another workspace receives for the domain through a provider.
+	InboundRouteDomainTaken(ctx context.Context, arg InboundRouteDomainTakenParams) (bool, error)
+	InboundRouteFailing(ctx context.Context, arg InboundRouteFailingParams) error
+	// A provider route whose MX moved: failing, unless it received since the
+	// check began.
+	InboundRouteFailingFor(ctx context.Context, arg InboundRouteFailingForParams) error
+	// Receiving mail (M58): inbound routes, what arrives, and the replies inbox.
+	InboundRouteGet(ctx context.Context, workspaceID uuid.UUID) (InboundRoute, error)
+	// Claims the one notice a failing route sends until it receives again.
+	InboundRouteMarkFailingNotified(ctx context.Context, arg InboundRouteMarkFailingNotifiedParams) (uuid.UUID, error)
+	InboundRoutePolled(ctx context.Context, arg InboundRoutePolledParams) error
+	// A message of any kind arrived: the route receives.
+	InboundRouteReceived(ctx context.Context, arg InboundRouteReceivedParams) error
+	InboundRouteRegistered(ctx context.Context, arg InboundRouteRegisteredParams) error
+	InboundRouteTestReceived(ctx context.Context, arg InboundRouteTestReceivedParams) error
+	InboundRouteTestSent(ctx context.Context, arg InboundRouteTestSentParams) error
+	InboundRouteUpsert(ctx context.Context, arg InboundRouteUpsertParams) (InboundRoute, error)
+	InboundRoutesMailbox(ctx context.Context) ([]InboundRoute, error)
+	InboundRoutesProvider(ctx context.Context) ([]InboundRoute, error)
+	// Routes that received human replies since they last told anyone, and
+	// last told nobody since the cutoff (15 minutes ago).
+	InboundRoutesWithFreshReplies(ctx context.Context, cutoff time.Time) ([]InboundRoutesWithFreshRepliesRow, error)
 	IngestAddSuppression(ctx context.Context, arg IngestAddSuppressionParams) (uuid.UUID, error)
 	// Ties the one-time token of a webhook signature to the payload it first
 	// came with (both hashed), and returns the payload it is tied to: the one
@@ -3403,6 +3462,11 @@ type Querier interface {
 	// A refresh as a diff (review 2026-11 AU-16): members that stay keep their
 	// entered_at; those who leave and those who come in each get an event.
 	ReplaceSegmentMembers(ctx context.Context, arg ReplaceSegmentMembersParams) (ReplaceSegmentMembersRow, error)
+	RepliesCounts(ctx context.Context, arg RepliesCountsParams) (RepliesCountsRow, error)
+	// One view of the replies inbox, newest first, keyset-paged.
+	RepliesList(ctx context.Context, arg RepliesListParams) ([]RepliesListRow, error)
+	RepliesSetStatus(ctx context.Context, arg RepliesSetStatusParams) ([]uuid.UUID, error)
+	ReplyGet(ctx context.Context, arg ReplyGetParams) (ReplyGetRow, error)
 	// A campaign's bounces for the sender's reputation or policy by mailbox
 	// provider and sending provider, with the provider's addresses (the
 	// report's insights, review AN-15).
@@ -5143,10 +5207,13 @@ type Querier interface {
 	// waiting for approval and scheduled ones ("used by", the warning before a
 	// segment, list or field is deleted, and the blocks Scoring lists).
 	VisibilityUnsent(ctx context.Context, workspaceID uuid.UUID) ([]VisibilityUnsentRow, error)
-	// Runs waiting at a branch for an open or click: wake them as soon as the
-	// email they wait on has one, instead of at the end of the window. A click
-	// is a person's once it settled as one (review AN-2): a scanner's click is
-	// filed as a bot's, and one still waiting to settle wakes nobody yet.
+	// Runs waiting at a branch for an open, a click or a reply: wake them as
+	// soon as the email they wait on has one, instead of at the end of the
+	// window. A click is a person's once it settled as one (review AN-2): a
+	// scanner's click is filed as a bot's, and one still waiting to settle
+	// wakes nobody yet. A reply is a person's (not an auto-reply or spam), to
+	// the email the run waits on, or to any email of the flow since the
+	// contact entered when the branch names none (M58).
 	WakeAutomationBranchRuns(ctx context.Context, now *time.Time) (int64, error)
 	WarmupActiveForProvider(ctx context.Context, providerID uuid.UUID) (WarmupPlan, error)
 	// Every plan that is still running (daily warm-up job).

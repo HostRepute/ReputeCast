@@ -156,6 +156,10 @@ var (
 	mContextRepermExpired = msgs.M("context.repermissionExpired")
 	mContextOneClick      = msgs.M("context.oneClick")
 	mContextCSVUpload     = msgs.M("context.csvUpload")
+	// Unsubscribes ReputeCast received by email, and from the replies
+	// inbox (M58).
+	mContextMailto = msgs.M("context.mailto")
+	mContextReply  = msgs.M("context.reply")
 )
 
 // lookup writes a message chosen by a key known at run time, or english

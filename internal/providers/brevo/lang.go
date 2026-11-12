@@ -16,7 +16,10 @@ var messagesFS embed.FS
 
 var msgs = i18n.MustLoad(messagesFS, "providers.brevo")
 
-var mAccount = msgs.M("account")
+var (
+	mAccount       = msgs.M("account")
+	mInboundDomain = msgs.M("inbound.step.domain")
+)
 
 // say returns a message's English and the message, kept for its readers.
 func say(m i18n.Msg, args i18n.Args) (string, i18n.Text) {

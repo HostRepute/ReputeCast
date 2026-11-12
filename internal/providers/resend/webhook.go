@@ -30,14 +30,19 @@ var now = time.Now
 // webhook's whsec_ signing secret. The secret is the one entered at connect
 // time, or read from Resend's API for the webhook pointing at this URL.
 func (p *Provider) VerifyWebhook(ctx context.Context, r *http.Request, body []byte) error {
-	check := func(secret string) error { return webhookauth.Standard(secret, r.Header, body, now()) }
 	if s := strings.TrimSpace(p.c.WebhookSigningSecret); s != "" {
-		return check(s)
+		return webhookauth.Standard(s, r.Header, body, now())
 	}
-	path := r.URL.Path
+	return p.verifyFromAPI(ctx, r, body, r.URL.Path)
+}
+
+// verifyFromAPI checks a request's signature with the signing secret of
+// the webhook posting to path, read from Resend's API.
+func (p *Provider) verifyFromAPI(ctx context.Context, r *http.Request, body []byte, path string) error {
 	if path == "" || path == "/" {
 		return fmt.Errorf("%w: no signing secret is configured", providers.ErrBadSignature)
 	}
+	check := func(secret string) error { return webhookauth.Standard(secret, r.Header, body, now()) }
 	return secrets.Verify(ctx, p.secretKey(path), func(ctx context.Context) (string, error) { return p.fetchSigningSecret(ctx, path) }, check)
 }
 

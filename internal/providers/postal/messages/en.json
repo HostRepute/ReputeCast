@@ -12,5 +12,9 @@
 
   "account": { "message": "Postal{hasVersion, select, yes { {version}} other {}} · reachable", "note": "the server's standing on the provider card; version: Postal's version (3.3.4)" },
   "error.badKey": "The API key was not accepted.",
-  "error.suspended": "The Postal mail server is suspended."
+  "error.suspended": "The Postal mail server is suspended.",
+
+  "inbound.step.endpoint": { "message": "In Postal, open the mail server's Routing › HTTP Endpoints and add an endpoint with the URL {url}, the encoding Sent in the body as JSON and the format Delivered as the raw message.", "note": "M58: a setup step of Receiving mail; Routing › HTTP Endpoints, Sent in the body as JSON and Delivered as the raw message are Postal's own words; url: ReputeCast's inbound address" },
+  "inbound.step.route": { "message": "Under Routing › Routes, add a route with the name * and the domain {domain}, with that HTTP endpoint as its endpoint. The domain must be one of the mail server's verified domains.", "note": "M58: a setup step; Routing › Routes is Postal's menu; * means every address of the domain; domain: reply.news.acme.io" },
+  "inbound.step.mx": { "message": "Point the MX record of {domain} at your Postal server, {host}, unless your Postal installation lists other MX hosts in its dns.mx_records setting.", "note": "M58: a setup step; host: postal.acme.io; dns.mx_records is Postal's configuration key" }
 }

@@ -113,3 +113,11 @@ range; the design for every screen is on the updated canvas.
 | R04 | **Send Readiness** | SR-1–SR-13 | SendReadiness*, SendReadinessFixes, SettingsSendingRules | `readiness`, `contentcheck`, `dnscheck`, `approvals` (send path), `review` web feature | 03150–03199 |
 | R05 | **Honest analytics** | AN-1–AN-16 | Report*, ReportStates | `reports`, `tracking`, `ingest` counters, `sending/engine/ab*.go`, `ai` summaries, share links, web-post views, `reports` web feature | 03200–03249 |
 | R06 | **Composer** | CO-1–CO-14 | Composer*, ComposerWrite, BrandKit | `campaigns` (content, versions, comments), `liquid`, `mjml`, `templates`, `media`, `composer` web feature | 03250–03299 |
+
+## Đợt 2 (M58–M66)
+
+The second batch built from the November 2026 look at competitors (`docs/research/competitor-gaps-2026-11.md` §7, items 11–20): one branch and one PR per milestone, each with its own block of ten migrations.
+
+| Milestone | Branch | IDs | Packages | Migrations |
+|---|---|---|---|---|
+| M58 Inbound email | `m58-inbound-email` | G-15–G-20 | `internal/inbound` and `internal/optout` (new), the providers' inbound contract and adapters, `providers/received`, `ingest` (ApplyReport), `sending/engine` and `placement` (Reply-To, mailto), `automations` (stop on reply, replied), `deliverability`, `domains`, `readiness`; web `features/replies`, `features/senders` (Receiving mail) | 03490–03499 |

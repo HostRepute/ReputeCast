@@ -76,6 +76,9 @@ itself"):
 | `EventBackfiller` | Fetches message status when webhooks went silent. |
 | `StatusPage`, `StatusReporter` | The status button and incident text during an outage. |
 | `BroadcastStreamCreator` | For providers whose terms want a separate stream for bulk mail (Postmark). |
+| `InboundReceiver` | Receiving mail (Settings › Senders › Receiving mail): `InboundSetup` (MX records, steps, settings for the setup dialog), `VerifyInbound` at the inbound hook, `ParseInbound` in the job. Set `Capabilities.Inbound` with it. |
+| `InboundRegistrar` | Points the provider's receiving for the route's domain at the inbound hook, and removes it. Only with `Capabilities.Inbound` `"automatic"`. |
+| `InboundHandshaker` | Answers a subscription handshake on the inbound hook (an SNS SubscriptionConfirmation), checked against the route's settings. |
 
 ### Package layout
 
@@ -318,6 +321,52 @@ see `azureacs.token`.
   spam or reputation block, retries running out) is a soft bounce. Only an
   address problem is a hard bounce, because hard bounces and complaints go on
   the shared suppression list.
+
+### Receiving mail
+
+A workspace receives mail through one inbound route: a provider's receiving,
+or a mailbox ReputeCast polls. The provider posts what it receives to
+`POST /hooks/inbound/{token}` (and `/hooks/inbound/{token}/*`, for Mailgun's
+`<url>/mime`). The hook calls `HandshakeInbound` when the adapter has it,
+then `VerifyInbound` with the live request, and stores the body and headers
+(without `Authorization`, `Cookie` and the adapter's `WebhookSecrets`). A
+job rebuilds the request and calls `ParseInbound`, which never verifies
+again and may call the provider's API.
+
+- `Capabilities.Inbound` is `"automatic"` (the adapter registers its
+  receiving: `InboundRegistrar`), `"manual"` (people follow
+  `InboundSetup.Steps` in the provider's console) or empty. Set it on the
+  descriptor and on `Capabilities()`. The contract suite holds the value to
+  the interfaces.
+- Authenticate with the route's own secret (`InboundRoute.Secret`), never
+  the provider's webhook secret: basic auth (`providers.InboundUser` and the
+  secret, in the URL the provider posts to: `received.HookURL`), a token
+  header, or the provider's signature when it signs (Mailgun, Resend, Postal,
+  SNS) checked against what the route names (SES: `topic_arn` only).
+- Return `Raw` when the provider passes the whole message; ReputeCast parses
+  it. Otherwise fill the parsed fields. Envelope recipients, the provider's
+  message id and its spam, SPF, DKIM and DMARC verdicts go in their fields
+  either way. `internal/providers/received` maps verdicts and scores the same
+  way for every adapter.
+- MX records have `Purpose: "inbound"` and the route's domain as `Name`.
+- Contract cases (`Suite.Inbound`) come from the provider's documented
+  sample payload in `testdata/inbound*`. A basic-auth or token adapter's
+  case sets `Tamper` to change the credential.
+
+| Adapter | `Inbound` | Registration | Verification | Payload |
+|---|---|---|---|---|
+| `ses` | manual | Steps: receipt rule with an SNS action (Base64) to a topic, its ARN as `topic_arn`, an HTTPS subscription to the hook; MX `inbound-smtp.<region>.amazonaws.com` in the topic's region | SNS signature, topic = `topic_arn`; `HandshakeInbound` confirms that topic only | `content` → `Raw`, `receipt.recipients`, verdicts |
+| `mailgun` | automatic | `POST /v3/routes`: `match_recipient`, `forward("<url>/mime")`, `stop()`, described `ReputeCast <route id>` | Signing key HMAC over timestamp and token, 12 hours, token tied to the message | `body-mime` → `Raw`, `recipient`, `X-Mailgun-Sflag/Spf/Dkim-Check-Result` |
+| `postmark` | automatic | `PUT /server`: `InboundHookUrl` (basic auth), `InboundDomain`, `RawEmailEnabled` | Basic auth | `RawEmail` → `Raw`, else the parsed fields and attachments |
+| `sendgrid` | automatic | Inbound Parse setting (raw, spam check, basic auth) and a signing security policy | Basic auth, and the policy's ECDSA signature when the setting has one | `email` → `Raw`, `envelope.to`, `spam_score`, `SPF`, `dkim` |
+| `resend` | automatic | A webhook for `email.received` at the hook | The webhook's own Standard Webhooks secret | `GET /emails/receiving/{id}`: the raw download, else the parsed fields |
+| `postal` | manual | Steps: HTTP endpoint (JSON, raw message) and a `*` route | Postal's server signature | `message` (base64) → `Raw`, `rcpt_to` |
+| `sparkpost` | automatic | Inbound domain and a relay webhook with the route's `auth_token` | `X-MessageSystems-Webhook-Token` | `email_rfc822` → `Raw`, `rcpt_to` |
+| `mailjet` | automatic | Parse route `*@<domain>` (basic auth in the URL) | Basic auth | The parsed fields, attachments, `SpamAssassinScore` |
+| `brevo` | automatic | Inbound webhook for the domain, bearer token | Bearer token | `items[]` parsed fields; report attachments downloaded |
+| `simulator` | automatic | Nothing to register | `X-Simulator-Signature` (`simulator.SignInbound`) | The body → `Raw` |
+
+`azureacs`, `httpgeneric`, `smtp` and community adapters don't receive mail.
 
 ### Testing against the contract suite
 

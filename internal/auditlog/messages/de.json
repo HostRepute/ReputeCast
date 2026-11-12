@@ -34,6 +34,7 @@
   "category.push": "Push",
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agentur",
+  "category.replies": "Empfang & Antworten",
 
   "link.open": "Öffnen",
   "link.routing": "Routing öffnen",
@@ -58,6 +59,8 @@
   "link.authentication": "Authentifizierung öffnen",
   "link.workspaces": "Arbeitsbereiche öffnen",
   "link.instance": "Instanzeinstellungen öffnen",
+  "link.senders": "Absender öffnen",
+  "link.replies": "Antworten öffnen",
 
   "client.on": "{browser} unter {os}",
   "related.entry": "{action} von {name} um {at, time}",
@@ -171,6 +174,9 @@
   "what.changedSync": "{hasName, select, yes {Synchronisierungsumfang geändert: {type} {name}} other {Synchronisierungsumfang geändert: {type}}}",
   "what.startedSync": "{hasName, select, yes {Synchronisierung gestartet: {type} {name}} other {Synchronisierung gestartet: {type}}}",
   "what.registeredWebhooks": "{hasName, select, yes {Webhooks registriert: {type} {name}} other {Webhooks registriert: {type}}}",
+  "what.sentTest": "{hasName, select, yes {Testnachricht gesendet: {type} {name}} other {Testnachricht gesendet: {type}}}",
+  "what.changedStatus": "{hasName, select, yes {Status geändert: {type} {name}} other {Status geändert: {type}}}",
+  "what.unsubscribedContact": "{hasName, select, yes {Kontakt abgemeldet: {type} {name}} other {Kontakt abgemeldet: {type}}}",
 
   "type.access": "Zugriff",
   "type.account": "Konto",
@@ -205,6 +211,9 @@
   "type.deliverability": "Zustellbarkeit",
   "type.digest": "Wiederkehrender Newsletter",
   "type.dmarc_report": "DMARC-Bericht",
+  "type.inbound": "E-Mail-Empfang",
+  "type.inbound_message": "Antwort",
+  "type.inbound_route": "Empfangsweg",
   "type.domain": "Domain",
   "type.earn": "Einnahmen",
   "type.earn_gift": "Geschenk",
@@ -342,5 +351,6 @@
   "type.whatsapp_settings": "WhatsApp-Einstellungen",
   "type.whatsapp_templates": "WhatsApp-Vorlagen",
   "type.wordpress": "WordPress",
-  "type.workspace": "Arbeitsbereich"
+  "type.workspace": "Arbeitsbereich",
+  "type.reply": "Antwort"
 }

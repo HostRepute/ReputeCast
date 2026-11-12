@@ -92,6 +92,9 @@ type Service struct {
 	// Estimator plays the send out with the sending engine's rules for the
 	// estimates (SR-5, C4); nil keeps the plain arithmetic.
 	Estimator Estimator
+	// Inbound says how the workspace receives mail (M58); nil means it
+	// doesn't receive mail.
+	Inbound func(ctx context.Context, workspaceID uuid.UUID) (InboundFacts, error)
 }
 
 // Estimator estimates a send with the sending engine's own rules

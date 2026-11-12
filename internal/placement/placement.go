@@ -34,6 +34,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/systemmail"
 )
@@ -141,6 +142,9 @@ type Service struct {
 	// the request (tests).
 	Jobs   func() *jobs.Client
 	Inline bool
+	// Inbound says how the workspace receives mail (M58): copies carry the
+	// route's mailto: and Reply-To as a real send would; nil: no rewrite.
+	Inbound func(ctx context.Context, workspaceID uuid.UUID) (*engine.InboundBox, error)
 	// Guard dials seed mailboxes' IMAP servers (user-supplied hosts).
 	Guard netguard.Policy
 	// HTTP calls Microsoft Graph and the OAuth token endpoints.

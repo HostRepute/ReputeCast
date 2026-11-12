@@ -11056,6 +11056,7 @@
             "enum": [
               "opened",
               "clicked",
+              "replied",
               "field",
               "tag",
               "list",
@@ -12476,6 +12477,9 @@
             },
             "type": "array"
           },
+          "repliesInbox": {
+            "type": "boolean"
+          },
           "scoreBands": {
             "$ref": "#/components/schemas/ScoringBands"
           },
@@ -12511,7 +12515,8 @@
           "segments",
           "campaigns",
           "tiers",
-          "paidConnected"
+          "paidConnected",
+          "repliesInbox"
         ],
         "type": "object"
       },
@@ -13495,6 +13500,9 @@
             "type": "string"
           },
           "exitOnLeave": {
+            "type": "boolean"
+          },
+          "exitOnReply": {
             "type": "boolean"
           },
           "field": {
@@ -26079,6 +26087,66 @@
         ],
         "type": "object"
       },
+      "DeliverabilityDMARCCollect": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "description": "dmarc@reply.news.acme.io, for the rua of DMARC records",
+            "type": "string"
+          },
+          "externalRecords": {
+            "items": {
+              "$ref": "#/components/schemas/DeliverabilityDMARCExternalRecord"
+            },
+            "type": "array"
+          },
+          "lastReceivedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "externalRecords"
+        ],
+        "type": "object"
+      },
+      "DeliverabilityDMARCExternalRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "found",
+              "missing",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "TXT"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "name",
+          "type",
+          "value",
+          "status"
+        ],
+        "type": "object"
+      },
       "DeliverabilityDMARCSource": {
         "additionalProperties": false,
         "properties": {
@@ -26217,6 +26285,9 @@
       "DeliverabilityDMARCSummary": {
         "additionalProperties": false,
         "properties": {
+          "collect": {
+            "$ref": "#/components/schemas/DeliverabilityDMARCCollect"
+          },
           "days": {
             "format": "int64",
             "type": "integer"
@@ -26254,6 +26325,7 @@
           "via": {
             "enum": [
               "hostrepute",
+              "inbound",
               "upload",
               "none"
             ],
@@ -38105,6 +38177,428 @@
           "idempotent",
           "safe"
         ],
+        "type": "object"
+      },
+      "InboundAddressView": {
+        "additionalProperties": false,
+        "properties": {
+          "dmarc": {
+            "type": "string"
+          },
+          "fbl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dmarc",
+          "fbl"
+        ],
+        "type": "object"
+      },
+      "InboundMXRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "found",
+              "missing",
+              "wrong_value",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "value",
+          "status"
+        ],
+        "type": "object"
+      },
+      "InboundMailboxInput": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "host": {
+            "maxLength": 253,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "port": {
+            "format": "int64",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "protocol": {
+            "enum": [
+              "imap",
+              "pop3"
+            ],
+            "type": "string"
+          },
+          "security": {
+            "enum": [
+              "tls",
+              "starttls"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 254,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "protocol",
+          "host",
+          "security",
+          "username"
+        ],
+        "type": "object"
+      },
+      "InboundMailboxView": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "lastPolledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "passwordSet": {
+            "type": "boolean"
+          },
+          "port": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "protocol": {
+            "enum": [
+              "imap",
+              "pop3"
+            ],
+            "type": "string"
+          },
+          "security": {
+            "enum": [
+              "tls",
+              "starttls"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "protocol",
+          "host",
+          "port",
+          "security",
+          "username",
+          "passwordSet"
+        ],
+        "type": "object"
+      },
+      "InboundProviderChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inbound": {
+            "enum": [
+              "",
+              "automatic",
+              "manual"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "adapter",
+          "inbound"
+        ],
+        "type": "object"
+      },
+      "InboundProviderRef": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "adapter"
+        ],
+        "type": "object"
+      },
+      "InboundRouteInput": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "maxLength": 253,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "provider",
+              "mailbox"
+            ],
+            "type": "string"
+          },
+          "mailbox": {
+            "$ref": "#/components/schemas/InboundMailboxInput"
+          },
+          "providerId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "InboundRouteView": {
+        "additionalProperties": false,
+        "properties": {
+          "addresses": {
+            "$ref": "#/components/schemas/InboundAddressView"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/InboundProviderChoice"
+            },
+            "type": "array"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "hookUrl": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "provider",
+              "mailbox"
+            ],
+            "type": "string"
+          },
+          "lastReceivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastTest": {
+            "$ref": "#/components/schemas/InboundTestView"
+          },
+          "mailbox": {
+            "$ref": "#/components/schemas/InboundMailboxView"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/InboundProviderRef"
+          },
+          "replyHandling": {
+            "enum": [
+              "forward",
+              "inbox"
+            ],
+            "type": "string"
+          },
+          "setUpAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "setup": {
+            "$ref": "#/components/schemas/InboundSetupView"
+          },
+          "status": {
+            "enum": [
+              "not_set_up",
+              "pending",
+              "receiving",
+              "failing"
+            ],
+            "type": "string"
+          },
+          "statusDetail": {
+            "type": "string"
+          },
+          "statusReason": {
+            "enum": [
+              "mx",
+              "mailbox_auth",
+              "mailbox_unreachable",
+              "register",
+              "dropped_reports"
+            ],
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "statusDetail",
+          "domain",
+          "setup",
+          "lastTest",
+          "addresses",
+          "choices",
+          "suggestion",
+          "replyHandling",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "InboundSetupField": {
+        "additionalProperties": false,
+        "properties": {
+          "help": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "required",
+          "value"
+        ],
+        "type": "object"
+      },
+      "InboundSetupView": {
+        "additionalProperties": false,
+        "properties": {
+          "automatic": {
+            "type": "boolean"
+          },
+          "mx": {
+            "items": {
+              "$ref": "#/components/schemas/InboundMXRecord"
+            },
+            "type": "array"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/InboundSetupField"
+            },
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "automatic",
+          "mx",
+          "steps",
+          "settings"
+        ],
+        "type": "object"
+      },
+      "InboundTestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sentAt",
+          "to"
+        ],
+        "type": "object"
+      },
+      "InboundTestView": {
+        "additionalProperties": false,
+        "properties": {
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "IncidentCause": {
@@ -55585,7 +56079,8 @@
               "queue",
               "backfill",
               "test",
-              "internal"
+              "internal",
+              "inbound"
             ],
             "type": "string"
           },
@@ -65933,6 +66428,411 @@
         ],
         "type": "object"
       },
+      "ReplyAttachment": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "size"
+        ],
+        "type": "object"
+      },
+      "ReplyAuth": {
+        "additionalProperties": false,
+        "properties": {
+          "dkim": {
+            "type": "string"
+          },
+          "dmarc": {
+            "type": "string"
+          },
+          "spf": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplyContact": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ReplyCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "auto": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "open": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "other": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "spam": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unsubscribes": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "open",
+          "done",
+          "auto",
+          "spam",
+          "other",
+          "unsubscribes"
+        ],
+        "type": "object"
+      },
+      "ReplyDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "asksUnsubscribe": {
+            "type": "boolean"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/ReplyAttachment"
+            },
+            "type": "array"
+          },
+          "auth": {
+            "$ref": "#/components/schemas/ReplyAuth"
+          },
+          "autoReply": {
+            "type": "boolean"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "canUnsubscribe": {
+            "type": "boolean"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ReplyContact"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/ReplyPerson"
+          },
+          "handledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hasHtml": {
+            "type": "boolean"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "reply",
+              "unsubscribe",
+              "other"
+            ],
+            "type": "string"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ReplySource"
+          },
+          "spam": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "done"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "unsubscribeReason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "to",
+          "text",
+          "hasHtml",
+          "attachments",
+          "auth",
+          "canManage",
+          "canUnsubscribe",
+          "helpers",
+          "id",
+          "kind",
+          "from",
+          "subject",
+          "preview",
+          "receivedAt",
+          "status",
+          "autoReply",
+          "spam",
+          "asksUnsubscribe"
+        ],
+        "type": "object"
+      },
+      "ReplyList": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ReplyCounts"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReplyListItem"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "receiving": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "receiving",
+          "canManage"
+        ],
+        "type": "object"
+      },
+      "ReplyListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "asksUnsubscribe": {
+            "type": "boolean"
+          },
+          "autoReply": {
+            "type": "boolean"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/ReplyPerson"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "reply",
+              "unsubscribe",
+              "other"
+            ],
+            "type": "string"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ReplySource"
+          },
+          "spam": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "done"
+            ],
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "from",
+          "subject",
+          "preview",
+          "receivedAt",
+          "status",
+          "autoReply",
+          "spam",
+          "asksUnsubscribe"
+        ],
+        "type": "object"
+      },
+      "ReplyPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "ReplySource": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "campaign",
+              "automation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ReplyStatusInput": {
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "done"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ReplyStatusResult": {
+        "additionalProperties": false,
+        "properties": {
+          "updated": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "type": "object"
+      },
+      "ReplyUnsubscribeResult": {
+        "additionalProperties": false,
+        "properties": {
+          "already": {
+            "type": "boolean"
+          },
+          "contactId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "contactId",
+          "already"
+        ],
+        "type": "object"
+      },
       "ReportABTest": {
         "additionalProperties": false,
         "properties": {
@@ -74625,9 +75525,13 @@
           "listUnsubscribeMailto": {
             "type": "boolean"
           },
+          "receiving": {
+            "type": "boolean"
+          },
           "replyHandling": {
             "enum": [
-              "forward"
+              "forward",
+              "inbox"
             ],
             "type": "string"
           },
@@ -74665,6 +75569,7 @@
           "systemSenderId",
           "transactionalSenderId",
           "replyHandling",
+          "receiving",
           "replyTo",
           "footerAddress",
           "trackingDomain",
@@ -74691,7 +75596,8 @@
           },
           "replyHandling": {
             "enum": [
-              "forward"
+              "forward",
+              "inbox"
             ],
             "type": "string"
           },
@@ -114585,7 +115491,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "replies"
               ],
               "type": "string"
             }
@@ -114858,7 +115765,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "replies"
               ],
               "type": "string"
             }
@@ -148582,6 +149490,224 @@
         "x-permission": "subscribers:import"
       }
     },
+    "/api/v1/workspaces/{workspace}/inbound": {
+      "delete": {
+        "operationId": "delete-inbound-route",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Stop receiving mail",
+        "tags": [
+          "Receiving mail"
+        ],
+        "x-access": "workspace",
+        "x-permission": "domains:manage"
+      },
+      "get": {
+        "operationId": "get-inbound-route",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboundRouteView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get how the workspace receives mail",
+        "tags": [
+          "Receiving mail"
+        ],
+        "x-access": "workspace",
+        "x-permission": "providers:view"
+      },
+      "put": {
+        "operationId": "save-inbound-route",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InboundRouteInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboundRouteView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set up or change receiving mail",
+        "tags": [
+          "Receiving mail"
+        ],
+        "x-access": "workspace",
+        "x-permission": "domains:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/inbound/test": {
+      "post": {
+        "operationId": "test-inbound-route",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboundTestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send a test message to the receiving domain",
+        "tags": [
+          "Receiving mail"
+        ],
+        "x-access": "workspace",
+        "x-permission": "domains:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/integration/fields": {
       "get": {
         "operationId": "list-integration-fields",
@@ -164019,6 +165145,330 @@
         ],
         "x-access": "workspace",
         "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/replies": {
+      "get": {
+        "operationId": "list-replies",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "view",
+            "schema": {
+              "default": "open",
+              "enum": [
+                "open",
+                "done",
+                "auto",
+                "spam",
+                "other",
+                "unsubscribes"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only replies to this campaign",
+            "explode": false,
+            "in": "query",
+            "name": "campaign",
+            "schema": {
+              "description": "Only replies to this campaign",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only replies to this flow's emails",
+            "explode": false,
+            "in": "query",
+            "name": "automation",
+            "schema": {
+              "description": "Only replies to this flow's emails",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search the sender and subject",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Search the sender and subject",
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List replies and other received mail",
+        "tags": [
+          "Replies"
+        ],
+        "x-access": "workspace",
+        "x-permission": "replies:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/replies/status": {
+      "post": {
+        "operationId": "set-replies-status",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplyStatusInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyStatusResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark replies done or open",
+        "tags": [
+          "Replies"
+        ],
+        "x-access": "workspace",
+        "x-permission": "replies:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/replies/{id}": {
+      "get": {
+        "operationId": "get-reply",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reply id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Reply id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a reply",
+        "tags": [
+          "Replies"
+        ],
+        "x-access": "workspace",
+        "x-permission": "replies:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/replies/{id}/unsubscribe-contact": {
+      "post": {
+        "operationId": "unsubscribe-reply-contact",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Reply id",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Reply id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyUnsubscribeResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Unsubscribe the contact a reply came from",
+        "tags": [
+          "Replies"
+        ],
+        "x-access": "workspace",
+        "x-permission": "replies:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/report-summary": {

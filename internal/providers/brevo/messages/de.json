@@ -10,5 +10,7 @@
   "field.monthly_limit.label": "Tarif · E-Mails pro Monat",
   "field.monthly_limit.help": "Wird für den Kontingentbalken verwendet, wenn der Tarif ein monatliches Kontingent hat.",
 
-  "account": "{company, select, none {Brevo-Konto} other {{name}}}{plan, select, free { · kostenloser Tarif · {today, select, yes {heute } other {}}noch {n} E-Mails} subscription { · Abonnement · noch {n} E-Mails} credits { · noch {n} Prepaid-Credits} other {}}"
+  "account": "{company, select, none {Brevo-Konto} other {{name}}}{plan, select, free { · kostenloser Tarif · {today, select, yes {heute } other {}}noch {n} E-Mails} subscription { · Abonnement · noch {n} E-Mails} credits { · noch {n} Prepaid-Credits} other {}}",
+
+  "inbound.step.domain": "Brevo empfängt E-Mails für {domain} nur, wenn sie sich von Ihrer Absenderdomain unterscheidet und zu einer in Brevo verifizierten Domain gehört. ReputeCast legt den Inbound-Webhook dafür an."
 }

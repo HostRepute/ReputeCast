@@ -69,6 +69,8 @@ func TestBuiltinMatrix(t *testing.T) {
 		{SMSSend, true, true, true, false},
 		{PushSend, true, true, true, false},
 		{WhatsAppSend, true, true, true, false},
+		{RepliesView, true, true, true, false},
+		{RepliesManage, true, true, true, false},
 	}
 	roles := map[string]BuiltinRole{}
 	for _, r := range BuiltinRoles {

@@ -22,5 +22,7 @@
   "tracking.open": "Theo dõi lượt mở đang bật cho {opens}.",
   "tracking.click": "Theo dõi lượt nhấp đang bật cho {clicks}.",
   "tracking.off": "Theo dõi lượt mở và lượt nhấp đều tắt trên mọi tên miền.",
-  "error.domainMissing": "{domain} chưa được thiết lập trong Resend"
+  "error.domainMissing": "{domain} chưa được thiết lập trong Resend",
+
+  "inbound.step.receiving": "Trong Resend › Domains, mở {domain} (thêm tên miền trước nếu chưa có), bật Receiving và thêm bản ghi MX mà Resend hiển thị cho nó. ReputeCast sẽ thêm webhook email.received."
 }

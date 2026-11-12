@@ -181,4 +181,5 @@ export default translate(mp, {
   callDuration: '{ms} ms',
   callTime: '{date}, {time}',
   noCalls: 'Noch keine Aufrufe.',
+  condReplied: "Hat auf die E-Mail geantwortet",
 })

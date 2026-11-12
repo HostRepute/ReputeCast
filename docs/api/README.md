@@ -48,6 +48,7 @@ Events:
 | Push | `push.clicked` |
 | SMS | `sms.delivered`, `sms.failed`, `sms.clicked`, `sms.opted_out`, `sms.opted_in`, `sms.replied` |
 | WhatsApp | `whatsapp.delivered`, `whatsapp.read`, `whatsapp.failed`, `whatsapp.replied`, `whatsapp.opted_out`, `whatsapp.opted_in`, `whatsapp.template_status` |
+| Replies | `email.replied` (a contact replied to an email, auto-replies included: `reply_id`, `message_id`, `campaign_id`, `automation_id`, `contact_id`, `from`, `subject`, `text`, `auto_reply`, `received_at`), `email.received` (mail at the receiving domain that isn't a reply: `id`, `to`, `from`, `subject`, `text`, `received_at`). Both need `replies:view`. |
 
 Each request is a JSON `POST` with these headers:
 

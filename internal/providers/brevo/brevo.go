@@ -77,6 +77,7 @@ func Descriptor() providers.Descriptor {
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
 			ReportsIPs:      true,
+			Inbound:         providers.InboundAutomatic,
 			// Brevo sets its own List-Unsubscribe (see Headers above).
 			OneClick: providers.OneClickReplaced,
 			// Pricing, DedicatedIPs and every other text people read (the

@@ -10,5 +10,7 @@
   "field.monthly_limit.label": "Plan · correos al mes",
   "field.monthly_limit.help": "Se usa para la barra de cuota cuando el plan incluye una cantidad mensual.",
 
-  "account": "{company, select, none {Cuenta de Brevo} other {{name}}}{plan, select, free { · plan gratuito · quedan {n} correos{today, select, yes { hoy} other {}}} subscription { · suscripción · quedan {n} correos} credits { · quedan {n} créditos de prepago} other {}}"
+  "account": "{company, select, none {Cuenta de Brevo} other {{name}}}{plan, select, free { · plan gratuito · quedan {n} correos{today, select, yes { hoy} other {}}} subscription { · suscripción · quedan {n} correos} credits { · quedan {n} créditos de prepago} other {}}",
+
+  "inbound.step.domain": "Brevo solo recibe correo para {domain} si es distinto del dominio desde el que envías y pertenece a un dominio verificado en Brevo. ReputeCast añade el webhook de entrada para él."
 }

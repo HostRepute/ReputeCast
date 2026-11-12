@@ -179,26 +179,36 @@ func RemoveProviderRecords(recs []Record, providerID string) []Record {
 	return out
 }
 
-// ensureDMARC adds the domain-wide DMARC record when it is missing.
-func ensureDMARC(recs []Record, domain, rua string) []Record {
+// ensureDMARC adds the domain-wide DMARC record when it is missing, with
+// reports to each rua address given.
+func ensureDMARC(recs []Record, domain string, rua ...string) []Record {
 	for _, r := range recs {
 		if r.Purpose == PurposeDMARC {
 			return recs
 		}
 	}
-	return append(recs, Record{Purpose: PurposeDMARC, Type: "TXT", Name: "_dmarc." + domain, Value: SuggestDMARC(rua), Status: StatusPending, Source: "reputecast"})
+	return append(recs, Record{Purpose: PurposeDMARC, Type: "TXT", Name: "_dmarc." + domain, Value: SuggestDMARC(rua...), Status: StatusPending, Source: "reputecast"})
 }
 
 // SuggestDMARC is the policy ReputeCast proposes for a domain without one:
 // quarantine, strict DKIM alignment, relaxed SPF alignment, aggregate
-// reports to HostRepute when it is connected.
-func SuggestDMARC(rua string) string {
+// reports to each address given that isn't empty, in order: HostRepute's
+// when it is connected, then dmarc@ the receiving domain while ReputeCast
+// receives mail (M58).
+func SuggestDMARC(rua ...string) string {
 	v := "v=DMARC1; p=quarantine"
-	if rua != "" {
-		if !strings.HasPrefix(rua, "mailto:") {
-			rua = "mailto:" + rua
+	var to []string
+	for _, a := range rua {
+		if a = strings.TrimSpace(a); a == "" {
+			continue
 		}
-		v += "; rua=" + rua
+		if !strings.HasPrefix(a, "mailto:") {
+			a = "mailto:" + a
+		}
+		to = append(to, a)
+	}
+	if len(to) > 0 {
+		v += "; rua=" + strings.Join(to, ",")
 	}
 	return v + "; adkim=s; aspf=r"
 }

@@ -41,4 +41,6 @@ export default translate(m, {
   'orders:manage': 'quản lý đơn hàng',
   'grow:edit': 'sửa chương trình giới thiệu',
   'grow:connect': 'quản lý liên kết đối tác',
+  'replies:view': 'đọc thư trả lời',
+  'replies:manage': 'xử lý thư trả lời',
 })

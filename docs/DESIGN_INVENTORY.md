@@ -1,7 +1,7 @@
 # Design inventory
 
-The prototype (`design/boards`, exported from the ReputeCast canvas) has 29
-pages and 442 artboards: 294 desktop boards (1440 px; public pages 720 px)
+The prototype (`design/boards`, exported from the ReputeCast canvas) has 30
+pages and 471 artboards: 312 desktop boards (1440 px; public pages 720 px)
 plus Tablet (834 px) and Phone (390 px) boards that render the same markup at
 narrower widths. This inventory maps every board to the spec section it
 implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
@@ -135,6 +135,8 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `ListHealth.dc.html` | Audience · list health | — |
 | `SegmentBuilder.dc.html` | Audience · segment builder | tablet |
 | `Suppressions.dc.html` | Audience · suppression list | — |
+| `Replies.dc.html` | Audience › Replies · the Open view, Sam Rivera's reply open beside the list (M58 G-17) | phone, tablet |
+| `RepliesStates.dc.html` | Replies · loading, no route, no replies yet, a search with no results, error, a Viewer without replies:view, bulk selection, an attachment, a reply on a phone with Back, Unsubscribe contact, the shortcut sheet (M58) | — |
 
 ### 7.10 Automations
 
@@ -182,6 +184,8 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `SettingsSendingRules.dc.html` | Settings · sending rules (review SR-10) | phone |
 | `BrandKit.dc.html` | Settings · brand kit (review CO-11) | phone |
 | `SettingsStates.dc.html` | Settings · empty / loading / error | — |
+| `InboundSetup.dc.html` | Settings › Senders · set up receiving mail: how ReputeCast receives, details (provider domain, mailbox, refused values), records and test (Postmark, Amazon SES) (M58 G-15) | phone |
+| `InboundStates.dc.html` | Settings › Senders · Receiving mail card: not set up, loading, load error, waiting, receiving, test sent / received / not received, failing (MX, mailbox), stop receiving, a Viewer (M58) | — |
 
 ### 8. Landing page & README banner
 
@@ -615,6 +619,25 @@ The app has a dark theme: Account & security › Appearance (Same as device, Lig
 | `MainDark`, `MainDarkTablet`, `MainDarkPhone` (new) | The Overview in the dark theme, colour for colour as the app draws it; layout and sample data are Main's. |
 | `PublicArchive`, `PublicAccount`, `PublicHome`, `PublicPost`, `PublicSalesPage`, `PublicPagesStates`, `PublicSiteStates` and the Phone wrappers | Touch targets at 767 px and below, the site's 600–767 px tablet layout included: chips, buttons, the period switch, the member pill, checkbox rows and the header's navigation are 44 px, as on phones; the old archive's filter pills are 44 px there and keep their 22 px look above, with a 24 px hit area. Unchanged at 768 px and up. The logo links reach 44 px by padding (same look). |
 | `Landing`, `LandingTablet`, `LandingPhone` | With 1.6.0, the receipt's Languages line says the app itself comes in five languages, light or dark. |
+
+### Inbound email (M58)
+
+A workspace receives mail through one inbound route: a connected provider's receiving or an IMAP/POP3 mailbox. Replies land in Audience › Replies, `mailto:` unsubscribes are applied, flows can stop on a reply, DMARC and ARF reports are collected, and two webhook events tell developers. Sample data: `reply.news.acme.io` on Postmark, 14 messages (6 open human replies).
+
+| Boards | Change |
+|---|---|
+| `InboundSetup`, `InboundSetupPhone` (new) | The setup dialog over the dimmed Senders page, its three steps side by side (one column below 1100 px): How ReputeCast receives (radio cards per connected provider, Azure Communication Services disabled with its reason, "A mailbox (IMAP or POP3)"), Details (the domain prefilled with `reply.news.acme.io`; the mailbox fields; the MX conflict and the 22-character local part refused), Records and test (the MX table with Copy, Postmark's received test; Amazon SES's receipt rule, SNS address and topic ARN) and the test row's three states. |
+| `InboundStates` (new) | The Receiving mail card in every state: Not set up with Set up receiving and the Reply handling option it unlocks, loading and load error, Waiting for the first message (provider and mailbox), Receiving, Sent 09:41 · waiting…, Received 09:41, Not received yet with the diagnosis, Failing (MX moved; mailbox sign-in refused), the Stop receiving dialog and the card after it, and a Viewer without domains:manage. |
+| `Replies`, `RepliesTablet`, `RepliesPhone` (new) | Audience › Replies: filter chips with counts (a scroll row on phones), Search replies, the list (400 px) beside the open reply (From, received, "Reply to … · sent …", the contact card, the text at 72ch, Reply by email, Mark done, Unsubscribe contact, Open contact, j / k / e). At 1100 px and below the list is full width. |
+| `RepliesStates` (new) | Loading skeletons, no route, no replies yet, no results for "invoice", the load error, a Viewer without replies:view (who can help), 3 selected with Mark done / Mark open and the undo toast, Kenji's reply with "Attachments aren't kept", Diego's reply on a phone with Back, the Unsubscribe contact dialog and the shortcut sheet's Replies rows. |
+| `SettingsSenders`, `SettingsSendersTablet`, `SettingsSendersPhone` | Reply handling shows "Keep replies in ReputeCast inbox"; the mailto switch's last sentence says unsubscribe emails go to ReputeCast and are applied within a minute; a Receiving mail card under Defaults (Postmark · reply.news.acme.io, the MX record, the DMARC and feedback loop addresses with Copy, Send a test message, Edit, Remove). Wrappers 1993 and 2511 px. |
+| `AutomationsComplete` | The trigger panel gains "Stop when the contact replies to an email from this flow" under the leave-the-list checkbox, and its disabled form with the reason. |
+| `Deliverability`, `DeliverabilityTablet`, `DeliverabilityPhone`, `DeliverabilityNoHostRepute` | The DMARC card: "Reports arrive at dmarc@reply.news.acme.io · last one yesterday"; without HostRepute, the choice "Collect reports in ReputeCast" with Set up receiving. |
+| `ContactProfile`, `ContactProfilePhone` | Sam Rivera's activity: "Replied to October Product Update" with Open reply (11 of 64 events). |
+| `SendReadinessStates` | Warn "Replies go to ReputeCast, but receiving is failing" with Open Settings; Pass "Unsubscribe emails are processed by ReputeCast" with the `u-` mailto header. |
+| `SettingsAPI`, `SettingsAPIPhone` | The event picker note: a Replies group with `email.replied` and `email.received`. |
+| `Roles`, `RolesTablet`, `RolesPhone`, `RoleEditor` | Contacts group: `replies:view` "View replies" and `replies:manage` "Manage replies", people only; Owner, Admin and Editor have both, Viewer and Content Writer neither. |
+| Every board with the Audience tabs (`Contacts`, `SegmentBuilder`, `ListHealth`, `Suppressions`, `AudienceStates`, `AudienceListsFields`, `AISegmentReport`, `GrowthSources`, `GrowthStates`, `ScoringRules`, `ScoringStates`, `ScoringUses`, `VerificationRun`) | A Replies tab at the end. At 1440 px the header of Contacts, SegmentBuilder, ListHealth and AISegmentReport now wraps its buttons to a second line (46 px taller). |
 
 ## Conflicts between the design and the spec
 
@@ -1252,3 +1275,15 @@ When they disagree we follow the design for UI and the spec for behaviour.
 | 640 | The summary email (M57 G-14) | — (new board `ReportSummaryEmail`) | Spec: system mail layout | The weekly email at 560 px in the system-mail frame: Campaigns totals (complaints only where mailbox providers report them), Most opened with links that name their report, Audience and Sender health for members who may see them, why it came and where to change it. |
 | 641 | Add UTM tags to links (M57 G-13) | `SettingsSenders` Defaults had no UTM setting | Owner decision: off by default, turned on in Settings, each campaign can override | A switch under the mailto row with three chips (`utm_source={workspace}`, `utm_medium=email`, `utm_campaign=` + the campaign's name as a slug) and "Campaigns use it from their next send, automations from their next publish." Only tags a link doesn't set are added, after its query as written; links with Liquid are left alone. |
 | 642 | Links on Review & send (M57 G-13) | `SendReadiness`'s side column had no Links card | — | A "Links" card between Auto-pause and Scheduling: "Add UTM tags" (the campaign's choice, else the workspace's), the chips the server computes for this campaign (cut with the full text on hover and focus), "Workspace default: on/off · Settings › Senders". Changing it reruns the checks, since workspace rules asking for UTM tags count the added ones. |
+| 643 | Inbound email in the transactional add-on (M58 G-15) | — | `reputecast-design-addon-transactional.md` §243–246 put receiving mail out of scope | M58 reverses it: the spec gains "Receiving mail" (one route per workspace, a provider's inbound or an IMAP/POP3 mailbox, no MTA), drawn on `InboundSetup` and `InboundStates`. Transactional mail keeps its own reply-to. |
+| 644 | "Keep replies in ReputeCast inbox" (#86) | `SettingsSenders`' Reply handling select drew the option; #86 left it out of the app | #86: ReputeCast sends mail but doesn't receive it | The option is real: it can be chosen only while the route is receiving (else disabled with "Set up Receiving mail first"); campaigns, automation emails and placement copies then get a Reply-To on the route's `r-` address, and replies land in Audience › Replies. Removing the route sets it back to forwarding. The other choices of #86 stay. |
+| 645 | The mailto: helper (#618) | The helper said "ReputeCast doesn't receive mail, so someone at the reply-to address must remove those readers by hand within 10 days" | #618: ReputeCast receives no mail | While receiving, the mailto address is the route's `u-` address and the helper's last sentence is "Unsubscribe emails go to ReputeCast and are applied within a minute."; the Off/On sentences stay. Send Readiness passes "Unsubscribe emails are processed by ReputeCast" instead of warning. Without a route, #618 stands. |
+| 646 | Audience › Replies (M58 G-17) | No Replies screen; the Audience tabs ended with Suppression list | — | A Replies tab at the end of every Audience tab row, shown to holders of `replies:view` (new keys `replies:view`, `replies:manage`, group Contacts, people only, Editors get both). The 1440 px headers with buttons wrap to a second line. Chips show every view's count as "Open (6)" etc. |
+| 647 | Stop on reply and the Replied branch (M58 G-18) | The trigger panel with the leave-the-list checkbox is drawn on `AutomationsComplete`, not on `AutomationFlow` (whose side panel shows the selected email step); no board draws the branch condition picker | Plan: trigger panel switch and a "Replied to the email" condition | The checkbox is drawn where the trigger panel is, `AutomationsComplete`, with its disabled reason; `AutomationFlow` is unchanged. "Replied to the email" sits beside opened/clicked in the branch condition select, following the existing conditions (no board). |
+| 648 | DMARC reports through inbound (M58 G-19) | The DMARC card named only HostRepute's address; without HostRepute, the choices were HostRepute and Upload XML | — | With a route, rua includes `mailto:dmarc@<route domain>` after HostRepute's, the card adds "Reports arrive at dmarc@reply.news.acme.io · last one yesterday", and reports are stored with `via='inbound'`; the no-HostRepute card adds "Collect reports in ReputeCast" with Set up receiving. |
+| 649 | Feedback loop reports (M58 G-19) | — | Complaints came only from provider webhooks | ARF reports sent to `fbl@<route domain>` become complaint events through the same rules as provider events (only for a message ReputeCast sent to that recipient). The address is shown with Copy on the Receiving mail card for registering with mailbox providers' feedback loops. |
+| 650 | Webhook events (M58 G-20) | `SettingsAPI` listed per-endpoint events and the Forms group note | — | A Replies group note: `email.replied` (replies, auto-replies included) and `email.received` (other mail at the receiving domain), needing `replies:view`. The demo endpoints' subscriptions are unchanged. |
+| 651 | Attachments (M58 G-17) | — | Storage and erasure | Attachments aren't kept: only name, type and size, listed with "Attachments aren't kept" (`RepliesStates`). DMARC report files are parsed and dropped; text is capped at 64 KiB. |
+| 652 | Providers that can't receive (M58 G-15) | — | Adapters without inbound | Azure Communication Services, HTTP generic, SMTP and community adapters are listed disabled with "{provider} doesn't receive mail. Use a mailbox instead." Amazon SES and Postal are manual (steps shown); the others set themselves up. |
+| 653 | Reply address format (M58 G-15) | — | Plan sample `r-` + 26 characters | Tags are a letter, a hyphen and 39 lowercase base32 characters (message id and MAC): the boards draw `r-wfr3k57v665distrwnkpaitjcv7snijhyx7fu4y@reply.news.acme.io` and its `u-` twin, cut with an ellipsis where narrow; mailbox routes use `replies+r-…@acme.io`. |
+| 654 | Replies permissions' mark (M58 G-17) | `Roles`, `RolesTablet`, `RolesPhone` and `RoleEditor` print "· people only" beside `replies:view` and `replies:manage` | Plan: group `contacts`, `NoAgents` | Behaviour follows the plan: API keys may hold both (`GET /replies`, the `email.replied` webhook), MCP agents can't. The matrix prints "· people only" only for people-only keys, so these two rows show no mark; the Contacts group lists them after `subscribers:verify`. |

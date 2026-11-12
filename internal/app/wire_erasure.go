@@ -9,6 +9,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/gifts"
 	"github.com/hostrepute/reputecast/internal/growth"
 	"github.com/hostrepute/reputecast/internal/imports"
+	"github.com/hostrepute/reputecast/internal/inbound"
 	"github.com/hostrepute/reputecast/internal/integrations"
 	"github.com/hostrepute/reputecast/internal/offers"
 	"github.com/hostrepute/reputecast/internal/polls"
@@ -34,7 +35,7 @@ func erasureSources() []erasure.Source {
 		automations.Erasure(), commerce.Erasure(), earn.Erasure(), gifts.Erasure(), growth.Erasure(), imports.Erasure(),
 		integrations.Erasure(), offers.Erasure(), polls.Erasure(), products.Erasure(), push.Erasure(), recommendations.Erasure(),
 		referrals.Erasure(), revenue.Erasure(), scoring.Erasure(), texting.Erasure(), transactional.Erasure(), verification.Erasure(),
-		website.Erasure(), whatsapp.Erasure(),
+		website.Erasure(), whatsapp.Erasure(), inbound.Erasure(),
 	}
 }
 

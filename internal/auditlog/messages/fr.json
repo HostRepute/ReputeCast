@@ -34,6 +34,7 @@
   "category.push": "Push",
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agence",
+  "category.replies": "Réception et réponses",
 
   "link.open": "Ouvrir",
   "link.routing": "Ouvrir le routage",
@@ -58,6 +59,8 @@
   "link.authentication": "Ouvrir l’authentification",
   "link.workspaces": "Ouvrir les espaces",
   "link.instance": "Ouvrir les paramètres de l’instance",
+  "link.senders": "Ouvrir les expéditeurs",
+  "link.replies": "Ouvrir les réponses",
 
   "client.on": "{browser} sur {os}",
   "related.entry": "{action} par {name} à {at, time}",
@@ -171,6 +174,9 @@
   "what.changedSync": "{hasName, select, yes {Modification des éléments synchronisés\u00A0: {type} {name}} other {Modification des éléments synchronisés\u00A0: {type}}}",
   "what.startedSync": "{hasName, select, yes {Lancement d’une synchronisation\u00A0: {type} {name}} other {Lancement d’une synchronisation\u00A0: {type}}}",
   "what.registeredWebhooks": "{hasName, select, yes {Enregistrement des webhooks\u00A0: {type} {name}} other {Enregistrement des webhooks\u00A0: {type}}}",
+  "what.sentTest": "{hasName, select, yes {Message de test envoyé : {type} {name}} other {Message de test envoyé : {type}}}",
+  "what.changedStatus": "{hasName, select, yes {Statut modifié : {type} {name}} other {Statut modifié : {type}}}",
+  "what.unsubscribedContact": "{hasName, select, yes {Contact désabonné : {type} {name}} other {Contact désabonné : {type}}}",
 
   "type.access": "accès",
   "type.account": "compte",
@@ -205,6 +211,9 @@
   "type.deliverability": "délivrabilité",
   "type.digest": "récapitulatif",
   "type.dmarc_report": "rapport DMARC",
+  "type.inbound": "réception des e-mails",
+  "type.inbound_message": "réponse",
+  "type.inbound_route": "voie de réception",
   "type.domain": "domaine",
   "type.earn": "monétisation",
   "type.earn_gift": "cadeau",
@@ -342,5 +351,6 @@
   "type.whatsapp_settings": "paramètres WhatsApp",
   "type.whatsapp_templates": "modèles WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "espace de travail"
+  "type.workspace": "espace de travail",
+  "type.reply": "réponse"
 }

@@ -48,6 +48,9 @@ func (a *App) domainsService() *domains.Service {
 		URLs:       a.URLs,
 		Cloudflare: &domains.Cloudflare{HTTP: &http.Client{Timeout: 20 * time.Second}},
 		Jobs:       func() *jobs.Client { return a.Jobs }, Log: a.Log,
+		// Receiving mail (M58): DMARC reports to dmarc@ the receiving
+		// domain, and reply handling "inbox" only while it receives.
+		InboundReportAddress: a.inboundReportAddress, InboundReceiving: a.inboundReceiving,
 	}
 }
 

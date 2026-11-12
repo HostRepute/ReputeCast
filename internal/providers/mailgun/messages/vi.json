@@ -22,5 +22,7 @@
   "tracking.on": "{on, select, open {Theo dõi lượt mở của tên miền đang bật, nhưng ReputeCast tắt nó trên mọi thư mà ReputeCast gửi.} click {Theo dõi lượt nhấp của tên miền đang bật, nhưng ReputeCast tắt nó trên mọi thư mà ReputeCast gửi.} other {Theo dõi lượt mở và lượt nhấp của tên miền đang bật, nhưng ReputeCast tắt chúng trên mọi thư mà ReputeCast gửi.}}",
   "tracking.off": "Theo dõi lượt mở, lượt nhấp và hủy đăng ký đều đang tắt cho {domain}.",
   "error.domainUnknown": "Mailgun không biết tên miền {domain} ở khu vực này. Hãy kiểm tra tên miền và khu vực.",
-  "error.tooManyURLs": "Mailgun cho phép ba URL cho mỗi sự kiện và {event} đã có đủ ba. Hãy xóa bớt một URL trong Mailgun rồi đăng ký lại."
+  "error.tooManyURLs": "Mailgun cho phép ba URL cho mỗi sự kiện và {event} đã có đủ ba. Hãy xóa bớt một URL trong Mailgun rồi đăng ký lại.",
+
+  "inbound.step.domain": "Mailgun chỉ nhận thư cho các tên miền trong tài khoản của bạn: hãy thêm {domain} trong Mailgun › Domains nếu chưa có. ReputeCast sẽ tạo route chuyển thư của tên miền đó."
 }

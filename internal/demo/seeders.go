@@ -64,6 +64,9 @@ var (
 	// the brand kit: Acme's logos, colours, fonts and buttons, and the synced
 	// Header and Footer Weekly Digest #142 holds (seed_brandkit.go)
 	seedBrandKit = noop
+	// receiving mail: reply.news.acme.io on Postmark, replies kept in the
+	// inbox, Audience › Replies' 14 messages (seed_inbound.go)
+	seedInbound = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

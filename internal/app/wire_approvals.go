@@ -51,7 +51,9 @@ func readinessService(a *App) *readiness.Service {
 		// Runs wait in the job queue; a worker runs them (SR-8).
 		Jobs: func() readiness.JobInserter { return lazyJobs{a} },
 		// Estimates come from the sending engine's own rules (SR-5, C4).
-		Estimator: engineEstimator{a}}
+		Estimator: engineEstimator{a},
+		// mailto: unsubscribes and the reply inbox (M58).
+		Inbound: a.inboundReadiness}
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}

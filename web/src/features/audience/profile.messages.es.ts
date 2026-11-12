@@ -136,4 +136,6 @@ export default translate(m, {
   removeTagLabel: 'Quitar etiqueta {tag}',
   actRemovedFrom: '<b>Quitado</b> de {list} por el equipo',
   actEmailChanged: '<b>Dirección corregida</b>',
+  actReplied: "<b>Respondió</b> a {subject} · <link>Abrir respuesta</link>",
+  actRepliedQuote: "«{text}»",
 })

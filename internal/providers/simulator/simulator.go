@@ -139,7 +139,7 @@ func (p *Provider) Adapter() string { return Adapter }
 
 // Capabilities implements providers.Provider.
 func (p *Provider) Capabilities() providers.Capabilities {
-	return providers.Capabilities{Bulk: providers.BulkYourPolicy, Webhooks: "Simulated", BatchSize: 50, Pricing: "simulated, free"}
+	return providers.Capabilities{Bulk: providers.BulkYourPolicy, Webhooks: "Simulated", BatchSize: 50, Pricing: "simulated, free", Inbound: providers.InboundAutomatic}
 }
 
 // Outage reports whether the scenario has the provider down at t.

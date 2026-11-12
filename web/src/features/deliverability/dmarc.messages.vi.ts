@@ -54,4 +54,9 @@ export default translate(md, {
   uploadDescription: 'Tệp .xml mà nhà cung cấp hộp thư gửi đến địa chỉ rua= của bạn, hoặc tệp .xml.gz hay .zip chứa nó. Chỉ số liệu trong báo cáo được lưu.',
   upload: 'Tải lên',
   reportFile: 'Tệp báo cáo',
+  collectAt: "Báo cáo đến {address} · báo cáo gần nhất {when}",
+  collectAtNone: "Báo cáo đến {address}",
+  collectTitle: "Thu thập báo cáo trong ReputeCast",
+  collectLine: "Nhận báo cáo tổng hợp DMARC tại một địa chỉ trên tên miền nhận thư của bạn.",
+  collectSetUp: "Thiết lập nhận thư",
 })

@@ -42,6 +42,10 @@ type Service struct {
 	DNS   dnscheck.Resolver
 	Lists []dnscheck.Blocklist
 	Now   func() time.Time
+	// Inbound says whether the workspace receives mail (M58): its inbound
+	// route's domain, where DMARC reports arrive at dmarc@, and when the
+	// last one did; nil means it doesn't.
+	Inbound func(ctx context.Context, workspaceID uuid.UUID) (receiving bool, domain string, lastReport *time.Time, err error)
 }
 
 func (s *Service) now() time.Time {
@@ -187,6 +191,9 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (Deliverabi
 		DMARC:      st.dmarcSummary(),
 	}
 	if out.Incidents, err = s.timeline(ctx, st); err != nil {
+		return out, err
+	}
+	if out.DMARC.Collect, err = s.dmarcCollect(ctx, st); err != nil {
 		return out, err
 	}
 	if out.Postmaster != nil && out.Postmaster.Peak != nil {

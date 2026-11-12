@@ -12,5 +12,9 @@
 
   "account": "Postal{hasVersion, select, yes { {version}} other {}} · erreichbar",
   "error.badKey": "Der API-Schlüssel wurde nicht akzeptiert.",
-  "error.suspended": "Der Postal-Mailserver ist suspendiert."
+  "error.suspended": "Der Postal-Mailserver ist suspendiert.",
+
+  "inbound.step.endpoint": "Öffnen Sie in Postal unter dem Mailserver Routing › HTTP Endpoints und legen Sie einen Endpunkt mit der URL {url}, dem Encoding Sent in the body as JSON und dem Format Delivered as the raw message an.",
+  "inbound.step.route": "Legen Sie unter Routing › Routes eine Route mit dem Namen * und der Domain {domain} an, mit diesem HTTP-Endpunkt als Endpunkt. Die Domain muss eine verifizierte Domain des Mailservers sein.",
+  "inbound.step.mx": "Richten Sie den MX-Eintrag von {domain} auf Ihren Postal-Server {host}, sofern Ihre Postal-Installation in der Einstellung dns.mx_records keine anderen MX-Hosts nennt."
 }

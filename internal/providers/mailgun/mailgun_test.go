@@ -12,6 +12,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"slices"
@@ -21,6 +22,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/contracttest"
@@ -47,7 +50,9 @@ type fake struct {
 	// /v3/domains/{domain}/ips.
 	dedicated string
 	domainIPs string
-	n         atomic.Int64
+	// routes are the account's routes by id, as their form was sent.
+	routes map[string]map[string][]string
+	n      atomic.Int64
 }
 
 func (f *fake) with(fn func()) {
@@ -58,6 +63,8 @@ func (f *fake) with(fn func()) {
 
 func newFake() *fake {
 	return &fake{domainState: "active", hooks: map[string][]string{"delivered": {"https://other.example/hook"}},
+		// Someone else's route, which ReputeCast leaves alone.
+		routes:    map[string]map[string][]string{"4f3bad2335b20e58b01c0000": {"description": {"Support inbox"}, "expression": {`match_recipient("support@acme.io")`}, "action": {`forward("https://helpdesk.example/mailgun")`}}},
 		tracking:  map[string]string{"open": "true", "click": `"htmlonly"`, "unsubscribe": "true"},
 		dedicated: `{"items":["198.51.100.7","198.51.100.8","203.0.113.12"],"total_count":3}`,
 		// The domain sends from two of them and from a shared IP.
@@ -306,6 +313,50 @@ func (f *fake) handler(t *testing.T) func(env *contracttest.Env) http.Handler {
 			f.mu.Unlock()
 			message(w, http.StatusOK, "Domain tracking settings have been updated")
 		}))
+		mux.HandleFunc("GET /v3/routes", guard(func(w http.ResponseWriter, _ *http.Request) {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			items := []map[string]any{}
+			for _, id := range slices.Sorted(maps.Keys(f.routes)) {
+				v := f.routes[id]
+				items = append(items, map[string]any{"id": id, "priority": 0, "description": v["description"][0], "expression": v["expression"][0], "actions": v["action"]})
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"total_count": len(items), "items": items})
+		}))
+		saveRoute := func(w http.ResponseWriter, r *http.Request, id string) {
+			v := formValues(t, r)
+			if v == nil || len(v["expression"]) != 1 || len(v["description"]) != 1 || len(v["action"]) == 0 {
+				message(w, http.StatusBadRequest, "expression is required")
+				return
+			}
+			f.mu.Lock()
+			f.routes[id] = v
+			f.mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Route has been created", "route": map[string]any{"id": id, "expression": v["expression"][0], "actions": v["action"]}})
+		}
+		mux.HandleFunc("POST /v3/routes", guard(func(w http.ResponseWriter, r *http.Request) {
+			saveRoute(w, r, fmt.Sprintf("4f3bad2335b20e58b01c%04d", f.n.Add(1)))
+		}))
+		mux.HandleFunc("PUT /v3/routes/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+			f.mu.Lock()
+			_, ok := f.routes[r.PathValue("id")]
+			f.mu.Unlock()
+			if !ok {
+				message(w, http.StatusNotFound, "Route not found")
+				return
+			}
+			saveRoute(w, r, r.PathValue("id"))
+		}))
+		mux.HandleFunc("DELETE /v3/routes/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			if _, ok := f.routes[r.PathValue("id")]; !ok {
+				message(w, http.StatusNotFound, "Route not found")
+				return
+			}
+			delete(f.routes, r.PathValue("id"))
+			message(w, http.StatusOK, "Route has been deleted")
+		}))
 		return mux
 	}
 }
@@ -410,7 +461,119 @@ func TestContract(t *testing.T) {
 				MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e42"), OriginalType: "complained",
 			}}},
 		},
+		Inbound: []contracttest.InboundCase{{
+			Name: "ForwardMime",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				return forwarded(t, "inbound-mime.json")
+			},
+			Want: []providers.InboundMessage{{Raw: []byte{1}, Recipients: []string{"r-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test"},
+				Spam: "pass", SPF: "pass", DKIM: "pass"}},
+			// The signature covers the timestamp and the token.
+			Tamper: func(r *http.Request, body []byte) (*http.Request, []byte) {
+				v, _ := url.ParseQuery(string(body))
+				v.Set("token", "x"+v.Get("token")[1:])
+				bad := []byte(v.Encode())
+				r.Body = io.NopCloser(bytes.NewReader(bad))
+				return r, bad
+			},
+		}},
 	})
+}
+
+// forwarded is a route forward to <url>/mime, signed now, as Mailgun posts
+// it: url-encoded fields.
+func forwarded(t *testing.T, file string) (*http.Request, []byte) {
+	t.Helper()
+	raw, err := os.ReadFile("testdata/" + file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]string
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		t.Fatal(err)
+	}
+	v := url.Values{}
+	for k, x := range fields {
+		v.Set(k, x)
+	}
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	v.Set("timestamp", ts)
+	v.Set("signature", mailgun.Sign(signingKey, ts, fields["token"]))
+	body := []byte(v.Encode())
+	r, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token/mime", bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return r, body
+}
+
+func TestInboundRoute(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler(t))
+	p := newProvider(t, env, true, domain)
+	reg := p.(providers.InboundRegistrar)
+	route := providers.InboundRoute{ID: uuid.MustParse("019a7b2c-0000-7000-8000-0000000000aa"), Domain: "reply.acme.io", Secret: "s"}
+	hook := "https://rc.acme.io/hooks/inbound/tok"
+	ctx := context.Background()
+	for range 2 { // registering again updates the route
+		if err := reg.RegisterInbound(ctx, route, hook); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var ours map[string][]string
+	f.with(func() {
+		if len(f.routes) != 2 {
+			t.Fatalf("routes: %v", f.routes)
+		}
+		for _, v := range f.routes {
+			if v["description"][0] == "ReputeCast "+route.ID.String() {
+				ours = v
+			}
+		}
+	})
+	if ours == nil || ours["expression"][0] != `match_recipient(".*@reply\.acme\.io")` ||
+		!slices.Equal(ours["action"], []string{`forward("https://rc.acme.io/hooks/inbound/tok/mime")`, "stop()"}) {
+		t.Fatalf("route: %v", ours)
+	}
+	if err := reg.UnregisterInbound(ctx, route, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.with(func() {
+		if len(f.routes) != 1 || f.routes["4f3bad2335b20e58b01c0000"] == nil {
+			t.Fatalf("only ReputeCast's route goes: %v", f.routes)
+		}
+	})
+	// EU accounts receive on Mailgun's EU MX hosts.
+	mx := p.(providers.InboundReceiver).InboundSetup(route).MX
+	if len(mx) != 2 || mx[0].Value != "10 mxa.eu.mailgun.org" || mx[1].Value != "10 mxb.eu.mailgun.org" || mx[0].Name != "reply.acme.io" {
+		t.Fatalf("MX: %+v", mx)
+	}
+	env.SetMode(contracttest.ModeAuth)
+	if err := reg.RegisterInbound(ctx, route, hook); !errors.Is(err, providers.ErrUnauthorized) {
+		t.Fatalf("rejected key: %v", err)
+	}
+	env.SetMode(contracttest.ModeOutage)
+	if err := reg.UnregisterInbound(ctx, route, hook); !errors.Is(err, providers.ErrUnavailable) {
+		t.Fatalf("outage: %v", err)
+	}
+}
+
+// A forward's token is honored with the message it first came with only.
+func TestInboundReplay(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler(t))
+	p := newProvider(t, env, true, domain).(providers.InboundReceiver)
+	route := providers.InboundRoute{Domain: "reply.contract.test", Secret: "s"}
+	r, body := forwarded(t, "inbound-mime.json")
+	if err := p.VerifyInbound(context.Background(), route, r, body); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.VerifyInbound(context.Background(), route, r, body); err != nil {
+		t.Fatalf("a redelivery passes: %v", err)
+	}
+	v, _ := url.ParseQuery(string(body))
+	v.Set("body-mime", strings.Replace(v.Get("body-mime"), "Thanks", "Wire the money", 1))
+	if err := p.VerifyInbound(context.Background(), route, r, []byte(v.Encode())); !errors.Is(err, providers.ErrBadSignature) {
+		t.Fatalf("a captured signature with another message: %v", err)
+	}
 }
 
 func TestSigningKeyFromTheAPI(t *testing.T) {

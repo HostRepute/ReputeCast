@@ -347,6 +347,8 @@ func looksSecret(key string) bool {
 }
 
 // ProviderCapabilities maps the declaration to the capability badges.
+// Inbound stays empty: the adapter protocol has no receiving (M58), so a
+// community adapter never offers it, whatever its manifest says.
 func (m Manifest) ProviderCapabilities() providers.Capabilities {
 	c := m.Capabilities
 	out := providers.Capabilities{

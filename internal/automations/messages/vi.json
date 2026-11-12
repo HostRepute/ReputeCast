@@ -504,5 +504,13 @@
   "webinar.hourBefore.subject": "Bắt đầu sau một giờ: {title}",
   "webinar.hourBefore.preheader": "Tham gia từ liên kết bên dưới.",
   "webinar.hourBefore.heading": "Bắt đầu sau một giờ",
-  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ."
+  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ.",
+  "trigger.exitOnReply": "Dừng khi liên hệ trả lời một email của quy trình này",
+  "trigger.noExitOnReply": "Không dừng khi liên hệ trả lời một email của quy trình này",
+  "cond.replied": "đã trả lời {step}",
+  "cond.repliedWithin": "đã trả lời {step} trong vòng {duration}",
+  "goal.replied": "Đã trả lời một email",
+  "problem.replyWindow": "Hãy đặt thời gian chờ tin trả lời.",
+  "diff.triggerReply": "Trình kích hoạt: {change}",
+  "diff.triggerReplyDetail": "Thay đổi áp dụng cho các liên hệ ở v{version} khi phiên bản được phát hành; liên hệ còn ở phiên bản trước giữ thiết lập của phiên bản đó."
 }

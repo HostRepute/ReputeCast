@@ -50,6 +50,8 @@
   "short.store_problem": "sự cố cửa hàng",
   "short.push_worker_missing": "thiếu service worker thông báo đẩy",
   "short.whatsapp_attention": "mẫu và chất lượng WhatsApp",
+  "short.reply_received": "thư trả lời",
+  "short.inbound_failing": "sự cố nhận thư",
 
   "event.approval_requested": "Yêu cầu phê duyệt",
   "event.approval_decided": "Yêu cầu phê duyệt được duyệt, bị từ chối hoặc cần thay đổi",
@@ -98,6 +100,8 @@
   "event.store_problem": "Cửa hàng ngắt kết nối hoặc thiếu webhook",
   "event.push_worker_missing": "Thiếu service worker thông báo đẩy",
   "event.whatsapp_attention": "Mẫu WhatsApp bị từ chối hoặc chất lượng giảm",
+  "event.reply_received": "Thư trả lời mới",
+  "event.inbound_failing": "Nhận thư đang lỗi",
 
   "audience.approval_requested": "Chỉ dành cho người phê duyệt",
   "audience.approval_decided": "Chỉ dành cho tác giả",
@@ -146,6 +150,8 @@
   "audience.store_problem": "Những người có thể quản lý tích hợp",
   "audience.push_worker_missing": "Những người có thể xem nhà cung cấp gửi thư",
   "audience.whatsapp_attention": "Những người có thể xem nhà cung cấp gửi thư",
+  "audience.reply_received": "Những người có thể xem thư trả lời · tối đa 15 phút một lần",
+  "audience.inbound_failing": "Những người có thể quản lý tên miền",
 
   "category.approvals": "Phê duyệt",
   "category.sending": "Gửi thư",
@@ -159,6 +165,7 @@
   "category.earn": "Kiếm tiền",
   "category.website": "Trang web",
   "category.grow": "Tăng trưởng",
+  "category.audience": "Người đăng ký",
 
   "problem.unknownFilter": "Không có bộ lọc này.",
   "problem.badCursor": "Trang này không hợp lệ.",

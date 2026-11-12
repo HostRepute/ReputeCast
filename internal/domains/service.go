@@ -56,6 +56,13 @@ type Service struct {
 	Jobs       func() *jobs.Client
 	Log        *slog.Logger
 	Now        func() time.Time
+	// InboundReportAddress is where the workspace receives DMARC reports
+	// while ReputeCast receives its mail (dmarc@ the receiving domain,
+	// M58); ok is false when it doesn't. nil: it never does.
+	InboundReportAddress func(ctx context.Context, workspaceID uuid.UUID) (address string, ok bool)
+	// InboundReceiving says whether the workspace's receiving route
+	// receives (M58): reply handling "inbox" needs it. nil: never.
+	InboundReceiving func(ctx context.Context, workspaceID uuid.UUID) bool
 
 	checkMu   sync.Mutex
 	lastCheck map[uuid.UUID]time.Time
@@ -76,6 +83,23 @@ func (s *Service) log() *slog.Logger {
 }
 
 func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
+
+// receiving reports whether the workspace's receiving route receives.
+func (s *Service) receiving(ctx context.Context, workspaceID uuid.UUID) bool {
+	return s.InboundReceiving != nil && s.InboundReceiving(ctx, workspaceID)
+}
+
+// inboundRua is the receiving domain's DMARC report address for the
+// suggested DMARC record, "" when the workspace doesn't receive mail.
+func (s *Service) inboundRua(ctx context.Context, workspaceID uuid.UUID) string {
+	if s.InboundReportAddress == nil {
+		return ""
+	}
+	if a, ok := s.InboundReportAddress(ctx, workspaceID); ok {
+		return a
+	}
+	return ""
+}
 
 // trackingTarget is the host custom tracking domains point to: the host of
 // the instance's public URL.
@@ -185,9 +209,14 @@ type SenderDefaults struct {
 	// (a sender on a Transactional domain).
 	TransactionalSenderID string `json:"transactionalSenderId"`
 	// ReplyHandling is "forward": replies go to ReplyTo, or to each
-	// sender's own reply-to address when ReplyTo is empty. (ReputeCast
-	// doesn't receive mail, so there is no reply inbox.)
-	ReplyHandling string `json:"replyHandling" enum:"forward"`
+	// sender's own reply-to address when ReplyTo is empty; or "inbox"
+	// (M58): campaigns and automation emails get the receiving route's
+	// reply address, and replies land in Audience › Replies.
+	ReplyHandling string `json:"replyHandling" enum:"forward,inbox"`
+	// Receiving says whether the workspace's receiving route receives
+	// (Settings › Senders › Receiving mail): "inbox" can be chosen only
+	// then.
+	Receiving     bool   `json:"receiving"`
 	ReplyTo       string `json:"replyTo"`
 	FooterAddress string `json:"footerAddress"`
 	// TrackingDomain is the default link tracking domain ("" = the
@@ -364,6 +393,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SendersOve
 		out.Domains = append(out.Domains, row)
 	}
 	out.Defaults = defaultsView(defs, senders, doms)
+	out.Defaults.Receiving = s.receiving(ctx, ws.ID)
 	if p := api.PrincipalFrom(ctx); p != nil {
 		out.CanManage = p.Can(authz.DomainsManage)
 	}
@@ -754,7 +784,7 @@ func (s *Service) DeleteSender(ctx context.Context, ws *store.Workspace, rawID s
 // SenderDefaultsInput saves the "Defaults" card.
 type SenderDefaultsInput struct {
 	DefaultSenderID string `json:"defaultSenderId,omitempty" doc:"Default From for new campaigns (the Broadcasts default)"`
-	ReplyHandling   string `json:"replyHandling" enum:"forward"`
+	ReplyHandling   string `json:"replyHandling" enum:"forward,inbox"`
 	// ReplyTo is where replies go; empty keeps each sender's own reply-to.
 	ReplyTo        string `json:"replyTo,omitempty" maxLength:"254"`
 	FooterAddress  string `json:"footerAddress" maxLength:"300"`
@@ -825,6 +855,10 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 			}
 			txnSender = &id
 		}
+	}
+	if in.ReplyHandling == "inbox" && defs.sending.ReplyHandling != "inbox" && !s.receiving(ctx, ws.ID) {
+		// Replies would go to an address nothing reads yet.
+		return SenderDefaults{}, api.Err(409, "inbound.not_receiving", say(ctx, "problem.receiveFirst", nil))
 	}
 	before := map[string]any{"default_sender_id": defs.ids["broadcast"], "reply_handling": defs.sending.ReplyHandling, "reply_to": defs.sending.ReplyTo,
 		"footer_address": defs.branding["footer_address"], "tracking_domain": defs.sending.TrackingDomain, "transactional_sender_id": defs.ids["transactional"],

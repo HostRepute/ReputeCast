@@ -22,5 +22,7 @@
   "tracking.on": "{on, select, open {Domain open tracking is on, but ReputeCast turns it off on every message it sends.} click {Domain click tracking is on, but ReputeCast turns it off on every message it sends.} other {Domain open and click tracking is on, but ReputeCast turns it off on every message it sends.}}",
   "tracking.off": "Open, click and unsubscribe tracking are off for {domain}.",
   "error.domainUnknown": "Mailgun doesn't know the domain {domain} in this region. Check the domain and the region.",
-  "error.tooManyURLs": { "message": "Mailgun allows three URLs per event and {event} already has three. Remove one in Mailgun, then register again.", "note": "event: Mailgun's event name (delivered, permanent_fail…)" }
+  "error.tooManyURLs": { "message": "Mailgun allows three URLs per event and {event} already has three. Remove one in Mailgun, then register again.", "note": "event: Mailgun's event name (delivered, permanent_fail…)" },
+
+  "inbound.step.domain": { "message": "Mailgun receives mail only for domains in your account: add {domain} in Mailgun › Domains unless it's there already. ReputeCast adds the route that forwards its mail.", "note": "M58: a setup step of Receiving mail; domain: reply.news.acme.io; Mailgun › Domains is Mailgun's menu" }
 }

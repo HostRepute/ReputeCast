@@ -16,5 +16,7 @@
   "tracking.scope": "Mọi thư ReputeCast gửi",
   "tracking.detail": "ReputeCast gửi mọi thư với TrackOpens và TrackClicks của Mailjet bị tắt, bất kể cài đặt của tài khoản.",
   "error.domainMissing": "{domain} chưa được thiết lập trong Mailjet",
-  "error.callbackTaken": "Mailjet cho phép một URL callback cho mỗi sự kiện và mỗi khóa API, và {events} đã gửi đến một URL khác. Hãy dùng một khóa API chỉ ReputeCast dùng, hoặc xóa các callback đó trong Mailjet, rồi đăng ký lại."
+  "error.callbackTaken": "Mailjet cho phép một URL callback cho mỗi sự kiện và mỗi khóa API, và {events} đã gửi đến một URL khác. Hãy dùng một khóa API chỉ ReputeCast dùng, hoặc xóa các callback đó trong Mailjet, rồi đăng ký lại.",
+
+  "inbound.step.domain": "{domain} phải là tên miền đã xác thực trong Mailjet (Account settings › Senders & domains), và Parse API của Mailjet cần gói trả phí (từ Premium trở lên). ReputeCast sẽ thêm parse route cho mọi địa chỉ của tên miền."
 }

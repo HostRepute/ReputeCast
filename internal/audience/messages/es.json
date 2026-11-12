@@ -113,6 +113,8 @@
 
   "source.preference_center": "el centro de preferencias",
   "source.one_click": "List-Unsubscribe con un clic",
+  "source.mailto": "Correo de baja (mailto:)",
+  "source.reply": "Bandeja de respuestas",
   "source.repermission": "el correo de reconfirmación",
   "source.team": "el equipo",
   "source.api": "la API",
@@ -122,6 +124,8 @@
 
   "suppressionSource.preference_center": "Centro de preferencias",
   "suppressionSource.one_click": "List-Unsubscribe con un clic",
+  "suppressionSource.mailto": "Correo de baja (mailto:)",
+  "suppressionSource.reply": "Bandeja de respuestas",
   "suppressionSource.bounce_mailbox": "Buzón de rebotes SMTP",
   "suppressionSource.api": "API",
   "suppressionSource.import": "Importación de {importer}",
@@ -155,6 +159,8 @@
   "detail.pauseLifted": "pausa finalizada",
   "context.unsubscribePage": "Página de baja",
   "context.oneClick": "List-Unsubscribe con un clic",
+  "context.mailto": "Correo de baja (mailto:)",
+  "context.reply": "Bandeja de respuestas",
   "context.repermissionExpired": "Sin respuesta al correo de reconfirmación tras {days, plural, one {# día} other {# días}}",
   "context.csvUpload": "Subida de CSV · {file}",
   "job.exportTitle": "Exportación · {count, plural, one {# contacto} other {# contactos}}",

@@ -45,4 +45,9 @@ export default translate(md, {
   uploadDescription: 'El archivo .xml que un proveedor de buzón envió a tu dirección rua=, o el .xml.gz o .zip en el que llegó. Solo se guardan los recuentos del informe.',
   upload: 'Subir',
   reportFile: 'Archivo del informe',
+  collectAt: "Los informes llegan a {address} · el último {when}",
+  collectAtNone: "Los informes llegan a {address}",
+  collectTitle: "Recopilar informes en ReputeCast",
+  collectLine: "Recibe los informes agregados de DMARC en una dirección de tu dominio de recepción.",
+  collectSetUp: "Configurar la recepción",
 })

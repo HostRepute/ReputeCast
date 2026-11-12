@@ -27,6 +27,8 @@ var (
 	mTrackingClick  = msgs.M("tracking.click")
 	mTrackingOff    = msgs.M("tracking.off")
 	mDomainMissing  = msgs.M("error.domainMissing")
+
+	mInboundReceiving = msgs.M("inbound.step.receiving")
 )
 
 // say returns a message's English and the message, kept for its readers.

@@ -159,6 +159,8 @@ var Categories = []AuditCategory{
 	{Key: "whatsapp", Label: "WhatsApp", Groups: []string{"whatsapp", "whatsapp_templates", "whatsapp_rates", "whatsapp_settings"}},
 	// Agency accounts (design expansion, phase 8).
 	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
+	// Receiving mail and the replies inbox (M58).
+	{Key: "replies", Label: "Receiving & replies", Groups: []string{"inbound", "reply"}},
 }
 
 // Filter narrows the log.
@@ -575,6 +577,13 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 		if targetID != "" {
 			path, key = "/settings/integrations/stores/"+targetID, "link.store"
 		}
+	case "inbound_route":
+		path, key = "/settings/senders", "link.senders"
+	case "inbound_message":
+		path, key = "/audience/replies", "link.replies"
+		if targetID != "" {
+			path += "?reply=" + targetID
+		}
 	}
 	if key == "" {
 		return "", ""
@@ -611,6 +620,9 @@ var verbs = map[string]string{
 	"reconnected": "reconnected", "disconnected": "disconnected", "data_deleted": "deletedStoreData", "list_updated": "changedList",
 	"writeback_updated": "changedWriteback", "attribution_updated": "changedAttribution",
 	"sync_updated": "changedSync", "sync_started": "startedSync", "webhooks_registered": "registeredWebhooks",
+	// Receiving mail (M58).
+	"route_saved": "changed", "route_removed": "removed", "test_sent": "sentTest", "status_updated": "changedStatus",
+	"contact_unsubscribed": "unsubscribedContact",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences

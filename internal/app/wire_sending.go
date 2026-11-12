@@ -133,6 +133,9 @@ func sendingEngine(a *App) *engine.Engine {
 		Mailbox: a.mailboxClassifier(),
 		// A canary's copies go to the seed inboxes as a placement test.
 		Seeds: canarySeeds{a: a},
+		// Replies kept in the inbox and mailto: unsubscribes go to the
+		// receiving route (M58).
+		Inbound: a.inboundBox,
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)

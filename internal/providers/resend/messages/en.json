@@ -22,5 +22,7 @@
   "tracking.open": "Open tracking is on for {opens}.",
   "tracking.click": "Click tracking is on for {clicks}.",
   "tracking.off": "Open and click tracking are off on every domain.",
-  "error.domainMissing": { "message": "{domain} is not set up in Resend", "note": "domain: news.acme.io" }
+  "error.domainMissing": { "message": "{domain} is not set up in Resend", "note": "domain: news.acme.io" },
+
+  "inbound.step.receiving": { "message": "In Resend › Domains, open {domain} (add it first if it isn't there), turn on Receiving and add the MX record Resend shows for it. ReputeCast adds the email.received webhook.", "note": "M58: a setup step of Receiving mail; Resend › Domains, Receiving and email.received are Resend's names; domain: reply.news.acme.io" }
 }

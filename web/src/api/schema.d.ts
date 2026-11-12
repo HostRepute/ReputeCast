@@ -10248,6 +10248,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/inbound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get how the workspace receives mail */
+        get: operations["get-inbound-route"];
+        /** Set up or change receiving mail */
+        put: operations["save-inbound-route"];
+        post?: never;
+        /** Stop receiving mail */
+        delete: operations["delete-inbound-route"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/inbound/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test message to the receiving domain */
+        post: operations["test-inbound-route"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/integration/fields": {
         parameters: {
             query?: never;
@@ -13710,6 +13746,74 @@ export interface paths {
          * @description Lists the account's email clients with the stored key; status and lastError say how it went.
          */
         post: operations["test-rendering-service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List replies and other received mail */
+        get: operations["list-replies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/replies/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark replies done or open */
+        post: operations["set-replies-status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/replies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a reply */
+        get: operations["get-reply"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/replies/{id}/unsubscribe-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unsubscribe the contact a reply came from */
+        post: operations["unsubscribe-reply-contact"];
         delete?: never;
         options?: never;
         head?: never;
@@ -21581,7 +21685,7 @@ export interface components {
             field?: string;
             humanOnly?: boolean;
             /** @enum {string} */
-            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "bought_product" | "sms_consent" | "sms_clicked" | "sms_replied" | "placed_order";
+            kind: "opened" | "clicked" | "replied" | "field" | "tag" | "list" | "event" | "bought_product" | "sms_consent" | "sms_clicked" | "sms_replied" | "placed_order";
             listId?: string;
             /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
@@ -22002,6 +22106,7 @@ export interface components {
             paidConnected: boolean;
             products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
+            repliesInbox: boolean;
             scoreBands?: components["schemas"]["ScoringBands"];
             segments: components["schemas"]["AutomationSegmentOption"][];
             tags: string[];
@@ -22317,6 +22422,7 @@ export interface components {
             endReasons?: ("canceled" | "payment_failed" | "trial_ended")[];
             event?: string;
             exitOnLeave?: boolean;
+            exitOnReply?: boolean;
             field?: string;
             firstOnly?: boolean;
             formId?: string;
@@ -25847,6 +25953,22 @@ export interface components {
             /** @enum {string} */
             via: "hostrepute" | "builtin";
         };
+        DeliverabilityDMARCCollect: {
+            /** @description dmarc@reply.news.acme.io, for the rua of DMARC records */
+            address: string;
+            externalRecords: components["schemas"]["DeliverabilityDMARCExternalRecord"][];
+            /** Format: date-time */
+            lastReceivedAt?: string;
+        };
+        DeliverabilityDMARCExternalRecord: {
+            domain: string;
+            name: string;
+            /** @enum {string} */
+            status: "found" | "missing" | "unknown";
+            /** @enum {string} */
+            type: "TXT";
+            value: string;
+        };
         DeliverabilityDMARCSource: {
             adapter?: string;
             dkim: string;
@@ -25885,6 +26007,7 @@ export interface components {
             spfDomains: string[];
         };
         DeliverabilityDMARCSummary: {
+            collect?: components["schemas"]["DeliverabilityDMARCCollect"];
             /** Format: int64 */
             days: number;
             domain?: string;
@@ -25899,7 +26022,7 @@ export interface components {
             sources: components["schemas"]["DeliverabilityDMARCSource"][];
             unknown?: components["schemas"]["DeliverabilityDMARCSource"];
             /** @enum {string} */
-            via: "hostrepute" | "upload" | "none";
+            via: "hostrepute" | "inbound" | "upload" | "none";
         };
         DeliverabilityDMARCUpload: {
             domain: string;
@@ -29326,6 +29449,117 @@ export interface components {
             since: string;
             /** Format: int64 */
             windowSeconds?: number;
+        };
+        InboundAddressView: {
+            dmarc: string;
+            fbl: string;
+        };
+        InboundMXRecord: {
+            name: string;
+            /** @enum {string} */
+            status: "found" | "missing" | "wrong_value" | "unknown";
+            type: string;
+            value: string;
+        };
+        InboundMailboxInput: {
+            address: string;
+            host: string;
+            password?: string;
+            /** Format: int64 */
+            port?: number;
+            /** @enum {string} */
+            protocol: "imap" | "pop3";
+            /** @enum {string} */
+            security: "tls" | "starttls";
+            username: string;
+        };
+        InboundMailboxView: {
+            address: string;
+            host: string;
+            /** Format: date-time */
+            lastPolledAt?: string;
+            passwordSet: boolean;
+            /** Format: int64 */
+            port: number;
+            /** @enum {string} */
+            protocol: "imap" | "pop3";
+            /** @enum {string} */
+            security: "tls" | "starttls";
+            username: string;
+        };
+        InboundProviderChoice: {
+            adapter: string;
+            id: string;
+            /** @enum {string} */
+            inbound: "" | "automatic" | "manual";
+            name: string;
+            reason?: string;
+        };
+        InboundProviderRef: {
+            adapter: string;
+            id: string;
+            name: string;
+        };
+        InboundRouteInput: {
+            domain?: string;
+            /** @enum {string} */
+            kind: "provider" | "mailbox";
+            mailbox?: components["schemas"]["InboundMailboxInput"];
+            /** Format: uuid */
+            providerId?: string;
+            settings?: {
+                [key: string]: string;
+            };
+        };
+        InboundRouteView: {
+            addresses: components["schemas"]["InboundAddressView"];
+            canManage: boolean;
+            choices: components["schemas"]["InboundProviderChoice"][];
+            domain: string;
+            helpers: string[];
+            hookUrl?: string;
+            /** @enum {string} */
+            kind?: "provider" | "mailbox";
+            /** Format: date-time */
+            lastReceivedAt?: string;
+            lastTest: components["schemas"]["InboundTestView"];
+            mailbox?: components["schemas"]["InboundMailboxView"];
+            provider?: components["schemas"]["InboundProviderRef"];
+            /** @enum {string} */
+            replyHandling: "forward" | "inbox";
+            /** Format: date-time */
+            setUpAt?: string;
+            setup: components["schemas"]["InboundSetupView"];
+            /** @enum {string} */
+            status: "not_set_up" | "pending" | "receiving" | "failing";
+            statusDetail: string;
+            /** @enum {string} */
+            statusReason?: "mx" | "mailbox_auth" | "mailbox_unreachable" | "register" | "dropped_reports";
+            suggestion: string;
+        };
+        InboundSetupField: {
+            help?: string;
+            key: string;
+            label: string;
+            required: boolean;
+            value: string;
+        };
+        InboundSetupView: {
+            automatic: boolean;
+            mx: components["schemas"]["InboundMXRecord"][];
+            settings: components["schemas"]["InboundSetupField"][];
+            steps: string[];
+        };
+        InboundTestResult: {
+            /** Format: date-time */
+            sentAt: string;
+            to: string;
+        };
+        InboundTestView: {
+            /** Format: date-time */
+            receivedAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
         };
         IncidentCause: {
             body: string;
@@ -34413,7 +34647,7 @@ export interface components {
             bounceClass: string;
             campaignId?: string;
             /** @enum {string} */
-            channel: "webhook" | "bounce_mailbox" | "queue" | "backfill" | "test" | "internal";
+            channel: "webhook" | "bounce_mailbox" | "queue" | "backfill" | "test" | "internal" | "inbound";
             code: string;
             diagnostic: string;
             id: string;
@@ -37328,6 +37562,116 @@ export interface components {
              */
             status?: "connected" | "failing";
         };
+        ReplyAttachment: {
+            name: string;
+            /** Format: int64 */
+            size: number;
+            type: string;
+        };
+        ReplyAuth: {
+            dkim?: string;
+            dmarc?: string;
+            spf?: string;
+        };
+        ReplyContact: {
+            email: string;
+            id: string;
+            name: string;
+            status: string;
+        };
+        ReplyCounts: {
+            /** Format: int64 */
+            auto: number;
+            /** Format: int64 */
+            done: number;
+            /** Format: int64 */
+            open: number;
+            /** Format: int64 */
+            other: number;
+            /** Format: int64 */
+            spam: number;
+            /** Format: int64 */
+            unsubscribes: number;
+        };
+        ReplyDetail: {
+            asksUnsubscribe: boolean;
+            attachments: components["schemas"]["ReplyAttachment"][];
+            auth: components["schemas"]["ReplyAuth"];
+            autoReply: boolean;
+            canManage: boolean;
+            canUnsubscribe: boolean;
+            contact?: components["schemas"]["ReplyContact"];
+            contactId?: string;
+            from: components["schemas"]["ReplyPerson"];
+            /** Format: date-time */
+            handledAt?: string;
+            hasHtml: boolean;
+            helpers: string[];
+            id: string;
+            /** @enum {string} */
+            kind: "reply" | "unsubscribe" | "other";
+            preview: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** Format: date-time */
+            sentAt?: string;
+            source?: components["schemas"]["ReplySource"];
+            spam: boolean;
+            /** @enum {string} */
+            status: "open" | "done";
+            subject: string;
+            text: string;
+            to: string;
+            unsubscribeReason?: string;
+        };
+        ReplyList: {
+            canManage: boolean;
+            counts: components["schemas"]["ReplyCounts"];
+            domain?: string;
+            items: components["schemas"]["ReplyListItem"][];
+            nextCursor?: string;
+            receiving: boolean;
+        };
+        ReplyListItem: {
+            asksUnsubscribe: boolean;
+            autoReply: boolean;
+            contactId?: string;
+            from: components["schemas"]["ReplyPerson"];
+            id: string;
+            /** @enum {string} */
+            kind: "reply" | "unsubscribe" | "other";
+            preview: string;
+            /** Format: date-time */
+            receivedAt: string;
+            source?: components["schemas"]["ReplySource"];
+            spam: boolean;
+            /** @enum {string} */
+            status: "open" | "done";
+            subject: string;
+        };
+        ReplyPerson: {
+            email: string;
+            name: string;
+        };
+        ReplySource: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            type: "campaign" | "automation";
+        };
+        ReplyStatusInput: {
+            ids: string[];
+            /** @enum {string} */
+            status: "open" | "done";
+        };
+        ReplyStatusResult: {
+            /** Format: int64 */
+            updated: number;
+        };
+        ReplyUnsubscribeResult: {
+            already: boolean;
+            contactId: string;
+        };
         ReportABTest: {
             /** Format: double */
             barMax: number;
@@ -39803,8 +40147,9 @@ export interface components {
             defaultSenderId: string;
             footerAddress: string;
             listUnsubscribeMailto: boolean;
+            receiving: boolean;
             /** @enum {string} */
-            replyHandling: "forward";
+            replyHandling: "forward" | "inbox";
             replyOptions: string[];
             replyTo: string;
             systemSenderId: string;
@@ -39819,7 +40164,7 @@ export interface components {
             footerAddress: string;
             listUnsubscribeMailto?: boolean;
             /** @enum {string} */
-            replyHandling: "forward";
+            replyHandling: "forward" | "inbox";
             replyTo?: string;
             /** @description Empty for the provider default */
             trackingDomain?: string;
@@ -54826,7 +55171,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -54908,7 +55253,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -71295,6 +71640,136 @@ export interface operations {
             };
         };
     };
+    "get-inbound-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboundRouteView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-inbound-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InboundRouteInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboundRouteView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-inbound-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-inbound-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboundTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-integration-fields": {
         parameters: {
             query?: never;
@@ -79064,6 +79539,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RenderingService"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-replies": {
+        parameters: {
+            query?: {
+                view?: "open" | "done" | "auto" | "spam" | "other" | "unsubscribes";
+                /** @description Only replies to this campaign */
+                campaign?: string;
+                /** @description Only replies to this flow's emails */
+                automation?: string;
+                /** @description Search the sender and subject */
+                q?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-replies-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplyStatusInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyStatusResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Reply id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unsubscribe-reply-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Reply id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyUnsubscribeResult"];
                 };
             };
             /** @description Error */

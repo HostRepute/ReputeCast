@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io"
 	"net/netip"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -74,15 +75,24 @@ func (st *state) attribute(ip, ptr string) (store.Provider, bool) {
 }
 
 // ownedDomain reports whether a From domain belongs to the workspace.
-func (st *state) ownedDomain(d string) bool {
+func (st *state) ownedDomain(d string) bool { return ownsDomain(st.cands, d) }
+
+// ownsDomain reports whether a domain is one of the workspace's (its
+// sending domains and their organizational domains), by organizational
+// domain.
+func ownsDomain(cands []hostrepute.Candidate, d string) bool {
 	org := dnscheck.OrgDomain(d)
-	for _, c := range st.cands {
+	for _, c := range cands {
 		if c.Type == hostrepute.AssetDomain && dnscheck.OrgDomain(c.Asset) == org {
 			return true
 		}
 	}
 	return false
 }
+
+// viaRank orders where reports came from: the summary names the best
+// source among the reports it counts.
+var viaRank = map[string]int{"upload": 1, "inbound": 2, "hostrepute": 3}
 
 type dmarcAgg struct {
 	row      DeliverabilityDMARCSource
@@ -170,7 +180,7 @@ func (st *state) dmarcSummary() DeliverabilityDMARCSummary {
 		}
 		if counted {
 			out.Reports++
-			if out.Via == "none" || rep.Via == "hostrepute" {
+			if viaRank[rep.Via] > viaRank[out.Via] {
 				out.Via = rep.Via
 			}
 		}
@@ -562,30 +572,129 @@ func (s *Service) UploadReport(ctx context.Context, ws *store.Workspace, data []
 	case err != nil:
 		return DeliverabilityDMARCUpload{}, api.Invalid("body", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
 	}
-	st, err := s.load(ctx, ws)
-	if err != nil {
-		return DeliverabilityDMARCUpload{}, err
-	}
-	if !st.ownedDomain(rep.Domain) {
-		return DeliverabilityDMARCUpload{}, api.Invalid("body", say(ctx, "problem.notSendingDomain", i18n.Args{"domain": rep.Domain}))
-	}
 	out := DeliverabilityDMARCUpload{OrgName: rep.OrgName, ReportID: rep.ReportID, Domain: rep.Domain, Records: len(rep.Records), From: rep.DateBegin, To: rep.DateEnd}
 	for _, r := range rep.Records {
 		out.Messages += r.Count
 	}
-	policy, _ := json.Marshal(rep.Policy)
-	records, _ := json.Marshal(rep.Records)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		if err := q.UpsertDeliverabilityDMARCReport(ctx, store.UpsertDeliverabilityDMARCReportParams{
-			ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Domain: rep.Domain, OrgName: rep.OrgName, ReportID: rep.ReportID,
-			DateBegin: rep.DateBegin, DateEnd: rep.DateEnd, Policy: policy, Records: records, Via: "upload", ReceivedAt: s.now(),
-		}); err != nil {
+		if err := s.StoreReport(ctx, tx, ws, rep, "upload"); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "dmarc_report.upload", TargetType: "dmarc_report",
+		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{WorkspaceID: &ws.ID, Action: "dmarc_report.upload", TargetType: "dmarc_report",
 			TargetID: rep.OrgName + "/" + rep.ReportID, TargetName: "DMARC report from " + rep.OrgName,
 			After: map[string]any{"domain": rep.Domain, "records": len(rep.Records), "messages": out.Messages}})
 	})
+	if errors.Is(err, ErrNotOwnedDomain) {
+		return DeliverabilityDMARCUpload{}, api.Invalid("body", say(ctx, "problem.notSendingDomain", i18n.Args{"domain": rep.Domain}))
+	}
 	return out, err
+}
+
+// ErrNotOwnedDomain is a report about a domain that isn't one of the
+// workspace's sending domains (or their organizational domains).
+var ErrNotOwnedDomain = errors.New("deliverability: the report is about a domain the workspace doesn't send from")
+
+// StoreReport stores an aggregate report in tx, received by via ("upload",
+// "inbound" for one that arrived at dmarc@ the receiving domain, M58): a
+// report already stored (same reporter and report id) is replaced. A
+// report about another domain is ErrNotOwnedDomain. The caller audits.
+func (s *Service) StoreReport(ctx context.Context, tx pgx.Tx, ws *store.Workspace, rep hostrepute.DMARCReport, via string) error {
+	q := store.New(tx)
+	cands, err := hostrepute.Candidates(ctx, q, ws.ID)
+	if err != nil {
+		return err
+	}
+	if !ownsDomain(cands, rep.Domain) {
+		return ErrNotOwnedDomain
+	}
+	policy, _ := json.Marshal(rep.Policy)
+	records, _ := json.Marshal(rep.Records)
+	return q.UpsertDeliverabilityDMARCReport(ctx, store.UpsertDeliverabilityDMARCReportParams{
+		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Domain: rep.Domain, OrgName: rep.OrgName, ReportID: rep.ReportID,
+		DateBegin: rep.DateBegin, DateEnd: rep.DateEnd, Policy: policy, Records: records, Via: via, ReceivedAt: s.now(),
+	})
+}
+
+// dmarcCollect is where DMARC reports arrive while the workspace receives
+// mail (M58): dmarc@ its receiving domain, when the last report came, and
+// the external destination record each sending domain under another
+// organizational domain needs, as the last check found it.
+func (s *Service) dmarcCollect(ctx context.Context, st *state) (*DeliverabilityDMARCCollect, error) {
+	if s.Inbound == nil {
+		return nil, nil
+	}
+	receiving, domain, last, err := s.Inbound(ctx, st.ws)
+	if err != nil || !receiving || domain == "" {
+		return nil, err
+	}
+	out := &DeliverabilityDMARCCollect{Address: "dmarc@" + domain, LastReceivedAt: last, ExternalRecords: []DeliverabilityDMARCExternalRecord{}}
+	if out.LastReceivedAt == nil {
+		for _, rep := range st.dmarc {
+			if rep.Via == "inbound" && (out.LastReceivedAt == nil || rep.ReceivedAt.After(*out.LastReceivedAt)) {
+				at := rep.ReceivedAt
+				out.LastReceivedAt = &at
+			}
+		}
+	}
+	for _, d := range st.domains {
+		if !needsReportRecord(d.Domain, domain) {
+			continue
+		}
+		rec := DeliverabilityDMARCExternalRecord{Domain: d.Domain, Name: reportRecordName(d.Domain, domain), Type: "TXT", Value: reportRecordValue, Status: "unknown"}
+		if chk, ok := st.checks[strings.ToLower(d.Domain)]; ok {
+			var r struct {
+				Report *reportRecordCheck `json:"dmarcReport"`
+			}
+			if json.Unmarshal(chk.Result, &r) == nil && r.Report != nil && strings.EqualFold(r.Report.Name, rec.Name) {
+				rec.Status = r.Report.Status
+			}
+		}
+		out.ExternalRecords = append(out.ExternalRecords, rec)
+	}
+	return out, nil
+}
+
+// reportRecordValue is the external destination record's content: the
+// receiving domain agrees to take the sending domain's reports.
+const reportRecordValue = "v=DMARC1"
+
+// needsReportRecord reports whether reports for a sending domain sent to
+// dest need an external destination record: dest is under another
+// organizational domain (RFC 7489 §7.1).
+func needsReportRecord(domain, dest string) bool {
+	return dnscheck.OrgDomain(domain) != dnscheck.OrgDomain(dest)
+}
+
+// reportRecordName is where the external destination record goes:
+// "<sending domain>._report._dmarc.<receiving domain>".
+func reportRecordName(domain, dest string) string {
+	return strings.ToLower(domain) + "._report._dmarc." + strings.ToLower(dest)
+}
+
+// reportRecordCheck is the stored lookup of an external destination
+// record (authChecks): found, missing, or unknown when DNS didn't answer.
+type reportRecordCheck struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+// checkReportRecord looks the external destination record of domain's
+// reports at dest up.
+func (s *Service) checkReportRecord(ctx context.Context, domain, dest string) reportRecordCheck {
+	out := reportRecordCheck{Name: reportRecordName(domain, dest), Status: "unknown"}
+	txts, err := s.DNS.TXT(ctx, out.Name)
+	switch {
+	case err == nil && slices.ContainsFunc(txts, isReportRecord):
+		out.Status = "found"
+	case err == nil || dnscheck.IsNotFound(err):
+		out.Status = "missing"
+	}
+	return out
+}
+
+// isReportRecord: a TXT record that starts with v=DMARC1.
+func isReportRecord(txt string) bool {
+	v, _, _ := strings.Cut(strings.TrimSpace(txt), ";")
+	k, val, ok := strings.Cut(v, "=")
+	return ok && strings.EqualFold(strings.TrimSpace(k), "v") && strings.EqualFold(strings.TrimSpace(val), "DMARC1")
 }

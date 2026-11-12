@@ -113,6 +113,8 @@
 
   "source.preference_center": "trung tâm tùy chọn",
   "source.one_click": "List-Unsubscribe một lần nhấp",
+  "source.mailto": "Email hủy đăng ký (mailto:)",
+  "source.reply": "Hộp thư trả lời",
   "source.repermission": "email xin phép lại",
   "source.team": "nhóm",
   "source.api": "API",
@@ -122,6 +124,8 @@
 
   "suppressionSource.preference_center": "Trung tâm tùy chọn",
   "suppressionSource.one_click": "List-Unsubscribe một lần nhấp",
+  "suppressionSource.mailto": "Email hủy đăng ký (mailto:)",
+  "suppressionSource.reply": "Hộp thư trả lời",
   "suppressionSource.bounce_mailbox": "Hộp thư nhận thư trả lại SMTP",
   "suppressionSource.api": "API",
   "suppressionSource.import": "Nhập từ {importer}",
@@ -155,6 +159,8 @@
   "detail.pauseLifted": "đã bỏ tạm dừng",
   "context.unsubscribePage": "Trang hủy đăng ký",
   "context.oneClick": "List-Unsubscribe một lần nhấp",
+  "context.mailto": "Email hủy đăng ký (mailto:)",
+  "context.reply": "Hộp thư trả lời",
   "context.repermissionExpired": "Không trả lời email xin phép lại sau {days} ngày",
   "context.csvUpload": "Tải lên CSV · {file}",
   "job.exportTitle": "Xuất · {count, plural, other {# liên hệ}}",

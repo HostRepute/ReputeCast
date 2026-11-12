@@ -34,6 +34,7 @@
   "category.push": "Thông báo đẩy",
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agency",
+  "category.replies": "Nhận thư & thư trả lời",
 
   "link.open": "Mở",
   "link.routing": "Mở định tuyến",
@@ -58,6 +59,8 @@
   "link.authentication": "Mở xác thực",
   "link.workspaces": "Mở không gian làm việc",
   "link.instance": "Mở cài đặt hệ thống",
+  "link.senders": "Mở người gửi",
+  "link.replies": "Mở thư trả lời",
 
   "client.on": "{browser} trên {os}",
   "related.entry": "{action} bởi {name} lúc {at, time}",
@@ -171,6 +174,9 @@
   "what.changedSync": "{hasName, select, yes {Đã đổi nội dung đồng bộ từ {type} {name}} other {Đã đổi nội dung đồng bộ từ {type}}}",
   "what.startedSync": "{hasName, select, yes {Đã bắt đầu đồng bộ {type} {name}} other {Đã bắt đầu đồng bộ {type}}}",
   "what.registeredWebhooks": "{hasName, select, yes {Đã đăng ký webhook của {type} {name}} other {Đã đăng ký webhook của {type}}}",
+  "what.sentTest": "{hasName, select, yes {Đã gửi thư thử đến {type} {name}} other {Đã gửi thư thử đến {type}}}",
+  "what.changedStatus": "{hasName, select, yes {Đã đổi trạng thái của {type} {name}} other {Đã đổi trạng thái của {type}}}",
+  "what.unsubscribedContact": "{hasName, select, yes {Đã hủy đăng ký liên hệ của {type} {name}} other {Đã hủy đăng ký liên hệ của {type}}}",
 
   "type.access": "quyền truy cập",
   "type.account": "tài khoản",
@@ -205,6 +211,9 @@
   "type.deliverability": "khả năng vào hộp thư",
   "type.digest": "bản tin định kỳ",
   "type.dmarc_report": "báo cáo DMARC",
+  "type.inbound": "nhận thư",
+  "type.inbound_message": "thư trả lời",
+  "type.inbound_route": "tuyến nhận thư",
   "type.domain": "tên miền",
   "type.earn": "Kiếm tiền",
   "type.earn_gift": "quà tặng",
@@ -342,5 +351,6 @@
   "type.whatsapp_settings": "cài đặt WhatsApp",
   "type.whatsapp_templates": "mẫu WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "không gian làm việc"
+  "type.workspace": "không gian làm việc",
+  "type.reply": "thư trả lời"
 }

@@ -6,8 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"slices"
 	"strconv"
@@ -45,6 +47,9 @@ type fake struct {
 	n             atomic.Int64
 	// unmatched makes the batch endpoint answer without ids.
 	unmatched bool
+	// rawURL is the download link of received emails' raw message; none
+	// when empty.
+	rawURL string
 }
 
 func newFake() *fake {
@@ -252,6 +257,24 @@ func (f *fake) handler(env *contracttest.Env) http.Handler {
 		_ = json.NewEncoder(w).Encode(map[string]any{"object": "email", "id": r.PathValue("id"), "to": []string{"Reader <Reader@Example.com>"}, "created_at": "2026-10-12 13:41:02.674981+00",
 			"last_event": last, "tags": []map[string]string{{"name": "rc_message", "value": "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e40"}}})
 	}, false))
+	mux.HandleFunc("GET /emails/receiving/{id}", guard(func(w http.ResponseWriter, r *http.Request) {
+		raw, err := os.ReadFile("testdata/inbound-email.json")
+		if err != nil || r.PathValue("id") != "56761188-7520-42d8-8898-ff6fc54ce618" {
+			writeErr(w, http.StatusNotFound, "not_found", "Email not found")
+			return
+		}
+		var e map[string]any
+		_ = json.Unmarshal(raw, &e)
+		e["id"] = r.PathValue("id")
+		f.mu.Lock()
+		if f.rawURL == "" {
+			e["raw"] = nil
+		} else {
+			e["raw"] = map[string]string{"download_url": f.rawURL, "expires_at": "2026-04-03T23:13:42.674Z"}
+		}
+		f.mu.Unlock()
+		_ = json.NewEncoder(w).Encode(e)
+	}, false))
 	return mux
 }
 
@@ -357,7 +380,118 @@ func TestContract(t *testing.T) {
 				MessageID: contracttest.UUID(t, "0199d5a8-2b6e-7c41-9a0e-5b8f1c2d3e45"), OriginalType: "email.failed", OriginalCode: "reached_daily_quota", BounceClass: "other",
 			}}},
 		},
+		Inbound: []contracttest.InboundCase{{
+			// Resend's email.received sample; the message is read from the
+			// received emails API (its documented answer, without a raw
+			// download link here).
+			Name: "EmailReceived",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				f.mu.Lock()
+				f.hooks = append(f.hooks, map[string]any{"id": "wh_inbound", "endpoint": "https://reputecast.contract.test/hooks/inbound/contract-token", "status": "enabled", "events": []string{"email.received"}})
+				f.mu.Unlock()
+				return receivedEvent(t, signingSecret)
+			},
+			Want: []providers.InboundMessage{{
+				From: "Acme <onboarding@resend.dev>", To: []string{"delivered@resend.dev"}, Subject: "Hello World", MessageID: "<111-222-333@email.example.com>",
+				HTML: "<strong>", Attachments: make([]providers.InboundAttachment, 2), Recipients: []string{"delivered@resend.dev"},
+				ProviderMessageID: "56761188-7520-42d8-8898-ff6fc54ce618", SPF: "pass", DKIM: "pass", DMARC: "pass",
+			}},
+		}},
 	})
+}
+
+func receivedEvent(t *testing.T, secret string) (*http.Request, []byte) {
+	t.Helper()
+	body, err := os.ReadFile("testdata/inbound-received.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := signedRequest(t, "/hooks/inbound/contract-token", secret, body)
+	return r, body
+}
+
+// The inbound hook's webhook has its own signing secret: the events
+// webhook's, entered at connect time, doesn't sign received mail.
+func TestInboundSecretIsTheHooks(t *testing.T) {
+	f := newFake()
+	f.hooks = append(f.hooks, map[string]any{"id": "wh_inbound", "endpoint": "https://rc.acme.io/hooks/inbound/contract-token", "status": "enabled", "events": []string{"email.received"}})
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env, map[string]string{"api_key": apiKey, "webhook_signing_secret": rotatedSecret}).(providers.InboundReceiver)
+	route := providers.InboundRoute{Domain: "reply.acme.io", URL: "https://rc.acme.io/hooks/inbound/contract-token"}
+	r, body := receivedEvent(t, rotatedSecret)
+	if err := p.VerifyInbound(context.Background(), route, r, body); !errors.Is(err, providers.ErrBadSignature) {
+		t.Fatalf("signed with the events webhook's secret: %v", err)
+	}
+	r, body = receivedEvent(t, signingSecret)
+	if err := p.VerifyInbound(context.Background(), route, r, body); err != nil {
+		t.Fatalf("signed with the hook's own secret: %v", err)
+	}
+}
+
+func TestInboundRawDownload(t *testing.T) {
+	const message = "From: Acme <onboarding@resend.dev>\r\nTo: delivered@resend.dev\r\nSubject: Hello World\r\n\r\nCongrats\r\n"
+	var auth string
+	raw := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth = r.Header.Get("Authorization")
+		if r.URL.Query().Get("Signature") != "abc" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		_, _ = io.WriteString(w, message)
+	}))
+	defer raw.Close()
+	f := newFake()
+	f.rawURL = raw.URL + "/receiving/raw/054da427?Signature=abc"
+	env := contracttest.NewEnv(t, f.handler)
+	settings, _ := json.Marshal(resend.Settings{BaseURL: env.URL})
+	p, err := resend.New(providers.Config{Settings: settings, Credentials: json.RawMessage(`{"api_key":"` + apiKey + `"}`), HTTPClient: raw.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, body := receivedEvent(t, signingSecret)
+	msgs, err := p.(providers.InboundReceiver).ParseInbound(context.Background(), providers.InboundRoute{}, r, body)
+	if err != nil || len(msgs) != 1 {
+		t.Fatalf("ParseInbound: %v, %v", msgs, err)
+	}
+	if string(msgs[0].Raw) != message || msgs[0].Subject != "" || msgs[0].SPF != "pass" || msgs[0].ProviderMessageID != "56761188-7520-42d8-8898-ff6fc54ce618" {
+		t.Fatalf("message: %+v", msgs[0])
+	}
+	if auth != "" {
+		t.Fatalf("the API key went to the download link: %q", auth)
+	}
+	// An expired link fails the job, which reads the email (and a new link)
+	// again.
+	f.mu.Lock()
+	f.rawURL = raw.URL + "/receiving/raw/054da427?Signature=expired"
+	f.mu.Unlock()
+	if _, err := p.(providers.InboundReceiver).ParseInbound(context.Background(), providers.InboundRoute{}, r, body); !errors.Is(err, providers.ErrUnavailable) {
+		t.Fatalf("expired link: %v", err)
+	}
+}
+
+func TestInboundWebhook(t *testing.T) {
+	f := newFake()
+	env := contracttest.NewEnv(t, f.handler)
+	p := newProvider(t, env, nil)
+	reg := p.(providers.InboundRegistrar)
+	hook := "https://rc.acme.io/hooks/inbound/tok"
+	if err := reg.RegisterInbound(context.Background(), providers.InboundRoute{}, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	last := f.hooks[len(f.hooks)-1]
+	f.mu.Unlock()
+	if last["endpoint"] != hook || fmt.Sprint(last["events"]) != "[email.received]" {
+		t.Fatalf("webhook: %v", last)
+	}
+	if err := reg.UnregisterInbound(context.Background(), providers.InboundRoute{}, hook); err != nil {
+		t.Fatal(err)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if len(f.hooks) != 1 || f.hooks[0]["id"] != "wh_1" {
+		t.Fatalf("only the inbound webhook goes: %v", f.hooks)
+	}
 }
 
 func TestBatchWithAnInvalidMessageSendsTheRestOneByOne(t *testing.T) {

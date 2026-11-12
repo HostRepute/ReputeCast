@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/mail"
+	"os"
 	"testing"
 	"time"
 
@@ -56,7 +57,44 @@ func TestContract(t *testing.T) {
 				{Type: providers.EventHardBounce, Recipient: "rob@example.com", ProviderMessageID: "sim-2", OriginalType: "Simulated/hard_bounce", OriginalCode: "550 5.1.1", BounceClass: "mailbox_unknown"},
 			},
 		}},
+		InboundRoute: providers.InboundRoute{Secret: inboundSecret},
+		Inbound: []contracttest.InboundCase{{
+			Name: "raw reply",
+			Request: func(t *testing.T, _ *contracttest.Env) (*http.Request, []byte) {
+				body, err := os.ReadFile("testdata/inbound-reply.txt")
+				if err != nil {
+					t.Fatal(err)
+				}
+				req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.contract.test/hooks/inbound/contract-token", bytes.NewReader(body))
+				req.Header.Set(simulator.InboundSignatureHeader, simulator.SignInbound(inboundSecret, body))
+				req.Header.Set(simulator.InboundRecipientsHeader, "R-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test, ")
+				return req, body
+			},
+			Want: []providers.InboundMessage{{Raw: []byte{1}, Recipients: []string{"r-abcdefghijklmnopqrstuvwxyz234567abcdefghij@reply.contract.test"}}},
+		}},
 	})
+}
+
+const inboundSecret = "simulator-inbound-secret"
+
+// A request signed with the provider's webhook secret instead of the
+// route's is refused: each route has its own.
+func TestInboundUsesTheRoutesSecret(t *testing.T) {
+	p := newSim(t, nil)
+	body := []byte("From: a@example.com\r\n\r\nhi\r\n")
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://reputecast.acme.io/hooks/inbound/t", bytes.NewReader(body))
+	req.Header.Set(simulator.InboundSignatureHeader, simulator.SignInbound(secret, body))
+	route := providers.InboundRoute{Domain: "reply.acme.io", Secret: inboundSecret}
+	if err := p.VerifyInbound(context.Background(), route, req, body); !errors.Is(err, providers.ErrBadSignature) {
+		t.Fatalf("VerifyInbound: %v", err)
+	}
+	req.Header.Set(simulator.InboundSignatureHeader, simulator.SignInbound(inboundSecret, body))
+	if err := p.VerifyInbound(context.Background(), route, req, body); err != nil {
+		t.Fatalf("VerifyInbound: %v", err)
+	}
+	if mx := p.InboundSetup(route).MX; len(mx) != 1 || mx[0].Value != "10 inbound.simulator.invalid" {
+		t.Fatalf("MX: %+v", mx)
+	}
 }
 
 func TestPostalOutageWindow(t *testing.T) {
