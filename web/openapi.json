@@ -115546,7 +115546,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "coupons"
               ],
               "type": "string"
             }
@@ -115819,7 +115820,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "coupons"
               ],
               "type": "string"
             }
