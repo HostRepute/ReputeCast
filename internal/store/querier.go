@@ -818,8 +818,10 @@ type Querier interface {
 	CommerceProductRemoved(ctx context.Context, arg CommerceProductRemovedParams) (int64, error)
 	// An older version of a product than the one stored is ignored (events
 	// that arrive out of order). It returns what the product was before
-	// (existed is false for a new one), locked first: back in stock and price
-	// drops are told apart from it (G-30).
+	// (existed is false for a new one): back in stock and price drops are told
+	// apart from it (G-30). old reads the statement's snapshot, so it sees the
+	// row before this upsert whenever it is evaluated (a FOR UPDATE there would
+	// skip the row the upsert itself changed).
 	CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (CommerceProductUpsertRow, error)
 	// The catalog for the picker: products not removed, newest first,
 	// optionally one collection's, optionally matching a search.

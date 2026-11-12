@@ -2915,7 +2915,6 @@ const commerceProductUpsert = `-- name: CommerceProductUpsert :one
 WITH old AS (
     SELECT p.available, p.inventory, p.price_cents, p.currency FROM store_products p
     WHERE p.store_id = $2 AND p.external_id = $4
-    FOR UPDATE
 )
 INSERT INTO store_products (id, store_id, workspace_id, external_id, title, handle, url, image_url, image_alt, price_cents, compare_at_cents, currency,
     available, inventory, status, collections, created_at_store, updated_at_store, removed_at, synced_at)
@@ -2970,8 +2969,10 @@ type CommerceProductUpsertRow struct {
 
 // An older version of a product than the one stored is ignored (events
 // that arrive out of order). It returns what the product was before
-// (existed is false for a new one), locked first: back in stock and price
-// drops are told apart from it (G-30).
+// (existed is false for a new one): back in stock and price drops are told
+// apart from it (G-30). old reads the statement's snapshot, so it sees the
+// row before this upsert whenever it is evaluated (a FOR UPDATE there would
+// skip the row the upsert itself changed).
 func (q *Queries) CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (CommerceProductUpsertRow, error) {
 	row := q.db.QueryRow(ctx, commerceProductUpsert,
 		arg.ID,

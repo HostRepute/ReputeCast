@@ -274,6 +274,12 @@ func TestPerRecipientBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pool.Close()
+	// The pool's connect hook (db.AfterConnect) runs its own statements:
+	// open the connection first, then count.
+	if _, err := pool.Exec(ctx, `SELECT 1`); err != nil {
+		t.Fatal(err)
+	}
+	counter.n.Store(0)
 	counted := &commerce.Service{Pool: pool, Q: store.New(pool), Now: s.clk.now}
 	readers := []liquid.Recipient{{ContactID: graceID}, {ContactID: samID}}
 	vars := liquid.FillBatch(ctx, []liquid.RecipientData{counted.Recipients()}, s.ws.ID, readers, html)
