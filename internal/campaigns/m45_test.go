@@ -51,7 +51,7 @@ func TestDeleteArchiveRestore(t *testing.T) {
 	}
 	var l listed
 	c.Do(http.MethodGet, ws+"/campaigns?status=drafts&pageSize=50", nil).MustStatus(t, 200).JSON(t, &l)
-	if _, ok := l.find("Flash sale: 48 hours only"); ok || l.Counts.Deleted != 1 || l.Counts.Drafts != 8 {
+	if _, ok := l.find("Flash sale: 48 hours only"); ok || l.Counts.Deleted != 1 || l.Counts.Drafts != 9 {
 		t.Fatalf("a deleted draft leaves Drafts for Deleted: %+v", l.Counts)
 	}
 	c.Do(http.MethodGet, ws+"/campaigns?status=deleted", nil).MustStatus(t, 200).JSON(t, &l)
@@ -181,8 +181,10 @@ func TestBulkTagsAndFilters(t *testing.T) {
 	if _, ok := l.find("Flash sale: 48 hours only"); !ok {
 		t.Fatalf("subject search %q: %+v", subject[:6], l.Items)
 	}
+	// "%" is a character, not a wildcard: only the subject that holds one
+	// (Black Friday Early Access, "15% off") matches.
 	c.Do(http.MethodGet, ws+"/campaigns?q=%25", nil).MustStatus(t, 200).JSON(t, &l)
-	if l.Total != 0 {
+	if _, ok := l.find("Black Friday Early Access"); l.Total != 1 || !ok {
 		t.Fatalf("%% matched %d campaigns", l.Total)
 	}
 	// Dates: the window holds what went or goes out in it.

@@ -150,6 +150,7 @@ var Defs = described([]Def{
 	{Key: CampaignsSend, Group: g("campaigns"), Sensitive: true, Implies: []Permission{CampaignsView}},
 	{Key: CampaignsPause, Group: g("campaigns"), Implies: []Permission{CampaignsView}},
 	{Key: CampaignsApprove, Group: g("campaigns"), Sensitive: true, Implies: []Permission{CampaignsView}},
+	{Key: CouponsManage, Group: g("campaigns"), Sensitive: true, NoAgents: true, Implies: []Permission{CampaignsView}},
 
 	{Key: TemplatesView, Group: g("templates")},
 	{Key: TemplatesEdit, Group: g("templates"), Implies: []Permission{TemplatesView}},
@@ -240,8 +241,6 @@ var Defs = described([]Def{
 
 	{Key: WorkspaceTransfer, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
 	{Key: WorkspaceDelete, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
-
-	{Key: CouponsManage, Group: g("campaigns"), Sensitive: true, NoAgents: true, Implies: []Permission{CampaignsView}},
 })
 
 var defByKey = func() map[Permission]Def {

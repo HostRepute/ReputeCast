@@ -73,8 +73,9 @@ func TestSeed(t *testing.T) {
 	// Program: October check-in (polls and surveys). SMS adds the sent
 	// "Summit: 8 days to go" and the draft "Summit: doors open". Web push
 	// adds the sent "New post: Feature flags at scale" and WhatsApp the draft
-	// "Summit: see you tomorrow".
-	if campaigns != 62 {
-		t.Fatalf("want 62 demo campaigns, got %d", campaigns)
+	// "Summit: see you tomorrow". M59 adds the draft Black Friday Early
+	// Access (the Countdown and Discount code blocks).
+	if campaigns != 63 {
+		t.Fatalf("want 63 demo campaigns, got %d", campaigns)
 	}
 }

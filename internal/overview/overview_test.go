@@ -63,8 +63,8 @@ func TestOverviewCards(t *testing.T) {
 	// from a post (integrations hub) and the accessibility sample's Weekly
 	// Digest #143. With texts (X21, brief §4), Daniel Park's text draft
 	// "Summit: doors open" is one more, and the WhatsApp draft "Summit: see
-	// you tomorrow" (X22) another.
-	if n.Drafts != 9 {
+	// you tomorrow" (X22) another, and Black Friday Early Access (M59).
+	if n.Drafts != 10 {
 		t.Fatalf("drafts: %d", n.Drafts)
 	}
 

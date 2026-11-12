@@ -74,6 +74,8 @@ var Columns = []Column{
 	{Table: "payment_connections", Column: "webhook_secret_sealed", Key: ids("id:uuid"), AD: `'payment_connection:' || id::text || ':webhook_secret'`},
 	{Table: "placement_oauth_states", Column: "verifier_enc", Key: ids("state_hash:bytea"), AD: `'placement:oauth:' || encode(state_hash, 'hex')`, ShortLived: true},
 	{Table: "placement_seeds", Column: "credentials_enc", Key: ids("id:uuid"), AD: `'placement:seed:' || id::text || ':credentials'`},
+	{Table: "coupon_batches", Column: "pending_sealed", Key: ids("id:uuid"), AD: `'coupon_batch:' || id::text || ':pending'`},
+	{Table: "coupon_codes", Column: "code_sealed", Key: ids("id:uuid"), AD: `'coupon_code:' || pool_id::text`},
 	{Table: "providers", Column: "credentials_enc", Key: ids("id:uuid"), AD: `'provider:' || id::text || ':credentials'`},
 	{Table: "providers", Column: "webhook_secret_enc", Key: ids("id:uuid"), AD: `'provider:' || id::text || ':webhook_secret'`},
 	{Table: "public_page_settings", Column: "turnstile_secret_enc", Key: ids("workspace_id:uuid"), AD: `'turnstile:' || workspace_id::text || ':secret'`},
