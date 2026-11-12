@@ -2345,8 +2345,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Change the auto-pause thresholds or the schedule
-         * @description The schedule is part of what an approval covers: changing it invalidates the approval.
+         * Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
+         * @description The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
          */
         patch: operations["update-send-settings"];
         trace?: never;
@@ -2716,6 +2716,26 @@ export interface paths {
         get: operations["get-store-revenue"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/stock-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a contact when a sold-out product is back
+         * @description For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+         */
+        post: operations["create-stock-request"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3660,6 +3680,77 @@ export interface paths {
         };
         /** The conversions log as CSV (logged) */
         get: operations["export-conversions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/countdowns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The image of a Countdown block's settings
+         * @description The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+         */
+        post: operations["create-countdown"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List discount code pools with their numbers (never their codes) */
+        get: operations["list-coupon-pools"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A discount code pool: numbers, settings, the latest batch and what uses it */
+        get: operations["get-coupon-pool"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The connected stores a pool can create codes in, and why a store can't */
+        get: operations["list-coupon-sources"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4930,6 +5021,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a signup form's A/B test and its results
+         * @description Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.
+         */
+        get: operations["get-signup-form-ab-test"];
+        /**
+         * Start or change a signup form's A/B test
+         * @description Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+         */
+        put: operations["save-signup-form-ab-test"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a signup form's A/B test, keeping one variant
+         * @description The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+         */
+        post: operations["end-signup-form-ab-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/forms/{form}/allowed-origins": {
         parameters: {
             query?: never;
@@ -5603,6 +5738,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/holdout/measure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recompute the holdout group's results
+         * @description At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+         */
+        post: operations["measure-holdout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/holdout/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What marketing added, measured against the holdout group
+         * @description The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+         */
+        get: operations["get-holdout-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/imports": {
         parameters: {
             query?: never;
@@ -5843,6 +6018,23 @@ export interface paths {
         put?: never;
         /** Import the staged rows */
         post: operations["start-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/inbound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get how the workspace receives mail */
+        get: operations["get-inbound-route"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6248,6 +6440,91 @@ export interface paths {
         };
         /** What removing a language affects */
         get: operations["get-language-removal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workspace's Meta Lead Ads connections */
+        get: operations["list-lead-ads-connections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A Meta connection: how leads arrive, its Pages and forms */
+        get: operations["get-lead-ads-connection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/connections/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The connection's last 50 leads: when, which form, what happened and the contact (no answers) */
+        get: operations["list-lead-ads-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/forms/{formId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A lead form's questions, consent checkboxes and mapping (read from Meta when it answers) */
+        get: operations["get-lead-ads-form"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/lead-ads/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What connecting Meta Lead Ads needs: the token's permissions and whether Meta can reach this server */
+        get: operations["get-lead-ads-setup"];
         put?: never;
         post?: never;
         delete?: never;
@@ -8502,6 +8779,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List replies and other received mail */
+        get: operations["list-replies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/replies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a reply */
+        get: operations["get-reply"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/roles": {
         parameters: {
             query?: never;
@@ -9968,6 +10279,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/sponsor-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sponsor page's settings: self-serve booking, its media kit and address */
+        get: operations["get-sponsor-page-settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/sponsor-report-shares/{id}": {
         parameters: {
             query?: never;
@@ -9980,6 +10308,40 @@ export interface paths {
         post?: never;
         /** Revoke a sponsor report's read-only link */
         delete: operations["revoke-sponsor-share"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sponsor page's requests: waiting for review, approved and waiting for payment, recently declined or expired */
+        get: operations["list-sponsor-requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A request from the sponsor page: who sent it, its creative and where it can be booked */
+        get: operations["get-sponsor-request"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -10645,6 +11007,46 @@ export interface paths {
          * @description Compiled on the server (a starter in the workspace's brand kit), personalized for a reader without a first name so the fallbacks show, with its links, scripts and form controls taken out: a picture of the email, not a page to use.
          */
         get: operations["preview-template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/tracker/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the sites the tracker runs on
+         * @description Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+         */
+        get: operations["list-tracker-sites"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A tracked site's last 20 events
+         * @description What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+         */
+        get: operations["tracker-site-recent-events"];
         put?: never;
         post?: never;
         delete?: never;
@@ -11926,6 +12328,23 @@ export interface paths {
         };
         /** Website › Access: members, sign-up, visibility defaults, the meter and the paywall */
         get: operations["get-website-access"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Website › Comments: comments waiting for review, published or hidden */
+        get: operations["list-website-comments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -13803,6 +14222,7 @@ export interface components {
         AudienceSummary: {
             /** Format: int64 */
             contacts: number;
+            holdout: boolean;
             lists: components["schemas"]["AudienceListSummary"][];
             paidTiers: components["schemas"]["AudiencePaidTier"][];
             /** Format: int64 */
@@ -13951,12 +14371,21 @@ export interface components {
             label: string;
             nodeId?: string;
         };
+        AutomationBrowseTrigger: {
+            /** Format: int64 */
+            afterHours: number;
+            collectionIds?: string[];
+            /** Format: int64 */
+            minViews: number;
+            /** @description The connected store (uuid) whose products the tracked site's events name */
+            storeId: string;
+        };
         AutomationCondition: {
             event?: string;
             field?: string;
             humanOnly?: boolean;
             /** @enum {string} */
-            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "bought_product" | "sms_consent" | "sms_clicked" | "sms_replied" | "placed_order";
+            kind: "opened" | "clicked" | "replied" | "field" | "tag" | "list" | "event" | "bought_product" | "sms_consent" | "sms_clicked" | "sms_replied" | "placed_order";
             listId?: string;
             /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
@@ -14259,6 +14688,18 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        AutomationLeadFormOption: {
+            id: string;
+            /** @example Spring webinar signup */
+            name: string;
+            /**
+             * @description The Facebook Page the form belongs to
+             * @example Acme Inc
+             */
+            page: string;
+            /** @description Paused, or not mapped yet: it records no leads */
+            paused: boolean;
+        };
         AutomationList: {
             alerts: components["schemas"]["AutomationAlert"][];
             counts: components["schemas"]["AutomationStatusCounts"];
@@ -14372,15 +14813,18 @@ export interface components {
             events: string[];
             fields: components["schemas"]["AutomationFieldOption"][];
             forms: components["schemas"]["AutomationFormOption"][];
+            leadForms: components["schemas"]["AutomationLeadFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
             milestones: components["schemas"]["AutomationMilestoneOption"][];
             paidConnected: boolean;
             products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
+            repliesInbox: boolean;
             scoreBands?: components["schemas"]["ScoringBands"];
             segments: components["schemas"]["AutomationSegmentOption"][];
             tags: string[];
             tiers: components["schemas"]["AutomationTierOption"][];
+            trackedStores: components["schemas"]["AutomationTrackedStore"][];
         };
         AutomationPathCount: {
             /** Format: int64 */
@@ -14631,6 +15075,11 @@ export interface components {
             failed: number;
             /** Format: int64 */
             goalReached: number;
+            /**
+             * Format: int64
+             * @description Contacts in the holdout group who passed the step without a message (M63)
+             */
+            heldOut: number;
             /** Format: int64 */
             inFlowNow: number;
             nodeId: string;
@@ -14644,11 +15093,26 @@ export interface components {
             sent: number;
             /**
              * Format: int64
-             * @description Emails skipped by a rule, or because the contact paused email on the preference center
+             * @description Emails skipped by a rule, because the contact paused email on the preference center, or because they are in the holdout group (heldOut counts those)
              */
             skipped: number;
             /** Format: int64 */
             unsubscribed: number;
+        };
+        AutomationStockTrigger: {
+            /**
+             * Format: int64
+             * @default 14
+             */
+            days: number;
+            includeViewers?: boolean;
+            /**
+             * Format: int64
+             * @default 10
+             */
+            minDropPercent: number;
+            /** @description The connected store (uuid) whose products it watches */
+            storeId: string;
         };
         AutomationSummary: {
             /** Format: double */
@@ -14676,6 +15140,10 @@ export interface components {
             /** @example Weekly Digest Insider */
             name: string;
         };
+        AutomationTrackedStore: {
+            host: string;
+            storeId: string;
+        };
         AutomationTrigger: {
             /** Format: int64 */
             afterHours?: number;
@@ -14684,6 +15152,7 @@ export interface components {
             answerOp?: "any" | "is" | "is_not";
             answers?: number[];
             at?: string;
+            browse?: components["schemas"]["AutomationBrowseTrigger"];
             collections?: string[];
             confirmedOnly?: boolean;
             contactTime?: boolean;
@@ -14692,12 +15161,14 @@ export interface components {
             endReasons?: ("canceled" | "payment_failed" | "trial_ended")[];
             event?: string;
             exitOnLeave?: boolean;
+            exitOnReply?: boolean;
             field?: string;
             firstOnly?: boolean;
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending" | "paid_paused" | "paid_resumed" | "lead_ad_submitted" | "viewed_product" | "added_to_cart" | "back_in_stock" | "price_drop";
+            leadFormId?: string;
             listId?: string;
             milestoneId?: string;
             /** Format: int64 */
@@ -14718,6 +15189,7 @@ export interface components {
             /** Format: int64 */
             skipDays?: number;
             source?: string;
+            stock?: components["schemas"]["AutomationStockTrigger"];
             store?: string;
             tag?: string;
             /** Format: int64 */
@@ -15502,7 +15974,7 @@ export interface components {
             count?: number;
             heading?: string;
             /** @enum {string} */
-            mode: "card" | "chosen" | "collection";
+            mode: "card" | "chosen" | "collection" | "best_sellers" | "recently_viewed" | "bought_together" | "viewed";
             products: string[];
             /** @enum {string} */
             soldOut?: "hide" | "label" | "";
@@ -15512,6 +15984,7 @@ export interface components {
         CommerceBlockRender: {
             disconnected: boolean;
             html: string;
+            note?: string;
             platform: string;
             products: components["schemas"]["CommerceProduct"][];
             removed: components["schemas"]["CommerceRemovedProduct"][];
@@ -15566,11 +16039,13 @@ export interface components {
             appUrl: string;
             clientIdHint?: string;
             demo: boolean;
+            discountsGranted: boolean;
             /** @enum {string} */
             error: "" | "secret_refused" | "state_expired" | "not_installed";
             granted: string[];
             /** Format: date-time */
             installedAt?: string;
+            inventoryScope: string;
             keyHint?: string;
             lists: components["schemas"]["CommerceListOption"][];
             /** Format: int64 */
@@ -15787,6 +16262,34 @@ export interface components {
             /** Format: int64 */
             stores: number;
         };
+        CommerceStockRequest: {
+            /** @description The product is in stock now: back-in-stock flows start on its next return */
+            available: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description ReputeCast's id of the product */
+            productId: string;
+            storeId: string;
+            /** @example Deploy Friday cap */
+            title: string;
+        };
+        CommerceStockRequestInput: {
+            /**
+             * Format: email
+             * @description An existing contact's address
+             */
+            email: string;
+            productId: string;
+            storeId?: string;
+        };
+        CommerceStoreDiscounts: {
+            /** Format: date-time */
+            allowedAt?: string;
+            allowedBy?: string;
+            granted: boolean;
+            pools: string[];
+            supported: boolean;
+        };
         CommerceStoreList: {
             canManage: boolean;
             helpers: string[];
@@ -15803,6 +16306,7 @@ export interface components {
             connectedAt?: string;
             connectedBy: string;
             consent: components["schemas"]["CommerceConsent"];
+            discounts: components["schemas"]["CommerceStoreDiscounts"];
             flows: components["schemas"]["CommerceFlow"][];
             helpers: string[];
             lists: components["schemas"]["CommerceListOption"][];
@@ -17897,6 +18401,63 @@ export interface components {
             /** Format: int64 */
             units: number;
         };
+        CountdownEnded: {
+            /** @enum {string} */
+            mode: "zeros" | "text";
+            /** @description The message shown when mode is text, up to 60 characters */
+            text?: string;
+        };
+        CountdownImage: {
+            /** @example Offer ends Fri 28 Nov at 23:59 (EST) */
+            alt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: int64 */
+            height: number;
+            /** Format: uuid */
+            id: string;
+            /** @description The animated GIF, drawn when the email is opened */
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        CountdownSettings: {
+            /**
+             * @description #RRGGBB
+             * @example #0F172A
+             */
+            background: string;
+            /**
+             * @description #RRGGBB, at least 4.5:1 on the background
+             * @example #FFFFFF
+             */
+            digits: string;
+            ended: components["schemas"]["CountdownEnded"];
+            /**
+             * @description The local date and time the countdown ends, YYYY-MM-DDTHH:MM
+             * @example 2026-11-28T23:59
+             */
+            endsAt: string;
+            /**
+             * @description #RRGGBB
+             * @example #CBD5E1
+             */
+            labels: string;
+            /**
+             * @description The labels' and the alt text's language: the language version being edited
+             * @enum {string}
+             */
+            language: "en" | "de" | "es" | "fr" | "vi";
+            /** @enum {string} */
+            size: "s" | "m" | "l";
+            /**
+             * @description IANA time zone of endsAt
+             * @example America/New_York
+             */
+            timeZone: string;
+            /** @enum {string} */
+            units: "dhms" | "hms" | "dhm";
+        };
         CountryLine: {
             adapter: string;
             /** Format: double */
@@ -17916,6 +18477,203 @@ export interface components {
             skipReason?: string;
             /** Format: int64 */
             skipped: number;
+        };
+        CouponBatch: {
+            automation?: string;
+            /** @description Who asked, by name */
+            by?: string;
+            /** Format: int64 */
+            created: number;
+            /** Format: date-time */
+            createdAt: string;
+            error?: string;
+            /** Format: int64 */
+            failed: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "upload" | "generate";
+            /** @enum {string} */
+            reason: "pool" | "request" | "refill";
+            /** Format: int64 */
+            requested: number;
+            /** @enum {string} */
+            status: "running" | "done" | "failed";
+            /** Format: date-time */
+            waitingUntil?: string;
+        };
+        CouponPool: {
+            batch?: components["schemas"]["CouponBatch"];
+            batches: components["schemas"]["CouponBatch"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Who created the pool, by name */
+            createdBy: string;
+            currency: string;
+            /** Format: date-time */
+            firstSentAt?: string;
+            /** Format: int64 */
+            free: number;
+            helpers: string[];
+            /** Format: uuid */
+            id: string;
+            /** @description Free codes are under the low mark */
+            low: boolean;
+            /** Format: int64 */
+            lowAt: number;
+            name: string;
+            onePerContact: boolean;
+            /** Format: int64 */
+            orders: number;
+            prefix: string;
+            /** Format: int64 */
+            redeemed: number;
+            refill: boolean;
+            /** Format: date-time */
+            refillCheckedAt?: string;
+            /** Format: int64 */
+            removed: number;
+            /**
+             * Format: int64
+             * @description Orders that used the pool's codes: refunds taken off, cancelled and test orders left out
+             */
+            revenueCents: number;
+            running?: components["schemas"]["CouponBatch"];
+            sampleUrl: string;
+            /** Format: int64 */
+            sent: number;
+            settings: components["schemas"]["CouponPoolSettings"];
+            /** @description The name templates use: {{ coupons.<slug>.code }} */
+            slug: string;
+            /** @enum {string} */
+            source: "upload" | "shopify" | "woocommerce";
+            /** @enum {string} */
+            status: "active" | "archived";
+            store?: components["schemas"]["CouponPoolStore"];
+            tokens: components["schemas"]["CouponPoolTokens"];
+            /** Format: int64 */
+            total: number;
+            /** Format: date-time */
+            updatedAt: string;
+            usedIn: components["schemas"]["CouponPoolUse"][];
+            waiting: components["schemas"]["CouponPoolWaiting"][];
+        };
+        CouponPoolList: {
+            helpers: string[];
+            items: components["schemas"]["CouponPoolListItem"][];
+        };
+        CouponPoolListItem: {
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            /** Format: int64 */
+            free: number;
+            /** Format: uuid */
+            id: string;
+            /** @description Free codes are under the low mark */
+            low: boolean;
+            /** Format: int64 */
+            lowAt: number;
+            name: string;
+            onePerContact: boolean;
+            prefix: string;
+            /** Format: int64 */
+            redeemed: number;
+            /**
+             * Format: int64
+             * @description Orders that used the pool's codes: refunds taken off, cancelled and test orders left out
+             */
+            revenueCents: number;
+            running?: components["schemas"]["CouponBatch"];
+            /** Format: int64 */
+            sent: number;
+            settings: components["schemas"]["CouponPoolSettings"];
+            /** @description The name templates use: {{ coupons.<slug>.code }} */
+            slug: string;
+            /** @enum {string} */
+            source: "upload" | "shopify" | "woocommerce";
+            /** @enum {string} */
+            status: "active" | "archived";
+            store?: components["schemas"]["CouponPoolStore"];
+            /** Format: int64 */
+            total: number;
+        };
+        CouponPoolSettings: {
+            /** @description Upload pools: the address that applies a code, with {code} where it goes */
+            applyUrl?: string;
+            /** @description Store pools: the collections the discount applies to; none is the whole store */
+            collectionIds?: string[];
+            /**
+             * Format: int64
+             * @description Store pools: the discount ends this many days after the pool was created; 0 never
+             */
+            endsDays?: number;
+            /**
+             * @description Store pools: what the discount takes off
+             * @enum {string}
+             */
+            kind?: "percentage" | "fixed_amount" | "free_shipping" | "";
+            /**
+             * Format: int64
+             * @description Store pools: the smallest order the code works on, in cents
+             */
+            minimumCents?: number;
+            /**
+             * Format: int64
+             * @description Percent off (1–100) for percentage, cents off for fixed_amount
+             */
+            value?: number;
+        };
+        CouponPoolStore: {
+            connected: boolean;
+            domain: string;
+            id: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+        };
+        CouponPoolTokens: {
+            /** @example {{ coupons.welcome15.code }} */
+            code: string;
+            /** @example {{ coupons.welcome15.url }} */
+            url: string;
+        };
+        CouponPoolUse: {
+            block: boolean;
+            emailId?: string;
+            emailName?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "template";
+            lists?: string;
+            live: boolean;
+            name: string;
+            /** Format: int64 */
+            recipients: number;
+            status?: string;
+        };
+        CouponPoolWaiting: {
+            /** Format: int64 */
+            emails: number;
+            id: string;
+            name: string;
+        };
+        CouponSource: {
+            can: boolean;
+            currency: string;
+            detail?: string;
+            domain: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+            /** @enum {string} */
+            reason?: "not_connected" | "not_granted" | "unsupported" | "read_only" | "";
+            storeId: string;
+        };
+        CouponSourceList: {
+            items: components["schemas"]["CouponSource"][];
         };
         CustomFieldDef: {
             /** Format: date-time */
@@ -18064,6 +18822,22 @@ export interface components {
             /** @enum {string} */
             via: "hostrepute" | "builtin";
         };
+        DeliverabilityDMARCCollect: {
+            /** @description dmarc@reply.news.acme.io, for the rua of DMARC records */
+            address: string;
+            externalRecords: components["schemas"]["DeliverabilityDMARCExternalRecord"][];
+            /** Format: date-time */
+            lastReceivedAt?: string;
+        };
+        DeliverabilityDMARCExternalRecord: {
+            domain: string;
+            name: string;
+            /** @enum {string} */
+            status: "found" | "missing" | "unknown";
+            /** @enum {string} */
+            type: "TXT";
+            value: string;
+        };
         DeliverabilityDMARCSource: {
             adapter?: string;
             dkim: string;
@@ -18102,6 +18876,7 @@ export interface components {
             spfDomains: string[];
         };
         DeliverabilityDMARCSummary: {
+            collect?: components["schemas"]["DeliverabilityDMARCCollect"];
             /** Format: int64 */
             days: number;
             domain?: string;
@@ -18116,7 +18891,7 @@ export interface components {
             sources: components["schemas"]["DeliverabilityDMARCSource"][];
             unknown?: components["schemas"]["DeliverabilityDMARCSource"];
             /** @enum {string} */
-            via: "hostrepute" | "upload" | "none";
+            via: "hostrepute" | "inbound" | "upload" | "none";
         };
         DeliverabilityDMARCUpload: {
             domain: string;
@@ -19261,6 +20036,18 @@ export interface components {
                 [key: string]: number;
             };
         };
+        EarnGroupPrices: {
+            monthly?: components["schemas"]["EarnPrice"];
+            /** Format: int64 */
+            seats: number;
+            /** Format: int64 */
+            seatsMax: number;
+            /** Format: int64 */
+            seatsMin: number;
+            /** Format: int64 */
+            teams: number;
+            yearly?: components["schemas"]["EarnPrice"];
+        };
         EarnImport: {
             account: string;
             active?: components["schemas"]["EarnImportGroup"];
@@ -19420,6 +20207,8 @@ export interface components {
             billingDiffers: boolean;
             billingEmail?: string;
             canManage: boolean;
+            canPause: boolean;
+            canResume: boolean;
             /** Format: date-time */
             cancelAt?: string;
             cancelReason?: string;
@@ -19453,7 +20242,7 @@ export interface components {
             /** Format: date-time */
             importedAt?: string;
             /** @enum {string} */
-            kind: "stripe" | "complimentary" | "gift";
+            kind: "stripe" | "complimentary" | "gift" | "group";
             legacy: boolean;
             link: string;
             lists: string[];
@@ -19462,26 +20251,34 @@ export interface components {
             matchedBy?: string;
             name: string;
             /** @enum {string} */
-            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "ended";
+            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "resumes" | "ended";
             /** Format: date-time */
             nextAt?: string;
             /** Format: int64 */
             paidCents: number;
+            /** Format: date-time */
+            pausedAt?: string;
+            /** Format: date-time */
+            pausedUntil?: string;
             /** @enum {string} */
             period: "month" | "year" | "";
             periodShown: boolean;
             /** Format: int64 */
+            quantity: number;
+            /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
             renewalReminder?: string;
+            seats: components["schemas"]["EarnTeamSeat"][];
             /** Format: date-time */
             since: string;
             source: components["schemas"]["EarnMemberSource"];
             /** @enum {string} */
-            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
+            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift" | "group";
             subscriptionId?: string;
             subscriptionUrl?: string;
             taxAdded: boolean;
+            team?: components["schemas"]["EarnMemberTeam"];
             test: boolean;
             tier: string;
             tierId?: string;
@@ -19500,6 +20297,8 @@ export interface components {
             gift: number;
             /** Format: int64 */
             pastDue: number;
+            /** Format: int64 */
+            paused: number;
             /** Format: int64 */
             paying: number;
             /** Format: int64 */
@@ -19595,25 +20394,32 @@ export interface components {
             hidden: boolean;
             id: string;
             /** @enum {string} */
-            kind: "stripe" | "complimentary" | "gift";
+            kind: "stripe" | "complimentary" | "gift" | "group";
             legacy: boolean;
             /** Format: int64 */
             ltvCents: number;
             name: string;
             /** @enum {string} */
-            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "ended";
+            next: "renews" | "ends" | "retries" | "trial_ends" | "no_end" | "resumes" | "ended";
             /** Format: date-time */
             nextAt?: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            /** Format: date-time */
+            pausedUntil?: string;
             /** @enum {string} */
             period: "month" | "year" | "";
             periodShown: boolean;
+            /** Format: int64 */
+            quantity: number;
             /** Format: int64 */
             refundedCents: number;
             /** Format: date-time */
             since: string;
             source: components["schemas"]["EarnMemberSource"];
             /** @enum {string} */
-            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift";
+            status: "trialing" | "active" | "past_due" | "canceled" | "complimentary" | "gift" | "group";
+            team?: components["schemas"]["EarnMemberTeam"];
             test: boolean;
             tier: string;
             tierId?: string;
@@ -19624,10 +20430,29 @@ export interface components {
             grantedBy?: string;
             importId?: string;
             /** @enum {string} */
-            kind: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+            kind: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "group" | "";
             label: string;
             platform?: string;
             reason?: string;
+        };
+        EarnMemberTeam: {
+            buyerId?: string;
+            buyerName?: string;
+            /** Format: date-time */
+            endedAt?: string;
+            id: string;
+            /** Format: int64 */
+            invites: number;
+            name: string;
+            /** Format: date-time */
+            renewsAt?: string;
+            /** @enum {string} */
+            role: "buyer" | "seat";
+            seatId?: string;
+            /** Format: int64 */
+            seats: number;
+            /** Format: int64 */
+            used: number;
         };
         EarnPageTier: {
             id: string;
@@ -19661,6 +20486,7 @@ export interface components {
             checkout: components["schemas"]["EarnCheckoutSettings"];
             helpers: string[];
             live?: components["schemas"]["EarnConnection"];
+            pauseMonths: number[];
             permissions: components["schemas"]["EarnPermissionCheck"][];
             providers: components["schemas"]["EarnProviderCard"][];
             test?: components["schemas"]["EarnConnection"];
@@ -19778,6 +20604,20 @@ export interface components {
         EarnSyncWarning: {
             subscriptions: components["schemas"]["EarnMemberRow"][];
         };
+        EarnTeamSeat: {
+            /** Format: date-time */
+            acceptedAt?: string;
+            email: string;
+            id: string;
+            /** Format: date-time */
+            inviteExpiresAt?: string;
+            /** Format: date-time */
+            invitedAt: string;
+            memberId?: string;
+            name: string;
+            /** @enum {string} */
+            status: "buyer" | "invited" | "active";
+        };
         EarnTier: {
             /** Format: int64 */
             accessRank: number;
@@ -19790,6 +20630,7 @@ export interface components {
             description: string;
             /** Format: int64 */
             discountedYearly: number;
+            group?: components["schemas"]["EarnGroupPrices"];
             hiddenLink: string;
             highlight?: string;
             id: string;
@@ -20754,6 +21595,94 @@ export interface components {
         HoldInput: {
             held: boolean;
         };
+        HoldoutGroupResult: {
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            converters: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenueCents: number;
+            /** Format: int64 */
+            visitors: number;
+        };
+        HoldoutMetric: {
+            /** Format: double */
+            confidence: number;
+            /** Format: double */
+            holdout: number;
+            /** @enum {string} */
+            key: "conversion_rate" | "revenue_per_contact" | "orders_per_contact" | "site_visitors";
+            /** Format: double */
+            lift: number;
+            /** Format: double */
+            marketing: number;
+            significant: boolean;
+            tested: boolean;
+        };
+        HoldoutOtherCurrency: {
+            currency: string;
+            /** Format: int64 */
+            holdoutCents: number;
+            /** Format: int64 */
+            marketingCents: number;
+        };
+        HoldoutPeriodItem: {
+            automations: boolean;
+            /** Format: int64 */
+            basisPoints: number;
+            campaigns: boolean;
+            /** Format: date-time */
+            endedAt?: string;
+            id: string;
+            open: boolean;
+            /** Format: double */
+            percent: number;
+            /** Format: date-time */
+            startedAt: string;
+        };
+        HoldoutResults: {
+            /** Format: int64 */
+            campaignsIncluded: number;
+            /** Format: date-time */
+            computedAt?: string;
+            computing: boolean;
+            currency: string;
+            /** Format: date-time */
+            from?: string;
+            holdout: components["schemas"]["HoldoutGroupResult"];
+            marketing: components["schemas"]["HoldoutGroupResult"];
+            metrics: components["schemas"]["HoldoutMetric"][];
+            /** Format: int64 */
+            minHoldout: number;
+            /** Format: date-time */
+            nextMeasureAt?: string;
+            otherCurrencies: components["schemas"]["HoldoutOtherCurrency"][];
+            period?: components["schemas"]["HoldoutPeriodItem"];
+            periods: components["schemas"]["HoldoutPeriodItem"][];
+            /** Format: date-time */
+            to?: string;
+            tracking: boolean;
+            /** @enum {string} */
+            verdict: "none" | "pending" | "too_few" | "too_early" | "added" | "lost" | "no_difference";
+            /** @enum {string} */
+            window: "period" | "30d" | "90d";
+        };
+        HoldoutSettings: {
+            automations: boolean;
+            /** Format: int64 */
+            basisPoints: number;
+            campaigns: boolean;
+            /** Format: int64 */
+            heldOut: number;
+            measured: boolean;
+            on: boolean;
+            /** Format: double */
+            percent: number;
+            /** Format: date-time */
+            startedAt?: string;
+        };
         HostReputeAPIKeyInputBody: {
             /** @description A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned. */
             apiKey: string;
@@ -21047,7 +21976,7 @@ export interface components {
             href: string;
             id: string;
             /** @enum {string} */
-            kind: "import" | "verification" | "export" | "optin";
+            kind: "import" | "verification" | "export" | "optin" | "post_import";
             /** Format: int64 */
             progress?: number;
             /** Format: date-time */
@@ -21375,6 +22304,89 @@ export interface components {
             /** Format: int64 */
             windowSeconds?: number;
         };
+        InboundAddressView: {
+            dmarc: string;
+            fbl: string;
+        };
+        InboundMXRecord: {
+            name: string;
+            /** @enum {string} */
+            status: "found" | "missing" | "wrong_value" | "unknown";
+            type: string;
+            value: string;
+        };
+        InboundMailboxView: {
+            address: string;
+            host: string;
+            /** Format: date-time */
+            lastPolledAt?: string;
+            passwordSet: boolean;
+            /** Format: int64 */
+            port: number;
+            /** @enum {string} */
+            protocol: "imap" | "pop3";
+            /** @enum {string} */
+            security: "tls" | "starttls";
+            username: string;
+        };
+        InboundProviderChoice: {
+            adapter: string;
+            id: string;
+            /** @enum {string} */
+            inbound: "" | "automatic" | "manual";
+            name: string;
+            reason?: string;
+        };
+        InboundProviderRef: {
+            adapter: string;
+            id: string;
+            name: string;
+        };
+        InboundRouteView: {
+            addresses: components["schemas"]["InboundAddressView"];
+            canManage: boolean;
+            choices: components["schemas"]["InboundProviderChoice"][];
+            domain: string;
+            helpers: string[];
+            hookUrl?: string;
+            /** @enum {string} */
+            kind?: "provider" | "mailbox";
+            /** Format: date-time */
+            lastReceivedAt?: string;
+            lastTest: components["schemas"]["InboundTestView"];
+            mailbox?: components["schemas"]["InboundMailboxView"];
+            provider?: components["schemas"]["InboundProviderRef"];
+            /** @enum {string} */
+            replyHandling: "forward" | "inbox";
+            /** Format: date-time */
+            setUpAt?: string;
+            setup: components["schemas"]["InboundSetupView"];
+            /** @enum {string} */
+            status: "not_set_up" | "pending" | "receiving" | "failing";
+            statusDetail: string;
+            /** @enum {string} */
+            statusReason?: "mx" | "mailbox_auth" | "mailbox_unreachable" | "register" | "dropped_reports";
+            suggestion: string;
+        };
+        InboundSetupField: {
+            help?: string;
+            key: string;
+            label: string;
+            required: boolean;
+            value: string;
+        };
+        InboundSetupView: {
+            automatic: boolean;
+            mx: components["schemas"]["InboundMXRecord"][];
+            settings: components["schemas"]["InboundSetupField"][];
+            steps: string[];
+        };
+        InboundTestView: {
+            /** Format: date-time */
+            receivedAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+        };
         IncidentCause: {
             body: string;
             lead: string;
@@ -21597,7 +22609,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce" | "meta_lead_ads" | "tracking";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -21621,6 +22633,7 @@ export interface components {
             lastCallAt?: string;
             /** Format: date-time */
             lastSyncAt?: string;
+            leads?: components["schemas"]["IntegrationLeadFacts"];
             mcpEnabled: boolean;
             payment?: components["schemas"]["IntegrationPaymentFacts"];
             /** Format: double */
@@ -21631,6 +22644,7 @@ export interface components {
             sites: number;
             store?: components["schemas"]["IntegrationStoreFacts"];
             team?: string;
+            tracking?: components["schemas"]["IntegrationTrackingFacts"];
             /** Format: int64 */
             triggers: number;
             /** Format: int64 */
@@ -21650,7 +22664,7 @@ export interface components {
         IntegrationGroup: {
             entries: components["schemas"]["IntegrationEntry"][];
             /** @enum {string} */
-            key: "automation" | "websites" | "deliverability" | "developer" | "ai" | "verification" | "payments" | "commerce";
+            key: "automation" | "websites" | "deliverability" | "developer" | "ai" | "verification" | "payments" | "commerce" | "leads";
         };
         IntegrationHub: {
             alerts: components["schemas"]["IntegrationAlert"][];
@@ -21705,6 +22719,16 @@ export interface components {
             sensitive: string[];
             /** @enum {string} */
             status: "active" | "grace" | "revoked" | "expired";
+        };
+        IntegrationLeadFacts: {
+            /** Format: int64 */
+            leads30d: number;
+            name: string;
+            /** Format: int64 */
+            pages: number;
+            polling: boolean;
+            /** @enum {string} */
+            problem?: "token_rejected" | "token_expired" | "app_rejected" | "permission_missing" | "";
         };
         IntegrationListOption: {
             /** Format: int64 */
@@ -22003,6 +23027,15 @@ export interface components {
             /** Format: int64 */
             stores: number;
         };
+        IntegrationTrackingFacts: {
+            /** Format: int64 */
+            eventsToday: number;
+            /** Format: date-time */
+            lastEventAt?: string;
+            line: string;
+            /** Format: int64 */
+            sites: number;
+        };
         IntegrationWordPressPage: {
             canEditForms: boolean;
             canManage: boolean;
@@ -22111,6 +23144,215 @@ export interface components {
             outdated: string[];
             /** Format: int64 */
             version: number;
+        };
+        LeadAdsActivity: {
+            items: components["schemas"]["LeadAdsActivityItem"][];
+        };
+        LeadAdsActivityItem: {
+            /**
+             * Format: date-time
+             * @description When ReputeCast recorded it
+             */
+            at: string;
+            contact?: components["schemas"]["LeadAdsContactRef"];
+            formId: string;
+            formName: string;
+            hidden: boolean;
+            id: string;
+            /**
+             * Format: date-time
+             * @description When the person sent the form
+             */
+            leadAt: string;
+            /** @enum {string} */
+            outcome: "created" | "updated" | "pending" | "blocked" | "invalid" | "declined" | "test";
+            page: string;
+            /** @enum {string} */
+            source: "webhook" | "poll" | "import";
+        };
+        LeadAdsCheckbox: {
+            key: string;
+            required: boolean;
+            text: string;
+        };
+        LeadAdsConnection: {
+            /** @example 481516234200 */
+            appId: string;
+            canManage: boolean;
+            /**
+             * Format: date-time
+             * @description When the token was last checked
+             */
+            checkedAt?: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: date-time */
+            disconnectedAt?: string;
+            helpers: string[];
+            id: string;
+            /**
+             * Format: int64
+             * @description Leads in the last 30 days, Meta's test leads left out
+             */
+            leads30d: number;
+            /** @example Acme Marketing */
+            name: string;
+            /** @description The chosen Pages and their lead forms */
+            pages: components["schemas"]["LeadAdsPage"][];
+            /** @enum {string} */
+            platform: "meta";
+            /** @enum {string} */
+            problem?: "token_rejected" | "token_expired" | "app_rejected" | "permission_missing" | "";
+            /** Format: date-time */
+            rateLimitedUntil?: string;
+            receiving: components["schemas"]["LeadAdsReceiving"];
+            /** @enum {string} */
+            status: "connected" | "attention" | "disconnected";
+            webhook?: components["schemas"]["LeadAdsWebhook"];
+        };
+        LeadAdsConnectionItem: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @example Acme Marketing */
+            name: string;
+            /** @enum {string} */
+            status: "connected" | "attention" | "disconnected";
+        };
+        LeadAdsConnectionList: {
+            items: components["schemas"]["LeadAdsConnectionItem"][];
+        };
+        LeadAdsContactRef: {
+            email: string;
+            erased: boolean;
+            id: string;
+            name: string;
+        };
+        LeadAdsFieldOption: {
+            key: string;
+            label: string;
+            type: string;
+        };
+        LeadAdsForm: {
+            /** @enum {string} */
+            consentMode: "double" | "single";
+            /** @description Meta's id of the form */
+            formId: string;
+            id: string;
+            import: components["schemas"]["LeadAdsImport"];
+            /** Format: date-time */
+            lastLeadAt?: string;
+            /** Format: int64 */
+            leads30d: number;
+            lists: components["schemas"]["LeadAdsListRef"][];
+            mapped: boolean;
+            metaStatus: string;
+            /** @example Spring webinar signup */
+            name: string;
+            /** @example Acme Inc */
+            page: string;
+            pageId: string;
+            /** Format: int64 */
+            questions: number;
+            /** @enum {string} */
+            status: "active" | "paused";
+            tags: string[];
+            /** Format: int32 */
+            waiting: number;
+        };
+        LeadAdsFormDetail: {
+            checkboxes: components["schemas"]["LeadAdsCheckbox"][];
+            consentKey?: string;
+            /** @description Single opt-in: the checkbox's text the leads agreed to */
+            consentText?: string;
+            /** @description The custom disclaimer's text */
+            disclaimer: string;
+            fields: components["schemas"]["LeadAdsFieldOption"][];
+            form: components["schemas"]["LeadAdsForm"];
+            listIds: string[];
+            lists: components["schemas"]["LeadAdsListOption"][];
+            questions: components["schemas"]["LeadAdsQuestion"][];
+        };
+        LeadAdsImport: {
+            /**
+             * Format: date-time
+             * @description When the last import finished
+             */
+            at?: string;
+            /**
+             * Format: int32
+             * @description Leads read so far, or in the finished import
+             */
+            count: number;
+            /** @enum {string} */
+            state: "running" | "done" | "failed" | "";
+        };
+        LeadAdsListOption: {
+            doubleOptIn: boolean;
+            id: string;
+            name: string;
+        };
+        LeadAdsListRef: {
+            id: string;
+            name: string;
+        };
+        LeadAdsPage: {
+            forms: components["schemas"]["LeadAdsForm"][];
+            id: string;
+            /** @example Acme Inc */
+            name: string;
+            /** @description Meta's id of the Page */
+            pageId: string;
+            /** Format: date-time */
+            subscribedAt?: string;
+        };
+        LeadAdsQuestion: {
+            /** @example full_name */
+            key: string;
+            /** @example Full name */
+            label: string;
+            suggested: string;
+            target: string;
+            /**
+             * @description Meta's question type
+             * @example FULL_NAME
+             */
+            type: string;
+        };
+        LeadAdsReceiving: {
+            /**
+             * Format: date-time
+             * @description Meta's last delivery
+             */
+            lastEventAt?: string;
+            /** Format: date-time */
+            lastLeadAt?: string;
+            /** Format: date-time */
+            lastPolledAt?: string;
+            /** @enum {string} */
+            mode: "webhook" | "polling";
+            /** @enum {string} */
+            reason?: "not_subscribed" | "quiet" | "unreachable" | "";
+            /**
+             * Format: date-time
+             * @description When Meta accepted the app's webhook subscription
+             */
+            subscribedAt?: string;
+            /** @description The instance's public URL */
+            url: string;
+        };
+        LeadAdsSetup: {
+            connection?: components["schemas"]["LeadAdsConnectionItem"];
+            permissions: string[];
+            /** @description Meta can reach it, so leads arrive within seconds; otherwise they're polled every 15 minutes */
+            reachable: boolean;
+            /** @description The instance's public URL */
+            url: string;
+        };
+        LeadAdsWebhook: {
+            callbackUrl: string;
+            verifyToken: string;
         };
         LiquidProblem: {
             /** Format: int64 */
@@ -22311,6 +23553,8 @@ export interface components {
             duplicates: number;
             /** Format: int64 */
             excluded: number;
+            /** Format: int64 */
+            holdout: number;
             /** Format: int64 */
             paused: number;
             /** Format: int64 */
@@ -22895,7 +24139,7 @@ export interface components {
         };
         MediaOriginal: {
             /** @enum {string} */
-            contentType: "image/png" | "image/jpeg" | "image/gif";
+            contentType: "image/png" | "image/jpeg" | "image/gif" | "image/webp";
             /** Format: int64 */
             height: number;
             /** Format: int64 */
@@ -23809,7 +25053,7 @@ export interface components {
             /** @example first_name */
             key: string;
             /** @enum {string} */
-            kind: "contact" | "custom" | "system" | "referral" | "paid";
+            kind: "contact" | "custom" | "system" | "referral" | "paid" | "coupon";
             /** @example First name */
             label: string;
         };
@@ -25535,7 +26779,7 @@ export interface components {
             bounceClass: string;
             campaignId?: string;
             /** @enum {string} */
-            channel: "webhook" | "bounce_mailbox" | "queue" | "backfill" | "test" | "internal";
+            channel: "webhook" | "bounce_mailbox" | "queue" | "backfill" | "test" | "internal" | "inbound";
             code: string;
             diagnostic: string;
             id: string;
@@ -26821,6 +28065,7 @@ export interface components {
             excludedUnengaged: number;
             /** Format: int64 */
             final: number;
+            holdout?: components["schemas"]["ReadinessHoldout"];
             lists: string[];
             /** Format: int64 */
             role: number;
@@ -26961,6 +28206,15 @@ export interface components {
             from: string;
             to: string;
             toId: string;
+        };
+        ReadinessHoldout: {
+            included: boolean;
+            /** Format: int64 */
+            leftOut: number;
+            /** Format: double */
+            percent: number;
+            /** Format: int64 */
+            reached: number;
         };
         ReadinessPoll: {
             failed?: components["schemas"]["ReadinessRunFailure"];
@@ -27107,6 +28361,7 @@ export interface components {
             timezone?: string;
         };
         ReadinessSendSettings: {
+            includeHoldout?: boolean;
             schedule?: components["schemas"]["ReadinessSchedule"];
             thresholds?: components["schemas"]["ReadinessThresholds"];
         };
@@ -28216,6 +29471,103 @@ export interface components {
              */
             status?: "connected" | "failing";
         };
+        ReplyAttachment: {
+            name: string;
+            /** Format: int64 */
+            size: number;
+            type: string;
+        };
+        ReplyAuth: {
+            dkim?: string;
+            dmarc?: string;
+            spf?: string;
+        };
+        ReplyContact: {
+            email: string;
+            id: string;
+            name: string;
+            status: string;
+        };
+        ReplyCounts: {
+            /** Format: int64 */
+            auto: number;
+            /** Format: int64 */
+            done: number;
+            /** Format: int64 */
+            open: number;
+            /** Format: int64 */
+            other: number;
+            /** Format: int64 */
+            spam: number;
+            /** Format: int64 */
+            unsubscribes: number;
+        };
+        ReplyDetail: {
+            asksUnsubscribe: boolean;
+            attachments: components["schemas"]["ReplyAttachment"][];
+            auth: components["schemas"]["ReplyAuth"];
+            autoReply: boolean;
+            canManage: boolean;
+            canUnsubscribe: boolean;
+            contact?: components["schemas"]["ReplyContact"];
+            contactId?: string;
+            from: components["schemas"]["ReplyPerson"];
+            /** Format: date-time */
+            handledAt?: string;
+            hasHtml: boolean;
+            helpers: string[];
+            id: string;
+            /** @enum {string} */
+            kind: "reply" | "unsubscribe" | "other";
+            preview: string;
+            /** Format: date-time */
+            receivedAt: string;
+            /** Format: date-time */
+            sentAt?: string;
+            source?: components["schemas"]["ReplySource"];
+            spam: boolean;
+            /** @enum {string} */
+            status: "open" | "done";
+            subject: string;
+            text: string;
+            to: string;
+            unsubscribeReason?: string;
+        };
+        ReplyList: {
+            canManage: boolean;
+            counts: components["schemas"]["ReplyCounts"];
+            domain?: string;
+            items: components["schemas"]["ReplyListItem"][];
+            nextCursor?: string;
+            receiving: boolean;
+        };
+        ReplyListItem: {
+            asksUnsubscribe: boolean;
+            autoReply: boolean;
+            contactId?: string;
+            from: components["schemas"]["ReplyPerson"];
+            id: string;
+            /** @enum {string} */
+            kind: "reply" | "unsubscribe" | "other";
+            preview: string;
+            /** Format: date-time */
+            receivedAt: string;
+            source?: components["schemas"]["ReplySource"];
+            spam: boolean;
+            /** @enum {string} */
+            status: "open" | "done";
+            subject: string;
+        };
+        ReplyPerson: {
+            email: string;
+            name: string;
+        };
+        ReplySource: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            type: "campaign" | "automation";
+        };
         ReportABTest: {
             /** Format: double */
             barMax: number;
@@ -29282,6 +30634,7 @@ export interface components {
             autosavedAt?: string;
             editable: boolean;
             from: string;
+            holdout?: components["schemas"]["ReviewHoldout"];
             id: string;
             name: string;
             preheader: string;
@@ -29344,6 +30697,11 @@ export interface components {
             /** @enum {string} */
             kind: "blocked" | "new_warning" | "unknown" | "audience_change" | "edited";
             text: string;
+        };
+        ReviewHoldout: {
+            included: boolean;
+            /** Format: double */
+            percent: number;
         };
         ReviewScheduled: {
             /** Format: date-time */
@@ -30262,8 +31620,9 @@ export interface components {
             defaultSenderId: string;
             footerAddress: string;
             listUnsubscribeMailto: boolean;
+            receiving: boolean;
             /** @enum {string} */
-            replyHandling: "forward";
+            replyHandling: "forward" | "inbox";
             replyOptions: string[];
             replyTo: string;
             systemSenderId: string;
@@ -30278,7 +31637,7 @@ export interface components {
             footerAddress: string;
             listUnsubscribeMailto?: boolean;
             /** @enum {string} */
-            replyHandling: "forward";
+            replyHandling: "forward" | "inbox";
             replyTo?: string;
             /** @description Empty for the provider default */
             trackingDomain?: string;
@@ -30493,6 +31852,7 @@ export interface components {
         SendingRulesView: {
             canManage: boolean;
             defaults: components["schemas"]["SendDefaults"];
+            holdout: components["schemas"]["HoldoutSettings"];
             managers: string[];
             marketingCap: components["schemas"]["MarketingCap"];
             reason?: string;
@@ -30614,6 +31974,70 @@ export interface components {
             /** Format: int64 */
             waiting: number;
         };
+        SignupFormABEndInput: {
+            /** @enum {string} */
+            keep: "A" | "B" | "C";
+        };
+        SignupFormABInput: {
+            /** @description End the test on its own, keeping the winner, once one is clear */
+            autoEnd: boolean;
+            /** Format: double */
+            confidence: number;
+            /**
+             * Format: int64
+             * @description Views each variant needs before a winner can be called
+             */
+            minViews: number;
+            variants: components["schemas"]["SignupFormVariantInput"][];
+        };
+        SignupFormABResult: {
+            autoEnd: boolean;
+            /** Format: double */
+            confidence: number;
+            doubleOptIn: boolean;
+            /** Format: date-time */
+            endedAt?: string;
+            /** Format: int64 */
+            fewestViews: number;
+            leader?: string;
+            /** Format: double */
+            lift: number;
+            /** Format: int64 */
+            minViews: number;
+            /** @enum {string} */
+            outcome?: "winner" | "not_significant" | "too_small";
+            runnerUp?: string;
+            /**
+             * Format: date
+             * @description The first day counted, in the workspace's time zone
+             */
+            startedOn?: string;
+            /** @enum {string} */
+            status: "none" | "running" | "ended";
+            /**
+             * Format: double
+             * @description What a winner needs, 0.95 for 95%
+             */
+            targetConfidence: number;
+            variants: components["schemas"]["SignupFormABVariant"][];
+            winner?: string;
+        };
+        SignupFormABVariant: {
+            /** Format: int64 */
+            confirmed: number;
+            /** @description What B or C changes; omitted for A */
+            content?: components["schemas"]["SignupFormVariantContent"];
+            /** @enum {string} */
+            key: "A" | "B" | "C";
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            submissions: number;
+            /** Format: int64 */
+            views: number;
+            /** Format: int64 */
+            weight: number;
+        };
         SignupFormBlockedOrigin: {
             /** Format: int64 */
             count: number;
@@ -30621,6 +32045,10 @@ export interface components {
             lastAt: string;
             /** @example staging.acme.io */
             origin: string;
+        };
+        SignupFormChoiceOption: {
+            label: string;
+            tag: string;
         };
         SignupFormConfirmLink: {
             email: string;
@@ -30664,6 +32092,8 @@ export interface components {
             smsConsentText?: string;
             /** Format: int64 */
             smsConsentVersion?: number;
+            steps?: components["schemas"]["SignupFormStep"][];
+            targeting?: components["schemas"]["SignupFormTargeting"];
         };
         SignupFormCopy: {
             /** Format: date-time */
@@ -30681,6 +32111,8 @@ export interface components {
             /** @enum {string} */
             languageMode: "page" | "browser" | "fixed";
             languages: components["schemas"]["SignupFormCopyLanguage"][];
+            options: components["schemas"]["SignupFormCopyString"][];
+            steps: components["schemas"]["SignupFormCopyString"][];
         };
         SignupFormCopyField: {
             key: string;
@@ -30718,6 +32150,11 @@ export interface components {
             /** Format: int64 */
             written: number;
         };
+        SignupFormCopyString: {
+            key: string;
+            /** @description The text in the form's own language */
+            source: string;
+        };
         SignupFormCopyText: {
             /** @description What the form says after a signup */
             afterSubmit: string;
@@ -30728,6 +32165,17 @@ export interface components {
                 [key: string]: string;
             };
             heading: string;
+            options?: {
+                [key: string]: string;
+            };
+            steps?: {
+                [key: string]: string;
+            };
+        };
+        SignupFormCountries: {
+            codes: string[];
+            /** @enum {string} */
+            mode: "all" | "only" | "except";
         };
         SignupFormCreateInput: {
             /** @enum {string} */
@@ -30742,11 +32190,17 @@ export interface components {
             type: "text" | "number" | "date" | "boolean" | "select";
         };
         SignupFormField: {
-            /** @description email, first_name, last_name, company or a custom field key */
+            /** @description email, first_name, last_name, company, a custom field key, or a choice question's own key */
             key: string;
-            /** @description Shown above the input; empty uses the field's name */
+            /** @description Shown above the input; empty uses the field's name (a choice question needs its question) */
             label: string;
+            /** @description A choice question that takes several answers */
+            multiple?: boolean;
+            /** @description A choice question's answers (2 to 12) */
+            options?: components["schemas"]["SignupFormChoiceOption"][];
             required: boolean;
+            /** @enum {string} */
+            type?: "choice";
         };
         SignupFormInput: {
             /** @enum {string} */
@@ -30784,8 +32238,32 @@ export interface components {
             /** @example staging.acme.io */
             origin: string;
         };
+        SignupFormPageRule: {
+            /** @enum {string} */
+            op: "contains" | "equals" | "starts_with";
+            /** @example /pricing */
+            value: string;
+        };
+        SignupFormPageRules: {
+            /** @enum {string} */
+            mode: "all" | "only" | "except";
+            rules: components["schemas"]["SignupFormPageRule"][];
+        };
         SignupFormRenameInput: {
             name: string;
+        };
+        SignupFormSchedule: {
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: date-time */
+            startsAt?: string;
+        };
+        SignupFormSources: {
+            /** @enum {string} */
+            referrer: "any" | "search" | "social" | "other_site" | "direct";
+            utmCampaign: string[];
+            utmMedium: string[];
+            utmSource: string[];
         };
         SignupFormSpam: {
             blockDisposable: boolean;
@@ -30819,6 +32297,9 @@ export interface components {
              * @description Double opt-in confirmations not clicked yet
              */
             pending: number;
+            /** Format: int64 */
+            stepSignups: number;
+            steps: components["schemas"]["SignupFormStepStat"][];
             /** Format: double */
             submissionRate: number;
             /** Format: int64 */
@@ -30829,6 +32310,23 @@ export interface components {
         SignupFormStatusInput: {
             /** @enum {string} */
             status: "live" | "paused";
+        };
+        SignupFormStep: {
+            button?: string;
+            description?: string;
+            fields: string[];
+            heading?: string;
+            /** @description s1 to s4, kept when steps move so their translations stay */
+            id: string;
+        };
+        SignupFormStepStat: {
+            /**
+             * Format: int64
+             * @description 1 to 4
+             */
+            step: number;
+            /** Format: int64 */
+            views: number;
         };
         SignupFormSummary: {
             hostedPage: boolean;
@@ -30843,12 +32341,50 @@ export interface components {
             /** @enum {string} */
             status: "draft" | "live" | "paused";
         };
+        SignupFormTargeting: {
+            countries: components["schemas"]["SignupFormCountries"];
+            /** @description None: every device */
+            devices: ("desktop" | "tablet" | "mobile")[];
+            pages: components["schemas"]["SignupFormPageRules"];
+            schedule: components["schemas"]["SignupFormSchedule"];
+            segmentId?: string;
+            sources: components["schemas"]["SignupFormSources"];
+            /**
+             * @description Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
+             * @enum {string}
+             */
+            visitors: "all" | "new" | "returning" | "in_segment" | "not_in_segment";
+        };
         SignupFormURLs: {
             hosted: string;
             script: string;
             /** Format: int64 */
             scriptKb: number;
             submit: string;
+        };
+        SignupFormVariantContent: {
+            afterSubmitText?: string;
+            button: string;
+            description: string;
+            heading: string;
+            /** Format: int64 */
+            popupDelay: number;
+            popupExit?: boolean;
+            /** Format: int64 */
+            popupScroll: number;
+            /** @description Omitted or one step: everything at once */
+            steps?: components["schemas"]["SignupFormStep"][];
+        };
+        SignupFormVariantInput: {
+            /** @description Required for B and C; ignored for A */
+            content?: components["schemas"]["SignupFormVariantContent"];
+            /** @enum {string} */
+            key: "A" | "B" | "C";
+            /**
+             * Format: int64
+             * @description Percent of visitors; the variants add up to 100
+             */
+            weight: number;
         };
         SignupFormWaiting: {
             items: components["schemas"]["SignupFormWaitingItem"][];
@@ -30876,6 +32412,7 @@ export interface components {
             customFields: components["schemas"]["SignupFormCustomField"][];
             domain: components["schemas"]["PublicCustomDomain"];
             forms: components["schemas"]["SignupFormSummary"][];
+            geoip: boolean;
             hostedFormId: string;
             hostedUrl: string;
             lists: components["schemas"]["SignupFormList"][];
@@ -30892,6 +32429,8 @@ export interface components {
             creativeDays?: number;
             /** @description ISO 4217; the workspace's currency when absent. */
             currency?: string;
+            /** @description What the sponsor page says about the slot. */
+            description?: string;
             /**
              * Format: int64
              * @description 7 when absent (weekly).
@@ -30904,9 +32443,19 @@ export interface components {
              * @description The date of issue FirstNumber, in the workspace's time zone.
              */
             firstOn: string;
+            /**
+             * Format: int64
+             * @description Sponsors book at least this many days ahead (7 for a new slot when absent).
+             */
+            leadDays?: number;
             /** Format: uuid */
             listId: string;
             name: string;
+            /**
+             * Format: int64
+             * @description Sponsors pay within this many days of the approval (3 for a new slot when absent).
+             */
+            payDays?: number;
             /** @description Where it sits in the issue ("After the first story"). */
             placement?: string;
             /**
@@ -30914,6 +32463,8 @@ export interface components {
              * @description The default price of a booking, in minor units.
              */
             priceCents: number;
+            /** @description Sponsors can book it from the sponsor page (off for a new slot when absent). */
+            selfServe?: boolean;
             selling?: boolean;
         };
         SmsAudienceRef: {
@@ -32503,7 +34054,7 @@ export interface components {
         SponsorBlock: {
             bookingId?: string;
             /** @enum {string} */
-            bookingStatus?: "hold" | "booked" | "sent" | "";
+            bookingStatus?: "hold" | "awaiting_payment" | "booked" | "sent" | "";
             canSeePrice: boolean;
             creative: components["schemas"]["SponsorCreative"];
             /** Format: date-time */
@@ -32544,6 +34095,8 @@ export interface components {
             holdUntil?: string;
             id: string;
             payment: components["schemas"]["SponsorPayment"];
+            /** Format: date-time */
+            paymentDueAt?: string;
             /** Format: int64 */
             priceCents: number;
             proposal?: components["schemas"]["SponsorPropose"];
@@ -32555,7 +34108,7 @@ export interface components {
             sharedAt?: string;
             sponsor?: components["schemas"]["SponsorRef"];
             /** @enum {string} */
-            status: "hold" | "booked" | "sent";
+            status: "hold" | "awaiting_payment" | "booked" | "sent";
         };
         SponsorBookingDetail: {
             activity: components["schemas"]["SponsorBookingEvent"][];
@@ -32570,6 +34123,7 @@ export interface components {
             /** @enum {string} */
             creativeStatus: "waiting" | "ready";
             currency: string;
+            declinedReason?: string;
             helpers: string[];
             /** Format: date-time */
             holdUntil?: string;
@@ -32583,6 +34137,8 @@ export interface components {
             listName: string;
             notes: string;
             payment: components["schemas"]["SponsorPayment"];
+            /** Format: date-time */
+            paymentDueAt?: string;
             placement: string;
             /** Format: int64 */
             priceCents: number;
@@ -32590,6 +34146,7 @@ export interface components {
             /** Format: date-time */
             readyAt?: string;
             report?: components["schemas"]["SponsorReport"];
+            request?: components["schemas"]["SponsorRequestFrom"];
             shares: components["schemas"]["SponsorShareLink"][];
             slotId: string;
             slotName: string;
@@ -32597,7 +34154,7 @@ export interface components {
             slotPriceCents: number;
             sponsor?: components["schemas"]["SponsorItem"];
             /** @enum {string} */
-            status: "proposed" | "hold" | "booked" | "sent" | "canceled";
+            status: "proposed" | "hold" | "booked" | "sent" | "canceled" | "requested" | "awaiting_payment" | "declined" | "expired";
         };
         SponsorBookingEvent: {
             actor?: string;
@@ -32677,10 +34234,17 @@ export interface components {
             number: number;
             past: boolean;
             proposal?: components["schemas"]["SponsorPropose"];
+            /** Format: int64 */
+            requests: number;
             slotId: string;
             slotName: string;
         };
         SponsorItem: {
+            awaiting: number[];
+            /** Format: int64 */
+            awaitingCents: number;
+            /** Format: date-time */
+            awaitingDue?: string;
             /** Format: int64 */
             bookedCents: number;
             /** Format: double */
@@ -32690,6 +34254,7 @@ export interface components {
             contactEmail: string;
             contactName: string;
             currency: string;
+            fromRequest: number[];
             hold: number[];
             /** Format: int64 */
             holdCents: number;
@@ -32702,8 +34267,29 @@ export interface components {
             /** Format: int64 */
             paidCents: number;
             /** Format: int64 */
+            requests: number;
+            /** Format: date-time */
+            stripePaidOn?: string;
+            /** Format: int64 */
             termsDays: number;
             website: string;
+        };
+        SponsorKitStats: {
+            /** Format: double */
+            clickRate?: number;
+            listId: string;
+            listName: string;
+            /** Format: double */
+            openRate?: number;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        SponsorMediaKit: {
+            about: string;
+            audience: string;
+            clickRate: boolean;
+            openRate: boolean;
+            subscribers: boolean;
         };
         SponsorNotice: {
             /** Format: int64 */
@@ -32734,6 +34320,8 @@ export interface components {
             past: components["schemas"]["SponsorIssueRow"][];
             /** @enum {string} */
             range: "around" | "upcoming" | "recent" | "all";
+            /** Format: int64 */
+            requests: number;
             slotId: string;
             slots: components["schemas"]["SponsorSlotItem"][];
             tiles: components["schemas"]["SponsorTiles"];
@@ -32750,6 +34338,8 @@ export interface components {
             /** Format: date-time */
             recordedAt?: string;
             recordedBy?: string;
+            /** @enum {string} */
+            source: "manual" | "stripe" | "";
             /** @enum {string} */
             status: "unpaid" | "paid" | "overdue";
         };
@@ -32816,6 +34406,161 @@ export interface components {
             /** Format: double */
             share: number;
         };
+        SponsorRequestDetail: {
+            activity: components["schemas"]["SponsorBookingEvent"][];
+            /** Format: date-time */
+            approvedAt?: string;
+            approvedBy?: string;
+            canManage: boolean;
+            /** Format: date-time */
+            closedAt?: string;
+            company: string;
+            creative: components["schemas"]["SponsorCreative"];
+            currency: string;
+            declinedReason?: string;
+            email: string;
+            files: components["schemas"]["SponsorRequestFile"][];
+            heldBy?: string;
+            /** Format: date-time */
+            heldUntil?: string;
+            helpers: string[];
+            id: string;
+            initials: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            /** @enum {string} */
+            issueState: "open" | "held";
+            label: string;
+            listName: string;
+            logo?: string;
+            name: string;
+            notes: string;
+            /** Format: date-time */
+            paidOn?: string;
+            /** @enum {string} */
+            paidSource?: "manual" | "stripe" | "";
+            /** Format: int64 */
+            payDays: number;
+            /** Format: date-time */
+            paymentDueAt?: string;
+            /** Format: int64 */
+            priceCents: number;
+            slotDeleted: boolean;
+            slotId: string;
+            slotName: string;
+            slots: components["schemas"]["SponsorRequestSlot"][];
+            sponsor?: components["schemas"]["SponsorRef"];
+            /** @enum {string} */
+            status: "requested" | "awaiting_payment" | "booked" | "declined" | "expired" | "canceled";
+            /** Format: date-time */
+            submittedAt: string;
+            website: string;
+        };
+        SponsorRequestFile: {
+            /** @enum {string} */
+            kind: "logo" | "image";
+            name: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            url: string;
+        };
+        SponsorRequestFrom: {
+            /** Format: date-time */
+            approvedAt?: string;
+            approvedBy?: string;
+            /** Format: date-time */
+            at: string;
+            company: string;
+            email: string;
+            name: string;
+            notes: string;
+            website: string;
+        };
+        SponsorRequestIssue: {
+            heldBy?: string;
+            /** Format: date-time */
+            heldUntil?: string;
+            /** Format: date-time */
+            issueOn: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paymentDueAt: string;
+            taken: boolean;
+        };
+        SponsorRequestItem: {
+            /** Format: date-time */
+            closedAt?: string;
+            company: string;
+            currency: string;
+            declinedReason?: string;
+            email: string;
+            heldBy?: string;
+            /** Format: date-time */
+            heldUntil?: string;
+            id: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            /** @enum {string} */
+            issueState: "open" | "held";
+            listName: string;
+            name: string;
+            /** Format: date-time */
+            paidOn?: string;
+            /** @enum {string} */
+            paidSource?: "manual" | "stripe" | "";
+            /** Format: date-time */
+            paymentDueAt?: string;
+            /** Format: int64 */
+            priceCents: number;
+            slotDeleted: boolean;
+            slotId: string;
+            slotName: string;
+            sponsor?: components["schemas"]["SponsorRef"];
+            /** @enum {string} */
+            status: "requested" | "awaiting_payment" | "booked" | "declined" | "expired" | "canceled";
+            /** Format: date-time */
+            submittedAt: string;
+        };
+        SponsorRequestList: {
+            canManage: boolean;
+            helpers: string[];
+            items: components["schemas"]["SponsorRequestItem"][];
+            pageUrl: string;
+            selfServe: boolean;
+        };
+        SponsorRequestSlot: {
+            /** Format: int64 */
+            creativeDays: number;
+            currency: string;
+            id: string;
+            issues: components["schemas"]["SponsorRequestIssue"][];
+            listName: string;
+            name: string;
+            /** Format: int64 */
+            payDays: number;
+            /** Format: int64 */
+            priceCents: number;
+        };
+        SponsorSelfServe: {
+            canManage: boolean;
+            contactEmail: string;
+            helpers: string[];
+            mediaKit: components["schemas"]["SponsorMediaKit"];
+            pageUrl: string;
+            paymentsConnected: boolean;
+            paymentsTest: boolean;
+            selfServe: boolean;
+            /** Format: int64 */
+            slots: number;
+            stats: components["schemas"]["SponsorKitStats"][];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         SponsorShareLink: {
             /** Format: date-time */
             createdAt: string;
@@ -32839,6 +34584,7 @@ export interface components {
             /** Format: int64 */
             creativeDays: number;
             currency: string;
+            description: string;
             /** Format: int64 */
             everyDays: number;
             /** Format: int64 */
@@ -32846,12 +34592,17 @@ export interface components {
             /** Format: date-time */
             firstOn: string;
             id: string;
+            /** Format: int64 */
+            leadDays: number;
             listId: string;
             listName: string;
             name: string;
+            /** Format: int64 */
+            payDays: number;
             placement: string;
             /** Format: int64 */
             priceCents: number;
+            selfServe: boolean;
             selling: boolean;
             weekday?: string;
         };
@@ -33466,6 +35217,69 @@ export interface components {
             id: string;
             key: string;
             name: string;
+        };
+        TrackerRecentEvent: {
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            kind: "page" | "product" | "cart" | "custom";
+            /** @description A known contact's, else a visitor's */
+            known: boolean;
+            name: string;
+            path: string;
+            productTitle: string;
+        };
+        TrackerRecentEvents: {
+            items: components["schemas"]["TrackerRecentEvent"][];
+        };
+        TrackerRefusal: {
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            lastAt: string;
+            origin: string;
+        };
+        TrackerSite: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /**
+             * Format: int64
+             * @description Events since midnight in the workspace's time zone
+             */
+            eventsToday: number;
+            hasIdentifySecret: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+            name: string;
+            /** @example https://shop.acme.io */
+            origin: string;
+            /** @description Origins refused in the last 24 hours, most refused first */
+            refused: components["schemas"]["TrackerRefusal"][];
+            snippet: components["schemas"]["TrackerSnippet"];
+            store?: components["schemas"]["TrackerStoreOption"];
+            waitConsent: boolean;
+        };
+        TrackerSiteList: {
+            canManage: boolean;
+            helpers: string[];
+            items: components["schemas"]["TrackerSite"][];
+            scriptUrl: string;
+            stores: components["schemas"]["TrackerStoreOption"][];
+        };
+        TrackerSnippet: {
+            script: string;
+            shopifyPixel: string;
+            wordpress: string;
+        };
+        TrackerStoreOption: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
         };
         TrafficAction: {
             /** Format: date-time */
@@ -35951,6 +37765,12 @@ export interface components {
             /** @enum {string} */
             campaignVisibility: "audience" | "public" | "members" | "paid";
             /** @enum {string} */
+            comments: "off" | "members" | "paid";
+            /** @enum {string} */
+            commentsReview: "all" | "first" | "none";
+            /** Format: int64 */
+            commentsWaiting: number;
+            /** @enum {string} */
             defaultVisibility: "public" | "members" | "paid";
             /** Format: int64 */
             linkMinutes: number;
@@ -35964,6 +37784,7 @@ export interface components {
             /** Format: int64 */
             meterVisitors: number;
             meterVisitorsOn: boolean;
+            moderators: string[];
             neverFree: components["schemas"]["WebsiteNeverFreePost"][];
             /** Format: int64 */
             paidPosts: number;
@@ -36098,6 +37919,74 @@ export interface components {
             renewsAt?: string;
             /** @enum {string} */
             status: "valid" | "failing" | "pending" | "unknown" | "none";
+        };
+        WebsiteComment: {
+            blocked: boolean;
+            body: string;
+            by?: string;
+            contactId?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            editedAt?: string;
+            email?: string;
+            firstReply?: components["schemas"]["WebsiteCommentReply"];
+            /** @enum {string} */
+            heldReason?: "first_comment" | "review_all" | "links" | "blocked" | "";
+            id: string;
+            /** Format: int64 */
+            links: number;
+            /** Format: date-time */
+            moderatedAt?: string;
+            moderatedBy?: string;
+            name: string;
+            parentId?: string;
+            parentName?: string;
+            pinned: boolean;
+            postId: string;
+            postTitle: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** Format: int64 */
+            replies: number;
+            /** @enum {string} */
+            status: "pending" | "published" | "hidden" | "deleted";
+            team: boolean;
+            url: string;
+        };
+        WebsiteCommentCounts: {
+            /** Format: int64 */
+            hidden: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            published: number;
+        };
+        WebsiteCommentList: {
+            /** @enum {string} */
+            comments: "off" | "members" | "paid";
+            counts: components["schemas"]["WebsiteCommentCounts"];
+            items: components["schemas"]["WebsiteComment"][];
+            nextCursor?: string;
+            posts: components["schemas"]["WebsiteCommentPost"][];
+            publication: string;
+            publicationMark: string;
+            /** @enum {string} */
+            review: "all" | "first" | "none";
+        };
+        WebsiteCommentPost: {
+            /** Format: int64 */
+            comments: number;
+            id: string;
+            title: string;
+        };
+        WebsiteCommentReply: {
+            body: string;
+            by?: string;
+            /** Format: date-time */
+            createdAt: string;
+            name: string;
+            team: boolean;
         };
         WebsiteContactCard: {
             canSignOut: boolean;
@@ -36365,6 +38254,11 @@ export interface components {
             bylines: components["schemas"]["WebsiteByline"][];
             campaign?: components["schemas"]["WebsitePostCampaign"];
             checks: components["schemas"]["WebsiteWebCheck"][];
+            /** Format: int64 */
+            comments: number;
+            commentsOff: boolean;
+            /** Format: int64 */
+            commentsPending: number;
             coverAlt: string;
             coverUrl: string;
             createdBy: string;
@@ -36479,6 +38373,7 @@ export interface components {
         WebsitePostInput: {
             bylineName?: string;
             bylineUserId?: string;
+            commentsOff?: boolean;
             coverAlt: string;
             coverUrl: string;
             excerpt: string;
@@ -36528,6 +38423,10 @@ export interface components {
             approval?: components["schemas"]["WebsitePostApproval"];
             byline: components["schemas"]["WebsiteByline"];
             campaign?: components["schemas"]["WebsitePostCampaign"];
+            /** Format: int64 */
+            comments: number;
+            /** Format: int64 */
+            commentsPending: number;
             createdBy: string;
             excerpt: string;
             featured: boolean;
@@ -38203,7 +40102,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies" | "coupons" | "leads";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -38285,7 +40184,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies" | "coupons" | "leads";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -43613,6 +45512,42 @@ export interface operations {
             };
         };
     };
+    "create-stock-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceStockRequestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStockRequest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-store-trigger-options": {
         parameters: {
             query?: never;
@@ -45830,6 +47765,140 @@ export interface operations {
             };
         };
     };
+    "create-countdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CountdownSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountdownImage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-coupon-pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponPoolList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-coupon-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponPool"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-coupon-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponSourceList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-deliverability": {
         parameters: {
             query?: never;
@@ -47495,13 +49564,13 @@ export interface operations {
     "list-paid-members": {
         parameters: {
             query?: {
-                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended";
+                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended" | "paused";
                 /** @description Name, email, billing email or Stripe customer ID */
                 q?: string;
                 /** @description Tier id */
                 tier?: string;
                 period?: "month" | "year" | "";
-                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "group" | "";
                 /** @description An offer's label (FALL26) */
                 offer?: string;
                 since?: "7d" | "30d" | "90d" | "1y" | "";
@@ -47546,13 +49615,13 @@ export interface operations {
     "export-paid-members": {
         parameters: {
             query?: {
-                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended";
+                status?: "with_access" | "paying" | "trialing" | "past_due" | "cancels_soon" | "complimentary" | "gift" | "ended" | "paused";
                 /** @description Name, email, billing email or Stripe customer ID */
                 q?: string;
                 /** @description Tier id */
                 tier?: string;
                 period?: "month" | "year" | "";
-                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "";
+                source?: "campaign" | "automation" | "page" | "offer" | "website" | "import" | "gift" | "grant" | "direct" | "group" | "";
                 /** @description An offer's label (FALL26) */
                 offer?: string;
                 since?: "7d" | "30d" | "90d" | "1y" | "";
@@ -48683,6 +50752,116 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormABInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormABEndInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
             };
             /** @description Error */
             default: {
@@ -50169,6 +52348,75 @@ export interface operations {
             };
         };
     };
+    "measure-holdout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldoutResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-holdout-results": {
+        parameters: {
+            query?: {
+                /** @description A period's id; the newest by default */
+                period?: string;
+                /** @description The whole period (default) or its last 30 or 90 days */
+                window?: "period" | "30d" | "90d";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldoutResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-imports": {
         parameters: {
             query?: never;
@@ -50818,6 +53066,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-inbound-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboundRouteView"];
                 };
             };
             /** @description Error */
@@ -51625,6 +53905,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LanguageRemoval"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-lead-ads-connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnectionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-lead-ads-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-lead-ads-activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The connection's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsActivity"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-lead-ads-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The lead form's id in ReputeCast */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsFormDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-lead-ads-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadAdsSetup"];
                 };
             };
             /** @description Error */
@@ -56699,6 +59145,82 @@ export interface operations {
             };
         };
     };
+    "list-replies": {
+        parameters: {
+            query?: {
+                view?: "open" | "done" | "auto" | "spam" | "other" | "unsubscribes";
+                /** @description Only replies to this campaign */
+                campaign?: string;
+                /** @description Only replies to this flow's emails */
+                automation?: string;
+                /** @description Search the sender and subject */
+                q?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Reply id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplyDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-roles": {
         parameters: {
             query?: never;
@@ -60132,6 +62654,38 @@ export interface operations {
             };
         };
     };
+    "get-sponsor-page-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorSelfServe"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "revoke-sponsor-share": {
         parameters: {
             query?: never;
@@ -60152,6 +62706,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sponsor-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorRequestList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorRequestDetail"];
+                };
             };
             /** @description Error */
             default: {
@@ -61796,6 +64416,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailTemplatePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-tracker-sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackerSiteList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "tracker-site-recent-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Tracked site id */
+                site: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackerRecentEvents"];
                 };
             };
             /** @description Error */
@@ -64842,6 +67528,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebsiteAccess"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-website-comments": {
+        parameters: {
+            query?: {
+                /** @description The tab: waiting for review (the default), published or hidden */
+                status?: "pending" | "published" | "hidden" | "";
+                /** @description A post's id */
+                post?: string;
+                /** @description Words in the comment, the commenter's name or address */
+                q?: string;
+                /** @description nextCursor of the page before */
+                cursor?: string;
+                /** @description Comments per page (50 by default) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCommentList"];
                 };
             };
             /** @description Error */

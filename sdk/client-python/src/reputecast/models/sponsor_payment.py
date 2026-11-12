@@ -8,6 +8,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..models.sponsor_payment_source import SponsorPaymentSource
 from ..models.sponsor_payment_status import SponsorPaymentStatus
 from ..types import UNSET, Unset
 from typing import cast
@@ -27,6 +28,7 @@ class SponsorPayment:
     """ 
         Attributes:
             note (str):
+            source (SponsorPaymentSource):
             status (SponsorPaymentStatus):
             due (datetime.datetime | Unset):
             paid_cents (int | Unset):
@@ -36,6 +38,7 @@ class SponsorPayment:
      """
 
     note: str
+    source: SponsorPaymentSource
     status: SponsorPaymentStatus
     due: datetime.datetime | Unset = UNSET
     paid_cents: int | Unset = UNSET
@@ -49,6 +52,8 @@ class SponsorPayment:
 
     def to_dict(self) -> dict[str, Any]:
         note = self.note
+
+        source = self.source.value
 
         status = self.status.value
 
@@ -73,6 +78,7 @@ class SponsorPayment:
 
         field_dict.update({
             "note": note,
+            "source": source,
             "status": status,
         })
         if due is not UNSET:
@@ -94,6 +100,11 @@ class SponsorPayment:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         note = d.pop("note")
+
+        source = SponsorPaymentSource(d.pop("source"))
+
+
+
 
         status = SponsorPaymentStatus(d.pop("status"))
 
@@ -136,6 +147,7 @@ class SponsorPayment:
 
         sponsor_payment = cls(
             note=note,
+            source=source,
             status=status,
             due=due,
             paid_cents=paid_cents,

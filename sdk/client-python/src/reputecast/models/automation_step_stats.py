@@ -36,6 +36,7 @@ class AutomationStepStats:
             exited (int): Finished the flow at this step
             failed (int): Webhook calls that failed
             goal_reached (int):
+            held_out (int): Contacts in the holdout group who passed the step without a message (M63)
             in_flow_now (int):
             node_id (str):
             opened (int):
@@ -43,7 +44,8 @@ class AutomationStepStats:
             paths (list[AutomationPathCount]):
             providers (list[AutomationProviderSends]):
             sent (int):
-            skipped (int): Emails skipped by a rule, or because the contact paused email on the preference center
+            skipped (int): Emails skipped by a rule, because the contact paused email on the preference center, or because
+                they are in the holdout group (heldOut counts those)
             unsubscribed (int):
      """
 
@@ -57,6 +59,7 @@ class AutomationStepStats:
     exited: int
     failed: int
     goal_reached: int
+    held_out: int
     in_flow_now: int
     node_id: str
     opened: int
@@ -93,6 +96,8 @@ class AutomationStepStats:
         failed = self.failed
 
         goal_reached = self.goal_reached
+
+        held_out = self.held_out
 
         in_flow_now = self.in_flow_now
 
@@ -136,6 +141,7 @@ class AutomationStepStats:
             "exited": exited,
             "failed": failed,
             "goalReached": goal_reached,
+            "heldOut": held_out,
             "inFlowNow": in_flow_now,
             "nodeId": node_id,
             "opened": opened,
@@ -175,6 +181,8 @@ class AutomationStepStats:
         failed = d.pop("failed")
 
         goal_reached = d.pop("goalReached")
+
+        held_out = d.pop("heldOut")
 
         in_flow_now = d.pop("inFlowNow")
 
@@ -221,6 +229,7 @@ class AutomationStepStats:
             exited=exited,
             failed=failed,
             goal_reached=goal_reached,
+            held_out=held_out,
             in_flow_now=in_flow_now,
             node_id=node_id,
             opened=opened,

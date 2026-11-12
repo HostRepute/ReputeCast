@@ -8,6 +8,7 @@ class AutomationConditionKind(StrEnum):
     LIST = "list"
     OPENED = "opened"
     PLACED_ORDER = "placed_order"
+    REPLIED = "replied"
     SMS_CLICKED = "sms_clicked"
     SMS_CONSENT = "sms_consent"
     SMS_REPLIED = "sms_replied"

@@ -1563,6 +1563,7 @@ const (
 	AutomationConditionKindList          AutomationConditionKind = "list"
 	AutomationConditionKindOpened        AutomationConditionKind = "opened"
 	AutomationConditionKindPlacedOrder   AutomationConditionKind = "placed_order"
+	AutomationConditionKindReplied       AutomationConditionKind = "replied"
 	AutomationConditionKindSmsClicked    AutomationConditionKind = "sms_clicked"
 	AutomationConditionKindSmsConsent    AutomationConditionKind = "sms_consent"
 	AutomationConditionKindSmsReplied    AutomationConditionKind = "sms_replied"
@@ -1585,6 +1586,8 @@ func (e AutomationConditionKind) Valid() bool {
 	case AutomationConditionKindOpened:
 		return true
 	case AutomationConditionKindPlacedOrder:
+		return true
+	case AutomationConditionKindReplied:
 		return true
 	case AutomationConditionKindSmsClicked:
 		return true
@@ -2103,24 +2106,31 @@ func (e AutomationTriggerEndReasons) Valid() bool {
 // Defines values for AutomationTriggerKind.
 const (
 	AutomationTriggerKindAbandonedCheckout AutomationTriggerKind = "abandoned_checkout"
+	AutomationTriggerKindAddedToCart       AutomationTriggerKind = "added_to_cart"
 	AutomationTriggerKindApiEvent          AutomationTriggerKind = "api_event"
+	AutomationTriggerKindBackInStock       AutomationTriggerKind = "back_in_stock"
 	AutomationTriggerKindBoughtProduct     AutomationTriggerKind = "bought_product"
 	AutomationTriggerKindDateField         AutomationTriggerKind = "date_field"
 	AutomationTriggerKindFirstOrder        AutomationTriggerKind = "first_order"
 	AutomationTriggerKindFormSubmitted     AutomationTriggerKind = "form_submitted"
 	AutomationTriggerKindJoinedList        AutomationTriggerKind = "joined_list"
+	AutomationTriggerKindLeadAdSubmitted   AutomationTriggerKind = "lead_ad_submitted"
 	AutomationTriggerKindLinkClicked       AutomationTriggerKind = "link_clicked"
 	AutomationTriggerKindMilestoneReached  AutomationTriggerKind = "milestone_reached"
 	AutomationTriggerKindOrderPlaced       AutomationTriggerKind = "order_placed"
 	AutomationTriggerKindPaidEnded         AutomationTriggerKind = "paid_ended"
+	AutomationTriggerKindPaidPaused        AutomationTriggerKind = "paid_paused"
+	AutomationTriggerKindPaidResumed       AutomationTriggerKind = "paid_resumed"
 	AutomationTriggerKindPaidStarted       AutomationTriggerKind = "paid_started"
 	AutomationTriggerKindPaidTierChanged   AutomationTriggerKind = "paid_tier_changed"
 	AutomationTriggerKindPaidTrialEnding   AutomationTriggerKind = "paid_trial_ending"
 	AutomationTriggerKindPollAnswered      AutomationTriggerKind = "poll_answered"
+	AutomationTriggerKindPriceDrop         AutomationTriggerKind = "price_drop"
 	AutomationTriggerKindScoreCrosses      AutomationTriggerKind = "score_crosses"
 	AutomationTriggerKindSegmentEntered    AutomationTriggerKind = "segment_entered"
 	AutomationTriggerKindSegmentLeft       AutomationTriggerKind = "segment_left"
 	AutomationTriggerKindTagAdded          AutomationTriggerKind = "tag_added"
+	AutomationTriggerKindViewedProduct     AutomationTriggerKind = "viewed_product"
 )
 
 // Valid indicates whether the value is a known member of the AutomationTriggerKind enum.
@@ -2128,7 +2138,11 @@ func (e AutomationTriggerKind) Valid() bool {
 	switch e {
 	case AutomationTriggerKindAbandonedCheckout:
 		return true
+	case AutomationTriggerKindAddedToCart:
+		return true
 	case AutomationTriggerKindApiEvent:
+		return true
+	case AutomationTriggerKindBackInStock:
 		return true
 	case AutomationTriggerKindBoughtProduct:
 		return true
@@ -2140,6 +2154,8 @@ func (e AutomationTriggerKind) Valid() bool {
 		return true
 	case AutomationTriggerKindJoinedList:
 		return true
+	case AutomationTriggerKindLeadAdSubmitted:
+		return true
 	case AutomationTriggerKindLinkClicked:
 		return true
 	case AutomationTriggerKindMilestoneReached:
@@ -2147,6 +2163,10 @@ func (e AutomationTriggerKind) Valid() bool {
 	case AutomationTriggerKindOrderPlaced:
 		return true
 	case AutomationTriggerKindPaidEnded:
+		return true
+	case AutomationTriggerKindPaidPaused:
+		return true
+	case AutomationTriggerKindPaidResumed:
 		return true
 	case AutomationTriggerKindPaidStarted:
 		return true
@@ -2156,6 +2176,8 @@ func (e AutomationTriggerKind) Valid() bool {
 		return true
 	case AutomationTriggerKindPollAnswered:
 		return true
+	case AutomationTriggerKindPriceDrop:
+		return true
 	case AutomationTriggerKindScoreCrosses:
 		return true
 	case AutomationTriggerKindSegmentEntered:
@@ -2163,6 +2185,8 @@ func (e AutomationTriggerKind) Valid() bool {
 	case AutomationTriggerKindSegmentLeft:
 		return true
 	case AutomationTriggerKindTagAdded:
+		return true
+	case AutomationTriggerKindViewedProduct:
 		return true
 	default:
 		return false
@@ -2876,19 +2900,31 @@ func (e CommerceActivityItemTone) Valid() bool {
 
 // Defines values for CommerceBlockMode.
 const (
-	Card       CommerceBlockMode = "card"
-	Chosen     CommerceBlockMode = "chosen"
-	Collection CommerceBlockMode = "collection"
+	BestSellers    CommerceBlockMode = "best_sellers"
+	BoughtTogether CommerceBlockMode = "bought_together"
+	Card           CommerceBlockMode = "card"
+	Chosen         CommerceBlockMode = "chosen"
+	Collection     CommerceBlockMode = "collection"
+	RecentlyViewed CommerceBlockMode = "recently_viewed"
+	Viewed         CommerceBlockMode = "viewed"
 )
 
 // Valid indicates whether the value is a known member of the CommerceBlockMode enum.
 func (e CommerceBlockMode) Valid() bool {
 	switch e {
+	case BestSellers:
+		return true
+	case BoughtTogether:
+		return true
 	case Card:
 		return true
 	case Chosen:
 		return true
 	case Collection:
+		return true
+	case RecentlyViewed:
+		return true
+	case Viewed:
 		return true
 	default:
 		return false
@@ -5946,6 +5982,339 @@ func (e CountEncoding) Valid() bool {
 	}
 }
 
+// Defines values for CountdownEndedMode.
+const (
+	CountdownEndedModeText  CountdownEndedMode = "text"
+	CountdownEndedModeZeros CountdownEndedMode = "zeros"
+)
+
+// Valid indicates whether the value is a known member of the CountdownEndedMode enum.
+func (e CountdownEndedMode) Valid() bool {
+	switch e {
+	case CountdownEndedModeText:
+		return true
+	case CountdownEndedModeZeros:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CountdownSettingsLanguage.
+const (
+	CountdownSettingsLanguageDe CountdownSettingsLanguage = "de"
+	CountdownSettingsLanguageEn CountdownSettingsLanguage = "en"
+	CountdownSettingsLanguageEs CountdownSettingsLanguage = "es"
+	CountdownSettingsLanguageFr CountdownSettingsLanguage = "fr"
+	CountdownSettingsLanguageVi CountdownSettingsLanguage = "vi"
+)
+
+// Valid indicates whether the value is a known member of the CountdownSettingsLanguage enum.
+func (e CountdownSettingsLanguage) Valid() bool {
+	switch e {
+	case CountdownSettingsLanguageDe:
+		return true
+	case CountdownSettingsLanguageEn:
+		return true
+	case CountdownSettingsLanguageEs:
+		return true
+	case CountdownSettingsLanguageFr:
+		return true
+	case CountdownSettingsLanguageVi:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CountdownSettingsSize.
+const (
+	L CountdownSettingsSize = "l"
+	M CountdownSettingsSize = "m"
+	S CountdownSettingsSize = "s"
+)
+
+// Valid indicates whether the value is a known member of the CountdownSettingsSize enum.
+func (e CountdownSettingsSize) Valid() bool {
+	switch e {
+	case L:
+		return true
+	case M:
+		return true
+	case S:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CountdownSettingsUnits.
+const (
+	Dhm  CountdownSettingsUnits = "dhm"
+	Dhms CountdownSettingsUnits = "dhms"
+	Hms  CountdownSettingsUnits = "hms"
+)
+
+// Valid indicates whether the value is a known member of the CountdownSettingsUnits enum.
+func (e CountdownSettingsUnits) Valid() bool {
+	switch e {
+	case Dhm:
+		return true
+	case Dhms:
+		return true
+	case Hms:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponBatchKind.
+const (
+	CouponBatchKindGenerate CouponBatchKind = "generate"
+	CouponBatchKindUpload   CouponBatchKind = "upload"
+)
+
+// Valid indicates whether the value is a known member of the CouponBatchKind enum.
+func (e CouponBatchKind) Valid() bool {
+	switch e {
+	case CouponBatchKindGenerate:
+		return true
+	case CouponBatchKindUpload:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponBatchReason.
+const (
+	Pool    CouponBatchReason = "pool"
+	Refill  CouponBatchReason = "refill"
+	Request CouponBatchReason = "request"
+)
+
+// Valid indicates whether the value is a known member of the CouponBatchReason enum.
+func (e CouponBatchReason) Valid() bool {
+	switch e {
+	case Pool:
+		return true
+	case Refill:
+		return true
+	case Request:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponBatchStatus.
+const (
+	CouponBatchStatusDone    CouponBatchStatus = "done"
+	CouponBatchStatusFailed  CouponBatchStatus = "failed"
+	CouponBatchStatusRunning CouponBatchStatus = "running"
+)
+
+// Valid indicates whether the value is a known member of the CouponBatchStatus enum.
+func (e CouponBatchStatus) Valid() bool {
+	switch e {
+	case CouponBatchStatusDone:
+		return true
+	case CouponBatchStatusFailed:
+		return true
+	case CouponBatchStatusRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponPoolSource.
+const (
+	CouponPoolSourceShopify     CouponPoolSource = "shopify"
+	CouponPoolSourceUpload      CouponPoolSource = "upload"
+	CouponPoolSourceWoocommerce CouponPoolSource = "woocommerce"
+)
+
+// Valid indicates whether the value is a known member of the CouponPoolSource enum.
+func (e CouponPoolSource) Valid() bool {
+	switch e {
+	case CouponPoolSourceShopify:
+		return true
+	case CouponPoolSourceUpload:
+		return true
+	case CouponPoolSourceWoocommerce:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponPoolStatus.
+const (
+	CouponPoolStatusActive   CouponPoolStatus = "active"
+	CouponPoolStatusArchived CouponPoolStatus = "archived"
+)
+
+// Valid indicates whether the value is a known member of the CouponPoolStatus enum.
+func (e CouponPoolStatus) Valid() bool {
+	switch e {
+	case CouponPoolStatusActive:
+		return true
+	case CouponPoolStatusArchived:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponPoolListItemSource.
+const (
+	CouponPoolListItemSourceShopify     CouponPoolListItemSource = "shopify"
+	CouponPoolListItemSourceUpload      CouponPoolListItemSource = "upload"
+	CouponPoolListItemSourceWoocommerce CouponPoolListItemSource = "woocommerce"
+)
+
+// Valid indicates whether the value is a known member of the CouponPoolListItemSource enum.
+func (e CouponPoolListItemSource) Valid() bool {
+	switch e {
+	case CouponPoolListItemSourceShopify:
+		return true
+	case CouponPoolListItemSourceUpload:
+		return true
+	case CouponPoolListItemSourceWoocommerce:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponPoolListItemStatus.
+const (
+	CouponPoolListItemStatusActive   CouponPoolListItemStatus = "active"
+	CouponPoolListItemStatusArchived CouponPoolListItemStatus = "archived"
+)
+
+// Valid indicates whether the value is a known member of the CouponPoolListItemStatus enum.
+func (e CouponPoolListItemStatus) Valid() bool {
+	switch e {
+	case CouponPoolListItemStatusActive:
+		return true
+	case CouponPoolListItemStatusArchived:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponPoolSettingsKind.
+const (
+	CouponPoolSettingsKindEmpty        CouponPoolSettingsKind = ""
+	CouponPoolSettingsKindFixedAmount  CouponPoolSettingsKind = "fixed_amount"
+	CouponPoolSettingsKindFreeShipping CouponPoolSettingsKind = "free_shipping"
+	CouponPoolSettingsKindPercentage   CouponPoolSettingsKind = "percentage"
+)
+
+// Valid indicates whether the value is a known member of the CouponPoolSettingsKind enum.
+func (e CouponPoolSettingsKind) Valid() bool {
+	switch e {
+	case CouponPoolSettingsKindEmpty:
+		return true
+	case CouponPoolSettingsKindFixedAmount:
+		return true
+	case CouponPoolSettingsKindFreeShipping:
+		return true
+	case CouponPoolSettingsKindPercentage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponPoolStorePlatform.
+const (
+	CouponPoolStorePlatformShopify     CouponPoolStorePlatform = "shopify"
+	CouponPoolStorePlatformWoocommerce CouponPoolStorePlatform = "woocommerce"
+)
+
+// Valid indicates whether the value is a known member of the CouponPoolStorePlatform enum.
+func (e CouponPoolStorePlatform) Valid() bool {
+	switch e {
+	case CouponPoolStorePlatformShopify:
+		return true
+	case CouponPoolStorePlatformWoocommerce:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponPoolUseKind.
+const (
+	CouponPoolUseKindAutomation CouponPoolUseKind = "automation"
+	CouponPoolUseKindCampaign   CouponPoolUseKind = "campaign"
+	CouponPoolUseKindTemplate   CouponPoolUseKind = "template"
+)
+
+// Valid indicates whether the value is a known member of the CouponPoolUseKind enum.
+func (e CouponPoolUseKind) Valid() bool {
+	switch e {
+	case CouponPoolUseKindAutomation:
+		return true
+	case CouponPoolUseKindCampaign:
+		return true
+	case CouponPoolUseKindTemplate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponSourcePlatform.
+const (
+	CouponSourcePlatformShopify     CouponSourcePlatform = "shopify"
+	CouponSourcePlatformWoocommerce CouponSourcePlatform = "woocommerce"
+)
+
+// Valid indicates whether the value is a known member of the CouponSourcePlatform enum.
+func (e CouponSourcePlatform) Valid() bool {
+	switch e {
+	case CouponSourcePlatformShopify:
+		return true
+	case CouponSourcePlatformWoocommerce:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CouponSourceReason.
+const (
+	CouponSourceReasonEmpty        CouponSourceReason = ""
+	CouponSourceReasonNotConnected CouponSourceReason = "not_connected"
+	CouponSourceReasonNotGranted   CouponSourceReason = "not_granted"
+	CouponSourceReasonReadOnly     CouponSourceReason = "read_only"
+	CouponSourceReasonUnsupported  CouponSourceReason = "unsupported"
+)
+
+// Valid indicates whether the value is a known member of the CouponSourceReason enum.
+func (e CouponSourceReason) Valid() bool {
+	switch e {
+	case CouponSourceReasonEmpty:
+		return true
+	case CouponSourceReasonNotConnected:
+		return true
+	case CouponSourceReasonNotGranted:
+		return true
+	case CouponSourceReasonReadOnly:
+		return true
+	case CouponSourceReasonUnsupported:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CustomFieldDefDisplay.
 const (
 	CustomFieldDefDisplayCurrency CustomFieldDefDisplay = "currency"
@@ -6345,6 +6714,42 @@ func (e DeliverabilityChecksVia) Valid() bool {
 	}
 }
 
+// Defines values for DeliverabilityDMARCExternalRecordStatus.
+const (
+	DeliverabilityDMARCExternalRecordStatusFound   DeliverabilityDMARCExternalRecordStatus = "found"
+	DeliverabilityDMARCExternalRecordStatusMissing DeliverabilityDMARCExternalRecordStatus = "missing"
+	DeliverabilityDMARCExternalRecordStatusUnknown DeliverabilityDMARCExternalRecordStatus = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the DeliverabilityDMARCExternalRecordStatus enum.
+func (e DeliverabilityDMARCExternalRecordStatus) Valid() bool {
+	switch e {
+	case DeliverabilityDMARCExternalRecordStatusFound:
+		return true
+	case DeliverabilityDMARCExternalRecordStatusMissing:
+		return true
+	case DeliverabilityDMARCExternalRecordStatusUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeliverabilityDMARCExternalRecordType.
+const (
+	TXT DeliverabilityDMARCExternalRecordType = "TXT"
+)
+
+// Valid indicates whether the value is a known member of the DeliverabilityDMARCExternalRecordType enum.
+func (e DeliverabilityDMARCExternalRecordType) Valid() bool {
+	switch e {
+	case TXT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeliverabilityDMARCSourceResult.
 const (
 	DeliverabilityDMARCSourceResultFail        DeliverabilityDMARCSourceResult = "fail"
@@ -6372,6 +6777,7 @@ func (e DeliverabilityDMARCSourceResult) Valid() bool {
 // Defines values for DeliverabilityDMARCSummaryVia.
 const (
 	DeliverabilityDMARCSummaryViaHostrepute DeliverabilityDMARCSummaryVia = "hostrepute"
+	DeliverabilityDMARCSummaryViaInbound    DeliverabilityDMARCSummaryVia = "inbound"
 	DeliverabilityDMARCSummaryViaNone       DeliverabilityDMARCSummaryVia = "none"
 	DeliverabilityDMARCSummaryViaUpload     DeliverabilityDMARCSummaryVia = "upload"
 )
@@ -6380,6 +6786,8 @@ const (
 func (e DeliverabilityDMARCSummaryVia) Valid() bool {
 	switch e {
 	case DeliverabilityDMARCSummaryViaHostrepute:
+		return true
+	case DeliverabilityDMARCSummaryViaInbound:
 		return true
 	case DeliverabilityDMARCSummaryViaNone:
 		return true
@@ -7981,6 +8389,7 @@ func (e EarnImportPricePeriod) Valid() bool {
 const (
 	EarnMemberKindComplimentary EarnMemberKind = "complimentary"
 	EarnMemberKindGift          EarnMemberKind = "gift"
+	EarnMemberKindGroup         EarnMemberKind = "group"
 	EarnMemberKindStripe        EarnMemberKind = "stripe"
 )
 
@@ -7990,6 +8399,8 @@ func (e EarnMemberKind) Valid() bool {
 	case EarnMemberKindComplimentary:
 		return true
 	case EarnMemberKindGift:
+		return true
+	case EarnMemberKindGroup:
 		return true
 	case EarnMemberKindStripe:
 		return true
@@ -8004,6 +8415,7 @@ const (
 	EarnMemberNextEnds      EarnMemberNext = "ends"
 	EarnMemberNextNoEnd     EarnMemberNext = "no_end"
 	EarnMemberNextRenews    EarnMemberNext = "renews"
+	EarnMemberNextResumes   EarnMemberNext = "resumes"
 	EarnMemberNextRetries   EarnMemberNext = "retries"
 	EarnMemberNextTrialEnds EarnMemberNext = "trial_ends"
 )
@@ -8018,6 +8430,8 @@ func (e EarnMemberNext) Valid() bool {
 	case EarnMemberNextNoEnd:
 		return true
 	case EarnMemberNextRenews:
+		return true
+	case EarnMemberNextResumes:
 		return true
 	case EarnMemberNextRetries:
 		return true
@@ -8055,6 +8469,7 @@ const (
 	EarnMemberStatusCanceled      EarnMemberStatus = "canceled"
 	EarnMemberStatusComplimentary EarnMemberStatus = "complimentary"
 	EarnMemberStatusGift          EarnMemberStatus = "gift"
+	EarnMemberStatusGroup         EarnMemberStatus = "group"
 	EarnMemberStatusPastDue       EarnMemberStatus = "past_due"
 	EarnMemberStatusTrialing      EarnMemberStatus = "trialing"
 )
@@ -8069,6 +8484,8 @@ func (e EarnMemberStatus) Valid() bool {
 	case EarnMemberStatusComplimentary:
 		return true
 	case EarnMemberStatusGift:
+		return true
+	case EarnMemberStatusGroup:
 		return true
 	case EarnMemberStatusPastDue:
 		return true
@@ -8161,6 +8578,7 @@ func (e EarnMemberListAccessRule) Valid() bool {
 const (
 	EarnMemberRowKindComplimentary EarnMemberRowKind = "complimentary"
 	EarnMemberRowKindGift          EarnMemberRowKind = "gift"
+	EarnMemberRowKindGroup         EarnMemberRowKind = "group"
 	EarnMemberRowKindStripe        EarnMemberRowKind = "stripe"
 )
 
@@ -8170,6 +8588,8 @@ func (e EarnMemberRowKind) Valid() bool {
 	case EarnMemberRowKindComplimentary:
 		return true
 	case EarnMemberRowKindGift:
+		return true
+	case EarnMemberRowKindGroup:
 		return true
 	case EarnMemberRowKindStripe:
 		return true
@@ -8184,6 +8604,7 @@ const (
 	EarnMemberRowNextEnds      EarnMemberRowNext = "ends"
 	EarnMemberRowNextNoEnd     EarnMemberRowNext = "no_end"
 	EarnMemberRowNextRenews    EarnMemberRowNext = "renews"
+	EarnMemberRowNextResumes   EarnMemberRowNext = "resumes"
 	EarnMemberRowNextRetries   EarnMemberRowNext = "retries"
 	EarnMemberRowNextTrialEnds EarnMemberRowNext = "trial_ends"
 )
@@ -8198,6 +8619,8 @@ func (e EarnMemberRowNext) Valid() bool {
 	case EarnMemberRowNextNoEnd:
 		return true
 	case EarnMemberRowNextRenews:
+		return true
+	case EarnMemberRowNextResumes:
 		return true
 	case EarnMemberRowNextRetries:
 		return true
@@ -8235,6 +8658,7 @@ const (
 	EarnMemberRowStatusCanceled      EarnMemberRowStatus = "canceled"
 	EarnMemberRowStatusComplimentary EarnMemberRowStatus = "complimentary"
 	EarnMemberRowStatusGift          EarnMemberRowStatus = "gift"
+	EarnMemberRowStatusGroup         EarnMemberRowStatus = "group"
 	EarnMemberRowStatusPastDue       EarnMemberRowStatus = "past_due"
 	EarnMemberRowStatusTrialing      EarnMemberRowStatus = "trialing"
 )
@@ -8249,6 +8673,8 @@ func (e EarnMemberRowStatus) Valid() bool {
 	case EarnMemberRowStatusComplimentary:
 		return true
 	case EarnMemberRowStatusGift:
+		return true
+	case EarnMemberRowStatusGroup:
 		return true
 	case EarnMemberRowStatusPastDue:
 		return true
@@ -8267,6 +8693,7 @@ const (
 	EarnMemberSourceKindEmpty      EarnMemberSourceKind = ""
 	EarnMemberSourceKindGift       EarnMemberSourceKind = "gift"
 	EarnMemberSourceKindGrant      EarnMemberSourceKind = "grant"
+	EarnMemberSourceKindGroup      EarnMemberSourceKind = "group"
 	EarnMemberSourceKindImport     EarnMemberSourceKind = "import"
 	EarnMemberSourceKindOffer      EarnMemberSourceKind = "offer"
 	EarnMemberSourceKindPage       EarnMemberSourceKind = "page"
@@ -8288,6 +8715,8 @@ func (e EarnMemberSourceKind) Valid() bool {
 		return true
 	case EarnMemberSourceKindGrant:
 		return true
+	case EarnMemberSourceKindGroup:
+		return true
 	case EarnMemberSourceKindImport:
 		return true
 	case EarnMemberSourceKindOffer:
@@ -8295,6 +8724,24 @@ func (e EarnMemberSourceKind) Valid() bool {
 	case EarnMemberSourceKindPage:
 		return true
 	case EarnMemberSourceKindWebsite:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EarnMemberTeamRole.
+const (
+	EarnMemberTeamRoleBuyer EarnMemberTeamRole = "buyer"
+	EarnMemberTeamRoleSeat  EarnMemberTeamRole = "seat"
+)
+
+// Valid indicates whether the value is a known member of the EarnMemberTeamRole enum.
+func (e EarnMemberTeamRole) Valid() bool {
+	switch e {
+	case EarnMemberTeamRoleBuyer:
+		return true
+	case EarnMemberTeamRoleSeat:
 		return true
 	default:
 		return false
@@ -8517,6 +8964,27 @@ func (e EarnSyncStepStep) Valid() bool {
 	case EarnSyncStepStepProduct:
 		return true
 	case EarnSyncStepStepYear:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EarnTeamSeatStatus.
+const (
+	EarnTeamSeatStatusActive  EarnTeamSeatStatus = "active"
+	EarnTeamSeatStatusBuyer   EarnTeamSeatStatus = "buyer"
+	EarnTeamSeatStatusInvited EarnTeamSeatStatus = "invited"
+)
+
+// Valid indicates whether the value is a known member of the EarnTeamSeatStatus enum.
+func (e EarnTeamSeatStatus) Valid() bool {
+	switch e {
+	case EarnTeamSeatStatusActive:
+		return true
+	case EarnTeamSeatStatusBuyer:
+		return true
+	case EarnTeamSeatStatusInvited:
 		return true
 	default:
 		return false
@@ -9132,6 +9600,84 @@ func (e HealthTierCardTier) Valid() bool {
 	}
 }
 
+// Defines values for HoldoutMetricKey.
+const (
+	ConversionRate    HoldoutMetricKey = "conversion_rate"
+	OrdersPerContact  HoldoutMetricKey = "orders_per_contact"
+	RevenuePerContact HoldoutMetricKey = "revenue_per_contact"
+	SiteVisitors      HoldoutMetricKey = "site_visitors"
+)
+
+// Valid indicates whether the value is a known member of the HoldoutMetricKey enum.
+func (e HoldoutMetricKey) Valid() bool {
+	switch e {
+	case ConversionRate:
+		return true
+	case OrdersPerContact:
+		return true
+	case RevenuePerContact:
+		return true
+	case SiteVisitors:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HoldoutResultsVerdict.
+const (
+	HoldoutResultsVerdictAdded        HoldoutResultsVerdict = "added"
+	HoldoutResultsVerdictLost         HoldoutResultsVerdict = "lost"
+	HoldoutResultsVerdictNoDifference HoldoutResultsVerdict = "no_difference"
+	HoldoutResultsVerdictNone         HoldoutResultsVerdict = "none"
+	HoldoutResultsVerdictPending      HoldoutResultsVerdict = "pending"
+	HoldoutResultsVerdictTooEarly     HoldoutResultsVerdict = "too_early"
+	HoldoutResultsVerdictTooFew       HoldoutResultsVerdict = "too_few"
+)
+
+// Valid indicates whether the value is a known member of the HoldoutResultsVerdict enum.
+func (e HoldoutResultsVerdict) Valid() bool {
+	switch e {
+	case HoldoutResultsVerdictAdded:
+		return true
+	case HoldoutResultsVerdictLost:
+		return true
+	case HoldoutResultsVerdictNoDifference:
+		return true
+	case HoldoutResultsVerdictNone:
+		return true
+	case HoldoutResultsVerdictPending:
+		return true
+	case HoldoutResultsVerdictTooEarly:
+		return true
+	case HoldoutResultsVerdictTooFew:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HoldoutResultsWindow.
+const (
+	HoldoutResultsWindowN30d   HoldoutResultsWindow = "30d"
+	HoldoutResultsWindowN90d   HoldoutResultsWindow = "90d"
+	HoldoutResultsWindowPeriod HoldoutResultsWindow = "period"
+)
+
+// Valid indicates whether the value is a known member of the HoldoutResultsWindow enum.
+func (e HoldoutResultsWindow) Valid() bool {
+	switch e {
+	case HoldoutResultsWindowN30d:
+		return true
+	case HoldoutResultsWindowN90d:
+		return true
+	case HoldoutResultsWindowPeriod:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HostReputeAssetRole.
 const (
 	HostReputeAssetRoleDedicatedIp        HostReputeAssetRole = "dedicated_ip"
@@ -9542,6 +10088,7 @@ const (
 	ImportJobKindExport       ImportJobKind = "export"
 	ImportJobKindImport       ImportJobKind = "import"
 	ImportJobKindOptin        ImportJobKind = "optin"
+	ImportJobKindPostImport   ImportJobKind = "post_import"
 	ImportJobKindVerification ImportJobKind = "verification"
 )
 
@@ -9553,6 +10100,8 @@ func (e ImportJobKind) Valid() bool {
 	case ImportJobKindImport:
 		return true
 	case ImportJobKindOptin:
+		return true
+	case ImportJobKindPostImport:
 		return true
 	case ImportJobKindVerification:
 		return true
@@ -9963,6 +10512,174 @@ func (e ImportUpdateInputStep) Valid() bool {
 	}
 }
 
+// Defines values for InboundMXRecordStatus.
+const (
+	InboundMXRecordStatusFound      InboundMXRecordStatus = "found"
+	InboundMXRecordStatusMissing    InboundMXRecordStatus = "missing"
+	InboundMXRecordStatusUnknown    InboundMXRecordStatus = "unknown"
+	InboundMXRecordStatusWrongValue InboundMXRecordStatus = "wrong_value"
+)
+
+// Valid indicates whether the value is a known member of the InboundMXRecordStatus enum.
+func (e InboundMXRecordStatus) Valid() bool {
+	switch e {
+	case InboundMXRecordStatusFound:
+		return true
+	case InboundMXRecordStatusMissing:
+		return true
+	case InboundMXRecordStatusUnknown:
+		return true
+	case InboundMXRecordStatusWrongValue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InboundMailboxViewProtocol.
+const (
+	InboundMailboxViewProtocolImap InboundMailboxViewProtocol = "imap"
+	InboundMailboxViewProtocolPop3 InboundMailboxViewProtocol = "pop3"
+)
+
+// Valid indicates whether the value is a known member of the InboundMailboxViewProtocol enum.
+func (e InboundMailboxViewProtocol) Valid() bool {
+	switch e {
+	case InboundMailboxViewProtocolImap:
+		return true
+	case InboundMailboxViewProtocolPop3:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InboundMailboxViewSecurity.
+const (
+	InboundMailboxViewSecurityStarttls InboundMailboxViewSecurity = "starttls"
+	InboundMailboxViewSecurityTls      InboundMailboxViewSecurity = "tls"
+)
+
+// Valid indicates whether the value is a known member of the InboundMailboxViewSecurity enum.
+func (e InboundMailboxViewSecurity) Valid() bool {
+	switch e {
+	case InboundMailboxViewSecurityStarttls:
+		return true
+	case InboundMailboxViewSecurityTls:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InboundProviderChoiceInbound.
+const (
+	InboundProviderChoiceInboundAutomatic InboundProviderChoiceInbound = "automatic"
+	InboundProviderChoiceInboundEmpty     InboundProviderChoiceInbound = ""
+	InboundProviderChoiceInboundManual    InboundProviderChoiceInbound = "manual"
+)
+
+// Valid indicates whether the value is a known member of the InboundProviderChoiceInbound enum.
+func (e InboundProviderChoiceInbound) Valid() bool {
+	switch e {
+	case InboundProviderChoiceInboundAutomatic:
+		return true
+	case InboundProviderChoiceInboundEmpty:
+		return true
+	case InboundProviderChoiceInboundManual:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InboundRouteViewKind.
+const (
+	InboundRouteViewKindMailbox  InboundRouteViewKind = "mailbox"
+	InboundRouteViewKindProvider InboundRouteViewKind = "provider"
+)
+
+// Valid indicates whether the value is a known member of the InboundRouteViewKind enum.
+func (e InboundRouteViewKind) Valid() bool {
+	switch e {
+	case InboundRouteViewKindMailbox:
+		return true
+	case InboundRouteViewKindProvider:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InboundRouteViewReplyHandling.
+const (
+	InboundRouteViewReplyHandlingForward InboundRouteViewReplyHandling = "forward"
+	InboundRouteViewReplyHandlingInbox   InboundRouteViewReplyHandling = "inbox"
+)
+
+// Valid indicates whether the value is a known member of the InboundRouteViewReplyHandling enum.
+func (e InboundRouteViewReplyHandling) Valid() bool {
+	switch e {
+	case InboundRouteViewReplyHandlingForward:
+		return true
+	case InboundRouteViewReplyHandlingInbox:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InboundRouteViewStatus.
+const (
+	InboundRouteViewStatusFailing   InboundRouteViewStatus = "failing"
+	InboundRouteViewStatusNotSetUp  InboundRouteViewStatus = "not_set_up"
+	InboundRouteViewStatusPending   InboundRouteViewStatus = "pending"
+	InboundRouteViewStatusReceiving InboundRouteViewStatus = "receiving"
+)
+
+// Valid indicates whether the value is a known member of the InboundRouteViewStatus enum.
+func (e InboundRouteViewStatus) Valid() bool {
+	switch e {
+	case InboundRouteViewStatusFailing:
+		return true
+	case InboundRouteViewStatusNotSetUp:
+		return true
+	case InboundRouteViewStatusPending:
+		return true
+	case InboundRouteViewStatusReceiving:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InboundRouteViewStatusReason.
+const (
+	DroppedReports     InboundRouteViewStatusReason = "dropped_reports"
+	MailboxAuth        InboundRouteViewStatusReason = "mailbox_auth"
+	MailboxUnreachable InboundRouteViewStatusReason = "mailbox_unreachable"
+	Mx                 InboundRouteViewStatusReason = "mx"
+	Register           InboundRouteViewStatusReason = "register"
+)
+
+// Valid indicates whether the value is a known member of the InboundRouteViewStatusReason enum.
+func (e InboundRouteViewStatusReason) Valid() bool {
+	switch e {
+	case DroppedReports:
+		return true
+	case MailboxAuth:
+		return true
+	case MailboxUnreachable:
+		return true
+	case Mx:
+		return true
+	case Register:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for IncidentDetailAction.
 const (
 	IncidentDetailActionAlerted IncidentDetailAction = "alerted"
@@ -10094,12 +10811,14 @@ const (
 	IntegrationEntryKeyLemonsqueezy IntegrationEntryKey = "lemonsqueezy"
 	IntegrationEntryKeyMake         IntegrationEntryKey = "make"
 	IntegrationEntryKeyMcp          IntegrationEntryKey = "mcp"
+	IntegrationEntryKeyMetaLeadAds  IntegrationEntryKey = "meta_lead_ads"
 	IntegrationEntryKeyN8n          IntegrationEntryKey = "n8n"
 	IntegrationEntryKeyNeverbounce  IntegrationEntryKey = "neverbounce"
 	IntegrationEntryKeyOpenai       IntegrationEntryKey = "openai"
 	IntegrationEntryKeyPaddle       IntegrationEntryKey = "paddle"
 	IntegrationEntryKeyShopify      IntegrationEntryKey = "shopify"
 	IntegrationEntryKeyStripe       IntegrationEntryKey = "stripe"
+	IntegrationEntryKeyTracking     IntegrationEntryKey = "tracking"
 	IntegrationEntryKeyWebhooks     IntegrationEntryKey = "webhooks"
 	IntegrationEntryKeyWoocommerce  IntegrationEntryKey = "woocommerce"
 	IntegrationEntryKeyWordpress    IntegrationEntryKey = "wordpress"
@@ -10134,6 +10853,8 @@ func (e IntegrationEntryKey) Valid() bool {
 		return true
 	case IntegrationEntryKeyMcp:
 		return true
+	case IntegrationEntryKeyMetaLeadAds:
+		return true
 	case IntegrationEntryKeyN8n:
 		return true
 	case IntegrationEntryKeyNeverbounce:
@@ -10145,6 +10866,8 @@ func (e IntegrationEntryKey) Valid() bool {
 	case IntegrationEntryKeyShopify:
 		return true
 	case IntegrationEntryKeyStripe:
+		return true
+	case IntegrationEntryKeyTracking:
 		return true
 	case IntegrationEntryKeyWebhooks:
 		return true
@@ -10195,6 +10918,7 @@ const (
 	IntegrationGroupKeyCommerce       IntegrationGroupKey = "commerce"
 	IntegrationGroupKeyDeliverability IntegrationGroupKey = "deliverability"
 	IntegrationGroupKeyDeveloper      IntegrationGroupKey = "developer"
+	IntegrationGroupKeyLeads          IntegrationGroupKey = "leads"
 	IntegrationGroupKeyPayments       IntegrationGroupKey = "payments"
 	IntegrationGroupKeyVerification   IntegrationGroupKey = "verification"
 	IntegrationGroupKeyWebsites       IntegrationGroupKey = "websites"
@@ -10212,6 +10936,8 @@ func (e IntegrationGroupKey) Valid() bool {
 	case IntegrationGroupKeyDeliverability:
 		return true
 	case IntegrationGroupKeyDeveloper:
+		return true
+	case IntegrationGroupKeyLeads:
 		return true
 	case IntegrationGroupKeyPayments:
 		return true
@@ -10302,6 +11028,33 @@ func (e IntegrationKeyViewStatus) Valid() bool {
 	case IntegrationKeyViewStatusGrace:
 		return true
 	case IntegrationKeyViewStatusRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IntegrationLeadFactsProblem.
+const (
+	IntegrationLeadFactsProblemAppRejected       IntegrationLeadFactsProblem = "app_rejected"
+	IntegrationLeadFactsProblemEmpty             IntegrationLeadFactsProblem = ""
+	IntegrationLeadFactsProblemPermissionMissing IntegrationLeadFactsProblem = "permission_missing"
+	IntegrationLeadFactsProblemTokenExpired      IntegrationLeadFactsProblem = "token_expired"
+	IntegrationLeadFactsProblemTokenRejected     IntegrationLeadFactsProblem = "token_rejected"
+)
+
+// Valid indicates whether the value is a known member of the IntegrationLeadFactsProblem enum.
+func (e IntegrationLeadFactsProblem) Valid() bool {
+	switch e {
+	case IntegrationLeadFactsProblemAppRejected:
+		return true
+	case IntegrationLeadFactsProblemEmpty:
+		return true
+	case IntegrationLeadFactsProblemPermissionMissing:
+		return true
+	case IntegrationLeadFactsProblemTokenExpired:
+		return true
+	case IntegrationLeadFactsProblemTokenRejected:
 		return true
 	default:
 		return false
@@ -10641,6 +11394,246 @@ func (e LanguagePageCopyStatus) Valid() bool {
 	case LanguagePageCopyStatusLive:
 		return true
 	case LanguagePageCopyStatusNotSetUp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsActivityItemOutcome.
+const (
+	LeadAdsActivityItemOutcomeBlocked  LeadAdsActivityItemOutcome = "blocked"
+	LeadAdsActivityItemOutcomeCreated  LeadAdsActivityItemOutcome = "created"
+	LeadAdsActivityItemOutcomeDeclined LeadAdsActivityItemOutcome = "declined"
+	LeadAdsActivityItemOutcomeInvalid  LeadAdsActivityItemOutcome = "invalid"
+	LeadAdsActivityItemOutcomePending  LeadAdsActivityItemOutcome = "pending"
+	LeadAdsActivityItemOutcomeTest     LeadAdsActivityItemOutcome = "test"
+	LeadAdsActivityItemOutcomeUpdated  LeadAdsActivityItemOutcome = "updated"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsActivityItemOutcome enum.
+func (e LeadAdsActivityItemOutcome) Valid() bool {
+	switch e {
+	case LeadAdsActivityItemOutcomeBlocked:
+		return true
+	case LeadAdsActivityItemOutcomeCreated:
+		return true
+	case LeadAdsActivityItemOutcomeDeclined:
+		return true
+	case LeadAdsActivityItemOutcomeInvalid:
+		return true
+	case LeadAdsActivityItemOutcomePending:
+		return true
+	case LeadAdsActivityItemOutcomeTest:
+		return true
+	case LeadAdsActivityItemOutcomeUpdated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsActivityItemSource.
+const (
+	LeadAdsActivityItemSourceImport  LeadAdsActivityItemSource = "import"
+	LeadAdsActivityItemSourcePoll    LeadAdsActivityItemSource = "poll"
+	LeadAdsActivityItemSourceWebhook LeadAdsActivityItemSource = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsActivityItemSource enum.
+func (e LeadAdsActivityItemSource) Valid() bool {
+	switch e {
+	case LeadAdsActivityItemSourceImport:
+		return true
+	case LeadAdsActivityItemSourcePoll:
+		return true
+	case LeadAdsActivityItemSourceWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsConnectionPlatform.
+const (
+	Meta LeadAdsConnectionPlatform = "meta"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsConnectionPlatform enum.
+func (e LeadAdsConnectionPlatform) Valid() bool {
+	switch e {
+	case Meta:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsConnectionProblem.
+const (
+	LeadAdsConnectionProblemAppRejected       LeadAdsConnectionProblem = "app_rejected"
+	LeadAdsConnectionProblemEmpty             LeadAdsConnectionProblem = ""
+	LeadAdsConnectionProblemPermissionMissing LeadAdsConnectionProblem = "permission_missing"
+	LeadAdsConnectionProblemTokenExpired      LeadAdsConnectionProblem = "token_expired"
+	LeadAdsConnectionProblemTokenRejected     LeadAdsConnectionProblem = "token_rejected"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsConnectionProblem enum.
+func (e LeadAdsConnectionProblem) Valid() bool {
+	switch e {
+	case LeadAdsConnectionProblemAppRejected:
+		return true
+	case LeadAdsConnectionProblemEmpty:
+		return true
+	case LeadAdsConnectionProblemPermissionMissing:
+		return true
+	case LeadAdsConnectionProblemTokenExpired:
+		return true
+	case LeadAdsConnectionProblemTokenRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsConnectionStatus.
+const (
+	LeadAdsConnectionStatusAttention    LeadAdsConnectionStatus = "attention"
+	LeadAdsConnectionStatusConnected    LeadAdsConnectionStatus = "connected"
+	LeadAdsConnectionStatusDisconnected LeadAdsConnectionStatus = "disconnected"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsConnectionStatus enum.
+func (e LeadAdsConnectionStatus) Valid() bool {
+	switch e {
+	case LeadAdsConnectionStatusAttention:
+		return true
+	case LeadAdsConnectionStatusConnected:
+		return true
+	case LeadAdsConnectionStatusDisconnected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsConnectionItemStatus.
+const (
+	LeadAdsConnectionItemStatusAttention    LeadAdsConnectionItemStatus = "attention"
+	LeadAdsConnectionItemStatusConnected    LeadAdsConnectionItemStatus = "connected"
+	LeadAdsConnectionItemStatusDisconnected LeadAdsConnectionItemStatus = "disconnected"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsConnectionItemStatus enum.
+func (e LeadAdsConnectionItemStatus) Valid() bool {
+	switch e {
+	case LeadAdsConnectionItemStatusAttention:
+		return true
+	case LeadAdsConnectionItemStatusConnected:
+		return true
+	case LeadAdsConnectionItemStatusDisconnected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsFormConsentMode.
+const (
+	LeadAdsFormConsentModeDouble LeadAdsFormConsentMode = "double"
+	LeadAdsFormConsentModeSingle LeadAdsFormConsentMode = "single"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsFormConsentMode enum.
+func (e LeadAdsFormConsentMode) Valid() bool {
+	switch e {
+	case LeadAdsFormConsentModeDouble:
+		return true
+	case LeadAdsFormConsentModeSingle:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsFormStatus.
+const (
+	LeadAdsFormStatusActive LeadAdsFormStatus = "active"
+	LeadAdsFormStatusPaused LeadAdsFormStatus = "paused"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsFormStatus enum.
+func (e LeadAdsFormStatus) Valid() bool {
+	switch e {
+	case LeadAdsFormStatusActive:
+		return true
+	case LeadAdsFormStatusPaused:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsImportState.
+const (
+	LeadAdsImportStateDone    LeadAdsImportState = "done"
+	LeadAdsImportStateEmpty   LeadAdsImportState = ""
+	LeadAdsImportStateFailed  LeadAdsImportState = "failed"
+	LeadAdsImportStateRunning LeadAdsImportState = "running"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsImportState enum.
+func (e LeadAdsImportState) Valid() bool {
+	switch e {
+	case LeadAdsImportStateDone:
+		return true
+	case LeadAdsImportStateEmpty:
+		return true
+	case LeadAdsImportStateFailed:
+		return true
+	case LeadAdsImportStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsReceivingMode.
+const (
+	LeadAdsReceivingModePolling LeadAdsReceivingMode = "polling"
+	LeadAdsReceivingModeWebhook LeadAdsReceivingMode = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsReceivingMode enum.
+func (e LeadAdsReceivingMode) Valid() bool {
+	switch e {
+	case LeadAdsReceivingModePolling:
+		return true
+	case LeadAdsReceivingModeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for LeadAdsReceivingReason.
+const (
+	LeadAdsReceivingReasonEmpty         LeadAdsReceivingReason = ""
+	LeadAdsReceivingReasonNotSubscribed LeadAdsReceivingReason = "not_subscribed"
+	LeadAdsReceivingReasonQuiet         LeadAdsReceivingReason = "quiet"
+	LeadAdsReceivingReasonUnreachable   LeadAdsReceivingReason = "unreachable"
+)
+
+// Valid indicates whether the value is a known member of the LeadAdsReceivingReason enum.
+func (e LeadAdsReceivingReason) Valid() bool {
+	switch e {
+	case LeadAdsReceivingReasonEmpty:
+		return true
+	case LeadAdsReceivingReasonNotSubscribed:
+		return true
+	case LeadAdsReceivingReasonQuiet:
+		return true
+	case LeadAdsReceivingReasonUnreachable:
 		return true
 	default:
 		return false
@@ -11375,6 +12368,7 @@ const (
 	MediaOriginalContentTypeImagegif  MediaOriginalContentType = "image/gif"
 	MediaOriginalContentTypeImagejpeg MediaOriginalContentType = "image/jpeg"
 	MediaOriginalContentTypeImagepng  MediaOriginalContentType = "image/png"
+	MediaOriginalContentTypeImagewebp MediaOriginalContentType = "image/webp"
 )
 
 // Valid indicates whether the value is a known member of the MediaOriginalContentType enum.
@@ -11385,6 +12379,8 @@ func (e MediaOriginalContentType) Valid() bool {
 	case MediaOriginalContentTypeImagejpeg:
 		return true
 	case MediaOriginalContentTypeImagepng:
+		return true
+	case MediaOriginalContentTypeImagewebp:
 		return true
 	default:
 		return false
@@ -12696,6 +13692,7 @@ func (e PartnerRequestLogDirection) Valid() bool {
 // Defines values for PersonalizationTokenKind.
 const (
 	PersonalizationTokenKindContact  PersonalizationTokenKind = "contact"
+	PersonalizationTokenKindCoupon   PersonalizationTokenKind = "coupon"
 	PersonalizationTokenKindCustom   PersonalizationTokenKind = "custom"
 	PersonalizationTokenKindPaid     PersonalizationTokenKind = "paid"
 	PersonalizationTokenKindReferral PersonalizationTokenKind = "referral"
@@ -12706,6 +13703,8 @@ const (
 func (e PersonalizationTokenKind) Valid() bool {
 	switch e {
 	case PersonalizationTokenKindContact:
+		return true
+	case PersonalizationTokenKindCoupon:
 		return true
 	case PersonalizationTokenKindCustom:
 		return true
@@ -14500,6 +15499,7 @@ func (e ProviderLimitRateReason) Valid() bool {
 const (
 	ProviderLogEventChannelBackfill      ProviderLogEventChannel = "backfill"
 	ProviderLogEventChannelBounceMailbox ProviderLogEventChannel = "bounce_mailbox"
+	ProviderLogEventChannelInbound       ProviderLogEventChannel = "inbound"
 	ProviderLogEventChannelInternal      ProviderLogEventChannel = "internal"
 	ProviderLogEventChannelQueue         ProviderLogEventChannel = "queue"
 	ProviderLogEventChannelTest          ProviderLogEventChannel = "test"
@@ -14512,6 +15512,8 @@ func (e ProviderLogEventChannel) Valid() bool {
 	case ProviderLogEventChannelBackfill:
 		return true
 	case ProviderLogEventChannelBounceMailbox:
+		return true
+	case ProviderLogEventChannelInbound:
 		return true
 	case ProviderLogEventChannelInternal:
 		return true
@@ -17742,6 +18744,102 @@ func (e RenderingServiceStatus) Valid() bool {
 	}
 }
 
+// Defines values for ReplyDetailKind.
+const (
+	ReplyDetailKindOther       ReplyDetailKind = "other"
+	ReplyDetailKindReply       ReplyDetailKind = "reply"
+	ReplyDetailKindUnsubscribe ReplyDetailKind = "unsubscribe"
+)
+
+// Valid indicates whether the value is a known member of the ReplyDetailKind enum.
+func (e ReplyDetailKind) Valid() bool {
+	switch e {
+	case ReplyDetailKindOther:
+		return true
+	case ReplyDetailKindReply:
+		return true
+	case ReplyDetailKindUnsubscribe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReplyDetailStatus.
+const (
+	ReplyDetailStatusDone ReplyDetailStatus = "done"
+	ReplyDetailStatusOpen ReplyDetailStatus = "open"
+)
+
+// Valid indicates whether the value is a known member of the ReplyDetailStatus enum.
+func (e ReplyDetailStatus) Valid() bool {
+	switch e {
+	case ReplyDetailStatusDone:
+		return true
+	case ReplyDetailStatusOpen:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReplyListItemKind.
+const (
+	ReplyListItemKindOther       ReplyListItemKind = "other"
+	ReplyListItemKindReply       ReplyListItemKind = "reply"
+	ReplyListItemKindUnsubscribe ReplyListItemKind = "unsubscribe"
+)
+
+// Valid indicates whether the value is a known member of the ReplyListItemKind enum.
+func (e ReplyListItemKind) Valid() bool {
+	switch e {
+	case ReplyListItemKindOther:
+		return true
+	case ReplyListItemKindReply:
+		return true
+	case ReplyListItemKindUnsubscribe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReplyListItemStatus.
+const (
+	ReplyListItemStatusDone ReplyListItemStatus = "done"
+	ReplyListItemStatusOpen ReplyListItemStatus = "open"
+)
+
+// Valid indicates whether the value is a known member of the ReplyListItemStatus enum.
+func (e ReplyListItemStatus) Valid() bool {
+	switch e {
+	case ReplyListItemStatusDone:
+		return true
+	case ReplyListItemStatusOpen:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReplySourceType.
+const (
+	ReplySourceTypeAutomation ReplySourceType = "automation"
+	ReplySourceTypeCampaign   ReplySourceType = "campaign"
+)
+
+// Valid indicates whether the value is a known member of the ReplySourceType enum.
+func (e ReplySourceType) Valid() bool {
+	switch e {
+	case ReplySourceTypeAutomation:
+		return true
+	case ReplySourceTypeCampaign:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ReportABTestKind.
 const (
 	ReportABTestKindContent  ReportABTestKind = "content"
@@ -19812,12 +20910,15 @@ func (e SegmentListItemRefresh) Valid() bool {
 // Defines values for SenderDefaultsReplyHandling.
 const (
 	SenderDefaultsReplyHandlingForward SenderDefaultsReplyHandling = "forward"
+	SenderDefaultsReplyHandlingInbox   SenderDefaultsReplyHandling = "inbox"
 )
 
 // Valid indicates whether the value is a known member of the SenderDefaultsReplyHandling enum.
 func (e SenderDefaultsReplyHandling) Valid() bool {
 	switch e {
 	case SenderDefaultsReplyHandlingForward:
+		return true
+	case SenderDefaultsReplyHandlingInbox:
 		return true
 	default:
 		return false
@@ -19827,12 +20928,15 @@ func (e SenderDefaultsReplyHandling) Valid() bool {
 // Defines values for SenderDefaultsInputReplyHandling.
 const (
 	SenderDefaultsInputReplyHandlingForward SenderDefaultsInputReplyHandling = "forward"
+	SenderDefaultsInputReplyHandlingInbox   SenderDefaultsInputReplyHandling = "inbox"
 )
 
 // Valid indicates whether the value is a known member of the SenderDefaultsInputReplyHandling enum.
 func (e SenderDefaultsInputReplyHandling) Valid() bool {
 	switch e {
 	case SenderDefaultsInputReplyHandlingForward:
+		return true
+	case SenderDefaultsInputReplyHandlingInbox:
 		return true
 	default:
 		return false
@@ -20394,6 +21498,90 @@ func (e SignupFormStatus) Valid() bool {
 	}
 }
 
+// Defines values for SignupFormABEndInputKeep.
+const (
+	SignupFormABEndInputKeepA SignupFormABEndInputKeep = "A"
+	SignupFormABEndInputKeepB SignupFormABEndInputKeep = "B"
+	SignupFormABEndInputKeepC SignupFormABEndInputKeep = "C"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormABEndInputKeep enum.
+func (e SignupFormABEndInputKeep) Valid() bool {
+	switch e {
+	case SignupFormABEndInputKeepA:
+		return true
+	case SignupFormABEndInputKeepB:
+		return true
+	case SignupFormABEndInputKeepC:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormABResultOutcome.
+const (
+	SignupFormABResultOutcomeNotSignificant SignupFormABResultOutcome = "not_significant"
+	SignupFormABResultOutcomeTooSmall       SignupFormABResultOutcome = "too_small"
+	SignupFormABResultOutcomeWinner         SignupFormABResultOutcome = "winner"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormABResultOutcome enum.
+func (e SignupFormABResultOutcome) Valid() bool {
+	switch e {
+	case SignupFormABResultOutcomeNotSignificant:
+		return true
+	case SignupFormABResultOutcomeTooSmall:
+		return true
+	case SignupFormABResultOutcomeWinner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormABResultStatus.
+const (
+	SignupFormABResultStatusEnded   SignupFormABResultStatus = "ended"
+	SignupFormABResultStatusNone    SignupFormABResultStatus = "none"
+	SignupFormABResultStatusRunning SignupFormABResultStatus = "running"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormABResultStatus enum.
+func (e SignupFormABResultStatus) Valid() bool {
+	switch e {
+	case SignupFormABResultStatusEnded:
+		return true
+	case SignupFormABResultStatusNone:
+		return true
+	case SignupFormABResultStatusRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormABVariantKey.
+const (
+	SignupFormABVariantKeyA SignupFormABVariantKey = "A"
+	SignupFormABVariantKeyB SignupFormABVariantKey = "B"
+	SignupFormABVariantKeyC SignupFormABVariantKey = "C"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormABVariantKey enum.
+func (e SignupFormABVariantKey) Valid() bool {
+	switch e {
+	case SignupFormABVariantKeyA:
+		return true
+	case SignupFormABVariantKeyB:
+		return true
+	case SignupFormABVariantKeyC:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SignupFormCopyLanguageMode.
 const (
 	SignupFormCopyLanguageModeBrowser SignupFormCopyLanguageMode = "browser"
@@ -20430,6 +21618,27 @@ func (e SignupFormCopyLanguageStatus) Valid() bool {
 	case SignupFormCopyLanguageStatusLive:
 		return true
 	case SignupFormCopyLanguageStatusNotSetUp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormCountriesMode.
+const (
+	SignupFormCountriesModeAll    SignupFormCountriesMode = "all"
+	SignupFormCountriesModeExcept SignupFormCountriesMode = "except"
+	SignupFormCountriesModeOnly   SignupFormCountriesMode = "only"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormCountriesMode enum.
+func (e SignupFormCountriesMode) Valid() bool {
+	switch e {
+	case SignupFormCountriesModeAll:
+		return true
+	case SignupFormCountriesModeExcept:
+		return true
+	case SignupFormCountriesModeOnly:
 		return true
 	default:
 		return false
@@ -20478,6 +21687,21 @@ func (e SignupFormCustomFieldType) Valid() bool {
 	case SignupFormCustomFieldTypeSelect:
 		return true
 	case SignupFormCustomFieldTypeText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormFieldType.
+const (
+	SignupFormFieldTypeChoice SignupFormFieldType = "choice"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormFieldType enum.
+func (e SignupFormFieldType) Valid() bool {
+	switch e {
+	case SignupFormFieldTypeChoice:
 		return true
 	default:
 		return false
@@ -20544,6 +21768,75 @@ func (e SignupFormLanguageInputMode) Valid() bool {
 	}
 }
 
+// Defines values for SignupFormPageRuleOp.
+const (
+	Contains   SignupFormPageRuleOp = "contains"
+	Equals     SignupFormPageRuleOp = "equals"
+	StartsWith SignupFormPageRuleOp = "starts_with"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormPageRuleOp enum.
+func (e SignupFormPageRuleOp) Valid() bool {
+	switch e {
+	case Contains:
+		return true
+	case Equals:
+		return true
+	case StartsWith:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormPageRulesMode.
+const (
+	SignupFormPageRulesModeAll    SignupFormPageRulesMode = "all"
+	SignupFormPageRulesModeExcept SignupFormPageRulesMode = "except"
+	SignupFormPageRulesModeOnly   SignupFormPageRulesMode = "only"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormPageRulesMode enum.
+func (e SignupFormPageRulesMode) Valid() bool {
+	switch e {
+	case SignupFormPageRulesModeAll:
+		return true
+	case SignupFormPageRulesModeExcept:
+		return true
+	case SignupFormPageRulesModeOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormSourcesReferrer.
+const (
+	SignupFormSourcesReferrerAny       SignupFormSourcesReferrer = "any"
+	SignupFormSourcesReferrerDirect    SignupFormSourcesReferrer = "direct"
+	SignupFormSourcesReferrerOtherSite SignupFormSourcesReferrer = "other_site"
+	SignupFormSourcesReferrerSearch    SignupFormSourcesReferrer = "search"
+	SignupFormSourcesReferrerSocial    SignupFormSourcesReferrer = "social"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormSourcesReferrer enum.
+func (e SignupFormSourcesReferrer) Valid() bool {
+	switch e {
+	case SignupFormSourcesReferrerAny:
+		return true
+	case SignupFormSourcesReferrerDirect:
+		return true
+	case SignupFormSourcesReferrerOtherSite:
+		return true
+	case SignupFormSourcesReferrerSearch:
+		return true
+	case SignupFormSourcesReferrerSocial:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SignupFormStatusInputStatus.
 const (
 	SignupFormStatusInputStatusLive   SignupFormStatusInputStatus = "live"
@@ -20601,6 +21894,75 @@ func (e SignupFormSummaryStatus) Valid() bool {
 	case SignupFormSummaryStatusLive:
 		return true
 	case SignupFormSummaryStatusPaused:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormTargetingDevices.
+const (
+	SignupFormTargetingDevicesDesktop SignupFormTargetingDevices = "desktop"
+	SignupFormTargetingDevicesMobile  SignupFormTargetingDevices = "mobile"
+	SignupFormTargetingDevicesTablet  SignupFormTargetingDevices = "tablet"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormTargetingDevices enum.
+func (e SignupFormTargetingDevices) Valid() bool {
+	switch e {
+	case SignupFormTargetingDevicesDesktop:
+		return true
+	case SignupFormTargetingDevicesMobile:
+		return true
+	case SignupFormTargetingDevicesTablet:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormTargetingVisitors.
+const (
+	SignupFormTargetingVisitorsAll          SignupFormTargetingVisitors = "all"
+	SignupFormTargetingVisitorsInSegment    SignupFormTargetingVisitors = "in_segment"
+	SignupFormTargetingVisitorsNew          SignupFormTargetingVisitors = "new"
+	SignupFormTargetingVisitorsNotInSegment SignupFormTargetingVisitors = "not_in_segment"
+	SignupFormTargetingVisitorsReturning    SignupFormTargetingVisitors = "returning"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormTargetingVisitors enum.
+func (e SignupFormTargetingVisitors) Valid() bool {
+	switch e {
+	case SignupFormTargetingVisitorsAll:
+		return true
+	case SignupFormTargetingVisitorsInSegment:
+		return true
+	case SignupFormTargetingVisitorsNew:
+		return true
+	case SignupFormTargetingVisitorsNotInSegment:
+		return true
+	case SignupFormTargetingVisitorsReturning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SignupFormVariantInputKey.
+const (
+	SignupFormVariantInputKeyA SignupFormVariantInputKey = "A"
+	SignupFormVariantInputKeyB SignupFormVariantInputKey = "B"
+	SignupFormVariantInputKeyC SignupFormVariantInputKey = "C"
+)
+
+// Valid indicates whether the value is a known member of the SignupFormVariantInputKey enum.
+func (e SignupFormVariantInputKey) Valid() bool {
+	switch e {
+	case SignupFormVariantInputKeyA:
+		return true
+	case SignupFormVariantInputKeyB:
+		return true
+	case SignupFormVariantInputKeyC:
 		return true
 	default:
 		return false
@@ -22043,15 +23405,18 @@ func (e SmsZoneStepStatus) Valid() bool {
 
 // Defines values for SponsorBlockBookingStatus.
 const (
-	SponsorBlockBookingStatusBooked SponsorBlockBookingStatus = "booked"
-	SponsorBlockBookingStatusEmpty  SponsorBlockBookingStatus = ""
-	SponsorBlockBookingStatusHold   SponsorBlockBookingStatus = "hold"
-	SponsorBlockBookingStatusSent   SponsorBlockBookingStatus = "sent"
+	SponsorBlockBookingStatusAwaitingPayment SponsorBlockBookingStatus = "awaiting_payment"
+	SponsorBlockBookingStatusBooked          SponsorBlockBookingStatus = "booked"
+	SponsorBlockBookingStatusEmpty           SponsorBlockBookingStatus = ""
+	SponsorBlockBookingStatusHold            SponsorBlockBookingStatus = "hold"
+	SponsorBlockBookingStatusSent            SponsorBlockBookingStatus = "sent"
 )
 
 // Valid indicates whether the value is a known member of the SponsorBlockBookingStatus enum.
 func (e SponsorBlockBookingStatus) Valid() bool {
 	switch e {
+	case SponsorBlockBookingStatusAwaitingPayment:
+		return true
 	case SponsorBlockBookingStatusBooked:
 		return true
 	case SponsorBlockBookingStatusEmpty:
@@ -22145,14 +23510,17 @@ func (e SponsorBookingBriefCreativeStatus) Valid() bool {
 
 // Defines values for SponsorBookingBriefStatus.
 const (
-	SponsorBookingBriefStatusBooked SponsorBookingBriefStatus = "booked"
-	SponsorBookingBriefStatusHold   SponsorBookingBriefStatus = "hold"
-	SponsorBookingBriefStatusSent   SponsorBookingBriefStatus = "sent"
+	SponsorBookingBriefStatusAwaitingPayment SponsorBookingBriefStatus = "awaiting_payment"
+	SponsorBookingBriefStatusBooked          SponsorBookingBriefStatus = "booked"
+	SponsorBookingBriefStatusHold            SponsorBookingBriefStatus = "hold"
+	SponsorBookingBriefStatusSent            SponsorBookingBriefStatus = "sent"
 )
 
 // Valid indicates whether the value is a known member of the SponsorBookingBriefStatus enum.
 func (e SponsorBookingBriefStatus) Valid() bool {
 	switch e {
+	case SponsorBookingBriefStatusAwaitingPayment:
+		return true
 	case SponsorBookingBriefStatusBooked:
 		return true
 	case SponsorBookingBriefStatusHold:
@@ -22184,23 +23552,35 @@ func (e SponsorBookingDetailCreativeStatus) Valid() bool {
 
 // Defines values for SponsorBookingDetailStatus.
 const (
-	SponsorBookingDetailStatusBooked   SponsorBookingDetailStatus = "booked"
-	SponsorBookingDetailStatusCanceled SponsorBookingDetailStatus = "canceled"
-	SponsorBookingDetailStatusHold     SponsorBookingDetailStatus = "hold"
-	SponsorBookingDetailStatusProposed SponsorBookingDetailStatus = "proposed"
-	SponsorBookingDetailStatusSent     SponsorBookingDetailStatus = "sent"
+	SponsorBookingDetailStatusAwaitingPayment SponsorBookingDetailStatus = "awaiting_payment"
+	SponsorBookingDetailStatusBooked          SponsorBookingDetailStatus = "booked"
+	SponsorBookingDetailStatusCanceled        SponsorBookingDetailStatus = "canceled"
+	SponsorBookingDetailStatusDeclined        SponsorBookingDetailStatus = "declined"
+	SponsorBookingDetailStatusExpired         SponsorBookingDetailStatus = "expired"
+	SponsorBookingDetailStatusHold            SponsorBookingDetailStatus = "hold"
+	SponsorBookingDetailStatusProposed        SponsorBookingDetailStatus = "proposed"
+	SponsorBookingDetailStatusRequested       SponsorBookingDetailStatus = "requested"
+	SponsorBookingDetailStatusSent            SponsorBookingDetailStatus = "sent"
 )
 
 // Valid indicates whether the value is a known member of the SponsorBookingDetailStatus enum.
 func (e SponsorBookingDetailStatus) Valid() bool {
 	switch e {
+	case SponsorBookingDetailStatusAwaitingPayment:
+		return true
 	case SponsorBookingDetailStatusBooked:
 		return true
 	case SponsorBookingDetailStatusCanceled:
 		return true
+	case SponsorBookingDetailStatusDeclined:
+		return true
+	case SponsorBookingDetailStatusExpired:
+		return true
 	case SponsorBookingDetailStatusHold:
 		return true
 	case SponsorBookingDetailStatusProposed:
+		return true
+	case SponsorBookingDetailStatusRequested:
 		return true
 	case SponsorBookingDetailStatusSent:
 		return true
@@ -22257,6 +23637,27 @@ func (e SponsorOverviewRange) Valid() bool {
 	}
 }
 
+// Defines values for SponsorPaymentSource.
+const (
+	SponsorPaymentSourceEmpty  SponsorPaymentSource = ""
+	SponsorPaymentSourceManual SponsorPaymentSource = "manual"
+	SponsorPaymentSourceStripe SponsorPaymentSource = "stripe"
+)
+
+// Valid indicates whether the value is a known member of the SponsorPaymentSource enum.
+func (e SponsorPaymentSource) Valid() bool {
+	switch e {
+	case SponsorPaymentSourceEmpty:
+		return true
+	case SponsorPaymentSourceManual:
+		return true
+	case SponsorPaymentSourceStripe:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SponsorPaymentStatus.
 const (
 	SponsorPaymentStatusOverdue SponsorPaymentStatus = "overdue"
@@ -22293,6 +23694,162 @@ func (e SponsorReportLinkKind) Valid() bool {
 	case SponsorReportLinkKindLink:
 		return true
 	case SponsorReportLinkKindLogo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SponsorRequestDetailIssueState.
+const (
+	SponsorRequestDetailIssueStateHeld SponsorRequestDetailIssueState = "held"
+	SponsorRequestDetailIssueStateOpen SponsorRequestDetailIssueState = "open"
+)
+
+// Valid indicates whether the value is a known member of the SponsorRequestDetailIssueState enum.
+func (e SponsorRequestDetailIssueState) Valid() bool {
+	switch e {
+	case SponsorRequestDetailIssueStateHeld:
+		return true
+	case SponsorRequestDetailIssueStateOpen:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SponsorRequestDetailPaidSource.
+const (
+	SponsorRequestDetailPaidSourceEmpty  SponsorRequestDetailPaidSource = ""
+	SponsorRequestDetailPaidSourceManual SponsorRequestDetailPaidSource = "manual"
+	SponsorRequestDetailPaidSourceStripe SponsorRequestDetailPaidSource = "stripe"
+)
+
+// Valid indicates whether the value is a known member of the SponsorRequestDetailPaidSource enum.
+func (e SponsorRequestDetailPaidSource) Valid() bool {
+	switch e {
+	case SponsorRequestDetailPaidSourceEmpty:
+		return true
+	case SponsorRequestDetailPaidSourceManual:
+		return true
+	case SponsorRequestDetailPaidSourceStripe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SponsorRequestDetailStatus.
+const (
+	SponsorRequestDetailStatusAwaitingPayment SponsorRequestDetailStatus = "awaiting_payment"
+	SponsorRequestDetailStatusBooked          SponsorRequestDetailStatus = "booked"
+	SponsorRequestDetailStatusCanceled        SponsorRequestDetailStatus = "canceled"
+	SponsorRequestDetailStatusDeclined        SponsorRequestDetailStatus = "declined"
+	SponsorRequestDetailStatusExpired         SponsorRequestDetailStatus = "expired"
+	SponsorRequestDetailStatusRequested       SponsorRequestDetailStatus = "requested"
+)
+
+// Valid indicates whether the value is a known member of the SponsorRequestDetailStatus enum.
+func (e SponsorRequestDetailStatus) Valid() bool {
+	switch e {
+	case SponsorRequestDetailStatusAwaitingPayment:
+		return true
+	case SponsorRequestDetailStatusBooked:
+		return true
+	case SponsorRequestDetailStatusCanceled:
+		return true
+	case SponsorRequestDetailStatusDeclined:
+		return true
+	case SponsorRequestDetailStatusExpired:
+		return true
+	case SponsorRequestDetailStatusRequested:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SponsorRequestFileKind.
+const (
+	SponsorRequestFileKindImage SponsorRequestFileKind = "image"
+	SponsorRequestFileKindLogo  SponsorRequestFileKind = "logo"
+)
+
+// Valid indicates whether the value is a known member of the SponsorRequestFileKind enum.
+func (e SponsorRequestFileKind) Valid() bool {
+	switch e {
+	case SponsorRequestFileKindImage:
+		return true
+	case SponsorRequestFileKindLogo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SponsorRequestItemIssueState.
+const (
+	SponsorRequestItemIssueStateHeld SponsorRequestItemIssueState = "held"
+	SponsorRequestItemIssueStateOpen SponsorRequestItemIssueState = "open"
+)
+
+// Valid indicates whether the value is a known member of the SponsorRequestItemIssueState enum.
+func (e SponsorRequestItemIssueState) Valid() bool {
+	switch e {
+	case SponsorRequestItemIssueStateHeld:
+		return true
+	case SponsorRequestItemIssueStateOpen:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SponsorRequestItemPaidSource.
+const (
+	SponsorRequestItemPaidSourceEmpty  SponsorRequestItemPaidSource = ""
+	SponsorRequestItemPaidSourceManual SponsorRequestItemPaidSource = "manual"
+	SponsorRequestItemPaidSourceStripe SponsorRequestItemPaidSource = "stripe"
+)
+
+// Valid indicates whether the value is a known member of the SponsorRequestItemPaidSource enum.
+func (e SponsorRequestItemPaidSource) Valid() bool {
+	switch e {
+	case SponsorRequestItemPaidSourceEmpty:
+		return true
+	case SponsorRequestItemPaidSourceManual:
+		return true
+	case SponsorRequestItemPaidSourceStripe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SponsorRequestItemStatus.
+const (
+	SponsorRequestItemStatusAwaitingPayment SponsorRequestItemStatus = "awaiting_payment"
+	SponsorRequestItemStatusBooked          SponsorRequestItemStatus = "booked"
+	SponsorRequestItemStatusCanceled        SponsorRequestItemStatus = "canceled"
+	SponsorRequestItemStatusDeclined        SponsorRequestItemStatus = "declined"
+	SponsorRequestItemStatusExpired         SponsorRequestItemStatus = "expired"
+	SponsorRequestItemStatusRequested       SponsorRequestItemStatus = "requested"
+)
+
+// Valid indicates whether the value is a known member of the SponsorRequestItemStatus enum.
+func (e SponsorRequestItemStatus) Valid() bool {
+	switch e {
+	case SponsorRequestItemStatusAwaitingPayment:
+		return true
+	case SponsorRequestItemStatusBooked:
+		return true
+	case SponsorRequestItemStatusCanceled:
+		return true
+	case SponsorRequestItemStatusDeclined:
+		return true
+	case SponsorRequestItemStatusExpired:
+		return true
+	case SponsorRequestItemStatusRequested:
 		return true
 	default:
 		return false
@@ -22581,6 +24138,48 @@ func (e TeamMemberActivityResult) Valid() bool {
 	case TeamMemberActivityResultDenied:
 		return true
 	case TeamMemberActivityResultError:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrackerRecentEventKind.
+const (
+	TrackerRecentEventKindCart    TrackerRecentEventKind = "cart"
+	TrackerRecentEventKindCustom  TrackerRecentEventKind = "custom"
+	TrackerRecentEventKindPage    TrackerRecentEventKind = "page"
+	TrackerRecentEventKindProduct TrackerRecentEventKind = "product"
+)
+
+// Valid indicates whether the value is a known member of the TrackerRecentEventKind enum.
+func (e TrackerRecentEventKind) Valid() bool {
+	switch e {
+	case TrackerRecentEventKindCart:
+		return true
+	case TrackerRecentEventKindCustom:
+		return true
+	case TrackerRecentEventKindPage:
+		return true
+	case TrackerRecentEventKindProduct:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrackerStoreOptionPlatform.
+const (
+	TrackerStoreOptionPlatformShopify     TrackerStoreOptionPlatform = "shopify"
+	TrackerStoreOptionPlatformWoocommerce TrackerStoreOptionPlatform = "woocommerce"
+)
+
+// Valid indicates whether the value is a known member of the TrackerStoreOptionPlatform enum.
+func (e TrackerStoreOptionPlatform) Valid() bool {
+	switch e {
+	case TrackerStoreOptionPlatformShopify:
+		return true
+	case TrackerStoreOptionPlatformWoocommerce:
 		return true
 	default:
 		return false
@@ -24843,6 +26442,48 @@ func (e WebsiteAccessCampaignVisibility) Valid() bool {
 	}
 }
 
+// Defines values for WebsiteAccessComments.
+const (
+	WebsiteAccessCommentsMembers WebsiteAccessComments = "members"
+	WebsiteAccessCommentsOff     WebsiteAccessComments = "off"
+	WebsiteAccessCommentsPaid    WebsiteAccessComments = "paid"
+)
+
+// Valid indicates whether the value is a known member of the WebsiteAccessComments enum.
+func (e WebsiteAccessComments) Valid() bool {
+	switch e {
+	case WebsiteAccessCommentsMembers:
+		return true
+	case WebsiteAccessCommentsOff:
+		return true
+	case WebsiteAccessCommentsPaid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebsiteAccessCommentsReview.
+const (
+	WebsiteAccessCommentsReviewAll   WebsiteAccessCommentsReview = "all"
+	WebsiteAccessCommentsReviewFirst WebsiteAccessCommentsReview = "first"
+	WebsiteAccessCommentsReviewNone  WebsiteAccessCommentsReview = "none"
+)
+
+// Valid indicates whether the value is a known member of the WebsiteAccessCommentsReview enum.
+func (e WebsiteAccessCommentsReview) Valid() bool {
+	switch e {
+	case WebsiteAccessCommentsReviewAll:
+		return true
+	case WebsiteAccessCommentsReviewFirst:
+		return true
+	case WebsiteAccessCommentsReviewNone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WebsiteAccessDefaultVisibility.
 const (
 	WebsiteAccessDefaultVisibilityMembers WebsiteAccessDefaultVisibility = "members"
@@ -24987,6 +26628,99 @@ func (e WebsiteCertificateStatus) Valid() bool {
 	case WebsiteCertificateStatusUnknown:
 		return true
 	case WebsiteCertificateStatusValid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebsiteCommentHeldReason.
+const (
+	WebsiteCommentHeldReasonBlocked      WebsiteCommentHeldReason = "blocked"
+	WebsiteCommentHeldReasonEmpty        WebsiteCommentHeldReason = ""
+	WebsiteCommentHeldReasonFirstComment WebsiteCommentHeldReason = "first_comment"
+	WebsiteCommentHeldReasonLinks        WebsiteCommentHeldReason = "links"
+	WebsiteCommentHeldReasonReviewAll    WebsiteCommentHeldReason = "review_all"
+)
+
+// Valid indicates whether the value is a known member of the WebsiteCommentHeldReason enum.
+func (e WebsiteCommentHeldReason) Valid() bool {
+	switch e {
+	case WebsiteCommentHeldReasonBlocked:
+		return true
+	case WebsiteCommentHeldReasonEmpty:
+		return true
+	case WebsiteCommentHeldReasonFirstComment:
+		return true
+	case WebsiteCommentHeldReasonLinks:
+		return true
+	case WebsiteCommentHeldReasonReviewAll:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebsiteCommentStatus.
+const (
+	WebsiteCommentStatusDeleted   WebsiteCommentStatus = "deleted"
+	WebsiteCommentStatusHidden    WebsiteCommentStatus = "hidden"
+	WebsiteCommentStatusPending   WebsiteCommentStatus = "pending"
+	WebsiteCommentStatusPublished WebsiteCommentStatus = "published"
+)
+
+// Valid indicates whether the value is a known member of the WebsiteCommentStatus enum.
+func (e WebsiteCommentStatus) Valid() bool {
+	switch e {
+	case WebsiteCommentStatusDeleted:
+		return true
+	case WebsiteCommentStatusHidden:
+		return true
+	case WebsiteCommentStatusPending:
+		return true
+	case WebsiteCommentStatusPublished:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebsiteCommentListComments.
+const (
+	WebsiteCommentListCommentsMembers WebsiteCommentListComments = "members"
+	WebsiteCommentListCommentsOff     WebsiteCommentListComments = "off"
+	WebsiteCommentListCommentsPaid    WebsiteCommentListComments = "paid"
+)
+
+// Valid indicates whether the value is a known member of the WebsiteCommentListComments enum.
+func (e WebsiteCommentListComments) Valid() bool {
+	switch e {
+	case WebsiteCommentListCommentsMembers:
+		return true
+	case WebsiteCommentListCommentsOff:
+		return true
+	case WebsiteCommentListCommentsPaid:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebsiteCommentListReview.
+const (
+	WebsiteCommentListReviewAll   WebsiteCommentListReview = "all"
+	WebsiteCommentListReviewFirst WebsiteCommentListReview = "first"
+	WebsiteCommentListReviewNone  WebsiteCommentListReview = "none"
+)
+
+// Valid indicates whether the value is a known member of the WebsiteCommentListReview enum.
+func (e WebsiteCommentListReview) Valid() bool {
+	switch e {
+	case WebsiteCommentListReviewAll:
+		return true
+	case WebsiteCommentListReviewFirst:
+		return true
+	case WebsiteCommentListReviewNone:
 		return true
 	default:
 		return false
@@ -26724,14 +28458,17 @@ const (
 	ListAuditEventsParamsCategoryAi            ListAuditEventsParamsCategory = "ai"
 	ListAuditEventsParamsCategoryAudience      ListAuditEventsParamsCategory = "audience"
 	ListAuditEventsParamsCategoryCommerce      ListAuditEventsParamsCategory = "commerce"
+	ListAuditEventsParamsCategoryCoupons       ListAuditEventsParamsCategory = "coupons"
 	ListAuditEventsParamsCategoryDigests       ListAuditEventsParamsCategory = "digests"
 	ListAuditEventsParamsCategoryEarn          ListAuditEventsParamsCategory = "earn"
 	ListAuditEventsParamsCategoryGrow          ListAuditEventsParamsCategory = "grow"
 	ListAuditEventsParamsCategoryIntegrations  ListAuditEventsParamsCategory = "integrations"
+	ListAuditEventsParamsCategoryLeads         ListAuditEventsParamsCategory = "leads"
 	ListAuditEventsParamsCategoryPlacement     ListAuditEventsParamsCategory = "placement"
 	ListAuditEventsParamsCategoryPolls         ListAuditEventsParamsCategory = "polls"
 	ListAuditEventsParamsCategoryProducts      ListAuditEventsParamsCategory = "products"
 	ListAuditEventsParamsCategoryPush          ListAuditEventsParamsCategory = "push"
+	ListAuditEventsParamsCategoryReplies       ListAuditEventsParamsCategory = "replies"
 	ListAuditEventsParamsCategoryRouting       ListAuditEventsParamsCategory = "routing"
 	ListAuditEventsParamsCategoryScoring       ListAuditEventsParamsCategory = "scoring"
 	ListAuditEventsParamsCategorySending       ListAuditEventsParamsCategory = "sending"
@@ -26755,6 +28492,8 @@ func (e ListAuditEventsParamsCategory) Valid() bool {
 		return true
 	case ListAuditEventsParamsCategoryCommerce:
 		return true
+	case ListAuditEventsParamsCategoryCoupons:
+		return true
 	case ListAuditEventsParamsCategoryDigests:
 		return true
 	case ListAuditEventsParamsCategoryEarn:
@@ -26763,6 +28502,8 @@ func (e ListAuditEventsParamsCategory) Valid() bool {
 		return true
 	case ListAuditEventsParamsCategoryIntegrations:
 		return true
+	case ListAuditEventsParamsCategoryLeads:
+		return true
 	case ListAuditEventsParamsCategoryPlacement:
 		return true
 	case ListAuditEventsParamsCategoryPolls:
@@ -26770,6 +28511,8 @@ func (e ListAuditEventsParamsCategory) Valid() bool {
 	case ListAuditEventsParamsCategoryProducts:
 		return true
 	case ListAuditEventsParamsCategoryPush:
+		return true
+	case ListAuditEventsParamsCategoryReplies:
 		return true
 	case ListAuditEventsParamsCategoryRouting:
 		return true
@@ -26874,14 +28617,17 @@ const (
 	ExportAuditEventsParamsCategoryAi            ExportAuditEventsParamsCategory = "ai"
 	ExportAuditEventsParamsCategoryAudience      ExportAuditEventsParamsCategory = "audience"
 	ExportAuditEventsParamsCategoryCommerce      ExportAuditEventsParamsCategory = "commerce"
+	ExportAuditEventsParamsCategoryCoupons       ExportAuditEventsParamsCategory = "coupons"
 	ExportAuditEventsParamsCategoryDigests       ExportAuditEventsParamsCategory = "digests"
 	ExportAuditEventsParamsCategoryEarn          ExportAuditEventsParamsCategory = "earn"
 	ExportAuditEventsParamsCategoryGrow          ExportAuditEventsParamsCategory = "grow"
 	ExportAuditEventsParamsCategoryIntegrations  ExportAuditEventsParamsCategory = "integrations"
+	ExportAuditEventsParamsCategoryLeads         ExportAuditEventsParamsCategory = "leads"
 	ExportAuditEventsParamsCategoryPlacement     ExportAuditEventsParamsCategory = "placement"
 	ExportAuditEventsParamsCategoryPolls         ExportAuditEventsParamsCategory = "polls"
 	ExportAuditEventsParamsCategoryProducts      ExportAuditEventsParamsCategory = "products"
 	ExportAuditEventsParamsCategoryPush          ExportAuditEventsParamsCategory = "push"
+	ExportAuditEventsParamsCategoryReplies       ExportAuditEventsParamsCategory = "replies"
 	ExportAuditEventsParamsCategoryRouting       ExportAuditEventsParamsCategory = "routing"
 	ExportAuditEventsParamsCategoryScoring       ExportAuditEventsParamsCategory = "scoring"
 	ExportAuditEventsParamsCategorySending       ExportAuditEventsParamsCategory = "sending"
@@ -26905,6 +28651,8 @@ func (e ExportAuditEventsParamsCategory) Valid() bool {
 		return true
 	case ExportAuditEventsParamsCategoryCommerce:
 		return true
+	case ExportAuditEventsParamsCategoryCoupons:
+		return true
 	case ExportAuditEventsParamsCategoryDigests:
 		return true
 	case ExportAuditEventsParamsCategoryEarn:
@@ -26913,6 +28661,8 @@ func (e ExportAuditEventsParamsCategory) Valid() bool {
 		return true
 	case ExportAuditEventsParamsCategoryIntegrations:
 		return true
+	case ExportAuditEventsParamsCategoryLeads:
+		return true
 	case ExportAuditEventsParamsCategoryPlacement:
 		return true
 	case ExportAuditEventsParamsCategoryPolls:
@@ -26920,6 +28670,8 @@ func (e ExportAuditEventsParamsCategory) Valid() bool {
 	case ExportAuditEventsParamsCategoryProducts:
 		return true
 	case ExportAuditEventsParamsCategoryPush:
+		return true
+	case ExportAuditEventsParamsCategoryReplies:
 		return true
 	case ExportAuditEventsParamsCategoryRouting:
 		return true
@@ -27535,6 +29287,7 @@ const (
 	ListPaidMembersParamsStatusEnded         ListPaidMembersParamsStatus = "ended"
 	ListPaidMembersParamsStatusGift          ListPaidMembersParamsStatus = "gift"
 	ListPaidMembersParamsStatusPastDue       ListPaidMembersParamsStatus = "past_due"
+	ListPaidMembersParamsStatusPaused        ListPaidMembersParamsStatus = "paused"
 	ListPaidMembersParamsStatusPaying        ListPaidMembersParamsStatus = "paying"
 	ListPaidMembersParamsStatusTrialing      ListPaidMembersParamsStatus = "trialing"
 	ListPaidMembersParamsStatusWithAccess    ListPaidMembersParamsStatus = "with_access"
@@ -27552,6 +29305,8 @@ func (e ListPaidMembersParamsStatus) Valid() bool {
 	case ListPaidMembersParamsStatusGift:
 		return true
 	case ListPaidMembersParamsStatusPastDue:
+		return true
+	case ListPaidMembersParamsStatusPaused:
 		return true
 	case ListPaidMembersParamsStatusPaying:
 		return true
@@ -27593,6 +29348,7 @@ const (
 	ListPaidMembersParamsSourceEmpty      ListPaidMembersParamsSource = ""
 	ListPaidMembersParamsSourceGift       ListPaidMembersParamsSource = "gift"
 	ListPaidMembersParamsSourceGrant      ListPaidMembersParamsSource = "grant"
+	ListPaidMembersParamsSourceGroup      ListPaidMembersParamsSource = "group"
 	ListPaidMembersParamsSourceImport     ListPaidMembersParamsSource = "import"
 	ListPaidMembersParamsSourceOffer      ListPaidMembersParamsSource = "offer"
 	ListPaidMembersParamsSourcePage       ListPaidMembersParamsSource = "page"
@@ -27613,6 +29369,8 @@ func (e ListPaidMembersParamsSource) Valid() bool {
 	case ListPaidMembersParamsSourceGift:
 		return true
 	case ListPaidMembersParamsSourceGrant:
+		return true
+	case ListPaidMembersParamsSourceGroup:
 		return true
 	case ListPaidMembersParamsSourceImport:
 		return true
@@ -27661,6 +29419,7 @@ const (
 	ExportPaidMembersParamsStatusEnded         ExportPaidMembersParamsStatus = "ended"
 	ExportPaidMembersParamsStatusGift          ExportPaidMembersParamsStatus = "gift"
 	ExportPaidMembersParamsStatusPastDue       ExportPaidMembersParamsStatus = "past_due"
+	ExportPaidMembersParamsStatusPaused        ExportPaidMembersParamsStatus = "paused"
 	ExportPaidMembersParamsStatusPaying        ExportPaidMembersParamsStatus = "paying"
 	ExportPaidMembersParamsStatusTrialing      ExportPaidMembersParamsStatus = "trialing"
 	ExportPaidMembersParamsStatusWithAccess    ExportPaidMembersParamsStatus = "with_access"
@@ -27678,6 +29437,8 @@ func (e ExportPaidMembersParamsStatus) Valid() bool {
 	case ExportPaidMembersParamsStatusGift:
 		return true
 	case ExportPaidMembersParamsStatusPastDue:
+		return true
+	case ExportPaidMembersParamsStatusPaused:
 		return true
 	case ExportPaidMembersParamsStatusPaying:
 		return true
@@ -27719,6 +29480,7 @@ const (
 	ExportPaidMembersParamsSourceEmpty      ExportPaidMembersParamsSource = ""
 	ExportPaidMembersParamsSourceGift       ExportPaidMembersParamsSource = "gift"
 	ExportPaidMembersParamsSourceGrant      ExportPaidMembersParamsSource = "grant"
+	ExportPaidMembersParamsSourceGroup      ExportPaidMembersParamsSource = "group"
 	ExportPaidMembersParamsSourceImport     ExportPaidMembersParamsSource = "import"
 	ExportPaidMembersParamsSourceOffer      ExportPaidMembersParamsSource = "offer"
 	ExportPaidMembersParamsSourcePage       ExportPaidMembersParamsSource = "page"
@@ -27739,6 +29501,8 @@ func (e ExportPaidMembersParamsSource) Valid() bool {
 	case ExportPaidMembersParamsSourceGift:
 		return true
 	case ExportPaidMembersParamsSourceGrant:
+		return true
+	case ExportPaidMembersParamsSourceGroup:
 		return true
 	case ExportPaidMembersParamsSourceImport:
 		return true
@@ -28044,6 +29808,27 @@ func (e ExportGrowthParamsPeriod) Valid() bool {
 	case ExportGrowthParamsPeriodN30d:
 		return true
 	case ExportGrowthParamsPeriodN90d:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetHoldoutResultsParamsWindow.
+const (
+	GetHoldoutResultsParamsWindowN30d   GetHoldoutResultsParamsWindow = "30d"
+	GetHoldoutResultsParamsWindowN90d   GetHoldoutResultsParamsWindow = "90d"
+	GetHoldoutResultsParamsWindowPeriod GetHoldoutResultsParamsWindow = "period"
+)
+
+// Valid indicates whether the value is a known member of the GetHoldoutResultsParamsWindow enum.
+func (e GetHoldoutResultsParamsWindow) Valid() bool {
+	switch e {
+	case GetHoldoutResultsParamsWindowN30d:
+		return true
+	case GetHoldoutResultsParamsWindowN90d:
+		return true
+	case GetHoldoutResultsParamsWindowPeriod:
 		return true
 	default:
 		return false
@@ -28413,6 +30198,36 @@ func (e PreviewPublicPageParamsPage) Valid() bool {
 	case PreviewPublicPageParamsPageSubscribe:
 		return true
 	case PreviewPublicPageParamsPageUnsubscribe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListRepliesParamsView.
+const (
+	ListRepliesParamsViewAuto         ListRepliesParamsView = "auto"
+	ListRepliesParamsViewDone         ListRepliesParamsView = "done"
+	ListRepliesParamsViewOpen         ListRepliesParamsView = "open"
+	ListRepliesParamsViewOther        ListRepliesParamsView = "other"
+	ListRepliesParamsViewSpam         ListRepliesParamsView = "spam"
+	ListRepliesParamsViewUnsubscribes ListRepliesParamsView = "unsubscribes"
+)
+
+// Valid indicates whether the value is a known member of the ListRepliesParamsView enum.
+func (e ListRepliesParamsView) Valid() bool {
+	switch e {
+	case ListRepliesParamsViewAuto:
+		return true
+	case ListRepliesParamsViewDone:
+		return true
+	case ListRepliesParamsViewOpen:
+		return true
+	case ListRepliesParamsViewOther:
+		return true
+	case ListRepliesParamsViewSpam:
+		return true
+	case ListRepliesParamsViewUnsubscribes:
 		return true
 	default:
 		return false
@@ -29070,6 +30885,30 @@ func (e ListWebhookDeliveriesParamsState) Valid() bool {
 	case ListWebhookDeliveriesParamsStatePending:
 		return true
 	case ListWebhookDeliveriesParamsStateRetrying:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListWebsiteCommentsParamsStatus.
+const (
+	ListWebsiteCommentsParamsStatusEmpty     ListWebsiteCommentsParamsStatus = ""
+	ListWebsiteCommentsParamsStatusHidden    ListWebsiteCommentsParamsStatus = "hidden"
+	ListWebsiteCommentsParamsStatusPending   ListWebsiteCommentsParamsStatus = "pending"
+	ListWebsiteCommentsParamsStatusPublished ListWebsiteCommentsParamsStatus = "published"
+)
+
+// Valid indicates whether the value is a known member of the ListWebsiteCommentsParamsStatus enum.
+func (e ListWebsiteCommentsParamsStatus) Valid() bool {
+	switch e {
+	case ListWebsiteCommentsParamsStatusEmpty:
+		return true
+	case ListWebsiteCommentsParamsStatusHidden:
+		return true
+	case ListWebsiteCommentsParamsStatusPending:
+		return true
+	case ListWebsiteCommentsParamsStatusPublished:
 		return true
 	default:
 		return false
@@ -30619,6 +32458,7 @@ type AudiencePaidTier struct {
 // AudienceSummary defines model for AudienceSummary.
 type AudienceSummary struct {
 	Contacts        int64                 `json:"contacts"`
+	Holdout         bool                  `json:"holdout"`
 	Lists           []AudienceListSummary `json:"lists"`
 	PaidTiers       []AudiencePaidTier    `json:"paidTiers"`
 	Segments        int64                 `json:"segments"`
@@ -30790,6 +32630,16 @@ type AutomationAlertAction struct {
 
 // AutomationAlertActionKind defines model for AutomationAlertAction.Kind.
 type AutomationAlertActionKind string
+
+// AutomationBrowseTrigger defines model for AutomationBrowseTrigger.
+type AutomationBrowseTrigger struct {
+	AfterHours    int64     `json:"afterHours"`
+	CollectionIds *[]string `json:"collectionIds,omitempty"`
+	MinViews      int64     `json:"minViews"`
+
+	// StoreId The connected store (uuid) whose products the tracked site's events name
+	StoreId string `json:"storeId"`
+}
 
 // AutomationCondition defines model for AutomationCondition.
 type AutomationCondition struct {
@@ -31131,6 +32981,22 @@ type AutomationLanguageSaved struct {
 	Version   int64          `json:"version"`
 }
 
+// AutomationLeadFormOption defines model for AutomationLeadFormOption.
+type AutomationLeadFormOption struct {
+	Id string `json:"id"`
+
+	// Name Example: Spring webinar signup
+	Name string `json:"name"`
+
+	// Page The Facebook Page the form belongs to
+	//
+	// Example: Acme Inc
+	Page string `json:"page"`
+
+	// Paused Paused, or not mapped yet: it records no leads
+	Paused bool `json:"paused"`
+}
+
 // AutomationList defines model for AutomationList.
 type AutomationList struct {
 	Alerts []AutomationAlert      `json:"alerts"`
@@ -31252,15 +33118,18 @@ type AutomationOptions struct {
 	Events        []string                    `json:"events"`
 	Fields        []AutomationFieldOption     `json:"fields"`
 	Forms         []AutomationFormOption      `json:"forms"`
+	LeadForms     []AutomationLeadFormOption  `json:"leadForms"`
 	Lists         []AutomationOptionItem      `json:"lists"`
 	Milestones    []AutomationMilestoneOption `json:"milestones"`
 	PaidConnected bool                        `json:"paidConnected"`
 	Products      []AutomationOptionItem      `json:"products"`
 	Providers     []AutomationRouteProvider   `json:"providers"`
+	RepliesInbox  bool                        `json:"repliesInbox"`
 	ScoreBands    *ScoringBands               `json:"scoreBands,omitempty"`
 	Segments      []AutomationSegmentOption   `json:"segments"`
 	Tags          []string                    `json:"tags"`
 	Tiers         []AutomationTierOption      `json:"tiers"`
+	TrackedStores []AutomationTrackedStore    `json:"trackedStores"`
 }
 
 // AutomationPathCount defines model for AutomationPathCount.
@@ -31517,8 +33386,11 @@ type AutomationStepStats struct {
 	Exited int64 `json:"exited"`
 
 	// Failed Webhook calls that failed
-	Failed      int64                     `json:"failed"`
-	GoalReached int64                     `json:"goalReached"`
+	Failed      int64 `json:"failed"`
+	GoalReached int64 `json:"goalReached"`
+
+	// HeldOut Contacts in the holdout group who passed the step without a message (M63)
+	HeldOut     int64                     `json:"heldOut"`
 	InFlowNow   int64                     `json:"inFlowNow"`
 	NodeId      string                    `json:"nodeId"`
 	Opened      int64                     `json:"opened"`
@@ -31527,9 +33399,19 @@ type AutomationStepStats struct {
 	Providers   []AutomationProviderSends `json:"providers"`
 	Sent        int64                     `json:"sent"`
 
-	// Skipped Emails skipped by a rule, or because the contact paused email on the preference center
+	// Skipped Emails skipped by a rule, because the contact paused email on the preference center, or because they are in the holdout group (heldOut counts those)
 	Skipped      int64 `json:"skipped"`
 	Unsubscribed int64 `json:"unsubscribed"`
+}
+
+// AutomationStockTrigger defines model for AutomationStockTrigger.
+type AutomationStockTrigger struct {
+	Days           *int64 `json:"days,omitempty"`
+	IncludeViewers *bool  `json:"includeViewers,omitempty"`
+	MinDropPercent *int64 `json:"minDropPercent,omitempty"`
+
+	// StoreId The connected store (uuid) whose products it watches
+	StoreId string `json:"storeId"`
 }
 
 // AutomationSummary defines model for AutomationSummary.
@@ -31558,6 +33440,12 @@ type AutomationTierOption struct {
 	Name string `json:"name"`
 }
 
+// AutomationTrackedStore defines model for AutomationTrackedStore.
+type AutomationTrackedStore struct {
+	Host    string `json:"host"`
+	StoreId string `json:"storeId"`
+}
+
 // AutomationTrigger defines model for AutomationTrigger.
 type AutomationTrigger struct {
 	AfterHours     *int64                         `json:"afterHours,omitempty"`
@@ -31565,6 +33453,7 @@ type AutomationTrigger struct {
 	AnswerOp       *AutomationTriggerAnswerOp     `json:"answerOp,omitempty"`
 	Answers        *[]int64                       `json:"answers,omitempty"`
 	At             *string                        `json:"at,omitempty"`
+	Browse         *AutomationBrowseTrigger       `json:"browse,omitempty"`
 	Collections    *[]string                      `json:"collections,omitempty"`
 	ConfirmedOnly  *bool                          `json:"confirmedOnly,omitempty"`
 	ContactTime    *bool                          `json:"contactTime,omitempty"`
@@ -31572,11 +33461,13 @@ type AutomationTrigger struct {
 	EndReasons     *[]AutomationTriggerEndReasons `json:"endReasons,omitempty"`
 	Event          *string                        `json:"event,omitempty"`
 	ExitOnLeave    *bool                          `json:"exitOnLeave,omitempty"`
+	ExitOnReply    *bool                          `json:"exitOnReply,omitempty"`
 	Field          *string                        `json:"field,omitempty"`
 	FirstOnly      *bool                          `json:"firstOnly,omitempty"`
 	FormId         *string                        `json:"formId,omitempty"`
 	IncludeImports *bool                          `json:"includeImports,omitempty"`
 	Kind           AutomationTriggerKind          `json:"kind"`
+	LeadFormId     *string                        `json:"leadFormId,omitempty"`
 	ListId         *string                        `json:"listId,omitempty"`
 	MilestoneId    *string                        `json:"milestoneId,omitempty"`
 	MinTotal       *int64                         `json:"minTotal,omitempty"`
@@ -31592,6 +33483,7 @@ type AutomationTrigger struct {
 	SegmentId      *string                        `json:"segmentId,omitempty"`
 	SkipDays       *int64                         `json:"skipDays,omitempty"`
 	Source         *string                        `json:"source,omitempty"`
+	Stock          *AutomationStockTrigger        `json:"stock,omitempty"`
 	Store          *string                        `json:"store,omitempty"`
 	Tag            *string                        `json:"tag,omitempty"`
 	Threshold      *int64                         `json:"threshold,omitempty"`
@@ -32457,6 +34349,7 @@ type CommerceBlockSoldOut string
 type CommerceBlockRender struct {
 	Disconnected bool                     `json:"disconnected"`
 	Html         string                   `json:"html"`
+	Note         *string                  `json:"note,omitempty"`
 	Platform     string                   `json:"platform"`
 	Products     []CommerceProduct        `json:"products"`
 	Removed      []CommerceRemovedProduct `json:"removed"`
@@ -32520,9 +34413,11 @@ type CommerceConnectState struct {
 	AppUrl             string                    `json:"appUrl"`
 	ClientIdHint       *string                   `json:"clientIdHint,omitempty"`
 	Demo               bool                      `json:"demo"`
+	DiscountsGranted   bool                      `json:"discountsGranted"`
 	Error              CommerceConnectStateError `json:"error"`
 	Granted            []string                  `json:"granted"`
 	InstalledAt        *time.Time                `json:"installedAt,omitempty"`
+	InventoryScope     string                    `json:"inventoryScope"`
 	KeyHint            *string                   `json:"keyHint,omitempty"`
 	Lists              []CommerceListOption      `json:"lists"`
 	Months             int64                     `json:"months"`
@@ -32738,6 +34633,37 @@ type CommerceRevenueSummary struct {
 	Stores          int64   `json:"stores"`
 }
 
+// CommerceStockRequest defines model for CommerceStockRequest.
+type CommerceStockRequest struct {
+	// Available The product is in stock now: back-in-stock flows start on its next return
+	Available bool      `json:"available"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// ProductId ReputeCast's id of the product
+	ProductId string `json:"productId"`
+	StoreId   string `json:"storeId"`
+
+	// Title Example: Deploy Friday cap
+	Title string `json:"title"`
+}
+
+// CommerceStockRequestInput defines model for CommerceStockRequestInput.
+type CommerceStockRequestInput struct {
+	// Email An existing contact's address
+	Email     openapi_types.Email `json:"email"`
+	ProductId string              `json:"productId"`
+	StoreId   *string             `json:"storeId,omitempty"`
+}
+
+// CommerceStoreDiscounts defines model for CommerceStoreDiscounts.
+type CommerceStoreDiscounts struct {
+	AllowedAt *time.Time `json:"allowedAt,omitempty"`
+	AllowedBy *string    `json:"allowedBy,omitempty"`
+	Granted   bool       `json:"granted"`
+	Pools     []string   `json:"pools"`
+	Supported bool       `json:"supported"`
+}
+
 // CommerceStoreList defines model for CommerceStoreList.
 type CommerceStoreList struct {
 	CanManage bool                   `json:"canManage"`
@@ -32756,6 +34682,7 @@ type CommerceStorePage struct {
 	ConnectedAt  *time.Time              `json:"connectedAt,omitempty"`
 	ConnectedBy  string                  `json:"connectedBy"`
 	Consent      CommerceConsent         `json:"consent"`
+	Discounts    CommerceStoreDiscounts  `json:"discounts"`
 	Flows        []CommerceFlow          `json:"flows"`
 	Helpers      []string                `json:"helpers"`
 	Lists        []CommerceListOption    `json:"lists"`
@@ -35191,6 +37118,73 @@ type Count struct {
 // CountEncoding defines model for Count.Encoding.
 type CountEncoding string
 
+// CountdownEnded defines model for CountdownEnded.
+type CountdownEnded struct {
+	Mode CountdownEndedMode `json:"mode"`
+
+	// Text The message shown when mode is text, up to 60 characters
+	Text *string `json:"text,omitempty"`
+}
+
+// CountdownEndedMode defines model for CountdownEnded.Mode.
+type CountdownEndedMode string
+
+// CountdownImage defines model for CountdownImage.
+type CountdownImage struct {
+	// Alt Example: Offer ends Fri 28 Nov at 23:59 (EST)
+	Alt    string             `json:"alt"`
+	EndsAt time.Time          `json:"endsAt"`
+	Height int64              `json:"height"`
+	Id     openapi_types.UUID `json:"id"`
+
+	// Url The animated GIF, drawn when the email is opened
+	Url   string `json:"url"`
+	Width int64  `json:"width"`
+}
+
+// CountdownSettings defines model for CountdownSettings.
+type CountdownSettings struct {
+	// Background #RRGGBB
+	//
+	// Example: #0F172A
+	Background string `json:"background"`
+
+	// Digits #RRGGBB, at least 4.5:1 on the background
+	//
+	// Example: #FFFFFF
+	Digits string         `json:"digits"`
+	Ended  CountdownEnded `json:"ended"`
+
+	// EndsAt The local date and time the countdown ends, YYYY-MM-DDTHH:MM
+	//
+	// Example: 2026-11-28T23:59
+	EndsAt string `json:"endsAt"`
+
+	// Labels #RRGGBB
+	//
+	// Example: #CBD5E1
+	Labels string `json:"labels"`
+
+	// Language The labels' and the alt text's language: the language version being edited
+	Language CountdownSettingsLanguage `json:"language"`
+	Size     CountdownSettingsSize     `json:"size"`
+
+	// TimeZone IANA time zone of endsAt
+	//
+	// Example: America/New_York
+	TimeZone string                 `json:"timeZone"`
+	Units    CountdownSettingsUnits `json:"units"`
+}
+
+// CountdownSettingsLanguage The labels' and the alt text's language: the language version being edited
+type CountdownSettingsLanguage string
+
+// CountdownSettingsSize defines model for CountdownSettings.Size.
+type CountdownSettingsSize string
+
+// CountdownSettingsUnits defines model for CountdownSettings.Units.
+type CountdownSettingsUnits string
+
 // CountryLine defines model for CountryLine.
 type CountryLine struct {
 	Adapter      string  `json:"adapter"`
@@ -35205,6 +37199,218 @@ type CountryLine struct {
 	SenderKind   string  `json:"senderKind"`
 	SkipReason   *string `json:"skipReason,omitempty"`
 	Skipped      int64   `json:"skipped"`
+}
+
+// CouponBatch defines model for CouponBatch.
+type CouponBatch struct {
+	Automation *string `json:"automation,omitempty"`
+
+	// By Who asked, by name
+	By           *string            `json:"by,omitempty"`
+	Created      int64              `json:"created"`
+	CreatedAt    time.Time          `json:"createdAt"`
+	Error        *string            `json:"error,omitempty"`
+	Failed       int64              `json:"failed"`
+	FinishedAt   *time.Time         `json:"finishedAt,omitempty"`
+	Id           openapi_types.UUID `json:"id"`
+	Kind         CouponBatchKind    `json:"kind"`
+	Reason       CouponBatchReason  `json:"reason"`
+	Requested    int64              `json:"requested"`
+	Status       CouponBatchStatus  `json:"status"`
+	WaitingUntil *time.Time         `json:"waitingUntil,omitempty"`
+}
+
+// CouponBatchKind defines model for CouponBatch.Kind.
+type CouponBatchKind string
+
+// CouponBatchReason defines model for CouponBatch.Reason.
+type CouponBatchReason string
+
+// CouponBatchStatus defines model for CouponBatch.Status.
+type CouponBatchStatus string
+
+// CouponPool defines model for CouponPool.
+type CouponPool struct {
+	Batch     *CouponBatch  `json:"batch,omitempty"`
+	Batches   []CouponBatch `json:"batches"`
+	CreatedAt time.Time     `json:"createdAt"`
+
+	// CreatedBy Who created the pool, by name
+	CreatedBy   string             `json:"createdBy"`
+	Currency    string             `json:"currency"`
+	FirstSentAt *time.Time         `json:"firstSentAt,omitempty"`
+	Free        int64              `json:"free"`
+	Helpers     []string           `json:"helpers"`
+	Id          openapi_types.UUID `json:"id"`
+
+	// Low Free codes are under the low mark
+	Low             bool       `json:"low"`
+	LowAt           int64      `json:"lowAt"`
+	Name            string     `json:"name"`
+	OnePerContact   bool       `json:"onePerContact"`
+	Orders          int64      `json:"orders"`
+	Prefix          string     `json:"prefix"`
+	Redeemed        int64      `json:"redeemed"`
+	Refill          bool       `json:"refill"`
+	RefillCheckedAt *time.Time `json:"refillCheckedAt,omitempty"`
+	Removed         int64      `json:"removed"`
+
+	// RevenueCents Orders that used the pool's codes: refunds taken off, cancelled and test orders left out
+	RevenueCents int64              `json:"revenueCents"`
+	Running      *CouponBatch       `json:"running,omitempty"`
+	SampleUrl    string             `json:"sampleUrl"`
+	Sent         int64              `json:"sent"`
+	Settings     CouponPoolSettings `json:"settings"`
+
+	// Slug The name templates use: {{ coupons.<slug>.code }}
+	Slug      string              `json:"slug"`
+	Source    CouponPoolSource    `json:"source"`
+	Status    CouponPoolStatus    `json:"status"`
+	Store     *CouponPoolStore    `json:"store,omitempty"`
+	Tokens    CouponPoolTokens    `json:"tokens"`
+	Total     int64               `json:"total"`
+	UpdatedAt time.Time           `json:"updatedAt"`
+	UsedIn    []CouponPoolUse     `json:"usedIn"`
+	Waiting   []CouponPoolWaiting `json:"waiting"`
+}
+
+// CouponPoolSource defines model for CouponPool.Source.
+type CouponPoolSource string
+
+// CouponPoolStatus defines model for CouponPool.Status.
+type CouponPoolStatus string
+
+// CouponPoolList defines model for CouponPoolList.
+type CouponPoolList struct {
+	Helpers []string             `json:"helpers"`
+	Items   []CouponPoolListItem `json:"items"`
+}
+
+// CouponPoolListItem defines model for CouponPoolListItem.
+type CouponPoolListItem struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	Currency  string             `json:"currency"`
+	Free      int64              `json:"free"`
+	Id        openapi_types.UUID `json:"id"`
+
+	// Low Free codes are under the low mark
+	Low           bool   `json:"low"`
+	LowAt         int64  `json:"lowAt"`
+	Name          string `json:"name"`
+	OnePerContact bool   `json:"onePerContact"`
+	Prefix        string `json:"prefix"`
+	Redeemed      int64  `json:"redeemed"`
+
+	// RevenueCents Orders that used the pool's codes: refunds taken off, cancelled and test orders left out
+	RevenueCents int64              `json:"revenueCents"`
+	Running      *CouponBatch       `json:"running,omitempty"`
+	Sent         int64              `json:"sent"`
+	Settings     CouponPoolSettings `json:"settings"`
+
+	// Slug The name templates use: {{ coupons.<slug>.code }}
+	Slug   string                   `json:"slug"`
+	Source CouponPoolListItemSource `json:"source"`
+	Status CouponPoolListItemStatus `json:"status"`
+	Store  *CouponPoolStore         `json:"store,omitempty"`
+	Total  int64                    `json:"total"`
+}
+
+// CouponPoolListItemSource defines model for CouponPoolListItem.Source.
+type CouponPoolListItemSource string
+
+// CouponPoolListItemStatus defines model for CouponPoolListItem.Status.
+type CouponPoolListItemStatus string
+
+// CouponPoolSettings defines model for CouponPoolSettings.
+type CouponPoolSettings struct {
+	// ApplyUrl Upload pools: the address that applies a code, with {code} where it goes
+	ApplyUrl *string `json:"applyUrl,omitempty"`
+
+	// CollectionIds Store pools: the collections the discount applies to; none is the whole store
+	CollectionIds *[]string `json:"collectionIds,omitempty"`
+
+	// EndsDays Store pools: the discount ends this many days after the pool was created; 0 never
+	EndsDays *int64 `json:"endsDays,omitempty"`
+
+	// Kind Store pools: what the discount takes off
+	Kind *CouponPoolSettingsKind `json:"kind,omitempty"`
+
+	// MinimumCents Store pools: the smallest order the code works on, in cents
+	MinimumCents *int64 `json:"minimumCents,omitempty"`
+
+	// Value Percent off (1–100) for percentage, cents off for fixed_amount
+	Value *int64 `json:"value,omitempty"`
+}
+
+// CouponPoolSettingsKind Store pools: what the discount takes off
+type CouponPoolSettingsKind string
+
+// CouponPoolStore defines model for CouponPoolStore.
+type CouponPoolStore struct {
+	Connected bool                    `json:"connected"`
+	Domain    string                  `json:"domain"`
+	Id        string                  `json:"id"`
+	Name      string                  `json:"name"`
+	Platform  CouponPoolStorePlatform `json:"platform"`
+}
+
+// CouponPoolStorePlatform defines model for CouponPoolStore.Platform.
+type CouponPoolStorePlatform string
+
+// CouponPoolTokens defines model for CouponPoolTokens.
+type CouponPoolTokens struct {
+	// Code Example: {{ coupons.welcome15.code }}
+	Code string `json:"code"`
+
+	// Url Example: {{ coupons.welcome15.url }}
+	Url string `json:"url"`
+}
+
+// CouponPoolUse defines model for CouponPoolUse.
+type CouponPoolUse struct {
+	Block      bool              `json:"block"`
+	EmailId    *string           `json:"emailId,omitempty"`
+	EmailName  *string           `json:"emailName,omitempty"`
+	Id         string            `json:"id"`
+	Kind       CouponPoolUseKind `json:"kind"`
+	Lists      *string           `json:"lists,omitempty"`
+	Live       bool              `json:"live"`
+	Name       string            `json:"name"`
+	Recipients int64             `json:"recipients"`
+	Status     *string           `json:"status,omitempty"`
+}
+
+// CouponPoolUseKind defines model for CouponPoolUse.Kind.
+type CouponPoolUseKind string
+
+// CouponPoolWaiting defines model for CouponPoolWaiting.
+type CouponPoolWaiting struct {
+	Emails int64  `json:"emails"`
+	Id     string `json:"id"`
+	Name   string `json:"name"`
+}
+
+// CouponSource defines model for CouponSource.
+type CouponSource struct {
+	Can      bool                 `json:"can"`
+	Currency string               `json:"currency"`
+	Detail   *string              `json:"detail,omitempty"`
+	Domain   string               `json:"domain"`
+	Name     string               `json:"name"`
+	Platform CouponSourcePlatform `json:"platform"`
+	Reason   *CouponSourceReason  `json:"reason,omitempty"`
+	StoreId  string               `json:"storeId"`
+}
+
+// CouponSourcePlatform defines model for CouponSource.Platform.
+type CouponSourcePlatform string
+
+// CouponSourceReason defines model for CouponSource.Reason.
+type CouponSourceReason string
+
+// CouponSourceList defines model for CouponSourceList.
+type CouponSourceList struct {
+	Items []CouponSource `json:"items"`
 }
 
 // CustomFieldDef defines model for CustomFieldDef.
@@ -35389,6 +37595,29 @@ type DeliverabilityChecksInterval string
 // DeliverabilityChecksVia defines model for DeliverabilityChecks.Via.
 type DeliverabilityChecksVia string
 
+// DeliverabilityDMARCCollect defines model for DeliverabilityDMARCCollect.
+type DeliverabilityDMARCCollect struct {
+	// Address dmarc@reply.news.acme.io, for the rua of DMARC records
+	Address         string                              `json:"address"`
+	ExternalRecords []DeliverabilityDMARCExternalRecord `json:"externalRecords"`
+	LastReceivedAt  *time.Time                          `json:"lastReceivedAt,omitempty"`
+}
+
+// DeliverabilityDMARCExternalRecord defines model for DeliverabilityDMARCExternalRecord.
+type DeliverabilityDMARCExternalRecord struct {
+	Domain string                                  `json:"domain"`
+	Name   string                                  `json:"name"`
+	Status DeliverabilityDMARCExternalRecordStatus `json:"status"`
+	Type   DeliverabilityDMARCExternalRecordType   `json:"type"`
+	Value  string                                  `json:"value"`
+}
+
+// DeliverabilityDMARCExternalRecordStatus defines model for DeliverabilityDMARCExternalRecord.Status.
+type DeliverabilityDMARCExternalRecordStatus string
+
+// DeliverabilityDMARCExternalRecordType defines model for DeliverabilityDMARCExternalRecord.Type.
+type DeliverabilityDMARCExternalRecordType string
+
 // DeliverabilityDMARCSource defines model for DeliverabilityDMARCSource.
 type DeliverabilityDMARCSource struct {
 	Adapter *string `json:"adapter,omitempty"`
@@ -35431,6 +37660,7 @@ type DeliverabilityDMARCSourceDetail struct {
 
 // DeliverabilityDMARCSummary defines model for DeliverabilityDMARCSummary.
 type DeliverabilityDMARCSummary struct {
+	Collect  *DeliverabilityDMARCCollect   `json:"collect,omitempty"`
 	Days     int64                         `json:"days"`
 	Domain   *string                       `json:"domain,omitempty"`
 	Messages int64                         `json:"messages"`
@@ -36689,6 +38919,16 @@ type EarnGapRun struct {
 	Types   map[string]int64 `json:"types"`
 }
 
+// EarnGroupPrices defines model for EarnGroupPrices.
+type EarnGroupPrices struct {
+	Monthly  *EarnPrice `json:"monthly,omitempty"`
+	Seats    int64      `json:"seats"`
+	SeatsMax int64      `json:"seatsMax"`
+	SeatsMin int64      `json:"seatsMin"`
+	Teams    int64      `json:"teams"`
+	Yearly   *EarnPrice `json:"yearly,omitempty"`
+}
+
 // EarnImport defines model for EarnImport.
 type EarnImport struct {
 	Account      string               `json:"account"`
@@ -36845,6 +39085,8 @@ type EarnMember struct {
 	BillingDiffers  bool                `json:"billingDiffers"`
 	BillingEmail    *string             `json:"billingEmail,omitempty"`
 	CanManage       bool                `json:"canManage"`
+	CanPause        bool                `json:"canPause"`
+	CanResume       bool                `json:"canResume"`
 	CancelAt        *time.Time          `json:"cancelAt,omitempty"`
 	CancelReason    *string             `json:"cancelReason,omitempty"`
 	CanceledAt      *time.Time          `json:"canceledAt,omitempty"`
@@ -36880,16 +39122,21 @@ type EarnMember struct {
 	Next            EarnMemberNext      `json:"next"`
 	NextAt          *time.Time          `json:"nextAt,omitempty"`
 	PaidCents       int64               `json:"paidCents"`
+	PausedAt        *time.Time          `json:"pausedAt,omitempty"`
+	PausedUntil     *time.Time          `json:"pausedUntil,omitempty"`
 	Period          EarnMemberPeriod    `json:"period"`
 	PeriodShown     bool                `json:"periodShown"`
+	Quantity        int64               `json:"quantity"`
 	RefundedCents   int64               `json:"refundedCents"`
 	RenewalReminder *time.Time          `json:"renewalReminder,omitempty"`
+	Seats           []EarnTeamSeat      `json:"seats"`
 	Since           time.Time           `json:"since"`
 	Source          EarnMemberSource    `json:"source"`
 	Status          EarnMemberStatus    `json:"status"`
 	SubscriptionId  *string             `json:"subscriptionId,omitempty"`
 	SubscriptionUrl *string             `json:"subscriptionUrl,omitempty"`
 	TaxAdded        bool                `json:"taxAdded"`
+	Team            *EarnMemberTeam     `json:"team,omitempty"`
 	Test            bool                `json:"test"`
 	Tier            string              `json:"tier"`
 	TierId          *string             `json:"tierId,omitempty"`
@@ -36917,6 +39164,7 @@ type EarnMemberCounts struct {
 	Ended         int64 `json:"ended"`
 	Gift          int64 `json:"gift"`
 	PastDue       int64 `json:"pastDue"`
+	Paused        int64 `json:"paused"`
 	Paying        int64 `json:"paying"`
 	Trialing      int64 `json:"trialing"`
 	WithAccess    int64 `json:"withAccess"`
@@ -37016,12 +39264,16 @@ type EarnMemberRow struct {
 	Name          string              `json:"name"`
 	Next          EarnMemberRowNext   `json:"next"`
 	NextAt        *time.Time          `json:"nextAt,omitempty"`
+	PausedAt      *time.Time          `json:"pausedAt,omitempty"`
+	PausedUntil   *time.Time          `json:"pausedUntil,omitempty"`
 	Period        EarnMemberRowPeriod `json:"period"`
 	PeriodShown   bool                `json:"periodShown"`
+	Quantity      int64               `json:"quantity"`
 	RefundedCents int64               `json:"refundedCents"`
 	Since         time.Time           `json:"since"`
 	Source        EarnMemberSource    `json:"source"`
 	Status        EarnMemberRowStatus `json:"status"`
+	Team          *EarnMemberTeam     `json:"team,omitempty"`
 	Test          bool                `json:"test"`
 	Tier          string              `json:"tier"`
 	TierId        *string             `json:"tierId,omitempty"`
@@ -37053,6 +39305,24 @@ type EarnMemberSource struct {
 
 // EarnMemberSourceKind defines model for EarnMemberSource.Kind.
 type EarnMemberSourceKind string
+
+// EarnMemberTeam defines model for EarnMemberTeam.
+type EarnMemberTeam struct {
+	BuyerId   *string            `json:"buyerId,omitempty"`
+	BuyerName *string            `json:"buyerName,omitempty"`
+	EndedAt   *time.Time         `json:"endedAt,omitempty"`
+	Id        string             `json:"id"`
+	Invites   int64              `json:"invites"`
+	Name      string             `json:"name"`
+	RenewsAt  *time.Time         `json:"renewsAt,omitempty"`
+	Role      EarnMemberTeamRole `json:"role"`
+	SeatId    *string            `json:"seatId,omitempty"`
+	Seats     int64              `json:"seats"`
+	Used      int64              `json:"used"`
+}
+
+// EarnMemberTeamRole defines model for EarnMemberTeam.Role.
+type EarnMemberTeamRole string
 
 // EarnPageTier defines model for EarnPageTier.
 type EarnPageTier struct {
@@ -37089,6 +39359,7 @@ type EarnPayments struct {
 	Checkout            EarnCheckoutSettings  `json:"checkout"`
 	Helpers             []string              `json:"helpers"`
 	Live                *EarnConnection       `json:"live,omitempty"`
+	PauseMonths         []int64               `json:"pauseMonths"`
 	Permissions         []EarnPermissionCheck `json:"permissions"`
 	Providers           []EarnProviderCard    `json:"providers"`
 	Test                *EarnConnection       `json:"test,omitempty"`
@@ -37239,6 +39510,21 @@ type EarnSyncWarning struct {
 	Subscriptions []EarnMemberRow `json:"subscriptions"`
 }
 
+// EarnTeamSeat defines model for EarnTeamSeat.
+type EarnTeamSeat struct {
+	AcceptedAt      *time.Time         `json:"acceptedAt,omitempty"`
+	Email           string             `json:"email"`
+	Id              string             `json:"id"`
+	InviteExpiresAt *time.Time         `json:"inviteExpiresAt,omitempty"`
+	InvitedAt       time.Time          `json:"invitedAt"`
+	MemberId        *string            `json:"memberId,omitempty"`
+	Name            string             `json:"name"`
+	Status          EarnTeamSeatStatus `json:"status"`
+}
+
+// EarnTeamSeatStatus defines model for EarnTeamSeat.Status.
+type EarnTeamSeatStatus string
+
 // EarnTier defines model for EarnTier.
 type EarnTier struct {
 	AccessRank       int64              `json:"accessRank"`
@@ -37248,6 +39534,7 @@ type EarnTier struct {
 	CreatedAt        time.Time          `json:"createdAt"`
 	Description      string             `json:"description"`
 	DiscountedYearly int64              `json:"discountedYearly"`
+	Group            *EarnGroupPrices   `json:"group,omitempty"`
 	HiddenLink       string             `json:"hiddenLink"`
 	Highlight        *string            `json:"highlight,omitempty"`
 	Id               string             `json:"id"`
@@ -38207,6 +40494,87 @@ type HoldInput struct {
 	Held bool `json:"held"`
 }
 
+// HoldoutGroupResult defines model for HoldoutGroupResult.
+type HoldoutGroupResult struct {
+	Contacts     int64 `json:"contacts"`
+	Converters   int64 `json:"converters"`
+	Orders       int64 `json:"orders"`
+	RevenueCents int64 `json:"revenueCents"`
+	Visitors     int64 `json:"visitors"`
+}
+
+// HoldoutMetric defines model for HoldoutMetric.
+type HoldoutMetric struct {
+	Confidence  float64          `json:"confidence"`
+	Holdout     float64          `json:"holdout"`
+	Key         HoldoutMetricKey `json:"key"`
+	Lift        float64          `json:"lift"`
+	Marketing   float64          `json:"marketing"`
+	Significant bool             `json:"significant"`
+	Tested      bool             `json:"tested"`
+}
+
+// HoldoutMetricKey defines model for HoldoutMetric.Key.
+type HoldoutMetricKey string
+
+// HoldoutOtherCurrency defines model for HoldoutOtherCurrency.
+type HoldoutOtherCurrency struct {
+	Currency       string `json:"currency"`
+	HoldoutCents   int64  `json:"holdoutCents"`
+	MarketingCents int64  `json:"marketingCents"`
+}
+
+// HoldoutPeriodItem defines model for HoldoutPeriodItem.
+type HoldoutPeriodItem struct {
+	Automations bool       `json:"automations"`
+	BasisPoints int64      `json:"basisPoints"`
+	Campaigns   bool       `json:"campaigns"`
+	EndedAt     *time.Time `json:"endedAt,omitempty"`
+	Id          string     `json:"id"`
+	Open        bool       `json:"open"`
+	Percent     float64    `json:"percent"`
+	StartedAt   time.Time  `json:"startedAt"`
+}
+
+// HoldoutResults defines model for HoldoutResults.
+type HoldoutResults struct {
+	CampaignsIncluded int64                  `json:"campaignsIncluded"`
+	ComputedAt        *time.Time             `json:"computedAt,omitempty"`
+	Computing         bool                   `json:"computing"`
+	Currency          string                 `json:"currency"`
+	From              *time.Time             `json:"from,omitempty"`
+	Holdout           HoldoutGroupResult     `json:"holdout"`
+	Marketing         HoldoutGroupResult     `json:"marketing"`
+	Metrics           []HoldoutMetric        `json:"metrics"`
+	MinHoldout        int64                  `json:"minHoldout"`
+	NextMeasureAt     *time.Time             `json:"nextMeasureAt,omitempty"`
+	OtherCurrencies   []HoldoutOtherCurrency `json:"otherCurrencies"`
+	Period            *HoldoutPeriodItem     `json:"period,omitempty"`
+	Periods           []HoldoutPeriodItem    `json:"periods"`
+	To                *time.Time             `json:"to,omitempty"`
+	Tracking          bool                   `json:"tracking"`
+	Verdict           HoldoutResultsVerdict  `json:"verdict"`
+	Window            HoldoutResultsWindow   `json:"window"`
+}
+
+// HoldoutResultsVerdict defines model for HoldoutResults.Verdict.
+type HoldoutResultsVerdict string
+
+// HoldoutResultsWindow defines model for HoldoutResults.Window.
+type HoldoutResultsWindow string
+
+// HoldoutSettings defines model for HoldoutSettings.
+type HoldoutSettings struct {
+	Automations bool       `json:"automations"`
+	BasisPoints int64      `json:"basisPoints"`
+	Campaigns   bool       `json:"campaigns"`
+	HeldOut     int64      `json:"heldOut"`
+	Measured    bool       `json:"measured"`
+	On          bool       `json:"on"`
+	Percent     float64    `json:"percent"`
+	StartedAt   *time.Time `json:"startedAt,omitempty"`
+}
+
 // HostReputeAPIKeyInputBody defines model for HostReputeAPIKeyInputBody.
 type HostReputeAPIKeyInputBody struct {
 	// ApiKey A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned.
@@ -38881,6 +41249,117 @@ type InDoubtShare struct {
 	WindowSeconds *int64     `json:"windowSeconds,omitempty"`
 }
 
+// InboundAddressView defines model for InboundAddressView.
+type InboundAddressView struct {
+	Dmarc string `json:"dmarc"`
+	Fbl   string `json:"fbl"`
+}
+
+// InboundMXRecord defines model for InboundMXRecord.
+type InboundMXRecord struct {
+	Name   string                `json:"name"`
+	Status InboundMXRecordStatus `json:"status"`
+	Type   string                `json:"type"`
+	Value  string                `json:"value"`
+}
+
+// InboundMXRecordStatus defines model for InboundMXRecord.Status.
+type InboundMXRecordStatus string
+
+// InboundMailboxView defines model for InboundMailboxView.
+type InboundMailboxView struct {
+	Address      string                     `json:"address"`
+	Host         string                     `json:"host"`
+	LastPolledAt *time.Time                 `json:"lastPolledAt,omitempty"`
+	PasswordSet  bool                       `json:"passwordSet"`
+	Port         int64                      `json:"port"`
+	Protocol     InboundMailboxViewProtocol `json:"protocol"`
+	Security     InboundMailboxViewSecurity `json:"security"`
+	Username     string                     `json:"username"`
+}
+
+// InboundMailboxViewProtocol defines model for InboundMailboxView.Protocol.
+type InboundMailboxViewProtocol string
+
+// InboundMailboxViewSecurity defines model for InboundMailboxView.Security.
+type InboundMailboxViewSecurity string
+
+// InboundProviderChoice defines model for InboundProviderChoice.
+type InboundProviderChoice struct {
+	Adapter string                       `json:"adapter"`
+	Id      string                       `json:"id"`
+	Inbound InboundProviderChoiceInbound `json:"inbound"`
+	Name    string                       `json:"name"`
+	Reason  *string                      `json:"reason,omitempty"`
+}
+
+// InboundProviderChoiceInbound defines model for InboundProviderChoice.Inbound.
+type InboundProviderChoiceInbound string
+
+// InboundProviderRef defines model for InboundProviderRef.
+type InboundProviderRef struct {
+	Adapter string `json:"adapter"`
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+}
+
+// InboundRouteView defines model for InboundRouteView.
+type InboundRouteView struct {
+	Addresses      InboundAddressView            `json:"addresses"`
+	CanManage      bool                          `json:"canManage"`
+	Choices        []InboundProviderChoice       `json:"choices"`
+	Domain         string                        `json:"domain"`
+	Helpers        []string                      `json:"helpers"`
+	HookUrl        *string                       `json:"hookUrl,omitempty"`
+	Kind           *InboundRouteViewKind         `json:"kind,omitempty"`
+	LastReceivedAt *time.Time                    `json:"lastReceivedAt,omitempty"`
+	LastTest       InboundTestView               `json:"lastTest"`
+	Mailbox        *InboundMailboxView           `json:"mailbox,omitempty"`
+	Provider       *InboundProviderRef           `json:"provider,omitempty"`
+	ReplyHandling  InboundRouteViewReplyHandling `json:"replyHandling"`
+	SetUpAt        *time.Time                    `json:"setUpAt,omitempty"`
+	Setup          InboundSetupView              `json:"setup"`
+	Status         InboundRouteViewStatus        `json:"status"`
+	StatusDetail   string                        `json:"statusDetail"`
+	StatusReason   *InboundRouteViewStatusReason `json:"statusReason,omitempty"`
+	Suggestion     string                        `json:"suggestion"`
+}
+
+// InboundRouteViewKind defines model for InboundRouteView.Kind.
+type InboundRouteViewKind string
+
+// InboundRouteViewReplyHandling defines model for InboundRouteView.ReplyHandling.
+type InboundRouteViewReplyHandling string
+
+// InboundRouteViewStatus defines model for InboundRouteView.Status.
+type InboundRouteViewStatus string
+
+// InboundRouteViewStatusReason defines model for InboundRouteView.StatusReason.
+type InboundRouteViewStatusReason string
+
+// InboundSetupField defines model for InboundSetupField.
+type InboundSetupField struct {
+	Help     *string `json:"help,omitempty"`
+	Key      string  `json:"key"`
+	Label    string  `json:"label"`
+	Required bool    `json:"required"`
+	Value    string  `json:"value"`
+}
+
+// InboundSetupView defines model for InboundSetupView.
+type InboundSetupView struct {
+	Automatic bool                `json:"automatic"`
+	Mx        []InboundMXRecord   `json:"mx"`
+	Settings  []InboundSetupField `json:"settings"`
+	Steps     []string            `json:"steps"`
+}
+
+// InboundTestView defines model for InboundTestView.
+type InboundTestView struct {
+	ReceivedAt *time.Time `json:"receivedAt,omitempty"`
+	SentAt     *time.Time `json:"sentAt,omitempty"`
+}
+
 // IncidentCause defines model for IncidentCause.
 type IncidentCause struct {
 	Body string `json:"body"`
@@ -39105,25 +41584,27 @@ type IntegrationEntryStatus string
 
 // IntegrationFacts defines model for IntegrationFacts.
 type IntegrationFacts struct {
-	Actions      int64                    `json:"actions"`
-	Agents       int64                    `json:"agents"`
-	Ai           *IntegrationAIFacts      `json:"ai,omitempty"`
-	Balance      *int64                   `json:"balance,omitempty"`
-	Endpoints    int64                    `json:"endpoints"`
-	Failing      int64                    `json:"failing"`
-	KeyCreatedAt *time.Time               `json:"keyCreatedAt,omitempty"`
-	LastCallAt   *time.Time               `json:"lastCallAt,omitempty"`
-	LastSyncAt   *time.Time               `json:"lastSyncAt,omitempty"`
-	McpEnabled   bool                     `json:"mcpEnabled"`
-	Payment      *IntegrationPaymentFacts `json:"payment,omitempty"`
-	Price        *float64                 `json:"price,omitempty"`
-	SilentSites  int64                    `json:"silentSites"`
-	Sites        int64                    `json:"sites"`
-	Store        *IntegrationStoreFacts   `json:"store,omitempty"`
-	Team         *string                  `json:"team,omitempty"`
-	Triggers     int64                    `json:"triggers"`
-	Updates      int64                    `json:"updates"`
-	Workflows    int64                    `json:"workflows"`
+	Actions      int64                     `json:"actions"`
+	Agents       int64                     `json:"agents"`
+	Ai           *IntegrationAIFacts       `json:"ai,omitempty"`
+	Balance      *int64                    `json:"balance,omitempty"`
+	Endpoints    int64                     `json:"endpoints"`
+	Failing      int64                     `json:"failing"`
+	KeyCreatedAt *time.Time                `json:"keyCreatedAt,omitempty"`
+	LastCallAt   *time.Time                `json:"lastCallAt,omitempty"`
+	LastSyncAt   *time.Time                `json:"lastSyncAt,omitempty"`
+	Leads        *IntegrationLeadFacts     `json:"leads,omitempty"`
+	McpEnabled   bool                      `json:"mcpEnabled"`
+	Payment      *IntegrationPaymentFacts  `json:"payment,omitempty"`
+	Price        *float64                  `json:"price,omitempty"`
+	SilentSites  int64                     `json:"silentSites"`
+	Sites        int64                     `json:"sites"`
+	Store        *IntegrationStoreFacts    `json:"store,omitempty"`
+	Team         *string                   `json:"team,omitempty"`
+	Tracking     *IntegrationTrackingFacts `json:"tracking,omitempty"`
+	Triggers     int64                     `json:"triggers"`
+	Updates      int64                     `json:"updates"`
+	Workflows    int64                     `json:"workflows"`
 }
 
 // IntegrationFirstCall defines model for IntegrationFirstCall.
@@ -39207,6 +41688,18 @@ type IntegrationKeyViewOwnerStatus string
 
 // IntegrationKeyViewStatus defines model for IntegrationKeyView.Status.
 type IntegrationKeyViewStatus string
+
+// IntegrationLeadFacts defines model for IntegrationLeadFacts.
+type IntegrationLeadFacts struct {
+	Leads30d int64                        `json:"leads30d"`
+	Name     string                       `json:"name"`
+	Pages    int64                        `json:"pages"`
+	Polling  bool                         `json:"polling"`
+	Problem  *IntegrationLeadFactsProblem `json:"problem,omitempty"`
+}
+
+// IntegrationLeadFactsProblem defines model for IntegrationLeadFacts.Problem.
+type IntegrationLeadFactsProblem string
 
 // IntegrationListOption defines model for IntegrationListOption.
 type IntegrationListOption struct {
@@ -39531,6 +42024,14 @@ type IntegrationStoreFacts struct {
 // IntegrationStoreFactsState defines model for IntegrationStoreFacts.State.
 type IntegrationStoreFactsState string
 
+// IntegrationTrackingFacts defines model for IntegrationTrackingFacts.
+type IntegrationTrackingFacts struct {
+	EventsToday int64      `json:"eventsToday"`
+	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+	Line        string     `json:"line"`
+	Sites       int64      `json:"sites"`
+}
+
 // IntegrationWordPressPage defines model for IntegrationWordPressPage.
 type IntegrationWordPressPage struct {
 	CanEditForms    bool                           `json:"canEditForms"`
@@ -39646,6 +42147,257 @@ type LanguageSourceChange struct {
 	By       string    `json:"by"`
 	Outdated []string  `json:"outdated"`
 	Version  int64     `json:"version"`
+}
+
+// LeadAdsActivity defines model for LeadAdsActivity.
+type LeadAdsActivity struct {
+	Items []LeadAdsActivityItem `json:"items"`
+}
+
+// LeadAdsActivityItem defines model for LeadAdsActivityItem.
+type LeadAdsActivityItem struct {
+	// At When ReputeCast recorded it
+	At       time.Time          `json:"at"`
+	Contact  *LeadAdsContactRef `json:"contact,omitempty"`
+	FormId   string             `json:"formId"`
+	FormName string             `json:"formName"`
+	Hidden   bool               `json:"hidden"`
+	Id       string             `json:"id"`
+
+	// LeadAt When the person sent the form
+	LeadAt  time.Time                  `json:"leadAt"`
+	Outcome LeadAdsActivityItemOutcome `json:"outcome"`
+	Page    string                     `json:"page"`
+	Source  LeadAdsActivityItemSource  `json:"source"`
+}
+
+// LeadAdsActivityItemOutcome defines model for LeadAdsActivityItem.Outcome.
+type LeadAdsActivityItemOutcome string
+
+// LeadAdsActivityItemSource defines model for LeadAdsActivityItem.Source.
+type LeadAdsActivityItemSource string
+
+// LeadAdsCheckbox defines model for LeadAdsCheckbox.
+type LeadAdsCheckbox struct {
+	Key      string `json:"key"`
+	Required bool   `json:"required"`
+	Text     string `json:"text"`
+}
+
+// LeadAdsConnection defines model for LeadAdsConnection.
+type LeadAdsConnection struct {
+	// AppId Example: 481516234200
+	AppId     string `json:"appId"`
+	CanManage bool   `json:"canManage"`
+
+	// CheckedAt When the token was last checked
+	CheckedAt      *time.Time `json:"checkedAt,omitempty"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	CreatedBy      string     `json:"createdBy"`
+	DisconnectedAt *time.Time `json:"disconnectedAt,omitempty"`
+	Helpers        []string   `json:"helpers"`
+	Id             string     `json:"id"`
+
+	// Leads30d Leads in the last 30 days, Meta's test leads left out
+	Leads30d int64 `json:"leads30d"`
+
+	// Name Example: Acme Marketing
+	Name string `json:"name"`
+
+	// Pages The chosen Pages and their lead forms
+	Pages            []LeadAdsPage             `json:"pages"`
+	Platform         LeadAdsConnectionPlatform `json:"platform"`
+	Problem          *LeadAdsConnectionProblem `json:"problem,omitempty"`
+	RateLimitedUntil *time.Time                `json:"rateLimitedUntil,omitempty"`
+	Receiving        LeadAdsReceiving          `json:"receiving"`
+	Status           LeadAdsConnectionStatus   `json:"status"`
+	Webhook          *LeadAdsWebhook           `json:"webhook,omitempty"`
+}
+
+// LeadAdsConnectionPlatform defines model for LeadAdsConnection.Platform.
+type LeadAdsConnectionPlatform string
+
+// LeadAdsConnectionProblem defines model for LeadAdsConnection.Problem.
+type LeadAdsConnectionProblem string
+
+// LeadAdsConnectionStatus defines model for LeadAdsConnection.Status.
+type LeadAdsConnectionStatus string
+
+// LeadAdsConnectionItem defines model for LeadAdsConnectionItem.
+type LeadAdsConnectionItem struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Id        string    `json:"id"`
+
+	// Name Example: Acme Marketing
+	Name   string                      `json:"name"`
+	Status LeadAdsConnectionItemStatus `json:"status"`
+}
+
+// LeadAdsConnectionItemStatus defines model for LeadAdsConnectionItem.Status.
+type LeadAdsConnectionItemStatus string
+
+// LeadAdsConnectionList defines model for LeadAdsConnectionList.
+type LeadAdsConnectionList struct {
+	Items []LeadAdsConnectionItem `json:"items"`
+}
+
+// LeadAdsContactRef defines model for LeadAdsContactRef.
+type LeadAdsContactRef struct {
+	Email  string `json:"email"`
+	Erased bool   `json:"erased"`
+	Id     string `json:"id"`
+	Name   string `json:"name"`
+}
+
+// LeadAdsFieldOption defines model for LeadAdsFieldOption.
+type LeadAdsFieldOption struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Type  string `json:"type"`
+}
+
+// LeadAdsForm defines model for LeadAdsForm.
+type LeadAdsForm struct {
+	ConsentMode LeadAdsFormConsentMode `json:"consentMode"`
+
+	// FormId Meta's id of the form
+	FormId     string           `json:"formId"`
+	Id         string           `json:"id"`
+	Import     LeadAdsImport    `json:"import"`
+	LastLeadAt *time.Time       `json:"lastLeadAt,omitempty"`
+	Leads30d   int64            `json:"leads30d"`
+	Lists      []LeadAdsListRef `json:"lists"`
+	Mapped     bool             `json:"mapped"`
+	MetaStatus string           `json:"metaStatus"`
+
+	// Name Example: Spring webinar signup
+	Name string `json:"name"`
+
+	// Page Example: Acme Inc
+	Page      string            `json:"page"`
+	PageId    string            `json:"pageId"`
+	Questions int64             `json:"questions"`
+	Status    LeadAdsFormStatus `json:"status"`
+	Tags      []string          `json:"tags"`
+	Waiting   int32             `json:"waiting"`
+}
+
+// LeadAdsFormConsentMode defines model for LeadAdsForm.ConsentMode.
+type LeadAdsFormConsentMode string
+
+// LeadAdsFormStatus defines model for LeadAdsForm.Status.
+type LeadAdsFormStatus string
+
+// LeadAdsFormDetail defines model for LeadAdsFormDetail.
+type LeadAdsFormDetail struct {
+	Checkboxes []LeadAdsCheckbox `json:"checkboxes"`
+	ConsentKey *string           `json:"consentKey,omitempty"`
+
+	// ConsentText Single opt-in: the checkbox's text the leads agreed to
+	ConsentText *string `json:"consentText,omitempty"`
+
+	// Disclaimer The custom disclaimer's text
+	Disclaimer string               `json:"disclaimer"`
+	Fields     []LeadAdsFieldOption `json:"fields"`
+	Form       LeadAdsForm          `json:"form"`
+	ListIds    []string             `json:"listIds"`
+	Lists      []LeadAdsListOption  `json:"lists"`
+	Questions  []LeadAdsQuestion    `json:"questions"`
+}
+
+// LeadAdsImport defines model for LeadAdsImport.
+type LeadAdsImport struct {
+	// At When the last import finished
+	At *time.Time `json:"at,omitempty"`
+
+	// Count Leads read so far, or in the finished import
+	Count int32              `json:"count"`
+	State LeadAdsImportState `json:"state"`
+}
+
+// LeadAdsImportState defines model for LeadAdsImport.State.
+type LeadAdsImportState string
+
+// LeadAdsListOption defines model for LeadAdsListOption.
+type LeadAdsListOption struct {
+	DoubleOptIn bool   `json:"doubleOptIn"`
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+}
+
+// LeadAdsListRef defines model for LeadAdsListRef.
+type LeadAdsListRef struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// LeadAdsPage defines model for LeadAdsPage.
+type LeadAdsPage struct {
+	Forms []LeadAdsForm `json:"forms"`
+	Id    string        `json:"id"`
+
+	// Name Example: Acme Inc
+	Name string `json:"name"`
+
+	// PageId Meta's id of the Page
+	PageId       string     `json:"pageId"`
+	SubscribedAt *time.Time `json:"subscribedAt,omitempty"`
+}
+
+// LeadAdsQuestion defines model for LeadAdsQuestion.
+type LeadAdsQuestion struct {
+	// Key Example: full_name
+	Key string `json:"key"`
+
+	// Label Example: Full name
+	Label     string `json:"label"`
+	Suggested string `json:"suggested"`
+	Target    string `json:"target"`
+
+	// Type Meta's question type
+	//
+	// Example: FULL_NAME
+	Type string `json:"type"`
+}
+
+// LeadAdsReceiving defines model for LeadAdsReceiving.
+type LeadAdsReceiving struct {
+	// LastEventAt Meta's last delivery
+	LastEventAt  *time.Time              `json:"lastEventAt,omitempty"`
+	LastLeadAt   *time.Time              `json:"lastLeadAt,omitempty"`
+	LastPolledAt *time.Time              `json:"lastPolledAt,omitempty"`
+	Mode         LeadAdsReceivingMode    `json:"mode"`
+	Reason       *LeadAdsReceivingReason `json:"reason,omitempty"`
+
+	// SubscribedAt When Meta accepted the app's webhook subscription
+	SubscribedAt *time.Time `json:"subscribedAt,omitempty"`
+
+	// Url The instance's public URL
+	Url string `json:"url"`
+}
+
+// LeadAdsReceivingMode defines model for LeadAdsReceiving.Mode.
+type LeadAdsReceivingMode string
+
+// LeadAdsReceivingReason defines model for LeadAdsReceiving.Reason.
+type LeadAdsReceivingReason string
+
+// LeadAdsSetup defines model for LeadAdsSetup.
+type LeadAdsSetup struct {
+	Connection  *LeadAdsConnectionItem `json:"connection,omitempty"`
+	Permissions []string               `json:"permissions"`
+
+	// Reachable Meta can reach it, so leads arrive within seconds; otherwise they're polled every 15 minutes
+	Reachable bool `json:"reachable"`
+
+	// Url The instance's public URL
+	Url string `json:"url"`
+}
+
+// LeadAdsWebhook defines model for LeadAdsWebhook.
+type LeadAdsWebhook struct {
+	CallbackUrl string `json:"callbackUrl"`
+	VerifyToken string `json:"verifyToken"`
 }
 
 // LiquidProblem defines model for LiquidProblem.
@@ -39843,6 +42595,7 @@ type LiveExcluded struct {
 	Complained   int64 `json:"complained"`
 	Duplicates   int64 `json:"duplicates"`
 	Excluded     int64 `json:"excluded"`
+	Holdout      int64 `json:"holdout"`
 	Paused       int64 `json:"paused"`
 	Role         int64 `json:"role"`
 	Sunset       int64 `json:"sunset"`
@@ -44709,6 +47462,7 @@ type ReadinessAudience struct {
 	Duplicates        int64                  `json:"duplicates"`
 	ExcludedUnengaged int64                  `json:"excludedUnengaged"`
 	Final             int64                  `json:"final"`
+	Holdout           *ReadinessHoldout      `json:"holdout,omitempty"`
 	Lists             []string               `json:"lists"`
 	Role              int64                  `json:"role"`
 	Rows              []ReadinessAudienceRow `json:"rows"`
@@ -44868,6 +47622,14 @@ type ReadinessHeldMove struct {
 	From       string  `json:"from"`
 	To         string  `json:"to"`
 	ToId       string  `json:"toId"`
+}
+
+// ReadinessHoldout defines model for ReadinessHoldout.
+type ReadinessHoldout struct {
+	Included bool    `json:"included"`
+	LeftOut  int64   `json:"leftOut"`
+	Percent  float64 `json:"percent"`
+	Reached  int64   `json:"reached"`
 }
 
 // ReadinessPoll defines model for ReadinessPoll.
@@ -45034,8 +47796,9 @@ type ReadinessScheduleMode string
 
 // ReadinessSendSettings defines model for ReadinessSendSettings.
 type ReadinessSendSettings struct {
-	Schedule   *ReadinessSchedule   `json:"schedule,omitempty"`
-	Thresholds *ReadinessThresholds `json:"thresholds,omitempty"`
+	IncludeHoldout *bool                `json:"includeHoldout,omitempty"`
+	Schedule       *ReadinessSchedule   `json:"schedule,omitempty"`
+	Thresholds     *ReadinessThresholds `json:"thresholds,omitempty"`
 }
 
 // ReadinessSummary defines model for ReadinessSummary.
@@ -46189,6 +48952,120 @@ type RenderingServiceService string
 // RenderingServiceStatus failing: the last call was refused or failed (lastError says why)
 type RenderingServiceStatus string
 
+// ReplyAttachment defines model for ReplyAttachment.
+type ReplyAttachment struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	Type string `json:"type"`
+}
+
+// ReplyAuth defines model for ReplyAuth.
+type ReplyAuth struct {
+	Dkim  *string `json:"dkim,omitempty"`
+	Dmarc *string `json:"dmarc,omitempty"`
+	Spf   *string `json:"spf,omitempty"`
+}
+
+// ReplyContact defines model for ReplyContact.
+type ReplyContact struct {
+	Email  string `json:"email"`
+	Id     string `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+// ReplyCounts defines model for ReplyCounts.
+type ReplyCounts struct {
+	Auto         int64 `json:"auto"`
+	Done         int64 `json:"done"`
+	Open         int64 `json:"open"`
+	Other        int64 `json:"other"`
+	Spam         int64 `json:"spam"`
+	Unsubscribes int64 `json:"unsubscribes"`
+}
+
+// ReplyDetail defines model for ReplyDetail.
+type ReplyDetail struct {
+	AsksUnsubscribe   bool              `json:"asksUnsubscribe"`
+	Attachments       []ReplyAttachment `json:"attachments"`
+	Auth              ReplyAuth         `json:"auth"`
+	AutoReply         bool              `json:"autoReply"`
+	CanManage         bool              `json:"canManage"`
+	CanUnsubscribe    bool              `json:"canUnsubscribe"`
+	Contact           *ReplyContact     `json:"contact,omitempty"`
+	ContactId         *string           `json:"contactId,omitempty"`
+	From              ReplyPerson       `json:"from"`
+	HandledAt         *time.Time        `json:"handledAt,omitempty"`
+	HasHtml           bool              `json:"hasHtml"`
+	Helpers           []string          `json:"helpers"`
+	Id                string            `json:"id"`
+	Kind              ReplyDetailKind   `json:"kind"`
+	Preview           string            `json:"preview"`
+	ReceivedAt        time.Time         `json:"receivedAt"`
+	SentAt            *time.Time        `json:"sentAt,omitempty"`
+	Source            *ReplySource      `json:"source,omitempty"`
+	Spam              bool              `json:"spam"`
+	Status            ReplyDetailStatus `json:"status"`
+	Subject           string            `json:"subject"`
+	Text              string            `json:"text"`
+	To                string            `json:"to"`
+	UnsubscribeReason *string           `json:"unsubscribeReason,omitempty"`
+}
+
+// ReplyDetailKind defines model for ReplyDetail.Kind.
+type ReplyDetailKind string
+
+// ReplyDetailStatus defines model for ReplyDetail.Status.
+type ReplyDetailStatus string
+
+// ReplyList defines model for ReplyList.
+type ReplyList struct {
+	CanManage  bool            `json:"canManage"`
+	Counts     ReplyCounts     `json:"counts"`
+	Domain     *string         `json:"domain,omitempty"`
+	Items      []ReplyListItem `json:"items"`
+	NextCursor *string         `json:"nextCursor,omitempty"`
+	Receiving  bool            `json:"receiving"`
+}
+
+// ReplyListItem defines model for ReplyListItem.
+type ReplyListItem struct {
+	AsksUnsubscribe bool                `json:"asksUnsubscribe"`
+	AutoReply       bool                `json:"autoReply"`
+	ContactId       *string             `json:"contactId,omitempty"`
+	From            ReplyPerson         `json:"from"`
+	Id              string              `json:"id"`
+	Kind            ReplyListItemKind   `json:"kind"`
+	Preview         string              `json:"preview"`
+	ReceivedAt      time.Time           `json:"receivedAt"`
+	Source          *ReplySource        `json:"source,omitempty"`
+	Spam            bool                `json:"spam"`
+	Status          ReplyListItemStatus `json:"status"`
+	Subject         string              `json:"subject"`
+}
+
+// ReplyListItemKind defines model for ReplyListItem.Kind.
+type ReplyListItemKind string
+
+// ReplyListItemStatus defines model for ReplyListItem.Status.
+type ReplyListItemStatus string
+
+// ReplyPerson defines model for ReplyPerson.
+type ReplyPerson struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+// ReplySource defines model for ReplySource.
+type ReplySource struct {
+	Id   string          `json:"id"`
+	Name string          `json:"name"`
+	Type ReplySourceType `json:"type"`
+}
+
+// ReplySourceType defines model for ReplySource.Type.
+type ReplySourceType string
+
 // ReportABTest defines model for ReportABTest.
 type ReportABTest struct {
 	BarMax       float64          `json:"barMax"`
@@ -47206,6 +50083,7 @@ type ReviewCampaign struct {
 	AutosavedAt   *time.Time              `json:"autosavedAt,omitempty"`
 	Editable      bool                    `json:"editable"`
 	From          string                  `json:"from"`
+	Holdout       *ReviewHoldout          `json:"holdout,omitempty"`
 	Id            string                  `json:"id"`
 	Name          string                  `json:"name"`
 	Preheader     string                  `json:"preheader"`
@@ -47272,6 +50150,12 @@ type ReviewHoldReason struct {
 
 // ReviewHoldReasonKind defines model for ReviewHoldReason.Kind.
 type ReviewHoldReasonKind string
+
+// ReviewHoldout defines model for ReviewHoldout.
+type ReviewHoldout struct {
+	Included bool    `json:"included"`
+	Percent  float64 `json:"percent"`
+}
 
 // ReviewScheduled defines model for ReviewScheduled.
 type ReviewScheduled struct {
@@ -48335,6 +51219,7 @@ type SenderDefaults struct {
 	DefaultSenderId       string                      `json:"defaultSenderId"`
 	FooterAddress         string                      `json:"footerAddress"`
 	ListUnsubscribeMailto bool                        `json:"listUnsubscribeMailto"`
+	Receiving             bool                        `json:"receiving"`
 	ReplyHandling         SenderDefaultsReplyHandling `json:"replyHandling"`
 	ReplyOptions          []string                    `json:"replyOptions"`
 	ReplyTo               string                      `json:"replyTo"`
@@ -48611,13 +51496,14 @@ type SendingRuleTrigger struct {
 
 // SendingRulesView defines model for SendingRulesView.
 type SendingRulesView struct {
-	CanManage    bool          `json:"canManage"`
-	Defaults     SendDefaults  `json:"defaults"`
-	Managers     []string      `json:"managers"`
-	MarketingCap MarketingCap  `json:"marketingCap"`
-	Reason       *string       `json:"reason,omitempty"`
-	Rules        []SendingRule `json:"rules"`
-	SunsetDays   int64         `json:"sunsetDays"`
+	CanManage    bool            `json:"canManage"`
+	Defaults     SendDefaults    `json:"defaults"`
+	Holdout      HoldoutSettings `json:"holdout"`
+	Managers     []string        `json:"managers"`
+	MarketingCap MarketingCap    `json:"marketingCap"`
+	Reason       *string         `json:"reason,omitempty"`
+	Rules        []SendingRule   `json:"rules"`
+	SunsetDays   int64           `json:"sunsetDays"`
 }
 
 // SettingsProviderCard defines model for SettingsProviderCard.
@@ -48756,6 +51642,68 @@ type SignupFormKind string
 // SignupFormStatus defines model for SignupForm.Status.
 type SignupFormStatus string
 
+// SignupFormABEndInput defines model for SignupFormABEndInput.
+type SignupFormABEndInput struct {
+	Keep SignupFormABEndInputKeep `json:"keep"`
+}
+
+// SignupFormABEndInputKeep defines model for SignupFormABEndInput.Keep.
+type SignupFormABEndInputKeep string
+
+// SignupFormABInput defines model for SignupFormABInput.
+type SignupFormABInput struct {
+	// AutoEnd End the test on its own, keeping the winner, once one is clear
+	AutoEnd    bool    `json:"autoEnd"`
+	Confidence float64 `json:"confidence"`
+
+	// MinViews Views each variant needs before a winner can be called
+	MinViews int64                    `json:"minViews"`
+	Variants []SignupFormVariantInput `json:"variants"`
+}
+
+// SignupFormABResult defines model for SignupFormABResult.
+type SignupFormABResult struct {
+	AutoEnd     bool                       `json:"autoEnd"`
+	Confidence  float64                    `json:"confidence"`
+	DoubleOptIn bool                       `json:"doubleOptIn"`
+	EndedAt     *time.Time                 `json:"endedAt,omitempty"`
+	FewestViews int64                      `json:"fewestViews"`
+	Leader      *string                    `json:"leader,omitempty"`
+	Lift        float64                    `json:"lift"`
+	MinViews    int64                      `json:"minViews"`
+	Outcome     *SignupFormABResultOutcome `json:"outcome,omitempty"`
+	RunnerUp    *string                    `json:"runnerUp,omitempty"`
+
+	// StartedOn The first day counted, in the workspace's time zone
+	StartedOn *openapi_types.Date      `json:"startedOn,omitempty"`
+	Status    SignupFormABResultStatus `json:"status"`
+
+	// TargetConfidence What a winner needs, 0.95 for 95%
+	TargetConfidence float64               `json:"targetConfidence"`
+	Variants         []SignupFormABVariant `json:"variants"`
+	Winner           *string               `json:"winner,omitempty"`
+}
+
+// SignupFormABResultOutcome defines model for SignupFormABResult.Outcome.
+type SignupFormABResultOutcome string
+
+// SignupFormABResultStatus defines model for SignupFormABResult.Status.
+type SignupFormABResultStatus string
+
+// SignupFormABVariant defines model for SignupFormABVariant.
+type SignupFormABVariant struct {
+	Confirmed   int64                     `json:"confirmed"`
+	Content     *SignupFormVariantContent `json:"content,omitempty"`
+	Key         SignupFormABVariantKey    `json:"key"`
+	Rate        float64                   `json:"rate"`
+	Submissions int64                     `json:"submissions"`
+	Views       int64                     `json:"views"`
+	Weight      int64                     `json:"weight"`
+}
+
+// SignupFormABVariantKey defines model for SignupFormABVariant.Key.
+type SignupFormABVariantKey string
+
 // SignupFormBlockedOrigin defines model for SignupFormBlockedOrigin.
 type SignupFormBlockedOrigin struct {
 	Count  int64     `json:"count"`
@@ -48763,6 +51711,12 @@ type SignupFormBlockedOrigin struct {
 
 	// Origin Example: staging.acme.io
 	Origin string `json:"origin"`
+}
+
+// SignupFormChoiceOption defines model for SignupFormChoiceOption.
+type SignupFormChoiceOption struct {
+	Label string `json:"label"`
+	Tag   string `json:"tag"`
 }
 
 // SignupFormConfirmLink defines model for SignupFormConfirmLink.
@@ -48801,10 +51755,12 @@ type SignupFormContent struct {
 	PopupRepeatDays int64 `json:"popupRepeatDays"`
 
 	// PopupScroll Percent of the page scrolled before a popup opens; 0 is off
-	PopupScroll       int64   `json:"popupScroll"`
-	SmsConsent        *bool   `json:"smsConsent,omitempty"`
-	SmsConsentText    *string `json:"smsConsentText,omitempty"`
-	SmsConsentVersion *int64  `json:"smsConsentVersion,omitempty"`
+	PopupScroll       int64                `json:"popupScroll"`
+	SmsConsent        *bool                `json:"smsConsent,omitempty"`
+	SmsConsentText    *string              `json:"smsConsentText,omitempty"`
+	SmsConsentVersion *int64               `json:"smsConsentVersion,omitempty"`
+	Steps             *[]SignupFormStep    `json:"steps,omitempty"`
+	Targeting         *SignupFormTargeting `json:"targeting,omitempty"`
 }
 
 // SignupFormCopy defines model for SignupFormCopy.
@@ -48823,6 +51779,8 @@ type SignupFormCopy struct {
 	FormId        string                     `json:"formId"`
 	LanguageMode  SignupFormCopyLanguageMode `json:"languageMode"`
 	Languages     []SignupFormCopyLanguage   `json:"languages"`
+	Options       []SignupFormCopyString     `json:"options"`
+	Steps         []SignupFormCopyString     `json:"steps"`
 }
 
 // SignupFormCopyLanguageMode defines model for SignupFormCopy.LanguageMode.
@@ -48869,16 +51827,35 @@ type SignupFormCopyLanguage struct {
 // SignupFormCopyLanguageStatus defines model for SignupFormCopyLanguage.Status.
 type SignupFormCopyLanguageStatus string
 
+// SignupFormCopyString defines model for SignupFormCopyString.
+type SignupFormCopyString struct {
+	Key string `json:"key"`
+
+	// Source The text in the form's own language
+	Source string `json:"source"`
+}
+
 // SignupFormCopyText defines model for SignupFormCopyText.
 type SignupFormCopyText struct {
 	// AfterSubmit What the form says after a signup
-	AfterSubmit string            `json:"afterSubmit"`
-	Button      string            `json:"button"`
-	ConsentText string            `json:"consentText"`
-	Description string            `json:"description"`
-	Fields      map[string]string `json:"fields"`
-	Heading     string            `json:"heading"`
+	AfterSubmit string             `json:"afterSubmit"`
+	Button      string             `json:"button"`
+	ConsentText string             `json:"consentText"`
+	Description string             `json:"description"`
+	Fields      map[string]string  `json:"fields"`
+	Heading     string             `json:"heading"`
+	Options     *map[string]string `json:"options,omitempty"`
+	Steps       *map[string]string `json:"steps,omitempty"`
 }
+
+// SignupFormCountries defines model for SignupFormCountries.
+type SignupFormCountries struct {
+	Codes []string                `json:"codes"`
+	Mode  SignupFormCountriesMode `json:"mode"`
+}
+
+// SignupFormCountriesMode defines model for SignupFormCountries.Mode.
+type SignupFormCountriesMode string
 
 // SignupFormCreateInput defines model for SignupFormCreateInput.
 type SignupFormCreateInput struct {
@@ -48902,13 +51879,23 @@ type SignupFormCustomFieldType string
 
 // SignupFormField defines model for SignupFormField.
 type SignupFormField struct {
-	// Key email, first_name, last_name, company or a custom field key
+	// Key email, first_name, last_name, company, a custom field key, or a choice question's own key
 	Key string `json:"key"`
 
-	// Label Shown above the input; empty uses the field's name
-	Label    string `json:"label"`
-	Required bool   `json:"required"`
+	// Label Shown above the input; empty uses the field's name (a choice question needs its question)
+	Label string `json:"label"`
+
+	// Multiple A choice question that takes several answers
+	Multiple *bool `json:"multiple,omitempty"`
+
+	// Options A choice question's answers (2 to 12)
+	Options  *[]SignupFormChoiceOption `json:"options,omitempty"`
+	Required bool                      `json:"required"`
+	Type     *SignupFormFieldType      `json:"type,omitempty"`
 }
+
+// SignupFormFieldType defines model for SignupFormField.Type.
+type SignupFormFieldType string
 
 // SignupFormInput defines model for SignupFormInput.
 type SignupFormInput struct {
@@ -48959,10 +51946,47 @@ type SignupFormOriginInput struct {
 	Origin string `json:"origin"`
 }
 
+// SignupFormPageRule defines model for SignupFormPageRule.
+type SignupFormPageRule struct {
+	Op SignupFormPageRuleOp `json:"op"`
+
+	// Value Example: /pricing
+	Value string `json:"value"`
+}
+
+// SignupFormPageRuleOp defines model for SignupFormPageRule.Op.
+type SignupFormPageRuleOp string
+
+// SignupFormPageRules defines model for SignupFormPageRules.
+type SignupFormPageRules struct {
+	Mode  SignupFormPageRulesMode `json:"mode"`
+	Rules []SignupFormPageRule    `json:"rules"`
+}
+
+// SignupFormPageRulesMode defines model for SignupFormPageRules.Mode.
+type SignupFormPageRulesMode string
+
 // SignupFormRenameInput defines model for SignupFormRenameInput.
 type SignupFormRenameInput struct {
 	Name string `json:"name"`
 }
+
+// SignupFormSchedule defines model for SignupFormSchedule.
+type SignupFormSchedule struct {
+	EndsAt   *time.Time `json:"endsAt,omitempty"`
+	StartsAt *time.Time `json:"startsAt,omitempty"`
+}
+
+// SignupFormSources defines model for SignupFormSources.
+type SignupFormSources struct {
+	Referrer    SignupFormSourcesReferrer `json:"referrer"`
+	UtmCampaign []string                  `json:"utmCampaign"`
+	UtmMedium   []string                  `json:"utmMedium"`
+	UtmSource   []string                  `json:"utmSource"`
+}
+
+// SignupFormSourcesReferrer defines model for SignupFormSources.Referrer.
+type SignupFormSourcesReferrer string
 
 // SignupFormSpam defines model for SignupFormSpam.
 type SignupFormSpam struct {
@@ -48986,10 +52010,12 @@ type SignupFormStats struct {
 	Days          int64   `json:"days"`
 
 	// Pending Double opt-in confirmations not clicked yet
-	Pending        int64   `json:"pending"`
-	SubmissionRate float64 `json:"submissionRate"`
-	Submissions    int64   `json:"submissions"`
-	Views          int64   `json:"views"`
+	Pending        int64                `json:"pending"`
+	StepSignups    int64                `json:"stepSignups"`
+	Steps          []SignupFormStepStat `json:"steps"`
+	SubmissionRate float64              `json:"submissionRate"`
+	Submissions    int64                `json:"submissions"`
+	Views          int64                `json:"views"`
 }
 
 // SignupFormStatusInput defines model for SignupFormStatusInput.
@@ -48999,6 +52025,24 @@ type SignupFormStatusInput struct {
 
 // SignupFormStatusInputStatus defines model for SignupFormStatusInput.Status.
 type SignupFormStatusInputStatus string
+
+// SignupFormStep defines model for SignupFormStep.
+type SignupFormStep struct {
+	Button      *string  `json:"button,omitempty"`
+	Description *string  `json:"description,omitempty"`
+	Fields      []string `json:"fields"`
+	Heading     *string  `json:"heading,omitempty"`
+
+	// Id s1 to s4, kept when steps move so their translations stay
+	Id string `json:"id"`
+}
+
+// SignupFormStepStat defines model for SignupFormStepStat.
+type SignupFormStepStat struct {
+	// Step 1 to 4
+	Step  int64 `json:"step"`
+	Views int64 `json:"views"`
+}
 
 // SignupFormSummary defines model for SignupFormSummary.
 type SignupFormSummary struct {
@@ -49020,6 +52064,27 @@ type SignupFormSummaryKind string
 // SignupFormSummaryStatus defines model for SignupFormSummary.Status.
 type SignupFormSummaryStatus string
 
+// SignupFormTargeting defines model for SignupFormTargeting.
+type SignupFormTargeting struct {
+	Countries SignupFormCountries `json:"countries"`
+
+	// Devices None: every device
+	Devices   []SignupFormTargetingDevices `json:"devices"`
+	Pages     SignupFormPageRules          `json:"pages"`
+	Schedule  SignupFormSchedule           `json:"schedule"`
+	SegmentId *string                      `json:"segmentId,omitempty"`
+	Sources   SignupFormSources            `json:"sources"`
+
+	// Visitors Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
+	Visitors SignupFormTargetingVisitors `json:"visitors"`
+}
+
+// SignupFormTargetingDevices defines model for SignupFormTargeting.Devices.
+type SignupFormTargetingDevices string
+
+// SignupFormTargetingVisitors Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
+type SignupFormTargetingVisitors string
+
 // SignupFormURLs defines model for SignupFormURLs.
 type SignupFormURLs struct {
 	Hosted   string `json:"hosted"`
@@ -49027,6 +52092,32 @@ type SignupFormURLs struct {
 	ScriptKb int64  `json:"scriptKb"`
 	Submit   string `json:"submit"`
 }
+
+// SignupFormVariantContent defines model for SignupFormVariantContent.
+type SignupFormVariantContent struct {
+	AfterSubmitText *string `json:"afterSubmitText,omitempty"`
+	Button          string  `json:"button"`
+	Description     string  `json:"description"`
+	Heading         string  `json:"heading"`
+	PopupDelay      int64   `json:"popupDelay"`
+	PopupExit       *bool   `json:"popupExit,omitempty"`
+	PopupScroll     int64   `json:"popupScroll"`
+
+	// Steps Omitted or one step: everything at once
+	Steps *[]SignupFormStep `json:"steps,omitempty"`
+}
+
+// SignupFormVariantInput defines model for SignupFormVariantInput.
+type SignupFormVariantInput struct {
+	Content *SignupFormVariantContent `json:"content,omitempty"`
+	Key     SignupFormVariantInputKey `json:"key"`
+
+	// Weight Percent of visitors; the variants add up to 100
+	Weight int64 `json:"weight"`
+}
+
+// SignupFormVariantInputKey defines model for SignupFormVariantInput.Key.
+type SignupFormVariantInputKey string
 
 // SignupFormWaiting defines model for SignupFormWaiting.
 type SignupFormWaiting struct {
@@ -49056,6 +52147,7 @@ type SignupFormsOverview struct {
 	CustomFields   []SignupFormCustomField `json:"customFields"`
 	Domain         PublicCustomDomain      `json:"domain"`
 	Forms          []SignupFormSummary     `json:"forms"`
+	Geoip          bool                    `json:"geoip"`
 	HostedFormId   string                  `json:"hostedFormId"`
 	HostedUrl      string                  `json:"hostedUrl"`
 	Lists          []SignupFormList        `json:"lists"`
@@ -49073,21 +52165,33 @@ type SlotInput struct {
 	// Currency ISO 4217; the workspace's currency when absent.
 	Currency *string `json:"currency,omitempty"`
 
+	// Description What the sponsor page says about the slot.
+	Description *string `json:"description,omitempty"`
+
 	// EveryDays 7 when absent (weekly).
 	EveryDays   *int64 `json:"everyDays,omitempty"`
 	FirstNumber int64  `json:"firstNumber"`
 
 	// FirstOn The date of issue FirstNumber, in the workspace's time zone.
 	FirstOn openapi_types.Date `json:"firstOn"`
-	ListId  openapi_types.UUID `json:"listId"`
-	Name    string             `json:"name"`
+
+	// LeadDays Sponsors book at least this many days ahead (7 for a new slot when absent).
+	LeadDays *int64             `json:"leadDays,omitempty"`
+	ListId   openapi_types.UUID `json:"listId"`
+	Name     string             `json:"name"`
+
+	// PayDays Sponsors pay within this many days of the approval (3 for a new slot when absent).
+	PayDays *int64 `json:"payDays,omitempty"`
 
 	// Placement Where it sits in the issue ("After the first story").
 	Placement *string `json:"placement,omitempty"`
 
 	// PriceCents The default price of a booking, in minor units.
 	PriceCents int64 `json:"priceCents"`
-	Selling    *bool `json:"selling,omitempty"`
+
+	// SelfServe Sponsors can book it from the sponsor page (off for a new slot when absent).
+	SelfServe *bool `json:"selfServe,omitempty"`
+	Selling   *bool `json:"selling,omitempty"`
 }
 
 // SmsAudienceRef defines model for SmsAudienceRef.
@@ -50764,6 +53868,7 @@ type SponsorBookingBrief struct {
 	HoldUntil      *time.Time                        `json:"holdUntil,omitempty"`
 	Id             string                            `json:"id"`
 	Payment        SponsorPayment                    `json:"payment"`
+	PaymentDueAt   *time.Time                        `json:"paymentDueAt,omitempty"`
 	PriceCents     int64                             `json:"priceCents"`
 	Proposal       *SponsorPropose                   `json:"proposal,omitempty"`
 	ResultsFinalAt *time.Time                        `json:"resultsFinalAt,omitempty"`
@@ -50790,6 +53895,7 @@ type SponsorBookingDetail struct {
 	CreativeDue    *time.Time                         `json:"creativeDue,omitempty"`
 	CreativeStatus SponsorBookingDetailCreativeStatus `json:"creativeStatus"`
 	Currency       string                             `json:"currency"`
+	DeclinedReason *string                            `json:"declinedReason,omitempty"`
 	Helpers        []string                           `json:"helpers"`
 	HoldUntil      *time.Time                         `json:"holdUntil,omitempty"`
 	Id             string                             `json:"id"`
@@ -50800,11 +53906,13 @@ type SponsorBookingDetail struct {
 	ListName       string                             `json:"listName"`
 	Notes          string                             `json:"notes"`
 	Payment        SponsorPayment                     `json:"payment"`
+	PaymentDueAt   *time.Time                         `json:"paymentDueAt,omitempty"`
 	Placement      string                             `json:"placement"`
 	PriceCents     int64                              `json:"priceCents"`
 	Proposal       *SponsorPropose                    `json:"proposal,omitempty"`
 	ReadyAt        *time.Time                         `json:"readyAt,omitempty"`
 	Report         *SponsorReport                     `json:"report,omitempty"`
+	Request        *SponsorRequestFrom                `json:"request,omitempty"`
 	Shares         []SponsorShareLink                 `json:"shares"`
 	SlotId         string                             `json:"slotId"`
 	SlotName       string                             `json:"slotName"`
@@ -50897,29 +54005,54 @@ type SponsorIssueRow struct {
 	Number   int64                `json:"number"`
 	Past     bool                 `json:"past"`
 	Proposal *SponsorPropose      `json:"proposal,omitempty"`
+	Requests int64                `json:"requests"`
 	SlotId   string               `json:"slotId"`
 	SlotName string               `json:"slotName"`
 }
 
 // SponsorItem defines model for SponsorItem.
 type SponsorItem struct {
-	BookedCents    int64    `json:"bookedCents"`
-	ClickRate      *float64 `json:"clickRate,omitempty"`
-	ClickRateIssue *int64   `json:"clickRateIssue,omitempty"`
-	ContactEmail   string   `json:"contactEmail"`
-	ContactName    string   `json:"contactName"`
-	Currency       string   `json:"currency"`
-	Hold           []int64  `json:"hold"`
-	HoldCents      int64    `json:"holdCents"`
-	Id             string   `json:"id"`
-	Initials       string   `json:"initials"`
-	Issues         []int64  `json:"issues"`
-	LogoUrl        string   `json:"logoUrl"`
-	Name           string   `json:"name"`
-	Notes          string   `json:"notes"`
-	PaidCents      int64    `json:"paidCents"`
-	TermsDays      int64    `json:"termsDays"`
-	Website        string   `json:"website"`
+	Awaiting       []int64    `json:"awaiting"`
+	AwaitingCents  int64      `json:"awaitingCents"`
+	AwaitingDue    *time.Time `json:"awaitingDue,omitempty"`
+	BookedCents    int64      `json:"bookedCents"`
+	ClickRate      *float64   `json:"clickRate,omitempty"`
+	ClickRateIssue *int64     `json:"clickRateIssue,omitempty"`
+	ContactEmail   string     `json:"contactEmail"`
+	ContactName    string     `json:"contactName"`
+	Currency       string     `json:"currency"`
+	FromRequest    []int64    `json:"fromRequest"`
+	Hold           []int64    `json:"hold"`
+	HoldCents      int64      `json:"holdCents"`
+	Id             string     `json:"id"`
+	Initials       string     `json:"initials"`
+	Issues         []int64    `json:"issues"`
+	LogoUrl        string     `json:"logoUrl"`
+	Name           string     `json:"name"`
+	Notes          string     `json:"notes"`
+	PaidCents      int64      `json:"paidCents"`
+	Requests       int64      `json:"requests"`
+	StripePaidOn   *time.Time `json:"stripePaidOn,omitempty"`
+	TermsDays      int64      `json:"termsDays"`
+	Website        string     `json:"website"`
+}
+
+// SponsorKitStats defines model for SponsorKitStats.
+type SponsorKitStats struct {
+	ClickRate   *float64 `json:"clickRate,omitempty"`
+	ListId      string   `json:"listId"`
+	ListName    string   `json:"listName"`
+	OpenRate    *float64 `json:"openRate,omitempty"`
+	Subscribers int64    `json:"subscribers"`
+}
+
+// SponsorMediaKit defines model for SponsorMediaKit.
+type SponsorMediaKit struct {
+	About       string `json:"about"`
+	Audience    string `json:"audience"`
+	ClickRate   bool   `json:"clickRate"`
+	OpenRate    bool   `json:"openRate"`
+	Subscribers bool   `json:"subscribers"`
 }
 
 // SponsorNotice defines model for SponsorNotice.
@@ -50950,6 +54083,7 @@ type SponsorOverview struct {
 	Notices   []SponsorNotice      `json:"notices"`
 	Past      []SponsorIssueRow    `json:"past"`
 	Range     SponsorOverviewRange `json:"range"`
+	Requests  int64                `json:"requests"`
 	SlotId    string               `json:"slotId"`
 	Slots     []SponsorSlotItem    `json:"slots"`
 	Tiles     SponsorTiles         `json:"tiles"`
@@ -50967,8 +54101,12 @@ type SponsorPayment struct {
 	PaidOn     *time.Time           `json:"paidOn,omitempty"`
 	RecordedAt *time.Time           `json:"recordedAt,omitempty"`
 	RecordedBy *string              `json:"recordedBy,omitempty"`
+	Source     SponsorPaymentSource `json:"source"`
 	Status     SponsorPaymentStatus `json:"status"`
 }
+
+// SponsorPaymentSource defines model for SponsorPayment.Source.
+type SponsorPaymentSource string
 
 // SponsorPaymentStatus defines model for SponsorPayment.Status.
 type SponsorPaymentStatus string
@@ -51031,6 +54169,161 @@ type SponsorReportLink struct {
 // SponsorReportLinkKind defines model for SponsorReportLink.Kind.
 type SponsorReportLinkKind string
 
+// SponsorRequestDetail defines model for SponsorRequestDetail.
+type SponsorRequestDetail struct {
+	Activity       []SponsorBookingEvent           `json:"activity"`
+	ApprovedAt     *time.Time                      `json:"approvedAt,omitempty"`
+	ApprovedBy     *string                         `json:"approvedBy,omitempty"`
+	CanManage      bool                            `json:"canManage"`
+	ClosedAt       *time.Time                      `json:"closedAt,omitempty"`
+	Company        string                          `json:"company"`
+	Creative       SponsorCreative                 `json:"creative"`
+	Currency       string                          `json:"currency"`
+	DeclinedReason *string                         `json:"declinedReason,omitempty"`
+	Email          string                          `json:"email"`
+	Files          []SponsorRequestFile            `json:"files"`
+	HeldBy         *string                         `json:"heldBy,omitempty"`
+	HeldUntil      *time.Time                      `json:"heldUntil,omitempty"`
+	Helpers        []string                        `json:"helpers"`
+	Id             string                          `json:"id"`
+	Initials       string                          `json:"initials"`
+	Issue          int64                           `json:"issue"`
+	IssueOn        time.Time                       `json:"issueOn"`
+	IssueState     SponsorRequestDetailIssueState  `json:"issueState"`
+	Label          string                          `json:"label"`
+	ListName       string                          `json:"listName"`
+	Logo           *string                         `json:"logo,omitempty"`
+	Name           string                          `json:"name"`
+	Notes          string                          `json:"notes"`
+	PaidOn         *time.Time                      `json:"paidOn,omitempty"`
+	PaidSource     *SponsorRequestDetailPaidSource `json:"paidSource,omitempty"`
+	PayDays        int64                           `json:"payDays"`
+	PaymentDueAt   *time.Time                      `json:"paymentDueAt,omitempty"`
+	PriceCents     int64                           `json:"priceCents"`
+	SlotDeleted    bool                            `json:"slotDeleted"`
+	SlotId         string                          `json:"slotId"`
+	SlotName       string                          `json:"slotName"`
+	Slots          []SponsorRequestSlot            `json:"slots"`
+	Sponsor        *SponsorRef                     `json:"sponsor,omitempty"`
+	Status         SponsorRequestDetailStatus      `json:"status"`
+	SubmittedAt    time.Time                       `json:"submittedAt"`
+	Website        string                          `json:"website"`
+}
+
+// SponsorRequestDetailIssueState defines model for SponsorRequestDetail.IssueState.
+type SponsorRequestDetailIssueState string
+
+// SponsorRequestDetailPaidSource defines model for SponsorRequestDetail.PaidSource.
+type SponsorRequestDetailPaidSource string
+
+// SponsorRequestDetailStatus defines model for SponsorRequestDetail.Status.
+type SponsorRequestDetailStatus string
+
+// SponsorRequestFile defines model for SponsorRequestFile.
+type SponsorRequestFile struct {
+	Kind      SponsorRequestFileKind `json:"kind"`
+	Name      string                 `json:"name"`
+	SizeBytes int64                  `json:"sizeBytes"`
+	Url       string                 `json:"url"`
+}
+
+// SponsorRequestFileKind defines model for SponsorRequestFile.Kind.
+type SponsorRequestFileKind string
+
+// SponsorRequestFrom defines model for SponsorRequestFrom.
+type SponsorRequestFrom struct {
+	ApprovedAt *time.Time `json:"approvedAt,omitempty"`
+	ApprovedBy *string    `json:"approvedBy,omitempty"`
+	At         time.Time  `json:"at"`
+	Company    string     `json:"company"`
+	Email      string     `json:"email"`
+	Name       string     `json:"name"`
+	Notes      string     `json:"notes"`
+	Website    string     `json:"website"`
+}
+
+// SponsorRequestIssue defines model for SponsorRequestIssue.
+type SponsorRequestIssue struct {
+	HeldBy       *string    `json:"heldBy,omitempty"`
+	HeldUntil    *time.Time `json:"heldUntil,omitempty"`
+	IssueOn      time.Time  `json:"issueOn"`
+	Number       int64      `json:"number"`
+	PaymentDueAt time.Time  `json:"paymentDueAt"`
+	Taken        bool       `json:"taken"`
+}
+
+// SponsorRequestItem defines model for SponsorRequestItem.
+type SponsorRequestItem struct {
+	ClosedAt       *time.Time                    `json:"closedAt,omitempty"`
+	Company        string                        `json:"company"`
+	Currency       string                        `json:"currency"`
+	DeclinedReason *string                       `json:"declinedReason,omitempty"`
+	Email          string                        `json:"email"`
+	HeldBy         *string                       `json:"heldBy,omitempty"`
+	HeldUntil      *time.Time                    `json:"heldUntil,omitempty"`
+	Id             string                        `json:"id"`
+	Issue          int64                         `json:"issue"`
+	IssueOn        time.Time                     `json:"issueOn"`
+	IssueState     SponsorRequestItemIssueState  `json:"issueState"`
+	ListName       string                        `json:"listName"`
+	Name           string                        `json:"name"`
+	PaidOn         *time.Time                    `json:"paidOn,omitempty"`
+	PaidSource     *SponsorRequestItemPaidSource `json:"paidSource,omitempty"`
+	PaymentDueAt   *time.Time                    `json:"paymentDueAt,omitempty"`
+	PriceCents     int64                         `json:"priceCents"`
+	SlotDeleted    bool                          `json:"slotDeleted"`
+	SlotId         string                        `json:"slotId"`
+	SlotName       string                        `json:"slotName"`
+	Sponsor        *SponsorRef                   `json:"sponsor,omitempty"`
+	Status         SponsorRequestItemStatus      `json:"status"`
+	SubmittedAt    time.Time                     `json:"submittedAt"`
+}
+
+// SponsorRequestItemIssueState defines model for SponsorRequestItem.IssueState.
+type SponsorRequestItemIssueState string
+
+// SponsorRequestItemPaidSource defines model for SponsorRequestItem.PaidSource.
+type SponsorRequestItemPaidSource string
+
+// SponsorRequestItemStatus defines model for SponsorRequestItem.Status.
+type SponsorRequestItemStatus string
+
+// SponsorRequestList defines model for SponsorRequestList.
+type SponsorRequestList struct {
+	CanManage bool                 `json:"canManage"`
+	Helpers   []string             `json:"helpers"`
+	Items     []SponsorRequestItem `json:"items"`
+	PageUrl   string               `json:"pageUrl"`
+	SelfServe bool                 `json:"selfServe"`
+}
+
+// SponsorRequestSlot defines model for SponsorRequestSlot.
+type SponsorRequestSlot struct {
+	CreativeDays int64                 `json:"creativeDays"`
+	Currency     string                `json:"currency"`
+	Id           string                `json:"id"`
+	Issues       []SponsorRequestIssue `json:"issues"`
+	ListName     string                `json:"listName"`
+	Name         string                `json:"name"`
+	PayDays      int64                 `json:"payDays"`
+	PriceCents   int64                 `json:"priceCents"`
+}
+
+// SponsorSelfServe defines model for SponsorSelfServe.
+type SponsorSelfServe struct {
+	CanManage         bool              `json:"canManage"`
+	ContactEmail      string            `json:"contactEmail"`
+	Helpers           []string          `json:"helpers"`
+	MediaKit          SponsorMediaKit   `json:"mediaKit"`
+	PageUrl           string            `json:"pageUrl"`
+	PaymentsConnected bool              `json:"paymentsConnected"`
+	PaymentsTest      bool              `json:"paymentsTest"`
+	SelfServe         bool              `json:"selfServe"`
+	Slots             int64             `json:"slots"`
+	Stats             []SponsorKitStats `json:"stats"`
+	UpdatedAt         *time.Time        `json:"updatedAt,omitempty"`
+}
+
 // SponsorShareLink defines model for SponsorShareLink.
 type SponsorShareLink struct {
 	CreatedAt    time.Time  `json:"createdAt"`
@@ -51053,15 +54346,19 @@ type SponsorSlotItem struct {
 	Bookings     int64     `json:"bookings"`
 	CreativeDays int64     `json:"creativeDays"`
 	Currency     string    `json:"currency"`
+	Description  string    `json:"description"`
 	EveryDays    int64     `json:"everyDays"`
 	FirstNumber  int64     `json:"firstNumber"`
 	FirstOn      time.Time `json:"firstOn"`
 	Id           string    `json:"id"`
+	LeadDays     int64     `json:"leadDays"`
 	ListId       string    `json:"listId"`
 	ListName     string    `json:"listName"`
 	Name         string    `json:"name"`
+	PayDays      int64     `json:"payDays"`
 	Placement    string    `json:"placement"`
 	PriceCents   int64     `json:"priceCents"`
+	SelfServe    bool      `json:"selfServe"`
 	Selling      bool      `json:"selling"`
 	Weekday      *string   `json:"weekday,omitempty"`
 }
@@ -51717,6 +55014,81 @@ type TeamRoleRef struct {
 	Key     string `json:"key"`
 	Name    string `json:"name"`
 }
+
+// TrackerRecentEvent defines model for TrackerRecentEvent.
+type TrackerRecentEvent struct {
+	At   time.Time              `json:"at"`
+	Kind TrackerRecentEventKind `json:"kind"`
+
+	// Known A known contact's, else a visitor's
+	Known        bool   `json:"known"`
+	Name         string `json:"name"`
+	Path         string `json:"path"`
+	ProductTitle string `json:"productTitle"`
+}
+
+// TrackerRecentEventKind defines model for TrackerRecentEvent.Kind.
+type TrackerRecentEventKind string
+
+// TrackerRecentEvents defines model for TrackerRecentEvents.
+type TrackerRecentEvents struct {
+	Items []TrackerRecentEvent `json:"items"`
+}
+
+// TrackerRefusal defines model for TrackerRefusal.
+type TrackerRefusal struct {
+	Count  int64     `json:"count"`
+	LastAt time.Time `json:"lastAt"`
+	Origin string    `json:"origin"`
+}
+
+// TrackerSite defines model for TrackerSite.
+type TrackerSite struct {
+	CreatedAt time.Time `json:"createdAt"`
+	CreatedBy string    `json:"createdBy"`
+
+	// EventsToday Events since midnight in the workspace's time zone
+	EventsToday       int64              `json:"eventsToday"`
+	HasIdentifySecret bool               `json:"hasIdentifySecret"`
+	Id                openapi_types.UUID `json:"id"`
+	LastEventAt       *time.Time         `json:"lastEventAt,omitempty"`
+	Name              string             `json:"name"`
+
+	// Origin Example: https://shop.acme.io
+	Origin string `json:"origin"`
+
+	// Refused Origins refused in the last 24 hours, most refused first
+	Refused     []TrackerRefusal    `json:"refused"`
+	Snippet     TrackerSnippet      `json:"snippet"`
+	Store       *TrackerStoreOption `json:"store,omitempty"`
+	WaitConsent bool                `json:"waitConsent"`
+}
+
+// TrackerSiteList defines model for TrackerSiteList.
+type TrackerSiteList struct {
+	CanManage bool                 `json:"canManage"`
+	Helpers   []string             `json:"helpers"`
+	Items     []TrackerSite        `json:"items"`
+	ScriptUrl string               `json:"scriptUrl"`
+	Stores    []TrackerStoreOption `json:"stores"`
+}
+
+// TrackerSnippet defines model for TrackerSnippet.
+type TrackerSnippet struct {
+	Script       string `json:"script"`
+	ShopifyPixel string `json:"shopifyPixel"`
+	Wordpress    string `json:"wordpress"`
+}
+
+// TrackerStoreOption defines model for TrackerStoreOption.
+type TrackerStoreOption struct {
+	Id       openapi_types.UUID         `json:"id"`
+	Name     string                     `json:"name"`
+	Platform TrackerStoreOptionPlatform `json:"platform"`
+}
+
+// TrackerStoreOptionPlatform defines model for TrackerStoreOption.Platform.
+type TrackerStoreOptionPlatform string
 
 // TrafficAction defines model for TrafficAction.
 type TrafficAction struct {
@@ -54337,6 +57709,9 @@ type WebsiteAbout struct {
 // WebsiteAccess defines model for WebsiteAccess.
 type WebsiteAccess struct {
 	CampaignVisibility WebsiteAccessCampaignVisibility `json:"campaignVisibility"`
+	Comments           WebsiteAccessComments           `json:"comments"`
+	CommentsReview     WebsiteAccessCommentsReview     `json:"commentsReview"`
+	CommentsWaiting    int64                           `json:"commentsWaiting"`
 	DefaultVisibility  WebsiteAccessDefaultVisibility  `json:"defaultVisibility"`
 	LinkMinutes        int64                           `json:"linkMinutes"`
 	Lists              []WebsiteAccessList             `json:"lists"`
@@ -54346,6 +57721,7 @@ type WebsiteAccess struct {
 	MeterMembersOn     bool                            `json:"meterMembersOn"`
 	MeterVisitors      int64                           `json:"meterVisitors"`
 	MeterVisitorsOn    bool                            `json:"meterVisitorsOn"`
+	Moderators         []string                        `json:"moderators"`
 	NeverFree          []WebsiteNeverFreePost          `json:"neverFree"`
 	PaidPosts          int64                           `json:"paidPosts"`
 	Payments           WebsitePayments                 `json:"payments"`
@@ -54364,6 +57740,12 @@ type WebsiteAccess struct {
 
 // WebsiteAccessCampaignVisibility defines model for WebsiteAccess.CampaignVisibility.
 type WebsiteAccessCampaignVisibility string
+
+// WebsiteAccessComments defines model for WebsiteAccess.Comments.
+type WebsiteAccessComments string
+
+// WebsiteAccessCommentsReview defines model for WebsiteAccess.CommentsReview.
+type WebsiteAccessCommentsReview string
 
 // WebsiteAccessDefaultVisibility defines model for WebsiteAccess.DefaultVisibility.
 type WebsiteAccessDefaultVisibility string
@@ -54497,6 +57879,81 @@ type WebsiteCertificate struct {
 
 // WebsiteCertificateStatus defines model for WebsiteCertificate.Status.
 type WebsiteCertificateStatus string
+
+// WebsiteComment defines model for WebsiteComment.
+type WebsiteComment struct {
+	Blocked     bool                      `json:"blocked"`
+	Body        string                    `json:"body"`
+	By          *string                   `json:"by,omitempty"`
+	ContactId   *string                   `json:"contactId,omitempty"`
+	CreatedAt   time.Time                 `json:"createdAt"`
+	EditedAt    *time.Time                `json:"editedAt,omitempty"`
+	Email       *string                   `json:"email,omitempty"`
+	FirstReply  *WebsiteCommentReply      `json:"firstReply,omitempty"`
+	HeldReason  *WebsiteCommentHeldReason `json:"heldReason,omitempty"`
+	Id          string                    `json:"id"`
+	Links       int64                     `json:"links"`
+	ModeratedAt *time.Time                `json:"moderatedAt,omitempty"`
+	ModeratedBy *string                   `json:"moderatedBy,omitempty"`
+	Name        string                    `json:"name"`
+	ParentId    *string                   `json:"parentId,omitempty"`
+	ParentName  *string                   `json:"parentName,omitempty"`
+	Pinned      bool                      `json:"pinned"`
+	PostId      string                    `json:"postId"`
+	PostTitle   string                    `json:"postTitle"`
+	PublishedAt *time.Time                `json:"publishedAt,omitempty"`
+	Replies     int64                     `json:"replies"`
+	Status      WebsiteCommentStatus      `json:"status"`
+	Team        bool                      `json:"team"`
+	Url         string                    `json:"url"`
+}
+
+// WebsiteCommentHeldReason defines model for WebsiteComment.HeldReason.
+type WebsiteCommentHeldReason string
+
+// WebsiteCommentStatus defines model for WebsiteComment.Status.
+type WebsiteCommentStatus string
+
+// WebsiteCommentCounts defines model for WebsiteCommentCounts.
+type WebsiteCommentCounts struct {
+	Hidden    int64 `json:"hidden"`
+	Pending   int64 `json:"pending"`
+	Published int64 `json:"published"`
+}
+
+// WebsiteCommentList defines model for WebsiteCommentList.
+type WebsiteCommentList struct {
+	Comments        WebsiteCommentListComments `json:"comments"`
+	Counts          WebsiteCommentCounts       `json:"counts"`
+	Items           []WebsiteComment           `json:"items"`
+	NextCursor      *string                    `json:"nextCursor,omitempty"`
+	Posts           []WebsiteCommentPost       `json:"posts"`
+	Publication     string                     `json:"publication"`
+	PublicationMark string                     `json:"publicationMark"`
+	Review          WebsiteCommentListReview   `json:"review"`
+}
+
+// WebsiteCommentListComments defines model for WebsiteCommentList.Comments.
+type WebsiteCommentListComments string
+
+// WebsiteCommentListReview defines model for WebsiteCommentList.Review.
+type WebsiteCommentListReview string
+
+// WebsiteCommentPost defines model for WebsiteCommentPost.
+type WebsiteCommentPost struct {
+	Comments int64  `json:"comments"`
+	Id       string `json:"id"`
+	Title    string `json:"title"`
+}
+
+// WebsiteCommentReply defines model for WebsiteCommentReply.
+type WebsiteCommentReply struct {
+	Body      string    `json:"body"`
+	By        *string   `json:"by,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	Name      string    `json:"name"`
+	Team      bool      `json:"team"`
+}
 
 // WebsiteContactCard defines model for WebsiteContactCard.
 type WebsiteContactCard struct {
@@ -54806,6 +58263,9 @@ type WebsitePost struct {
 	Bylines          []WebsiteByline        `json:"bylines"`
 	Campaign         *WebsitePostCampaign   `json:"campaign,omitempty"`
 	Checks           []WebsiteWebCheck      `json:"checks"`
+	Comments         int64                  `json:"comments"`
+	CommentsOff      bool                   `json:"commentsOff"`
+	CommentsPending  int64                  `json:"commentsPending"`
 	CoverAlt         string                 `json:"coverAlt"`
 	CoverUrl         string                 `json:"coverUrl"`
 	CreatedBy        string                 `json:"createdBy"`
@@ -54918,6 +58378,7 @@ type WebsitePostCreate struct {
 type WebsitePostInput struct {
 	BylineName   *string                     `json:"bylineName,omitempty"`
 	BylineUserId *string                     `json:"bylineUserId,omitempty"`
+	CommentsOff  *bool                       `json:"commentsOff,omitempty"`
 	CoverAlt     string                      `json:"coverAlt"`
 	CoverUrl     string                      `json:"coverUrl"`
 	Excerpt      string                      `json:"excerpt"`
@@ -54973,6 +58434,8 @@ type WebsitePostRow struct {
 	Approval        *WebsitePostApproval      `json:"approval,omitempty"`
 	Byline          WebsiteByline             `json:"byline"`
 	Campaign        *WebsitePostCampaign      `json:"campaign,omitempty"`
+	Comments        int64                     `json:"comments"`
+	CommentsPending int64                     `json:"commentsPending"`
 	CreatedBy       string                    `json:"createdBy"`
 	Excerpt         string                    `json:"excerpt"`
 	Featured        bool                      `json:"featured"`
@@ -56727,6 +60190,18 @@ type ExportGrowthParams struct {
 // ExportGrowthParamsPeriod defines parameters for ExportGrowth.
 type ExportGrowthParamsPeriod string
 
+// GetHoldoutResultsParams defines parameters for GetHoldoutResults.
+type GetHoldoutResultsParams struct {
+	// Period A period's id; the newest by default
+	Period *openapi_types.UUID `form:"period,omitempty" json:"period,omitempty"`
+
+	// Window The whole period (default) or its last 30 or 90 days
+	Window *GetHoldoutResultsParamsWindow `form:"window,omitempty" json:"window,omitempty"`
+}
+
+// GetHoldoutResultsParamsWindow defines parameters for GetHoldoutResults.
+type GetHoldoutResultsParamsWindow string
+
 // GetImportFieldsParams defines parameters for GetImportFields.
 type GetImportFieldsParams struct {
 	// Guesses Guess every target again instead of returning the saved mapping
@@ -56976,6 +60451,25 @@ type ListPushEventsParams struct {
 	Before *time.Time `form:"before,omitempty" json:"before,omitempty"`
 	Limit  *int64     `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// ListRepliesParams defines parameters for ListReplies.
+type ListRepliesParams struct {
+	View *ListRepliesParamsView `form:"view,omitempty" json:"view,omitempty"`
+
+	// Campaign Only replies to this campaign
+	Campaign *openapi_types.UUID `form:"campaign,omitempty" json:"campaign,omitempty"`
+
+	// Automation Only replies to this flow's emails
+	Automation *openapi_types.UUID `form:"automation,omitempty" json:"automation,omitempty"`
+
+	// Q Search the sender and subject
+	Q      *string `form:"q,omitempty" json:"q,omitempty"`
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int64  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListRepliesParamsView defines parameters for ListReplies.
+type ListRepliesParamsView string
 
 // SearchWorkspaceParams defines parameters for SearchWorkspace.
 type SearchWorkspaceParams struct {
@@ -57301,6 +60795,27 @@ type ListWebhookDeliveriesParams struct {
 // ListWebhookDeliveriesParamsState defines parameters for ListWebhookDeliveries.
 type ListWebhookDeliveriesParamsState string
 
+// ListWebsiteCommentsParams defines parameters for ListWebsiteComments.
+type ListWebsiteCommentsParams struct {
+	// Status The tab: waiting for review (the default), published or hidden
+	Status *ListWebsiteCommentsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Post A post's id
+	Post *string `form:"post,omitempty" json:"post,omitempty"`
+
+	// Q Words in the comment, the commenter's name or address
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// Cursor nextCursor of the page before
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Comments per page (50 by default)
+	Limit *int64 `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListWebsiteCommentsParamsStatus defines parameters for ListWebsiteComments.
+type ListWebsiteCommentsParamsStatus string
+
 // ListWebsitePostsParams defines parameters for ListWebsitePosts.
 type ListWebsitePostsParams struct {
 	// Status A status (all by default)
@@ -57531,6 +61046,9 @@ type SaveCampaignWebJSONRequestBody = WebsitePostInput
 // RenderStoreBlockJSONRequestBody defines body for RenderStoreBlock for application/json ContentType.
 type RenderStoreBlockJSONRequestBody = CommerceBlockRenderInput
 
+// CreateStockRequestJSONRequestBody defines body for CreateStockRequest for application/json ContentType.
+type CreateStockRequestJSONRequestBody = CommerceStockRequestInput
+
 // StartProviderSetupJSONRequestBody defines body for StartProviderSetup for application/json ContentType.
 type StartProviderSetupJSONRequestBody = ConnectSetupInput
 
@@ -57612,6 +61130,9 @@ type SuppressContactJSONRequestBody = ContactSuppressInput
 // CreateConversionJSONRequestBody defines body for CreateConversion for application/json ContentType.
 type CreateConversionJSONRequestBody = ConversionInput
 
+// CreateCountdownJSONRequestBody defines body for CreateCountdown for application/json ContentType.
+type CreateCountdownJSONRequestBody = CountdownSettings
+
 // RequestDelistingJSONRequestBody defines body for RequestDelisting for application/json ContentType.
 type RequestDelistingJSONRequestBody = DeliverabilityDelistInputBody
 
@@ -57671,6 +61192,12 @@ type CreateSignupFormJSONRequestBody = SignupFormCreateInput
 
 // UpdateSignupFormJSONRequestBody defines body for UpdateSignupForm for application/json ContentType.
 type UpdateSignupFormJSONRequestBody = SignupFormInput
+
+// SaveSignupFormAbTestJSONRequestBody defines body for SaveSignupFormAbTest for application/json ContentType.
+type SaveSignupFormAbTestJSONRequestBody = SignupFormABInput
+
+// EndSignupFormAbTestJSONRequestBody defines body for EndSignupFormAbTest for application/json ContentType.
+type EndSignupFormAbTestJSONRequestBody = SignupFormABEndInput
 
 // AllowSignupFormOriginJSONRequestBody defines body for AllowSignupFormOrigin for application/json ContentType.
 type AllowSignupFormOriginJSONRequestBody = SignupFormOriginInput
@@ -59641,18 +63168,18 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links (the `ListCampaignReviewLinks` operationId).
 	ListCampaignReviewLinks(ctx context.Context, workspace string, campaignId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateSendSettingsWithBody Change the auto-pause thresholds or the schedule
+	// UpdateSendSettingsWithBody Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with PATCH /api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings (the `UpdateSendSettings` operationId).
 	UpdateSendSettingsWithBody(ctx context.Context, workspace string, campaignId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateSendSettings Change the auto-pause thresholds or the schedule
+	// UpdateSendSettings Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -59856,6 +63383,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/commerce/revenue (the `GetStoreRevenue` operationId).
 	GetStoreRevenue(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateStockRequestWithBody Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequestWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateStockRequest Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequest(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetStoreTriggerOptions The store triggers' stores, products and collections
 	//
@@ -60451,6 +63996,39 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/conversions/export (the `ExportConversions` operationId).
 	ExportConversions(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateCountdownWithBody The image of a Countdown block's settings
+	//
+	// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+	CreateCountdownWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateCountdown The image of a Countdown block's settings
+	//
+	// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+	CreateCountdown(ctx context.Context, workspace string, body CreateCountdownJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCouponPools List discount code pools with their numbers (never their codes)
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools (the `ListCouponPools` operationId).
+	ListCouponPools(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCouponPool A discount code pool: numbers, settings, the latest batch and what uses it
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools/{pool} (the `GetCouponPool` operationId).
+	GetCouponPool(ctx context.Context, workspace string, pool openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCouponSources The connected stores a pool can create codes in, and why a store can't
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/sources (the `ListCouponSources` operationId).
+	ListCouponSources(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetDeliverability Domain, IP and provider health, blocklists, Postmaster, SNDS, DMARC and incidents
 	//
@@ -61104,6 +64682,49 @@ type ClientInterface interface {
 	// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form} (the `UpdateSignupForm` operationId).
 	UpdateSignupForm(ctx context.Context, workspace string, form openapi_types.UUID, body UpdateSignupFormJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetSignupFormAbTest Get a signup form's A/B test and its results
+	//
+	// Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/forms/{form}/ab (the `GetSignupFormAbTest` operationId).
+	GetSignupFormAbTest(ctx context.Context, workspace string, form openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SaveSignupFormAbTestWithBody Start or change a signup form's A/B test
+	//
+	// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+	SaveSignupFormAbTestWithBody(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SaveSignupFormAbTest Start or change a signup form's A/B test
+	//
+	// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+	SaveSignupFormAbTest(ctx context.Context, workspace string, form openapi_types.UUID, body SaveSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// EndSignupFormAbTestWithBody End a signup form's A/B test, keeping one variant
+	//
+	// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+	EndSignupFormAbTestWithBody(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// EndSignupFormAbTest End a signup form's A/B test, keeping one variant
+	//
+	// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+	EndSignupFormAbTest(ctx context.Context, workspace string, form openapi_types.UUID, body EndSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// AllowSignupFormOriginWithBody Allow a site to submit a form
 	//
 	// Takes any type of body and a specified content type.
@@ -61450,6 +65071,20 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/workspaces/{workspace}/growth/sources (the `ListGrowthSources` operationId).
 	ListGrowthSources(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// MeasureHoldout Recompute the holdout group's results
+	//
+	// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+	MeasureHoldout(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetHoldoutResults What marketing added, measured against the holdout group
+	//
+	// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+	GetHoldoutResults(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListImports Import history and the draft the wizard resumes
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/imports (the `ListImports` operationId).
@@ -61595,6 +65230,11 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/workspaces/{workspace}/imports/{id}/start (the `StartImport` operationId).
 	StartImport(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInboundRoute Get how the workspace receives mail
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/inbound (the `GetInboundRoute` operationId).
+	GetInboundRoute(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetIntegrations Settings › Integrations: HostRepute, webhooks, MCP, Postmaster and SNDS
 	//
@@ -61774,6 +65414,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/languages/{code}/removal (the `GetLanguageRemoval` operationId).
 	GetLanguageRemoval(ctx context.Context, workspace string, code string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListLeadAdsConnections The workspace's Meta Lead Ads connections
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections (the `ListLeadAdsConnections` operationId).
+	ListLeadAdsConnections(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetLeadAdsConnection A Meta connection: how leads arrive, its Pages and forms
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id} (the `GetLeadAdsConnection` operationId).
+	GetLeadAdsConnection(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListLeadAdsActivity The connection's last 50 leads: when, which form, what happened and the contact (no answers)
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id}/activity (the `ListLeadAdsActivity` operationId).
+	ListLeadAdsActivity(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetLeadAdsForm A lead form's questions, consent checkboxes and mapping (read from Meta when it answers)
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/forms/{formId} (the `GetLeadAdsForm` operationId).
+	GetLeadAdsForm(ctx context.Context, workspace string, formId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetLeadAdsSetup What connecting Meta Lead Ads needs: the token's permissions and whether Meta can reach this server
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/setup (the `GetLeadAdsSetup` operationId).
+	GetLeadAdsSetup(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListLists Lists with their sizes
 	//
@@ -63029,6 +66694,16 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/workspaces/{workspace}/rendering-service/test (the `TestRenderingService` operationId).
 	TestRenderingService(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListReplies List replies and other received mail
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/replies (the `ListReplies` operationId).
+	ListReplies(ctx context.Context, workspace string, params *ListRepliesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetReply Get a reply
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/replies/{id} (the `GetReply` operationId).
+	GetReply(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListRoles List roles with members, and the permission catalogue
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/roles (the `ListRoles` operationId).
@@ -64017,10 +67692,25 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/workspaces/{workspace}/sponsor-bookings/{id}/shares (the `CreateSponsorBookingShare` operationId).
 	CreateSponsorBookingShare(ctx context.Context, workspace string, id openapi_types.UUID, body CreateSponsorBookingShareJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetSponsorPageSettings The sponsor page's settings: self-serve booking, its media kit and address
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-page (the `GetSponsorPageSettings` operationId).
+	GetSponsorPageSettings(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// RevokeSponsorShare Revoke a sponsor report's read-only link
 	//
 	// Corresponds with DELETE /api/v1/workspaces/{workspace}/sponsor-report-shares/{id} (the `RevokeSponsorShare` operationId).
 	RevokeSponsorShare(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSponsorRequests The sponsor page's requests: waiting for review, approved and waiting for payment, recently declined or expired
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests (the `ListSponsorRequests` operationId).
+	ListSponsorRequests(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetSponsorRequest A request from the sponsor page: who sent it, its creative and where it can be booked
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests/{id} (the `GetSponsorRequest` operationId).
+	GetSponsorRequest(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateSponsorSlotWithBody Add a slot: a placement in each issue of a list
 	//
@@ -64407,6 +68097,20 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/templates/{templateId}/preview (the `PreviewTemplate` operationId).
 	PreviewTemplate(ctx context.Context, workspace string, templateId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListTrackerSites List the sites the tracker runs on
+	//
+	// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+	ListTrackerSites(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TrackerSiteRecentEvents A tracked site's last 20 events
+	//
+	// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+	TrackerSiteRecentEvents(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTrackingChecks Provider-side open and click tracking per provider
 	//
@@ -65232,6 +68936,11 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/website/access (the `GetWebsiteAccess` operationId).
 	GetWebsiteAccess(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWebsiteComments Website › Comments: comments waiting for review, published or hidden
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/website/comments (the `ListWebsiteComments` operationId).
+	ListWebsiteComments(ctx context.Context, workspace string, params *ListWebsiteCommentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetWebsiteHomeNav Website › Home & navigation
 	//
@@ -68964,9 +72673,9 @@ func (c *Client) ListCampaignReviewLinks(ctx context.Context, workspace string, 
 	return c.Client.Do(req)
 }
 
-// UpdateSendSettingsWithBody Change the auto-pause thresholds or the schedule
+// UpdateSendSettingsWithBody Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes any type of body and a specified content type.
 //
@@ -68983,9 +72692,9 @@ func (c *Client) UpdateSendSettingsWithBody(ctx context.Context, workspace strin
 	return c.Client.Do(req)
 }
 
-// UpdateSendSettings Change the auto-pause thresholds or the schedule
+// UpdateSendSettings Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -69470,6 +73179,44 @@ func (c *Client) GetStoreCatalog(ctx context.Context, workspace string, reqEdito
 // Corresponds with GET /api/v1/workspaces/{workspace}/commerce/revenue (the `GetStoreRevenue` operationId).
 func (c *Client) GetStoreRevenue(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetStoreRevenueRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateStockRequestWithBody Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *Client) CreateStockRequestWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateStockRequestRequestWithBody(c.Server, workspace, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateStockRequest Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *Client) CreateStockRequest(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateStockRequestRequest(c.Server, workspace, body)
 	if err != nil {
 		return nil, err
 	}
@@ -70955,6 +74702,89 @@ func (c *Client) CreateConversion(ctx context.Context, workspace string, params 
 // Corresponds with GET /api/v1/workspaces/{workspace}/conversions/export (the `ExportConversions` operationId).
 func (c *Client) ExportConversions(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewExportConversionsRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateCountdownWithBody The image of a Countdown block's settings
+//
+// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+func (c *Client) CreateCountdownWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCountdownRequestWithBody(c.Server, workspace, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateCountdown The image of a Countdown block's settings
+//
+// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+func (c *Client) CreateCountdown(ctx context.Context, workspace string, body CreateCountdownJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCountdownRequest(c.Server, workspace, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListCouponPools List discount code pools with their numbers (never their codes)
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools (the `ListCouponPools` operationId).
+func (c *Client) ListCouponPools(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCouponPoolsRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetCouponPool A discount code pool: numbers, settings, the latest batch and what uses it
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools/{pool} (the `GetCouponPool` operationId).
+func (c *Client) GetCouponPool(ctx context.Context, workspace string, pool openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCouponPoolRequest(c.Server, workspace, pool)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListCouponSources The connected stores a pool can create codes in, and why a store can't
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/sources (the `ListCouponSources` operationId).
+func (c *Client) ListCouponSources(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCouponSourcesRequest(c.Server, workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -72637,6 +76467,99 @@ func (c *Client) UpdateSignupForm(ctx context.Context, workspace string, form op
 	return c.Client.Do(req)
 }
 
+// GetSignupFormAbTest Get a signup form's A/B test and its results
+//
+// Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/forms/{form}/ab (the `GetSignupFormAbTest` operationId).
+func (c *Client) GetSignupFormAbTest(ctx context.Context, workspace string, form openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSignupFormAbTestRequest(c.Server, workspace, form)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SaveSignupFormAbTestWithBody Start or change a signup form's A/B test
+//
+// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+func (c *Client) SaveSignupFormAbTestWithBody(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSaveSignupFormAbTestRequestWithBody(c.Server, workspace, form, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SaveSignupFormAbTest Start or change a signup form's A/B test
+//
+// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+func (c *Client) SaveSignupFormAbTest(ctx context.Context, workspace string, form openapi_types.UUID, body SaveSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSaveSignupFormAbTestRequest(c.Server, workspace, form, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// EndSignupFormAbTestWithBody End a signup form's A/B test, keeping one variant
+//
+// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+func (c *Client) EndSignupFormAbTestWithBody(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEndSignupFormAbTestRequestWithBody(c.Server, workspace, form, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// EndSignupFormAbTest End a signup form's A/B test, keeping one variant
+//
+// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+func (c *Client) EndSignupFormAbTest(ctx context.Context, workspace string, form openapi_types.UUID, body EndSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEndSignupFormAbTestRequest(c.Server, workspace, form, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // AllowSignupFormOriginWithBody Allow a site to submit a form
 //
 // Takes any type of body and a specified content type.
@@ -73523,6 +77446,40 @@ func (c *Client) ListGrowthSources(ctx context.Context, workspace string, reqEdi
 	return c.Client.Do(req)
 }
 
+// MeasureHoldout Recompute the holdout group's results
+//
+// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+func (c *Client) MeasureHoldout(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMeasureHoldoutRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetHoldoutResults What marketing added, measured against the holdout group
+//
+// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+func (c *Client) GetHoldoutResults(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHoldoutResultsRequest(c.Server, workspace, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListImports Import history and the draft the wizard resumes
 //
 // Corresponds with GET /api/v1/workspaces/{workspace}/imports (the `ListImports` operationId).
@@ -73899,6 +77856,21 @@ func (c *Client) StageImport(ctx context.Context, workspace string, id openapi_t
 // Corresponds with POST /api/v1/workspaces/{workspace}/imports/{id}/start (the `StartImport` operationId).
 func (c *Client) StartImport(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewStartImportRequest(c.Server, workspace, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInboundRoute Get how the workspace receives mail
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/inbound (the `GetInboundRoute` operationId).
+func (c *Client) GetInboundRoute(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInboundRouteRequest(c.Server, workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -74368,6 +78340,81 @@ func (c *Client) RemoveWorkspaceLanguage(ctx context.Context, workspace string, 
 // Corresponds with GET /api/v1/workspaces/{workspace}/languages/{code}/removal (the `GetLanguageRemoval` operationId).
 func (c *Client) GetLanguageRemoval(ctx context.Context, workspace string, code string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetLanguageRemovalRequest(c.Server, workspace, code)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListLeadAdsConnections The workspace's Meta Lead Ads connections
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections (the `ListLeadAdsConnections` operationId).
+func (c *Client) ListLeadAdsConnections(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListLeadAdsConnectionsRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetLeadAdsConnection A Meta connection: how leads arrive, its Pages and forms
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id} (the `GetLeadAdsConnection` operationId).
+func (c *Client) GetLeadAdsConnection(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLeadAdsConnectionRequest(c.Server, workspace, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListLeadAdsActivity The connection's last 50 leads: when, which form, what happened and the contact (no answers)
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id}/activity (the `ListLeadAdsActivity` operationId).
+func (c *Client) ListLeadAdsActivity(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListLeadAdsActivityRequest(c.Server, workspace, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetLeadAdsForm A lead form's questions, consent checkboxes and mapping (read from Meta when it answers)
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/forms/{formId} (the `GetLeadAdsForm` operationId).
+func (c *Client) GetLeadAdsForm(ctx context.Context, workspace string, formId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLeadAdsFormRequest(c.Server, workspace, formId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetLeadAdsSetup What connecting Meta Lead Ads needs: the token's permissions and whether Meta can reach this server
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/setup (the `GetLeadAdsSetup` operationId).
+func (c *Client) GetLeadAdsSetup(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLeadAdsSetupRequest(c.Server, workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -77532,6 +81579,36 @@ func (c *Client) TestRenderingService(ctx context.Context, workspace string, req
 	return c.Client.Do(req)
 }
 
+// ListReplies List replies and other received mail
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/replies (the `ListReplies` operationId).
+func (c *Client) ListReplies(ctx context.Context, workspace string, params *ListRepliesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRepliesRequest(c.Server, workspace, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetReply Get a reply
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/replies/{id} (the `GetReply` operationId).
+func (c *Client) GetReply(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetReplyRequest(c.Server, workspace, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListRoles List roles with members, and the permission catalogue
 //
 // Corresponds with GET /api/v1/workspaces/{workspace}/roles (the `ListRoles` operationId).
@@ -79960,11 +84037,56 @@ func (c *Client) CreateSponsorBookingShare(ctx context.Context, workspace string
 	return c.Client.Do(req)
 }
 
+// GetSponsorPageSettings The sponsor page's settings: self-serve booking, its media kit and address
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-page (the `GetSponsorPageSettings` operationId).
+func (c *Client) GetSponsorPageSettings(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSponsorPageSettingsRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // RevokeSponsorShare Revoke a sponsor report's read-only link
 //
 // Corresponds with DELETE /api/v1/workspaces/{workspace}/sponsor-report-shares/{id} (the `RevokeSponsorShare` operationId).
 func (c *Client) RevokeSponsorShare(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRevokeSponsorShareRequest(c.Server, workspace, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListSponsorRequests The sponsor page's requests: waiting for review, approved and waiting for payment, recently declined or expired
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests (the `ListSponsorRequests` operationId).
+func (c *Client) ListSponsorRequests(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSponsorRequestsRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetSponsorRequest A request from the sponsor page: who sent it, its creative and where it can be booked
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests/{id} (the `GetSponsorRequest` operationId).
+func (c *Client) GetSponsorRequest(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSponsorRequestRequest(c.Server, workspace, id)
 	if err != nil {
 		return nil, err
 	}
@@ -80951,6 +85073,40 @@ func (c *Client) UpdateTemplate(ctx context.Context, workspace string, templateI
 // Corresponds with GET /api/v1/workspaces/{workspace}/templates/{templateId}/preview (the `PreviewTemplate` operationId).
 func (c *Client) PreviewTemplate(ctx context.Context, workspace string, templateId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPreviewTemplateRequest(c.Server, workspace, templateId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListTrackerSites List the sites the tracker runs on
+//
+// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+func (c *Client) ListTrackerSites(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTrackerSitesRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TrackerSiteRecentEvents A tracked site's last 20 events
+//
+// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+func (c *Client) TrackerSiteRecentEvents(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTrackerSiteRecentEventsRequest(c.Server, workspace, site)
 	if err != nil {
 		return nil, err
 	}
@@ -82986,6 +87142,21 @@ func (c *Client) GetWebsite(ctx context.Context, workspace string, reqEditors ..
 // Corresponds with GET /api/v1/workspaces/{workspace}/website/access (the `GetWebsiteAccess` operationId).
 func (c *Client) GetWebsiteAccess(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetWebsiteAccessRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListWebsiteComments Website › Comments: comments waiting for review, published or hidden
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/website/comments (the `ListWebsiteComments` operationId).
+func (c *Client) ListWebsiteComments(ctx context.Context, workspace string, params *ListWebsiteCommentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWebsiteCommentsRequest(c.Server, workspace, params)
 	if err != nil {
 		return nil, err
 	}
@@ -92911,6 +97082,53 @@ func NewGetStoreRevenueRequest(server string, workspace string) (*http.Request, 
 	return req, nil
 }
 
+// NewCreateStockRequestRequest calls the generic CreateStockRequest builder with application/json body
+func NewCreateStockRequestRequest(server string, workspace string, body CreateStockRequestJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateStockRequestRequestWithBody(server, workspace, "application/json", bodyReader)
+}
+
+// NewCreateStockRequestRequestWithBody constructs an http.Request for the CreateStockRequest method, with any body, and a specified content type
+func NewCreateStockRequestRequestWithBody(server string, workspace string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/commerce/stock-requests", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetStoreTriggerOptionsRequest constructs an http.Request for the GetStoreTriggerOptions method
 func NewGetStoreTriggerOptionsRequest(server string, workspace string) (*http.Request, error) {
 	var err error
@@ -96302,6 +100520,162 @@ func NewExportConversionsRequest(server string, workspace string) (*http.Request
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/conversions/export", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateCountdownRequest calls the generic CreateCountdown builder with application/json body
+func NewCreateCountdownRequest(server string, workspace string, body CreateCountdownJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateCountdownRequestWithBody(server, workspace, "application/json", bodyReader)
+}
+
+// NewCreateCountdownRequestWithBody constructs an http.Request for the CreateCountdown method, with any body, and a specified content type
+func NewCreateCountdownRequestWithBody(server string, workspace string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/countdowns", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListCouponPoolsRequest constructs an http.Request for the ListCouponPools method
+func NewListCouponPoolsRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/coupons/pools", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCouponPoolRequest constructs an http.Request for the GetCouponPool method
+func NewGetCouponPoolRequest(server string, workspace string, pool openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "pool", pool, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/coupons/pools/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListCouponSourcesRequest constructs an http.Request for the ListCouponSources method
+func NewListCouponSourcesRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/coupons/sources", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -100480,6 +104854,155 @@ func NewUpdateSignupFormRequestWithBody(server string, workspace string, form op
 	return req, nil
 }
 
+// NewGetSignupFormAbTestRequest constructs an http.Request for the GetSignupFormAbTest method
+func NewGetSignupFormAbTestRequest(server string, workspace string, form openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "form", form, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/forms/%s/ab", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSaveSignupFormAbTestRequest calls the generic SaveSignupFormAbTest builder with application/json body
+func NewSaveSignupFormAbTestRequest(server string, workspace string, form openapi_types.UUID, body SaveSignupFormAbTestJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSaveSignupFormAbTestRequestWithBody(server, workspace, form, "application/json", bodyReader)
+}
+
+// NewSaveSignupFormAbTestRequestWithBody constructs an http.Request for the SaveSignupFormAbTest method, with any body, and a specified content type
+func NewSaveSignupFormAbTestRequestWithBody(server string, workspace string, form openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "form", form, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/forms/%s/ab", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewEndSignupFormAbTestRequest calls the generic EndSignupFormAbTest builder with application/json body
+func NewEndSignupFormAbTestRequest(server string, workspace string, form openapi_types.UUID, body EndSignupFormAbTestJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewEndSignupFormAbTestRequestWithBody(server, workspace, form, "application/json", bodyReader)
+}
+
+// NewEndSignupFormAbTestRequestWithBody constructs an http.Request for the EndSignupFormAbTest method, with any body, and a specified content type
+func NewEndSignupFormAbTestRequestWithBody(server string, workspace string, form openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "form", form, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/forms/%s/ab/end", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewAllowSignupFormOriginRequest calls the generic AllowSignupFormOrigin builder with application/json body
 func NewAllowSignupFormOriginRequest(server string, workspace string, form openapi_types.UUID, body AllowSignupFormOriginJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -102753,6 +107276,113 @@ func NewListGrowthSourcesRequest(server string, workspace string) (*http.Request
 	return req, nil
 }
 
+// NewMeasureHoldoutRequest constructs an http.Request for the MeasureHoldout method
+func NewMeasureHoldoutRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/holdout/measure", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetHoldoutResultsRequest constructs an http.Request for the GetHoldoutResults method
+func NewGetHoldoutResultsRequest(server string, workspace string, params *GetHoldoutResultsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/holdout/results", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Period != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "period", *params.Period, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Window != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListImportsRequest constructs an http.Request for the ListImports method
 func NewListImportsRequest(server string, workspace string) (*http.Request, error) {
 	var err error
@@ -103673,6 +108303,40 @@ func NewStartImportRequest(server string, workspace string, id openapi_types.UUI
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetInboundRouteRequest constructs an http.Request for the GetInboundRoute method
+func NewGetInboundRouteRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/inbound", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -104727,6 +109391,197 @@ func NewGetLanguageRemovalRequest(server string, workspace string, code string) 
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/languages/%s/removal", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListLeadAdsConnectionsRequest constructs an http.Request for the ListLeadAdsConnections method
+func NewListLeadAdsConnectionsRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/lead-ads/connections", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetLeadAdsConnectionRequest constructs an http.Request for the GetLeadAdsConnection method
+func NewGetLeadAdsConnectionRequest(server string, workspace string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/lead-ads/connections/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListLeadAdsActivityRequest constructs an http.Request for the ListLeadAdsActivity method
+func NewListLeadAdsActivityRequest(server string, workspace string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/lead-ads/connections/%s/activity", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetLeadAdsFormRequest constructs an http.Request for the GetLeadAdsForm method
+func NewGetLeadAdsFormRequest(server string, workspace string, formId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "formId", formId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/lead-ads/forms/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetLeadAdsSetupRequest constructs an http.Request for the GetLeadAdsSetup method
+func NewGetLeadAdsSetupRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/lead-ads/setup", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -111751,6 +116606,168 @@ func NewTestRenderingServiceRequest(server string, workspace string) (*http.Requ
 	return req, nil
 }
 
+// NewListRepliesRequest constructs an http.Request for the ListReplies method
+func NewListRepliesRequest(server string, workspace string, params *ListRepliesParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/replies", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.View != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "view", *params.View, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Campaign != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "campaign", *params.Campaign, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Automation != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "automation", *params.Automation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetReplyRequest constructs an http.Request for the GetReply method
+func NewGetReplyRequest(server string, workspace string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/replies/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListRolesRequest constructs an http.Request for the ListRoles method
 func NewListRolesRequest(server string, workspace string) (*http.Request, error) {
 	var err error
@@ -116253,6 +121270,40 @@ func NewCreateSponsorBookingShareRequestWithBody(server string, workspace string
 	return req, nil
 }
 
+// NewGetSponsorPageSettingsRequest constructs an http.Request for the GetSponsorPageSettings method
+func NewGetSponsorPageSettingsRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/sponsor-page", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewRevokeSponsorShareRequest constructs an http.Request for the RevokeSponsorShare method
 func NewRevokeSponsorShareRequest(server string, workspace string, id openapi_types.UUID) (*http.Request, error) {
 	var err error
@@ -116287,6 +121338,81 @@ func NewRevokeSponsorShareRequest(server string, workspace string, id openapi_ty
 	}
 
 	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListSponsorRequestsRequest constructs an http.Request for the ListSponsorRequests method
+func NewListSponsorRequestsRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/sponsor-requests", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetSponsorRequestRequest constructs an http.Request for the GetSponsorRequest method
+func NewGetSponsorRequestRequest(server string, workspace string, id openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/sponsor-requests/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -118707,6 +123833,81 @@ func NewPreviewTemplateRequest(server string, workspace string, templateId strin
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/templates/%s/preview", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListTrackerSitesRequest constructs an http.Request for the ListTrackerSites method
+func NewListTrackerSitesRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/tracker/sites", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewTrackerSiteRecentEventsRequest constructs an http.Request for the TrackerSiteRecentEvents method
+func NewTrackerSiteRecentEventsRequest(server string, workspace string, site openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "site", site, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/tracker/sites/%s/events/recent", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -123109,6 +128310,115 @@ func NewGetWebsiteAccessRequest(server string, workspace string) (*http.Request,
 	return req, nil
 }
 
+// NewListWebsiteCommentsRequest constructs an http.Request for the ListWebsiteComments method
+func NewListWebsiteCommentsRequest(server string, workspace string, params *ListWebsiteCommentsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/website/comments", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Post != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "post", *params.Post, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Q != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "q", *params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetWebsiteHomeNavRequest constructs an http.Request for the GetWebsiteHomeNav method
 func NewGetWebsiteHomeNavRequest(server string, workspace string) (*http.Request, error) {
 	var err error
@@ -126400,18 +131710,18 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links (the `ListCampaignReviewLinks` operationId).
 	ListCampaignReviewLinksWithResponse(ctx context.Context, workspace string, campaignId openapi_types.UUID, reqEditors ...RequestEditorFn) (*ListCampaignReviewLinksResponse, error)
 
-	// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds or the schedule
+	// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PATCH /api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings (the `UpdateSendSettings` operationId).
 	UpdateSendSettingsWithBodyWithResponse(ctx context.Context, workspace string, campaignId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSendSettingsResponse, error)
 
-	// UpdateSendSettingsWithResponse Change the auto-pause thresholds or the schedule
+	// UpdateSendSettingsWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -126643,6 +131953,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/commerce/revenue (the `GetStoreRevenue` operationId).
 	GetStoreRevenueWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetStoreRevenueResponse, error)
+
+	// CreateStockRequestWithBodyWithResponse Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequestWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error)
+
+	// CreateStockRequestWithResponse Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequestWithResponse(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error)
 
 	// GetStoreTriggerOptionsWithResponse The store triggers' stores, products and collections
 	//
@@ -127308,6 +132636,45 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/conversions/export (the `ExportConversions` operationId).
 	ExportConversionsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ExportConversionsResponse, error)
+
+	// CreateCountdownWithBodyWithResponse The image of a Countdown block's settings
+	//
+	// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+	CreateCountdownWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCountdownResponse, error)
+
+	// CreateCountdownWithResponse The image of a Countdown block's settings
+	//
+	// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+	CreateCountdownWithResponse(ctx context.Context, workspace string, body CreateCountdownJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCountdownResponse, error)
+
+	// ListCouponPoolsWithResponse List discount code pools with their numbers (never their codes)
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools (the `ListCouponPools` operationId).
+	ListCouponPoolsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListCouponPoolsResponse, error)
+
+	// GetCouponPoolWithResponse A discount code pool: numbers, settings, the latest batch and what uses it
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools/{pool} (the `GetCouponPool` operationId).
+	GetCouponPoolWithResponse(ctx context.Context, workspace string, pool openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetCouponPoolResponse, error)
+
+	// ListCouponSourcesWithResponse The connected stores a pool can create codes in, and why a store can't
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/sources (the `ListCouponSources` operationId).
+	ListCouponSourcesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListCouponSourcesResponse, error)
 
 	// GetDeliverabilityWithResponse Domain, IP and provider health, blocklists, Postmaster, SNDS, DMARC and incidents
 	//
@@ -128083,6 +133450,51 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form} (the `UpdateSignupForm` operationId).
 	UpdateSignupFormWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, body UpdateSignupFormJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSignupFormResponse, error)
 
+	// GetSignupFormAbTestWithResponse Get a signup form's A/B test and its results
+	//
+	// Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/forms/{form}/ab (the `GetSignupFormAbTest` operationId).
+	GetSignupFormAbTestWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSignupFormAbTestResponse, error)
+
+	// SaveSignupFormAbTestWithBodyWithResponse Start or change a signup form's A/B test
+	//
+	// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+	SaveSignupFormAbTestWithBodyWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSignupFormAbTestResponse, error)
+
+	// SaveSignupFormAbTestWithResponse Start or change a signup form's A/B test
+	//
+	// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+	SaveSignupFormAbTestWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, body SaveSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSignupFormAbTestResponse, error)
+
+	// EndSignupFormAbTestWithBodyWithResponse End a signup form's A/B test, keeping one variant
+	//
+	// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+	EndSignupFormAbTestWithBodyWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EndSignupFormAbTestResponse, error)
+
+	// EndSignupFormAbTestWithResponse End a signup form's A/B test, keeping one variant
+	//
+	// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+	EndSignupFormAbTestWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, body EndSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*EndSignupFormAbTestResponse, error)
+
 	// AllowSignupFormOriginWithBodyWithResponse Allow a site to submit a form
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -128483,6 +133895,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/workspaces/{workspace}/growth/sources (the `ListGrowthSources` operationId).
 	ListGrowthSourcesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListGrowthSourcesResponse, error)
 
+	// MeasureHoldoutWithResponse Recompute the holdout group's results
+	//
+	// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+	MeasureHoldoutWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*MeasureHoldoutResponse, error)
+
+	// GetHoldoutResultsWithResponse What marketing added, measured against the holdout group
+	//
+	// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+	GetHoldoutResultsWithResponse(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*GetHoldoutResultsResponse, error)
+
 	// ListImportsWithResponse Import history and the draft the wizard resumes
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -128654,6 +134084,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/workspaces/{workspace}/imports/{id}/start (the `StartImport` operationId).
 	StartImportWithResponse(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*StartImportResponse, error)
+
+	// GetInboundRouteWithResponse Get how the workspace receives mail
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/inbound (the `GetInboundRoute` operationId).
+	GetInboundRouteWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetInboundRouteResponse, error)
 
 	// GetIntegrationsWithResponse Settings › Integrations: HostRepute, webhooks, MCP, Postmaster and SNDS
 	//
@@ -128871,6 +134308,41 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/languages/{code}/removal (the `GetLanguageRemoval` operationId).
 	GetLanguageRemovalWithResponse(ctx context.Context, workspace string, code string, reqEditors ...RequestEditorFn) (*GetLanguageRemovalResponse, error)
+
+	// ListLeadAdsConnectionsWithResponse The workspace's Meta Lead Ads connections
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections (the `ListLeadAdsConnections` operationId).
+	ListLeadAdsConnectionsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListLeadAdsConnectionsResponse, error)
+
+	// GetLeadAdsConnectionWithResponse A Meta connection: how leads arrive, its Pages and forms
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id} (the `GetLeadAdsConnection` operationId).
+	GetLeadAdsConnectionWithResponse(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*GetLeadAdsConnectionResponse, error)
+
+	// ListLeadAdsActivityWithResponse The connection's last 50 leads: when, which form, what happened and the contact (no answers)
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id}/activity (the `ListLeadAdsActivity` operationId).
+	ListLeadAdsActivityWithResponse(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*ListLeadAdsActivityResponse, error)
+
+	// GetLeadAdsFormWithResponse A lead form's questions, consent checkboxes and mapping (read from Meta when it answers)
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/forms/{formId} (the `GetLeadAdsForm` operationId).
+	GetLeadAdsFormWithResponse(ctx context.Context, workspace string, formId string, reqEditors ...RequestEditorFn) (*GetLeadAdsFormResponse, error)
+
+	// GetLeadAdsSetupWithResponse What connecting Meta Lead Ads needs: the token's permissions and whether Meta can reach this server
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/setup (the `GetLeadAdsSetup` operationId).
+	GetLeadAdsSetupWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetLeadAdsSetupResponse, error)
 
 	// ListListsWithResponse Lists with their sizes
 	//
@@ -130318,6 +135790,20 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/workspaces/{workspace}/rendering-service/test (the `TestRenderingService` operationId).
 	TestRenderingServiceWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*TestRenderingServiceResponse, error)
 
+	// ListRepliesWithResponse List replies and other received mail
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/replies (the `ListReplies` operationId).
+	ListRepliesWithResponse(ctx context.Context, workspace string, params *ListRepliesParams, reqEditors ...RequestEditorFn) (*ListRepliesResponse, error)
+
+	// GetReplyWithResponse Get a reply
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/replies/{id} (the `GetReply` operationId).
+	GetReplyWithResponse(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetReplyResponse, error)
+
 	// ListRolesWithResponse List roles with members, and the permission catalogue
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -131408,12 +136894,33 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/workspaces/{workspace}/sponsor-bookings/{id}/shares (the `CreateSponsorBookingShare` operationId).
 	CreateSponsorBookingShareWithResponse(ctx context.Context, workspace string, id openapi_types.UUID, body CreateSponsorBookingShareJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSponsorBookingShareResponse, error)
 
+	// GetSponsorPageSettingsWithResponse The sponsor page's settings: self-serve booking, its media kit and address
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-page (the `GetSponsorPageSettings` operationId).
+	GetSponsorPageSettingsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetSponsorPageSettingsResponse, error)
+
 	// RevokeSponsorShareWithResponse Revoke a sponsor report's read-only link
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with DELETE /api/v1/workspaces/{workspace}/sponsor-report-shares/{id} (the `RevokeSponsorShare` operationId).
 	RevokeSponsorShareWithResponse(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*RevokeSponsorShareResponse, error)
+
+	// ListSponsorRequestsWithResponse The sponsor page's requests: waiting for review, approved and waiting for payment, recently declined or expired
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests (the `ListSponsorRequests` operationId).
+	ListSponsorRequestsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListSponsorRequestsResponse, error)
+
+	// GetSponsorRequestWithResponse A request from the sponsor page: who sent it, its creative and where it can be booked
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests/{id} (the `GetSponsorRequest` operationId).
+	GetSponsorRequestWithResponse(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSponsorRequestResponse, error)
 
 	// CreateSponsorSlotWithBodyWithResponse Add a slot: a placement in each issue of a list
 	//
@@ -131860,6 +137367,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/templates/{templateId}/preview (the `PreviewTemplate` operationId).
 	PreviewTemplateWithResponse(ctx context.Context, workspace string, templateId string, reqEditors ...RequestEditorFn) (*PreviewTemplateResponse, error)
+
+	// ListTrackerSitesWithResponse List the sites the tracker runs on
+	//
+	// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+	ListTrackerSitesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListTrackerSitesResponse, error)
+
+	// TrackerSiteRecentEventsWithResponse A tracked site's last 20 events
+	//
+	// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+	TrackerSiteRecentEventsWithResponse(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*TrackerSiteRecentEventsResponse, error)
 
 	// ListTrackingChecksWithResponse Provider-side open and click tracking per provider
 	//
@@ -132787,6 +138312,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/website/access (the `GetWebsiteAccess` operationId).
 	GetWebsiteAccessWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetWebsiteAccessResponse, error)
+
+	// ListWebsiteCommentsWithResponse Website › Comments: comments waiting for review, published or hidden
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/website/comments (the `ListWebsiteComments` operationId).
+	ListWebsiteCommentsWithResponse(ctx context.Context, workspace string, params *ListWebsiteCommentsParams, reqEditors ...RequestEditorFn) (*ListWebsiteCommentsResponse, error)
 
 	// GetWebsiteHomeNavWithResponse Website › Home & navigation
 	//
@@ -141386,6 +146918,54 @@ func (r GetStoreRevenueResponse) ContentType() string {
 	return ""
 }
 
+type CreateStockRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CommerceStockRequest
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateStockRequestResponse) GetJSON200() *CommerceStockRequest {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateStockRequestResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateStockRequestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateStockRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateStockRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateStockRequestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetStoreTriggerOptionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -144325,6 +149905,198 @@ func (r ExportConversionsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ExportConversionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateCountdownResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CountdownImage
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateCountdownResponse) GetJSON200() *CountdownImage {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateCountdownResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateCountdownResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateCountdownResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateCountdownResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateCountdownResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListCouponPoolsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CouponPoolList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListCouponPoolsResponse) GetJSON200() *CouponPoolList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListCouponPoolsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListCouponPoolsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCouponPoolsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCouponPoolsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListCouponPoolsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetCouponPoolResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CouponPool
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetCouponPoolResponse) GetJSON200() *CouponPool {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetCouponPoolResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetCouponPoolResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCouponPoolResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCouponPoolResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetCouponPoolResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListCouponSourcesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CouponSourceList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListCouponSourcesResponse) GetJSON200() *CouponSourceList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListCouponSourcesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListCouponSourcesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCouponSourcesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCouponSourcesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListCouponSourcesResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -148274,6 +154046,150 @@ func (r UpdateSignupFormResponse) ContentType() string {
 	return ""
 }
 
+type GetSignupFormAbTestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SignupFormABResult
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSignupFormAbTestResponse) GetJSON200() *SignupFormABResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetSignupFormAbTestResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSignupFormAbTestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSignupFormAbTestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSignupFormAbTestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSignupFormAbTestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SaveSignupFormAbTestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SignupFormABResult
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SaveSignupFormAbTestResponse) GetJSON200() *SignupFormABResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r SaveSignupFormAbTestResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SaveSignupFormAbTestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SaveSignupFormAbTestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SaveSignupFormAbTestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SaveSignupFormAbTestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type EndSignupFormAbTestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SignupFormABResult
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r EndSignupFormAbTestResponse) GetJSON200() *SignupFormABResult {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r EndSignupFormAbTestResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r EndSignupFormAbTestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r EndSignupFormAbTestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r EndSignupFormAbTestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r EndSignupFormAbTestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type AllowSignupFormOriginResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -150244,6 +156160,102 @@ func (r ListGrowthSourcesResponse) ContentType() string {
 	return ""
 }
 
+type MeasureHoldoutResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *HoldoutResults
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r MeasureHoldoutResponse) GetJSON202() *HoldoutResults {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r MeasureHoldoutResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r MeasureHoldoutResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r MeasureHoldoutResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MeasureHoldoutResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MeasureHoldoutResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetHoldoutResultsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *HoldoutResults
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetHoldoutResultsResponse) GetJSON200() *HoldoutResults {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetHoldoutResultsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetHoldoutResultsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHoldoutResultsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHoldoutResultsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetHoldoutResultsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListImportsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -151152,6 +157164,54 @@ func (r StartImportResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r StartImportResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInboundRouteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InboundRouteView
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInboundRouteResponse) GetJSON200() *InboundRouteView {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetInboundRouteResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInboundRouteResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInboundRouteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInboundRouteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInboundRouteResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -152297,6 +158357,246 @@ func (r GetLanguageRemovalResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetLanguageRemovalResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListLeadAdsConnectionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LeadAdsConnectionList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListLeadAdsConnectionsResponse) GetJSON200() *LeadAdsConnectionList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListLeadAdsConnectionsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListLeadAdsConnectionsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListLeadAdsConnectionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListLeadAdsConnectionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListLeadAdsConnectionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetLeadAdsConnectionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LeadAdsConnection
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetLeadAdsConnectionResponse) GetJSON200() *LeadAdsConnection {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetLeadAdsConnectionResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetLeadAdsConnectionResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLeadAdsConnectionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLeadAdsConnectionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetLeadAdsConnectionResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListLeadAdsActivityResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LeadAdsActivity
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListLeadAdsActivityResponse) GetJSON200() *LeadAdsActivity {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListLeadAdsActivityResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListLeadAdsActivityResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListLeadAdsActivityResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListLeadAdsActivityResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListLeadAdsActivityResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetLeadAdsFormResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LeadAdsFormDetail
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetLeadAdsFormResponse) GetJSON200() *LeadAdsFormDetail {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetLeadAdsFormResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetLeadAdsFormResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLeadAdsFormResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLeadAdsFormResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetLeadAdsFormResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetLeadAdsSetupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *LeadAdsSetup
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetLeadAdsSetupResponse) GetJSON200() *LeadAdsSetup {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetLeadAdsSetupResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetLeadAdsSetupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLeadAdsSetupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLeadAdsSetupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetLeadAdsSetupResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -159208,6 +165508,102 @@ func (r TestRenderingServiceResponse) ContentType() string {
 	return ""
 }
 
+type ListRepliesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ReplyList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListRepliesResponse) GetJSON200() *ReplyList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListRepliesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListRepliesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRepliesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRepliesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListRepliesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetReplyResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ReplyDetail
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetReplyResponse) GetJSON200() *ReplyDetail {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetReplyResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetReplyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetReplyResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetReplyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetReplyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListRolesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -163848,6 +170244,54 @@ func (r CreateSponsorBookingShareResponse) ContentType() string {
 	return ""
 }
 
+type GetSponsorPageSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SponsorSelfServe
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSponsorPageSettingsResponse) GetJSON200() *SponsorSelfServe {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetSponsorPageSettingsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSponsorPageSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSponsorPageSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSponsorPageSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSponsorPageSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type RevokeSponsorShareResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -163883,6 +170327,102 @@ func (r RevokeSponsorShareResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r RevokeSponsorShareResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListSponsorRequestsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SponsorRequestList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListSponsorRequestsResponse) GetJSON200() *SponsorRequestList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListSponsorRequestsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListSponsorRequestsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSponsorRequestsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSponsorRequestsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListSponsorRequestsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetSponsorRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SponsorRequestDetail
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSponsorRequestResponse) GetJSON200() *SponsorRequestDetail {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetSponsorRequestResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSponsorRequestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSponsorRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSponsorRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSponsorRequestResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -166083,6 +172623,102 @@ func (r PreviewTemplateResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r PreviewTemplateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListTrackerSitesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TrackerSiteList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListTrackerSitesResponse) GetJSON200() *TrackerSiteList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListTrackerSitesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListTrackerSitesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTrackerSitesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTrackerSitesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListTrackerSitesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TrackerSiteRecentEventsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TrackerRecentEvents
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TrackerSiteRecentEventsResponse) GetJSON200() *TrackerRecentEvents {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TrackerSiteRecentEventsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TrackerSiteRecentEventsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TrackerSiteRecentEventsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TrackerSiteRecentEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TrackerSiteRecentEventsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -170186,6 +176822,54 @@ func (r GetWebsiteAccessResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetWebsiteAccessResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListWebsiteCommentsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WebsiteCommentList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListWebsiteCommentsResponse) GetJSON200() *WebsiteCommentList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListWebsiteCommentsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListWebsiteCommentsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWebsiteCommentsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWebsiteCommentsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListWebsiteCommentsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -174643,9 +181327,9 @@ func (c *ClientWithResponses) ListCampaignReviewLinksWithResponse(ctx context.Co
 	return ParseListCampaignReviewLinksResponse(rsp)
 }
 
-// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds or the schedule
+// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -174658,9 +181342,9 @@ func (c *ClientWithResponses) UpdateSendSettingsWithBodyWithResponse(ctx context
 	return ParseUpdateSendSettingsResponse(rsp)
 }
 
-// UpdateSendSettingsWithResponse Change the auto-pause thresholds or the schedule
+// UpdateSendSettingsWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -175065,6 +181749,36 @@ func (c *ClientWithResponses) GetStoreRevenueWithResponse(ctx context.Context, w
 		return nil, err
 	}
 	return ParseGetStoreRevenueResponse(rsp)
+}
+
+// CreateStockRequestWithBodyWithResponse Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *ClientWithResponses) CreateStockRequestWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error) {
+	rsp, err := c.CreateStockRequestWithBody(ctx, workspace, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateStockRequestResponse(rsp)
+}
+
+// CreateStockRequestWithResponse Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *ClientWithResponses) CreateStockRequestWithResponse(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error) {
+	rsp, err := c.CreateStockRequest(ctx, workspace, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateStockRequestResponse(rsp)
 }
 
 // GetStoreTriggerOptionsWithResponse The store triggers' stores, products and collections
@@ -176264,6 +182978,75 @@ func (c *ClientWithResponses) ExportConversionsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseExportConversionsResponse(rsp)
+}
+
+// CreateCountdownWithBodyWithResponse The image of a Countdown block's settings
+//
+// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+func (c *ClientWithResponses) CreateCountdownWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCountdownResponse, error) {
+	rsp, err := c.CreateCountdownWithBody(ctx, workspace, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCountdownResponse(rsp)
+}
+
+// CreateCountdownWithResponse The image of a Countdown block's settings
+//
+// The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/countdowns (the `CreateCountdown` operationId).
+func (c *ClientWithResponses) CreateCountdownWithResponse(ctx context.Context, workspace string, body CreateCountdownJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCountdownResponse, error) {
+	rsp, err := c.CreateCountdown(ctx, workspace, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCountdownResponse(rsp)
+}
+
+// ListCouponPoolsWithResponse List discount code pools with their numbers (never their codes)
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools (the `ListCouponPools` operationId).
+func (c *ClientWithResponses) ListCouponPoolsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListCouponPoolsResponse, error) {
+	rsp, err := c.ListCouponPools(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCouponPoolsResponse(rsp)
+}
+
+// GetCouponPoolWithResponse A discount code pool: numbers, settings, the latest batch and what uses it
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/pools/{pool} (the `GetCouponPool` operationId).
+func (c *ClientWithResponses) GetCouponPoolWithResponse(ctx context.Context, workspace string, pool openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetCouponPoolResponse, error) {
+	rsp, err := c.GetCouponPool(ctx, workspace, pool, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCouponPoolResponse(rsp)
+}
+
+// ListCouponSourcesWithResponse The connected stores a pool can create codes in, and why a store can't
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/coupons/sources (the `ListCouponSources` operationId).
+func (c *ClientWithResponses) ListCouponSourcesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListCouponSourcesResponse, error) {
+	rsp, err := c.ListCouponSources(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCouponSourcesResponse(rsp)
 }
 
 // GetDeliverabilityWithResponse Domain, IP and provider health, blocklists, Postmaster, SNDS, DMARC and incidents
@@ -177652,6 +184435,81 @@ func (c *ClientWithResponses) UpdateSignupFormWithResponse(ctx context.Context, 
 	return ParseUpdateSignupFormResponse(rsp)
 }
 
+// GetSignupFormAbTestWithResponse Get a signup form's A/B test and its results
+//
+// Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/forms/{form}/ab (the `GetSignupFormAbTest` operationId).
+func (c *ClientWithResponses) GetSignupFormAbTestWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSignupFormAbTestResponse, error) {
+	rsp, err := c.GetSignupFormAbTest(ctx, workspace, form, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSignupFormAbTestResponse(rsp)
+}
+
+// SaveSignupFormAbTestWithBodyWithResponse Start or change a signup form's A/B test
+//
+// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+func (c *ClientWithResponses) SaveSignupFormAbTestWithBodyWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSignupFormAbTestResponse, error) {
+	rsp, err := c.SaveSignupFormAbTestWithBody(ctx, workspace, form, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSaveSignupFormAbTestResponse(rsp)
+}
+
+// SaveSignupFormAbTestWithResponse Start or change a signup form's A/B test
+//
+// Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/forms/{form}/ab (the `SaveSignupFormAbTest` operationId).
+func (c *ClientWithResponses) SaveSignupFormAbTestWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, body SaveSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSignupFormAbTestResponse, error) {
+	rsp, err := c.SaveSignupFormAbTest(ctx, workspace, form, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSaveSignupFormAbTestResponse(rsp)
+}
+
+// EndSignupFormAbTestWithBodyWithResponse End a signup form's A/B test, keeping one variant
+//
+// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+func (c *ClientWithResponses) EndSignupFormAbTestWithBodyWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EndSignupFormAbTestResponse, error) {
+	rsp, err := c.EndSignupFormAbTestWithBody(ctx, workspace, form, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEndSignupFormAbTestResponse(rsp)
+}
+
+// EndSignupFormAbTestWithResponse End a signup form's A/B test, keeping one variant
+//
+// The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/forms/{form}/ab/end (the `EndSignupFormAbTest` operationId).
+func (c *ClientWithResponses) EndSignupFormAbTestWithResponse(ctx context.Context, workspace string, form openapi_types.UUID, body EndSignupFormAbTestJSONRequestBody, reqEditors ...RequestEditorFn) (*EndSignupFormAbTestResponse, error) {
+	rsp, err := c.EndSignupFormAbTest(ctx, workspace, form, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEndSignupFormAbTestResponse(rsp)
+}
+
 // AllowSignupFormOriginWithBodyWithResponse Allow a site to submit a form
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -178376,6 +185234,36 @@ func (c *ClientWithResponses) ListGrowthSourcesWithResponse(ctx context.Context,
 	return ParseListGrowthSourcesResponse(rsp)
 }
 
+// MeasureHoldoutWithResponse Recompute the holdout group's results
+//
+// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+func (c *ClientWithResponses) MeasureHoldoutWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*MeasureHoldoutResponse, error) {
+	rsp, err := c.MeasureHoldout(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMeasureHoldoutResponse(rsp)
+}
+
+// GetHoldoutResultsWithResponse What marketing added, measured against the holdout group
+//
+// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+func (c *ClientWithResponses) GetHoldoutResultsWithResponse(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*GetHoldoutResultsResponse, error) {
+	rsp, err := c.GetHoldoutResults(ctx, workspace, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHoldoutResultsResponse(rsp)
+}
+
 // ListImportsWithResponse Import history and the draft the wizard resumes
 //
 // Returns a wrapper object for the known response body format(s).
@@ -178690,6 +185578,19 @@ func (c *ClientWithResponses) StartImportWithResponse(ctx context.Context, works
 		return nil, err
 	}
 	return ParseStartImportResponse(rsp)
+}
+
+// GetInboundRouteWithResponse Get how the workspace receives mail
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/inbound (the `GetInboundRoute` operationId).
+func (c *ClientWithResponses) GetInboundRouteWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetInboundRouteResponse, error) {
+	rsp, err := c.GetInboundRoute(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInboundRouteResponse(rsp)
 }
 
 // GetIntegrationsWithResponse Settings › Integrations: HostRepute, webhooks, MCP, Postmaster and SNDS
@@ -179081,6 +185982,71 @@ func (c *ClientWithResponses) GetLanguageRemovalWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseGetLanguageRemovalResponse(rsp)
+}
+
+// ListLeadAdsConnectionsWithResponse The workspace's Meta Lead Ads connections
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections (the `ListLeadAdsConnections` operationId).
+func (c *ClientWithResponses) ListLeadAdsConnectionsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListLeadAdsConnectionsResponse, error) {
+	rsp, err := c.ListLeadAdsConnections(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListLeadAdsConnectionsResponse(rsp)
+}
+
+// GetLeadAdsConnectionWithResponse A Meta connection: how leads arrive, its Pages and forms
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id} (the `GetLeadAdsConnection` operationId).
+func (c *ClientWithResponses) GetLeadAdsConnectionWithResponse(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*GetLeadAdsConnectionResponse, error) {
+	rsp, err := c.GetLeadAdsConnection(ctx, workspace, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLeadAdsConnectionResponse(rsp)
+}
+
+// ListLeadAdsActivityWithResponse The connection's last 50 leads: when, which form, what happened and the contact (no answers)
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/connections/{id}/activity (the `ListLeadAdsActivity` operationId).
+func (c *ClientWithResponses) ListLeadAdsActivityWithResponse(ctx context.Context, workspace string, id string, reqEditors ...RequestEditorFn) (*ListLeadAdsActivityResponse, error) {
+	rsp, err := c.ListLeadAdsActivity(ctx, workspace, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListLeadAdsActivityResponse(rsp)
+}
+
+// GetLeadAdsFormWithResponse A lead form's questions, consent checkboxes and mapping (read from Meta when it answers)
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/forms/{formId} (the `GetLeadAdsForm` operationId).
+func (c *ClientWithResponses) GetLeadAdsFormWithResponse(ctx context.Context, workspace string, formId string, reqEditors ...RequestEditorFn) (*GetLeadAdsFormResponse, error) {
+	rsp, err := c.GetLeadAdsForm(ctx, workspace, formId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLeadAdsFormResponse(rsp)
+}
+
+// GetLeadAdsSetupWithResponse What connecting Meta Lead Ads needs: the token's permissions and whether Meta can reach this server
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/lead-ads/setup (the `GetLeadAdsSetup` operationId).
+func (c *ClientWithResponses) GetLeadAdsSetupWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetLeadAdsSetupResponse, error) {
+	rsp, err := c.GetLeadAdsSetup(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLeadAdsSetupResponse(rsp)
 }
 
 // ListListsWithResponse Lists with their sizes
@@ -181669,6 +188635,32 @@ func (c *ClientWithResponses) TestRenderingServiceWithResponse(ctx context.Conte
 	return ParseTestRenderingServiceResponse(rsp)
 }
 
+// ListRepliesWithResponse List replies and other received mail
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/replies (the `ListReplies` operationId).
+func (c *ClientWithResponses) ListRepliesWithResponse(ctx context.Context, workspace string, params *ListRepliesParams, reqEditors ...RequestEditorFn) (*ListRepliesResponse, error) {
+	rsp, err := c.ListReplies(ctx, workspace, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRepliesResponse(rsp)
+}
+
+// GetReplyWithResponse Get a reply
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/replies/{id} (the `GetReply` operationId).
+func (c *ClientWithResponses) GetReplyWithResponse(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetReplyResponse, error) {
+	rsp, err := c.GetReply(ctx, workspace, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetReplyResponse(rsp)
+}
+
 // ListRolesWithResponse List roles with members, and the permission catalogue
 //
 // Returns a wrapper object for the known response body format(s).
@@ -183623,6 +190615,19 @@ func (c *ClientWithResponses) CreateSponsorBookingShareWithResponse(ctx context.
 	return ParseCreateSponsorBookingShareResponse(rsp)
 }
 
+// GetSponsorPageSettingsWithResponse The sponsor page's settings: self-serve booking, its media kit and address
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-page (the `GetSponsorPageSettings` operationId).
+func (c *ClientWithResponses) GetSponsorPageSettingsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetSponsorPageSettingsResponse, error) {
+	rsp, err := c.GetSponsorPageSettings(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSponsorPageSettingsResponse(rsp)
+}
+
 // RevokeSponsorShareWithResponse Revoke a sponsor report's read-only link
 //
 // Returns a wrapper object for the known response body format(s).
@@ -183634,6 +190639,32 @@ func (c *ClientWithResponses) RevokeSponsorShareWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseRevokeSponsorShareResponse(rsp)
+}
+
+// ListSponsorRequestsWithResponse The sponsor page's requests: waiting for review, approved and waiting for payment, recently declined or expired
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests (the `ListSponsorRequests` operationId).
+func (c *ClientWithResponses) ListSponsorRequestsWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListSponsorRequestsResponse, error) {
+	rsp, err := c.ListSponsorRequests(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSponsorRequestsResponse(rsp)
+}
+
+// GetSponsorRequestWithResponse A request from the sponsor page: who sent it, its creative and where it can be booked
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/sponsor-requests/{id} (the `GetSponsorRequest` operationId).
+func (c *ClientWithResponses) GetSponsorRequestWithResponse(ctx context.Context, workspace string, id openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetSponsorRequestResponse, error) {
+	rsp, err := c.GetSponsorRequest(ctx, workspace, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSponsorRequestResponse(rsp)
 }
 
 // CreateSponsorSlotWithBodyWithResponse Add a slot: a placement in each issue of a list
@@ -184440,6 +191471,36 @@ func (c *ClientWithResponses) PreviewTemplateWithResponse(ctx context.Context, w
 		return nil, err
 	}
 	return ParsePreviewTemplateResponse(rsp)
+}
+
+// ListTrackerSitesWithResponse List the sites the tracker runs on
+//
+// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+func (c *ClientWithResponses) ListTrackerSitesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListTrackerSitesResponse, error) {
+	rsp, err := c.ListTrackerSites(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTrackerSitesResponse(rsp)
+}
+
+// TrackerSiteRecentEventsWithResponse A tracked site's last 20 events
+//
+// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+func (c *ClientWithResponses) TrackerSiteRecentEventsWithResponse(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*TrackerSiteRecentEventsResponse, error) {
+	rsp, err := c.TrackerSiteRecentEvents(ctx, workspace, site, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTrackerSiteRecentEventsResponse(rsp)
 }
 
 // ListTrackingChecksWithResponse Provider-side open and click tracking per provider
@@ -186093,6 +193154,19 @@ func (c *ClientWithResponses) GetWebsiteAccessWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetWebsiteAccessResponse(rsp)
+}
+
+// ListWebsiteCommentsWithResponse Website › Comments: comments waiting for review, published or hidden
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/website/comments (the `ListWebsiteComments` operationId).
+func (c *ClientWithResponses) ListWebsiteCommentsWithResponse(ctx context.Context, workspace string, params *ListWebsiteCommentsParams, reqEditors ...RequestEditorFn) (*ListWebsiteCommentsResponse, error) {
+	rsp, err := c.ListWebsiteComments(ctx, workspace, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWebsiteCommentsResponse(rsp)
 }
 
 // GetWebsiteHomeNavWithResponse Website › Home & navigation
@@ -192439,6 +199513,39 @@ func ParseGetStoreRevenueResponse(rsp *http.Response) (*GetStoreRevenueResponse,
 	return response, nil
 }
 
+// ParseCreateStockRequestResponse parses an HTTP response from a CreateStockRequestWithResponse call
+func ParseCreateStockRequestResponse(rsp *http.Response) (*CreateStockRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateStockRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CommerceStockRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetStoreTriggerOptionsResponse parses an HTTP response from a GetStoreTriggerOptionsWithResponse call
 func ParseGetStoreTriggerOptionsResponse(rsp *http.Response) (*GetStoreTriggerOptionsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -194506,6 +201613,138 @@ func ParseExportConversionsResponse(rsp *http.Response) (*ExportConversionsRespo
 			headers.ContentType = &value
 		}
 		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseCreateCountdownResponse parses an HTTP response from a CreateCountdownWithResponse call
+func ParseCreateCountdownResponse(rsp *http.Response) (*CreateCountdownResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateCountdownResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CountdownImage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCouponPoolsResponse parses an HTTP response from a ListCouponPoolsWithResponse call
+func ParseListCouponPoolsResponse(rsp *http.Response) (*ListCouponPoolsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCouponPoolsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CouponPoolList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCouponPoolResponse parses an HTTP response from a GetCouponPoolWithResponse call
+func ParseGetCouponPoolResponse(rsp *http.Response) (*GetCouponPoolResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCouponPoolResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CouponPool
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCouponSourcesResponse parses an HTTP response from a ListCouponSourcesWithResponse call
+func ParseListCouponSourcesResponse(rsp *http.Response) (*ListCouponSourcesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCouponSourcesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CouponSourceList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
 	}
 
 	return response, nil
@@ -197302,6 +204541,105 @@ func ParseUpdateSignupFormResponse(rsp *http.Response) (*UpdateSignupFormRespons
 	return response, nil
 }
 
+// ParseGetSignupFormAbTestResponse parses an HTTP response from a GetSignupFormAbTestWithResponse call
+func ParseGetSignupFormAbTestResponse(rsp *http.Response) (*GetSignupFormAbTestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSignupFormAbTestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SignupFormABResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSaveSignupFormAbTestResponse parses an HTTP response from a SaveSignupFormAbTestWithResponse call
+func ParseSaveSignupFormAbTestResponse(rsp *http.Response) (*SaveSignupFormAbTestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SaveSignupFormAbTestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SignupFormABResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseEndSignupFormAbTestResponse parses an HTTP response from a EndSignupFormAbTestWithResponse call
+func ParseEndSignupFormAbTestResponse(rsp *http.Response) (*EndSignupFormAbTestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &EndSignupFormAbTestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SignupFormABResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseAllowSignupFormOriginResponse parses an HTTP response from a AllowSignupFormOriginWithResponse call
 func ParseAllowSignupFormOriginResponse(rsp *http.Response) (*AllowSignupFormOriginResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -198678,6 +206016,72 @@ func ParseListGrowthSourcesResponse(rsp *http.Response) (*ListGrowthSourcesRespo
 	return response, nil
 }
 
+// ParseMeasureHoldoutResponse parses an HTTP response from a MeasureHoldoutWithResponse call
+func ParseMeasureHoldoutResponse(rsp *http.Response) (*MeasureHoldoutResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MeasureHoldoutResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest HoldoutResults
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetHoldoutResultsResponse parses an HTTP response from a GetHoldoutResultsWithResponse call
+func ParseGetHoldoutResultsResponse(rsp *http.Response) (*GetHoldoutResultsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHoldoutResultsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HoldoutResults
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListImportsResponse parses an HTTP response from a ListImportsWithResponse call
 func ParseListImportsResponse(rsp *http.Response) (*ListImportsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -199311,6 +206715,39 @@ func ParseStartImportResponse(rsp *http.Response) (*StartImportResponse, error) 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ImportDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInboundRouteResponse parses an HTTP response from a GetInboundRouteWithResponse call
+func ParseGetInboundRouteResponse(rsp *http.Response) (*GetInboundRouteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInboundRouteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InboundRouteView
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -200099,6 +207536,171 @@ func ParseGetLanguageRemovalResponse(rsp *http.Response) (*GetLanguageRemovalRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest LanguageRemoval
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListLeadAdsConnectionsResponse parses an HTTP response from a ListLeadAdsConnectionsWithResponse call
+func ParseListLeadAdsConnectionsResponse(rsp *http.Response) (*ListLeadAdsConnectionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListLeadAdsConnectionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LeadAdsConnectionList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetLeadAdsConnectionResponse parses an HTTP response from a GetLeadAdsConnectionWithResponse call
+func ParseGetLeadAdsConnectionResponse(rsp *http.Response) (*GetLeadAdsConnectionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLeadAdsConnectionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LeadAdsConnection
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListLeadAdsActivityResponse parses an HTTP response from a ListLeadAdsActivityWithResponse call
+func ParseListLeadAdsActivityResponse(rsp *http.Response) (*ListLeadAdsActivityResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListLeadAdsActivityResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LeadAdsActivity
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetLeadAdsFormResponse parses an HTTP response from a GetLeadAdsFormWithResponse call
+func ParseGetLeadAdsFormResponse(rsp *http.Response) (*GetLeadAdsFormResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLeadAdsFormResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LeadAdsFormDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetLeadAdsSetupResponse parses an HTTP response from a GetLeadAdsSetupWithResponse call
+func ParseGetLeadAdsSetupResponse(rsp *http.Response) (*GetLeadAdsSetupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLeadAdsSetupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LeadAdsSetup
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -204966,6 +212568,72 @@ func ParseTestRenderingServiceResponse(rsp *http.Response) (*TestRenderingServic
 	return response, nil
 }
 
+// ParseListRepliesResponse parses an HTTP response from a ListRepliesWithResponse call
+func ParseListRepliesResponse(rsp *http.Response) (*ListRepliesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRepliesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ReplyList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetReplyResponse parses an HTTP response from a GetReplyWithResponse call
+func ParseGetReplyResponse(rsp *http.Response) (*GetReplyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetReplyResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ReplyDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListRolesResponse parses an HTTP response from a ListRolesWithResponse call
 func ParseListRolesResponse(rsp *http.Response) (*ListRolesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -208229,6 +215897,39 @@ func ParseCreateSponsorBookingShareResponse(rsp *http.Response) (*CreateSponsorB
 	return response, nil
 }
 
+// ParseGetSponsorPageSettingsResponse parses an HTTP response from a GetSponsorPageSettingsWithResponse call
+func ParseGetSponsorPageSettingsResponse(rsp *http.Response) (*GetSponsorPageSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSponsorPageSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SponsorSelfServe
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseRevokeSponsorShareResponse parses an HTTP response from a RevokeSponsorShareWithResponse call
 func ParseRevokeSponsorShareResponse(rsp *http.Response) (*RevokeSponsorShareResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -208245,6 +215946,72 @@ func ParseRevokeSponsorShareResponse(rsp *http.Response) (*RevokeSponsorShareRes
 	switch {
 	case rsp.StatusCode == 204:
 		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListSponsorRequestsResponse parses an HTTP response from a ListSponsorRequestsWithResponse call
+func ParseListSponsorRequestsResponse(rsp *http.Response) (*ListSponsorRequestsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSponsorRequestsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SponsorRequestList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetSponsorRequestResponse parses an HTTP response from a GetSponsorRequestWithResponse call
+func ParseGetSponsorRequestResponse(rsp *http.Response) (*GetSponsorRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSponsorRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SponsorRequestDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem
@@ -209820,6 +217587,72 @@ func ParsePreviewTemplateResponse(rsp *http.Response) (*PreviewTemplateResponse,
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest EmailTemplatePreview
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListTrackerSitesResponse parses an HTTP response from a ListTrackerSitesWithResponse call
+func ParseListTrackerSitesResponse(rsp *http.Response) (*ListTrackerSitesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTrackerSitesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TrackerSiteList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTrackerSiteRecentEventsResponse parses an HTTP response from a TrackerSiteRecentEventsWithResponse call
+func ParseTrackerSiteRecentEventsResponse(rsp *http.Response) (*TrackerSiteRecentEventsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TrackerSiteRecentEventsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TrackerRecentEvents
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -212681,6 +220514,39 @@ func ParseGetWebsiteAccessResponse(rsp *http.Response) (*GetWebsiteAccessRespons
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest WebsiteAccess
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWebsiteCommentsResponse parses an HTTP response from a ListWebsiteCommentsWithResponse call
+func ParseListWebsiteCommentsResponse(rsp *http.Response) (*ListWebsiteCommentsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWebsiteCommentsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WebsiteCommentList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -5,6 +5,7 @@ class EarnMemberRowStatus(StrEnum):
     CANCELED = "canceled"
     COMPLIMENTARY = "complimentary"
     GIFT = "gift"
+    GROUP = "group"
     PAST_DUE = "past_due"
     TRIALING = "trialing"
 

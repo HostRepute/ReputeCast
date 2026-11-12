@@ -33,8 +33,12 @@ class SlotInput:
             price_cents (int): The default price of a booking, in minor units.
             creative_days (int | Unset): The creative is due this many days before the issue (4 when absent).
             currency (str | Unset): ISO 4217; the workspace's currency when absent.
+            description (str | Unset): What the sponsor page says about the slot.
             every_days (int | Unset): 7 when absent (weekly).
+            lead_days (int | Unset): Sponsors book at least this many days ahead (7 for a new slot when absent).
+            pay_days (int | Unset): Sponsors pay within this many days of the approval (3 for a new slot when absent).
             placement (str | Unset): Where it sits in the issue ("After the first story").
+            self_serve (bool | Unset): Sponsors can book it from the sponsor page (off for a new slot when absent).
             selling (bool | Unset):
      """
 
@@ -45,8 +49,12 @@ class SlotInput:
     price_cents: int
     creative_days: int | Unset = UNSET
     currency: str | Unset = UNSET
+    description: str | Unset = UNSET
     every_days: int | Unset = UNSET
+    lead_days: int | Unset = UNSET
+    pay_days: int | Unset = UNSET
     placement: str | Unset = UNSET
+    self_serve: bool | Unset = UNSET
     selling: bool | Unset = UNSET
 
 
@@ -68,9 +76,17 @@ class SlotInput:
 
         currency = self.currency
 
+        description = self.description
+
         every_days = self.every_days
 
+        lead_days = self.lead_days
+
+        pay_days = self.pay_days
+
         placement = self.placement
+
+        self_serve = self.self_serve
 
         selling = self.selling
 
@@ -88,10 +104,18 @@ class SlotInput:
             field_dict["creativeDays"] = creative_days
         if currency is not UNSET:
             field_dict["currency"] = currency
+        if description is not UNSET:
+            field_dict["description"] = description
         if every_days is not UNSET:
             field_dict["everyDays"] = every_days
+        if lead_days is not UNSET:
+            field_dict["leadDays"] = lead_days
+        if pay_days is not UNSET:
+            field_dict["payDays"] = pay_days
         if placement is not UNSET:
             field_dict["placement"] = placement
+        if self_serve is not UNSET:
+            field_dict["selfServe"] = self_serve
         if selling is not UNSET:
             field_dict["selling"] = selling
 
@@ -122,9 +146,17 @@ class SlotInput:
 
         currency = d.pop("currency", UNSET)
 
+        description = d.pop("description", UNSET)
+
         every_days = d.pop("everyDays", UNSET)
 
+        lead_days = d.pop("leadDays", UNSET)
+
+        pay_days = d.pop("payDays", UNSET)
+
         placement = d.pop("placement", UNSET)
+
+        self_serve = d.pop("selfServe", UNSET)
 
         selling = d.pop("selling", UNSET)
 
@@ -136,8 +168,12 @@ class SlotInput:
             price_cents=price_cents,
             creative_days=creative_days,
             currency=currency,
+            description=description,
             every_days=every_days,
+            lead_days=lead_days,
+            pay_days=pay_days,
             placement=placement,
+            self_serve=self_serve,
             selling=selling,
         )
 

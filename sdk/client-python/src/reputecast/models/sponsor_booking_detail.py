@@ -23,6 +23,7 @@ if TYPE_CHECKING:
   from ..models.sponsor_propose import SponsorPropose
   from ..models.sponsor_ref import SponsorRef
   from ..models.sponsor_report import SponsorReport
+  from ..models.sponsor_request_from import SponsorRequestFrom
   from ..models.sponsor_share_link import SponsorShareLink
 
 
@@ -62,10 +63,13 @@ class SponsorBookingDetail:
             campaign (SponsorCampaignRef | Unset):
             canceled_at (datetime.datetime | Unset):
             creative_due (datetime.datetime | Unset):
+            declined_reason (str | Unset):
             hold_until (datetime.datetime | Unset):
+            payment_due_at (datetime.datetime | Unset):
             proposal (SponsorPropose | Unset):
             ready_at (datetime.datetime | Unset):
             report (SponsorReport | Unset):
+            request (SponsorRequestFrom | Unset):
             sponsor (SponsorItem | Unset):
      """
 
@@ -94,10 +98,13 @@ class SponsorBookingDetail:
     campaign: SponsorCampaignRef | Unset = UNSET
     canceled_at: datetime.datetime | Unset = UNSET
     creative_due: datetime.datetime | Unset = UNSET
+    declined_reason: str | Unset = UNSET
     hold_until: datetime.datetime | Unset = UNSET
+    payment_due_at: datetime.datetime | Unset = UNSET
     proposal: SponsorPropose | Unset = UNSET
     ready_at: datetime.datetime | Unset = UNSET
     report: SponsorReport | Unset = UNSET
+    request: SponsorRequestFrom | Unset = UNSET
     sponsor: SponsorItem | Unset = UNSET
 
 
@@ -113,6 +120,7 @@ class SponsorBookingDetail:
         from ..models.sponsor_propose import SponsorPropose # noqa: PLC0415
         from ..models.sponsor_ref import SponsorRef # noqa: PLC0415
         from ..models.sponsor_report import SponsorReport # noqa: PLC0415
+        from ..models.sponsor_request_from import SponsorRequestFrom # noqa: PLC0415
         from ..models.sponsor_share_link import SponsorShareLink # noqa: PLC0415
         activity = []
         for activity_item_data in self.activity:
@@ -187,9 +195,15 @@ class SponsorBookingDetail:
         if not isinstance(self.creative_due, Unset):
             creative_due = self.creative_due.isoformat()
 
+        declined_reason = self.declined_reason
+
         hold_until: str | Unset = UNSET
         if not isinstance(self.hold_until, Unset):
             hold_until = self.hold_until.isoformat()
+
+        payment_due_at: str | Unset = UNSET
+        if not isinstance(self.payment_due_at, Unset):
+            payment_due_at = self.payment_due_at.isoformat()
 
         proposal: dict[str, Any] | Unset = UNSET
         if not isinstance(self.proposal, Unset):
@@ -202,6 +216,10 @@ class SponsorBookingDetail:
         report: dict[str, Any] | Unset = UNSET
         if not isinstance(self.report, Unset):
             report = self.report.to_dict()
+
+        request: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.request, Unset):
+            request = self.request.to_dict()
 
         sponsor: dict[str, Any] | Unset = UNSET
         if not isinstance(self.sponsor, Unset):
@@ -240,14 +258,20 @@ class SponsorBookingDetail:
             field_dict["canceledAt"] = canceled_at
         if creative_due is not UNSET:
             field_dict["creativeDue"] = creative_due
+        if declined_reason is not UNSET:
+            field_dict["declinedReason"] = declined_reason
         if hold_until is not UNSET:
             field_dict["holdUntil"] = hold_until
+        if payment_due_at is not UNSET:
+            field_dict["paymentDueAt"] = payment_due_at
         if proposal is not UNSET:
             field_dict["proposal"] = proposal
         if ready_at is not UNSET:
             field_dict["readyAt"] = ready_at
         if report is not UNSET:
             field_dict["report"] = report
+        if request is not UNSET:
+            field_dict["request"] = request
         if sponsor is not UNSET:
             field_dict["sponsor"] = sponsor
 
@@ -265,6 +289,7 @@ class SponsorBookingDetail:
         from ..models.sponsor_propose import SponsorPropose # noqa: PLC0415
         from ..models.sponsor_ref import SponsorRef # noqa: PLC0415
         from ..models.sponsor_report import SponsorReport # noqa: PLC0415
+        from ..models.sponsor_request_from import SponsorRequestFrom # noqa: PLC0415
         from ..models.sponsor_share_link import SponsorShareLink # noqa: PLC0415
         d = dict(src_dict)
         activity = []
@@ -381,12 +406,24 @@ class SponsorBookingDetail:
 
 
 
+        declined_reason = d.pop("declinedReason", UNSET)
+
         _hold_until = d.pop("holdUntil", UNSET)
         hold_until: datetime.datetime | Unset
         if isinstance(_hold_until,  Unset):
             hold_until = UNSET
         else:
             hold_until = datetime.datetime.fromisoformat(_hold_until)
+
+
+
+
+        _payment_due_at = d.pop("paymentDueAt", UNSET)
+        payment_due_at: datetime.datetime | Unset
+        if isinstance(_payment_due_at,  Unset):
+            payment_due_at = UNSET
+        else:
+            payment_due_at = datetime.datetime.fromisoformat(_payment_due_at)
 
 
 
@@ -417,6 +454,16 @@ class SponsorBookingDetail:
             report = UNSET
         else:
             report = SponsorReport.from_dict(_report)
+
+
+
+
+        _request = d.pop("request", UNSET)
+        request: SponsorRequestFrom | Unset
+        if isinstance(_request,  Unset):
+            request = UNSET
+        else:
+            request = SponsorRequestFrom.from_dict(_request)
 
 
 
@@ -457,10 +504,13 @@ class SponsorBookingDetail:
             campaign=campaign,
             canceled_at=canceled_at,
             creative_due=creative_due,
+            declined_reason=declined_reason,
             hold_until=hold_until,
+            payment_due_at=payment_due_at,
             proposal=proposal,
             ready_at=ready_at,
             report=report,
+            request=request,
             sponsor=sponsor,
         )
 

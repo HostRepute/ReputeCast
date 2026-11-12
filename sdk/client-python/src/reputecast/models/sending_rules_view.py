@@ -12,6 +12,7 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
+  from ..models.holdout_settings import HoldoutSettings
   from ..models.marketing_cap import MarketingCap
   from ..models.send_defaults import SendDefaults
   from ..models.sending_rule import SendingRule
@@ -30,6 +31,7 @@ class SendingRulesView:
         Attributes:
             can_manage (bool):
             defaults (SendDefaults):
+            holdout (HoldoutSettings):
             managers (list[str]):
             marketing_cap (MarketingCap):
             rules (list[SendingRule]):
@@ -39,6 +41,7 @@ class SendingRulesView:
 
     can_manage: bool
     defaults: SendDefaults
+    holdout: HoldoutSettings
     managers: list[str]
     marketing_cap: MarketingCap
     rules: list[SendingRule]
@@ -50,12 +53,15 @@ class SendingRulesView:
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.holdout_settings import HoldoutSettings # noqa: PLC0415
         from ..models.marketing_cap import MarketingCap # noqa: PLC0415
         from ..models.send_defaults import SendDefaults # noqa: PLC0415
         from ..models.sending_rule import SendingRule # noqa: PLC0415
         can_manage = self.can_manage
 
         defaults = self.defaults.to_dict()
+
+        holdout = self.holdout.to_dict()
 
         managers = self.managers
 
@@ -80,6 +86,7 @@ class SendingRulesView:
         field_dict.update({
             "canManage": can_manage,
             "defaults": defaults,
+            "holdout": holdout,
             "managers": managers,
             "marketingCap": marketing_cap,
             "rules": rules,
@@ -94,6 +101,7 @@ class SendingRulesView:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.holdout_settings import HoldoutSettings # noqa: PLC0415
         from ..models.marketing_cap import MarketingCap # noqa: PLC0415
         from ..models.send_defaults import SendDefaults # noqa: PLC0415
         from ..models.sending_rule import SendingRule # noqa: PLC0415
@@ -101,6 +109,11 @@ class SendingRulesView:
         can_manage = d.pop("canManage")
 
         defaults = SendDefaults.from_dict(d.pop("defaults"))
+
+
+
+
+        holdout = HoldoutSettings.from_dict(d.pop("holdout"))
 
 
 
@@ -130,6 +143,7 @@ class SendingRulesView:
         sending_rules_view = cls(
             can_manage=can_manage,
             defaults=defaults,
+            holdout=holdout,
             managers=managers,
             marketing_cap=marketing_cap,
             rules=rules,

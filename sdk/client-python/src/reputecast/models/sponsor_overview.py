@@ -37,6 +37,7 @@ class SponsorOverview:
             notices (list[SponsorNotice]):
             past (list[SponsorIssueRow]):
             range_ (SponsorOverviewRange):
+            requests (int):
             slot_id (str):
             slots (list[SponsorSlotItem]):
             tiles (SponsorTiles):
@@ -50,6 +51,7 @@ class SponsorOverview:
     notices: list[SponsorNotice]
     past: list[SponsorIssueRow]
     range_: SponsorOverviewRange
+    requests: int
     slot_id: str
     slots: list[SponsorSlotItem]
     tiles: SponsorTiles
@@ -96,6 +98,8 @@ class SponsorOverview:
 
         range_ = self.range_.value
 
+        requests = self.requests
+
         slot_id = self.slot_id
 
         slots = []
@@ -125,6 +129,7 @@ class SponsorOverview:
             "notices": notices,
             "past": past,
             "range": range_,
+            "requests": requests,
             "slotId": slot_id,
             "slots": slots,
             "tiles": tiles,
@@ -185,6 +190,8 @@ class SponsorOverview:
 
 
 
+        requests = d.pop("requests")
+
         slot_id = d.pop("slotId")
 
         slots = []
@@ -220,6 +227,7 @@ class SponsorOverview:
             notices=notices,
             past=past,
             range_=range_,
+            requests=requests,
             slot_id=slot_id,
             slots=slots,
             tiles=tiles,

@@ -19,7 +19,9 @@ import datetime
 if TYPE_CHECKING:
   from ..models.earn_member_discount import EarnMemberDiscount
   from ..models.earn_member_source import EarnMemberSource
+  from ..models.earn_member_team import EarnMemberTeam
   from ..models.earn_sync_warning import EarnSyncWarning
+  from ..models.earn_team_seat import EarnTeamSeat
   from ..models.earn_timeline_item import EarnTimelineItem
 
 
@@ -38,6 +40,8 @@ class EarnMember:
             amount_cents (int):
             billing_differs (bool):
             can_manage (bool):
+            can_pause (bool):
+            can_resume (bool):
             contact_id (str):
             currency (str):
             email (str):
@@ -56,7 +60,9 @@ class EarnMember:
             paid_cents (int):
             period (EarnMemberPeriod):
             period_shown (bool):
+            quantity (int):
             refunded_cents (int):
+            seats (list[EarnTeamSeat]):
             since (datetime.datetime):
             source (EarnMemberSource):
             status (EarnMemberStatus):
@@ -85,9 +91,12 @@ class EarnMember:
             imported_at (datetime.datetime | Unset):
             matched_by (str | Unset):
             next_at (datetime.datetime | Unset):
+            paused_at (datetime.datetime | Unset):
+            paused_until (datetime.datetime | Unset):
             renewal_reminder (datetime.datetime | Unset):
             subscription_id (str | Unset):
             subscription_url (str | Unset):
+            team (EarnMemberTeam | Unset):
             tier_id (str | Unset):
             warning (EarnSyncWarning | Unset):
      """
@@ -96,6 +105,8 @@ class EarnMember:
     amount_cents: int
     billing_differs: bool
     can_manage: bool
+    can_pause: bool
+    can_resume: bool
     contact_id: str
     currency: str
     email: str
@@ -114,7 +125,9 @@ class EarnMember:
     paid_cents: int
     period: EarnMemberPeriod
     period_shown: bool
+    quantity: int
     refunded_cents: int
+    seats: list[EarnTeamSeat]
     since: datetime.datetime
     source: EarnMemberSource
     status: EarnMemberStatus
@@ -143,9 +156,12 @@ class EarnMember:
     imported_at: datetime.datetime | Unset = UNSET
     matched_by: str | Unset = UNSET
     next_at: datetime.datetime | Unset = UNSET
+    paused_at: datetime.datetime | Unset = UNSET
+    paused_until: datetime.datetime | Unset = UNSET
     renewal_reminder: datetime.datetime | Unset = UNSET
     subscription_id: str | Unset = UNSET
     subscription_url: str | Unset = UNSET
+    team: EarnMemberTeam | Unset = UNSET
     tier_id: str | Unset = UNSET
     warning: EarnSyncWarning | Unset = UNSET
 
@@ -156,7 +172,9 @@ class EarnMember:
     def to_dict(self) -> dict[str, Any]:
         from ..models.earn_member_discount import EarnMemberDiscount # noqa: PLC0415
         from ..models.earn_member_source import EarnMemberSource # noqa: PLC0415
+        from ..models.earn_member_team import EarnMemberTeam # noqa: PLC0415
         from ..models.earn_sync_warning import EarnSyncWarning # noqa: PLC0415
+        from ..models.earn_team_seat import EarnTeamSeat # noqa: PLC0415
         from ..models.earn_timeline_item import EarnTimelineItem # noqa: PLC0415
         access_paused = self.access_paused
 
@@ -165,6 +183,10 @@ class EarnMember:
         billing_differs = self.billing_differs
 
         can_manage = self.can_manage
+
+        can_pause = self.can_pause
+
+        can_resume = self.can_resume
 
         contact_id = self.contact_id
 
@@ -208,7 +230,16 @@ class EarnMember:
 
         period_shown = self.period_shown
 
+        quantity = self.quantity
+
         refunded_cents = self.refunded_cents
+
+        seats = []
+        for seats_item_data in self.seats:
+            seats_item = seats_item_data.to_dict()
+            seats.append(seats_item)
+
+
 
         since = self.since.isoformat()
 
@@ -287,6 +318,14 @@ class EarnMember:
         if not isinstance(self.next_at, Unset):
             next_at = self.next_at.isoformat()
 
+        paused_at: str | Unset = UNSET
+        if not isinstance(self.paused_at, Unset):
+            paused_at = self.paused_at.isoformat()
+
+        paused_until: str | Unset = UNSET
+        if not isinstance(self.paused_until, Unset):
+            paused_until = self.paused_until.isoformat()
+
         renewal_reminder: str | Unset = UNSET
         if not isinstance(self.renewal_reminder, Unset):
             renewal_reminder = self.renewal_reminder.isoformat()
@@ -294,6 +333,10 @@ class EarnMember:
         subscription_id = self.subscription_id
 
         subscription_url = self.subscription_url
+
+        team: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.team, Unset):
+            team = self.team.to_dict()
 
         tier_id = self.tier_id
 
@@ -309,6 +352,8 @@ class EarnMember:
             "amountCents": amount_cents,
             "billingDiffers": billing_differs,
             "canManage": can_manage,
+            "canPause": can_pause,
+            "canResume": can_resume,
             "contactId": contact_id,
             "currency": currency,
             "email": email,
@@ -327,7 +372,9 @@ class EarnMember:
             "paidCents": paid_cents,
             "period": period,
             "periodShown": period_shown,
+            "quantity": quantity,
             "refundedCents": refunded_cents,
+            "seats": seats,
             "since": since,
             "source": source,
             "status": status,
@@ -377,12 +424,18 @@ class EarnMember:
             field_dict["matchedBy"] = matched_by
         if next_at is not UNSET:
             field_dict["nextAt"] = next_at
+        if paused_at is not UNSET:
+            field_dict["pausedAt"] = paused_at
+        if paused_until is not UNSET:
+            field_dict["pausedUntil"] = paused_until
         if renewal_reminder is not UNSET:
             field_dict["renewalReminder"] = renewal_reminder
         if subscription_id is not UNSET:
             field_dict["subscriptionId"] = subscription_id
         if subscription_url is not UNSET:
             field_dict["subscriptionUrl"] = subscription_url
+        if team is not UNSET:
+            field_dict["team"] = team
         if tier_id is not UNSET:
             field_dict["tierId"] = tier_id
         if warning is not UNSET:
@@ -396,7 +449,9 @@ class EarnMember:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.earn_member_discount import EarnMemberDiscount # noqa: PLC0415
         from ..models.earn_member_source import EarnMemberSource # noqa: PLC0415
+        from ..models.earn_member_team import EarnMemberTeam # noqa: PLC0415
         from ..models.earn_sync_warning import EarnSyncWarning # noqa: PLC0415
+        from ..models.earn_team_seat import EarnTeamSeat # noqa: PLC0415
         from ..models.earn_timeline_item import EarnTimelineItem # noqa: PLC0415
         d = dict(src_dict)
         access_paused = d.pop("accessPaused")
@@ -406,6 +461,10 @@ class EarnMember:
         billing_differs = d.pop("billingDiffers")
 
         can_manage = d.pop("canManage")
+
+        can_pause = d.pop("canPause")
+
+        can_resume = d.pop("canResume")
 
         contact_id = d.pop("contactId")
 
@@ -455,7 +514,19 @@ class EarnMember:
 
         period_shown = d.pop("periodShown")
 
+        quantity = d.pop("quantity")
+
         refunded_cents = d.pop("refundedCents")
+
+        seats = []
+        _seats = d.pop("seats")
+        for seats_item_data in (_seats):
+            seats_item = EarnTeamSeat.from_dict(seats_item_data)
+
+
+
+            seats.append(seats_item)
+
 
         since = datetime.datetime.fromisoformat(d.pop("since"))
 
@@ -594,6 +665,26 @@ class EarnMember:
 
 
 
+        _paused_at = d.pop("pausedAt", UNSET)
+        paused_at: datetime.datetime | Unset
+        if isinstance(_paused_at,  Unset):
+            paused_at = UNSET
+        else:
+            paused_at = datetime.datetime.fromisoformat(_paused_at)
+
+
+
+
+        _paused_until = d.pop("pausedUntil", UNSET)
+        paused_until: datetime.datetime | Unset
+        if isinstance(_paused_until,  Unset):
+            paused_until = UNSET
+        else:
+            paused_until = datetime.datetime.fromisoformat(_paused_until)
+
+
+
+
         _renewal_reminder = d.pop("renewalReminder", UNSET)
         renewal_reminder: datetime.datetime | Unset
         if isinstance(_renewal_reminder,  Unset):
@@ -607,6 +698,16 @@ class EarnMember:
         subscription_id = d.pop("subscriptionId", UNSET)
 
         subscription_url = d.pop("subscriptionUrl", UNSET)
+
+        _team = d.pop("team", UNSET)
+        team: EarnMemberTeam | Unset
+        if isinstance(_team,  Unset):
+            team = UNSET
+        else:
+            team = EarnMemberTeam.from_dict(_team)
+
+
+
 
         tier_id = d.pop("tierId", UNSET)
 
@@ -625,6 +726,8 @@ class EarnMember:
             amount_cents=amount_cents,
             billing_differs=billing_differs,
             can_manage=can_manage,
+            can_pause=can_pause,
+            can_resume=can_resume,
             contact_id=contact_id,
             currency=currency,
             email=email,
@@ -643,7 +746,9 @@ class EarnMember:
             paid_cents=paid_cents,
             period=period,
             period_shown=period_shown,
+            quantity=quantity,
             refunded_cents=refunded_cents,
+            seats=seats,
             since=since,
             source=source,
             status=status,
@@ -672,9 +777,12 @@ class EarnMember:
             imported_at=imported_at,
             matched_by=matched_by,
             next_at=next_at,
+            paused_at=paused_at,
+            paused_until=paused_until,
             renewal_reminder=renewal_reminder,
             subscription_id=subscription_id,
             subscription_url=subscription_url,
+            team=team,
             tier_id=tier_id,
             warning=warning,
         )

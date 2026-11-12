@@ -44,6 +44,7 @@ class WebsitePostInput:
             web_on (bool):
             byline_name (str | Unset):
             byline_user_id (str | Unset):
+            comments_off (bool | Unset):
             publish_at (datetime.datetime | Unset):
             publish_tz (str | Unset):
             use_preheader (bool | Unset):
@@ -65,6 +66,7 @@ class WebsitePostInput:
     web_on: bool
     byline_name: str | Unset = UNSET
     byline_user_id: str | Unset = UNSET
+    comments_off: bool | Unset = UNSET
     publish_at: datetime.datetime | Unset = UNSET
     publish_tz: str | Unset = UNSET
     use_preheader: bool | Unset = UNSET
@@ -110,6 +112,8 @@ class WebsitePostInput:
 
         byline_user_id = self.byline_user_id
 
+        comments_off = self.comments_off
+
         publish_at: str | Unset = UNSET
         if not isinstance(self.publish_at, Unset):
             publish_at = self.publish_at.isoformat()
@@ -142,6 +146,8 @@ class WebsitePostInput:
             field_dict["bylineName"] = byline_name
         if byline_user_id is not UNSET:
             field_dict["bylineUserId"] = byline_user_id
+        if comments_off is not UNSET:
+            field_dict["commentsOff"] = comments_off
         if publish_at is not UNSET:
             field_dict["publishAt"] = publish_at
         if publish_tz is not UNSET:
@@ -200,6 +206,8 @@ class WebsitePostInput:
 
         byline_user_id = d.pop("bylineUserId", UNSET)
 
+        comments_off = d.pop("commentsOff", UNSET)
+
         _publish_at = d.pop("publishAt", UNSET)
         publish_at: datetime.datetime | Unset
         if isinstance(_publish_at,  Unset):
@@ -232,6 +240,7 @@ class WebsitePostInput:
             web_on=web_on,
             byline_name=byline_name,
             byline_user_id=byline_user_id,
+            comments_off=comments_off,
             publish_at=publish_at,
             publish_tz=publish_tz,
             use_preheader=use_preheader,

@@ -27,10 +27,12 @@ T = TypeVar("T", bound="ReadinessSendSettings")
 class ReadinessSendSettings:
     """ 
         Attributes:
+            include_holdout (bool | Unset):
             schedule (ReadinessSchedule | Unset):
             thresholds (ReadinessThresholds | Unset):
      """
 
+    include_holdout: bool | Unset = UNSET
     schedule: ReadinessSchedule | Unset = UNSET
     thresholds: ReadinessThresholds | Unset = UNSET
 
@@ -41,6 +43,8 @@ class ReadinessSendSettings:
     def to_dict(self) -> dict[str, Any]:
         from ..models.readiness_schedule import ReadinessSchedule # noqa: PLC0415
         from ..models.readiness_thresholds import ReadinessThresholds # noqa: PLC0415
+        include_holdout = self.include_holdout
+
         schedule: dict[str, Any] | Unset = UNSET
         if not isinstance(self.schedule, Unset):
             schedule = self.schedule.to_dict()
@@ -54,6 +58,8 @@ class ReadinessSendSettings:
 
         field_dict.update({
         })
+        if include_holdout is not UNSET:
+            field_dict["includeHoldout"] = include_holdout
         if schedule is not UNSET:
             field_dict["schedule"] = schedule
         if thresholds is not UNSET:
@@ -68,6 +74,8 @@ class ReadinessSendSettings:
         from ..models.readiness_schedule import ReadinessSchedule # noqa: PLC0415
         from ..models.readiness_thresholds import ReadinessThresholds # noqa: PLC0415
         d = dict(src_dict)
+        include_holdout = d.pop("includeHoldout", UNSET)
+
         _schedule = d.pop("schedule", UNSET)
         schedule: ReadinessSchedule | Unset
         if isinstance(_schedule,  Unset):
@@ -89,6 +97,7 @@ class ReadinessSendSettings:
 
 
         readiness_send_settings = cls(
+            include_holdout=include_holdout,
             schedule=schedule,
             thresholds=thresholds,
         )
