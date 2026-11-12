@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { $api } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
@@ -134,6 +134,20 @@ export function PoolPage({ id, adding, create }: { id: string; adding?: boolean;
   const can = useCan('coupons:manage')
   const [dialog, setDialog] = useState<Dialog>(null)
   const [opened, setOpened] = useState(false)
+  // A batch that finishes while the page is open says so (DiscountCodesStates · generating).
+  const watching = useRef<string | null>(null)
+  useEffect(() => {
+    if (!p) return
+    if (p.running) {
+      watching.current = p.running.id
+      return
+    }
+    const id = watching.current
+    watching.current = null
+    const done = id ? p.batches.find((b) => b.id === id) : undefined
+    if (done?.status === 'done')
+      toast({ kind: 'success', title: <T msg={m.createdToast} values={{ count: done.created, store: p.store?.name ?? '', name: p.name, free: count(p.free), b: bold }} /> })
+  }, [p])
   // The fixes of Send Readiness open a dialog once the pool has loaded.
   if (p && !opened) {
     setOpened(true)
