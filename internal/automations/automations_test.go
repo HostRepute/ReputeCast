@@ -72,11 +72,13 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	// Contact scoring (X13) adds the live "Sales-ready handoff", SMS (X21,
 	// brief §4) the live "Acme Summit reminders", the pages and products
 	// sample (X19) the live "Field Guide follow-up" and "DMARC live
-	// reminders", and the Acme Merch store (X20) the live "Abandoned cart".
-	if l.Counts.All != 10 || l.Counts.Live != 8 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
+	// reminders", the Acme Merch store (X20) the live "Abandoned cart", and
+	// Website tracking (M62) the live "Browse abandonment" and "Back in stock".
+	if l.Counts.All != 12 || l.Counts.Live != 10 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
 		t.Fatalf("counts %+v", l.Counts)
 	}
-	added := map[string]bool{"Sales-ready handoff": true, "Acme Summit reminders": true, "Field Guide follow-up": true, "DMARC live reminders": true, "Abandoned cart": true}
+	added := map[string]bool{"Sales-ready handoff": true, "Acme Summit reminders": true, "Field Guide follow-up": true, "DMARC live reminders": true, "Abandoned cart": true,
+		"Browse abandonment": true, "Back in stock": true}
 	var got []string
 	var x19InFlow int64
 	for _, it := range l.Items {
@@ -137,8 +139,9 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 		}
 	}
 	c.Do("GET", wsPath+"/summary", nil).MustStatus(t, 200).JSON(t, &sum)
-	// Abandoned cart (X20) adds 6 in flow and 6 goals in the 30 days.
-	if sum.InFlow != 1938+x19InFlow || sum.LiveCount != 8 || sum.Goals != 610 || len(sum.GoalsBy) != 4 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
+	// Abandoned cart (X20) adds 6 in flow and 6 goals in the 30 days;
+	// Browse abandonment and Back in stock (M62) are live with nobody in them.
+	if sum.InFlow != 1938+x19InFlow || sum.LiveCount != 10 || sum.Goals != 610 || len(sum.GoalsBy) != 4 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
 		t.Fatalf("summary %+v", sum)
 	}
 	if len(sum.SentBy) == 0 || sum.SentBy[0].Short != "SES" {
