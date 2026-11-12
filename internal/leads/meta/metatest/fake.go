@@ -215,10 +215,10 @@ func (f *Fake) who(token string) (kind, pageID string) {
 		}
 		return "user", ""
 	}
-	switch {
-	case token == f.appID+"|"+f.appSecret:
+	switch token {
+	case f.appID + "|" + f.appSecret:
 		return "app", ""
-	case token == f.token:
+	case f.token:
 		return "user", ""
 	}
 	for _, p := range f.pages {
@@ -322,7 +322,7 @@ func (f *Fake) subscribeApp(w http.ResponseWriter, r *http.Request, appID string
 			return
 		}
 		vq := url.Values{"hub.mode": {"subscribe"}, "hub.challenge": {"1158201444"}, "hub.verify_token": {verify}}
-		req := httptest.NewRequest(http.MethodGet, u.Path+"?"+vq.Encode(), nil)
+		req := httptest.NewRequestWithContext(r.Context(), http.MethodGet, u.Path+"?"+vq.Encode(), nil)
 		rec := httptest.NewRecorder()
 		f.Callback.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK || strings.TrimSpace(rec.Body.String()) != "1158201444" {

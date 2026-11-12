@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -24,7 +25,7 @@ func TestParseWebhookReadsIDsAsStringsOrNumbers(t *testing.T) {
 	if got[1].PageID != "153125381133" {
 		t.Fatalf("second: %+v", got[1])
 	}
-	if _, err := ParseWebhook([]byte(`{"object":"whatsapp_business_account","entry":[]}`)); err != ErrNotLeads {
+	if _, err := ParseWebhook([]byte(`{"object":"whatsapp_business_account","entry":[]}`)); !errors.Is(err, ErrNotLeads) {
 		t.Fatalf("not a Page webhook: %v", err)
 	}
 }
