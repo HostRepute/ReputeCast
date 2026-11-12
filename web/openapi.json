@@ -115518,7 +115518,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "leads"
               ],
               "type": "string"
             }
@@ -115791,7 +115792,8 @@
                 "sms",
                 "push",
                 "whatsapp",
-                "agency"
+                "agency",
+                "leads"
               ],
               "type": "string"
             }
