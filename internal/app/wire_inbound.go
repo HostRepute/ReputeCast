@@ -53,6 +53,9 @@ func init() {
 	audienceReplies = func(a *App) audience.ActivitySource { return &inbound.Service{Q: a.Q} }
 }
 
+// Inbound is the receiving service (tests drive its jobs).
+func (a *App) Inbound() *inbound.Service { return a.inbound() }
+
 // inboundServices keeps one service per App: it remembers MX lookups and
 // when each workspace last sent a test message.
 var inboundServices sync.Map // *App → *inbound.Service

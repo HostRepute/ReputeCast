@@ -1894,6 +1894,9 @@ type Querier interface {
 	InboundRawPurge(ctx context.Context, before time.Time) (int64, error)
 	// Verified rows still waiting after a while: their job was lost.
 	InboundRawStale(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	// Whether replies reach ReputeCast's inbox: the workspace has a receiving
+	// route and keeps replies in it (stop on reply needs both).
+	InboundRepliesInbox(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	InboundRouteByID(ctx context.Context, id uuid.UUID) (InboundRoute, error)
 	InboundRouteByTokenHash(ctx context.Context, hookTokenHash []byte) (InboundRoute, error)
 	// Claims a replies notice: only the process that moves notified_at sends it.

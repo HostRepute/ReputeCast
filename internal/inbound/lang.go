@@ -64,3 +64,18 @@ func detailIn(raw string, l i18n.Lang) string {
 	}
 	return ""
 }
+
+// reasons name what a stored status sentence is about (InboundRouteView.StatusReason).
+var reasons = map[string]string{
+	"inbound.status.mxMoved": "mx", "inbound.status.mailboxAuth": "mailbox_auth", "inbound.status.mailboxUnreachable": "mailbox_unreachable",
+	"inbound.status.registerFailed": "register", "inbound.status.droppedReports": "dropped_reports",
+}
+
+// reasonOf is what a stored status sentence is about, "" when unknown.
+func reasonOf(raw string) string {
+	var t i18n.Text
+	if !strings.HasPrefix(raw, "{") || json.Unmarshal([]byte(raw), &t) != nil {
+		return ""
+	}
+	return reasons[t.ID]
+}

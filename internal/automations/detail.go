@@ -405,6 +405,10 @@ type AutomationOptions struct {
 	// editor offers those triggers only then (G-11).
 	Tiers         []AutomationTierOption `json:"tiers"`
 	PaidConnected bool                   `json:"paidConnected"`
+	// RepliesInbox says replies reach ReputeCast's inbox (Receiving mail
+	// and "Keep replies in ReputeCast inbox", M58): "Stop when the contact
+	// replies" and "Replied to the email" work only then.
+	RepliesInbox bool `json:"repliesInbox"`
 }
 
 // AutomationMilestoneOption is a referral milestone a "Reached a
@@ -427,6 +431,9 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationO
 		return out, err
 	}
 	out.Tiers, out.PaidConnected = tiers, paid
+	if out.RepliesInbox, err = s.Q.InboundRepliesInbox(ctx, ws.ID); err != nil {
+		return out, err
+	}
 	if segs, err := s.Q.AutomationSegments(ctx, ws.ID); err == nil {
 		for _, sg := range segs {
 			o := AutomationSegmentOption{ID: sg.ID.String(), Name: sg.Name, CheckMinutes: int(WatchInterval(sg.WatchMs) / time.Minute)}

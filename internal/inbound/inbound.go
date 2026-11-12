@@ -110,7 +110,13 @@ type InboundRouteView struct {
 	// for the first message), receiving or failing.
 	Status       string `json:"status" enum:"not_set_up,pending,receiving,failing"`
 	StatusDetail string `json:"statusDetail"`
-	Kind         string `json:"kind,omitempty" enum:"provider,mailbox"`
+	// StatusReason says what StatusDetail is about: the MX record moved,
+	// the mailbox refused the sign-in or couldn't be reached, the
+	// provider refused the registration, or reports were dropped.
+	StatusReason string `json:"statusReason,omitempty" enum:"mx,mailbox_auth,mailbox_unreachable,register,dropped_reports"`
+	// SetUpAt is when the route was saved.
+	SetUpAt *time.Time `json:"setUpAt,omitempty"`
+	Kind    string     `json:"kind,omitempty" enum:"provider,mailbox"`
 	// Provider is the connected provider a provider route receives
 	// through.
 	Provider *InboundProviderRef `json:"provider,omitempty"`
@@ -361,7 +367,9 @@ func (s *Service) View(ctx context.Context, ws *store.Workspace) (InboundRouteVi
 		return out, err
 	}
 	out.Status, out.Kind, out.Domain, out.LastReceivedAt = r.Status, r.Kind, r.Domain, r.LastReceivedAt
-	out.StatusDetail = detailIn(r.StatusDetail, l)
+	out.StatusDetail, out.StatusReason = detailIn(r.StatusDetail, l), reasonOf(r.StatusDetail)
+	created := r.CreatedAt
+	out.SetUpAt = &created
 	out.LastTest = InboundTestView{SentAt: r.TestSentAt, ReceivedAt: r.TestReceivedAt}
 	b := boxOf(r)
 	out.Addresses = InboundAddressView{DMARC: b.Fixed(LocalDMARC), FBL: b.Fixed(LocalFBL)}
@@ -532,13 +540,18 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in InboundRoute
 			return InboundRouteView{}, api.Err(409, "inbound.domain_taken", say(ctx, "problem.domainTaken", i18n.Args{"domain": domain}))
 		}
 		p.ProviderID, p.Domain = &prov.ID, domain
-		// The adapter's settings, only the keys it asks for.
+		// The adapter's settings, only the keys it asks for. A required one
+		// may still be empty: a manual setup's steps come first (Records
+		// and test), and the provider's requests are refused until it's
+		// entered.
 		probe := providers.InboundRoute{ID: id, Domain: domain, Settings: map[string]string{}}
 		settings := map[string]string{}
 		for _, f := range rc.InboundSetup(probe).Settings {
 			v := strings.TrimSpace(in.Settings[f.Key])
-			if v == "" && f.Required {
-				return InboundRouteView{}, api.Invalid("body.settings."+f.Key, say(ctx, "problem.settingRequired", i18n.Args{"label": f.In(l).Label}))
+			if v == "" && in.Settings != nil && f.Required {
+				if _, given := in.Settings[f.Key]; given {
+					return InboundRouteView{}, api.Invalid("body.settings."+f.Key, say(ctx, "problem.settingRequired", i18n.Args{"label": f.In(l).Label}))
+				}
 			}
 			if len(v) > 500 {
 				return InboundRouteView{}, api.Invalid("body.settings."+f.Key, say(ctx, "problem.settingLong", i18n.Args{"label": f.In(l).Label}))

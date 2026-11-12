@@ -14,7 +14,8 @@ import (
 )
 
 const inboundContactActivity = `-- name: InboundContactActivity :many
-SELECT im.id, im.subject, im.received_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT im.id, im.subject, left(im.text_body, 600)::text AS text_start, im.received_at, coalesce(c.name, '')::text AS campaign_name,
+    coalesce(a.name, '')::text AS automation_name
 FROM inbound_messages im
 LEFT JOIN campaigns c ON c.id = im.campaign_id
 LEFT JOIN automations a ON a.id = im.automation_id
@@ -35,6 +36,7 @@ type InboundContactActivityParams struct {
 type InboundContactActivityRow struct {
 	ID             uuid.UUID `json:"id"`
 	Subject        string    `json:"subject"`
+	TextStart      string    `json:"textStart"`
 	ReceivedAt     time.Time `json:"receivedAt"`
 	CampaignName   string    `json:"campaignName"`
 	AutomationName string    `json:"automationName"`
@@ -59,6 +61,7 @@ func (q *Queries) InboundContactActivity(ctx context.Context, arg InboundContact
 		if err := rows.Scan(
 			&i.ID,
 			&i.Subject,
+			&i.TextStart,
 			&i.ReceivedAt,
 			&i.CampaignName,
 			&i.AutomationName,
@@ -475,6 +478,20 @@ func (q *Queries) InboundRawStale(ctx context.Context, before time.Time) ([]uuid
 		return nil, err
 	}
 	return items, nil
+}
+
+const inboundRepliesInbox = `-- name: InboundRepliesInbox :one
+SELECT EXISTS (SELECT 1 FROM inbound_routes r JOIN workspaces w ON w.id = r.workspace_id
+               WHERE r.workspace_id = $1 AND w.sending_defaults ->> 'reply_handling' = 'inbox')
+`
+
+// Whether replies reach ReputeCast's inbox: the workspace has a receiving
+// route and keeps replies in it (stop on reply needs both).
+func (q *Queries) InboundRepliesInbox(ctx context.Context, workspaceID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, inboundRepliesInbox, workspaceID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const inboundRouteByID = `-- name: InboundRouteByID :one
@@ -1037,7 +1054,7 @@ FROM inbound_messages im
 WHERE im.workspace_id = $1 AND im.kind IN ('reply', 'other', 'unsubscribe')
   AND ($2::uuid IS NULL OR im.campaign_id = $2::uuid)
   AND ($3::uuid IS NULL OR im.automation_id = $3::uuid)
-  AND ($4::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || $4::text || '%')
+  AND ($4::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || $4::text || '%' OR im.text_body ILIKE '%' || $4::text || '%')
 `
 
 type RepliesCountsParams struct {
@@ -1093,7 +1110,7 @@ WHERE im.workspace_id = $1
         ELSE false END
   AND ($3::uuid IS NULL OR im.campaign_id = $3::uuid)
   AND ($4::uuid IS NULL OR im.automation_id = $4::uuid)
-  AND ($5::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || $5::text || '%')
+  AND ($5::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || $5::text || '%' OR im.text_body ILIKE '%' || $5::text || '%')
   AND ($6::timestamptz IS NULL OR (im.received_at, im.id) < ($6::timestamptz, $7::uuid))
 ORDER BY im.received_at DESC, im.id DESC
 LIMIT $8

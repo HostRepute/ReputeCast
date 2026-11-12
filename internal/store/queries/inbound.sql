@@ -145,7 +145,7 @@ WHERE im.workspace_id = @workspace_id
         ELSE false END
   AND (sqlc.narg(campaign_id)::uuid IS NULL OR im.campaign_id = sqlc.narg(campaign_id)::uuid)
   AND (sqlc.narg(automation_id)::uuid IS NULL OR im.automation_id = sqlc.narg(automation_id)::uuid)
-  AND (@q::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || @q::text || '%')
+  AND (@q::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || @q::text || '%' OR im.text_body ILIKE '%' || @q::text || '%')
   AND (sqlc.narg(before_at)::timestamptz IS NULL OR (im.received_at, im.id) < (sqlc.narg(before_at)::timestamptz, @before_id::uuid))
 ORDER BY im.received_at DESC, im.id DESC
 LIMIT @lim;
@@ -162,7 +162,7 @@ FROM inbound_messages im
 WHERE im.workspace_id = @workspace_id AND im.kind IN ('reply', 'other', 'unsubscribe')
   AND (sqlc.narg(campaign_id)::uuid IS NULL OR im.campaign_id = sqlc.narg(campaign_id)::uuid)
   AND (sqlc.narg(automation_id)::uuid IS NULL OR im.automation_id = sqlc.narg(automation_id)::uuid)
-  AND (@q::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || @q::text || '%');
+  AND (@q::text = '' OR (im.subject || ' ' || im.from_email || ' ' || im.from_name) ILIKE '%' || @q::text || '%' OR im.text_body ILIKE '%' || @q::text || '%');
 
 -- name: ReplyGet :one
 SELECT im.*, coalesce(c.name, '')::text AS campaign_name, coalesce(c.subject, '')::text AS campaign_subject, coalesce(a.name, '')::text AS automation_name,
@@ -185,7 +185,8 @@ RETURNING id;
 
 -- name: InboundContactActivity :many
 -- A contact's replies for the timeline, newest first.
-SELECT im.id, im.subject, im.received_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT im.id, im.subject, left(im.text_body, 600)::text AS text_start, im.received_at, coalesce(c.name, '')::text AS campaign_name,
+    coalesce(a.name, '')::text AS automation_name
 FROM inbound_messages im
 LEFT JOIN campaigns c ON c.id = im.campaign_id
 LEFT JOIN automations a ON a.id = im.automation_id
@@ -217,3 +218,9 @@ SELECT count(*)::bigint FROM inbound_messages WHERE workspace_id = @workspace_id
 
 -- name: InboundLastDMARC :one
 SELECT received_at FROM dmarc_reports WHERE workspace_id = @workspace_id AND via = 'inbound' ORDER BY received_at DESC LIMIT 1;
+
+-- name: InboundRepliesInbox :one
+-- Whether replies reach ReputeCast's inbox: the workspace has a receiving
+-- route and keeps replies in it (stop on reply needs both).
+SELECT EXISTS (SELECT 1 FROM inbound_routes r JOIN workspaces w ON w.id = r.workspace_id
+               WHERE r.workspace_id = @workspace_id AND w.sending_defaults ->> 'reply_handling' = 'inbox');

@@ -36,7 +36,7 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 			name = r.AutomationName
 		}
 		out = append(out, audience.ContactActivityItem{ID: r.ID.String(), Category: "engagement", Type: "replied", At: r.ReceivedAt,
-			Subject: name, Detail: r.Subject})
+			Subject: name, Detail: r.Subject, Note: preview(r.TextStart)})
 	}
 	return out, total, nil
 }
