@@ -7,6 +7,7 @@ func TestRedactPath(t *testing.T) {
 		"/t/o/AbC.def":                                   "/t/o/{token}",
 		"/t/c/AbC.def":                                   "/t/c/{token}",
 		"/t/h/AbC.def":                                   "/t/h/{token}",
+		"/t/cd/AbC-def.gif":                              "/t/cd/{token}",
 		"/p/acme-newsletter/unsubscribe/tok":             "/p/acme-newsletter/unsubscribe/{token}",
 		"/p/acme-newsletter/preferences/tok":             "/p/acme-newsletter/preferences/{token}",
 		"/p/acme-newsletter/confirm/tok":                 "/p/acme-newsletter/confirm/{token}",

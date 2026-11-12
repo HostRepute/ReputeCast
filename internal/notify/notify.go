@@ -102,6 +102,9 @@ const (
 	// Receiving mail (M58).
 	KindReplyReceived  = "reply_received"  // new replies in Audience › Replies, at most every 15 minutes (replies:view)
 	KindInboundFailing = "inbound_failing" // receiving mail stopped: the MX record moved or the mailbox refused (domains:manage)
+	// Discount codes (M59): a pool's free codes fell under its low mark
+	// (coupons:manage).
+	KindCouponCodesLow = "coupon_codes_low"
 )
 
 // Notification is what appears in the notification center.

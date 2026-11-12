@@ -127,6 +127,9 @@ func (s *Service) Page(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		Flows: []CommerceFlow{}, CanManage: p.Can(authz.IntegrationsManage), Helpers: s.helpers(ctx, ws.ID, authz.IntegrationsManage),
 		Lists: s.listOptions(ctx, ws.ID)}
 	out.Capabilities = s.capabilities(st)
+	if out.Discounts, err = s.discountsRow(ctx, st); err != nil {
+		return out, err
+	}
 	totals, err := s.Q.CommerceStoreTotals(ctx, store.CommerceStoreTotalsParams{StoreID: st.ID, Since: since, Until: now})
 	if err != nil {
 		return out, err
@@ -244,6 +247,9 @@ func (s *Service) capabilities(st store.Store) []string {
 			continue
 		}
 		out = append(out, string(c))
+	}
+	if discountsGranted(st) {
+		out = append(out, "discounts")
 	}
 	return out
 }

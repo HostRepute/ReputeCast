@@ -45,7 +45,27 @@ var automationStoreEmail = func(*App) func(context.Context, uuid.UUID, uuid.UUID
 	return nil
 }
 
+// automationEmailChecks add other domains' publish badges about a flow's
+// emails (countdowns, discount codes); each domain appends its own.
+var automationEmailChecks []func(*App) automations.EmailPublishChecker
+
+// automationEmailHolds make an email step wait for what its email needs
+// (a discount code pool's codes); each domain appends its own.
+var automationEmailHolds []func(*App) automations.EmailHold
+
 func newAutomations(a *App) *automations.Service {
+	var emailChecks []automations.EmailPublishChecker
+	for _, f := range automationEmailChecks {
+		if c := f(a); c != nil {
+			emailChecks = append(emailChecks, c)
+		}
+	}
+	var emailHolds []automations.EmailHold
+	for _, f := range automationEmailHolds {
+		if h := f(a); h != nil {
+			emailHolds = append(emailHolds, h)
+		}
+	}
 	return &automations.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
 		Jobs: func() automations.Inserter {
@@ -64,8 +84,10 @@ func newAutomations(a *App) *automations.Service {
 		SegmentMembers: func(ctx context.Context, ws, seg uuid.UUID) ([]uuid.UUID, error) {
 			return a.segments().ContactIDs(ctx, ws, seg)
 		},
-		Mail: func() mailer.Sender { return a.Mail },
-		URLs: a.URLs,
+		Mail:        func() mailer.Sender { return a.Mail },
+		URLs:        a.URLs,
+		EmailChecks: emailChecks,
+		EmailHolds:  emailHolds,
 	}
 }
 

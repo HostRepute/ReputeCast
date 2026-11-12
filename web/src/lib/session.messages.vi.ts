@@ -43,4 +43,5 @@ export default translate(m, {
   'grow:connect': 'quản lý liên kết đối tác',
   'replies:view': 'đọc thư trả lời',
   'replies:manage': 'xử lý thư trả lời',
+  'coupons:manage': 'quản lý mã giảm giá',
 })

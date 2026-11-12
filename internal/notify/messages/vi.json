@@ -52,6 +52,7 @@
   "short.whatsapp_attention": "mẫu và chất lượng WhatsApp",
   "short.reply_received": "thư trả lời",
   "short.inbound_failing": "sự cố nhận thư",
+  "short.coupon_codes_low": "mã giảm giá sắp hết",
 
   "event.approval_requested": "Yêu cầu phê duyệt",
   "event.approval_decided": "Yêu cầu phê duyệt được duyệt, bị từ chối hoặc cần thay đổi",
@@ -102,6 +103,7 @@
   "event.whatsapp_attention": "Mẫu WhatsApp bị từ chối hoặc chất lượng giảm",
   "event.reply_received": "Thư trả lời mới",
   "event.inbound_failing": "Nhận thư đang lỗi",
+  "event.coupon_codes_low": "Mã giảm giá sắp hết",
 
   "audience.approval_requested": "Chỉ dành cho người phê duyệt",
   "audience.approval_decided": "Chỉ dành cho tác giả",
@@ -152,6 +154,7 @@
   "audience.whatsapp_attention": "Những người có thể xem nhà cung cấp gửi thư",
   "audience.reply_received": "Những người có thể xem thư trả lời · tối đa 15 phút một lần",
   "audience.inbound_failing": "Những người có thể quản lý tên miền",
+  "audience.coupon_codes_low": "Những người có thể quản lý mã giảm giá",
 
   "category.approvals": "Phê duyệt",
   "category.sending": "Gửi thư",

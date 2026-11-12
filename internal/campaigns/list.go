@@ -49,9 +49,10 @@ type Service struct {
 	// Extras fill in test emails' poll links and cut them to a contact's
 	// version of conditional content (conditional.go); nil leaves them.
 	Extras Extras
-	// More adds other domains' findings to the composer's checks (the
-	// Sponsor block's creative, internal/sponsors); nil leaves them out.
-	More MoreChecks
+	// More add other domains' findings to the composer's checks (the
+	// Sponsor block's creative, internal/sponsors; the Countdown and
+	// Discount code blocks), in order; none leaves them out.
+	More []MoreChecks
 	// Channels fill in the rows of campaigns on other channels (SMS, and
 	// later push and WhatsApp): their routes, results and readiness. Nil
 	// leaves those rows as stored.
@@ -62,7 +63,14 @@ type Service struct {
 	// Box seals review links' tokens so members can copy a link again
 	// (review.go); review links need it.
 	Box *secrets.Box
+	// MoreTokens add a workspace's own tokens to the composer's token menu
+	// (its discount code pools' coupons.<slug>.code and .url, in the
+	// member's language), after the catalog's; none adds nothing.
+	MoreTokens []TokenSource
 }
+
+// TokenSource gives a workspace's tokens of one kind for the composer.
+type TokenSource func(ctx context.Context, ws *store.Workspace) []liquid.PersonalizationToken
 
 // ChannelRows fills in the list's rows of one channel's campaigns
 // (internal/texting for SMS).

@@ -286,7 +286,7 @@ func (g *storeSeedState) store() error {
 		attribution_set_by, attribution_set_at, last_event_at, health_checked_at, import_progress, import_started_at, import_started_by, import_finished_at,
 		writeback_through, reconciled_at, reconcile_missed, reconcile_products, demo, connected_by, connected_at, created_by, created_at, updated_at)
 		VALUES ($1,$2,'shopify','connected','done','Acme Merch','shop.acme.io','acme-merch.myshopify.com','shop.acme.io','USD','2026-10','ReputeCast',
-		$3,$4,'{read_customers,read_orders,read_products,write_customers}',$5,$6,12,$7,true,true,5,$8,$9,$10,$11,$12,$9,$8,$13,$14,$15,0,38,true,$8,$9,$8,$16,$10)`,
+		$3,$4,'{read_customers,read_orders,read_products,write_customers,write_discounts,read_discounts}',$5,$6,12,$7,true,true,5,$8,$9,$10,$11,$12,$9,$8,$13,$14,$15,0,38,true,$8,$9,$8,$16,$10)`,
 		g.storeID, ws.ID, StoreClientID, sealed, g.day(6, 16, 1), "demo-"+g.storeID.String()[24:], g.listID, marcus, g.day(6, 16, 4),
 		s.Ago(2*time.Minute), s.Ago(4*time.Minute), progress, g.day(6, 16, 42), s.Ago(time.Minute), g.day(15, 3, 0), g.day(6, 15, 51))
 	if err != nil {
@@ -1240,7 +1240,7 @@ func (g *storeSeedState) history() error {
 		{at: g.day(6, 15, 56), actorType: "user", actor: "marcus@acme.io", action: "store.keys_saved", targetType: "store", targetID: store, target: "Acme Merch",
 			after: map[string]any{"clientId": "4f1c…a9e2", "secret": "sealed"}},
 		{at: g.day(6, 16, 1), actorType: "user", actor: "marcus@acme.io", action: "store.installed", targetType: "store", targetID: store, target: "Acme Merch",
-			after: map[string]any{"scopes": []string{"read_customers", "read_orders", "read_products", "write_customers"}}},
+			after: map[string]any{"scopes": []string{"read_customers", "read_orders", "read_products", "write_customers", "write_discounts", "read_discounts"}}},
 		{at: g.day(6, 16, 4), actorType: "user", actor: "marcus@acme.io", action: "list.create", targetType: "list", targetID: g.listID.String(), target: "Acme Merch",
 			after: map[string]any{"name": "Acme Merch", "origin": "store"}},
 		{at: g.day(6, 16, 4), actorType: "user", actor: "marcus@acme.io", action: "store.connected", targetType: "store", targetID: store, target: "Acme Merch",

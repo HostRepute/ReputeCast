@@ -75,6 +75,7 @@
   "action.workspace:delete": "Den Arbeitsbereich löschen",
   "action.replies:view": "Antworten ansehen",
   "action.replies:manage": "Antworten bearbeiten",
+  "action.coupons:manage": "Rabattcodes verwalten",
 
   "group.campaigns": "Kampagnen",
   "group.templates": "Vorlagen",
@@ -255,6 +256,8 @@
   "perm.agency:library.about": "Bibliothekselemente und Arbeitsbereichsvorlagen hinzufügen, ändern und entfernen und in Kunden kopieren.",
   "perm.agency:manage": "Kunden-Arbeitsbereiche erstellen und löschen, Agenturteam und Zuweisungen verwalten",
   "perm.agency:manage.about": "Kunden erstellen und löschen, Personen zum Agenturteam hinzufügen und entfernen und Kunden zuweisen.",
+  "perm.coupons:manage": "Rabattcode-Pools und ihre Codes verwalten",
+  "perm.coupons:manage.about": "Pools anlegen, ändern und archivieren sowie ihre Codes hochladen, erstellen, entfernen oder exportieren. Zum Ansehen der Pools ist „Kampagnen ansehen“ nötig.",
 
   "role.owner.about": "Alles, einschließlich Übertragung der Inhaberschaft und Löschen des Arbeitsbereichs",
   "role.admin.about": "Alles außer Übertragung der Inhaberschaft und Löschen des Arbeitsbereichs",

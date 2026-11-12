@@ -255,8 +255,9 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	done(stageLang, f)
 
 	// Grow's blocks: who the Referral block shows to, what the
-	// Recommendations block shows.
-	if s.Grow != nil {
+	// Recommendations block shows; then other domains' blocks that depend
+	// on the audience (the Discount code block's codes, Countdown blocks).
+	if s.Grow != nil || len(s.Blocks) > 0 {
 		byList := map[uuid.UUID]int64{}
 		for _, r := range g.recipients {
 			for _, l := range r.Lists {
@@ -265,7 +266,12 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 				}
 			}
 		}
-		f.Grow = s.Grow.ReadinessRows(ctx, ws, c.ID, c.Html, byList, int64(len(g.recipients)))
+		if s.Grow != nil {
+			f.Grow = s.Grow.ReadinessRows(ctx, ws, c.ID, c.Html, byList, int64(len(g.recipients)))
+		}
+		for _, bc := range s.Blocks {
+			f.Grow = append(f.Grow, bc.ReadinessRows(ctx, ws, c.ID, c.Html, byList, int64(len(g.recipients)))...)
+		}
 	}
 
 	// Accessibility: every language version, on the content as saved.

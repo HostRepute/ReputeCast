@@ -4,6 +4,8 @@ import { mc } from '../canvas.messages'
 import { feedItemsLabel, isFeedItems } from '@/features/digests/composer/feedComponent'
 import { dc } from '@/features/digests/composer/messages'
 import { growBlockLabel, growSectionLabel, isGrowBlock } from '@/features/grow/composer/blocks'
+import { m as mcd } from '@/features/countdown/messages'
+import { mc as mcp } from '@/features/coupons/composer/messages'
 
 /** MJML tag of a component ("mj-section"), or "" for non-MJML nodes. */
 export function tagOf(c: Component | undefined | null): string {
@@ -244,6 +246,9 @@ export function sectionName(c: Component): string {
 export function componentLabel(c: Component): string {
   if (isFeedItems(c)) return feedItemsLabel(c)
   if (isGrowBlock(c)) return growBlockLabel(c)
+  // The Discount code and Countdown blocks (M59) by their names.
+  if (c.get('type') === 'rc-coupon') return tt(mcp.name)
+  if (tagOf(c) === 'mj-image' && (c.getAttributes() as Record<string, unknown>)['rc-countdown'] !== undefined) return `mj-image · ${tt(mcd.name)}`
   const tag = tagOf(c)
   if (!tag) return String(c.get('type') ?? c.get('tagName') ?? tt(mc.element))
   const parent = c.parent()

@@ -113,6 +113,10 @@ const (
 	// Receiving mail (M58): the replies inbox.
 	RepliesView   Permission = "replies:view"
 	RepliesManage Permission = "replies:manage"
+
+	// Discount code pools: create, change and archive them, upload, create,
+	// remove and export their codes (M59). Seeing them is campaigns:view.
+	CouponsManage Permission = "coupons:manage"
 )
 
 // Def describes a permission for the role editor and API docs.
@@ -150,6 +154,7 @@ var Defs = described([]Def{
 	{Key: CampaignsSend, Group: g("campaigns"), Sensitive: true, Implies: []Permission{CampaignsView}},
 	{Key: CampaignsPause, Group: g("campaigns"), Implies: []Permission{CampaignsView}},
 	{Key: CampaignsApprove, Group: g("campaigns"), Sensitive: true, Implies: []Permission{CampaignsView}},
+	{Key: CouponsManage, Group: g("campaigns"), Sensitive: true, NoAgents: true, Implies: []Permission{CampaignsView}},
 
 	{Key: TemplatesView, Group: g("templates")},
 	{Key: TemplatesEdit, Group: g("templates"), Implies: []Permission{TemplatesView}},
@@ -454,7 +459,7 @@ var BuiltinRoles = []BuiltinRole{
 		SubscribersCreate, SubscribersEdit, SubscribersImport, ListsManage, SegmentsEdit, FormsEdit, ReportsShare,
 		TransactionalEdit, TransactionalPublish, AIUse, ScoringEdit, PlacementRun, GrowEdit, GrowReview,
 		SponsorsManage, WebsiteEdit, WebsitePublish, WebsiteManage, ProductsEdit, ProductsPublish, OrdersManage,
-		SMSSend, PushSend, WhatsAppSend, RepliesView, RepliesManage)...)},
+		SMSSend, PushSend, WhatsAppSend, RepliesView, RepliesManage, CouponsManage)...)},
 	{Key: RoleViewer, Name: "Viewer", Description: roleAbout(RoleViewer), Permissions: NewSet(viewAll...)},
 }
 

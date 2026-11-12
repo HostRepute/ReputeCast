@@ -52,6 +52,7 @@
   "short.whatsapp_attention": "plantillas y calidad de WhatsApp",
   "short.reply_received": "respuestas",
   "short.inbound_failing": "problemas de recepción",
+  "short.coupon_codes_low": "códigos de descuento por agotarse",
 
   "event.approval_requested": "Aprobación solicitada",
   "event.approval_decided": "Solicitud aprobada, rechazada o con cambios solicitados",
@@ -102,6 +103,7 @@
   "event.whatsapp_attention": "Plantilla de WhatsApp rechazada o calidad en descenso",
   "event.reply_received": "Respuestas nuevas",
   "event.inbound_failing": "La recepción de correo falla",
+  "event.coupon_codes_low": "Códigos de descuento por agotarse",
 
   "audience.approval_requested": "Solo para quien aprueba",
   "audience.approval_decided": "Solo para quien la creó",
@@ -152,6 +154,7 @@
   "audience.whatsapp_attention": "Personas que pueden ver los proveedores de envío",
   "audience.reply_received": "Quienes pueden ver las respuestas · como mucho cada 15 minutos",
   "audience.inbound_failing": "Quienes pueden gestionar dominios",
+  "audience.coupon_codes_low": "Personas que pueden gestionar los códigos de descuento",
 
   "category.approvals": "Aprobaciones",
   "category.sending": "Envíos",

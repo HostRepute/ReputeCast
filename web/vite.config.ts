@@ -143,6 +143,8 @@ export default defineConfig({
       // Web push (X22): the prompt script, the workers and the click link.
       '/push/': { target: backend, changeOrigin: false },
       '/t/p/': { target: backend, changeOrigin: false },
+      // The Countdown block's image (M59), drawn by the server when it's opened.
+      '/t/cd/': { target: backend, changeOrigin: false },
     },
   },
   build: {

@@ -62,6 +62,13 @@ var (
 	mCheckRemovedText = msgs.M("check.removedDetail")
 )
 
+// Discount codes (M59): why a store can't create them.
+var (
+	mDiscountsNotGranted  = msgs.M("discounts.notGranted")
+	mDiscountsReadOnly    = msgs.M("discounts.readOnly")
+	mDiscountsUnsupported = msgs.M("discounts.unsupported")
+)
+
 // emailLang is the language a workspace writes its emails in by default
 // (the store blocks' words, the store list's description): its default
 // content language, English when it never set one.

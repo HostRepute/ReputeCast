@@ -56,6 +56,11 @@ type runState struct {
 	// while the flow was paused and it resumed with "skip overdue
 	// emails" (review 2026-11 AT-4).
 	SkipEmail bool `json:"skipEmail,omitempty"`
+	// HeldSince is when the current email step's hold began (a discount
+	// code pool with no code left); Skipped maps email steps skipped after
+	// waiting EmailHoldMax to the hold's reason ("no_codes").
+	HeldSince *time.Time        `json:"heldSince,omitempty"`
+	Skipped   map[string]string `json:"skipped,omitempty"`
 }
 
 func parseState(raw []byte) runState {
@@ -705,7 +710,7 @@ func (e *executor) moveOn(ctx context.Context, from AutomationNode, next, path s
 	e.run.NodeID = next
 	e.run.NodeEnteredAt = e.now
 	e.run.Status = "active"
-	e.st = runState{Messages: e.st.Messages, Event: e.st.Event, Ctx: e.st.Ctx, Vars: e.st.Vars, SkipEmail: e.st.SkipEmail}
+	e.st = runState{Messages: e.st.Messages, Event: e.st.Event, Ctx: e.st.Ctx, Vars: e.st.Vars, SkipEmail: e.st.SkipEmail, Skipped: e.st.Skipped}
 	e.stat(next).Entered++
 	return nil
 }
@@ -823,6 +828,30 @@ func (e *executor) email(ctx context.Context, n AutomationNode) (string, string,
 	if !ok {
 		e.stat(n.ID).Skipped++
 		return next, "", false, nil
+	}
+	// Something the email needs isn't there yet (a discount code pool with
+	// no code left): the run looks again every 15 minutes, then, after a
+	// day, goes on without the email.
+	if why, err := e.s.emailHold(ctx, e.run.WorkspaceID, emailID, cfg.EmailVersion, e.run.ContactID); err != nil {
+		return "", "", true, err
+	} else if why != "" {
+		if e.st.HeldSince == nil {
+			since := e.now
+			e.st.HeldSince = &since
+		}
+		if !e.now.Before(e.st.HeldSince.Add(EmailHoldMax)) {
+			e.st.HeldSince = nil
+			if e.st.Skipped == nil {
+				e.st.Skipped = map[string]string{}
+			}
+			e.st.Skipped[n.ID] = why
+			e.stat(n.ID).Skipped++
+			return next, "", false, nil
+		}
+		if e.st.Wait != "hold" {
+			e.stat(n.ID).Waiting++
+		}
+		return "", "", true, e.wait(ctx, "hold", e.now.Add(EmailHoldRecheck))
 	}
 	queued, err := e.s.mailer().QueueAutomationEmail(ctx, e.tx, OutgoingEmail{
 		WorkspaceID: e.run.WorkspaceID, AutomationID: e.run.AutomationID, Version: int(e.run.Version), NodeID: n.ID,

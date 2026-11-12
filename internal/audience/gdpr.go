@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/erasure"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -106,7 +107,7 @@ func (s *Service) ExportContact(ctx context.Context, ws *store.Workspace, id uui
 					// A savepoint each, so one failing section leaves the
 					// snapshot usable for the next.
 					n, err := withSavepoint(ctx, tx, func(sp pgx.Tx) (int, error) {
-						return exportRows(ctx, sp, ex.SQL, ew, id, ws.ID, strings.ToLower(c.Email), c.Phone)
+						return exportRows(ctx, sp, ex, s.Opener, ew, id, ws.ID, strings.ToLower(c.Email), c.Phone)
 					})
 					counts[ex.Section] = n
 					if err != nil {
@@ -208,11 +209,12 @@ func (s *Service) exportEvents(ctx context.Context, ws *store.Workspace, id uuid
 }
 
 // exportRows writes a source's export query as an array of objects, one
-// per row, column by column.
-func exportRows(ctx context.Context, tx pgx.Tx, sql string, ew *exportWriter, contact, ws uuid.UUID, email, phone string) (int, error) {
+// per row, column by column; sealed columns are opened (with opener; nil
+// leaves them empty).
+func exportRows(ctx context.Context, tx pgx.Tx, ex erasure.Export, opener Box, ew *exportWriter, contact, ws uuid.UUID, email, phone string) (int, error) {
 	ew.raw("[")
 	defer ew.raw("]")
-	rows, err := tx.Query(ctx, "WITH erasure_params AS (SELECT $1::uuid, $2::uuid, $3::text, $4::text) "+sql, contact, ws, email, phone)
+	rows, err := tx.Query(ctx, "WITH erasure_params AS (SELECT $1::uuid, $2::uuid, $3::text, $4::text) "+ex.SQL, contact, ws, email, phone)
 	if err != nil {
 		return 0, err
 	}
@@ -227,6 +229,17 @@ func exportRows(ctx context.Context, tx pgx.Tx, sql string, ew *exportWriter, co
 		row := make(map[string]any, len(vals))
 		for i, f := range fields {
 			row[f.Name] = vals[i]
+		}
+		for col, adCol := range ex.Sealed {
+			sealed, _ := row[col].([]byte)
+			ad, _ := row[adCol].(string)
+			delete(row, adCol)
+			row[col] = nil
+			if opener != nil && len(sealed) > 0 {
+				if plain, err := opener.Open(sealed, ad); err == nil {
+					row[col] = string(plain)
+				}
+			}
 		}
 		if n > 0 {
 			ew.raw(",")

@@ -44,4 +44,5 @@ export default translate(m, {
   'grow:connect': 'Gestionar enlaces de socio',
   'replies:view': 'Leer respuestas',
   'replies:manage': 'Gestionar respuestas',
+  'coupons:manage': 'Gestionar códigos de descuento',
 })

@@ -22,6 +22,8 @@ import { money, storefront, storesBase, useRefreshStores, useStore, type StorePa
 import { ConnectStoreDialog } from './ConnectStoreDialog'
 import { DisconnectStoreDialog } from './DisconnectStoreDialog'
 import { cm } from './messages'
+import { m as cpm } from '@/features/coupons/messages'
+import { StoreDiscountsRow } from '@/features/coupons/StoreDiscounts'
 import './commerce.css'
 import { SwitchInput } from '@/components/ui/Field'
 
@@ -69,6 +71,8 @@ const capLabel: Record<string, MessageDescriptor> = {
   checkouts: cm.capCheckouts,
   write_back: cm.capWriteBack,
   attribution: cm.capAttribution,
+  // Discount codes (M59): Shopify lets ReputeCast write discounts.
+  discounts: cpm.storeCap,
 }
 
 /** Settings › Integrations › Shopify · Acme Merch (IntegrationsShopify, CommerceStates). */
@@ -721,6 +725,7 @@ function SyncCard({ page: p }: { page: Page_ }) {
           <span className="dot" style={{ color: syncColor(s.state) }} aria-hidden="true" />
           {st.label}
         </span>
+        <StoreDiscountsRow page={p} />
       </div>
     </section>
   )

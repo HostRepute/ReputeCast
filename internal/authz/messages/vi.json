@@ -75,6 +75,7 @@
   "action.workspace:delete": "xóa không gian làm việc",
   "action.replies:view": "xem thư trả lời",
   "action.replies:manage": "xử lý thư trả lời",
+  "action.coupons:manage": "quản lý mã giảm giá",
 
   "group.campaigns": "Chiến dịch",
   "group.templates": "Mẫu",
@@ -255,6 +256,8 @@
   "perm.agency:library.about": "Thêm, thay đổi và gỡ mục thư viện và mẫu không gian làm việc, và sao chép chúng vào khách hàng.",
   "perm.agency:manage": "Tạo và xóa không gian làm việc của khách hàng, quản lý nhân sự và việc phân công",
   "perm.agency:manage.about": "Tạo và xóa khách hàng, thêm và gỡ nhân sự, và phân công họ cho khách hàng.",
+  "perm.coupons:manage": "Quản lý kho mã giảm giá và các mã trong đó",
+  "perm.coupons:manage.about": "Tạo, sửa và lưu trữ kho mã; tải lên, tạo, gỡ hoặc xuất mã. Muốn xem kho mã cần quyền “Xem chiến dịch”.",
 
   "role.owner.about": "Mọi quyền, kể cả chuyển quyền sở hữu và xóa không gian làm việc",
   "role.admin.about": "Mọi quyền, trừ chuyển quyền sở hữu và xóa không gian làm việc",

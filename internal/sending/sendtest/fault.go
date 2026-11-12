@@ -55,6 +55,7 @@ type FaultState struct {
 	took    map[uuid.UUID]int
 	to      map[string]int
 	unsub   map[string]string
+	html    map[string]string
 	calls   int
 	started chan struct{}
 	release chan struct{}
@@ -67,6 +68,7 @@ func (f *FaultState) Reset(mode string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.mode, f.took, f.to, f.unsub, f.calls = mode, map[uuid.UUID]int{}, map[string]int{}, map[string]string{}, 0
+	f.html = map[string]string{}
 	f.started, f.release = make(chan struct{}, 64), make(chan struct{})
 	f.ips = nil
 }
@@ -127,6 +129,14 @@ func (f *FaultState) ListUnsubscribe(address string) string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.unsub[address]
+}
+
+// HTMLFor is the HTML of the last message the provider took for an
+// address (what the reader got, per-reader values filled in).
+func (f *FaultState) HTMLFor(address string) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.html[address]
 }
 
 // Calls is how many Send calls arrived.
@@ -204,6 +214,9 @@ func (p *faultESP) take(msgs []providers.Message) []providers.SendResult {
 			Fault.took[m.ID]++
 			Fault.to[m.To.Address]++
 			Fault.unsub[m.To.Address] = m.Headers["List-Unsubscribe"]
+			if Fault.html != nil {
+				Fault.html[m.To.Address] = m.HTML
+			}
 		}
 		out[i] = providers.SendResult{MessageID: m.ID, ProviderMessageID: "fault-" + m.ID.String()}
 	}

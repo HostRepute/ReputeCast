@@ -144,6 +144,13 @@ type Fake struct {
 	Orders      []*Order
 	Checkouts   []*Checkout
 	Webhooks    []*Webhook
+	// Discounts are the code discounts the app created (discounts.go).
+	Discounts []*Discount
+	// BulkPolls is how many status polls a bulk creation of codes answers
+	// "not done yet" before it's done (0: done at the first poll).
+	BulkPolls int
+	bulks     map[string]*bulkCreation
+	bulkAdds  [][]string
 
 	tokens map[string]bool // valid access tokens
 	codes  map[string]bool // unused approval codes
@@ -681,6 +688,9 @@ func (f *Fake) answer(op string, vars map[string]any) (map[string]any, []any) {
 		c.State, c.ConsentAt, c.UpdatedAt = state, &now, now
 		f.consentLog = append(f.consentLog, id+"="+state)
 		return map[string]any{"customerEmailMarketingConsentUpdate": map[string]any{"customer": map[string]any{"id": gid("Customer", id)}, "userErrors": []any{}}}, nil
+	}
+	if data, errs, ok := f.discountAnswer(op, vars); ok {
+		return data, errs
 	}
 	return nil, []any{map[string]any{"message": "Unknown operation " + op}}
 }

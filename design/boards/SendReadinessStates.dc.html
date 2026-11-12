@@ -352,6 +352,25 @@ label.chk input{margin-top:3px;flex:none}
         <span class="k">Compliance group, Bulk-sender rules row. It blocks only when this send alone reaches 5,000 or more Outlook.com, Hotmail, Live or MSN addresses (Microsoft 365 company domains don't count) and the domain has no DMARC record or an invalid one. Below 5,000 the row stays the warning "Gmail, Yahoo and Microsoft bulk-sender rules need DMARC"; when DNS doesn't answer, the DMARC check is unknown and the row stays a warning too.</span>
       </section>
 
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-codes">
+        <div class="strip"><span class="dot" style="color:#F87171"></span>Block · not enough discount codes (Black Friday Early Access, 31,192 recipients)</div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="prow" style="background:#FFF5F5"><span class="badge bad"><span class="dot"></span>Block</span><div class="pt"><h2 id="st-codes" style="margin:0;font-size:13px;font-weight:500">Not enough discount codes: 1,880 left for 31,192 recipients</h2><span class="k">Partner perks · uploaded codes · one per recipient. Add at least 29,312 codes, or send to fewer people.</span></div><a href="DiscountCodePool.dc.html" class="btn sm">Add codes</a></div>
+          <div class="prow" style="background:#FFF5F5"><span class="badge bad"><span class="dot"></span>Block</span><div class="pt"><span style="font-weight:500">Creating 28,652 more codes in Acme Merch (0 done). The send starts when they're ready.</span><span class="k">Welcome 15% · Shopify · 2,540 free. Create codes asks Acme Merch for 30,085, the shortfall and 5% to spare.</span></div><button type="button" class="btn sm">Create codes</button></div>
+          <div class="prow" style="background:#FFF5F5"><span class="badge bad"><span class="dot"></span>Block</span><div class="pt"><span style="font-weight:500">Creating 28,652 more codes in Acme Merch (6,250 done). The send starts when they're ready.</span><span class="k">Started 10:12 by Linh Nguyen · the row passes once Acme Merch has confirmed enough codes</span><div class="bar" style="height:8px;max-width:320px;margin-top:4px" aria-hidden="true"><i style="width:21.8%;background:#0F766E"></i></div></div></div>
+        </div>
+        <span class="k">Content group, one row per pool the email uses (content.coupon_pool), counted against the audience after suppressions. An archived pool or a disconnected store blocks the same way. A scheduled send is held at its send-time recheck until the rows pass; a message that still finds no code isn't sent (no_codes).</span>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-cd-end">
+        <div class="strip"><span class="dot" style="color:#F87171"></span>Block and Warn · a countdown ending before or soon after the send</div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="prow" style="background:#FFF5F5"><span class="badge bad"><span class="dot"></span>Block</span><div class="pt"><h2 id="st-cd-end" style="margin:0;font-size:13px;font-weight:500">This countdown ends before the send starts</h2><span class="k">It ends Fri 27 Nov at 23:59 EST and the send is scheduled for Sat 28 Nov at 09:00, so every reader would see zeros. Move the end or the send. (content.countdown_ended)</span></div><a href="ComposerTimedBlocks.dc.html" class="btn sm">Edit the countdown</a></div>
+          <div class="prow"><span class="badge warn"><span class="dot"></span>Warn</span><div class="pt"><span style="font-weight:500">This countdown ends within an hour of the send's start</span><span class="k">It ends Fri 27 Nov at 23:59 EST; the send starts at 23:15 and finishes about 01:35, so readers who open after 23:59 see zeros. (content.countdown_soon)</span></div><a href="ComposerTimedBlocks.dc.html" class="btn sm">Edit the countdown</a></div>
+        </div>
+        <span class="k">Content group. The two rows are alternatives for the same Countdown block: Block when it ends at or before the send time, Warn when it ends less than an hour after the send starts.</span>
+      </section>
+
       <section style="display:flex;flex-direction:column;gap:14px" aria-labelledby="st-sched">
         <div class="strip"><span class="dot" style="color:#4ADE80"></span>Success · scheduled</div>
         <div class="vb okb">
@@ -434,7 +453,7 @@ label.chk input{margin-top:3px;flex:none}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4149}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4710}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);

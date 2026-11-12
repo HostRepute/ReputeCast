@@ -6802,6 +6802,164 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/countdowns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The image of a Countdown block's settings
+         * @description The image is an animated GIF drawn each time the email is opened: up to a minute of the time left, then it stays on its last frame. The same settings always return the same image. The digits need a contrast of at least 4.5:1 on the background.
+         */
+        post: operations["create-countdown"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List discount code pools with their numbers (never their codes) */
+        get: operations["list-coupon-pools"];
+        put?: never;
+        /** Create a discount code pool (uploaded codes, or codes created in a store) */
+        post: operations["create-coupon-pool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A discount code pool: numbers, settings, the latest batch and what uses it */
+        get: operations["get-coupon-pool"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a pool's name, prefix, low mark, one code per contact or settings */
+        patch: operations["update-coupon-pool"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a pool: it gives no more codes (409 when live automations use it, unless confirmed) */
+        post: operations["archive-coupon-pool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add codes to an upload pool from text or a CSV (counts only are logged) */
+        post: operations["upload-coupon-codes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/codes/remove-unused": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove the codes nobody got yet (in the store too) */
+        post: operations["remove-unused-coupon-codes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pool's codes as CSV: code, status, given and redeemed times, order (logged) */
+        get: operations["export-coupon-codes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/pools/{pool}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create more codes in the pool's store, in the background */
+        post: operations["generate-coupon-codes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/coupons/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The connected stores a pool can create codes in, and why a store can't */
+        get: operations["list-coupon-sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/delete": {
         parameters: {
             query?: never;
@@ -15669,6 +15827,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/stores/{id}/allow-discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Shopify: the approval page that allows discount codes
+         * @description Shopify asks the merchant to approve the app again with write_discounts and read_discounts, so discount code pools can create codes in the store. The store keeps syncing meanwhile.
+         */
+        post: operations["allow-store-discounts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/stores/{id}/app-keys": {
         parameters: {
             query?: never;
@@ -23324,6 +23502,7 @@ export interface components {
             appUrl: string;
             clientIdHint?: string;
             demo: boolean;
+            discountsGranted: boolean;
             /** @enum {string} */
             error: "" | "secret_refused" | "state_expired" | "not_installed";
             granted: string[];
@@ -23570,6 +23749,14 @@ export interface components {
             tagLinks?: boolean;
             writeBack?: boolean;
         };
+        CommerceStoreDiscounts: {
+            /** Format: date-time */
+            allowedAt?: string;
+            allowedBy?: string;
+            granted: boolean;
+            pools: string[];
+            supported: boolean;
+        };
         CommerceStoreList: {
             canManage: boolean;
             helpers: string[];
@@ -23586,6 +23773,7 @@ export interface components {
             connectedAt?: string;
             connectedBy: string;
             consent: components["schemas"]["CommerceConsent"];
+            discounts: components["schemas"]["CommerceStoreDiscounts"];
             flows: components["schemas"]["CommerceFlow"][];
             helpers: string[];
             lists: components["schemas"]["CommerceListOption"][];
@@ -25777,6 +25965,63 @@ export interface components {
             /** Format: int64 */
             units: number;
         };
+        CountdownEnded: {
+            /** @enum {string} */
+            mode: "zeros" | "text";
+            /** @description The message shown when mode is text, up to 60 characters */
+            text?: string;
+        };
+        CountdownImage: {
+            /** @example Offer ends Fri 28 Nov at 23:59 (EST) */
+            alt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** Format: int64 */
+            height: number;
+            /** Format: uuid */
+            id: string;
+            /** @description The animated GIF, drawn when the email is opened */
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        CountdownSettings: {
+            /**
+             * @description #RRGGBB
+             * @example #0F172A
+             */
+            background: string;
+            /**
+             * @description #RRGGBB, at least 4.5:1 on the background
+             * @example #FFFFFF
+             */
+            digits: string;
+            ended: components["schemas"]["CountdownEnded"];
+            /**
+             * @description The local date and time the countdown ends, YYYY-MM-DDTHH:MM
+             * @example 2026-11-28T23:59
+             */
+            endsAt: string;
+            /**
+             * @description #RRGGBB
+             * @example #CBD5E1
+             */
+            labels: string;
+            /**
+             * @description The labels' and the alt text's language: the language version being edited
+             * @enum {string}
+             */
+            language: "en" | "de" | "es" | "fr" | "vi";
+            /** @enum {string} */
+            size: "s" | "m" | "l";
+            /**
+             * @description IANA time zone of endsAt
+             * @example America/New_York
+             */
+            timeZone: string;
+            /** @enum {string} */
+            units: "dhms" | "hms" | "dhm";
+        };
         CountryLine: {
             adapter: string;
             /** Format: double */
@@ -25796,6 +26041,260 @@ export interface components {
             skipReason?: string;
             /** Format: int64 */
             skipped: number;
+        };
+        CouponArchiveInput: {
+            /** @description Archive even though live automations send its codes */
+            confirm?: boolean;
+        };
+        CouponBatch: {
+            automation?: string;
+            /** @description Who asked, by name */
+            by?: string;
+            /** Format: int64 */
+            created: number;
+            /** Format: date-time */
+            createdAt: string;
+            error?: string;
+            /** Format: int64 */
+            failed: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "upload" | "generate";
+            /** @enum {string} */
+            reason: "pool" | "request" | "refill";
+            /** Format: int64 */
+            requested: number;
+            /** @enum {string} */
+            status: "running" | "done" | "failed";
+            /** Format: date-time */
+            waitingUntil?: string;
+        };
+        CouponCodesResult: {
+            /** Format: int64 */
+            added: number;
+            /** Format: int64 */
+            duplicates: number;
+            /** Format: int64 */
+            free: number;
+            /** Format: int64 */
+            invalid: number;
+            invalidLines: components["schemas"]["CouponInvalidLine"][];
+        };
+        CouponGenerateInput: {
+            /** Format: int64 */
+            count: number;
+        };
+        CouponInvalidLine: {
+            /**
+             * Format: int64
+             * @description 1 is the first line
+             */
+            line: number;
+            /** @description The line, up to 40 characters */
+            text: string;
+        };
+        CouponPool: {
+            batch?: components["schemas"]["CouponBatch"];
+            batches: components["schemas"]["CouponBatch"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Who created the pool, by name */
+            createdBy: string;
+            currency: string;
+            /** Format: date-time */
+            firstSentAt?: string;
+            /** Format: int64 */
+            free: number;
+            helpers: string[];
+            /** Format: uuid */
+            id: string;
+            /** @description Free codes are under the low mark */
+            low: boolean;
+            /** Format: int64 */
+            lowAt: number;
+            name: string;
+            onePerContact: boolean;
+            /** Format: int64 */
+            orders: number;
+            prefix: string;
+            /** Format: int64 */
+            redeemed: number;
+            refill: boolean;
+            /** Format: date-time */
+            refillCheckedAt?: string;
+            /** Format: int64 */
+            removed: number;
+            /**
+             * Format: int64
+             * @description Orders that used the pool's codes: refunds taken off, cancelled and test orders left out
+             */
+            revenueCents: number;
+            running?: components["schemas"]["CouponBatch"];
+            sampleUrl: string;
+            /** Format: int64 */
+            sent: number;
+            settings: components["schemas"]["CouponPoolSettings"];
+            /** @description The name templates use: {{ coupons.<slug>.code }} */
+            slug: string;
+            /** @enum {string} */
+            source: "upload" | "shopify" | "woocommerce";
+            /** @enum {string} */
+            status: "active" | "archived";
+            store?: components["schemas"]["CouponPoolStore"];
+            tokens: components["schemas"]["CouponPoolTokens"];
+            /** Format: int64 */
+            total: number;
+            /** Format: date-time */
+            updatedAt: string;
+            usedIn: components["schemas"]["CouponPoolUse"][];
+            waiting: components["schemas"]["CouponPoolWaiting"][];
+        };
+        CouponPoolChange: {
+            /** Format: int64 */
+            lowAt?: number;
+            name?: string;
+            onePerContact?: boolean;
+            prefix?: string;
+            settings?: components["schemas"]["CouponPoolSettings"];
+        };
+        CouponPoolInput: {
+            /**
+             * Format: int64
+             * @description Default 200
+             */
+            lowAt?: number;
+            name: string;
+            /** @description Default true */
+            onePerContact?: boolean;
+            prefix?: string;
+            settings?: components["schemas"]["CouponPoolSettings"];
+            /** @description 1–32 lowercase letters, digits or _; never changes */
+            slug: string;
+            /** @enum {string} */
+            source: "upload" | "shopify" | "woocommerce";
+            storeId?: string;
+        };
+        CouponPoolList: {
+            helpers: string[];
+            items: components["schemas"]["CouponPoolListItem"][];
+        };
+        CouponPoolListItem: {
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            /** Format: int64 */
+            free: number;
+            /** Format: uuid */
+            id: string;
+            /** @description Free codes are under the low mark */
+            low: boolean;
+            /** Format: int64 */
+            lowAt: number;
+            name: string;
+            onePerContact: boolean;
+            prefix: string;
+            /** Format: int64 */
+            redeemed: number;
+            /**
+             * Format: int64
+             * @description Orders that used the pool's codes: refunds taken off, cancelled and test orders left out
+             */
+            revenueCents: number;
+            running?: components["schemas"]["CouponBatch"];
+            /** Format: int64 */
+            sent: number;
+            settings: components["schemas"]["CouponPoolSettings"];
+            /** @description The name templates use: {{ coupons.<slug>.code }} */
+            slug: string;
+            /** @enum {string} */
+            source: "upload" | "shopify" | "woocommerce";
+            /** @enum {string} */
+            status: "active" | "archived";
+            store?: components["schemas"]["CouponPoolStore"];
+            /** Format: int64 */
+            total: number;
+        };
+        CouponPoolSettings: {
+            /** @description Upload pools: the address that applies a code, with {code} where it goes */
+            applyUrl?: string;
+            /** @description Store pools: the collections the discount applies to; none is the whole store */
+            collectionIds?: string[];
+            /**
+             * Format: int64
+             * @description Store pools: the discount ends this many days after the pool was created; 0 never
+             */
+            endsDays?: number;
+            /**
+             * @description Store pools: what the discount takes off
+             * @enum {string}
+             */
+            kind?: "percentage" | "fixed_amount" | "free_shipping" | "";
+            /**
+             * Format: int64
+             * @description Store pools: the smallest order the code works on, in cents
+             */
+            minimumCents?: number;
+            /**
+             * Format: int64
+             * @description Percent off (1–100) for percentage, cents off for fixed_amount
+             */
+            value?: number;
+        };
+        CouponPoolStore: {
+            connected: boolean;
+            domain: string;
+            id: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+        };
+        CouponPoolTokens: {
+            /** @example {{ coupons.welcome15.code }} */
+            code: string;
+            /** @example {{ coupons.welcome15.url }} */
+            url: string;
+        };
+        CouponPoolUse: {
+            block: boolean;
+            emailId?: string;
+            emailName?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "template";
+            lists?: string;
+            live: boolean;
+            name: string;
+            /** Format: int64 */
+            recipients: number;
+            status?: string;
+        };
+        CouponPoolWaiting: {
+            /** Format: int64 */
+            emails: number;
+            id: string;
+            name: string;
+        };
+        CouponRemoveResult: {
+            /** Format: int64 */
+            removed: number;
+        };
+        CouponSource: {
+            can: boolean;
+            currency: string;
+            detail?: string;
+            domain: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+            /** @enum {string} */
+            reason?: "not_connected" | "not_granted" | "unsupported" | "read_only" | "";
+            storeId: string;
+        };
+        CouponSourceList: {
+            items: components["schemas"]["CouponSource"][];
         };
         "Create-workspaceRequest": {
             name: string;
@@ -32890,7 +33389,7 @@ export interface components {
             /** @example first_name */
             key: string;
             /** @enum {string} */
-            kind: "contact" | "custom" | "system" | "referral" | "paid";
+            kind: "contact" | "custom" | "system" | "referral" | "paid" | "coupon";
             /** @example First name */
             label: string;
         };
@@ -55171,7 +55670,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies" | "coupons";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -55253,7 +55752,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency" | "replies" | "coupons";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -63554,6 +64053,399 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-countdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CountdownSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountdownImage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-coupon-pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponPoolList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-coupon-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CouponPoolInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponPool"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-coupon-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponPool"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-coupon-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CouponPoolChange"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponPool"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "archive-coupon-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CouponArchiveInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponPool"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-coupon-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/plain": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponCodesResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-unused-coupon-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponRemoveResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-coupon-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "generate-coupon-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Pool id */
+                pool: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CouponGenerateInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponBatch"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-coupon-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CouponSourceList"];
                 };
             };
             /** @description Error */
@@ -84173,6 +85065,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommerceActivityList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "allow-store-discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceInstall"];
                 };
             };
             /** @description Error */

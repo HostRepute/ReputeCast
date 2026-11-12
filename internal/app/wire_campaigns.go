@@ -34,7 +34,7 @@ func (a *App) campaigns() *campaigns.Service {
 			// the composer's 2 s budget (SR-1).
 			Blocklist: linkBlocklist(a, 2*time.Second),
 			Prober:    linkProber(a),
-			Extra:     contentExtras(a),
+			Extra:     contentExtrasOf(a),
 		},
 		// Saves re-check the campaign's open approval.
 		AfterChange: CampaignChangeHook(a),
@@ -42,14 +42,18 @@ func (a *App) campaigns() *campaigns.Service {
 		Translations: campaignTranslations(a),
 		// Test emails get their poll links and the contact's version.
 		Extras: campaignExtras(a),
-		// Other domains' checks (the Sponsor block's creative).
-		More: campaignMore(a),
+		// Other domains' checks (the Sponsor block's creative, the
+		// Countdown and Discount code blocks).
+		More: campaignMoreOf(a),
 		// SMS rows of the list (wire_texting.go).
 		Channels: campaignChannelRows(a),
 		// Previews and test sends show Grow's blocks for the reader.
 		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 		// Review links' tokens are sealed (CO-10).
 		Box: a.Secrets,
+		// The workspace's own tokens in the token menu (discount code
+		// pools, wire_coupons.go).
+		MoreTokens: campaignTokensOf(a),
 	}
 }
 
@@ -58,16 +62,54 @@ func (a *App) campaigns() *campaigns.Service {
 var campaignChannelRows = func(*App) campaigns.ChannelRows { return nil }
 
 // contentExtras are content checks other domains add (a store block naming
-// a removed product); the commerce domain sets it from its wire file.
-var contentExtras = func(*App) []contentcheck.Extra { return nil }
+// a removed product, a countdown that already ended); each domain appends
+// its own from its wire file.
+var contentExtras []func(*App) contentcheck.Extra
+
+// contentExtrasOf builds the content checks every domain added.
+func contentExtrasOf(a *App) []contentcheck.Extra {
+	out := make([]contentcheck.Extra, 0, len(contentExtras))
+	for _, f := range contentExtras {
+		if x := f(a); x != nil {
+			out = append(out, x)
+		}
+	}
+	return out
+}
 
 // campaignExtras plugs polls and conditional content into previews and
 // test sends; set from wire_visibility.go.
 var campaignExtras = func(*App) campaigns.Extras { return nil }
 
-// campaignMore adds other domains' findings to the composer's checks; set
-// from wire_sponsors.go. Nil leaves them out.
-var campaignMore = func(*App) campaigns.MoreChecks { return nil }
+// campaignMore add other domains' findings to the composer's checks (the
+// Sponsor block's creative, wire_sponsors.go); each domain appends its own.
+var campaignMore []func(*App) campaigns.MoreChecks
+
+// campaignMoreOf builds the composer's checks every domain added.
+func campaignMoreOf(a *App) []campaigns.MoreChecks {
+	out := make([]campaigns.MoreChecks, 0, len(campaignMore))
+	for _, f := range campaignMore {
+		if m := f(a); m != nil {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// campaignTokens add a workspace's own tokens to the composer's token
+// menu (its discount code pools); each domain appends its own.
+var campaignTokens []func(*App) campaigns.TokenSource
+
+// campaignTokensOf builds the token sources every domain added.
+func campaignTokensOf(a *App) []campaigns.TokenSource {
+	out := make([]campaigns.TokenSource, 0, len(campaignTokens))
+	for _, f := range campaignTokens {
+		if t := f(a); t != nil {
+			out = append(out, t)
+		}
+	}
+	return out
+}
 
 // linkProber requests the links of an email. In development and tests the
 // demo's links answer offline, as in Send Readiness: their hosts are real

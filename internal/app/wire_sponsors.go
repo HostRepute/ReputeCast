@@ -65,7 +65,7 @@ func (r readinessSponsors) FixSponsor(ctx context.Context, ws *store.Workspace, 
 
 func init() {
 	// The Sponsor block: the composer's checks and Send Readiness.
-	campaignMore = func(a *App) campaigns.MoreChecks { return sponsorService(a).ComposerIssues }
+	campaignMore = append(campaignMore, func(a *App) campaigns.MoreChecks { return sponsorService(a).ComposerIssues })
 	readinessSponsor = func(a *App) readiness.SponsorChecker { return readinessSponsors{sponsorService(a)} }
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		sponsors.Register(h, sponsorService(a))

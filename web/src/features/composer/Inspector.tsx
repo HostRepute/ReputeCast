@@ -44,6 +44,7 @@ import { mjChildren, sectionLabel, sectionName, sectionOf, sectionWord, tagOf } 
 import { withVisibilityStyles } from './editor/mjmlDoc'
 import { TextRoleProp } from '@/features/accessibility/composer/TextRole'
 import { ContrastColorField } from '@/features/accessibility/composer/ColorPicker'
+import { isCountdown } from '@/features/countdown/block'
 import { useContrastSpec, type ContrastSpec } from '@/features/accessibility/composer/contrastSpec'
 import { NameInLayers, VersionsWithBlock, VisibilitySection } from '@/features/conditional/Inspector'
 import { m as cm } from '@/features/conditional/messages'
@@ -1429,7 +1430,9 @@ export function SettingsFields({ c }: { c: Component }) {
   )
   switch (tag) {
     case 'mj-image':
-      rows.push(<ImageSourceProp key="src" c={c} />, <AltProp key="alt" c={c} />, <LinkProp key="href" c={c} title={t(mi.linkUrlOptional)} />)
+      // A Countdown block's image and alt text come from its settings (M59).
+      if (isCountdown(c)) rows.push(<LinkProp key="href" c={c} title={t(mi.linkUrlOptional)} />)
+      else rows.push(<ImageSourceProp key="src" c={c} />, <AltProp key="alt" c={c} />, <LinkProp key="href" c={c} title={t(mi.linkUrlOptional)} />)
       break
     case 'mj-button':
       rows.push(<ButtonTextProp key="text" c={c} />, <LinkProp key="href" c={c} />)

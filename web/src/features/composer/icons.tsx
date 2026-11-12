@@ -149,6 +149,20 @@ const blocks: Record<string, ReactNode> = {
       <path d="M12 9.5c-1.2-3.6-5-4.4-5-2.3S10 9.5 12 9.5zm0 0c1.2-3.6 5-4.4 5-2.3S14 9.5 12 9.5z" />
     </>
   ),
+  // The Countdown block (M59): a clock.
+  countdown: (
+    <>
+      <circle cx="12" cy="13" r="7.5" />
+      <path d="M12 9v4l2.5 2M10 2.5h4" />
+    </>
+  ),
+  // The Discount code block (M59): a ticket with a dashed tear line.
+  rcCoupon: (
+    <>
+      <path d="M3 8a2 2 0 0 0 0 4v0a2 2 0 0 0 0 4v2h18v-2a2 2 0 0 1 0-4 2 2 0 0 1 0-4V6H3z" />
+      <path d="M9 8.5v1.5M9 12v1M9 15v1" />
+    </>
+  ),
 }
 
 export function BlockIcon({ name }: { name: string }) {

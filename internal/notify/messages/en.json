@@ -52,6 +52,7 @@
   "short.whatsapp_attention": "WhatsApp templates and quality",
   "short.reply_received": "replies",
   "short.inbound_failing": "receiving problems",
+  "short.coupon_codes_low": "discount codes running low",
 
   "event.approval_requested": {"message": "Approval requested", "note": "Notification preferences: one row per event type, which the member turns on in-app or by email"},
   "event.approval_decided": "Approval approved, rejected or changes requested",
@@ -102,6 +103,7 @@
   "event.whatsapp_attention": "WhatsApp template rejected or quality dropped",
   "event.reply_received": "New replies",
   "event.inbound_failing": "Receiving mail failing",
+  "event.coupon_codes_low": "Discount codes running low",
 
   "audience.approval_requested": {"message": "Only for approvers", "note": "who gets an event type, under its name in Notification preferences; it names who in people's words (\"People who can send campaigns\"), never a permission key"},
   "audience.approval_decided": "Only for the author",
@@ -152,6 +154,7 @@
   "audience.whatsapp_attention": "People who can view sending providers",
   "audience.reply_received": "People who can view replies · at most every 15 minutes",
   "audience.inbound_failing": "People who can manage domains",
+  "audience.coupon_codes_low": "People who can manage discount codes",
 
   "category.approvals": {"message": "Approvals", "note": "the notification center's tabs, and the badge on each notification"},
   "category.sending": "Sending",

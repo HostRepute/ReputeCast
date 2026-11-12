@@ -2,6 +2,8 @@ import type { Component, Editor } from 'grapesjs'
 import type { ComponentPluginOptions } from 'grapesjs-mjml'
 import { loadFeedItems } from '@/features/digests/composer/feedComponent'
 import { loadGrowBlocks } from '@/features/grow/composer/blocks'
+import { loadCountdowns } from '@/features/countdown/block'
+import { loadCouponBlock } from '@/features/coupons/composer/block'
 import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
 import { chipify, loadLiquidChips } from './liquid'
@@ -123,6 +125,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
             (e: Editor, o: ComponentPluginOptions) => loadFeedItems(e, o),
             // Grow's Referral, Recommendations and Reward blocks (design expansion, X15).
             (e: Editor, o: ComponentPluginOptions) => loadGrowBlocks(e, o),
+            // The Discount code block (M59): each reader's code, the sample on the canvas.
+            (e: Editor, o: ComponentPluginOptions) => loadCouponBlock(e, o),
             (_e: Editor, o: ComponentPluginOptions) => {
               compile = installMjmlHooks(ed, o, opts.head)
             },
@@ -133,6 +137,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
   })
   await new Promise<void>((resolve) => editor.onReady(() => resolve()))
   if (!compile) throw new Error('grapesjs-mjml did not load')
+  // Countdown blocks dropped or pasted get their image (M59).
+  loadCountdowns(editor, () => window.location.pathname.split('/')[2] ?? '')
   chipify(editor)
   // Synced Header and Footer change in the brand kit only (CO-11).
   lockSynced(editor)

@@ -75,6 +75,7 @@
   "action.workspace:delete": "Supprimer l’espace de travail",
   "action.replies:view": "Voir les réponses",
   "action.replies:manage": "Traiter les réponses",
+  "action.coupons:manage": "Gérer les codes de réduction",
 
   "group.campaigns": "Campagnes",
   "group.templates": "Modèles",
@@ -255,6 +256,8 @@
   "perm.agency:library.about": "Ajouter, modifier et retirer des éléments de bibliothèque et des modèles d’espace de travail, et les copier chez les clients.",
   "perm.agency:manage": "Créer et supprimer des espaces de travail clients, et gérer le personnel et les affectations",
   "perm.agency:manage.about": "Créer et supprimer des clients, ajouter et retirer du personnel, et l’affecter aux clients.",
+  "perm.coupons:manage": "Gérer les réserves de codes de réduction et leurs codes",
+  "perm.coupons:manage.about": "Créer, modifier et archiver des réserves, et importer, créer, retirer ou exporter leurs codes. Voir les réserves nécessite «\u00A0Consulter les campagnes\u00A0».",
 
   "role.owner.about": "Tout, y compris le transfert de propriété et la suppression de l’espace de travail",
   "role.admin.about": "Tout, sauf le transfert de propriété et la suppression de l’espace de travail",

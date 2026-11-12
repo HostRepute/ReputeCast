@@ -47,6 +47,9 @@ type Service struct {
 	// Erasure is every package's personal data about contacts, for erasing
 	// and exporting (internal/app fills it; nil: the audience's own only).
 	Erasure *erasure.Registry
+	// Opener opens the sealed values a contact's data export holds (their
+	// discount codes); nil leaves them out.
+	Opener Box
 	// Jobs queues background exports and resends (AU-4); FilesDir keeps
 	// the exports' files.
 	Jobs     func() *jobs.Client

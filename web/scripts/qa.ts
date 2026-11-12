@@ -144,6 +144,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   page: (ctx, name) => lookup(ctx, 'pages', 'pages', (p) => p.name === name, `no page named ${name}`),
   // A connected store by its name ({store:Acme Merch}).
   store: (ctx, name) => lookup(ctx, 'stores', 'stores', (s) => s.name === name, `no store named ${name}`),
+  // A discount code pool by its name ({pool:Welcome 15%}).
+  pool: (ctx, name) => lookup(ctx, 'coupons/pools', 'items', (p) => p.name === name, `no discount code pool named ${name}`),
 }
 
 /** The id of the first item of a workspace list that matches. */

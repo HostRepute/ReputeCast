@@ -17,7 +17,7 @@ import (
 // Grow's catalogs (Kept), so the row reads in each reader's language.
 type GrowRow struct {
 	Key    string
-	Status string // pass or warn
+	Status string // pass or warn; block for other domains' blocks (Service.Blocks)
 	Title  Text
 	Detail Text
 	Label  Text

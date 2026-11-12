@@ -118,6 +118,7 @@ range; the design for every screen is on the updated canvas.
 
 The second batch built from the November 2026 look at competitors (`docs/research/competitor-gaps-2026-11.md` §7, items 11–20): one branch and one PR per milestone, each with its own block of ten migrations.
 
-| Milestone | Branch | IDs | Packages | Migrations |
-|---|---|---|---|---|
-| M58 Inbound email | `m58-inbound-email` | G-15–G-20 | `internal/inbound` and `internal/optout` (new), the providers' inbound contract and adapters, `providers/received`, `ingest` (ApplyReport), `sending/engine` and `placement` (Reply-To, mailto), `automations` (stop on reply, replied), `deliverability`, `domains`, `readiness`; web `features/replies`, `features/senders` (Receiving mail) | 03490–03499 |
+| # | Milestone | Branch | IDs | Boards (plus Phone/Tablet) | Packages | Migrations |
+|---|---|---|---|---|---|---|
+| M58 | **Inbound email** | `m58-inbound-email` | G-15–G-20 | Replies, RepliesStates, InboundSetup, InboundStates; changes to SettingsSenders, AutomationsComplete, ContactProfile, Deliverability, SendReadinessStates, SettingsAPI, Roles, RoleEditor | `internal/inbound` and `internal/optout` (new), the providers' inbound contract and adapters, `providers/received`, `ingest` (ApplyReport), `sending/engine` and `placement` (Reply-To, mailto), `automations` (stop on reply, replied), `deliverability`, `domains`, `readiness`; web `features/replies`, `features/senders` (Receiving mail) | 03490–03499 |
+| M59 | **Countdown timers and unique codes** | `m59-countdown-codes` | G-21–G-22 | ComposerTimedBlocks, DiscountCodes, DiscountCodePool, DiscountCodesStates; changes to SendReadinessStates, IntegrationsShopify, CampaignsComplete, Roles, RoleEditor | `countdown`, `coupons` (new), `stores` discount creation, `liquid` allocation, `countdown` and `coupons` web features | 03500–03509 |

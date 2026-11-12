@@ -1,6 +1,11 @@
 import type { Component, Editor } from 'grapesjs'
 import { isFeedItems } from '@/features/digests/composer/feedComponent'
 import { isGrowBlock } from '@/features/grow/composer/blocks'
+import { isCountdown } from '@/features/countdown/block'
+import { m as mcd } from '@/features/countdown/messages'
+import { isCouponBlock } from '@/features/coupons/composer/block'
+import { mc as mcp } from '@/features/coupons/composer/messages'
+import { t as tt } from '@/i18n'
 import { chipHtml, chipLabelOf, LIQUID_ATTR, splitTokens } from '../editor/liquid'
 import { markerOf, mjChildren, sectionName, tagOf } from '../editor/labels'
 import { SYNCED_ATTR } from '../editor/synced'
@@ -46,7 +51,9 @@ function contentItems(col: Component, out: DocItem[], heroImage = false) {
         out.push({ kind: 'text', key, comp: x })
         break
       case 'mj-image':
-        out.push({ kind: 'image', key, comp: x, hero: heroImage })
+        // A Countdown block is one piece: its image is drawn from its settings (M59).
+        if (isCountdown(x)) out.push({ kind: 'other', key, comp: x, label: tt(mcd.name) })
+        else out.push({ kind: 'image', key, comp: x, hero: heroImage })
         break
       case 'mj-button':
         out.push({ kind: 'button', key, comp: x })
@@ -57,7 +64,7 @@ function contentItems(col: Component, out: DocItem[], heroImage = false) {
       case 'mj-spacer':
         break
       default:
-        out.push({ kind: 'other', key, comp: x, label: tagOf(x) })
+        out.push({ kind: 'other', key, comp: x, label: isCouponBlock(x) ? tt(mcp.name) : tagOf(x) })
     }
   }
 }

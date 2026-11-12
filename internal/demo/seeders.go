@@ -67,6 +67,12 @@ var (
 	// receiving mail: reply.news.acme.io on Postmark, replies kept in the
 	// inbox, Audience › Replies' 14 messages (seed_inbound.go)
 	seedInbound = noop
+	// discount codes: Welcome 15% in Acme Merch and the uploaded Partner
+	// perks, and the Welcome code in Abandoned cart's second email (seed_coupons.go)
+	seedCoupons = noop
+	// the email countdown: the draft Black Friday Early Access with its
+	// Countdown and Discount code blocks (seed_countdown.go)
+	seedCountdown = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

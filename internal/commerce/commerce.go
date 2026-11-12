@@ -110,6 +110,10 @@ type Service struct {
 	// PublicCheck reports whether the instance's public URL is reachable
 	// from the internet, and when it was checked (the connect dialog).
 	PublicCheck func(ctx context.Context) (bool, time.Time)
+	// Redeemed is told the discount codes an order used, in the order's
+	// transaction (discount code pools mark theirs redeemed,
+	// internal/coupons); nil does nothing.
+	Redeemed func(ctx context.Context, q *store.Queries, wsID, orderID uuid.UUID, codes []string, at time.Time) error
 
 	domains sync.Map // workspace → domainSet (the link decorator's cache)
 	names   sync.Map // campaign or automation id → utm_campaign slug

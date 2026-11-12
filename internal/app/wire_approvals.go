@@ -38,7 +38,7 @@ func readinessService(a *App) *readiness.Service {
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
-		Checker:   &contentcheck.Checker{Blocklist: links, Prober: prober, Extra: contentExtras(a)},
+		Checker:   &contentcheck.Checker{Blocklist: links, Prober: prober, Extra: contentExtrasOf(a)},
 		// Send Readiness checks and fixes every language version.
 		Translations: campaignTranslations(a),
 	}
@@ -65,6 +65,13 @@ func readinessService(a *App) *readiness.Service {
 	}
 	// Grow's Referral and Recommendations blocks (wire_grow.go).
 	rs.Grow = growReadiness{a: a}
+	// Other domains' blocks whose rows depend on the audience (countdowns,
+	// discount codes), from their wire files.
+	for _, f := range readinessBlocks {
+		if bc := f(a); bc != nil {
+			rs.Blocks = append(rs.Blocks, bc)
+		}
+	}
 	if w := readinessWebsite(a); w != nil {
 		rs.Website = w
 	}
@@ -111,6 +118,10 @@ var readinessUpgradeOffers = func(*App) readiness.UpgradeOfferChecker { return n
 // readinessSponsor gives the Sponsor block's checks and fixes; set from
 // wire_sponsors.go. Nil leaves them out.
 var readinessSponsor = func(*App) readiness.SponsorChecker { return nil }
+
+// readinessBlocks give Send Readiness other domains' block rows (the
+// Countdown and Discount code blocks); each domain appends its own.
+var readinessBlocks []func(*App) readiness.GrowChecker
 
 // readinessWebsite gives the web checks of campaigns that publish to the
 // website; set from wire_website.go. Nil leaves them out.

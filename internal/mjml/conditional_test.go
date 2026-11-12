@@ -113,3 +113,31 @@ func TestPrepareCompileWebOnly(t *testing.T) {
 		t.Fatalf("compiled: %+v", res.Errors)
 	}
 }
+
+// A Countdown block's settings stay in the source and never reach the
+// compiler; its image is what the email shows.
+func TestPrepareCompileCountdown(t *testing.T) {
+	doc := `<mjml><mj-body><mj-section><mj-column>
+    <mj-image rc-countdown='{"endsAt":"2026-11-28T23:59","timeZone":"America/New_York","ended":{"mode":"text","text":"It&#39;s over"}}' src="https://reputecast.acme.io/t/cd/tok.gif" alt="Offer ends Fri 28 Nov at 23:59 (EST)" width="600px" />
+  </mj-column></mj-section></mj-body></mjml>`
+	out := PrepareCompile(doc)
+	if strings.Contains(out, "rc-countdown") || strings.Contains(out, "endsAt") || !strings.Contains(out, `src="https://reputecast.acme.io/t/cd/tok.gif"`) {
+		t.Fatalf("prepared:\n%s", out)
+	}
+	root, err := Parse(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var settings string
+	root.Walk(func(n *Node, _ []int) {
+		if v, ok := n.Get(AttrCountdown); ok {
+			settings = v
+		}
+	})
+	if !strings.Contains(settings, `"text":"It's over"`) {
+		t.Fatalf("settings read back: %q", settings)
+	}
+	if res := Compile(doc); len(res.Errors) > 0 || strings.Contains(res.HTML, "rc-countdown") || !strings.Contains(res.HTML, "/t/cd/tok.gif") {
+		t.Fatalf("compiled: %+v", res.Errors)
+	}
+}

@@ -84,6 +84,8 @@ var Events = []EventType{
 	// Receiving mail (M58).
 	{Key: KindReplyReceived, Label: "New replies", Audience: "People who can view replies · at most every 15 minutes", Short: "replies", DefaultEmail: false, Kinds: []string{KindReplyReceived}},
 	{Key: KindInboundFailing, Label: "Receiving mail failing", Audience: "People who can manage domains", Short: "receiving problems", DefaultEmail: true, Kinds: []string{KindInboundFailing}},
+	// Discount codes (M59).
+	{Key: KindCouponCodesLow, Label: "Discount codes running low", Audience: "People who can manage discount codes", Short: "discount codes running low", DefaultEmail: true, Kinds: []string{KindCouponCodesLow}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -129,7 +131,7 @@ const (
 
 var categoryKinds = map[string][]string{
 	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
-	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindResultsFinal, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused, KindAutomationAttention},
+	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindResultsFinal, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused, KindAutomationAttention, KindCouponCodesLow},
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails, KindInboundFailing},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested, KindCommentMention},
 	CategoryHostRepute:    {KindHostReputeAlert},

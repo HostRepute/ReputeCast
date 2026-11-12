@@ -4,6 +4,7 @@
 //
 //	/t/o/{token}                          open pixel (linktoken.Open)
 //	/t/c/{token}                          click redirect (linktoken.Click)
+//	/t/cd/{token}.gif                     countdown timer image (internal/countdown)
 //	/p/{workspace}/unsubscribe/{token}    unsubscribe page; POST is RFC 8058 one-click
 //	/p/{workspace}/preferences/{token}    preference center
 //	/p/{workspace}/confirm/{token}        double opt-in confirmation
@@ -131,6 +132,10 @@ func (b Builder) Click(token string) string { return b.join("t", "c", token) }
 // Honeypot is the hidden link of a tracked email: a person never sees it,
 // so whatever follows it is a machine (review AN-2).
 func (b Builder) Honeypot(token string) string { return b.join("t", "h", token) }
+
+// Countdown is a countdown timer's image: an animated GIF drawn when it's
+// opened, so it shows the time left then (internal/countdown).
+func (b Builder) Countdown(token string) string { return b.join("t", "cd", token+".gif") }
 
 // Unsubscribe is the unsubscribe page; mail clients POST to the same URL for
 // one-click unsubscribe (List-Unsubscribe-Post: List-Unsubscribe=One-Click).

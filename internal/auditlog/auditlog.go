@@ -123,7 +123,7 @@ type AuditCategory struct {
 
 // Categories are the action filter's choices, in the order of the board.
 var Categories = []AuditCategory{
-	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation"}},
+	{Key: "sending", Label: "Sending", Groups: []string{"campaign", "approval", "send", "report", "template", "automation", "countdown"}},
 	{Key: "routing", Label: "Routing & providers", Groups: []string{"routing", "provider", "warmup", "deliverability", "domain", "sender"}},
 	{Key: "audience", Label: "Audience & consent", Groups: []string{"contact", "contacts", "subscriber", "subscribers", "list", "segment", "form", "consent", "suppression", "import", "growth"}},
 	{Key: "team", Label: "Team & access", Groups: []string{"team", "member", "role", "apikey", "agent", "auth", "invitation", "user", "session", "sso"}},
@@ -161,6 +161,8 @@ var Categories = []AuditCategory{
 	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
 	// Receiving mail and the replies inbox (M58).
 	{Key: "replies", Label: "Receiving & replies", Groups: []string{"inbound", "reply"}},
+	// Discount code pools and their codes (M59).
+	{Key: "coupons", Label: "Discount codes", Groups: []string{"coupon_pool"}},
 }
 
 // Filter narrows the log.
@@ -584,6 +586,10 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 		if targetID != "" {
 			path += "?reply=" + targetID
 		}
+	case "coupon_pool":
+		if targetID != "" {
+			path, key = "/campaigns/codes/"+targetID, "link.couponPool"
+		}
 	}
 	if key == "" {
 		return "", ""
@@ -623,6 +629,9 @@ var verbs = map[string]string{
 	// Receiving mail (M58).
 	"route_saved": "changed", "route_removed": "removed", "test_sent": "sentTest", "status_updated": "changedStatus",
 	"contact_unsubscribed": "unsubscribedContact",
+	// Discount code pools (M59).
+	"archived": "archived", "codes_uploaded": "uploadedCodes", "codes_requested": "requestedCodes", "codes_removed": "removedCodes",
+	"codes_exported": "exportedCodes",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences

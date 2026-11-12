@@ -44,4 +44,5 @@ export default translate(m, {
   'grow:connect': 'Partnerlinks verwalten',
   'replies:view': 'Antworten lesen',
   'replies:manage': 'Antworten bearbeiten',
+  'coupons:manage': 'Rabattcodes verwalten',
 })

@@ -35,6 +35,7 @@
   "category.whatsapp": "WhatsApp",
   "category.agency": "Agence",
   "category.replies": "Réception et réponses",
+  "category.coupons": "Codes de réduction",
 
   "link.open": "Ouvrir",
   "link.routing": "Ouvrir le routage",
@@ -61,6 +62,7 @@
   "link.instance": "Ouvrir les paramètres de l’instance",
   "link.senders": "Ouvrir les expéditeurs",
   "link.replies": "Ouvrir les réponses",
+  "link.couponPool": "Ouvrir la réserve",
 
   "client.on": "{browser} sur {os}",
   "related.entry": "{action} par {name} à {at, time}",
@@ -177,6 +179,10 @@
   "what.sentTest": "{hasName, select, yes {Message de test envoyé : {type} {name}} other {Message de test envoyé : {type}}}",
   "what.changedStatus": "{hasName, select, yes {Statut modifié : {type} {name}} other {Statut modifié : {type}}}",
   "what.unsubscribedContact": "{hasName, select, yes {Contact désabonné : {type} {name}} other {Contact désabonné : {type}}}",
+  "what.uploadedCodes": "{hasName, select, yes {Import de codes\u00A0: {type} {name}} other {Import de codes\u00A0: {type}}}",
+  "what.requestedCodes": "{hasName, select, yes {Demande de nouveaux codes\u00A0: {type} {name}} other {Demande de nouveaux codes\u00A0: {type}}}",
+  "what.removedCodes": "{hasName, select, yes {Retrait des codes inutilisés\u00A0: {type} {name}} other {Retrait des codes inutilisés\u00A0: {type}}}",
+  "what.exportedCodes": "{hasName, select, yes {Export des codes\u00A0: {type} {name}} other {Export des codes\u00A0: {type}}}",
 
   "type.access": "accès",
   "type.account": "compte",
@@ -352,5 +358,7 @@
   "type.whatsapp_templates": "modèles WhatsApp",
   "type.wordpress": "WordPress",
   "type.workspace": "espace de travail",
-  "type.reply": "réponse"
+  "type.reply": "réponse",
+  "type.coupon_pool": "réserve de codes de réduction",
+  "type.countdown": "compte à rebours"
 }

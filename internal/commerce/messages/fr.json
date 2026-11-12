@@ -37,5 +37,8 @@
   "list.description": "Clients de la boutique {store} ayant accepté le marketing",
   "check.removedTitle": "{product} n’est plus dans la boutique {store}",
   "check.removedTag": "Retiré de la boutique",
-  "check.removedDetail": "Supprimé dans {platform} le {when}. Les envois l’ignorent. Retirez-le ou choisissez un autre produit."
+  "check.removedDetail": "Supprimé dans {platform} le {when}. Les envois l’ignorent. Retirez-le ou choisissez un autre produit.",
+  "discounts.notGranted": "{name} n’autorise pas encore les codes de réduction. Ouvrez la page de la boutique et choisissez Autoriser les codes de réduction.",
+  "discounts.readOnly": "La clé de la boutique ne peut pas créer de codes promo. Utilisez une clé en lecture/écriture.",
+  "discounts.unsupported": "{platform} ne peut pas créer de codes de réduction depuis ReputeCast. Importez plutôt des codes."
 }

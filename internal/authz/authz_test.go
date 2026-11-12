@@ -71,6 +71,7 @@ func TestBuiltinMatrix(t *testing.T) {
 		{WhatsAppSend, true, true, true, false},
 		{RepliesView, true, true, true, false},
 		{RepliesManage, true, true, true, false},
+		{CouponsManage, true, true, true, false},
 	}
 	roles := map[string]BuiltinRole{}
 	for _, r := range BuiltinRoles {
@@ -120,6 +121,7 @@ func TestHoldableBy(t *testing.T) {
 		{PlacementManage, true, false},
 		{TransactionalSend, true, true},
 		{ConversionsCreate, true, true},
+		{CouponsManage, true, false},
 	}
 	for _, c := range cases {
 		if got := HoldableBy(c.perm, ActorAPIKey); got != c.key {

@@ -99,6 +99,9 @@ func (s *Service) applyOrder(ctx context.Context, q *store.Queries, st store.Sto
 			UpdatedAtStore: nonZero(o.UpdatedAt), At: now}); err != nil {
 			return applied{}, err
 		}
+		if err := s.redeem(ctx, q, st, existing.ID, o, now); err != nil {
+			return applied{}, err
+		}
 		if refunded > existing.RefundedCents && source != sourceImport {
 			if err := s.activity(ctx, q, st, activity{Kind: "refund", Tone: "neutral", Order: existing.Name, Amount: refunded - existing.RefundedCents,
 				Currency: o.Currency, OrderID: &existing.ID, Topic: topic}); err != nil {
@@ -126,6 +129,9 @@ func (s *Service) applyOrder(ctx context.Context, q *store.Queries, st store.Sto
 		CheckoutExternalID: o.CheckoutToken, Cancelled: o.Cancelled, Test: o.Test, FirstOrder: first, Source: source, UpdatedAtStore: nonZero(o.UpdatedAt),
 		At: now})
 	if err != nil {
+		return applied{}, err
+	}
+	if err := s.redeem(ctx, q, st, row.ID, o, now); err != nil {
 		return applied{}, err
 	}
 	// The import matches past orders after they're all in (its last phase).
@@ -174,6 +180,19 @@ func (s *Service) applyOrder(ctx context.Context, q *store.Queries, st store.Sto
 		return applied{}, err
 	}
 	return res, nil
+}
+
+// redeem tells the discount code pools which codes a real order used, at
+// the time it was placed (test orders redeem nothing).
+func (s *Service) redeem(ctx context.Context, q *store.Queries, st store.Store, orderID uuid.UUID, o stores.Order, now time.Time) error {
+	if s.Redeemed == nil || o.Test || len(o.Discounts) == 0 {
+		return nil
+	}
+	at := o.PlacedAt
+	if at.IsZero() {
+		at = now
+	}
+	return s.Redeemed(ctx, q, st.WorkspaceID, orderID, o.Discounts, at)
 }
 
 func orKeep(v, old string) string {
