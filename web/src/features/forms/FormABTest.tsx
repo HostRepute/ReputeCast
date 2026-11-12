@@ -4,12 +4,12 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Bar } from '@/components/ui/Data'
 import { Dialog } from '@/components/ui/Dialog'
+import { OptionCard } from '@/components/ui/Field'
 import { Grid, Row } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
-import { cn } from '@/lib/cn'
 import { calendarDate, count, pct, trimPct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './builder.messages'
@@ -261,12 +261,15 @@ function EndTestDialog({ formId, result, heading, keep: first, onClose }: { form
       <fieldset className="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
         <legend className="vh">{t(m.endKeepLegend)}</legend>
         {result.variants.map((v) => (
-          <label key={v.key} className={cn('opt', keep === v.key && 'on')}>
-            <input type="radio" name="ab-keep" checked={keep === v.key} onChange={() => setKeep(v.key)} />
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="font-semibold">{t(m.endKeep, { key: v.key, heading: v.key === 'A' ? heading : (v.content?.heading ?? '') })}</span>
-            </span>
-          </label>
+          <OptionCard
+            key={v.key}
+            name="ab-keep"
+            value={v.key}
+            checked={keep === v.key}
+            className={keep === v.key ? 'on' : undefined}
+            onChange={() => setKeep(v.key)}
+            title={t(m.endKeep, { key: v.key, heading: v.key === 'A' ? heading : (v.content?.heading ?? '') })}
+          />
         ))}
       </fieldset>
     </Dialog>

@@ -12,6 +12,7 @@ import { Menu, MenuItem, MenuSeparator, Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { ago, andList, calendarDate, count, shortDate, trimPct } from '@/lib/format'
+import { useNow } from '@/lib/hooks'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { Icon } from '@/components/icons/Icon'
 import { FormAddressCheck, FormAskedToFix, FormChecksPaused } from '@/features/verification/FormCheck'
@@ -212,6 +213,7 @@ function Editor({ form, overview, ab, variant }: { form: SignupForm; overview: O
 
   // The variant shown: A is the form; B and C change its copy, steps and
   // popup triggers, and every other section is the same in every variant.
+  const now = useNow(60_000)
   const testOn = abDraft.variants.length >= 2
   const selected: VariantKey = testOn && variant && abDraft.variants.some((v) => v.key === variant) ? variant : 'A'
   const locked = selected !== 'A'
@@ -242,7 +244,7 @@ function Editor({ form, overview, ab, variant }: { form: SignupForm; overview: O
     ? undefined
     : running && ab.startedOn && sameVariants(abDraft.variants, abInitial.variants) && !aChanged
       ? calendarDate(ab.startedOn, 'shortDate')
-      : shortDate(Date.now())
+      : shortDate(now)
   const errorAt = (prefix: string) => Object.entries(errors).find(([k]) => k === prefix || k.startsWith(`${prefix}.`))?.[1]
   const newChoice = (): FormField => ({
     key: nextChoiceKey(draft.fields, overview.customFields.map((c) => c.key)),

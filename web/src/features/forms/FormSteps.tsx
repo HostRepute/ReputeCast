@@ -101,8 +101,10 @@ export function StepsSection({
                 aria-label={on ? t(m.stepShown, { n }) : t(m.stepN, { n })}
                 aria-current={on || undefined}
                 className={cn('card flex flex-col gap-2 px-3 py-2.5', on && 'border-accent', over === si && 'fb-step-drop')}
+                // A click on the card focuses it (not in the tab order), and
+                // focus anywhere in it shows its step.
+                tabIndex={-1}
                 onFocus={() => onPick(si)}
-                onClick={() => onPick(si)}
                 onDragOver={(e) => dragOver(e, si)}
                 onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setOver(undefined)}
                 onDrop={(e) => drop(e, si, s.fields.length)}
@@ -114,9 +116,7 @@ export function StepsSection({
                       size="sm"
                       aria-label={t(m.removeStep, { n })}
                       disabledReason={reason}
-                      onClick={(e) => {
-                        // The card would pick the step that goes.
-                        e.stopPropagation()
+                      onClick={() => {
                         onChange(removeStep(steps, si))
                         onPick(Math.max(0, si - 1))
                       }}

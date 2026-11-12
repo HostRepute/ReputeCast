@@ -1,3 +1,4 @@
+import type { Schemas } from '@/api/client'
 import { describe, expect, it } from 'vitest'
 import { addStep, canMove, moveField, nextChoiceKey, placeField, removeStep, splitSteps, syncSteps, tagOf, type FormStep } from './steps'
 import { emptyTargeting, listOf, scheduleSummary, targetingSummary, type Targeting } from './targeting'
@@ -116,7 +117,19 @@ describe('where and when (M60 G-24)', () => {
 
 describe('A/B tests (M60 G-25)', () => {
   const none: ABDraft = { variants: [], autoEnd: false, minViews: 500, confidence: 0.95 }
-  const content = { heading: 'Get the Weekly Digest', description: 'Every Tuesday.', button: 'Subscribe', popupDelay: 0, popupScroll: 0, steps: three() }
+  const content: Schemas['SignupFormContent'] = {
+    heading: 'Get the Weekly Digest',
+    description: 'Every Tuesday.',
+    button: 'Subscribe',
+    emailPlaceholder: 'you@company.com',
+    namePlaceholder: 'Sam',
+    listsLabel: 'What would you like?',
+    footnote: '',
+    popupDelay: 0,
+    popupScroll: 0,
+    popupRepeatDays: 7,
+    steps: three(),
+  }
 
   it('splits evenly to 100', () => {
     expect(evenSplit(2)).toEqual([50, 50])
