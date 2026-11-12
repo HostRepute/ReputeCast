@@ -55,6 +55,10 @@
     max-width: 100%;
     margin-left: auto;
   }
+  .rp-search svg {
+    color: var(--ink-3);
+    flex: none;
+  }
   .rp-search input {
     border: 0;
     outline: 0;
@@ -216,6 +220,15 @@
     border-bottom-width: 2px;
     border-radius: 5px;
     background: var(--ground-2);
+  }
+}
+
+@media (min-width: 1101px) {
+  /* The board's content: 20 px above and below, 14 px between the parts. */
+  .content.rp-main {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    gap: 14px;
   }
 }
 

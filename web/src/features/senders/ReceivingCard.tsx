@@ -9,8 +9,9 @@ import { Note } from '@/components/ui/Note'
 import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { failed } from '@/features/connect/parts'
-import { CopyButton } from '@/features/sms/common'
+import { copyText } from '@/features/sms/common'
 import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { ago, clock } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { InboundSetupDialog } from './InboundSetupDialog'
@@ -77,6 +78,27 @@ export function MxBadge({ status }: { status: Schemas['InboundMXRecord']['status
   }
 }
 
+/** Copy, then "Copied" for two seconds: a plain button, as the boards draw it. */
+export function CopyButton({ value, label }: { value: string; label: string }) {
+  const t = useT()
+  const [done, setDone] = useState(false)
+  return (
+    <Button
+      size="sm"
+      aria-label={label}
+      onClick={() =>
+        void copyText(value).then((ok) => {
+          if (!ok) return
+          setDone(true)
+          window.setTimeout(() => setDone(false), 2000)
+        })
+      }
+    >
+      <span aria-live="polite">{done ? t(common.copied) : t(common.copy)}</span>
+    </Button>
+  )
+}
+
 /** The MX records a provider route needs, with what DNS says and Copy. */
 export function MxTable({ records }: { records: Schemas['InboundMXRecord'][] }) {
   const t = useT()
@@ -96,9 +118,9 @@ export function MxTable({ records }: { records: Schemas['InboundMXRecord'][] }) 
       <tbody>
         {records.map((r) => (
           <tr key={r.value}>
-            <td className="mono">{r.type}</td>
-            <td className="mono">{r.name}</td>
-            <td className="mono">{r.value}</td>
+            <td className="mono whitespace-nowrap">{r.type}</td>
+            <td className="mono whitespace-nowrap">{r.name}</td>
+            <td className="mono whitespace-nowrap">{r.value}</td>
             <td>
               <MxBadge status={r.status} />
             </td>

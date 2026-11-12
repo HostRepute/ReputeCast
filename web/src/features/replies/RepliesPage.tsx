@@ -3,6 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { $api, ApiError, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
+import { Icon } from '@/components/icons/Icon'
 import { Avatar, type AvatarColor } from '@/components/ui/Avatar'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -244,6 +245,7 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
             ))}
           </div>
           <label className="rp-search">
+            <Icon name="search" size={14} />
             <input type="search" placeholder={t(m.search)} aria-label={t(m.search)} value={text} onChange={(e) => setText(e.target.value)} />
           </label>
         </div>
@@ -329,7 +331,7 @@ export function RepliesPage({ search }: { search: RepliesSearch }) {
     )
   }
   return (
-    <Page title={t(am.title)} documentTitle={t(m.documentTitle)} filters={<AudienceTabs />}>
+    <Page title={t(am.title)} documentTitle={t(m.documentTitle)} filters={<AudienceTabs />} contentClassName="rp-main">
       {body}
     </Page>
   )
@@ -494,11 +496,11 @@ function ReplyDetail({ id, color, onBack, onMark }: { id: string; color: AvatarC
         {d.source ? (
           <div>
             {d.source.type === 'campaign' ? (
-              <Link className="lnk" to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId: d.source.id }}>
+              <Link className="lnk text-[13px] font-semibold no-underline" to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId: d.source.id }}>
                 {d.sentAt ? t(m.replyTo, { source: d.source.name, date: shortDate(d.sentAt) }) : t(m.replyToUnsent, { source: d.source.name })}
               </Link>
             ) : (
-              <Link className="lnk" to="/w/$workspace/automations/$automationId" params={{ workspace: slug, automationId: d.source.id }}>
+              <Link className="lnk text-[13px] font-semibold no-underline" to="/w/$workspace/automations/$automationId" params={{ workspace: slug, automationId: d.source.id }}>
                 {d.sentAt ? t(m.replyTo, { source: d.source.name, date: shortDate(d.sentAt) }) : t(m.replyToUnsent, { source: d.source.name })}
               </Link>
             )}

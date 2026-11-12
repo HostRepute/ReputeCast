@@ -8,12 +8,11 @@ import { Note } from '@/components/ui/Note'
 import { StepTrail } from '@/components/ui/Stepper'
 import { toast } from '@/components/ui/Toast'
 import { FieldError, failed, fieldErrors } from '@/features/connect/parts'
-import { CopyButton } from '@/features/sms/common'
 import { T, useT } from '@/i18n'
 import { clock } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { cn } from '@/lib/cn'
-import { inboundPath, MxTable, TestResult, testState, useInboundRoute, useSendTest, type InboundRoute } from './ReceivingCard'
+import { CopyButton, inboundPath, MxTable, TestResult, testState, useInboundRoute, useSendTest, type InboundRoute } from './ReceivingCard'
 import { m } from './receiving.messages'
 
 type Choice = Schemas['InboundProviderChoice']
@@ -103,8 +102,15 @@ export function InboundSetupDialog({ open, onOpenChange, route }: { open: boolea
   const eyebrow =
     step === 1 ? t(m.eyebrowStart) : isMailbox ? t(m.eyebrowMailbox) : t(m.eyebrowProvider, { provider: choice?.name ?? '' })
   const title = step === 1 ? t(m.step1) : step === 2 ? t(m.step2) : t(m.step3)
+  const routeProvider = route.provider?.name ?? ''
+  const lead =
+    route.kind === 'mailbox'
+      ? t(m.s3Mailbox, { address: route.mailbox?.address ?? '' })
+      : route.setup.automatic
+        ? t(m.s3Automatic, { provider: routeProvider, domain: route.domain })
+        : t(m.s3Manual, { provider: routeProvider, domain: route.domain })
   const description =
-    step === 1 ? t(m.s1Description) : step === 2 ? (isMailbox ? t(m.s2Mailbox) : t(m.s2Provider, { provider: choice?.name ?? '' })) : undefined
+    step === 1 ? t(m.s1Description) : step === 2 ? (isMailbox ? t(m.s2Mailbox) : t(m.s2Provider, { provider: choice?.name ?? '' })) : lead
   const footer =
     step === 1 ? (
       <>
@@ -138,6 +144,7 @@ export function InboundSetupDialog({ open, onOpenChange, route }: { open: boolea
       open={open}
       onOpenChange={onOpenChange}
       size="md"
+      hideClose
       eyebrow={<span className="k">{eyebrow}</span>}
       title={title}
       description={
@@ -340,16 +347,9 @@ function RecordsAndTest({
   const provider = r.provider?.name ?? ''
   const state = testState(r, now)
   const mxFound = r.setup.mx.length === 0 || r.setup.mx.every((x) => x.status === 'found')
-  const lead =
-    r.kind === 'mailbox'
-      ? t(m.s3Mailbox, { address: r.mailbox?.address ?? '' })
-      : r.setup.automatic
-        ? t(m.s3Automatic, { provider, domain: r.domain })
-        : t(m.s3Manual, { provider, domain: r.domain })
   const checked = new Date()
   return (
     <>
-      <p className="m-0 text-[13.5px] text-ink-2">{lead}</p>
       {r.status === 'failing' || r.statusReason === 'register' ? (
         <Note tone="bad">
           <span className="font-bold">{r.statusDetail}</span>
