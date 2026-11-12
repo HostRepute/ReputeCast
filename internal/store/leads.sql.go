@@ -1106,7 +1106,7 @@ SELECT f.id, f.name, p.name AS page_name, f.status, f.mapped_at
 FROM lead_forms f
 JOIN lead_pages p ON p.id = f.page_id
 WHERE f.workspace_id = $1
-ORDER BY f.name, p.name
+ORDER BY p.name, f.created_at, f.name
 `
 
 type LeadFormNamesRow struct {
@@ -1118,7 +1118,7 @@ type LeadFormNamesRow struct {
 }
 
 // Every lead form of the workspace with its Page (growth sources, the
-// automation trigger).
+// automation trigger), in the connection page's order.
 func (q *Queries) LeadFormNames(ctx context.Context, workspaceID uuid.UUID) ([]LeadFormNamesRow, error) {
 	rows, err := q.db.Query(ctx, leadFormNames, workspaceID)
 	if err != nil {

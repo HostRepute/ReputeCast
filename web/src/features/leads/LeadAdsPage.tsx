@@ -527,7 +527,9 @@ function FormsCard({ c, onDialog }: { c: Connection; onDialog: (d: DialogKind) =
                     <tr key={f.id}>
                       <td>
                         {hasNote ? (
-                          <div className="flex min-w-60 flex-col gap-[3px]">
+                          // Narrower than the board's 240 px, so a form waiting for its mapping
+                          // keeps its Map button in view beside the side column at 1440.
+                          <div className="flex min-w-[150px] flex-col gap-[3px]">
                             <span className="font-semibold">{f.name}</span>
                             {note}
                           </div>
@@ -537,7 +539,7 @@ function FormsCard({ c, onDialog }: { c: Connection; onDialog: (d: DialogKind) =
                       </td>
                       <td className="nw">{f.page}</td>
                       <td className="r num">{count(f.mapped ? f.leads30d : f.waiting)}</td>
-                      <td className="min-w-[110px]">{lists(f)}</td>
+                      <td className="min-w-[100px]">{lists(f)}</td>
                       <td className="nw">{consent(f)}</td>
                       <td>
                         <FormStatus f={f} />

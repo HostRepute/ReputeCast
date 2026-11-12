@@ -2261,7 +2261,7 @@ type Querier interface {
 	LeadFormImportProgress(ctx context.Context, arg LeadFormImportProgressParams) error
 	LeadFormLeadAt(ctx context.Context, arg LeadFormLeadAtParams) error
 	// Every lead form of the workspace with its Page (growth sources, the
-	// automation trigger).
+	// automation trigger), in the connection page's order.
 	LeadFormNames(ctx context.Context, workspaceID uuid.UUID) ([]LeadFormNamesRow, error)
 	LeadFormPolled(ctx context.Context, arg LeadFormPolledParams) error
 	LeadFormSaveMapping(ctx context.Context, arg LeadFormSaveMappingParams) (LeadForm, error)

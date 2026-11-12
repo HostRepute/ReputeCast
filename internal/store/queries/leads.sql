@@ -172,12 +172,12 @@ ORDER BY f.created_at;
 
 -- name: LeadFormNames :many
 -- Every lead form of the workspace with its Page (growth sources, the
--- automation trigger).
+-- automation trigger), in the connection page's order.
 SELECT f.id, f.name, p.name AS page_name, f.status, f.mapped_at
 FROM lead_forms f
 JOIN lead_pages p ON p.id = f.page_id
 WHERE f.workspace_id = @workspace_id
-ORDER BY f.name, p.name;
+ORDER BY p.name, f.created_at, f.name;
 
 -- name: LeadEventInsert :one
 INSERT INTO lead_events (id, workspace_id, connection_id, received_at, body, signature_ok, status)
