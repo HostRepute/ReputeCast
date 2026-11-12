@@ -56,6 +56,9 @@
   "form.typo.keep": "Mantener {email}",
   "form.inbox.open": "Abrir {provider}",
   "form.inbox.newTab": "(se abre en una pestaña nueva)",
+  "form.step.next": "Siguiente",
+  "form.step.back": "Atrás",
+  "form.step.of": "Paso {n} de {total}",
 
   "challenge.title": "Un paso más",
   "challenge.text": "Tu suscripción parecía automatizada, así que queremos asegurarnos de que eres una persona. Solo tarda un segundo.",

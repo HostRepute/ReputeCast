@@ -150,6 +150,7 @@ import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './ro
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
 import { Route as WWorkspaceAppSettingsIntegrationsAiRouteImport } from './routes/w/$workspace/_app/settings/integrations/ai'
 import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
+import { Route as WWorkspaceAppSettingsIntegrationsTrackingRouteImport } from './routes/w/$workspace/_app/settings/integrations/tracking'
 import { Route as WWorkspaceAppSettingsIntegrationsVerificationRouteImport } from './routes/w/$workspace/_app/settings/integrations/verification'
 import { Route as WWorkspaceAppSettingsIntegrationsWordpressRouteImport } from './routes/w/$workspace/_app/settings/integrations/wordpress'
 import { Route as WWorkspaceAppSettingsRolesIndexRouteImport } from './routes/w/$workspace/_app/settings/roles/index'
@@ -991,6 +992,12 @@ const WWorkspaceAppSettingsIntegrationsHostreputeRoute =
     path: '/settings/integrations/hostrepute',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsIntegrationsTrackingRoute =
+  WWorkspaceAppSettingsIntegrationsTrackingRouteImport.update({
+    id: '/settings/integrations/tracking',
+    path: '/settings/integrations/tracking',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsVerificationRoute =
   WWorkspaceAppSettingsIntegrationsVerificationRouteImport.update({
     id: '/settings/integrations/verification',
@@ -1250,6 +1257,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/tracking': typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -1412,6 +1420,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/tracking': typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -1578,6 +1587,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/_app/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/_app/settings/integrations/tracking': typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   '/w/$workspace/_app/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   '/w/$workspace/_app/settings/roles/$roleId': typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -1744,6 +1754,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/tracking'
     | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
@@ -1906,6 +1917,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/tracking'
     | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
     | '/w/$workspace/settings/roles/$roleId'
@@ -2071,6 +2083,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/integrations/$kind'
     | '/w/$workspace/_app/settings/integrations/ai'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
+    | '/w/$workspace/_app/settings/integrations/tracking'
     | '/w/$workspace/_app/settings/integrations/verification'
     | '/w/$workspace/_app/settings/integrations/wordpress'
     | '/w/$workspace/_app/settings/roles/$roleId'
@@ -3111,6 +3124,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/integrations/tracking': {
+      id: '/w/$workspace/_app/settings/integrations/tracking'
+      path: '/settings/integrations/tracking'
+      fullPath: '/w/$workspace/settings/integrations/tracking'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsTrackingRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations/verification': {
       id: '/w/$workspace/_app/settings/integrations/verification'
       path: '/settings/integrations/verification'
@@ -3369,6 +3389,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
   WWorkspaceAppSettingsIntegrationsAiRoute: typeof WWorkspaceAppSettingsIntegrationsAiRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  WWorkspaceAppSettingsIntegrationsTrackingRoute: typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   WWorkspaceAppSettingsIntegrationsVerificationRoute: typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
   WWorkspaceAppSettingsRolesRoleIdRoute: typeof WWorkspaceAppSettingsRolesRoleIdRoute
@@ -3523,6 +3544,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppSettingsIntegrationsAiRoute,
   WWorkspaceAppSettingsIntegrationsHostreputeRoute:
     WWorkspaceAppSettingsIntegrationsHostreputeRoute,
+  WWorkspaceAppSettingsIntegrationsTrackingRoute:
+    WWorkspaceAppSettingsIntegrationsTrackingRoute,
   WWorkspaceAppSettingsIntegrationsVerificationRoute:
     WWorkspaceAppSettingsIntegrationsVerificationRoute,
   WWorkspaceAppSettingsIntegrationsWordpressRoute:

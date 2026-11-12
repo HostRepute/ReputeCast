@@ -7,6 +7,7 @@ import { isPaidTrigger, paidTriggerDefaults, paidTriggerName, paidTriggerRef } f
 import { m as smsStep } from '@/features/sms/automation.messages'
 import { keepsCapitals, type MessageDescriptor, t as tt } from '@/i18n'
 import { pct } from '@/lib/format'
+import { cf } from '@/features/commerce/flows.messages'
 import { mg } from './graph.messages'
 
 /*
@@ -105,6 +106,11 @@ export const TRIGGER_KINDS: readonly TriggerConfig['kind'][] = [
   'order_placed',
   'first_order',
   'abandoned_checkout',
+  // Website tracking's store flows (M62).
+  'viewed_product',
+  'added_to_cart',
+  'back_in_stock',
+  'price_drop',
   // Segments and links (review 2026-11 AT-10).
   'segment_entered',
   'segment_left',
@@ -115,6 +121,12 @@ export const TRIGGER_KINDS: readonly TriggerConfig['kind'][] = [
   'paid_ended',
   'paid_trial_ending',
 ]
+
+/** The store a Website tracking store flow watches (M62). */
+function trackerTriggerStore(t: Pick<TriggerConfig, 'kind' | 'browse' | 'stock'>): string | undefined {
+  if (t.kind === 'viewed_product' || t.kind === 'added_to_cart') return t.browse?.storeId || undefined
+  return t.stock?.storeId || undefined
+}
 
 /** The triggers that can be a flow's second or third (AT-11). */
 export const ALSO_KINDS: readonly TriggerConfig['kind'][] = ['joined_list', 'form_submitted', 'tag_added', 'api_event', 'segment_entered', 'segment_left', 'link_clicked']
@@ -146,6 +158,14 @@ export function triggerKindLabel(kind: TriggerConfig['kind']): string {
       return tt(mg.kindFirstOrder)
     case 'abandoned_checkout':
       return tt(mg.kindAbandonedCheckout)
+    case 'viewed_product':
+      return tt(cf.kindViewedProduct)
+    case 'added_to_cart':
+      return tt(cf.kindAddedToCart)
+    case 'back_in_stock':
+      return tt(cf.kindBackInStock)
+    case 'price_drop':
+      return tt(cf.kindPriceDrop)
     case 'segment_entered':
       return tt(mg.kindSegmentEntered)
     case 'segment_left':
@@ -313,6 +333,11 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
     case 'first_order':
     case 'abandoned_checkout':
       return refs.stores?.get(t.store ?? '') ?? tt(mg.aStore)
+    case 'viewed_product':
+    case 'added_to_cart':
+    case 'back_in_stock':
+    case 'price_drop':
+      return refs.stores?.get(trackerTriggerStore(t) ?? '') ?? tt(mg.aStore)
     case 'segment_entered':
     case 'segment_left':
       return refs.segments?.get(t.segmentId ?? '') ?? tt(mg.aSegment)
@@ -430,6 +455,10 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
       if (!d.trigger?.kind) return tt(mg.pickTrigger)
       // "Acme Merch · after 1 hour" (X20).
       if (d.trigger.kind === 'abandoned_checkout') return tt(mg.checkoutAfter, { store: triggerRef(d.trigger, refs), hours: d.trigger.afterHours || 1 })
+      // "Acme Merch · after 4 hours", "Acme Merch · 10% or more" (M62).
+      if (d.trigger.kind === 'viewed_product' || d.trigger.kind === 'added_to_cart') return tt(cf.browseAfter, { store: triggerRef(d.trigger, refs), hours: d.trigger.browse?.afterHours || 1 })
+      if (d.trigger.kind === 'price_drop') return tt(cf.dropAtLeast, { store: triggerRef(d.trigger, refs), percent: d.trigger.stock?.minDropPercent || 10 })
+      if (d.trigger.kind === 'back_in_stock') return tt(cf.peopleWhoAsked, { store: triggerRef(d.trigger, refs) })
       return triggersRef(d.trigger, refs)
     }
     case 'delay':

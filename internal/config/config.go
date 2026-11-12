@@ -82,8 +82,8 @@ func (c *Config) FilesDir() string {
 
 // GeoIPConfig is the operator's MaxMind DB file (GeoLite2-City/Country,
 // DB-IP Lite City/Country) that places readers' opens and clicks in the
-// campaign report. Empty is off. ReputeCast never downloads it: replace the
-// file and restart to update it.
+// campaign report and answers signup forms' country rules. Empty is off.
+// ReputeCast never downloads it: replace the file and restart to update it.
 type GeoIPConfig struct {
 	Database string `koanf:"database"`
 }

@@ -163,6 +163,7 @@ func SeedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *se
 		{"push and whatsapp", seedPushWhatsApp},
 		{"pages and products", seedPagesProducts},
 		{"stores", seedStores},
+		{"tracker", seedTracker},
 		{"agency", seedAgency},
 		{"brand kit", seedBrandKit},
 		{"holdout", seedHoldout},

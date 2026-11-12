@@ -209,6 +209,14 @@ func triggerKindLabel(kind string) i18n.Text {
 		return txt(mTriggerPaidEnded)
 	case TriggerPaidTrialEnding:
 		return txt(mTriggerPaidTrialEnding)
+	case TriggerViewedProduct:
+		return txt(mTriggerViewedProduct)
+	case TriggerAddedToCart:
+		return txt(mTriggerAddedToCart)
+	case TriggerBackInStock:
+		return txt(mTriggerBackInStock)
+	case TriggerPriceDrop:
+		return txt(mTriggerPriceDrop)
 	}
 	return txt(mTriggerOther)
 }
@@ -294,6 +302,8 @@ func triggerRef(t *AutomationTrigger, refs *Refs) i18n.Text {
 		return txt(mRefAnEmail)
 	case TriggerPaidStarted, TriggerPaidTierChanged, TriggerPaidEnded, TriggerPaidTrialEnding:
 		return paidTriggerRef(t, refs)
+	case TriggerViewedProduct, TriggerAddedToCart, TriggerBackInStock, TriggerPriceDrop:
+		return trackerTriggerRef(t, refs)
 	}
 	return i18n.Text{}
 }

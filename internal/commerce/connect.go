@@ -204,7 +204,7 @@ func (s *Service) notFound(ctx context.Context, err error) error {
 
 func (s *Service) connectState(ctx context.Context, ws *store.Workspace, st store.Store) CommerceConnectState {
 	out := CommerceConnectState{Store: s.summary(ctx, st), Step: st.Step, AppURL: s.AppURL(), RedirectURL: s.CallbackURL(),
-		Scopes: slices.Clone(shopify.Scopes), OptionalScope: shopify.OptionalScope, InstalledAt: st.InstalledAt, Granted: st.Scopes,
+		Scopes: slices.Clone(shopify.Scopes), OptionalScope: shopify.OptionalScope, InventoryScope: shopify.InventoryScope, InstalledAt: st.InstalledAt, Granted: st.Scopes,
 		WriteGranted: slices.Contains(st.Scopes, shopify.OptionalScope), Error: st.ConnectError, Lists: s.listOptions(ctx, ws.ID),
 		NewListName: st.Name, Months: int(st.ImportMonths), KeyHint: st.KeyHint, Demo: st.Demo}
 	if out.Granted == nil {
@@ -335,7 +335,7 @@ func (s *Service) Install(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err := s.Q.CommerceStoreSetState(ctx, store.CommerceStoreSetStateParams{ID: st.ID, OauthState: &state, ExpiresAt: ptr(now.Add(stateTTL)), At: now}); err != nil {
 		return CommerceInstall{}, err
 	}
-	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope)
+	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope, shopify.InventoryScope)
 	if st.Demo && s.DemoApprove != nil {
 		// The demo's store approves at once, in process.
 		return CommerceInstall{URL: s.DemoApprove(s.CallbackURL(), state)}, nil

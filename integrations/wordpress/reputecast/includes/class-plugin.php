@@ -22,6 +22,7 @@ final class Plugin {
 		add_action( Reporter::CRON_HOOK, array( Reporter::class, 'run' ) );
 		Posts::register();
 		WooCommerce::register();
+		Tracking::register();
 		if ( is_admin() ) {
 			Settings_Page::register();
 		}

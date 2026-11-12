@@ -504,5 +504,17 @@
   "webinar.hourBefore.subject": "Bắt đầu sau một giờ: {title}",
   "webinar.hourBefore.preheader": "Tham gia từ liên kết bên dưới.",
   "webinar.hourBefore.heading": "Bắt đầu sau một giờ",
-  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ."
+  "webinar.hourBefore.body": "{title} bắt đầu sau một giờ.",
+
+  "trigger.viewedProduct": "Đã xem sản phẩm nhưng chưa mua",
+  "trigger.addedToCart": "Đã thêm vào giỏ nhưng chưa thanh toán",
+  "trigger.backInStock": "Có hàng trở lại",
+  "trigger.priceDrop": "Giảm giá",
+  "ref.browseAfter": "{store} · sau {hours} giờ",
+  "ref.priceDrop": "{store} · giảm từ {percent}% trở lên",
+  "problem.browseWait": "Trình kích hoạt xem sản phẩm hoặc giỏ hàng chờ từ 1 đến 24 giờ sau lần xem cuối.",
+  "problem.browseViews": "Hãy đếm từ 1 đến 5 lượt xem một sản phẩm.",
+  "problem.browseCollections": "Hãy chọn tối đa 20 bộ sưu tập, hoặc không chọn để áp dụng cho mọi sản phẩm.",
+  "problem.stockDays": "Hãy xét lượt xem và lượt thêm vào giỏ trong 1 đến 60 ngày gần nhất.",
+  "problem.dropPercent": "Hãy bắt đầu khi giá giảm từ 1% đến 90%."
 }

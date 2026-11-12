@@ -295,6 +295,14 @@ func Register(h huma.API, s *Service) {
 			out, err := s.TriggerStats(ctx, api.WorkspaceFrom(ctx), id)
 			return api.OK(out), err
 		})
+	api.Post(h, api.Op{ID: "create-stock-request", Path: "/workspaces/{workspace}/commerce/stock-requests", Summary: "Email a contact when a sold-out product is back",
+		Description: "For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). " +
+			"Back-in-stock flows take them when the product returns; asking again after that waits for the next return.", Tags: tags,
+		Access: api.Workspace(authz.SubscribersCreate)},
+		func(ctx context.Context, in *body[CommerceStockRequestInput]) (*api.Body[CommerceStockRequest], error) {
+			out, err := s.RequestStock(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
 
 	// Contacts and revenue.
 	api.Get(h, api.Op{ID: "get-contact-stores", Path: "/workspaces/{workspace}/contacts/{contactId}/stores", Summary: "The contact's store orders and their consent in each store",

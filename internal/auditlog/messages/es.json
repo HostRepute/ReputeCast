@@ -342,5 +342,7 @@
   "type.whatsapp_settings": "configuración de WhatsApp",
   "type.whatsapp_templates": "plantillas de WhatsApp",
   "type.wordpress": "WordPress",
-  "type.workspace": "espacio de trabajo"
+  "type.workspace": "espacio de trabajo",
+  "type.tracker_site": "sitio rastreado",
+  "link.tracking": "Abrir el seguimiento del sitio web"
 }

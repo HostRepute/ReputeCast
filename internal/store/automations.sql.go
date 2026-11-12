@@ -1761,6 +1761,39 @@ func (q *Queries) AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) 
 	return items, nil
 }
 
+const automationTrackedStores = `-- name: AutomationTrackedStores :many
+SELECT DISTINCT ON (store_id) store_id::uuid AS store_id, origin FROM tracker_sites
+WHERE workspace_id = $1 AND deleted_at IS NULL AND store_id IS NOT NULL
+ORDER BY store_id, created_at
+`
+
+type AutomationTrackedStoresRow struct {
+	StoreID uuid.UUID `json:"storeId"`
+	Origin  string    `json:"origin"`
+}
+
+// The stores a tracked site names (Website tracking, M62): browse, cart and
+// price-drop flows learn who viewed what through one of them.
+func (q *Queries) AutomationTrackedStores(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTrackedStoresRow, error) {
+	rows, err := q.db.Query(ctx, automationTrackedStores, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AutomationTrackedStoresRow{}
+	for rows.Next() {
+		var i AutomationTrackedStoresRow
+		if err := rows.Scan(&i.StoreID, &i.Origin); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const automationUnsubscribeAll = `-- name: AutomationUnsubscribeAll :exec
 UPDATE list_memberships SET status = 'unsubscribed', unsubscribed_at = now()
 WHERE contact_id = $1 AND status <> 'unsubscribed'
@@ -1774,10 +1807,14 @@ func (q *Queries) AutomationUnsubscribeAll(ctx context.Context, contactID uuid.U
 const automationWatchedSegments = `-- name: AutomationWatchedSegments :many
 SELECT s.id, s.workspace_id, s.watched_at, s.watch_ms
 FROM segments s
-WHERE s.refresh <> 'static' AND EXISTS (
+WHERE s.refresh <> 'static' AND (EXISTS (
     SELECT 1 FROM automations a CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
     WHERE a.workspace_id = s.workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
       AND t.value ->> 'kind' IN ('segment_entered', 'segment_left') AND t.value ->> 'segmentId' = s.id::text)
+  OR EXISTS (
+    SELECT 1 FROM forms f
+    WHERE f.workspace_id = s.workspace_id AND f.status = 'live'
+      AND f.content -> 'targeting' ->> 'visitors' IN ('in_segment', 'not_in_segment') AND f.content -> 'targeting' ->> 'segmentId' = s.id::text))
 ORDER BY coalesce(s.watch_ms, 0), s.watched_at NULLS FIRST, s.id
 `
 
@@ -1788,8 +1825,9 @@ type AutomationWatchedSegmentsRow struct {
 	WatchMs     *int32     `json:"watchMs"`
 }
 
-// Dynamic segments a live flow starts on entering or leaving (AT-10), the
-// quick ones first (AT-15).
+// Dynamic segments a live flow starts on entering or leaving (AT-10), or a
+// live form shows to (or hides from) by its visitors (M62 G-32): their
+// members are kept in segment_members. The quick ones first (AT-15).
 func (q *Queries) AutomationWatchedSegments(ctx context.Context) ([]AutomationWatchedSegmentsRow, error) {
 	rows, err := q.db.Query(ctx, automationWatchedSegments)
 	if err != nil {

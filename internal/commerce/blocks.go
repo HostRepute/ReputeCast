@@ -49,8 +49,41 @@ type CommerceBlockRenderInput struct {
 	Block CommerceBlock `json:"block"`
 }
 
+// Store block modes beyond picked products and collections (M62, G-31).
+const (
+	ModeBestSellers    = "best_sellers"
+	ModeRecentlyViewed = "recently_viewed"
+	ModeBoughtTogether = "bought_together"
+	ModeViewed         = "viewed"
+)
+
+// BestSellerDays is how far back best sellers count.
+const BestSellerDays = 30
+
+// perRecipient reports whether a block's products depend on the reader
+// (recommend.go).
+func perRecipient(mode string) bool { return mode == ModeRecentlyViewed || mode == ModeBoughtTogether }
+
+// blockCount is how many products a block shows, 1 to 6 (3 by default);
+// every send draws as many places, so the email's links keep their numbers.
+func blockCount(b CommerceBlock) int {
+	if b.Count <= 0 {
+		return 3
+	}
+	return min(b.Count, 6)
+}
+
+var (
+	mNoteRecentlyViewed = msgs.M("block.noteRecentlyViewed")
+	mNoteBoughtTogether = msgs.M("block.noteBoughtTogether")
+	mNoteViewed         = msgs.M("block.noteViewed")
+	mNoteNoSales        = msgs.M("block.noteNoSales")
+)
+
 // RenderBlock draws a store block with its products now, for the
-// composer's canvas: removed products are drawn, and flagged.
+// composer's canvas: removed products are drawn, and flagged. A block whose
+// products depend on the reader shows best sellers, and the Viewed products
+// block the store's newest products, with a note that says so.
 func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, b CommerceBlock) (CommerceBlockRender, error) {
 	l := i18n.LangFrom(ctx)
 	id, err := uuid.Parse(b.Store)
@@ -91,32 +124,74 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 		Disconnected: st.Status == StatusDisconnected}
 	// The block's words go into the email: in the workspace's default
 	// language, the language its emails are written in. The canvas's flag
-	// over a removed product is for the member.
-	el := s.emailLang(ctx, st.WorkspaceID)
-	flagText := mRemovedFlag.Text(i18n.LangFrom(ctx), nil)
-	var rows []store.StoreProduct
-	var err error
-	switch b.Mode {
-	case "collection":
-		n := b.Count
-		if n <= 0 {
-			n = 3
+	// over a removed product and its note are for the member.
+	el, ml := s.emailLang(ctx, st.WorkspaceID), i18n.LangFrom(ctx)
+	button := b.Button
+	if strings.TrimSpace(button) == "" {
+		button = mShopNow.Text(el, nil)
+	}
+	words := blockWords{soldOut: mSoldOut.Text(el, nil), removed: mRemovedFlag.Text(ml, nil)}
+	var inner string
+	if b.Mode == ModeViewed {
+		var err error
+		if inner, err = s.viewedHTML(ctx, st, b, mode, &out, words); err != nil {
+			return out, err
 		}
-		rows, err = s.Q.CommerceProductsNewest(ctx, store.CommerceProductsNewestParams{StoreID: st.ID, Collection: b.Collection, Lim: int32(n + 6)})
+		if mode == drawCanvas {
+			out.Note = mNoteViewed.Text(ml, nil)
+		}
+	} else {
+		rows, newest, err := s.blockRows(ctx, st, b, mode)
 		if err != nil {
 			return out, err
 		}
-		if b.SoldOut != "label" {
-			kept := rows[:0]
-			for _, r := range rows {
-				if r.Available || mode == drawStable {
-					kept = append(kept, r)
-				}
+		inner = rowsHTML(st, b, mode, rows, &out, button, words)
+		switch {
+		case perRecipient(b.Mode) && mode == drawCanvas:
+			out.Note = mNoteRecentlyViewed.Text(ml, nil)
+			if b.Mode == ModeBoughtTogether {
+				out.Note = mNoteBoughtTogether.Text(ml, nil)
 			}
-			rows = kept
+		case perRecipient(b.Mode):
+			// Each reader's own products (recommend.go); best sellers for
+			// a reader without history.
+			inner = recipientHTML(st, b, button, words) + `{% else %}` + inner + `{% endif %}`
+		case b.Mode == ModeBestSellers && newest && mode == drawCanvas:
+			out.Note = mNoteNoSales.Text(ml, nil)
 		}
-		if len(rows) > n {
-			rows = rows[:n]
+	}
+	cfg, _ := json.Marshal(b)
+	out.HTML = itemsOpen + string(cfg) + "-->" + inner + itemsClose
+	return out, nil
+}
+
+// blockRows are the products a block draws for every reader: the ones
+// picked, a collection's newest, or best sellers (the newest products, and
+// newest reports so, when nothing sold in 30 days).
+func (s *Service) blockRows(ctx context.Context, st store.Store, b CommerceBlock, mode int) (rows []store.StoreProduct, newest bool, err error) {
+	n := blockCount(b)
+	switch b.Mode {
+	case "collection":
+		if rows, err = s.Q.CommerceProductsNewest(ctx, store.CommerceProductsNewestParams{StoreID: st.ID, Collection: b.Collection, Lim: int32(n + 6)}); err != nil {
+			return nil, false, err
+		}
+	case ModeBestSellers, ModeRecentlyViewed, ModeBoughtTogether:
+		col := ""
+		if b.Mode == ModeBestSellers {
+			col = b.Collection
+		}
+		best, err := s.Q.CommerceBestSellers(ctx, store.CommerceBestSellersParams{StoreID: st.ID, Since: s.now().AddDate(0, 0, -BestSellerDays), Collection: col, Lim: int32(n + 6)})
+		if err != nil {
+			return nil, false, err
+		}
+		for _, r := range best {
+			rows = append(rows, r.StoreProduct)
+		}
+		if len(rows) == 0 {
+			newest = true
+			if rows, err = s.Q.CommerceProducts(ctx, store.CommerceProductsParams{StoreID: st.ID, Collection: col, Lim: int32(n + 6)}); err != nil {
+				return nil, false, err
+			}
 		}
 	default:
 		ids := b.Products
@@ -125,14 +200,33 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 		}
 		found, err := s.Q.CommerceProductsByExternal(ctx, store.CommerceProductsByExternalParams{StoreID: st.ID, Ids: ids})
 		if err != nil {
-			return out, err
+			return nil, false, err
 		}
 		for _, id := range ids {
 			if i := slices.IndexFunc(found, func(r store.StoreProduct) bool { return r.ExternalID == id }); i >= 0 {
 				rows = append(rows, found[i])
 			}
 		}
+		return rows, false, nil
 	}
+	if b.SoldOut != "label" {
+		kept := rows[:0]
+		for _, r := range rows {
+			if r.Available || mode == drawStable {
+				kept = append(kept, r)
+			}
+		}
+		rows = kept
+	}
+	if len(rows) > n {
+		rows = rows[:n]
+	}
+	return rows, newest, nil
+}
+
+// rowsHTML draws products the same for every reader, between the block's
+// markers: a card or a grid ("" when a send has nothing to show).
+func rowsHTML(st store.Store, b CommerceBlock, mode int, rows []store.StoreProduct, out *CommerceBlockRender, button string, words blockWords) string {
 	type shown struct {
 		p      CommerceProduct
 		hidden bool
@@ -165,45 +259,37 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 		}
 		items = append(items, shown{p: p})
 	}
-	for _, it := range items {
-		out.Products = append(out.Products, it.p)
-	}
-	button := b.Button
-	if strings.TrimSpace(button) == "" {
-		button = mShopNow.Text(el, nil)
-	}
-	words := blockWords{soldOut: mSoldOut.Text(el, nil), removed: flagText}
-	var sb strings.Builder
-	cfg, _ := json.Marshal(b)
-	sb.WriteString(itemsOpen)
-	sb.Write(cfg)
-	sb.WriteString("-->")
 	visible := 0
 	for _, it := range items {
+		out.Products = append(out.Products, it.p)
 		if !it.hidden {
 			visible++
 		}
 	}
-	if visible > 0 || mode == drawCanvas {
-		if b.Mode == "card" && len(items) > 0 {
-			sb.WriteString(cardHTML(items[0].p, b, button, words, items[0].sold, items[0].hidden, items[0].flag))
-		} else {
-			sb.WriteString(`<div style="padding:22px 28px 22px 28px;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif">`)
-			if h := strings.TrimSpace(b.Heading); h != "" {
-				sb.WriteString(`<h2 style="margin:0 0 14px 0;font-family:Georgia,'Times New Roman',serif;font-size:20px;line-height:1.3;color:#0B1220">`)
-				sb.WriteString(html.EscapeString(h))
-				sb.WriteString(`</h2>`)
-			}
-			sb.WriteString(`<div style="font-size:0;line-height:0;text-align:left">`)
-			for i, it := range items {
-				sb.WriteString(gridCellHTML(it.p, b, button, words, it.sold, it.hidden, it.flag, i%3 == 2))
-			}
-			sb.WriteString(`</div></div>`)
-		}
+	if visible == 0 && mode != drawCanvas {
+		return ""
 	}
-	sb.WriteString(itemsClose)
-	out.HTML = sb.String()
-	return out, nil
+	if b.Mode == "card" && len(items) > 0 {
+		return cardHTML(items[0].p, b, button, words, items[0].sold, items[0].hidden, items[0].flag)
+	}
+	var sb strings.Builder
+	sb.WriteString(`<div style="padding:22px 28px 22px 28px;font-family:` + sans + `">`)
+	sb.WriteString(headingHTML(b))
+	sb.WriteString(`<div style="font-size:0;line-height:0;text-align:left">`)
+	for i, it := range items {
+		sb.WriteString(gridCellHTML(it.p, b, button, words, it.sold, it.hidden, it.flag, i%3 == 2))
+	}
+	sb.WriteString(`</div></div>`)
+	return sb.String()
+}
+
+// headingHTML is a block's heading, when it has one.
+func headingHTML(b CommerceBlock) string {
+	h := strings.TrimSpace(b.Heading)
+	if h == "" {
+		return ""
+	}
+	return `<h2 style="margin:0 0 14px 0;font-family:Georgia,'Times New Roman',serif;font-size:20px;line-height:1.3;color:#0B1220">` + html.EscapeString(h) + `</h2>`
 }
 
 func productView(r store.StoreProduct) CommerceProduct {
@@ -384,23 +470,32 @@ func (s *Service) Resolve(ctx context.Context, ws uuid.UUID, h string, stable bo
 
 // Vars implements StoreContent: a message's checkout_url, the store's
 // recovery link of the checkout that started its run (an order's store
-// front page).
+// front page), and the Viewed products block's rc_viewed_<n> (the
+// products a browse, cart or stock flow's trigger named, recommend.go).
+// The click redirect reads them too, for the links they fill.
 func (s *Service) Vars(ctx context.Context, msgCtx map[string]string) map[string]string {
+	out := map[string]string{}
 	if id, err := uuid.Parse(msgCtx["checkout"]); err == nil {
 		if ch, err := s.Q.CommerceCheckoutByID(ctx, id); err == nil && ch.RecoveryUrl != "" {
-			return map[string]string{"checkout_url": ch.RecoveryUrl}
+			out["checkout_url"] = ch.RecoveryUrl
 		}
 	}
-	if id, err := uuid.Parse(msgCtx["store"]); err == nil {
-		if st, err := s.Q.CommerceStoreByID(ctx, id); err == nil {
-			host := st.PublicDomain
-			if host == "" {
-				host = st.Domain
+	if _, ok := out["checkout_url"]; !ok {
+		if id, err := uuid.Parse(msgCtx["store"]); err == nil {
+			if st, err := s.Q.CommerceStoreByID(ctx, id); err == nil {
+				host := st.PublicDomain
+				if host == "" {
+					host = st.Domain
+				}
+				out["checkout_url"] = "https://" + host + "/"
 			}
-			return map[string]string{"checkout_url": "https://" + host + "/"}
 		}
 	}
-	return nil
+	s.viewedVars(ctx, msgCtx, out)
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // Splice implements StoreContent: the Checkout items block gets the items

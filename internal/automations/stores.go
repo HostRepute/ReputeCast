@@ -46,8 +46,9 @@ func isStoreTrigger(kind string) bool {
 	return kind == TriggerOrderPlaced || kind == TriggerFirstOrder || kind == TriggerAbandonedCheckout
 }
 
-// IsStoreTrigger reports whether a trigger kind is a store's.
-func IsStoreTrigger(kind string) bool { return isStoreTrigger(kind) }
+// IsStoreTrigger reports whether a trigger kind is a store's: its orders,
+// its checkouts, or what its tracked site saw (storeflows.go).
+func IsStoreTrigger(kind string) bool { return isStoreTrigger(kind) || isTrackerTrigger(kind) }
 
 var (
 	mProblemPickStore    = msg("problem.pickStore")

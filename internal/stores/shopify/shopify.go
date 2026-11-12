@@ -37,6 +37,16 @@ var (
 	OptionalScope = "write_customers"
 )
 
+// InventoryScope is the optional scope that lets InventoryTopic report
+// stock changes as they happen (M62, G-30): without it, products changed
+// since the last check are read every 15 minutes while a stock flow
+// watches the store. InventoryTopic needs it ("Requires the
+// read_inventory scope", WebhookSubscriptionTopic, Admin API 2026-07).
+const (
+	InventoryScope = "read_inventory"
+	InventoryTopic = "inventory_levels/update"
+)
+
 // Topics are the 11 webhooks ReputeCast registers, in the order of the
 // store page's table (brief §4).
 var Topics = []string{
@@ -63,9 +73,11 @@ func init() {
 		Name: "Shopify",
 		Capabilities: []stores.Capability{stores.CapOrders, stores.CapProducts, stores.CapCustomers, stores.CapCheckouts,
 			stores.CapWriteBack, stores.CapAttribution},
-		Topics:   Topics,
-		Open:     func(cfg stores.Config) (stores.Client, error) { return New(cfg) },
-		Webhooks: Webhooks{},
+		Topics:         Topics,
+		InventoryTopic: InventoryTopic,
+		InventoryScope: InventoryScope,
+		Open:           func(cfg stores.Config) (stores.Client, error) { return New(cfg) },
+		Webhooks:       Webhooks{},
 	})
 }
 

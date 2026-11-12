@@ -37,5 +37,12 @@
   "list.description": "Khách hàng của {store} đã đồng ý nhận tiếp thị",
   "check.removedTitle": "{product} không còn trong {store}",
   "check.removedTag": "Không còn trong cửa hàng",
-  "check.removedDetail": "Đã bị xóa trên {platform} lúc {when}. Các đợt gửi sẽ bỏ qua sản phẩm này. Hãy gỡ khối này hoặc chọn sản phẩm khác."
+  "check.removedDetail": "Đã bị xóa trên {platform} lúc {when}. Các đợt gửi sẽ bỏ qua sản phẩm này. Hãy gỡ khối này hoặc chọn sản phẩm khác.",
+  "stock.contactUnknown": "Không có liên hệ nào dùng địa chỉ này. Hãy thêm họ làm liên hệ trước.",
+  "stock.productUnknown": "Không có sản phẩm nào của cửa hàng đã kết nối mang mã này.",
+  "stock.productAmbiguous": "Hai cửa hàng đã kết nối có sản phẩm mang mã này. Hãy ghi rõ cửa hàng trong storeId.",
+  "block.noteRecentlyViewed": "Mỗi người đọc thấy các sản phẩm họ xem gần đây nhất, trừ những gì họ đã mua. Đang hiển thị: sản phẩm bán chạy của bạn, là những gì người chưa xem sản phẩm nào sẽ nhận.",
+  "block.noteBoughtTogether": "Mỗi người đọc thấy các sản phẩm thường được mua cùng với những gì họ đã mua hoặc đã xem. Đang hiển thị: sản phẩm bán chạy của bạn, là những gì người chưa mua hay xem sẽ nhận.",
+  "block.noteViewed": "Mỗi email hiển thị các sản phẩm người đọc đã xem, đã thêm vào giỏ hoặc đã hỏi, theo trình kích hoạt của tự động hóa. Đang hiển thị: các sản phẩm mới nhất của cửa hàng.",
+  "block.noteNoSales": "Chưa bán được gì trong 30 ngày qua, nên tạm thời khối này hiển thị các sản phẩm mới nhất."
 }

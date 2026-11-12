@@ -135,7 +135,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout,segment_entered,segment_left,link_clicked,paid_started,paid_tier_changed,paid_ended,paid_trial_ending"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout,segment_entered,segment_left,link_clicked,paid_started,paid_tier_changed,paid_ended,paid_trial_ending,viewed_product,added_to_cart,back_in_stock,price_drop"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -206,6 +206,11 @@ type AutomationTrigger struct {
 	// starts on (any when empty).
 	TierID     string   `json:"tierId,omitempty" maxLength:"40"`
 	EndReasons []string `json:"endReasons,omitempty" maxItems:"3" enum:"canceled,payment_failed,trial_ended"`
+	// Site-tracker store flows (storeflows.go): "Viewed a product and
+	// didn't buy" and "Added to cart and didn't check out" read Browse;
+	// "Back in stock" and "Price drop" read Stock.
+	Browse *AutomationBrowseTrigger `json:"browse,omitempty"`
+	Stock  *AutomationStockTrigger  `json:"stock,omitempty"`
 	// Also holds up to two more triggers, any of which enrols (review
 	// 2026-11 AT-11). Re-entry and leaving with the list are the first
 	// trigger's; the others never carry their own Also.
@@ -1044,6 +1049,9 @@ func checkTrigger(t *AutomationTrigger, refs *Refs, bad func(string, i18n.Text),
 	}
 	if isPaidTrigger(t.Kind) {
 		extra(checkPaidTrigger(t, refs))
+	}
+	if isTrackerTrigger(t.Kind) {
+		extra(checkTrackerTrigger(t, refs))
 	}
 	switch t.Kind {
 	case TriggerSegmentEntered, TriggerSegmentLeft:

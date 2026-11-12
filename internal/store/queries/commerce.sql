@@ -241,7 +241,15 @@ ORDER BY c.position, c.title;
 
 -- name: CommerceProductUpsert :one
 -- An older version of a product than the one stored is ignored (events
--- that arrive out of order).
+-- that arrive out of order). It returns what the product was before
+-- (existed is false for a new one): back in stock and price drops are told
+-- apart from it (G-30). old reads the statement's snapshot, so it sees the
+-- row before this upsert whenever it is evaluated (a FOR UPDATE there would
+-- skip the row the upsert itself changed).
+WITH old AS (
+    SELECT p.available, p.inventory, p.price_cents, p.currency FROM store_products p
+    WHERE p.store_id = @store_id AND p.external_id = @external_id
+)
 INSERT INTO store_products (id, store_id, workspace_id, external_id, title, handle, url, image_url, image_alt, price_cents, compare_at_cents, currency,
     available, inventory, status, collections, created_at_store, updated_at_store, removed_at, synced_at)
 VALUES (@id, @store_id, @workspace_id, @external_id, @title, @handle, @url, @image_url, @image_alt, @price_cents, @compare_at_cents, @currency,
@@ -254,7 +262,11 @@ ON CONFLICT (store_id, external_id) DO UPDATE SET title = EXCLUDED.title, handle
     created_at_store = coalesce(store_products.created_at_store, EXCLUDED.created_at_store), updated_at_store = EXCLUDED.updated_at_store,
     removed_at = NULL, synced_at = EXCLUDED.synced_at
 WHERE store_products.updated_at_store IS NULL OR EXCLUDED.updated_at_store IS NULL OR EXCLUDED.updated_at_store >= store_products.updated_at_store
-RETURNING id;
+RETURNING id, EXISTS (SELECT 1 FROM old) AS existed,
+    coalesce((SELECT o.available FROM old o), false)::boolean AS old_available,
+    (SELECT o.inventory FROM old o) AS old_inventory,
+    coalesce((SELECT o.price_cents FROM old o), 0)::bigint AS old_price_cents,
+    coalesce((SELECT o.currency FROM old o), '')::text AS old_currency;
 
 -- name: CommerceProductRemoved :execrows
 UPDATE store_products SET removed_at = coalesce(removed_at, @at::timestamptz) WHERE store_id = @store_id AND external_id = @external_id;
@@ -525,11 +537,15 @@ SELECT published_at FROM automation_versions WHERE automation_id = @automation_i
 
 -- name: CommerceStoreFlows :many
 -- Live and paused automations started by a store's triggers, with the
--- first trigger that names the store (review 2026-11 AT-14).
+-- first trigger that names the store (review 2026-11 AT-14): its orders and
+-- checkouts ("store"), and what its tracked site saw (M62: "browse" and
+-- "stock" name it as storeId).
 SELECT a.id, a.name, a.status, st.t::jsonb AS trigger, a.pause_reason
 FROM automations a
 CROSS JOIN LATERAL (SELECT t FROM jsonb_array_elements(a.triggers) WITH ORDINALITY AS e (t, n)
-                    WHERE t ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND t ->> 'store' = @store::text
+                    WHERE (t ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND t ->> 'store' = @store::text)
+                       OR (t ->> 'kind' IN ('viewed_product', 'added_to_cart') AND t -> 'browse' ->> 'storeId' = @store::text)
+                       OR (t ->> 'kind' IN ('back_in_stock', 'price_drop') AND t -> 'stock' ->> 'storeId' = @store::text)
                     ORDER BY n LIMIT 1) st
 WHERE a.workspace_id = @workspace_id AND a.deleted_at IS NULL
 ORDER BY a.created_at;
@@ -778,3 +794,188 @@ SELECT id, name, status FROM stores
 WHERE workspace_id = @workspace_id AND platform = 'woocommerce' AND (address = lower(@host::text) OR domain = lower(@host::text))
 ORDER BY (status <> 'disconnected') DESC, created_at DESC
 LIMIT 1;
+
+-- ── Store flows and recommendations (M62, G-30 and G-31) ──────────────
+
+-- name: CommerceFlowListens :one
+-- Whether a live flow of the workspace starts on a kind of store event
+-- (a product change queues nothing otherwise).
+SELECT EXISTS (SELECT 1 FROM automations
+               WHERE workspace_id = @workspace_id AND status = 'live' AND deleted_at IS NULL
+                 AND triggers @> jsonb_build_array(jsonb_build_object('kind', @kind::text)));
+
+-- name: CommerceStockFlows :many
+-- Live flows started by back in stock or a price drop on a store: one row
+-- per such trigger, whichever of the flow's triggers it is.
+SELECT a.id, ac.t::jsonb AS trigger
+FROM automations a
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) AS ac (t)
+WHERE a.workspace_id = @workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
+  AND a.triggers @> jsonb_build_array(jsonb_build_object('kind', @kind::text))
+  AND ac.t ->> 'kind' = @kind::text AND ac.t -> 'stock' ->> 'storeId' = @store::text
+ORDER BY a.id;
+
+-- name: CommerceProductsByIDs :many
+SELECT * FROM store_products WHERE id = ANY(@ids::uuid[]);
+
+-- name: CommerceStockCandidates :many
+-- A page of the contacts (by id, after @after) a stock flow may take for a
+-- product: those who asked to hear when it's back and weren't told before
+-- this run (@requests), those who viewed it (@viewers) or added it to their
+-- cart (@carters) since @since; and whether they enter: active, not
+-- erased, not taken by the flow since @reentry_since.
+WITH people AS (
+    SELECT r.contact_id FROM store_stock_requests r
+    WHERE @requests::boolean AND r.product_id = @product_id AND r.contact_id > @after::uuid
+      AND (r.notified_at IS NULL OR r.notified_at >= @started::timestamptz)
+    UNION
+    SELECT v.contact_id FROM tracker_product_views v
+    WHERE v.product_id = @product_id AND v.contact_id > @after::uuid
+      AND ((@viewers::boolean AND v.last_viewed_at >= @since::timestamptz) OR (@carters::boolean AND v.last_carted_at >= @since::timestamptz))
+    ORDER BY 1
+    LIMIT @lim
+)
+SELECT p.contact_id::uuid AS contact_id, (c.status = 'active' AND c.erased_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM tracker_trigger_entries e
+                    WHERE e.automation_id = @automation_id AND e.contact_id = p.contact_id AND e.kind = @kind::text
+                      AND e.entered_at > @reentry_since::timestamptz))::boolean AS eligible
+FROM people p
+JOIN contacts c ON c.id = p.contact_id
+ORDER BY p.contact_id;
+
+-- name: CommerceStockNotified :exec
+-- The back-in-stock flow took these contacts: their requests are answered.
+UPDATE store_stock_requests SET notified_at = @at::timestamptz
+WHERE product_id = @product_id AND contact_id = ANY(@contacts::uuid[]) AND notified_at IS NULL;
+
+-- name: CommerceStockRequestUpsert :one
+-- "Email me when it's back": asking again clears the answer.
+INSERT INTO store_stock_requests (workspace_id, contact_id, product_id, created_at, notified_at)
+VALUES (@workspace_id, @contact_id, @product_id, @at::timestamptz, NULL)
+ON CONFLICT (contact_id, product_id) DO UPDATE SET created_at = EXCLUDED.created_at, notified_at = NULL
+RETURNING created_at;
+
+-- name: CommerceProductInWorkspace :one
+-- A product of one of the workspace's connected stores, by its id.
+SELECT p.id, p.store_id, p.title, p.available FROM store_products p
+JOIN stores s ON s.id = p.store_id
+WHERE p.id = @id AND s.workspace_id = @workspace_id AND s.status = 'connected' AND p.removed_at IS NULL;
+
+-- name: CommerceProductsByStoreID :many
+-- Products of the workspace's connected stores with the store's own id
+-- (two stores may share one), optionally in one store.
+SELECT p.id, p.store_id, p.title, p.available FROM store_products p
+JOIN stores s ON s.id = p.store_id
+WHERE p.external_id = @external_id AND s.workspace_id = @workspace_id AND s.status = 'connected' AND p.removed_at IS NULL
+  AND (sqlc.narg(store_id)::uuid IS NULL OR p.store_id = sqlc.narg(store_id)::uuid)
+ORDER BY p.store_id
+LIMIT 2;
+
+-- name: CommerceBestSellers :many
+-- A store's best sellers: the most units ordered since @since (not in test
+-- or cancelled orders), optionally one collection's, still for sale.
+SELECT sqlc.embed(p)
+FROM (SELECT it.i ->> 'productId' AS external_id, sum(greatest(coalesce((it.i ->> 'quantity')::int, 1), 1)) AS units
+      FROM store_orders o
+      CROSS JOIN LATERAL jsonb_array_elements(o.items) AS it (i)
+      WHERE o.store_id = @store_id AND o.placed_at >= @since::timestamptz AND NOT o.test AND NOT o.cancelled
+      GROUP BY 1) s
+JOIN store_products p ON p.store_id = @store_id AND p.external_id = s.external_id
+WHERE p.removed_at IS NULL AND p.status = 'active'
+  AND (@collection::text = '' OR @collection::text = ANY(p.collections))
+ORDER BY s.units DESC, p.title, p.id
+LIMIT @lim;
+
+-- name: CommerceRecentlyViewedFor :many
+-- Recently viewed, for a page of readers at once (G-31): each reader's
+-- products of the store viewed or added to their cart in the 90 days before
+-- their message was queued (@now without a message: a preview), newest
+-- first, @lim at most, without what they had bought by then. Read as of the
+-- message's queueing from the site's events, so a click days later finds
+-- the product the email showed in its place.
+SELECT r.contact_id::uuid AS contact_id, sqlc.embed(p)
+FROM (SELECT u.contact_id, coalesce(m.queued_at, @now::timestamptz)::timestamptz AS as_of
+      FROM unnest(@contacts::uuid[]) WITH ORDINALITY AS u (contact_id, n)
+      LEFT JOIN messages m ON m.id = (@messages::uuid[])[u.n]) r
+CROSS JOIN LATERAL (
+    SELECT e.product_id, max(e.occurred_at) AS at
+    FROM tracker_events e
+    JOIN store_products sp ON sp.id = e.product_id
+    WHERE e.contact_id = r.contact_id AND e.kind IN (2, 3) AND e.product_id IS NOT NULL
+      AND e.occurred_at < r.as_of AND e.occurred_at >= r.as_of - interval '90 days'
+      AND sp.store_id = @store_id AND sp.removed_at IS NULL AND sp.status = 'active'
+      AND NOT EXISTS (SELECT 1 FROM store_orders o
+                      WHERE o.store_id = @store_id AND o.contact_id = r.contact_id AND o.placed_at < r.as_of AND NOT o.test AND NOT o.cancelled
+                        AND o.items @> jsonb_build_array(jsonb_build_object('productId', sp.external_id)))
+    GROUP BY e.product_id
+    ORDER BY max(e.occurred_at) DESC, e.product_id
+    LIMIT @lim
+) x
+JOIN store_products p ON p.id = x.product_id
+WHERE EXISTS (SELECT 1 FROM stores s WHERE s.id = @store_id AND s.workspace_id = @workspace_id)
+ORDER BY r.contact_id, x.at DESC, x.product_id;
+
+-- name: CommerceBoughtTogetherFor :many
+-- Bought together, for a page of readers at once (G-31): the products most
+-- often in an order with what each reader bought (the 180 days) or viewed
+-- (the 90 days) before their message was queued (@now for a preview),
+-- without those, @lim at most.
+SELECT r.contact_id::uuid AS contact_id, sqlc.embed(p)
+FROM (SELECT u.contact_id, coalesce(m.queued_at, @now::timestamptz)::timestamptz AS as_of
+      FROM unnest(@contacts::uuid[]) WITH ORDINALITY AS u (contact_id, n)
+      LEFT JOIN messages m ON m.id = (@messages::uuid[])[u.n]) r
+CROSS JOIN LATERAL (
+    SELECT coalesce(array_agg(DISTINCT s.id), '{}')::uuid[] AS ids
+    FROM (SELECT sp.id FROM store_orders o
+          CROSS JOIN LATERAL jsonb_array_elements(o.items) AS it (i)
+          JOIN store_products sp ON sp.store_id = o.store_id AND sp.external_id = it.i ->> 'productId'
+          WHERE o.store_id = @store_id AND o.contact_id = r.contact_id AND o.placed_at < r.as_of
+            AND o.placed_at >= r.as_of - interval '180 days' AND NOT o.test AND NOT o.cancelled
+          UNION
+          SELECT e.product_id FROM tracker_events e
+          WHERE e.contact_id = r.contact_id AND e.kind IN (2, 3) AND e.product_id IS NOT NULL
+            AND e.occurred_at < r.as_of AND e.occurred_at >= r.as_of - interval '90 days') s (id)
+) src
+CROSS JOIN LATERAL (
+    SELECT pp.other_id, sum(pp.score) AS score
+    FROM store_product_pairs pp
+    JOIN store_products op ON op.id = pp.other_id AND op.removed_at IS NULL AND op.status = 'active'
+    WHERE pp.store_id = @store_id AND pp.product_id = ANY(src.ids) AND NOT (pp.other_id = ANY(src.ids))
+    GROUP BY pp.other_id
+    ORDER BY sum(pp.score) DESC, pp.other_id
+    LIMIT @lim
+) x
+JOIN store_products p ON p.id = x.other_id
+WHERE EXISTS (SELECT 1 FROM stores s WHERE s.id = @store_id AND s.workspace_id = @workspace_id)
+ORDER BY r.contact_id, x.score DESC, x.other_id;
+
+-- name: CommercePairsRebuild :exec
+-- Rebuilds a store's products bought together from its orders since
+-- @since (not test or cancelled), in one statement: how often each other
+-- product is in an order with a product, divided by that product's orders,
+-- the top 20 per product; pairs no longer among them are removed.
+WITH lines AS (
+    SELECT DISTINCT o.id AS order_id, p.id AS product_id
+    FROM store_orders o
+    CROSS JOIN LATERAL jsonb_array_elements(o.items) AS it (i)
+    JOIN store_products p ON p.store_id = o.store_id AND p.external_id = it.i ->> 'productId'
+    WHERE o.store_id = @store_id AND o.placed_at >= @since::timestamptz AND NOT o.test AND NOT o.cancelled
+), orders_of AS (
+    SELECT product_id, count(*) AS n FROM lines GROUP BY product_id
+), ranked AS (
+    SELECT a.product_id, b.product_id AS other_id, (count(*)::float8 / max(c.n))::real AS score,
+           row_number() OVER (PARTITION BY a.product_id ORDER BY count(*) DESC, b.product_id) AS rank
+    FROM lines a
+    JOIN lines b ON b.order_id = a.order_id AND b.product_id <> a.product_id
+    JOIN orders_of c ON c.product_id = a.product_id
+    GROUP BY a.product_id, b.product_id
+), top AS (
+    SELECT product_id, other_id, score FROM ranked WHERE rank <= 20
+), gone AS (
+    DELETE FROM store_product_pairs sp
+    WHERE sp.store_id = @store_id
+      AND NOT EXISTS (SELECT 1 FROM top t WHERE t.product_id = sp.product_id AND t.other_id = sp.other_id)
+)
+INSERT INTO store_product_pairs (store_id, product_id, other_id, score)
+SELECT @store_id, product_id, other_id, score FROM top
+ON CONFLICT (store_id, product_id, other_id) DO UPDATE SET score = EXCLUDED.score;

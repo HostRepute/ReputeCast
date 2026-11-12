@@ -5799,6 +5799,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/commerce/stock-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a contact when a sold-out product is back
+         * @description For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+         */
+        post: operations["create-stock-request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/commerce/trigger-options": {
         parameters: {
             query?: never;
@@ -8637,6 +8657,50 @@ export interface paths {
          * @description Contacts the form brought in stay. Embedded copies stop accepting submissions.
          */
         delete: operations["delete-signup-form"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a signup form's A/B test and its results
+         * @description Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.
+         */
+        get: operations["get-signup-form-ab-test"];
+        /**
+         * Start or change a signup form's A/B test
+         * @description Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.
+         */
+        put: operations["save-signup-form-ab-test"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End a signup form's A/B test, keeping one variant
+         * @description The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).
+         */
+        post: operations["end-signup-form-ab-test"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -16277,6 +16341,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/tracker/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the sites the tracker runs on
+         * @description Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+         */
+        get: operations["list-tracker-sites"];
+        put?: never;
+        /**
+         * Add a site to track (logged)
+         * @description The answer holds the site's identify secret, shown this once.
+         */
+        post: operations["create-tracker-site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/tracker/sites/{site}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a tracked site's name, store and consent mode (logged)
+         * @description The origin can't change: add another site for another address.
+         */
+        put: operations["update-tracker-site"];
+        post?: never;
+        /**
+         * Stop tracking a site (logged)
+         * @description Its events stop at once and the ones kept go with the retention.
+         */
+        delete: operations["delete-tracker-site"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A tracked site's last 20 events
+         * @description What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+         */
+        get: operations["tracker-site-recent-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/tracker/sites/{site}/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Give a site a new identify secret (logged)
+         * @description The old secret stops working at once; the new one is shown this once.
+         */
+        post: operations["rotate-tracker-site-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/tracking-checks": {
         parameters: {
             query?: never;
@@ -21657,6 +21809,15 @@ export interface components {
             label: string;
             nodeId?: string;
         };
+        AutomationBrowseTrigger: {
+            /** Format: int64 */
+            afterHours: number;
+            collectionIds?: string[];
+            /** Format: int64 */
+            minViews: number;
+            /** @description The connected store (uuid) whose products the tracked site's events name */
+            storeId: string;
+        };
         AutomationCondition: {
             event?: string;
             field?: string;
@@ -22087,6 +22248,7 @@ export interface components {
             segments: components["schemas"]["AutomationSegmentOption"][];
             tags: string[];
             tiers: components["schemas"]["AutomationTierOption"][];
+            trackedStores: components["schemas"]["AutomationTrackedStore"][];
         };
         AutomationPathCount: {
             /** Format: int64 */
@@ -22361,6 +22523,21 @@ export interface components {
             /** Format: int64 */
             unsubscribed: number;
         };
+        AutomationStockTrigger: {
+            /**
+             * Format: int64
+             * @default 14
+             */
+            days: number;
+            includeViewers?: boolean;
+            /**
+             * Format: int64
+             * @default 10
+             */
+            minDropPercent: number;
+            /** @description The connected store (uuid) whose products it watches */
+            storeId: string;
+        };
         AutomationSummary: {
             /** Format: double */
             clicks?: number;
@@ -22387,6 +22564,10 @@ export interface components {
             /** @example Weekly Digest Insider */
             name: string;
         };
+        AutomationTrackedStore: {
+            host: string;
+            storeId: string;
+        };
         AutomationTrigger: {
             /** Format: int64 */
             afterHours?: number;
@@ -22395,6 +22576,7 @@ export interface components {
             answerOp?: "any" | "is" | "is_not";
             answers?: number[];
             at?: string;
+            browse?: components["schemas"]["AutomationBrowseTrigger"];
             collections?: string[];
             confirmedOnly?: boolean;
             contactTime?: boolean;
@@ -22408,7 +22590,7 @@ export interface components {
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout" | "segment_entered" | "segment_left" | "link_clicked" | "paid_started" | "paid_tier_changed" | "paid_ended" | "paid_trial_ending" | "viewed_product" | "added_to_cart" | "back_in_stock" | "price_drop";
             listId?: string;
             milestoneId?: string;
             /** Format: int64 */
@@ -22429,6 +22611,7 @@ export interface components {
             /** Format: int64 */
             skipDays?: number;
             source?: string;
+            stock?: components["schemas"]["AutomationStockTrigger"];
             store?: string;
             tag?: string;
             /** Format: int64 */
@@ -23240,7 +23423,7 @@ export interface components {
             count?: number;
             heading?: string;
             /** @enum {string} */
-            mode: "card" | "chosen" | "collection";
+            mode: "card" | "chosen" | "collection" | "best_sellers" | "recently_viewed" | "bought_together" | "viewed";
             products: string[];
             /** @enum {string} */
             soldOut?: "hide" | "label" | "";
@@ -23250,6 +23433,7 @@ export interface components {
         CommerceBlockRender: {
             disconnected: boolean;
             html: string;
+            note?: string;
             platform: string;
             products: components["schemas"]["CommerceProduct"][];
             removed: components["schemas"]["CommerceRemovedProduct"][];
@@ -23309,6 +23493,7 @@ export interface components {
             granted: string[];
             /** Format: date-time */
             installedAt?: string;
+            inventoryScope: string;
             keyHint?: string;
             lists: components["schemas"]["CommerceListOption"][];
             /** Format: int64 */
@@ -23549,6 +23734,26 @@ export interface components {
             products?: boolean;
             tagLinks?: boolean;
             writeBack?: boolean;
+        };
+        CommerceStockRequest: {
+            /** @description The product is in stock now: back-in-stock flows start on its next return */
+            available: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description ReputeCast's id of the product */
+            productId: string;
+            storeId: string;
+            /** @example Deploy Friday cap */
+            title: string;
+        };
+        CommerceStockRequestInput: {
+            /**
+             * Format: email
+             * @description An existing contact's address
+             */
+            email: string;
+            productId: string;
+            storeId?: string;
         };
         CommerceStoreList: {
             canManage: boolean;
@@ -30182,7 +30387,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce" | "tracking";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -30216,6 +30421,7 @@ export interface components {
             sites: number;
             store?: components["schemas"]["IntegrationStoreFacts"];
             team?: string;
+            tracking?: components["schemas"]["IntegrationTrackingFacts"];
             /** Format: int64 */
             triggers: number;
             /** Format: int64 */
@@ -30695,6 +30901,15 @@ export interface components {
             sensitive: boolean;
             /** @example text */
             type: string;
+        };
+        IntegrationTrackingFacts: {
+            /** Format: int64 */
+            eventsToday: number;
+            /** Format: date-time */
+            lastEventAt?: string;
+            line: string;
+            /** Format: int64 */
+            sites: number;
         };
         IntegrationTriggerSample: {
             event: string;
@@ -40506,6 +40721,70 @@ export interface components {
             /** Format: int64 */
             waiting: number;
         };
+        SignupFormABEndInput: {
+            /** @enum {string} */
+            keep: "A" | "B" | "C";
+        };
+        SignupFormABInput: {
+            /** @description End the test on its own, keeping the winner, once one is clear */
+            autoEnd: boolean;
+            /** Format: double */
+            confidence: number;
+            /**
+             * Format: int64
+             * @description Views each variant needs before a winner can be called
+             */
+            minViews: number;
+            variants: components["schemas"]["SignupFormVariantInput"][];
+        };
+        SignupFormABResult: {
+            autoEnd: boolean;
+            /** Format: double */
+            confidence: number;
+            doubleOptIn: boolean;
+            /** Format: date-time */
+            endedAt?: string;
+            /** Format: int64 */
+            fewestViews: number;
+            leader?: string;
+            /** Format: double */
+            lift: number;
+            /** Format: int64 */
+            minViews: number;
+            /** @enum {string} */
+            outcome?: "winner" | "not_significant" | "too_small";
+            runnerUp?: string;
+            /**
+             * Format: date
+             * @description The first day counted, in the workspace's time zone
+             */
+            startedOn?: string;
+            /** @enum {string} */
+            status: "none" | "running" | "ended";
+            /**
+             * Format: double
+             * @description What a winner needs, 0.95 for 95%
+             */
+            targetConfidence: number;
+            variants: components["schemas"]["SignupFormABVariant"][];
+            winner?: string;
+        };
+        SignupFormABVariant: {
+            /** Format: int64 */
+            confirmed: number;
+            /** @description What B or C changes; omitted for A */
+            content?: components["schemas"]["SignupFormVariantContent"];
+            /** @enum {string} */
+            key: "A" | "B" | "C";
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            submissions: number;
+            /** Format: int64 */
+            views: number;
+            /** Format: int64 */
+            weight: number;
+        };
         SignupFormBlockedOrigin: {
             /** Format: int64 */
             count: number;
@@ -40513,6 +40792,10 @@ export interface components {
             lastAt: string;
             /** @example staging.acme.io */
             origin: string;
+        };
+        SignupFormChoiceOption: {
+            label: string;
+            tag: string;
         };
         SignupFormConfirmLink: {
             email: string;
@@ -40556,6 +40839,8 @@ export interface components {
             smsConsentText?: string;
             /** Format: int64 */
             smsConsentVersion?: number;
+            steps?: components["schemas"]["SignupFormStep"][];
+            targeting?: components["schemas"]["SignupFormTargeting"];
         };
         SignupFormCopy: {
             /** Format: date-time */
@@ -40573,6 +40858,8 @@ export interface components {
             /** @enum {string} */
             languageMode: "page" | "browser" | "fixed";
             languages: components["schemas"]["SignupFormCopyLanguage"][];
+            options: components["schemas"]["SignupFormCopyString"][];
+            steps: components["schemas"]["SignupFormCopyString"][];
         };
         SignupFormCopyField: {
             key: string;
@@ -40610,6 +40897,11 @@ export interface components {
             /** Format: int64 */
             written: number;
         };
+        SignupFormCopyString: {
+            key: string;
+            /** @description The text in the form's own language */
+            source: string;
+        };
         SignupFormCopyText: {
             /** @description What the form says after a signup */
             afterSubmit: string;
@@ -40620,6 +40912,17 @@ export interface components {
                 [key: string]: string;
             };
             heading: string;
+            options?: {
+                [key: string]: string;
+            };
+            steps?: {
+                [key: string]: string;
+            };
+        };
+        SignupFormCountries: {
+            codes: string[];
+            /** @enum {string} */
+            mode: "all" | "only" | "except";
         };
         SignupFormCreateInput: {
             /** @enum {string} */
@@ -40634,11 +40937,17 @@ export interface components {
             type: "text" | "number" | "date" | "boolean" | "select";
         };
         SignupFormField: {
-            /** @description email, first_name, last_name, company or a custom field key */
+            /** @description email, first_name, last_name, company, a custom field key, or a choice question's own key */
             key: string;
-            /** @description Shown above the input; empty uses the field's name */
+            /** @description Shown above the input; empty uses the field's name (a choice question needs its question) */
             label: string;
+            /** @description A choice question that takes several answers */
+            multiple?: boolean;
+            /** @description A choice question's answers (2 to 12) */
+            options?: components["schemas"]["SignupFormChoiceOption"][];
             required: boolean;
+            /** @enum {string} */
+            type?: "choice";
         };
         SignupFormInput: {
             /** @enum {string} */
@@ -40676,8 +40985,32 @@ export interface components {
             /** @example staging.acme.io */
             origin: string;
         };
+        SignupFormPageRule: {
+            /** @enum {string} */
+            op: "contains" | "equals" | "starts_with";
+            /** @example /pricing */
+            value: string;
+        };
+        SignupFormPageRules: {
+            /** @enum {string} */
+            mode: "all" | "only" | "except";
+            rules: components["schemas"]["SignupFormPageRule"][];
+        };
         SignupFormRenameInput: {
             name: string;
+        };
+        SignupFormSchedule: {
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: date-time */
+            startsAt?: string;
+        };
+        SignupFormSources: {
+            /** @enum {string} */
+            referrer: "any" | "search" | "social" | "other_site" | "direct";
+            utmCampaign: string[];
+            utmMedium: string[];
+            utmSource: string[];
         };
         SignupFormSpam: {
             blockDisposable: boolean;
@@ -40711,6 +41044,9 @@ export interface components {
              * @description Double opt-in confirmations not clicked yet
              */
             pending: number;
+            /** Format: int64 */
+            stepSignups: number;
+            steps: components["schemas"]["SignupFormStepStat"][];
             /** Format: double */
             submissionRate: number;
             /** Format: int64 */
@@ -40721,6 +41057,23 @@ export interface components {
         SignupFormStatusInput: {
             /** @enum {string} */
             status: "live" | "paused";
+        };
+        SignupFormStep: {
+            button?: string;
+            description?: string;
+            fields: string[];
+            heading?: string;
+            /** @description s1 to s4, kept when steps move so their translations stay */
+            id: string;
+        };
+        SignupFormStepStat: {
+            /**
+             * Format: int64
+             * @description 1 to 4
+             */
+            step: number;
+            /** Format: int64 */
+            views: number;
         };
         SignupFormSummary: {
             hostedPage: boolean;
@@ -40735,12 +41088,50 @@ export interface components {
             /** @enum {string} */
             status: "draft" | "live" | "paused";
         };
+        SignupFormTargeting: {
+            countries: components["schemas"]["SignupFormCountries"];
+            /** @description None: every device */
+            devices: ("desktop" | "tablet" | "mobile")[];
+            pages: components["schemas"]["SignupFormPageRules"];
+            schedule: components["schemas"]["SignupFormSchedule"];
+            segmentId?: string;
+            sources: components["schemas"]["SignupFormSources"];
+            /**
+             * @description Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
+             * @enum {string}
+             */
+            visitors: "all" | "new" | "returning" | "in_segment" | "not_in_segment";
+        };
         SignupFormURLs: {
             hosted: string;
             script: string;
             /** Format: int64 */
             scriptKb: number;
             submit: string;
+        };
+        SignupFormVariantContent: {
+            afterSubmitText?: string;
+            button: string;
+            description: string;
+            heading: string;
+            /** Format: int64 */
+            popupDelay: number;
+            popupExit?: boolean;
+            /** Format: int64 */
+            popupScroll: number;
+            /** @description Omitted or one step: everything at once */
+            steps?: components["schemas"]["SignupFormStep"][];
+        };
+        SignupFormVariantInput: {
+            /** @description Required for B and C; ignored for A */
+            content?: components["schemas"]["SignupFormVariantContent"];
+            /** @enum {string} */
+            key: "A" | "B" | "C";
+            /**
+             * Format: int64
+             * @description Percent of visitors; the variants add up to 100
+             */
+            weight: number;
         };
         SignupFormWaiting: {
             items: components["schemas"]["SignupFormWaitingItem"][];
@@ -40768,6 +41159,7 @@ export interface components {
             customFields: components["schemas"]["SignupFormCustomField"][];
             domain: components["schemas"]["PublicCustomDomain"];
             forms: components["schemas"]["SignupFormSummary"][];
+            geoip: boolean;
             hostedFormId: string;
             hostedUrl: string;
             lists: components["schemas"]["SignupFormList"][];
@@ -43693,6 +44085,89 @@ export interface components {
         "Totp-confirmRequest": {
             challenge: string;
             code: string;
+        };
+        TrackerRecentEvent: {
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            kind: "page" | "product" | "cart" | "custom";
+            /** @description A known contact's, else a visitor's */
+            known: boolean;
+            name: string;
+            path: string;
+            productTitle: string;
+        };
+        TrackerRecentEvents: {
+            items: components["schemas"]["TrackerRecentEvent"][];
+        };
+        TrackerRefusal: {
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            lastAt: string;
+            origin: string;
+        };
+        TrackerSecret: {
+            identifySecret: string;
+        };
+        TrackerSite: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /**
+             * Format: int64
+             * @description Events since midnight in the workspace's time zone
+             */
+            eventsToday: number;
+            hasIdentifySecret: boolean;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+            name: string;
+            /** @example https://shop.acme.io */
+            origin: string;
+            /** @description Origins refused in the last 24 hours, most refused first */
+            refused: components["schemas"]["TrackerRefusal"][];
+            snippet: components["schemas"]["TrackerSnippet"];
+            store?: components["schemas"]["TrackerStoreOption"];
+            waitConsent: boolean;
+        };
+        TrackerSiteCreated: {
+            /** @description Shown once: the site's server signs identify calls with it */
+            identifySecret: string;
+            site: components["schemas"]["TrackerSite"];
+        };
+        TrackerSiteInput: {
+            name: string;
+            origin: string;
+            storeId?: string;
+            /** @description Nothing is stored until the site's consent banner calls reputecast('consent', true) */
+            waitConsent: boolean;
+        };
+        TrackerSiteList: {
+            canManage: boolean;
+            helpers: string[];
+            items: components["schemas"]["TrackerSite"][];
+            scriptUrl: string;
+            stores: components["schemas"]["TrackerStoreOption"][];
+        };
+        TrackerSiteUpdate: {
+            name: string;
+            storeId?: string;
+            waitConsent: boolean;
+        };
+        TrackerSnippet: {
+            script: string;
+            shopifyPixel: string;
+            wordpress: string;
+        };
+        TrackerStoreOption: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
         };
         TrackingNetwork: {
             /** @example 203.0.113.0/24 */
@@ -61102,6 +61577,42 @@ export interface operations {
             };
         };
     };
+    "create-stock-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceStockRequestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStockRequest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-store-trigger-options": {
         parameters: {
             query?: never;
@@ -67698,6 +68209,116 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormABInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-signup-form-ab-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupFormABEndInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignupFormABResult"];
+                };
             };
             /** @description Error */
             default: {
@@ -85399,6 +86020,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailTemplatePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-tracker-sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackerSiteList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-tracker-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackerSiteInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackerSiteCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-tracker-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Tracked site id */
+                site: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackerSiteUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackerSite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-tracker-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Tracked site id */
+                site: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "tracker-site-recent-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Tracked site id */
+                site: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackerRecentEvents"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-tracker-site-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Tracked site id */
+                site: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackerSecret"];
                 };
             };
             /** @description Error */

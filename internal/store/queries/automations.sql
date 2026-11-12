@@ -791,14 +791,19 @@ WHERE contact_id = @contact_id AND stream IN ('broadcast', 'automation') AND que
 SELECT marketing_cap_count, marketing_cap_days FROM workspaces WHERE id = @id;
 
 -- name: AutomationWatchedSegments :many
--- Dynamic segments a live flow starts on entering or leaving (AT-10), the
--- quick ones first (AT-15).
+-- Dynamic segments a live flow starts on entering or leaving (AT-10), or a
+-- live form shows to (or hides from) by its visitors (M62 G-32): their
+-- members are kept in segment_members. The quick ones first (AT-15).
 SELECT s.id, s.workspace_id, s.watched_at, s.watch_ms
 FROM segments s
-WHERE s.refresh <> 'static' AND EXISTS (
+WHERE s.refresh <> 'static' AND (EXISTS (
     SELECT 1 FROM automations a CROSS JOIN LATERAL jsonb_array_elements(a.triggers) t
     WHERE a.workspace_id = s.workspace_id AND a.status = 'live' AND a.deleted_at IS NULL
       AND t.value ->> 'kind' IN ('segment_entered', 'segment_left') AND t.value ->> 'segmentId' = s.id::text)
+  OR EXISTS (
+    SELECT 1 FROM forms f
+    WHERE f.workspace_id = s.workspace_id AND f.status = 'live'
+      AND f.content -> 'targeting' ->> 'visitors' IN ('in_segment', 'not_in_segment') AND f.content -> 'targeting' ->> 'segmentId' = s.id::text))
 ORDER BY coalesce(s.watch_ms, 0), s.watched_at NULLS FIRST, s.id;
 
 -- name: SeedSegmentMembers :exec
@@ -833,3 +838,10 @@ SELECT id, name FROM campaigns
 WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status IN ('scheduled', 'sending', 'paused', 'sent', 'approved')
 ORDER BY coalesce(started_at, scheduled_at, created_at) DESC, id
 LIMIT 100;
+
+-- name: AutomationTrackedStores :many
+-- The stores a tracked site names (Website tracking, M62): browse, cart and
+-- price-drop flows learn who viewed what through one of them.
+SELECT DISTINCT ON (store_id) store_id::uuid AS store_id, origin FROM tracker_sites
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND store_id IS NOT NULL
+ORDER BY store_id, created_at;

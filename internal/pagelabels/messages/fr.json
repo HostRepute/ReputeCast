@@ -56,6 +56,9 @@
   "form.typo.keep": "Garder {email}",
   "form.inbox.open": "Ouvrir {provider}",
   "form.inbox.newTab": "(s’ouvre dans un nouvel onglet)",
+  "form.step.next": "Suivant",
+  "form.step.back": "Retour",
+  "form.step.of": "Étape {n} sur {total}",
 
   "challenge.title": "Encore une étape",
   "challenge.text": "Votre inscription semblait automatisée\u00A0: nous voulons donc vérifier que vous êtes bien une personne. Cela ne prend qu’une seconde.",

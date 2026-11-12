@@ -36,7 +36,8 @@ type Env struct {
 	Throttle func(n int)
 	// Secret signs the fake's deliveries; Deliver signs a recorded payload
 	// of a kind (EventOrder, EventProduct, EventProductDeleted,
-	// EventCustomer, EventCheckout) as the platform would send it.
+	// EventCustomer, EventCheckout, and EventInventory for an adapter with
+	// an InventoryTopic) as the platform would send it.
 	Secret  func() string
 	Deliver func(kind string) (http.Header, []byte)
 	// Since is the creation date the sample's recent orders start at
@@ -328,6 +329,43 @@ func Run(t *testing.T, s Suite) {
 					t.Error("deleted product without its id")
 				}
 			}
+		}
+	})
+
+	t.Run("inventory", func(t *testing.T) {
+		if d.InventoryTopic == "" {
+			t.Skip("product updates carry stock changes")
+		}
+		if d.InventoryScope == "" {
+			t.Error("an inventory topic without the scope it needs")
+		}
+		env := s.Env(t)
+		h, body := env.Deliver(stores.EventInventory)
+		if err := d.Webhooks.Verify(h, body, env.Secret()); err != nil {
+			t.Fatalf("signature: %v", err)
+		}
+		ev, err := d.Webhooks.Parse(h, body)
+		if err != nil || ev.Kind != stores.EventInventory || ev.InventoryItemID == "" || ev.DeliveryID == "" {
+			t.Fatalf("inventory level: %+v %v", ev, err)
+		}
+		c := open(t, env)
+		r, ok := c.(stores.InventoryReader)
+		if !ok {
+			t.Fatal("an inventory topic without an InventoryReader")
+		}
+		p, err := r.InventoryProduct(ctx, ev.InventoryItemID)
+		if err != nil || p.ID == "" || p.Title == "" || p.Price <= 0 {
+			t.Fatalf("the item's product: %+v %v", p, err)
+		}
+		if _, err := r.InventoryProduct(ctx, "1"); !errors.Is(err, stores.ErrNotFound) {
+			t.Errorf("an unknown item: %v, want ErrNotFound", err)
+		}
+		if _, err := c.Subscribe(ctx, d.InventoryTopic, "https://reputecast.example/hooks/x/token", "whsec-contract"); err != nil {
+			t.Fatalf("subscribe %s: %v", d.InventoryTopic, err)
+		}
+		hooks, err := c.Webhooks(ctx)
+		if err != nil || !slices.ContainsFunc(hooks, func(w stores.Webhook) bool { return w.Topic == d.InventoryTopic }) {
+			t.Errorf("%s isn't listed after subscribing: %+v %v", d.InventoryTopic, hooks, err)
 		}
 	})
 

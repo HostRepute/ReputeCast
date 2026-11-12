@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -356,6 +357,10 @@ type formCopyDoc struct {
 	Button      string            `json:"button,omitempty"`
 	AfterSubmit string            `json:"afterSubmit,omitempty"`
 	Fields      map[string]string `json:"fields,omitempty"`
+	// Options are choice answers' labels by "<field key>.<index>", Steps
+	// the steps' copy by "<step id>.heading|description|button" (M60 G-23).
+	Options map[string]string `json:"options,omitempty"`
+	Steps   map[string]string `json:"steps,omitempty"`
 }
 
 // formTranslation is a form's copy in one language.
@@ -401,6 +406,30 @@ func formStrings(c Config, customs []store.CustomField) []formString {
 		if fieldNeedsLabel(f) {
 			out = append(out, formString{"field." + f.Key, FieldLabel(f, customs)})
 		}
+		for i, o := range f.Options {
+			out = append(out, formString{optionKey(f.Key, i), o.Label})
+		}
+	}
+	for _, st := range c.Content.Steps {
+		for _, part := range stepParts(st) {
+			out = append(out, formString{"step." + st.ID + "." + part.name, part.text})
+		}
+	}
+	return out
+}
+
+// optionKey names a choice answer's label among a form's strings.
+func optionKey(field string, i int) string { return "field." + field + ".option." + strconv.Itoa(i) }
+
+type stepPart struct{ name, text string }
+
+// stepParts is the copy of a step that needs translating: what it has.
+func stepParts(st stepDoc) []stepPart {
+	var out []stepPart
+	for _, p := range []stepPart{{"heading", st.Heading}, {"description", st.Description}, {"button", st.Button}} {
+		if p.text != "" {
+			out = append(out, p)
+		}
 	}
 	return out
 }
@@ -433,7 +462,13 @@ func (t *formTranslation) text(key string) string {
 	case "afterSubmit":
 		return t.Doc.AfterSubmit
 	}
+	if k, ok := strings.CutPrefix(key, "step."); ok {
+		return t.Doc.Steps[k]
+	}
 	if k, ok := strings.CutPrefix(key, "field."); ok {
+		if f, i, ok := strings.Cut(k, ".option."); ok {
+			return t.Doc.Options[f+"."+i]
+		}
 		return t.Doc.Fields[k]
 	}
 	return ""
@@ -448,6 +483,8 @@ type FormCopy struct {
 	tr      map[string]*formTranslation
 	// texts are the SMS offers by language, for the embed script (phase 8).
 	texts map[string]TextOffer
+	// variants are the running A/B test's, for the embed script (M60 G-25).
+	variants []store.FormVariant
 }
 
 // loadFormCopy reads a form's copy in every language.
@@ -466,7 +503,13 @@ func (s *Service) loadFormCopy(ctx context.Context, q *store.Queries, ws *store.
 			return nil, err
 		}
 	}
-	return formCopyOf(c, set, pc, customs, rows), nil
+	fc := formCopyOf(c, set, pc, customs, rows)
+	if c.AB.Running() && !c.Builtin {
+		if fc.variants, err = q.FormVariantsList(ctx, c.ID); err != nil {
+			return nil, err
+		}
+	}
+	return fc, nil
 }
 
 func formCopyOf(c Config, set *Settings, pc *PagesCopy, customs []store.CustomField, rows []store.FormCopyListRow) *FormCopy {
@@ -597,6 +640,26 @@ func (fc *FormCopy) In(code string) Config {
 		if v := t.Doc.Fields[f.Key]; v != "" {
 			c.Fields[i].Label = v
 		}
+		if len(f.Options) > 0 {
+			opts := slices.Clone(f.Options)
+			for j := range opts {
+				if v := t.Doc.Options[f.Key+"."+strconv.Itoa(j)]; v != "" {
+					opts[j].Label = v
+				}
+			}
+			c.Fields[i].Options = opts
+		}
+	}
+	// Steps: each part in the language when written; a step's own text is
+	// optional, so one not written stays empty rather than English.
+	if len(c.Content.Steps) > 0 {
+		steps := slices.Clone(c.Content.Steps)
+		for i, st := range steps {
+			steps[i].Heading = t.Doc.Steps[st.ID+".heading"]
+			steps[i].Description = t.Doc.Steps[st.ID+".description"]
+			steps[i].Button = t.Doc.Steps[st.ID+".button"]
+		}
+		c.Content.Steps = steps
 	}
 	return c
 }

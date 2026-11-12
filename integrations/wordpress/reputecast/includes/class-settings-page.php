@@ -28,6 +28,7 @@ final class Settings_Page {
 		add_action( 'admin_post_reputecast_connect', array( self::class, 'connect' ) );
 		add_action( 'admin_post_reputecast_disconnect', array( self::class, 'disconnect' ) );
 		add_action( 'admin_post_reputecast_report', array( self::class, 'report_now' ) );
+		add_action( 'admin_post_reputecast_tracking', array( self::class, 'save_tracking' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( REPUTECAST_FILE ), array( self::class, 'action_links' ) );
 	}
 
@@ -92,6 +93,49 @@ final class Settings_Page {
 	public static function report_now(): void {
 		self::guard( 'reputecast_report' );
 		self::finish( self::do_report() );
+	}
+
+	/** Save site tracking (admin-post.php). */
+	public static function save_tracking(): void {
+		self::guard( 'reputecast_tracking' );
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- checked in guard().
+		$site   = isset( $_POST['tracking_site'] ) ? strtolower( sanitize_text_field( wp_unslash( $_POST['tracking_site'] ) ) ) : '';
+		$wait   = ! empty( $_POST['tracking_wait_consent'] );
+		$secret = isset( $_POST['tracking_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['tracking_secret'] ) ) : '';
+		$forget = ! empty( $_POST['tracking_forget_secret'] );
+		// phpcs:enable
+		self::finish( self::do_tracking( $site, $wait, $secret, $forget ) );
+	}
+
+	/**
+	 * Saves site tracking: the tracked site's id ('' turns it off), its
+	 * consent mode and the identify secret ('' keeps the one saved).
+	 *
+	 * @param string $site   The site's id in ReputeCast.
+	 * @param bool   $wait   Whether nothing is sent before consent.
+	 * @param string $secret A new identify secret, or ''.
+	 * @param bool   $forget Forget the saved identify secret.
+	 * @return array{type: string, message: string}
+	 */
+	public static function do_tracking( string $site, bool $wait, string $secret, bool $forget ): array {
+		$site   = trim( $site );
+		$secret = trim( $secret );
+		if ( '' !== $site && ! Tracking::is_site_id( $site ) ) {
+			return self::notice( 'error', __( 'That isn’t a site id. In ReputeCast, open Settings › Integrations › Website tracking, add this site and copy its id from the WordPress tab.', 'reputecast' ) );
+		}
+		if ( '' !== $secret && ! Tracking::is_secret( $secret ) ) {
+			return self::notice( 'error', __( 'That isn’t an identify secret. Copy the one ReputeCast showed when you added the site, or rotate it there: it starts with rcid_.', 'reputecast' ) );
+		}
+		Options::set_tracking( $site, $wait );
+		if ( $forget ) {
+			Options::forget_tracking_secret();
+		} elseif ( '' !== $secret ) {
+			Options::set_tracking_secret( $secret );
+		}
+		if ( '' === $site ) {
+			return self::notice( 'success', __( 'Site tracking is off. The tracker isn’t on the site’s pages any more.', 'reputecast' ) );
+		}
+		return self::notice( 'success', __( 'Site tracking is on. Its events show in ReputeCast › Settings › Integrations › Website tracking.', 'reputecast' ) );
 	}
 
 	/**
@@ -432,6 +476,7 @@ final class Settings_Page {
 
 		self::render_forms( $c );
 		self::render_posts( $c );
+		self::render_tracking();
 		self::render_key( $c );
 		self::render_disconnect();
 		self::render_privacy();
@@ -482,6 +527,39 @@ final class Settings_Page {
 			/* translators: %s: how long ago, like "6 minutes ago". */
 			echo '<p class="description">' . sprintf( esc_html__( 'Updated %s.', 'reputecast' ), self::ago( (int) $c['forms_at'] ) ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ago() escapes.
 		}
+	}
+
+	/** Site tracking: the tracked site's id, its consent mode, the identify secret. */
+	private static function render_tracking(): void {
+		$t = Options::tracking();
+		echo '<h2>' . esc_html__( 'Site tracking', 'reputecast' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Adds ReputeCast’s tracker to this site’s pages, so automations can follow up on what visitors looked at. With WooCommerce, product pages and add-to-carts go to it. Leave the site id empty to turn it off.', 'reputecast' ) . '</p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="reputecast_tracking">';
+		wp_nonce_field( 'reputecast_tracking' );
+		echo '<table class="form-table" role="presentation"><tbody>';
+		echo '<tr><th scope="row"><label for="reputecast-tracking-site">' . esc_html__( 'Site id', 'reputecast' ) . '</label></th><td>';
+		echo '<input type="text" id="reputecast-tracking-site" name="tracking_site" class="regular-text code" value="' . esc_attr( $t['site'] ) . '" spellcheck="false" aria-describedby="reputecast-tracking-site-description">';
+		echo '<p class="description" id="reputecast-tracking-site-description">' . esc_html__( 'In ReputeCast, open Settings › Integrations › Website tracking, add this site, and copy its id from the WordPress tab.', 'reputecast' ) . '</p>';
+		echo '</td></tr>';
+		echo '<tr><th scope="row">' . esc_html__( 'Consent', 'reputecast' ) . '</th><td><label>';
+		echo '<input type="checkbox" name="tracking_wait_consent" value="1"' . ( $t['wait_consent'] ? ' checked' : '' ) . '> ';
+		echo esc_html__( 'Wait for visitors’ consent', 'reputecast' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'Nothing is stored until your consent banner calls reputecast(\'consent\', true). Set it as the site is set in ReputeCast.', 'reputecast' ) . '</p>';
+		echo '</td></tr>';
+		echo '<tr><th scope="row"><label for="reputecast-tracking-secret">' . esc_html__( 'Identify secret', 'reputecast' ) . '</label></th><td>';
+		echo '<input type="password" id="reputecast-tracking-secret" name="tracking_secret" class="regular-text code" autocomplete="off" spellcheck="false" aria-describedby="reputecast-tracking-secret-description">';
+		$saved = '' !== Options::tracking_secret();
+		echo '<p class="description" id="reputecast-tracking-secret-description">' . ( $saved
+			? esc_html__( 'Saved, kept encrypted. Signed-in customers are recognized. Paste a new one after rotating it in ReputeCast.', 'reputecast' )
+			: esc_html__( 'Optional: paste the secret ReputeCast showed when you added the site, to recognize signed-in customers.', 'reputecast' ) ) . '</p>';
+		if ( $saved ) {
+			echo '<label><input type="checkbox" name="tracking_forget_secret" value="1"> ' . esc_html__( 'Forget the identify secret', 'reputecast' ) . '</label>';
+		}
+		echo '</td></tr>';
+		echo '</tbody></table>';
+		submit_button( __( 'Save site tracking', 'reputecast' ), 'secondary' );
+		echo '</form>';
 	}
 
 	/**
@@ -585,6 +663,6 @@ final class Settings_Page {
 			echo '<p>' . esc_html__( 'The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. With WooCommerce, every 15 minutes, it sends the checkouts changed since: the email and name typed, whether the marketing checkbox was ticked, the cart and its totals, and the link that restores it. It never sends addresses, phone numbers or payment details. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does.', 'reputecast' ) . '</p>';
 			return;
 		}
-		echo '<p>' . esc_html__( 'The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. It sends nothing about visitors or users. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does.', 'reputecast' ) . '</p>';
+		echo '<p>' . esc_html__( 'The plugin talks only to the ReputeCast address above. It sends the site’s address and name, the plugin, WordPress and PHP versions, the feed URL, the post categories and where signup forms are used; and, for each post you publish, its title, excerpt, link, featured image, categories and language. It sends nothing about visitors or users, unless Site tracking is on: then visitors’ browsers send the pages and products they view to ReputeCast once they consent, and the plugin signs signed-in customers’ addresses so ReputeCast recognizes them. Signup forms load from ReputeCast in the visitor’s browser, as its embed code does.', 'reputecast' ) . '</p>';
 	}
 }

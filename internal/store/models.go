@@ -1846,6 +1846,7 @@ type Form struct {
 	ConsentChangedAt *time.Time      `json:"consentChangedAt"`
 	DownloadFileID   *uuid.UUID      `json:"downloadFileId"`
 	DownloadDays     int32           `json:"downloadDays"`
+	Ab               json.RawMessage `json:"ab"`
 }
 
 type FormChallenge struct {
@@ -1876,6 +1877,7 @@ type FormDaily struct {
 	Submissions int64     `json:"submissions"`
 	Confirmed   int64     `json:"confirmed"`
 	Blocked     int64     `json:"blocked"`
+	Variant     string    `json:"variant"`
 }
 
 type FormRejection struct {
@@ -1886,6 +1888,14 @@ type FormRejection struct {
 	Count       int64      `json:"count"`
 	LastAt      time.Time  `json:"lastAt"`
 	DismissedAt *time.Time `json:"dismissedAt"`
+}
+
+type FormStepDaily struct {
+	FormID  uuid.UUID `json:"formId"`
+	Day     time.Time `json:"day"`
+	Variant string    `json:"variant"`
+	Step    int16     `json:"step"`
+	Views   int64     `json:"views"`
 }
 
 type FormSubmission struct {
@@ -1901,6 +1911,17 @@ type FormSubmission struct {
 	RemindedAt    *time.Time  `json:"remindedAt"`
 	ConfirmedAt   *time.Time  `json:"confirmedAt"`
 	Language      string      `json:"language"`
+	Variant       string      `json:"variant"`
+}
+
+type FormVariant struct {
+	ID        uuid.UUID       `json:"id"`
+	FormID    uuid.UUID       `json:"formId"`
+	Key       string          `json:"key"`
+	Weight    int32           `json:"weight"`
+	Content   json.RawMessage `json:"content"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt time.Time       `json:"updatedAt"`
 }
 
 type GrowthQualityDaily struct {
@@ -4633,6 +4654,21 @@ type StoreProduct struct {
 	SyncedAt       time.Time  `json:"syncedAt"`
 }
 
+type StoreProductPair struct {
+	StoreID   uuid.UUID `json:"storeId"`
+	ProductID uuid.UUID `json:"productId"`
+	OtherID   uuid.UUID `json:"otherId"`
+	Score     float32   `json:"score"`
+}
+
+type StoreStockRequest struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ContactID   uuid.UUID  `json:"contactId"`
+	ProductID   uuid.UUID  `json:"productId"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	NotifiedAt  *time.Time `json:"notifiedAt"`
+}
+
 type StoreWebhook struct {
 	StoreID      uuid.UUID  `json:"storeId"`
 	Topic        string     `json:"topic"`
@@ -4783,6 +4819,98 @@ type Template struct {
 	SourceCampaignID *uuid.UUID      `json:"sourceCampaignId"`
 	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 	DeletedAt        *time.Time      `json:"deletedAt"`
+}
+
+type TrackerEvent struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	SiteID         uuid.UUID       `json:"siteId"`
+	VisitorID      uuid.UUID       `json:"visitorId"`
+	ContactID      *uuid.UUID      `json:"contactId"`
+	Kind           int16           `json:"kind"`
+	ProductID      *uuid.UUID      `json:"productId"`
+	Quantity       int32           `json:"quantity"`
+	Path           string          `json:"path"`
+	ReferrerDomain string          `json:"referrerDomain"`
+	Name           string          `json:"name"`
+	Props          json.RawMessage `json:"props"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+}
+
+type TrackerEventsDefault struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	SiteID         uuid.UUID       `json:"siteId"`
+	VisitorID      uuid.UUID       `json:"visitorId"`
+	ContactID      *uuid.UUID      `json:"contactId"`
+	Kind           int16           `json:"kind"`
+	ProductID      *uuid.UUID      `json:"productId"`
+	Quantity       int32           `json:"quantity"`
+	Path           string          `json:"path"`
+	ReferrerDomain string          `json:"referrerDomain"`
+	Name           string          `json:"name"`
+	Props          json.RawMessage `json:"props"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+}
+
+type TrackerProductView struct {
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	ContactID    uuid.UUID  `json:"contactId"`
+	ProductID    uuid.UUID  `json:"productId"`
+	Views        int32      `json:"views"`
+	Carts        int32      `json:"carts"`
+	LastViewedAt *time.Time `json:"lastViewedAt"`
+	LastCartedAt *time.Time `json:"lastCartedAt"`
+}
+
+type TrackerSite struct {
+	ID                   uuid.UUID  `json:"id"`
+	WorkspaceID          uuid.UUID  `json:"workspaceId"`
+	Name                 string     `json:"name"`
+	Origin               string     `json:"origin"`
+	StoreID              *uuid.UUID `json:"storeId"`
+	WaitConsent          bool       `json:"waitConsent"`
+	IdentifySecretSealed []byte     `json:"identifySecretSealed"`
+	CreatedBy            *uuid.UUID `json:"createdBy"`
+	CreatedAt            time.Time  `json:"createdAt"`
+	UpdatedAt            time.Time  `json:"updatedAt"`
+	LastEventAt          *time.Time `json:"lastEventAt"`
+	DeletedAt            *time.Time `json:"deletedAt"`
+}
+
+type TrackerSiteRefusal struct {
+	SiteID  uuid.UUID `json:"siteId"`
+	Origin  string    `json:"origin"`
+	Count   int64     `json:"count"`
+	FirstAt time.Time `json:"firstAt"`
+	LastAt  time.Time `json:"lastAt"`
+}
+
+type TrackerTriggerEntry struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	ContactID    uuid.UUID `json:"contactId"`
+	Kind         string    `json:"kind"`
+	EnteredAt    time.Time `json:"enteredAt"`
+}
+
+type TrackerVisitor struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	VidHash      []byte     `json:"vidHash"`
+	ContactID    *uuid.UUID `json:"contactId"`
+	IdentifiedBy string     `json:"identifiedBy"`
+	FirstSeen    time.Time  `json:"firstSeen"`
+	LastSeen     time.Time  `json:"lastSeen"`
+	IdentifiedAt *time.Time `json:"identifiedAt"`
+}
+
+type TrackerVisitorProduct struct {
+	VisitorID    uuid.UUID  `json:"visitorId"`
+	ProductID    uuid.UUID  `json:"productId"`
+	Views        int32      `json:"views"`
+	Carts        int32      `json:"carts"`
+	LastViewedAt *time.Time `json:"lastViewedAt"`
+	LastCartedAt *time.Time `json:"lastCartedAt"`
 }
 
 type TrackingLinkClick struct {

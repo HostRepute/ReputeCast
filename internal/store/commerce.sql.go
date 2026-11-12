@@ -387,6 +387,177 @@ func (q *Queries) CommerceAutomationRevenue(ctx context.Context, arg CommerceAut
 	return items, nil
 }
 
+const commerceBestSellers = `-- name: CommerceBestSellers :many
+SELECT p.id, p.store_id, p.workspace_id, p.external_id, p.title, p.handle, p.url, p.image_url, p.image_alt, p.price_cents, p.compare_at_cents, p.currency, p.available, p.inventory, p.status, p.collections, p.created_at_store, p.updated_at_store, p.removed_at, p.synced_at
+FROM (SELECT it.i ->> 'productId' AS external_id, sum(greatest(coalesce((it.i ->> 'quantity')::int, 1), 1)) AS units
+      FROM store_orders o
+      CROSS JOIN LATERAL jsonb_array_elements(o.items) AS it (i)
+      WHERE o.store_id = $1 AND o.placed_at >= $2::timestamptz AND NOT o.test AND NOT o.cancelled
+      GROUP BY 1) s
+JOIN store_products p ON p.store_id = $1 AND p.external_id = s.external_id
+WHERE p.removed_at IS NULL AND p.status = 'active'
+  AND ($3::text = '' OR $3::text = ANY(p.collections))
+ORDER BY s.units DESC, p.title, p.id
+LIMIT $4
+`
+
+type CommerceBestSellersParams struct {
+	StoreID    uuid.UUID `json:"storeId"`
+	Since      time.Time `json:"since"`
+	Collection string    `json:"collection"`
+	Lim        int32     `json:"lim"`
+}
+
+type CommerceBestSellersRow struct {
+	StoreProduct StoreProduct `json:"storeProduct"`
+}
+
+// A store's best sellers: the most units ordered since @since (not in test
+// or cancelled orders), optionally one collection's, still for sale.
+func (q *Queries) CommerceBestSellers(ctx context.Context, arg CommerceBestSellersParams) ([]CommerceBestSellersRow, error) {
+	rows, err := q.db.Query(ctx, commerceBestSellers,
+		arg.StoreID,
+		arg.Since,
+		arg.Collection,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceBestSellersRow{}
+	for rows.Next() {
+		var i CommerceBestSellersRow
+		if err := rows.Scan(
+			&i.StoreProduct.ID,
+			&i.StoreProduct.StoreID,
+			&i.StoreProduct.WorkspaceID,
+			&i.StoreProduct.ExternalID,
+			&i.StoreProduct.Title,
+			&i.StoreProduct.Handle,
+			&i.StoreProduct.Url,
+			&i.StoreProduct.ImageUrl,
+			&i.StoreProduct.ImageAlt,
+			&i.StoreProduct.PriceCents,
+			&i.StoreProduct.CompareAtCents,
+			&i.StoreProduct.Currency,
+			&i.StoreProduct.Available,
+			&i.StoreProduct.Inventory,
+			&i.StoreProduct.Status,
+			&i.StoreProduct.Collections,
+			&i.StoreProduct.CreatedAtStore,
+			&i.StoreProduct.UpdatedAtStore,
+			&i.StoreProduct.RemovedAt,
+			&i.StoreProduct.SyncedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const commerceBoughtTogetherFor = `-- name: CommerceBoughtTogetherFor :many
+SELECT r.contact_id::uuid AS contact_id, p.id, p.store_id, p.workspace_id, p.external_id, p.title, p.handle, p.url, p.image_url, p.image_alt, p.price_cents, p.compare_at_cents, p.currency, p.available, p.inventory, p.status, p.collections, p.created_at_store, p.updated_at_store, p.removed_at, p.synced_at
+FROM (SELECT u.contact_id, coalesce(m.queued_at, $1::timestamptz)::timestamptz AS as_of
+      FROM unnest($2::uuid[]) WITH ORDINALITY AS u (contact_id, n)
+      LEFT JOIN messages m ON m.id = ($3::uuid[])[u.n]) r
+CROSS JOIN LATERAL (
+    SELECT coalesce(array_agg(DISTINCT s.id), '{}')::uuid[] AS ids
+    FROM (SELECT sp.id FROM store_orders o
+          CROSS JOIN LATERAL jsonb_array_elements(o.items) AS it (i)
+          JOIN store_products sp ON sp.store_id = o.store_id AND sp.external_id = it.i ->> 'productId'
+          WHERE o.store_id = $4 AND o.contact_id = r.contact_id AND o.placed_at < r.as_of
+            AND o.placed_at >= r.as_of - interval '180 days' AND NOT o.test AND NOT o.cancelled
+          UNION
+          SELECT e.product_id FROM tracker_events e
+          WHERE e.contact_id = r.contact_id AND e.kind IN (2, 3) AND e.product_id IS NOT NULL
+            AND e.occurred_at < r.as_of AND e.occurred_at >= r.as_of - interval '90 days') s (id)
+) src
+CROSS JOIN LATERAL (
+    SELECT pp.other_id, sum(pp.score) AS score
+    FROM store_product_pairs pp
+    JOIN store_products op ON op.id = pp.other_id AND op.removed_at IS NULL AND op.status = 'active'
+    WHERE pp.store_id = $4 AND pp.product_id = ANY(src.ids) AND NOT (pp.other_id = ANY(src.ids))
+    GROUP BY pp.other_id
+    ORDER BY sum(pp.score) DESC, pp.other_id
+    LIMIT $5
+) x
+JOIN store_products p ON p.id = x.other_id
+WHERE EXISTS (SELECT 1 FROM stores s WHERE s.id = $4 AND s.workspace_id = $6)
+ORDER BY r.contact_id, x.score DESC, x.other_id
+`
+
+type CommerceBoughtTogetherForParams struct {
+	Now         time.Time   `json:"now"`
+	Contacts    []uuid.UUID `json:"contacts"`
+	Messages    []uuid.UUID `json:"messages"`
+	StoreID     uuid.UUID   `json:"storeId"`
+	Lim         int32       `json:"lim"`
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+}
+
+type CommerceBoughtTogetherForRow struct {
+	ContactID    uuid.UUID    `json:"contactId"`
+	StoreProduct StoreProduct `json:"storeProduct"`
+}
+
+// Bought together, for a page of readers at once (G-31): the products most
+// often in an order with what each reader bought (the 180 days) or viewed
+// (the 90 days) before their message was queued (@now for a preview),
+// without those, @lim at most.
+func (q *Queries) CommerceBoughtTogetherFor(ctx context.Context, arg CommerceBoughtTogetherForParams) ([]CommerceBoughtTogetherForRow, error) {
+	rows, err := q.db.Query(ctx, commerceBoughtTogetherFor,
+		arg.Now,
+		arg.Contacts,
+		arg.Messages,
+		arg.StoreID,
+		arg.Lim,
+		arg.WorkspaceID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceBoughtTogetherForRow{}
+	for rows.Next() {
+		var i CommerceBoughtTogetherForRow
+		if err := rows.Scan(
+			&i.ContactID,
+			&i.StoreProduct.ID,
+			&i.StoreProduct.StoreID,
+			&i.StoreProduct.WorkspaceID,
+			&i.StoreProduct.ExternalID,
+			&i.StoreProduct.Title,
+			&i.StoreProduct.Handle,
+			&i.StoreProduct.Url,
+			&i.StoreProduct.ImageUrl,
+			&i.StoreProduct.ImageAlt,
+			&i.StoreProduct.PriceCents,
+			&i.StoreProduct.CompareAtCents,
+			&i.StoreProduct.Currency,
+			&i.StoreProduct.Available,
+			&i.StoreProduct.Inventory,
+			&i.StoreProduct.Status,
+			&i.StoreProduct.Collections,
+			&i.StoreProduct.CreatedAtStore,
+			&i.StoreProduct.UpdatedAtStore,
+			&i.StoreProduct.RemovedAt,
+			&i.StoreProduct.SyncedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const commerceCampaignName = `-- name: CommerceCampaignName :one
 SELECT name FROM campaigns WHERE id = $1
 `
@@ -1799,6 +1970,28 @@ func (q *Queries) CommerceEventsRejected(ctx context.Context, arg CommerceEvents
 	return count, err
 }
 
+const commerceFlowListens = `-- name: CommerceFlowListens :one
+
+SELECT EXISTS (SELECT 1 FROM automations
+               WHERE workspace_id = $1 AND status = 'live' AND deleted_at IS NULL
+                 AND triggers @> jsonb_build_array(jsonb_build_object('kind', $2::text)))
+`
+
+type CommerceFlowListensParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Kind        string    `json:"kind"`
+}
+
+// ── Store flows and recommendations (M62, G-30 and G-31) ──────────────
+// Whether a live flow of the workspace starts on a kind of store event
+// (a product change queues nothing otherwise).
+func (q *Queries) CommerceFlowListens(ctx context.Context, arg CommerceFlowListensParams) (bool, error) {
+	row := q.db.QueryRow(ctx, commerceFlowListens, arg.WorkspaceID, arg.Kind)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const commerceFlowLiveSince = `-- name: CommerceFlowLiveSince :one
 SELECT published_at FROM automation_versions WHERE automation_id = $1 AND version = $2
 `
@@ -2523,6 +2716,48 @@ func (q *Queries) CommerceOrdersToMatch(ctx context.Context, arg CommerceOrdersT
 	return items, nil
 }
 
+const commercePairsRebuild = `-- name: CommercePairsRebuild :exec
+WITH lines AS (
+    SELECT DISTINCT o.id AS order_id, p.id AS product_id
+    FROM store_orders o
+    CROSS JOIN LATERAL jsonb_array_elements(o.items) AS it (i)
+    JOIN store_products p ON p.store_id = o.store_id AND p.external_id = it.i ->> 'productId'
+    WHERE o.store_id = $1 AND o.placed_at >= $2::timestamptz AND NOT o.test AND NOT o.cancelled
+), orders_of AS (
+    SELECT product_id, count(*) AS n FROM lines GROUP BY product_id
+), ranked AS (
+    SELECT a.product_id, b.product_id AS other_id, (count(*)::float8 / max(c.n))::real AS score,
+           row_number() OVER (PARTITION BY a.product_id ORDER BY count(*) DESC, b.product_id) AS rank
+    FROM lines a
+    JOIN lines b ON b.order_id = a.order_id AND b.product_id <> a.product_id
+    JOIN orders_of c ON c.product_id = a.product_id
+    GROUP BY a.product_id, b.product_id
+), top AS (
+    SELECT product_id, other_id, score FROM ranked WHERE rank <= 20
+), gone AS (
+    DELETE FROM store_product_pairs sp
+    WHERE sp.store_id = $1
+      AND NOT EXISTS (SELECT 1 FROM top t WHERE t.product_id = sp.product_id AND t.other_id = sp.other_id)
+)
+INSERT INTO store_product_pairs (store_id, product_id, other_id, score)
+SELECT $1, product_id, other_id, score FROM top
+ON CONFLICT (store_id, product_id, other_id) DO UPDATE SET score = EXCLUDED.score
+`
+
+type CommercePairsRebuildParams struct {
+	StoreID uuid.UUID `json:"storeId"`
+	Since   time.Time `json:"since"`
+}
+
+// Rebuilds a store's products bought together from its orders since
+// @since (not test or cancelled), in one statement: how often each other
+// product is in an order with a product, divided by that product's orders,
+// the top 20 per product; pairs no longer among them are removed.
+func (q *Queries) CommercePairsRebuild(ctx context.Context, arg CommercePairsRebuildParams) error {
+	_, err := q.db.Exec(ctx, commercePairsRebuild, arg.StoreID, arg.Since)
+	return err
+}
+
 const commercePauseFlow = `-- name: CommercePauseFlow :execrows
 UPDATE automations SET status = 'paused', paused_at = $1::timestamptz, paused_by = NULL, pause_reason = $2 WHERE id = $3 AND status = 'live'
 `
@@ -2627,6 +2862,37 @@ func (q *Queries) CommerceProductCount(ctx context.Context, storeID uuid.UUID) (
 	return count, err
 }
 
+const commerceProductInWorkspace = `-- name: CommerceProductInWorkspace :one
+SELECT p.id, p.store_id, p.title, p.available FROM store_products p
+JOIN stores s ON s.id = p.store_id
+WHERE p.id = $1 AND s.workspace_id = $2 AND s.status = 'connected' AND p.removed_at IS NULL
+`
+
+type CommerceProductInWorkspaceParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type CommerceProductInWorkspaceRow struct {
+	ID        uuid.UUID `json:"id"`
+	StoreID   uuid.UUID `json:"storeId"`
+	Title     string    `json:"title"`
+	Available bool      `json:"available"`
+}
+
+// A product of one of the workspace's connected stores, by its id.
+func (q *Queries) CommerceProductInWorkspace(ctx context.Context, arg CommerceProductInWorkspaceParams) (CommerceProductInWorkspaceRow, error) {
+	row := q.db.QueryRow(ctx, commerceProductInWorkspace, arg.ID, arg.WorkspaceID)
+	var i CommerceProductInWorkspaceRow
+	err := row.Scan(
+		&i.ID,
+		&i.StoreID,
+		&i.Title,
+		&i.Available,
+	)
+	return i, err
+}
+
 const commerceProductRemoved = `-- name: CommerceProductRemoved :execrows
 UPDATE store_products SET removed_at = coalesce(removed_at, $1::timestamptz) WHERE store_id = $2 AND external_id = $3
 `
@@ -2646,6 +2912,10 @@ func (q *Queries) CommerceProductRemoved(ctx context.Context, arg CommerceProduc
 }
 
 const commerceProductUpsert = `-- name: CommerceProductUpsert :one
+WITH old AS (
+    SELECT p.available, p.inventory, p.price_cents, p.currency FROM store_products p
+    WHERE p.store_id = $2 AND p.external_id = $4
+)
 INSERT INTO store_products (id, store_id, workspace_id, external_id, title, handle, url, image_url, image_alt, price_cents, compare_at_cents, currency,
     available, inventory, status, collections, created_at_store, updated_at_store, removed_at, synced_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
@@ -2658,7 +2928,11 @@ ON CONFLICT (store_id, external_id) DO UPDATE SET title = EXCLUDED.title, handle
     created_at_store = coalesce(store_products.created_at_store, EXCLUDED.created_at_store), updated_at_store = EXCLUDED.updated_at_store,
     removed_at = NULL, synced_at = EXCLUDED.synced_at
 WHERE store_products.updated_at_store IS NULL OR EXCLUDED.updated_at_store IS NULL OR EXCLUDED.updated_at_store >= store_products.updated_at_store
-RETURNING id
+RETURNING id, EXISTS (SELECT 1 FROM old) AS existed,
+    coalesce((SELECT o.available FROM old o), false)::boolean AS old_available,
+    (SELECT o.inventory FROM old o) AS old_inventory,
+    coalesce((SELECT o.price_cents FROM old o), 0)::bigint AS old_price_cents,
+    coalesce((SELECT o.currency FROM old o), '')::text AS old_currency
 `
 
 type CommerceProductUpsertParams struct {
@@ -2684,9 +2958,22 @@ type CommerceProductUpsertParams struct {
 	KeepCollections bool       `json:"keepCollections"`
 }
 
+type CommerceProductUpsertRow struct {
+	ID            uuid.UUID `json:"id"`
+	Existed       bool      `json:"existed"`
+	OldAvailable  bool      `json:"oldAvailable"`
+	OldInventory  *int32    `json:"oldInventory"`
+	OldPriceCents int64     `json:"oldPriceCents"`
+	OldCurrency   string    `json:"oldCurrency"`
+}
+
 // An older version of a product than the one stored is ignored (events
-// that arrive out of order).
-func (q *Queries) CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (uuid.UUID, error) {
+// that arrive out of order). It returns what the product was before
+// (existed is false for a new one): back in stock and price drops are told
+// apart from it (G-30). old reads the statement's snapshot, so it sees the
+// row before this upsert whenever it is evaluated (a FOR UPDATE there would
+// skip the row the upsert itself changed).
+func (q *Queries) CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (CommerceProductUpsertRow, error) {
 	row := q.db.QueryRow(ctx, commerceProductUpsert,
 		arg.ID,
 		arg.StoreID,
@@ -2709,9 +2996,16 @@ func (q *Queries) CommerceProductUpsert(ctx context.Context, arg CommerceProduct
 		arg.At,
 		arg.KeepCollections,
 	)
-	var id uuid.UUID
-	err := row.Scan(&id)
-	return id, err
+	var i CommerceProductUpsertRow
+	err := row.Scan(
+		&i.ID,
+		&i.Existed,
+		&i.OldAvailable,
+		&i.OldInventory,
+		&i.OldPriceCents,
+		&i.OldCurrency,
+	)
+	return i, err
 }
 
 const commerceProducts = `-- name: CommerceProducts :many
@@ -2831,6 +3125,100 @@ func (q *Queries) CommerceProductsByExternal(ctx context.Context, arg CommercePr
 	return items, nil
 }
 
+const commerceProductsByIDs = `-- name: CommerceProductsByIDs :many
+SELECT id, store_id, workspace_id, external_id, title, handle, url, image_url, image_alt, price_cents, compare_at_cents, currency, available, inventory, status, collections, created_at_store, updated_at_store, removed_at, synced_at FROM store_products WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) CommerceProductsByIDs(ctx context.Context, ids []uuid.UUID) ([]StoreProduct, error) {
+	rows, err := q.db.Query(ctx, commerceProductsByIDs, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []StoreProduct{}
+	for rows.Next() {
+		var i StoreProduct
+		if err := rows.Scan(
+			&i.ID,
+			&i.StoreID,
+			&i.WorkspaceID,
+			&i.ExternalID,
+			&i.Title,
+			&i.Handle,
+			&i.Url,
+			&i.ImageUrl,
+			&i.ImageAlt,
+			&i.PriceCents,
+			&i.CompareAtCents,
+			&i.Currency,
+			&i.Available,
+			&i.Inventory,
+			&i.Status,
+			&i.Collections,
+			&i.CreatedAtStore,
+			&i.UpdatedAtStore,
+			&i.RemovedAt,
+			&i.SyncedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const commerceProductsByStoreID = `-- name: CommerceProductsByStoreID :many
+SELECT p.id, p.store_id, p.title, p.available FROM store_products p
+JOIN stores s ON s.id = p.store_id
+WHERE p.external_id = $1 AND s.workspace_id = $2 AND s.status = 'connected' AND p.removed_at IS NULL
+  AND ($3::uuid IS NULL OR p.store_id = $3::uuid)
+ORDER BY p.store_id
+LIMIT 2
+`
+
+type CommerceProductsByStoreIDParams struct {
+	ExternalID  string     `json:"externalId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	StoreID     *uuid.UUID `json:"storeId"`
+}
+
+type CommerceProductsByStoreIDRow struct {
+	ID        uuid.UUID `json:"id"`
+	StoreID   uuid.UUID `json:"storeId"`
+	Title     string    `json:"title"`
+	Available bool      `json:"available"`
+}
+
+// Products of the workspace's connected stores with the store's own id
+// (two stores may share one), optionally in one store.
+func (q *Queries) CommerceProductsByStoreID(ctx context.Context, arg CommerceProductsByStoreIDParams) ([]CommerceProductsByStoreIDRow, error) {
+	rows, err := q.db.Query(ctx, commerceProductsByStoreID, arg.ExternalID, arg.WorkspaceID, arg.StoreID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceProductsByStoreIDRow{}
+	for rows.Next() {
+		var i CommerceProductsByStoreIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.StoreID,
+			&i.Title,
+			&i.Available,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const commerceProductsNewest = `-- name: CommerceProductsNewest :many
 SELECT id, store_id, workspace_id, external_id, title, handle, url, image_url, image_alt, price_cents, compare_at_cents, currency, available, inventory, status, collections, created_at_store, updated_at_store, removed_at, synced_at FROM store_products
 WHERE store_id = $1 AND removed_at IS NULL AND status = 'active' AND $2::text = ANY(collections)
@@ -2925,6 +3313,99 @@ func (q *Queries) CommerceProductsRemoveMissing(ctx context.Context, arg Commerc
 	return items, nil
 }
 
+const commerceRecentlyViewedFor = `-- name: CommerceRecentlyViewedFor :many
+SELECT r.contact_id::uuid AS contact_id, p.id, p.store_id, p.workspace_id, p.external_id, p.title, p.handle, p.url, p.image_url, p.image_alt, p.price_cents, p.compare_at_cents, p.currency, p.available, p.inventory, p.status, p.collections, p.created_at_store, p.updated_at_store, p.removed_at, p.synced_at
+FROM (SELECT u.contact_id, coalesce(m.queued_at, $1::timestamptz)::timestamptz AS as_of
+      FROM unnest($2::uuid[]) WITH ORDINALITY AS u (contact_id, n)
+      LEFT JOIN messages m ON m.id = ($3::uuid[])[u.n]) r
+CROSS JOIN LATERAL (
+    SELECT e.product_id, max(e.occurred_at) AS at
+    FROM tracker_events e
+    JOIN store_products sp ON sp.id = e.product_id
+    WHERE e.contact_id = r.contact_id AND e.kind IN (2, 3) AND e.product_id IS NOT NULL
+      AND e.occurred_at < r.as_of AND e.occurred_at >= r.as_of - interval '90 days'
+      AND sp.store_id = $4 AND sp.removed_at IS NULL AND sp.status = 'active'
+      AND NOT EXISTS (SELECT 1 FROM store_orders o
+                      WHERE o.store_id = $4 AND o.contact_id = r.contact_id AND o.placed_at < r.as_of AND NOT o.test AND NOT o.cancelled
+                        AND o.items @> jsonb_build_array(jsonb_build_object('productId', sp.external_id)))
+    GROUP BY e.product_id
+    ORDER BY max(e.occurred_at) DESC, e.product_id
+    LIMIT $5
+) x
+JOIN store_products p ON p.id = x.product_id
+WHERE EXISTS (SELECT 1 FROM stores s WHERE s.id = $4 AND s.workspace_id = $6)
+ORDER BY r.contact_id, x.at DESC, x.product_id
+`
+
+type CommerceRecentlyViewedForParams struct {
+	Now         time.Time   `json:"now"`
+	Contacts    []uuid.UUID `json:"contacts"`
+	Messages    []uuid.UUID `json:"messages"`
+	StoreID     uuid.UUID   `json:"storeId"`
+	Lim         int32       `json:"lim"`
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+}
+
+type CommerceRecentlyViewedForRow struct {
+	ContactID    uuid.UUID    `json:"contactId"`
+	StoreProduct StoreProduct `json:"storeProduct"`
+}
+
+// Recently viewed, for a page of readers at once (G-31): each reader's
+// products of the store viewed or added to their cart in the 90 days before
+// their message was queued (@now without a message: a preview), newest
+// first, @lim at most, without what they had bought by then. Read as of the
+// message's queueing from the site's events, so a click days later finds
+// the product the email showed in its place.
+func (q *Queries) CommerceRecentlyViewedFor(ctx context.Context, arg CommerceRecentlyViewedForParams) ([]CommerceRecentlyViewedForRow, error) {
+	rows, err := q.db.Query(ctx, commerceRecentlyViewedFor,
+		arg.Now,
+		arg.Contacts,
+		arg.Messages,
+		arg.StoreID,
+		arg.Lim,
+		arg.WorkspaceID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceRecentlyViewedForRow{}
+	for rows.Next() {
+		var i CommerceRecentlyViewedForRow
+		if err := rows.Scan(
+			&i.ContactID,
+			&i.StoreProduct.ID,
+			&i.StoreProduct.StoreID,
+			&i.StoreProduct.WorkspaceID,
+			&i.StoreProduct.ExternalID,
+			&i.StoreProduct.Title,
+			&i.StoreProduct.Handle,
+			&i.StoreProduct.Url,
+			&i.StoreProduct.ImageUrl,
+			&i.StoreProduct.ImageAlt,
+			&i.StoreProduct.PriceCents,
+			&i.StoreProduct.CompareAtCents,
+			&i.StoreProduct.Currency,
+			&i.StoreProduct.Available,
+			&i.StoreProduct.Inventory,
+			&i.StoreProduct.Status,
+			&i.StoreProduct.Collections,
+			&i.StoreProduct.CreatedAtStore,
+			&i.StoreProduct.UpdatedAtStore,
+			&i.StoreProduct.RemovedAt,
+			&i.StoreProduct.SyncedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const commerceResumeFlow = `-- name: CommerceResumeFlow :execrows
 UPDATE automations SET status = 'live', paused_at = NULL, paused_by = NULL, pause_reason = ''
 WHERE id = $1 AND status = 'paused' AND paused_by IS NULL AND pause_reason = $2
@@ -2996,6 +3477,170 @@ func (q *Queries) CommerceRevenueByEmail(ctx context.Context, arg CommerceRevenu
 		return nil, err
 	}
 	return items, nil
+}
+
+const commerceStockCandidates = `-- name: CommerceStockCandidates :many
+WITH people AS (
+    SELECT r.contact_id FROM store_stock_requests r
+    WHERE $5::boolean AND r.product_id = $6 AND r.contact_id > $7::uuid
+      AND (r.notified_at IS NULL OR r.notified_at >= $8::timestamptz)
+    UNION
+    SELECT v.contact_id FROM tracker_product_views v
+    WHERE v.product_id = $6 AND v.contact_id > $7::uuid
+      AND (($9::boolean AND v.last_viewed_at >= $10::timestamptz) OR ($11::boolean AND v.last_carted_at >= $10::timestamptz))
+    ORDER BY 1
+    LIMIT $4
+)
+SELECT p.contact_id::uuid AS contact_id, (c.status = 'active' AND c.erased_at IS NULL
+    AND NOT EXISTS (SELECT 1 FROM tracker_trigger_entries e
+                    WHERE e.automation_id = $1 AND e.contact_id = p.contact_id AND e.kind = $2::text
+                      AND e.entered_at > $3::timestamptz))::boolean AS eligible
+FROM people p
+JOIN contacts c ON c.id = p.contact_id
+ORDER BY p.contact_id
+`
+
+type CommerceStockCandidatesParams struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	Kind         string    `json:"kind"`
+	ReentrySince time.Time `json:"reentrySince"`
+	Lim          int32     `json:"lim"`
+	Requests     bool      `json:"requests"`
+	ProductID    uuid.UUID `json:"productId"`
+	After        uuid.UUID `json:"after"`
+	Started      time.Time `json:"started"`
+	Viewers      bool      `json:"viewers"`
+	Since        time.Time `json:"since"`
+	Carters      bool      `json:"carters"`
+}
+
+type CommerceStockCandidatesRow struct {
+	ContactID uuid.UUID `json:"contactId"`
+	Eligible  bool      `json:"eligible"`
+}
+
+// A page of the contacts (by id, after @after) a stock flow may take for a
+// product: those who asked to hear when it's back and weren't told before
+// this run (@requests), those who viewed it (@viewers) or added it to their
+// cart (@carters) since @since; and whether they enter: active, not
+// erased, not taken by the flow since @reentry_since.
+func (q *Queries) CommerceStockCandidates(ctx context.Context, arg CommerceStockCandidatesParams) ([]CommerceStockCandidatesRow, error) {
+	rows, err := q.db.Query(ctx, commerceStockCandidates,
+		arg.AutomationID,
+		arg.Kind,
+		arg.ReentrySince,
+		arg.Lim,
+		arg.Requests,
+		arg.ProductID,
+		arg.After,
+		arg.Started,
+		arg.Viewers,
+		arg.Since,
+		arg.Carters,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceStockCandidatesRow{}
+	for rows.Next() {
+		var i CommerceStockCandidatesRow
+		if err := rows.Scan(&i.ContactID, &i.Eligible); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const commerceStockFlows = `-- name: CommerceStockFlows :many
+SELECT a.id, ac.t::jsonb AS trigger
+FROM automations a
+CROSS JOIN LATERAL jsonb_array_elements(a.triggers) AS ac (t)
+WHERE a.workspace_id = $1 AND a.status = 'live' AND a.deleted_at IS NULL
+  AND a.triggers @> jsonb_build_array(jsonb_build_object('kind', $2::text))
+  AND ac.t ->> 'kind' = $2::text AND ac.t -> 'stock' ->> 'storeId' = $3::text
+ORDER BY a.id
+`
+
+type CommerceStockFlowsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Kind        string    `json:"kind"`
+	Store       string    `json:"store"`
+}
+
+type CommerceStockFlowsRow struct {
+	ID      uuid.UUID       `json:"id"`
+	Trigger json.RawMessage `json:"trigger"`
+}
+
+// Live flows started by back in stock or a price drop on a store: one row
+// per such trigger, whichever of the flow's triggers it is.
+func (q *Queries) CommerceStockFlows(ctx context.Context, arg CommerceStockFlowsParams) ([]CommerceStockFlowsRow, error) {
+	rows, err := q.db.Query(ctx, commerceStockFlows, arg.WorkspaceID, arg.Kind, arg.Store)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CommerceStockFlowsRow{}
+	for rows.Next() {
+		var i CommerceStockFlowsRow
+		if err := rows.Scan(&i.ID, &i.Trigger); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const commerceStockNotified = `-- name: CommerceStockNotified :exec
+UPDATE store_stock_requests SET notified_at = $1::timestamptz
+WHERE product_id = $2 AND contact_id = ANY($3::uuid[]) AND notified_at IS NULL
+`
+
+type CommerceStockNotifiedParams struct {
+	At        time.Time   `json:"at"`
+	ProductID uuid.UUID   `json:"productId"`
+	Contacts  []uuid.UUID `json:"contacts"`
+}
+
+// The back-in-stock flow took these contacts: their requests are answered.
+func (q *Queries) CommerceStockNotified(ctx context.Context, arg CommerceStockNotifiedParams) error {
+	_, err := q.db.Exec(ctx, commerceStockNotified, arg.At, arg.ProductID, arg.Contacts)
+	return err
+}
+
+const commerceStockRequestUpsert = `-- name: CommerceStockRequestUpsert :one
+INSERT INTO store_stock_requests (workspace_id, contact_id, product_id, created_at, notified_at)
+VALUES ($1, $2, $3, $4::timestamptz, NULL)
+ON CONFLICT (contact_id, product_id) DO UPDATE SET created_at = EXCLUDED.created_at, notified_at = NULL
+RETURNING created_at
+`
+
+type CommerceStockRequestUpsertParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ContactID   uuid.UUID `json:"contactId"`
+	ProductID   uuid.UUID `json:"productId"`
+	At          time.Time `json:"at"`
+}
+
+// "Email me when it's back": asking again clears the answer.
+func (q *Queries) CommerceStockRequestUpsert(ctx context.Context, arg CommerceStockRequestUpsertParams) (time.Time, error) {
+	row := q.db.QueryRow(ctx, commerceStockRequestUpsert,
+		arg.WorkspaceID,
+		arg.ContactID,
+		arg.ProductID,
+		arg.At,
+	)
+	var created_at time.Time
+	err := row.Scan(&created_at)
+	return created_at, err
 }
 
 const commerceStore = `-- name: CommerceStore :one
@@ -3469,7 +4114,9 @@ const commerceStoreFlows = `-- name: CommerceStoreFlows :many
 SELECT a.id, a.name, a.status, st.t::jsonb AS trigger, a.pause_reason
 FROM automations a
 CROSS JOIN LATERAL (SELECT t FROM jsonb_array_elements(a.triggers) WITH ORDINALITY AS e (t, n)
-                    WHERE t ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND t ->> 'store' = $1::text
+                    WHERE (t ->> 'kind' IN ('order_placed', 'first_order', 'abandoned_checkout') AND t ->> 'store' = $1::text)
+                       OR (t ->> 'kind' IN ('viewed_product', 'added_to_cart') AND t -> 'browse' ->> 'storeId' = $1::text)
+                       OR (t ->> 'kind' IN ('back_in_stock', 'price_drop') AND t -> 'stock' ->> 'storeId' = $1::text)
                     ORDER BY n LIMIT 1) st
 WHERE a.workspace_id = $2 AND a.deleted_at IS NULL
 ORDER BY a.created_at
@@ -3489,7 +4136,9 @@ type CommerceStoreFlowsRow struct {
 }
 
 // Live and paused automations started by a store's triggers, with the
-// first trigger that names the store (review 2026-11 AT-14).
+// first trigger that names the store (review 2026-11 AT-14): its orders and
+// checkouts ("store"), and what its tracked site saw (M62: "browse" and
+// "stock" name it as storeId).
 func (q *Queries) CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlowsParams) ([]CommerceStoreFlowsRow, error) {
 	rows, err := q.db.Query(ctx, commerceStoreFlows, arg.Store, arg.WorkspaceID)
 	if err != nil {

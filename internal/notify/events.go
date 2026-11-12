@@ -81,6 +81,8 @@ var Events = []EventType{
 	// Web push and WhatsApp (design expansion, phase 8).
 	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "People who can view sending providers", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "People who can view sending providers", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
+	// Signup forms (M60 G-25).
+	{Key: KindFormTestEnded, Label: "Signup form A/B test ended", Audience: "People who can edit forms · when a test ends on its own", Short: "ended form tests", DefaultEmail: true, Kinds: []string{KindFormTestEnded}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):

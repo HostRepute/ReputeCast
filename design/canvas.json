@@ -398,7 +398,7 @@
   },
   "ContactProfile.dc.html": {
    "expand": "fill",
-   "h": 1015,
+   "h": 1073,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contact profile",
@@ -407,7 +407,7 @@
    "y": 0
   },
   "ContactProfilePhone.dc.html": {
-   "h": 2732,
+   "h": 2810,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contact profile · phone",
@@ -583,7 +583,7 @@
   },
   "FormBuilder.dc.html": {
    "expand": "fill",
-   "h": 1223,
+   "h": 1413,
    "is_interactive": true,
    "page": "forms",
    "title": "Signup form builder",
@@ -592,7 +592,7 @@
    "y": 0
   },
   "FormBuilderPhone.dc.html": {
-   "h": 2928,
+   "h": 3158,
    "is_interactive": true,
    "page": "forms",
    "title": "Signup form builder · phone",
@@ -601,7 +601,7 @@
    "y": 4091
   },
   "FormBuilderTablet.dc.html": {
-   "h": 1853,
+   "h": 2043,
    "is_interactive": true,
    "page": "forms",
    "title": "Signup form builder · tablet",
@@ -611,10 +611,10 @@
   },
   "FormsStates.dc.html": {
    "expand": "fill",
-   "h": 1997,
+   "h": 5401,
    "is_interactive": true,
    "page": "forms",
-   "title": "Forms · empty / loading / error · popup triggers · embedded form typo and inbox states",
+   "title": "Forms · empty / loading / error · popup triggers · embedded form typo and inbox states · steps, targeting and A/B tests",
    "w": 1440,
    "x": 5520,
    "y": 0
@@ -1426,7 +1426,7 @@
   },
   "SegmentBuilder.dc.html": {
    "expand": "fill",
-   "h": 1212,
+   "h": 1484,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · segment builder",
@@ -1435,7 +1435,7 @@
    "y": 0
   },
   "SegmentBuilderTablet.dc.html": {
-   "h": 1892,
+   "h": 2164,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · segment builder · tablet",
@@ -2483,7 +2483,7 @@
    "x": 0,
    "y": 38128,
    "w": 834,
-   "h": 4341,
+   "h": 4570,
    "title": "Integrations · catalog · tablet",
    "page": "p2-connect",
    "is_interactive": true
@@ -2528,7 +2528,7 @@
    "x": 0,
    "y": 42949,
    "w": 390,
-   "h": 6644,
+   "h": 6873,
    "title": "Integrations · catalog · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -3894,8 +3894,8 @@
    "x": 3120,
    "y": 39163,
    "w": 1440,
-   "h": 3448,
-   "title": "Stores in emails · product picker, product grid, removed product, abandoned-cart starter, revenue, Sam Rivera's orders",
+   "h": 4763,
+   "title": "Stores in emails · product picker, product grid, removed product, abandoned-cart starter, revenue, Sam Rivera's orders, recommendations",
    "page": "p7-publish",
    "is_interactive": true,
    "expand": "fill"
@@ -4358,10 +4358,10 @@
   },
   "AutomationsComplete.dc.html": {
    "expand": "fill",
-   "h": 3440,
+   "h": 4103,
    "is_interactive": true,
    "page": "automations",
-   "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats, paid-member triggers",
+   "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats, paid-member triggers, browsing and stock triggers",
    "w": 1440,
    "x": 6080,
    "y": 0
@@ -4482,6 +4482,73 @@
    "w": 390,
    "x": 1520,
    "y": 5273
+  },
+  "TrackingSites.dc.html": {
+   "expand": "fill",
+   "h": 1579,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Integrations · Website tracking (Acme Merch and Docs)",
+   "w": 1440,
+   "x": 4680,
+   "y": 39163
+  },
+  "TrackingSetup.dc.html": {
+   "expand": "fill",
+   "h": 3530,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Website tracking · add a site: the site, the snippet tabs and the identify secret, the first event, set up again, edit, an origin error",
+   "w": 1440,
+   "x": 6240,
+   "y": 39163
+  },
+  "TrackingStates.dc.html": {
+   "expand": "fill",
+   "h": 4186,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Website tracking · loading, empty, error, read-only, waiting for the first event, consent, origin refused, no store linked, rotate the secret, delete",
+   "w": 1440,
+   "x": 7800,
+   "y": 39163
+  },
+  "TrackingSitesTablet.dc.html": {
+   "h": 2489,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Integrations · Website tracking · tablet",
+   "w": 834,
+   "x": 4770,
+   "y": 45792
+  },
+  "TrackingSitesPhone.dc.html": {
+   "h": 3430,
+   "is_interactive": true,
+   "page": "p7-publish",
+   "title": "Integrations · Website tracking · phone",
+   "w": 390,
+   "x": 4590,
+   "y": 50137
+  },
+  "FormBuilderABTest.dc.html": {
+   "expand": "fill",
+   "h": 2148,
+   "is_interactive": true,
+   "page": "forms",
+   "title": "Signup form builder · A/B test",
+   "w": 1440,
+   "x": 8560,
+   "y": 0
+  },
+  "FormBuilderABTestPhone.dc.html": {
+   "h": 3880,
+   "is_interactive": true,
+   "page": "forms",
+   "title": "Signup form builder · A/B test · phone",
+   "w": 390,
+   "x": 1530,
+   "y": 4091
   },
   "AudienceHoldout.dc.html": {
    "x": 0,
@@ -5568,6 +5635,14 @@
    "maxW": 3450,
    "page": "p8-channels"
   },
+  "t-p7-publish-6": {
+   "x": 4680,
+   "y": 38863,
+   "text": "Website tracking · the script on the publisher's own sites and stores: the sites, adding one with its snippet and identify secret, the first events and every state. ReputeCast's own pages are never tracked.",
+   "kind": "title1",
+   "maxW": 4560,
+   "page": "p7-publish"
+  },
   "t-audience-holdout": {
    "x": 0,
    "y": 8837,
@@ -6042,6 +6117,13 @@
   "MainDark.dc.html",
   "MainDarkTablet.dc.html",
   "MainDarkPhone.dc.html",
+  "TrackingSites.dc.html",
+  "TrackingSetup.dc.html",
+  "TrackingStates.dc.html",
+  "TrackingSitesTablet.dc.html",
+  "TrackingSitesPhone.dc.html",
+  "FormBuilderABTest.dc.html",
+  "FormBuilderABTestPhone.dc.html",
   "AudienceHoldout.dc.html",
   "AudienceHoldoutStates.dc.html",
   "AudienceHoldoutTablet.dc.html",

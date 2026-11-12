@@ -50,6 +50,7 @@
   "short.store_problem": "sự cố cửa hàng",
   "short.push_worker_missing": "thiếu service worker thông báo đẩy",
   "short.whatsapp_attention": "mẫu và chất lượng WhatsApp",
+  "short.form_test_ended": "thử nghiệm biểu mẫu đã kết thúc",
 
   "event.approval_requested": "Yêu cầu phê duyệt",
   "event.approval_decided": "Yêu cầu phê duyệt được duyệt, bị từ chối hoặc cần thay đổi",
@@ -98,6 +99,7 @@
   "event.store_problem": "Cửa hàng ngắt kết nối hoặc thiếu webhook",
   "event.push_worker_missing": "Thiếu service worker thông báo đẩy",
   "event.whatsapp_attention": "Mẫu WhatsApp bị từ chối hoặc chất lượng giảm",
+  "event.form_test_ended": "Thử nghiệm A/B của biểu mẫu đăng ký đã kết thúc",
 
   "audience.approval_requested": "Chỉ dành cho người phê duyệt",
   "audience.approval_decided": "Chỉ dành cho tác giả",
@@ -146,6 +148,7 @@
   "audience.store_problem": "Những người có thể quản lý tích hợp",
   "audience.push_worker_missing": "Những người có thể xem nhà cung cấp gửi thư",
   "audience.whatsapp_attention": "Những người có thể xem nhà cung cấp gửi thư",
+  "audience.form_test_ended": "Những người có thể sửa biểu mẫu · khi thử nghiệm tự kết thúc",
 
   "category.approvals": "Phê duyệt",
   "category.sending": "Gửi thư",

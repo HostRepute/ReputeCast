@@ -101,7 +101,7 @@ func seedFormsImpl(ctx context.Context, s *Seeder) error {
 			lists: []string{"Weekly Digest"}, defaults: []string{"Weekly Digest"},
 			fields:         []map[string]any{email},
 			content:        content("Get the Weekly Digest", "What shipped and what's next, every Tuesday.", "Subscribe", "One email a week. Unsubscribe any time."),
-			consentVersion: 2, created: 160, views: 9412, submissions: 388, confirmed: 349, blocked: 512},
+			consentVersion: 2, created: 160, views: 9412, submissions: 338, confirmed: 304, blocked: 512},
 		{name: "Beta apply", kind: "hosted", slug: "beta-apply", publicID: "frm_b7a412",
 			lists: []string{"Beta Program"}, defaults: []string{"Beta Program"},
 			fields: []map[string]any{email, {"key": "first_name", "required": true}, {"key": "company"}},
@@ -129,6 +129,14 @@ func seedFormsImpl(ctx context.Context, s *Seeder) error {
 			return fmt.Errorf("form %s: %w", f.name, err)
 		}
 		formIDs[f.name] = id
+		// The Footer mini form runs an A/B test (FormBuilderABTest, M60):
+		// its days are split between the variants since the test started.
+		if f.name == "Footer mini form" {
+			if err := formsABTest(ctx, s, id, f); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := formsDailyNumbers(ctx, s, id, f); err != nil {
 			return err
 		}

@@ -198,6 +198,9 @@
   "sql.roles": "Les segments SQL ne peuvent pas modifier les rôles ni les paramètres de session.",
   "sql.function": "Les segments SQL ne peuvent pas appeler {name}.",
   "sql.unicodeIdentifier": "Les segments SQL ne peuvent pas utiliser d’identifiants U&\"…\"\u00A0: écrivez le nom tel quel.",
+  "field.site_viewed_product": "A consulté un produit",
+  "field.site_last_seen": "Vu pour la dernière fois sur le site",
+  "problem.pickCollection": "Choisissez une collection d’une boutique, ou n’importe quel produit.",
   "field.in_holdout": "Dans le groupe témoin",
   "option.in_holdout.yes": "Oui",
   "option.in_holdout.no": "Non"

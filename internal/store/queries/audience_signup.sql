@@ -148,3 +148,11 @@ LIMIT 1;
 -- lists of signups.
 SELECT id, email, first_name FROM contacts
 WHERE workspace_id = @workspace_id AND id = ANY (@ids::uuid[]) AND erased_at IS NULL;
+
+-- name: SignupAddContactTags :exec
+-- Adds tags a signup brought (a form's choice questions, M60 G-23) to the
+-- contact's own, kept sorted and once each; updating tags fires the
+-- tag_added automation trigger for the new ones.
+UPDATE contacts
+SET tags = (SELECT array_agg(DISTINCT t ORDER BY t) FROM unnest(tags || @tags::text[]) AS t), updated_at = @at::timestamptz
+WHERE id = @id AND NOT (tags @> @tags::text[]);

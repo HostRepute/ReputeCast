@@ -198,6 +198,9 @@
   "sql.roles": "SQL segments can't change roles or session settings.",
   "sql.function": { "message": "SQL segments can't call {name}.", "note": "name: a Postgres function, like pg_advisory_lock" },
   "sql.unicodeIdentifier": "SQL segments can't use U&\"…\" identifiers: write the name as it is.",
+  "field.site_viewed_product": { "message": "Viewed a product", "note": "a site tracker condition: viewed a product on a tracked site in the last N days, any product or one of a store's collections" },
+  "field.site_last_seen": { "message": "Last seen on the site", "note": "a site tracker condition: when the contact was last on a tracked site" },
+  "problem.pickCollection": "Pick one of a store's collections, or any product.",
   "field.in_holdout": { "message": "In the holdout group", "note": "M63: contacts the workspace keeps out of marketing to measure what it adds" },
   "option.in_holdout.yes": "Yes",
   "option.in_holdout.no": "No"

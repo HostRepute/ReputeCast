@@ -11,7 +11,8 @@ import { Field, Input } from '@/components/ui/Field'
 import { Menu, MenuItem, MenuSeparator, Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
-import { ago, andList, count, trimPct } from '@/lib/format'
+import { ago, andList, calendarDate, count, shortDate, trimPct } from '@/lib/format'
+import { useNow } from '@/lib/hooks'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { Icon } from '@/components/icons/Icon'
 import { FormAddressCheck, FormAskedToFix, FormChecksPaused } from '@/features/verification/FormCheck'
@@ -43,6 +44,13 @@ import { m as promptMsg } from '@/features/push/prompt.messages'
 import { t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { m } from './builder.messages'
+import { ABTestCard, StepFunnel } from './FormABTest'
+import { ChoiceDialog } from './FormChoice'
+import { StepsSection } from './FormSteps'
+import { WhereWhenSection } from './FormTargeting'
+import { nextChoiceKey, severalSteps, syncSteps, type FormField } from './steps'
+import { emptyTargeting } from './targeting'
+import { abDraftOf, abInputOf, addVariant, sameAB, sameVariants, variantContentOf, variantKeys, type ABDraft, type ABResult, type VariantContent, type VariantKey } from './variants'
 
 // Push prompts are forms too, with their own designer (X22).
 type Kind = Exclude<Schemas['SignupFormSummary']['kind'], 'push'>
@@ -50,7 +58,13 @@ type Kind = Exclude<Schemas['SignupFormSummary']['kind'], 'push'>
 const kindLabels: Record<Kind, MessageDescriptor> = { embedded: m.kindEmbedded, popup: m.kindPopup, hosted: m.kindHosted }
 
 /** The built-in contact fields, named in the app's language (the preview shows the form's own words). */
-const builtinNames: Record<string, MessageDescriptor> = { first_name: m.fieldFirstName, last_name: m.fieldLastName, company: m.fieldCompany }
+const builtinNames: Record<string, MessageDescriptor> = {
+  email: m.fieldEmail,
+  first_name: m.fieldFirstName,
+  last_name: m.fieldLastName,
+  company: m.fieldCompany,
+  phone: m.fieldPhone,
+}
 
 /** Built-in fields in the order a form shows them; custom fields follow. */
 const fieldOrder = ['email', 'first_name', 'last_name', 'company', 'phone']
@@ -67,7 +81,7 @@ function sortFields(fields: FormInput['fields']): FormInput['fields'] {
  * 7.12 Signup form builder (board FormBuilder) with the FormsStates states;
  * with a language, the builder in that language (FormBuilderLanguages).
  */
-export function FormBuilderPage({ formId, language }: { formId?: string; language?: string }) {
+export function FormBuilderPage({ formId, language, variant }: { formId?: string; language?: string; variant?: VariantKey }) {
   const t = useT()
   const overview = useFormsOverview()
   throwIfForbidden(overview.error)
@@ -99,14 +113,17 @@ export function FormBuilderPage({ formId, language }: { formId?: string; languag
     )
   }
   const current = o.forms.find((f) => f.id === formId) ?? o.forms[0]!
-  return <FormLoader key={current.id} formId={current.id} overview={o} language={language} />
+  return <FormLoader key={current.id} formId={current.id} overview={o} language={language} variant={variant} />
 }
 
-/** Loads one form; its editor starts over when the saved form changes. */
-function FormLoader({ formId, overview, language }: { formId: string; overview: Overview; language?: string }) {
+/** Loads one form and its A/B test; its editor starts over when the saved form changes. */
+function FormLoader({ formId, overview, language, variant }: { formId: string; overview: Overview; language?: string; variant?: VariantKey }) {
   const t = useT()
   const { slug } = useWorkspace()
-  const detail = $api.useQuery('get', '/api/v1/workspaces/{workspace}/forms/{form}', { params: { path: { workspace: slug, form: formId } } })
+  const params = { params: { path: { workspace: slug, form: formId } } }
+  const detail = $api.useQuery('get', '/api/v1/workspaces/{workspace}/forms/{form}', params)
+  // A test that can't load leaves the builder without variants, not broken.
+  const ab = $api.useQuery('get', '/api/v1/workspaces/{workspace}/forms/{form}/ab', params, { enabled: !language })
   throwIfForbidden(detail.error)
   if (detail.isError) {
     return (
@@ -117,7 +134,7 @@ function FormLoader({ formId, overview, language }: { formId: string; overview: 
       </Page>
     )
   }
-  if (detail.isPending) {
+  if (detail.isPending || (!language && ab.isPending)) {
     return (
       <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
         <FormsLoading label={t(m.buildingPreview)} />
@@ -125,10 +142,26 @@ function FormLoader({ formId, overview, language }: { formId: string; overview: 
     )
   }
   if (language) return <FormLanguagesView form={detail.data} overview={overview} language={language} />
-  return <Editor key={`${detail.data.id}:${detail.data.updatedAt}`} form={detail.data} overview={overview} />
+  return <Editor key={`${detail.data.id}:${detail.data.updatedAt}`} form={detail.data} overview={overview} ab={ab.data} variant={variant} />
 }
 
-function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
+/**
+ * Where an error of a save goes: the form's field ("content.steps",
+ * "fields"…), or the A/B test's ("ab.steps", "ab.minViews"…).
+ */
+function errorsOf(e: unknown, test: boolean): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!(e instanceof ApiError)) return out
+  for (const x of e.problem.errors ?? []) {
+    if (!x.location || !x.message) continue
+    const at = x.location.replace(/^body\./, '')
+    if (!test) out[at.replace(/\[\d+\].*$/, '')] = x.message
+    else out[/^variants\[\d+\]\.content\.steps/.test(at) ? 'ab.steps' : `ab.${at.replace(/\[\d+\].*$/, '')}`] = x.message
+  }
+  return out
+}
+
+function Editor({ form, overview, ab, variant }: { form: SignupForm; overview: Overview; ab?: ABResult; variant?: VariantKey }) {
   const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
@@ -137,14 +170,27 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
   const readOnly = Boolean(reason)
   const initial = useMemo(() => inputOf(form), [form])
   const [draft, setDraft] = useState<FormInput>(initial)
+  // The test's draft sits beside the form's; it starts over when the saved
+  // test changes (saved, ended).
+  const abInitial = useMemo(() => abDraftOf(ab), [ab])
+  const [abDraft, setAbDraft] = useState<ABDraft>(abInitial)
+  const [abSeen, setAbSeen] = useState(abInitial)
+  if (abSeen !== abInitial) {
+    setAbSeen(abInitial)
+    setAbDraft(abInitial)
+  }
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
+  const [step, setStep] = useState(0)
+  const [choice, setChoice] = useState<FormField>()
   const [creating, setCreating] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const dirty = !sameInput(draft, initial)
+  const abDirty = !sameAB(abDraft, abInitial)
   const params = { path: { workspace: slug, form: form.id } }
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/forms/{form}')
+  const saveTest = $api.useMutation('put', '/api/v1/workspaces/{workspace}/forms/{form}/ab')
   const setStatus = $api.useMutation('post', '/api/v1/workspaces/{workspace}/forms/{form}/status')
   const remove = $api.useMutation('delete', '/api/v1/workspaces/{workspace}/forms/{form}')
 
@@ -152,31 +198,100 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
   const setSpam = (patch: Partial<FormInput['spam']>) => setDraft((d) => ({ ...d, spam: { ...d.spam, ...patch } }))
   const setContent = (patch: Partial<FormInput['content']>) => setDraft((d) => ({ ...d, content: { ...d.content, ...patch } }))
   const hasField = (key: string) => draft.fields.some((f) => f.key === key)
+  // Fields that come and go keep the steps in line: new ones join the last step.
+  const setFields = (next: (fields: FormInput['fields']) => FormInput['fields']) =>
+    setDraft((d) => {
+      const fields = next(d.fields)
+      return { ...d, fields, content: { ...d.content, steps: syncSteps(d.content.steps, fields.map((f) => f.key)) } }
+    })
   const toggleField = (key: string, on: boolean) =>
-    setDraft((d) => ({ ...d, fields: on ? sortFields([...d.fields.filter((f) => f.key !== key), { key, label: '', required: false }]) : d.fields.filter((f) => f.key !== key) }))
+    setFields((fields) => (on ? sortFields([...fields.filter((f) => f.key !== key), { key, label: '', required: false }]) : fields.filter((f) => f.key !== key)))
+  const applyChoice = (f: FormField) => setFields((fields) => (fields.some((x) => x.key === f.key) ? fields.map((x) => (x.key === f.key ? f : x)) : [...fields, f]))
+  const nameOf = (f: FormField) =>
+    f.type === 'choice' ? f.label || f.key : builtinNames[f.key] ? t(builtinNames[f.key]!) : (overview.customFields.find((c) => c.key === f.key)?.label ?? f.key)
+  const keys = draft.fields.map((f) => f.key)
+
+  // The variant shown: A is the form; B and C change its copy, steps and
+  // popup triggers, and every other section is the same in every variant.
+  const now = useNow(60_000)
+  const testOn = abDraft.variants.length >= 2
+  const selected: VariantKey = testOn && variant && abDraft.variants.some((v) => v.key === variant) ? variant : 'A'
+  const locked = selected !== 'A'
+  const ro = readOnly || locked
+  const lockReason = reason ?? (locked ? t(m.sameInEvery) : undefined)
+  const shown: VariantContent = (locked ? abDraft.variants.find((v) => v.key === selected)?.content : undefined) ?? variantContentOf(draft.content)
+  const shownSteps = syncSteps(shown.steps, keys)
+  const setShown = (patch: Partial<VariantContent>) => {
+    if (!locked) return setContent(patch)
+    setAbDraft((d) => ({ ...d, variants: d.variants.map((v) => (v.key === selected ? { ...v, content: { ...(v.content ?? variantContentOf(draft.content)), ...patch } } : v)) }))
+  }
+  const preview: FormInput = locked ? { ...draft, content: { ...draft.content, ...shown, steps: shownSteps } } : draft
+  const same = locked ? <span className="k">{t(m.sameInEvery)}</span> : null
+  const pickVariant = (key: VariantKey) =>
+    void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: { form: form.id, variant: key === 'A' ? undefined : key }, replace: true })
+  // A copy of A becomes the next variant, shown at once; the test starts on Save & publish.
+  const newVariant = () => {
+    const { draft: next, key } = addVariant(abDraft, draft.content)
+    setAbDraft(next)
+    setStep(0)
+    pickVariant(key)
+  }
+  // Results count from the test's first day, or from today once a change
+  // to a variant, the split or A's copy is saved (the server restarts it).
+  const running = ab?.status === 'running'
+  const aChanged = !sameVariants([{ key: 'A', weight: 0, content: variantContentOf(draft.content) }], [{ key: 'A', weight: 0, content: variantContentOf(initial.content) }])
+  const countsFrom = !testOn
+    ? undefined
+    : running && ab.startedOn && sameVariants(abDraft.variants, abInitial.variants) && !aChanged
+      ? calendarDate(ab.startedOn, 'shortDate')
+      : shortDate(now)
+  const errorAt = (prefix: string) => Object.entries(errors).find(([k]) => k === prefix || k.startsWith(`${prefix}.`))?.[1]
+  const newChoice = (): FormField => ({
+    key: nextChoiceKey(draft.fields, overview.customFields.map((c) => c.key)),
+    type: 'choice',
+    label: '',
+    required: false,
+    multiple: true,
+    options: [],
+  })
 
   const publish = async () => {
-    if (!dirty && form.status === 'live') {
+    const formChanged = dirty || form.status !== 'live'
+    if (!formChanged && !abDirty) {
       toast({ kind: 'info', title: tt(m.nothingNew), detail: tt(m.liveAlready, { name: form.name }) })
       return true
     }
     setErrors({})
+    let saved = false
     try {
-      await save.mutateAsync({ params, body: { ...draft, publish: true } })
-      toast({ kind: 'success', title: tt(m.published, { where: hostPath(form.hostedUrl) }), detail: tt(m.publishedBody) })
+      if (formChanged) {
+        await save.mutateAsync({ params, body: { ...draft, content: { ...draft.content, steps: syncSteps(draft.content.steps, keys) }, publish: true } })
+        saved = true
+      }
+      if (abDirty && testOn) await saveTest.mutateAsync({ params, body: abInputOf(abDraft, keys) })
+      // Starting a test, or changing a variant, the split or A's copy, counts from today.
+      const restarts = testOn && (!running || !sameVariants(abDraft.variants, abInitial.variants) || aChanged)
+      toast(
+        formChanged
+          ? { kind: 'success', title: tt(m.published, { where: hostPath(form.hostedUrl) }), detail: tt(restarts ? m.publishedTestBody : m.publishedBody) }
+          : { kind: 'success', title: tt(m.testSaved), detail: tt(restarts ? m.testCountsToday : m.testSettingsSaved) },
+      )
       await invalidate()
       return true
     } catch (e) {
-      const fieldErrors: Record<string, string> = {}
-      if (e instanceof ApiError) {
-        for (const x of e.problem.errors ?? []) {
-          if (x.location && x.message) fieldErrors[x.location.replace(/^body\./, '').replace(/\[\d+\].*$/, '')] = x.message
-        }
-      }
-      setErrors(fieldErrors)
-      toast({ kind: 'error', title: tt(m.publishFailed), detail: errorMessage(e), retry: () => void publish() })
+      // The form may be saved already: then the test is what failed.
+      const test = saved || !formChanged
+      setErrors(errorsOf(e, test))
+      toast({ kind: 'error', title: tt(test ? m.testSaveFailed : m.publishFailed), detail: errorMessage(e), retry: () => void publish() })
       throw e
     }
+  }
+
+  const discard = () => {
+    setDraft(initial)
+    setAbDraft(abInitial)
+    setErrors({})
+    if (locked && !abInitial.variants.some((v) => v.key === selected)) pickVariant('A')
   }
 
   const pickForm = (id: string) => {
@@ -249,10 +364,10 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               {t(m.deleteForm)}
             </MenuItem>
           </Menu>
-          <Button onClick={() => setDraft(initial)} disabledReason={reason}>
+          <Button onClick={discard} disabledReason={reason}>
             {t(m.discard)}
           </Button>
-          <Button variant="primary" onClick={() => void publish().catch(() => undefined)} loading={save.isPending} busyLabel={t(m.publishing)} disabledReason={reason}>
+          <Button variant="primary" onClick={() => void publish().catch(() => undefined)} loading={save.isPending || saveTest.isPending} busyLabel={t(m.publishing)} disabledReason={reason}>
             {t(m.savePublish)}
           </Button>
         </>
@@ -274,16 +389,25 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               </select>
             </div>
           </div>
-          <TypeSection draft={draft} form={form} readOnly={readOnly} onKind={(k) => set('kind', k)} onContent={setContent} />
+          <TypeSection
+            draft={draft}
+            form={form}
+            readOnly={readOnly}
+            triggers={shown}
+            onKind={(k) => set('kind', k)}
+            onContent={setContent}
+            onTriggers={setShown}
+          />
           <div className="fb-sec">
             <span className="k">{t(m.fields)}</span>
+            {same}
             <label className="fb-check">
               <input type="checkbox" checked disabled />
               {t(m.emailRequired)}
             </label>
             {(['first_name', 'company'] as const).map((key) => (
               <label key={key} className="fb-check">
-                <input type="checkbox" checked={hasField(key)} disabled={readOnly} onChange={(e) => toggleField(key, e.target.checked)} />
+                <input type="checkbox" checked={hasField(key)} disabled={ro} onChange={(e) => toggleField(key, e.target.checked)} />
                 {hasField(key) ? t(m.fieldOptional, { field: t(builtinNames[key]!) }) : t(builtinNames[key]!)}
               </label>
             ))}
@@ -291,30 +415,59 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             <SmsPhoneToggle
               on={hasField('phone')}
               required={draft.fields.some((f) => f.key === 'phone' && f.required)}
-              readOnly={readOnly}
+              readOnly={ro}
               onToggle={(on) => {
                 toggleField('phone', on)
                 if (!on) setContent({ smsConsent: false })
               }}
             />
             {draft.fields
-              .filter((f) => f.key !== 'email' && f.key !== 'first_name' && f.key !== 'company' && f.key !== 'phone')
+              .filter((f) => f.key !== 'email' && f.key !== 'first_name' && f.key !== 'company' && f.key !== 'phone' && f.type !== 'choice')
               .map((f) => (
                 <label key={f.key} className="fb-check">
-                  <input type="checkbox" checked disabled={readOnly} onChange={() => toggleField(f.key, false)} />
-                  {t(f.required ? m.fieldRequired : m.fieldOptional, {
-                    field: builtinNames[f.key] ? t(builtinNames[f.key]!) : (overview.customFields.find((c) => c.key === f.key)?.label ?? f.key),
-                  })}
+                  <input type="checkbox" checked disabled={ro} onChange={() => toggleField(f.key, false)} />
+                  {t(f.required ? m.fieldRequired : m.fieldOptional, { field: nameOf(f) })}
                 </label>
               ))}
             <label className="fb-check">
-              <input type="checkbox" checked={draft.listChoice} disabled={readOnly} onChange={(e) => set('listChoice', e.target.checked)} />
+              <input type="checkbox" checked={draft.listChoice} disabled={ro} onChange={(e) => set('listChoice', e.target.checked)} />
               {t(m.pickLists)}
             </label>
-            <AddFieldMenu draft={draft} overview={overview} readOnly={readOnly} onAdd={(key) => toggleField(key, true)} />
+            {/* Choice questions (M60): unticking one takes it off the form. */}
+            {draft.fields
+              .filter((f) => f.type === 'choice')
+              .map((f) => (
+                <div key={f.key} className="flex items-center gap-2 text-[13px]">
+                  <label className="flex min-w-0 flex-auto items-center gap-2">
+                    <input type="checkbox" checked disabled={ro} onChange={() => toggleField(f.key, false)} />
+                    {t(m.choiceRow, { label: nameOf(f), n: f.options?.length ?? 0 })}
+                  </label>
+                  <Button size="sm" aria-label={t(m.editField, { field: nameOf(f) })} disabledReason={lockReason} onClick={() => setChoice(f)}>
+                    {t(common.edit)}
+                  </Button>
+                </div>
+              ))}
+            <AddFieldMenu draft={draft} overview={overview} readOnly={ro} onAdd={(key) => toggleField(key, true)} onChoice={() => setChoice(newChoice())} />
+            {errorAt('fields') ? (
+              <span className="err" role="alert">
+                {errorAt('fields')}
+              </span>
+            ) : null}
           </div>
+          <StepsSection
+            steps={shownSteps}
+            fields={draft.fields}
+            nameOf={nameOf}
+            reason={reason}
+            current={step}
+            button={shown.button}
+            error={errorAt('content.steps') ?? errorAt('ab.steps')}
+            onPick={setStep}
+            onChange={(steps) => setShown({ steps })}
+          />
           <div className="fb-sec">
             <span className="k">{t(m.lists)}</span>
+            {same}
             {overview.lists.map((l) => {
               const offered = draft.listIds.includes(l.id)
               const isDefault = draft.defaultListIds.includes(l.id)
@@ -323,7 +476,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
                   <input
                     type="checkbox"
                     checked={offered}
-                    disabled={readOnly}
+                    disabled={ro}
                     onChange={(e) =>
                       setDraft((d) => ({
                         ...d,
@@ -344,8 +497,9 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
           </div>
           <div className="fb-sec">
             <span className="k">{t(m.consent)}</span>
+            {same}
             <label className="fb-check start">
-              <input type="checkbox" checked={draft.doubleOptIn} disabled={readOnly} onChange={(e) => set('doubleOptIn', e.target.checked)} />
+              <input type="checkbox" checked={draft.doubleOptIn} disabled={ro} onChange={(e) => set('doubleOptIn', e.target.checked)} />
               <span>
                 {t(m.doubleOptIn)} <span className="k">· {doubleOptInNote(draft.doubleOptIn, overview.systemMail ? overview.systemProvider : '')}</span>
               </span>
@@ -356,7 +510,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
                 className="fb-in"
                 value={draft.consentText}
                 maxLength={600}
-                disabled={readOnly}
+                disabled={ro}
                 aria-invalid={errors.consentText ? true : undefined}
                 onChange={(e) => set('consentText', e.target.value)}
               />
@@ -371,30 +525,32 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             content={draft.content}
             saved={form.content}
             hasPhone={hasField('phone')}
-            readOnly={readOnly}
+            readOnly={ro}
             error={errors['content.smsConsent'] ?? errors['content.smsConsentText']}
             onContent={setContent}
           />
           <div className="fb-sec">
             <span className="k">{t(m.spam)}</span>
+            {same}
             <label className="fb-check">
-              <input type="checkbox" checked={draft.spam.honeypot} disabled={readOnly} onChange={(e) => setSpam({ honeypot: e.target.checked })} />
+              <input type="checkbox" checked={draft.spam.honeypot} disabled={ro} onChange={(e) => setSpam({ honeypot: e.target.checked })} />
               {t(m.honeypot)}
             </label>
             <label className="fb-check">
-              <input type="checkbox" checked={draft.spam.turnstile} disabled={readOnly} onChange={(e) => setSpam({ turnstile: e.target.checked })} />
+              <input type="checkbox" checked={draft.spam.turnstile} disabled={ro} onChange={(e) => setSpam({ turnstile: e.target.checked })} />
               {t(m.turnstile)}
             </label>
-            {draft.spam.turnstile && !overview.turnstile.hasSecret ? <TurnstileKeys readOnly={readOnly} /> : null}
+            {draft.spam.turnstile && !overview.turnstile.hasSecret ? <TurnstileKeys readOnly={ro} /> : null}
             <label className="fb-check">
-              <input type="checkbox" checked={draft.spam.blockDisposable} disabled={readOnly} onChange={(e) => setSpam({ blockDisposable: e.target.checked })} />
+              <input type="checkbox" checked={draft.spam.blockDisposable} disabled={ro} onChange={(e) => setSpam({ blockDisposable: e.target.checked })} />
               {t(m.rejectDisposable)}
             </label>
             <FormAddressCheck formKey={form.id} formName={form.name} />
           </div>
-          <div className="fb-sec last">
+          <div className="fb-sec">
             <span className="k">{t(m.afterSubmit)}</span>
-            <select aria-label={t(m.afterSubmit)} className="fb-in" value={draft.afterSubmit} disabled={readOnly} onChange={(e) => set('afterSubmit', e.target.value as FormInput['afterSubmit'])}>
+            {same}
+            <select aria-label={t(m.afterSubmit)} className="fb-in" value={draft.afterSubmit} disabled={ro} onChange={(e) => set('afterSubmit', e.target.value as FormInput['afterSubmit'])}>
               <option value="message">{draft.doubleOptIn ? t(m.showCheckInbox) : t(m.showSubscribed)}</option>
               <option value="redirect">{t(m.redirect)}</option>
             </select>
@@ -405,7 +561,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
                   aria-label={t(m.redirectUrl)}
                   placeholder={'https://acme.io/thanks'}
                   value={draft.redirectUrl}
-                  disabled={readOnly}
+                  disabled={ro}
                   aria-invalid={errors.redirectUrl ? true : undefined}
                   aria-describedby={errors.redirectUrl ? 'redirect-err' : undefined}
                   onChange={(e) => set('redirectUrl', e.target.value)}
@@ -418,11 +574,37 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               </>
             ) : null}
           </div>
+          <WhereWhenSection
+            hosted={draft.kind === 'hosted'}
+            targeting={draft.content.targeting ?? emptyTargeting()}
+            geoip={overview.geoip}
+            locked={locked}
+            reason={reason}
+            error={errorAt('content.targeting')}
+            onChange={(targeting) => setContent({ targeting })}
+          />
           <FormDownloadSection form={form} readOnly={readOnly} doubleOptIn={draft.doubleOptIn} />
         </aside>
 
         <section className="fb-center" aria-label={t(m.livePreview)}>
           <div className="fb-bar">
+            {testOn ? (
+              // The variant edited and shown: one pressed button, as the
+              // whole editor follows it (there is no single tab panel).
+              <div className="tabs" role="group" aria-label={t(m.variants)}>
+                {abDraft.variants.map((v) => (
+                  <button key={v.key} type="button" aria-pressed={v.key === selected} onClick={() => pickVariant(v.key)}>
+                    {v.key}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {abDraft.variants.length < variantKeys.length ? (
+              <Button size="sm" disabledReason={reason ?? (draft.kind === 'hosted' ? t(m.hostedShowsA) : undefined)} onClick={newVariant}>
+                {t(m.addVariant)}
+              </Button>
+            ) : null}
+            {countsFrom ? <span className="k">{t(m.resultsFrom, { date: countsFrom })}</span> : null}
             <span className="k">{t(m.livePreviewWhere, { where })}</span>
             <div className="fb-seg ml-auto" role="group" aria-label={t(m.previewSize)}>
               <button type="button" aria-pressed={device === 'desktop'} onClick={() => setDevice('desktop')}>
@@ -441,10 +623,14 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             {turnstileBroken ? <TurnstileAlert turnstile={overview.turnstile} /> : null}
             <FormChecksPaused formKey={form.id} />
             <FormPreview
-              form={draft}
+              form={preview}
               overview={overview}
               mobile={device === 'mobile'}
               readOnly={readOnly}
+              listsLocked={locked}
+              step={step}
+              onStep={setStep}
+              onCopy={testOn ? setShown : undefined}
               onToggleDefault={(id) =>
                 setDraft((d) => ({ ...d, defaultListIds: d.defaultListIds.includes(id) ? d.defaultListIds.filter((x) => x !== id) : [...d.defaultListIds, id] }))
               }
@@ -492,12 +678,24 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             ) : null}
           </div>
           <FormPagesSection form={form} />
-          <NumbersSection form={form} systemMail={overview.systemMail} />
+          <NumbersSection form={form} systemMail={overview.systemMail} last={!running} />
+          {running ? (
+            <ABTestCard
+              result={ab}
+              draft={abDraft}
+              formId={form.id}
+              heading={form.content.heading}
+              reason={reason}
+              errors={errors}
+              onDraft={(patch) => setAbDraft((d) => ({ ...d, ...patch }))}
+            />
+          ) : null}
           <FormLanguagesSection form={form} />
         </aside>
       </div>
+      {choice ? <ChoiceDialog field={choice} onApply={applyChoice} onClose={() => setChoice(undefined)} /> : null}
       <UnsavedChangesGuard
-        dirty={dirty && !readOnly}
+        dirty={(dirty || abDirty) && !readOnly}
         title={t(m.leaveTitle)}
         description={t(m.leaveBody, { name: form.name })}
         saveLabel={t(m.publishLeave)}
@@ -548,14 +746,19 @@ function TypeSection({
   draft,
   form,
   readOnly,
+  triggers,
   onKind,
   onContent,
+  onTriggers,
 }: {
   draft: FormInput
   form: SignupForm
   readOnly: boolean
+  /** The popup triggers of the variant shown (A's are the form's). */
+  triggers: Pick<VariantContent, 'popupDelay' | 'popupScroll' | 'popupExit'>
   onKind: (k: Kind) => void
   onContent: (patch: Partial<FormInput['content']>) => void
+  onTriggers: (patch: Partial<VariantContent>) => void
 }) {
   const t = useT()
   const at = hostPath(form.hostedUrl)
@@ -579,11 +782,11 @@ function TypeSection({
           <div className="grid grid-cols-3 gap-2">
             <label className="lbl justify-between">
               {t(m.opensAfter)}
-              <input className="fb-in" type="number" min={0} max={600} value={c.popupDelay} disabled={readOnly} onChange={(e) => onContent({ popupDelay: Number(e.target.value) })} />
+              <input className="fb-in" type="number" min={0} max={600} value={triggers.popupDelay} disabled={readOnly} onChange={(e) => onTriggers({ popupDelay: Number(e.target.value) })} />
             </label>
             <label className="lbl justify-between">
               {t(m.orScrolled)}
-              <input className="fb-in" type="number" min={0} max={100} value={c.popupScroll} disabled={readOnly} onChange={(e) => onContent({ popupScroll: Number(e.target.value) })} />
+              <input className="fb-in" type="number" min={0} max={100} value={triggers.popupScroll} disabled={readOnly} onChange={(e) => onTriggers({ popupScroll: Number(e.target.value) })} />
             </label>
             <label className="lbl justify-between">
               {t(m.closedFor)}
@@ -592,7 +795,13 @@ function TypeSection({
           </div>
           <label className="fb-check start">
             {/* Unticked is omitted, as the server answers it. */}
-            <input type="checkbox" checked={c.popupExit === true} disabled={readOnly} aria-describedby={exitHint} onChange={(e) => onContent({ popupExit: e.target.checked || undefined })} />
+            <input
+              type="checkbox"
+              checked={triggers.popupExit === true}
+              disabled={readOnly}
+              aria-describedby={exitHint}
+              onChange={(e) => onTriggers({ popupExit: e.target.checked || undefined })}
+            />
             <span>{t(m.exitIntent)}</span>
           </label>
           <span className="k" id={exitHint}>
@@ -618,7 +827,20 @@ function TypeSection({
 }
 
 /** "Add custom field": the contact fields the form doesn't ask for yet. */
-function AddFieldMenu({ draft, overview, readOnly, onAdd }: { draft: FormInput; overview: Overview; readOnly: boolean; onAdd: (key: string) => void }) {
+function AddFieldMenu({
+  draft,
+  overview,
+  readOnly,
+  onAdd,
+  onChoice,
+}: {
+  draft: FormInput
+  overview: Overview
+  readOnly: boolean
+  onAdd: (key: string) => void
+  /** A new choice question (M60), edited in its dialog first. */
+  onChoice: () => void
+}) {
   const t = useT()
   const has = (k: string) => draft.fields.some((f) => f.key === k)
   const options = [
@@ -644,6 +866,8 @@ function AddFieldMenu({ draft, overview, readOnly, onAdd }: { draft: FormInput; 
           </MenuItem>
         ))
       )}
+      <MenuSeparator />
+      <MenuItem onSelect={onChoice}>{t(m.addChoice)}</MenuItem>
     </Menu>
   )
 }
@@ -748,13 +972,13 @@ function EmbedSection({ form }: { form: SignupForm }) {
   )
 }
 
-/** "Last 30 days": views, submissions, confirmations and spam blocked. */
-function NumbersSection({ form, systemMail }: { form: SignupForm; systemMail: boolean }) {
+/** "Last 30 days": views, submissions, confirmations and spam blocked, and the step funnel of a form in several steps. */
+function NumbersSection({ form, systemMail, last }: { form: SignupForm; systemMail: boolean; last: boolean }) {
   const t = useT()
   const s = form.stats
   const [links, setLinks] = useState(false)
   return (
-    <div className="fb-sec last">
+    <div className={last ? 'fb-sec last' : 'fb-sec'}>
       <span className="fb-title">{t(m.lastDays, { days: s.days })}</span>
       <div className="fb-nums">
         <div>
@@ -779,6 +1003,8 @@ function NumbersSection({ form, systemMail }: { form: SignupForm; systemMail: bo
         </div>
         <FormAskedToFix formKey={form.id} />
       </div>
+      {/* M60: a form in several steps shows how far visitors get. */}
+      {severalSteps(form.content.steps) && s.steps.length > 0 ? <StepFunnel stats={s} /> : null}
       {form.doubleOptIn && s.pending > 0 ? (
         <span className="k">{t(systemMail ? m.pendingReminders : m.pendingWait, { n: s.pending, count: count(s.pending) })}</span>
       ) : null}

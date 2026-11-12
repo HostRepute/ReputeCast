@@ -13,12 +13,15 @@ defined( 'ABSPATH' ) || exit;
  * The connection lives in one option; the site's key in another, encrypted
  * with a key derived from the site's salts (wp-config.php), so a copy of
  * the database alone doesn't reveal it. The key is never shown again after
- * it is pasted, only its first and last characters.
+ * it is pasted, only its first and last characters. Site tracking's
+ * settings live in a third, and its identify secret is kept as the key is.
  */
 final class Options {
 
-	const CONNECTION = 'reputecast_connection';
-	const KEY        = 'reputecast_key';
+	const CONNECTION      = 'reputecast_connection';
+	const KEY             = 'reputecast_key';
+	const TRACKING        = 'reputecast_tracking';
+	const TRACKING_SECRET = 'reputecast_tracking_secret';
 
 	/**
 	 * The connection: instance URL, workspace, site address as ReputeCast
@@ -63,7 +66,26 @@ final class Options {
 
 	/** The site's key, or '' when there is none or it can't be read. */
 	public static function key(): string {
-		$stored = get_option( self::KEY, '' );
+		return self::open( self::KEY );
+	}
+
+	/**
+	 * Keeps the site's key, encrypted. It isn't autoloaded.
+	 *
+	 * @param string $key The key ReputeCast showed once.
+	 */
+	public static function set_key( string $key ): void {
+		self::seal( self::KEY, $key );
+	}
+
+	/**
+	 * An encrypted option's value, or '' when there is none or it can't be
+	 * read.
+	 *
+	 * @param string $name The option.
+	 */
+	private static function open( string $name ): string {
+		$stored = get_option( $name, '' );
 		if ( ! is_string( $stored ) || ! str_starts_with( $stored, 'v1:' ) ) {
 			return '';
 		}
@@ -74,22 +96,73 @@ final class Options {
 		$nonce = substr( $raw, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
 		$box   = substr( $raw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
 		try {
-			$key = sodium_crypto_secretbox_open( $box, $nonce, self::secret() );
+			$value = sodium_crypto_secretbox_open( $box, $nonce, self::secret() );
 		} catch ( \SodiumException $e ) {
 			return '';
 		}
-		return false === $key ? '' : $key;
+		return false === $value ? '' : $value;
 	}
 
 	/**
-	 * Keeps the site's key, encrypted. It isn't autoloaded.
+	 * Keeps a value encrypted in an option that isn't autoloaded.
 	 *
-	 * @param string $key The key ReputeCast showed once.
+	 * @param string $name  The option.
+	 * @param string $value The value.
 	 */
-	public static function set_key( string $key ): void {
+	private static function seal( string $name, string $value ): void {
 		$nonce = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
-		$box   = sodium_crypto_secretbox( $key, $nonce, self::secret() );
-		update_option( self::KEY, 'v1:' . base64_encode( $nonce . $box ), false ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- the stored ciphertext.
+		$box   = sodium_crypto_secretbox( $value, $nonce, self::secret() );
+		update_option( $name, 'v1:' . base64_encode( $nonce . $box ), false ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- the stored ciphertext.
+	}
+
+	/** The site tracking's identify secret, or '' (kept encrypted, as the key). */
+	public static function tracking_secret(): string {
+		return self::open( self::TRACKING_SECRET );
+	}
+
+	/**
+	 * Keeps the site tracking's identify secret, encrypted.
+	 *
+	 * @param string $secret The secret ReputeCast showed once.
+	 */
+	public static function set_tracking_secret( string $secret ): void {
+		self::seal( self::TRACKING_SECRET, $secret );
+	}
+
+	/** Forgets the identify secret: signed-in customers aren't recognized any more. */
+	public static function forget_tracking_secret(): void {
+		delete_option( self::TRACKING_SECRET );
+	}
+
+	/**
+	 * Site tracking's settings: the tracked site's id in ReputeCast ('' when
+	 * off) and whether it waits for the visitor's consent.
+	 *
+	 * @return array{site: string, wait_consent: bool}
+	 */
+	public static function tracking(): array {
+		$stored = get_option( self::TRACKING, array() );
+		$stored = is_array( $stored ) ? $stored : array();
+		return array(
+			'site'         => is_string( $stored['site'] ?? null ) ? $stored['site'] : '',
+			'wait_consent' => (bool) ( $stored['wait_consent'] ?? true ),
+		);
+	}
+
+	/**
+	 * Saves site tracking's settings.
+	 *
+	 * @param string $site         The tracked site's id, '' for off.
+	 * @param bool   $wait_consent Whether nothing is sent before consent.
+	 */
+	public static function set_tracking( string $site, bool $wait_consent ): void {
+		update_option(
+			self::TRACKING,
+			array(
+				'site'         => $site,
+				'wait_consent' => $wait_consent,
+			)
+		);
 	}
 
 	/** Forgets the site's key. The connection's other values stay, so forms keep loading. */
@@ -117,5 +190,7 @@ final class Options {
 	public static function delete_all(): void {
 		delete_option( self::CONNECTION );
 		delete_option( self::KEY );
+		delete_option( self::TRACKING );
+		delete_option( self::TRACKING_SECRET );
 	}
 }

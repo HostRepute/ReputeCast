@@ -132,6 +132,29 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 
+	// A/B tests (M60 G-25).
+	api.Get(h, api.Op{ID: "get-signup-form-ab-test", Path: "/workspaces/{workspace}/forms/{form}/ab", Summary: "Get a signup form's A/B test and its results",
+		Description: "Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.",
+		Tags:        tags, Access: api.Workspace(viewPerm)},
+		func(ctx context.Context, in *FormPath) (*api.Body[SignupFormABResult], error) {
+			out, err := s.ABResult(ctx, api.WorkspaceFrom(ctx), in.Form)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "save-signup-form-ab-test", Path: "/workspaces/{workspace}/forms/{form}/ab", Summary: "Start or change a signup form's A/B test",
+		Description: "Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.",
+		Tags:        tags, Access: api.Workspace(authz.FormsEdit)},
+		func(ctx context.Context, in *formBody[SignupFormABInput]) (*api.Body[SignupFormABResult], error) {
+			out, err := s.SaveAB(ctx, api.WorkspaceFrom(ctx), in.Form, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "end-signup-form-ab-test", Path: "/workspaces/{workspace}/forms/{form}/ab/end", Summary: "End a signup form's A/B test, keeping one variant",
+		Description: "The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).",
+		Tags:        tags, Access: api.Workspace(authz.FormsEdit)},
+		func(ctx context.Context, in *formBody[SignupFormABEndInput]) (*api.Body[SignupFormABResult], error) {
+			out, err := s.EndAB(ctx, api.WorkspaceFrom(ctx), in.Form, in.Body)
+			return api.OK(out), err
+		})
+
 	ptags := []string{"Public pages"}
 	api.Get(h, api.Op{ID: "get-public-pages", Path: "/workspaces/{workspace}/public-pages", Summary: "Get the public pages' branding, options, domain and Turnstile set-up",
 		Description: "The Turnstile secret is write-only: only whether one is stored is returned.",

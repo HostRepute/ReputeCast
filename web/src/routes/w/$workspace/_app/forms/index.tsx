@@ -14,6 +14,8 @@ const search = z.object({
     .regex(/^[a-z]{2,3}$/)
     .optional()
     .catch(undefined),
+  // A variant of the form's A/B test (M60 G-25); A is the form itself.
+  variant: z.enum(['B', 'C']).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/w/$workspace/_app/forms/')({
@@ -21,8 +23,8 @@ export const Route = createFileRoute('/w/$workspace/_app/forms/')({
   component: function FormsRoute() {
     // Forms & pages › Forms lists signup forms and surveys (design
     // expansion, X11); a form, or a language view, opens in the builder.
-    const { form, language, prompt } = Route.useSearch()
+    const { form, language, prompt, variant } = Route.useSearch()
     if (prompt) return <PushPromptPage key={prompt} formId={prompt} />
-    return form || language ? <FormBuilderPage formId={form} language={language} /> : <FormsList />
+    return form || language ? <FormBuilderPage formId={form} language={language} variant={variant} /> : <FormsList />
   },
 })

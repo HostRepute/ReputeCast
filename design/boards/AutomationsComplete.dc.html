@@ -234,12 +234,42 @@ fieldset.fs legend{padding:0;margin-bottom:4px}
   </figure>
 </div>
 
+<div class="strip">8 · Browsing and stock <span>With Website tracking on a store's site, four more store triggers follow up on what known contacts looked at: a product viewed or added to the cart without an order, a product back in stock and a price drop. Contacts who aren't active never enter, and a flow takes the same person again only after 7 days.</span></div>
+<div class="grid three">
+  <figure><figcaption>Trigger picker · the Store group</figcaption>
+    <div class="menu" role="listbox" aria-label="Store triggers"><div class="mh">Store</div><button><span style="display:flex;flex-direction:column;gap:1px;padding:6px 0"><span>Order placed</span><span class="hint">By product, collection, total or first order only</span></span></button><button><span style="display:flex;flex-direction:column;gap:1px;padding:6px 0"><span>First order</span><span class="hint">A customer's first order in the store</span></span></button><button><span style="display:flex;flex-direction:column;gap:1px;padding:6px 0"><span>Abandoned checkout</span><span class="hint">A checkout with an email and no order after 1 to 24 hours</span></span></button><button class="hl"><span style="display:flex;flex-direction:column;gap:1px;padding:6px 0"><span>Viewed a product</span><span class="hint">And didn't buy, after 1 to 24 hours</span></span></button><button><span style="display:flex;flex-direction:column;gap:1px;padding:6px 0"><span>Added to cart</span><span class="hint">And didn't check out, after 1 to 24 hours</span></span></button><button><span style="display:flex;flex-direction:column;gap:1px;padding:6px 0"><span>Back in stock</span><span class="hint">People who asked to hear when a product is back</span></span></button><button><span style="display:flex;flex-direction:column;gap:1px;padding:6px 0"><span>Price drop</span><span class="hint">People who looked at a product whose price falls</span></span></button></div>
+    <span class="hint">Viewed a product, Added to cart and Price drop need Website tracking on the store's site. Back in stock also takes requests from the API.</span>
+  </figure>
+  <figure><figcaption>Trigger panel · Viewed a product</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="field"><label class="lbl" for="vp-kind">Starts when</label><select id="vp-kind" class="in"><option>Viewed a product and didn't buy</option></select></div>
+      <div class="field"><label class="lbl" for="vp-store">Store</label><select id="vp-store" class="in"><option>Acme Merch · shop.acme.io</option></select></div>
+      <div class="field"><label class="lbl" for="vp-wait">Wait</label><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px"><input id="vp-wait" class="in" style="width:64px" value="4"><span class="hint">hours without an order or a checkout · 1 to 24</span></span></div>
+      <fieldset class="fs" aria-describedby="vp-coll-hint"><legend class="lbl">Only products in (optional)</legend><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="tag">Apparel<button type="button" aria-label="Remove Apparel">×</button></span><span class="tag">New arrivals<button type="button" aria-label="Remove New arrivals">×</button></span><button class="btn sm">Add a collection</button></div><span class="hint" id="vp-coll-hint">None chosen: any product in the store.</span></fieldset>
+      <div class="field"><label class="lbl" for="vp-views">After</label><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px"><input id="vp-views" class="in" style="width:64px" value="2"><span class="hint">views · 1 to 5</span></span></div>
+      <div class="note i"><span>Needs Website tracking on the store's site. shop.acme.io sends Acme Merch's product views.</span></div>
+      <span class="hint">This flow's emails can show what they looked at with the Viewed products block, or <span class="mono">{{_lq0}}</span>.</span>
+    </section>
+  </figure>
+  <figure><figcaption>Trigger panels · Price drop and Back in stock</figcaption>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="tcard"><span class="ey">Trigger · Price drop</span><b>Acme Merch · 10% or more</b></div>
+      <div class="field"><label class="lbl" for="pd-store">Store</label><select id="pd-store" class="in"><option>Acme Merch · shop.acme.io</option></select></div>
+      <div class="field"><label class="lbl" for="pd-days">People who viewed it or added it to their cart in the last</label><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px"><input id="pd-days" class="in" style="width:64px" value="14"><span class="hint">days · 1 to 60</span></span></div>
+      <div class="field"><label class="lbl" for="pd-pct">When the price falls by at least</label><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px"><input id="pd-pct" class="in" style="width:64px" value="10"><span class="hint">% · 1 to 90</span></span></div>
+    </section>
+    <section class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="tcard"><span class="ey">Trigger · Back in stock</span><b>Acme Merch · people who asked</b></div>
+      <div class="field"><label class="lbl" for="bs-store">Store</label><select id="bs-store" class="in"><option>Acme Merch · shop.acme.io</option></select></div>
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><span style="font-size:13px">Also people who viewed it in the last <input class="in" style="width:56px;height:30px" value="14" aria-label="Days"> days</span><span class="sw off" role="switch" aria-checked="false" aria-label="Also people who viewed it"><i></i></span></div>
+      <span class="hint">People who asked to hear when a sold-out product is back, from the site's “Notify me” button or the API. Each of them hears once.</span>
+    </section>
+  </figure>
+</div>
+
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3440}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4103}}'>
 class Component extends DCLogic {
   renderVals() {
-    return {};
+    return { _lq0: "{{ browse.products }}" };
   }
 }
 </script>

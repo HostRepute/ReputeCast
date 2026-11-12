@@ -108,14 +108,15 @@ func pluginSite(ctx context.Context, a *App, wsID uuid.UUID, host string) (comme
 }
 
 // commerceCatalog is the Commerce group of Settings › Integrations: a card
-// per platform, with its store and how its sync stands.
+// per platform, with its store and how its sync stands, then Website
+// tracking (M62), connected once a site exists.
 func commerceCatalog(a *App) integrations.GroupSource {
 	return func(ctx context.Context, ws *store.Workspace) ([]integrations.IntegrationEntry, error) {
 		rows, err := commerceService(a).CatalogEntries(ctx, ws)
 		if err != nil {
 			return nil, err
 		}
-		out := make([]integrations.IntegrationEntry, 0, len(rows))
+		out := make([]integrations.IntegrationEntry, 0, len(rows)+1)
 		for _, r := range rows {
 			e := integrations.IntegrationEntry{Key: r.Platform, Status: r.Status, ConnectionID: r.ConnectionID, Reasons: []integrations.IntegrationReason{}}
 			if r.Stores > 0 {
@@ -123,13 +124,30 @@ func commerceCatalog(a *App) integrations.GroupSource {
 			}
 			out = append(out, e)
 		}
+		// The stores' cards stay when the tracker's facts can't be read.
+		if f, err := a.Tracker().Catalog(ctx, ws); err == nil {
+			e := integrations.IntegrationEntry{Key: "tracking", Status: integrations.StatusNotConnected, Reasons: []integrations.IntegrationReason{},
+				Facts: integrations.IntegrationFacts{Tracking: &integrations.IntegrationTrackingFacts{Sites: f.Sites, EventsToday: f.EventsToday,
+					LastEventAt: f.LastEventAt, Line: f.Line}}}
+			if f.Sites > 0 {
+				e.Status = integrations.StatusConnected
+			}
+			out = append(out, e)
+		} else {
+			a.Log.WarnContext(ctx, "website tracking card", "err", err)
+		}
 		return out, nil
 	}
 }
 
 func init() {
 	sendingStore = func(a *App) engine.StoreContent { return commerceService(a) }
-	trackingDecorators = func(a *App) []tracking.LinkDecorator { return []tracking.LinkDecorator{commerceService(a)} }
+	// Links to a store get its UTM tags and the click token; links to a
+	// tracked site (M62) the click token too, unless the store's tagging
+	// already added it.
+	trackingDecorators = func(a *App) []tracking.LinkDecorator {
+		return []tracking.LinkDecorator{commerceService(a), a.Tracker()}
+	}
 	trackingMessageVars = func(a *App) func(context.Context, map[string]string) map[string]string {
 		return commerceService(a).MessageVars
 	}

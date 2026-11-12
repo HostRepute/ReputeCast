@@ -504,5 +504,17 @@
   "webinar.hourBefore.subject": "Starting in an hour: {title}",
   "webinar.hourBefore.preheader": "Join from the link below.",
   "webinar.hourBefore.heading": "Starting in an hour",
-  "webinar.hourBefore.body": "{title} starts in an hour."
+  "webinar.hourBefore.body": "{title} starts in an hour.",
+
+  "trigger.viewedProduct": {"message": "Viewed a product and didn't buy", "note": "Store flows from Website tracking: someone viewed the store's products, then no order or checkout for some hours"},
+  "trigger.addedToCart": "Added to cart and didn't check out",
+  "trigger.backInStock": "Back in stock",
+  "trigger.priceDrop": "Price drop",
+  "ref.browseAfter": {"message": "{store} · after {hours, plural, one {# hour} other {# hours}}", "note": "a browse or cart trigger: the store's name and how long it waits after the last view"},
+  "ref.priceDrop": {"message": "{store} · {percent}% or more", "note": "a price-drop trigger: the store's name and the smallest drop that counts (10)"},
+  "problem.browseWait": "A browse or cart trigger waits 1 to 24 hours after the last view.",
+  "problem.browseViews": "Count 1 to 5 views of a product.",
+  "problem.browseCollections": "Pick up to 20 collections, or none for every product.",
+  "problem.stockDays": "Look back 1 to 60 days for views and add-to-carts.",
+  "problem.dropPercent": "Start on a price drop of 1% to 90%."
 }
