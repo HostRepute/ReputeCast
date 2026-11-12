@@ -106,12 +106,12 @@ func readHead(body string) headFacts {
 // one main heading, and every image says what it shows (or that it shows
 // nothing, alt=""). The crawl follows the site's own links from the home
 // page, the subscribe page, the archive and the Earn pages (gift, upgrade)
-// on the demo's custom domain.
+// on the demo's custom domain, and the sponsor page (its media kit, M65).
 func TestPublicPagesHead(t *testing.T) {
 	env, _ := demo(t)
 	const host = "news.acme.io"
-	queue := []string{"/", "/subscribe", "/archive", "/gift", "/upgrade"}
-	seen := map[string]bool{}
+	queue := []string{"/", "/subscribe", "/archive", "/gift", "/upgrade", "/sponsor"}
+	seen, reached := map[string]bool{}, map[string]bool{}
 	indexable, checked := 0, 0
 	for len(queue) > 0 && checked < 120 {
 		p := queue[0]
@@ -125,6 +125,7 @@ func TestPublicPagesHead(t *testing.T) {
 			continue
 		}
 		checked++
+		reached[p] = true
 		f := readHead(r.Body)
 		problems := []string{}
 		if f.lang == "" {
@@ -181,6 +182,9 @@ func TestPublicPagesHead(t *testing.T) {
 				queue = append(queue, next)
 			}
 		}
+	}
+	if !reached["/sponsor"] {
+		t.Error("the sponsor page wasn't reached")
 	}
 	if checked < 20 || indexable < 10 {
 		t.Fatalf("the crawl reached %d pages, %d of them indexable: too few to say much", checked, indexable)
