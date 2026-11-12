@@ -60,8 +60,14 @@ type PermissionInfo struct {
 // Catalog returns every permission in display order, its group, label and
 // description in a language.
 func Catalog(l i18n.Lang) []PermissionInfo {
-	out := make([]PermissionInfo, 0, len(authz.Defs))
-	for _, d := range authz.Defs {
+	// Group by group in the groups' order: a permission added at the end of
+	// authz.Defs still shows in its own group.
+	defs := slices.Clone(authz.Defs)
+	slices.SortStableFunc(defs, func(a, b authz.Def) int {
+		return slices.Index(authz.Groups, a.Group) - slices.Index(authz.Groups, b.Group)
+	})
+	out := make([]PermissionInfo, 0, len(defs))
+	for _, d := range defs {
 		imp := make([]string, 0, len(d.Implies))
 		for _, p := range d.Implies {
 			imp = append(imp, string(p))

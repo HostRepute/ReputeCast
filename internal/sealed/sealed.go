@@ -100,6 +100,9 @@ var Columns = []Column{
 	{Table: "whatsapp_accounts", Column: "credentials_enc", Key: ids("id:uuid"), AD: `'whatsapp_account:' || id::text || ':credentials'`},
 	{Table: "whatsapp_accounts", Column: "callback_token_enc", Key: ids("id:uuid"), AD: `'whatsapp_account:' || id::text || ':callback_token'`},
 	{Table: "workspaces", Column: "audit_stream_secret_enc", Key: ids("id:uuid"), AD: `'workspace:' || id::text || ':audit_stream_secret'`},
+	{Table: "inbound_routes", Column: "secret_sealed", Key: ids("id:uuid"), AD: `'inbound_route:' || id::text || ':secret'`},
+	{Table: "inbound_routes", Column: "hook_token_sealed", Key: ids("id:uuid"), AD: `'inbound_route:' || id::text || ':hook_token'`},
+	{Table: "inbound_routes", Column: "mailbox_password_sealed", Key: ids("id:uuid"), AD: `'inbound_route:' || id::text || ':mailbox_password'`},
 }
 
 // value is the SQL expression of a column's sealed bytes.
