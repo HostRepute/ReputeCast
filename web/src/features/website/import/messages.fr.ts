@@ -121,10 +121,10 @@ export default translate(mi, {
   backToPosts: 'Retour aux articles',
   importN: 'Importer {count, plural, one {# article} other {# articles}}',
   startFailed: 'L’import n’a pas démarré',
-  needsPublish: 'Importer publie des articles, il faut donc website:publish.',
+  needsPublish: 'Importer publie des articles, ce que votre rôle ne permet pas.',
   readOnlyTitle: 'Lecture seule · {name}, {role}',
-  readOnlyText: 'Vous pouvez voir la revue. Importer publie des articles, il faut donc website:publish. Demandez à {helpers}.',
-  readOnlyNoHelpers: 'Vous pouvez voir la revue. Importer publie des articles, il faut donc website:publish.',
+  readOnlyText: 'Vous pouvez voir la revue. Importer publie des articles, ce que votre rôle ne permet pas. Demandez à {helpers}.',
+  readOnlyNoHelpers: 'Vous pouvez voir la revue. Importer publie des articles, ce que votre rôle ne permet pas.',
 
   nothingTitle: 'Rien de nouveau dans cet export',
   nothingText: '{count, plural, one {L’article publié} other {Les # articles publiés}} de <b>{file}</b> {count, plural, one {a déjà été importé} other {ont déjà été importés}}, et {drafts, plural, one {son brouillon est ignoré} other {ses # brouillons sont ignorés}}. Changez la décision d’un brouillon dans la revue pour l’importer.',
@@ -200,7 +200,7 @@ export default translate(mi, {
   offTitle: 'Activez d’abord le site',
   offText: 'Les articles importés sont publiés sur {host} à leurs dates, et le site web est désactivé. Activez-le, puis revenez envoyer l’export.',
   turnOn: 'Activer le site web',
-  turnOnNeeds: 'Activer le site web demande website:manage. Rien de ce que vous envoyez n’est conservé d’ici là.',
+  turnOnNeeds: 'Activer le site web demande un rôle qui le gère. Rien de ce que vous envoyez n’est conservé d’ici là.',
 
   menuImport: 'Importer des articles',
   menuFrom: 'Depuis Substack, Ghost ou WordPress',

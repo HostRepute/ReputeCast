@@ -129,5 +129,5 @@ export default translate(mc, {
   loadFailedText: 'Rien n’a changé sur {host} : les commentaires publiés s’affichent toujours, et les nouveaux attendent toujours une validation.',
   retry: 'Réessayer',
   viewSite: 'Voir le site',
-  readOnly: 'Vous pouvez lire tous les commentaires. Publier, masquer, supprimer, épingler, répondre et bloquer demandent comments:moderate.',
+  readOnly: 'Vous pouvez lire tous les commentaires. Votre rôle ne peut pas publier, masquer, supprimer, épingler, répondre ni bloquer.',
 })

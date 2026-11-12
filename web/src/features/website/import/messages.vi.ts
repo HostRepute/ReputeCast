@@ -121,10 +121,10 @@ export default translate(mi, {
   backToPosts: 'Về Bài viết',
   importN: 'Nhập {count} bài',
   startFailed: 'Chưa bắt đầu nhập được',
-  needsPublish: 'Nhập bài sẽ đăng bài viết, nên cần quyền website:publish.',
+  needsPublish: 'Nhập bài viết sẽ xuất bản bài viết, điều mà vai trò của bạn không làm được.',
   readOnlyTitle: 'Chỉ xem · {name}, {role}',
-  readOnlyText: 'Bạn có thể xem phần xem lại. Nhập bài sẽ đăng bài viết, nên cần quyền website:publish. Hãy nhờ {helpers}.',
-  readOnlyNoHelpers: 'Bạn có thể xem phần xem lại. Nhập bài sẽ đăng bài viết, nên cần quyền website:publish.',
+  readOnlyText: 'Bạn có thể xem phần xem lại. Nhập bài viết sẽ xuất bản bài viết, điều mà vai trò của bạn không làm được. Hãy nhờ {helpers}.',
+  readOnlyNoHelpers: 'Bạn có thể xem phần xem lại. Nhập bài viết sẽ xuất bản bài viết, điều mà vai trò của bạn không làm được.',
 
   nothingTitle: 'Tệp xuất này không có gì mới',
   nothingText: 'Cả {count} bài đã đăng trong <b>{file}</b> đều đã được nhập trước đó, và {drafts} bản nháp của nó bị bỏ qua. Hãy đổi quyết định của một bản nháp trong phần xem lại để nhập nó.',
@@ -200,7 +200,7 @@ export default translate(mi, {
   offTitle: 'Hãy bật trang web trước',
   offText: 'Bài được nhập sẽ đăng trên {host} với ngày gốc, mà trang web đang tắt. Hãy bật trang web rồi quay lại tải tệp xuất lên.',
   turnOn: 'Bật trang web',
-  turnOnNeeds: 'Bật trang web cần quyền website:manage. Những gì bạn tải lên sẽ không được giữ cho tới lúc đó.',
+  turnOnNeeds: 'Bật trang web cần vai trò có quyền quản lý trang web. Những gì bạn tải lên sẽ không được giữ cho tới lúc đó.',
 
   menuImport: 'Nhập bài viết',
   menuFrom: 'Từ Substack, Ghost hoặc WordPress',

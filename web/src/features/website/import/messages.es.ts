@@ -121,10 +121,10 @@ export default translate(mi, {
   backToPosts: 'Volver a Artículos',
   importN: 'Importar {count, plural, one {# artículo} other {# artículos}}',
   startFailed: 'La importación no empezó',
-  needsPublish: 'Importar publica artículos, así que necesita website:publish.',
+  needsPublish: 'Importar publica artículos, y tu rol no puede hacerlo.',
   readOnlyTitle: 'Solo lectura · {name}, {role}',
-  readOnlyText: 'Puedes ver la revisión. Importar publica artículos, así que necesita website:publish. Pídeselo a {helpers}.',
-  readOnlyNoHelpers: 'Puedes ver la revisión. Importar publica artículos, así que necesita website:publish.',
+  readOnlyText: 'Puedes ver la revisión. Importar publica artículos, y tu rol no puede hacerlo. Pídeselo a {helpers}.',
+  readOnlyNoHelpers: 'Puedes ver la revisión. Importar publica artículos, y tu rol no puede hacerlo.',
 
   nothingTitle: 'Nada nuevo en esta exportación',
   nothingText: '{count, plural, one {El # artículo publicado} other {Los # artículos publicados}} de <b>{file}</b> ya se importaron, y {drafts, plural, one {su # borrador se omite} other {sus # borradores se omiten}}. Cambia la decisión de un borrador en la revisión para importarlo.',
@@ -200,7 +200,7 @@ export default translate(mi, {
   offTitle: 'Primero activa el sitio',
   offText: 'Los artículos importados se publican en {host} con sus fechas, y el sitio web está desactivado. Actívalo y vuelve para subir la exportación.',
   turnOn: 'Activar el sitio web',
-  turnOnNeeds: 'Activar el sitio web necesita website:manage. Nada de lo que subas se guarda hasta entonces.',
+  turnOnNeeds: 'Activar el sitio web requiere un rol que lo gestione. Nada de lo que subas se guarda hasta entonces.',
 
   menuImport: 'Importar artículos',
   menuFrom: 'Desde Substack, Ghost o WordPress',

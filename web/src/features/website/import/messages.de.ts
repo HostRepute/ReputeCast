@@ -121,10 +121,10 @@ export default translate(mi, {
   backToPosts: 'Zurück zu Beiträgen',
   importN: '{count, plural, one {# Beitrag importieren} other {# Beiträge importieren}}',
   startFailed: 'Der Import hat nicht begonnen',
-  needsPublish: 'Importieren veröffentlicht Beiträge und braucht deshalb website:publish.',
+  needsPublish: 'Importieren veröffentlicht Beiträge, und das kann deine Rolle nicht.',
   readOnlyTitle: 'Nur lesen · {name}, {role}',
-  readOnlyText: 'Du kannst die Prüfung ansehen. Importieren veröffentlicht Beiträge und braucht deshalb website:publish. Frag {helpers}.',
-  readOnlyNoHelpers: 'Du kannst die Prüfung ansehen. Importieren veröffentlicht Beiträge und braucht deshalb website:publish.',
+  readOnlyText: 'Du kannst die Prüfung ansehen. Importieren veröffentlicht Beiträge, und das kann deine Rolle nicht. Frag {helpers}.',
+  readOnlyNoHelpers: 'Du kannst die Prüfung ansehen. Importieren veröffentlicht Beiträge, und das kann deine Rolle nicht.',
 
   nothingTitle: 'Nichts Neues in diesem Export',
   nothingText: 'Alle {count, plural, one {# veröffentlichter Beitrag} other {# veröffentlichten Beiträge}} in <b>{file}</b> wurden schon importiert, und {drafts, plural, one {sein # Entwurf wird} other {seine # Entwürfe werden}} übersprungen. Ändere in der Prüfung die Entscheidung eines Entwurfs, um ihn zu importieren.',
@@ -200,7 +200,7 @@ export default translate(mi, {
   offTitle: 'Schalte zuerst die Website ein',
   offText: 'Importierte Beiträge gehen auf {host} mit ihren Daten online, und die Website ist aus. Schalte sie ein und komm dann zurück, um den Export hochzuladen.',
   turnOn: 'Website einschalten',
-  turnOnNeeds: 'Die Website einzuschalten braucht website:manage. Bis dahin wird nichts, was du hochlädst, aufbewahrt.',
+  turnOnNeeds: 'Die Website einzuschalten braucht eine Rolle, die sie verwaltet. Bis dahin wird nichts, was du hochlädst, aufbewahrt.',
 
   menuImport: 'Beiträge importieren',
   menuFrom: 'Aus Substack, Ghost oder WordPress',

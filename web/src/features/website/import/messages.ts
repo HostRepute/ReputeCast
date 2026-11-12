@@ -126,10 +126,10 @@ export const mi = defineMessages('website.import', {
   backToPosts: 'Back to posts',
   importN: 'Import {count, plural, one {# post} other {# posts}}',
   startFailed: 'The import didn\'t start',
-  needsPublish: 'Importing publishes posts, so it needs website:publish.',
+  needsPublish: 'Importing publishes posts, which your role can\'t do.',
   readOnlyTitle: 'Read-only · {name}, {role}',
-  readOnlyText: 'You can see the review. Importing publishes posts, so it needs website:publish. Ask {helpers}.',
-  readOnlyNoHelpers: 'You can see the review. Importing publishes posts, so it needs website:publish.',
+  readOnlyText: 'You can see the review. Importing publishes posts, which your role can\'t do. Ask {helpers}.',
+  readOnlyNoHelpers: 'You can see the review. Importing publishes posts, which your role can\'t do.',
 
   // Nothing to import
   nothingTitle: 'Nothing new in this export',
@@ -210,7 +210,7 @@ export const mi = defineMessages('website.import', {
   offTitle: 'Turn on the site first',
   offText: 'Imported posts go live on {host} with their dates, and the website is off. Turn it on, then come back to upload the export.',
   turnOn: 'Turn on the website',
-  turnOnNeeds: 'Turning on the website needs website:manage. Nothing you upload is kept until then.',
+  turnOnNeeds: 'Turning on the website takes a role that manages it. Nothing you upload is kept until then.',
 
   // Posts header menu
   menuImport: 'Import posts',

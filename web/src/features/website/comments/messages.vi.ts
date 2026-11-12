@@ -129,5 +129,5 @@ export default translate(mc, {
   loadFailedText: 'Không có gì thay đổi trên {host}: bình luận đã đăng vẫn hiện, và bình luận mới vẫn chờ duyệt.',
   retry: 'Thử lại',
   viewSite: 'Xem trang',
-  readOnly: 'Bạn có thể đọc mọi bình luận. Đăng, ẩn, xóa, ghim, trả lời và chặn cần quyền comments:moderate.',
+  readOnly: 'Bạn có thể đọc mọi bình luận. Vai trò của bạn không thể đăng, ẩn, xóa, ghim, trả lời hay chặn.',
 })

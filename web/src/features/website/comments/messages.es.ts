@@ -129,5 +129,5 @@ export default translate(mc, {
   loadFailedText: 'Nada cambió en {host}: los comentarios publicados se siguen mostrando y los nuevos siguen esperando revisión.',
   retry: 'Reintentar',
   viewSite: 'Ver sitio',
-  readOnly: 'Puedes leer todos los comentarios. Publicar, ocultar, eliminar, fijar, responder y bloquear necesitan comments:moderate.',
+  readOnly: 'Puedes leer todos los comentarios. Tu rol no puede publicar, ocultar, eliminar, fijar, responder ni bloquear.',
 })

@@ -129,5 +129,5 @@ export default translate(mc, {
   loadFailedText: 'Auf {host} hat sich nichts geändert: Veröffentlichte Kommentare erscheinen weiter, und neue warten weiter auf Prüfung.',
   retry: 'Erneut versuchen',
   viewSite: 'Website ansehen',
-  readOnly: 'Du kannst jeden Kommentar lesen. Veröffentlichen, Ausblenden, Löschen, Anheften, Antworten und Sperren brauchen comments:moderate.',
+  readOnly: 'Du kannst jeden Kommentar lesen. Deine Rolle kann nicht veröffentlichen, ausblenden, löschen, anheften, antworten oder sperren.',
 })

@@ -128,5 +128,5 @@ export const mc = defineMessages('website.comments', {
   loadFailedText: 'Nothing changed on {host}: published comments still show, and new ones still wait for review.',
   retry: 'Retry',
   viewSite: 'View site',
-  readOnly: 'You can read every comment. Publishing, hiding, deleting, pinning, replying and blocking need comments:moderate.',
+  readOnly: 'You can read every comment. Your role can\'t publish, hide, delete, pin, reply to or block.',
 })
