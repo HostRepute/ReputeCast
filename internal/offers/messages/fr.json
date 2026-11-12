@@ -92,7 +92,7 @@
   "problem.notFound": "Offre introuvable.",
   "sync.unreachable": "injoignable",
   "cancel.pause.title": "Suspendre plutôt",
-  "cancel.pause.text": "Faites une pause dans vos paiements. {tier} s’arrête pendant la suspension et revient de lui-même ; {free} gratuit continue d’arriver.",
+  "cancel.pause.text": "Faites une pause dans vos paiements. {tier} s’arrête pendant la suspension et revient de lui-même\u202F; {free} gratuit continue d’arriver.",
   "cancel.pause.textNoList": "Faites une pause dans vos paiements. {tier} s’arrête pendant la suspension et revient de lui-même.",
   "cancel.pause.legend": "Durée de la suspension",
   "cancel.pause.option": "{months, plural, one {# mois} other {# mois}}",
