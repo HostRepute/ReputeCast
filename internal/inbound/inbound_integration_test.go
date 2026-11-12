@@ -461,7 +461,6 @@ func TestReports(t *testing.T) {
 type fakeBox struct {
 	msgs  []bouncebox.Message
 	acked []string
-	err   error
 }
 
 func (b *fakeBox) Fetch(context.Context, int) ([]bouncebox.Message, error) { return b.msgs, nil }

@@ -199,7 +199,7 @@ func (p *Provider) VerifyWebhook(ctx context.Context, _ *http.Request, body []by
 func (p *Provider) Handshake(ctx context.Context, _ *http.Request, body []byte) (bool, []byte, error) {
 	e, err := parseEnvelope(body)
 	if err != nil || e.Type == "Notification" {
-		return false, nil, nil
+		return false, nil, nil //nolint:nilerr // not a handshake: ParseWebhook judges the body
 	}
 	if err := p.verify(ctx, e); err != nil {
 		return true, nil, err

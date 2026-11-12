@@ -385,12 +385,12 @@ func (s *Service) View(ctx context.Context, ws *store.Workspace) (InboundRouteVi
 	}
 	pr, err := s.Q.ProvGetAny(ctx, *r.ProviderID)
 	if err != nil {
-		return out, nil // the provider was removed: the card says so through its status
+		return out, nil //nolint:nilerr // the provider was removed: the card says so through its status
 	}
 	out.Provider = &InboundProviderRef{ID: pr.ID.String(), Name: pr.Name, Adapter: pr.Adapter}
 	rc, _, err := s.receiver(ctx, r)
 	if err != nil {
-		return out, nil
+		return out, nil //nolint:nilerr // the adapter can't receive: the card shows the route without its records
 	}
 	ar, err := s.adapterRoute(r)
 	if err != nil {
@@ -690,7 +690,7 @@ func (s *Service) checkDomain(ctx context.Context, ws *store.Workspace, domain s
 func (s *Service) checkMXFree(ctx context.Context, domain string, want []providers.DNSRecord) error {
 	hosts, err := s.lookupMX(ctx, domain)
 	if err != nil || len(hosts) == 0 {
-		return nil // no MX yet, or DNS can't tell: setup shows the records
+		return nil //nolint:nilerr // no MX yet, or DNS can't tell: setup shows the records
 	}
 	for _, h := range hosts {
 		ours := false

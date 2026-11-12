@@ -53,7 +53,7 @@ func Parse(raw []byte) (Parsed, error) {
 		return out, err
 	}
 	h := mr.Header
-	out.Header = textproto.MIMEHeader(h.Header.Map())
+	out.Header = textproto.MIMEHeader(h.Map())
 	readHeader(&out, h)
 	var text, htmlBody string
 	for range maxParts {

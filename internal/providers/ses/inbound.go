@@ -97,7 +97,7 @@ func inboundEnvelope(route providers.InboundRoute, body []byte) (Envelope, error
 func (p *Provider) HandshakeInbound(ctx context.Context, route providers.InboundRoute, _ *http.Request, body []byte) (bool, []byte, error) {
 	e, err := parseEnvelope(body)
 	if err != nil || e.Type == "Notification" {
-		return false, nil, nil
+		return false, nil, nil //nolint:nilerr // not a handshake: VerifyInbound judges the body
 	}
 	if _, err := inboundEnvelope(route, body); err != nil {
 		return true, nil, err
@@ -167,7 +167,7 @@ func (p *Provider) ParseInbound(_ context.Context, _ providers.InboundRoute, _ *
 	var n receivedNotification
 	if err := json.Unmarshal([]byte(e.Message), &n); err != nil || n.NotificationType != "Received" {
 		// Something else on the topic (SES's subscription test): no mail.
-		return []providers.InboundMessage{}, nil
+		return []providers.InboundMessage{}, nil //nolint:nilerr // not a received mail: nothing to deliver
 	}
 	m := providers.InboundMessage{
 		ProviderMessageID: n.Mail.MessageID,

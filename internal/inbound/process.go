@@ -172,13 +172,13 @@ func (s *Service) messagesOf(ctx context.Context, route store.InboundRoute, raw 
 	if raw.Source != "hook" {
 		p, err := Parse(raw.Body)
 		if err != nil {
-			return nil, fmt.Errorf("%w: the message can't be read: %v", errPermanent, err)
+			return nil, fmt.Errorf("%w: the message can't be read: %w", errPermanent, err)
 		}
 		return []received{{in: providers.InboundMessage{Raw: raw.Body, ReceivedAt: raw.ReceivedAt}, parsed: p, raw: raw.Body}}, nil
 	}
 	rc, _, err := s.receiver(ctx, route)
 	if errors.Is(err, errUnsupported) || errors.Is(err, pgx.ErrNoRows) || errors.Is(err, errNoProvider) {
-		return nil, fmt.Errorf("%w: %v", errPermanent, err)
+		return nil, fmt.Errorf("%w: %w", errPermanent, err)
 	}
 	if err != nil {
 		return nil, err
