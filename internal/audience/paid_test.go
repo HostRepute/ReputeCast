@@ -14,8 +14,8 @@ func TestPaidStatusInContacts(t *testing.T) {
 	ctx := context.Background()
 	var access int64
 	if err := env.App.Pool.QueryRow(ctx, `SELECT count(DISTINCT s.contact_id) FROM paid_subscriptions s JOIN contacts c ON c.id = s.contact_id AND c.erased_at IS NULL
-		WHERE s.workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter') AND s.mode = 'live' AND s.ended_at IS NULL
-		AND (s.status IN ('trialing','active','complimentary','gift') OR (s.status = 'past_due' AND NOT s.access_paused))`).Scan(&access); err != nil {
+		WHERE s.workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter') AND s.mode = 'live'
+		AND earn_paid_access(s.kind, s.status, s.ended_at, s.access_paused, s.paused_at)`).Scan(&access); err != nil {
 		t.Fatal(err)
 	}
 

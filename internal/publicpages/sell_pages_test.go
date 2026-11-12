@@ -204,7 +204,11 @@ func TestCustomPageAddresses(t *testing.T) {
 		"Sent by email, with reminders 1 day and 1 hour before", `data-start="`+start.UTC().Format(time.RFC3339)+`"`)
 	lacks(t, dmarc, "acme.zoom.us")
 
-	must(t, get(t, e.Env, spSite+"sponsor"), http.StatusNotFound)
+	// /sponsor is the media kit (M65): the never-published "Sponsor the
+	// Weekly Digest" page at that address still isn't served.
+	kit := get(t, e.Env, spSite+"sponsor")
+	must(t, kit, http.StatusOK, "Sponsor Acme Newsletter")
+	lacks(t, kit, "Sponsor the Weekly Digest")
 	must(t, get(t, e.Env, spSite+"no-such-page"), http.StatusNotFound)
 	must(t, get(t, e.Env, "/p/no-such-workspace/field-guide"), http.StatusNotFound)
 
