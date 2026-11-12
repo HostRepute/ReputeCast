@@ -65,7 +65,7 @@ test('with wait-consent nothing is sent or stored before consent, then events ar
   expect((sent[1].body as { rc?: string }).rc).toBeUndefined()
 
   // consent(false) deletes the visitor id and stops sending.
-  await page.evaluate(() => (window as unknown as { reputecast: (...a: unknown[]) => void }).reputecast('consent', false))
+  await page.evaluate(() => (globalThis as unknown as { reputecast: (...a: unknown[]) => void }).reputecast('consent', false))
   expect(await cookie(page)).toBeUndefined()
   expect(await page.evaluate(() => localStorage.getItem('rc_vid'))).toBeNull()
   const before = sent.length
