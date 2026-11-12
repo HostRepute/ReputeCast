@@ -115,6 +115,23 @@ type WebsiteImport struct {
 	ReportURL string `json:"reportUrl,omitempty"`
 }
 
+// WebsiteImportSummary is an import in the list of a workspace's imports.
+type WebsiteImportSummary struct {
+	ID         string     `json:"id"`
+	Source     string     `json:"source" enum:"substack,ghost,wordpress"`
+	Status     string     `json:"status" enum:"uploaded,analysing,ready,importing,done,failed,canceled"`
+	FileName   string     `json:"fileName"`
+	FileSize   int64      `json:"fileSize"`
+	CreatedBy  string     `json:"createdBy"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+}
+
+// WebsiteImportList is a workspace's latest 50 imports, newest first.
+type WebsiteImportList struct {
+	Items []WebsiteImportSummary `json:"items"`
+}
+
 // WebsiteImportCounts are the Review step's numbers.
 type WebsiteImportCounts struct {
 	Found           int64 `json:"found"`
@@ -301,6 +318,11 @@ func registerImports(h huma.API, s *Service) {
 			out, err := s.CreateImport(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.FileName, in.RawBody)
 			return api.OK(out), err
 		})
+	api.Get(h, api.Op{ID: "list-website-imports", Path: base, Summary: "A workspace's latest imports of posts, newest first", Tags: tags, Access: access},
+		func(ctx context.Context, in *api.WorkspaceInput) (*api.Body[WebsiteImportList], error) {
+			out, err := s.Imports(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "get-website-import", Path: base + "/{import}", Summary: "An import of posts: how far it got, what the export holds, the choices and its posts",
 		Tags: tags, Access: access},
 		func(ctx context.Context, in *importGet) (*api.Body[WebsiteImport], error) {
@@ -410,6 +432,20 @@ func (s *Service) CreateImport(ctx context.Context, ws *store.Workspace, p *auth
 		return WebsiteImport{}, err
 	}
 	return s.Import(ctx, ws, id, "", 50)
+}
+
+// Imports are a workspace's latest imports.
+func (s *Service) Imports(ctx context.Context, ws *store.Workspace) (WebsiteImportList, error) {
+	rows, err := s.Q.WebsiteImportList(ctx, ws.ID)
+	if err != nil {
+		return WebsiteImportList{}, err
+	}
+	out := WebsiteImportList{Items: make([]WebsiteImportSummary, 0, len(rows))}
+	for _, r := range rows {
+		out.Items = append(out.Items, WebsiteImportSummary{ID: r.ID.String(), Source: r.Source, Status: r.Status, FileName: r.FileName, FileSize: r.FileSize,
+			CreatedBy: r.CreatedByName, CreatedAt: r.CreatedAt, FinishedAt: r.FinishedAt})
+	}
+	return out, nil
 }
 
 // Import is an import with a page of its posts.

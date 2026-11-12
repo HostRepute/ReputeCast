@@ -5310,6 +5310,8 @@ type Querier interface {
 	// Importing posts from Substack, Ghost and WordPress (M61, G-26):
 	// internal/website/imports*.go.
 	WebsiteImportInsert(ctx context.Context, arg WebsiteImportInsertParams) error
+	// A workspace's latest imports.
+	WebsiteImportList(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteImportListRow, error)
 	WebsiteImportLock(ctx context.Context, arg WebsiteImportLockParams) (WebsiteImportLockRow, error)
 	// Moves an import on from one of the statuses it may move from.
 	WebsiteImportMove(ctx context.Context, arg WebsiteImportMoveParams) (int64, error)

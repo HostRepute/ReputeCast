@@ -98177,6 +98177,21 @@
         ],
         "type": "object"
       },
+      "WebsiteImportList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WebsiteImportSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "WebsiteImportOptions": {
         "additionalProperties": false,
         "properties": {
@@ -98448,6 +98463,62 @@
           "skipped",
           "imagesCopied",
           "imagesFailed"
+        ],
+        "type": "object"
+      },
+      "WebsiteImportSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "fileSize": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "substack",
+              "ghost",
+              "wordpress"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "uploaded",
+              "analysing",
+              "ready",
+              "importing",
+              "done",
+              "failed",
+              "canceled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "status",
+          "fileName",
+          "fileSize",
+          "createdBy",
+          "createdAt"
         ],
         "type": "object"
       },
@@ -184589,6 +184660,58 @@
       }
     },
     "/api/v1/workspaces/{workspace}/website/imports": {
+      "get": {
+        "operationId": "list-website-imports",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsiteImportList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "A workspace's latest imports of posts, newest first",
+        "tags": [
+          "Website"
+        ],
+        "x-access": "workspace",
+        "x-permission": "website:publish"
+      },
       "post": {
         "description": "The format is told from the file's content. The posts are read in the background; nothing is imported until the import is started.",
         "operationId": "create-website-import",

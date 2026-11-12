@@ -283,6 +283,55 @@ func (q *Queries) WebsiteImportInsert(ctx context.Context, arg WebsiteImportInse
 	return err
 }
 
+const websiteImportList = `-- name: WebsiteImportList :many
+SELECT i.id, i.source, i.status, i.file_name, i.file_size, i.created_at, i.finished_at, coalesce(u.name, '')::text AS created_by_name
+FROM website_imports i LEFT JOIN users u ON u.id = i.created_by
+WHERE i.workspace_id = $1
+ORDER BY i.created_at DESC
+LIMIT 50
+`
+
+type WebsiteImportListRow struct {
+	ID            uuid.UUID  `json:"id"`
+	Source        string     `json:"source"`
+	Status        string     `json:"status"`
+	FileName      string     `json:"fileName"`
+	FileSize      int64      `json:"fileSize"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	FinishedAt    *time.Time `json:"finishedAt"`
+	CreatedByName string     `json:"createdByName"`
+}
+
+// A workspace's latest imports.
+func (q *Queries) WebsiteImportList(ctx context.Context, workspaceID uuid.UUID) ([]WebsiteImportListRow, error) {
+	rows, err := q.db.Query(ctx, websiteImportList, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WebsiteImportListRow{}
+	for rows.Next() {
+		var i WebsiteImportListRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Source,
+			&i.Status,
+			&i.FileName,
+			&i.FileSize,
+			&i.CreatedAt,
+			&i.FinishedAt,
+			&i.CreatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const websiteImportLock = `-- name: WebsiteImportLock :one
 SELECT id, workspace_id, source, status, options, stats, error, file_name, file_size, created_by, created_at, updated_at, finished_at
 FROM website_imports WHERE workspace_id = $1 AND id = $2 FOR UPDATE

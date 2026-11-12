@@ -21,6 +21,14 @@ SELECT i.id, i.workspace_id, i.source, i.status, i.options, i.stats, i.error, (i
 FROM website_imports i LEFT JOIN users u ON u.id = i.created_by
 WHERE i.workspace_id = @workspace_id AND i.id = @id;
 
+-- name: WebsiteImportList :many
+-- A workspace's latest imports.
+SELECT i.id, i.source, i.status, i.file_name, i.file_size, i.created_at, i.finished_at, coalesce(u.name, '')::text AS created_by_name
+FROM website_imports i LEFT JOIN users u ON u.id = i.created_by
+WHERE i.workspace_id = @workspace_id
+ORDER BY i.created_at DESC
+LIMIT 50;
+
 -- name: WebsiteImportByID :one
 -- An import for its background jobs.
 SELECT id, workspace_id, source, status, options, stats, error, file_name, file_size, created_by, created_at, updated_at, finished_at

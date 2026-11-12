@@ -17801,7 +17801,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** A workspace's latest imports of posts, newest first */
+        get: operations["list-website-imports"];
         put?: never;
         /**
          * Upload a Substack, Ghost or WordPress export to import its posts
@@ -46793,6 +46794,9 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        WebsiteImportList: {
+            items: components["schemas"]["WebsiteImportSummary"][];
+        };
         WebsiteImportOptions: {
             author: {
                 [key: string]: string;
@@ -46873,6 +46877,21 @@ export interface components {
             total: number;
             /** Format: int64 */
             updated: number;
+        };
+        WebsiteImportSummary: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            /** @enum {string} */
+            source: "substack" | "ghost" | "wordpress";
+            /** @enum {string} */
+            status: "uploaded" | "analysing" | "ready" | "importing" | "done" | "failed" | "canceled";
         };
         WebsiteImportTier: {
             /** Format: int64 */
@@ -89311,6 +89330,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-website-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteImportList"];
                 };
             };
             /** @description Error */

@@ -22,6 +22,8 @@ const lists: Record<string, (v: string) => [string, string, (i: Item) => boolean
   product: (name) => ['products', 'products', (p) => p.name === name],
   order: (n) => [`products/orders?period=all&q=${encodeURIComponent(n)}`, 'items', (o) => String(o.number) === n],
   page: (name) => ['pages', 'pages', (p) => p.name === name],
+  // An import of posts by its status ({postImport:ready}, M61).
+  postImport: (status) => ['website/imports', 'items', (i) => i.status === status],
 }
 
 /** Looks up the ids behind {campaign:Name}, {sso:Name} and the kinds in `lists` in a path. */
