@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/growth"
 	"github.com/hostrepute/reputecast/internal/leads"
 	"github.com/hostrepute/reputecast/internal/leads/meta/metatest"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -243,9 +244,31 @@ func TestLeadAdsSingleOptInAndHealth(t *testing.T) {
 		t.Fatalf("trigger events: %d", n)
 	}
 
+	// Tom joined at once: Growth counts him under "Lead ads · Field Guide
+	// download" (the lead_ad kind, named after the form).
+	ctx := context.Background()
+	g := &growth.Service{Pool: f.env.App.Pool, Q: f.env.App.Q, Audit: f.env.App.Audit}
+	if err := g.Attribute(ctx, &f.ws); err != nil {
+		t.Fatal(err)
+	}
+	if src := one[string](t, f.env, `SELECT g.source_kind || ':' || g.source_id FROM contact_growth g JOIN contacts c ON c.id = g.contact_id
+		WHERE c.workspace_id = $1 AND c.email = 'tom.becker@example.com'`, f.ws.ID); src != "lead_ad:"+guide {
+		t.Fatalf("growth source %s", src)
+	}
+	var sources growth.GrowthSourceList
+	f.owner.Do(http.MethodGet, "/workspaces/"+f.ws.Slug+"/growth/sources", nil).MustStatus(t, 200).JSON(t, &sources)
+	named := false
+	for _, it := range sources.Items {
+		if it.Source.Kind == "lead_ad" && it.Source.Name == "Field Guide download" && it.Contacts == 1 {
+			named = true
+		}
+	}
+	if !named {
+		t.Fatalf("growth sources: %+v", sources.Items)
+	}
+
 	// No delivery for 24 hours while forms are active: the health check
 	// polls each active form.
-	ctx := context.Background()
 	if _, err := f.env.App.Pool.Exec(ctx, `UPDATE lead_connections SET subscribed_at = now() - interval '2 days', last_event_at = now() - interval '25 hours' WHERE workspace_id = $1`, f.ws.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -278,4 +301,53 @@ func TestLeadAdsSingleOptInAndHealth(t *testing.T) {
 	if n := one[int64](t, f.env, `SELECT count(*) FROM notifications WHERE workspace_id = $1 AND kind = 'lead_ads_attention'`, f.ws.ID); n == 0 {
 		t.Fatal("no notification")
 	}
+}
+
+// TestLeadAdsAccess: a Viewer reads the page without the webhook's tokens
+// and can't change anything; no response ever carries the app secret or a
+// token.
+func TestLeadAdsAccess(t *testing.T) {
+	f := newFixture(t)
+	conn := f.connect(t)
+	viewer := f.env.CreateUser(apptest.UserOpts{Email: "viewer@m66leads.test", Name: "Vic Viewer"})
+	f.env.AddMember(f.ws, viewer.ID, "viewer")
+	v := f.env.Client()
+	v.SignIn(viewer.Email, "")
+
+	var seen leads.LeadAdsConnection
+	v.Do(http.MethodGet, f.path+"/connections/"+conn.ID, nil).MustStatus(t, 200).JSON(t, &seen)
+	if seen.CanManage || seen.Webhook != nil || len(seen.Helpers) == 0 {
+		t.Fatalf("viewer's page: canManage=%v webhook=%v helpers=%v", seen.CanManage, seen.Webhook, seen.Helpers)
+	}
+	webinar := formID(t, conn, "Spring webinar signup")
+	for _, w := range []struct{ method, path string }{
+		{http.MethodPost, f.path + "/connections"},
+		{http.MethodGet, f.path + "/connections/" + conn.ID + "/pages"},
+		{http.MethodPut, f.path + "/connections/" + conn.ID + "/pages"},
+		{http.MethodPost, f.path + "/connections/" + conn.ID + "/refresh"},
+		{http.MethodPut, f.path + "/connections/" + conn.ID + "/credentials"},
+		{http.MethodPost, f.path + "/connections/" + conn.ID + "/disconnect"},
+		{http.MethodPut, f.path + "/forms/" + webinar + "/mapping"},
+		{http.MethodPost, f.path + "/forms/" + webinar + "/pause"},
+		{http.MethodPost, f.path + "/forms/" + webinar + "/import"},
+	} {
+		v.Do(w.method, w.path, map[string]any{}).MustStatus(t, 403)
+	}
+
+	// The owner's answers never carry the credentials.
+	for _, path := range []string{f.path + "/connections/" + conn.ID, f.path + "/connections", f.path + "/setup", f.path + "/forms/" + webinar} {
+		body := f.owner.Do(http.MethodGet, path, nil).MustStatus(t, 200).Body
+		for _, secret := range []string{demo.LeadAdsAppSecret, demo.LeadAdsToken, "demo-page-token"} {
+			if bytes.Contains(body, []byte(secret)) {
+				t.Fatalf("%s returned a secret", path)
+			}
+		}
+	}
+
+	// Another workspace can't see the connection.
+	other := f.env.CreateUser(apptest.UserOpts{Email: "other@m66leads.test", Name: "Oz Other"})
+	ows := f.env.CreateWorkspace("M66 Other", other.ID)
+	o := f.env.Client()
+	o.SignIn(other.Email, "")
+	o.Do(http.MethodGet, "/workspaces/"+ows.Slug+"/lead-ads/connections/"+conn.ID, nil).MustStatus(t, 404)
 }
