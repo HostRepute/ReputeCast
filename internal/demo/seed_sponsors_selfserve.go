@@ -59,15 +59,17 @@ func (e *earnMore) selfServe(ctx context.Context) error {
 	}
 	approved, paidOn := s.earnDay(2026, 10, 14, 10, 2), s.earnDay(2026, 10, 13, 11, 18)
 	awApproved := s.earnDay(2026, 10, 11, 9, 40)
+	// The sponsors' notes name dates on the demo's calendar.
+	launch, ships, offer := s.earnDay(2026, 11, 18, 12, 0), s.earnDay(2026, 11, 20, 12, 0), s.earnDay(2026, 12, 1, 12, 0)
 	list := []sponsorRequestSeed{
 		{issue: 147, company: "Fabrikam Studio", web: "fabrikam-studio.example", name: "Lucía Fernández", email: "lucia@fabrikam-studio.example",
-			notes: "We're launching our review plugin on 18 Nov. Happy to move a week if that issue goes.",
+			notes: "We're launching our review plugin on " + launch.Format("2 Jan") + ". Happy to move a week if that issue goes.",
 			creative: sponsorCreativeSeed{Headline: "Design reviews without the screenshot pile", Text: "Fabrikam Studio collects comments on your live pages, so feedback lands where the work is. Free for teams of five.",
 				Button: "Try Fabrikam free", Link: "https://fabrikam-studio.example/reviews", UTM: utmOf(147)},
 			at: s.earnDay(2026, 10, 14, 11, 42), token: SponsorStatusRequested},
 		{issue: 148, company: "Tailspin Toys", web: "tailspintoys.example", name: "Omar Siddiqui", email: "omar@tailspintoys.example",
-			notes: "Our holiday kits ship from 20 Nov, so late November works best for us.",
-			creative: sponsorCreativeSeed{Headline: "A drone kit for the builders at home", Text: "Kids build and code a working drone in a weekend. Weekly Digest readers get 15% off until 1 Dec.",
+			notes: "Our holiday kits ship from " + ships.Format("2 Jan") + ", so late " + ships.Format("January") + " works best for us.",
+			creative: sponsorCreativeSeed{Headline: "A drone kit for the builders at home", Text: "Kids build and code a working drone in a weekend. Weekly Digest readers get 15% off until " + offer.Format("2 Jan") + ".",
 				Button: "See the kits", Link: "https://tailspintoys.example/kits", UTM: utmOf(148)},
 			at: s.earnDay(2026, 10, 13, 16, 5), token: SponsorStatusDeclined},
 		{issue: 148, company: "Wide World Importers", web: "wideworldimporters.example", name: "Hannah Becker", email: "hannah@wideworldimporters.example",

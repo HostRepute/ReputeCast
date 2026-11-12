@@ -202,6 +202,24 @@ Read all of it before you start.
 - **Resend a member email,** such as "Payment failed".
 - **Export** paid members as CSV. Needs subscribers:export ⚑, and is audited.
 
+### 3.5a Teams (group subscriptions)
+Added in M65 (G-38); this section replaces the old out-of-scope line for group or team subscriptions.
+- **Group prices:** a tier can have a monthly and a yearly price per seat, and the seats a team can buy (from 2 to 1,000). They're Stripe prices like the others (audience "group"). A changed amount is a new price; teams that pay the old one keep it.
+- **Buying:** the upgrade page says "Buying for a team? From {price} per seat" and links to the team page (`/upgrade/{tier}/team`): a seats stepper, the team's name and the buyer's email, the price per seat and the total for the period, then "Continue to payment". Stripe Checkout charges the price × the seats, asks for a billing address and can take a tax ID.
+- **One subscription:** the buyer's Stripe subscription carries the quantity. The buyer always uses one seat. Every seat copies the buyer's tier, access, pause and end: when the buyer's subscription ends, every seat's access ends and its holder gets "Team access ended".
+- **Managing the team:** the buyer's private link (`/team/{token}`, 7 days; an expired link mails a fresh one) lists the seats (Active, Invited), invites people by email (up to the free seats), resends and removes them, changes the seats (more seats are charged now for the rest of the period, fewer are credited on the next invoice; never below the people in the team: "Remove {n} people first"), and opens Stripe's billing portal for invoices. A change of seats in Stripe is followed; when the seats drop below the people, nobody is removed: the buyer is told to choose.
+- **Joining:** an invite (`/team/join/{token}`, 14 days) says "{team} gave you access to {tier}"; accepting is a button (link scanners can't accept). The address joins the tier's lists with the acceptance as its consent and gets a seat (a paid status of kind "group", nothing to pay). An invite link keeps working after it's accepted, for the person to come back to.
+- **Earn › Paid members:** a buyer shows "Team · {used} of {seats}" and the panel lists the seats (Remove, needs earn:manage, audited); a seat holder shows "Seat in {team}" and has no Stripe subscription of their own. Changes Stripe sends go to the payment event log, not the audit log.
+- **Member emails:** "Welcome to your team" (to the buyer, with the manage link), "Team invite" and "Team access ended".
+- **MRR:** a team counts the price × the seats; seats count nothing on their own.
+
+### 3.5b Pausing a subscription
+Added in M65 (G-39); this section replaces the old out-of-scope line for pausing subscriptions.
+- **Through Stripe:** a pause sets the subscription's collection to void until a date (Stripe keeps it active); resuming clears it. Stripe resumes it by itself on that date.
+- **Who pauses:** a paid member on the cancel page, when Earn › Settings › Pausing allows it (1, 3 or 6 months; none turns it off): "Pause instead" comes before the retention offer, for an active member who isn't in a trial or behind on payments and hasn't paused in the last 12 months. The team can pause a member from the member panel for 1, 3 or 6 months or until a date at most 6 months away (needs earn:manage, audited), and resume them now.
+- **While paused:** no paid access (free lists stay), nothing charged, MRR 0 with an MRR movement "paused" (not churn); resuming adds "resumed". Members show "Paused until {date}".
+- **Emails:** "Membership paused" (with the resume date and a "Resume now" link) and "Pause ending" 7 days before. Automations can start on "Pauses payments" and "Resumes payments"; webhooks send `subscription.paused` and `subscription.resumed`.
+
 ### 3.6 Importing paid members
 - **Sources:** exports from Substack, Ghost, beehiiv and Kit, or any CSV with an email column and, ideally, a Stripe customer ID column.
 - **Matched with Stripe:** the import reads the connected account's customers and subscriptions, read-only, and matches each row by Stripe customer ID, then by email.
@@ -311,7 +329,15 @@ Read all of it before you start.
   - machine opens and bot clicks are left out, and the report says so
   - final 72 hours after the send; until then, "Results still coming in"
 - **Sharing:** a read-only link like the campaign report's: optional expiry, revocable, audited, needs reports:share. The page uses the publisher branding and shows only the sponsor's numbers and the creative as sent, never contact data.
-- **Sponsorships work without Stripe.**
+- **Sponsorships work without Stripe.** Self-serve booking (3.12a) is the one part that needs it.
+
+### 3.12a Sponsor self-booking
+Added in M65 (G-40); this section replaces the old out-of-scope line for self-serve sponsor booking and payment. Invoices for sponsors and a sponsor marketplace stay out of scope.
+- **The switch:** Earn › Sponsors › Requests has a "Self-serve booking" card. Turning it on publishes the media kit and needs a payment connection in Earn ("Connect Stripe in Earn first"). The card sets which numbers the kit shows (subscribers rounded to two significant digits, the average human open rate and the click rate of the slot's list over the last 90 days), About, Audience and a contact email. A slot is listed when its editor has Self-serve on, with a description, how many days ahead it must be booked (0–60) and how long a sponsor has to pay after the approval (1–14 days, never after the creative is due).
+- **The media kit** (`/sponsor`, indexable): the numbers, the slots with their prices, and the open issues of the next 12 weeks. An issue opens the request form: the company, the contact's name and email, the website, notes, and the creative as the Sponsor block shows it (logo or image as PNG or JPEG up to 2 MB, kept hidden until approved). The form checks the origin, has a honeypot and Turnstile when it's configured, and takes 5 requests an hour from one address.
+- **A request doesn't hold its issue.** The sponsor gets "We got your request" with a private status page (`/sponsor/b/{token}`), and the people who manage sponsors are notified. A request joins the library's sponsor with the same email, or adds one.
+- **Review** (needs sponsors:manage, audited): Approve, perhaps for another slot, issue or price, holds the issue until the pay-by date (the slot's days to pay, at the latest when the creative is due) and emails a link to pay; an issue held or booked meanwhile is refused ("Issue #{n} is taken. Choose another issue."). Decline needs a reason, which is emailed.
+- **Payment:** the status page's Pay opens a one-time Stripe Checkout for the booking's price. Paid, the booking is Booked, paid by Stripe, its creative ready, and the sponsor is told; Stripe emails the receipt. Unpaid by the deadline, it expires, the issue opens again and both sides are told. A payment after the deadline books the issue if it's still open; otherwise, and for a second payment, the team is told to refund it in Stripe. Payment events go to the payment event log.
 
 ### 3.13 Revenue and attribution
 - **Definitions,** shown in tooltips:
@@ -392,9 +418,9 @@ Who gets what:
 
 ### 3.17 Out of scope for this phase
 - Paddle and Lemon Squeezy (a later release).
-- Invoices for sponsors, self-serve sponsor booking and payment, and a sponsor marketplace.
+- Invoices for sponsors and a sponsor marketplace.
 - Member sign-in, paywalled web posts and digital products (phase 7).
-- Pausing subscriptions; moving current paid members to a new price; several currencies in one workspace; group or team subscriptions.
+- Moving current paid members to a new price; several currencies in one workspace.
 - Refunds from inside ReputeCast. They're made in Stripe.
 - Tax filing.
 
