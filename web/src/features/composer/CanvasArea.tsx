@@ -37,6 +37,7 @@ import { GrowPreviewAs } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
 import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
 import { useScrollRegion } from '@/lib/hooks'
+import { mc as couponComposer } from '@/features/coupons/composer/messages'
 
 interface Box {
   top: number
@@ -667,6 +668,12 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
               t.kind === 'paid' && tokens[i - 1]?.kind !== 'paid' ? (
                 <span key="paid-group" className="mh">
                   {tt(earnComposer.tokensPaid)}
+                </span>
+              ) : null,
+              // Discount code pools' codes and links (M59).
+              t.kind === 'coupon' && tokens[i - 1]?.kind !== 'coupon' ? (
+                <span key="coupon-group" className="mh">
+                  {tt(couponComposer.tokensGroup)}
                 </span>
               ) : null,
               <button

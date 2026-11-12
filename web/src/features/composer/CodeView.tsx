@@ -15,6 +15,7 @@ import { useComposer } from './context'
 import { checkMjmlTags, formatMjml, headMeta, splitMjml } from './editor/mjmlDoc'
 import { kb, lineCount } from './format'
 import { ViewSeg } from './CanvasArea'
+import { mc as couponComposer } from '@/features/coupons/composer/messages'
 
 const marks = {
   cm: Decoration.mark({ class: 'mj-cm' }),
@@ -350,12 +351,12 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
               </div>
             </TabPanel>
             <TabPanel value="tokens" className="flex flex-col" tabIndex={-1}>
-              {(['contact', 'custom', 'system', 'referral', 'paid'] as const).map((kind) => {
+              {(['contact', 'custom', 'system', 'referral', 'paid', 'coupon'] as const).map((kind) => {
                 const list = tokens.filter((t) => t.kind === kind)
                 if (!list.length) return null
                 return (
                   <div key={kind} className="flex flex-col">
-                    <div className="grp">{kind === 'contact' ? tr(mk.groupContact) : kind === 'custom' ? tr(mk.groupCustom) : kind === 'referral' ? tr(mk.groupReferral) : kind === 'paid' ? tr(earnComposer.tokensPaid) : tr(mk.groupSystem)}</div>
+                    <div className="grp">{kind === 'contact' ? tr(mk.groupContact) : kind === 'custom' ? tr(mk.groupCustom) : kind === 'referral' ? tr(mk.groupReferral) : kind === 'paid' ? tr(earnComposer.tokensPaid) : kind === 'coupon' ? tr(couponComposer.tokensGroup) : tr(mk.groupSystem)}</div>
                     {list.map((t) => (
                       <button
                         key={t.key}

@@ -35,6 +35,7 @@ import { SmsCampaignHead, SmsCampaignRow } from '@/features/sms/CampaignRow'
 import { ChannelCampaignRow } from '@/features/push/CampaignRow'
 import { Check, SelectAll } from '@/components/ui/SelectAll'
 import { useSelection } from '@/lib/selection'
+import { m as couponsMessages } from '@/features/coupons/messages'
 
 export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid' | 'archived' | 'deleted'
 
@@ -126,6 +127,10 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
         <>
           <CalendarLink />
           <SearchBox initial={search.q ?? ''} search={search} />
+          {/* Campaigns › Discount codes (M59), before New campaign. */}
+          <ButtonLink to="/w/$workspace/campaigns/codes" params={{ workspace: slug }}>
+            {t(couponsMessages.title)}
+          </ButtonLink>
           {newReason ? (
             <Button variant="primary" disabledReason={newReason}>
               {t(m.newCampaign)}

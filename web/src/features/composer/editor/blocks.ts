@@ -9,6 +9,11 @@ import { growBlockDefs } from '@/features/grow/composer/blocks'
 import { upgradeSection } from '@/features/earn/composer/upgrade'
 import { sponsorSection } from '@/features/earn/sponsors/composer/sponsor'
 import { t, type MessageDescriptor } from '@/i18n'
+import { getDisplayTimeZone } from '@/lib/format'
+import { countdownMjml, newCountdown } from '@/features/countdown/block'
+import { m as mcd } from '@/features/countdown/messages'
+import { couponMarker, newCoupon } from '@/features/coupons/composer/block'
+import { mc as mcp } from '@/features/coupons/composer/messages'
 import { mb } from '../blocks.messages'
 
 export type BlockGroup = 'layout' | 'content' | 'reputecast' | 'grow' | 'earn'
@@ -171,6 +176,17 @@ export function blockDefs(address: string): BlockDef[] {
       content: `<mj-table font-size="13px" color="#374151" padding="0px"><tr style="border-bottom:1px solid #E3E6EB;text-align:left"><th style="padding:6px 0">${text(mb.tablePlan)}</th><th style="padding:6px 0">${text(mb.tablePrice)}</th></tr><tr><td style="padding:6px 0">${text(mb.tableStarter)}</td><td style="padding:6px 0">${text(mb.tableStarterPrice)}</td></tr><tr><td style="padding:6px 0">${text(mb.tableTeam)}</td><td style="padding:6px 0">${text(mb.tableTeamPrice)}</td></tr></mj-table>`,
       keywords: 'rows columns pricing',
     },
+    // The Countdown block (M59): an image the server draws when the email
+    // is opened; its settings ask for the image as soon as it's dropped.
+    {
+      id: 'rc-countdown',
+      label: t(mcd.block),
+      group: 'content',
+      icon: 'countdown',
+      kind: 'content',
+      content: countdownMjml(newCountdown(getDisplayTimeZone() ?? 'UTC', 'en')),
+      keywords: 'countdown timer clock deadline offer ends gif',
+    },
     {
       id: 'rc-header',
       label: t(mb.headerLogo),
@@ -201,6 +217,8 @@ export function blockDefs(address: string): BlockDef[] {
     { id: 'rc-footer', label: t(mb.footer), group: 'reputecast', icon: 'rcFooter', kind: 'section', content: footerBlock(address), keywords: 'address unsubscribe compliance' },
     // The Poll block (design expansion, X11): each answer a plain link.
     { id: 'rc-poll', label: t(mb.poll), badge: t(mb.newBadge), group: 'reputecast', icon: 'rcPoll', kind: 'section', content: pollSection(newPoll()), keywords: 'poll question vote nps rating survey feedback' },
+    // The Discount code block (M59): each reader's own code from a pool.
+    { id: 'rc-coupon', label: t(mcp.block), group: 'reputecast', icon: 'rcCoupon', kind: 'content', content: couponMarker(newCoupon()), keywords: 'discount code coupon promo voucher shop' },
     // Grow's blocks (design expansion, X15): Referral and Recommendations.
     ...growBlockDefs(),
     // Earn (design expansion, X17): the Sponsor block fills itself from the

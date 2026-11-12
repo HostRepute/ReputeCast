@@ -20,6 +20,10 @@ import { useAccessibility } from '@/features/accessibility/composer/state'
 import { ReadinessIssues } from '@/features/review/ComposerReadiness'
 import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { isGrowBlock } from '@/features/grow/composer/blocks'
+import { CountdownPanel } from '@/features/countdown/CountdownPanel'
+import { isCountdown } from '@/features/countdown/block'
+import { CouponPanel } from '@/features/coupons/composer/CouponPanel'
+import { isCouponBlock } from '@/features/coupons/composer/block'
 import { GrowBlockInspector, GrowStyleNote } from '@/features/grow/composer/Panel'
 import { dc } from '@/features/digests/composer/messages'
 import { T, t as tt, useT } from '@/i18n'
@@ -406,6 +410,16 @@ export function RightPanel() {
             </div>
           ) : sel && isGrowBlock(sel) ? (
             <GrowStyleNote />
+          ) : sel && isCountdown(sel) ? (
+            // The Countdown block (M59): its settings draw its image.
+            <fieldset disabled={!c.canEdit} className="contents">
+              <CountdownPanel key={sel.cid} c={sel} />
+            </fieldset>
+          ) : sel && isCouponBlock(sel) ? (
+            // The Discount code block (M59).
+            <fieldset disabled={!c.canEdit} className="contents">
+              <CouponPanel key={sel.cid} c={sel} />
+            </fieldset>
           ) : sel ? (
             <>
               <InspectorHead c={sel} tab="style" />

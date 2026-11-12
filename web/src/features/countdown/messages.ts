@@ -1,0 +1,52 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * The composer's Countdown block (M59 G-21, ComposerTimedBlocks): its
+ * palette entry, its inspector and its name on the canvas. Time zones stay
+ * as IANA writes them (America/New_York).
+ */
+export const m = defineMessages('countdown', {
+  block: 'Countdown',
+  name: 'Countdown',
+  ends: 'ends {when}',
+  labelsFollow: "Labels follow the language you're editing: {language}.",
+  endsLabel: 'Ends',
+  endsDate: 'The day it ends',
+  endsTime: 'The time it ends',
+  zone: 'Time zone',
+  zoneDefault: '{zone} · workspace default',
+  sameMoment: 'Every reader counts down to the same moment: {first} in {firstCity} and {second} in {secondCity}.',
+  show: 'Show',
+  dhms: 'Days, hours, minutes, seconds',
+  hms: 'Hours, minutes, seconds',
+  dhm: 'Days, hours, minutes',
+  size: 'Size',
+  sizeL: '600 × 150 px, as wide as the email. Phones scale it down.',
+  sizeM: '480 × 120 px. Phones scale it down.',
+  sizeS: '360 × 96 px.',
+  colours: 'Colours',
+  background: 'Background',
+  digits: 'Digits',
+  labels: 'Labels',
+  brandKit: 'From the brand kit',
+  kitButton: 'Button',
+  kitText: 'Text',
+  kitBackground: 'Background',
+  applyBrand: 'Use {name} for the {field}',
+  digitsOn: 'Digits on the background',
+  labelsOn: 'Labels on the background',
+  refused: 'Digits need 4.5:1 against the background, so the image keeps {kept}. Pick a lighter colour or a darker background.',
+  whenEnds: 'When it ends',
+  showZeros: 'Show zeros',
+  showMessage: 'Show a message',
+  message: 'The message',
+  messageCount: '{count} of 60 characters. After the end the image is this one frame, kept by mail apps for up to an hour.',
+  alt: 'Alt text',
+  altAuto: 'Automatic: written from the end and the time zone. Type to write your own.',
+  altOwn: 'Your own. Clear it to go back to the automatic one.',
+  passNote: 'A {width} × {height} GIF drawn when the email opens, the same for every reader',
+  pass: 'Pass',
+  making: 'Drawing the timer…',
+  failed: "The timer's image wasn't made: {reason}",
+  notEditable: 'Only people who can edit campaigns change the Countdown block.',
+})

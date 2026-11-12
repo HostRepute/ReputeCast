@@ -7,6 +7,7 @@
  *   rc-poll     a Poll block's settings (JSON, on its mj-section)
  *   rc-omit     a block the canvas shows and the email leaves out (a Sponsor
  *               block without a booking)
+ *   rc-countdown a Countdown block's settings (JSON, on its mj-image; M59)
  *
  * Before the composer compiles an email they come out (mjml-browser would
  * report them as unknown attributes) and every conditional block is wrapped

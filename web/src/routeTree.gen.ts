@@ -116,6 +116,8 @@ import { Route as WWorkspaceAppCampaignsCampaignIdSmsReviewRouteImport } from '.
 import { Route as WWorkspaceAppCampaignsCampaignIdWhatsappRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/whatsapp'
 import { Route as WWorkspaceAppCampaignsCampaignIdWhatsappReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/whatsapp-report'
 import { Route as WWorkspaceAppCampaignsCampaignIdWhatsappReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/whatsapp-review'
+import { Route as WWorkspaceAppCampaignsCodesIndexRouteImport } from './routes/w/$workspace/_app/campaigns/codes/index'
+import { Route as WWorkspaceAppCampaignsCodesPoolIdRouteImport } from './routes/w/$workspace/_app/campaigns/codes/$poolId'
 import { Route as WWorkspaceAppDeliverabilityPlacementIndexRouteImport } from './routes/w/$workspace/_app/deliverability/placement/index'
 import { Route as WWorkspaceAppDeliverabilityPlacementTestIdRouteImport } from './routes/w/$workspace/_app/deliverability/placement/$testId'
 import { Route as WWorkspaceAppDeliverabilityPlacementSeedsRouteImport } from './routes/w/$workspace/_app/deliverability/placement/seeds'
@@ -786,6 +788,18 @@ const WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute =
     path: '/campaigns/$campaignId/whatsapp-review',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppCampaignsCodesIndexRoute =
+  WWorkspaceAppCampaignsCodesIndexRouteImport.update({
+    id: '/campaigns/codes/',
+    path: '/campaigns/codes/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppCampaignsCodesPoolIdRoute =
+  WWorkspaceAppCampaignsCodesPoolIdRouteImport.update({
+    id: '/campaigns/codes/$poolId',
+    path: '/campaigns/codes/$poolId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppDeliverabilityPlacementIndexRoute =
   WWorkspaceAppDeliverabilityPlacementIndexRouteImport.update({
     id: '/deliverability/placement/',
@@ -1222,6 +1236,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/campaigns/$campaignId/whatsapp': typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
   '/w/$workspace/campaigns/$campaignId/whatsapp-report': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
   '/w/$workspace/campaigns/$campaignId/whatsapp-review': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
+  '/w/$workspace/campaigns/codes/$poolId': typeof WWorkspaceAppCampaignsCodesPoolIdRoute
   '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1254,6 +1269,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/connect/sms/$adapter': typeof WWorkspaceProvidersConnectSmsAdapterRoute
   '/w/$workspace/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/campaigns/codes/': typeof WWorkspaceAppCampaignsCodesIndexRoute
   '/w/$workspace/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
   '/w/$workspace/earn/gifts/': typeof WWorkspaceAppEarnGiftsIndexRoute
   '/w/$workspace/earn/members/': typeof WWorkspaceAppEarnMembersIndexRoute
@@ -1383,6 +1399,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/campaigns/$campaignId/whatsapp': typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
   '/w/$workspace/campaigns/$campaignId/whatsapp-report': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
   '/w/$workspace/campaigns/$campaignId/whatsapp-review': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
+  '/w/$workspace/campaigns/codes/$poolId': typeof WWorkspaceAppCampaignsCodesPoolIdRoute
   '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1415,6 +1432,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers/connect/sms/$adapter': typeof WWorkspaceProvidersConnectSmsAdapterRoute
   '/w/$workspace/admin/sso': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/campaigns/codes': typeof WWorkspaceAppCampaignsCodesIndexRoute
   '/w/$workspace/deliverability/placement': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
   '/w/$workspace/earn/gifts': typeof WWorkspaceAppEarnGiftsIndexRoute
   '/w/$workspace/earn/members': typeof WWorkspaceAppEarnMembersIndexRoute
@@ -1548,6 +1566,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/campaigns/$campaignId/whatsapp': typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
   '/w/$workspace/_app/campaigns/$campaignId/whatsapp-report': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/whatsapp-review': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
+  '/w/$workspace/_app/campaigns/codes/$poolId': typeof WWorkspaceAppCampaignsCodesPoolIdRoute
   '/w/$workspace/_app/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/_app/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/_app/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1580,6 +1599,7 @@ export interface FileRoutesById {
   '/w/$workspace/providers/connect/sms/$adapter': typeof WWorkspaceProvidersConnectSmsAdapterRoute
   '/w/$workspace/_app/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/_app/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  '/w/$workspace/_app/campaigns/codes/': typeof WWorkspaceAppCampaignsCodesIndexRoute
   '/w/$workspace/_app/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
   '/w/$workspace/_app/earn/gifts/': typeof WWorkspaceAppEarnGiftsIndexRoute
   '/w/$workspace/_app/earn/members/': typeof WWorkspaceAppEarnMembersIndexRoute
@@ -1713,6 +1733,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/whatsapp'
     | '/w/$workspace/campaigns/$campaignId/whatsapp-report'
     | '/w/$workspace/campaigns/$campaignId/whatsapp-review'
+    | '/w/$workspace/campaigns/codes/$poolId'
     | '/w/$workspace/deliverability/placement/$testId'
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
@@ -1745,6 +1766,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/connect/sms/$adapter'
     | '/w/$workspace/admin/sso/'
     | '/w/$workspace/audience/segments/'
+    | '/w/$workspace/campaigns/codes/'
     | '/w/$workspace/deliverability/placement/'
     | '/w/$workspace/earn/gifts/'
     | '/w/$workspace/earn/members/'
@@ -1874,6 +1896,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/whatsapp'
     | '/w/$workspace/campaigns/$campaignId/whatsapp-report'
     | '/w/$workspace/campaigns/$campaignId/whatsapp-review'
+    | '/w/$workspace/campaigns/codes/$poolId'
     | '/w/$workspace/deliverability/placement/$testId'
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
@@ -1906,6 +1929,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/connect/sms/$adapter'
     | '/w/$workspace/admin/sso'
     | '/w/$workspace/audience/segments'
+    | '/w/$workspace/campaigns/codes'
     | '/w/$workspace/deliverability/placement'
     | '/w/$workspace/earn/gifts'
     | '/w/$workspace/earn/members'
@@ -2038,6 +2062,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/campaigns/$campaignId/whatsapp'
     | '/w/$workspace/_app/campaigns/$campaignId/whatsapp-report'
     | '/w/$workspace/_app/campaigns/$campaignId/whatsapp-review'
+    | '/w/$workspace/_app/campaigns/codes/$poolId'
     | '/w/$workspace/_app/deliverability/placement/$testId'
     | '/w/$workspace/_app/deliverability/placement/seeds'
     | '/w/$workspace/_app/earn/plans/upgrade-page'
@@ -2070,6 +2095,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/connect/sms/$adapter'
     | '/w/$workspace/_app/admin/sso/'
     | '/w/$workspace/_app/audience/segments/'
+    | '/w/$workspace/_app/campaigns/codes/'
     | '/w/$workspace/_app/deliverability/placement/'
     | '/w/$workspace/_app/earn/gifts/'
     | '/w/$workspace/_app/earn/members/'
@@ -2860,6 +2886,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/campaigns/codes/': {
+      id: '/w/$workspace/_app/campaigns/codes/'
+      path: '/campaigns/codes'
+      fullPath: '/w/$workspace/campaigns/codes/'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsCodesIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/campaigns/codes/$poolId': {
+      id: '/w/$workspace/_app/campaigns/codes/$poolId'
+      path: '/campaigns/codes/$poolId'
+      fullPath: '/w/$workspace/campaigns/codes/$poolId'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsCodesPoolIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/deliverability/placement/': {
       id: '/w/$workspace/_app/deliverability/placement/'
       path: '/deliverability/placement'
@@ -3328,6 +3368,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppCampaignsCampaignIdWhatsappRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
   WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
   WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
+  WWorkspaceAppCampaignsCodesPoolIdRoute: typeof WWorkspaceAppCampaignsCodesPoolIdRoute
   WWorkspaceAppDeliverabilityPlacementTestIdRoute: typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   WWorkspaceAppDeliverabilityPlacementSeedsRoute: typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   WWorkspaceAppEarnPlansUpgradePageRoute: typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -3356,6 +3397,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppTransactionalMessagesMessageIdRoute: typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
   WWorkspaceAppAdminSsoIndexRoute: typeof WWorkspaceAppAdminSsoIndexRoute
   WWorkspaceAppAudienceSegmentsIndexRoute: typeof WWorkspaceAppAudienceSegmentsIndexRoute
+  WWorkspaceAppCampaignsCodesIndexRoute: typeof WWorkspaceAppCampaignsCodesIndexRoute
   WWorkspaceAppDeliverabilityPlacementIndexRoute: typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
   WWorkspaceAppEarnGiftsIndexRoute: typeof WWorkspaceAppEarnGiftsIndexRoute
   WWorkspaceAppEarnMembersIndexRoute: typeof WWorkspaceAppEarnMembersIndexRoute
@@ -3468,6 +3510,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute,
   WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute:
     WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute,
+  WWorkspaceAppCampaignsCodesPoolIdRoute:
+    WWorkspaceAppCampaignsCodesPoolIdRoute,
   WWorkspaceAppDeliverabilityPlacementTestIdRoute:
     WWorkspaceAppDeliverabilityPlacementTestIdRoute,
   WWorkspaceAppDeliverabilityPlacementSeedsRoute:
@@ -3515,6 +3559,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAdminSsoIndexRoute: WWorkspaceAppAdminSsoIndexRoute,
   WWorkspaceAppAudienceSegmentsIndexRoute:
     WWorkspaceAppAudienceSegmentsIndexRoute,
+  WWorkspaceAppCampaignsCodesIndexRoute: WWorkspaceAppCampaignsCodesIndexRoute,
   WWorkspaceAppDeliverabilityPlacementIndexRoute:
     WWorkspaceAppDeliverabilityPlacementIndexRoute,
   WWorkspaceAppEarnGiftsIndexRoute: WWorkspaceAppEarnGiftsIndexRoute,
