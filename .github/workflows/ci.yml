@@ -185,7 +185,12 @@ jobs:
         run: |
           go tool sqlc generate
           go run ./cmd/reputecast openapi > web/openapi.json
-          git diff --exit-code -- internal/store web/openapi.json
+          go run ./cmd/reputecast openapi --public > sdk/openapi/public.json
+          go run ./cmd/reputecast openapi --public --openapi 3.0 > sdk/openapi/public-3.0.json
+          git diff --exit-code -- internal/store web/openapi.json sdk/openapi
+      # The client SDKs' webhook test deliveries are what the server signs.
+      - name: Webhook test vectors are up to date
+        run: go test -count=1 -run 'TestWebhookVectors' ./internal/webhooks/
       - run: go vet ./...
 
   vulns:
@@ -503,3 +508,172 @@ jobs:
         with:
           version: "~> v2"
           args: check
+
+  # The Helm chart (deploy/helm/reputecast): lint and both modes through
+  # kubeconform (make helm), then a single-mode install on kind against
+  # Postgres 18, with the image built from this checkout, until /readyz
+  # answers 200; an upgrade must migrate again and keep the generated key.
+  helm:
+    name: Helm chart · lint, kubeconform, kind install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+        with:
+          version: v4.3.1
+      - name: Install kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
+      - name: Lint and validate both modes
+        run: make helm
+      - name: Build the image
+        run: docker build -t reputecast:ci --build-arg VERSION=ci .
+      - uses: helm/kind-action@v1
+        with:
+          version: v0.33.0
+          cluster_name: reputecast
+      - name: Load the image and start Postgres 18
+        run: |
+          kind load docker-image reputecast:ci --name reputecast
+          kubectl apply -f deploy/helm/reputecast/ci/postgres.yaml
+          kubectl rollout status deployment/postgres --timeout=180s
+      - name: Install the chart (single mode)
+        run: helm install reputecast deploy/helm/reputecast -f deploy/helm/reputecast/ci/kind-values.yaml --wait --timeout 10m
+      - name: The first Owner was installed
+        run: kubectl logs job/reputecast-install | grep -q "ReputeCast is installed"
+      - name: helm test (/readyz through the Service)
+        run: helm test reputecast --timeout 3m
+      - name: /readyz answers 200
+        run: |
+          kubectl port-forward service/reputecast 8080:80 >/dev/null 2>&1 &
+          code=
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/readyz || true)
+            if [ "$code" = 200 ]; then exit 0; fi
+            sleep 2
+          done
+          echo "::error title=/readyz::It answered HTTP $code."
+          exit 1
+      - name: An upgrade migrates again and keeps the secret key
+        run: |
+          before=$(kubectl get secret reputecast-key -o jsonpath='{.data.secret-key}')
+          helm upgrade reputecast deploy/helm/reputecast -f deploy/helm/reputecast/ci/kind-values.yaml --set log.level=debug --wait --timeout 10m
+          test "$(kubectl get secret reputecast-key -o jsonpath='{.data.secret-key}')" = "$before"
+          kubectl logs job/reputecast-migrate | grep -q "Database is up to date"
+      - name: What the cluster saw
+        if: failure()
+        run: |
+          kubectl get all,jobs,pvc,secrets -o wide
+          kubectl describe pods
+          kubectl logs -l app.kubernetes.io/instance=reputecast --all-containers --prefix --tail=200
+
+  # The client SDKs (sdk/client-ts, sdk/client-python, sdk/client-go): each
+  # regenerated from sdk/openapi, its unit tests (with the server's webhook
+  # vectors) passing, then each run end to end against the app with the
+  # demo (internal/sdktest, make sdks).
+  sdks:
+    name: Client SDKs · TypeScript, Python, Go · end to end
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: reputecast
+          POSTGRES_PASSWORD: reputecast
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U reputecast" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      REPUTECAST_TEST_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/postgres?sslmode=disable
+    steps:
+      # As in the go job: the end-to-end test compiles the whole app.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: sdk/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: sdk/pnpm-lock.yaml
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: sdk/client-python/pyproject.toml
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.x"
+          cache-dependency-path: |
+            go.sum
+            sdk/client-go/go.sum
+      # Regenerates each SDK's code; TypeScript typecheck, vitest and build;
+      # pytest; go vet and go test; then TestClientSDKs with
+      # REPUTECAST_SDK_E2E=required.
+      - run: make sdks
+      - name: Generated SDK code is up to date
+        run: |
+          changed=$(git status --porcelain -- sdk/client-ts/src sdk/client-python/src sdk/client-go)
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "::error title=Generated SDK code is out of date::Run make sdks and commit the result."
+            exit 1
+          fi
+
+  # File storage in an S3-compatible bucket (storage.backend s3): the
+  # blobstore contract, chunked product uploads and ranged downloads, the
+  # audience export's parts, storage migrate and doctor, against MinIO.
+  # MinIO's own images can't be pulled any more, and a service container
+  # can't be given MinIO's `server` command: it runs from a step.
+  storage-s3:
+    name: File storage · S3 (MinIO)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: reputecast
+          POSTGRES_PASSWORD: reputecast
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U reputecast" --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      REPUTECAST_TEST_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/postgres?sslmode=disable
+      # Read by internal/blobstore/blobstoretest (MinIO's default keys).
+      REPUTECAST_S3_TEST_ENDPOINT: http://localhost:9000
+      REPUTECAST_S3_TEST_BUCKET: reputecast-test
+    steps:
+      # As in the go job: the integration tests compile the whole app.
+      - name: Free disk space
+        run: |
+          before=$(df -h --output=avail / | tail -1 | xargs)
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          echo "::notice title=Disk space::$before free, $(df -h --output=avail / | tail -1 | xargs) after removing unused toolsets"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.x"
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 cgr.dev/chainguard/minio:latest server /data
+          for i in $(seq 60); do
+            curl -sf http://localhost:9000/minio/health/live && exit 0
+            sleep 1
+          done
+          docker logs minio
+          exit 1
+      - run: echo "::add-matcher::.github/go-test-matcher.json"
+      - name: go test against the bucket
+        run: |
+          go test -race -count=1 -timeout 30m \
+            -run 'TestLocalContract|TestS3Contract|TestS3Check|TestUploadChunks|TestStoredFileRoundTrip|TestSweepUnfinishedUploads|TestDownloadThatFailsIsNotCounted|TestResumedDownloads|TestLeadMagnetLinks|TestExportRunsInTheBackground|TestExportResumesFromItsParts|TestFailedExportKeepsNothing|TestStorageMigrate|TestDoctorFileStorage' \
+            ./internal/blobstore/... ./internal/products/... ./internal/audience/... ./internal/cli/...

@@ -38,3 +38,165 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The Helm chart, stamped with the tag (v1.7.0 → chart 1.7.0 running image
+  # v1.7.0), pushed to oci://ghcr.io/hostrepute/charts once the image is
+  # out. Pushing needs write access to that package: set the repository
+  # variable HELM_PUBLISH to true once the organization allows it.
+  helm:
+    name: Helm chart · package and push
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+        with:
+          version: v4.3.1
+      - name: Package
+        run: |
+          helm lint --strict deploy/helm/reputecast -f deploy/helm/reputecast/ci/single-values.yaml
+          helm package deploy/helm/reputecast --version "${GITHUB_REF_NAME#v}" --app-version "$GITHUB_REF_NAME" --destination dist
+      - name: Publishing is off
+        if: vars.HELM_PUBLISH != 'true'
+        run: echo "::notice title=The Helm chart was not pushed::Set the repository variable HELM_PUBLISH to true to push it to oci://ghcr.io/hostrepute/charts."
+      - name: Push to ghcr.io/hostrepute/charts
+        if: vars.HELM_PUBLISH == 'true'
+        run: |
+          echo "$GITHUB_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          helm push dist/reputecast-*.tgz oci://ghcr.io/hostrepute/charts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The client SDKs, stamped with the tag's version (v1.7.0 → 1.7.0;
+  # sdk/scripts/set-version.mjs) once the release is out. npm and PyPI need
+  # accounts the owner holds: until they're set up, each job says what's
+  # missing and the release still succeeds.
+  sdk-npm:
+    name: TypeScript SDK · npm
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Publishing is off
+        if: env.NPM_TOKEN == ''
+        run: echo "::notice title=@reputecast/client was not published::Add the NPM_TOKEN secret (a granular token of the @reputecast npm organization that may publish) to publish it."
+      - if: env.NPM_TOKEN != ''
+        uses: actions/checkout@v7
+      - if: env.NPM_TOKEN != ''
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: sdk/package.json
+      - if: env.NPM_TOKEN != ''
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+          cache-dependency-path: sdk/pnpm-lock.yaml
+      # A pre-release (v1.7.0-rc.1) goes out under the next tag, so latest
+      # stays the newest release.
+      - name: Build and publish @reputecast/client
+        if: env.NPM_TOKEN != ''
+        working-directory: sdk
+        run: |
+          node scripts/set-version.mjs "$GITHUB_REF_NAME"
+          pnpm install --frozen-lockfile
+          pnpm --filter @reputecast/client build
+          tag=latest
+          case "$GITHUB_REF_NAME" in *-*) tag=next ;; esac
+          pnpm --filter @reputecast/client publish --provenance --access public --no-git-checks --tag "$tag"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  sdk-python:
+    name: Python SDK · build
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Build the sdist and wheel
+        run: |
+          node sdk/scripts/set-version.mjs "$GITHUB_REF_NAME"
+          python -m pip install build==1.6.1
+          python -m build sdk/client-python
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-sdk
+          path: sdk/client-python/dist
+      - name: Publishing is off
+        if: vars.PYPI_PUBLISH != 'true'
+        run: echo "::notice title=reputecast was not published to PyPI::Add this workflow (release.yml, environment pypi) as a trusted publisher of the reputecast project on PyPI, then set the repository variable PYPI_PUBLISH to true."
+
+  # Trusted publishing: PyPI accepts this job's OpenID Connect token, no
+  # password is stored.
+  sdk-pypi:
+    name: Python SDK · PyPI
+    needs: sdk-python
+    if: vars.PYPI_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/reputecast/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-sdk
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # The Go module is fetched by its own tag, sdk/client-go/v1.7.0, on a
+  # commit (on no branch) that stamps its User-Agent with the version.
+  sdk-go:
+    name: Go SDK · module tag
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.x"
+          cache-dependency-path: sdk/client-go/go.sum
+      - name: Stamp the version
+        id: version
+        run: node sdk/scripts/set-version.mjs "$GITHUB_REF_NAME"
+      - name: The module builds
+        working-directory: sdk/client-go
+        run: go build ./... && go vet ./...
+      - name: Tag sdk/client-go/v${{ steps.version.outputs.version }}
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag="sdk/client-go/v$VERSION"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "::notice title=$tag exists::The Go SDK was tagged by an earlier run."
+            exit 0
+          fi
+          # A v2 module needs its major version in its path (Go modules).
+          if [ "${VERSION%%.*}" -ge 2 ] && ! grep -q "^module .*/v${VERSION%%.*}$" sdk/client-go/go.mod; then
+            echo "::error title=The Go SDK was not tagged::v$VERSION needs the module path github.com/hostrepute/reputecast/sdk/client-go/v${VERSION%%.*} in sdk/client-go/go.mod."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --quiet -m "chore(sdk): stamp the Go SDK v$VERSION" -- sdk/client-go/version.go
+          git tag -a "$tag" -m "ReputeCast Go SDK v$VERSION"
+          git push origin "refs/tags/$tag"
