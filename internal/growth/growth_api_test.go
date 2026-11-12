@@ -19,28 +19,34 @@ func TestGrowthAPI(t *testing.T) {
 	c.SignInDemo("daniel@acme.io")
 	var p growth.GrowthPage
 	c.Do("GET", "/workspaces/acme-newsletter/growth", nil).MustStatus(t, 200).JSON(t, &p)
-	if p.Tiles.Joined != 1756 || p.Tiles.Left != 472 || p.Tiles.Imports != 9509 || len(p.Tiles.ImportItems) != 2 || len(p.Sources) != 10 {
+	// Lead ads · Field Guide download's 17 joins are the 11th source (M66).
+	if p.Tiles.Joined != 1773 || p.Tiles.Left != 472 || p.Tiles.Imports != 9509 || len(p.Tiles.ImportItems) != 2 || len(p.Sources) != 11 {
 		t.Fatalf("tiles %+v, %d sources", p.Tiles, len(p.Sources))
 	}
-	var api, mc *growth.GrowthSourceRow
+	var api, mc, lead *growth.GrowthSourceRow
 	for i := range p.Sources {
 		switch p.Sources[i].Source.Name {
 		case "Website signup form":
 			api = &p.Sources[i]
 		case "Mailchimp":
 			mc = &p.Sources[i]
+		case "Field Guide download":
+			lead = &p.Sources[i]
 		}
+	}
+	if lead == nil || lead.Source.Kind != "lead_ad" || lead.Joined == nil || *lead.Joined != 17 || lead.Left != 0 {
+		t.Fatalf("lead ads source: %+v", lead)
 	}
 	if api == nil || api.BounceFlag == nil || api.Source.KeyPrefix != "rc_live_8f2c…a91d" || mc == nil || mc.ComplaintFlag == nil || mc.Joined != nil {
 		t.Fatalf("flagged sources: %+v %+v", api, mc)
 	}
 	// The chart's four series and Other.
-	if len(p.Chart.Series) != 5 || p.Chart.Series[4].Joined != 95 || p.Chart.Series[4].Left != 368 || len(p.Chart.Days) != 30 {
+	if len(p.Chart.Series) != 5 || p.Chart.Series[4].Joined != 112 || p.Chart.Series[4].Left != 368 || len(p.Chart.Days) != 30 {
 		t.Fatalf("chart: %+v", p.Chart.Series)
 	}
 	var imports growth.GrowthPage
 	c.Do("GET", "/workspaces/acme-newsletter/growth?imports=true", nil).MustStatus(t, 200).JSON(t, &imports)
-	if imports.Tiles.Joined != 11265 || imports.Tiles.Net != 10793 {
+	if imports.Tiles.Joined != 11282 || imports.Tiles.Net != 10810 {
 		t.Fatalf("with imports: %+v", imports.Tiles)
 	}
 	// The contacts filter's sources, and the Zapier contacts.

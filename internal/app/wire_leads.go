@@ -123,8 +123,10 @@ func (h leadsHook) Confirmed(ctx context.Context, tx pgx.Tx, ws *store.Workspace
 
 func init() {
 	integrationLeads = leadsCatalog
-	// Joins through a lead form count under "Lead ads · {form}".
-	growth.RegisterKind(growth.Kind{Key: "lead_ad", Order: 16})
+	// Joins through a lead form count under "Lead ads · {form}", listed
+	// after integrations and before people adding contacts, as
+	// GrowthSources draws it.
+	growth.RegisterKind(growth.Kind{Key: "lead_ad", Order: 35})
 	growth.RegisterAttributor(func(contactSource, consentSource string) (string, string, bool) {
 		for _, src := range []string{consentSource, contactSource} {
 			if id, ok := strings.CutPrefix(src, leads.ConsentSourcePrefix); ok {

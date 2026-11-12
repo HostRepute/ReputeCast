@@ -37,6 +37,7 @@ const (
 	sgAPI    = "api"    // API key "Website signup form"
 	sgZapier = "zapier" // Zapier · Beta application (Typeform)
 	sgPerson = "person" // added by a person
+	sgLead   = "lead"   // Lead ads · Field Guide download (M66)
 	sgBrevo  = "brevo"  // took the Brevo import's day
 	sgMC     = "mc"     // the Mailchimp import
 	sgCSV    = "csv"    // carried: the CSV import of Feb 2024
@@ -60,6 +61,8 @@ func (w *sgWorld) key(src string) (kind, id string) {
 		return "integration", w.zapier.String() + ":" + sgWorkflowKey
 	case sgPerson:
 		return "person", ""
+	case sgLead:
+		return "lead_ad", w.leadForm.String()
 	case sgBrevo:
 		return "import", w.brevoImport.String()
 	case sgMC:
@@ -83,10 +86,12 @@ func (w *sgWorld) keyString(src string) string {
 // The last 30 days' joins by source (the board's table), and the contacts
 // each source has in all.
 var (
-	sgPeriodJoins = map[string]int{sgNL: 731, sgFooter: 612, sgSub: 104, sgBeta: 43, sgAPI: 214, sgZapier: 38, sgPerson: 14}
+	sgPeriodJoins = map[string]int{sgNL: 731, sgFooter: 612, sgSub: 104, sgBeta: 43, sgAPI: 214, sgZapier: 38, sgPerson: 14, sgLead: 17}
 	sgPreNatives  = map[string]int{sgNL: 2300, sgFooter: 1500, sgSub: 450, sgBeta: 125, sgAPI: 562}
-	sgCarried     = map[string]int{sgNL: 10123, sgFooter: 7388, sgSub: 1546, sgAPI: 4024}
-	sgSourceOrder = []string{sgNL, sgFooter, sgSub, sgBeta, sgAPI, sgZapier, sgPerson}
+	// Newsletter signup carries 17 fewer than before M66: the contacts are
+	// all spoken for, and Lead ads' 17 joins take theirs.
+	sgCarried     = map[string]int{sgNL: 10106, sgFooter: 7388, sgSub: 1546, sgAPI: 4024}
+	sgSourceOrder = []string{sgNL, sgFooter, sgSub, sgBeta, sgAPI, sgZapier, sgPerson, sgLead}
 )
 
 // Contacts carried over with Brevo's own "Signup form · docs", and the
@@ -220,6 +225,10 @@ func (w *sgWorld) growthSources() error {
 		{sgSub, sgPeriodJoins[sgSub], byPref(open)},
 		{sgFooter, sgPeriodJoins[sgFooter], byPref(func(c *sgContact) bool { return open(c) && c.source == "form:footer" })},
 		{sgNL, sgPeriodJoins[sgNL] - 7, byPref(open)},
+		// Facebook and Instagram leads of Field Guide download (M66), last
+		// so the roles before keep their contacts: Weekly Digest readers,
+		// not Beta Program's (its one-list numbers stay).
+		{sgLead, sgPeriodJoins[sgLead], byPref(func(c *sgContact) bool { return open(c) && c.lists&audInDigest != 0 && c.lists&audInBeta == 0 })},
 	}
 	period := map[string][]*sgContact{}
 	for _, r := range roles {
@@ -504,7 +513,7 @@ func (w *sgWorld) growthDepartures() error {
 		pool := w.shuffled(func(c *sgContact) bool {
 			return c.board == "" && c.leftList == 0 && c.g.left == nil && c.g.src != sgBrevo && c.g.src != sgMC && c.g.src != sgCSV &&
 				!c.g.joined.Before(from) && c.g.joined.Before(to) && c.g.joined.Before(before.AddDate(0, 0, -2)) &&
-				w.used[c] != sgZapier && w.used[c] != sgBeta && w.used[c] != sgPerson && w.used[c] != "nl-beta" && w.used[c] != "person-beta"
+				w.used[c] != sgZapier && w.used[c] != sgBeta && w.used[c] != sgPerson && w.used[c] != "nl-beta" && w.used[c] != "person-beta" && w.used[c] != sgLead
 		})
 		k := 0
 		mark := func(n, minDays, maxDays int) error {
@@ -594,7 +603,7 @@ func (w *sgWorld) growthDepartures() error {
 				return false
 			}
 			switch w.used[c] {
-			case sgZapier, sgBeta, sgPerson, "nl-beta", "person-beta":
+			case sgZapier, sgBeta, sgPerson, "nl-beta", "person-beta", sgLead:
 				return false
 			}
 			// Leave the cohorts' 30- and 90-day numbers as they are.

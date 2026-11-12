@@ -19,8 +19,8 @@ import (
 
 const (
 	LeadAdsAppID     = "481516234200"
-	LeadAdsAppSecret = "demo-lead-ads-app-secret-7f3c"
-	LeadAdsToken     = "demo-lead-ads-system-user-token"
+	LeadAdsAppSecret = "demo-lead-ads-app-secret-7f3c"   //nolint:gosec // the in-process Graph fake's, never Meta's
+	LeadAdsToken     = "demo-lead-ads-system-user-token" //nolint:gosec // the in-process Graph fake's, never Meta's
 )
 
 type leadAdsPage struct {
@@ -107,6 +107,15 @@ func seedLeadsImpl(ctx context.Context, s *Seeder) error {
 		"Beta waitlist": {mapping: map[string]string{"email": "email", "full_name": "full_name"},
 			lists: []uuid.UUID{lists["Beta Program"]}, mode: "double", status: "paused", older: 6},
 	}
+	// The board's Recent leads name these people (Priya, Tom and Sam);
+	// the other leads go to the workspace's newest active contacts.
+	byEmail := map[string]*uuid.UUID{}
+	for _, email := range []string{"priya.n@gmail.com", "t.nowak@gmail.com", "sam.rivera@outlook.com"} {
+		var id uuid.UUID
+		if err := s.Tx.QueryRow(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND email = $2`, ws.ID, email).Scan(&id); err == nil {
+			byEmail[email] = &id
+		}
+	}
 	var contacts []uuid.UUID
 	rows, err := s.Tx.Query(ctx, `SELECT id FROM contacts WHERE workspace_id = $1 AND status = 'active' AND erased_at IS NULL ORDER BY created_at DESC LIMIT 60`, ws.ID)
 	if err != nil {
@@ -130,7 +139,13 @@ func seedLeadsImpl(ctx context.Context, s *Seeder) error {
 		next++
 		return &id
 	}
-	lead := 0
+	named := func(email string) *uuid.UUID {
+		if id := byEmail[email]; id != nil {
+			return id
+		}
+		return contact()
+	}
+	lead, formN := 0, 0
 	for _, p := range leadAdsPages() {
 		if !p.chosen {
 			continue
@@ -160,44 +175,89 @@ func seedLeadsImpl(ctx context.Context, s *Seeder) error {
 			if sd.tags == nil {
 				sd.tags = []string{}
 			}
-			form := uuid.Must(uuid.NewV7())
+			form := leadAdsFormID(s, f.Name)
+			// A minute apart, so the page lists them in the board's order.
+			formAt := created.Add(time.Duration(formN) * time.Minute)
+			formN++
 			var last *time.Time
 			if sd.leads > 0 {
-				last = new(s.Ago(12 * time.Minute))
+				last = new(leadAdsEntries(s, f.Name, sd.leads, 0, sd.mode, func(string) *uuid.UUID { return nil }, func() *uuid.UUID { return nil })[0].at)
 			}
 			if _, err := s.Tx.Exec(ctx, `INSERT INTO lead_forms (id, workspace_id, page_id, form_id, name, meta_status, questions, checkboxes, disclaimer, status, mapped_at,
 				mapping, consent_mode, consent_key, consent_text, consent_version, list_ids, tags, last_lead_at, created_at, updated_at)
 				VALUES ($1,$2,$3,$4,$5,'ACTIVE',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$10,$10)`,
-				form, ws.ID, page, f.ID, f.Name, qs, cbs, f.Disclaimer, sd.status, created, mp, sd.mode, sd.consentK, text, version, sd.lists, sd.tags, last); err != nil {
+				form, ws.ID, page, f.ID, f.Name, qs, cbs, f.Disclaimer, sd.status, formAt, mp, sd.mode, sd.consentK, text, version, sd.lists, sd.tags, last); err != nil {
 				return err
 			}
-			// Leads in the last 30 days, newest first: the board's mix for
-			// the first ones, joins after.
-			for i := range sd.leads + sd.older {
+			for _, e := range leadAdsEntries(s, f.Name, sd.leads, sd.older, sd.mode, named, contact) {
 				lead++
-				at := s.Ago(time.Duration(12+i*17*60) * time.Minute)
-				if i >= sd.leads {
-					at = s.Ago(time.Duration(35+i) * 24 * time.Hour)
-				}
-				outcome := "updated"
-				if sd.mode == "double" && i%3 == 0 {
-					outcome = "pending"
-				}
-				who := contact()
-				switch {
-				case f.Name == "Field Guide download" && i == 2:
-					outcome, who = "declined", nil
-				case f.Name == "Spring webinar signup" && i == 3:
-					outcome = "blocked"
-				case f.Name == "Field Guide download" && i == sd.leads-1:
-					outcome, who = "test", nil
-				}
 				if _, err := s.Tx.Exec(ctx, `INSERT INTO lead_entries (id, workspace_id, form_id, leadgen_id, contact_id, outcome, source, lead_at, created_at)
-					VALUES ($1,$2,$3,$4,$5,$6,'webhook',$7,$7)`, uuid.Must(uuid.NewV7()), ws.ID, form, fmt.Sprintf("9200000000%04d", lead), who, outcome, at); err != nil {
+					VALUES ($1,$2,$3,$4,$5,$6,'webhook',$7,$7)`, uuid.Must(uuid.NewV7()), ws.ID, form, fmt.Sprintf("9200000000%04d", lead), e.who, e.outcome, e.at); err != nil {
 					return err
 				}
 			}
 		}
 	}
 	return nil
+}
+
+// leadAdsEntry is one recorded lead of the demo.
+type leadAdsEntry struct {
+	at      time.Time
+	outcome string
+	who     *uuid.UUID
+}
+
+// leadAdsEntries are a form's leads, newest first: the board's Recent
+// leads (Priya waiting for confirmation 12 minutes ago, Tom's new contact,
+// Sam's update, a consent box not ticked, a suppressed address, and
+// yesterday's test lead from Meta's testing tool), then the rest of the
+// last 30 days, then the older ones.
+func leadAdsEntries(s *Seeder, form string, leads, older int, mode string, named func(string) *uuid.UUID, contact func() *uuid.UUID) []leadAdsEntry {
+	var out []leadAdsEntry
+	switch form {
+	case "Spring webinar signup":
+		out = append(out, leadAdsEntry{s.Ago(12 * time.Minute), "pending", named("priya.n@gmail.com")},
+			leadAdsEntry{s.Ago(198 * time.Minute), "blocked", contact()})
+	case "Field Guide download":
+		out = append(out, leadAdsEntry{s.Ago(28 * time.Minute), "created", named("t.nowak@gmail.com")},
+			leadAdsEntry{s.Ago(65 * time.Minute), "updated", named("sam.rivera@outlook.com")},
+			leadAdsEntry{s.Ago(100 * time.Minute), "declined", nil},
+			leadAdsEntry{s.designDay(1, 17, 30), "test", nil})
+	}
+	counted := 0
+	for _, e := range out {
+		if e.outcome != "test" {
+			counted++
+		}
+	}
+	// The rest of the 30 days, older than the test lead (at most 36 hours
+	// old): a day and a half back to about 15 days.
+	for i := 0; counted < leads; i++ {
+		outcome := "updated"
+		if mode == "double" && i%3 == 0 {
+			outcome = "pending"
+		} else if i%4 == 1 {
+			outcome = "created"
+		}
+		out = append(out, leadAdsEntry{s.Ago(time.Duration(36+i*15) * time.Hour), outcome, contact()})
+		counted++
+	}
+	for i := range older {
+		out = append(out, leadAdsEntry{s.Ago(time.Duration(35+i) * 24 * time.Hour), "updated", contact()})
+	}
+	return out
+}
+
+// leadAdsFormID is a lead form's id, made by whichever seeder needs it
+// first: Growth's sample counts Field Guide download's joins before the
+// form is stored.
+func leadAdsFormID(s *Seeder, name string) uuid.UUID {
+	key := "leadForm:" + name
+	if id, ok := s.Extra[key].(uuid.UUID); ok {
+		return id
+	}
+	id := uuid.Must(uuid.NewV7())
+	s.Extra[key] = id
+	return id
 }
