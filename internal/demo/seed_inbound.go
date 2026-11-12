@@ -223,9 +223,13 @@ func seedInboundAfter(ctx context.Context, s *Seeder) error {
 			return err
 		}
 	}
-	// Yesterday's DMARC aggregate report from Google arrived by email.
-	_, err = s.Tx.Exec(ctx, `UPDATE dmarc_reports SET via = 'inbound', received_at = $2 WHERE id = (
-		SELECT id FROM dmarc_reports WHERE workspace_id = $1 AND org_name ILIKE 'google%' ORDER BY date_end DESC LIMIT 1)`, ws.ID, s.Ago(26*time.Hour))
+	// Yesterday's DMARC aggregate report from Google arrived by email: a
+	// report of its own (HostRepute's sync keeps rewriting its reports), with
+	// no rows, so the board's numbers stay HostRepute's.
+	end := s.Ago(26 * time.Hour).UTC().Truncate(24 * time.Hour)
+	_, err = s.Tx.Exec(ctx, `INSERT INTO dmarc_reports (id, workspace_id, domain, org_name, report_id, date_begin, date_end, policy, records, via, received_at)
+		VALUES ($1, $2, 'news.acme.io', 'google.com', 'inbound-demo-1', $3, $4, '{"p":"quarantine"}', '[]', 'inbound', $5)`,
+		ID(), ws.ID, end.Add(-24*time.Hour), end.Add(-time.Second), s.Ago(26*time.Hour))
 	return err
 }
 
