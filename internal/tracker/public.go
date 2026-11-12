@@ -549,7 +549,11 @@ func (f *refusals) take() map[refusalKey]*refusalCount {
 }
 
 // flushRefusals stores the refused calls counted since the last flush.
+// Flushes take turns, so one that finds nothing left returns only once
+// an earlier one has stored what it took (Close then sees every refusal).
 func (s *Service) flushRefusals(ctx context.Context) {
+	s.refusing.Lock()
+	defer s.refusing.Unlock()
 	m := s.refused.take()
 	if len(m) == 0 {
 		return

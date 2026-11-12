@@ -101,6 +101,8 @@ type Service struct {
 	origins  cache[[]string]
 	limits   limiter
 	refused  refusals
+	// refusing serializes the stores of refused origins.
+	refusing sync.Mutex
 }
 
 func (s *Service) now() time.Time {
