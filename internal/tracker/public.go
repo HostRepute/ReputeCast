@@ -99,7 +99,7 @@ func (s *Service) site(r *http.Request) (collectSite, bool, error) {
 	slug, raw := chi.URLParam(r, "ws"), chi.URLParam(r, "site")
 	id, err := uuid.Parse(raw)
 	if err != nil {
-		return collectSite{}, false, nil
+		return collectSite{}, false, nil //nolint:nilerr // not a site id: no site, and nothing went wrong
 	}
 	if s.Carries != nil && !s.Carries(r, slug) {
 		return collectSite{}, false, nil
@@ -141,7 +141,7 @@ func requestOrigin(r *http.Request) string {
 func originOf(u *url.URL) string {
 	scheme := strings.ToLower(u.Scheme)
 	host := strings.TrimSuffix(strings.ToLower(u.Hostname()), ".")
-	if p := u.Port(); p != "" && !(scheme == "https" && p == "443") && !(scheme == "http" && p == "80") {
+	if p := u.Port(); p != "" && (scheme != "https" || p != "443") && (scheme != "http" || p != "80") {
 		host += ":" + p
 	}
 	return scheme + "://" + host
@@ -189,10 +189,10 @@ func validTail(v string) bool {
 func (s *Service) cors(w http.ResponseWriter, r *http.Request, c collectSite) bool {
 	w.Header().Add("Vary", "Origin")
 	o := requestOrigin(r)
-	switch {
-	case o == "" || o == "null":
+	switch o {
+	case "", "null":
 		return true
-	case o == c.Origin:
+	case c.Origin:
 		w.Header().Set("Access-Control-Allow-Origin", o)
 		return true
 	}

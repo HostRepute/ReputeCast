@@ -148,7 +148,7 @@ type collector struct {
 func (c *collector) post(origin, ua string, body any) int {
 	c.t.Helper()
 	b, _ := json.Marshal(body)
-	req, _ := http.NewRequest("POST", c.url, bytes.NewReader(b))
+	req, _ := http.NewRequest(http.MethodPost, c.url, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "text/plain")
 	req.Header.Set("User-Agent", ua)
 	if origin != "" {
@@ -369,7 +369,7 @@ func BenchmarkCollect(b *testing.B) {
 	start := time.Now()
 	for i := range b.N {
 		body, _ := json.Marshal(map[string]any{"vid": fmt.Sprintf("bench%017d", i%5000), "events": evs})
-		req := httptest.NewRequest("POST", path, bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body))
 		req.RemoteAddr = fmt.Sprintf("10.%d.%d.%d:1234", (i>>16)&255, (i>>8)&255, i&255)
 		req.Header.Set("Origin", "https://bench.example.org")
 		req.Header.Set("User-Agent", chrome)

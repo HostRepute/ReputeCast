@@ -180,9 +180,10 @@ func (r BlockRecipients) Vars(ctx context.Context, wsID uuid.UUID, recipients []
 		if err != nil {
 			continue
 		}
-		n, _ := strconv.Atoi(m[3])
+		// The pattern takes one digit, 1 to 6.
+		n := int32(m[3][0] - '0')
 		if m[1] == "bt" {
-			rows, err := r.s.Q.CommerceBoughtTogetherFor(ctx, store.CommerceBoughtTogetherForParams{Now: now, Contacts: contacts, Messages: messages, StoreID: storeID, WorkspaceID: wsID, Lim: int32(n)})
+			rows, err := r.s.Q.CommerceBoughtTogetherFor(ctx, store.CommerceBoughtTogetherForParams{Now: now, Contacts: contacts, Messages: messages, StoreID: storeID, WorkspaceID: wsID, Lim: n})
 			if err != nil {
 				return out, fmt.Errorf("bought together: %w", err)
 			}
@@ -191,7 +192,7 @@ func (r BlockRecipients) Vars(ctx context.Context, wsID uuid.UUID, recipients []
 			}
 			continue
 		}
-		rows, err := r.s.Q.CommerceRecentlyViewedFor(ctx, store.CommerceRecentlyViewedForParams{Now: now, Contacts: contacts, Messages: messages, StoreID: storeID, WorkspaceID: wsID, Lim: int32(n)})
+		rows, err := r.s.Q.CommerceRecentlyViewedFor(ctx, store.CommerceRecentlyViewedForParams{Now: now, Contacts: contacts, Messages: messages, StoreID: storeID, WorkspaceID: wsID, Lim: n})
 		if err != nil {
 			return out, fmt.Errorf("recently viewed: %w", err)
 		}
