@@ -119,6 +119,9 @@ type Fake struct {
 	nextID   int64
 	requests []string
 	Now      func() time.Time
+	// Coupons are the coupons the key created (coupons.go).
+	Coupons []*Coupon
+	batches [][]string
 }
 
 // New returns a fake site with a key and no data.
@@ -298,6 +301,8 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"id": id})
+	case path == "/coupons" || path == "/coupons/batch":
+		f.coupons(w, r, path)
 	default:
 		errJSON(w, http.StatusNotFound, "rest_no_route", "No route was found matching the URL and request method.")
 	}
