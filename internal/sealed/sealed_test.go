@@ -39,6 +39,8 @@ var notSealed = map[string]string{
 	"webhook_tokens.token_hash": "hash", "webhook_tokens.payload_hash": "hash",
 	"whatsapp_accounts.callback_token_hash": "hash",
 	"inbound_raw.body":                      "received mail, as the provider posted it", "inbound_routes.hook_token_hash": "hash",
+	// Importing posts (M61): the uploaded export and the run's report.
+	"website_import_files.data": "uploaded file", "website_imports.report_csv": "report file",
 }
 
 // Every bytea column is either a known sealed column or known not to be

@@ -101,6 +101,9 @@ func (h *Handler) takeFlash(w http.ResponseWriter, r *http.Request, s *site, v *
 	case "purchase_link":
 		// A purchase's new download link (sell_account.go).
 		v.Toast = v.S("account.sent", "email", products.MaskEmail(email))
+	case "comment_posted", "comment_held", "comment_edited", "comment_deleted", "comment_settings":
+		// The comment forms (site_comments.go).
+		v.Toast = commentToast(v, kind)
 	}
 	if v.Toast != "" {
 		v.private = true

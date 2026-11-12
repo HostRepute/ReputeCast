@@ -53,6 +53,8 @@
   "short.reply_received": "Antworten",
   "short.inbound_failing": "Probleme beim Empfang",
   "short.coupon_codes_low": "knappe Rabattcodes",
+  "short.comments_waiting": "Kommentare, die auf Prüfung warten",
+  "short.post_import_done": "Beitragsimporte",
 
   "event.approval_requested": "Freigabe angefordert",
   "event.approval_decided": "Freigabe erteilt, abgelehnt oder Änderungen angefordert",
@@ -104,6 +106,8 @@
   "event.reply_received": "Neue Antworten",
   "event.inbound_failing": "Empfang von E-Mails gestört",
   "event.coupon_codes_low": "Rabattcodes werden knapp",
+  "event.comments_waiting": "Kommentare warten auf Prüfung",
+  "event.post_import_done": "Beitragsimport abgeschlossen",
 
   "audience.approval_requested": "Nur für freigebende Personen",
   "audience.approval_decided": "Nur für den Autor",
@@ -155,6 +159,8 @@
   "audience.reply_received": "Wer Antworten ansehen kann · höchstens alle 15 Minuten",
   "audience.inbound_failing": "Wer Domains verwalten kann",
   "audience.coupon_codes_low": "Alle, die Rabattcodes verwalten dürfen",
+  "audience.comments_waiting": "Alle, die Kommentare moderieren dürfen · danach höchstens einmal pro Stunde, solange Kommentare warten",
+  "audience.post_import_done": "Wer den Import gestartet hat",
 
   "category.approvals": "Freigaben",
   "category.sending": "Versand",

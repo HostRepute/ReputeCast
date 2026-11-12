@@ -1,0 +1,10 @@
+{{/* "Stop these emails" in a comment reply email (PublicPostComments):
+     opening the link changes nothing; the one button turns reply emails
+     off. The address holds a token: never cached, indexed or sent on as
+     a referrer. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="st-band st-center"><section class="st-auth" aria-labelledby="mute-h"{{if .Done}} role="status"{{end}}><h1 id="mute-h">{{.Heading}}</h1>
+<p class="st-mut st-m0">{{.Text}}</p>
+{{- if .Done}}{{with .After}}<span class="st-k">{{.}}</span>{{end}}
+{{- else}}<form method="post" action="{{.Action}}" class="st-m0"><button type="submit" class="st-btn full lg">{{.Button}}</button></form>
+<span class="st-k">{{.Note}}</span>{{end}}
+</section></main>{{end}}{{end}}

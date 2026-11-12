@@ -29,6 +29,7 @@ export default translate(m, {
   viewPosts: 'Beiträge',
   viewHomeNav: 'Startseite & Navigation',
   viewAccess: 'Zugang',
+  viewComments: 'Kommentare',
   liveValid: 'Online · {host} · Zertifikat gültig',
   liveFailing: 'Online · {host} · Zertifikat fehlerhaft',
   livePending: 'Online · {host} · Zertifikat ausstehend',

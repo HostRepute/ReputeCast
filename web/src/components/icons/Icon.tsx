@@ -419,6 +419,15 @@ const icons = {
   // Audience › Replies (M58): its empty states.
   reply: { body: <path d="M6.5 4 2.5 8l4 4M2.5 8h7a4 4 0 0 1 4 4v1" /> },
   attachment: { body: <path d="M10.5 4.5 5.2 9.8a1.6 1.6 0 0 0 2.3 2.3l5.6-5.6a3 3 0 0 0-4.2-4.2L3.3 7.9a4.4 4.4 0 0 0 6.2 6.2L13 10.6" /> },
+  // An uploaded file (Import posts, M61).
+  file: {
+    body: (
+      <>
+        <path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z" />
+        <path d="M9.5 1.5v3h3" />
+      </>
+    ),
+  },
 } satisfies Record<string, IconDef>
 
 export type IconName = keyof typeof icons

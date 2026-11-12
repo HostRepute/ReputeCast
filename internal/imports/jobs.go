@@ -15,7 +15,7 @@ import (
 // with their progress, and ones that ended in the last two hours.
 type ImportJob struct {
 	ID   string `json:"id"`
-	Kind string `json:"kind" enum:"import,verification,export,optin"`
+	Kind string `json:"kind" enum:"import,verification,export,optin,post_import"`
 	// Title: "Importing 13,739 contacts from Mailchimp".
 	Title  string `json:"title"`
 	Status string `json:"status" enum:"queued,running,done,failed,canceled"`

@@ -141,7 +141,7 @@ var Categories = []AuditCategory{
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 	// The publication website (design expansion, phase 7).
-	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag", "page"}},
+	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag", "page", "comment", "website_member"}},
 	// Grow (design expansion, phase 5): referral programs, recommendations
 	// and partner links.
 	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
@@ -589,6 +589,12 @@ func link(l i18n.Lang, ws, targetType, targetID, override string) (string, strin
 	case "coupon_pool":
 		if targetID != "" {
 			path, key = "/campaigns/codes/"+targetID, "link.couponPool"
+		}
+	case "website_comment":
+		path, key = "/forms/website/comments", "link.comments"
+	case "website_import":
+		if targetID != "" {
+			path, key = "/forms/website/import?import="+targetID, "link.import"
 		}
 	}
 	if key == "" {

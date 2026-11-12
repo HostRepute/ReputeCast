@@ -200,6 +200,10 @@ func (h *Handler) Routes(r chi.Router) {
 	root := chi.NewRouter()
 	h.pageRoutes(root)
 	root.Get("/robots.txt", h.robots)
+	// A path nothing answers: an old address of an imported site, or the
+	// site's 404 page (site_legacy.go).
+	root.NotFound(h.rootNotFound)
+	root.MethodNotAllowed(h.rootNotFound)
 	custom := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slug := h.Forms.WorkspaceForHost(r.Context(), r.Host)
 		if slug == "" {
@@ -210,7 +214,7 @@ func (h *Handler) Routes(r chi.Router) {
 			http.NotFound(w, r)
 			return
 		}
-		root.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), hostKey{}, slug)))
+		root.ServeHTTP(w, r.WithContext(withHost(r.Context(), slug)))
 	})
 	for _, p := range append([]string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
 		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/llms.txt", "/poll/*", "/s/*", "/sms-terms"}, growPaths...) {
@@ -240,6 +244,12 @@ func (h *Handler) ownHost(next http.Handler) http.Handler {
 		case err != nil:
 			h.serverError(w, r, nil, err)
 		case !ok:
+			// On a custom domain, /p/<something> may be an old address of
+			// the site (Substack's /p/<slug>).
+			if slug := h.Forms.WorkspaceForHost(r.Context(), r.Host); slug != "" {
+				h.rootNotFound(w, r.WithContext(withHost(r.Context(), slug)))
+				return
+			}
 			h.notFound(w, r, nil)
 		default:
 			next.ServeHTTP(w, r)
@@ -368,6 +378,11 @@ func (s *site) use(pl pageLang) pageLang {
 }
 
 var errNoSite = errors.New("publicpages: no such workspace")
+
+// withHost marks a request as one on a workspace's custom domain.
+func withHost(ctx context.Context, slug string) context.Context {
+	return context.WithValue(ctx, hostKey{}, slug)
+}
 
 func (h *Handler) site(r *http.Request) (*site, error) {
 	ctx := r.Context()

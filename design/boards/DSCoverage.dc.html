@@ -64,7 +64,7 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
   <span class="k">States live on the dedicated "States" board of each area (empty, loading, error, success in one place) so a developer sees them side by side; interactive and role-limited states are shown as banners and disabled controls rather than separate screens.</span>
 </main>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4062}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4447}}'>
 class Component extends DCLogic {
   renderVals() {
     function cell(spec) {
@@ -104,6 +104,9 @@ class Component extends DCLogic {
       row('Notifications', [['Notifications|Center & preferences', 'ShellNotifications|Popover'], ['Notifications|All caught up'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['NotificationsTablet|Notifications'], ['NotificationsPhone|Notifications']]),
       row('Landing & README', [['Landing|Landing', 'ReadmeBanner|README banner'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['na'], ['LandingTablet|Landing'], ['LandingPhone|Landing']]),
       row('Countdown & discount codes', [['DiscountCodes|Pools', 'DiscountCodePool|Pool', 'ComposerTimedBlocks|Composer blocks'], ['DiscountCodesStates|No pools'], ['DiscountCodesStates|Skeletons, creating codes'], ['DiscountCodesStates|Store not answering, not allowed, read-only key', 'SendReadinessStates|Not enough codes, countdown ended'], ['DiscountCodePool|Codes added', 'DiscountCodesStates|Codes created'], ['DiscountCodesStates|Viewer'], ['DiscountCodesStates|Running low', 'ComposerTimedBlocks|Colour refused'], ['DiscountCodes|New pool', 'DiscountCodesStates|Remove, archive'], ['DiscountCodesTablet|Pools', 'DiscountCodePoolTablet|Pool'], ['DiscountCodesPhone|Pools', 'DiscountCodePoolPhone|Pool', 'ComposerTimedBlocksPhone|Composer blocks']])
+      row('Website · import posts', [['WebsiteImport|Review', 'WebsiteImport|Upload'], ['WebsiteImportStates|Nothing to import'], ['WebsiteImport|Reading, importing', 'WebsiteImportStates|Loading'], ['WebsiteImportStates|Wrong file, site off, failed'], ['WebsiteImport|Done, report'], ['WebsiteImportStates|Needs website:publish'], ['WebsiteImportStates|Over 100 MB'], ['WebsiteImportStates|Import posts menu'], ['na'], ['WebsiteImportPhone|Import']]),
+      row('Website · comments', [['WebsiteComments|Waiting for review', 'WebsiteCommentsStates|Published, team reply'], ['WebsiteCommentsStates|Each tab, comments off'], ['WebsiteCommentsStates|Loading'], ['WebsiteCommentsStates|Load failed'], ['WebsiteCommentsStates|Undo'], ['WebsiteCommentsStates|Viewer read-only'], ['WebsiteCommentsStates|Blocked commenter'], ['WebsiteCommentsStates|Delete, block'], ['WebsiteCommentsTablet|Comments'], ['WebsiteCommentsPhone|Comments']]),
+      row('Public · post comments', [['PublicPostComments|Sam Rivera'], ['PublicPostComments|Signed out'], ['na'], ['PublicPostComments|Too many comments'], ['PublicPostComments|Waiting for review, reply email'], ['PublicPostComments|Paid only, blocked'], ['PublicPostComments|Show more comments'], ['PublicPostComments|Stop these emails'], ['na'], ['PublicPostCommentsPhone|Comments']])
     ];
     return { rows: rows };
   }

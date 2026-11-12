@@ -95,6 +95,16 @@ type WebsiteAccess struct {
 	Since            time.Time `json:"since"`
 	UpdatedAt        time.Time `json:"updatedAt"`
 	UpdatedBy        string    `json:"updatedBy,omitempty"`
+	// Comments is who may comment on posts: nobody (off, every site's
+	// default), signed-in members, or paid members only. CommentsReview is
+	// which comments wait for review: every comment, a member's first, or
+	// none.
+	Comments       string `json:"comments" enum:"off,members,paid"`
+	CommentsReview string `json:"commentsReview" enum:"all,first,none"`
+	// CommentsWaiting counts the comments waiting for review; Moderators
+	// are the people who can moderate them (comments:moderate).
+	CommentsWaiting int64    `json:"commentsWaiting"`
+	Moderators      []string `json:"moderators"`
 }
 
 // WebsiteAccessInput saves Website › Access.
@@ -113,6 +123,10 @@ type WebsiteAccessInput struct {
 	// NeverFree are the posts left out of the meter.
 	NeverFree []string       `json:"neverFree" maxItems:"200"`
 	Paywall   WebsitePaywall `json:"paywall"`
+	// Comments and CommentsReview change who may comment and which comments
+	// wait for review (left out: as they are).
+	Comments       string `json:"comments,omitempty" enum:"off,members,paid,"`
+	CommentsReview string `json:"commentsReview,omitempty" enum:"all,first,none,"`
 }
 
 // accessLists are the workspace's lists with what sign-up offers.
@@ -204,9 +218,13 @@ func (s *Service) Access(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out := WebsiteAccess{SigninOn: c.row.SigninOn, LinkMinutes: int(c.row.LinkMinutes), SessionDays: int(c.row.SessionDays), SignupOn: c.row.SignupOn,
 		DefaultVisibility: c.row.DefaultVisibility, CampaignVisibility: c.row.CampaignVisibility, MeterVisitorsOn: c.row.MeterVisitorsOn,
 		MeterVisitors: int(c.row.MeterVisitors), MeterMembersOn: c.row.MeterMembersOn, MeterMembers: int(c.row.MeterMembers), Paywall: c.paywallIn(s.defaultLanguage(ctx, ws.ID)),
-		NeverFree: []WebsiteNeverFreePost{}, UpdatedAt: c.row.UpdatedAt}
+		NeverFree: []WebsiteNeverFreePost{}, UpdatedAt: c.row.UpdatedAt, Comments: c.row.Comments, CommentsReview: c.row.CommentsReview}
 	if by, err := s.Q.WebsiteSettingsUpdatedBy(ctx, ws.ID); err == nil {
 		out.UpdatedBy = by
+	}
+	out.Moderators = s.helpers(ctx, ws, authz.CommentsModerate)
+	if n, err := s.Q.WebsiteCommentStatusCounts(ctx, store.WebsiteCommentStatusCountsParams{WorkspaceID: ws.ID}); err == nil {
+		out.CommentsWaiting = n.Pending
 	}
 	out.SenderName, out.SenderEmail = s.Forms.DefaultSender(ctx, ws)
 	out.SystemProvider = s.Forms.SystemProviderName(ctx, ws)
@@ -325,6 +343,12 @@ func (s *Service) SaveAccess(ctx context.Context, ws *store.Workspace, p *authz.
 		if in.MeterMembers >= 1 && in.MeterMembers <= 20 {
 			c.row.MeterMembers = int32(in.MeterMembers)
 		}
+		if in.Comments != "" {
+			c.row.Comments = in.Comments
+		}
+		if in.CommentsReview != "" {
+			c.row.CommentsReview = in.CommentsReview
+		}
 		c.Paywall = in.Paywall
 		if err := s.save(ctx, q, ws, c, userID(p)); err != nil {
 			return err
@@ -364,9 +388,11 @@ func (s *Service) auditAccess(ctx context.Context, q *store.Queries, ws *store.W
 	lists := func(c *config) string { b, _ := json.Marshal(c.SignupLists); return string(b) }
 	if err := log("website.access_updated",
 		map[string]any{"signin_on": before.row.SigninOn, "link_minutes": before.row.LinkMinutes, "session_days": before.row.SessionDays, "signup_on": before.row.SignupOn,
-			"signup_lists": lists(before), "default_visibility": before.row.DefaultVisibility, "campaign_visibility": before.row.CampaignVisibility},
+			"signup_lists": lists(before), "default_visibility": before.row.DefaultVisibility, "campaign_visibility": before.row.CampaignVisibility,
+			"comments": before.row.Comments, "comments_review": before.row.CommentsReview},
 		map[string]any{"signin_on": after.row.SigninOn, "link_minutes": after.row.LinkMinutes, "session_days": after.row.SessionDays, "signup_on": after.row.SignupOn,
-			"signup_lists": lists(after), "default_visibility": after.row.DefaultVisibility, "campaign_visibility": after.row.CampaignVisibility}); err != nil {
+			"signup_lists": lists(after), "default_visibility": after.row.DefaultVisibility, "campaign_visibility": after.row.CampaignVisibility,
+			"comments": after.row.Comments, "comments_review": after.row.CommentsReview}); err != nil {
 		return err
 	}
 	meterB := map[string]any{"visitors_on": before.row.MeterVisitorsOn, "visitors": before.row.MeterVisitors, "members_on": before.row.MeterMembersOn, "members": before.row.MeterMembers}

@@ -23,6 +23,7 @@ import { PostStateDialog, PublishTimeDialog, RedirectDialog, DeletePostDialog, U
 import { mp } from './posts.messages'
 import { dateTime, scheduledLine, visibilityIcon } from './postFormat'
 import { ReadOnlyNote, WebsitePage } from './WebsiteFrame'
+import { mi } from './import/messages'
 
 export type PostsSearch = {
   status?: 'published' | 'scheduled' | 'draft' | 'unpublished'
@@ -84,7 +85,7 @@ export function PostsPage({ overview, search, onSearch }: { overview: Overview; 
   const actions =
     canEdit || canPublish ? (
       <>
-        {canPublish ? <Button onClick={() => onSearch({ ...search, past: true })}>{t(m.publishPast)}</Button> : null}
+        {canPublish ? <ImportMenu onPast={() => onSearch({ ...search, past: true })} /> : null}
         {canEdit ? (
           <Button variant="primary" loading={creating} onClick={() => void newPost()}>
             {t(m.newPost)}
@@ -308,6 +309,9 @@ function PostsTable({ posts, overview, onDialog, onState }: { posts: PostRow[]; 
               <th scope="col" className="r">
                 {t(mp.colUpgrades)}
               </th>
+              <th scope="col" className="r">
+                {t(mp.colComments)}
+              </th>
               {showMenu ? (
                 <th scope="col">
                   <span className="vh">{t(mp.colActions)}</span>
@@ -333,6 +337,7 @@ function PostsTable({ posts, overview, onDialog, onState }: { posts: PostRow[]; 
                 <Num post={p} v={p.views} />
                 <Num post={p} v={p.signups} />
                 <Num post={p} v={p.upgrades} />
+                <CommentsCell post={p} />
                 {showMenu ? (
                   <td className="r" style={{ paddingTop: 10 }}>
                     <RowMenu post={p} overview={overview} onDialog={onDialog} open={menuFor === p.id} onOpenChange={(o) => setMenuFor(o ? p.id : null)} />
@@ -344,6 +349,62 @@ function PostsTable({ posts, overview, onDialog, onState }: { posts: PostRow[]; 
         </table>
       </TableScroll>
     </div>
+  )
+}
+
+/** The post's published comments, linked to Website › Comments, with how many wait for review. */
+function CommentsCell({ post: p }: { post: PostRow }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  if (p.status !== 'published') return <td className="r">{<span className="k">{t(mp.dash)}</span>}</td>
+  if (p.comments === 0 && p.commentsPending === 0) return <td className="r num">{count(0)}</td>
+  return (
+    <td className="r">
+      <span className="ws-stk" style={{ alignItems: 'flex-end' }}>
+        <Link
+          to="/w/$workspace/forms/website/comments"
+          params={{ workspace: slug }}
+          search={{ post: p.id, status: p.commentsPending ? 'pending' : undefined }}
+          aria-label={t(mp.commentsLabel, { count: p.comments, title: p.title, pending: p.commentsPending })}
+        >
+          {count(p.comments)}
+        </Link>
+        {p.commentsPending ? <span className="k">{t(mp.commentsWaiting, { count: p.commentsPending })}</span> : null}
+      </span>
+    </td>
+  )
+}
+
+/** Import posts ▾: from an export (Import posts) or Publish past campaigns. */
+function ImportMenu({ onPast }: { onPast: () => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const navigate = useNavigate()
+  return (
+    <Menu
+      label={t(mi.menuImport)}
+      className="min-w-[290px]"
+      trigger={
+        <Button icon="import" iconRight="chevronDown">
+          {t(mi.menuImport)}
+        </Button>
+      }
+    >
+      <MenuItem onSelect={() => void navigate({ to: '/w/$workspace/forms/website/import', params: { workspace: slug } })} className="items-start">
+        <Icon name="upload" size={15} />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <b className="font-semibold">{t(mi.menuFrom)}</b>
+          <span className="k">{t(mi.menuFromText)}</span>
+        </span>
+      </MenuItem>
+      <MenuItem onSelect={onPast} className="items-start">
+        <Icon name="history" size={15} />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <b className="font-semibold">{t(mi.menuPast)}</b>
+          <span className="k">{t(mi.menuPastText)}</span>
+        </span>
+      </MenuItem>
+    </Menu>
   )
 }
 

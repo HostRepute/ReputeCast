@@ -117,4 +117,18 @@
     var toast = x.closest('.st-toast');
     if (toast) toast.remove();
   });
+
+  // A comment form's counter: "98 of 5,000" as the member types (the
+  // textarea's maxlength stops it at the limit).
+  Array.prototype.forEach.call(document.querySelectorAll('textarea[data-count]'), function (ta) {
+    var out = document.getElementById(ta.getAttribute('data-count'));
+    var label = ta.getAttribute('data-count-label') || '';
+    if (!out || label.indexOf('{n}') < 0) return;
+    var lang = document.documentElement.lang || undefined;
+    var show = function () {
+      out.textContent = label.replace('{n}', ta.value.length.toLocaleString(lang));
+    };
+    ta.addEventListener('input', show);
+    show();
+  });
 })();

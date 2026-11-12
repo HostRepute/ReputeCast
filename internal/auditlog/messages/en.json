@@ -63,6 +63,8 @@
   "link.senders": "Open senders",
   "link.replies": "Open replies",
   "link.couponPool": "Open pool",
+  "link.comments": "Open comments",
+  "link.import": "Open import",
 
   "client.on": { "message": "{browser} on {os}", "note": "the browser and system of a request: Chrome 141 on macOS 26" },
   "related.entry": { "message": "{action} by {name} at {at, time}", "note": "a related entry; action: an audit action name, never translated" },
@@ -360,5 +362,7 @@
   "type.workspace": "workspace",
   "type.reply": "reply",
   "type.coupon_pool": "discount code pool",
-  "type.countdown": "countdown"
+  "type.countdown": "countdown",
+  "type.website_comment": "website comment",
+  "type.website_import": "post import"
 }

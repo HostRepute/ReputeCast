@@ -42,6 +42,7 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | Phone numbers (E.164, country, type) | github.com/nyaruka/phonenumbers | v1.8.1 |
 | Country and city of readers (campaign report), from an operator-supplied MaxMind DB file | github.com/oschwald/maxminddb-golang/v2 | v2.9.0 (ISC, pure Go; the file is read into memory and verified, never memory-mapped) |
 | App languages: language names, plural rules, collation, currencies, Unicode normalization | golang.org/x/text | v0.44.0 |
+| WebP images in imported posts (M61): decoded and stored as JPEG, or PNG when they have transparency; the standard library decodes no WebP | golang.org/x/image (`webp`) | v0.48.0 |
 | Password hashing | golang.org/x/crypto/argon2 (argon2id) | v0.58.0 |
 | TOTP 2FA | github.com/pquerna/otp | v1.5.0 |
 | Passkeys | github.com/go-webauthn/webauthn | v0.18.2 |

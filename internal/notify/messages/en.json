@@ -53,6 +53,8 @@
   "short.reply_received": "replies",
   "short.inbound_failing": "receiving problems",
   "short.coupon_codes_low": "discount codes running low",
+  "short.comments_waiting": "comments waiting for review",
+  "short.post_import_done": "post imports",
 
   "event.approval_requested": {"message": "Approval requested", "note": "Notification preferences: one row per event type, which the member turns on in-app or by email"},
   "event.approval_decided": "Approval approved, rejected or changes requested",
@@ -104,6 +106,8 @@
   "event.reply_received": "New replies",
   "event.inbound_failing": "Receiving mail failing",
   "event.coupon_codes_low": "Discount codes running low",
+  "event.comments_waiting": "Comments waiting for review",
+  "event.post_import_done": "Post import finished",
 
   "audience.approval_requested": {"message": "Only for approvers", "note": "who gets an event type, under its name in Notification preferences; it names who in people's words (\"People who can send campaigns\"), never a permission key"},
   "audience.approval_decided": "Only for the author",
@@ -155,6 +159,8 @@
   "audience.reply_received": "People who can view replies · at most every 15 minutes",
   "audience.inbound_failing": "People who can manage domains",
   "audience.coupon_codes_low": "People who can manage discount codes",
+  "audience.comments_waiting": "People who can moderate comments · then at most once an hour while comments wait",
+  "audience.post_import_done": "Whoever started the import",
 
   "category.approvals": {"message": "Approvals", "note": "the notification center's tabs, and the badge on each notification"},
   "category.sending": "Sending",

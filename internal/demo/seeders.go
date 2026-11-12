@@ -73,6 +73,10 @@ var (
 	// the email countdown: the draft Black Friday Early Access with its
 	// Countdown and Discount code blocks (seed_countdown.go)
 	seedCountdown = noop
+	// an import of posts from Substack waiting for its review (M61, seed_website_import.go)
+	seedWebsiteImport = noop
+	// comments on two posts, three waiting for review (M61, seed_website_comments.go)
+	seedWebsiteComments = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

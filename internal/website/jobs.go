@@ -67,6 +67,12 @@ func (w *hourlyWorker) Work(ctx context.Context, _ *river.Job[HourlyArgs]) error
 	if err := w.s.PurgeLinks(ctx); err != nil {
 		return err
 	}
+	if err := w.s.PurgeComments(ctx); err != nil {
+		return err
+	}
+	if err := w.s.PurgeImports(ctx); err != nil {
+		return err
+	}
 	return w.s.CheckDomains(ctx)
 }
 
@@ -81,6 +87,12 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	reg.Every(24*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return RedrawArgs{}, nil }, true)
 	reg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return TickArgs{}, nil }, true)
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return HourlyArgs{}, nil }, true)
+	// Comment reply emails (M61): every 5 minutes, one an hour per member.
+	river.AddWorker(reg.Workers, &commentNoticesWorker{s: s})
+	reg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return CommentNoticesArgs{}, nil }, true)
+	// Importing posts (M61).
+	river.AddWorker(reg.Workers, &importAnalyseWorker{s: s})
+	river.AddWorker(reg.Workers, &importRunWorker{s: s})
 }
 
 // PurgeLinks deletes sign-in links a day after they could last be used.

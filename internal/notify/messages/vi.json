@@ -53,6 +53,8 @@
   "short.reply_received": "thư trả lời",
   "short.inbound_failing": "sự cố nhận thư",
   "short.coupon_codes_low": "mã giảm giá sắp hết",
+  "short.comments_waiting": "bình luận chờ duyệt",
+  "short.post_import_done": "nhập bài viết",
 
   "event.approval_requested": "Yêu cầu phê duyệt",
   "event.approval_decided": "Yêu cầu phê duyệt được duyệt, bị từ chối hoặc cần thay đổi",
@@ -104,6 +106,8 @@
   "event.reply_received": "Thư trả lời mới",
   "event.inbound_failing": "Nhận thư đang lỗi",
   "event.coupon_codes_low": "Mã giảm giá sắp hết",
+  "event.comments_waiting": "Bình luận đang chờ duyệt",
+  "event.post_import_done": "Đã nhập xong bài viết",
 
   "audience.approval_requested": "Chỉ dành cho người phê duyệt",
   "audience.approval_decided": "Chỉ dành cho tác giả",
@@ -155,6 +159,8 @@
   "audience.reply_received": "Những người có thể xem thư trả lời · tối đa 15 phút một lần",
   "audience.inbound_failing": "Những người có thể quản lý tên miền",
   "audience.coupon_codes_low": "Những người có thể quản lý mã giảm giá",
+  "audience.comments_waiting": "Những người có thể kiểm duyệt bình luận · sau đó tối đa mỗi giờ một lần khi còn bình luận chờ duyệt",
+  "audience.post_import_done": "Người bắt đầu lượt nhập",
 
   "category.approvals": "Phê duyệt",
   "category.sending": "Gửi thư",

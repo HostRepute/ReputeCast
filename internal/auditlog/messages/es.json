@@ -63,6 +63,8 @@
   "link.senders": "Abrir remitentes",
   "link.replies": "Abrir respuestas",
   "link.couponPool": "Abrir grupo",
+  "link.comments": "Abrir comentarios",
+  "link.import": "Abrir importación",
 
   "client.on": "{browser} en {os}",
   "related.entry": "{action} de {name} a las {at, time}",
@@ -360,5 +362,7 @@
   "type.workspace": "espacio de trabajo",
   "type.reply": "respuesta",
   "type.coupon_pool": "grupo de códigos de descuento",
-  "type.countdown": "cuenta atrás"
+  "type.countdown": "cuenta atrás",
+  "type.website_comment": "comentario del sitio web",
+  "type.website_import": "importación de artículos"
 }

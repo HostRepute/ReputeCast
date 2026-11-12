@@ -39,6 +39,7 @@ func erasureSources() []erasure.Source {
 		website.Erasure(), whatsapp.Erasure(), inbound.Erasure(),
 		// Discount codes given to contacts (M59).
 		coupons.Erasure(),
+		website.CommentsErasure(),
 	}
 }
 

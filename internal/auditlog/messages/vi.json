@@ -63,6 +63,8 @@
   "link.senders": "Mở người gửi",
   "link.replies": "Mở thư trả lời",
   "link.couponPool": "Mở kho mã",
+  "link.comments": "Mở bình luận",
+  "link.import": "Mở lượt nhập",
 
   "client.on": "{browser} trên {os}",
   "related.entry": "{action} bởi {name} lúc {at, time}",
@@ -360,5 +362,7 @@
   "type.workspace": "không gian làm việc",
   "type.reply": "thư trả lời",
   "type.coupon_pool": "kho mã giảm giá",
-  "type.countdown": "bộ đếm ngược"
+  "type.countdown": "bộ đếm ngược",
+  "type.website_comment": "bình luận trên trang web",
+  "type.website_import": "lượt nhập bài viết"
 }

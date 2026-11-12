@@ -53,6 +53,8 @@
   "short.reply_received": "respuestas",
   "short.inbound_failing": "problemas de recepción",
   "short.coupon_codes_low": "códigos de descuento por agotarse",
+  "short.comments_waiting": "comentarios pendientes de revisión",
+  "short.post_import_done": "importaciones de artículos",
 
   "event.approval_requested": "Aprobación solicitada",
   "event.approval_decided": "Solicitud aprobada, rechazada o con cambios solicitados",
@@ -104,6 +106,8 @@
   "event.reply_received": "Respuestas nuevas",
   "event.inbound_failing": "La recepción de correo falla",
   "event.coupon_codes_low": "Códigos de descuento por agotarse",
+  "event.comments_waiting": "Comentarios pendientes de revisión",
+  "event.post_import_done": "Importación de artículos terminada",
 
   "audience.approval_requested": "Solo para quien aprueba",
   "audience.approval_decided": "Solo para quien la creó",
@@ -155,6 +159,8 @@
   "audience.reply_received": "Quienes pueden ver las respuestas · como mucho cada 15 minutos",
   "audience.inbound_failing": "Quienes pueden gestionar dominios",
   "audience.coupon_codes_low": "Personas que pueden gestionar los códigos de descuento",
+  "audience.comments_waiting": "Personas que pueden moderar comentarios · después, como máximo una vez por hora mientras haya comentarios esperando",
+  "audience.post_import_done": "Quien inició la importación",
 
   "category.approvals": "Aprobaciones",
   "category.sending": "Envíos",

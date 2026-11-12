@@ -46,3 +46,55 @@ func (r iteratorForEarnImportRowInsert) Err() error {
 func (q *Queries) EarnImportRowInsert(ctx context.Context, arg []EarnImportRowInsertParams) (int64, error) {
 	return q.db.CopyFrom(ctx, []string{"earn_import_rows"}, []string{"import_id", "row_no", "email", "name", "customer_id", "plan", "paid_through"}, &iteratorForEarnImportRowInsert{rows: arg})
 }
+
+// iteratorForWebsiteImportPostsInsert implements pgx.CopyFromSource.
+type iteratorForWebsiteImportPostsInsert struct {
+	rows                 []WebsiteImportPostsInsertParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForWebsiteImportPostsInsert) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForWebsiteImportPostsInsert) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].ID,
+		r.rows[0].ImportID,
+		r.rows[0].SourceID,
+		r.rows[0].Title,
+		r.rows[0].Slug,
+		r.rows[0].PublishedAt,
+		r.rows[0].Status,
+		r.rows[0].Visibility,
+		r.rows[0].TierRefs,
+		r.rows[0].Tags,
+		r.rows[0].Author,
+		r.rows[0].Excerpt,
+		r.rows[0].CoverUrl,
+		r.rows[0].Seo,
+		r.rows[0].LegacyPaths,
+		r.rows[0].Html,
+		r.rows[0].Images,
+		r.rows[0].Problems,
+		r.rows[0].Decision,
+		r.rows[0].PostID,
+	}, nil
+}
+
+func (r iteratorForWebsiteImportPostsInsert) Err() error {
+	return nil
+}
+
+// Staged posts
+func (q *Queries) WebsiteImportPostsInsert(ctx context.Context, arg []WebsiteImportPostsInsertParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"website_import_posts"}, []string{"id", "import_id", "source_id", "title", "slug", "published_at", "status", "visibility", "tier_refs", "tags", "author", "excerpt", "cover_url", "seo", "legacy_paths", "html", "images", "problems", "decision", "post_id"}, &iteratorForWebsiteImportPostsInsert{rows: arg})
+}

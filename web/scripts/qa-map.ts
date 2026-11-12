@@ -585,4 +585,19 @@ export const entries: Entry[] = [
   { board: 'DiscountCodesStates', manual: true },
   { board: 'ComposerTimedBlocks', manual: true },
   { board: 'ComposerTimedBlocksPhone', manual: true },
+  // M61 · post import and comments. The import boards open the demo's review of
+  // acme-weekly-substack-export.zip ({postImport:ready}); its other steps and states are compared by
+  // hand. PublicPostComments is Sam Rivera's view of
+  // /p/acme-newsletter/posts/what-shipped-in-october: it needs his site session
+  // (rc_member=demo-session-sam-<workspace id>), which the sweep doesn't set, and its frames need other
+  // readers and settings.
+  { board: 'WebsiteImport', path: `${ws}/forms/website/import?import={postImport:ready}`, widths: [1440] },
+  { board: 'WebsiteImportPhone', path: `${ws}/forms/website/import?import={postImport:ready}`, widths: [390] },
+  { board: 'WebsiteImportStates', manual: true },
+  { board: 'WebsiteComments', path: `${ws}/forms/website/comments`, widths: [1440] },
+  { board: 'WebsiteCommentsTablet', path: `${ws}/forms/website/comments`, widths: [834] },
+  { board: 'WebsiteCommentsPhone', path: `${ws}/forms/website/comments`, widths: [390] },
+  { board: 'WebsiteCommentsStates', manual: true },
+  { board: 'PublicPostComments', manual: true, widths: [720] },
+  { board: 'PublicPostCommentsPhone', manual: true, widths: [390] },
 ]

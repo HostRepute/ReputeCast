@@ -17,7 +17,7 @@ import (
 // error or page is first shown).
 func TestMessageKeysExist(t *testing.T) {
 	keys := msgs.Keys()
-	re := regexp.MustCompile(`(?:tr\(ctx, |\.Text\(|T\(|\.T |words\.Text\()"((?:post|tag|nav|identity|home|meter|access|paywall|site|check|gate|signin|mail|join|account|report|notify)\.[A-Za-z_.]+)"`)
+	re := regexp.MustCompile(`(?:tr\(ctx, |\.Text\(|T\(|\.T |words\.Text\()"((?:post|tag|nav|identity|home|meter|access|paywall|site|check|gate|signin|mail|join|account|report|notify|comments|import)\.[A-Za-z_.]+)"`)
 	seen := 0
 	files, _ := filepath.Glob("*.go")
 	tmpl, _ := filepath.Glob("../publicpages/templates/site/*.html")

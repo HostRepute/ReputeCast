@@ -51,6 +51,9 @@ type WebsitePostInput struct {
 	PublishMode string     `json:"publishMode" enum:"with_send,at,now"`
 	PublishAt   *time.Time `json:"publishAt,omitempty"`
 	PublishTZ   string     `json:"publishTz,omitempty" maxLength:"64"`
+	// CommentsOff is the post's "Comments" setting: true is "Off for this
+	// post", false "Use the site's setting" (left out: as it is).
+	CommentsOff *bool `json:"commentsOff,omitempty"`
 }
 
 // WebsitePostCreate starts a web-only post.
@@ -289,12 +292,15 @@ func (s *Service) applySettings(ctx context.Context, q *store.Queries, ws *store
 	if next.PublishTz == "" {
 		next.PublishTz = ws.Timezone
 	}
+	if in.CommentsOff != nil {
+		next.CommentsOff = *in.CommentsOff
+	}
 	now := s.now()
 	if err := q.WebsitePostSaveFields(ctx, store.WebsitePostSaveFieldsParams{WorkspaceID: ws.ID, ID: cur.ID, WebOn: next.WebOn, PublishMode: next.PublishMode,
 		PublishAt: next.PublishAt, PublishTz: next.PublishTz, Title: next.Title, TitleEdited: next.TitleEdited, Slug: next.Slug, Excerpt: next.Excerpt,
 		ExcerptEdited: next.ExcerptEdited, CoverUrl: next.CoverUrl, CoverAlt: next.CoverAlt, BylineUserID: next.BylineUserID, BylineName: next.BylineName,
 		Visibility: next.Visibility, Tiers: next.Tiers, NeverFree: next.NeverFree, SeoTitle: next.SeoTitle, SeoDescription: next.SeoDescription,
-		SocialImage: next.SocialImage, CanonicalUrl: next.CanonicalUrl, HideFromSearch: next.HideFromSearch, UpdatedBy: userID(p), At: now}); err != nil {
+		SocialImage: next.SocialImage, CanonicalUrl: next.CanonicalUrl, HideFromSearch: next.HideFromSearch, CommentsOff: next.CommentsOff, UpdatedBy: userID(p), At: now}); err != nil {
 		return err
 	}
 	// A scheduled post that moved or lost its time goes back to draft.
@@ -357,6 +363,7 @@ func (s *Service) auditSettings(ctx context.Context, q *store.Queries, ws *store
 	diff("publish_at", cur.PublishAt, next.PublishAt)
 	diff("seo", []any{cur.SeoTitle, cur.SeoDescription, cur.SocialImage, cur.CanonicalUrl, cur.HideFromSearch},
 		[]any{next.SeoTitle, next.SeoDescription, next.SocialImage, next.CanonicalUrl, next.HideFromSearch})
+	diff("comments_off", cur.CommentsOff, next.CommentsOff)
 	if len(after) == 0 {
 		return nil
 	}

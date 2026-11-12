@@ -40,7 +40,7 @@ import (
 var siteFS embed.FS
 
 // sitePages are the site's templates, each rendered in frame.html.
-var sitePages = []string{"home", "post", "tag", "archive", "gone", "fail", "signin", "account"}
+var sitePages = []string{"home", "post", "tag", "archive", "gone", "fail", "signin", "account", "mute"}
 
 // siteState holds the site's parsed templates.
 type siteState struct {
@@ -447,7 +447,7 @@ func (h *Handler) siteHTML(page string, v *siteView) ([]byte, error) {
 
 // siteRootPaths are the site's addresses on a custom domain (the archive
 // and the subscribe page are the public pages' own).
-var siteRootPaths = []string{"/posts/*", "/tag/*", "/feed", "/signin", "/signin/*", "/signout", "/account", "/account/*"}
+var siteRootPaths = append([]string{"/posts/*", "/tag/*", "/feed", "/signin", "/signin/*", "/signout", "/account", "/account/*"}, commentRootPaths...)
 
 // siteRoutes mounts the website's pages.
 func (h *Handler) siteRoutes(r chi.Router) {
@@ -466,6 +466,8 @@ func (h *Handler) siteRoutes(r chi.Router) {
 	r.Post("/signout", h.signout)
 	r.Get("/account", h.accountPage)
 	r.Post("/account/{action}", h.accountPost)
+	// Comments on posts (site_comments.go).
+	h.commentRoutes(r)
 }
 
 // siteOn reports whether the website serves a workspace's pages.

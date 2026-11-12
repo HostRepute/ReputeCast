@@ -11,7 +11,7 @@ import { useSyncExternalStore } from 'react'
  * imports feature installs it). Screens can also track a job they started
  * with trackJob() so it shows right away.
  */
-export type JobKind = 'import' | 'export' | 'scoring' | 'verification' | 'optin'
+export type JobKind = 'import' | 'export' | 'scoring' | 'verification' | 'optin' | 'post_import'
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'canceled'
 
 export interface BackgroundJob {

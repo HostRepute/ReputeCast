@@ -16,7 +16,7 @@ import { bare, useWebsite, type Address, type Overview } from './api'
 import { m } from './messages'
 import './website.css'
 
-export type WebsiteView = 'posts' | 'home' | 'access'
+export type WebsiteView = 'posts' | 'home' | 'access' | 'comments'
 
 /**
  * Loads the website's overview and hands it on; its own loading, error and
@@ -88,10 +88,15 @@ export function WebsitePage({ view, overview, actions, children, documentTitle }
   const t = useT()
   const { slug } = useWorkspace()
   const params = { workspace: slug }
-  const views: { key: WebsiteView; to: '/w/$workspace/forms/website' | '/w/$workspace/forms/website/home' | '/w/$workspace/forms/website/access'; label: string }[] = [
+  const views: {
+    key: WebsiteView
+    to: '/w/$workspace/forms/website' | '/w/$workspace/forms/website/home' | '/w/$workspace/forms/website/access' | '/w/$workspace/forms/website/comments'
+    label: string
+  }[] = [
     { key: 'posts', to: '/w/$workspace/forms/website', label: t(m.viewPosts) },
     { key: 'home', to: '/w/$workspace/forms/website/home', label: t(m.viewHomeNav) },
     { key: 'access', to: '/w/$workspace/forms/website/access', label: t(m.viewAccess) },
+    { key: 'comments', to: '/w/$workspace/forms/website/comments', label: t(m.viewComments) },
   ]
   const current = views.find((v) => v.key === view)!
   // On phones the views scroll on one line (website.css), and the row says so.

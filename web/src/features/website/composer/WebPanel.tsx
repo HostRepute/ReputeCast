@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
@@ -23,6 +23,7 @@ export function inputOfPost(p: Post): PostInput {
     coverUrl: p.coverUrl,
     excerpt: p.excerpt,
     featured: p.featured,
+    commentsOff: p.commentsOff,
     neverFree: p.neverFree,
     publishAt: p.publishAt,
     publishMode: p.publishMode,
@@ -463,6 +464,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
               <SwitchInput aria-labelledby="wt-feat" checked={d.featured} disabled={ro} onChange={(e) => ws.set({ featured: e.target.checked })} />
             </div>
           </section>
+          <CommentsSetting off={Boolean(d.commentsOff)} disabled={ro} onChange={(off) => ws.set({ commentsOff: off })} />
           <section className="wtab-sec">
             <button type="button" className="wtab-row" aria-expanded={seoOpen} onClick={() => setSeoOpen((o) => !o)}>
               <span className="flex min-w-0 flex-col gap-0.5 text-left">
@@ -643,4 +645,31 @@ export function useSavePost(postId: string) {
 /** "Wed 14 Oct": for the When section's line. */
 export function shortDay(d: string): string {
   return dayMonthDate(d)
+}
+
+/** The post's Comments: the site's setting (said in words), or off for this post (M61). */
+function CommentsSetting({ off, disabled, onChange }: { off: boolean; disabled: boolean; onChange: (off: boolean) => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const access = $api.useQuery('get', `${WS}/access`, { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
+  const a = access.data
+  return (
+    <section className="wtab-sec">
+      <label htmlFor="wt-comments" className="font-semibold">
+        {t(mc.comments)}
+      </label>
+      <select id="wt-comments" className="in" value={off ? 'off' : 'site'} disabled={disabled} onChange={(e) => onChange(e.target.value === 'off')}>
+        <option value="site">{t(mc.commentsSite)}</option>
+        <option value="off">{t(mc.commentsOff)}</option>
+      </select>
+      {a ? (
+        <span className="k font-medium">
+          {a.comments === 'off' ? t(mc.commentsSiteOff) : t(mc.commentsSiteIs, { who: a.comments, review: a.commentsReview })}{' '}
+          <Link to="/w/$workspace/forms/website/access" params={{ workspace: slug }} hash="comments">
+            {t(mc.commentsWhere)}
+          </Link>
+        </span>
+      ) : null}
+    </section>
+  )
 }

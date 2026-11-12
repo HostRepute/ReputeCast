@@ -1,0 +1,13 @@
+<mjml>
+<mj-body width="680px">
+<mj-section>
+<mj-column>
+<mj-text><p>A <code>550 5.7.1</code> means the receiving server refused the message on policy, not because the mailbox is missing.</p><h2>Read the whole line</h2></mj-text>
+<mj-image src="/media/0193d7a2-0000-7000-8000-000000000000/bounce.png" alt=""></mj-image>
+<mj-text><p>Watch on Vimeo: <a href="https://vimeo.com/76979871">https://vimeo.com/76979871</a></p></mj-text>
+<mj-divider></mj-divider>
+<mj-text><p>Next time: reading a DMARC report.</p></mj-text>
+</mj-column>
+</mj-section>
+</mj-body>
+</mjml>

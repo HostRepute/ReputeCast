@@ -84,6 +84,12 @@ func TestRedactPath(t *testing.T) {
 		"/recommends/tok":                              "/recommends/{token}",
 		"/api/v1/invitations/tok/request":              "/api/v1/invitations/{token}/request",
 		"/api/v1/auth/password-reset":                  "/api/v1/auth/password-reset",
+		// A comment reply email's "Stop these emails" (M61); the comment
+		// forms hold no secret.
+		"/p/acme-newsletter/comments/mute/tok":              "/p/acme-newsletter/comments/mute/{token}",
+		"/comments/mute/tok":                                "/comments/mute/{token}",
+		"/posts/what-shipped-in-october/comments":           "/posts/what-shipped-in-october/comments",
+		"/p/acme-newsletter/posts/x/comments/0193a4b1/edit": "/p/acme-newsletter/posts/x/comments/0193a4b1/edit",
 	} {
 		if got := RedactPath(in); got != want {
 			t.Errorf("RedactPath(%q) = %q, want %q", in, got, want)

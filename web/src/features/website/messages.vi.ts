@@ -36,6 +36,7 @@ export default translate(m, {
   viewPosts: 'Bài viết',
   viewHomeNav: 'Trang chủ và điều hướng',
   viewAccess: 'Quyền truy cập',
+  viewComments: 'Bình luận',
   liveValid: 'Đang hoạt động · {host} · chứng chỉ hợp lệ',
   liveFailing: 'Đang hoạt động · {host} · chứng chỉ bị lỗi',
   livePending: 'Đang hoạt động · {host} · chứng chỉ đang chờ cấp',

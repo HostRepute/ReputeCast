@@ -1,0 +1,15 @@
+<mjml>
+<mj-body width="680px">
+<mj-section>
+<mj-column>
+<mj-text><p>We ran our job queue on Redis for six years. In March we moved it to Postgres, next to the data the jobs change.</p><p>The reason is simple: a job and the row it updates now commit together.<br>
+Nothing is lost between them.</p></mj-text>
+<mj-image src="/media/0193d7a2-0000-7000-8000-000000000000/queue-dashboard.png" alt="The queue dashboard after the move"></mj-image>
+<mj-text><p><em>Jobs per second, the week of the move.</em></p><p>Watch on YouTube: <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">https://www.youtube.com/watch?v=dQw4w9WgXcQ</a></p><h2>What we kept</h2><ul>
+	<li>The retry schedule</li>
+	<li>The dead letter queue</li>
+</ul><p>Questions? Write to &#123;&#123; reply_to }} and we&#39;ll answer in the next post.</p></mj-text>
+</mj-column>
+</mj-section>
+</mj-body>
+</mjml>

@@ -524,3 +524,54 @@ mark.st-hl { background: var(--pub-tint); color: var(--pub-hover); border-radius
   .st-act { gap: 6px; }
   .st-act .st-btn, .st-act .st-btn2 { padding: 0 10px; }
 }
+
+/* Comments under a post (M61, PublicPostComments): pinned first, then
+   oldest first, one level of replies; the form only for a signed-in
+   member who may comment, its honeypot out of sight. */
+.st-comments { display: flex; flex-direction: column; gap: 20px; margin-top: 36px; padding-top: 28px; border-top: 1px solid #e3e6eb; }
+.st-cmhd { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.st-cmhd h2 { margin: 0; font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; color: #0b1220; }
+.st-cms, .st-cmr { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.st-cms > li { padding: 20px 0; border-top: 1px solid #eef0f3; }
+.st-cms > li:first-child { border-top: 0; padding-top: 4px; }
+.st-cmr { margin: 16px 0 0 22px; padding-left: 28px; border-left: 2px solid var(--pub-soft); gap: 18px; }
+.st-cm { display: flex; gap: 12px; align-items: flex-start; }
+.st-cm .st-av, .st-cm .st-mark { width: 36px; height: 36px; font-size: 13px; }
+.st-cm .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.st-cmh { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; font-size: 14.5px; line-height: 1.4; }
+.st-cmh b { font-weight: 600; color: #0b1220; }
+.st-cmh time { font-size: 13.5px; color: #5b6472; }
+.st-cm .tx > p { margin: 0; font-size: 16px; line-height: 1.6; color: #1f2937; overflow-wrap: anywhere; }
+.st-cm .tx > p a { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.st-cm.mine { background: var(--pub-ground); border-radius: 12px; padding: 12px; margin: -12px; }
+.st-cma { display: flex; gap: 4px 18px; flex-wrap: wrap; align-items: center; font-size: 14px; }
+.st-cma form { margin: 0; display: inline; }
+.st-lnkb { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--pub-text); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; }
+.st-lnkb:hover { color: var(--pub-hover); }
+.st-gone { font-style: italic; color: #5b6472 !important; }
+.st-cm .st-av.gone { background: #eef0f3; color: #5b6472; }
+.st-cmf { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; border: 1px solid #e3e6eb; border-radius: 12px; background: #fff; margin: 0; }
+.st-cmf .st-cmnh { margin-top: -4px; }
+.st-ta { height: auto; min-height: 112px; padding: 12px 14px; resize: vertical; line-height: 1.5; box-sizing: border-box; }
+.st-cmff { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.st-cmff .who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.st-cmff .who b { color: #0b1220; }
+.st-cmff .acts { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.st-cmmore { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 20px; border-top: 1px solid #eef0f3; }
+.st-comments .st-note .tx > b { color: #0b1220; }
+.st-note.muted { background: #f9fafb; border-color: #e3e6eb; }
+.st-note.muted > svg { color: #4b5563; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.st-m0 { margin: 0; }
+@container (max-width: 767px) {
+  .st-cma a, .st-cma .st-lnkb { min-height: 44px; display: inline-flex; align-items: center; }
+  .st-cmf .st-btn, .st-cmf .st-btn2 { height: 44px; }
+}
+@container (max-width: 599px) {
+  .st-cmr { margin-left: 8px; padding-left: 14px; }
+  .st-cm .st-av, .st-cm .st-mark { width: 32px; height: 32px; font-size: 12px; }
+  .st-cmf { padding: 14px; }
+  .st-cmff .acts { width: 100%; }
+  .st-cmff .acts .st-btn { flex: 1 1 auto; }
+  .st-cmmore .st-btn2 { width: 100%; }
+}

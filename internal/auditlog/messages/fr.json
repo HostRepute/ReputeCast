@@ -63,6 +63,8 @@
   "link.senders": "Ouvrir les expéditeurs",
   "link.replies": "Ouvrir les réponses",
   "link.couponPool": "Ouvrir la réserve",
+  "link.comments": "Ouvrir les commentaires",
+  "link.import": "Ouvrir l’import",
 
   "client.on": "{browser} sur {os}",
   "related.entry": "{action} par {name} à {at, time}",
@@ -360,5 +362,7 @@
   "type.workspace": "espace de travail",
   "type.reply": "réponse",
   "type.coupon_pool": "réserve de codes de réduction",
-  "type.countdown": "compte à rebours"
+  "type.countdown": "compte à rebours",
+  "type.website_comment": "commentaire du site",
+  "type.website_import": "import d’articles"
 }

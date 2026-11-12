@@ -39,6 +39,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -94,6 +95,12 @@ type Service struct {
 	Campaigns func() CampaignDrafts
 	// Certs checks the certificate the custom domain serves (nil: unknown).
 	Certs func() CertChecker
+	// Links signs the tokens in the site's own emails ("Stop these
+	// emails" in a comment reply email).
+	Links *linktoken.Signer
+	// Images reads an imported post's images from the old site (M61; nil:
+	// they keep linking there).
+	Images func() ImageFetcher
 
 	certs certCache
 	salts saltCache

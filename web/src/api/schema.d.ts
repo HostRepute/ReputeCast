@@ -17933,6 +17933,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/website/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Website › Comments: comments waiting for review, published or hidden */
+        get: operations["list-website-comments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/comments/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish, hide or delete comments
+         * @description Undo works for 10 seconds with the decision's id. A deleted comment's text is gone once Undo has passed.
+         */
+        post: operations["decide-website-comments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/comments/decisions/{decision}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take back a decision on comments within 10 seconds */
+        post: operations["undo-website-comment-decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/comments/{comment}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pin a comment to the top of its post */
+        post: operations["pin-website-comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/comments/{comment}/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reply to a comment as the publication
+         * @description The reply is published at once and shows the publication's name with a Team badge; the commenter gets the reply email.
+         */
+        post: operations["reply-to-website-comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/comments/{comment}/unpin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unpin a comment */
+        post: operations["unpin-website-comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/website/home-nav": {
         parameters: {
             query?: never;
@@ -17962,6 +18070,139 @@ export interface paths {
         put?: never;
         /** Preview the home page with unsaved Home & navigation settings, as a visitor sees it */
         post: operations["preview-website-home"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A workspace's latest imports of posts, newest first */
+        get: operations["list-website-imports"];
+        put?: never;
+        /**
+         * Upload a Substack, Ghost or WordPress export to import its posts
+         * @description The format is told from the file's content. The posts are read in the background; nothing is imported until the import is started.
+         */
+        post: operations["create-website-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/imports/{import}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An import of posts: how far it got, what the export holds, the choices and its posts */
+        get: operations["get-website-import"];
+        /** Change an import's choices, mappings and decisions before it starts */
+        put: operations["update-website-import"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/imports/{import}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel an import, or stop it after the post it is on
+         * @description Posts imported so far stay.
+         */
+        post: operations["cancel-website-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/imports/{import}/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An ended import's report: each post's title, old address, outcome and problems */
+        get: operations["download-website-import-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/imports/{import}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start importing the posts in the background
+         * @description Posts kept as published go live at their original dates, without emails, webhooks or an audit entry each; one entry records the import.
+         */
+        post: operations["start-website-import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/members/{contact}/comments-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Block a member from commenting
+         * @description Their comments waiting for review stay there, marked as a blocked commenter's; published ones stay up until you hide them.
+         */
+        post: operations["block-website-commenter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/website/members/{contact}/comments-unblock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let a blocked member comment again */
+        post: operations["unblock-website-commenter"];
         delete?: never;
         options?: never;
         head?: never;
@@ -29621,7 +29862,7 @@ export interface components {
             href: string;
             id: string;
             /** @enum {string} */
-            kind: "import" | "verification" | "export" | "optin";
+            kind: "import" | "verification" | "export" | "optin" | "post_import";
             /** Format: int64 */
             progress?: number;
             /** Format: date-time */
@@ -32275,7 +32516,7 @@ export interface components {
         };
         MediaOriginal: {
             /** @enum {string} */
-            contentType: "image/png" | "image/jpeg" | "image/gif";
+            contentType: "image/png" | "image/jpeg" | "image/gif" | "image/webp";
             /** Format: int64 */
             height: number;
             /** Format: int64 */
@@ -46939,6 +47180,12 @@ export interface components {
             /** @enum {string} */
             campaignVisibility: "audience" | "public" | "members" | "paid";
             /** @enum {string} */
+            comments: "off" | "members" | "paid";
+            /** @enum {string} */
+            commentsReview: "all" | "first" | "none";
+            /** Format: int64 */
+            commentsWaiting: number;
+            /** @enum {string} */
             defaultVisibility: "public" | "members" | "paid";
             /** Format: int64 */
             linkMinutes: number;
@@ -46952,6 +47199,7 @@ export interface components {
             /** Format: int64 */
             meterVisitors: number;
             meterVisitorsOn: boolean;
+            moderators: string[];
             neverFree: components["schemas"]["WebsiteNeverFreePost"][];
             /** Format: int64 */
             paidPosts: number;
@@ -46974,6 +47222,10 @@ export interface components {
         WebsiteAccessInput: {
             /** @enum {string} */
             campaignVisibility: "audience" | "public" | "members" | "paid";
+            /** @enum {string} */
+            comments?: "off" | "members" | "paid" | "";
+            /** @enum {string} */
+            commentsReview?: "all" | "first" | "none" | "";
             /** @enum {string} */
             defaultVisibility: "public" | "members" | "paid";
             /**
@@ -47114,6 +47366,98 @@ export interface components {
             /** @enum {string} */
             status: "valid" | "failing" | "pending" | "unknown" | "none";
         };
+        WebsiteComment: {
+            blocked: boolean;
+            body: string;
+            by?: string;
+            contactId?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            editedAt?: string;
+            email?: string;
+            firstReply?: components["schemas"]["WebsiteCommentReply"];
+            /** @enum {string} */
+            heldReason?: "first_comment" | "review_all" | "links" | "blocked" | "";
+            id: string;
+            /** Format: int64 */
+            links: number;
+            /** Format: date-time */
+            moderatedAt?: string;
+            moderatedBy?: string;
+            name: string;
+            parentId?: string;
+            parentName?: string;
+            pinned: boolean;
+            postId: string;
+            postTitle: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** Format: int64 */
+            replies: number;
+            /** @enum {string} */
+            status: "pending" | "published" | "hidden" | "deleted";
+            team: boolean;
+            url: string;
+        };
+        WebsiteCommentCounts: {
+            /** Format: int64 */
+            hidden: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            published: number;
+        };
+        WebsiteCommentDecision: {
+            /** Format: int64 */
+            count: number;
+            decisionId: string;
+            /** Format: date-time */
+            undoUntil: string;
+        };
+        WebsiteCommentDecisionInput: {
+            /** @enum {string} */
+            decision: "publish" | "hide" | "delete";
+            ids: string[];
+        };
+        WebsiteCommentList: {
+            /** @enum {string} */
+            comments: "off" | "members" | "paid";
+            counts: components["schemas"]["WebsiteCommentCounts"];
+            items: components["schemas"]["WebsiteComment"][];
+            nextCursor?: string;
+            posts: components["schemas"]["WebsiteCommentPost"][];
+            publication: string;
+            publicationMark: string;
+            /** @enum {string} */
+            review: "all" | "first" | "none";
+        };
+        WebsiteCommentPost: {
+            /** Format: int64 */
+            comments: number;
+            id: string;
+            title: string;
+        };
+        WebsiteCommentReply: {
+            body: string;
+            by?: string;
+            /** Format: date-time */
+            createdAt: string;
+            name: string;
+            team: boolean;
+        };
+        WebsiteCommentReplyInput: {
+            body: string;
+        };
+        WebsiteCommenter: {
+            blocked: boolean;
+            /** Format: date-time */
+            blockedAt?: string;
+            contactId: string;
+            /** Format: int64 */
+            held: number;
+            name: string;
+        };
         WebsiteContactCard: {
             canSignOut: boolean;
             events: components["schemas"]["WebsiteMemberEvent"][];
@@ -47231,6 +47575,183 @@ export interface components {
             socialImage: string;
             tagline: string;
             title: string;
+        };
+        WebsiteImport: {
+            authors: components["schemas"]["WebsiteImportAuthor"][];
+            counts: components["schemas"]["WebsiteImportCounts"];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            error?: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            /** @description Pass as ?cursor= for the next page of posts */
+            nextCursor?: string;
+            options: components["schemas"]["WebsiteImportOptions"];
+            paidTiers: components["schemas"]["WebsiteImportChoice"][];
+            posts: components["schemas"]["WebsiteImportPost"][];
+            progress?: components["schemas"]["WebsiteImportProgress"];
+            reportUrl?: string;
+            /** @enum {string} */
+            source: "substack" | "ghost" | "wordpress";
+            /** @enum {string} */
+            status: "uploaded" | "analysing" | "ready" | "importing" | "done" | "failed" | "canceled";
+            team: components["schemas"]["WebsiteImportChoice"][];
+            tiers: components["schemas"]["WebsiteImportTier"][];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        WebsiteImportAuthor: {
+            name: string;
+            /** Format: int64 */
+            posts: number;
+            userId: string;
+        };
+        WebsiteImportChoice: {
+            id: string;
+            name: string;
+        };
+        WebsiteImportCounts: {
+            /** Format: int64 */
+            alreadyImported: number;
+            /** Format: int64 */
+            drafts: number;
+            /** Format: int64 */
+            draftsSkipped: number;
+            /** Format: int64 */
+            found: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            paid: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            toImport: number;
+            /** Format: int64 */
+            toUpdate: number;
+            /** Format: int64 */
+            withProblems: number;
+        };
+        WebsiteImportDecision: {
+            /**
+             * @description update: import again over the post imported before
+             * @enum {string}
+             */
+            decision: "import" | "skip" | "update";
+            /** Format: uuid */
+            id: string;
+        };
+        WebsiteImportList: {
+            items: components["schemas"]["WebsiteImportSummary"][];
+        };
+        WebsiteImportOptions: {
+            author: {
+                [key: string]: string;
+            };
+            /** @enum {string} */
+            images: "copy" | "link";
+            /** @enum {string} */
+            publish: "as_published" | "as_drafts";
+            tiers: {
+                [key: string]: string;
+            };
+        };
+        WebsiteImportOptionsInput: {
+            /** @description Old author → team member id or keep */
+            author?: {
+                [key: string]: string;
+            };
+            decisions?: components["schemas"]["WebsiteImportDecision"][];
+            /** @enum {string} */
+            images?: "copy" | "link";
+            /** @enum {string} */
+            publish?: "as_published" | "as_drafts";
+            /** @description Old tier → tier id or any */
+            tiers?: {
+                [key: string]: string;
+            };
+        };
+        WebsiteImportPost: {
+            alreadyImported: boolean;
+            author: string;
+            /** @enum {string} */
+            decision: "import" | "skip" | "update";
+            id: string;
+            /** Format: int64 */
+            images: number;
+            /** @enum {string} */
+            outcome?: "published" | "draft" | "updated" | "skipped" | "failed" | "";
+            postId?: string;
+            problems: components["schemas"]["WebsiteImportProblem"][];
+            /** Format: date-time */
+            publishedAt?: string;
+            slug: string;
+            sourceId: string;
+            sourceUrl: string;
+            /** @enum {string} */
+            status: "published" | "draft";
+            tags: string[];
+            tierRefs: string[];
+            title: string;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        WebsiteImportProblem: {
+            /** @enum {string} */
+            code: "embed_link" | "image_alt" | "image_failed" | "shortcode" | "slug_taken" | "extra_tags" | "already_imported" | "convert_failed";
+            detail?: string;
+            note?: string;
+            text: string;
+        };
+        WebsiteImportProgress: {
+            /** Format: int64 */
+            done: number;
+            /** Format: int64 */
+            drafts: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            imagesCopied: number;
+            /** Format: int64 */
+            imagesFailed: number;
+            /** Format: int64 */
+            published: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            updated: number;
+        };
+        WebsiteImportSummary: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            id: string;
+            /** @enum {string} */
+            source: "substack" | "ghost" | "wordpress";
+            /** @enum {string} */
+            status: "uploaded" | "analysing" | "ready" | "importing" | "done" | "failed" | "canceled";
+        };
+        WebsiteImportTier: {
+            /** Format: int64 */
+            posts: number;
+            ref: string;
+            tierId: string;
         };
         WebsiteMemberEvent: {
             actor?: string;
@@ -47380,6 +47901,11 @@ export interface components {
             bylines: components["schemas"]["WebsiteByline"][];
             campaign?: components["schemas"]["WebsitePostCampaign"];
             checks: components["schemas"]["WebsiteWebCheck"][];
+            /** Format: int64 */
+            comments: number;
+            commentsOff: boolean;
+            /** Format: int64 */
+            commentsPending: number;
             coverAlt: string;
             coverUrl: string;
             createdBy: string;
@@ -47494,6 +48020,7 @@ export interface components {
         WebsitePostInput: {
             bylineName?: string;
             bylineUserId?: string;
+            commentsOff?: boolean;
             coverAlt: string;
             coverUrl: string;
             excerpt: string;
@@ -47543,6 +48070,10 @@ export interface components {
             approval?: components["schemas"]["WebsitePostApproval"];
             byline: components["schemas"]["WebsiteByline"];
             campaign?: components["schemas"]["WebsitePostCampaign"];
+            /** Format: int64 */
+            comments: number;
+            /** Format: int64 */
+            commentsPending: number;
             createdBy: string;
             excerpt: string;
             featured: boolean;
@@ -90048,6 +90579,223 @@ export interface operations {
             };
         };
     };
+    "list-website-comments": {
+        parameters: {
+            query?: {
+                /** @description The tab: waiting for review (the default), published or hidden */
+                status?: "pending" | "published" | "hidden" | "";
+                /** @description A post's id */
+                post?: string;
+                /** @description Words in the comment, the commenter's name or address */
+                q?: string;
+                /** @description nextCursor of the page before */
+                cursor?: string;
+                /** @description Comments per page (50 by default) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCommentList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-website-comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteCommentDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCommentDecision"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undo-website-comment-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The decision's id (decisionId) */
+                decision: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pin-website-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The comment's id */
+                comment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteComment"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reply-to-website-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The comment's id */
+                comment: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteCommentReplyInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteComment"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unpin-website-comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The comment's id */
+                comment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteComment"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-website-home-nav": {
         parameters: {
             query?: never;
@@ -90139,6 +90887,326 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-website-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteImportList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-website-import": {
+        parameters: {
+            query?: {
+                /** @description The file's name, as it was chosen */
+                fileName?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-website-import": {
+        parameters: {
+            query?: {
+                /** @description The posts' page: nextCursor of the previous one */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The import's id */
+                import: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-website-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The import's id */
+                import: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsiteImportOptionsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-website-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The import's id */
+                import: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "download-website-import-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The import's id */
+                import: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-website-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The import's id */
+                import: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "block-website-commenter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The member's contact id */
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCommenter"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unblock-website-commenter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The member's contact id */
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsiteCommenter"];
                 };
             };
             /** @description Error */
