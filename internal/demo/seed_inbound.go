@@ -135,23 +135,26 @@ func seedInboundAfter(ctx context.Context, s *Seeder) error {
 		case m.pick != "":
 			// A demo contact the sample doesn't name, with a message of the
 			// campaign.
-			status := "active"
-			if m.pick == "unsubscribed" {
-				status = "unsubscribed"
-			}
-			var c, msg uuid.UUID
+			// "unsubscribed": someone whose address the unsubscribe put on the
+			// suppression list.
+			unsubscribed := m.pick == "unsubscribed"
+			var c uuid.UUID
+			var msg *uuid.UUID
 			var first, last string
+			// Preferably one the campaign was sent to.
 			err := s.Tx.QueryRow(ctx, `SELECT ct.id, ct.email, ct.first_name, ct.last_name, m.id FROM contacts ct
-				JOIN messages m ON m.contact_id = ct.id AND m.campaign_id = $2
-				WHERE ct.workspace_id = $1 AND ct.status = $3 AND ct.erased_at IS NULL AND ct.id <> ALL ($4) AND ct.first_name <> ''
-				ORDER BY ct.email LIMIT 1`, ws.ID, campaign, status, used).Scan(&c, &email, &first, &last, &msg)
+				LEFT JOIN LATERAL (SELECT id FROM messages WHERE contact_id = ct.id AND campaign_id = $2 ORDER BY id LIMIT 1) m ON true
+				WHERE ct.workspace_id = $1 AND ct.erased_at IS NULL AND ct.id <> ALL ($4) AND ct.first_name <> ''
+				  AND EXISTS (SELECT 1 FROM suppressions su WHERE su.workspace_id = $1 AND su.email = lower(ct.email) AND su.reason = 'unsubscribe') = $3
+				  AND (ct.status = 'active' OR $3)
+				ORDER BY m.id IS NULL, ct.email LIMIT 1`, ws.ID, campaign, unsubscribed, used).Scan(&c, &email, &first, &last, &msg)
 			if errors.Is(err, pgx.ErrNoRows) {
 				continue
 			}
 			if err != nil {
 				return err
 			}
-			contact, message, name = &c, &msg, first+" "+last
+			contact, message, name = &c, msg, first+" "+last
 			used = append(used, c)
 		case m.kind != "other" && !m.spam:
 			var c uuid.UUID
