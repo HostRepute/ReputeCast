@@ -40,5 +40,12 @@
   "check.removedDetail": "Supprimé dans {platform} le {when}. Les envois l’ignorent. Retirez-le ou choisissez un autre produit.",
   "discounts.notGranted": "{name} n’autorise pas encore les codes de réduction. Ouvrez la page de la boutique et choisissez Autoriser les codes de réduction.",
   "discounts.readOnly": "La clé de la boutique ne peut pas créer de codes promo. Utilisez une clé en lecture/écriture.",
-  "discounts.unsupported": "{platform} ne peut pas créer de codes de réduction depuis ReputeCast. Importez plutôt des codes."
+  "discounts.unsupported": "{platform} ne peut pas créer de codes de réduction depuis ReputeCast. Importez plutôt des codes.",
+  "stock.contactUnknown": "Aucun contact n’a cette adresse. Ajoutez d’abord la personne comme contact.",
+  "stock.productUnknown": "Aucun produit d’une boutique connectée n’a cet identifiant.",
+  "stock.productAmbiguous": "Deux boutiques connectées ont un produit avec cet identifiant. Indiquez la boutique dans storeId.",
+  "block.noteRecentlyViewed": "Chaque lecteur voit les produits qu’il a consultés le plus récemment, sans ceux qu’il a achetés. Affiché ici\u00A0: vos meilleures ventes, que reçoivent les lecteurs qui n’ont rien consulté.",
+  "block.noteBoughtTogether": "Chaque lecteur voit des produits souvent achetés avec ce qu’il a acheté ou consulté. Affiché ici\u00A0: vos meilleures ventes, que reçoivent les lecteurs sans commande ni consultation.",
+  "block.noteViewed": "Chaque e-mail montre les produits que son lecteur a consultés, ajoutés à son panier ou demandés, d’après le déclencheur de l’automatisation. Affiché ici\u00A0: les produits les plus récents de la boutique.",
+  "block.noteNoSales": "Rien n’a été vendu ces 30 derniers jours\u00A0: le bloc montre pour l’instant les produits les plus récents."
 }

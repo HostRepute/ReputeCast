@@ -29,7 +29,9 @@ const EventPartitionsAhead = 2
 // partition.
 const legacyPartition = "delivery_events_legacy"
 
-var monthPartition = regexp.MustCompile(`^delivery_events_(\d{4})_(\d{2})$`)
+// deliveryEvents is delivery_events as a monthly table: its months are
+// made ahead, and rows the default partition holds stay there.
+var deliveryEvents = MonthlyTable{Name: "delivery_events", Key: "received_at", Ahead: EventPartitionsAhead}
 
 // EventPartition is one monthly partition.
 type EventPartition struct {
@@ -49,24 +51,7 @@ func EventsPartitioned(ctx context.Context, q interface {
 // EventPartitions lists the monthly partitions, oldest first (not the
 // legacy and default ones).
 func EventPartitions(ctx context.Context, pool *pgxpool.Pool) ([]EventPartition, error) {
-	rows, err := pool.Query(ctx, `
-		SELECT c.relname FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
-		WHERE i.inhparent = 'delivery_events'::regclass ORDER BY 1`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out []EventPartition
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
-		}
-		if from, ok := partitionMonth(name); ok {
-			out = append(out, EventPartition{Name: name, From: from, Till: from.AddDate(0, 1, 0)})
-		}
-	}
-	return out, rows.Err()
+	return MonthlyPartitions(ctx, pool, deliveryEvents)
 }
 
 // legacyEnd is where the legacy partition ends (zero without one).
@@ -95,24 +80,6 @@ func legacyEnd(ctx context.Context, pool *pgxpool.Pool) (time.Time, error) {
 
 var legacyBoundRe = regexp.MustCompile(`TO \('([^']+)'\)`)
 
-func partitionMonth(name string) (time.Time, bool) {
-	m := monthPartition.FindStringSubmatch(name)
-	if m == nil {
-		return time.Time{}, false
-	}
-	t, err := time.Parse("2006-01", m[1]+"-"+m[2])
-	return t.UTC(), err == nil
-}
-
-func partitionName(month time.Time) string {
-	return "delivery_events_" + month.UTC().Format("2006_01")
-}
-
-func monthStart(t time.Time) time.Time {
-	t = t.UTC()
-	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
-}
-
 // EnsureEventPartitions makes the partitions of the current month and the
 // EventPartitionsAhead months after it, when delivery_events is
 // partitioned. It returns the partitions it made.
@@ -121,35 +88,12 @@ func EnsureEventPartitions(ctx context.Context, pool *pgxpool.Pool, now time.Tim
 	if err != nil || !ok {
 		return nil, err
 	}
-	have, err := EventPartitions(ctx, pool)
-	if err != nil {
-		return nil, err
-	}
 	// Months before the end of the legacy partition belong to it.
 	first, err := legacyEnd(ctx, pool)
 	if err != nil {
 		return nil, err
 	}
-	exists := map[string]bool{}
-	for _, p := range have {
-		exists[p.Name] = true
-	}
-	var made []string
-	for i := 0; i <= EventPartitionsAhead; i++ {
-		month := monthStart(now).AddDate(0, i, 0)
-		if month.Before(first) || exists[partitionName(month)] {
-			continue
-		}
-		_, err := pool.Exec(ctx, fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s PARTITION OF delivery_events FOR VALUES FROM ('%s') TO ('%s')`,
-			partitionName(month), month.Format(time.RFC3339), month.AddDate(0, 1, 0).Format(time.RFC3339)))
-		if err != nil {
-			// Usually: the default partition already holds rows of that
-			// month (the job didn't run for months). They stay there.
-			return made, fmt.Errorf("partition for %s: %w", month.Format("2006-01"), err)
-		}
-		made = append(made, partitionName(month))
-	}
-	return made, nil
+	return EnsureMonthlyPartitions(ctx, pool, deliveryEvents, now, first)
 }
 
 // PartitionResult says what the conversion did.

@@ -1,12 +1,15 @@
 # ReputeCast for WordPress
 
-The "ReputeCast" WordPress plugin (1.4.0): ReputeCast's signup forms as a
+The "ReputeCast" WordPress plugin (1.5.0): ReputeCast's signup forms as a
 block and a shortcode, published posts sent to the site's post-draft rule, the
 site's report-in and the status endpoint ReputeCast's "Check now" calls. With
 WPML or Polylang, a post's translations become the draft's language versions,
 and the block has a language setting. With WooCommerce, the checkout gets the
 marketing consent checkbox, orders keep the email's click token, and
-abandoned checkouts are reported to the store ReputeCast connects.
+abandoned checkouts are reported to the store ReputeCast connects. With a
+tracked site's id (Settings › ReputeCast › Site tracking), every page loads
+ReputeCast's tracker, WooCommerce's product views and add-to-carts go to it,
+and signed-in customers are identified with a server-made signature.
 
 It uses only ReputeCast's public API, with the site's own key (one key per
 site, made in ReputeCast). The API it calls is described in
@@ -35,7 +38,7 @@ integrations/wordpress/
 From the WordPress plugin directory, once it's published: Plugins › Add New,
 search for "ReputeCast", Install, Activate.
 
-From this repository: `composer build` makes `dist/reputecast-1.4.0.zip`.
+From this repository: `composer build` makes `dist/reputecast-1.5.0.zip`.
 Upload it in Plugins › Add New › Upload Plugin, then Activate.
 
 ## Configure

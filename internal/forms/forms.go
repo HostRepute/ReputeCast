@@ -1058,6 +1058,16 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	if content.Targeting, err = parseTargeting(ctx, c.Targeting, in.Kind); err != nil {
 		return store.FormUpdateParams{}, err
 	}
+	// A segment rule (M62 G-32) names one of the workspace's segments.
+	if t := content.Targeting; t != nil && t.SegmentID != "" {
+		ok, err := q.FormSegmentInWorkspace(ctx, store.FormSegmentInWorkspaceParams{ID: uuid.MustParse(t.SegmentID), WorkspaceID: ws.ID})
+		if err != nil {
+			return store.FormUpdateParams{}, err
+		}
+		if !ok {
+			return store.FormUpdateParams{}, api.Invalid("body.content.targeting.segmentId", say(ctx, mTargetSegmentGone, nil))
+		}
+	}
 	fieldsJSON, _ := json.Marshal(fields)
 	contentJSON, _ := json.Marshal(content)
 	spamJSON, _ := json.Marshal(spam)

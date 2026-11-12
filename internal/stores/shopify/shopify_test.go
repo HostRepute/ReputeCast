@@ -26,7 +26,8 @@ func seed(f *shopifytest.Fake) {
 	at := func(d int) time.Time { return since.AddDate(0, 0, d) }
 	f.Collections = []*shopifytest.Collection{{ID: "501", Title: "Apparel", Handle: "apparel"}, {ID: "502", Title: "New arrivals", Handle: "new-arrivals"}}
 	f.Products = []*shopifytest.Product{
-		{ID: "8841203", Title: "Acme Logo Hoodie", Handle: "acme-logo-hoodie", Status: "ACTIVE", Price: "58.0", Tracked: true, Inventory: 21, Collections: []string{"501", "502"}, CreatedAt: at(300), UpdatedAt: at(360)},
+		{ID: "8841203", Title: "Acme Logo Hoodie", Handle: "acme-logo-hoodie", Status: "ACTIVE", Price: "58.0", Tracked: true, Inventory: 21, Collections: []string{"501", "502"}, CreatedAt: at(300), UpdatedAt: at(360),
+			InventoryItemID: "45120034"},
 		{ID: "8841207", Title: "Ship It mug", Handle: "ship-it-mug", Status: "ACTIVE", Price: "18.0", Collections: []string{"502"}, CreatedAt: at(301), UpdatedAt: at(360)},
 		{ID: "8841215", Title: "Feature Flag sticker pack", Handle: "feature-flag-stickers", Status: "ACTIVE", Price: "9.0", Collections: []string{"502"}, CreatedAt: at(302), UpdatedAt: at(360)},
 		{ID: "8841190", Title: "Boring Infrastructure tee", Handle: "boring-infrastructure-tee", Status: "ACTIVE", Price: "28.0", CompareAt: "32.0", Collections: []string{"501"}, CreatedAt: at(200), UpdatedAt: at(360)},
@@ -62,6 +63,8 @@ func seed(f *shopifytest.Fake) {
 func newEnv(t *testing.T) *contracttest.Env {
 	f := shopifytest.New()
 	f.PageCap = 2
+	// The app was approved with the optional stock scope (inventory_levels/update).
+	f.Scopes = append(f.Scopes, shopify.InventoryScope)
 	seed(f)
 	f.IssueToken(token)
 	srv := f.Server()
@@ -72,6 +75,7 @@ func newEnv(t *testing.T) *contracttest.Env {
 		stores.EventProductDeleted: {"products/delete", "products_delete.json"},
 		stores.EventCustomer:       {"customers/update", "customers_update.json"},
 		stores.EventCheckout:       {"checkouts/update", "checkouts_update.json"},
+		stores.EventInventory:      {shopify.InventoryTopic, "inventory_levels_update.json"},
 	}
 	return &contracttest.Env{
 		Open: func() (stores.Client, error) {

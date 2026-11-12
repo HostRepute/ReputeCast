@@ -369,5 +369,7 @@
   "category.leads": "Lead ads",
   "type.lead_connection": "lead ads connection",
   "type.lead_form": "lead form",
-  "link.leadConnection": "Open the connection"
+  "link.leadConnection": "Open the connection",
+  "type.tracker_site": { "message": "tracked site", "note": "a site the site tracker runs on (Settings › Integrations › Website tracking)" },
+  "link.tracking": "Open website tracking"
 }

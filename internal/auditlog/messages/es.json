@@ -369,5 +369,7 @@
   "category.leads": "Anuncios de clientes potenciales",
   "type.lead_connection": "conexión de anuncios de clientes potenciales",
   "type.lead_form": "formulario de clientes potenciales",
-  "link.leadConnection": "Abrir la conexión"
+  "link.leadConnection": "Abrir la conexión",
+  "type.tracker_site": "sitio rastreado",
+  "link.tracking": "Abrir el seguimiento del sitio web"
 }

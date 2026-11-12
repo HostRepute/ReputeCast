@@ -58,6 +58,9 @@ var (
 	seedPagesProducts = noop
 	// Shopify: Acme Merch, its catalog, customers, orders, checkouts and the Abandoned cart flow (seed_stores.go)
 	seedStores = noop
+	// Website tracking: Acme Merch and Docs, 30 days of events, the Browse
+	// abandonment and Back in stock flows (seed_tracker.go)
+	seedTracker = noop
 	// agency accounts: Acme stays without agency mode; the agency sample is
 	// Northwind Studio, loaded on its own by SeedNorthwind (seed_agency.go)
 	seedAgency = noop

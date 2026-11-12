@@ -801,6 +801,22 @@ func (q *Queries) FormRename(ctx context.Context, arg FormRenameParams) (Form, e
 	return i, err
 }
 
+const formSegmentInWorkspace = `-- name: FormSegmentInWorkspace :one
+SELECT EXISTS (SELECT 1 FROM segments WHERE id = $1 AND workspace_id = $2)::boolean
+`
+
+type FormSegmentInWorkspaceParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+func (q *Queries) FormSegmentInWorkspace(ctx context.Context, arg FormSegmentInWorkspaceParams) (bool, error) {
+	row := q.db.QueryRow(ctx, formSegmentInWorkspace, arg.ID, arg.WorkspaceID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const formSetAB = `-- name: FormSetAB :one
 UPDATE forms SET ab = $1, updated_by = $2, updated_at = $3
 WHERE workspace_id = $4 AND id = $5
@@ -1565,6 +1581,34 @@ func (q *Queries) FormVariantsList(ctx context.Context, formID uuid.UUID) ([]For
 		return nil, err
 	}
 	return items, nil
+}
+
+const formVisitorSegment = `-- name: FormVisitorSegment :one
+SELECT (v.contact_id IS NOT NULL)::boolean AS known,
+       coalesce(EXISTS (SELECT 1 FROM segment_members m WHERE m.segment_id = $1 AND m.contact_id = v.contact_id), false)::boolean AS member
+FROM (SELECT (SELECT t.contact_id FROM tracker_visitors t WHERE t.workspace_id = $2 AND t.vid_hash = $3) AS contact_id) v
+`
+
+type FormVisitorSegmentParams struct {
+	SegmentID   uuid.UUID `json:"segmentId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	VidHash     []byte    `json:"vidHash"`
+}
+
+type FormVisitorSegmentRow struct {
+	Known  bool `json:"known"`
+	Member bool `json:"member"`
+}
+
+// Form targeting by segment (M62 G-32): whether the site tracker knows the
+// browser as a contact, and whether that contact is in the segment (its
+// materialised members: static segments, and dynamic ones live forms or
+// flows watch).
+func (q *Queries) FormVisitorSegment(ctx context.Context, arg FormVisitorSegmentParams) (FormVisitorSegmentRow, error) {
+	row := q.db.QueryRow(ctx, formVisitorSegment, arg.SegmentID, arg.WorkspaceID, arg.VidHash)
+	var i FormVisitorSegmentRow
+	err := row.Scan(&i.Known, &i.Member)
+	return i, err
 }
 
 const formWaitingCount = `-- name: FormWaitingCount :one

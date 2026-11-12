@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
@@ -35,7 +37,9 @@ type targetingDoc struct {
 	Devices   []string     `json:"devices,omitempty"`
 	Countries countriesDoc `json:"countries"`
 	Visitors  string       `json:"visitors,omitempty"`
-	Schedule  scheduleDoc  `json:"schedule"`
+	// SegmentID is the segment of "in_segment" and "not_in_segment" (M62 G-32).
+	SegmentID string      `json:"segmentId,omitempty"`
+	Schedule  scheduleDoc `json:"schedule"`
 }
 
 type pageRulesDoc struct {
@@ -72,8 +76,10 @@ type SignupFormTargeting struct {
 	Sources   SignupFormSources   `json:"sources"`
 	Devices   []string            `json:"devices" maxItems:"3" enum:"desktop,tablet,mobile" doc:"None: every device"`
 	Countries SignupFormCountries `json:"countries"`
-	Visitors  string              `json:"visitors" enum:"all,new,returning" doc:"Returning: this browser has seen one of the workspace's forms before today"`
-	Schedule  SignupFormSchedule  `json:"schedule"`
+	Visitors  string              `json:"visitors" enum:"all,new,returning,in_segment,not_in_segment" doc:"Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)"`
+	// SegmentID is the segment of in_segment and not_in_segment.
+	SegmentID string             `json:"segmentId,omitempty" maxLength:"40"`
+	Schedule  SignupFormSchedule `json:"schedule"`
 }
 
 // SignupFormPageRules picks the pages a form shows on, by the path and
@@ -148,6 +154,7 @@ func targetingOut(t *targetingDoc) SignupFormTargeting {
 	if t.Visitors != "" {
 		out.Visitors = t.Visitors
 	}
+	out.SegmentID = t.SegmentID
 	out.Schedule = SignupFormSchedule{StartsAt: t.Schedule.StartsAt, EndsAt: t.Schedule.EndsAt}
 	return out
 }
@@ -233,8 +240,17 @@ func parseTargeting(ctx context.Context, in *SignupFormTargeting, kind string) (
 			}
 			t.Countries.Mode = in.Countries.Mode
 		}
-		if in.Visitors == "new" || in.Visitors == "returning" {
+		switch in.Visitors {
+		case "new", "returning":
 			t.Visitors = in.Visitors
+		case VisitorsInSegment, VisitorsNotInSegment:
+			// Who the visitor is comes from Website tracking on the same site;
+			// the segment's workspace is checked when the form is saved.
+			id, err := uuid.Parse(strings.TrimSpace(in.SegmentID))
+			if err != nil {
+				return nil, api.Invalid(loc+".segmentId", say(ctx, mTargetSegment, nil))
+			}
+			t.Visitors, t.SegmentID = in.Visitors, id.String()
 		}
 	}
 	if t.empty() {
@@ -286,10 +302,44 @@ func (c Config) CountryShown(country string) bool {
 }
 
 // serverRules reports whether the session decides if the form shows (the
-// schedule or countries), so the script waits for its answer.
+// schedule, countries or a segment), so the script waits for its answer.
 func (c Config) serverRules() bool {
 	t := c.Content.Targeting
-	return t != nil && (t.Schedule.StartsAt != nil || t.Schedule.EndsAt != nil || t.Countries.Mode != "")
+	return t != nil && (t.Schedule.StartsAt != nil || t.Schedule.EndsAt != nil || t.Countries.Mode != "" || c.segmentRule() != uuid.Nil)
+}
+
+// Visitors in or not in a segment (M62 G-32).
+const (
+	VisitorsInSegment    = "in_segment"
+	VisitorsNotInSegment = "not_in_segment"
+)
+
+// segmentRule is the segment a form's visitors rule names, uuid.Nil without one.
+func (c Config) segmentRule() uuid.UUID {
+	t := c.Content.Targeting
+	if t == nil || (t.Visitors != VisitorsInSegment && t.Visitors != VisitorsNotInSegment) {
+		return uuid.Nil
+	}
+	id, err := uuid.Parse(t.SegmentID)
+	if err != nil {
+		return uuid.Nil
+	}
+	return id
+}
+
+// SegmentShown reports whether a form with a segment rule shows to a
+// visitor: in_segment only to a known contact in the segment, not_in_segment
+// to everyone else, unknown visitors included.
+func (c Config) SegmentShown(known, member bool) bool {
+	t := c.Content.Targeting
+	if c.segmentRule() == uuid.Nil {
+		return true
+	}
+	in := known && member
+	if t.Visitors == VisitorsInSegment {
+		return in
+	}
+	return !in
 }
 
 // GeoIPLoaded reports whether country rules can work on this server.

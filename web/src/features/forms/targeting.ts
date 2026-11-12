@@ -3,6 +3,7 @@ import { t } from '@/i18n'
 import { andList, dayMonthDate, getDisplayTimeZone, orList } from '@/lib/format'
 import { isoToZonedLocal, zonedToISO } from '@/features/website/postFormat'
 import { m } from './builder.messages'
+import { sm } from './segment.messages'
 
 /**
  * Where and when a form shows (M60): its targeting as the builder's one
@@ -33,6 +34,8 @@ export function cloneTargeting(x: Targeting): Targeting {
     devices: [...x.devices],
     countries: { mode: x.countries.mode, codes: [...x.countries.codes] },
     visitors: x.visitors,
+    // M62 G-32: the segment of "In a segment" and "Not in a segment".
+    ...(x.segmentId ? { segmentId: x.segmentId } : {}),
     schedule: { ...x.schedule },
   }
 }
@@ -61,7 +64,10 @@ export function targetingParts(x: Targeting): string[] {
   if (x.countries.mode !== 'all' && x.countries.codes.length) {
     parts.push(x.countries.mode === 'only' ? t(m.fromCountries, { codes: andList(x.countries.codes) }) : t(m.notFromCountries, { codes: orList(x.countries.codes) }))
   }
-  if (x.visitors !== 'all') parts.push(t(x.visitors === 'new' ? m.newVisitors : m.returningVisitors))
+  if (x.visitors !== 'all') {
+    const words = { new: m.newVisitors, returning: m.returningVisitors, in_segment: sm.inSegmentVisitors, not_in_segment: sm.notInSegmentVisitors } as const
+    parts.push(t(words[x.visitors]))
+  }
   if (x.schedule.startsAt) parts.push(t(m.fromDate, { date: dayMonthDate(x.schedule.startsAt) }))
   if (x.schedule.endsAt) parts.push(t(m.untilDate, { date: dayMonthDate(x.schedule.endsAt) }))
   return parts

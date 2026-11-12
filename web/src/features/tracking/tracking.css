@@ -1,0 +1,150 @@
+/* Website tracking (TrackingSites, TrackingSetup, TrackingStates): the
+   board's own classes, prefixed tk-. The page reuses the integrations
+   header (ih-*) and the commerce boxes (cm-two, cm-sbox). */
+@layer components {
+  /* A name over its origin, in the sites table. */
+  .tk-stk {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+  }
+  .tk-addr {
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+
+  /* How people are recognised: an icon and two lines, ruled between. */
+  .tk-ckl {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .tk-ckl:first-child {
+    border-top: 0;
+  }
+  .tk-ckl > svg {
+    margin-top: 2px;
+    flex: none;
+  }
+  .tk-ckl .tk-tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* An event on phones, and a site on narrow screens. */
+  .tk-evrow {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line-2);
+  }
+  .tk-site {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 18px;
+  }
+  .tk-site + .tk-site {
+    border-top: 1px solid var(--line-2);
+  }
+  .tk-site.sel {
+    background: var(--accent-tint);
+  }
+  .tbl tr.tk-sel td {
+    background: var(--accent-tint);
+  }
+
+  /* Waiting for the first event: the spinner's row. */
+  .tk-wait {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 18px;
+  }
+  .tk-spin {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--line-strong);
+    border-top-color: var(--accent);
+    flex: none;
+    display: inline-block;
+    margin-top: 3px;
+    animation: ih-spin 0.9s linear infinite;
+  }
+
+  /* The snippet's code box: its language and the Copy button. */
+  .tk-cbh button {
+    height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--dark-muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: default;
+  }
+  .tk-cbh button.on {
+    background: var(--dark-line);
+    color: var(--dark-text);
+  }
+  .tk-cbh button.tk-cp {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--dark-text);
+    border: 1px solid var(--dark-line);
+    cursor: pointer;
+  }
+  .tk-cbh button.tk-cp:hover {
+    background: var(--dark-line);
+  }
+
+  /* "Live" beside the last events. */
+  .tk-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ok-fg);
+  }
+  .tk-live .tk-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: none;
+    box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 15%, transparent);
+  }
+
+  .tk-only-phone {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .tk-no-phone {
+      display: none !important;
+    }
+    .tk-only-phone {
+      display: flex !important;
+      flex-direction: column;
+    }
+    .cm-two.tk-two {
+      grid-template-columns: 1fr;
+    }
+  }
+}

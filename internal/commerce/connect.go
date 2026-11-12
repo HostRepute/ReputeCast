@@ -204,7 +204,7 @@ func (s *Service) notFound(ctx context.Context, err error) error {
 
 func (s *Service) connectState(ctx context.Context, ws *store.Workspace, st store.Store) CommerceConnectState {
 	out := CommerceConnectState{Store: s.summary(ctx, st), Step: st.Step, AppURL: s.AppURL(), RedirectURL: s.CallbackURL(),
-		Scopes: slices.Clone(shopify.Scopes), OptionalScope: shopify.OptionalScope, InstalledAt: st.InstalledAt, Granted: st.Scopes,
+		Scopes: slices.Clone(shopify.Scopes), OptionalScope: shopify.OptionalScope, InventoryScope: shopify.InventoryScope, InstalledAt: st.InstalledAt, Granted: st.Scopes,
 		WriteGranted: slices.Contains(st.Scopes, shopify.OptionalScope), DiscountsGranted: discountsGranted(st), Error: st.ConnectError, Lists: s.listOptions(ctx, ws.ID),
 		NewListName: st.Name, Months: int(st.ImportMonths), KeyHint: st.KeyHint, Demo: st.Demo}
 	if out.Granted == nil {
@@ -333,7 +333,7 @@ func (s *Service) Install(ctx context.Context, ws *store.Workspace, p *authz.Pri
 // optional write_customers, and the discount scopes when asked for now or
 // granted before (approving again never takes a grant back).
 func installScopes(st store.Store, discounts bool) []string {
-	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope)
+	scopes := append(slices.Clone(shopify.Scopes), shopify.OptionalScope, shopify.InventoryScope)
 	if discounts || discountsGranted(st) {
 		scopes = append(scopes, shopify.DiscountScopes...)
 	}

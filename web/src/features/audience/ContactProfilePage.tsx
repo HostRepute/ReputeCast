@@ -875,6 +875,8 @@ function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
   if (it.type === 'store_order') return ['check', 'green']
   // Replies (M58).
   if (it.type === 'replied') return ['mail', 'blue']
+  // A day on a tracked site (Website tracking, M62).
+  if (it.type === 'site_visit') return ['eye', 'blue']
   if (it.type === 'checkout_abandoned') return it.store?.flow ? ['flow', 'purple'] : ['minus', 'grey']
   if (it.category === 'consent') {
     switch (it.type) {
@@ -960,6 +962,10 @@ function ActivityRow({ it }: { it: Item }) {
   } else if (text) {
     title = text.title
     meta = [...meta, ...text.meta]
+  } else if (it.type === 'site_visit') {
+    // "Viewed 3 products on shop.acme.io" · the products · Website tracking (M62).
+    title = <b>{it.subject}</b>
+    meta = [...meta, ...present(it.detail, it.sourceLabel)]
   } else if (it.category === 'consent') {
     const by = it.actor ? tr(m.actBy, { name: it.actor }) : ''
     switch (it.type) {

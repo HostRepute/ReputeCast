@@ -897,7 +897,8 @@ func (h *Handler) formSession(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	peek := q.Get("peek") == "1"
-	ans := h.Forms.Session(r.Context(), s.ws, c, forms.SessionRequest{IP: ip, UserAgent: r.UserAgent(), VisitorID: clipTo(q.Get("vid"), 64), InTest: q.Get("ab") == "1", Peek: peek})
+	ans := h.Forms.Session(r.Context(), s.ws, c, forms.SessionRequest{IP: ip, UserAgent: r.UserAgent(), VisitorID: clipTo(q.Get("vid"), 64), InTest: q.Get("ab") == "1", Peek: peek,
+		TrackerVisitor: clipTo(q.Get("rcv"), 64)})
 	if !ans.Show || peek {
 		writeJSON(w, http.StatusOK, map[string]any{"show": ans.Show, "variant": ans.Variant})
 		return
@@ -1004,6 +1005,11 @@ func (h *Handler) formSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	if out.Suggestion != "" {
 		body["suggestion"] = out.Suggestion
+	}
+	// The site tracker on the same page links its visitor to the new
+	// contact (internal/tracker).
+	if out.Link != "" {
+		body["link"] = out.Link
 	}
 	if name, link, ok := h.inboxLink(r.Context(), s, out, sub.Email); ok {
 		body["inbox"] = map[string]string{"name": name, "url": link}

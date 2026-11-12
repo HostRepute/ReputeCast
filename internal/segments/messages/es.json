@@ -198,5 +198,8 @@
   "sql.roles": "Los segmentos SQL no pueden cambiar roles ni la configuración de la sesión.",
   "sql.function": "Los segmentos SQL no pueden llamar a {name}.",
   "sql.unicodeIdentifier": "Los segmentos SQL no pueden usar identificadores U&\"…\": escribe el nombre tal cual.",
-  "source.leadAd": "Anuncios de clientes potenciales"
+  "source.leadAd": "Anuncios de clientes potenciales",
+  "field.site_viewed_product": "Vio un producto",
+  "field.site_last_seen": "Visto por última vez en el sitio",
+  "problem.pickCollection": "Elige una de las colecciones de una tienda, o cualquier producto."
 }

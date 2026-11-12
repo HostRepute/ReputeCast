@@ -1,0 +1,17 @@
+{
+  "problem.name": "Ponle un nombre al sitio, de 80 caracteres como máximo.",
+  "problem.origin": "Escribe la dirección del sitio como https://shop.acme.io: https, un dominio y, solo si no es 443, un puerto.",
+  "problem.originLocal": "Escribe la dirección del sitio como https://shop.acme.io. Mientras ReputeCast funcione en modo de desarrollo, también sirve http://localhost.",
+  "problem.originOwn": "{host} muestra las páginas propias de ReputeCast, que nunca se rastrean: siguen sin cookies. Añade tu propio sitio o tienda.",
+  "problem.originTaken": "{origin} ya es un sitio rastreado en este espacio de trabajo.",
+  "problem.store": "Elige una tienda conectada a este espacio de trabajo, o ninguna.",
+  "problem.siteGone": "Este sitio rastreado no existe o se eliminó. Vuelve a cargar la lista.",
+  "snippet.wordpress": "En WordPress, abre Ajustes › ReputeCast, activa Site tracking y pega este ID de sitio: {site}. Para reconocer a los clientes que han iniciado sesión, pega también allí el secreto de identificación.",
+  "snippet.pixelConsent": "Este sitio espera el consentimiento: los eventos se envían cuando el visitante permite la analítica.",
+  "snippet.pixelOpen": "Shopify › Configuración › Eventos de clientes › Agregar píxel personalizado, y pega este código.",
+  "activity.viewed": "{count, plural, one {Vio # producto en {host}} other {Vio # productos en {host}}}",
+  "activity.visited": "Visitó {host}",
+  "activity.carts": "{count, plural, one {# añadido al carrito} other {# añadidos al carrito}}",
+  "hub.facts": "{sites, plural, one {# sitio} other {# sitios}} · {events, plural, one {# evento hoy} other {# eventos hoy}}",
+  "activity.source": "Seguimiento del sitio web"
+}

@@ -9,6 +9,8 @@ import { useWorkspace } from '@/lib/session'
 import { aiCatalogCapabilities, aiEntryLine, aiEntryName, aiMaintainer } from '@/features/ai/entries'
 import { paymentCapabilities, paymentEntryLine, paymentEntryName, paymentLetters, paymentMaintainer } from '@/features/earn/entries'
 import { cm } from '@/features/commerce/messages'
+import { TrackingIcon } from '@/features/tracking/icon'
+import { tm } from '@/features/tracking/messages'
 import { m } from './messages'
 import type { PlatformKind } from './platforms'
 import './integrations.css'
@@ -84,6 +86,7 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   shopify: cm.shopify,
   woocommerce: cm.woocommerce,
   meta_lead_ads: m.metaLeadAds,
+  tracking: tm.title,
 }
 
 export const maintainer: Record<EntryKey, MessageDescriptor> = {
@@ -105,6 +108,7 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   shopify: cm.byShopify,
   woocommerce: cm.byWoo,
   meta_lead_ads: m.byOwnMetaApp,
+  tracking: m.builtIn,
 }
 
 export const entryLine: Record<EntryKey, MessageDescriptor> = {
@@ -126,6 +130,7 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   shopify: cm.shopifyLine,
   woocommerce: cm.wooLine,
   meta_lead_ads: m.metaLeadAdsLine,
+  tracking: tm.hubLine,
 }
 
 export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
@@ -147,6 +152,7 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   shopify: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capWriteBack, cm.capAttribution],
   woocommerce: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capAttribution],
   meta_lead_ads: [m.capInstantLeads, m.capFormConsent, m.capPast90],
+  tracking: [tm.capProducts, tm.capCart, tm.capConsent],
 }
 
 /** The store platforms (the Commerce group, X20). */
@@ -187,6 +193,7 @@ export function Tile({ k, size }: { k: EntryKey; size?: 'sm' | 'lg' }) {
   if (k === 'api') inner = <Icon name="code" size={px} strokeWidth={1.7} />
   if (k === 'webhooks') inner = <Icon name="bolt" size={px} strokeWidth={1.7} />
   if (k === 'mcp') inner = <ServerIcon size={px} />
+  if (k === 'tracking') inner = <TrackingIcon size={px} />
   return (
     <span className={`ih-tile${size ? ` ${size}` : ''}`} aria-hidden="true">
       {inner}

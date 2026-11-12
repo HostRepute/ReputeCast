@@ -40,5 +40,12 @@
   "check.removedDetail": "Se eliminó en {platform} el {when}. Los envíos lo omiten. Quítalo o elige otro producto.",
   "discounts.notGranted": "{name} aún no permite códigos de descuento. Abre la página de la tienda y elige Permitir códigos de descuento.",
   "discounts.readOnly": "La clave de la tienda no puede crear cupones. Usa una clave de lectura y escritura.",
-  "discounts.unsupported": "{platform} no puede crear códigos de descuento desde ReputeCast. Sube los códigos en su lugar."
+  "discounts.unsupported": "{platform} no puede crear códigos de descuento desde ReputeCast. Sube los códigos en su lugar.",
+  "stock.contactUnknown": "Ningún contacto tiene esta dirección. Añádelo primero como contacto.",
+  "stock.productUnknown": "Ningún producto de una tienda conectada tiene este ID.",
+  "stock.productAmbiguous": "Dos tiendas conectadas tienen un producto con este ID. Indica la tienda en storeId.",
+  "block.noteRecentlyViewed": "Cada lector ve los productos que vio más recientemente, sin lo que ya compró. Aquí se muestran tus productos más vendidos, que reciben los lectores que no vieron nada.",
+  "block.noteBoughtTogether": "Cada lector ve productos que se suelen comprar junto con lo que compró o vio. Aquí se muestran tus productos más vendidos, que reciben los lectores sin pedidos ni visitas.",
+  "block.noteViewed": "Cada correo muestra los productos que su lector vio, añadió al carrito o pidió, según el disparador de la automatización. Aquí se muestran los productos más recientes de la tienda.",
+  "block.noteNoSales": "No se vendió nada en los últimos 30 días, así que por ahora el bloque muestra los productos más recientes."
 }

@@ -107,5 +107,7 @@
   "problem.optionLabel60": "Gardez une réponse sous 60 caractères.",
   "problem.noStepText": "Le formulaire n'a plus d'étape qui prend ce texte. Rechargez la page.",
   "problem.stepTextLong": "Restez sous {max} caractères.",
-  "problem.abRunningHosted": "Terminez le test A/B avant de faire de ce formulaire une page hébergée : les pages hébergées affichent toujours A."
+  "problem.abRunningHosted": "Terminez le test A/B avant de faire de ce formulaire une page hébergée : les pages hébergées affichent toujours A.",
+  "problem.targetSegment": "Choisissez le segment auquel le formulaire s’affiche (ou pour lequel il est masqué).",
+  "problem.targetSegmentGone": "Ce segment n’existe plus. Choisissez-en un autre."
 }

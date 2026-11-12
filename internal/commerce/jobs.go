@@ -11,6 +11,8 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
@@ -23,7 +25,8 @@ import (
 // applied as they arrive, first imports and reconciliations, abandoned
 // checkouts and unsubscribes passed back every minute, webhooks checked
 // every 15 minutes (a missing one's data polled meanwhile), the nightly
-// reconciliation at 03:00 in each workspace's timezone.
+// reconciliation at 03:00 in each workspace's timezone, and the stock flows
+// of a product that came back or got cheaper.
 func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &ApplyWorker{S: s})
 	river.AddWorker(reg.Workers, &ImportWorker{S: s})
@@ -31,6 +34,7 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &TickWorker{S: s})
 	river.AddWorker(reg.Workers, &HealthWorker{S: s})
 	river.AddWorker(reg.Workers, &NightlyWorker{S: s})
+	river.AddWorker(reg.Workers, &ProductChangedWorker{S: s})
 	reg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return TickArgs{}, nil }, false)
 	reg.Every(HealthEvery, func() (river.JobArgs, *river.InsertOpts) { return HealthArgs{}, nil }, false)
 	reg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return NightlyArgs{}, nil }, true)
@@ -213,6 +217,19 @@ func (s *Service) CheckStore(ctx context.Context, st store.Store) error {
 			_ = s.rateLimited(ctx, st, wait)
 		}
 	}
+	// Without read_inventory Shopify reports no stock change of its own; a
+	// product's updatedAt moves with its inventory, so while a stock flow
+	// watches the store, the products changed since the last check are
+	// read again (G-30).
+	if _, polled := resources["products"]; !polled && st.Platform == Shopify && st.SyncProducts && !slices.Contains(st.Scopes, shopify.InventoryScope) && s.stockWatched(ctx, st) {
+		since := now.Add(-HealthEvery)
+		if st.HealthCheckedAt != nil {
+			since = *st.HealthCheckedAt
+		}
+		if wait, ok := stores.IsRateLimited(s.pullProducts(ctx, c, st, stores.Range{UpdatedSince: since.Add(-time.Minute)})); ok {
+			_ = s.rateLimited(ctx, st, wait)
+		}
+	}
 	if len(newly) > 0 {
 		if err := s.webhooksMissing(ctx, st, newly, now); err != nil {
 			return err
@@ -228,16 +245,33 @@ func (s *Service) pullProducts(ctx context.Context, c stores.Client, st store.St
 		if err != nil {
 			return err
 		}
-		for _, p := range page.Items {
-			if _, err := s.applyProduct(ctx, s.Q, st, p, true); err != nil {
-				return err
+		if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			for _, p := range page.Items {
+				if _, err := s.applyProduct(ctx, tx, q, st, p, true); err != nil {
+					return err
+				}
 			}
+			return nil
+		}); err != nil {
+			return err
 		}
 		if page.Next == "" {
 			return nil
 		}
 		cursor = page.Next
 	}
+}
+
+// stockWatched reports whether a live back-in-stock or price-drop flow of
+// the workspace watches the store.
+func (s *Service) stockWatched(ctx context.Context, st store.Store) bool {
+	for _, kind := range []string{automations.TriggerBackInStock, automations.TriggerPriceDrop} {
+		if flows, err := s.Q.CommerceStockFlows(ctx, store.CommerceStockFlowsParams{WorkspaceID: st.WorkspaceID, Kind: kind, Store: st.ID.String()}); err == nil && len(flows) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // webhooksMissing records and tells about webhooks gone from the store.
@@ -285,8 +319,9 @@ func (w *NightlyWorker) Work(ctx context.Context, _ *river.Job[NightlyArgs]) err
 	return w.S.Nightly(ctx)
 }
 
-// Nightly queues the reconciliations due and purges what's older than 30
-// days.
+// Nightly queues the reconciliations due, rebuilds the stores' products
+// bought together (from 180 days of orders, G-31) and purges what's older
+// than 30 days.
 func (s *Service) Nightly(ctx context.Context) error {
 	now := s.now()
 	if _, err := s.Q.CommerceEventsPurge(ctx, now.Add(-Kept)); err != nil {
@@ -323,6 +358,9 @@ func (s *Service) Nightly(ctx context.Context) error {
 		if !nightlyDue(now, loc, st.ReconciledAt) {
 			continue
 		}
+		if err := s.RebuildPairs(ctx, st.ID); err != nil {
+			return err
+		}
 		if _, err := jc.Insert(ctx, ReconcileArgs{StoreID: st.ID.String()}, nil); err != nil {
 			return err
 		}
@@ -339,4 +377,13 @@ func nightlyDue(now time.Time, loc *time.Location, last *time.Time) bool {
 		return false
 	}
 	return last == nil || last.Before(at)
+}
+
+// PairsDays is how far back orders count for "Bought together".
+const PairsDays = 180
+
+// RebuildPairs rebuilds a store's products bought together from its last
+// 180 days of orders, in one statement.
+func (s *Service) RebuildPairs(ctx context.Context, storeID uuid.UUID) error {
+	return s.Q.CommercePairsRebuild(ctx, store.CommercePairsRebuildParams{StoreID: storeID, Since: s.now().AddDate(0, 0, -PairsDays)})
 }

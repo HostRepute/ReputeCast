@@ -165,6 +165,7 @@ func SeedAt(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *se
 		{"pages and products", seedPagesProducts},
 		{"stores", seedStores},
 		{"coupons", seedCoupons},
+		{"tracker", seedTracker},
 		{"agency", seedAgency},
 		{"brand kit", seedBrandKit},
 		{"inbound", seedInbound},

@@ -172,8 +172,17 @@
   // (a popup before it opens) counts no view and has no token.
   var token = ''
   var variantKey = 'rcf:' + cfg.id + ':v'
+  // A form shown by segment (M62 G-32) asks with the site tracker's id of
+  // this browser, the rc_vid cookie Website tracking set once the visitor
+  // consented; without it the visitor is in no segment.
+  function trackerId() {
+    if (!cfg.target || !/segment$/.test(cfg.target.visitors || '')) return ''
+    var m = document.cookie.match(/(?:^|;\s*)rc_vid=([A-Za-z0-9_-]{22})(?:;|$)/)
+    return m ? m[1] : ''
+  }
   function session(inTest, peek, done) {
-    var u = cfg.session + '?vid=' + encodeURIComponent(visitorId()) + (inTest ? '&ab=1' : '') + (peek ? '&peek=1' : '')
+    var rcv = trackerId()
+    var u = cfg.session + '?vid=' + encodeURIComponent(visitorId()) + (inTest ? '&ab=1' : '') + (peek ? '&peek=1' : '') + (rcv ? '&rcv=' + rcv : '')
     fetch(u, { method: 'GET', mode: 'cors', credentials: 'omit', headers: { Accept: 'application/json' } })
       .then(function (r) {
         if (r.status === 429) return { show: false }
@@ -671,6 +680,7 @@
         .then(function (j) {
           button.disabled = false
           button.removeAttribute('aria-busy')
+          if (j.link && typeof window.reputecast === 'function') window.reputecast('link', j.link)
           if (j.redirect) {
             markSignedUp()
             window.location.href = j.redirect

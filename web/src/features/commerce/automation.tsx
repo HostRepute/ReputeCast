@@ -1,4 +1,4 @@
-import { useParams } from '@tanstack/react-router'
+import { Link, useParams } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
 import { $api, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
@@ -8,6 +8,7 @@ import { count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { commerceBase, money } from './api'
 import { ct } from './elsewhere.messages'
+import { cf } from './flows.messages'
 import './commerce.css'
 import { SwitchInput } from '@/components/ui/Field'
 
@@ -275,4 +276,214 @@ export function RevenueCell({ revenue }: { revenue?: Schemas['AutomationRevenue'
   const t = useT()
   if (!revenue || revenue.orders === 0) return null
   return <>{t(ct.revenueCell, { amount: money(revenue.revenue, revenue.currency), orders: revenue.orders })}</>
+}
+
+/*
+ * Store flows from Website tracking (M62, AutomationsComplete strip 8):
+ * Viewed a product, Added to cart, Back in stock and Price drop.
+ */
+
+export const trackerTriggerKinds = ['viewed_product', 'added_to_cart', 'back_in_stock', 'price_drop'] as const
+
+export function isTrackerTrigger(kind: string | undefined): boolean {
+  return kind === 'viewed_product' || kind === 'added_to_cart' || kind === 'back_in_stock' || kind === 'price_drop'
+}
+
+/** The store a store flow's trigger watches. */
+export function trackerTriggerStore(t: Pick<Trigger, 'kind' | 'browse' | 'stock'>): string | undefined {
+  if (t.kind === 'viewed_product' || t.kind === 'added_to_cart') return t.browse?.storeId || undefined
+  if (t.kind === 'back_in_stock' || t.kind === 'price_drop') return t.stock?.storeId || undefined
+  return undefined
+}
+
+/** A store flow's settings when it's picked: after 4 hours and one view; 14 days and 10% for stock and price. */
+export function trackerTriggerDefaults(kind: string, stores: TriggerStore[] | undefined): Partial<Trigger> {
+  if (!isTrackerTrigger(kind)) return {}
+  const connected = (stores ?? []).filter((s) => s.status !== 'disconnected')
+  const storeId = connected.length === 1 ? connected[0]!.id : ''
+  if (kind === 'viewed_product' || kind === 'added_to_cart') return { browse: { storeId, afterHours: 4, minViews: 1 }, stock: undefined }
+  return { stock: { storeId, days: 14, minDropPercent: 10, includeViewers: false }, browse: undefined }
+}
+
+const clamp = (v: string, lo: number, hi: number) => Math.min(hi, Math.max(lo, Number(v.replace(/\D/g, '')) || lo))
+
+/** A small number with its unit after it ("4 hours without an order…"). */
+function NumberRow({ id, label, value, min, max, hint, disabled, onChange }: { id: string; label: string; value: number; min: number; max: number; hint: string; disabled: boolean; onChange: (n: number) => void }) {
+  return (
+    <div className="lbl">
+      <span id={`${id}-l`}>{label}</span>
+      <div className="flex flex-wrap items-center gap-2 text-[13px]">
+        <input className="in w-16" inputMode="numeric" aria-labelledby={`${id}-l`} aria-describedby={`${id}-h`} disabled={disabled} value={value} onChange={(e) => onChange(clamp(e.target.value, min, max))} />
+        <span className="k" id={`${id}-h`}>
+          {hint}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The panel of a store flow: the store, then for Viewed a product and Added
+ * to cart the wait, the collections and the views; for Price drop the days
+ * and the drop; for Back in stock whether viewers come too.
+ */
+export function TrackerTriggerFields({
+  t: trig,
+  set,
+  disabled,
+  tracked,
+}: {
+  t: Trigger
+  set: (patch: Partial<Trigger>) => void
+  disabled: boolean
+  tracked: { storeId: string; host: string }[]
+}) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const opts = useStoreTriggerOptions()
+  const stores = opts.data?.stores ?? []
+  const browseKind = trig.kind === 'viewed_product' || trig.kind === 'added_to_cart'
+  const b = trig.browse ?? { storeId: '', afterHours: 4, minViews: 1 }
+  const s = trig.stock ?? { storeId: '', days: 14, minDropPercent: 10, includeViewers: false }
+  const storeId = browseKind ? b.storeId : s.storeId
+  const store = stores.find((x) => x.id === storeId)
+  const site = tracked.find((x) => x.storeId === storeId)
+  const [adding, setAdding] = useState(false)
+  const setBrowse = (p: Partial<typeof b>) => set({ browse: { ...b, ...p } })
+  const setStock = (p: Partial<typeof s>) => set({ stock: { ...s, ...p } })
+  if (opts.isSuccess && stores.length === 0) return <span className="k">{t(cf.noStore)}</span>
+  const cols = b.collectionIds ?? []
+  const needsSite = trig.kind !== 'back_in_stock' || s.includeViewers
+  return (
+    <>
+      <label className="lbl">
+        {t(cf.store)}
+        <select
+          className="in"
+          disabled={disabled}
+          value={storeId}
+          onChange={(e) => (browseKind ? setBrowse({ storeId: e.target.value, collectionIds: undefined }) : setStock({ storeId: e.target.value }))}
+        >
+          {storeId ? null : <option value="">{opts.isPending ? t(ct.loading) : t(cf.pickStore)}</option>}
+          {stores.map((x) => (
+            <option key={x.id} value={x.id}>
+              {t(cf.storeOption, { name: x.name, address: x.address })}
+            </option>
+          ))}
+        </select>
+      </label>
+      {browseKind ? (
+        <>
+          <NumberRow id="tk-wait" label={t(cf.wait)} value={b.afterHours || 4} min={1} max={24} hint={t(cf.waitHint)} disabled={disabled} onChange={(afterHours) => setBrowse({ afterHours })} />
+          <fieldset className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0" aria-describedby="tk-coll-hint">
+            <legend className="lbl mb-1.5 p-0">{t(cf.only)}</legend>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {cols.map((id) => {
+                const name = store?.collections.find((c) => c.id === id)?.title ?? id
+                return (
+                  <span key={id} className="chip">
+                    {name}
+                    <button type="button" className="cursor-pointer border-0 bg-transparent p-0 text-ink-3" aria-label={t(cf.removeCollection, { name })} disabled={disabled} onClick={() => setBrowse({ collectionIds: cols.filter((c) => c !== id) })}>
+                      ×
+                    </button>
+                  </span>
+                )
+              })}
+              {adding ? (
+                <select
+                  className="in"
+                  aria-label={t(cf.addCollection)}
+                  autoFocus
+                  disabled={disabled || !store}
+                  value=""
+                  onBlur={() => setAdding(false)}
+                  onChange={(e) => {
+                    if (e.target.value) setBrowse({ collectionIds: [...cols, e.target.value].slice(0, 20) })
+                    setAdding(false)
+                  }}
+                >
+                  <option value="">{t(cf.addCollection)}</option>
+                  {(store?.collections ?? [])
+                    .filter((c) => !cols.includes(c.id))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                </select>
+              ) : (
+                <Button size="sm" disabled={disabled || !store || cols.length >= 20} onClick={() => setAdding(true)}>
+                  {t(cf.addCollection)}
+                </Button>
+              )}
+            </div>
+            <span className="k" id="tk-coll-hint">
+              {t(cf.onlyHint)}
+            </span>
+          </fieldset>
+          <NumberRow
+            id="tk-views"
+            label={t(cf.after)}
+            value={b.minViews || 1}
+            min={1}
+            max={5}
+            hint={trig.kind === 'added_to_cart' ? t(cf.cartsHint) : t(cf.viewsHint)}
+            disabled={disabled}
+            onChange={(minViews) => setBrowse({ minViews })}
+          />
+        </>
+      ) : trig.kind === 'price_drop' ? (
+        <>
+          <NumberRow id="tk-days" label={t(cf.dropDays)} value={s.days || 14} min={1} max={60} hint={t(cf.daysHint)} disabled={disabled} onChange={(days) => setStock({ days })} />
+          <NumberRow id="tk-pct" label={t(cf.dropPercent)} value={s.minDropPercent || 10} min={1} max={90} hint={t(cf.percentHint)} disabled={disabled} onChange={(minDropPercent) => setStock({ minDropPercent })} />
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[13px]">
+              <T
+                msg={cf.viewersToo}
+                values={{
+                  days: (
+                    <input
+                      key="d"
+                      className="in h-[30px] w-14"
+                      inputMode="numeric"
+                      aria-label={t(cf.days)}
+                      disabled={disabled}
+                      value={s.days || 14}
+                      onChange={(e) => setStock({ days: clamp(e.target.value, 1, 60) })}
+                    />
+                  ),
+                }}
+              />
+            </span>
+            <SwitchInput aria-label={t(cf.viewersTooLabel)} disabled={disabled} checked={!!s.includeViewers} onChange={(e) => setStock({ includeViewers: e.target.checked })} />
+          </div>
+          <span className="k">{t(cf.askedHint)}</span>
+        </>
+      )}
+      {store && needsSite ? (
+        <div className="note i" role="note">
+          <span className="flex min-w-0 flex-[1_1_200px] flex-col gap-1.5">
+            {site ? t(cf.needsTracking, { site: site.host, store: store.name }) : t(cf.needsTrackingNone, { store: store.name })}
+            {site ? null : (
+              <Link className="self-start" to="/w/$workspace/settings/integrations/tracking" params={{ workspace: slug }}>
+                {t(cf.setUpTracking)}
+              </Link>
+            )}
+          </span>
+        </div>
+      ) : null}
+      <span className="k">
+        {browseKind ? (
+          <T msg={cf.browseLiquid} values={{ liquid: <span className="mono">{'{{ browse.products }}'}</span> }} />
+        ) : trig.kind === 'price_drop' ? (
+          <T msg={cf.dropLiquid} values={{ product: <span className="mono">{'{{ stock.product.title }}'}</span>, price: <span className="mono">{'{{ stock.previous_price }}'}</span> }} />
+        ) : (
+          <T msg={cf.stockLiquid} values={{ liquid: <span className="mono">{'{{ stock.product.title }}'}</span> }} />
+        )}
+      </span>
+    </>
+  )
 }

@@ -1,0 +1,17 @@
+{
+  "problem.name": "Đặt tên cho trang, tối đa 80 ký tự.",
+  "problem.origin": "Nhập địa chỉ trang theo dạng https://shop.acme.io: https, một tên miền và, chỉ khi không phải 443, một cổng.",
+  "problem.originLocal": "Nhập địa chỉ trang theo dạng https://shop.acme.io. Khi ReputeCast chạy ở chế độ phát triển, http://localhost cũng dùng được.",
+  "problem.originOwn": "{host} hiển thị các trang của chính ReputeCast, những trang này không bao giờ được theo dõi: chúng luôn không dùng cookie. Hãy thêm trang web hoặc cửa hàng của bạn.",
+  "problem.originTaken": "{origin} đã là một trang được theo dõi trong không gian làm việc này.",
+  "problem.store": "Hãy chọn một cửa hàng đã kết nối với không gian làm việc này, hoặc không chọn cửa hàng nào.",
+  "problem.siteGone": "Trang được theo dõi này không tồn tại hoặc đã bị xóa. Hãy tải lại danh sách.",
+  "snippet.wordpress": "Trong WordPress, mở Settings › ReputeCast, bật Site tracking và dán mã trang này: {site}. Để nhận ra khách hàng đã đăng nhập, hãy dán cả khóa bí mật nhận diện vào đó.",
+  "snippet.pixelConsent": "Trang này chờ sự đồng ý: sự kiện chỉ được gửi khi khách truy cập cho phép phân tích.",
+  "snippet.pixelOpen": "Shopify › Settings › Customer events › Add custom pixel, rồi dán đoạn mã này.",
+  "activity.viewed": "{count, plural, other {Đã xem # sản phẩm trên {host}}}",
+  "activity.visited": "Đã truy cập {host}",
+  "activity.carts": "{count, plural, other {# sản phẩm được thêm vào giỏ}}",
+  "hub.facts": "{sites, plural, other {# trang}} · {events, plural, other {# sự kiện hôm nay}}",
+  "activity.source": "Theo dõi website"
+}

@@ -109,7 +109,7 @@ function toInput(d: Draft, catalog?: Catalog): Schemas['SegmentInput'] {
         match: g.match,
         conditions: g.conditions.map((c) =>
           kindOf(c.field) === 'period'
-            ? { field: c.field, op: c.op, amount: c.amount, unit: c.unit }
+            ? { field: c.field, op: c.op, amount: c.amount, unit: c.unit, value: c.value || undefined }
             : { field: c.field, op: c.op, value: c.value, to: c.op === 'between' ? c.to : undefined },
         ),
       })),
@@ -558,6 +558,16 @@ function Condition({
             <option value="days">{t(m.unitDays)}</option>
             <option value="weeks">{t(m.unitWeeks)}</option>
           </select>
+          {/* "Viewed a product in the last 30 days, in Apparel" (M62): a period with a choice. */}
+          {f.options.length ? (
+            <select aria-label={t(m.value)} className="in" value={c.value || f.options[0]!.value} onChange={(e) => onChange({ value: e.target.value })}>
+              {f.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </>
       ) : f && (f.kind === 'enum' || f.kind === 'list' || f.kind === 'campaign') ? (
         <select aria-label={t(m.value)} className="in" value={c.value} onChange={(e) => onChange({ value: e.target.value })}>

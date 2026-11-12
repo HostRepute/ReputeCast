@@ -5250,6 +5250,41 @@
         ],
         "type": "object"
       },
+      "AutomationBrowseTrigger": {
+        "additionalProperties": false,
+        "properties": {
+          "afterHours": {
+            "format": "int64",
+            "maximum": 24,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "collectionIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "minViews": {
+            "format": "int64",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "storeId": {
+            "description": "The connected store (uuid) whose products the tracked site's events name",
+            "maxLength": 40,
+            "type": "string"
+          }
+        },
+        "required": [
+          "storeId",
+          "afterHours",
+          "minViews"
+        ],
+        "type": "object"
+      },
       "AutomationCondition": {
         "additionalProperties": false,
         "properties": {
@@ -6750,6 +6785,12 @@
               "$ref": "#/components/schemas/AutomationTierOption"
             },
             "type": "array"
+          },
+          "trackedStores": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationTrackedStore"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -6767,7 +6808,8 @@
           "tiers",
           "paidConnected",
           "repliesInbox",
-          "leadForms"
+          "leadForms",
+          "trackedStores"
         ],
         "type": "object"
       },
@@ -7586,6 +7628,37 @@
         ],
         "type": "object"
       },
+      "AutomationStockTrigger": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "default": 14,
+            "format": "int64",
+            "maximum": 60,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "includeViewers": {
+            "type": "boolean"
+          },
+          "minDropPercent": {
+            "default": 10,
+            "format": "int64",
+            "maximum": 90,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "storeId": {
+            "description": "The connected store (uuid) whose products it watches",
+            "maxLength": 40,
+            "type": "string"
+          }
+        },
+        "required": [
+          "storeId"
+        ],
+        "type": "object"
+      },
       "AutomationSummary": {
         "additionalProperties": false,
         "properties": {
@@ -7675,6 +7748,22 @@
         ],
         "type": "object"
       },
+      "AutomationTrackedStore": {
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "storeId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "storeId",
+          "host"
+        ],
+        "type": "object"
+      },
       "AutomationTrigger": {
         "additionalProperties": false,
         "properties": {
@@ -7710,6 +7799,9 @@
           "at": {
             "maxLength": 5,
             "type": "string"
+          },
+          "browse": {
+            "$ref": "#/components/schemas/AutomationBrowseTrigger"
           },
           "collections": {
             "items": {
@@ -7793,7 +7885,11 @@
               "paid_trial_ending",
               "paid_paused",
               "paid_resumed",
-              "lead_ad_submitted"
+              "lead_ad_submitted",
+              "viewed_product",
+              "added_to_cart",
+              "back_in_stock",
+              "price_drop"
             ],
             "type": "string"
           },
@@ -7871,6 +7967,9 @@
           "source": {
             "maxLength": 60,
             "type": "string"
+          },
+          "stock": {
+            "$ref": "#/components/schemas/AutomationStockTrigger"
           },
           "store": {
             "maxLength": 40,
@@ -10562,7 +10661,11 @@
             "enum": [
               "card",
               "chosen",
-              "collection"
+              "collection",
+              "best_sellers",
+              "recently_viewed",
+              "bought_together",
+              "viewed"
             ],
             "type": "string"
           },
@@ -10600,6 +10703,9 @@
             "type": "boolean"
           },
           "html": {
+            "type": "string"
+          },
+          "note": {
             "type": "string"
           },
           "platform": {
@@ -10836,6 +10942,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "inventoryScope": {
+            "type": "string"
+          },
           "keyHint": {
             "type": "string"
           },
@@ -10909,6 +11018,7 @@
           "redirectUrl",
           "scopes",
           "optionalScope",
+          "inventoryScope",
           "reachable",
           "granted",
           "writeGranted",
@@ -11569,6 +11679,65 @@
           "creditedRevenue",
           "share",
           "currency"
+        ],
+        "type": "object"
+      },
+      "CommerceStockRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "description": "The product is in stock now: back-in-stock flows start on its next return",
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "productId": {
+            "description": "ReputeCast's id of the product",
+            "type": "string"
+          },
+          "storeId": {
+            "type": "string"
+          },
+          "title": {
+            "examples": [
+              "Deploy Friday cap"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "productId",
+          "storeId",
+          "title",
+          "available",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "CommerceStockRequestInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "description": "An existing contact's address",
+            "format": "email",
+            "maxLength": 254,
+            "type": "string"
+          },
+          "productId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "storeId": {
+            "maxLength": 40,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "productId"
         ],
         "type": "object"
       },
@@ -33259,7 +33428,8 @@
               "lemonsqueezy",
               "shopify",
               "woocommerce",
-              "meta_lead_ads"
+              "meta_lead_ads",
+              "tracking"
             ],
             "type": "string"
           },
@@ -33356,6 +33526,9 @@
           },
           "team": {
             "type": "string"
+          },
+          "tracking": {
+            "$ref": "#/components/schemas/IntegrationTrackingFacts"
           },
           "triggers": {
             "format": "int64",
@@ -34641,6 +34814,32 @@
           "name",
           "state",
           "orders"
+        ],
+        "type": "object"
+      },
+      "IntegrationTrackingFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "eventsToday": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastEventAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "line": {
+            "type": "string"
+          },
+          "sites": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sites",
+          "eventsToday",
+          "line"
         ],
         "type": "object"
       },
@@ -66912,15 +67111,21 @@
           "schedule": {
             "$ref": "#/components/schemas/SignupFormSchedule"
           },
+          "segmentId": {
+            "maxLength": 40,
+            "type": "string"
+          },
           "sources": {
             "$ref": "#/components/schemas/SignupFormSources"
           },
           "visitors": {
-            "description": "Returning: this browser has seen one of the workspace's forms before today",
+            "description": "Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)",
             "enum": [
               "all",
               "new",
-              "returning"
+              "returning",
+              "in_segment",
+              "not_in_segment"
             ],
             "type": "string"
           }
@@ -77053,6 +77258,231 @@
           "key",
           "name",
           "builtin"
+        ],
+        "type": "object"
+      },
+      "TrackerRecentEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "page",
+              "product",
+              "cart",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "known": {
+            "description": "A known contact's, else a visitor's",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "productTitle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "path",
+          "productTitle",
+          "name",
+          "known",
+          "at"
+        ],
+        "type": "object"
+      },
+      "TrackerRecentEvents": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TrackerRecentEvent"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "TrackerRefusal": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin",
+          "count",
+          "lastAt"
+        ],
+        "type": "object"
+      },
+      "TrackerSite": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "eventsToday": {
+            "description": "Events since midnight in the workspace's time zone",
+            "format": "int64",
+            "type": "integer"
+          },
+          "hasIdentifySecret": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastEventAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "origin": {
+            "examples": [
+              "https://shop.acme.io"
+            ],
+            "type": "string"
+          },
+          "refused": {
+            "description": "Origins refused in the last 24 hours, most refused first",
+            "items": {
+              "$ref": "#/components/schemas/TrackerRefusal"
+            },
+            "type": "array"
+          },
+          "snippet": {
+            "$ref": "#/components/schemas/TrackerSnippet"
+          },
+          "store": {
+            "$ref": "#/components/schemas/TrackerStoreOption"
+          },
+          "waitConsent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "origin",
+          "waitConsent",
+          "hasIdentifySecret",
+          "eventsToday",
+          "createdBy",
+          "createdAt",
+          "refused",
+          "snippet"
+        ],
+        "type": "object"
+      },
+      "TrackerSiteList": {
+        "additionalProperties": false,
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TrackerSite"
+            },
+            "type": "array"
+          },
+          "scriptUrl": {
+            "type": "string"
+          },
+          "stores": {
+            "items": {
+              "$ref": "#/components/schemas/TrackerStoreOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "stores",
+          "scriptUrl",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "TrackerSnippet": {
+        "additionalProperties": false,
+        "properties": {
+          "script": {
+            "type": "string"
+          },
+          "shopifyPixel": {
+            "type": "string"
+          },
+          "wordpress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "script",
+          "shopifyPixel",
+          "wordpress"
+        ],
+        "type": "object"
+      },
+      "TrackerStoreOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "shopify",
+              "woocommerce"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "platform"
         ],
         "type": "object"
       },
@@ -103700,6 +104130,71 @@
         ],
         "x-access": "workspace",
         "x-permission": "earn:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/commerce/stock-requests": {
+      "post": {
+        "description": "For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.",
+        "operationId": "create-stock-request",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommerceStockRequestInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommerceStockRequest"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Email a contact when a sold-out product is back",
+        "tags": [
+          "Stores"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:create"
       }
     },
     "/api/v1/workspaces/{workspace}/commerce/trigger-options": {
@@ -140725,6 +141220,127 @@
         "x-permission": "templates:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/tracker/sites": {
+      "get": {
+        "description": "Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.",
+        "operationId": "list-tracker-sites",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackerSiteList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the sites the tracker runs on",
+        "tags": [
+          "Website tracking"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent": {
+      "get": {
+        "description": "What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.",
+        "operationId": "tracker-site-recent-events",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Tracked site id",
+            "in": "path",
+            "name": "site",
+            "required": true,
+            "schema": {
+              "description": "Tracked site id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackerRecentEvents"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A tracked site's last 20 events",
+        "tags": [
+          "Website tracking"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      }
+    },
     "/api/v1/workspaces/{workspace}/tracking-checks": {
       "get": {
         "operationId": "list-tracking-checks",
@@ -149546,6 +150162,9 @@
     },
     {
       "name": "Website"
+    },
+    {
+      "name": "Website tracking"
     },
     {
       "name": "WhatsApp"

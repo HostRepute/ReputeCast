@@ -40,5 +40,12 @@
   "check.removedDetail": "Am {when} in {platform} gelöscht. Beim Versand wird es weggelassen. Entfernen Sie es oder wählen Sie ein anderes Produkt.",
   "discounts.notGranted": "{name} hat Rabattcodes noch nicht erlaubt. Öffnen Sie die Seite des Shops und wählen Sie „Rabattcodes erlauben“.",
   "discounts.readOnly": "Der Schlüssel des Shops kann keine Gutscheine anlegen. Verwenden Sie einen Schlüssel mit Lese-/Schreibzugriff.",
-  "discounts.unsupported": "{platform} kann keine Rabattcodes aus ReputeCast anlegen. Laden Sie stattdessen Codes hoch."
+  "discounts.unsupported": "{platform} kann keine Rabattcodes aus ReputeCast anlegen. Laden Sie stattdessen Codes hoch.",
+  "stock.contactUnknown": "Kein Kontakt hat diese Adresse. Legen Sie die Person zuerst als Kontakt an.",
+  "stock.productUnknown": "Kein Produkt eines verbundenen Shops hat diese ID.",
+  "stock.productAmbiguous": "Zwei verbundene Shops haben ein Produkt mit dieser ID. Geben Sie den Shop in storeId an.",
+  "block.noteRecentlyViewed": "Alle Leser sehen die Produkte, die sie zuletzt angesehen haben, ohne bereits Gekauftes. Hier zu sehen: Ihre Bestseller, die Leser ohne angesehene Produkte erhalten.",
+  "block.noteBoughtTogether": "Alle Leser sehen Produkte, die oft zusammen mit dem gekauft werden, was sie gekauft oder angesehen haben. Hier zu sehen: Ihre Bestseller, die Leser ohne Bestellungen oder Aufrufe erhalten.",
+  "block.noteViewed": "Jede E-Mail zeigt die Produkte, die ihr Leser angesehen, in den Warenkorb gelegt oder angefragt hat, laut dem Auslöser der Automation. Hier zu sehen: die neuesten Produkte des Shops.",
+  "block.noteNoSales": "In den letzten 30 Tagen wurde nichts verkauft, daher zeigt der Block vorerst die neuesten Produkte."
 }

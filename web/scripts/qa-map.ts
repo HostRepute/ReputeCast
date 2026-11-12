@@ -629,6 +629,16 @@ export const entries: Entry[] = [
   { board: 'LeadAdsConnectPhone', widths: [390], manual: true },
   { board: 'LeadAdsFormMapping', manual: true },
   { board: 'LeadAdsStates', manual: true },
+  // M62 · Website tracking. The demo's sites are Acme Merch (https://shop.acme.io, linked to the
+  // Acme Merch store) and Docs (https://docs.acme.io, no store), Acme Merch selected. The add-site
+  // dialog (TrackingSetup) and TrackingStates' frames (loading, empty, error, Aisha Bello's read-only
+  // view, a new site waiting for its first event and for consent, a refused origin, no store linked,
+  // rotating the identify secret, deleting a site) need clicks, other users or data changes.
+  { board: 'TrackingSites', path: `${ws}/settings/integrations/tracking`, widths: [1440] },
+  { board: 'TrackingSitesTablet', path: `${ws}/settings/integrations/tracking`, widths: [834] },
+  { board: 'TrackingSitesPhone', path: `${ws}/settings/integrations/tracking`, widths: [390] },
+  { board: 'TrackingSetup', manual: true },
+  { board: 'TrackingStates', manual: true },
   // M60 G-25: the Footer mini form's running A/B test with B selected and the winner card. The End
   // test dialog is drawn under the builder and opens with a click: compare the builder only.
   { board: 'FormBuilderABTest', path: `${ws}/forms?form={form:Footer mini form}&variant=B`, widths: [1440], viewportOnly: true, height: 1583 },

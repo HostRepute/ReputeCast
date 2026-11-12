@@ -42,6 +42,9 @@ type Product struct {
 	Collections []string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	// InventoryItemID is its (one) variant's inventory item, which
+	// inventory_levels/update deliveries name.
+	InventoryItemID string
 }
 
 // Collection is a collection in the fake store.
@@ -533,30 +536,17 @@ func (f *Fake) answer(op string, vars map[string]any) (map[string]any, []any) {
 		from, to, info := f.page(len(list), vars)
 		nodes := []any{}
 		for _, p := range list[from:to] {
-			cols := []any{}
-			for _, c := range p.Collections {
-				cols = append(cols, map[string]any{"id": gid("Collection", c)})
-			}
-			var media any
-			if p.ImageURL != "" {
-				media = map[string]any{"preview": map[string]any{"image": map[string]any{"url": p.ImageURL, "altText": p.Title}}}
-			}
-			var compare any
-			if p.CompareAt != "" {
-				compare = map[string]any{"minVariantCompareAtPrice": map[string]any{"amount": p.CompareAt, "currencyCode": f.Currency}}
-			}
-			nodes = append(nodes, map[string]any{
-				"id": gid("Product", p.ID), "title": p.Title, "handle": p.Handle, "status": p.Status,
-				"onlineStoreUrl": "https://" + f.PrimaryDomain + "/products/" + p.Handle,
-				"createdAt":      p.CreatedAt.UTC().Format(time.RFC3339), "updatedAt": p.UpdatedAt.UTC().Format(time.RFC3339),
-				"featuredMedia":       media,
-				"priceRangeV2":        map[string]any{"minVariantPrice": map[string]any{"amount": p.Price, "currencyCode": f.Currency}},
-				"compareAtPriceRange": compare,
-				"tracksInventory":     p.Tracked, "totalInventory": p.Inventory,
-				"collections": map[string]any{"nodes": cols},
-			})
+			nodes = append(nodes, f.productNode(p))
 		}
 		return map[string]any{"products": map[string]any{"nodes": nodes, "pageInfo": info}}, nil
+	case "InventoryProduct":
+		item := numeric(str(vars["id"]))
+		for _, p := range f.Products {
+			if p.InventoryItemID != "" && p.InventoryItemID == item {
+				return map[string]any{"inventoryItem": map[string]any{"variant": map[string]any{"product": f.productNode(p)}}}, nil
+			}
+		}
+		return map[string]any{"inventoryItem": nil}, nil
 	case "Collections":
 		from, to, info := f.page(len(f.Collections), vars)
 		nodes := []any{}
@@ -651,6 +641,10 @@ func (f *Fake) answer(op string, vars map[string]any) (map[string]any, []any) {
 		topic := str(vars["topic"])
 		sub, _ := vars["sub"].(map[string]any)
 		uri := str(sub["uri"])
+		if topic == shopify.TopicEnum(shopify.InventoryTopic) && !slices.Contains(f.Scopes, shopify.InventoryScope) {
+			return map[string]any{"webhookSubscriptionCreate": map[string]any{"webhookSubscription": nil,
+				"userErrors": []any{map[string]any{"field": []string{"webhookSubscription"}, "message": "Access denied: the read_inventory scope is required for this topic"}}}}, nil
+		}
 		for _, w := range f.Webhooks {
 			if w.Topic == topic && w.URI == uri {
 				return map[string]any{"webhookSubscriptionCreate": map[string]any{"webhookSubscription": nil,
@@ -700,6 +694,32 @@ func nonNil(s []string) []string {
 		return []string{}
 	}
 	return s
+}
+
+// productNode is a product as the GraphQL Admin API returns it.
+func (f *Fake) productNode(p *Product) map[string]any {
+	cols := []any{}
+	for _, c := range p.Collections {
+		cols = append(cols, map[string]any{"id": gid("Collection", c)})
+	}
+	var media any
+	if p.ImageURL != "" {
+		media = map[string]any{"preview": map[string]any{"image": map[string]any{"url": p.ImageURL, "altText": p.Title}}}
+	}
+	var compare any
+	if p.CompareAt != "" {
+		compare = map[string]any{"minVariantCompareAtPrice": map[string]any{"amount": p.CompareAt, "currencyCode": f.Currency}}
+	}
+	return map[string]any{
+		"id": gid("Product", p.ID), "title": p.Title, "handle": p.Handle, "status": p.Status,
+		"onlineStoreUrl": "https://" + f.PrimaryDomain + "/products/" + p.Handle,
+		"createdAt":      p.CreatedAt.UTC().Format(time.RFC3339), "updatedAt": p.UpdatedAt.UTC().Format(time.RFC3339),
+		"featuredMedia":       media,
+		"priceRangeV2":        map[string]any{"minVariantPrice": map[string]any{"amount": p.Price, "currencyCode": f.Currency}},
+		"compareAtPriceRange": compare,
+		"tracksInventory":     p.Tracked, "totalInventory": p.Inventory,
+		"collections": map[string]any{"nodes": cols},
+	}
 }
 
 // ── Webhook deliveries ─────────────────────────────────────────────────
@@ -855,4 +875,12 @@ func (f *Fake) ProductPayload(p *Product) map[string]any {
 		"variants": []any{map[string]any{"price": p.Price, "compare_at_price": p.CompareAt, "inventory_quantity": p.Inventory,
 			"inventory_management": mgmt, "inventory_policy": "deny"}},
 	}
+}
+
+// InventoryLevelPayload is a product's stock at its one location in the
+// shape inventory_levels/update carries.
+func (f *Fake) InventoryLevelPayload(p *Product) map[string]any {
+	item, _ := strconv.ParseInt(p.InventoryItemID, 10, 64)
+	return map[string]any{"inventory_item_id": item, "location_id": 655441491, "available": p.Inventory,
+		"updated_at": p.UpdatedAt.UTC().Format(time.RFC3339), "admin_graphql_api_id": "gid://shopify/InventoryLevel/655441491?inventory_item_id=" + p.InventoryItemID}
 }

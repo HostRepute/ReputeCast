@@ -30,18 +30,24 @@ const (
   ordersCount(query: $query, limit: null) { count }
 }`
 
-	qProducts = `query Products($first: Int!, $after: String, $query: String) {
-  products(first: $first, after: $after, query: $query, sortKey: UPDATED_AT) {
-    nodes {
-      id title handle status onlineStoreUrl createdAt updatedAt
+	productFields = `id title handle status onlineStoreUrl createdAt updatedAt
       featuredMedia { preview { image { url altText } } }
       priceRangeV2 { minVariantPrice { amount currencyCode } }
       compareAtPriceRange { minVariantCompareAtPrice { amount currencyCode } }
       tracksInventory totalInventory
-      collections(first: 25) { nodes { id } }
-    }
+      collections(first: 25) { nodes { id } }`
+
+	qProducts = `query Products($first: Int!, $after: String, $query: String) {
+  products(first: $first, after: $after, query: $query, sortKey: UPDATED_AT) {
+    nodes { ` + productFields + ` }
     pageInfo { hasNextPage endCursor }
   }
+}`
+
+	// qInventoryProduct reads the product an inventory item belongs to
+	// (InventoryItem.variant.product).
+	qInventoryProduct = `query InventoryProduct($id: ID!) {
+  inventoryItem(id: $id) { variant { product { ` + productFields + ` } } }
 }`
 
 	qCollections = `query Collections($first: Int!, $after: String) {
@@ -297,6 +303,27 @@ func (c *Client) Products(ctx context.Context, cursor string, r stores.Range) (s
 	}
 	return out, nil
 }
+
+// InventoryProduct implements stores.InventoryReader: the product of the
+// item an inventory_levels/update delivery names.
+func (c *Client) InventoryProduct(ctx context.Context, itemID string) (stores.Product, error) {
+	var d struct {
+		InventoryItem *struct {
+			Variant *struct {
+				Product *gqlProduct `json:"product"`
+			} `json:"variant"`
+		} `json:"inventoryItem"`
+	}
+	if err := c.gql(ctx, "InventoryProduct", qInventoryProduct, map[string]any{"id": gid("InventoryItem", itemID)}, &d); err != nil {
+		return stores.Product{}, err
+	}
+	if d.InventoryItem == nil || d.InventoryItem.Variant == nil || d.InventoryItem.Variant.Product == nil {
+		return stores.Product{}, fmt.Errorf("shopify: inventory item %s: %w", itemID, stores.ErrNotFound)
+	}
+	return d.InventoryItem.Variant.Product.product(), nil
+}
+
+var _ stores.InventoryReader = (*Client)(nil)
 
 // Collections implements stores.Client.
 func (c *Client) Collections(ctx context.Context, cursor string) (stores.Page[stores.Collection], error) {
@@ -703,9 +730,14 @@ func TopicEnum(topic string) string {
 	return strings.ToUpper(strings.ReplaceAll(topic, "/", "_"))
 }
 
-// TopicFromEnum turns ORDERS_CREATE into "orders/create".
+// TopicFromEnum turns ORDERS_CREATE into "orders/create", and
+// INVENTORY_LEVELS_UPDATE (a resource with an underscore of its own) into
+// "inventory_levels/update".
 func TopicFromEnum(enum string) string {
 	e := strings.ToLower(enum)
+	if rest, ok := strings.CutPrefix(e, "inventory_levels_"); ok {
+		return "inventory_levels/" + rest
+	}
 	i := strings.IndexByte(e, '_')
 	if i < 0 {
 		return e

@@ -327,6 +327,10 @@ type CommerceConnectState struct {
 	RedirectURL   string   `json:"redirectUrl"`
 	Scopes        []string `json:"scopes"`
 	OptionalScope string   `json:"optionalScope"`
+	// InventoryScope is the optional scope that reports stock changes as
+	// they happen (back-in-stock and price-drop flows); without it they're
+	// read every 15 minutes.
+	InventoryScope string `json:"inventoryScope"`
 	// Reachable: the instance's public URL answers from the internet.
 	Reachable          bool       `json:"reachable"`
 	ReachableCheckedAt *time.Time `json:"reachableCheckedAt,omitempty"`
@@ -418,8 +422,12 @@ type CommerceProductList struct {
 type CommerceBlock struct {
 	Store string `json:"store" format:"uuid"`
 	// Mode: card (one product), chosen (picked products), collection (the
-	// newest of a collection).
-	Mode       string   `json:"mode" enum:"card,chosen,collection"`
+	// newest of a collection), best_sellers (the most units sold in the
+	// last 30 days, optionally one collection's), recently_viewed and
+	// bought_together (per recipient, from what they viewed and bought;
+	// best sellers for someone without history), viewed (the products the
+	// automation's trigger named: browse, cart and stock flows).
+	Mode       string   `json:"mode" enum:"card,chosen,collection,best_sellers,recently_viewed,bought_together,viewed"`
 	Products   []string `json:"products" maxItems:"12"`
 	Collection string   `json:"collection,omitempty" maxLength:"64"`
 	Count      int      `json:"count,omitempty" minimum:"0" maximum:"6"`
@@ -440,6 +448,10 @@ type CommerceBlockRender struct {
 	SoldOut []string `json:"soldOut"`
 	// Disconnected: the store isn't connected; the block keeps its last prices.
 	Disconnected bool `json:"disconnected"`
+	// Note says what the canvas shows in place of each reader's own
+	// products (per-recipient and Viewed products modes), or that best
+	// sellers fell back to the newest products.
+	Note string `json:"note,omitempty"`
 }
 
 // CommerceRemovedProduct is a product a block names that the store deleted.

@@ -19,6 +19,7 @@ import { StoreAction, StoreBadge, StoreFact } from '@/features/commerce/catalog'
 import { LeadAdsAction, LeadAdsFact, leadAdsWhy } from '@/features/leads/catalog'
 import { ConnectDialog } from './ConnectDialog'
 import { m } from './messages'
+import { tm } from '@/features/tracking/messages'
 import {
   AttentionIcon,
   capabilities,
@@ -374,6 +375,18 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
   } else if (isPayment(e.key)) {
     // Payment providers live in Earn › Settings › Payments (X16).
     action = <PaymentAction e={e} canManage={canManage} />
+  } else if (e.key === 'tracking') {
+    // Website tracking (M62): Set up opens Add a site once there's none.
+    action =
+      !e.facts.tracking?.sites && canManage ? (
+        <ButtonLink size="sm" to="/w/$workspace/settings/integrations/tracking" params={params} search={{ add: true }}>
+          {t(m.setUp)}
+        </ButtonLink>
+      ) : (
+        <ButtonLink size="sm" to="/w/$workspace/settings/integrations/tracking" params={params}>
+          {canManage ? t(m.manage) : t(m.view)}
+        </ButtonLink>
+      )
   } else if (isStore(e.key)) {
     // Shopify and WooCommerce (X20): Connect opens the store's dialog, Manage its page.
     action = <StoreAction entry={e} platform={e.key} canManage={canManage} />
@@ -459,6 +472,7 @@ function Fact({ entry: e }: { entry: Entry }) {
       if (!f.mcpEnabled) return <>{t(m.factMcpOff)}</>
       return f.agents ? <>{t(m.factMcpOn, { count: f.agents })}</> : <>{t(m.factMcpOnNone)}</>
   }
+  if (e.key === 'tracking') return <>{f.tracking?.sites ? f.tracking.line : t(tm.hubNoSites)}</>
   if (isPayment(e.key)) return <PaymentFact e={e} />
   if (isStore(e.key)) return <StoreFact entry={e} platform={e.key} />
   if (e.key === 'meta_lead_ads') return <LeadAdsFact entry={e} />

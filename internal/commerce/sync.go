@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/stores"
+	"github.com/hostrepute/reputecast/internal/stores/shopify"
 )
 
 // importProgress is the first import's state (stores.import_progress): the
@@ -201,7 +202,7 @@ func (s *Service) importProducts(ctx context.Context, c stores.Client, st store.
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for _, pr := range page.Items {
-			if _, err := s.applyProduct(ctx, q, st, pr, false); err != nil {
+			if _, err := s.applyProduct(ctx, tx, q, st, pr, false); err != nil {
 				return err
 			}
 		}
@@ -516,7 +517,7 @@ func (s *Service) Reconcile(ctx context.Context, id uuid.UUID, since time.Time, 
 				q := store.New(tx)
 				for _, p := range page.Items {
 					seen = append(seen, p.ID)
-					if _, err := s.applyProduct(ctx, q, st, p, false); err != nil {
+					if _, err := s.applyProduct(ctx, tx, q, st, p, false); err != nil {
 						return err
 					}
 				}
@@ -669,7 +670,7 @@ func topicResource(topic string) string {
 		return "checkouts"
 	case slices.Contains([]string{"customers/create", "customers/update"}, topic):
 		return "customers"
-	case slices.Contains([]string{"products/create", "products/update", "products/delete", "product.created", "product.updated", "product.deleted"}, topic):
+	case slices.Contains([]string{"products/create", "products/update", "products/delete", shopify.InventoryTopic, "product.created", "product.updated", "product.deleted"}, topic):
 		return "products"
 	}
 	return ""

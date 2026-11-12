@@ -413,6 +413,18 @@ type AutomationOptions struct {
 	// lead ad form" can listen to (M66); the editor offers the trigger only
 	// when there is one.
 	LeadForms []AutomationLeadFormOption `json:"leadForms"`
+	// TrackedStores are the stores (ids) a site with Website tracking
+	// names: "Viewed a product", "Added to cart" and "Price drop" learn
+	// who viewed what through one of them, so the editor says when a
+	// trigger's store has none (M62).
+	TrackedStores []AutomationTrackedStore `json:"trackedStores"`
+}
+
+// AutomationTrackedStore is a store a tracked site names, with the site's
+// host ("shop.acme.io sends Acme Merch's product views").
+type AutomationTrackedStore struct {
+	StoreID string `json:"storeId"`
+	Host    string `json:"host"`
 }
 
 // AutomationMilestoneOption is a referral milestone a "Reached a
@@ -429,13 +441,20 @@ type AutomationMilestoneOption struct {
 // Options lists lists, forms, fields, emails, providers, tags and API events.
 func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationOptions, error) {
 	out := AutomationOptions{Lists: []AutomationOptionItem{}, Forms: []AutomationFormOption{}, Fields: []AutomationFieldOption{}, Emails: []AutomationEmailOption{}, Providers: []AutomationRouteProvider{}, Tags: []string{}, Events: []string{}, Milestones: []AutomationMilestoneOption{},
-		Products: []AutomationOptionItem{}, Segments: []AutomationSegmentOption{}, Campaigns: []AutomationOptionItem{}, Tiers: []AutomationTierOption{}}
+		Products: []AutomationOptionItem{}, Segments: []AutomationSegmentOption{}, Campaigns: []AutomationOptionItem{}, Tiers: []AutomationTierOption{}, TrackedStores: []AutomationTrackedStore{}}
 	tiers, paid, err := paidOptions(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
 	}
 	out.Tiers, out.PaidConnected = tiers, paid
 	if out.RepliesInbox, err = s.Q.InboundRepliesInbox(ctx, ws.ID); err != nil {
+		return out, err
+	}
+	if tracked, err := s.Q.AutomationTrackedStores(ctx, ws.ID); err == nil {
+		for _, r := range tracked {
+			out.TrackedStores = append(out.TrackedStores, AutomationTrackedStore{StoreID: r.StoreID.String(), Host: strings.TrimPrefix(strings.TrimPrefix(r.Origin, "https://"), "http://")})
+		}
+	} else {
 		return out, err
 	}
 	if segs, err := s.Q.AutomationSegments(ctx, ws.ID); err == nil {

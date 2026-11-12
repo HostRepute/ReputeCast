@@ -422,8 +422,9 @@ func (s *Service) applyCheckout(ctx context.Context, q *store.Queries, st store.
 }
 
 // applyProduct stores a product. Webhooks don't carry collections, so they
-// keep the stored ones.
-func (s *Service) applyProduct(ctx context.Context, q *store.Queries, st store.Store, p stores.Product, keepCollections bool) (applied, error) {
+// keep the stored ones. A product back in stock or cheaper queues its
+// store flows in tx (stock.go).
+func (s *Service) applyProduct(ctx context.Context, tx pgx.Tx, q *store.Queries, st store.Store, p stores.Product, keepCollections bool) (applied, error) {
 	status := p.Status
 	switch status {
 	case "active", "draft", "archived":
@@ -450,7 +451,7 @@ func (s *Service) applyProduct(ctx context.Context, q *store.Queries, st store.S
 	if p.Inventory != nil {
 		inv = ptr(int32(*p.Inventory))
 	}
-	_, err := q.CommerceProductUpsert(ctx, store.CommerceProductUpsertParams{ID: newID(), StoreID: st.ID, WorkspaceID: st.WorkspaceID, ExternalID: p.ID,
+	row, err := q.CommerceProductUpsert(ctx, store.CommerceProductUpsertParams{ID: newID(), StoreID: st.ID, WorkspaceID: st.WorkspaceID, ExternalID: p.ID,
 		Title: p.Title, Handle: p.Handle, Url: url, ImageUrl: p.ImageURL, ImageAlt: p.ImageAlt, PriceCents: p.Price, CompareAtCents: p.CompareAt,
 		Currency: cur, Available: p.Available, Inventory: inv, Status: status, Collections: cols, CreatedAtStore: nonZero(p.CreatedAt),
 		UpdatedAtStore: nonZero(p.UpdatedAt), At: s.now(), KeepCollections: keepCollections})
@@ -458,6 +459,9 @@ func (s *Service) applyProduct(ctx context.Context, q *store.Queries, st store.S
 		return applied{status: "stale", outcome: "older than the stored product"}, nil
 	}
 	if err != nil {
+		return applied{}, err
+	}
+	if err := s.productChanged(ctx, tx, q, st, row, p, status, cur); err != nil {
 		return applied{}, err
 	}
 	return applied{status: "applied", outcome: "product"}, nil

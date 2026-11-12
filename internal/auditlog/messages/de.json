@@ -369,5 +369,7 @@
   "category.leads": "Lead-Anzeigen",
   "type.lead_connection": "Lead-Anzeigen-Verbindung",
   "type.lead_form": "Lead-Formular",
-  "link.leadConnection": "Verbindung öffnen"
+  "link.leadConnection": "Verbindung öffnen",
+  "type.tracker_site": "getrackte Website",
+  "link.tracking": "Website-Tracking öffnen"
 }

@@ -166,6 +166,7 @@ describe('the automation trigger and goal', () => {
     paidConnected: false,
     repliesInbox: false,
     leadForms: [],
+    trackedStores: [],
   })
   const g: FlowGraph = { nodes: [], edges: [] }
   const node = (n: Partial<FlowNode>): FlowNode => ({ id: 'n1', type: 'trigger', position: { x: 0, y: 0 }, data: {}, ...n })

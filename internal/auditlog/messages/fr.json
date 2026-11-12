@@ -369,5 +369,7 @@
   "category.leads": "Publicités à formulaire",
   "type.lead_connection": "connexion de publicités à formulaire",
   "type.lead_form": "formulaire de prospects",
-  "link.leadConnection": "Ouvrir la connexion"
+  "link.leadConnection": "Ouvrir la connexion",
+  "type.tracker_site": "site suivi",
+  "link.tracking": "Ouvrir le suivi du site"
 }

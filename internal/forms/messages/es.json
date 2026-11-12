@@ -107,5 +107,7 @@
   "problem.optionLabel60": "Deja cada respuesta en menos de 60 caracteres.",
   "problem.noStepText": "El formulario ya no tiene un paso que use ese texto. Recarga la página.",
   "problem.stepTextLong": "Déjalo en menos de {max} caracteres.",
-  "problem.abRunningHosted": "Termina la prueba A/B antes de convertir este formulario en una página alojada: las páginas alojadas siempre muestran A."
+  "problem.abRunningHosted": "Termina la prueba A/B antes de convertir este formulario en una página alojada: las páginas alojadas siempre muestran A.",
+  "problem.targetSegment": "Elige el segmento al que se muestra (o del que se oculta) el formulario.",
+  "problem.targetSegmentGone": "Ese segmento ya no existe. Elige otro."
 }

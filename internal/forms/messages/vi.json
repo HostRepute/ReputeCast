@@ -107,5 +107,7 @@
   "problem.optionLabel60": "Hãy giữ câu trả lời dưới 60 ký tự.",
   "problem.noStepText": "Biểu mẫu không còn bước nào nhận nội dung đó. Hãy tải lại trang.",
   "problem.stepTextLong": "Hãy giữ dưới {max} ký tự.",
-  "problem.abRunningHosted": "Hãy kết thúc thử nghiệm A/B trước khi chuyển biểu mẫu này thành trang lưu trữ: trang lưu trữ luôn hiện phiên bản A."
+  "problem.abRunningHosted": "Hãy kết thúc thử nghiệm A/B trước khi chuyển biểu mẫu này thành trang lưu trữ: trang lưu trữ luôn hiện phiên bản A.",
+  "problem.targetSegment": "Hãy chọn phân khúc mà biểu mẫu hiện cho (hoặc ẩn khỏi).",
+  "problem.targetSegmentGone": "Phân khúc đó không còn tồn tại. Hãy chọn phân khúc khác."
 }

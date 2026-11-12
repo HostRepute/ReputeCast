@@ -40,5 +40,12 @@
   "check.removedDetail": { "message": "Deleted in {platform} on {when}. Sends leave it out. Remove it or pick another product.", "note": "when: 14 Oct, 09:05" },
   "discounts.notGranted": "{name} hasn't allowed discount codes yet. Open the store's page and choose Allow discount codes.",
   "discounts.readOnly": "The store's key can't create coupons. Use a Read/Write key.",
-  "discounts.unsupported": "{platform} can't create discount codes from ReputeCast. Upload codes instead."
+  "discounts.unsupported": "{platform} can't create discount codes from ReputeCast. Upload codes instead.",
+  "stock.contactUnknown": { "message": "No contact has this address. Add them as a contact first.", "note": "the stock-request API: “Email me when it's back” for someone who isn't a contact" },
+  "stock.productUnknown": "No product of a connected store has this id.",
+  "stock.productAmbiguous": "Two connected stores have a product with this id. Name the store in storeId.",
+  "block.noteRecentlyViewed": { "message": "Each reader sees the products they viewed most recently, without what they bought. Shown here: your best sellers, which readers who viewed nothing get.", "note": "under a store block on the composer's canvas" },
+  "block.noteBoughtTogether": "Each reader sees products often bought with what they bought or viewed. Shown here: your best sellers, which readers without orders or views get.",
+  "block.noteViewed": "Each email shows the products its reader viewed, added to their cart or asked about, from the automation's trigger. Shown here: the store's newest products.",
+  "block.noteNoSales": "Nothing sold in the last 30 days, so the block shows the newest products for now."
 }

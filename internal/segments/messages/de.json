@@ -198,5 +198,8 @@
   "sql.roles": "SQL-Segmente können keine Rollen oder Sitzungseinstellungen ändern.",
   "sql.function": "SQL-Segmente können {name} nicht aufrufen.",
   "sql.unicodeIdentifier": "SQL-Segmente können keine U&\"…\"-Bezeichner verwenden: Schreiben Sie den Namen so, wie er ist.",
-  "source.leadAd": "Lead-Anzeigen"
+  "source.leadAd": "Lead-Anzeigen",
+  "field.site_viewed_product": "Hat ein Produkt angesehen",
+  "field.site_last_seen": "Zuletzt auf der Website gesehen",
+  "problem.pickCollection": "Wählen Sie eine Kollektion eines Shops oder ein beliebiges Produkt."
 }

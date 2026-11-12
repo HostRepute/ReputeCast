@@ -46,6 +46,13 @@ type Descriptor struct {
 	// Topics are the webhooks ReputeCast registers, in the order of the
 	// store page's table.
 	Topics []string
+	// InventoryTopic is the webhook that reports stock changes on its own
+	// (Shopify's inventory_levels/update), registered only when the store
+	// granted InventoryScope; its deliveries name an inventory item that
+	// the adapter's InventoryReader turns into the product. Empty where
+	// product updates carry stock changes (WooCommerce's product.updated).
+	InventoryTopic string
+	InventoryScope string
 	// Open connects to a store.
 	Open func(cfg Config) (Client, error)
 	// Webhooks verifies and parses deliveries.
@@ -283,6 +290,13 @@ type Client interface {
 	SetConsent(ctx context.Context, customerID, state string, at time.Time) error
 }
 
+// InventoryReader is implemented by adapters with an InventoryTopic: the
+// product an inventory item belongs to, read again (ErrNotFound when the
+// item is gone).
+type InventoryReader interface {
+	InventoryProduct(ctx context.Context, itemID string) (Product, error)
+}
+
 // Kinds Count accepts.
 const (
 	CountProducts  = "products"
@@ -302,6 +316,9 @@ const (
 	EventUninstalled    = "uninstalled"
 	// EventPing is WooCommerce's delivery check when a webhook is created.
 	EventPing = "ping"
+	// EventInventory is a stock level that changed (InventoryItemID); the
+	// product is read again through the adapter's InventoryReader.
+	EventInventory = "inventory"
 )
 
 // Event is one verified webhook delivery, normalized.
@@ -320,6 +337,8 @@ type Event struct {
 	Refund      *Refund
 	// DeletedID is a deleted product's or order's id.
 	DeletedID string
+	// InventoryItemID is the item whose stock an EventInventory changed.
+	InventoryItemID string
 }
 
 // CurrencyHeader carries the store's currency into Parse, for payloads

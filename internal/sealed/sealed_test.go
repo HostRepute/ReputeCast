@@ -43,6 +43,7 @@ var notSealed = map[string]string{
 	"website_import_files.data": "uploaded file", "website_imports.report_csv": "report file",
 	"earn_group_seats.invite_hash":          "hash", "sponsor_bookings.status_token_hash": "hash",
 	"lead_connections.callback_token_hash":  "hash", "lead_events.body": "raw webhook (ids only)",
+	"tracker_visitors.vid_hash":             "hash of the visitor id (internal/tracker)",
 }
 
 // Every bytea column is either a known sealed column or known not to be

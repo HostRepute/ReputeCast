@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/revenue"
 	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/texting"
+	"github.com/hostrepute/reputecast/internal/tracker"
 	"github.com/hostrepute/reputecast/internal/transactional"
 	"github.com/hostrepute/reputecast/internal/verification"
 	"github.com/hostrepute/reputecast/internal/website"
@@ -42,6 +43,7 @@ func erasureSources() []erasure.Source {
 		coupons.Erasure(),
 		website.CommentsErasure(),
 		leads.Erasure(),
+		tracker.Erasure(),
 	}
 }
 

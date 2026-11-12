@@ -3,9 +3,12 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Grid, Row } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
+import { $api } from '@/api/client'
 import { useT } from '@/i18n'
 import { common } from '@/i18n/common'
+import { useWorkspace } from '@/lib/session'
 import { m } from './builder.messages'
+import { sm } from './segment.messages'
 import { cloneTargeting, fromLocalInput, listOf, scheduleSummary, targetingSummary, toLocalInput, type Targeting } from './targeting'
 
 type Rule = Targeting['pages']['rules'][number]
@@ -72,6 +75,7 @@ interface Fields {
   countries: Targeting['countries']['mode']
   codes: string
   visitors: Targeting['visitors']
+  segmentId: string
   starts: string
   ends: string
 }
@@ -88,6 +92,7 @@ function fieldsOf(x: Targeting): Fields {
     countries: x.countries.mode,
     codes: x.countries.codes.join(', '),
     visitors: x.visitors,
+    segmentId: x.segmentId ?? '',
     starts: toLocalInput(x.schedule.startsAt),
     ends: toLocalInput(x.schedule.endsAt),
   }
@@ -104,6 +109,10 @@ function TargetingDialog({ hosted, targeting, geoip, onClose, onApply }: { hoste
   const [initial] = useState(() => fieldsOf(targeting))
   const [f, setF] = useState(initial)
   const set = (patch: Partial<Fields>) => setF((x) => ({ ...x, ...patch }))
+  // Visitors in or not in a segment (M62 G-32): the workspace's segments.
+  const bySegment = f.visitors === 'in_segment' || f.visitors === 'not_in_segment'
+  const { slug } = useWorkspace()
+  const segments = $api.useQuery('get', '/api/v1/workspaces/{workspace}/segments', { params: { path: { workspace: slug } } }, { enabled: !hosted, staleTime: 60_000 })
   const setRule = (index: number, patch: Partial<Rule>) => set({ rules: f.rules.map((r, i) => (i === index ? { ...r, ...patch } : r)) })
   const apply = () => {
     const next = cloneTargeting(targeting)
@@ -118,6 +127,7 @@ function TargetingDialog({ hosted, targeting, geoip, onClose, onApply }: { hoste
       next.devices = devices.filter((d) => f.devices.includes(d))
       if (geoip) next.countries = { mode: f.countries, codes: f.countries === 'all' ? [] : listOf(f.codes) }
       next.visitors = f.visitors
+      next.segmentId = bySegment ? f.segmentId : undefined
     }
     onApply(next)
     onClose()
@@ -147,7 +157,7 @@ function TargetingDialog({ hosted, targeting, geoip, onClose, onApply }: { hoste
       footer={
         <>
           <Button onClick={onClose}>{t(common.cancel)}</Button>
-          <Button variant="primary" onClick={apply}>
+          <Button variant="primary" onClick={apply} disabledReason={!hosted && bySegment && !f.segmentId ? t(sm.pickSegment) : undefined}>
             {t(m.apply)}
           </Button>
         </>
@@ -286,6 +296,8 @@ function TargetingDialog({ hosted, targeting, geoip, onClose, onApply }: { hoste
                   ['all', m.visitorsAll],
                   ['new', m.visitorsNew],
                   ['returning', m.visitorsReturning],
+                  ['in_segment', sm.visitorsInSegment],
+                  ['not_in_segment', sm.visitorsNotInSegment],
                 ] as const
               ).map(([v, label]) => (
                 <label key={v} className="fb-check">
@@ -294,6 +306,20 @@ function TargetingDialog({ hosted, targeting, geoip, onClose, onApply }: { hoste
                 </label>
               ))}
             </Row>
+            {bySegment ? (
+              <>
+                <select className="in" aria-label={t(sm.segment)} value={f.segmentId} onChange={(e) => set({ segmentId: e.target.value })}>
+                  <option value="">{t(sm.pickSegment)}</option>
+                  {(segments.data?.items ?? []).map((sg) => (
+                    <option key={sg.id} value={sg.id}>
+                      {sg.name}
+                    </option>
+                  ))}
+                </select>
+                {segments.isError ? <span className="k text-bad-fg">{t(sm.segmentsError)}</span> : null}
+                <Note tone="info">{t(f.visitors === 'in_segment' ? sm.needsTrackingIn : sm.needsTrackingNotIn)}</Note>
+              </>
+            ) : null}
             <span className="k">{t(m.visitorsHelp)}</span>
           </div>
           <div role="group" aria-labelledby={`${id}-sch`} className="flex flex-col gap-2 border-t border-line-2 pt-3.5">

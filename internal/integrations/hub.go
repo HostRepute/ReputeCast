@@ -114,7 +114,7 @@ type IntegrationGroup struct {
 // IntegrationEntry is a catalog card: its status, the reason it needs
 // attention, and the facts of its fact line.
 type IntegrationEntry struct {
-	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,stripe,paddle,lemonsqueezy,shopify,woocommerce,meta_lead_ads"`
+	Key string `json:"key" enum:"zapier,make,n8n,wordpress,hostrepute,api,webhooks,mcp,anthropic,openai,google,azure,compatible,zerobounce,neverbounce,kickbox,bouncer,emailable,stripe,paddle,lemonsqueezy,shopify,woocommerce,meta_lead_ads,tracking"`
 	// Status: not_connected, waiting, connected, attention; none for the
 	// developer cards.
 	Status          string              `json:"status" enum:"not_connected,waiting,connected,attention,none"`
@@ -152,6 +152,8 @@ type IntegrationFacts struct {
 	Store *IntegrationStoreFacts `json:"store,omitempty"`
 	// Leads is Meta Lead Ads' card (the Lead ads group, M66).
 	Leads *IntegrationLeadFacts `json:"leads,omitempty"`
+	// Tracking is the Website tracking card's (the Commerce group, M62).
+	Tracking *IntegrationTrackingFacts `json:"tracking,omitempty"`
 }
 
 // IntegrationLeadFacts are Meta Lead Ads' fact line: the connection, its
@@ -173,6 +175,16 @@ type IntegrationStoreFacts struct {
 	State       string     `json:"state" enum:"connecting,importing,connected,webhook_missing,rate_limited,no_plugin,revoked"`
 	Orders      int64      `json:"orders"`
 	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+}
+
+// IntegrationTrackingFacts are the Website tracking card's fact line: its
+// sites, their events today and the last one, and the line in the
+// reader's language ("2 sites · 1,284 events today").
+type IntegrationTrackingFacts struct {
+	Sites       int64      `json:"sites"`
+	EventsToday int64      `json:"eventsToday"`
+	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+	Line        string     `json:"line"`
 }
 
 // IntegrationPaymentFacts are a payment provider card's facts: whether it
