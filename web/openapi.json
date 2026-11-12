@@ -97365,6 +97365,9 @@
           "publication": {
             "type": "string"
           },
+          "publicationMark": {
+            "type": "string"
+          },
           "review": {
             "enum": [
               "all",
@@ -97380,6 +97383,7 @@
           "comments",
           "review",
           "publication",
+          "publicationMark",
           "posts"
         ],
         "type": "object"

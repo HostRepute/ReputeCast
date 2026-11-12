@@ -10,13 +10,14 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu'
+import { SelectAll } from '@/components/ui/SelectAll'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { clock, count, dayMonthDate, orList } from '@/lib/format'
+import { clock, count, dayMonthDate } from '@/lib/format'
 import { useMediaQuery } from '@/lib/hooks'
-import { useCan, useMe, useWorkspace } from '@/lib/session'
+import { useCan, useWorkspace } from '@/lib/session'
 import { bare, siteURL, WS, type Overview } from '../api'
-import { WebsitePage } from '../WebsiteFrame'
+import { ReadOnlyNote, WebsitePage } from '../WebsiteFrame'
 import { mc } from './messages'
 import './comments.css'
 
@@ -63,8 +64,7 @@ function Body({ text }: { text: string }) {
  */
 export function CommentsPage({ overview, search, onSearch }: { overview: Overview; search: CommentsSearch; onSearch: (s: CommentsSearch, replace?: boolean) => void }) {
   const t = useT()
-  const { slug, me } = useWorkspace()
-  const user = useMe().data?.user
+  const { slug } = useWorkspace()
   const qc = useQueryClient()
   const canModerate = useCan('comments:moderate')
   const phone = useMediaQuery('(max-width: 767px)')
@@ -96,6 +96,8 @@ export function CommentsPage({ overview, search, onSearch }: { overview: Overvie
     { placeholderData: (p) => p },
   )
   const d = list.data
+  // Who can help someone who can't moderate: the people who can.
+  const moderators = $api.useQuery('get', `${WS}/access`, { params: { path: { workspace: slug } } }, { enabled: !canModerate, staleTime: 60_000 })
   const refresh = () => qc.invalidateQueries({ predicate: (x) => typeof x.queryKey[1] === 'string' && (x.queryKey[1].includes('/website/comments') || x.queryKey[1].endsWith('/website/posts')) })
   const host = bare(overview.address.url)
 
@@ -217,10 +219,10 @@ export function CommentsPage({ overview, search, onSearch }: { overview: Overvie
         {canModerate && selected.length ? (
           <div className="wc-dbar" role="region" aria-label={t(mc.decisionsLabel)}>
             <div className="dtop">
-              <label className="flex items-center gap-2 font-semibold">
-                <input type="checkbox" checked={allSel} aria-label={t(mc.selectAll)} onChange={(e) => setSelected(e.target.checked ? items.map((c) => c.id) : [])} />
+              <span className="flex items-center gap-2 font-semibold">
+                <SelectAll all={allSel} some={selected.length > 0} label={t(mc.selectAll)} onChange={(on) => setSelected(on ? items.map((c) => c.id) : [])} />
                 {t(mc.selected, { count: selected.length })}
-              </label>
+              </span>
               <div className="grp flex flex-wrap gap-2">
                 {status !== 'published' ? (
                   <Button variant="primary" icon="check" onClick={() => void decide(selected, 'publish')}>
@@ -248,7 +250,6 @@ export function CommentsPage({ overview, search, onSearch }: { overview: Overvie
               key={c.id}
               c={c}
               list={d}
-              items={items}
               selected={selected.includes(c.id)}
               onSelect={(on) => setSelected((s) => (on ? [...s, c.id] : s.filter((x) => x !== c.id)))}
               replying={replying === c.id}
@@ -291,18 +292,7 @@ export function CommentsPage({ overview, search, onSearch }: { overview: Overvie
   const off = d?.comments === 'off'
   return (
     <WebsitePage view="comments" overview={overview}>
-      {!canModerate ? (
-        <section className="ws-ro" role="status">
-          <div className="hd">
-            <Icon name="info" size={15} />
-            {t(mc.view)} · {user?.name ?? ''}, {me.workspace.roleName}
-          </div>
-          <div className="bd">
-            {t(mc.readOnly)}
-            {overview.helpers.manage.length ? ` ${orList(overview.helpers.manage)}` : null}
-          </div>
-        </section>
-      ) : null}
+      {!canModerate ? <ReadOnlyNote msg={mc.readOnly} helpers={moderators.data?.moderators ?? []} /> : null}
       {off ? (
         <section className="wc-off" aria-labelledby="wc-off-h">
           <h3 id="wc-off-h">
@@ -369,7 +359,6 @@ export function CommentsPage({ overview, search, onSearch }: { overview: Overvie
 function Row({
   c,
   list,
-  items,
   selected,
   onSelect,
   replying,
@@ -381,7 +370,6 @@ function Row({
 }: {
   c: Comment
   list: List
-  items: Comment[]
   selected: boolean
   onSelect: (on: boolean) => void
   replying: boolean
@@ -396,7 +384,7 @@ function Row({
   const canModerate = useCan('comments:moderate')
   const [menu, setMenu] = useState(false)
   const name = c.team ? list.publication : c.name
-  const firstReply = items.find((x) => x.parentId === c.id)
+  const first = c.firstReply
   const id = `wc-${c.id}`
   return (
     <div className={selected || menu ? 'wc-row sel' : 'wc-row'} role="listitem" aria-labelledby={id}>
@@ -407,7 +395,7 @@ function Row({
       ) : null}
       {c.team ? (
         <span className="wc-team" style={{ width: 32, height: 32, fontSize: 12 }} aria-hidden="true">
-          {list.publication.slice(0, 1).toUpperCase()}
+          {list.publicationMark || list.publication.slice(0, 1).toUpperCase()}
         </span>
       ) : (
         <Avatar name={c.name} color={toneOf(c.name)} size={32} fontSize={12} />
@@ -426,21 +414,21 @@ function Row({
         </span>
         <Body text={c.body} />
         <Meta c={c} />
-        {firstReply && c.status === 'published' ? (
+        {first && c.status === 'published' ? (
           <div className="wc-thread">
             <div className="tr">
-              {firstReply.team ? (
+              {first.team ? (
                 <span className="wc-team" aria-hidden="true">
-                  {list.publication.slice(0, 1).toUpperCase()}
+                  {list.publicationMark || first.name.slice(0, 1).toUpperCase()}
                 </span>
               ) : (
-                <Avatar name={firstReply.name} color={toneOf(firstReply.name)} size={22} />
+                <Avatar name={first.name} color={toneOf(first.name)} size={22} />
               )}
               <span>
-                <b className="font-semibold">{firstReply.team ? list.publication : firstReply.name}</b> {firstReply.team ? <Badge size="sm">{t(mc.team)}</Badge> : null}{' '}
-                <span className="k">{firstReply.team && firstReply.by ? t(mc.byMember, { name: firstReply.by, date: when(firstReply.createdAt) }) : when(firstReply.createdAt)}</span>
+                <b className="font-semibold">{first.name}</b> {first.team ? <Badge size="sm">{t(mc.team)}</Badge> : null}{' '}
+                <span className="k">{first.team && first.by ? t(mc.byMember, { name: first.by, date: when(first.createdAt) }) : when(first.createdAt)}</span>
                 <br />
-                {firstReply.body.length > 120 ? `${firstReply.body.slice(0, 120).trimEnd()}…` : firstReply.body}
+                {first.body.length > 120 ? `${first.body.slice(0, 120).trimEnd()}…` : first.body}
               </span>
             </div>
             {c.replies > 1 ? (

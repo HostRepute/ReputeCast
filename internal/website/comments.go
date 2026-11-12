@@ -146,6 +146,9 @@ type WebsiteCommentList struct {
 	Comments    string `json:"comments" enum:"off,members,paid"`
 	Review      string `json:"review" enum:"all,first,none"`
 	Publication string `json:"publication"`
+	// PublicationMark is the letter the site's mark shows (its publisher's
+	// initial), on team replies.
+	PublicationMark string `json:"publicationMark"`
 	// Posts are the posts with comments, for the post filter.
 	Posts []WebsiteCommentPost `json:"posts"`
 }
@@ -494,14 +497,27 @@ func (s *Service) publication(ctx context.Context, ws *store.Workspace, c *confi
 	return siteTitle(c, set)
 }
 
-// Comments lists one tab of Website › Comments, newest first.
+// publicationMark is the initial the site's mark shows.
+func (s *Service) publicationMark(ctx context.Context, ws *store.Workspace) string {
+	if s.Forms == nil {
+		return ""
+	}
+	set, err := s.Forms.LoadSettings(ctx, ws)
+	if err != nil {
+		return ""
+	}
+	return set.Branding.Initial()
+}
+
+// Comments lists one tab of Website › Comments, pinned first, then newest.
 func (s *Service) Comments(ctx context.Context, ws *store.Workspace, f WebsiteCommentFilter) (WebsiteCommentList, error) {
 	c, err := s.load(ctx, s.Q, ws)
 	if err != nil {
 		return WebsiteCommentList{}, err
 	}
 	out := WebsiteCommentList{Items: []WebsiteComment{}, Comments: c.row.Comments, Review: c.row.CommentsReview, Publication: s.publication(ctx, ws, c),
-		Posts: []WebsiteCommentPost{}}
+		PublicationMark: s.publicationMark(ctx, ws),
+		Posts:           []WebsiteCommentPost{}}
 	status := f.Status
 	if status == "" {
 		status = CommentPending

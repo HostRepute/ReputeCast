@@ -46584,6 +46584,7 @@ export interface components {
             nextCursor?: string;
             posts: components["schemas"]["WebsiteCommentPost"][];
             publication: string;
+            publicationMark: string;
             /** @enum {string} */
             review: "all" | "first" | "none";
         };
