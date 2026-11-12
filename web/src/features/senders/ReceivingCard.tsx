@@ -448,6 +448,7 @@ function RemoveDialog({ open, onOpenChange, route }: { open: boolean; onOpenChan
       eyebrow={<span className="k">{t(m.removeEyebrow)}</span>}
       title={t(m.removeTitle)}
       dismissible={false}
+      hideClose
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>{t(m.cancel)}</Button>
@@ -457,7 +458,7 @@ function RemoveDialog({ open, onOpenChange, route }: { open: boolean; onOpenChan
         </>
       }
     >
-      <ul className="m-0 flex flex-col gap-1.5 pl-4.5 text-[13.5px] text-ink-2">
+      <ul className="m-0 flex list-disc flex-col gap-1.5 pl-4.5 text-[13.5px] text-ink-2">
         <li>{t(m.removeStays)}</li>
         <li>{t(m.removeForward)}</li>
         <li>{t(m.removeMailto)}</li>

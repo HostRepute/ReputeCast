@@ -602,6 +602,7 @@ function UnsubscribeDialog({
       open={open}
       onOpenChange={onOpenChange}
       dismissible={false}
+      hideClose
       eyebrow={<span className="k">{t(m.unsubEyebrow, { subject: reply.subject })}</span>}
       title={t(m.unsubTitle, { name })}
       footer={
