@@ -47,7 +47,7 @@ func seedCouponsImpl(ctx context.Context, s *Seeder) error {
 		return fmt.Errorf("coupons: Acme Merch: %w", err)
 	}
 	marcus := s.Users["marcus@acme.io"].ID
-	rng := rand.New(rand.NewPCG(59, 22))
+	rng := rand.New(rand.NewPCG(59, 22)) //nolint:gosec // deterministic sample data
 	welcome, partner := ID(), ID()
 	created := s.Ago(300 * 24 * time.Hour)
 	if _, err := s.Tx.Exec(ctx, `INSERT INTO coupon_pools (id, workspace_id, name, slug, source, store_id, settings, prefix, one_per_contact, low_at, status,
