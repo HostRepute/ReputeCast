@@ -84,6 +84,8 @@ const copy = (review = false): Schemas['SignupFormCopy'] => ({
   consentVersion: review ? 4 : 3,
   consentChangedBy: 'Linh Nguyen',
   fields: [],
+  steps: [],
+  options: [],
   languages: [
     language({
       code: 'en',

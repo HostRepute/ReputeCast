@@ -607,6 +607,42 @@ func (pr *pageRender) form(n *html.Node) (template.HTML, error) {
 		b.WriteString(`<input type="hidden" name="_page" value="` + esc(pr.pageURL) + `">`)
 	}
 	for _, fv := range body.Fields {
+		// A multi-step form shows every step here, each a fieldset (M60 G-23).
+		if fv.CloseStep {
+			b.WriteString(`</fieldset>`)
+		}
+		if st := fv.OpenStep; st != nil {
+			b.WriteString(`<fieldset class="fstep"><legend>` + esc(st.Legend) + `</legend>`)
+			if st.Description != "" {
+				b.WriteString(`<p class="fstep-d">` + esc(st.Description) + `</p>`)
+			}
+		}
+		if fv.Type == forms.FieldChoice {
+			b.WriteString(`<fieldset class="fchoice"><legend>` + esc(fv.Label))
+			if fv.Optional {
+				b.WriteString(` <span class="op">` + esc(v.S("form.optional")) + `</span>`)
+			}
+			b.WriteString(`</legend>`)
+			typ := "radio"
+			if fv.Multiple {
+				typ = "checkbox"
+			}
+			for _, c := range fv.Choices {
+				b.WriteString(`<label class="cons"><input type="` + typ + `" name="` + esc(fv.Name) + `" value="` + esc(c.Value) + `"`)
+				if c.Checked {
+					b.WriteString(` checked`)
+				}
+				if pr.preview {
+					b.WriteString(` tabindex="-1"`)
+				}
+				b.WriteString(`><span>` + esc(c.Label) + `</span></label>`)
+			}
+			b.WriteString(`</fieldset>`)
+			if fv.Error != "" {
+				b.WriteString(`<p class="ferr" role="alert">` + esc(fv.Error) + `</p>`)
+			}
+			continue
+		}
 		b.WriteString(`<label class="fl" for="` + esc(block+"-"+fv.ID) + `"><span>` + esc(fv.Label))
 		if fv.Optional {
 			b.WriteString(` <span class="op">` + esc(v.S("form.optional")) + `</span>`)
@@ -667,6 +703,9 @@ func (pr *pageRender) form(n *html.Node) (template.HTML, error) {
 		if body.ConsentError != "" {
 			b.WriteString(`<p class="ferr" role="alert">` + esc(body.ConsentError) + `</p>`)
 		}
+	}
+	if body.StepsOpen {
+		b.WriteString(`</fieldset>`)
 	}
 	if body.Honeypot && !pr.preview {
 		b.WriteString(`<div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>`)

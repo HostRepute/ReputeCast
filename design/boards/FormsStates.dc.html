@@ -41,6 +41,23 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .vbtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:4px 14px;border-radius:7px;border:1px solid #4338CA;background:#4338CA;color:#fff;font:inherit;font-weight:700;font-size:13px;text-align:center;text-decoration:none;box-sizing:border-box;flex:1 1 160px}
 .vbtn.ghost{background:#fff;color:#1F2937;border-color:#8B94A3}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl td.r{font-variant-numeric:tabular-nums}
+.note{display:flex;gap:8px 10px;align-items:flex-start;flex-wrap:wrap;padding:12px 14px;border-radius:8px;font-size:13px;line-height:1.45}
+.note > :last-child{flex:1 1 320px;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.dlg{width:100%;max-width:640px;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 24px 60px rgba(11,18,32,.3)}
+.dh{padding:18px 22px 0;display:flex;flex-direction:column;gap:6px}
+.db{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.df{padding:14px 22px 18px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #EEF0F3;align-items:center}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.in:disabled,select.in:disabled,textarea.in:disabled{background:#F3F4F6;color:#5B6472;cursor:not-allowed}
 @media (max-width:767px){.content .seg button{min-height:44px}}
 
 /* shell additions: workspace switcher, notification bell, user menu */
@@ -294,11 +311,263 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
           </div>
         </div>
       </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Several steps">
+        <div class="strip"><span class="dot" style="color:#818CF8"></span>Several steps · Welcome popup in three steps, the preview at step 2 of 3</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start">
+          <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+            <span class="k">Steps</span>
+            <div class="seg" role="group" aria-label="Steps"><button aria-pressed="false">One step</button><button class="on" aria-pressed="true">Several steps</button></div>
+            <span class="k">People see one step at a time. Nothing is sent until the last step.</span>
+            <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px" aria-label="Step 1">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-weight:600">Step 1</span><button class="btn sm" aria-label="Remove step 1">Remove</button></div>
+              <label class="lbl">Heading<input class="in" maxlength="120" value="Get the Weekly Digest"></label>
+              <label class="lbl">Description<input class="in" maxlength="500"></label>
+              <label class="lbl">Button<input class="in" maxlength="40" placeholder="Next"></label>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="flex:1 1 auto;min-width:0">Email · required</span><button class="btn sm" style="width:32px;height:32px;min-height:32px;padding:0" aria-label="Move Email up" disabled><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"></path></svg></button><button class="btn sm" style="width:32px;height:32px;min-height:32px;padding:0" aria-label="Move Email down"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"></path></svg></button></div>
+            </div>
+            <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-color:#0F766E" aria-label="Step 2, shown in the preview" aria-current="true">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-weight:600">Step 2</span><button class="btn sm" aria-label="Remove step 2">Remove</button></div>
+              <label class="lbl">Heading<input class="in" maxlength="120" value="What are you into?"></label>
+              <label class="lbl">Description<input class="in" maxlength="500" value="Pick as many as you like."></label>
+              <label class="lbl">Button<input class="in" maxlength="40" placeholder="Next"></label>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="flex:1 1 auto;min-width:0">Topics · optional</span><button class="btn sm" style="width:32px;height:32px;min-height:32px;padding:0" aria-label="Move Topics up"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"></path></svg></button><button class="btn sm" style="width:32px;height:32px;min-height:32px;padding:0" aria-label="Move Topics down"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"></path></svg></button></div>
+            </div>
+            <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px" aria-label="Step 3">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-weight:600">Step 3</span><button class="btn sm" aria-label="Remove step 3">Remove</button></div>
+              <label class="lbl">Heading<input class="in" maxlength="120" value="Almost done"></label>
+              <label class="lbl">Description<input class="in" maxlength="500"></label>
+              <label class="lbl">Button<input class="in" maxlength="40" placeholder="Subscribe"></label>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="flex:1 1 auto;min-width:0">First name · optional</span><button class="btn sm" style="width:32px;height:32px;min-height:32px;padding:0" aria-label="Move First name up"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"></path></svg></button><button class="btn sm" style="width:32px;height:32px;min-height:32px;padding:0" aria-label="Move First name down" disabled><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"></path></svg></button></div>
+              <span class="k">The consent box shows on this step.</span>
+            </div>
+            <button class="btn sm" style="align-self:flex-start">Add a step</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+            <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+              <span class="k">Embedded · step 2 of 3 · Back keeps the answers; nothing is sent before the last step</span>
+              <div style="border:1px solid #E3E6EB;border-radius:10px;padding:16px;background:#F5F3FF;display:flex;flex-direction:column;gap:8px;font-family:'IBM Plex Sans',sans-serif;color:#1F2937">
+                <div style="display:flex;align-items:center;gap:6px" aria-hidden="true"><span style="width:8px;height:8px;border-radius:50%;background:#4338CA"></span><span style="width:20px;height:8px;border-radius:999px;background:#4338CA"></span><span style="width:8px;height:8px;border-radius:50%;background:#C9CED6"></span></div>
+                <span role="status" style="font-size:12px;font-weight:600;color:#4B5563">Step 2 of 3</span>
+                <strong style="font-weight:700;font-size:15px">What are you into?</strong>
+                <span style="font-size:13px;color:#374151">Pick as many as you like.</span>
+                <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0"><legend style="font-size:13px;font-weight:600;padding:0;margin:0 0 6px">Topics</legend>
+                  <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked style="accent-color:#4338CA">Product news</label>
+                  <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked style="accent-color:#4338CA">Engineering deep dives</label>
+                  <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" style="accent-color:#4338CA">Customer stories</label>
+                </fieldset>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="vbtn ghost" style="flex-basis:120px">Back</button><button type="button" class="vbtn" style="flex-basis:120px">Next</button></div>
+              </div>
+            </div>
+            <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+              <span class="k">Popup · the same step over the visitor's page</span>
+              <div style="border-radius:10px;padding:28px 16px;background:rgba(11,18,32,.45);display:flex;justify-content:center">
+                <div role="dialog" aria-modal="false" aria-label="Get the Weekly Digest" style="position:relative;width:100%;max-width:360px;background:#fff;border-radius:14px;padding:20px;box-sizing:border-box;box-shadow:0 24px 64px rgba(11,18,32,.28);display:flex;flex-direction:column;gap:8px;font-family:'IBM Plex Sans',sans-serif;color:#1F2937">
+                  <button type="button" aria-label="Close" style="position:absolute;top:10px;right:10px;width:36px;height:36px;border:0;border-radius:8px;background:transparent;color:#4B5563;font-size:22px;line-height:1;cursor:pointer">×</button>
+                  <div style="display:flex;align-items:center;gap:6px" aria-hidden="true"><span style="width:8px;height:8px;border-radius:50%;background:#4338CA"></span><span style="width:20px;height:8px;border-radius:999px;background:#4338CA"></span><span style="width:8px;height:8px;border-radius:50%;background:#C9CED6"></span></div>
+                  <span role="status" style="font-size:12px;font-weight:600;color:#4B5563">Step 2 of 3</span>
+                  <strong style="font-weight:700;font-size:15px">What are you into?</strong>
+                  <span style="font-size:13px;color:#374151">Pick as many as you like.</span>
+                  <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0"><legend style="font-size:13px;font-weight:600;padding:0;margin:0 0 6px">Topics</legend>
+                    <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked style="accent-color:#4338CA">Product news</label>
+                    <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked style="accent-color:#4338CA">Engineering deep dives</label>
+                    <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" style="accent-color:#4338CA">Customer stories</label>
+                  </fieldset>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="vbtn ghost" style="flex-basis:120px">Back</button><button type="button" class="vbtn" style="flex-basis:120px">Next</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+            <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+              <span class="k">Fields</span>
+              <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked disabled>Email · required</label>
+              <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>First name · optional</label>
+              <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">Company</label>
+              <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">Let people pick lists</label>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px"><label style="display:flex;gap:8px;align-items:center;flex:1 1 auto;min-width:0"><input type="checkbox" checked>Topics · choice · 3 options</label><button class="btn sm" aria-label="Edit Topics">Edit</button></div>
+              <button class="btn sm" style="align-self:flex-start" aria-haspopup="menu" aria-expanded="true">Add custom field</button>
+              <div class="menu" role="menu" aria-label="Contact fields" style="position:static;min-width:0;max-width:260px"><button role="menuitem">Last name</button><button role="menuitem">Plan</button><hr><button role="menuitem">Choice question (adds tags)</button></div>
+            </div>
+            <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+              <span style="font-weight:600">Last 30 days</span>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:13px">
+                <div><div class="k">Views</div><div class="n" style="font-size:18px">6,240</div></div>
+                <div><div class="k">Submissions</div><div class="n" style="font-size:18px">1,118 · 17.9%</div></div>
+                <div><div class="k">Confirmed opt-in</div><div class="n" style="font-size:18px">1,006 · 90%</div></div>
+                <div><div class="k">Blocked as spam</div><div class="n" style="font-size:18px">214</div></div>
+              </div>
+              <span class="k">Steps</span>
+              <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px 10px;align-items:center;font-size:13px">
+                <span>Step 1</span><div class="bar" aria-hidden="true"><i style="width:100%;background:#0F766E"></i></div><span class="n">6,240 views</span>
+                <span>Step 2</span><div class="bar" aria-hidden="true"><i style="width:35%;background:#0F766E"></i></div><span class="n">2,184 views</span>
+                <span>Step 3</span><div class="bar" aria-hidden="true"><i style="width:22.5%;background:#0F766E"></i></div><span class="n">1,402 views</span>
+                <span>Signups</span><div class="bar" aria-hidden="true"><i style="width:17.9%;background:#0F766E"></i></div><span class="n">1,118</span>
+              </div>
+              <button class="btn sm" style="align-self:flex-start">Show as a table</button>
+            </div>
+          </div>
+        </div>
+        <div class="dlg" role="dialog" aria-modal="false" aria-labelledby="fs-cq-t" style="max-width:560px">
+          <div class="dh"><h2 id="fs-cq-t" style="margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em">Choice question</h2></div>
+          <div class="db">
+            <label class="lbl">Question<input class="in" maxlength="80" value="Topics"></label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>People can pick several</label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">Required</label>
+            <div style="overflow-x:auto;border:1px solid #E3E6EB;border-radius:8px">
+              <table class="tbl">
+                <thead><tr><th scope="col">Label</th><th scope="col">Tag</th><th scope="col"><span class="vh">Remove</span></th></tr></thead>
+                <tbody>
+                  <tr><td><input class="in" style="min-width:120px" maxlength="60" aria-label="Option 1 label" value="Product news"></td><td><input class="in" style="min-width:120px" maxlength="60" aria-label="Option 1 tag" value="product-news"></td><td><button class="btn sm" aria-label="Remove Product news">Remove</button></td></tr>
+                  <tr><td><input class="in" style="min-width:120px" maxlength="60" aria-label="Option 2 label" value="Engineering deep dives"></td><td><input class="in" style="min-width:120px" maxlength="60" aria-label="Option 2 tag" value="engineering"></td><td><button class="btn sm" aria-label="Remove Engineering deep dives">Remove</button></td></tr>
+                  <tr><td><input class="in" style="min-width:120px" maxlength="60" aria-label="Option 3 label" value="Customer stories"></td><td><input class="in" style="min-width:120px" maxlength="60" aria-label="Option 3 tag" value="customer-stories"></td><td><button class="btn sm" aria-label="Remove Customer stories">Remove</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <button class="btn sm" style="align-self:flex-start">Add an option</button>
+            <span class="k">Each answer adds its tag to the contact, so tag triggers start automations.</span>
+          </div>
+          <div class="df"><button class="btn">Cancel</button><button class="btn pri">Apply</button></div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="Where and when">
+        <div class="strip"><span class="dot" style="color:#5EEAD4"></span>Where and when · only on 3 pages, on phones, until 30 Nov; countries need GeoIP</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+            <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+              <span class="k">Where and when</span>
+              <div style="display:flex;align-items:center;gap:10px"><span style="flex:1 1 auto;min-width:0;font-size:13px">Shown on 3 pages · mobile · until 30 Nov</span><button class="btn sm" aria-label="Edit where and when">Edit</button></div>
+            </div>
+            <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+              <span class="k">When</span>
+              <div style="display:flex;align-items:center;gap:10px"><span style="flex:1 1 auto;min-width:0;font-size:13px">Open now, with no end date.</span><button class="btn sm" aria-label="Edit when">Edit</button></div>
+            </div>
+            <div class="dlg" role="dialog" aria-modal="false" aria-labelledby="fs-wh-t" style="max-width:480px">
+              <div class="dh"><h2 id="fs-wh-t" style="margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em">When</h2></div>
+              <div class="db">
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><label class="lbl" style="flex:1 1 180px">Starts<input class="in" type="datetime-local"></label><label class="lbl" style="flex:1 1 180px">Ends<input class="in" type="datetime-local"></label></div>
+                <span class="k">Outside these dates the page says the form is closed.</span>
+              </div>
+              <div class="df"><button class="btn">Cancel</button><button class="btn pri">Apply</button></div>
+            </div>
+          </div>
+          <div class="dlg" role="dialog" aria-modal="false" aria-labelledby="fs-ww-t" style="max-width:560px">
+            <div class="dh"><h2 id="fs-ww-t" style="margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em">Where and when</h2></div>
+            <div class="db" style="gap:0">
+              <div role="group" aria-labelledby="fs-ww-pg" style="display:flex;flex-direction:column;gap:8px;padding-bottom:14px">
+                <h3 id="fs-ww-pg" style="margin:0;font-size:13.5px;font-weight:600">Pages</h3>
+                <select class="in" aria-label="Pages"><option>Every page</option><option selected>Only on pages that match</option><option>Every page except those that match</option></select>
+                <div style="display:flex;gap:8px;align-items:center"><select class="in" aria-label="Rule 1 match" style="width:130px;flex:none"><option>contains</option><option>is exactly</option><option selected>starts with</option></select><input class="in mono" aria-label="Rule 1 address" maxlength="200" placeholder="/pricing" value="/pricing" style="flex:1 1 140px"><button class="btn sm" aria-label="Remove rule 1">Remove</button></div>
+                <div style="display:flex;gap:8px;align-items:center"><select class="in" aria-label="Rule 2 match" style="width:130px;flex:none"><option>contains</option><option>is exactly</option><option selected>starts with</option></select><input class="in mono" aria-label="Rule 2 address" maxlength="200" placeholder="/pricing" value="/blog/" style="flex:1 1 140px"><button class="btn sm" aria-label="Remove rule 2">Remove</button></div>
+                <div style="display:flex;gap:8px;align-items:center"><select class="in" aria-label="Rule 3 match" style="width:130px;flex:none"><option>contains</option><option selected>is exactly</option><option>starts with</option></select><input class="in mono" aria-label="Rule 3 address" maxlength="200" placeholder="/pricing" value="/changelog" style="flex:1 1 140px"><button class="btn sm" aria-label="Remove rule 3">Remove</button></div>
+                <button class="btn sm" style="align-self:flex-start">Add a rule</button>
+                <span class="k">Matches the address after the domain, like /pricing or /blog/.</span>
+              </div>
+              <div role="group" aria-labelledby="fs-ww-src" style="display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid #EEF0F3">
+                <h3 id="fs-ww-src" style="margin:0;font-size:13.5px;font-weight:600">Where visitors come from</h3>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px"><label class="lbl"><span class="mono">utm_source</span><input class="in"></label><label class="lbl"><span class="mono">utm_medium</span><input class="in"></label><label class="lbl"><span class="mono">utm_campaign</span><input class="in"></label></div>
+                <span class="k">Any of these values; leave empty for any.</span>
+                <label class="lbl">Came from<select class="in"><option selected>Anywhere</option><option>Search engines</option><option>Social networks</option><option>Other sites</option><option>Nowhere (typed the address)</option></select></label>
+              </div>
+              <div role="group" aria-labelledby="fs-ww-dev" style="display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid #EEF0F3">
+                <h3 id="fs-ww-dev" style="margin:0;font-size:13.5px;font-weight:600">Devices</h3>
+                <div style="display:flex;gap:8px 18px;flex-wrap:wrap"><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">Desktop</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">Tablet</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" checked>Mobile</label></div>
+                <span class="k">None ticked shows the form on every device.</span>
+              </div>
+              <div role="group" aria-labelledby="fs-ww-geo" style="display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid #EEF0F3">
+                <h3 id="fs-ww-geo" style="margin:0;font-size:13.5px;font-weight:600">Countries</h3>
+                <select class="in" aria-label="Countries" disabled><option>Every country</option><option>Only in</option><option>Everywhere except</option></select>
+                <input class="in" aria-label="Country codes" placeholder="US, CA" disabled>
+                <div class="note i"><span>Countries need the server's GeoIP database (geoip.database).</span></div>
+              </div>
+              <div role="group" aria-labelledby="fs-ww-vis" style="display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid #EEF0F3">
+                <h3 id="fs-ww-vis" style="margin:0;font-size:13.5px;font-weight:600">Visitors</h3>
+                <div style="display:flex;gap:8px 18px;flex-wrap:wrap"><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v" checked>Everyone</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">New visitors</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="radio" name="fs-ww-v">Returning visitors</label></div>
+                <span class="k">Returning visitors have seen one of your forms in this browser before today.</span>
+              </div>
+              <div role="group" aria-labelledby="fs-ww-sch" style="display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid #EEF0F3">
+                <h3 id="fs-ww-sch" style="margin:0;font-size:13.5px;font-weight:600">Schedule</h3>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><label class="lbl" style="flex:1 1 180px">Starts<input class="in" type="datetime-local"></label><label class="lbl" style="flex:1 1 180px">Ends<input class="in" type="datetime-local" value="2026-11-30T23:59"></label></div>
+                <span class="k">Outside these dates the form doesn't show.</span>
+              </div>
+            </div>
+            <div class="df"><button class="btn">Cancel</button><button class="btn pri">Apply</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px" aria-label="A/B test results">
+        <div class="strip"><span class="dot" style="color:#FBBF24"></span>A/B test results · too few views yet, not significant yet (as a table), a winner</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start">
+          <div class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px"><span style="font-weight:600">A/B test</span><span class="badge ok"><span class="dot"></span>Running</span></div>
+            <span class="k">Results count from Sun 8 Nov · 50/50</span>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:10px"><span class="badge mut">A</span><div class="bar" style="flex:1" aria-hidden="true"><i style="width:69%;background:#0F766E"></i></div><span class="n" style="font-size:13px">2.8%</span></div>
+              <span class="k">6 of 212 views · 5 confirmed</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:10px"><span class="badge mut">B</span><div class="bar" style="flex:1" aria-hidden="true"><i style="width:100%;background:#0F766E"></i></div><span class="n" style="font-size:13px">4.1%</span></div>
+              <span class="k">9 of 219 views · 8 confirmed</span>
+            </div>
+            <button class="btn sm" style="align-self:flex-start">Show as a table</button>
+            <p style="margin:0;font-size:13px;font-weight:600">Too few views yet: 212 of 500 per variant.</p>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">End the test when there's a winner</label>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:end">
+              <label class="lbl">Confidence<select class="in"><option>90%</option><option selected>95%</option><option>99%</option></select></label>
+              <label class="lbl">Views per variant before deciding<input class="in" type="number" min="100" max="100000" value="500"></label>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm">End test</button></div>
+          </div>
+          <div class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px"><span style="font-weight:600">A/B test</span><span class="badge ok"><span class="dot"></span>Running</span></div>
+            <span class="k">Results count from Sun 25 Oct · 50/50</span>
+            <div style="overflow-x:auto;border:1px solid #E3E6EB;border-radius:8px" role="region" aria-label="Results by variant" tabindex="0">
+              <table class="tbl">
+                <thead><tr><th scope="col">Variant</th><th scope="col" class="r">Views</th><th scope="col" class="r">Submissions</th><th scope="col" class="r">Rate</th><th scope="col" class="r">Confirmed</th></tr></thead>
+                <tbody>
+                  <tr><td>A</td><td class="r">1,520</td><td class="r">52</td><td class="r">3.4%</td><td class="r">47</td></tr>
+                  <tr><td>B</td><td class="r">1,534</td><td class="r">55</td><td class="r">3.6%</td><td class="r">50</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <button class="btn sm" style="align-self:flex-start">Show as bars</button>
+            <p style="margin:0;font-size:13px;font-weight:600">Not significant yet.</p>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">End the test when there's a winner</label>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:end">
+              <label class="lbl">Confidence<select class="in"><option>90%</option><option selected>95%</option><option>99%</option></select></label>
+              <label class="lbl">Views per variant before deciding<input class="in" type="number" min="100" max="100000" value="500"></label>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm">End test</button></div>
+          </div>
+          <div class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px"><span style="font-weight:600">A/B test</span><span class="badge ok"><span class="dot"></span>Running</span></div>
+            <span class="k">Results count from Fri 16 Oct · 50/50</span>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:10px"><span class="badge mut">A</span><div class="bar" style="flex:1" aria-hidden="true"><i style="width:78%;background:#0F766E"></i></div><span class="n" style="font-size:13px">3.2%</span></div>
+              <span class="k">131 of 4,096 views · 118 confirmed</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:10px"><span class="badge mut">B</span><div class="bar" style="flex:1" aria-hidden="true"><i style="width:100%;background:#0F766E"></i></div><span class="n" style="font-size:13px">4.1%</span></div>
+              <span class="k">168 of 4,104 views · 152 confirmed</span>
+            </div>
+            <button class="btn sm" style="align-self:flex-start">Show as a table</button>
+            <p style="margin:0;font-size:13px;font-weight:600">B gets 4.1% vs 3.2% for A (+28%), 97% confidence.</p>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox">End the test when there's a winner</label>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:end">
+              <label class="lbl">Confidence<select class="in"><option>90%</option><option selected>95%</option><option>99%</option></select></label>
+              <label class="lbl">Views per variant before deciding<input class="in" type="number" min="100" max="100000" value="500"></label>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm pri">Keep B and end test</button><button class="btn sm">End test</button></div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1997}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":5401}}'>
 class Component extends DCLogic {
   renderVals() {
     return {};

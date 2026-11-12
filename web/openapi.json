@@ -76601,6 +76601,190 @@
         ],
         "type": "object"
       },
+      "SignupFormABEndInput": {
+        "additionalProperties": false,
+        "properties": {
+          "keep": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "keep"
+        ],
+        "type": "object"
+      },
+      "SignupFormABInput": {
+        "additionalProperties": false,
+        "properties": {
+          "autoEnd": {
+            "description": "End the test on its own, keeping the winner, once one is clear",
+            "type": "boolean"
+          },
+          "confidence": {
+            "format": "double",
+            "maximum": 0.99,
+            "minimum": 0.9,
+            "type": "number"
+          },
+          "minViews": {
+            "description": "Views each variant needs before a winner can be called",
+            "format": "int64",
+            "maximum": 100000,
+            "minimum": 100,
+            "type": "integer"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormVariantInput"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "type": "array"
+          }
+        },
+        "required": [
+          "variants",
+          "autoEnd",
+          "minViews",
+          "confidence"
+        ],
+        "type": "object"
+      },
+      "SignupFormABResult": {
+        "additionalProperties": false,
+        "properties": {
+          "autoEnd": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "format": "double",
+            "type": "number"
+          },
+          "doubleOptIn": {
+            "type": "boolean"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fewestViews": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "leader": {
+            "type": "string"
+          },
+          "lift": {
+            "format": "double",
+            "type": "number"
+          },
+          "minViews": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "outcome": {
+            "enum": [
+              "winner",
+              "not_significant",
+              "too_small"
+            ],
+            "type": "string"
+          },
+          "runnerUp": {
+            "type": "string"
+          },
+          "startedOn": {
+            "description": "The first day counted, in the workspace's time zone",
+            "format": "date",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "none",
+              "running",
+              "ended"
+            ],
+            "type": "string"
+          },
+          "targetConfidence": {
+            "description": "What a winner needs, 0.95 for 95%",
+            "format": "double",
+            "type": "number"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormABVariant"
+            },
+            "type": "array"
+          },
+          "winner": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "autoEnd",
+          "minViews",
+          "targetConfidence",
+          "variants",
+          "fewestViews",
+          "lift",
+          "confidence",
+          "doubleOptIn"
+        ],
+        "type": "object"
+      },
+      "SignupFormABVariant": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "content": {
+            "$ref": "#/components/schemas/SignupFormVariantContent",
+            "description": "What B or C changes; omitted for A"
+          },
+          "key": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          },
+          "rate": {
+            "format": "double",
+            "type": "number"
+          },
+          "submissions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "views": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "weight": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "weight",
+          "views",
+          "submissions",
+          "confirmed",
+          "rate"
+        ],
+        "type": "object"
+      },
       "SignupFormBlockedOrigin": {
         "additionalProperties": false,
         "properties": {
@@ -76623,6 +76807,26 @@
           "origin",
           "count",
           "lastAt"
+        ],
+        "type": "object"
+      },
+      "SignupFormChoiceOption": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tag": {
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "tag"
         ],
         "type": "object"
       },
@@ -76743,6 +76947,16 @@
             "format": "int64",
             "minimum": 0,
             "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormStep"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "targeting": {
+            "$ref": "#/components/schemas/SignupFormTargeting"
           }
         },
         "required": [
@@ -76806,6 +77020,18 @@
               "$ref": "#/components/schemas/SignupFormCopyLanguage"
             },
             "type": "array"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormCopyString"
+            },
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormCopyString"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -76817,7 +77043,9 @@
           "consentVersion",
           "consentChangedBy",
           "fields",
-          "languages"
+          "languages",
+          "options",
+          "steps"
         ],
         "type": "object"
       },
@@ -76937,6 +77165,23 @@
         ],
         "type": "object"
       },
+      "SignupFormCopyString": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "source": {
+            "description": "The text in the form's own language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "source"
+        ],
+        "type": "object"
+      },
       "SignupFormCopyText": {
         "additionalProperties": false,
         "properties": {
@@ -76967,6 +77212,20 @@
           "heading": {
             "maxLength": 120,
             "type": "string"
+          },
+          "options": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 240,
+            "type": "object"
+          },
+          "steps": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 12,
+            "type": "object"
           }
         },
         "required": [
@@ -76976,6 +77235,31 @@
           "consentText",
           "afterSubmit",
           "fields"
+        ],
+        "type": "object"
+      },
+      "SignupFormCountries": {
+        "additionalProperties": false,
+        "properties": {
+          "codes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "all",
+              "only",
+              "except"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "codes"
         ],
         "type": "object"
       },
@@ -77040,17 +77324,35 @@
         "additionalProperties": false,
         "properties": {
           "key": {
-            "description": "email, first_name, last_name, company or a custom field key",
+            "description": "email, first_name, last_name, company, a custom field key, or a choice question's own key",
             "pattern": "^[a-z][a-z0-9_]{0,62}$",
             "type": "string"
           },
           "label": {
-            "description": "Shown above the input; empty uses the field's name",
+            "description": "Shown above the input; empty uses the field's name (a choice question needs its question)",
             "maxLength": 80,
             "type": "string"
           },
+          "multiple": {
+            "description": "A choice question that takes several answers",
+            "type": "boolean"
+          },
+          "options": {
+            "description": "A choice question's answers (2 to 12)",
+            "items": {
+              "$ref": "#/components/schemas/SignupFormChoiceOption"
+            },
+            "maxItems": 12,
+            "type": "array"
+          },
           "required": {
             "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "choice"
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -77220,6 +77522,57 @@
         ],
         "type": "object"
       },
+      "SignupFormPageRule": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "enum": [
+              "contains",
+              "equals",
+              "starts_with"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "examples": [
+              "/pricing"
+            ],
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "value"
+        ],
+        "type": "object"
+      },
+      "SignupFormPageRules": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "all",
+              "only",
+              "except"
+            ],
+            "type": "string"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormPageRule"
+            },
+            "maxItems": 20,
+            "type": "array"
+          }
+        },
+        "required": [
+          "mode",
+          "rules"
+        ],
+        "type": "object"
+      },
       "SignupFormRenameInput": {
         "additionalProperties": false,
         "properties": {
@@ -77231,6 +77584,63 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "SignupFormSchedule": {
+        "additionalProperties": false,
+        "properties": {
+          "endsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SignupFormSources": {
+        "additionalProperties": false,
+        "properties": {
+          "referrer": {
+            "enum": [
+              "any",
+              "search",
+              "social",
+              "other_site",
+              "direct"
+            ],
+            "type": "string"
+          },
+          "utmCampaign": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "utmMedium": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "utmSource": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          }
+        },
+        "required": [
+          "utmSource",
+          "utmMedium",
+          "utmCampaign",
+          "referrer"
         ],
         "type": "object"
       },
@@ -77295,6 +77705,16 @@
             "format": "int64",
             "type": "integer"
           },
+          "stepSignups": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/SignupFormStepStat"
+            },
+            "type": "array"
+          },
           "submissionRate": {
             "format": "double",
             "type": "number"
@@ -77316,7 +77736,9 @@
           "confirmed",
           "confirmedRate",
           "blocked",
-          "pending"
+          "pending",
+          "steps",
+          "stepSignups"
         ],
         "type": "object"
       },
@@ -77333,6 +77755,59 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "SignupFormStep": {
+        "additionalProperties": false,
+        "properties": {
+          "button": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "heading": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "id": {
+            "description": "s1 to s4, kept when steps move so their translations stay",
+            "pattern": "^s[1-4]$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "SignupFormStepStat": {
+        "additionalProperties": false,
+        "properties": {
+          "step": {
+            "description": "1 to 4",
+            "format": "int64",
+            "type": "integer"
+          },
+          "views": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "step",
+          "views"
         ],
         "type": "object"
       },
@@ -77390,6 +77865,54 @@
         ],
         "type": "object"
       },
+      "SignupFormTargeting": {
+        "additionalProperties": false,
+        "properties": {
+          "countries": {
+            "$ref": "#/components/schemas/SignupFormCountries"
+          },
+          "devices": {
+            "description": "None: every device",
+            "items": {
+              "enum": [
+                "desktop",
+                "tablet",
+                "mobile"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "type": "array"
+          },
+          "pages": {
+            "$ref": "#/components/schemas/SignupFormPageRules"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/SignupFormSchedule"
+          },
+          "sources": {
+            "$ref": "#/components/schemas/SignupFormSources"
+          },
+          "visitors": {
+            "description": "Returning: this browser has seen one of the workspace's forms before today",
+            "enum": [
+              "all",
+              "new",
+              "returning"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "pages",
+          "sources",
+          "devices",
+          "countries",
+          "visitors",
+          "schedule"
+        ],
+        "type": "object"
+      },
       "SignupFormURLs": {
         "additionalProperties": false,
         "properties": {
@@ -77412,6 +77935,87 @@
           "script",
           "submit",
           "scriptKb"
+        ],
+        "type": "object"
+      },
+      "SignupFormVariantContent": {
+        "additionalProperties": false,
+        "properties": {
+          "afterSubmitText": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "button": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "heading": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "popupDelay": {
+            "format": "int64",
+            "maximum": 600,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "popupExit": {
+            "type": "boolean"
+          },
+          "popupScroll": {
+            "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "steps": {
+            "description": "Omitted or one step: everything at once",
+            "items": {
+              "$ref": "#/components/schemas/SignupFormStep"
+            },
+            "maxItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "heading",
+          "description",
+          "button",
+          "popupDelay",
+          "popupScroll"
+        ],
+        "type": "object"
+      },
+      "SignupFormVariantInput": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/SignupFormVariantContent",
+            "description": "Required for B and C; ignored for A"
+          },
+          "key": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string"
+          },
+          "weight": {
+            "description": "Percent of visitors; the variants add up to 100",
+            "format": "int64",
+            "maximum": 99,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "weight"
         ],
         "type": "object"
       },
@@ -77500,6 +78104,9 @@
             },
             "type": "array"
           },
+          "geoip": {
+            "type": "boolean"
+          },
           "hostedFormId": {
             "type": "string"
           },
@@ -77539,7 +78146,8 @@
           "turnstile",
           "branding",
           "domain",
-          "ownOrigins"
+          "ownOrigins",
+          "geoip"
         ],
         "type": "object"
       },
@@ -141489,6 +142097,231 @@
           }
         ],
         "summary": "Save a signup form (Save \u0026 publish)",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "forms:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab": {
+      "get": {
+        "description": "Views, submissions and confirmations per variant since the test started (or last restarted), with the decision rule's outcome: winner, not significant yet, or too few views.",
+        "operationId": "get-signup-form-ab-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormABResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a signup form's A/B test and its results",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "subscribers:view"
+      },
+      "put": {
+        "description": "Variant A is the form itself; B and C override its copy, steps and popup triggers. Changing a variant or the split while the test runs restarts its count from today.",
+        "operationId": "save-signup-form-ab-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupFormABInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormABResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start or change a signup form's A/B test",
+        "tags": [
+          "Forms"
+        ],
+        "x-access": "workspace",
+        "x-permission": "forms:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/forms/{form}/ab/end": {
+      "post": {
+        "description": "The kept variant's copy, steps and popup triggers become the form's; the other variants are deleted (their numbers stay in the audit log).",
+        "operationId": "end-signup-form-ab-test",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Form id",
+            "in": "path",
+            "name": "form",
+            "required": true,
+            "schema": {
+              "description": "Form id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupFormABEndInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupFormABResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End a signup form's A/B test, keeping one variant",
         "tags": [
           "Forms"
         ],

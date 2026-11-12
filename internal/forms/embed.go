@@ -9,7 +9,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"html"
+	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -21,7 +23,47 @@ import (
 )
 
 //go:embed embed/form.js
-var embedScript string
+var embedScriptSource string
+
+// embedScript is the form script as served: its comments and indentation
+// left out (they are a third of what visitors would download), every line
+// break kept, so the source stays the readable one.
+var embedScript = compactScript(embedScriptSource)
+
+// compactScript drops the lines of a script that are only a comment (//
+// lines, and /* */ blocks that start a line) and the indentation of the
+// others. The script has no template literals, so no line's leading
+// whitespace is part of a string.
+func compactScript(src string) string {
+	var b strings.Builder
+	b.Grow(len(src))
+	inBlock := false
+	for line := range strings.SplitSeq(src, "\n") {
+		l := strings.TrimLeft(line, " \t")
+		if inBlock {
+			if i := strings.Index(l, "*/"); i >= 0 {
+				inBlock = false
+				l = strings.TrimLeft(l[i+2:], " \t")
+			} else {
+				continue
+			}
+		}
+		if strings.HasPrefix(l, "/*") {
+			if i := strings.Index(l, "*/"); i >= 0 {
+				l = strings.TrimLeft(l[i+2:], " \t")
+			} else {
+				inBlock = true
+				continue
+			}
+		}
+		if l == "" || strings.HasPrefix(l, "//") {
+			continue
+		}
+		b.WriteString(l)
+		b.WriteByte('\n')
+	}
+	return b.String()
+}
 
 //go:embed embed/form.css
 var embedCSS []byte
@@ -52,6 +94,36 @@ type embedField struct {
 	Required    bool     `json:"required"`
 	Placeholder string   `json:"placeholder,omitempty"`
 	Options     []string `json:"options"`
+	// Multiple: a choice question taking several answers (Type "choice",
+	// Options its answers' labels, posted as their indexes).
+	Multiple bool `json:"multiple,omitempty"`
+}
+
+// embedStep is one step of a multi-step form: its fields by key and copy.
+type embedStep struct {
+	Fields      []string `json:"fields"`
+	Heading     string   `json:"heading,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Button      string   `json:"button,omitempty"`
+}
+
+// embedVariant is what an A/B test's variant changes, in the form's own
+// language (other languages show A).
+type embedVariant struct {
+	Heading     string         `json:"heading"`
+	Description string         `json:"description"`
+	Button      string         `json:"button"`
+	Done        string         `json:"done,omitempty"`
+	Steps       []embedStep    `json:"steps"`
+	Popup       map[string]int `json:"popup"`
+}
+
+// embedTarget is the part of a form's targeting the script checks.
+type embedTarget struct {
+	Pages    pageRulesDoc `json:"pages"`
+	Sources  sourcesDoc   `json:"sources"`
+	Devices  []string     `json:"devices"`
+	Visitors string       `json:"visitors,omitempty"`
 }
 
 type embedList struct {
@@ -86,6 +158,8 @@ type embedCopy struct {
 	SmsConsent string      `json:"smsConsent,omitempty"`
 	Terms      string      `json:"terms,omitempty"`
 	TermsText  string      `json:"termsText,omitempty"`
+	// Steps of a multi-step form (M60 G-23); empty: one step.
+	Steps []embedStep `json:"steps"`
 }
 
 // embedPhone is the phone field's country picker.
@@ -125,6 +199,16 @@ type embedConfig struct {
 	// shows nothing to it.
 	Workspace      string `json:"workspace"`
 	HideSubscribed bool   `json:"hideSubscribed"`
+	// M60: Step is where step views are counted; Source the form's own
+	// language (the only one its A/B variants show in); Target what the
+	// script checks before asking the session; Wait says the session
+	// decides whether the form shows (schedule, countries, a variant); AB
+	// the running test's variants B and C.
+	Step   string                  `json:"step"`
+	Source string                  `json:"source"`
+	Target *embedTarget            `json:"target,omitempty"`
+	Wait   bool                    `json:"wait,omitempty"`
+	AB     map[string]embedVariant `json:"ab,omitempty"`
 }
 
 // FieldLabelIn is the label a field shows in a language: the form's own,
@@ -213,14 +297,27 @@ func embedCopyOf(c Config, b Branding, lists []audience.PublicList, customs []st
 		Text: map[string]string{
 			"optional": l.Text("form.optional", nil), "choose": l.Text("form.choose", nil), "honeypot": l.Text("form.honeypot", nil),
 			"emailMissing": l.Text("error.emailMissing", nil), "emailInvalid": l.Text("error.emailInvalid", nil), "consent": l.Text("error.consent", nil),
-			"close": l.Text("form.close", nil),
+			"close": l.Text("form.close", nil), "required": l.Text("error.required", nil),
 			// The script puts the address or the provider in place of {email}
 			// and {provider}: "Use linh@gmail.com", "Open Gmail".
 			"typoUse": l.Text("form.typo.use", i18n.Args{"email": "{email}"}), "typoKeep": l.Text("form.typo.keep", i18n.Args{"email": "{email}"}),
 			"inboxOpen": l.Text("form.inbox.open", i18n.Args{"provider": "{provider}"}), "newTab": l.Text("form.inbox.newTab", nil),
-		}}
+		},
+		Steps: embedSteps(c.Content.Steps)}
+	if len(c.Content.Steps) > 1 {
+		out.Text["next"], out.Text["back"] = l.Text("form.step.next", nil), l.Text("form.step.back", nil)
+		out.Text["stepOf"] = l.Text("form.step.of", i18n.Args{"n": "{n}", "total": "{total}"})
+	}
 	for _, f := range c.Fields {
 		ef := embedField{Key: f.Key, Name: FieldName(f.Key), Label: FieldLabelIn(f, customs, l), Type: "text", Required: f.Required || f.Key == FieldEmail, Options: []string{}}
+		if f.Type == FieldChoice {
+			ef.Name, ef.Type, ef.Multiple = ChoiceName(f.Key), FieldChoice, f.Multiple
+			for _, o := range f.Options {
+				ef.Options = append(ef.Options, o.Label)
+			}
+			out.Fields = append(out.Fields, ef)
+			continue
+		}
 		switch f.Key {
 		case FieldEmail:
 			ef.Type, ef.Placeholder = "email", c.Content.EmailPlaceholder
@@ -262,7 +359,7 @@ func EmbedScript(c Config, links PageLinks, b Branding, lists []audience.PublicL
 		c.publisher = b.PublisherName
 	}
 	cp := embedCopyOf(c, b, lists, customs)
-	return embedScriptOf(c, links, b, lists, map[string]embedCopy{cp.Lang: cp}, cp.Lang)
+	return embedScriptOf(c, links, b, lists, map[string]embedCopy{cp.Lang: cp}, cp.Lang, nil)
 }
 
 // Script is the script of a form (/p/{workspace}/forms/{id}.js) with its
@@ -302,7 +399,7 @@ func (fc *FormCopy) script(links PageLinks, b Branding, lists []audience.PublicL
 		}
 		langs[code] = embedCopyOf(lc, b, lists, customs)
 	}
-	return embedScriptOf(fc.Form, links, b, lists, langs, fc.Fallback())
+	return embedScriptOf(fc.Form, links, b, lists, langs, fc.Fallback(), fc.variants)
 }
 
 // plain is the form for its plain HTML copy: in its own language, or the
@@ -314,14 +411,28 @@ func (fc *FormCopy) plain(lists []audience.PublicList) Config {
 }
 
 // exitIntent is the popup's exit-intent trigger as the script reads it.
-func exitIntent(c Config) int {
-	if c.Content.PopupExit {
+func exitIntent(c Config) int { return boolInt(c.Content.PopupExit) }
+
+func boolInt(b bool) int {
+	if b {
 		return 1
 	}
 	return 0
 }
 
-func embedScriptOf(c Config, links PageLinks, b Branding, lists []audience.PublicList, langs map[string]embedCopy, fallback string) []byte {
+// embedSteps is a form's steps for the script (nil for one step).
+func embedSteps(steps []stepDoc) []embedStep {
+	out := []embedStep{}
+	if len(steps) < 2 {
+		return out
+	}
+	for _, s := range steps {
+		out = append(out, embedStep{Fields: s.Fields, Heading: s.Heading, Description: s.Description, Button: s.Button})
+	}
+	return out
+}
+
+func embedScriptOf(c Config, links PageLinks, b Branding, lists []audience.PublicList, langs map[string]embedCopy, fallback string, variants []store.FormVariant) []byte {
 	mode := c.LanguageMode
 	if mode == "" {
 		mode = LanguagePage
@@ -334,6 +445,35 @@ func embedScriptOf(c Config, links PageLinks, b Branding, lists []audience.Publi
 		Popup:     map[string]int{"delay": c.Content.PopupDelay, "scroll": c.Content.PopupScroll, "repeatDays": c.Content.PopupRepeatDays, "exit": exitIntent(c)},
 		Workspace: c.WorkspaceID.String(), HideSubscribed: c.HideSubscribed(),
 		Lists: []embedList{}, Mode: mode, Fixed: c.FixedLanguage, Fallback: fallback, Langs: langs,
+		Step: links.FormStep(c.PublicID), Source: c.CopyLanguage, Wait: c.serverRules(),
+	}
+	if t := c.Content.Targeting; t != nil && c.Kind != KindHosted {
+		et := &embedTarget{Pages: t.Pages, Sources: t.Sources, Devices: t.Devices, Visitors: t.Visitors}
+		if et.Devices == nil {
+			et.Devices = []string{}
+		}
+		if et.Pages.Mode != "" || len(et.Devices) > 0 || et.Visitors != "" || !reflect.DeepEqual(et.Sources, sourcesDoc{}) {
+			cfg.Target = et
+		}
+	}
+	// A running test: B and C's overrides, in the form's own language.
+	if c.AB.Running() {
+		for _, v := range variants {
+			if v.Key == "A" {
+				continue
+			}
+			var d variantDoc
+			_ = json.Unmarshal(v.Content, &d)
+			if d.PopupDelay <= 0 && d.PopupScroll <= 0 && !d.PopupExit {
+				d.PopupDelay = 8 // as a form without triggers (withContentDefaults)
+			}
+			if cfg.AB == nil {
+				cfg.AB = map[string]embedVariant{}
+			}
+			cfg.AB[v.Key] = embedVariant{Heading: d.Heading, Description: d.Description, Button: d.Button, Done: d.AfterSubmitText,
+				Steps: embedSteps(fitSteps(d.Steps, c.Fields)), Popup: map[string]int{"delay": d.PopupDelay, "scroll": d.PopupScroll, "exit": boolInt(d.PopupExit)}}
+		}
+		cfg.Wait = cfg.Wait || len(cfg.AB) > 0
 	}
 	if b.Logo != nil {
 		cfg.Logo = links.Logo(b.Logo.Hash)
@@ -349,6 +489,15 @@ func embedScriptOf(c Config, links PageLinks, b Branding, lists []audience.Publi
 	}
 	raw, _ := json.Marshal(cfg) // escapes <, > and & for script contexts
 	return []byte(strings.Replace(embedScript, "__RC_FORM__", string(raw), 1))
+}
+
+func stepIndex(steps []StepOf, id string) int {
+	for i, s := range steps {
+		if s.ID == id {
+			return i
+		}
+	}
+	return 0
 }
 
 // PrivacyPolicyIndex finds "privacy policy" in a consent sentence, in any
@@ -400,8 +549,43 @@ func PlainHTML(c Config, links PageLinks, lists []audience.PublicList, customs [
 	w.WriteString(`<form action="` + esc(links.PlainAction(c.Slug)) + `" method="post" accept-charset="utf-8" lang="` + esc(lang) + `">` + "\n")
 	w.WriteString(`  <input type="hidden" name="_plain" value="1">` + "\n")
 	w.WriteString(`  <input type="hidden" name="_lang" value="` + esc(lang) + `">` + "\n")
-	for _, f := range c.Fields {
+	// A multi-step form shows every step at once, each a fieldset (M60 G-23).
+	fields, starts := c.Fields, map[int]StepOf{}
+	steps := c.FormSteps()
+	if steps != nil {
+		fields = nil
+		for _, st := range steps {
+			starts[len(fields)] = st
+			fields = append(fields, st.Fields...)
+		}
+	}
+	for i, f := range fields {
+		if st, ok := starts[i]; ok {
+			if i > 0 {
+				w.WriteString("  </fieldset>\n")
+			}
+			legend := st.Heading
+			if legend == "" {
+				legend = c.Labels.Text("form.step.of", i18n.Args{"n": stepIndex(steps, st.ID) + 1, "total": len(steps)})
+			}
+			w.WriteString("  <fieldset>\n    <legend>" + esc(legend) + "</legend>\n")
+			if st.Description != "" {
+				w.WriteString("    <p>" + esc(st.Description) + "</p>\n")
+			}
+		}
 		label := esc(FieldLabelIn(f, customs, c.Labels))
+		if f.Type == FieldChoice {
+			typ := "radio"
+			if f.Multiple {
+				typ = "checkbox"
+			}
+			w.WriteString("  <fieldset>\n    <legend>" + label + "</legend>\n")
+			for j, o := range f.Options {
+				w.WriteString(`    <label><input type="` + typ + `" name="` + esc(ChoiceName(f.Key)) + `" value="` + strconv.Itoa(j) + `"> ` + esc(o.Label) + `</label>` + "\n")
+			}
+			w.WriteString("  </fieldset>\n")
+			continue
+		}
 		name := esc(FieldName(f.Key))
 		req := ""
 		if f.Required || f.Key == FieldEmail {
@@ -446,6 +630,9 @@ func PlainHTML(c Config, links PageLinks, lists []audience.PublicList, customs [
 			}
 		}
 		w.WriteString(`  <label><input type="checkbox" name="consent" value="1" required> ` + text + `</label>` + "\n")
+	}
+	if steps != nil {
+		w.WriteString("  </fieldset>\n")
 	}
 	if c.Spam.Honeypot {
 		w.WriteString(`  <div style="position:absolute;left:-10000px" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>` + "\n")

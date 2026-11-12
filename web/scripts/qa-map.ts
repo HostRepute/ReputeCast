@@ -571,4 +571,8 @@ export const entries: Entry[] = [
   { board: 'TrackingSitesPhone', path: `${ws}/settings/integrations/tracking`, widths: [390] },
   { board: 'TrackingSetup', manual: true },
   { board: 'TrackingStates', manual: true },
+  // M60 G-25: the Footer mini form's running A/B test with B selected and the winner card. The End
+  // test dialog is drawn under the builder and opens with a click: compare the builder only.
+  { board: 'FormBuilderABTest', path: `${ws}/forms?form={form:Footer mini form}&variant=B`, widths: [1440], viewportOnly: true, height: 1583 },
+  { board: 'FormBuilderABTestPhone', path: `${ws}/forms?form={form:Footer mini form}&variant=B`, widths: [390], viewportOnly: true, height: 3269 },
 ]

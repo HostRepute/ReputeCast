@@ -67,6 +67,11 @@ type Submission struct {
 	// suggested domain, "keep" the address as typed; empty hasn't been
 	// asked (or the address has no likely typo).
 	Typo string `json:"-"`
+	// Choices are the answers picked in choice questions (indexes), by
+	// question key (M60 G-23).
+	Choices map[string][]string `json:"choices,omitempty"`
+	// Variant is the A/B test variant the embed script showed (G-25).
+	Variant string `json:"variant,omitempty"`
 }
 
 // Outcome statuses.
@@ -174,11 +179,17 @@ func clipOrigin(o string) string {
 // RecordView counts a view of a form (the hosted page, or an embed asking
 // for its token). Crawlers and link previews don't count.
 func (s *Service) RecordView(ctx context.Context, ws *store.Workspace, c Config, userAgent string) {
+	s.recordView(ctx, ws, c, userAgent, "")
+}
+
+// recordView counts a view of a form, for a variant of its A/B test ("":
+// outside a test, or not counted in it).
+func (s *Service) recordView(ctx context.Context, ws *store.Workspace, c Config, userAgent, variant string) {
 	if c.Builtin || c.ID == uuid.Nil || isBot(userAgent) {
 		return
 	}
 	day := dayOf(s.now(), location(ws))
-	if err := s.Q.FormBumpDaily(ctx, store.FormBumpDailyParams{FormID: c.ID, Day: day, Views: 1}); err != nil {
+	if err := s.Q.FormBumpDaily(ctx, store.FormBumpDailyParams{FormID: c.ID, Day: day, Variant: variant, Views: 1}); err != nil {
 		s.log().WarnContext(ctx, "count form view", "err", err)
 		return
 	}
@@ -207,13 +218,14 @@ func (s *Service) Submit(ctx context.Context, ws *store.Workspace, set *Settings
 
 func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings, c Config, sub Submission) Outcome {
 	l := c.Labels
-	if c.Status != StatusLive {
+	now := s.now()
+	// Outside its schedule a form is closed (M60 G-24).
+	if c.Status != StatusLive || !c.Open(now) {
 		return Outcome{Status: OutcomeClosed, Message: l.Text("error.closed", nil)}
 	}
 	if sub.Plain {
 		sub.SmsConsent = false
 	}
-	now := s.now()
 	limits := s.rates()
 	ip := "unknown"
 	if sub.IP != nil {
@@ -338,6 +350,12 @@ func (s *Service) check(c Config, sub *Submission) ([]uuid.UUID, map[string]stri
 		if f.Key == FieldEmail || !f.Required {
 			continue
 		}
+		if f.Type == FieldChoice {
+			if len(choiceTags(f, sub.Choices[f.Key])) == 0 {
+				errs[f.Key] = l.Text("error.required", nil)
+			}
+			continue
+		}
 		var v string
 		switch f.Key {
 		case FieldFirstName:
@@ -408,8 +426,22 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 	}
 	fields := map[string]string{}
 	for k, v := range sub.Fields {
-		if c.HasField(k) {
+		if f, ok := c.Field(k); ok && f.Type != FieldChoice {
 			fields[k] = v
+		}
+	}
+	// Choice questions: each picked answer adds its tag (M60 G-23).
+	var tags []string
+	answers := map[string]string{FieldFirstName: sub.FirstName, FieldLastName: sub.LastName, FieldCompany: sub.Company}
+	for k, v := range fields {
+		answers[k] = v
+	}
+	for _, f := range c.Fields {
+		if f.Type == FieldChoice {
+			tags = append(tags, choiceTags(f, sub.Choices[f.Key])...)
+			if picked := choiceLabels(f, sub.Choices[f.Key]); len(picked) > 0 {
+				answers[f.Key] = strings.Join(picked, ", ")
+			}
 		}
 	}
 	var res audience.SignupResult
@@ -422,7 +454,7 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		var err error
 		res, err = s.Audience.Signup(ctx, tx, ws, audience.SignupInput{
 			Email: sub.Email, FirstName: sub.FirstName, LastName: sub.LastName, Company: sub.Company, Fields: fields,
-			Lists: lists, DoubleOptIn: doubleOptIn, Evidence: ev, BrowserLanguage: sub.BrowserLanguage, FormName: formName,
+			Lists: lists, DoubleOptIn: doubleOptIn, Evidence: ev, BrowserLanguage: sub.BrowserLanguage, FormName: formName, Tags: tags,
 		})
 		if err != nil || res.Blocked {
 			return err
@@ -455,13 +487,17 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		if !double {
 			confirmedAt = &now
 		}
+		variant, err := variantOf(ctx, q, c, sub.Variant)
+		if err != nil {
+			return err
+		}
 		submissionID = uuid.Must(uuid.NewV7())
 		if err := q.FormSubmissionInsert(ctx, store.FormSubmissionInsertParams{ID: submissionID, WorkspaceID: ws.ID, FormID: formID, ContactID: res.ContactID,
-			ListIds: touched, DoubleOptIn: double, Language: lang, At: now, ConfirmedAt: confirmedAt}); err != nil {
+			ListIds: touched, DoubleOptIn: double, Language: lang, Variant: variant, At: now, ConfirmedAt: confirmedAt}); err != nil {
 			return err
 		}
 		if formID != nil {
-			bump := store.FormBumpDailyParams{FormID: *formID, Day: dayOf(now, location(ws)), Submissions: 1}
+			bump := store.FormBumpDailyParams{FormID: *formID, Day: dayOf(now, location(ws)), Variant: variant, Submissions: 1}
 			totals := store.FormBumpTotalsParams{ID: *formID, Submissions: 1}
 			if !double {
 				bump.Confirmed, totals.Confirmed = 1, 1
@@ -479,10 +515,6 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 					return err
 				}
 				// The form.submitted webhook event fires at the same moment.
-				answers := map[string]string{FieldFirstName: sub.FirstName, FieldLastName: sub.LastName, FieldCompany: sub.Company}
-				for k, v := range fields {
-					answers[k] = v
-				}
 				if err := emitFormSubmitted(ctx, tx, ws, *formID, res.ContactID, answers, now, now); err != nil {
 					return err
 				}

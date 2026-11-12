@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -117,12 +118,23 @@ type SignupFormCopyText struct {
 	AfterSubmit string `json:"afterSubmit" maxLength:"300" doc:"What the form says after a signup"`
 	// Fields are the labels of the fields whose label is the publisher's text, by field key.
 	Fields map[string]string `json:"fields" maxProperties:"20"`
+	// Options are choice answers' labels by "<field key>.<index>"; Steps
+	// the steps' copy by "<step id>.heading", ".description" or ".button".
+	Options map[string]string `json:"options,omitempty" maxProperties:"240"`
+	Steps   map[string]string `json:"steps,omitempty" maxProperties:"12"`
 }
 
 // SignupFormCopyField is a field whose label is the publisher's text.
 type SignupFormCopyField struct {
 	Key    string `json:"key"`
 	Source string `json:"source" doc:"Its label in the form's own language"`
+}
+
+// SignupFormCopyString is another string of the form's own text: a choice
+// answer ("first_name.0" in Options) or a step's copy ("s2.heading").
+type SignupFormCopyString struct {
+	Key    string `json:"key"`
+	Source string `json:"source" doc:"The text in the form's own language"`
 }
 
 // SignupFormConsentEvidence is the latest signup that agreed to a
@@ -181,6 +193,10 @@ type SignupFormCopy struct {
 	ConsentChangedAt *time.Time               `json:"consentChangedAt,omitempty"`
 	Fields           []SignupFormCopyField    `json:"fields"`
 	Languages        []SignupFormCopyLanguage `json:"languages"`
+	// Options and Steps are the choice answers and the steps' copy to
+	// translate (M60 G-23), keyed as SignupFormCopyText's.
+	Options []SignupFormCopyString `json:"options"`
+	Steps   []SignupFormCopyString `json:"steps"`
 }
 
 // SignupFormLanguageInput picks which language a form shows.
@@ -607,7 +623,8 @@ func (s *Service) formCopyView(ctx context.Context, q *store.Queries, ws *store.
 		return SignupFormCopy{}, err
 	}
 	out := SignupFormCopy{FormID: f.ID.String(), LanguageMode: c.LanguageMode, FixedLanguage: c.FixedLanguage, CopyLanguage: c.CopyLanguage, Fallback: fc.Fallback(),
-		ConsentVersion: c.ConsentVersion, ConsentChangedAt: f.ConsentChangedAt, Fields: []SignupFormCopyField{}, Languages: []SignupFormCopyLanguage{}}
+		ConsentVersion: c.ConsentVersion, ConsentChangedAt: f.ConsentChangedAt, Fields: []SignupFormCopyField{}, Languages: []SignupFormCopyLanguage{},
+		Options: []SignupFormCopyString{}, Steps: []SignupFormCopyString{}}
 	if f.ConsentChangedBy != nil {
 		if name, err := q.PageCopyUserName(ctx, *f.ConsentChangedBy); err == nil {
 			out.ConsentChangedBy = name
@@ -616,6 +633,14 @@ func (s *Service) formCopyView(ctx context.Context, q *store.Queries, ws *store.
 	for _, fd := range c.Fields {
 		if fieldNeedsLabel(fd) {
 			out.Fields = append(out.Fields, SignupFormCopyField{Key: fd.Key, Source: FieldLabel(fd, customs)})
+		}
+		for i, o := range fd.Options {
+			out.Options = append(out.Options, SignupFormCopyString{Key: fd.Key + "." + strconv.Itoa(i), Source: o.Label})
+		}
+	}
+	for _, st := range c.Content.Steps {
+		for _, p := range stepParts(st) {
+			out.Steps = append(out.Steps, SignupFormCopyString{Key: st.ID + "." + p.name, Source: p.text})
 		}
 	}
 	codes := slices.Clone(fc.Pages.Languages.Languages)
@@ -626,7 +651,7 @@ func (s *Service) formCopyView(ctx context.Context, q *store.Queries, ws *store.
 		meta, _ := languages.Lookup(code)
 		st, missing, written := fc.Status(code)
 		v := SignupFormCopyLanguage{Code: code, Name: meta.Name, Native: meta.Native, IsDefault: code == fc.Pages.Languages.Default, IsSource: code == c.CopyLanguage,
-			Status: st, Missing: missing, Written: written, Total: len(fc.strings), Copy: SignupFormCopyText{Fields: map[string]string{}}}
+			Status: st, Missing: missing, Written: written, Total: len(fc.strings), Copy: SignupFormCopyText{Fields: map[string]string{}, Options: map[string]string{}, Steps: map[string]string{}}}
 		if l := fc.Pages.lang(code); l != nil {
 			v.Labels = labelsState(l)
 		}
@@ -635,18 +660,32 @@ func (s *Service) formCopyView(ctx context.Context, q *store.Queries, ws *store.
 		v.DefaultAfterSubmit = lc.afterSubmitSource()
 		if v.IsSource {
 			v.Copy = SignupFormCopyText{Heading: c.Content.Heading, Description: c.Content.Description, Button: c.Content.Button, ConsentText: c.ConsentText,
-				AfterSubmit: c.Content.AfterSubmitText, Fields: map[string]string{}}
+				AfterSubmit: c.Content.AfterSubmitText, Fields: map[string]string{}, Options: map[string]string{}, Steps: map[string]string{}}
 			for _, fd := range c.Fields {
 				if fieldNeedsLabel(fd) && fd.Label != "" {
 					v.Copy.Fields[fd.Key] = fd.Label
+				}
+				for i, o := range fd.Options {
+					v.Copy.Options[fd.Key+"."+strconv.Itoa(i)] = o.Label
+				}
+			}
+			for _, st := range c.Content.Steps {
+				for _, p := range stepParts(st) {
+					v.Copy.Steps[st.ID+"."+p.name] = p.text
 				}
 			}
 			v.ConsentVersion, v.ConsentFor = c.ConsentVersion, c.ConsentVersion
 		} else if t := fc.tr[code]; t != nil {
 			v.Copy = SignupFormCopyText{Heading: t.Doc.Heading, Description: t.Doc.Description, Button: t.Doc.Button, ConsentText: t.Consent, AfterSubmit: t.Doc.AfterSubmit,
-				Fields: map[string]string{}}
+				Fields: map[string]string{}, Options: map[string]string{}, Steps: map[string]string{}}
 			for k, lbl := range t.Doc.Fields {
 				v.Copy.Fields[k] = lbl
+			}
+			for k, lbl := range t.Doc.Options {
+				v.Copy.Options[k] = lbl
+			}
+			for k, lbl := range t.Doc.Steps {
+				v.Copy.Steps[k] = lbl
 			}
 			v.ConsentVersion, v.ConsentFor, v.ConsentReview = t.ConsentVersion, t.ConsentFor, fc.ConsentReview(code)
 			at := t.At
@@ -690,7 +729,8 @@ func (s *Service) SaveFormCopy(ctx context.Context, ws *store.Workspace, id, lan
 			code = languages.Base(language)
 		}
 		text := SignupFormCopyText{Heading: strings.TrimSpace(in.Heading), Description: strings.TrimSpace(in.Description), Button: strings.TrimSpace(in.Button),
-			ConsentText: strings.TrimSpace(in.ConsentText), AfterSubmit: strings.TrimSpace(in.AfterSubmit), Fields: map[string]string{}}
+			ConsentText: strings.TrimSpace(in.ConsentText), AfterSubmit: strings.TrimSpace(in.AfterSubmit), Fields: map[string]string{},
+			Options: map[string]string{}, Steps: map[string]string{}}
 		for k, v := range in.Fields {
 			fd, ok := c.Field(k)
 			if !ok || !fieldNeedsLabel(fd) {
@@ -700,6 +740,30 @@ func (s *Service) SaveFormCopy(ctx context.Context, ws *store.Workspace, id, lan
 				return api.Invalid("body.fields."+k, say(ctx, mFieldLabel80, nil))
 			} else if v != "" {
 				text.Fields[k] = v
+			}
+		}
+		for k, v := range in.Options {
+			field, idx, _ := strings.Cut(k, ".")
+			fd, ok := c.Field(field)
+			i, err := strconv.Atoi(idx)
+			if !ok || err != nil || i < 0 || i >= len(fd.Options) {
+				return api.Invalid("body.options."+k, say(ctx, mNoLabelField, nil))
+			}
+			if v = strings.TrimSpace(v); len(v) > 60 {
+				return api.Invalid("body.options."+k, say(ctx, mOptionLabel60, nil))
+			} else if v != "" {
+				text.Options[k] = v
+			}
+		}
+		for k, v := range in.Steps {
+			id, part, _ := strings.Cut(k, ".")
+			if !slices.ContainsFunc(c.Content.Steps, func(st stepDoc) bool { return st.ID == id }) || !slices.Contains([]string{"heading", "description", "button"}, part) {
+				return api.Invalid("body.steps."+k, say(ctx, mNoStepText, nil))
+			}
+			if v = strings.TrimSpace(v); len(v) > stepPartMax[part] {
+				return api.Invalid("body.steps."+k, say(ctx, mStepTextLong, i18n.Args{"max": stepPartMax[part]}))
+			} else if v != "" {
+				text.Steps[k] = v
 			}
 		}
 		if code == c.CopyLanguage {
@@ -715,7 +779,7 @@ func (s *Service) SaveFormCopy(ctx context.Context, ws *store.Workspace, id, lan
 
 func copySnapshot(t SignupFormCopyText, version int) map[string]any {
 	return map[string]any{"heading": t.Heading, "description": t.Description, "button": t.Button, "consentText": t.ConsentText, "consentVersion": version,
-		"afterSubmit": t.AfterSubmit, "fields": t.Fields}
+		"afterSubmit": t.AfterSubmit, "fields": t.Fields, "options": t.Options, "steps": t.Steps}
 }
 
 func (s *Service) saveOwnCopy(ctx context.Context, q *store.Queries, ws *store.Workspace, f store.Form, c Config, code string, text SignupFormCopyText, out *SignupFormCopy) error {
@@ -724,14 +788,37 @@ func (s *Service) saveOwnCopy(ctx context.Context, q *store.Queries, ws *store.W
 	beforeCopy := SignupFormCopyText{Heading: content.Heading, Description: content.Description, Button: c.Content.Button, ConsentText: f.ConsentText,
 		AfterSubmit: content.AfterSubmitText, Fields: map[string]string{}}
 	content.Heading, content.Description, content.Button, content.AfterSubmitText = text.Heading, text.Description, text.Button, text.AfterSubmit
+	beforeCopy.Options, beforeCopy.Steps = map[string]string{}, map[string]string{}
 	fields := slices.Clone(c.Fields)
 	for i, fd := range fields {
 		if fd.Label != "" {
 			beforeCopy.Fields[fd.Key] = fd.Label
 		}
-		if fieldNeedsLabel(fd) {
+		if fieldNeedsLabel(fd) && (fd.Type != FieldChoice || text.Fields[fd.Key] != "") {
 			fields[i].Label = text.Fields[fd.Key]
 		}
+		if len(fd.Options) > 0 {
+			opts := slices.Clone(fd.Options)
+			for j := range opts {
+				k := fd.Key + "." + strconv.Itoa(j)
+				beforeCopy.Options[k] = opts[j].Label
+				if v := text.Options[k]; v != "" {
+					opts[j].Label = v
+				}
+			}
+			fields[i].Options = opts
+		}
+	}
+	// Steps: their own copy, where the text names it (a step's copy may be empty).
+	if len(text.Steps) > 0 || len(content.Steps) > 0 {
+		steps := slices.Clone(content.Steps)
+		for i, st := range steps {
+			for _, p := range stepParts(st) {
+				beforeCopy.Steps[st.ID+"."+p.name] = p.text
+			}
+			steps[i].Heading, steps[i].Description, steps[i].Button = text.Steps[st.ID+".heading"], text.Steps[st.ID+".description"], text.Steps[st.ID+".button"]
+		}
+		content.Steps = steps
 	}
 	version := int(f.ConsentVersion)
 	if text.ConsentText != f.ConsentText && f.ConsentText != "" {
@@ -773,7 +860,8 @@ func (s *Service) saveTranslation(ctx context.Context, q *store.Queries, ws *sto
 	if prev != nil {
 		var d formCopyDoc
 		_ = json.Unmarshal(prev.Content, &d)
-		before = SignupFormCopyText{Heading: d.Heading, Description: d.Description, Button: d.Button, ConsentText: prev.ConsentText, AfterSubmit: d.AfterSubmit, Fields: d.Fields}
+		before = SignupFormCopyText{Heading: d.Heading, Description: d.Description, Button: d.Button, ConsentText: prev.ConsentText, AfterSubmit: d.AfterSubmit, Fields: d.Fields,
+			Options: d.Options, Steps: d.Steps}
 		if before.Fields == nil {
 			before.Fields = map[string]string{}
 		}
@@ -786,7 +874,8 @@ func (s *Service) saveTranslation(ctx context.Context, q *store.Queries, ws *sto
 		version++
 		consentFor = c.ConsentVersion
 	}
-	doc := formCopyDoc{Heading: text.Heading, Description: text.Description, Button: text.Button, AfterSubmit: text.AfterSubmit, Fields: text.Fields}
+	doc := formCopyDoc{Heading: text.Heading, Description: text.Description, Button: text.Button, AfterSubmit: text.AfterSubmit, Fields: text.Fields,
+		Options: text.Options, Steps: text.Steps}
 	raw, _ := json.Marshal(doc)
 	if err := q.FormCopyUpsert(ctx, store.FormCopyUpsertParams{FormID: f.ID, Language: code, Content: raw, ConsentText: text.ConsentText, ConsentVersion: int32(version),
 		ConsentFor: int32(consentFor), By: actor(ctx), At: s.now()}); err != nil {

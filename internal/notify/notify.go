@@ -99,6 +99,9 @@ const (
 	// KindResultsFinal: a campaign report's results are final, for someone
 	// who asked to be emailed then ("Email me when it's final").
 	KindResultsFinal = "results_final"
+	// KindFormTestEnded: a signup form's A/B test ended on its own and kept
+	// the winner (M60 G-25).
+	KindFormTestEnded = "form_test_ended"
 )
 
 // Notification is what appears in the notification center.

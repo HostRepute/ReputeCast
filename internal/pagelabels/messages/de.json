@@ -56,6 +56,9 @@
   "form.typo.keep": "{email} behalten",
   "form.inbox.open": "{provider} öffnen",
   "form.inbox.newTab": "(öffnet in einem neuen Tab)",
+  "form.step.next": "Weiter",
+  "form.step.back": "Zurück",
+  "form.step.of": "Schritt {n} von {total}",
 
   "challenge.title": "Noch ein Schritt",
   "challenge.text": "Ihre Anmeldung wirkte automatisiert, daher möchten wir sicherstellen, dass Sie ein Mensch sind. Das dauert nur eine Sekunde.",
