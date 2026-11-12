@@ -46,6 +46,7 @@ export function CommentsCard({ data, draft, set, ro }: { data: Access; draft: Ac
           {t(ma.who)}
         </span>
         {whoOpts.map(([v, title, text]) => (
+          // eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its radio; the title and text inside are its text
           <label key={v} className={who === v ? 'ws-radio on' : ro ? 'ws-radio off' : 'ws-radio'}>
             <input type="radio" name="ac-cwho" checked={who === v} disabled={ro} onChange={() => set({ comments: v })} />
             <span className="ws-tline">
@@ -60,6 +61,7 @@ export function CommentsCard({ data, draft, set, ro }: { data: Access; draft: Ac
           {t(ma.review)}
         </span>
         {reviewOpts.map(([v, title, text]) => (
+          // eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its radio; the title and text inside are its text
           <label key={v} className={review === v ? 'ws-radio on' : ro ? 'ws-radio off' : 'ws-radio'}>
             <input type="radio" name="ac-crev" checked={review === v} disabled={ro} onChange={() => set({ commentsReview: v })} />
             <span className="ws-tline">

@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Icon } from '@/components/icons/Icon'
@@ -682,6 +682,7 @@ function Stat({ k, v, s }: { k: string; v: number; s: string }) {
 
 function Radio({ name, on, title, text, onPick, disabled }: { name: string; on: boolean; title: string; text: string; onPick: () => void; disabled?: boolean }) {
   return (
+    // eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its radio; the title and text inside are its text
     <label className={on ? 'ws-radio on' : disabled ? 'ws-radio off' : 'ws-radio'}>
       <input type="radio" name={name} checked={on} disabled={disabled} onChange={onPick} />
       <span className="ws-tline">
@@ -869,7 +870,7 @@ function Done({ imp }: { imp: Import }) {
   const p = imp.progress ?? { done: 0, total: 0, imagesCopied: 0, imagesFailed: 0, published: 0, drafts: 0, updated: 0, failed: 0, skipped: 0 }
   const ran = imp.posts.filter((x) => x.outcome && x.outcome !== 'skipped' && x.outcome !== 'failed')
   const published = ran.filter((x) => x.outcome === 'published' && x.publishedAt).map((x) => x.publishedAt!).sort()
-  const summary = useMemo(() => summarize(imp, ran), [imp, ran])
+  const summary = summarize(imp, ran)
   const finished = imp.finishedAt ?? imp.updatedAt
   const count_ = p.published + p.drafts + p.updated
   return (
