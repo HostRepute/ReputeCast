@@ -475,7 +475,7 @@
   },
   "DSCoverage.dc.html": {
    "expand": "fill",
-   "h": 4163,
+   "h": 4443,
    "is_interactive": true,
    "page": "design",
    "title": "UX coverage matrix · every screen × every state",
@@ -579,7 +579,7 @@
    "title": "Earn · sponsors › Requests: requests from the media kit, self-serve booking, the request panel, approve (and the issue taken), decline, awaiting payment, no requests, loading, error, read-only",
    "w": 1440,
    "x": 4680,
-   "y": 23443
+   "y": 26565
   },
   "EarnSponsorRequestsPhone.dc.html": {
    "h": 2430,
@@ -588,7 +588,7 @@
    "title": "Earn · sponsors › Requests · phone",
    "w": 390,
    "x": 5610,
-   "y": 51543
+   "y": 60812
   },
   "EarnSponsorRequestsTablet.dc.html": {
    "h": 1685,
@@ -597,7 +597,7 @@
    "title": "Earn · sponsors › Requests · tablet",
    "w": 834,
    "x": 3816,
-   "y": 46286
+   "y": 51844
   },
   "Feedback.dc.html": {
    "expand": "fill",
@@ -1290,7 +1290,7 @@
    "title": "Public · sponsor media kit",
    "w": 720,
    "x": 4200,
-   "y": 34588
+   "y": 37063
   },
   "PublicSponsorKitPhone.dc.html": {
    "h": 1912,
@@ -1299,7 +1299,7 @@
    "title": "Public · sponsor media kit · phone",
    "w": 390,
    "x": 4080,
-   "y": 51543
+   "y": 60812
   },
   "PublicSponsorRequest.dc.html": {
    "expand": "fill",
@@ -1309,7 +1309,7 @@
    "title": "Public · sponsor request: the form, field errors, sent",
    "w": 720,
    "x": 5040,
-   "y": 34588
+   "y": 37063
   },
   "PublicSponsorRequestPhone.dc.html": {
    "h": 5172,
@@ -1318,7 +1318,7 @@
    "title": "Public · sponsor request · phone",
    "w": 390,
    "x": 4590,
-   "y": 51543
+   "y": 60812
   },
   "PublicSponsorStatus.dc.html": {
    "expand": "fill",
@@ -1328,7 +1328,7 @@
    "title": "Public · sponsor booking status: requested, approved, booked, declined, expired",
    "w": 720,
    "x": 5880,
-   "y": 34588
+   "y": 37063
   },
   "PublicSponsorStatusPhone.dc.html": {
    "h": 4302,
@@ -1337,7 +1337,7 @@
    "title": "Public · sponsor booking status · phone",
    "w": 390,
    "x": 5100,
-   "y": 51543
+   "y": 60812
   },
   "PublicSubscribe.dc.html": {
    "expand": "fill",
@@ -1358,6 +1358,44 @@
    "x": 510,
    "y": 4091
   },
+  "PublicTeamJoin.dc.html": {
+   "expand": "fill",
+   "h": 804,
+   "is_interactive": true,
+   "page": "p6-earn",
+   "title": "Public · join a team: the invite and Accept",
+   "w": 720,
+   "x": 8400,
+   "y": 37063
+  },
+  "PublicTeamJoinPhone.dc.html": {
+   "h": 911,
+   "is_interactive": true,
+   "page": "p6-earn",
+   "title": "Public · join a team · phone",
+   "w": 390,
+   "x": 7140,
+   "y": 60812
+  },
+  "PublicTeamManage.dc.html": {
+   "expand": "fill",
+   "h": 4628,
+   "is_interactive": true,
+   "page": "p6-earn",
+   "title": "Public · manage a team: invite, people, remove, change seats, billing; too few seats, and seats lowered in Stripe",
+   "w": 720,
+   "x": 7560,
+   "y": 37063
+  },
+  "PublicTeamManagePhone.dc.html": {
+   "h": 6103,
+   "is_interactive": true,
+   "page": "p6-earn",
+   "title": "Public · manage a team · phone",
+   "w": 390,
+   "x": 6630,
+   "y": 60812
+  },
   "PublicUnsubscribe.dc.html": {
    "expand": "fill",
    "h": 750,
@@ -1367,6 +1405,25 @@
    "w": 720,
    "x": 3920,
    "y": 0
+  },
+  "PublicUpgradeTeam.dc.html": {
+   "expand": "fill",
+   "h": 1927,
+   "is_interactive": true,
+   "page": "p6-earn",
+   "title": "Public · upgrade page for a team: seats, team name, buyer email, the total; field errors",
+   "w": 720,
+   "x": 6720,
+   "y": 37063
+  },
+  "PublicUpgradeTeamPhone.dc.html": {
+   "h": 2226,
+   "is_interactive": true,
+   "page": "p6-earn",
+   "title": "Public · upgrade page for a team · phone",
+   "w": 390,
+   "x": 6120,
+   "y": 60812
   },
   "ReadmeBanner.dc.html": {
    "h": 640,
@@ -3401,7 +3458,7 @@
    "x": 0,
    "y": 5372,
    "w": 1440,
-   "h": 1665,
+   "h": 2059,
    "title": "Earn · settings › Payments: Stripe live and test keys, webhook, checkout and tax, event log",
    "page": "p6-earn",
    "is_interactive": true,
@@ -3411,7 +3468,7 @@
    "x": 1560,
    "y": 5372,
    "w": 1440,
-   "h": 3549,
+   "h": 3875,
    "title": "Earn · settings › Member emails, Access, Attribution (conversion API) and Pages",
    "page": "p6-earn",
    "is_interactive": true,
@@ -3451,8 +3508,8 @@
    "x": 3120,
    "y": 11345,
    "w": 1440,
-   "h": 3989,
-   "title": "Earn · tier editor: Weekly Digest Insider, and changing a price, archiving, creating in Stripe, Stripe error, yearly warning",
+   "h": 4920,
+   "title": "Earn · tier editor: Weekly Digest Insider with group prices, and changing a price, archiving, creating in Stripe, Stripe error, yearly warning, seats out of range",
    "page": "p6-earn",
    "is_interactive": true,
    "expand": "fill"
@@ -3479,9 +3536,9 @@
   },
   "EarnMembers.dc.html": {
    "x": 0,
-   "y": 15814,
+   "y": 16727,
    "w": 1440,
-   "h": 971,
+   "h": 1125,
    "title": "Earn · paid members",
    "page": "p6-earn",
    "is_interactive": true,
@@ -3489,19 +3546,19 @@
   },
   "EarnMembersStates.dc.html": {
    "x": 1560,
-   "y": 15814,
+   "y": 16727,
    "w": 1440,
-   "h": 4075,
-   "title": "Earn · paid members: past due, ended, test data, empty, no results, read-only, loading, error",
+   "h": 4614,
+   "title": "Earn · paid members: past due, paused, ended, test data, empty, no results, read-only, loading, error",
    "page": "p6-earn",
    "is_interactive": true,
    "expand": "fill"
   },
   "EarnMemberPanel.dc.html": {
    "x": 3120,
-   "y": 15814,
+   "y": 16727,
    "w": 1440,
-   "h": 971,
+   "h": 1125,
    "title": "Earn · member panel: Sam Rivera, Insider yearly with FALL26",
    "page": "p6-earn",
    "is_interactive": true,
@@ -3509,17 +3566,17 @@
   },
   "EarnMemberPanelStates.dc.html": {
    "x": 4680,
-   "y": 15814,
+   "y": 16727,
    "w": 1440,
-   "h": 2891,
-   "title": "Earn · member panel: past due, refunded, two subscriptions, read-only, complimentary and cancel dialogs",
+   "h": 6284,
+   "title": "Earn · member panel: past due, refunded, two subscriptions, read-only, complimentary and cancel dialogs, a team and its seats, pause and resume",
    "page": "p6-earn",
    "is_interactive": true,
    "expand": "fill"
   },
   "EarnImport.dc.html": {
    "x": 6240,
-   "y": 15814,
+   "y": 16727,
    "w": 1440,
    "h": 971,
    "title": "Earn · import paid members: Substack, step 3, matched with Stripe",
@@ -3529,7 +3586,7 @@
   },
   "EarnImportStates.dc.html": {
    "x": 7800,
-   "y": 15814,
+   "y": 16727,
    "w": 1440,
    "h": 2879,
    "title": "Earn · import paid members: source, upload, no Stripe, no email column, unknown price, conflict, importing, done",
@@ -3539,7 +3596,7 @@
   },
   "EarnInReport.dc.html": {
    "x": 0,
-   "y": 20351,
+   "y": 23473,
    "w": 1440,
    "h": 1691,
    "title": "Campaigns and the campaign report · Paid only badge and filter, sponsor chip, Revenue and Sponsor sections (changes Campaigns, Report, ReportStates)",
@@ -3549,7 +3606,7 @@
   },
   "EarnInAudience.dc.html": {
    "x": 1560,
-   "y": 20369,
+   "y": 23491,
    "w": 1440,
    "h": 2055,
    "title": "Audience · paid status in contacts, the contact profile and segments (changes Contacts, ContactProfile, SegmentBuilder)",
@@ -3559,7 +3616,7 @@
   },
   "PublicPreferencesPaid.dc.html": {
    "x": 3120,
-   "y": 20351,
+   "y": 23473,
    "w": 720,
    "h": 2612,
    "title": "Public · preference center, unsubscribe page and archive for paid and free readers (changes PublicPreferences, PublicUnsubscribe, PublicArchive)",
@@ -3569,7 +3626,7 @@
   },
   "EarnGifts.dc.html": {
    "x": 0,
-   "y": 23443,
+   "y": 26565,
    "w": 1440,
    "h": 4327,
    "title": "Earn · gifts",
@@ -3579,7 +3636,7 @@
   },
   "EarnSponsors.dc.html": {
    "x": 1560,
-   "y": 23461,
+   "y": 26583,
    "w": 1440,
    "h": 5059,
    "title": "Earn · sponsors, with the Requests tab and self-serve booking off or refused",
@@ -3589,7 +3646,7 @@
   },
   "EarnBooking.dc.html": {
    "x": 3120,
-   "y": 23443,
+   "y": 26565,
    "w": 1440,
    "h": 4805,
    "title": "Earn · booking panel, payment and report sharing, a booking paid by Stripe, the slot editor with self-serve",
@@ -3599,7 +3656,7 @@
   },
   "ComposerEarnBlocks.dc.html": {
    "x": 0,
-   "y": 28982,
+   "y": 32104,
    "w": 1440,
    "h": 5126,
    "title": "Composer · Sponsor and Upgrade blocks, paid-only content and campaign",
@@ -3609,9 +3666,9 @@
   },
   "PublicUpgrade.dc.html": {
    "x": 0,
-   "y": 34588,
+   "y": 42153,
    "w": 720,
-   "h": 1436,
+   "h": 1486,
    "title": "Public · upgrade page",
    "page": "p6-earn",
    "is_interactive": true,
@@ -3619,17 +3676,17 @@
   },
   "PublicCancel.dc.html": {
    "x": 840,
-   "y": 34588,
+   "y": 42153,
    "w": 720,
-   "h": 795,
-   "title": "Public · cancel page",
+   "h": 1054,
+   "title": "Public · cancel page, with Pause instead",
    "page": "p6-earn",
    "is_interactive": true,
    "expand": "fill"
   },
   "PublicGift.dc.html": {
    "x": 1680,
-   "y": 34606,
+   "y": 42171,
    "w": 720,
    "h": 2160,
    "title": "Public · give a gift and redeem it",
@@ -3639,7 +3696,7 @@
   },
   "PublicSponsorReport.dc.html": {
    "x": 2520,
-   "y": 34606,
+   "y": 42171,
    "w": 720,
    "h": 1121,
    "title": "Public · sponsor report",
@@ -3649,17 +3706,17 @@
   },
   "PublicEarnStates.dc.html": {
    "x": 3360,
-   "y": 34588,
+   "y": 42153,
    "w": 720,
-   "h": 11218,
-   "title": "Public · checkout return, offers, already paid, cancel, gift, report and sponsor booking states",
+   "h": 14929,
+   "title": "Public · checkout return, offers, already paid, cancel, gift, report, sponsor booking, team and pause states",
    "page": "p6-earn",
    "is_interactive": true,
    "expand": "fill"
   },
   "EarnOverviewTablet.dc.html": {
    "x": 0,
-   "y": 46268,
+   "y": 57544,
    "w": 834,
    "h": 4777,
    "title": "Earn · overview · tablet",
@@ -3668,7 +3725,7 @@
   },
   "EarnPlansTablet.dc.html": {
    "x": 954,
-   "y": 46286,
+   "y": 57562,
    "w": 834,
    "h": 1336,
    "title": "Earn · plans & offers · tablet",
@@ -3677,16 +3734,16 @@
   },
   "EarnMembersTablet.dc.html": {
    "x": 1908,
-   "y": 46286,
+   "y": 57562,
    "w": 834,
-   "h": 1116,
+   "h": 1304,
    "title": "Earn · paid members · tablet",
    "page": "p6-earn",
    "is_interactive": true
   },
   "EarnSponsorsTablet.dc.html": {
    "x": 2862,
-   "y": 46286,
+   "y": 57562,
    "w": 834,
    "h": 1195,
    "title": "Earn · sponsors · tablet",
@@ -3695,7 +3752,7 @@
   },
   "EarnOverviewPhone.dc.html": {
    "x": 0,
-   "y": 51525,
+   "y": 67377,
    "w": 390,
    "h": 5816,
    "title": "Earn · overview · phone",
@@ -3704,7 +3761,7 @@
   },
   "EarnPlansPhone.dc.html": {
    "x": 510,
-   "y": 51525,
+   "y": 67377,
    "w": 390,
    "h": 2557,
    "title": "Earn · plans & offers · phone",
@@ -3713,16 +3770,16 @@
   },
   "EarnMembersPhone.dc.html": {
    "x": 1020,
-   "y": 51543,
+   "y": 67395,
    "w": 390,
-   "h": 1787,
+   "h": 1984,
    "title": "Earn · paid members · phone",
    "page": "p6-earn",
    "is_interactive": true
   },
   "EarnSponsorsPhone.dc.html": {
    "x": 1530,
-   "y": 51543,
+   "y": 67395,
    "w": 390,
    "h": 1830,
    "title": "Earn · sponsors · phone",
@@ -3731,25 +3788,25 @@
   },
   "PublicUpgradePhone.dc.html": {
    "x": 2040,
-   "y": 51543,
+   "y": 67395,
    "w": 390,
-   "h": 2093,
+   "h": 2129,
    "title": "Public · upgrade page · phone",
    "page": "p6-earn",
    "is_interactive": true
   },
   "PublicCancelPhone.dc.html": {
    "x": 2550,
-   "y": 51543,
+   "y": 67395,
    "w": 390,
-   "h": 1038,
+   "h": 1337,
    "title": "Public · cancel page · phone",
    "page": "p6-earn",
    "is_interactive": true
   },
   "PublicGiftPhone.dc.html": {
    "x": 3060,
-   "y": 51543,
+   "y": 67395,
    "w": 390,
    "h": 2769,
    "title": "Public · give a gift and redeem it · phone",
@@ -3758,7 +3815,7 @@
   },
   "PublicSponsorReportPhone.dc.html": {
    "x": 3570,
-   "y": 51543,
+   "y": 67395,
    "w": 390,
    "h": 1443,
    "title": "Public · sponsor report · phone",
@@ -4443,7 +4500,7 @@
   },
   "AutomationsComplete.dc.html": {
    "expand": "fill",
-   "h": 3440,
+   "h": 3574,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations, complete · manage flows, contacts at a step, test send, resume, triggers, marketing cap, sequence stats, paid-member triggers",
@@ -5433,15 +5490,15 @@
   },
   "t-p6-earn-3": {
    "x": 0,
-   "y": 15514,
-   "text": "Paid members · the list by paid status, the member panel with Stripe's events in its timeline, complimentary access and cancellations, and the import from Substack matched with Stripe.",
+   "y": 16427,
+   "text": "Paid members · the list by paid status, the member panel with Stripe's events in its timeline, complimentary access and cancellations, and the import from Substack matched with Stripe. Teams show their seats, and payments can pause and resume.",
    "kind": "title1",
    "maxW": 9240,
    "page": "p6-earn"
   },
   "t-p6-earn-4": {
    "x": 0,
-   "y": 20051,
+   "y": 23173,
    "text": "Earn in the rest of the app · Paid only campaigns and the report's Revenue section, paid status in Audience, and what paid and free readers see on the public preference center, unsubscribe page and archive.",
    "kind": "title1",
    "maxW": 3840,
@@ -5449,7 +5506,7 @@
   },
   "t-p6-earn-5": {
    "x": 0,
-   "y": 23143,
+   "y": 26265,
    "text": "Gifts and sponsorships · gift options and every gift bought, sponsor slots and bookings by issue, and the booking panel where payments are recorded and sponsor reports are shared. Sponsorships work without Stripe. Sponsors can also book from a media kit: their requests wait for approval, then they pay through Stripe.",
    "kind": "title1",
    "maxW": 4560,
@@ -5457,7 +5514,7 @@
   },
   "t-p6-earn-6": {
    "x": 0,
-   "y": 28682,
+   "y": 31804,
    "text": "Composer · the Sponsor block filled from the booking and always labelled, the Upgrade block for free subscribers, paid-only content in two versions, and a campaign for paid members only.",
    "kind": "title1",
    "maxW": 1440,
@@ -5465,15 +5522,15 @@
   },
   "t-p6-earn-7": {
    "x": 0,
-   "y": 34288,
-   "text": "Public Earn pages in the publisher's branding · honest prices on the upgrade page, a cancel page with one offer and buttons of equal size, the gift flow, the sponsor's read-only report, and the sponsor media kit with its request form and booking status.",
+   "y": 41853,
+   "text": "Public Earn pages in the publisher's branding · honest prices on the upgrade page, a cancel page with a pause and one offer and buttons of equal size, the gift flow, buying for a team and managing it, the sponsor's read-only report, and the sponsor media kit with its request form and booking status.",
    "kind": "title1",
    "maxW": 4080,
    "page": "p6-earn"
   },
   "t-p6-earn-tablet": {
    "x": 0,
-   "y": 45968,
+   "y": 57244,
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "kind": "title1",
    "maxW": 3696,
@@ -5481,7 +5538,7 @@
   },
   "t-p6-earn-phone": {
    "x": 0,
-   "y": 51225,
+   "y": 67077,
    "text": "Phone · 390 px wide. Four sections and More in the bottom tab bar; long screens scroll.",
    "kind": "title1",
    "maxW": 3960,
@@ -6001,6 +6058,9 @@
   "PublicSponsorKit.dc.html",
   "PublicSponsorRequest.dc.html",
   "PublicSponsorStatus.dc.html",
+  "PublicUpgradeTeam.dc.html",
+  "PublicTeamManage.dc.html",
+  "PublicTeamJoin.dc.html",
   "PublicEarnStates.dc.html",
   "EarnOverviewTablet.dc.html",
   "EarnPlansTablet.dc.html",
@@ -6019,6 +6079,9 @@
   "PublicSponsorKitPhone.dc.html",
   "PublicSponsorRequestPhone.dc.html",
   "PublicSponsorStatusPhone.dc.html",
+  "PublicUpgradeTeamPhone.dc.html",
+  "PublicTeamManagePhone.dc.html",
+  "PublicTeamJoinPhone.dc.html",
   "WebsitePosts.dc.html",
   "ComposerPublishToWeb.dc.html",
   "WebsiteHomeNav.dc.html",

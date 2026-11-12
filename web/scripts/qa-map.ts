@@ -425,6 +425,12 @@ export const entries: Entry[] = [
   { board: 'PublicSponsorRequestPhone', path: '/p/acme-newsletter/sponsor/request', user: 'anon', widths: [390] },
   { board: 'PublicSponsorStatus', manual: true },
   { board: 'PublicSponsorStatusPhone', manual: true },
+  { board: 'PublicUpgradeTeam', path: '/p/acme-newsletter/upgrade/insider/team', user: 'anon', widths: [720] },
+  { board: 'PublicUpgradeTeamPhone', path: '/p/acme-newsletter/upgrade/insider/team', user: 'anon', widths: [390] },
+  { board: 'PublicTeamManage', manual: true },
+  { board: 'PublicTeamManagePhone', manual: true },
+  { board: 'PublicTeamJoin', manual: true },
+  { board: 'PublicTeamJoinPhone', manual: true },
   // X18 · the publication website. The demo's website is on at news.acme.io. WebsiteStates holds
   // the off and turning-on pages, address problems, read-only views and the elsewhere-in-the-app
   // frames: reproduce them by hand (turn the website off in a dev database, sign in as aisha@acme.io).
