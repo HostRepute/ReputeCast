@@ -215,6 +215,9 @@
   .sp-ini.sm {
     width: 22px;
     height: 22px;
+    font-size: 10px;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
   }
   .sp-ini.lg {
     width: 32px;

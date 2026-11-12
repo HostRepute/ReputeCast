@@ -182,7 +182,8 @@ export function RequestsTab({ selected, onOpen }: { selected?: string; onOpen: (
             </span>
             <span className="sp-lst-badges">
               <RequestStatus r={r} />
-              <span className="k">{t(mr.sentOn, { date: dayMonthDate(r.submittedAt) })}</span>
+              {/* An approved request's date is its pay-by date: the row keeps to one line of badges. */}
+              {r.status === 'awaiting_payment' ? null : <span className="k">{t(mr.sentOn, { date: dayMonthDate(r.submittedAt) })}</span>}
             </span>
           </button>
         ))}
@@ -469,7 +470,7 @@ function SelfServeForm({ d, slots, onEditSlot }: { d: SelfServe; slots: SlotItem
           </div>
         </div>
       )}
-      <div className="foot">
+      <div className="ea-foot">
         <span className="k">{t(mr.ssFoot)}</span>
         {on ? (
           <Button size="sm" variant="primary" disabledReason={ro} disabled={!dirty} loading={save.isPending} onClick={submit}>
@@ -524,7 +525,7 @@ function RequestView({ d, onClose, reload }: { d: Detail; onClose: () => void; r
             <dt>{t(mr.company)}</dt>
             <dd>
               <span className="inline-flex flex-wrap items-center gap-2">
-                <Initials initials={d.initials || initialsOf(d.company)} logo={d.logo} size="sm" />
+                <Initials initials={d.initials || initialsOf(d.company)} size="sm" />
                 <span className="font-semibold">{d.company}</span>
                 {d.website ? <span className="k">{d.website}</span> : null}
               </span>

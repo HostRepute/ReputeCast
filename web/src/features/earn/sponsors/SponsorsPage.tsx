@@ -698,7 +698,9 @@ function Library({ data, onEdit }: { data: Overview; onEdit: (s: SponsorItem) =>
         </table>
       </div>
       <div className="sp-foot">
-        <span className="k">{t(msp.libraryFoot)}</span>
+        <span className="k">
+          {t(msp.libraryFoot)} {t(mr.libFootRequests)}
+        </span>
       </div>
     </>
   )

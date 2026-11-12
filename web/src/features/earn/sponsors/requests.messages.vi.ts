@@ -195,4 +195,5 @@ export default translate(mr, {
   close: 'Đóng',
   copyLink: 'Sao chép liên kết tới yêu cầu này',
   eyebrowReadOnly: '{list} · yêu cầu · chỉ xem',
+  libFootRequests: 'Một yêu cầu từ media kit sẽ thêm nhà tài trợ của nó vào đây, hoặc gộp vào nhà tài trợ có cùng email.',
 })

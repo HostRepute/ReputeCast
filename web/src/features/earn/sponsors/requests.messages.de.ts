@@ -195,4 +195,5 @@ export default translate(mr, {
   close: 'Schließen',
   copyLink: 'Link zu dieser Anfrage kopieren',
   eyebrowReadOnly: '{list} · Anfrage · nur Lesezugriff',
+  libFootRequests: 'Eine Anfrage über das Media-Kit fügt ihren Sponsor hier hinzu oder ordnet sich dem mit derselben E-Mail-Adresse zu.',
 })

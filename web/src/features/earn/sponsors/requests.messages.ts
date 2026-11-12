@@ -198,4 +198,5 @@ export const mr = defineMessages('earn.sponsorRequests', {
   close: 'Close',
   copyLink: 'Copy link to this request',
   eyebrowReadOnly: '{list} · request · read-only',
+  libFootRequests: 'A request from the media kit adds its sponsor here, or joins the one with the same email.',
 })

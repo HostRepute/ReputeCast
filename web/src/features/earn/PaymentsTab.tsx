@@ -833,7 +833,7 @@ function PausingCard({ pay }: { pay: Payments }) {
           <div>{t(ms.pausingNote)}</div>
         </div>
       </div>
-      <div className="foot">
+      <div className="ea-foot">
         <span className="k">{t(ms.pausingRecorded)}</span>
         <Button size="sm" variant="primary" disabledReason={ro} disabled={!dirty} loading={save.isPending} onClick={submit}>
           {t(ms.pausingSave)}

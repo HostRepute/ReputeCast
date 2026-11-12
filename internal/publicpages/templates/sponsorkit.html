@@ -29,7 +29,7 @@
     {{else}}<div class="col10">
       <h3 class="sp-h3">{{index $w "available"}}</h3>
       <span class="pnote">{{index $w "availableNote"}}</span>
-      <div class="sp-issues">{{range .Slots}}{{range .Issues}}<a class="sp-issue" href="{{.Href}}" aria-label="{{.Label}}"><b>{{.Date}}</b><span class="pnote">{{.Line}}</span></a>{{end}}{{end}}</div>
+      <div class="sp-issues">{{range .Slots}}{{range .Issues}}<a class="sp-issue" href="{{.Href}}"><span class="vh">{{.Label}}: </span><b>{{.Date}}</b><span class="pnote">{{.Line}}</span></a>{{end}}{{end}}</div>
     </div>
     <a class="btn-pri" href="{{.RequestHref}}">{{index $w "request"}}</a>
     {{end}}

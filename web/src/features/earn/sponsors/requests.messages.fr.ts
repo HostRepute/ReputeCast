@@ -195,4 +195,5 @@ export default translate(mr, {
   close: 'Fermer',
   copyLink: 'Copier le lien vers cette demande',
   eyebrowReadOnly: '{list} · demande · lecture seule',
+  libFootRequests: 'Une demande venue du kit média ajoute son sponsor ici, ou rejoint celui qui a la même adresse e-mail.',
 })

@@ -195,4 +195,5 @@ export default translate(mr, {
   close: 'Cerrar',
   copyLink: 'Copiar el enlace a esta solicitud',
   eyebrowReadOnly: '{list} · solicitud · solo lectura',
+  libFootRequests: 'Una solicitud del media kit añade aquí a su patrocinador, o se une al que tiene el mismo correo.',
 })
