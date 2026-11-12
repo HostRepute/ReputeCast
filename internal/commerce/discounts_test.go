@@ -49,12 +49,12 @@ func TestDiscountSources(t *testing.T) {
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")
 	var st commerce.CommerceConnectState
-	c.Do("GET", "/workspaces/acme-newsletter/commerce/stores/"+merch.StoreID.String()+"/connect", nil).MustStatus(t, 200).JSON(t, &st)
+	c.Do("GET", "/workspaces/acme-newsletter/stores/"+merch.StoreID.String()+"/connect", nil).MustStatus(t, 200).JSON(t, &st)
 	if !st.DiscountsGranted {
 		t.Fatalf("connect state %+v", st)
 	}
 	var inst commerce.CommerceInstall
-	c.Do("POST", "/workspaces/acme-newsletter/commerce/stores/"+merch.StoreID.String()+"/allow-discounts", nil).MustStatus(t, 200).JSON(t, &inst)
+	c.Do("POST", "/workspaces/acme-newsletter/stores/"+merch.StoreID.String()+"/allow-discounts", nil).MustStatus(t, 200).JSON(t, &inst)
 	if inst.URL == "" {
 		t.Fatal("no approval page")
 	}

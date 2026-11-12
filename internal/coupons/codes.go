@@ -139,7 +139,7 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		now := s.now()
-		batch, err := q.CouponBatchInsert(ctx, store.CouponBatchInsertParams{ID: newID(), WorkspaceID: ws.ID, PoolID: p.ID, Kind: "upload",
+		batch, err := q.CouponBatchInsert(ctx, store.CouponBatchInsertParams{ID: newID(), WorkspaceID: ws.ID, PoolID: p.ID, Kind: "upload", Reason: "request",
 			Requested: int32(len(codes)), Status: "running", CreatedBy: by, Now: now})
 		if err != nil {
 			return err
