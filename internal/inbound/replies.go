@@ -218,7 +218,8 @@ func (s *Service) Replies(ctx context.Context, ws *store.Workspace, p ReplyListP
 		out.Items = append(out.Items, listItem(r.ID, r.Kind, r.FromName, r.FromEmail, r.Subject, r.Preview, r.ReceivedAt, r.Status, r.AutoReply, r.Spam,
 			r.AsksUnsubscribe, r.ContactID, r.CampaignID, r.CampaignName, r.AutomationID, r.AutomationName))
 	}
-	c, err := s.Q.RepliesCounts(ctx, store.RepliesCountsParams{WorkspaceID: ws.ID, CampaignID: p.CampaignID, AutomationID: p.AutomationID, Q: q})
+	// The chips count each view as it is, whatever the search (RepliesStates).
+	c, err := s.Q.RepliesCounts(ctx, store.RepliesCountsParams{WorkspaceID: ws.ID, CampaignID: p.CampaignID, AutomationID: p.AutomationID})
 	if err != nil {
 		return out, err
 	}
