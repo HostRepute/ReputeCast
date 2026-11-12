@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
@@ -89,7 +89,7 @@ export function NewPoolDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const list = sources.data?.items ?? []
   const store: Source | undefined = list.find((s) => s.storeId === source)
   const currency = store?.currency || 'USD'
-  const collections = useMemo(() => catalog.data?.stores.find((s) => s.id === store?.storeId)?.collections ?? [], [catalog.data, store])
+  const collections = catalog.data?.stores.find((s) => s.id === store?.storeId)?.collections ?? []
   const token = `coupons.${slug || 'welcome15'}`
 
   const submit = async () => {

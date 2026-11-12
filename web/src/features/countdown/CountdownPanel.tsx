@@ -79,8 +79,9 @@ export function CountdownPanel({ c }: { c: Component }) {
   const [field, setField] = useState<Field>('background')
   const attrs = c.getAttributes() as Record<string, string>
   const [alt, setAlt] = useState(attrs.alt ?? '')
-  const auto = useRef(attrs.alt ?? '')
-  const own = alt !== '' && alt !== auto.current
+  // The alt text the server wrote last: the reader's own differs from it.
+  const [autoAlt, setAutoAlt] = useState(attrs.alt ?? '')
+  const own = alt !== '' && alt !== autoAlt
   const timer = useRef<number | undefined>(undefined)
   const kept = useRef(initial.digits)
 
@@ -100,29 +101,31 @@ export function CountdownPanel({ c }: { c: Component }) {
       setBusy(true)
       countdownImage(slug, next)
         .then((img) => {
-          const keepOwn = own
           applyCountdown(c, next, img)
-          auto.current = img.alt
+          setAutoAlt(img.alt)
           kept.current = next.digits
-          if (keepOwn) c.addAttributes({ alt })
+          if (own) c.addAttributes({ alt })
           else setAlt(img.alt)
         })
         .catch((e: unknown) => setError(t(m.failed, { reason: errorMessage(e) })))
         .finally(() => setBusy(false))
     }, 500)
   }
-  useEffect(() => () => window.clearTimeout(timer.current), [])
-  useEffect(() => {
-    if (initial.language !== language) change({ language })
-    // Only when the language version changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language])
-
   const change = (patch: Partial<CountdownSettings>) => {
     const next = { ...s, ...patch }
     setS(next)
     push(next)
   }
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  // The labels follow the language version being edited: a block made in
+  // another version is drawn again in this one.
+  useEffect(() => {
+    if (initial.language === language) return
+    const id = window.setTimeout(() => change({ language }), 0)
+    return () => window.clearTimeout(id)
+    // Only when the language version changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language])
   const [date, time] = s.endsAt.split('T') as [string, string]
   const end = zonedMoment(s.endsAt, s.timeZone)
   const others = ['Europe/Berlin', 'Asia/Ho_Chi_Minh', 'America/New_York'].filter((z) => z !== s.timeZone).slice(0, 2) as [string, string]
@@ -284,7 +287,7 @@ export function CountdownPanel({ c }: { c: Component }) {
           value={alt}
           onChange={(e) => setAlt(e.target.value)}
           onBlur={() => {
-            const v = alt.trim() || auto.current
+            const v = alt.trim() || autoAlt
             setAlt(v)
             c.addAttributes({ alt: v })
           }}

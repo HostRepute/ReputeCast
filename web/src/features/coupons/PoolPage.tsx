@@ -13,6 +13,7 @@ import '@/features/integrations/integrations.css'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { clock, count, dayMonthDate, dayMonthYear, shortDate, trimPct } from '@/lib/format'
+import { useNow } from '@/lib/hooks'
 import { deniedReason, useCan, useMe, useWorkspace } from '@/lib/session'
 import { bareAddress, exampleCode, money, perCall, platformName, redeemedShare, sampleCode, usePool, useRefreshCoupons, type Batch, type Pool, type PoolUse } from './api'
 import { m } from './messages'
@@ -398,6 +399,7 @@ function listOr(names: string[]): string {
 /** The batch under way, a store slowing it down, or why the last one failed. */
 function BatchState({ p, can }: { p: Pool; can: boolean }) {
   const t = useT()
+  const now = useNow(5_000)
   const { slug } = useWorkspace()
   const refresh = useRefreshCoupons()
   const store = p.store?.name ?? ''
@@ -441,7 +443,7 @@ function BatchState({ p, can }: { p: Pool; can: boolean }) {
       </section>
     )
   }
-  const slow = b.waitingUntil && new Date(b.waitingUntil).getTime() > Date.now()
+  const slow = !!b.waitingUntil && new Date(b.waitingUntil).getTime() > now.getTime()
   const share = b.requested > 0 ? Math.min(100, Math.round((b.created / b.requested) * 100)) : 0
   return (
     <section className="card" aria-labelledby="cp-bt-h">
