@@ -34,7 +34,9 @@ const MaxMailboxLocal = 22
 
 // tagEncoding is RFC 4648 base32, lower case, without padding: it survives
 // mail systems that lower-case addresses.
-var tagEncoding = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
+var tagEncoding = base32.NewEncoding(tagAlphabet).WithPadding(base32.NoPadding)
+
+const tagAlphabet = "abcdefghijklmnopqrstuvwxyz234567"
 
 // macLen is how much of the digest a tag carries: 64 bits, so an address
 // for a message can't be guessed from its id.
@@ -66,7 +68,10 @@ func Decode(s *linktoken.Signer, workspaceID uuid.UUID, tag string) (letter byte
 		return 0, uuid.Nil, false
 	}
 	b, err := tagEncoding.DecodeString(tag[2:])
-	if err != nil || len(b) != 16+macLen {
+	// Only the spelling Encode makes: the last character's spare bits are
+	// zero, so a tag has one form and a changed last character never
+	// decodes to the same bytes.
+	if err != nil || len(b) != 16+macLen || tagEncoding.EncodeToString(b) != tag[2:] {
 		return 0, uuid.Nil, false
 	}
 	copy(messageID[:], b[:16])
