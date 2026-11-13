@@ -1835,6 +1835,9 @@ type Querier interface {
 	FormSetCopy(ctx context.Context, arg FormSetCopyParams) (Form, error)
 	FormSetLanguage(ctx context.Context, arg FormSetLanguageParams) (Form, error)
 	FormSetStatus(ctx context.Context, arg FormSetStatusParams) (Form, error)
+	// Serializes picking form slugs in a workspace until the transaction ends,
+	// so two requests never pick the same free slug.
+	FormSlugLock(ctx context.Context, workspaceID uuid.UUID) error
 	FormSlugTaken(ctx context.Context, arg FormSlugTakenParams) (bool, error)
 	// Per form: views, submissions, confirmations of those submissions and spam
 	// blocked since a day (inclusive).

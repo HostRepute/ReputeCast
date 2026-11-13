@@ -795,14 +795,22 @@ func asciiFold(s string) string {
 	return r.Replace(strings.ToLower(s))
 }
 
-func (s *Service) uniqueSlug(ctx context.Context, q *store.Queries, ws *store.Workspace, name string, except uuid.UUID) (string, error) {
+// UniqueSlug picks a free slug for a form named name in a workspace (form
+// except keeps its own). q must be the transaction that then writes the
+// slug: it takes the workspace's slug lock, held until that transaction
+// ends, so a create or rename running at the same moment waits and doesn't
+// pick the same slug.
+func UniqueSlug(ctx context.Context, q *store.Queries, workspaceID uuid.UUID, name string, except uuid.UUID) (string, error) {
+	if err := q.FormSlugLock(ctx, workspaceID); err != nil {
+		return "", err
+	}
 	base := Slugify(name, 50)
 	if base == "" {
 		base = "form"
 	}
 	slug := base
 	for i := 2; ; i++ {
-		taken, err := q.FormSlugTaken(ctx, store.FormSlugTakenParams{WorkspaceID: ws.ID, Slug: slug, ID: except})
+		taken, err := q.FormSlugTaken(ctx, store.FormSlugTakenParams{WorkspaceID: workspaceID, Slug: slug, ID: except})
 		if err != nil {
 			return "", err
 		}
@@ -878,7 +886,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, in SignupForm
 	var f store.Form
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		slug, err := s.uniqueSlug(ctx, q, ws, name, uuid.Nil)
+		slug, err := UniqueSlug(ctx, q, ws.ID, name, uuid.Nil)
 		if err != nil {
 			return err
 		}
@@ -1172,7 +1180,7 @@ func (s *Service) Rename(ctx context.Context, ws *store.Workspace, id string, in
 		}
 		slug := before.Slug
 		if name != before.Name {
-			if slug, err = s.uniqueSlug(ctx, q, ws, name, before.ID); err != nil {
+			if slug, err = UniqueSlug(ctx, q, ws.ID, name, before.ID); err != nil {
 				return err
 			}
 		}

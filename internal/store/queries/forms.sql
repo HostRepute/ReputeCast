@@ -15,6 +15,11 @@ SELECT * FROM forms WHERE workspace_id = @workspace_id AND slug = @slug;
 -- name: FormSlugTaken :one
 SELECT EXISTS (SELECT 1 FROM forms WHERE workspace_id = @workspace_id AND slug = @slug AND id <> @id)::boolean;
 
+-- name: FormSlugLock :exec
+-- Serializes picking form slugs in a workspace until the transaction ends,
+-- so two requests never pick the same free slug.
+SELECT pg_advisory_xact_lock(hashtextextended('form_slug:' || (@workspace_id::uuid)::text, 0));
+
 -- name: FormPublicIDTaken :one
 SELECT EXISTS (SELECT 1 FROM forms WHERE workspace_id = @workspace_id AND public_id = @public_id)::boolean;
 

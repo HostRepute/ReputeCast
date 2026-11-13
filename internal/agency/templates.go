@@ -993,20 +993,11 @@ func (s *Service) insertForm(ctx context.Context, q *store.Queries, wsID uuid.UU
 			ids = append(ids, uuid.MustParse(v))
 		}
 	}
-	base := forms.Slugify(name, 50)
-	if base == "" {
-		base = "form"
-	}
-	slug := base
-	for i := 2; ; i++ {
-		taken, err := q.FormSlugTaken(ctx, store.FormSlugTakenParams{WorkspaceID: wsID, Slug: slug, ID: uuid.Nil})
-		if err != nil {
-			return uuid.Nil, err
-		}
-		if !taken && slug != "subscribe" && slug != "challenge" {
-			break
-		}
-		slug = fmt.Sprintf("%s-%d", base, i)
+	// The same slug as the builder would pick, under its lock (q is the
+	// applying transaction).
+	slug, err := forms.UniqueSlug(ctx, q, wsID, name, uuid.Nil)
+	if err != nil {
+		return uuid.Nil, err
 	}
 	pid := ""
 	for range 8 {
@@ -1031,7 +1022,7 @@ func (s *Service) insertForm(ctx context.Context, q *store.Queries, wsID uuid.UU
 		return raw
 	}
 	id := uuid.Must(uuid.NewV7())
-	_, err := q.FormInsert(ctx, store.FormInsertParams{ID: id, WorkspaceID: wsID, Name: name, Kind: kind, Slug: slug, PublicID: pid,
+	_, err = q.FormInsert(ctx, store.FormInsertParams{ID: id, WorkspaceID: wsID, Name: name, Kind: kind, Slug: slug, PublicID: pid,
 		ListIds: ids, DefaultListIds: ids, ListChoice: false, DoubleOptIn: f.DoubleOptIn, Fields: orEmpty(f.Fields, `[]`), Content: orEmpty(f.Content, `{}`),
 		SpamProtection: orEmpty(f.SpamProtection, `{}`), ConsentText: f.ConsentText, ConsentVersion: 1, AllowedOrigins: []string{}, AfterSubmit: "message",
 		RedirectUrl: "", Status: "paused", CreatedBy: by, At: now})

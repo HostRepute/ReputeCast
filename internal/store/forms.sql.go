@@ -945,6 +945,17 @@ func (q *Queries) FormSetStatus(ctx context.Context, arg FormSetStatusParams) (F
 	return i, err
 }
 
+const formSlugLock = `-- name: FormSlugLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('form_slug:' || ($1::uuid)::text, 0))
+`
+
+// Serializes picking form slugs in a workspace until the transaction ends,
+// so two requests never pick the same free slug.
+func (q *Queries) FormSlugLock(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, formSlugLock, workspaceID)
+	return err
+}
+
 const formSlugTaken = `-- name: FormSlugTaken :one
 SELECT EXISTS (SELECT 1 FROM forms WHERE workspace_id = $1 AND slug = $2 AND id <> $3)::boolean
 `
