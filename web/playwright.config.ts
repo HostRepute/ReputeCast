@@ -14,7 +14,9 @@ export default defineConfig({
     launchOptions: process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {},
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
-    { name: 'phone', use: { ...devices['Pixel 7'], browserName: 'chromium' } },
+    // The demo owner signs in once for the run (e2e/sign-in.setup.ts).
+    { name: 'sign-in', testMatch: /sign-in\.setup\.ts$/ },
+    { name: 'desktop', dependencies: ['sign-in'], use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'phone', dependencies: ['sign-in'], use: { ...devices['Pixel 7'], browserName: 'chromium' } },
   ],
 })
