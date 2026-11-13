@@ -261,8 +261,13 @@ type PushPromptCreate struct {
 	SiteID string `json:"siteId,omitempty" maxLength:"40"`
 }
 
-// formSlug makes a unique form slug from a name.
-func (s *Service) formSlug(ctx context.Context, q store.DBTX, ws *store.Workspace, name string) (string, error) {
+// formSlug makes a unique form slug from a name. q must be the transaction
+// that then inserts the form: it takes the workspace's form slug lock, the
+// one forms.UniqueSlug takes, so two forms never pick the same slug.
+func (s *Service) formSlug(ctx context.Context, q *store.Queries, ws *store.Workspace, name string) (string, error) {
+	if err := q.FormSlugLock(ctx, ws.ID); err != nil {
+		return "", err
+	}
 	base := strings.Trim(regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(strings.ToLower(name), "-"), "-")
 	if base == "" {
 		base = "push-prompt"
@@ -270,8 +275,8 @@ func (s *Service) formSlug(ctx context.Context, q store.DBTX, ws *store.Workspac
 	base = clip(base, 50)
 	slug := base
 	for i := 2; i < 200; i++ {
-		var taken bool
-		if err := q.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM forms WHERE workspace_id = $1 AND slug = $2)`, ws.ID, slug).Scan(&taken); err != nil {
+		taken, err := q.FormSlugTaken(ctx, store.FormSlugTakenParams{WorkspaceID: ws.ID, Slug: slug, ID: uuid.Nil})
+		if err != nil {
 			return "", err
 		}
 		if !taken {
@@ -308,7 +313,7 @@ func (s *Service) CreatePrompt(ctx context.Context, ws *store.Workspace, p *auth
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
 	err := s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
-		slug, err := s.formSlug(ctx, tx, ws, name)
+		slug, err := s.formSlug(ctx, q, ws, name)
 		if err != nil {
 			return err
 		}

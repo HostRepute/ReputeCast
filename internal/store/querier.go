@@ -6186,6 +6186,9 @@ type Querier interface {
 	WordPressSites(ctx context.Context, workspaceID uuid.UUID) ([]WordPressSitesRow, error)
 	WorkspaceMarketingCap(ctx context.Context, id uuid.UUID) (WorkspaceMarketingCapRow, error)
 	WorkspaceProviders(ctx context.Context, workspaceID uuid.UUID) ([]WorkspaceProvidersRow, error)
+	// Serializes picking workspace slugs, which are unique across the instance,
+	// until the transaction ends, so two requests never take the same free slug.
+	WorkspaceSlugLock(ctx context.Context) error
 	WorkspaceTierHistory(ctx context.Context, arg WorkspaceTierHistoryParams) ([]WorkspaceTierHistoryRow, error)
 	WsAuditSettings(ctx context.Context, id uuid.UUID) (WsAuditSettingsRow, error)
 	WsCancelScheduled(ctx context.Context, workspaceID uuid.UUID) (int64, error)

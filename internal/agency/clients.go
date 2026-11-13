@@ -3,6 +3,7 @@ package agency
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"regexp"
 	"slices"
 	"strings"
@@ -77,11 +78,6 @@ func (s *Service) CreateClient(ctx context.Context, in AgencyClientNew) (AgencyC
 	if !slugPattern.MatchString(slug) {
 		return AgencyClientCreated{}, api.Invalid("body.slug", mSlugInvalid.Text(l, nil))
 	}
-	if taken, err := s.Q.SlugTaken(ctx, slug); err != nil {
-		return AgencyClientCreated{}, err
-	} else if taken {
-		return AgencyClientCreated{}, api.Invalid("body.slug", mSlugTaken.Text(l, i18n.Args{"slug": slug}))
-	}
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
 		return AgencyClientCreated{}, api.Invalid("body.timezone", mTimezone.Text(l, nil))
 	}
@@ -138,15 +134,14 @@ func (s *Service) CreateClient(ctx context.Context, in AgencyClientNew) (AgencyC
 	var row store.AgencyWorkspacesRow
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		ws, err = workspaces.Create(ctx, tx, workspaces.CreateParams{Name: name, Timezone: in.Timezone, Owner: ownerID, Source: "agency"})
+		// The slug is checked here, under the slug lock, not before the
+		// transaction: two clients asked for at once can't both get it.
+		ws, err = workspaces.Create(ctx, tx, workspaces.CreateParams{Name: name, Slug: slug, Timezone: in.Timezone, Owner: ownerID, Source: "agency"})
+		if errors.Is(err, workspaces.ErrSlugTaken) {
+			return api.Invalid("body.slug", mSlugTaken.Text(l, i18n.Args{"slug": slug}))
+		}
 		if err != nil {
 			return err
-		}
-		if ws.Slug != slug {
-			if _, err := tx.Exec(ctx, `UPDATE workspaces SET slug = $2 WHERE id = $1`, ws.ID, slug); err != nil {
-				return err
-			}
-			ws.Slug = slug
 		}
 		all, err := q.AgencyWorkspaces(ctx)
 		if err != nil {

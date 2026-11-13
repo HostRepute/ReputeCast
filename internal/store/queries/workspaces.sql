@@ -15,6 +15,11 @@ SELECT * FROM workspaces WHERE deleted_at IS NULL ORDER BY created_at;
 -- name: SlugTaken :one
 SELECT EXISTS (SELECT 1 FROM workspaces WHERE slug = @slug AND deleted_at IS NULL);
 
+-- name: WorkspaceSlugLock :exec
+-- Serializes picking workspace slugs, which are unique across the instance,
+-- until the transaction ends, so two requests never take the same free slug.
+SELECT pg_advisory_xact_lock(hashtextextended('workspace_slug', 0));
+
 -- name: UpdateWorkspaceGeneral :one
 UPDATE workspaces SET name = @name, timezone = @timezone, default_sender_id = @default_sender_id, updated_at = now()
 WHERE id = @id

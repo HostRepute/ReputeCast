@@ -232,6 +232,11 @@ func (s *Service) RestoreWorkspace(ctx context.Context, id uuid.UUID) (InstanceW
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		// Under the slug lock, so a workspace created meanwhile can't take
+		// the old address between the check and the restore.
+		if err := workspaces.LockSlugs(ctx, q); err != nil {
+			return err
+		}
 		slug := deletedSuffix.ReplaceAllString(ws.Slug, "")
 		if taken, err := q.SlugTaken(ctx, slug); err != nil {
 			return err
