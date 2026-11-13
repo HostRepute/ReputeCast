@@ -10,6 +10,7 @@ from ..types import UNSET, Unset
 
 from ..models.signup_form_targeting_devices_item import SignupFormTargetingDevicesItem
 from ..models.signup_form_targeting_visitors import SignupFormTargetingVisitors
+from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
@@ -36,7 +37,8 @@ class SignupFormTargeting:
             schedule (SignupFormSchedule):
             sources (SignupFormSources):
             visitors (SignupFormTargetingVisitors): Returning: this browser has seen one of the workspace's forms before
-                today
+                today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
+            segment_id (str | Unset):
      """
 
     countries: SignupFormCountries
@@ -45,6 +47,7 @@ class SignupFormTargeting:
     schedule: SignupFormSchedule
     sources: SignupFormSources
     visitors: SignupFormTargetingVisitors
+    segment_id: str | Unset = UNSET
 
 
 
@@ -72,6 +75,8 @@ class SignupFormTargeting:
 
         visitors = self.visitors.value
 
+        segment_id = self.segment_id
+
 
         field_dict: dict[str, Any] = {}
 
@@ -83,6 +88,8 @@ class SignupFormTargeting:
             "sources": sources,
             "visitors": visitors,
         })
+        if segment_id is not UNSET:
+            field_dict["segmentId"] = segment_id
 
         return field_dict
 
@@ -130,6 +137,8 @@ class SignupFormTargeting:
 
 
 
+        segment_id = d.pop("segmentId", UNSET)
+
         signup_form_targeting = cls(
             countries=countries,
             devices=devices,
@@ -137,6 +146,7 @@ class SignupFormTargeting:
             schedule=schedule,
             sources=sources,
             visitors=visitors,
+            segment_id=segment_id,
         )
 
         return signup_form_targeting

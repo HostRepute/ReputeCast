@@ -21,6 +21,7 @@ if TYPE_CHECKING:
   from ..models.automation_route_provider import AutomationRouteProvider
   from ..models.automation_segment_option import AutomationSegmentOption
   from ..models.automation_tier_option import AutomationTierOption
+  from ..models.automation_tracked_store import AutomationTrackedStore
   from ..models.scoring_bands import ScoringBands
 
 
@@ -50,6 +51,7 @@ class AutomationOptions:
             segments (list[AutomationSegmentOption]):
             tags (list[str]):
             tiers (list[AutomationTierOption]):
+            tracked_stores (list[AutomationTrackedStore]):
             score_bands (ScoringBands | Unset):
      """
 
@@ -68,6 +70,7 @@ class AutomationOptions:
     segments: list[AutomationSegmentOption]
     tags: list[str]
     tiers: list[AutomationTierOption]
+    tracked_stores: list[AutomationTrackedStore]
     score_bands: ScoringBands | Unset = UNSET
 
 
@@ -84,6 +87,7 @@ class AutomationOptions:
         from ..models.automation_route_provider import AutomationRouteProvider # noqa: PLC0415
         from ..models.automation_segment_option import AutomationSegmentOption # noqa: PLC0415
         from ..models.automation_tier_option import AutomationTierOption # noqa: PLC0415
+        from ..models.automation_tracked_store import AutomationTrackedStore # noqa: PLC0415
         from ..models.scoring_bands import ScoringBands # noqa: PLC0415
         campaigns = []
         for campaigns_item_data in self.campaigns:
@@ -174,6 +178,13 @@ class AutomationOptions:
 
 
 
+        tracked_stores = []
+        for tracked_stores_item_data in self.tracked_stores:
+            tracked_stores_item = tracked_stores_item_data.to_dict()
+            tracked_stores.append(tracked_stores_item)
+
+
+
         score_bands: dict[str, Any] | Unset = UNSET
         if not isinstance(self.score_bands, Unset):
             score_bands = self.score_bands.to_dict()
@@ -197,6 +208,7 @@ class AutomationOptions:
             "segments": segments,
             "tags": tags,
             "tiers": tiers,
+            "trackedStores": tracked_stores,
         })
         if score_bands is not UNSET:
             field_dict["scoreBands"] = score_bands
@@ -216,6 +228,7 @@ class AutomationOptions:
         from ..models.automation_route_provider import AutomationRouteProvider # noqa: PLC0415
         from ..models.automation_segment_option import AutomationSegmentOption # noqa: PLC0415
         from ..models.automation_tier_option import AutomationTierOption # noqa: PLC0415
+        from ..models.automation_tracked_store import AutomationTrackedStore # noqa: PLC0415
         from ..models.scoring_bands import ScoringBands # noqa: PLC0415
         d = dict(src_dict)
         campaigns = []
@@ -338,6 +351,16 @@ class AutomationOptions:
             tiers.append(tiers_item)
 
 
+        tracked_stores = []
+        _tracked_stores = d.pop("trackedStores")
+        for tracked_stores_item_data in (_tracked_stores):
+            tracked_stores_item = AutomationTrackedStore.from_dict(tracked_stores_item_data)
+
+
+
+            tracked_stores.append(tracked_stores_item)
+
+
         _score_bands = d.pop("scoreBands", UNSET)
         score_bands: ScoringBands | Unset
         if isinstance(_score_bands,  Unset):
@@ -364,6 +387,7 @@ class AutomationOptions:
             segments=segments,
             tags=tags,
             tiers=tiers,
+            tracked_stores=tracked_stores,
             score_bands=score_bands,
         )
 

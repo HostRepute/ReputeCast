@@ -17,6 +17,7 @@ if TYPE_CHECKING:
   from ..models.integration_lead_facts import IntegrationLeadFacts
   from ..models.integration_payment_facts import IntegrationPaymentFacts
   from ..models.integration_store_facts import IntegrationStoreFacts
+  from ..models.integration_tracking_facts import IntegrationTrackingFacts
 
 
 
@@ -50,6 +51,7 @@ class IntegrationFacts:
             price (float | Unset):
             store (IntegrationStoreFacts | Unset):
             team (str | Unset):
+            tracking (IntegrationTrackingFacts | Unset):
      """
 
     actions: int
@@ -72,6 +74,7 @@ class IntegrationFacts:
     price: float | Unset = UNSET
     store: IntegrationStoreFacts | Unset = UNSET
     team: str | Unset = UNSET
+    tracking: IntegrationTrackingFacts | Unset = UNSET
 
 
 
@@ -82,6 +85,7 @@ class IntegrationFacts:
         from ..models.integration_lead_facts import IntegrationLeadFacts # noqa: PLC0415
         from ..models.integration_payment_facts import IntegrationPaymentFacts # noqa: PLC0415
         from ..models.integration_store_facts import IntegrationStoreFacts # noqa: PLC0415
+        from ..models.integration_tracking_facts import IntegrationTrackingFacts # noqa: PLC0415
         actions = self.actions
 
         agents = self.agents
@@ -136,6 +140,10 @@ class IntegrationFacts:
 
         team = self.team
 
+        tracking: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.tracking, Unset):
+            tracking = self.tracking.to_dict()
+
 
         field_dict: dict[str, Any] = {}
 
@@ -171,6 +179,8 @@ class IntegrationFacts:
             field_dict["store"] = store
         if team is not UNSET:
             field_dict["team"] = team
+        if tracking is not UNSET:
+            field_dict["tracking"] = tracking
 
         return field_dict
 
@@ -182,6 +192,7 @@ class IntegrationFacts:
         from ..models.integration_lead_facts import IntegrationLeadFacts # noqa: PLC0415
         from ..models.integration_payment_facts import IntegrationPaymentFacts # noqa: PLC0415
         from ..models.integration_store_facts import IntegrationStoreFacts # noqa: PLC0415
+        from ..models.integration_tracking_facts import IntegrationTrackingFacts # noqa: PLC0415
         d = dict(src_dict)
         actions = d.pop("actions")
 
@@ -279,6 +290,16 @@ class IntegrationFacts:
 
         team = d.pop("team", UNSET)
 
+        _tracking = d.pop("tracking", UNSET)
+        tracking: IntegrationTrackingFacts | Unset
+        if isinstance(_tracking,  Unset):
+            tracking = UNSET
+        else:
+            tracking = IntegrationTrackingFacts.from_dict(_tracking)
+
+
+
+
         integration_facts = cls(
             actions=actions,
             agents=agents,
@@ -300,6 +321,7 @@ class IntegrationFacts:
             price=price,
             store=store,
             team=team,
+            tracking=tracking,
         )
 
         return integration_facts

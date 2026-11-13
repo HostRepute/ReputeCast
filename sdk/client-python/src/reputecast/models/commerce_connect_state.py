@@ -37,6 +37,7 @@ class CommerceConnectState:
             discounts_granted (bool):
             error (CommerceConnectStateError):
             granted (list[str]):
+            inventory_scope (str):
             lists (list[CommerceListOption]):
             months (int):
             new_list_name (str):
@@ -61,6 +62,7 @@ class CommerceConnectState:
     discounts_granted: bool
     error: CommerceConnectStateError
     granted: list[str]
+    inventory_scope: str
     lists: list[CommerceListOption]
     months: int
     new_list_name: str
@@ -99,6 +101,8 @@ class CommerceConnectState:
         granted = self.granted
 
 
+
+        inventory_scope = self.inventory_scope
 
         lists = []
         for lists_item_data in self.lists:
@@ -156,6 +160,7 @@ class CommerceConnectState:
             "discountsGranted": discounts_granted,
             "error": error,
             "granted": granted,
+            "inventoryScope": inventory_scope,
             "lists": lists,
             "months": months,
             "newListName": new_list_name,
@@ -204,6 +209,8 @@ class CommerceConnectState:
 
         granted = cast(list[str], d.pop("granted"))
 
+
+        inventory_scope = d.pop("inventoryScope")
 
         lists = []
         _lists = d.pop("lists")
@@ -287,6 +294,7 @@ class CommerceConnectState:
             discounts_granted=discounts_granted,
             error=error,
             granted=granted,
+            inventory_scope=inventory_scope,
             lists=lists,
             months=months,
             new_list_name=new_list_name,

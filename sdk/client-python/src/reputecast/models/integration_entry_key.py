@@ -20,6 +20,7 @@ class IntegrationEntryKey(StrEnum):
     PADDLE = "paddle"
     SHOPIFY = "shopify"
     STRIPE = "stripe"
+    TRACKING = "tracking"
     WEBHOOKS = "webhooks"
     WOOCOMMERCE = "woocommerce"
     WORDPRESS = "wordpress"

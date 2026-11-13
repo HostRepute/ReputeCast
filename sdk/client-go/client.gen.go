@@ -2106,7 +2106,9 @@ func (e AutomationTriggerEndReasons) Valid() bool {
 // Defines values for AutomationTriggerKind.
 const (
 	AutomationTriggerKindAbandonedCheckout AutomationTriggerKind = "abandoned_checkout"
+	AutomationTriggerKindAddedToCart       AutomationTriggerKind = "added_to_cart"
 	AutomationTriggerKindApiEvent          AutomationTriggerKind = "api_event"
+	AutomationTriggerKindBackInStock       AutomationTriggerKind = "back_in_stock"
 	AutomationTriggerKindBoughtProduct     AutomationTriggerKind = "bought_product"
 	AutomationTriggerKindDateField         AutomationTriggerKind = "date_field"
 	AutomationTriggerKindFirstOrder        AutomationTriggerKind = "first_order"
@@ -2123,10 +2125,12 @@ const (
 	AutomationTriggerKindPaidTierChanged   AutomationTriggerKind = "paid_tier_changed"
 	AutomationTriggerKindPaidTrialEnding   AutomationTriggerKind = "paid_trial_ending"
 	AutomationTriggerKindPollAnswered      AutomationTriggerKind = "poll_answered"
+	AutomationTriggerKindPriceDrop         AutomationTriggerKind = "price_drop"
 	AutomationTriggerKindScoreCrosses      AutomationTriggerKind = "score_crosses"
 	AutomationTriggerKindSegmentEntered    AutomationTriggerKind = "segment_entered"
 	AutomationTriggerKindSegmentLeft       AutomationTriggerKind = "segment_left"
 	AutomationTriggerKindTagAdded          AutomationTriggerKind = "tag_added"
+	AutomationTriggerKindViewedProduct     AutomationTriggerKind = "viewed_product"
 )
 
 // Valid indicates whether the value is a known member of the AutomationTriggerKind enum.
@@ -2134,7 +2138,11 @@ func (e AutomationTriggerKind) Valid() bool {
 	switch e {
 	case AutomationTriggerKindAbandonedCheckout:
 		return true
+	case AutomationTriggerKindAddedToCart:
+		return true
 	case AutomationTriggerKindApiEvent:
+		return true
+	case AutomationTriggerKindBackInStock:
 		return true
 	case AutomationTriggerKindBoughtProduct:
 		return true
@@ -2168,6 +2176,8 @@ func (e AutomationTriggerKind) Valid() bool {
 		return true
 	case AutomationTriggerKindPollAnswered:
 		return true
+	case AutomationTriggerKindPriceDrop:
+		return true
 	case AutomationTriggerKindScoreCrosses:
 		return true
 	case AutomationTriggerKindSegmentEntered:
@@ -2175,6 +2185,8 @@ func (e AutomationTriggerKind) Valid() bool {
 	case AutomationTriggerKindSegmentLeft:
 		return true
 	case AutomationTriggerKindTagAdded:
+		return true
+	case AutomationTriggerKindViewedProduct:
 		return true
 	default:
 		return false
@@ -2888,19 +2900,31 @@ func (e CommerceActivityItemTone) Valid() bool {
 
 // Defines values for CommerceBlockMode.
 const (
-	Card       CommerceBlockMode = "card"
-	Chosen     CommerceBlockMode = "chosen"
-	Collection CommerceBlockMode = "collection"
+	BestSellers    CommerceBlockMode = "best_sellers"
+	BoughtTogether CommerceBlockMode = "bought_together"
+	Card           CommerceBlockMode = "card"
+	Chosen         CommerceBlockMode = "chosen"
+	Collection     CommerceBlockMode = "collection"
+	RecentlyViewed CommerceBlockMode = "recently_viewed"
+	Viewed         CommerceBlockMode = "viewed"
 )
 
 // Valid indicates whether the value is a known member of the CommerceBlockMode enum.
 func (e CommerceBlockMode) Valid() bool {
 	switch e {
+	case BestSellers:
+		return true
+	case BoughtTogether:
+		return true
 	case Card:
 		return true
 	case Chosen:
 		return true
 	case Collection:
+		return true
+	case RecentlyViewed:
+		return true
+	case Viewed:
 		return true
 	default:
 		return false
@@ -10716,6 +10740,7 @@ const (
 	IntegrationEntryKeyPaddle       IntegrationEntryKey = "paddle"
 	IntegrationEntryKeyShopify      IntegrationEntryKey = "shopify"
 	IntegrationEntryKeyStripe       IntegrationEntryKey = "stripe"
+	IntegrationEntryKeyTracking     IntegrationEntryKey = "tracking"
 	IntegrationEntryKeyWebhooks     IntegrationEntryKey = "webhooks"
 	IntegrationEntryKeyWoocommerce  IntegrationEntryKey = "woocommerce"
 	IntegrationEntryKeyWordpress    IntegrationEntryKey = "wordpress"
@@ -10763,6 +10788,8 @@ func (e IntegrationEntryKey) Valid() bool {
 	case IntegrationEntryKeyShopify:
 		return true
 	case IntegrationEntryKeyStripe:
+		return true
+	case IntegrationEntryKeyTracking:
 		return true
 	case IntegrationEntryKeyWebhooks:
 		return true
@@ -21818,9 +21845,11 @@ func (e SignupFormTargetingDevices) Valid() bool {
 
 // Defines values for SignupFormTargetingVisitors.
 const (
-	SignupFormTargetingVisitorsAll       SignupFormTargetingVisitors = "all"
-	SignupFormTargetingVisitorsNew       SignupFormTargetingVisitors = "new"
-	SignupFormTargetingVisitorsReturning SignupFormTargetingVisitors = "returning"
+	SignupFormTargetingVisitorsAll          SignupFormTargetingVisitors = "all"
+	SignupFormTargetingVisitorsInSegment    SignupFormTargetingVisitors = "in_segment"
+	SignupFormTargetingVisitorsNew          SignupFormTargetingVisitors = "new"
+	SignupFormTargetingVisitorsNotInSegment SignupFormTargetingVisitors = "not_in_segment"
+	SignupFormTargetingVisitorsReturning    SignupFormTargetingVisitors = "returning"
 )
 
 // Valid indicates whether the value is a known member of the SignupFormTargetingVisitors enum.
@@ -21828,7 +21857,11 @@ func (e SignupFormTargetingVisitors) Valid() bool {
 	switch e {
 	case SignupFormTargetingVisitorsAll:
 		return true
+	case SignupFormTargetingVisitorsInSegment:
+		return true
 	case SignupFormTargetingVisitorsNew:
+		return true
+	case SignupFormTargetingVisitorsNotInSegment:
 		return true
 	case SignupFormTargetingVisitorsReturning:
 		return true
@@ -24027,6 +24060,48 @@ func (e TeamMemberActivityResult) Valid() bool {
 	case TeamMemberActivityResultDenied:
 		return true
 	case TeamMemberActivityResultError:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrackerRecentEventKind.
+const (
+	TrackerRecentEventKindCart    TrackerRecentEventKind = "cart"
+	TrackerRecentEventKindCustom  TrackerRecentEventKind = "custom"
+	TrackerRecentEventKindPage    TrackerRecentEventKind = "page"
+	TrackerRecentEventKindProduct TrackerRecentEventKind = "product"
+)
+
+// Valid indicates whether the value is a known member of the TrackerRecentEventKind enum.
+func (e TrackerRecentEventKind) Valid() bool {
+	switch e {
+	case TrackerRecentEventKindCart:
+		return true
+	case TrackerRecentEventKindCustom:
+		return true
+	case TrackerRecentEventKindPage:
+		return true
+	case TrackerRecentEventKindProduct:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrackerStoreOptionPlatform.
+const (
+	TrackerStoreOptionPlatformShopify     TrackerStoreOptionPlatform = "shopify"
+	TrackerStoreOptionPlatformWoocommerce TrackerStoreOptionPlatform = "woocommerce"
+)
+
+// Valid indicates whether the value is a known member of the TrackerStoreOptionPlatform enum.
+func (e TrackerStoreOptionPlatform) Valid() bool {
+	switch e {
+	case TrackerStoreOptionPlatformShopify:
+		return true
+	case TrackerStoreOptionPlatformWoocommerce:
 		return true
 	default:
 		return false
@@ -32456,6 +32531,16 @@ type AutomationAlertAction struct {
 // AutomationAlertActionKind defines model for AutomationAlertAction.Kind.
 type AutomationAlertActionKind string
 
+// AutomationBrowseTrigger defines model for AutomationBrowseTrigger.
+type AutomationBrowseTrigger struct {
+	AfterHours    int64     `json:"afterHours"`
+	CollectionIds *[]string `json:"collectionIds,omitempty"`
+	MinViews      int64     `json:"minViews"`
+
+	// StoreId The connected store (uuid) whose products the tracked site's events name
+	StoreId string `json:"storeId"`
+}
+
 // AutomationCondition defines model for AutomationCondition.
 type AutomationCondition struct {
 	Event     *string                 `json:"event,omitempty"`
@@ -32944,6 +33029,7 @@ type AutomationOptions struct {
 	Segments      []AutomationSegmentOption   `json:"segments"`
 	Tags          []string                    `json:"tags"`
 	Tiers         []AutomationTierOption      `json:"tiers"`
+	TrackedStores []AutomationTrackedStore    `json:"trackedStores"`
 }
 
 // AutomationPathCount defines model for AutomationPathCount.
@@ -33215,6 +33301,16 @@ type AutomationStepStats struct {
 	Unsubscribed int64 `json:"unsubscribed"`
 }
 
+// AutomationStockTrigger defines model for AutomationStockTrigger.
+type AutomationStockTrigger struct {
+	Days           *int64 `json:"days,omitempty"`
+	IncludeViewers *bool  `json:"includeViewers,omitempty"`
+	MinDropPercent *int64 `json:"minDropPercent,omitempty"`
+
+	// StoreId The connected store (uuid) whose products it watches
+	StoreId string `json:"storeId"`
+}
+
 // AutomationSummary defines model for AutomationSummary.
 type AutomationSummary struct {
 	Clicks     *float64                  `json:"clicks,omitempty"`
@@ -33241,6 +33337,12 @@ type AutomationTierOption struct {
 	Name string `json:"name"`
 }
 
+// AutomationTrackedStore defines model for AutomationTrackedStore.
+type AutomationTrackedStore struct {
+	Host    string `json:"host"`
+	StoreId string `json:"storeId"`
+}
+
 // AutomationTrigger defines model for AutomationTrigger.
 type AutomationTrigger struct {
 	AfterHours     *int64                         `json:"afterHours,omitempty"`
@@ -33248,6 +33350,7 @@ type AutomationTrigger struct {
 	AnswerOp       *AutomationTriggerAnswerOp     `json:"answerOp,omitempty"`
 	Answers        *[]int64                       `json:"answers,omitempty"`
 	At             *string                        `json:"at,omitempty"`
+	Browse         *AutomationBrowseTrigger       `json:"browse,omitempty"`
 	Collections    *[]string                      `json:"collections,omitempty"`
 	ConfirmedOnly  *bool                          `json:"confirmedOnly,omitempty"`
 	ContactTime    *bool                          `json:"contactTime,omitempty"`
@@ -33277,6 +33380,7 @@ type AutomationTrigger struct {
 	SegmentId      *string                        `json:"segmentId,omitempty"`
 	SkipDays       *int64                         `json:"skipDays,omitempty"`
 	Source         *string                        `json:"source,omitempty"`
+	Stock          *AutomationStockTrigger        `json:"stock,omitempty"`
 	Store          *string                        `json:"store,omitempty"`
 	Tag            *string                        `json:"tag,omitempty"`
 	Threshold      *int64                         `json:"threshold,omitempty"`
@@ -34142,6 +34246,7 @@ type CommerceBlockSoldOut string
 type CommerceBlockRender struct {
 	Disconnected bool                     `json:"disconnected"`
 	Html         string                   `json:"html"`
+	Note         *string                  `json:"note,omitempty"`
 	Platform     string                   `json:"platform"`
 	Products     []CommerceProduct        `json:"products"`
 	Removed      []CommerceRemovedProduct `json:"removed"`
@@ -34209,6 +34314,7 @@ type CommerceConnectState struct {
 	Error              CommerceConnectStateError `json:"error"`
 	Granted            []string                  `json:"granted"`
 	InstalledAt        *time.Time                `json:"installedAt,omitempty"`
+	InventoryScope     string                    `json:"inventoryScope"`
 	KeyHint            *string                   `json:"keyHint,omitempty"`
 	Lists              []CommerceListOption      `json:"lists"`
 	Months             int64                     `json:"months"`
@@ -34422,6 +34528,28 @@ type CommerceRevenueSummary struct {
 	Revenue         int64   `json:"revenue"`
 	Share           float64 `json:"share"`
 	Stores          int64   `json:"stores"`
+}
+
+// CommerceStockRequest defines model for CommerceStockRequest.
+type CommerceStockRequest struct {
+	// Available The product is in stock now: back-in-stock flows start on its next return
+	Available bool      `json:"available"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// ProductId ReputeCast's id of the product
+	ProductId string `json:"productId"`
+	StoreId   string `json:"storeId"`
+
+	// Title Example: Deploy Friday cap
+	Title string `json:"title"`
+}
+
+// CommerceStockRequestInput defines model for CommerceStockRequestInput.
+type CommerceStockRequestInput struct {
+	// Email An existing contact's address
+	Email     openapi_types.Email `json:"email"`
+	ProductId string              `json:"productId"`
+	StoreId   *string             `json:"storeId,omitempty"`
 }
 
 // CommerceStoreDiscounts defines model for CommerceStoreDiscounts.
@@ -41272,26 +41400,27 @@ type IntegrationEntryStatus string
 
 // IntegrationFacts defines model for IntegrationFacts.
 type IntegrationFacts struct {
-	Actions      int64                    `json:"actions"`
-	Agents       int64                    `json:"agents"`
-	Ai           *IntegrationAIFacts      `json:"ai,omitempty"`
-	Balance      *int64                   `json:"balance,omitempty"`
-	Endpoints    int64                    `json:"endpoints"`
-	Failing      int64                    `json:"failing"`
-	KeyCreatedAt *time.Time               `json:"keyCreatedAt,omitempty"`
-	LastCallAt   *time.Time               `json:"lastCallAt,omitempty"`
-	LastSyncAt   *time.Time               `json:"lastSyncAt,omitempty"`
-	Leads        *IntegrationLeadFacts    `json:"leads,omitempty"`
-	McpEnabled   bool                     `json:"mcpEnabled"`
-	Payment      *IntegrationPaymentFacts `json:"payment,omitempty"`
-	Price        *float64                 `json:"price,omitempty"`
-	SilentSites  int64                    `json:"silentSites"`
-	Sites        int64                    `json:"sites"`
-	Store        *IntegrationStoreFacts   `json:"store,omitempty"`
-	Team         *string                  `json:"team,omitempty"`
-	Triggers     int64                    `json:"triggers"`
-	Updates      int64                    `json:"updates"`
-	Workflows    int64                    `json:"workflows"`
+	Actions      int64                     `json:"actions"`
+	Agents       int64                     `json:"agents"`
+	Ai           *IntegrationAIFacts       `json:"ai,omitempty"`
+	Balance      *int64                    `json:"balance,omitempty"`
+	Endpoints    int64                     `json:"endpoints"`
+	Failing      int64                     `json:"failing"`
+	KeyCreatedAt *time.Time                `json:"keyCreatedAt,omitempty"`
+	LastCallAt   *time.Time                `json:"lastCallAt,omitempty"`
+	LastSyncAt   *time.Time                `json:"lastSyncAt,omitempty"`
+	Leads        *IntegrationLeadFacts     `json:"leads,omitempty"`
+	McpEnabled   bool                      `json:"mcpEnabled"`
+	Payment      *IntegrationPaymentFacts  `json:"payment,omitempty"`
+	Price        *float64                  `json:"price,omitempty"`
+	SilentSites  int64                     `json:"silentSites"`
+	Sites        int64                     `json:"sites"`
+	Store        *IntegrationStoreFacts    `json:"store,omitempty"`
+	Team         *string                   `json:"team,omitempty"`
+	Tracking     *IntegrationTrackingFacts `json:"tracking,omitempty"`
+	Triggers     int64                     `json:"triggers"`
+	Updates      int64                     `json:"updates"`
+	Workflows    int64                     `json:"workflows"`
 }
 
 // IntegrationFirstCall defines model for IntegrationFirstCall.
@@ -41710,6 +41839,14 @@ type IntegrationStoreFacts struct {
 
 // IntegrationStoreFactsState defines model for IntegrationStoreFacts.State.
 type IntegrationStoreFactsState string
+
+// IntegrationTrackingFacts defines model for IntegrationTrackingFacts.
+type IntegrationTrackingFacts struct {
+	EventsToday int64      `json:"eventsToday"`
+	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+	Line        string     `json:"line"`
+	Sites       int64      `json:"sites"`
+}
 
 // IntegrationWordPressPage defines model for IntegrationWordPressPage.
 type IntegrationWordPressPage struct {
@@ -51729,19 +51866,20 @@ type SignupFormTargeting struct {
 	Countries SignupFormCountries `json:"countries"`
 
 	// Devices None: every device
-	Devices  []SignupFormTargetingDevices `json:"devices"`
-	Pages    SignupFormPageRules          `json:"pages"`
-	Schedule SignupFormSchedule           `json:"schedule"`
-	Sources  SignupFormSources            `json:"sources"`
+	Devices   []SignupFormTargetingDevices `json:"devices"`
+	Pages     SignupFormPageRules          `json:"pages"`
+	Schedule  SignupFormSchedule           `json:"schedule"`
+	SegmentId *string                      `json:"segmentId,omitempty"`
+	Sources   SignupFormSources            `json:"sources"`
 
-	// Visitors Returning: this browser has seen one of the workspace's forms before today
+	// Visitors Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
 	Visitors SignupFormTargetingVisitors `json:"visitors"`
 }
 
 // SignupFormTargetingDevices defines model for SignupFormTargeting.Devices.
 type SignupFormTargetingDevices string
 
-// SignupFormTargetingVisitors Returning: this browser has seen one of the workspace's forms before today
+// SignupFormTargetingVisitors Returning: this browser has seen one of the workspace's forms before today. In or not in a segment: the visitor Website tracking knows as a contact (M62 G-32)
 type SignupFormTargetingVisitors string
 
 // SignupFormURLs defines model for SignupFormURLs.
@@ -54673,6 +54811,81 @@ type TeamRoleRef struct {
 	Key     string `json:"key"`
 	Name    string `json:"name"`
 }
+
+// TrackerRecentEvent defines model for TrackerRecentEvent.
+type TrackerRecentEvent struct {
+	At   time.Time              `json:"at"`
+	Kind TrackerRecentEventKind `json:"kind"`
+
+	// Known A known contact's, else a visitor's
+	Known        bool   `json:"known"`
+	Name         string `json:"name"`
+	Path         string `json:"path"`
+	ProductTitle string `json:"productTitle"`
+}
+
+// TrackerRecentEventKind defines model for TrackerRecentEvent.Kind.
+type TrackerRecentEventKind string
+
+// TrackerRecentEvents defines model for TrackerRecentEvents.
+type TrackerRecentEvents struct {
+	Items []TrackerRecentEvent `json:"items"`
+}
+
+// TrackerRefusal defines model for TrackerRefusal.
+type TrackerRefusal struct {
+	Count  int64     `json:"count"`
+	LastAt time.Time `json:"lastAt"`
+	Origin string    `json:"origin"`
+}
+
+// TrackerSite defines model for TrackerSite.
+type TrackerSite struct {
+	CreatedAt time.Time `json:"createdAt"`
+	CreatedBy string    `json:"createdBy"`
+
+	// EventsToday Events since midnight in the workspace's time zone
+	EventsToday       int64              `json:"eventsToday"`
+	HasIdentifySecret bool               `json:"hasIdentifySecret"`
+	Id                openapi_types.UUID `json:"id"`
+	LastEventAt       *time.Time         `json:"lastEventAt,omitempty"`
+	Name              string             `json:"name"`
+
+	// Origin Example: https://shop.acme.io
+	Origin string `json:"origin"`
+
+	// Refused Origins refused in the last 24 hours, most refused first
+	Refused     []TrackerRefusal    `json:"refused"`
+	Snippet     TrackerSnippet      `json:"snippet"`
+	Store       *TrackerStoreOption `json:"store,omitempty"`
+	WaitConsent bool                `json:"waitConsent"`
+}
+
+// TrackerSiteList defines model for TrackerSiteList.
+type TrackerSiteList struct {
+	CanManage bool                 `json:"canManage"`
+	Helpers   []string             `json:"helpers"`
+	Items     []TrackerSite        `json:"items"`
+	ScriptUrl string               `json:"scriptUrl"`
+	Stores    []TrackerStoreOption `json:"stores"`
+}
+
+// TrackerSnippet defines model for TrackerSnippet.
+type TrackerSnippet struct {
+	Script       string `json:"script"`
+	ShopifyPixel string `json:"shopifyPixel"`
+	Wordpress    string `json:"wordpress"`
+}
+
+// TrackerStoreOption defines model for TrackerStoreOption.
+type TrackerStoreOption struct {
+	Id       openapi_types.UUID         `json:"id"`
+	Name     string                     `json:"name"`
+	Platform TrackerStoreOptionPlatform `json:"platform"`
+}
+
+// TrackerStoreOptionPlatform defines model for TrackerStoreOption.Platform.
+type TrackerStoreOptionPlatform string
 
 // TrafficAction defines model for TrafficAction.
 type TrafficAction struct {
@@ -60618,6 +60831,9 @@ type SaveCampaignWebJSONRequestBody = WebsitePostInput
 // RenderStoreBlockJSONRequestBody defines body for RenderStoreBlock for application/json ContentType.
 type RenderStoreBlockJSONRequestBody = CommerceBlockRenderInput
 
+// CreateStockRequestJSONRequestBody defines body for CreateStockRequest for application/json ContentType.
+type CreateStockRequestJSONRequestBody = CommerceStockRequestInput
+
 // StartProviderSetupJSONRequestBody defines body for StartProviderSetup for application/json ContentType.
 type StartProviderSetupJSONRequestBody = ConnectSetupInput
 
@@ -62952,6 +63168,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/commerce/revenue (the `GetStoreRevenue` operationId).
 	GetStoreRevenue(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateStockRequestWithBody Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequestWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateStockRequest Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequest(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetStoreTriggerOptions The store triggers' stores, products and collections
 	//
@@ -67634,6 +67868,20 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/templates/{templateId}/preview (the `PreviewTemplate` operationId).
 	PreviewTemplate(ctx context.Context, workspace string, templateId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListTrackerSites List the sites the tracker runs on
+	//
+	// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+	ListTrackerSites(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TrackerSiteRecentEvents A tracked site's last 20 events
+	//
+	// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+	TrackerSiteRecentEvents(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTrackingChecks Provider-side open and click tracking per provider
 	//
@@ -72702,6 +72950,44 @@ func (c *Client) GetStoreCatalog(ctx context.Context, workspace string, reqEdito
 // Corresponds with GET /api/v1/workspaces/{workspace}/commerce/revenue (the `GetStoreRevenue` operationId).
 func (c *Client) GetStoreRevenue(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetStoreRevenueRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateStockRequestWithBody Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *Client) CreateStockRequestWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateStockRequestRequestWithBody(c.Server, workspace, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateStockRequest Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *Client) CreateStockRequest(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateStockRequestRequest(c.Server, workspace, body)
 	if err != nil {
 		return nil, err
 	}
@@ -84524,6 +84810,40 @@ func (c *Client) UpdateTemplate(ctx context.Context, workspace string, templateI
 // Corresponds with GET /api/v1/workspaces/{workspace}/templates/{templateId}/preview (the `PreviewTemplate` operationId).
 func (c *Client) PreviewTemplate(ctx context.Context, workspace string, templateId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPreviewTemplateRequest(c.Server, workspace, templateId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListTrackerSites List the sites the tracker runs on
+//
+// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+func (c *Client) ListTrackerSites(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTrackerSitesRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TrackerSiteRecentEvents A tracked site's last 20 events
+//
+// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+func (c *Client) TrackerSiteRecentEvents(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTrackerSiteRecentEventsRequest(c.Server, workspace, site)
 	if err != nil {
 		return nil, err
 	}
@@ -96495,6 +96815,53 @@ func NewGetStoreRevenueRequest(server string, workspace string) (*http.Request, 
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewCreateStockRequestRequest calls the generic CreateStockRequest builder with application/json body
+func NewCreateStockRequestRequest(server string, workspace string, body CreateStockRequestJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateStockRequestRequestWithBody(server, workspace, "application/json", bodyReader)
+}
+
+// NewCreateStockRequestRequestWithBody constructs an http.Request for the CreateStockRequest method, with any body, and a specified content type
+func NewCreateStockRequestRequestWithBody(server string, workspace string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/commerce/stock-requests", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -123113,6 +123480,81 @@ func NewPreviewTemplateRequest(server string, workspace string, templateId strin
 	return req, nil
 }
 
+// NewListTrackerSitesRequest constructs an http.Request for the ListTrackerSites method
+func NewListTrackerSitesRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/tracker/sites", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewTrackerSiteRecentEventsRequest constructs an http.Request for the TrackerSiteRecentEvents method
+func NewTrackerSiteRecentEventsRequest(server string, workspace string, site openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "site", site, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/tracker/sites/%s/events/recent", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListTrackingChecksRequest constructs an http.Request for the ListTrackingChecks method
 func NewListTrackingChecksRequest(server string, workspace string) (*http.Request, error) {
 	var err error
@@ -131142,6 +131584,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/workspaces/{workspace}/commerce/revenue (the `GetStoreRevenue` operationId).
 	GetStoreRevenueWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetStoreRevenueResponse, error)
 
+	// CreateStockRequestWithBodyWithResponse Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequestWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error)
+
+	// CreateStockRequestWithResponse Email a contact when a sold-out product is back
+	//
+	// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+	CreateStockRequestWithResponse(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error)
+
 	// GetStoreTriggerOptionsWithResponse The store triggers' stores, products and collections
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -136519,6 +136979,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/templates/{templateId}/preview (the `PreviewTemplate` operationId).
 	PreviewTemplateWithResponse(ctx context.Context, workspace string, templateId string, reqEditors ...RequestEditorFn) (*PreviewTemplateResponse, error)
+
+	// ListTrackerSitesWithResponse List the sites the tracker runs on
+	//
+	// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+	ListTrackerSitesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListTrackerSitesResponse, error)
+
+	// TrackerSiteRecentEventsWithResponse A tracked site's last 20 events
+	//
+	// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+	TrackerSiteRecentEventsWithResponse(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*TrackerSiteRecentEventsResponse, error)
 
 	// ListTrackingChecksWithResponse Provider-side open and click tracking per provider
 	//
@@ -146046,6 +146524,54 @@ func (r GetStoreRevenueResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetStoreRevenueResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateStockRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CommerceStockRequest
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateStockRequestResponse) GetJSON200() *CommerceStockRequest {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateStockRequestResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateStockRequestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateStockRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateStockRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateStockRequestResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -171619,6 +172145,102 @@ func (r PreviewTemplateResponse) ContentType() string {
 	return ""
 }
 
+type ListTrackerSitesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TrackerSiteList
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListTrackerSitesResponse) GetJSON200() *TrackerSiteList {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListTrackerSitesResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListTrackerSitesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTrackerSitesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTrackerSitesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListTrackerSitesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TrackerSiteRecentEventsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TrackerRecentEvents
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TrackerSiteRecentEventsResponse) GetJSON200() *TrackerRecentEvents {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r TrackerSiteRecentEventsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TrackerSiteRecentEventsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TrackerSiteRecentEventsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TrackerSiteRecentEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TrackerSiteRecentEventsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListTrackingChecksResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -180643,6 +181265,36 @@ func (c *ClientWithResponses) GetStoreRevenueWithResponse(ctx context.Context, w
 		return nil, err
 	}
 	return ParseGetStoreRevenueResponse(rsp)
+}
+
+// CreateStockRequestWithBodyWithResponse Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *ClientWithResponses) CreateStockRequestWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error) {
+	rsp, err := c.CreateStockRequestWithBody(ctx, workspace, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateStockRequestResponse(rsp)
+}
+
+// CreateStockRequestWithResponse Email a contact when a sold-out product is back
+//
+// For an existing contact (by address) and a product of a connected store (ReputeCast's id or the store's own; storeId when two stores share one). Back-in-stock flows take them when the product returns; asking again after that waits for the next return.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/commerce/stock-requests (the `CreateStockRequest` operationId).
+func (c *ClientWithResponses) CreateStockRequestWithResponse(ctx context.Context, workspace string, body CreateStockRequestJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateStockRequestResponse, error) {
+	rsp, err := c.CreateStockRequest(ctx, workspace, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateStockRequestResponse(rsp)
 }
 
 // GetStoreTriggerOptionsWithResponse The store triggers' stores, products and collections
@@ -190307,6 +190959,36 @@ func (c *ClientWithResponses) PreviewTemplateWithResponse(ctx context.Context, w
 	return ParsePreviewTemplateResponse(rsp)
 }
 
+// ListTrackerSitesWithResponse List the sites the tracker runs on
+//
+// Each site's snippets, events today and the origins refused in the last 24 hours. Identify secrets are never returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites (the `ListTrackerSites` operationId).
+func (c *ClientWithResponses) ListTrackerSitesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListTrackerSitesResponse, error) {
+	rsp, err := c.ListTrackerSites(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTrackerSitesResponse(rsp)
+}
+
+// TrackerSiteRecentEventsWithResponse A tracked site's last 20 events
+//
+// What happened, on which page or product, whether a known contact or a visitor, and when. Never an address.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/tracker/sites/{site}/events/recent (the `TrackerSiteRecentEvents` operationId).
+func (c *ClientWithResponses) TrackerSiteRecentEventsWithResponse(ctx context.Context, workspace string, site openapi_types.UUID, reqEditors ...RequestEditorFn) (*TrackerSiteRecentEventsResponse, error) {
+	rsp, err := c.TrackerSiteRecentEvents(ctx, workspace, site, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTrackerSiteRecentEventsResponse(rsp)
+}
+
 // ListTrackingChecksWithResponse Provider-side open and click tracking per provider
 //
 // Returns a wrapper object for the known response body format(s).
@@ -198300,6 +198982,39 @@ func ParseGetStoreRevenueResponse(rsp *http.Response) (*GetStoreRevenueResponse,
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest CommerceRevenueSummary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateStockRequestResponse parses an HTTP response from a CreateStockRequestWithResponse call
+func ParseCreateStockRequestResponse(rsp *http.Response) (*CreateStockRequestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateStockRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CommerceStockRequest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -216292,6 +217007,72 @@ func ParsePreviewTemplateResponse(rsp *http.Response) (*PreviewTemplateResponse,
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest EmailTemplatePreview
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListTrackerSitesResponse parses an HTTP response from a ListTrackerSitesWithResponse call
+func ParseListTrackerSitesResponse(rsp *http.Response) (*ListTrackerSitesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTrackerSitesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TrackerSiteList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTrackerSiteRecentEventsResponse parses an HTTP response from a TrackerSiteRecentEventsWithResponse call
+func ParseTrackerSiteRecentEventsResponse(rsp *http.Response) (*TrackerSiteRecentEventsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TrackerSiteRecentEventsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TrackerRecentEvents
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

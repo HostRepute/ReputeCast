@@ -15,6 +15,9 @@ from ..models.automation_trigger_kind import AutomationTriggerKind
 from ..types import UNSET, Unset
 from typing import cast
 
+if TYPE_CHECKING:
+  from ..models.automation_browse_trigger import AutomationBrowseTrigger
+  from ..models.automation_stock_trigger import AutomationStockTrigger
 
 
 
@@ -34,6 +37,7 @@ class AutomationTrigger:
             answer_op (AutomationTriggerAnswerOp | Unset):
             answers (list[int] | Unset):
             at (str | Unset):
+            browse (AutomationBrowseTrigger | Unset):
             collections (list[str] | Unset):
             confirmed_only (bool | Unset):
             contact_time (bool | Unset):
@@ -62,6 +66,7 @@ class AutomationTrigger:
             segment_id (str | Unset):
             skip_days (int | Unset):
             source (str | Unset):
+            stock (AutomationStockTrigger | Unset):
             store (str | Unset):
             tag (str | Unset):
             threshold (int | Unset):
@@ -76,6 +81,7 @@ class AutomationTrigger:
     answer_op: AutomationTriggerAnswerOp | Unset = UNSET
     answers: list[int] | Unset = UNSET
     at: str | Unset = UNSET
+    browse: AutomationBrowseTrigger | Unset = UNSET
     collections: list[str] | Unset = UNSET
     confirmed_only: bool | Unset = UNSET
     contact_time: bool | Unset = UNSET
@@ -104,6 +110,7 @@ class AutomationTrigger:
     segment_id: str | Unset = UNSET
     skip_days: int | Unset = UNSET
     source: str | Unset = UNSET
+    stock: AutomationStockTrigger | Unset = UNSET
     store: str | Unset = UNSET
     tag: str | Unset = UNSET
     threshold: int | Unset = UNSET
@@ -116,6 +123,8 @@ class AutomationTrigger:
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.automation_browse_trigger import AutomationBrowseTrigger # noqa: PLC0415
+        from ..models.automation_stock_trigger import AutomationStockTrigger # noqa: PLC0415
         kind = self.kind.value
 
         after_hours = self.after_hours
@@ -141,6 +150,10 @@ class AutomationTrigger:
 
 
         at = self.at
+
+        browse: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.browse, Unset):
+            browse = self.browse.to_dict()
 
         collections: list[str] | Unset = UNSET
         if not isinstance(self.collections, Unset):
@@ -216,6 +229,10 @@ class AutomationTrigger:
 
         source = self.source
 
+        stock: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.stock, Unset):
+            stock = self.stock.to_dict()
+
         store = self.store
 
         tag = self.tag
@@ -244,6 +261,8 @@ class AutomationTrigger:
             field_dict["answers"] = answers
         if at is not UNSET:
             field_dict["at"] = at
+        if browse is not UNSET:
+            field_dict["browse"] = browse
         if collections is not UNSET:
             field_dict["collections"] = collections
         if confirmed_only is not UNSET:
@@ -300,6 +319,8 @@ class AutomationTrigger:
             field_dict["skipDays"] = skip_days
         if source is not UNSET:
             field_dict["source"] = source
+        if stock is not UNSET:
+            field_dict["stock"] = stock
         if store is not UNSET:
             field_dict["store"] = store
         if tag is not UNSET:
@@ -319,6 +340,8 @@ class AutomationTrigger:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.automation_browse_trigger import AutomationBrowseTrigger # noqa: PLC0415
+        from ..models.automation_stock_trigger import AutomationStockTrigger # noqa: PLC0415
         d = dict(src_dict)
         kind = AutomationTriggerKind(d.pop("kind"))
 
@@ -353,6 +376,16 @@ class AutomationTrigger:
 
 
         at = d.pop("at", UNSET)
+
+        _browse = d.pop("browse", UNSET)
+        browse: AutomationBrowseTrigger | Unset
+        if isinstance(_browse,  Unset):
+            browse = UNSET
+        else:
+            browse = AutomationBrowseTrigger.from_dict(_browse)
+
+
+
 
         collections = cast(list[str], d.pop("collections", UNSET))
 
@@ -430,6 +463,16 @@ class AutomationTrigger:
 
         source = d.pop("source", UNSET)
 
+        _stock = d.pop("stock", UNSET)
+        stock: AutomationStockTrigger | Unset
+        if isinstance(_stock,  Unset):
+            stock = UNSET
+        else:
+            stock = AutomationStockTrigger.from_dict(_stock)
+
+
+
+
         store = d.pop("store", UNSET)
 
         tag = d.pop("tag", UNSET)
@@ -449,6 +492,7 @@ class AutomationTrigger:
             answer_op=answer_op,
             answers=answers,
             at=at,
+            browse=browse,
             collections=collections,
             confirmed_only=confirmed_only,
             contact_time=contact_time,
@@ -477,6 +521,7 @@ class AutomationTrigger:
             segment_id=segment_id,
             skip_days=skip_days,
             source=source,
+            stock=stock,
             store=store,
             tag=tag,
             threshold=threshold,
