@@ -35,7 +35,7 @@ export default {
     loadError: 'Der Shop konnte nicht geladen werden.',
     retry: 'Erneut versuchen',
     statusConnected: 'Verbunden',
-    statusConnectedEvent: 'Verbunden · letztes Ereignis {ago}',
+    statusConnectedEvent: 'Verbunden · zuletzt {ago}',
     statusConnecting: 'Wird verbunden',
     statusImportingProducts: 'Produkte werden importiert · {done} von {total}',
     statusImportingCustomers: 'Kunden werden geprüft · {done} von {total}',

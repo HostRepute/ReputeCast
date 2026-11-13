@@ -42,7 +42,7 @@ const store = translate(cm, {
   loadError: 'Không tải được cửa hàng.',
   retry: 'Thử lại',
   statusConnected: 'Đã kết nối',
-  statusConnectedEvent: 'Đã kết nối · sự kiện gần nhất {ago}',
+  statusConnectedEvent: 'Đã kết nối · lần cuối {ago}',
   statusConnecting: 'Đang kết nối',
   statusImportingProducts: 'Đang nhập sản phẩm · {done}/{total}',
   statusImportingCustomers: 'Đang kiểm tra khách hàng · {done}/{total}',
