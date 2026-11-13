@@ -10,7 +10,7 @@ export default translate(m, {
   nothingChanged: 'Es wurde nichts geändert.',
   loadingForms: 'Anmeldeformulare werden geladen',
   buildingPreview: 'Vorschau wird erstellt',
-  statusPublished: 'Veröffentlicht · {where}',
+  statusPublished: 'Live · {where}',
   statusPaused: 'Pausiert · {where}',
   statusDraft: 'Entwurf · noch nicht veröffentlicht',
   nothingNew: 'Nichts Neues zu veröffentlichen',
