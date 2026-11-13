@@ -7,7 +7,7 @@ export default translate(tm, {
   documentTitle: 'Website-Tracking · Integrationen',
   crumbSettings: 'Einstellungen',
   crumbIntegrations: 'Integrationen',
-  statusLastEvent: 'Verbunden · letztes Ereignis {ago}',
+  statusLastEvent: 'Verbunden · zuletzt {ago}',
   statusConnected: 'Verbunden',
   statusNone: 'Nicht verbunden',
   facts: 'Integriert · ein Skript auf Ihren eigenen Websites · {count, plural, one {# Website} other {# Websites}} · hinzugefügt von {name} am {date}',

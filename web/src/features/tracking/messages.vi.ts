@@ -7,7 +7,7 @@ export default translate(tm, {
   documentTitle: 'Theo dõi website · Tích hợp',
   crumbSettings: 'Cài đặt',
   crumbIntegrations: 'Tích hợp',
-  statusLastEvent: 'Đã kết nối · sự kiện gần nhất {ago}',
+  statusLastEvent: 'Đã kết nối · lần cuối {ago}',
   statusConnected: 'Đã kết nối',
   statusNone: 'Chưa kết nối',
   facts: 'Có sẵn · một đoạn mã trên các trang web của bạn · {count, plural, other {# trang web}} · {name} thêm vào ngày {date}',
