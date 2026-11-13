@@ -271,7 +271,7 @@ func HTMLText(src string) string {
 				collect(n)
 				label := strings.TrimSpace(spaceRun.ReplaceAllString(strings.ReplaceAll(inner.String(), "\n", " "), " "))
 				switch {
-				case href == "" || strings.HasPrefix(strings.ToLower(href), "javascript:"):
+				case href == "" || scriptLink(href):
 					b.WriteString(label)
 				case label == "" || label == href || "mailto:"+label == href:
 					b.WriteString(href)
@@ -297,4 +297,23 @@ func HTMLText(src string) string {
 		lines[i] = strings.TrimRight(l, " ")
 	}
 	return strings.TrimSpace(blankRun.ReplaceAllString(strings.Join(lines, "\n"), "\n\n"))
+}
+
+// scriptLink reports a link a reader's text shouldn't carry: one that runs
+// a script (javascript:, vbscript:) or holds a document of its own (data:),
+// in any case, with the spaces around it trimmed and the tabs and line
+// breaks a browser ignores inside it dropped. Its label is kept.
+func scriptLink(href string) bool {
+	h := strings.ToLower(strings.Map(func(r rune) rune {
+		if r == '\t' || r == '\n' || r == '\r' {
+			return -1
+		}
+		return r
+	}, strings.TrimSpace(href)))
+	for _, scheme := range []string{"javascript:", "vbscript:", "data:"} {
+		if strings.HasPrefix(h, scheme) {
+			return true
+		}
+	}
+	return false
 }

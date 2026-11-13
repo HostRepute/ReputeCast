@@ -59,6 +59,17 @@ func TestEncodeDecode(t *testing.T) {
 	if _, _, ok := Decode(signer(t, "c"), ws, tag); ok {
 		t.Fatal("a tag verified under a key that never made it")
 	}
+	// 39 characters carry 195 bits for 192: every other last character
+	// with the same top two bits decodes to the same bytes, and none of
+	// them verifies.
+	last := strings.IndexByte(tagAlphabet, tag[len(tag)-1])
+	for i := range len(tagAlphabet) {
+		if i != last && i>>3 == last>>3 {
+			if _, _, ok := Decode(s, ws, tag[:len(tag)-1]+tagAlphabet[i:i+1]); ok {
+				t.Fatalf("a respelled tag verified: %q", tag[:len(tag)-1]+tagAlphabet[i:i+1])
+			}
+		}
+	}
 }
 
 func flip(c byte) string {
