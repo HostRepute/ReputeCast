@@ -5,7 +5,7 @@ import { App, WS, appTester, authData, mockServer, require, setup, teardown } fr
 const { sign } = require('../lib/signature');
 
 const hookId = '0192b7e2-11aa-7c1e-9a40-3f1b2c8d5e99';
-const secret = 'whsec_3f9a1c2b7e4d4c1a9b8e7f6a5d4c3b2a';
+const secret = 'whsec_0123456789abcdef0123456789abcdef';
 const targetUrl = 'https://hooks.zapier.com/hooks/standard/1234567/abcdef/';
 
 const delivery = (type, data, id = 'evt_01JA9ZK7Q2X8M') => ({ id, type, created_at: '2026-10-15T14:02:11Z', workspace: 'acme-newsletter', data });

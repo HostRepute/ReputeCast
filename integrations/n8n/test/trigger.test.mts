@@ -14,7 +14,7 @@ import { WS, context, mockServer, problem } from './fakes.mts';
 const trigger = new ReputeCastTrigger();
 const hooks = trigger.webhookMethods.default;
 const hookId = '0192b7e2-11aa-7c1e-9a40-3f1b2c8d5e99';
-const secret = 'whsec_3f9a1c2b7e4d4c1a9b8e7f6a5d4c3b2a';
+const secret = 'whsec_0123456789abcdef0123456789abcdef';
 const webhookUrl = 'https://n8n.acme.io/webhook/7c1e4b2a-91d3-4f0e-8a6b-2c5d7e9f1a3b/reputecast';
 const hook = (cx: unknown) => cx as IHookFunctions;
 
