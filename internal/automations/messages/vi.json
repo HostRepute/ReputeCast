@@ -515,7 +515,7 @@
   "diff.triggerReplyDetail": "Thay đổi áp dụng cho các liên hệ ở v{version} khi phiên bản được phát hành; liên hệ còn ở phiên bản trước giữ thiết lập của phiên bản đó.",
   "trigger.paidPaused": "Tạm dừng thanh toán",
   "trigger.paidResumed": "Tiếp tục thanh toán",
-  "trigger.leadAdSubmitted": "Gửi biểu mẫu quảng cáo khách hàng tiềm năng",
+  "trigger.leadAdSubmitted": "Gửi biểu mẫu quảng cáo",
   "ref.anyLeadForm": "mọi biểu mẫu khách hàng tiềm năng",
   "ref.aLeadForm": "một biểu mẫu khách hàng tiềm năng",
   "problem.triggerLeadFormDeleted": "Biểu mẫu khách hàng tiềm năng của trình kích hoạt không còn nữa: Trang của nó đã bị ngắt kết nối. Hãy chọn biểu mẫu khác, hoặc mọi biểu mẫu khách hàng tiềm năng.",

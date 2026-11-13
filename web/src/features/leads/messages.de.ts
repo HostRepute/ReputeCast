@@ -221,7 +221,7 @@ const mapping = translate(mm, {
 
 const automation = translate(ma, {
   group: 'Lead-Anzeigen',
-  kind: 'Lead-Anzeigen-Formular gesendet',
+  kind: 'Lead-Formular gesendet',
   kindLine: 'Jemand hat eines Ihrer Lead-Formulare auf Facebook oder Instagram gesendet',
   leadForm: 'Lead-Formular',
   anyForm: 'Beliebiges Lead-Formular',

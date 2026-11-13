@@ -219,7 +219,7 @@ const mapping = translate(mm, {
 
 const automation = translate(ma, {
   group: 'Quảng cáo khách hàng tiềm năng',
-  kind: 'Gửi biểu mẫu quảng cáo khách hàng tiềm năng',
+  kind: 'Gửi biểu mẫu quảng cáo',
   kindLine: 'Ai đó đã gửi một biểu mẫu khách hàng tiềm năng của bạn trên Facebook hoặc Instagram',
   leadForm: 'Biểu mẫu khách hàng tiềm năng',
   anyForm: 'Mọi biểu mẫu khách hàng tiềm năng',

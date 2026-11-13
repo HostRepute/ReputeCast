@@ -674,7 +674,8 @@ function ActivityCard({ id }: { id: string }) {
                   <b className="font-semibold">{it.formName}</b>
                   <span className="k num whitespace-nowrap">{when(it.at)}</span>
                 </span>
-                <span className="flex items-center justify-between gap-2.5">
+                {/* The outcome keeps one line: a long one (German) puts the contact under it. */}
+                <span className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1.5">
                   <OutcomeBadge o={it.outcome} />
                   <span className="text-[13px]">
                     <ContactCell it={it} />
