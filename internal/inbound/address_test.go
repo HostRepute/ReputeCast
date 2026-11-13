@@ -45,8 +45,11 @@ func TestEncodeDecode(t *testing.T) {
 		}
 	}
 	tag := Encode(s, LetterReply, ws, msg)
-	// Another letter with the same MAC, a changed character, a short tag.
-	for _, bad := range []string{"u" + tag[1:], tag[:len(tag)-1] + flip(tag[len(tag)-1]), tag[:30], "x-" + tag[2:], "", "r-"} {
+	// Another letter with the same MAC, a changed character in the message
+	// id and in the MAC (the second to last one: the last also carries
+	// spare bits, see below), a short tag.
+	n := len(tag)
+	for _, bad := range []string{"u" + tag[1:], tag[:7] + flip(tag[7]) + tag[8:], tag[:n-2] + flip(tag[n-2]) + tag[n-1:], tag[:30], "x-" + tag[2:], "", "r-"} {
 		if _, _, ok := Decode(s, ws, bad); ok {
 			t.Fatalf("forged tag verified: %q", bad)
 		}
