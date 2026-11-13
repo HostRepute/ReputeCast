@@ -34,6 +34,7 @@ class CommerceConnectState:
         Attributes:
             app_url (str):
             demo (bool):
+            discounts_granted (bool):
             error (CommerceConnectStateError):
             granted (list[str]):
             lists (list[CommerceListOption]):
@@ -57,6 +58,7 @@ class CommerceConnectState:
 
     app_url: str
     demo: bool
+    discounts_granted: bool
     error: CommerceConnectStateError
     granted: list[str]
     lists: list[CommerceListOption]
@@ -89,6 +91,8 @@ class CommerceConnectState:
         app_url = self.app_url
 
         demo = self.demo
+
+        discounts_granted = self.discounts_granted
 
         error = self.error.value
 
@@ -149,6 +153,7 @@ class CommerceConnectState:
         field_dict.update({
             "appUrl": app_url,
             "demo": demo,
+            "discountsGranted": discounts_granted,
             "error": error,
             "granted": granted,
             "lists": lists,
@@ -189,6 +194,8 @@ class CommerceConnectState:
         app_url = d.pop("appUrl")
 
         demo = d.pop("demo")
+
+        discounts_granted = d.pop("discountsGranted")
 
         error = CommerceConnectStateError(d.pop("error"))
 
@@ -277,6 +284,7 @@ class CommerceConnectState:
         commerce_connect_state = cls(
             app_url=app_url,
             demo=demo,
+            discounts_granted=discounts_granted,
             error=error,
             granted=granted,
             lists=lists,

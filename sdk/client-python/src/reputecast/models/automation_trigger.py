@@ -41,10 +41,12 @@ class AutomationTrigger:
             end_reasons (list[AutomationTriggerEndReasonsItem] | Unset):
             event (str | Unset):
             exit_on_leave (bool | Unset):
+            exit_on_reply (bool | Unset):
             field (str | Unset):
             first_only (bool | Unset):
             form_id (str | Unset):
             include_imports (bool | Unset):
+            lead_form_id (str | Unset):
             list_id (str | Unset):
             milestone_id (str | Unset):
             min_total (int | Unset):
@@ -81,10 +83,12 @@ class AutomationTrigger:
     end_reasons: list[AutomationTriggerEndReasonsItem] | Unset = UNSET
     event: str | Unset = UNSET
     exit_on_leave: bool | Unset = UNSET
+    exit_on_reply: bool | Unset = UNSET
     field: str | Unset = UNSET
     first_only: bool | Unset = UNSET
     form_id: str | Unset = UNSET
     include_imports: bool | Unset = UNSET
+    lead_form_id: str | Unset = UNSET
     list_id: str | Unset = UNSET
     milestone_id: str | Unset = UNSET
     min_total: int | Unset = UNSET
@@ -166,6 +170,8 @@ class AutomationTrigger:
 
         exit_on_leave = self.exit_on_leave
 
+        exit_on_reply = self.exit_on_reply
+
         field = self.field
 
         first_only = self.first_only
@@ -173,6 +179,8 @@ class AutomationTrigger:
         form_id = self.form_id
 
         include_imports = self.include_imports
+
+        lead_form_id = self.lead_form_id
 
         list_id = self.list_id
 
@@ -250,6 +258,8 @@ class AutomationTrigger:
             field_dict["event"] = event
         if exit_on_leave is not UNSET:
             field_dict["exitOnLeave"] = exit_on_leave
+        if exit_on_reply is not UNSET:
+            field_dict["exitOnReply"] = exit_on_reply
         if field is not UNSET:
             field_dict["field"] = field
         if first_only is not UNSET:
@@ -258,6 +268,8 @@ class AutomationTrigger:
             field_dict["formId"] = form_id
         if include_imports is not UNSET:
             field_dict["includeImports"] = include_imports
+        if lead_form_id is not UNSET:
+            field_dict["leadFormId"] = lead_form_id
         if list_id is not UNSET:
             field_dict["listId"] = list_id
         if milestone_id is not UNSET:
@@ -375,6 +387,8 @@ class AutomationTrigger:
 
         exit_on_leave = d.pop("exitOnLeave", UNSET)
 
+        exit_on_reply = d.pop("exitOnReply", UNSET)
+
         field = d.pop("field", UNSET)
 
         first_only = d.pop("firstOnly", UNSET)
@@ -382,6 +396,8 @@ class AutomationTrigger:
         form_id = d.pop("formId", UNSET)
 
         include_imports = d.pop("includeImports", UNSET)
+
+        lead_form_id = d.pop("leadFormId", UNSET)
 
         list_id = d.pop("listId", UNSET)
 
@@ -440,10 +456,12 @@ class AutomationTrigger:
             end_reasons=end_reasons,
             event=event,
             exit_on_leave=exit_on_leave,
+            exit_on_reply=exit_on_reply,
             field=field,
             first_only=first_only,
             form_id=form_id,
             include_imports=include_imports,
+            lead_form_id=lead_form_id,
             list_id=list_id,
             milestone_id=milestone_id,
             min_total=min_total,

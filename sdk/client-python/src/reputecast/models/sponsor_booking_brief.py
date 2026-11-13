@@ -40,6 +40,7 @@ class SponsorBookingBrief:
             click_rate (float | Unset):
             creative_due (datetime.datetime | Unset):
             hold_until (datetime.datetime | Unset):
+            payment_due_at (datetime.datetime | Unset):
             proposal (SponsorPropose | Unset):
             results_final_at (datetime.datetime | Unset):
             sent_at (datetime.datetime | Unset):
@@ -56,6 +57,7 @@ class SponsorBookingBrief:
     click_rate: float | Unset = UNSET
     creative_due: datetime.datetime | Unset = UNSET
     hold_until: datetime.datetime | Unset = UNSET
+    payment_due_at: datetime.datetime | Unset = UNSET
     proposal: SponsorPropose | Unset = UNSET
     results_final_at: datetime.datetime | Unset = UNSET
     sent_at: datetime.datetime | Unset = UNSET
@@ -91,6 +93,10 @@ class SponsorBookingBrief:
         hold_until: str | Unset = UNSET
         if not isinstance(self.hold_until, Unset):
             hold_until = self.hold_until.isoformat()
+
+        payment_due_at: str | Unset = UNSET
+        if not isinstance(self.payment_due_at, Unset):
+            payment_due_at = self.payment_due_at.isoformat()
 
         proposal: dict[str, Any] | Unset = UNSET
         if not isinstance(self.proposal, Unset):
@@ -129,6 +135,8 @@ class SponsorBookingBrief:
             field_dict["creativeDue"] = creative_due
         if hold_until is not UNSET:
             field_dict["holdUntil"] = hold_until
+        if payment_due_at is not UNSET:
+            field_dict["paymentDueAt"] = payment_due_at
         if proposal is not UNSET:
             field_dict["proposal"] = proposal
         if results_final_at is not UNSET:
@@ -193,6 +201,16 @@ class SponsorBookingBrief:
 
 
 
+        _payment_due_at = d.pop("paymentDueAt", UNSET)
+        payment_due_at: datetime.datetime | Unset
+        if isinstance(_payment_due_at,  Unset):
+            payment_due_at = UNSET
+        else:
+            payment_due_at = datetime.datetime.fromisoformat(_payment_due_at)
+
+
+
+
         _proposal = d.pop("proposal", UNSET)
         proposal: SponsorPropose | Unset
         if isinstance(_proposal,  Unset):
@@ -253,6 +271,7 @@ class SponsorBookingBrief:
             click_rate=click_rate,
             creative_due=creative_due,
             hold_until=hold_until,
+            payment_due_at=payment_due_at,
             proposal=proposal,
             results_final_at=results_final_at,
             sent_at=sent_at,

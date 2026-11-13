@@ -42,6 +42,9 @@ class WebsitePost:
             byline (WebsiteByline):
             bylines (list[WebsiteByline]):
             checks (list[WebsiteWebCheck]):
+            comments (int):
+            comments_off (bool):
+            comments_pending (int):
             cover_alt (str):
             cover_url (str):
             created_by (str):
@@ -91,6 +94,9 @@ class WebsitePost:
     byline: WebsiteByline
     bylines: list[WebsiteByline]
     checks: list[WebsiteWebCheck]
+    comments: int
+    comments_off: bool
+    comments_pending: int
     cover_alt: str
     cover_url: str
     created_by: str
@@ -165,6 +171,12 @@ class WebsitePost:
             checks.append(checks_item)
 
 
+
+        comments = self.comments
+
+        comments_off = self.comments_off
+
+        comments_pending = self.comments_pending
 
         cover_alt = self.cover_alt
 
@@ -282,6 +294,9 @@ class WebsitePost:
             "byline": byline,
             "bylines": bylines,
             "checks": checks,
+            "comments": comments,
+            "commentsOff": comments_off,
+            "commentsPending": comments_pending,
             "coverAlt": cover_alt,
             "coverUrl": cover_url,
             "createdBy": created_by,
@@ -378,6 +393,12 @@ class WebsitePost:
 
             checks.append(checks_item)
 
+
+        comments = d.pop("comments")
+
+        comments_off = d.pop("commentsOff")
+
+        comments_pending = d.pop("commentsPending")
 
         cover_alt = d.pop("coverAlt")
 
@@ -555,6 +576,9 @@ class WebsitePost:
             byline=byline,
             bylines=bylines,
             checks=checks,
+            comments=comments,
+            comments_off=comments_off,
+            comments_pending=comments_pending,
             cover_alt=cover_alt,
             cover_url=cover_url,
             created_by=created_by,

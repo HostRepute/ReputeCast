@@ -16,6 +16,7 @@ from typing import cast
 import datetime
 
 if TYPE_CHECKING:
+  from ..models.earn_group_prices import EarnGroupPrices
   from ..models.earn_list_ref import EarnListRef
   from ..models.earn_price import EarnPrice
   from ..models.earn_sync_step import EarnSyncStep
@@ -56,6 +57,7 @@ class EarnTier:
             trialing (int):
             visibility (EarnTierVisibility):
             archived_at (datetime.datetime | Unset):
+            group (EarnGroupPrices | Unset):
             highlight (str | Unset):
             imported_at (datetime.datetime | Unset):
             imported_from (str | Unset):
@@ -91,6 +93,7 @@ class EarnTier:
     trialing: int
     visibility: EarnTierVisibility
     archived_at: datetime.datetime | Unset = UNSET
+    group: EarnGroupPrices | Unset = UNSET
     highlight: str | Unset = UNSET
     imported_at: datetime.datetime | Unset = UNSET
     imported_from: str | Unset = UNSET
@@ -106,6 +109,7 @@ class EarnTier:
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.earn_group_prices import EarnGroupPrices # noqa: PLC0415
         from ..models.earn_list_ref import EarnListRef # noqa: PLC0415
         from ..models.earn_price import EarnPrice # noqa: PLC0415
         from ..models.earn_sync_step import EarnSyncStep # noqa: PLC0415
@@ -178,6 +182,10 @@ class EarnTier:
         if not isinstance(self.archived_at, Unset):
             archived_at = self.archived_at.isoformat()
 
+        group: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.group, Unset):
+            group = self.group.to_dict()
+
         highlight = self.highlight
 
         imported_at: str | Unset = UNSET
@@ -234,6 +242,8 @@ class EarnTier:
         })
         if archived_at is not UNSET:
             field_dict["archivedAt"] = archived_at
+        if group is not UNSET:
+            field_dict["group"] = group
         if highlight is not UNSET:
             field_dict["highlight"] = highlight
         if imported_at is not UNSET:
@@ -259,6 +269,7 @@ class EarnTier:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.earn_group_prices import EarnGroupPrices # noqa: PLC0415
         from ..models.earn_list_ref import EarnListRef # noqa: PLC0415
         from ..models.earn_price import EarnPrice # noqa: PLC0415
         from ..models.earn_sync_step import EarnSyncStep # noqa: PLC0415
@@ -357,6 +368,16 @@ class EarnTier:
 
 
 
+        _group = d.pop("group", UNSET)
+        group: EarnGroupPrices | Unset
+        if isinstance(_group,  Unset):
+            group = UNSET
+        else:
+            group = EarnGroupPrices.from_dict(_group)
+
+
+
+
         highlight = d.pop("highlight", UNSET)
 
         _imported_at = d.pop("importedAt", UNSET)
@@ -432,6 +453,7 @@ class EarnTier:
             trialing=trialing,
             visibility=visibility,
             archived_at=archived_at,
+            group=group,
             highlight=highlight,
             imported_at=imported_at,
             imported_from=imported_from,

@@ -30,6 +30,7 @@ class SenderDefaults:
             default_sender_id (str):
             footer_address (str):
             list_unsubscribe_mailto (bool):
+            receiving (bool):
             reply_handling (SenderDefaultsReplyHandling):
             reply_options (list[str]):
             reply_to (str):
@@ -44,6 +45,7 @@ class SenderDefaults:
     default_sender_id: str
     footer_address: str
     list_unsubscribe_mailto: bool
+    receiving: bool
     reply_handling: SenderDefaultsReplyHandling
     reply_options: list[str]
     reply_to: str
@@ -66,6 +68,8 @@ class SenderDefaults:
         footer_address = self.footer_address
 
         list_unsubscribe_mailto = self.list_unsubscribe_mailto
+
+        receiving = self.receiving
 
         reply_handling = self.reply_handling.value
 
@@ -98,6 +102,7 @@ class SenderDefaults:
             "defaultSenderId": default_sender_id,
             "footerAddress": footer_address,
             "listUnsubscribeMailto": list_unsubscribe_mailto,
+            "receiving": receiving,
             "replyHandling": reply_handling,
             "replyOptions": reply_options,
             "replyTo": reply_to,
@@ -123,6 +128,8 @@ class SenderDefaults:
         footer_address = d.pop("footerAddress")
 
         list_unsubscribe_mailto = d.pop("listUnsubscribeMailto")
+
+        receiving = d.pop("receiving")
 
         reply_handling = SenderDefaultsReplyHandling(d.pop("replyHandling"))
 
@@ -157,6 +164,7 @@ class SenderDefaults:
             default_sender_id=default_sender_id,
             footer_address=footer_address,
             list_unsubscribe_mailto=list_unsubscribe_mailto,
+            receiving=receiving,
             reply_handling=reply_handling,
             reply_options=reply_options,
             reply_to=reply_to,

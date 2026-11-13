@@ -28,15 +28,19 @@ class SponsorSlotItem:
             bookings (int):
             creative_days (int):
             currency (str):
+            description (str):
             every_days (int):
             first_number (int):
             first_on (datetime.datetime):
             id (str):
+            lead_days (int):
             list_id (str):
             list_name (str):
             name (str):
+            pay_days (int):
             placement (str):
             price_cents (int):
+            self_serve (bool):
             selling (bool):
             weekday (str | Unset):
      """
@@ -44,15 +48,19 @@ class SponsorSlotItem:
     bookings: int
     creative_days: int
     currency: str
+    description: str
     every_days: int
     first_number: int
     first_on: datetime.datetime
     id: str
+    lead_days: int
     list_id: str
     list_name: str
     name: str
+    pay_days: int
     placement: str
     price_cents: int
+    self_serve: bool
     selling: bool
     weekday: str | Unset = UNSET
 
@@ -67,6 +75,8 @@ class SponsorSlotItem:
 
         currency = self.currency
 
+        description = self.description
+
         every_days = self.every_days
 
         first_number = self.first_number
@@ -75,15 +85,21 @@ class SponsorSlotItem:
 
         id = self.id
 
+        lead_days = self.lead_days
+
         list_id = self.list_id
 
         list_name = self.list_name
 
         name = self.name
 
+        pay_days = self.pay_days
+
         placement = self.placement
 
         price_cents = self.price_cents
+
+        self_serve = self.self_serve
 
         selling = self.selling
 
@@ -96,15 +112,19 @@ class SponsorSlotItem:
             "bookings": bookings,
             "creativeDays": creative_days,
             "currency": currency,
+            "description": description,
             "everyDays": every_days,
             "firstNumber": first_number,
             "firstOn": first_on,
             "id": id,
+            "leadDays": lead_days,
             "listId": list_id,
             "listName": list_name,
             "name": name,
+            "payDays": pay_days,
             "placement": placement,
             "priceCents": price_cents,
+            "selfServe": self_serve,
             "selling": selling,
         })
         if weekday is not UNSET:
@@ -123,6 +143,8 @@ class SponsorSlotItem:
 
         currency = d.pop("currency")
 
+        description = d.pop("description")
+
         every_days = d.pop("everyDays")
 
         first_number = d.pop("firstNumber")
@@ -134,15 +156,21 @@ class SponsorSlotItem:
 
         id = d.pop("id")
 
+        lead_days = d.pop("leadDays")
+
         list_id = d.pop("listId")
 
         list_name = d.pop("listName")
 
         name = d.pop("name")
 
+        pay_days = d.pop("payDays")
+
         placement = d.pop("placement")
 
         price_cents = d.pop("priceCents")
+
+        self_serve = d.pop("selfServe")
 
         selling = d.pop("selling")
 
@@ -152,15 +180,19 @@ class SponsorSlotItem:
             bookings=bookings,
             creative_days=creative_days,
             currency=currency,
+            description=description,
             every_days=every_days,
             first_number=first_number,
             first_on=first_on,
             id=id,
+            lead_days=lead_days,
             list_id=list_id,
             list_name=list_name,
             name=name,
+            pay_days=pay_days,
             placement=placement,
             price_cents=price_cents,
+            self_serve=self_serve,
             selling=selling,
             weekday=weekday,
         )

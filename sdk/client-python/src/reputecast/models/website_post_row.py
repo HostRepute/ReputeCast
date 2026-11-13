@@ -36,6 +36,8 @@ class WebsitePostRow:
     """ 
         Attributes:
             byline (WebsiteByline):
+            comments (int):
+            comments_pending (int):
             created_by (str):
             excerpt (str):
             featured (bool):
@@ -69,6 +71,8 @@ class WebsitePostRow:
      """
 
     byline: WebsiteByline
+    comments: int
+    comments_pending: int
     created_by: str
     excerpt: str
     featured: bool
@@ -111,6 +115,10 @@ class WebsitePostRow:
         from ..models.website_tag_ref import WebsiteTagRef # noqa: PLC0415
         from ..models.website_tier_ref import WebsiteTierRef # noqa: PLC0415
         byline = self.byline.to_dict()
+
+        comments = self.comments
+
+        comments_pending = self.comments_pending
 
         created_by = self.created_by
 
@@ -197,6 +205,8 @@ class WebsitePostRow:
 
         field_dict.update({
             "byline": byline,
+            "comments": comments,
+            "commentsPending": comments_pending,
             "createdBy": created_by,
             "excerpt": excerpt,
             "featured": featured,
@@ -254,6 +264,10 @@ class WebsitePostRow:
 
 
 
+
+        comments = d.pop("comments")
+
+        comments_pending = d.pop("commentsPending")
 
         created_by = d.pop("createdBy")
 
@@ -388,6 +402,8 @@ class WebsitePostRow:
 
         website_post_row = cls(
             byline=byline,
+            comments=comments,
+            comments_pending=comments_pending,
             created_by=created_by,
             excerpt=excerpt,
             featured=featured,

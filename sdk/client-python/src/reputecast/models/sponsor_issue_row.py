@@ -32,6 +32,7 @@ class SponsorIssueRow:
             issue_on (datetime.datetime):
             number (int):
             past (bool):
+            requests (int):
             slot_id (str):
             slot_name (str):
             booking (SponsorBookingBrief | Unset):
@@ -42,6 +43,7 @@ class SponsorIssueRow:
     issue_on: datetime.datetime
     number: int
     past: bool
+    requests: int
     slot_id: str
     slot_name: str
     booking: SponsorBookingBrief | Unset = UNSET
@@ -61,6 +63,8 @@ class SponsorIssueRow:
         number = self.number
 
         past = self.past
+
+        requests = self.requests
 
         slot_id = self.slot_id
 
@@ -85,6 +89,7 @@ class SponsorIssueRow:
             "issueOn": issue_on,
             "number": number,
             "past": past,
+            "requests": requests,
             "slotId": slot_id,
             "slotName": slot_name,
         })
@@ -113,6 +118,8 @@ class SponsorIssueRow:
         number = d.pop("number")
 
         past = d.pop("past")
+
+        requests = d.pop("requests")
 
         slot_id = d.pop("slotId")
 
@@ -152,6 +159,7 @@ class SponsorIssueRow:
             issue_on=issue_on,
             number=number,
             past=past,
+            requests=requests,
             slot_id=slot_id,
             slot_name=slot_name,
             booking=booking,

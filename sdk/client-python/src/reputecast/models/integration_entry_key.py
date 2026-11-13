@@ -13,6 +13,7 @@ class IntegrationEntryKey(StrEnum):
     LEMONSQUEEZY = "lemonsqueezy"
     MAKE = "make"
     MCP = "mcp"
+    META_LEAD_ADS = "meta_lead_ads"
     N8N = "n8n"
     NEVERBOUNCE = "neverbounce"
     OPENAI = "openai"

@@ -19,6 +19,7 @@ import datetime
 if TYPE_CHECKING:
   from ..models.earn_member_discount import EarnMemberDiscount
   from ..models.earn_member_source import EarnMemberSource
+  from ..models.earn_member_team import EarnMemberTeam
 
 
 
@@ -47,6 +48,7 @@ class EarnMemberRow:
             next_ (EarnMemberRowNext):
             period (EarnMemberRowPeriod):
             period_shown (bool):
+            quantity (int):
             refunded_cents (int):
             since (datetime.datetime):
             source (EarnMemberSource):
@@ -61,6 +63,9 @@ class EarnMemberRow:
             gift_from (str | Unset):
             gift_months (int | Unset):
             next_at (datetime.datetime | Unset):
+            paused_at (datetime.datetime | Unset):
+            paused_until (datetime.datetime | Unset):
+            team (EarnMemberTeam | Unset):
             tier_id (str | Unset):
      """
 
@@ -79,6 +84,7 @@ class EarnMemberRow:
     next_: EarnMemberRowNext
     period: EarnMemberRowPeriod
     period_shown: bool
+    quantity: int
     refunded_cents: int
     since: datetime.datetime
     source: EarnMemberSource
@@ -93,6 +99,9 @@ class EarnMemberRow:
     gift_from: str | Unset = UNSET
     gift_months: int | Unset = UNSET
     next_at: datetime.datetime | Unset = UNSET
+    paused_at: datetime.datetime | Unset = UNSET
+    paused_until: datetime.datetime | Unset = UNSET
+    team: EarnMemberTeam | Unset = UNSET
     tier_id: str | Unset = UNSET
 
 
@@ -102,6 +111,7 @@ class EarnMemberRow:
     def to_dict(self) -> dict[str, Any]:
         from ..models.earn_member_discount import EarnMemberDiscount # noqa: PLC0415
         from ..models.earn_member_source import EarnMemberSource # noqa: PLC0415
+        from ..models.earn_member_team import EarnMemberTeam # noqa: PLC0415
         access_paused = self.access_paused
 
         amount_cents = self.amount_cents
@@ -131,6 +141,8 @@ class EarnMemberRow:
         period = self.period.value
 
         period_shown = self.period_shown
+
+        quantity = self.quantity
 
         refunded_cents = self.refunded_cents
 
@@ -166,6 +178,18 @@ class EarnMemberRow:
         if not isinstance(self.next_at, Unset):
             next_at = self.next_at.isoformat()
 
+        paused_at: str | Unset = UNSET
+        if not isinstance(self.paused_at, Unset):
+            paused_at = self.paused_at.isoformat()
+
+        paused_until: str | Unset = UNSET
+        if not isinstance(self.paused_until, Unset):
+            paused_until = self.paused_until.isoformat()
+
+        team: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.team, Unset):
+            team = self.team.to_dict()
+
         tier_id = self.tier_id
 
 
@@ -187,6 +211,7 @@ class EarnMemberRow:
             "next": next_,
             "period": period,
             "periodShown": period_shown,
+            "quantity": quantity,
             "refundedCents": refunded_cents,
             "since": since,
             "source": source,
@@ -209,6 +234,12 @@ class EarnMemberRow:
             field_dict["giftMonths"] = gift_months
         if next_at is not UNSET:
             field_dict["nextAt"] = next_at
+        if paused_at is not UNSET:
+            field_dict["pausedAt"] = paused_at
+        if paused_until is not UNSET:
+            field_dict["pausedUntil"] = paused_until
+        if team is not UNSET:
+            field_dict["team"] = team
         if tier_id is not UNSET:
             field_dict["tierId"] = tier_id
 
@@ -220,6 +251,7 @@ class EarnMemberRow:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.earn_member_discount import EarnMemberDiscount # noqa: PLC0415
         from ..models.earn_member_source import EarnMemberSource # noqa: PLC0415
+        from ..models.earn_member_team import EarnMemberTeam # noqa: PLC0415
         d = dict(src_dict)
         access_paused = d.pop("accessPaused")
 
@@ -259,6 +291,8 @@ class EarnMemberRow:
 
 
         period_shown = d.pop("periodShown")
+
+        quantity = d.pop("quantity")
 
         refunded_cents = d.pop("refundedCents")
 
@@ -321,6 +355,36 @@ class EarnMemberRow:
 
 
 
+        _paused_at = d.pop("pausedAt", UNSET)
+        paused_at: datetime.datetime | Unset
+        if isinstance(_paused_at,  Unset):
+            paused_at = UNSET
+        else:
+            paused_at = datetime.datetime.fromisoformat(_paused_at)
+
+
+
+
+        _paused_until = d.pop("pausedUntil", UNSET)
+        paused_until: datetime.datetime | Unset
+        if isinstance(_paused_until,  Unset):
+            paused_until = UNSET
+        else:
+            paused_until = datetime.datetime.fromisoformat(_paused_until)
+
+
+
+
+        _team = d.pop("team", UNSET)
+        team: EarnMemberTeam | Unset
+        if isinstance(_team,  Unset):
+            team = UNSET
+        else:
+            team = EarnMemberTeam.from_dict(_team)
+
+
+
+
         tier_id = d.pop("tierId", UNSET)
 
         earn_member_row = cls(
@@ -339,6 +403,7 @@ class EarnMemberRow:
             next_=next_,
             period=period,
             period_shown=period_shown,
+            quantity=quantity,
             refunded_cents=refunded_cents,
             since=since,
             source=source,
@@ -353,6 +418,9 @@ class EarnMemberRow:
             gift_from=gift_from,
             gift_months=gift_months,
             next_at=next_at,
+            paused_at=paused_at,
+            paused_until=paused_until,
+            team=team,
             tier_id=tier_id,
         )
 
