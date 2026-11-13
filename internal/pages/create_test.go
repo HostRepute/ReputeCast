@@ -131,7 +131,7 @@ func TestPageAddresses(t *testing.T) {
 		}
 	})
 	t.Run("the site's own", func(t *testing.T) {
-		for _, slug := range []string{"products", "signin", "account", "posts", "p", "api", "buy", "d", "subscribe", "feed", "checkout", "sponsor"} {
+		for _, slug := range []string{"products", "signin", "account", "posts", "p", "api", "buy", "d", "subscribe", "feed", "checkout", "sponsor", "team", "resume", "comments", "track"} {
 			p := mustProblem(t, create("Something", slug), http.StatusUnprocessableEntity, "validation_failed")
 			if !strings.Contains(p.Detail, "/"+slug+" belongs to the site itself") {
 				t.Errorf("%s: %s", slug, p.Detail)

@@ -200,6 +200,14 @@ var reserved = map[string]bool{
 	"sign-in": true, "settings": true, "admin": true, "static": true, "assets": true, "favicon": true,
 	// The sponsor media kit (M65): /sponsor, /sponsor/request and /sponsor/b/….
 	"sponsor": true,
+	// A team's manage and join links (M65): /team/{token}, /team/join/{token}.
+	"team": true,
+	// A paused member's resume link (M65): /resume/{token}.
+	"resume": true,
+	// Comments' own addresses (M61): /comments/mute/{token} and the rest of /comments/*.
+	"comments": true,
+	// The site tracker's script (M62): /track/v1/rc.js, on every host.
+	"track": true,
 }
 
 // Reserved reports whether an address belongs to the site itself.
