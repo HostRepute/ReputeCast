@@ -46,8 +46,24 @@ func Slugify(name string) string {
 // reserved slugs collide with top-level app routes.
 var reserved = map[string]bool{"admin": true, "api": true, "new": true, "settings": true, "account": true}
 
-// UniqueSlug finds a free slug for name.
+// ErrSlugTaken is returned by Create when the slug asked for is in use or
+// reserved.
+var ErrSlugTaken = errors.New("workspace slug taken")
+
+// LockSlugs holds the instance's workspace slug lock until the transaction
+// behind q ends. Whatever checks that a slug is free and then writes it
+// takes the lock first, so two requests never both find the same slug free
+// and the second write never breaks workspaces_slug_key.
+func LockSlugs(ctx context.Context, q store.Querier) error {
+	return q.WorkspaceSlugLock(ctx)
+}
+
+// UniqueSlug finds a free slug for name. q must be the transaction that
+// then writes the slug: it takes the slug lock (LockSlugs).
 func UniqueSlug(ctx context.Context, q store.Querier, name string) (string, error) {
+	if err := LockSlugs(ctx, q); err != nil {
+		return "", err
+	}
 	base := Slugify(name)
 	for i := 0; i < 50; i++ {
 		s := base
@@ -70,17 +86,20 @@ func UniqueSlug(ctx context.Context, q store.Querier, name string) (string, erro
 
 // CreateParams describes a new workspace.
 type CreateParams struct {
-	Name     string
+	Name string
+	// Slug is the address asked for; empty picks a free one from Name.
+	Slug     string
 	Timezone string
 	Owner    uuid.UUID
-	Source   string // install, admin, self
+	Source   string // install, admin, self, agency
 }
 
 // Create makes a workspace with the four built-in roles and the owner
-// membership, inside the caller's transaction.
+// membership, inside the caller's transaction. A slug asked for that is in
+// use or reserved returns ErrSlugTaken.
 func Create(ctx context.Context, tx pgx.Tx, p CreateParams) (store.Workspace, error) {
 	q := store.New(tx)
-	slug, err := UniqueSlug(ctx, q, p.Name)
+	slug, err := createSlug(ctx, q, p)
 	if err != nil {
 		return store.Workspace{}, err
 	}
@@ -150,6 +169,27 @@ func Create(ctx context.Context, tx pgx.Tx, p CreateParams) (store.Workspace, er
 		return store.Workspace{}, err
 	}
 	return q.GetWorkspace(ctx, ws.ID)
+}
+
+// createSlug is the slug a new workspace gets, checked under the slug lock.
+func createSlug(ctx context.Context, q store.Querier, p CreateParams) (string, error) {
+	if p.Slug == "" {
+		return UniqueSlug(ctx, q, p.Name)
+	}
+	if err := LockSlugs(ctx, q); err != nil {
+		return "", err
+	}
+	if reserved[p.Slug] {
+		return "", ErrSlugTaken
+	}
+	taken, err := q.SlugTaken(ctx, p.Slug)
+	if err != nil {
+		return "", err
+	}
+	if taken {
+		return "", ErrSlugTaken
+	}
+	return p.Slug, nil
 }
 
 // EnsureTwoFAGrace starts the two-factor grace period for a user who just

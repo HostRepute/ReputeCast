@@ -1688,3 +1688,14 @@ func (q *Queries) UpdateWorkspaceJSON(ctx context.Context, arg UpdateWorkspaceJS
 	)
 	return i, err
 }
+
+const workspaceSlugLock = `-- name: WorkspaceSlugLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('workspace_slug', 0))
+`
+
+// Serializes picking workspace slugs, which are unique across the instance,
+// until the transaction ends, so two requests never take the same free slug.
+func (q *Queries) WorkspaceSlugLock(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, workspaceSlugLock)
+	return err
+}
