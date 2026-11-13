@@ -182,8 +182,8 @@ export function RequestsTab({ selected, onOpen }: { selected?: string; onOpen: (
             </span>
             <span className="sp-lst-badges">
               <RequestStatus r={r} />
-              {/* An approved request's date is its pay-by date: the row keeps to one line of badges. */}
-              {r.status === 'awaiting_payment' ? null : <span className="k">{t(mr.sentOn, { date: dayMonthDate(r.submittedAt) })}</span>}
+              {/* An approved request's date is its pay-by date and a booked one's its payment: the row keeps to one line of badges. */}
+              {r.status === 'awaiting_payment' || r.status === 'booked' ? null : <span className="k">{t(mr.sentOn, { date: dayMonthDate(r.submittedAt) })}</span>}
             </span>
           </button>
         ))}
