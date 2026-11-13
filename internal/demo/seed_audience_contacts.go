@@ -692,7 +692,10 @@ func audShapeSunset(g *audGen, a *audSeed) {
 			if cross.After(week) {
 				cross = week
 			}
-			t := cross.AddDate(0, 0, -181)
+			// 181 days of 24 hours, as Postgres adds '181 days' to a
+			// timestamptz in a UTC session: list health counts the cross
+			// at the same instant across a change of summer time.
+			t := cross.Add(-181 * 24 * time.Hour)
 			c.lastHuman, c.lastOpen, c.machine = &t, &t, false
 			if !c.imported() && c.created.After(t) {
 				c.created = t.AddDate(0, 0, -30-g.rng.IntN(300))
@@ -712,8 +715,11 @@ func audShapeSunset(g *audGen, a *audSeed) {
 					c.created = base
 				}
 				stopping++
-				// Entered Sunset 30 days before the stop.
-				sunset := stop.AddDate(0, 0, -30)
+				// Entered Sunset 30 days before the stop: 30 days of 24
+				// hours, as list health adds them (see above), not 30
+				// calendar days in New York, which are an hour longer across
+				// the change from summer time.
+				sunset := stop.Add(-30 * 24 * time.Hour)
 				c.sunsetAt = &sunset
 				if !sunset.Before(enabled) {
 					c.tags = append(c.tags, "sunset")
