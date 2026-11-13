@@ -6,10 +6,11 @@ class ListPaidMembersSource(StrEnum):
     DIRECT = "direct"
     GIFT = "gift"
     GRANT = "grant"
+    GROUP = "group"
     IMPORT = "import"
     OFFER = "offer"
     PAGE = "page"
-    VALUE_9 = ""
+    VALUE_10 = ""
     WEBSITE = "website"
 
     def __str__(self) -> str:

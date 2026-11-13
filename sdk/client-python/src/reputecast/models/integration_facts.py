@@ -14,8 +14,10 @@ import datetime
 
 if TYPE_CHECKING:
   from ..models.integration_ai_facts import IntegrationAIFacts
+  from ..models.integration_lead_facts import IntegrationLeadFacts
   from ..models.integration_payment_facts import IntegrationPaymentFacts
   from ..models.integration_store_facts import IntegrationStoreFacts
+  from ..models.integration_tracking_facts import IntegrationTrackingFacts
 
 
 
@@ -44,10 +46,12 @@ class IntegrationFacts:
             key_created_at (datetime.datetime | Unset):
             last_call_at (datetime.datetime | Unset):
             last_sync_at (datetime.datetime | Unset):
+            leads (IntegrationLeadFacts | Unset):
             payment (IntegrationPaymentFacts | Unset):
             price (float | Unset):
             store (IntegrationStoreFacts | Unset):
             team (str | Unset):
+            tracking (IntegrationTrackingFacts | Unset):
      """
 
     actions: int
@@ -65,10 +69,12 @@ class IntegrationFacts:
     key_created_at: datetime.datetime | Unset = UNSET
     last_call_at: datetime.datetime | Unset = UNSET
     last_sync_at: datetime.datetime | Unset = UNSET
+    leads: IntegrationLeadFacts | Unset = UNSET
     payment: IntegrationPaymentFacts | Unset = UNSET
     price: float | Unset = UNSET
     store: IntegrationStoreFacts | Unset = UNSET
     team: str | Unset = UNSET
+    tracking: IntegrationTrackingFacts | Unset = UNSET
 
 
 
@@ -76,8 +82,10 @@ class IntegrationFacts:
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.integration_ai_facts import IntegrationAIFacts # noqa: PLC0415
+        from ..models.integration_lead_facts import IntegrationLeadFacts # noqa: PLC0415
         from ..models.integration_payment_facts import IntegrationPaymentFacts # noqa: PLC0415
         from ..models.integration_store_facts import IntegrationStoreFacts # noqa: PLC0415
+        from ..models.integration_tracking_facts import IntegrationTrackingFacts # noqa: PLC0415
         actions = self.actions
 
         agents = self.agents
@@ -116,6 +124,10 @@ class IntegrationFacts:
         if not isinstance(self.last_sync_at, Unset):
             last_sync_at = self.last_sync_at.isoformat()
 
+        leads: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.leads, Unset):
+            leads = self.leads.to_dict()
+
         payment: dict[str, Any] | Unset = UNSET
         if not isinstance(self.payment, Unset):
             payment = self.payment.to_dict()
@@ -127,6 +139,10 @@ class IntegrationFacts:
             store = self.store.to_dict()
 
         team = self.team
+
+        tracking: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.tracking, Unset):
+            tracking = self.tracking.to_dict()
 
 
         field_dict: dict[str, Any] = {}
@@ -153,6 +169,8 @@ class IntegrationFacts:
             field_dict["lastCallAt"] = last_call_at
         if last_sync_at is not UNSET:
             field_dict["lastSyncAt"] = last_sync_at
+        if leads is not UNSET:
+            field_dict["leads"] = leads
         if payment is not UNSET:
             field_dict["payment"] = payment
         if price is not UNSET:
@@ -161,6 +179,8 @@ class IntegrationFacts:
             field_dict["store"] = store
         if team is not UNSET:
             field_dict["team"] = team
+        if tracking is not UNSET:
+            field_dict["tracking"] = tracking
 
         return field_dict
 
@@ -169,8 +189,10 @@ class IntegrationFacts:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.integration_ai_facts import IntegrationAIFacts # noqa: PLC0415
+        from ..models.integration_lead_facts import IntegrationLeadFacts # noqa: PLC0415
         from ..models.integration_payment_facts import IntegrationPaymentFacts # noqa: PLC0415
         from ..models.integration_store_facts import IntegrationStoreFacts # noqa: PLC0415
+        from ..models.integration_tracking_facts import IntegrationTrackingFacts # noqa: PLC0415
         d = dict(src_dict)
         actions = d.pop("actions")
 
@@ -234,6 +256,16 @@ class IntegrationFacts:
 
 
 
+        _leads = d.pop("leads", UNSET)
+        leads: IntegrationLeadFacts | Unset
+        if isinstance(_leads,  Unset):
+            leads = UNSET
+        else:
+            leads = IntegrationLeadFacts.from_dict(_leads)
+
+
+
+
         _payment = d.pop("payment", UNSET)
         payment: IntegrationPaymentFacts | Unset
         if isinstance(_payment,  Unset):
@@ -258,6 +290,16 @@ class IntegrationFacts:
 
         team = d.pop("team", UNSET)
 
+        _tracking = d.pop("tracking", UNSET)
+        tracking: IntegrationTrackingFacts | Unset
+        if isinstance(_tracking,  Unset):
+            tracking = UNSET
+        else:
+            tracking = IntegrationTrackingFacts.from_dict(_tracking)
+
+
+
+
         integration_facts = cls(
             actions=actions,
             agents=agents,
@@ -274,10 +316,12 @@ class IntegrationFacts:
             key_created_at=key_created_at,
             last_call_at=last_call_at,
             last_sync_at=last_sync_at,
+            leads=leads,
             payment=payment,
             price=price,
             store=store,
             team=team,
+            tracking=tracking,
         )
 
         return integration_facts

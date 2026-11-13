@@ -15,11 +15,13 @@ if TYPE_CHECKING:
   from ..models.automation_email_option import AutomationEmailOption
   from ..models.automation_field_option import AutomationFieldOption
   from ..models.automation_form_option import AutomationFormOption
+  from ..models.automation_lead_form_option import AutomationLeadFormOption
   from ..models.automation_milestone_option import AutomationMilestoneOption
   from ..models.automation_option_item import AutomationOptionItem
   from ..models.automation_route_provider import AutomationRouteProvider
   from ..models.automation_segment_option import AutomationSegmentOption
   from ..models.automation_tier_option import AutomationTierOption
+  from ..models.automation_tracked_store import AutomationTrackedStore
   from ..models.scoring_bands import ScoringBands
 
 
@@ -39,14 +41,17 @@ class AutomationOptions:
             events (list[str]):
             fields (list[AutomationFieldOption]):
             forms (list[AutomationFormOption]):
+            lead_forms (list[AutomationLeadFormOption]):
             lists (list[AutomationOptionItem]):
             milestones (list[AutomationMilestoneOption]):
             paid_connected (bool):
             products (list[AutomationOptionItem]):
             providers (list[AutomationRouteProvider]):
+            replies_inbox (bool):
             segments (list[AutomationSegmentOption]):
             tags (list[str]):
             tiers (list[AutomationTierOption]):
+            tracked_stores (list[AutomationTrackedStore]):
             score_bands (ScoringBands | Unset):
      """
 
@@ -55,14 +60,17 @@ class AutomationOptions:
     events: list[str]
     fields: list[AutomationFieldOption]
     forms: list[AutomationFormOption]
+    lead_forms: list[AutomationLeadFormOption]
     lists: list[AutomationOptionItem]
     milestones: list[AutomationMilestoneOption]
     paid_connected: bool
     products: list[AutomationOptionItem]
     providers: list[AutomationRouteProvider]
+    replies_inbox: bool
     segments: list[AutomationSegmentOption]
     tags: list[str]
     tiers: list[AutomationTierOption]
+    tracked_stores: list[AutomationTrackedStore]
     score_bands: ScoringBands | Unset = UNSET
 
 
@@ -73,11 +81,13 @@ class AutomationOptions:
         from ..models.automation_email_option import AutomationEmailOption # noqa: PLC0415
         from ..models.automation_field_option import AutomationFieldOption # noqa: PLC0415
         from ..models.automation_form_option import AutomationFormOption # noqa: PLC0415
+        from ..models.automation_lead_form_option import AutomationLeadFormOption # noqa: PLC0415
         from ..models.automation_milestone_option import AutomationMilestoneOption # noqa: PLC0415
         from ..models.automation_option_item import AutomationOptionItem # noqa: PLC0415
         from ..models.automation_route_provider import AutomationRouteProvider # noqa: PLC0415
         from ..models.automation_segment_option import AutomationSegmentOption # noqa: PLC0415
         from ..models.automation_tier_option import AutomationTierOption # noqa: PLC0415
+        from ..models.automation_tracked_store import AutomationTrackedStore # noqa: PLC0415
         from ..models.scoring_bands import ScoringBands # noqa: PLC0415
         campaigns = []
         for campaigns_item_data in self.campaigns:
@@ -111,6 +121,13 @@ class AutomationOptions:
 
 
 
+        lead_forms = []
+        for lead_forms_item_data in self.lead_forms:
+            lead_forms_item = lead_forms_item_data.to_dict()
+            lead_forms.append(lead_forms_item)
+
+
+
         lists = []
         for lists_item_data in self.lists:
             lists_item = lists_item_data.to_dict()
@@ -141,6 +158,8 @@ class AutomationOptions:
 
 
 
+        replies_inbox = self.replies_inbox
+
         segments = []
         for segments_item_data in self.segments:
             segments_item = segments_item_data.to_dict()
@@ -159,6 +178,13 @@ class AutomationOptions:
 
 
 
+        tracked_stores = []
+        for tracked_stores_item_data in self.tracked_stores:
+            tracked_stores_item = tracked_stores_item_data.to_dict()
+            tracked_stores.append(tracked_stores_item)
+
+
+
         score_bands: dict[str, Any] | Unset = UNSET
         if not isinstance(self.score_bands, Unset):
             score_bands = self.score_bands.to_dict()
@@ -172,14 +198,17 @@ class AutomationOptions:
             "events": events,
             "fields": fields,
             "forms": forms,
+            "leadForms": lead_forms,
             "lists": lists,
             "milestones": milestones,
             "paidConnected": paid_connected,
             "products": products,
             "providers": providers,
+            "repliesInbox": replies_inbox,
             "segments": segments,
             "tags": tags,
             "tiers": tiers,
+            "trackedStores": tracked_stores,
         })
         if score_bands is not UNSET:
             field_dict["scoreBands"] = score_bands
@@ -193,11 +222,13 @@ class AutomationOptions:
         from ..models.automation_email_option import AutomationEmailOption # noqa: PLC0415
         from ..models.automation_field_option import AutomationFieldOption # noqa: PLC0415
         from ..models.automation_form_option import AutomationFormOption # noqa: PLC0415
+        from ..models.automation_lead_form_option import AutomationLeadFormOption # noqa: PLC0415
         from ..models.automation_milestone_option import AutomationMilestoneOption # noqa: PLC0415
         from ..models.automation_option_item import AutomationOptionItem # noqa: PLC0415
         from ..models.automation_route_provider import AutomationRouteProvider # noqa: PLC0415
         from ..models.automation_segment_option import AutomationSegmentOption # noqa: PLC0415
         from ..models.automation_tier_option import AutomationTierOption # noqa: PLC0415
+        from ..models.automation_tracked_store import AutomationTrackedStore # noqa: PLC0415
         from ..models.scoring_bands import ScoringBands # noqa: PLC0415
         d = dict(src_dict)
         campaigns = []
@@ -243,6 +274,16 @@ class AutomationOptions:
             forms.append(forms_item)
 
 
+        lead_forms = []
+        _lead_forms = d.pop("leadForms")
+        for lead_forms_item_data in (_lead_forms):
+            lead_forms_item = AutomationLeadFormOption.from_dict(lead_forms_item_data)
+
+
+
+            lead_forms.append(lead_forms_item)
+
+
         lists = []
         _lists = d.pop("lists")
         for lists_item_data in (_lists):
@@ -285,6 +326,8 @@ class AutomationOptions:
             providers.append(providers_item)
 
 
+        replies_inbox = d.pop("repliesInbox")
+
         segments = []
         _segments = d.pop("segments")
         for segments_item_data in (_segments):
@@ -308,6 +351,16 @@ class AutomationOptions:
             tiers.append(tiers_item)
 
 
+        tracked_stores = []
+        _tracked_stores = d.pop("trackedStores")
+        for tracked_stores_item_data in (_tracked_stores):
+            tracked_stores_item = AutomationTrackedStore.from_dict(tracked_stores_item_data)
+
+
+
+            tracked_stores.append(tracked_stores_item)
+
+
         _score_bands = d.pop("scoreBands", UNSET)
         score_bands: ScoringBands | Unset
         if isinstance(_score_bands,  Unset):
@@ -324,14 +377,17 @@ class AutomationOptions:
             events=events,
             fields=fields,
             forms=forms,
+            lead_forms=lead_forms,
             lists=lists,
             milestones=milestones,
             paid_connected=paid_connected,
             products=products,
             providers=providers,
+            replies_inbox=replies_inbox,
             segments=segments,
             tags=tags,
             tiers=tiers,
+            tracked_stores=tracked_stores,
             score_bands=score_bands,
         )
 

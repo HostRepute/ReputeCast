@@ -37,6 +37,7 @@ class EarnPayments:
             can_manage (bool):
             checkout (EarnCheckoutSettings):
             helpers (list[str]):
+            pause_months (list[int]):
             permissions (list[EarnPermissionCheck]):
             providers (list[EarnProviderCard]):
             test_members (int):
@@ -52,6 +53,7 @@ class EarnPayments:
     can_manage: bool
     checkout: EarnCheckoutSettings
     helpers: list[str]
+    pause_months: list[int]
     permissions: list[EarnPermissionCheck]
     providers: list[EarnProviderCard]
     test_members: int
@@ -81,6 +83,10 @@ class EarnPayments:
         checkout = self.checkout.to_dict()
 
         helpers = self.helpers
+
+
+
+        pause_months = self.pause_months
 
 
 
@@ -129,6 +135,7 @@ class EarnPayments:
             "canManage": can_manage,
             "checkout": checkout,
             "helpers": helpers,
+            "pauseMonths": pause_months,
             "permissions": permissions,
             "providers": providers,
             "testMembers": test_members,
@@ -169,6 +176,9 @@ class EarnPayments:
 
 
         helpers = cast(list[str], d.pop("helpers"))
+
+
+        pause_months = cast(list[int], d.pop("pauseMonths"))
 
 
         permissions = []
@@ -233,6 +243,7 @@ class EarnPayments:
             can_manage=can_manage,
             checkout=checkout,
             helpers=helpers,
+            pause_months=pause_months,
             permissions=permissions,
             providers=providers,
             test_members=test_members,

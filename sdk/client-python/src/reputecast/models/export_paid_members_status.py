@@ -6,6 +6,7 @@ class ExportPaidMembersStatus(StrEnum):
     ENDED = "ended"
     GIFT = "gift"
     PAST_DUE = "past_due"
+    PAUSED = "paused"
     PAYING = "paying"
     TRIALING = "trialing"
     WITH_ACCESS = "with_access"

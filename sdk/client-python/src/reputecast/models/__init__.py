@@ -192,6 +192,7 @@ from .automation_alert import AutomationAlert
 from .automation_alert_action import AutomationAlertAction
 from .automation_alert_action_kind import AutomationAlertActionKind
 from .automation_alert_kind import AutomationAlertKind
+from .automation_browse_trigger import AutomationBrowseTrigger
 from .automation_condition import AutomationCondition
 from .automation_condition_kind import AutomationConditionKind
 from .automation_contact_run import AutomationContactRun
@@ -236,6 +237,7 @@ from .automation_graph_issue_severity import AutomationGraphIssueSeverity
 from .automation_language_mark import AutomationLanguageMark
 from .automation_language_save import AutomationLanguageSave
 from .automation_language_saved import AutomationLanguageSaved
+from .automation_lead_form_option import AutomationLeadFormOption
 from .automation_list import AutomationList
 from .automation_list_action import AutomationListAction
 from .automation_list_action_kind import AutomationListActionKind
@@ -280,9 +282,11 @@ from .automation_step_contact import AutomationStepContact
 from .automation_step_contact_wait import AutomationStepContactWait
 from .automation_step_contacts import AutomationStepContacts
 from .automation_step_stats import AutomationStepStats
+from .automation_stock_trigger import AutomationStockTrigger
 from .automation_summary import AutomationSummary
 from .automation_templates import AutomationTemplates
 from .automation_tier_option import AutomationTierOption
+from .automation_tracked_store import AutomationTrackedStore
 from .automation_trigger import AutomationTrigger
 from .automation_trigger_answer_op import AutomationTriggerAnswerOp
 from .automation_trigger_direction import AutomationTriggerDirection
@@ -420,6 +424,9 @@ from .commerce_removed_product import CommerceRemovedProduct
 from .commerce_revenue_row import CommerceRevenueRow
 from .commerce_revenue_row_kind import CommerceRevenueRowKind
 from .commerce_revenue_summary import CommerceRevenueSummary
+from .commerce_stock_request import CommerceStockRequest
+from .commerce_stock_request_input import CommerceStockRequestInput
+from .commerce_store_discounts import CommerceStoreDiscounts
 from .commerce_store_list import CommerceStoreList
 from .commerce_store_page import CommerceStorePage
 from .commerce_store_summary import CommerceStoreSummary
@@ -732,7 +739,37 @@ from .conversion_result_matched import ConversionResultMatched
 from .conversion_summary import ConversionSummary
 from .count import Count
 from .count_encoding import CountEncoding
+from .countdown_ended import CountdownEnded
+from .countdown_ended_mode import CountdownEndedMode
+from .countdown_image import CountdownImage
+from .countdown_settings import CountdownSettings
+from .countdown_settings_language import CountdownSettingsLanguage
+from .countdown_settings_size import CountdownSettingsSize
+from .countdown_settings_units import CountdownSettingsUnits
 from .country_line import CountryLine
+from .coupon_batch import CouponBatch
+from .coupon_batch_kind import CouponBatchKind
+from .coupon_batch_reason import CouponBatchReason
+from .coupon_batch_status import CouponBatchStatus
+from .coupon_pool import CouponPool
+from .coupon_pool_list import CouponPoolList
+from .coupon_pool_list_item import CouponPoolListItem
+from .coupon_pool_list_item_source import CouponPoolListItemSource
+from .coupon_pool_list_item_status import CouponPoolListItemStatus
+from .coupon_pool_settings import CouponPoolSettings
+from .coupon_pool_settings_kind import CouponPoolSettingsKind
+from .coupon_pool_source import CouponPoolSource
+from .coupon_pool_status import CouponPoolStatus
+from .coupon_pool_store import CouponPoolStore
+from .coupon_pool_store_platform import CouponPoolStorePlatform
+from .coupon_pool_tokens import CouponPoolTokens
+from .coupon_pool_use import CouponPoolUse
+from .coupon_pool_use_kind import CouponPoolUseKind
+from .coupon_pool_waiting import CouponPoolWaiting
+from .coupon_source import CouponSource
+from .coupon_source_list import CouponSourceList
+from .coupon_source_platform import CouponSourcePlatform
+from .coupon_source_reason import CouponSourceReason
 from .custom_field_def import CustomFieldDef
 from .custom_field_def_display import CustomFieldDefDisplay
 from .custom_field_def_type import CustomFieldDefType
@@ -766,6 +803,10 @@ from .deliverability_delist_input_body import DeliverabilityDelistInputBody
 from .deliverability_delisting_outcome import DeliverabilityDelistingOutcome
 from .deliverability_delisting_outcome_status import DeliverabilityDelistingOutcomeStatus
 from .deliverability_delisting_request import DeliverabilityDelistingRequest
+from .deliverability_dmarc_collect import DeliverabilityDMARCCollect
+from .deliverability_dmarc_external_record import DeliverabilityDMARCExternalRecord
+from .deliverability_dmarc_external_record_status import DeliverabilityDMARCExternalRecordStatus
+from .deliverability_dmarc_external_record_type import DeliverabilityDMARCExternalRecordType
 from .deliverability_dmarc_source import DeliverabilityDMARCSource
 from .deliverability_dmarc_source_detail import DeliverabilityDMARCSourceDetail
 from .deliverability_dmarc_source_result import DeliverabilityDMARCSourceResult
@@ -927,6 +968,7 @@ from .earn_event_status import EarnEventStatus
 from .earn_free_card import EarnFreeCard
 from .earn_gap_run import EarnGapRun
 from .earn_gap_run_types import EarnGapRunTypes
+from .earn_group_prices import EarnGroupPrices
 from .earn_import import EarnImport
 from .earn_import_candidate import EarnImportCandidate
 from .earn_import_column import EarnImportColumn
@@ -967,6 +1009,8 @@ from .earn_member_row_status import EarnMemberRowStatus
 from .earn_member_source import EarnMemberSource
 from .earn_member_source_kind import EarnMemberSourceKind
 from .earn_member_status import EarnMemberStatus
+from .earn_member_team import EarnMemberTeam
+from .earn_member_team_role import EarnMemberTeamRole
 from .earn_page_tier import EarnPageTier
 from .earn_page_tier_visibility import EarnPageTierVisibility
 from .earn_pages_settings import EarnPagesSettings
@@ -993,6 +1037,8 @@ from .earn_sync_step import EarnSyncStep
 from .earn_sync_step_status import EarnSyncStepStatus
 from .earn_sync_step_step import EarnSyncStepStep
 from .earn_sync_warning import EarnSyncWarning
+from .earn_team_seat import EarnTeamSeat
+from .earn_team_seat_status import EarnTeamSeatStatus
 from .earn_tier import EarnTier
 from .earn_tier_sync_status import EarnTierSyncStatus
 from .earn_tier_trial_days import EarnTierTrialDays
@@ -1220,6 +1266,23 @@ from .import_update_input_source import ImportUpdateInputSource
 from .import_update_input_step import ImportUpdateInputStep
 from .import_verification import ImportVerification
 from .in_doubt_share import InDoubtShare
+from .inbound_address_view import InboundAddressView
+from .inbound_mailbox_view import InboundMailboxView
+from .inbound_mailbox_view_protocol import InboundMailboxViewProtocol
+from .inbound_mailbox_view_security import InboundMailboxViewSecurity
+from .inbound_mx_record import InboundMXRecord
+from .inbound_mx_record_status import InboundMXRecordStatus
+from .inbound_provider_choice import InboundProviderChoice
+from .inbound_provider_choice_inbound import InboundProviderChoiceInbound
+from .inbound_provider_ref import InboundProviderRef
+from .inbound_route_view import InboundRouteView
+from .inbound_route_view_kind import InboundRouteViewKind
+from .inbound_route_view_reply_handling import InboundRouteViewReplyHandling
+from .inbound_route_view_status import InboundRouteViewStatus
+from .inbound_route_view_status_reason import InboundRouteViewStatusReason
+from .inbound_setup_field import InboundSetupField
+from .inbound_setup_view import InboundSetupView
+from .inbound_test_view import InboundTestView
 from .incident_cause import IncidentCause
 from .incident_detail import IncidentDetail
 from .incident_detail_action import IncidentDetailAction
@@ -1254,6 +1317,8 @@ from .integration_item_state_off_reason import IntegrationItemStateOffReason
 from .integration_key_view import IntegrationKeyView
 from .integration_key_view_owner_status import IntegrationKeyViewOwnerStatus
 from .integration_key_view_status import IntegrationKeyViewStatus
+from .integration_lead_facts import IntegrationLeadFacts
+from .integration_lead_facts_problem import IntegrationLeadFactsProblem
 from .integration_list_option import IntegrationListOption
 from .integration_managed_hook import IntegrationManagedHook
 from .integration_managed_hook_status import IntegrationManagedHookStatus
@@ -1287,6 +1352,7 @@ from .integration_status import IntegrationStatus
 from .integration_status_status import IntegrationStatusStatus
 from .integration_store_facts import IntegrationStoreFacts
 from .integration_store_facts_state import IntegrationStoreFactsState
+from .integration_tracking_facts import IntegrationTrackingFacts
 from .integration_word_press_page import IntegrationWordPressPage
 from .integration_word_press_page_status import IntegrationWordPressPageStatus
 from .integration_workflow_ref import IntegrationWorkflowRef
@@ -1301,6 +1367,35 @@ from .language_page_copy import LanguagePageCopy
 from .language_page_copy_status import LanguagePageCopyStatus
 from .language_removal import LanguageRemoval
 from .language_source_change import LanguageSourceChange
+from .lead_ads_activity import LeadAdsActivity
+from .lead_ads_activity_item import LeadAdsActivityItem
+from .lead_ads_activity_item_outcome import LeadAdsActivityItemOutcome
+from .lead_ads_activity_item_source import LeadAdsActivityItemSource
+from .lead_ads_checkbox import LeadAdsCheckbox
+from .lead_ads_connection import LeadAdsConnection
+from .lead_ads_connection_item import LeadAdsConnectionItem
+from .lead_ads_connection_item_status import LeadAdsConnectionItemStatus
+from .lead_ads_connection_list import LeadAdsConnectionList
+from .lead_ads_connection_platform import LeadAdsConnectionPlatform
+from .lead_ads_connection_problem import LeadAdsConnectionProblem
+from .lead_ads_connection_status import LeadAdsConnectionStatus
+from .lead_ads_contact_ref import LeadAdsContactRef
+from .lead_ads_field_option import LeadAdsFieldOption
+from .lead_ads_form import LeadAdsForm
+from .lead_ads_form_consent_mode import LeadAdsFormConsentMode
+from .lead_ads_form_detail import LeadAdsFormDetail
+from .lead_ads_form_status import LeadAdsFormStatus
+from .lead_ads_import import LeadAdsImport
+from .lead_ads_import_state import LeadAdsImportState
+from .lead_ads_list_option import LeadAdsListOption
+from .lead_ads_list_ref import LeadAdsListRef
+from .lead_ads_page import LeadAdsPage
+from .lead_ads_question import LeadAdsQuestion
+from .lead_ads_receiving import LeadAdsReceiving
+from .lead_ads_receiving_mode import LeadAdsReceivingMode
+from .lead_ads_receiving_reason import LeadAdsReceivingReason
+from .lead_ads_setup import LeadAdsSetup
+from .lead_ads_webhook import LeadAdsWebhook
 from .liquid_problem import LiquidProblem
 from .list_ai_activity_feature import ListAiActivityFeature
 from .list_ai_activity_outcome import ListAiActivityOutcome
@@ -1344,6 +1439,7 @@ from .list_product_orders_status import ListProductOrdersStatus
 from .list_products_period import ListProductsPeriod
 from .list_provider_events_type import ListProviderEventsType
 from .list_provider_setups_status import ListProviderSetupsStatus
+from .list_replies_view import ListRepliesView
 from .list_restore import ListRestore
 from .list_sms_events_kind import ListSmsEventsKind
 from .list_sms_replies_kind import ListSmsRepliesKind
@@ -1355,6 +1451,7 @@ from .list_transactional_messages_range import ListTransactionalMessagesRange
 from .list_transactional_messages_status import ListTransactionalMessagesStatus
 from .list_transactional_templates_period import ListTransactionalTemplatesPeriod
 from .list_webhook_deliveries_state import ListWebhookDeliveriesState
+from .list_website_comments_status import ListWebsiteCommentsStatus
 from .list_website_posts_source import ListWebsitePostsSource
 from .list_website_posts_status import ListWebsitePostsStatus
 from .list_website_posts_visibility import ListWebsitePostsVisibility
@@ -2144,6 +2241,20 @@ from .rendering_service_region import RenderingServiceRegion
 from .rendering_service_service import RenderingServiceService
 from .rendering_service_status import RenderingServiceStatus
 from .replace_verification_key_service import ReplaceVerificationKeyService
+from .reply_attachment import ReplyAttachment
+from .reply_auth import ReplyAuth
+from .reply_contact import ReplyContact
+from .reply_counts import ReplyCounts
+from .reply_detail import ReplyDetail
+from .reply_detail_kind import ReplyDetailKind
+from .reply_detail_status import ReplyDetailStatus
+from .reply_list import ReplyList
+from .reply_list_item import ReplyListItem
+from .reply_list_item_kind import ReplyListItemKind
+from .reply_list_item_status import ReplyListItemStatus
+from .reply_person import ReplyPerson
+from .reply_source import ReplySource
+from .reply_source_type import ReplySourceType
 from .report_ab_test import ReportABTest
 from .report_ab_test_kind import ReportABTestKind
 from .report_ab_test_metric import ReportABTestMetric
@@ -2462,8 +2573,17 @@ from .shell_host_repute import ShellHostRepute
 from .shell_host_repute_status import ShellHostReputeStatus
 from .shop_input import ShopInput
 from .signup_form import SignupForm
+from .signup_form_ab_end_input import SignupFormABEndInput
+from .signup_form_ab_end_input_keep import SignupFormABEndInputKeep
+from .signup_form_ab_input import SignupFormABInput
+from .signup_form_ab_result import SignupFormABResult
+from .signup_form_ab_result_outcome import SignupFormABResultOutcome
+from .signup_form_ab_result_status import SignupFormABResultStatus
+from .signup_form_ab_variant import SignupFormABVariant
+from .signup_form_ab_variant_key import SignupFormABVariantKey
 from .signup_form_after_submit import SignupFormAfterSubmit
 from .signup_form_blocked_origin import SignupFormBlockedOrigin
+from .signup_form_choice_option import SignupFormChoiceOption
 from .signup_form_confirm_link import SignupFormConfirmLink
 from .signup_form_consent_evidence import SignupFormConsentEvidence
 from .signup_form_content import SignupFormContent
@@ -2472,13 +2592,19 @@ from .signup_form_copy_field import SignupFormCopyField
 from .signup_form_copy_language import SignupFormCopyLanguage
 from .signup_form_copy_language_mode import SignupFormCopyLanguageMode
 from .signup_form_copy_language_status import SignupFormCopyLanguageStatus
+from .signup_form_copy_string import SignupFormCopyString
 from .signup_form_copy_text import SignupFormCopyText
 from .signup_form_copy_text_fields import SignupFormCopyTextFields
+from .signup_form_copy_text_options import SignupFormCopyTextOptions
+from .signup_form_copy_text_steps import SignupFormCopyTextSteps
+from .signup_form_countries import SignupFormCountries
+from .signup_form_countries_mode import SignupFormCountriesMode
 from .signup_form_create_input import SignupFormCreateInput
 from .signup_form_create_input_kind import SignupFormCreateInputKind
 from .signup_form_custom_field import SignupFormCustomField
 from .signup_form_custom_field_type import SignupFormCustomFieldType
 from .signup_form_field import SignupFormField
+from .signup_form_field_type import SignupFormFieldType
 from .signup_form_input import SignupFormInput
 from .signup_form_input_after_submit import SignupFormInputAfterSubmit
 from .signup_form_input_kind import SignupFormInputKind
@@ -2487,16 +2613,31 @@ from .signup_form_language_input import SignupFormLanguageInput
 from .signup_form_language_input_mode import SignupFormLanguageInputMode
 from .signup_form_list import SignupFormList
 from .signup_form_origin_input import SignupFormOriginInput
+from .signup_form_page_rule import SignupFormPageRule
+from .signup_form_page_rule_op import SignupFormPageRuleOp
+from .signup_form_page_rules import SignupFormPageRules
+from .signup_form_page_rules_mode import SignupFormPageRulesMode
 from .signup_form_rename_input import SignupFormRenameInput
+from .signup_form_schedule import SignupFormSchedule
+from .signup_form_sources import SignupFormSources
+from .signup_form_sources_referrer import SignupFormSourcesReferrer
 from .signup_form_spam import SignupFormSpam
 from .signup_form_stats import SignupFormStats
 from .signup_form_status import SignupFormStatus
 from .signup_form_status_input import SignupFormStatusInput
 from .signup_form_status_input_status import SignupFormStatusInputStatus
+from .signup_form_step import SignupFormStep
+from .signup_form_step_stat import SignupFormStepStat
 from .signup_form_summary import SignupFormSummary
 from .signup_form_summary_kind import SignupFormSummaryKind
 from .signup_form_summary_status import SignupFormSummaryStatus
+from .signup_form_targeting import SignupFormTargeting
+from .signup_form_targeting_devices_item import SignupFormTargetingDevicesItem
+from .signup_form_targeting_visitors import SignupFormTargetingVisitors
 from .signup_form_ur_ls import SignupFormURLs
+from .signup_form_variant_content import SignupFormVariantContent
+from .signup_form_variant_input import SignupFormVariantInput
+from .signup_form_variant_input_key import SignupFormVariantInputKey
 from .signup_form_waiting import SignupFormWaiting
 from .signup_form_waiting_item import SignupFormWaitingItem
 from .signup_forms_overview import SignupFormsOverview
@@ -2716,17 +2857,35 @@ from .sponsor_input import SponsorInput
 from .sponsor_issue_detail import SponsorIssueDetail
 from .sponsor_issue_row import SponsorIssueRow
 from .sponsor_item import SponsorItem
+from .sponsor_kit_stats import SponsorKitStats
+from .sponsor_media_kit import SponsorMediaKit
 from .sponsor_notice import SponsorNotice
 from .sponsor_notice_kind import SponsorNoticeKind
 from .sponsor_overview import SponsorOverview
 from .sponsor_overview_range import SponsorOverviewRange
 from .sponsor_payment import SponsorPayment
+from .sponsor_payment_source import SponsorPaymentSource
 from .sponsor_payment_status import SponsorPaymentStatus
 from .sponsor_propose import SponsorPropose
 from .sponsor_ref import SponsorRef
 from .sponsor_report import SponsorReport
 from .sponsor_report_link import SponsorReportLink
 from .sponsor_report_link_kind import SponsorReportLinkKind
+from .sponsor_request_detail import SponsorRequestDetail
+from .sponsor_request_detail_issue_state import SponsorRequestDetailIssueState
+from .sponsor_request_detail_paid_source import SponsorRequestDetailPaidSource
+from .sponsor_request_detail_status import SponsorRequestDetailStatus
+from .sponsor_request_file import SponsorRequestFile
+from .sponsor_request_file_kind import SponsorRequestFileKind
+from .sponsor_request_from import SponsorRequestFrom
+from .sponsor_request_issue import SponsorRequestIssue
+from .sponsor_request_item import SponsorRequestItem
+from .sponsor_request_item_issue_state import SponsorRequestItemIssueState
+from .sponsor_request_item_paid_source import SponsorRequestItemPaidSource
+from .sponsor_request_item_status import SponsorRequestItemStatus
+from .sponsor_request_list import SponsorRequestList
+from .sponsor_request_slot import SponsorRequestSlot
+from .sponsor_self_serve import SponsorSelfServe
 from .sponsor_share_link import SponsorShareLink
 from .sponsor_share_list import SponsorShareList
 from .sponsor_slot_item import SponsorSlotItem
@@ -2807,6 +2966,15 @@ from .team_member_status import TeamMemberStatus
 from .team_role_ref import TeamRoleRef
 from .template_gallery_mode import TemplateGalleryMode
 from .test_verification_service_service import TestVerificationServiceService
+from .tracker_recent_event import TrackerRecentEvent
+from .tracker_recent_event_kind import TrackerRecentEventKind
+from .tracker_recent_events import TrackerRecentEvents
+from .tracker_refusal import TrackerRefusal
+from .tracker_site import TrackerSite
+from .tracker_site_list import TrackerSiteList
+from .tracker_snippet import TrackerSnippet
+from .tracker_store_option import TrackerStoreOption
+from .tracker_store_option_platform import TrackerStoreOptionPlatform
 from .traffic_action import TrafficAction
 from .traffic_action_kind import TrafficActionKind
 from .traffic_reply_rule import TrafficReplyRule
@@ -3107,6 +3275,8 @@ from .webhook_view_status import WebhookViewStatus
 from .website_about import WebsiteAbout
 from .website_access import WebsiteAccess
 from .website_access_campaign_visibility import WebsiteAccessCampaignVisibility
+from .website_access_comments import WebsiteAccessComments
+from .website_access_comments_review import WebsiteAccessCommentsReview
 from .website_access_default_visibility import WebsiteAccessDefaultVisibility
 from .website_access_list import WebsiteAccessList
 from .website_address import WebsiteAddress
@@ -3124,6 +3294,15 @@ from .website_campaign_web_state import WebsiteCampaignWebState
 from .website_campaign_web_state_chip import WebsiteCampaignWebStateChip
 from .website_certificate import WebsiteCertificate
 from .website_certificate_status import WebsiteCertificateStatus
+from .website_comment import WebsiteComment
+from .website_comment_counts import WebsiteCommentCounts
+from .website_comment_held_reason import WebsiteCommentHeldReason
+from .website_comment_list import WebsiteCommentList
+from .website_comment_list_comments import WebsiteCommentListComments
+from .website_comment_list_review import WebsiteCommentListReview
+from .website_comment_post import WebsiteCommentPost
+from .website_comment_reply import WebsiteCommentReply
+from .website_comment_status import WebsiteCommentStatus
 from .website_contact_card import WebsiteContactCard
 from .website_contact_card_last_method import WebsiteContactCardLastMethod
 from .website_fallback import WebsiteFallback
@@ -3502,6 +3681,7 @@ __all__ = (
     "AutomationAlertAction",
     "AutomationAlertActionKind",
     "AutomationAlertKind",
+    "AutomationBrowseTrigger",
     "AutomationCondition",
     "AutomationConditionKind",
     "AutomationContactRun",
@@ -3546,6 +3726,7 @@ __all__ = (
     "AutomationLanguageMark",
     "AutomationLanguageSave",
     "AutomationLanguageSaved",
+    "AutomationLeadFormOption",
     "AutomationList",
     "AutomationListAction",
     "AutomationListActionKind",
@@ -3590,9 +3771,11 @@ __all__ = (
     "AutomationStepContacts",
     "AutomationStepContactWait",
     "AutomationStepStats",
+    "AutomationStockTrigger",
     "AutomationSummary",
     "AutomationTemplates",
     "AutomationTierOption",
+    "AutomationTrackedStore",
     "AutomationTrigger",
     "AutomationTriggerAnswerOp",
     "AutomationTriggerDirection",
@@ -3730,6 +3913,9 @@ __all__ = (
     "CommerceRevenueRow",
     "CommerceRevenueRowKind",
     "CommerceRevenueSummary",
+    "CommerceStockRequest",
+    "CommerceStockRequestInput",
+    "CommerceStoreDiscounts",
     "CommerceStoreList",
     "CommerceStorePage",
     "CommerceStoreSummary",
@@ -4041,8 +4227,38 @@ __all__ = (
     "ConversionResultMatched",
     "ConversionSummary",
     "Count",
+    "CountdownEnded",
+    "CountdownEndedMode",
+    "CountdownImage",
+    "CountdownSettings",
+    "CountdownSettingsLanguage",
+    "CountdownSettingsSize",
+    "CountdownSettingsUnits",
     "CountEncoding",
     "CountryLine",
+    "CouponBatch",
+    "CouponBatchKind",
+    "CouponBatchReason",
+    "CouponBatchStatus",
+    "CouponPool",
+    "CouponPoolList",
+    "CouponPoolListItem",
+    "CouponPoolListItemSource",
+    "CouponPoolListItemStatus",
+    "CouponPoolSettings",
+    "CouponPoolSettingsKind",
+    "CouponPoolSource",
+    "CouponPoolStatus",
+    "CouponPoolStore",
+    "CouponPoolStorePlatform",
+    "CouponPoolTokens",
+    "CouponPoolUse",
+    "CouponPoolUseKind",
+    "CouponPoolWaiting",
+    "CouponSource",
+    "CouponSourceList",
+    "CouponSourcePlatform",
+    "CouponSourceReason",
     "CustomFieldDef",
     "CustomFieldDefDisplay",
     "CustomFieldDefType",
@@ -4076,6 +4292,10 @@ __all__ = (
     "DeliverabilityDelistingOutcomeStatus",
     "DeliverabilityDelistingRequest",
     "DeliverabilityDelistInputBody",
+    "DeliverabilityDMARCCollect",
+    "DeliverabilityDMARCExternalRecord",
+    "DeliverabilityDMARCExternalRecordStatus",
+    "DeliverabilityDMARCExternalRecordType",
     "DeliverabilityDMARCSource",
     "DeliverabilityDMARCSourceDetail",
     "DeliverabilityDMARCSourceResult",
@@ -4237,6 +4457,7 @@ __all__ = (
     "EarnFreeCard",
     "EarnGapRun",
     "EarnGapRunTypes",
+    "EarnGroupPrices",
     "EarnImport",
     "EarnImportCandidate",
     "EarnImportColumn",
@@ -4277,6 +4498,8 @@ __all__ = (
     "EarnMemberSource",
     "EarnMemberSourceKind",
     "EarnMemberStatus",
+    "EarnMemberTeam",
+    "EarnMemberTeamRole",
     "EarnPagesSettings",
     "EarnPageTier",
     "EarnPageTierVisibility",
@@ -4303,6 +4526,8 @@ __all__ = (
     "EarnSyncStepStatus",
     "EarnSyncStepStep",
     "EarnSyncWarning",
+    "EarnTeamSeat",
+    "EarnTeamSeatStatus",
     "EarnTier",
     "EarnTierSyncStatus",
     "EarnTierTrialDays",
@@ -4529,6 +4754,23 @@ __all__ = (
     "ImportUpdateInputSource",
     "ImportUpdateInputStep",
     "ImportVerification",
+    "InboundAddressView",
+    "InboundMailboxView",
+    "InboundMailboxViewProtocol",
+    "InboundMailboxViewSecurity",
+    "InboundMXRecord",
+    "InboundMXRecordStatus",
+    "InboundProviderChoice",
+    "InboundProviderChoiceInbound",
+    "InboundProviderRef",
+    "InboundRouteView",
+    "InboundRouteViewKind",
+    "InboundRouteViewReplyHandling",
+    "InboundRouteViewStatus",
+    "InboundRouteViewStatusReason",
+    "InboundSetupField",
+    "InboundSetupView",
+    "InboundTestView",
     "IncidentCause",
     "IncidentDetail",
     "IncidentDetailAction",
@@ -4564,6 +4806,8 @@ __all__ = (
     "IntegrationKeyView",
     "IntegrationKeyViewOwnerStatus",
     "IntegrationKeyViewStatus",
+    "IntegrationLeadFacts",
+    "IntegrationLeadFactsProblem",
     "IntegrationListOption",
     "IntegrationManagedHook",
     "IntegrationManagedHookStatus",
@@ -4597,6 +4841,7 @@ __all__ = (
     "IntegrationStatusStatus",
     "IntegrationStoreFacts",
     "IntegrationStoreFactsState",
+    "IntegrationTrackingFacts",
     "IntegrationWordPressPage",
     "IntegrationWordPressPageStatus",
     "IntegrationWorkflowRef",
@@ -4611,6 +4856,35 @@ __all__ = (
     "LanguagePageCopyStatus",
     "LanguageRemoval",
     "LanguageSourceChange",
+    "LeadAdsActivity",
+    "LeadAdsActivityItem",
+    "LeadAdsActivityItemOutcome",
+    "LeadAdsActivityItemSource",
+    "LeadAdsCheckbox",
+    "LeadAdsConnection",
+    "LeadAdsConnectionItem",
+    "LeadAdsConnectionItemStatus",
+    "LeadAdsConnectionList",
+    "LeadAdsConnectionPlatform",
+    "LeadAdsConnectionProblem",
+    "LeadAdsConnectionStatus",
+    "LeadAdsContactRef",
+    "LeadAdsFieldOption",
+    "LeadAdsForm",
+    "LeadAdsFormConsentMode",
+    "LeadAdsFormDetail",
+    "LeadAdsFormStatus",
+    "LeadAdsImport",
+    "LeadAdsImportState",
+    "LeadAdsListOption",
+    "LeadAdsListRef",
+    "LeadAdsPage",
+    "LeadAdsQuestion",
+    "LeadAdsReceiving",
+    "LeadAdsReceivingMode",
+    "LeadAdsReceivingReason",
+    "LeadAdsSetup",
+    "LeadAdsWebhook",
     "LiquidProblem",
     "ListAiActivityFeature",
     "ListAiActivityOutcome",
@@ -4654,6 +4928,7 @@ __all__ = (
     "ListProductsPeriod",
     "ListProviderEventsType",
     "ListProviderSetupsStatus",
+    "ListRepliesView",
     "ListRestore",
     "ListSmsEventsKind",
     "ListSmsRepliesKind",
@@ -4665,6 +4940,7 @@ __all__ = (
     "ListTransactionalMessagesStatus",
     "ListTransactionalTemplatesPeriod",
     "ListWebhookDeliveriesState",
+    "ListWebsiteCommentsStatus",
     "ListWebsitePostsSource",
     "ListWebsitePostsStatus",
     "ListWebsitePostsVisibility",
@@ -5454,6 +5730,20 @@ __all__ = (
     "RenderStatus",
     "RenderVariant",
     "ReplaceVerificationKeyService",
+    "ReplyAttachment",
+    "ReplyAuth",
+    "ReplyContact",
+    "ReplyCounts",
+    "ReplyDetail",
+    "ReplyDetailKind",
+    "ReplyDetailStatus",
+    "ReplyList",
+    "ReplyListItem",
+    "ReplyListItemKind",
+    "ReplyListItemStatus",
+    "ReplyPerson",
+    "ReplySource",
+    "ReplySourceType",
     "ReportABTest",
     "ReportABTestKind",
     "ReportABTestMetric",
@@ -5772,8 +6062,17 @@ __all__ = (
     "ShellHostReputeStatus",
     "ShopInput",
     "SignupForm",
+    "SignupFormABEndInput",
+    "SignupFormABEndInputKeep",
+    "SignupFormABInput",
+    "SignupFormABResult",
+    "SignupFormABResultOutcome",
+    "SignupFormABResultStatus",
+    "SignupFormABVariant",
+    "SignupFormABVariantKey",
     "SignupFormAfterSubmit",
     "SignupFormBlockedOrigin",
+    "SignupFormChoiceOption",
     "SignupFormConfirmLink",
     "SignupFormConsentEvidence",
     "SignupFormContent",
@@ -5782,13 +6081,19 @@ __all__ = (
     "SignupFormCopyLanguage",
     "SignupFormCopyLanguageMode",
     "SignupFormCopyLanguageStatus",
+    "SignupFormCopyString",
     "SignupFormCopyText",
     "SignupFormCopyTextFields",
+    "SignupFormCopyTextOptions",
+    "SignupFormCopyTextSteps",
+    "SignupFormCountries",
+    "SignupFormCountriesMode",
     "SignupFormCreateInput",
     "SignupFormCreateInputKind",
     "SignupFormCustomField",
     "SignupFormCustomFieldType",
     "SignupFormField",
+    "SignupFormFieldType",
     "SignupFormInput",
     "SignupFormInputAfterSubmit",
     "SignupFormInputKind",
@@ -5797,17 +6102,32 @@ __all__ = (
     "SignupFormLanguageInputMode",
     "SignupFormList",
     "SignupFormOriginInput",
+    "SignupFormPageRule",
+    "SignupFormPageRuleOp",
+    "SignupFormPageRules",
+    "SignupFormPageRulesMode",
     "SignupFormRenameInput",
+    "SignupFormSchedule",
+    "SignupFormSources",
+    "SignupFormSourcesReferrer",
     "SignupFormsOverview",
     "SignupFormSpam",
     "SignupFormStats",
     "SignupFormStatus",
     "SignupFormStatusInput",
     "SignupFormStatusInputStatus",
+    "SignupFormStep",
+    "SignupFormStepStat",
     "SignupFormSummary",
     "SignupFormSummaryKind",
     "SignupFormSummaryStatus",
+    "SignupFormTargeting",
+    "SignupFormTargetingDevicesItem",
+    "SignupFormTargetingVisitors",
     "SignupFormURLs",
+    "SignupFormVariantContent",
+    "SignupFormVariantInput",
+    "SignupFormVariantInputKey",
     "SignupFormWaiting",
     "SignupFormWaitingItem",
     "SlotInput",
@@ -6026,17 +6346,35 @@ __all__ = (
     "SponsorIssueDetail",
     "SponsorIssueRow",
     "SponsorItem",
+    "SponsorKitStats",
+    "SponsorMediaKit",
     "SponsorNotice",
     "SponsorNoticeKind",
     "SponsorOverview",
     "SponsorOverviewRange",
     "SponsorPayment",
+    "SponsorPaymentSource",
     "SponsorPaymentStatus",
     "SponsorPropose",
     "SponsorRef",
     "SponsorReport",
     "SponsorReportLink",
     "SponsorReportLinkKind",
+    "SponsorRequestDetail",
+    "SponsorRequestDetailIssueState",
+    "SponsorRequestDetailPaidSource",
+    "SponsorRequestDetailStatus",
+    "SponsorRequestFile",
+    "SponsorRequestFileKind",
+    "SponsorRequestFrom",
+    "SponsorRequestIssue",
+    "SponsorRequestItem",
+    "SponsorRequestItemIssueState",
+    "SponsorRequestItemPaidSource",
+    "SponsorRequestItemStatus",
+    "SponsorRequestList",
+    "SponsorRequestSlot",
+    "SponsorSelfServe",
     "SponsorShareLink",
     "SponsorShareList",
     "SponsorSlotItem",
@@ -6117,6 +6455,15 @@ __all__ = (
     "TeamRoleRef",
     "TemplateGalleryMode",
     "TestVerificationServiceService",
+    "TrackerRecentEvent",
+    "TrackerRecentEventKind",
+    "TrackerRecentEvents",
+    "TrackerRefusal",
+    "TrackerSite",
+    "TrackerSiteList",
+    "TrackerSnippet",
+    "TrackerStoreOption",
+    "TrackerStoreOptionPlatform",
     "TrafficAction",
     "TrafficActionKind",
     "TrafficReplyRule",
@@ -6417,6 +6764,8 @@ __all__ = (
     "WebsiteAbout",
     "WebsiteAccess",
     "WebsiteAccessCampaignVisibility",
+    "WebsiteAccessComments",
+    "WebsiteAccessCommentsReview",
     "WebsiteAccessDefaultVisibility",
     "WebsiteAccessList",
     "WebsiteAddress",
@@ -6434,6 +6783,15 @@ __all__ = (
     "WebsiteCampaignWebStateChip",
     "WebsiteCertificate",
     "WebsiteCertificateStatus",
+    "WebsiteComment",
+    "WebsiteCommentCounts",
+    "WebsiteCommentHeldReason",
+    "WebsiteCommentList",
+    "WebsiteCommentListComments",
+    "WebsiteCommentListReview",
+    "WebsiteCommentPost",
+    "WebsiteCommentReply",
+    "WebsiteCommentStatus",
     "WebsiteContactCard",
     "WebsiteContactCardLastMethod",
     "WebsiteFallback",

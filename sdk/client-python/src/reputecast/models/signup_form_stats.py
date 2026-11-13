@@ -8,7 +8,10 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from typing import cast
 
+if TYPE_CHECKING:
+  from ..models.signup_form_step_stat import SignupFormStepStat
 
 
 
@@ -27,6 +30,8 @@ class SignupFormStats:
             confirmed_rate (float):
             days (int):
             pending (int): Double opt-in confirmations not clicked yet
+            step_signups (int):
+            steps (list[SignupFormStepStat]):
             submission_rate (float):
             submissions (int):
             views (int):
@@ -37,6 +42,8 @@ class SignupFormStats:
     confirmed_rate: float
     days: int
     pending: int
+    step_signups: int
+    steps: list[SignupFormStepStat]
     submission_rate: float
     submissions: int
     views: int
@@ -46,6 +53,7 @@ class SignupFormStats:
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.signup_form_step_stat import SignupFormStepStat # noqa: PLC0415
         blocked = self.blocked
 
         confirmed = self.confirmed
@@ -55,6 +63,15 @@ class SignupFormStats:
         days = self.days
 
         pending = self.pending
+
+        step_signups = self.step_signups
+
+        steps = []
+        for steps_item_data in self.steps:
+            steps_item = steps_item_data.to_dict()
+            steps.append(steps_item)
+
+
 
         submission_rate = self.submission_rate
 
@@ -71,6 +88,8 @@ class SignupFormStats:
             "confirmedRate": confirmed_rate,
             "days": days,
             "pending": pending,
+            "stepSignups": step_signups,
+            "steps": steps,
             "submissionRate": submission_rate,
             "submissions": submissions,
             "views": views,
@@ -82,6 +101,7 @@ class SignupFormStats:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.signup_form_step_stat import SignupFormStepStat # noqa: PLC0415
         d = dict(src_dict)
         blocked = d.pop("blocked")
 
@@ -92,6 +112,18 @@ class SignupFormStats:
         days = d.pop("days")
 
         pending = d.pop("pending")
+
+        step_signups = d.pop("stepSignups")
+
+        steps = []
+        _steps = d.pop("steps")
+        for steps_item_data in (_steps):
+            steps_item = SignupFormStepStat.from_dict(steps_item_data)
+
+
+
+            steps.append(steps_item)
+
 
         submission_rate = d.pop("submissionRate")
 
@@ -105,6 +137,8 @@ class SignupFormStats:
             confirmed_rate=confirmed_rate,
             days=days,
             pending=pending,
+            step_signups=step_signups,
+            steps=steps,
             submission_rate=submission_rate,
             submissions=submissions,
             views=views,

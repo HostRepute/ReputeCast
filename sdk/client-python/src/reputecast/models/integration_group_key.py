@@ -6,6 +6,7 @@ class IntegrationGroupKey(StrEnum):
     COMMERCE = "commerce"
     DELIVERABILITY = "deliverability"
     DEVELOPER = "developer"
+    LEADS = "leads"
     PAYMENTS = "payments"
     VERIFICATION = "verification"
     WEBSITES = "websites"

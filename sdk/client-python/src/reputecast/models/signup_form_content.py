@@ -9,7 +9,11 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 from ..types import UNSET, Unset
+from typing import cast
 
+if TYPE_CHECKING:
+  from ..models.signup_form_step import SignupFormStep
+  from ..models.signup_form_targeting import SignupFormTargeting
 
 
 
@@ -39,6 +43,8 @@ class SignupFormContent:
             sms_consent (bool | Unset):
             sms_consent_text (str | Unset):
             sms_consent_version (int | Unset):
+            steps (list[SignupFormStep] | Unset):
+            targeting (SignupFormTargeting | Unset):
      """
 
     button: str
@@ -57,12 +63,16 @@ class SignupFormContent:
     sms_consent: bool | Unset = UNSET
     sms_consent_text: str | Unset = UNSET
     sms_consent_version: int | Unset = UNSET
+    steps: list[SignupFormStep] | Unset = UNSET
+    targeting: SignupFormTargeting | Unset = UNSET
 
 
 
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.signup_form_step import SignupFormStep # noqa: PLC0415
+        from ..models.signup_form_targeting import SignupFormTargeting # noqa: PLC0415
         button = self.button
 
         description = self.description
@@ -95,6 +105,19 @@ class SignupFormContent:
 
         sms_consent_version = self.sms_consent_version
 
+        steps: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.steps, Unset):
+            steps = []
+            for steps_item_data in self.steps:
+                steps_item = steps_item_data.to_dict()
+                steps.append(steps_item)
+
+
+
+        targeting: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.targeting, Unset):
+            targeting = self.targeting.to_dict()
+
 
         field_dict: dict[str, Any] = {}
 
@@ -122,6 +145,10 @@ class SignupFormContent:
             field_dict["smsConsentText"] = sms_consent_text
         if sms_consent_version is not UNSET:
             field_dict["smsConsentVersion"] = sms_consent_version
+        if steps is not UNSET:
+            field_dict["steps"] = steps
+        if targeting is not UNSET:
+            field_dict["targeting"] = targeting
 
         return field_dict
 
@@ -129,6 +156,8 @@ class SignupFormContent:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.signup_form_step import SignupFormStep # noqa: PLC0415
+        from ..models.signup_form_targeting import SignupFormTargeting # noqa: PLC0415
         d = dict(src_dict)
         button = d.pop("button")
 
@@ -162,6 +191,28 @@ class SignupFormContent:
 
         sms_consent_version = d.pop("smsConsentVersion", UNSET)
 
+        _steps = d.pop("steps", UNSET)
+        steps: list[SignupFormStep] | Unset = UNSET
+        if _steps is not UNSET:
+            steps = []
+            for steps_item_data in _steps:
+                steps_item = SignupFormStep.from_dict(steps_item_data)
+
+
+
+                steps.append(steps_item)
+
+
+        _targeting = d.pop("targeting", UNSET)
+        targeting: SignupFormTargeting | Unset
+        if isinstance(_targeting,  Unset):
+            targeting = UNSET
+        else:
+            targeting = SignupFormTargeting.from_dict(_targeting)
+
+
+
+
         signup_form_content = cls(
             button=button,
             description=description,
@@ -179,6 +230,8 @@ class SignupFormContent:
             sms_consent=sms_consent,
             sms_consent_text=sms_consent_text,
             sms_consent_version=sms_consent_version,
+            steps=steps,
+            targeting=targeting,
         )
 
         return signup_form_content

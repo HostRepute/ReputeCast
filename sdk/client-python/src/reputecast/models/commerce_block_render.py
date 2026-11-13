@@ -8,6 +8,7 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
@@ -33,6 +34,7 @@ class CommerceBlockRender:
             removed (list[CommerceRemovedProduct]):
             sold_out (list[str]):
             store_name (str):
+            note (str | Unset):
      """
 
     disconnected: bool
@@ -42,6 +44,7 @@ class CommerceBlockRender:
     removed: list[CommerceRemovedProduct]
     sold_out: list[str]
     store_name: str
+    note: str | Unset = UNSET
 
 
 
@@ -76,6 +79,8 @@ class CommerceBlockRender:
 
         store_name = self.store_name
 
+        note = self.note
+
 
         field_dict: dict[str, Any] = {}
 
@@ -88,6 +93,8 @@ class CommerceBlockRender:
             "soldOut": sold_out,
             "storeName": store_name,
         })
+        if note is not UNSET:
+            field_dict["note"] = note
 
         return field_dict
 
@@ -129,6 +136,8 @@ class CommerceBlockRender:
 
         store_name = d.pop("storeName")
 
+        note = d.pop("note", UNSET)
+
         commerce_block_render = cls(
             disconnected=disconnected,
             html=html,
@@ -137,6 +146,7 @@ class CommerceBlockRender:
             removed=removed,
             sold_out=sold_out,
             store_name=store_name,
+            note=note,
         )
 
         return commerce_block_render

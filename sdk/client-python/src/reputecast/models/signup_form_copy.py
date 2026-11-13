@@ -16,6 +16,7 @@ import datetime
 if TYPE_CHECKING:
   from ..models.signup_form_copy_field import SignupFormCopyField
   from ..models.signup_form_copy_language import SignupFormCopyLanguage
+  from ..models.signup_form_copy_string import SignupFormCopyString
 
 
 
@@ -38,6 +39,8 @@ class SignupFormCopy:
             form_id (str):
             language_mode (SignupFormCopyLanguageMode):
             languages (list[SignupFormCopyLanguage]):
+            options (list[SignupFormCopyString]):
+            steps (list[SignupFormCopyString]):
             consent_changed_at (datetime.datetime | Unset):
      """
 
@@ -50,6 +53,8 @@ class SignupFormCopy:
     form_id: str
     language_mode: SignupFormCopyLanguageMode
     languages: list[SignupFormCopyLanguage]
+    options: list[SignupFormCopyString]
+    steps: list[SignupFormCopyString]
     consent_changed_at: datetime.datetime | Unset = UNSET
 
 
@@ -59,6 +64,7 @@ class SignupFormCopy:
     def to_dict(self) -> dict[str, Any]:
         from ..models.signup_form_copy_field import SignupFormCopyField # noqa: PLC0415
         from ..models.signup_form_copy_language import SignupFormCopyLanguage # noqa: PLC0415
+        from ..models.signup_form_copy_string import SignupFormCopyString # noqa: PLC0415
         consent_changed_by = self.consent_changed_by
 
         consent_version = self.consent_version
@@ -87,6 +93,20 @@ class SignupFormCopy:
 
 
 
+        options = []
+        for options_item_data in self.options:
+            options_item = options_item_data.to_dict()
+            options.append(options_item)
+
+
+
+        steps = []
+        for steps_item_data in self.steps:
+            steps_item = steps_item_data.to_dict()
+            steps.append(steps_item)
+
+
+
         consent_changed_at: str | Unset = UNSET
         if not isinstance(self.consent_changed_at, Unset):
             consent_changed_at = self.consent_changed_at.isoformat()
@@ -104,6 +124,8 @@ class SignupFormCopy:
             "formId": form_id,
             "languageMode": language_mode,
             "languages": languages,
+            "options": options,
+            "steps": steps,
         })
         if consent_changed_at is not UNSET:
             field_dict["consentChangedAt"] = consent_changed_at
@@ -116,6 +138,7 @@ class SignupFormCopy:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.signup_form_copy_field import SignupFormCopyField # noqa: PLC0415
         from ..models.signup_form_copy_language import SignupFormCopyLanguage # noqa: PLC0415
+        from ..models.signup_form_copy_string import SignupFormCopyString # noqa: PLC0415
         d = dict(src_dict)
         consent_changed_by = d.pop("consentChangedBy")
 
@@ -154,6 +177,26 @@ class SignupFormCopy:
             languages.append(languages_item)
 
 
+        options = []
+        _options = d.pop("options")
+        for options_item_data in (_options):
+            options_item = SignupFormCopyString.from_dict(options_item_data)
+
+
+
+            options.append(options_item)
+
+
+        steps = []
+        _steps = d.pop("steps")
+        for steps_item_data in (_steps):
+            steps_item = SignupFormCopyString.from_dict(steps_item_data)
+
+
+
+            steps.append(steps_item)
+
+
         _consent_changed_at = d.pop("consentChangedAt", UNSET)
         consent_changed_at: datetime.datetime | Unset
         if isinstance(_consent_changed_at,  Unset):
@@ -174,6 +217,8 @@ class SignupFormCopy:
             form_id=form_id,
             language_mode=language_mode,
             languages=languages,
+            options=options,
+            steps=steps,
             consent_changed_at=consent_changed_at,
         )
 

@@ -34,6 +34,7 @@ class SignupFormsOverview:
             custom_fields (list[SignupFormCustomField]):
             domain (PublicCustomDomain):
             forms (list[SignupFormSummary]):
+            geoip (bool):
             hosted_form_id (str):
             hosted_url (str):
             lists (list[SignupFormList]):
@@ -47,6 +48,7 @@ class SignupFormsOverview:
     custom_fields: list[SignupFormCustomField]
     domain: PublicCustomDomain
     forms: list[SignupFormSummary]
+    geoip: bool
     hosted_form_id: str
     hosted_url: str
     lists: list[SignupFormList]
@@ -84,6 +86,8 @@ class SignupFormsOverview:
 
 
 
+        geoip = self.geoip
+
         hosted_form_id = self.hosted_form_id
 
         hosted_url = self.hosted_url
@@ -113,6 +117,7 @@ class SignupFormsOverview:
             "customFields": custom_fields,
             "domain": domain,
             "forms": forms,
+            "geoip": geoip,
             "hostedFormId": hosted_form_id,
             "hostedUrl": hosted_url,
             "lists": lists,
@@ -165,6 +170,8 @@ class SignupFormsOverview:
             forms.append(forms_item)
 
 
+        geoip = d.pop("geoip")
+
         hosted_form_id = d.pop("hostedFormId")
 
         hosted_url = d.pop("hostedUrl")
@@ -196,6 +203,7 @@ class SignupFormsOverview:
             custom_fields=custom_fields,
             domain=domain,
             forms=forms,
+            geoip=geoip,
             hosted_form_id=hosted_form_id,
             hosted_url=hosted_url,
             lists=lists,
