@@ -9600,6 +9600,84 @@ func (e HealthTierCardTier) Valid() bool {
 	}
 }
 
+// Defines values for HoldoutMetricKey.
+const (
+	ConversionRate    HoldoutMetricKey = "conversion_rate"
+	OrdersPerContact  HoldoutMetricKey = "orders_per_contact"
+	RevenuePerContact HoldoutMetricKey = "revenue_per_contact"
+	SiteVisitors      HoldoutMetricKey = "site_visitors"
+)
+
+// Valid indicates whether the value is a known member of the HoldoutMetricKey enum.
+func (e HoldoutMetricKey) Valid() bool {
+	switch e {
+	case ConversionRate:
+		return true
+	case OrdersPerContact:
+		return true
+	case RevenuePerContact:
+		return true
+	case SiteVisitors:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HoldoutResultsVerdict.
+const (
+	HoldoutResultsVerdictAdded        HoldoutResultsVerdict = "added"
+	HoldoutResultsVerdictLost         HoldoutResultsVerdict = "lost"
+	HoldoutResultsVerdictNoDifference HoldoutResultsVerdict = "no_difference"
+	HoldoutResultsVerdictNone         HoldoutResultsVerdict = "none"
+	HoldoutResultsVerdictPending      HoldoutResultsVerdict = "pending"
+	HoldoutResultsVerdictTooEarly     HoldoutResultsVerdict = "too_early"
+	HoldoutResultsVerdictTooFew       HoldoutResultsVerdict = "too_few"
+)
+
+// Valid indicates whether the value is a known member of the HoldoutResultsVerdict enum.
+func (e HoldoutResultsVerdict) Valid() bool {
+	switch e {
+	case HoldoutResultsVerdictAdded:
+		return true
+	case HoldoutResultsVerdictLost:
+		return true
+	case HoldoutResultsVerdictNoDifference:
+		return true
+	case HoldoutResultsVerdictNone:
+		return true
+	case HoldoutResultsVerdictPending:
+		return true
+	case HoldoutResultsVerdictTooEarly:
+		return true
+	case HoldoutResultsVerdictTooFew:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HoldoutResultsWindow.
+const (
+	HoldoutResultsWindowN30d   HoldoutResultsWindow = "30d"
+	HoldoutResultsWindowN90d   HoldoutResultsWindow = "90d"
+	HoldoutResultsWindowPeriod HoldoutResultsWindow = "period"
+)
+
+// Valid indicates whether the value is a known member of the HoldoutResultsWindow enum.
+func (e HoldoutResultsWindow) Valid() bool {
+	switch e {
+	case HoldoutResultsWindowN30d:
+		return true
+	case HoldoutResultsWindowN90d:
+		return true
+	case HoldoutResultsWindowPeriod:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HostReputeAssetRole.
 const (
 	HostReputeAssetRoleDedicatedIp        HostReputeAssetRole = "dedicated_ip"
@@ -29736,6 +29814,27 @@ func (e ExportGrowthParamsPeriod) Valid() bool {
 	}
 }
 
+// Defines values for GetHoldoutResultsParamsWindow.
+const (
+	GetHoldoutResultsParamsWindowN30d   GetHoldoutResultsParamsWindow = "30d"
+	GetHoldoutResultsParamsWindowN90d   GetHoldoutResultsParamsWindow = "90d"
+	GetHoldoutResultsParamsWindowPeriod GetHoldoutResultsParamsWindow = "period"
+)
+
+// Valid indicates whether the value is a known member of the GetHoldoutResultsParamsWindow enum.
+func (e GetHoldoutResultsParamsWindow) Valid() bool {
+	switch e {
+	case GetHoldoutResultsParamsWindowN30d:
+		return true
+	case GetHoldoutResultsParamsWindowN90d:
+		return true
+	case GetHoldoutResultsParamsWindowPeriod:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DownloadImportReportParamsKind.
 const (
 	DownloadImportReportParamsKindInvalid    DownloadImportReportParamsKind = "invalid"
@@ -32359,6 +32458,7 @@ type AudiencePaidTier struct {
 // AudienceSummary defines model for AudienceSummary.
 type AudienceSummary struct {
 	Contacts        int64                 `json:"contacts"`
+	Holdout         bool                  `json:"holdout"`
 	Lists           []AudienceListSummary `json:"lists"`
 	PaidTiers       []AudiencePaidTier    `json:"paidTiers"`
 	Segments        int64                 `json:"segments"`
@@ -33286,8 +33386,11 @@ type AutomationStepStats struct {
 	Exited int64 `json:"exited"`
 
 	// Failed Webhook calls that failed
-	Failed      int64                     `json:"failed"`
-	GoalReached int64                     `json:"goalReached"`
+	Failed      int64 `json:"failed"`
+	GoalReached int64 `json:"goalReached"`
+
+	// HeldOut Contacts in the holdout group who passed the step without a message (M63)
+	HeldOut     int64                     `json:"heldOut"`
 	InFlowNow   int64                     `json:"inFlowNow"`
 	NodeId      string                    `json:"nodeId"`
 	Opened      int64                     `json:"opened"`
@@ -33296,7 +33399,7 @@ type AutomationStepStats struct {
 	Providers   []AutomationProviderSends `json:"providers"`
 	Sent        int64                     `json:"sent"`
 
-	// Skipped Emails skipped by a rule, or because the contact paused email on the preference center
+	// Skipped Emails skipped by a rule, because the contact paused email on the preference center, or because they are in the holdout group (heldOut counts those)
 	Skipped      int64 `json:"skipped"`
 	Unsubscribed int64 `json:"unsubscribed"`
 }
@@ -40391,6 +40494,87 @@ type HoldInput struct {
 	Held bool `json:"held"`
 }
 
+// HoldoutGroupResult defines model for HoldoutGroupResult.
+type HoldoutGroupResult struct {
+	Contacts     int64 `json:"contacts"`
+	Converters   int64 `json:"converters"`
+	Orders       int64 `json:"orders"`
+	RevenueCents int64 `json:"revenueCents"`
+	Visitors     int64 `json:"visitors"`
+}
+
+// HoldoutMetric defines model for HoldoutMetric.
+type HoldoutMetric struct {
+	Confidence  float64          `json:"confidence"`
+	Holdout     float64          `json:"holdout"`
+	Key         HoldoutMetricKey `json:"key"`
+	Lift        float64          `json:"lift"`
+	Marketing   float64          `json:"marketing"`
+	Significant bool             `json:"significant"`
+	Tested      bool             `json:"tested"`
+}
+
+// HoldoutMetricKey defines model for HoldoutMetric.Key.
+type HoldoutMetricKey string
+
+// HoldoutOtherCurrency defines model for HoldoutOtherCurrency.
+type HoldoutOtherCurrency struct {
+	Currency       string `json:"currency"`
+	HoldoutCents   int64  `json:"holdoutCents"`
+	MarketingCents int64  `json:"marketingCents"`
+}
+
+// HoldoutPeriodItem defines model for HoldoutPeriodItem.
+type HoldoutPeriodItem struct {
+	Automations bool       `json:"automations"`
+	BasisPoints int64      `json:"basisPoints"`
+	Campaigns   bool       `json:"campaigns"`
+	EndedAt     *time.Time `json:"endedAt,omitempty"`
+	Id          string     `json:"id"`
+	Open        bool       `json:"open"`
+	Percent     float64    `json:"percent"`
+	StartedAt   time.Time  `json:"startedAt"`
+}
+
+// HoldoutResults defines model for HoldoutResults.
+type HoldoutResults struct {
+	CampaignsIncluded int64                  `json:"campaignsIncluded"`
+	ComputedAt        *time.Time             `json:"computedAt,omitempty"`
+	Computing         bool                   `json:"computing"`
+	Currency          string                 `json:"currency"`
+	From              *time.Time             `json:"from,omitempty"`
+	Holdout           HoldoutGroupResult     `json:"holdout"`
+	Marketing         HoldoutGroupResult     `json:"marketing"`
+	Metrics           []HoldoutMetric        `json:"metrics"`
+	MinHoldout        int64                  `json:"minHoldout"`
+	NextMeasureAt     *time.Time             `json:"nextMeasureAt,omitempty"`
+	OtherCurrencies   []HoldoutOtherCurrency `json:"otherCurrencies"`
+	Period            *HoldoutPeriodItem     `json:"period,omitempty"`
+	Periods           []HoldoutPeriodItem    `json:"periods"`
+	To                *time.Time             `json:"to,omitempty"`
+	Tracking          bool                   `json:"tracking"`
+	Verdict           HoldoutResultsVerdict  `json:"verdict"`
+	Window            HoldoutResultsWindow   `json:"window"`
+}
+
+// HoldoutResultsVerdict defines model for HoldoutResults.Verdict.
+type HoldoutResultsVerdict string
+
+// HoldoutResultsWindow defines model for HoldoutResults.Window.
+type HoldoutResultsWindow string
+
+// HoldoutSettings defines model for HoldoutSettings.
+type HoldoutSettings struct {
+	Automations bool       `json:"automations"`
+	BasisPoints int64      `json:"basisPoints"`
+	Campaigns   bool       `json:"campaigns"`
+	HeldOut     int64      `json:"heldOut"`
+	Measured    bool       `json:"measured"`
+	On          bool       `json:"on"`
+	Percent     float64    `json:"percent"`
+	StartedAt   *time.Time `json:"startedAt,omitempty"`
+}
+
 // HostReputeAPIKeyInputBody defines model for HostReputeAPIKeyInputBody.
 type HostReputeAPIKeyInputBody struct {
 	// ApiKey A HostRepute API key (hr_live_…) with the monitor:read, alerts:read and assets:write scopes. Write-only: it is stored encrypted and never returned.
@@ -42411,6 +42595,7 @@ type LiveExcluded struct {
 	Complained   int64 `json:"complained"`
 	Duplicates   int64 `json:"duplicates"`
 	Excluded     int64 `json:"excluded"`
+	Holdout      int64 `json:"holdout"`
 	Paused       int64 `json:"paused"`
 	Role         int64 `json:"role"`
 	Sunset       int64 `json:"sunset"`
@@ -47277,6 +47462,7 @@ type ReadinessAudience struct {
 	Duplicates        int64                  `json:"duplicates"`
 	ExcludedUnengaged int64                  `json:"excludedUnengaged"`
 	Final             int64                  `json:"final"`
+	Holdout           *ReadinessHoldout      `json:"holdout,omitempty"`
 	Lists             []string               `json:"lists"`
 	Role              int64                  `json:"role"`
 	Rows              []ReadinessAudienceRow `json:"rows"`
@@ -47436,6 +47622,14 @@ type ReadinessHeldMove struct {
 	From       string  `json:"from"`
 	To         string  `json:"to"`
 	ToId       string  `json:"toId"`
+}
+
+// ReadinessHoldout defines model for ReadinessHoldout.
+type ReadinessHoldout struct {
+	Included bool    `json:"included"`
+	LeftOut  int64   `json:"leftOut"`
+	Percent  float64 `json:"percent"`
+	Reached  int64   `json:"reached"`
 }
 
 // ReadinessPoll defines model for ReadinessPoll.
@@ -47602,8 +47796,9 @@ type ReadinessScheduleMode string
 
 // ReadinessSendSettings defines model for ReadinessSendSettings.
 type ReadinessSendSettings struct {
-	Schedule   *ReadinessSchedule   `json:"schedule,omitempty"`
-	Thresholds *ReadinessThresholds `json:"thresholds,omitempty"`
+	IncludeHoldout *bool                `json:"includeHoldout,omitempty"`
+	Schedule       *ReadinessSchedule   `json:"schedule,omitempty"`
+	Thresholds     *ReadinessThresholds `json:"thresholds,omitempty"`
 }
 
 // ReadinessSummary defines model for ReadinessSummary.
@@ -49888,6 +50083,7 @@ type ReviewCampaign struct {
 	AutosavedAt   *time.Time              `json:"autosavedAt,omitempty"`
 	Editable      bool                    `json:"editable"`
 	From          string                  `json:"from"`
+	Holdout       *ReviewHoldout          `json:"holdout,omitempty"`
 	Id            string                  `json:"id"`
 	Name          string                  `json:"name"`
 	Preheader     string                  `json:"preheader"`
@@ -49954,6 +50150,12 @@ type ReviewHoldReason struct {
 
 // ReviewHoldReasonKind defines model for ReviewHoldReason.Kind.
 type ReviewHoldReasonKind string
+
+// ReviewHoldout defines model for ReviewHoldout.
+type ReviewHoldout struct {
+	Included bool    `json:"included"`
+	Percent  float64 `json:"percent"`
+}
 
 // ReviewScheduled defines model for ReviewScheduled.
 type ReviewScheduled struct {
@@ -51294,13 +51496,14 @@ type SendingRuleTrigger struct {
 
 // SendingRulesView defines model for SendingRulesView.
 type SendingRulesView struct {
-	CanManage    bool          `json:"canManage"`
-	Defaults     SendDefaults  `json:"defaults"`
-	Managers     []string      `json:"managers"`
-	MarketingCap MarketingCap  `json:"marketingCap"`
-	Reason       *string       `json:"reason,omitempty"`
-	Rules        []SendingRule `json:"rules"`
-	SunsetDays   int64         `json:"sunsetDays"`
+	CanManage    bool            `json:"canManage"`
+	Defaults     SendDefaults    `json:"defaults"`
+	Holdout      HoldoutSettings `json:"holdout"`
+	Managers     []string        `json:"managers"`
+	MarketingCap MarketingCap    `json:"marketingCap"`
+	Reason       *string         `json:"reason,omitempty"`
+	Rules        []SendingRule   `json:"rules"`
+	SunsetDays   int64           `json:"sunsetDays"`
 }
 
 // SettingsProviderCard defines model for SettingsProviderCard.
@@ -59987,6 +60190,18 @@ type ExportGrowthParams struct {
 // ExportGrowthParamsPeriod defines parameters for ExportGrowth.
 type ExportGrowthParamsPeriod string
 
+// GetHoldoutResultsParams defines parameters for GetHoldoutResults.
+type GetHoldoutResultsParams struct {
+	// Period A period's id; the newest by default
+	Period *openapi_types.UUID `form:"period,omitempty" json:"period,omitempty"`
+
+	// Window The whole period (default) or its last 30 or 90 days
+	Window *GetHoldoutResultsParamsWindow `form:"window,omitempty" json:"window,omitempty"`
+}
+
+// GetHoldoutResultsParamsWindow defines parameters for GetHoldoutResults.
+type GetHoldoutResultsParamsWindow string
+
 // GetImportFieldsParams defines parameters for GetImportFields.
 type GetImportFieldsParams struct {
 	// Guesses Guess every target again instead of returning the saved mapping
@@ -62953,18 +63168,18 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links (the `ListCampaignReviewLinks` operationId).
 	ListCampaignReviewLinks(ctx context.Context, workspace string, campaignId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateSendSettingsWithBody Change the auto-pause thresholds or the schedule
+	// UpdateSendSettingsWithBody Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with PATCH /api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings (the `UpdateSendSettings` operationId).
 	UpdateSendSettingsWithBody(ctx context.Context, workspace string, campaignId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateSendSettings Change the auto-pause thresholds or the schedule
+	// UpdateSendSettings Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -64855,6 +65070,20 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/growth/sources (the `ListGrowthSources` operationId).
 	ListGrowthSources(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// MeasureHoldout Recompute the holdout group's results
+	//
+	// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+	MeasureHoldout(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetHoldoutResults What marketing added, measured against the holdout group
+	//
+	// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+	GetHoldoutResults(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListImports Import history and the draft the wizard resumes
 	//
@@ -72444,9 +72673,9 @@ func (c *Client) ListCampaignReviewLinks(ctx context.Context, workspace string, 
 	return c.Client.Do(req)
 }
 
-// UpdateSendSettingsWithBody Change the auto-pause thresholds or the schedule
+// UpdateSendSettingsWithBody Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes any type of body and a specified content type.
 //
@@ -72463,9 +72692,9 @@ func (c *Client) UpdateSendSettingsWithBody(ctx context.Context, workspace strin
 	return c.Client.Do(req)
 }
 
-// UpdateSendSettings Change the auto-pause thresholds or the schedule
+// UpdateSendSettings Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -77207,6 +77436,40 @@ func (c *Client) ExportGrowth(ctx context.Context, workspace string, params *Exp
 // Corresponds with GET /api/v1/workspaces/{workspace}/growth/sources (the `ListGrowthSources` operationId).
 func (c *Client) ListGrowthSources(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListGrowthSourcesRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// MeasureHoldout Recompute the holdout group's results
+//
+// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+func (c *Client) MeasureHoldout(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMeasureHoldoutRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetHoldoutResults What marketing added, measured against the holdout group
+//
+// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+func (c *Client) GetHoldoutResults(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHoldoutResultsRequest(c.Server, workspace, params)
 	if err != nil {
 		return nil, err
 	}
@@ -107013,6 +107276,113 @@ func NewListGrowthSourcesRequest(server string, workspace string) (*http.Request
 	return req, nil
 }
 
+// NewMeasureHoldoutRequest constructs an http.Request for the MeasureHoldout method
+func NewMeasureHoldoutRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/holdout/measure", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetHoldoutResultsRequest constructs an http.Request for the GetHoldoutResults method
+func NewGetHoldoutResultsRequest(server string, workspace string, params *GetHoldoutResultsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/holdout/results", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Period != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "period", *params.Period, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Window != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListImportsRequest constructs an http.Request for the ListImports method
 func NewListImportsRequest(server string, workspace string) (*http.Request, error) {
 	var err error
@@ -131340,18 +131710,18 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/workspaces/{workspace}/campaigns/{campaignId}/review-links (the `ListCampaignReviewLinks` operationId).
 	ListCampaignReviewLinksWithResponse(ctx context.Context, workspace string, campaignId openapi_types.UUID, reqEditors ...RequestEditorFn) (*ListCampaignReviewLinksResponse, error)
 
-	// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds or the schedule
+	// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PATCH /api/v1/workspaces/{workspace}/campaigns/{campaignId}/send-settings (the `UpdateSendSettings` operationId).
 	UpdateSendSettingsWithBodyWithResponse(ctx context.Context, workspace string, campaignId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSendSettingsResponse, error)
 
-	// UpdateSendSettingsWithResponse Change the auto-pause thresholds or the schedule
+	// UpdateSendSettingsWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 	//
-	// The schedule is part of what an approval covers: changing it invalidates the approval.
+	// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -133524,6 +133894,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/growth/sources (the `ListGrowthSources` operationId).
 	ListGrowthSourcesWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*ListGrowthSourcesResponse, error)
+
+	// MeasureHoldoutWithResponse Recompute the holdout group's results
+	//
+	// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+	MeasureHoldoutWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*MeasureHoldoutResponse, error)
+
+	// GetHoldoutResultsWithResponse What marketing added, measured against the holdout group
+	//
+	// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+	GetHoldoutResultsWithResponse(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*GetHoldoutResultsResponse, error)
 
 	// ListImportsWithResponse Import history and the draft the wizard resumes
 	//
@@ -155766,6 +156154,102 @@ func (r ListGrowthSourcesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListGrowthSourcesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type MeasureHoldoutResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *HoldoutResults
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r MeasureHoldoutResponse) GetJSON202() *HoldoutResults {
+	return r.JSON202
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r MeasureHoldoutResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r MeasureHoldoutResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r MeasureHoldoutResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MeasureHoldoutResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r MeasureHoldoutResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetHoldoutResultsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *HoldoutResults
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetHoldoutResultsResponse) GetJSON200() *HoldoutResults {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetHoldoutResultsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetHoldoutResultsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHoldoutResultsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHoldoutResultsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetHoldoutResultsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -180843,9 +181327,9 @@ func (c *ClientWithResponses) ListCampaignReviewLinksWithResponse(ctx context.Co
 	return ParseListCampaignReviewLinksResponse(rsp)
 }
 
-// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds or the schedule
+// UpdateSendSettingsWithBodyWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -180858,9 +181342,9 @@ func (c *ClientWithResponses) UpdateSendSettingsWithBodyWithResponse(ctx context
 	return ParseUpdateSendSettingsResponse(rsp)
 }
 
-// UpdateSendSettingsWithResponse Change the auto-pause thresholds or the schedule
+// UpdateSendSettingsWithResponse Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 //
-// The schedule is part of what an approval covers: changing it invalidates the approval.
+// The schedule is part of what an approval covers: changing it invalidates the approval. Including the holdout group changes the audience: the checks run again, and it can't change while the send is scheduled.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -184748,6 +185232,36 @@ func (c *ClientWithResponses) ListGrowthSourcesWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListGrowthSourcesResponse(rsp)
+}
+
+// MeasureHoldoutWithResponse Recompute the holdout group's results
+//
+// At most once every 10 minutes (429 with Retry-After otherwise). The results say computing until the new ones are ready.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/workspaces/{workspace}/holdout/measure (the `MeasureHoldout` operationId).
+func (c *ClientWithResponses) MeasureHoldoutWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*MeasureHoldoutResponse, error) {
+	rsp, err := c.MeasureHoldout(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMeasureHoldoutResponse(rsp)
+}
+
+// GetHoldoutResultsWithResponse What marketing added, measured against the holdout group
+//
+// The holdout group's and everyone else's conversion rate, revenue and orders per contact, with the lift and its confidence. Measured every night at 04:00 workspace time.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/holdout/results (the `GetHoldoutResults` operationId).
+func (c *ClientWithResponses) GetHoldoutResultsWithResponse(ctx context.Context, workspace string, params *GetHoldoutResultsParams, reqEditors ...RequestEditorFn) (*GetHoldoutResultsResponse, error) {
+	rsp, err := c.GetHoldoutResults(ctx, workspace, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHoldoutResultsResponse(rsp)
 }
 
 // ListImportsWithResponse Import history and the draft the wizard resumes
@@ -205485,6 +205999,72 @@ func ParseListGrowthSourcesResponse(rsp *http.Response) (*ListGrowthSourcesRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest GrowthSourceList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMeasureHoldoutResponse parses an HTTP response from a MeasureHoldoutWithResponse call
+func ParseMeasureHoldoutResponse(rsp *http.Response) (*MeasureHoldoutResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MeasureHoldoutResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest HoldoutResults
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetHoldoutResultsResponse parses an HTTP response from a GetHoldoutResultsWithResponse call
+func ParseGetHoldoutResultsResponse(rsp *http.Response) (*GetHoldoutResultsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHoldoutResultsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HoldoutResults
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

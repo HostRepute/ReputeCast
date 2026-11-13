@@ -1100,6 +1100,7 @@ from .get_campaign_report_bounce_review_type import GetCampaignReportBounceRevie
 from .get_campaign_sponsor_block_label import GetCampaignSponsorBlockLabel
 from .get_campaign_sponsor_block_layout import GetCampaignSponsorBlockLayout
 from .get_growth_period import GetGrowthPeriod
+from .get_holdout_results_window import GetHoldoutResultsWindow
 from .get_integration_app_kind import GetIntegrationAppKind
 from .get_referral_results_grouping import GetReferralResultsGrouping
 from .get_referral_results_period import GetReferralResultsPeriod
@@ -1175,6 +1176,15 @@ from .health_tier_card import HealthTierCard
 from .health_tier_card_tier import HealthTierCardTier
 from .health_trend_week import HealthTrendWeek
 from .hold_input import HoldInput
+from .holdout_group_result import HoldoutGroupResult
+from .holdout_metric import HoldoutMetric
+from .holdout_metric_key import HoldoutMetricKey
+from .holdout_other_currency import HoldoutOtherCurrency
+from .holdout_period_item import HoldoutPeriodItem
+from .holdout_results import HoldoutResults
+from .holdout_results_verdict import HoldoutResultsVerdict
+from .holdout_results_window import HoldoutResultsWindow
+from .holdout_settings import HoldoutSettings
 from .host_repute_add_asset_input_body import HostReputeAddAssetInputBody
 from .host_repute_api_key_input_body import HostReputeAPIKeyInputBody
 from .host_repute_asset import HostReputeAsset
@@ -2078,6 +2088,7 @@ from .readiness_group import ReadinessGroup
 from .readiness_group_key import ReadinessGroupKey
 from .readiness_group_status import ReadinessGroupStatus
 from .readiness_held_move import ReadinessHeldMove
+from .readiness_holdout import ReadinessHoldout
 from .readiness_poll import ReadinessPoll
 from .readiness_progress import ReadinessProgress
 from .readiness_progress_group import ReadinessProgressGroup
@@ -2377,6 +2388,7 @@ from .review_count import ReviewCount
 from .review_held import ReviewHeld
 from .review_hold_reason import ReviewHoldReason
 from .review_hold_reason_kind import ReviewHoldReasonKind
+from .review_holdout import ReviewHoldout
 from .review_scheduled import ReviewScheduled
 from .review_test_send import ReviewTestSend
 from .review_typed import ReviewTyped
@@ -4589,6 +4601,7 @@ __all__ = (
     "GetCampaignSponsorBlockLabel",
     "GetCampaignSponsorBlockLayout",
     "GetGrowthPeriod",
+    "GetHoldoutResultsWindow",
     "GetIntegrationAppKind",
     "GetReferralResultsGrouping",
     "GetReferralResultsPeriod",
@@ -4664,6 +4677,15 @@ __all__ = (
     "HealthTierCardTier",
     "HealthTrendWeek",
     "HoldInput",
+    "HoldoutGroupResult",
+    "HoldoutMetric",
+    "HoldoutMetricKey",
+    "HoldoutOtherCurrency",
+    "HoldoutPeriodItem",
+    "HoldoutResults",
+    "HoldoutResultsVerdict",
+    "HoldoutResultsWindow",
+    "HoldoutSettings",
     "HostReputeAddAssetInputBody",
     "HostReputeAPIKeyInputBody",
     "HostReputeAsset",
@@ -5567,6 +5589,7 @@ __all__ = (
     "ReadinessGroupKey",
     "ReadinessGroupStatus",
     "ReadinessHeldMove",
+    "ReadinessHoldout",
     "ReadinessPoll",
     "ReadinessProgress",
     "ReadinessProgressGroup",
@@ -5864,6 +5887,7 @@ __all__ = (
     "ReviewCanaryReasonsItem",
     "ReviewCount",
     "ReviewHeld",
+    "ReviewHoldout",
     "ReviewHoldReason",
     "ReviewHoldReasonKind",
     "ReviewScheduled",

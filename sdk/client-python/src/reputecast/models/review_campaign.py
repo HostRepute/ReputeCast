@@ -16,6 +16,7 @@ import datetime
 if TYPE_CHECKING:
   from ..models.composer_content_settings import ComposerContentSettings
   from ..models.review_ab import ReviewAB
+  from ..models.review_holdout import ReviewHoldout
   from ..models.review_utm import ReviewUTM
 
 
@@ -46,6 +47,7 @@ class ReviewCampaign:
             version (int):
             ab (ReviewAB | Unset):
             autosaved_at (datetime.datetime | Unset):
+            holdout (ReviewHoldout | Unset):
             scheduled_at (datetime.datetime | Unset):
             started_at (datetime.datetime | Unset):
             utm (ReviewUTM | Unset):
@@ -67,6 +69,7 @@ class ReviewCampaign:
     version: int
     ab: ReviewAB | Unset = UNSET
     autosaved_at: datetime.datetime | Unset = UNSET
+    holdout: ReviewHoldout | Unset = UNSET
     scheduled_at: datetime.datetime | Unset = UNSET
     started_at: datetime.datetime | Unset = UNSET
     utm: ReviewUTM | Unset = UNSET
@@ -78,6 +81,7 @@ class ReviewCampaign:
     def to_dict(self) -> dict[str, Any]:
         from ..models.composer_content_settings import ComposerContentSettings # noqa: PLC0415
         from ..models.review_ab import ReviewAB # noqa: PLC0415
+        from ..models.review_holdout import ReviewHoldout # noqa: PLC0415
         from ..models.review_utm import ReviewUTM # noqa: PLC0415
         audience_label = self.audience_label
 
@@ -115,6 +119,10 @@ class ReviewCampaign:
         if not isinstance(self.autosaved_at, Unset):
             autosaved_at = self.autosaved_at.isoformat()
 
+        holdout: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.holdout, Unset):
+            holdout = self.holdout.to_dict()
+
         scheduled_at: str | Unset = UNSET
         if not isinstance(self.scheduled_at, Unset):
             scheduled_at = self.scheduled_at.isoformat()
@@ -150,6 +158,8 @@ class ReviewCampaign:
             field_dict["ab"] = ab
         if autosaved_at is not UNSET:
             field_dict["autosavedAt"] = autosaved_at
+        if holdout is not UNSET:
+            field_dict["holdout"] = holdout
         if scheduled_at is not UNSET:
             field_dict["scheduledAt"] = scheduled_at
         if started_at is not UNSET:
@@ -165,6 +175,7 @@ class ReviewCampaign:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.composer_content_settings import ComposerContentSettings # noqa: PLC0415
         from ..models.review_ab import ReviewAB # noqa: PLC0415
+        from ..models.review_holdout import ReviewHoldout # noqa: PLC0415
         from ..models.review_utm import ReviewUTM # noqa: PLC0415
         d = dict(src_dict)
         audience_label = d.pop("audienceLabel")
@@ -224,6 +235,16 @@ class ReviewCampaign:
 
 
 
+        _holdout = d.pop("holdout", UNSET)
+        holdout: ReviewHoldout | Unset
+        if isinstance(_holdout,  Unset):
+            holdout = UNSET
+        else:
+            holdout = ReviewHoldout.from_dict(_holdout)
+
+
+
+
         _scheduled_at = d.pop("scheduledAt", UNSET)
         scheduled_at: datetime.datetime | Unset
         if isinstance(_scheduled_at,  Unset):
@@ -271,6 +292,7 @@ class ReviewCampaign:
             version=version,
             ab=ab,
             autosaved_at=autosaved_at,
+            holdout=holdout,
             scheduled_at=scheduled_at,
             started_at=started_at,
             utm=utm,

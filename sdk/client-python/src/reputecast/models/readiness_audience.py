@@ -8,10 +8,12 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
+from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
   from ..models.readiness_audience_row import ReadinessAudienceRow
+  from ..models.readiness_holdout import ReadinessHoldout
 
 
 
@@ -34,6 +36,7 @@ class ReadinessAudience:
             suppressed (int):
             unengaged (int):
             unengaged_excluded (bool):
+            holdout (ReadinessHoldout | Unset):
      """
 
     duplicates: int
@@ -45,6 +48,7 @@ class ReadinessAudience:
     suppressed: int
     unengaged: int
     unengaged_excluded: bool
+    holdout: ReadinessHoldout | Unset = UNSET
 
 
 
@@ -52,6 +56,7 @@ class ReadinessAudience:
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.readiness_audience_row import ReadinessAudienceRow # noqa: PLC0415
+        from ..models.readiness_holdout import ReadinessHoldout # noqa: PLC0415
         duplicates = self.duplicates
 
         excluded_unengaged = self.excluded_unengaged
@@ -77,6 +82,10 @@ class ReadinessAudience:
 
         unengaged_excluded = self.unengaged_excluded
 
+        holdout: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.holdout, Unset):
+            holdout = self.holdout.to_dict()
+
 
         field_dict: dict[str, Any] = {}
 
@@ -91,6 +100,8 @@ class ReadinessAudience:
             "unengaged": unengaged,
             "unengagedExcluded": unengaged_excluded,
         })
+        if holdout is not UNSET:
+            field_dict["holdout"] = holdout
 
         return field_dict
 
@@ -99,6 +110,7 @@ class ReadinessAudience:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.readiness_audience_row import ReadinessAudienceRow # noqa: PLC0415
+        from ..models.readiness_holdout import ReadinessHoldout # noqa: PLC0415
         d = dict(src_dict)
         duplicates = d.pop("duplicates")
 
@@ -127,6 +139,16 @@ class ReadinessAudience:
 
         unengaged_excluded = d.pop("unengagedExcluded")
 
+        _holdout = d.pop("holdout", UNSET)
+        holdout: ReadinessHoldout | Unset
+        if isinstance(_holdout,  Unset):
+            holdout = UNSET
+        else:
+            holdout = ReadinessHoldout.from_dict(_holdout)
+
+
+
+
         readiness_audience = cls(
             duplicates=duplicates,
             excluded_unengaged=excluded_unengaged,
@@ -137,6 +159,7 @@ class ReadinessAudience:
             suppressed=suppressed,
             unengaged=unengaged,
             unengaged_excluded=unengaged_excluded,
+            holdout=holdout,
         )
 
         return readiness_audience

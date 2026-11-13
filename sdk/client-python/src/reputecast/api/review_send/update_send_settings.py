@@ -73,9 +73,11 @@ def sync_detailed(
     body: ReadinessSendSettings,
 
 ) -> Response[Any | Problem]:
-    """ Change the auto-pause thresholds or the schedule
+    """ Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 
-     The schedule is part of what an approval covers: changing it invalidates the approval.
+     The schedule is part of what an approval covers: changing it invalidates the approval. Including the
+    holdout group changes the audience: the checks run again, and it can't change while the send is
+    scheduled.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.
@@ -112,9 +114,11 @@ def sync(
     body: ReadinessSendSettings,
 
 ) -> Any | Problem | None:
-    """ Change the auto-pause thresholds or the schedule
+    """ Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 
-     The schedule is part of what an approval covers: changing it invalidates the approval.
+     The schedule is part of what an approval covers: changing it invalidates the approval. Including the
+    holdout group changes the audience: the checks run again, and it can't change while the send is
+    scheduled.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.
@@ -146,9 +150,11 @@ async def asyncio_detailed(
     body: ReadinessSendSettings,
 
 ) -> Response[Any | Problem]:
-    """ Change the auto-pause thresholds or the schedule
+    """ Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 
-     The schedule is part of what an approval covers: changing it invalidates the approval.
+     The schedule is part of what an approval covers: changing it invalidates the approval. Including the
+    holdout group changes the audience: the checks run again, and it can't change while the send is
+    scheduled.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.
@@ -185,9 +191,11 @@ async def asyncio(
     body: ReadinessSendSettings,
 
 ) -> Any | Problem | None:
-    """ Change the auto-pause thresholds or the schedule
+    """ Change the auto-pause thresholds, the schedule or whether the send includes the holdout group
 
-     The schedule is part of what an approval covers: changing it invalidates the approval.
+     The schedule is part of what an approval covers: changing it invalidates the approval. Including the
+    holdout group changes the audience: the checks run again, and it can't change while the send is
+    scheduled.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.

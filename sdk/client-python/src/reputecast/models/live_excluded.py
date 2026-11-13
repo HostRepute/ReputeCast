@@ -26,6 +26,7 @@ class LiveExcluded:
             complained (int):
             duplicates (int):
             excluded (int):
+            holdout (int):
             paused (int):
             role (int):
             sunset (int):
@@ -38,6 +39,7 @@ class LiveExcluded:
     complained: int
     duplicates: int
     excluded: int
+    holdout: int
     paused: int
     role: int
     sunset: int
@@ -57,6 +59,8 @@ class LiveExcluded:
         duplicates = self.duplicates
 
         excluded = self.excluded
+
+        holdout = self.holdout
 
         paused = self.paused
 
@@ -78,6 +82,7 @@ class LiveExcluded:
             "complained": complained,
             "duplicates": duplicates,
             "excluded": excluded,
+            "holdout": holdout,
             "paused": paused,
             "role": role,
             "sunset": sunset,
@@ -101,6 +106,8 @@ class LiveExcluded:
 
         excluded = d.pop("excluded")
 
+        holdout = d.pop("holdout")
+
         paused = d.pop("paused")
 
         role = d.pop("role")
@@ -118,6 +125,7 @@ class LiveExcluded:
             complained=complained,
             duplicates=duplicates,
             excluded=excluded,
+            holdout=holdout,
             paused=paused,
             role=role,
             sunset=sunset,

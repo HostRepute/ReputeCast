@@ -30,6 +30,7 @@ class AudienceSummary:
     """ 
         Attributes:
             contacts (int):
+            holdout (bool):
             lists (list[AudienceListSummary]):
             paid_tiers (list[AudiencePaidTier]):
             segments (int):
@@ -40,6 +41,7 @@ class AudienceSummary:
      """
 
     contacts: int
+    holdout: bool
     lists: list[AudienceListSummary]
     paid_tiers: list[AudiencePaidTier]
     segments: int
@@ -57,6 +59,8 @@ class AudienceSummary:
         from ..models.audience_paid_tier import AudiencePaidTier # noqa: PLC0415
         from ..models.audience_tier_counts import AudienceTierCounts # noqa: PLC0415
         contacts = self.contacts
+
+        holdout = self.holdout
 
         lists = []
         for lists_item_data in self.lists:
@@ -89,6 +93,7 @@ class AudienceSummary:
 
         field_dict.update({
             "contacts": contacts,
+            "holdout": holdout,
             "lists": lists,
             "paidTiers": paid_tiers,
             "segments": segments,
@@ -110,6 +115,8 @@ class AudienceSummary:
         from ..models.audience_tier_counts import AudienceTierCounts # noqa: PLC0415
         d = dict(src_dict)
         contacts = d.pop("contacts")
+
+        holdout = d.pop("holdout")
 
         lists = []
         _lists = d.pop("lists")
@@ -154,6 +161,7 @@ class AudienceSummary:
 
         audience_summary = cls(
             contacts=contacts,
+            holdout=holdout,
             lists=lists,
             paid_tiers=paid_tiers,
             segments=segments,
