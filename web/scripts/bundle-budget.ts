@@ -25,7 +25,10 @@ const budget = {
   // Every script of the app. 4.5 MB until German, Spanish and French
   // joined Vietnamese: each language's translations are about 365 KB,
   // downloaded only by those who read the app in it (src/i18n/store.ts).
-  total: 5.75 * 1024 * KB,
+  // 6 MB since Đợt 2 (M58–M66): its nine milestones' screens and their copy
+  // in five languages add about 300 KB (5,742 KB before, 6,044 KB after),
+  // nearly all in lazy chunks (the first load grew 3 KB, to 316 KB).
+  total: 6 * 1024 * KB,
 }
 
 const dist = new URL('../dist/', import.meta.url).pathname

@@ -2,6 +2,7 @@ from enum import StrEnum
 
 class PersonalizationTokenKind(StrEnum):
     CONTACT = "contact"
+    COUPON = "coupon"
     CUSTOM = "custom"
     PAID = "paid"
     REFERRAL = "referral"

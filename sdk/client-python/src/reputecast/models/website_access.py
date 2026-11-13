@@ -9,6 +9,8 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 from ..models.website_access_campaign_visibility import WebsiteAccessCampaignVisibility
+from ..models.website_access_comments import WebsiteAccessComments
+from ..models.website_access_comments_review import WebsiteAccessCommentsReview
 from ..models.website_access_default_visibility import WebsiteAccessDefaultVisibility
 from ..types import UNSET, Unset
 from typing import cast
@@ -35,6 +37,9 @@ class WebsiteAccess:
     """ 
         Attributes:
             campaign_visibility (WebsiteAccessCampaignVisibility):
+            comments (WebsiteAccessComments):
+            comments_review (WebsiteAccessCommentsReview):
+            comments_waiting (int):
             default_visibility (WebsiteAccessDefaultVisibility):
             link_minutes (int):
             lists (list[WebsiteAccessList]):
@@ -44,6 +49,7 @@ class WebsiteAccess:
             meter_members_on (bool):
             meter_visitors (int):
             meter_visitors_on (bool):
+            moderators (list[str]):
             never_free (list[WebsiteNeverFreePost]):
             paid_posts (int):
             payments (WebsitePayments):
@@ -61,6 +67,9 @@ class WebsiteAccess:
      """
 
     campaign_visibility: WebsiteAccessCampaignVisibility
+    comments: WebsiteAccessComments
+    comments_review: WebsiteAccessCommentsReview
+    comments_waiting: int
     default_visibility: WebsiteAccessDefaultVisibility
     link_minutes: int
     lists: list[WebsiteAccessList]
@@ -70,6 +79,7 @@ class WebsiteAccess:
     meter_members_on: bool
     meter_visitors: int
     meter_visitors_on: bool
+    moderators: list[str]
     never_free: list[WebsiteNeverFreePost]
     paid_posts: int
     payments: WebsitePayments
@@ -98,6 +108,12 @@ class WebsiteAccess:
         from ..models.website_tier_option import WebsiteTierOption # noqa: PLC0415
         campaign_visibility = self.campaign_visibility.value
 
+        comments = self.comments.value
+
+        comments_review = self.comments_review.value
+
+        comments_waiting = self.comments_waiting
+
         default_visibility = self.default_visibility.value
 
         link_minutes = self.link_minutes
@@ -120,6 +136,10 @@ class WebsiteAccess:
         meter_visitors = self.meter_visitors
 
         meter_visitors_on = self.meter_visitors_on
+
+        moderators = self.moderators
+
+
 
         never_free = []
         for never_free_item_data in self.never_free:
@@ -164,6 +184,9 @@ class WebsiteAccess:
 
         field_dict.update({
             "campaignVisibility": campaign_visibility,
+            "comments": comments,
+            "commentsReview": comments_review,
+            "commentsWaiting": comments_waiting,
             "defaultVisibility": default_visibility,
             "linkMinutes": link_minutes,
             "lists": lists,
@@ -173,6 +196,7 @@ class WebsiteAccess:
             "meterMembersOn": meter_members_on,
             "meterVisitors": meter_visitors,
             "meterVisitorsOn": meter_visitors_on,
+            "moderators": moderators,
             "neverFree": never_free,
             "paidPosts": paid_posts,
             "payments": payments,
@@ -208,6 +232,18 @@ class WebsiteAccess:
 
 
 
+        comments = WebsiteAccessComments(d.pop("comments"))
+
+
+
+
+        comments_review = WebsiteAccessCommentsReview(d.pop("commentsReview"))
+
+
+
+
+        comments_waiting = d.pop("commentsWaiting")
+
         default_visibility = WebsiteAccessDefaultVisibility(d.pop("defaultVisibility"))
 
 
@@ -239,6 +275,9 @@ class WebsiteAccess:
         meter_visitors = d.pop("meterVisitors")
 
         meter_visitors_on = d.pop("meterVisitorsOn")
+
+        moderators = cast(list[str], d.pop("moderators"))
+
 
         never_free = []
         _never_free = d.pop("neverFree")
@@ -298,6 +337,9 @@ class WebsiteAccess:
 
         website_access = cls(
             campaign_visibility=campaign_visibility,
+            comments=comments,
+            comments_review=comments_review,
+            comments_waiting=comments_waiting,
             default_visibility=default_visibility,
             link_minutes=link_minutes,
             lists=lists,
@@ -307,6 +349,7 @@ class WebsiteAccess:
             meter_members_on=meter_members_on,
             meter_visitors=meter_visitors,
             meter_visitors_on=meter_visitors_on,
+            moderators=moderators,
             never_free=never_free,
             paid_posts=paid_posts,
             payments=payments,

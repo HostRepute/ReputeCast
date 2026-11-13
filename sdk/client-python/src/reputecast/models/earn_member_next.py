@@ -5,6 +5,7 @@ class EarnMemberNext(StrEnum):
     ENDS = "ends"
     NO_END = "no_end"
     RENEWS = "renews"
+    RESUMES = "resumes"
     RETRIES = "retries"
     TRIAL_ENDS = "trial_ends"
 

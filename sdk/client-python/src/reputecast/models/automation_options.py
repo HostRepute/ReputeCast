@@ -15,6 +15,7 @@ if TYPE_CHECKING:
   from ..models.automation_email_option import AutomationEmailOption
   from ..models.automation_field_option import AutomationFieldOption
   from ..models.automation_form_option import AutomationFormOption
+  from ..models.automation_lead_form_option import AutomationLeadFormOption
   from ..models.automation_milestone_option import AutomationMilestoneOption
   from ..models.automation_option_item import AutomationOptionItem
   from ..models.automation_route_provider import AutomationRouteProvider
@@ -39,11 +40,13 @@ class AutomationOptions:
             events (list[str]):
             fields (list[AutomationFieldOption]):
             forms (list[AutomationFormOption]):
+            lead_forms (list[AutomationLeadFormOption]):
             lists (list[AutomationOptionItem]):
             milestones (list[AutomationMilestoneOption]):
             paid_connected (bool):
             products (list[AutomationOptionItem]):
             providers (list[AutomationRouteProvider]):
+            replies_inbox (bool):
             segments (list[AutomationSegmentOption]):
             tags (list[str]):
             tiers (list[AutomationTierOption]):
@@ -55,11 +58,13 @@ class AutomationOptions:
     events: list[str]
     fields: list[AutomationFieldOption]
     forms: list[AutomationFormOption]
+    lead_forms: list[AutomationLeadFormOption]
     lists: list[AutomationOptionItem]
     milestones: list[AutomationMilestoneOption]
     paid_connected: bool
     products: list[AutomationOptionItem]
     providers: list[AutomationRouteProvider]
+    replies_inbox: bool
     segments: list[AutomationSegmentOption]
     tags: list[str]
     tiers: list[AutomationTierOption]
@@ -73,6 +78,7 @@ class AutomationOptions:
         from ..models.automation_email_option import AutomationEmailOption # noqa: PLC0415
         from ..models.automation_field_option import AutomationFieldOption # noqa: PLC0415
         from ..models.automation_form_option import AutomationFormOption # noqa: PLC0415
+        from ..models.automation_lead_form_option import AutomationLeadFormOption # noqa: PLC0415
         from ..models.automation_milestone_option import AutomationMilestoneOption # noqa: PLC0415
         from ..models.automation_option_item import AutomationOptionItem # noqa: PLC0415
         from ..models.automation_route_provider import AutomationRouteProvider # noqa: PLC0415
@@ -111,6 +117,13 @@ class AutomationOptions:
 
 
 
+        lead_forms = []
+        for lead_forms_item_data in self.lead_forms:
+            lead_forms_item = lead_forms_item_data.to_dict()
+            lead_forms.append(lead_forms_item)
+
+
+
         lists = []
         for lists_item_data in self.lists:
             lists_item = lists_item_data.to_dict()
@@ -140,6 +153,8 @@ class AutomationOptions:
             providers.append(providers_item)
 
 
+
+        replies_inbox = self.replies_inbox
 
         segments = []
         for segments_item_data in self.segments:
@@ -172,11 +187,13 @@ class AutomationOptions:
             "events": events,
             "fields": fields,
             "forms": forms,
+            "leadForms": lead_forms,
             "lists": lists,
             "milestones": milestones,
             "paidConnected": paid_connected,
             "products": products,
             "providers": providers,
+            "repliesInbox": replies_inbox,
             "segments": segments,
             "tags": tags,
             "tiers": tiers,
@@ -193,6 +210,7 @@ class AutomationOptions:
         from ..models.automation_email_option import AutomationEmailOption # noqa: PLC0415
         from ..models.automation_field_option import AutomationFieldOption # noqa: PLC0415
         from ..models.automation_form_option import AutomationFormOption # noqa: PLC0415
+        from ..models.automation_lead_form_option import AutomationLeadFormOption # noqa: PLC0415
         from ..models.automation_milestone_option import AutomationMilestoneOption # noqa: PLC0415
         from ..models.automation_option_item import AutomationOptionItem # noqa: PLC0415
         from ..models.automation_route_provider import AutomationRouteProvider # noqa: PLC0415
@@ -243,6 +261,16 @@ class AutomationOptions:
             forms.append(forms_item)
 
 
+        lead_forms = []
+        _lead_forms = d.pop("leadForms")
+        for lead_forms_item_data in (_lead_forms):
+            lead_forms_item = AutomationLeadFormOption.from_dict(lead_forms_item_data)
+
+
+
+            lead_forms.append(lead_forms_item)
+
+
         lists = []
         _lists = d.pop("lists")
         for lists_item_data in (_lists):
@@ -285,6 +313,8 @@ class AutomationOptions:
             providers.append(providers_item)
 
 
+        replies_inbox = d.pop("repliesInbox")
+
         segments = []
         _segments = d.pop("segments")
         for segments_item_data in (_segments):
@@ -324,11 +354,13 @@ class AutomationOptions:
             events=events,
             fields=fields,
             forms=forms,
+            lead_forms=lead_forms,
             lists=lists,
             milestones=milestones,
             paid_connected=paid_connected,
             products=products,
             providers=providers,
+            replies_inbox=replies_inbox,
             segments=segments,
             tags=tags,
             tiers=tiers,

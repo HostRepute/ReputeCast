@@ -21,6 +21,7 @@ if TYPE_CHECKING:
   from ..models.commerce_numbers import CommerceNumbers
   from ..models.commerce_plugin_state import CommercePluginState
   from ..models.commerce_recovered_orders import CommerceRecoveredOrders
+  from ..models.commerce_store_discounts import CommerceStoreDiscounts
   from ..models.commerce_store_summary import CommerceStoreSummary
   from ..models.commerce_sync_facts import CommerceSyncFacts
   from ..models.commerce_use import CommerceUse
@@ -46,6 +47,7 @@ class CommerceStorePage:
             capabilities (list[str]):
             connected_by (str):
             consent (CommerceConsent):
+            discounts (CommerceStoreDiscounts):
             flows (list[CommerceFlow]):
             helpers (list[str]):
             lists (list[CommerceListOption]):
@@ -68,6 +70,7 @@ class CommerceStorePage:
     capabilities: list[str]
     connected_by: str
     consent: CommerceConsent
+    discounts: CommerceStoreDiscounts
     flows: list[CommerceFlow]
     helpers: list[str]
     lists: list[CommerceListOption]
@@ -94,6 +97,7 @@ class CommerceStorePage:
         from ..models.commerce_numbers import CommerceNumbers # noqa: PLC0415
         from ..models.commerce_plugin_state import CommercePluginState # noqa: PLC0415
         from ..models.commerce_recovered_orders import CommerceRecoveredOrders # noqa: PLC0415
+        from ..models.commerce_store_discounts import CommerceStoreDiscounts # noqa: PLC0415
         from ..models.commerce_store_summary import CommerceStoreSummary # noqa: PLC0415
         from ..models.commerce_sync_facts import CommerceSyncFacts # noqa: PLC0415
         from ..models.commerce_use import CommerceUse # noqa: PLC0415
@@ -120,6 +124,8 @@ class CommerceStorePage:
         connected_by = self.connected_by
 
         consent = self.consent.to_dict()
+
+        discounts = self.discounts.to_dict()
 
         flows = []
         for flows_item_data in self.flows:
@@ -183,6 +189,7 @@ class CommerceStorePage:
             "capabilities": capabilities,
             "connectedBy": connected_by,
             "consent": consent,
+            "discounts": discounts,
             "flows": flows,
             "helpers": helpers,
             "lists": lists,
@@ -213,6 +220,7 @@ class CommerceStorePage:
         from ..models.commerce_numbers import CommerceNumbers # noqa: PLC0415
         from ..models.commerce_plugin_state import CommercePluginState # noqa: PLC0415
         from ..models.commerce_recovered_orders import CommerceRecoveredOrders # noqa: PLC0415
+        from ..models.commerce_store_discounts import CommerceStoreDiscounts # noqa: PLC0415
         from ..models.commerce_store_summary import CommerceStoreSummary # noqa: PLC0415
         from ..models.commerce_sync_facts import CommerceSyncFacts # noqa: PLC0415
         from ..models.commerce_use import CommerceUse # noqa: PLC0415
@@ -245,6 +253,11 @@ class CommerceStorePage:
         connected_by = d.pop("connectedBy")
 
         consent = CommerceConsent.from_dict(d.pop("consent"))
+
+
+
+
+        discounts = CommerceStoreDiscounts.from_dict(d.pop("discounts"))
 
 
 
@@ -343,6 +356,7 @@ class CommerceStorePage:
             capabilities=capabilities,
             connected_by=connected_by,
             consent=consent,
+            discounts=discounts,
             flows=flows,
             helpers=helpers,
             lists=lists,

@@ -13,6 +13,7 @@ from ..types import UNSET, Unset
 from typing import cast
 
 if TYPE_CHECKING:
+  from ..models.deliverability_dmarc_collect import DeliverabilityDMARCCollect
   from ..models.deliverability_dmarc_source import DeliverabilityDMARCSource
 
 
@@ -32,6 +33,7 @@ class DeliverabilityDMARCSummary:
             reports (int):
             sources (list[DeliverabilityDMARCSource]):
             via (DeliverabilityDMARCSummaryVia):
+            collect (DeliverabilityDMARCCollect | Unset):
             domain (str | Unset):
             pass_rate (float | Unset):
             policy (str | Unset):
@@ -44,6 +46,7 @@ class DeliverabilityDMARCSummary:
     reports: int
     sources: list[DeliverabilityDMARCSource]
     via: DeliverabilityDMARCSummaryVia
+    collect: DeliverabilityDMARCCollect | Unset = UNSET
     domain: str | Unset = UNSET
     pass_rate: float | Unset = UNSET
     policy: str | Unset = UNSET
@@ -55,6 +58,7 @@ class DeliverabilityDMARCSummary:
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.deliverability_dmarc_collect import DeliverabilityDMARCCollect # noqa: PLC0415
         from ..models.deliverability_dmarc_source import DeliverabilityDMARCSource # noqa: PLC0415
         days = self.days
 
@@ -70,6 +74,10 @@ class DeliverabilityDMARCSummary:
 
 
         via = self.via.value
+
+        collect: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.collect, Unset):
+            collect = self.collect.to_dict()
 
         domain = self.domain
 
@@ -93,6 +101,8 @@ class DeliverabilityDMARCSummary:
             "sources": sources,
             "via": via,
         })
+        if collect is not UNSET:
+            field_dict["collect"] = collect
         if domain is not UNSET:
             field_dict["domain"] = domain
         if pass_rate is not UNSET:
@@ -110,6 +120,7 @@ class DeliverabilityDMARCSummary:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.deliverability_dmarc_collect import DeliverabilityDMARCCollect # noqa: PLC0415
         from ..models.deliverability_dmarc_source import DeliverabilityDMARCSource # noqa: PLC0415
         d = dict(src_dict)
         days = d.pop("days")
@@ -129,6 +140,16 @@ class DeliverabilityDMARCSummary:
 
 
         via = DeliverabilityDMARCSummaryVia(d.pop("via"))
+
+
+
+
+        _collect = d.pop("collect", UNSET)
+        collect: DeliverabilityDMARCCollect | Unset
+        if isinstance(_collect,  Unset):
+            collect = UNSET
+        else:
+            collect = DeliverabilityDMARCCollect.from_dict(_collect)
 
 
 
@@ -157,6 +178,7 @@ class DeliverabilityDMARCSummary:
             reports=reports,
             sources=sources,
             via=via,
+            collect=collect,
             domain=domain,
             pass_rate=pass_rate,
             policy=policy,

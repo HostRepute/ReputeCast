@@ -27,6 +27,7 @@ class EarnMemberCounts:
             ended (int):
             gift (int):
             past_due (int):
+            paused (int):
             paying (int):
             trialing (int):
             with_access (int):
@@ -37,6 +38,7 @@ class EarnMemberCounts:
     ended: int
     gift: int
     past_due: int
+    paused: int
     paying: int
     trialing: int
     with_access: int
@@ -56,6 +58,8 @@ class EarnMemberCounts:
 
         past_due = self.past_due
 
+        paused = self.paused
+
         paying = self.paying
 
         trialing = self.trialing
@@ -71,6 +75,7 @@ class EarnMemberCounts:
             "ended": ended,
             "gift": gift,
             "pastDue": past_due,
+            "paused": paused,
             "paying": paying,
             "trialing": trialing,
             "withAccess": with_access,
@@ -93,6 +98,8 @@ class EarnMemberCounts:
 
         past_due = d.pop("pastDue")
 
+        paused = d.pop("paused")
+
         paying = d.pop("paying")
 
         trialing = d.pop("trialing")
@@ -105,6 +112,7 @@ class EarnMemberCounts:
             ended=ended,
             gift=gift,
             past_due=past_due,
+            paused=paused,
             paying=paying,
             trialing=trialing,
             with_access=with_access,
