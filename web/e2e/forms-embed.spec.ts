@@ -1,22 +1,18 @@
+import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { signIn as demoSignIn } from '../scripts/lib/demo-auth.ts'
+import { demoOwnerState } from './demo-owner.ts'
 
 // Signup forms in a visitor's browser (M60 G-23, G-24): a three-step popup
 // on a page of the publisher's site moves with Next and Back, takes focus to
 // each step's heading, says which step it shows, and sends nothing before
 // the last step; a page rule keeps it off other pages without asking the
 // server. The site's page is served by the test at the dev server's own
-// address (an origin the form accepts). Needs a server seeded with
-// `reputecast seed`.
+// address (an origin the form accepts). The demo's owner, signed in once
+// for the run (sign-in.setup.ts), makes the form through the API. Needs a
+// server seeded with `reputecast seed`.
+test.use({ storageState: demoOwnerState })
 
 const ws = '/api/v1/workspaces/acme-newsletter'
-
-// The server takes each authenticator code once: a second sign-in may wait
-// for the next one.
-async function signIn(page: Page) {
-  test.setTimeout(180_000)
-  await demoSignIn(page.context(), '', 'linh@acme.io')
-}
 
 interface SignupForm {
   id: string
@@ -37,9 +33,15 @@ interface SignupForm {
   urls: { script: string }
 }
 
-/** A popup in three steps, shown only on /e2e-forms/landing pages. */
+/**
+ * A popup in three steps, shown only on /e2e-forms/landing pages. Each gets
+ * a name of its own: the desktop and phone runs make theirs at the same
+ * moment.
+ */
 async function threeStepPopup(page: Page): Promise<SignupForm> {
-  const created = (await (await page.request.post(`${ws}/forms`, { data: { name: `Three steps ${Date.now()}`, kind: 'popup' } })).json()) as SignupForm
+  const res = await page.request.post(`${ws}/forms`, { data: { name: `Three steps ${randomUUID().slice(0, 8)}`, kind: 'popup' } })
+  expect(res.status(), await res.text()).toBe(201)
+  const created = (await res.json()) as SignupForm
   const body = {
     name: created.name,
     kind: 'popup',
@@ -107,7 +109,6 @@ async function hostPage(page: Page, form: SignupForm) {
 }
 
 test('a three-step popup moves with Next and Back and sends only from the last step', async ({ page }) => {
-  await signIn(page)
   const form = await threeStepPopup(page)
   await hostPage(page, form)
   const posts: string[] = []
@@ -155,7 +156,6 @@ test('a three-step popup moves with Next and Back and sends only from the last s
 })
 
 test('a page rule keeps the popup off other pages without asking the server', async ({ page }) => {
-  await signIn(page)
   const form = await threeStepPopup(page)
   await hostPage(page, form)
   const sessions: string[] = []

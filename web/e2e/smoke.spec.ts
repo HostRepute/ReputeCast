@@ -1,16 +1,10 @@
-import { expect, test, type Page } from '@playwright/test'
-import { signIn as demoSignIn } from '../scripts/lib/demo-auth.ts'
+import { expect, test } from '@playwright/test'
+import { demoOwnerState } from './demo-owner.ts'
 
-// The smoke test (review 2026-11 FE-8): the demo's owner signs in and the
-// main screens load without an error, and ⌘K finds a campaign. Needs a
-// server seeded with `reputecast seed`.
-
-// The server accepts each authenticator code once, so the shared sign-in
-// waits for the next code when a test before already used this one.
-async function signIn(page: Page) {
-  test.setTimeout(120_000)
-  await demoSignIn(page.context(), '', 'linh@acme.io')
-}
+// The smoke test (review 2026-11 FE-8): the demo's owner, signed in once for
+// the run (sign-in.setup.ts), loads the main screens without an error, and
+// ⌘K finds a campaign. Needs a server seeded with `reputecast seed`.
+test.use({ storageState: demoOwnerState })
 
 const screens: [string, RegExp][] = [
   ['/w/acme-newsletter', /Overview/],
@@ -25,7 +19,6 @@ const screens: [string, RegExp][] = [
 test('the main screens load without errors', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await signIn(page)
   for (const [path, title] of screens) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1 }).first()).toHaveText(title)
@@ -36,7 +29,6 @@ test('the main screens load without errors', async ({ page }) => {
 
 test('⌘K finds a campaign and opens it', async ({ page, isMobile }) => {
   test.skip(isMobile, 'a keyboard shortcut')
-  await signIn(page)
   await page.goto('/w/acme-newsletter')
   await expect(page.getByRole('heading', { level: 1 }).first()).toHaveText(/Overview/)
   await page.keyboard.press('ControlOrMeta+k')
@@ -50,12 +42,11 @@ test('⌘K finds a campaign and opens it', async ({ page, isMobile }) => {
 
 // Dark mode (M54): the user menu's theme row switches at once, the choice is
 // the account's (it survives a reload and /me says so), and Same as device
-// follows the device again. Desktop only: both projects sign in as the
-// same member, and the choice is theirs.
+// follows the device again. Desktop only: both projects use the same
+// member, and the choice is theirs.
 test('the theme switches from the user menu and is kept on the account', async ({ page, isMobile }) => {
   test.skip(isMobile, 'one member, one theme: the desktop run checks it')
   await page.emulateMedia({ colorScheme: 'light' })
-  await signIn(page)
   await page.goto('/w/acme-newsletter')
   await expect(page.getByRole('heading', { level: 1 }).first()).toHaveText(/Overview/)
   const html = page.locator('html')
