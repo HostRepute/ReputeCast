@@ -93,3 +93,18 @@ func TestClassify(t *testing.T) {
 		t.Fatalf("preview %q", got)
 	}
 }
+
+// A link that runs a script or holds a document of its own keeps only its
+// label, whatever its case and the spaces around or inside its scheme.
+func TestHTMLTextDropsScriptLinks(t *testing.T) {
+	for _, href := range []string{"javascript:alert(1)", " JavaScript:alert(1)", "java\tscript:alert(1)", "vbscript:msgbox(1)", "VBScript:x",
+		"data:text/html;base64,PHNjcmlwdD4=", "  DATA:text/html,<b>x</b>", "da\nta:text/plain,x"} {
+		got := HTMLText(`<p>Open <a href="` + href + `">the offer</a></p>`)
+		if got != "Open the offer" {
+			t.Errorf("%q: %q", href, got)
+		}
+	}
+	if got := HTMLText(`<p><a href="https://acme.io/data:x">the offer</a></p>`); got != "the offer (https://acme.io/data:x)" {
+		t.Errorf("https link: %q", got)
+	}
+}
