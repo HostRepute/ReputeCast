@@ -162,7 +162,7 @@ func TestDraftChangesOfAPublishedPage(t *testing.T) {
 		t.Errorf("diff settings %v", settings)
 	}
 	// A page never published has nothing to compare.
-	f.owner.Do(http.MethodGet, pagesAPI+"/"+f.pageID("sponsor")+"/diff", nil).MustStatus(t, http.StatusOK).JSON(t, &diff)
+	f.owner.Do(http.MethodGet, pagesAPI+"/"+f.pageID("advertise")+"/diff", nil).MustStatus(t, http.StatusOK).JSON(t, &diff)
 	if !diff.First {
 		t.Errorf("the sponsor draft's diff: %+v", diff)
 	}

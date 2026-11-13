@@ -83,7 +83,7 @@ func TestPageBuilderPreviews(t *testing.T) {
 		t.Error("the preview of unsaved blocks")
 	}
 	// A page never published.
-	aisha.Do(http.MethodPost, wsAPI+"/pages/"+e.pageID("sponsor")+"/preview", map[string]any{}).MustStatus(t, http.StatusOK).JSON(t, &pv)
+	aisha.Do(http.MethodPost, wsAPI+"/pages/"+e.pageID("advertise")+"/preview", map[string]any{}).MustStatus(t, http.StatusOK).JSON(t, &pv)
 	if !strings.Contains(pv.HTML, "Sponsor the Weekly Digest") {
 		t.Error("the sponsor draft's preview")
 	}

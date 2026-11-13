@@ -248,7 +248,7 @@ func TestUndoPublish(t *testing.T) {
 	if !strings.Contains(p.Detail, "too late") {
 		t.Errorf("late undo: %s", p.Detail)
 	}
-	mustProblem(t, undo(f.pageID("sponsor")), http.StatusConflict, "conflict")
+	mustProblem(t, undo(f.pageID("advertise")), http.StatusConflict, "conflict")
 }
 
 // Publishing a page that has no changes, then Undo, leaves the site as it

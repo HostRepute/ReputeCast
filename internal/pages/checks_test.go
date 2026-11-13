@@ -156,8 +156,8 @@ func TestPublishChecksBlock(t *testing.T) {
 		}
 		blocked(t, d, pages.CheckVisibility)
 		// The Page tab refuses Members and Paid while the website is off.
-		p := mustProblem(t, f.settings(f.owner, f.pageID("sponsor"), func() pages.PageSettingsInput {
-			s := settingsOf(f.detail(f.owner, f.pageID("sponsor")))
+		p := mustProblem(t, f.settings(f.owner, f.pageID("advertise"), func() pages.PageSettingsInput {
+			s := settingsOf(f.detail(f.owner, f.pageID("advertise")))
 			s.Visibility = pages.VisibilityPaid
 			return s
 		}()), http.StatusUnprocessableEntity, "validation_failed")

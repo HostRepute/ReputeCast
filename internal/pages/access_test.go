@@ -95,7 +95,7 @@ func TestPagePermissions(t *testing.T) {
 	})
 
 	t.Run("an Editor publishes and manages", func(t *testing.T) {
-		sponsor := f.pageID("sponsor")
+		sponsor := f.pageID("advertise")
 		in := settingsOf(f.detail(sofia, sponsor))
 		in.Visibility, in.ShowInNav, in.NavLabel = pages.VisibilityMembers, true, "Sponsors"
 		var d pages.PageDetail
@@ -110,7 +110,7 @@ func TestPagePermissions(t *testing.T) {
 		if d.Live == nil || d.Live.PublishedBy == nil || d.Live.PublishedBy.Name != "Sofia Rossi" {
 			t.Fatalf("Sofia's publish: %+v", d.Live)
 		}
-		if st, _ := f.env.App.Website().PageLink(context.Background(), f.env.App.Q, &f.ws, "sponsor"); !st.Linked {
+		if st, _ := f.env.App.Website().PageLink(context.Background(), f.env.App.Q, &f.ws, "advertise"); !st.Linked {
 			t.Error("Show in navigation didn't add the header link")
 		}
 		sofia.Do(http.MethodPut, pagesAPI+"/shop", map[string]any{"on": false}).MustStatus(t, http.StatusOK)

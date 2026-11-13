@@ -51,7 +51,7 @@ const boardPages = (): PageRow[] => [
     result: { kind: 'sales', count: 189, amountCents: 548100, currency: 'usd', conversion: 1.9 }, editedBy: { id: 'u3', name: 'Sofia Rossi', initials: 'SR', avatarColor: 'ok' }, editedAt: '2026-10-14T14:00:00Z' }),
   row({ id: 'p4', name: 'Live: Fix your DMARC setup in 30 minutes', slug: 'dmarc-live', template: 'webinar', firstPublishedAt: '2026-10-08T14:00:00Z', views: 2930,
     result: { kind: 'registrations', count: 486, amountCents: 0, currency: 'usd', conversion: 16.6 }, editedBy: { id: 'u2', name: 'Marcus Chen', initials: 'MC', avatarColor: 'pink' }, editedAt: '2026-10-09T14:00:00Z' }),
-  row({ id: 'p6', name: 'Sponsor the Weekly Digest', slug: 'sponsor', template: 'blank', status: 'draft', firstPublishedAt: undefined, views: 0,
+  row({ id: 'p6', name: 'Sponsor the Weekly Digest', slug: 'advertise', template: 'blank', status: 'draft', firstPublishedAt: undefined, views: 0,
     editedBy: { id: 'u4', name: 'Daniel Park', initials: 'DP', avatarColor: 'warn' }, editedAt: '2026-10-15T14:41:00Z' }),
 ]
 
@@ -88,7 +88,7 @@ const owner = workspaceMe({
 
 describe('Your pages: order, filters and chips (PagesList)', () => {
   it('lists the most viewed first and drafts last, as the board does', () => {
-    expect(sortPages(boardPages()).map((p) => p.slug)).toEqual(['field-guide', 'dns-checklist', 'launch-kit', 'dmarc-live', 'about', 'sponsor'])
+    expect(sortPages(boardPages()).map((p) => p.slug)).toEqual(['field-guide', 'dns-checklist', 'launch-kit', 'dmarc-live', 'about', 'advertise'])
   })
 
   it('orders the template chips as the list shows them, with their counts', () => {
@@ -102,7 +102,7 @@ describe('Your pages: order, filters and chips (PagesList)', () => {
     const pages = boardPages()
     expect(filterPages(pages, { ...noFilter, q: 'DNS' }).map((p) => p.slug)).toEqual(['dns-checklist'])
     expect(filterPages(pages, { ...noFilter, q: '/launch' }).map((p) => p.slug)).toEqual(['launch-kit'])
-    expect(filterPages(pages, { ...noFilter, status: 'draft' }).map((p) => p.slug)).toEqual(['sponsor'])
+    expect(filterPages(pages, { ...noFilter, status: 'draft' }).map((p) => p.slug)).toEqual(['advertise'])
     expect(filterPages(pages, { ...noFilter, template: 'webinar' }).map((p) => p.slug)).toEqual(['dmarc-live'])
     expect(filterPages(pages, { q: 'guide', status: 'draft', template: '' })).toEqual([])
     expect(statusCounts(pages)).toEqual({ published: 5, scheduled: 0, draft: 1, unpublished: 0 })
@@ -191,7 +191,7 @@ describe('Your pages (PagesList, PagesStates · read-only)', () => {
       'Newsletter Launch Kit/launch-kit',
       'Live: Fix your DMARC setup in 30 minutes/dmarc-live',
       'About/about',
-      'Sponsor the Weekly Digest/sponsor',
+      'Sponsor the Weekly Digest/advertise',
     ])
     expect(rows[0]).toHaveTextContent('Sales page')
     expect(rows[0]).toHaveTextContent('Published1 Oct')
@@ -207,7 +207,7 @@ describe('Your pages (PagesList, PagesStates · read-only)', () => {
   it('dates a scheduled page in the workspace’s time zone, and an unpublished one', async () => {
     setDisplayTimeZone('UTC')
     const pages = boardPages().map((p) =>
-      p.slug === 'sponsor' ? { ...p, status: 'scheduled' as const, publishAt: '2026-10-22T13:00:00Z' } : p.slug === 'about' ? { ...p, status: 'unpublished' as const, unpublishedAt: '2026-10-12T14:00:00Z' } : p,
+      p.slug === 'advertise' ? { ...p, status: 'scheduled' as const, publishAt: '2026-10-22T13:00:00Z' } : p.slug === 'about' ? { ...p, status: 'unpublished' as const, unpublishedAt: '2026-10-12T14:00:00Z' } : p,
     )
     await renderInWorkspace(<YourPages d={overview({ pages })} />, { me: owner, path: '/w/acme-newsletter/forms/pages' })
     const rows = within(screen.getByRole('table')).getAllByRole('row')

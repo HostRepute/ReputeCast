@@ -204,11 +204,20 @@ func TestCustomPageAddresses(t *testing.T) {
 		"Sent by email, with reminders 1 day and 1 hour before", `data-start="`+start.UTC().Format(time.RFC3339)+`"`)
 	lacks(t, dmarc, "acme.zoom.us")
 
-	// /sponsor is the media kit (M65): the never-published "Sponsor the
-	// Weekly Digest" page at that address still isn't served.
+	// /sponsor is the media kit's (M65): a reserved address, so the demo's
+	// "Sponsor the Weekly Digest" page is a draft at /advertise, not served
+	// until it's published.
 	kit := get(t, e.Env, spSite+"sponsor")
 	must(t, kit, http.StatusOK, "Sponsor Acme Newsletter")
 	lacks(t, kit, "Sponsor the Weekly Digest")
+	must(t, get(t, e.Env, spSite+"advertise"), http.StatusNotFound)
+	// With self-serve booking off, /sponsor still isn't a page's: it says
+	// the publisher isn't taking bookings here (PublicEarnStates).
+	e.exec(`UPDATE sponsor_settings SET self_serve = false WHERE workspace_id = $1`, e.ws.ID)
+	off := get(t, e.Env, spSite+"sponsor")
+	must(t, off, http.StatusNotFound, "taking sponsor bookings here")
+	lacks(t, off, "Sponsor the Weekly Digest")
+	e.exec(`UPDATE sponsor_settings SET self_serve = true WHERE workspace_id = $1`, e.ws.ID)
 	must(t, get(t, e.Env, spSite+"no-such-page"), http.StatusNotFound)
 	must(t, get(t, e.Env, "/p/no-such-workspace/field-guide"), http.StatusNotFound)
 

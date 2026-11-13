@@ -319,7 +319,7 @@ func (w *sellSeed) productsAndPages(ctx context.Context) error {
 	for _, k := range []string{"fg", "lk", "wp"} {
 		w.prods[k] = ID()
 	}
-	for _, k := range []string{"field-guide", "dns-checklist", "launch-kit", "dmarc-live", "about", "sponsor"} {
+	for _, k := range []string{"field-guide", "dns-checklist", "launch-kit", "dmarc-live", "about", "advertise"} {
 		w.pages[k] = ID()
 	}
 	// Pages first: products point at their sales pages.
@@ -363,7 +363,7 @@ func (w *sellSeed) productsAndPages(ctx context.Context) error {
 			{aboutHTML(w.formsNewsletter(ctx)), "created", w.day(9, 26, 11, 0), w.linh, false, set("", "Who writes the Acme newsletter, and what you get every Tuesday.", true, "")},
 			{aboutHTML(w.formsNewsletter(ctx)), "saved", w.day(9, 29, 10, 12), w.linh, true, set("", "Who writes the Acme newsletter, and what you get every Tuesday.", true, "")},
 		}, 2104},
-		{"sponsor", "Sponsor the Weekly Digest", pages.TemplateBlank, w.day(10, 14, 16, 20), w.daniel, []pageVersion{
+		{"advertise", "Sponsor the Weekly Digest", pages.TemplateBlank, w.day(10, 14, 16, 20), w.daniel, []pageVersion{
 			{sponsorHTML(), "created", w.day(10, 14, 16, 20), w.daniel, false, set("", "", false, "")},
 			{sponsorHTML(), "saved", w.day(10, 15, 10, 30), w.daniel, false, set("", "", false, "")},
 			{sponsorHTML(), "autosave", w.day(10, 15, 10, 41), w.daniel, false, set("", "", false, "")},

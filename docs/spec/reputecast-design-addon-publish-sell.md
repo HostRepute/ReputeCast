@@ -224,6 +224,7 @@ Read all of it before you start.
   - The blocks are web sections on the publisher's theme. Styles are limited to the theme's colors, fonts and spacing, so pages stay on brand and pass contrast.
   - Device preview: desktop, tablet, phone.
   - Page settings: title, slug, SEO title and description, social image, visibility, "Hide the site header and navigation" (for focused landing pages), "Show in navigation", and a publish time.
+  - A page can't take an address the site uses itself (`/products`, `/signin`, `/upgrade` and the rest): creating or renaming a page to one is refused with "/{slug} belongs to the site itself. Pick another address." Since M65 that includes `sponsor`, the sponsor media kit's address (add-on earn 3.12a).
   - Statuses: Draft, Scheduled, Published, Unpublished. Unpublished pages answer like unpublished posts.
 - **Blocks:**
   - Layout: section, 2 or 3 columns, divider, spacer.
@@ -635,7 +636,7 @@ Who gets what:
 | DNS records checklist | /dns-checklist | Lead magnet | Published 22 Sep | 6,412 | 1,148 signups · 17.9% |
 | Live: Fix your DMARC setup in 30 minutes | /dmarc-live | Webinar registration | Published 8 Oct | 2,930 | 486 registrations · 16.6% |
 | Newsletter Launch Kit | /launch-kit | Launch | Published 29 Sep · countdown ended 6 Oct 09:00 | 3,618 | 81 sales · $1,071 |
-| Sponsor the Weekly Digest | /sponsor | Blank | Draft · Daniel Park | – | – |
+| Sponsor the Weekly Digest | /advertise | Blank | Draft · Daniel Park | – | – |
 | Shop | /products | Built-in | Published | 3,105 | 41 sales · $942 |
 
 - **Built-in pages:** Subscribe, Confirmation, Preference center, Unsubscribe, Sign in, Account, Archive and Shop; Phase 5's Referral hub, Invite page and Recommendations; Phase 6's Upgrade and Give a gift.

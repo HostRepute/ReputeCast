@@ -10,8 +10,8 @@ const page = (patch: Partial<Schemas['ApprovalPageSnapshot']> = {}): Schemas['Ap
   pageId: 'p6',
   name: 'Sponsor the Weekly Digest',
   template: 'blank',
-  slug: 'sponsor',
-  path: '/sponsor',
+  slug: 'advertise',
+  path: '/advertise',
   visibility: 'public',
   visibilityLabel: 'Public',
   when: 'now',
@@ -48,7 +48,7 @@ describe('Pages in the approval inbox', () => {
       { me: approver },
     )
     expect(screen.getByRole('link', { name: 'Page: open “Sponsor the Weekly Digest” in the page builder' })).toHaveAttribute('href', '/w/acme-newsletter/forms/pages/p6')
-    expect(screen.getByText('Page · /sponsor · Members')).toBeInTheDocument()
+    expect(screen.getByText('Page · /advertise · Members')).toBeInTheDocument()
   })
 })
 
@@ -64,7 +64,7 @@ describe('A page publish request in review', () => {
     await renderInWorkspace(<PageApprovalCard detail={detail()} />, { me: approver })
     const card = screen.getByRole('region', { name: 'Page' })
     expect(card).toHaveTextContent('Sponsor the Weekly Digest · Blank')
-    expect(card).toHaveTextContent('/sponsor')
+    expect(card).toHaveTextContent('/advertise')
     expect(card).toHaveTextContent('Public')
     expect(card).toHaveTextContent('As soon as it’s approved')
     expect(card).toHaveTextContent('v3')

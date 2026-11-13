@@ -131,7 +131,7 @@ func TestPageAddresses(t *testing.T) {
 		}
 	})
 	t.Run("the site's own", func(t *testing.T) {
-		for _, slug := range []string{"products", "signin", "account", "posts", "p", "api", "buy", "d", "subscribe", "feed", "checkout"} {
+		for _, slug := range []string{"products", "signin", "account", "posts", "p", "api", "buy", "d", "subscribe", "feed", "checkout", "sponsor"} {
 			p := mustProblem(t, create("Something", slug), http.StatusUnprocessableEntity, "validation_failed")
 			if !strings.Contains(p.Detail, "/"+slug+" belongs to the site itself") {
 				t.Errorf("%s: %s", slug, p.Detail)
@@ -144,7 +144,7 @@ func TestPageAddresses(t *testing.T) {
 		}
 	})
 	t.Run("another page's", func(t *testing.T) {
-		for slug, suggestion := range map[string]string{"field-guide": "field-guide-2", "sponsor": "sponsor-2"} {
+		for slug, suggestion := range map[string]string{"field-guide": "field-guide-2", "advertise": "advertise-2"} {
 			p := mustProblem(t, create("Something", slug), http.StatusConflict, "slug_taken")
 			if p.Meta["suggestion"] != suggestion || !strings.Contains(p.Detail, "/"+slug) {
 				t.Errorf("%s: %+v", slug, p)
@@ -165,6 +165,11 @@ func TestPageAddresses(t *testing.T) {
 		mustProblem(t, f.settings(f.owner, d.ID, in), http.StatusConflict, "slug_taken")
 		in.Slug = "signin"
 		mustProblem(t, f.settings(f.owner, d.ID, in), http.StatusUnprocessableEntity, "validation_failed")
+		// The sponsor media kit's address (M65).
+		in.Slug = "sponsor"
+		if p := mustProblem(t, f.settings(f.owner, d.ID, in), http.StatusUnprocessableEntity, "validation_failed"); !strings.Contains(p.Detail, "/sponsor belongs to the site itself") {
+			t.Errorf("renamed to /sponsor: %s", p.Detail)
+		}
 		in.Slug = "not valid"
 		mustProblem(t, f.settings(f.owner, d.ID, in), http.StatusUnprocessableEntity, "validation_failed")
 		if got := f.detail(f.owner, d.ID); got.Slug != "autumn-sale" || got.Draft.Version != 1 {
@@ -243,7 +248,7 @@ func TestPagesOverview(t *testing.T) {
 		"launch-kit":    {pages.TemplateLaunch, pages.StatusPublished, pages.ResultSales},
 		"dmarc-live":    {pages.TemplateWebinar, pages.StatusPublished, pages.ResultRegistrations},
 		"about":         {pages.TemplateAbout, pages.StatusPublished, pages.ResultSignups},
-		"sponsor":       {pages.TemplateBlank, pages.StatusDraft, pages.ResultNone},
+		"advertise":     {pages.TemplateBlank, pages.StatusDraft, pages.ResultNone},
 	} {
 		p, ok := bySlug[slug]
 		if !ok {
@@ -259,7 +264,7 @@ func TestPagesOverview(t *testing.T) {
 	if dns := bySlug["dns-checklist"]; dns.Changes || dns.Result.Count == 0 || dns.Result.Conversion <= 0 {
 		t.Errorf("the checklist's signups: %+v", dns.Result)
 	}
-	if sp := bySlug["sponsor"]; sp.EditedBy == nil || sp.EditedBy.Name != "Daniel Park" || sp.Views != 0 || sp.FirstPublishedAt != nil {
+	if sp := bySlug["advertise"]; sp.EditedBy == nil || sp.EditedBy.Name != "Daniel Park" || sp.Views != 0 || sp.FirstPublishedAt != nil {
 		t.Errorf("Daniel's draft: %+v", sp)
 	}
 	lk := bySlug["launch-kit"]

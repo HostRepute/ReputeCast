@@ -130,7 +130,7 @@ func TestPageSignupForms(t *testing.T) {
 
 	t.Run("only the page's own forms, on live pages", func(t *testing.T) {
 		must(t, spPost(t, e, "dmarc-live", spSignup(e, e.ids.signup.String(), "frm_8c2e1a", "register", "x.y@fastmail.com")), http.StatusNotFound)
-		must(t, spPost(t, e, "sponsor", spSignup(e, dmarcForm, "frm_e7b302", "register", "x.y@fastmail.com")), http.StatusNotFound)
+		must(t, spPost(t, e, "advertise", spSignup(e, dmarcForm, "frm_e7b302", "register", "x.y@fastmail.com")), http.StatusNotFound)
 		if _, ok := contactID(t, e.Env, e.ws.ID, "x.y@fastmail.com"); ok {
 			t.Error("a refused post made a contact")
 		}

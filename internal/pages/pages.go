@@ -198,6 +198,8 @@ var reserved = map[string]bool{
 	"upgrade": true, "welcome": true, "billing": true, "gift": true, "gifts": true, "join": true, "leaderboard": true, "recommends": true,
 	"products": true, "buy": true, "checkout": true, "thanks": true, "download": true, "downloads": true, "theme": true, "logo": true,
 	"sign-in": true, "settings": true, "admin": true, "static": true, "assets": true, "favicon": true,
+	// The sponsor media kit (M65): /sponsor, /sponsor/request and /sponsor/b/….
+	"sponsor": true,
 }
 
 // Reserved reports whether an address belongs to the site itself.
