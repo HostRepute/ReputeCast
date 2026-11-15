@@ -129,3 +129,15 @@ The second batch built from the November 2026 look at competitors (`docs/researc
 | M64 | **SDKs, object storage, Helm and installers** | `m64-sdks-deploy` | G-34–G-37 | Transactional, TransactionalSetup, TransactionalSetupStates, TransactionalGuide, TransactionalImport, InstanceSystem, Landing | `app/openapi_public.go`, `cli` (openapi `--public`, `storage migrate`, doctor), `blobstore` (new), `products` files, `audience` exports, `instance` System, `sdktest`; `sdk/client-ts`, `sdk/client-python`, `sdk/client-go`; `deploy/helm`, `render.yaml`, `deploy/railway`, `deploy/coolify`, `.do`; `site` install section | 03550–03559 (none used) |
 | M65 | **Teams, pauses and sponsor self-booking** | `m65-earn-teams-pause-sponsors` | G-38–G-40 | PublicUpgradeTeam, PublicTeamManage, PublicTeamJoin, EarnSponsorRequests, PublicSponsorKit, PublicSponsorRequest, PublicSponsorStatus; changes to EarnMembers, EarnMembersStates, EarnMemberPanel, EarnMemberPanelStates, EarnPlanEditors, EarnSettings, EarnSettingsTabs, EarnSponsors, EarnBooking, PublicUpgrade, PublicCancel, PublicEarnStates, AutomationsComplete | `earn` (group subscriptions, pausing, `earn_paid_access`), `sponsors` (self-serve booking), `payments` (Stripe quantity and pause), `publicpages` (team, resume, media kit, request and status pages), `offers`, `automations` (paid_paused, paid_resumed); web `features/earn` | 03560–03569 |
 | M66 | **Lead ads from Meta** | `m66-lead-ads` | G-41 | IntegrationsLeadAds, LeadAdsConnect, LeadAdsFormMapping, LeadAdsStates; IntegrationsCatalog, AutomationsComplete, GrowthSources | `leads` (new), `leads/meta` (+`metatest`), `automations` (lead trigger), `integrations` (Lead ads group) | 03570–03579 |
+
+## AI agent implementation
+
+The A0 brief in `docs/spec/reputecast-design-addon-agent.md` defines this track. Reserve each range when that phase starts. A4 uses A3's existing schema; A5 follows its separate security brief in `docs/spec/reputecast-design-addon-agent-oauth.md`.
+
+| Phase | Branch | Owners | Migrations |
+|---|---|---|---|
+| A1 · Brand voice | `agent-a1-brand-voice` | `brandkit`, `ai`, brand-kit settings and composer Assist | 03580–03589 |
+| A2 · Draft from a brief | `agent-a2-draft-brief` | `ai`, campaign/automation draft writers, `mjml`, draft review UI | 03590–03599 |
+| A3 · Durable agent runtime | `agent-a3-runtime` | `ai`, typed `ai/llm` tools, persisted staging, shared usage reservations, River jobs | 03600–03609 |
+| A4 · Run/review UX | `agent-a4-review` | `web/src/features/ai`, run routes, responsive and accessibility QA | None |
+| A5 · External MCP | `agent-a5-mcp-connect` | `mcpconnect`, OAuth lifecycle, restricted external tools and human consent/review | 03620–03629 |

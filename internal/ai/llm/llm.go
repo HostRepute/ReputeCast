@@ -93,15 +93,42 @@ type Image struct {
 	Data      []byte
 }
 
-// Part is a piece of a message: text or an image.
+// Tool is a client-side function. Adapters never execute tools or register
+// provider-hosted tools; the caller owns authorization and schema validation.
+type Tool struct {
+	Name        string
+	Description string
+	Parameters  map[string]any
+}
+
+type ToolCall struct {
+	ID        string // Gemini may omit this; preserve its order within the response.
+	Name      string
+	Arguments json.RawMessage
+}
+
+type ToolResult struct {
+	ID      string
+	Name    string
+	Content json.RawMessage // A projected JSON object, never a raw domain result.
+	IsError bool
+}
+
+// Part preserves the order of text, images and client-side function calls.
 type Part struct {
-	Text  string
-	Image *Image
+	Text       string
+	Image      *Image
+	ToolCall   *ToolCall
+	ToolResult *ToolResult
+	// Gemini requires opaque thought signatures to be replayed unchanged.
+	// Thought parts are model context, never user-visible progress or Text.
+	Thought          bool
+	ThoughtSignature string
 }
 
 // Message is a turn of the conversation.
 type Message struct {
-	Role  string // user or assistant
+	Role  string // user, assistant, or tool (results grouped in call order)
 	Parts []Part
 }
 
@@ -117,6 +144,7 @@ type Request struct {
 	JSON       bool
 	Schema     map[string]any
 	SchemaName string
+	Tools      []Tool
 	// Task is the request as data, for in-process models (the demo's
 	// recorded model and tests). Adapters never send it.
 	Task any
@@ -128,6 +156,7 @@ const (
 	StopLength  = "length"
 	StopRefusal = "refusal"
 	StopOther   = "other"
+	StopTools   = "tools"
 )
 
 // Response is the model's answer.
@@ -137,6 +166,11 @@ type Response struct {
 	InputTokens  int
 	OutputTokens int
 	StopReason   string
+	// UsageKnown distinguishes explicit zero usage from absent/malformed usage.
+	// Input/output include cached inputs and reasoning where the API reports them.
+	UsageKnown bool
+	// Message is the replayable assistant turn, not a public API response.
+	Message Message
 	// Refused is true when the provider says the model declined (Anthropic's
 	// "refusal" stop reason, OpenAI's refusal field, Gemini's safety block);
 	// Text is then the model's own words, when it gave any.

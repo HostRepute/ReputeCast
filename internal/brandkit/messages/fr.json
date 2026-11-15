@@ -1,4 +1,9 @@
 {
+  "voice.invalid": "Respectez la limite de caractères de chaque champ et retirez les caractères non valides.",
+  "voice.toneRequired": "Décrivez le ton avant d’enregistrer la voix de marque.",
+  "voice.selection": "Choisissez une à dix campagnes envoyées différentes auxquelles vous avez accès.",
+  "voice.gone": "Cette suggestion a expiré ou a déjà été traitée. Créez-en une nouvelle.",
+  "voice.changed": "La voix enregistrée a changé. Rechargez-la et vérifiez vos modifications à nouveau.",
   "problem.badColor": "Utilisez une couleur comme #4338CA.",
   "problem.badFallback": "Choisissez une des polices de repli compatibles avec les e-mails.",
   "problem.badFontUrl": "Utilisez le lien https de la feuille de style de la police web, avec le nom de la police.",

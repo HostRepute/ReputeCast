@@ -472,7 +472,7 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
   )
 }
 
-function Condition({
+export function Condition({
   c,
   catalog,
   invalid,

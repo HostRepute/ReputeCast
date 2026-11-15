@@ -15,8 +15,34 @@ import (
 type gemini struct{ cfg Config }
 
 type geminiPart struct {
-	Text       string            `json:"text,omitempty"`
-	InlineData *geminiInlineData `json:"inline_data,omitempty"`
+	Text             string                  `json:"text,omitempty"`
+	InlineData       *geminiInlineData       `json:"inline_data,omitempty"`
+	FunctionCall     *geminiFunctionCall     `json:"functionCall,omitempty"`
+	FunctionResponse *geminiFunctionResponse `json:"functionResponse,omitempty"`
+	Thought          bool                    `json:"thought,omitempty"`
+	ThoughtSignature string                  `json:"thoughtSignature,omitempty"`
+}
+
+type geminiFunctionCall struct {
+	ID   string          `json:"id,omitempty"`
+	Name string          `json:"name"`
+	Args json.RawMessage `json:"args"`
+}
+
+type geminiFunctionResponse struct {
+	ID       string          `json:"id,omitempty"`
+	Name     string          `json:"name"`
+	Response json.RawMessage `json:"response"`
+}
+
+type geminiTool struct {
+	Functions []geminiFunction `json:"functionDeclarations"`
+}
+
+type geminiFunction struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Parameters  map[string]any `json:"parametersJsonSchema"`
 }
 
 type geminiInlineData struct {
@@ -33,23 +59,22 @@ type geminiRequest struct {
 	SystemInstruction *geminiContent  `json:"systemInstruction,omitempty"`
 	Contents          []geminiContent `json:"contents"`
 	GenerationConfig  map[string]any  `json:"generationConfig,omitempty"`
+	Tools             []geminiTool    `json:"tools,omitempty"`
 }
 
 type geminiResponse struct {
 	Candidates []struct {
-		Content struct {
-			Parts []struct {
-				Text string `json:"text"`
-			} `json:"parts"`
-		} `json:"content"`
-		FinishReason string `json:"finishReason"`
+		Content      geminiContent `json:"content"`
+		FinishReason string        `json:"finishReason"`
 	} `json:"candidates"`
 	PromptFeedback *struct {
 		BlockReason string `json:"blockReason"`
 	} `json:"promptFeedback"`
 	UsageMetadata struct {
-		PromptTokenCount     int `json:"promptTokenCount"`
-		CandidatesTokenCount int `json:"candidatesTokenCount"`
+		PromptTokenCount        *int `json:"promptTokenCount"`
+		CandidatesTokenCount    *int `json:"candidatesTokenCount"`
+		ThoughtsTokenCount      *int `json:"thoughtsTokenCount"`
+		ToolUsePromptTokenCount *int `json:"toolUsePromptTokenCount"`
 	} `json:"usageMetadata"`
 	ModelVersion string `json:"modelVersion"`
 }
@@ -63,7 +88,17 @@ func (g *gemini) headers() http.Header {
 func (g *gemini) root() string { return g.cfg.base("https://generativelanguage.googleapis.com") }
 
 func (g *gemini) Generate(ctx context.Context, req Request) (Response, error) {
+	if err := validateTools(req, true); err != nil {
+		return Response{}, err
+	}
 	body := geminiRequest{Contents: []geminiContent{}, GenerationConfig: map[string]any{"maxOutputTokens": maxTokens(req)}}
+	if len(req.Tools) > 0 {
+		functions := make([]geminiFunction, 0, len(req.Tools))
+		for _, tool := range req.Tools {
+			functions = append(functions, geminiFunction(tool))
+		}
+		body.Tools = []geminiTool{{Functions: functions}}
+	}
 	if req.System != "" {
 		body.SystemInstruction = &geminiContent{Parts: []geminiPart{{Text: req.System}}}
 	}
@@ -74,11 +109,19 @@ func (g *gemini) Generate(ctx context.Context, req Request) (Response, error) {
 		}
 		c := geminiContent{Role: role, Parts: []geminiPart{}}
 		for _, p := range m.Parts {
+			if p.ToolCall != nil {
+				c.Parts = append(c.Parts, geminiPart{FunctionCall: &geminiFunctionCall{ID: p.ToolCall.ID, Name: p.ToolCall.Name, Args: p.ToolCall.Arguments}, ThoughtSignature: p.ThoughtSignature})
+				continue
+			}
+			if p.ToolResult != nil {
+				c.Parts = append(c.Parts, geminiPart{FunctionResponse: &geminiFunctionResponse{ID: p.ToolResult.ID, Name: p.ToolResult.Name, Response: p.ToolResult.Content}})
+				continue
+			}
 			if p.Image != nil {
 				c.Parts = append(c.Parts, geminiPart{InlineData: &geminiInlineData{MimeType: p.Image.MediaType, Data: base64.StdEncoding.EncodeToString(p.Image.Data)}})
 				continue
 			}
-			c.Parts = append(c.Parts, geminiPart{Text: p.Text})
+			c.Parts = append(c.Parts, geminiPart{Text: p.Text, Thought: p.Thought, ThoughtSignature: p.ThoughtSignature})
 		}
 		body.Contents = append(body.Contents, c)
 	}
@@ -94,7 +137,9 @@ func (g *gemini) Generate(ctx context.Context, req Request) (Response, error) {
 	if err := json.Unmarshal(raw, &res); err != nil {
 		return Response{}, &Error{Kind: ErrInvalid, Err: err, Message: "Gemini's answer couldn't be read"}
 	}
-	out := Response{Model: res.ModelVersion, InputTokens: res.UsageMetadata.PromptTokenCount, OutputTokens: res.UsageMetadata.CandidatesTokenCount}
+	input, inputKnown := tokenUsage(res.UsageMetadata.PromptTokenCount, res.UsageMetadata.ToolUsePromptTokenCount)
+	output, outputKnown := tokenUsage(res.UsageMetadata.CandidatesTokenCount, res.UsageMetadata.ThoughtsTokenCount)
+	out := Response{Model: res.ModelVersion, InputTokens: input, OutputTokens: output, UsageKnown: inputKnown && outputKnown, Message: Message{Role: "assistant", Parts: []Part{}}}
 	if out.Model == "" {
 		out.Model = model
 	}
@@ -103,17 +148,37 @@ func (g *gemini) Generate(ctx context.Context, req Request) (Response, error) {
 		return out, nil
 	}
 	if len(res.Candidates) == 0 {
-		return Response{}, &Error{Kind: ErrInvalid, Message: "Gemini answered without a candidate"}
+		return out, &Error{Kind: ErrInvalid, Message: "Gemini answered without a candidate"}
 	}
 	c := res.Candidates[0]
 	var text strings.Builder
+	hasTools := false
 	for _, p := range c.Content.Parts {
-		text.WriteString(p.Text)
+		if p.InlineData != nil || p.FunctionResponse != nil || (p.Text == "" && p.FunctionCall == nil && p.ThoughtSignature == "") {
+			return out, toolError()
+		}
+		part := Part{Text: p.Text, Thought: p.Thought, ThoughtSignature: p.ThoughtSignature}
+		if p.FunctionCall != nil {
+			call := p.FunctionCall
+			args := call.Args
+			if args == nil {
+				args = json.RawMessage(`{}`)
+			}
+			part.ToolCall = &ToolCall{ID: call.ID, Name: call.Name, Arguments: args}
+			hasTools = true
+		}
+		out.Message.Parts = append(out.Message.Parts, part)
+		if !p.Thought {
+			text.WriteString(p.Text)
+		}
 	}
 	out.Text = text.String()
 	switch c.FinishReason {
 	case "STOP":
 		out.StopReason = StopEnd
+		if hasTools {
+			out.StopReason = StopTools
+		}
 	case "MAX_TOKENS":
 		out.StopReason = StopLength
 	case "SAFETY", "RECITATION", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII":
@@ -121,7 +186,7 @@ func (g *gemini) Generate(ctx context.Context, req Request) (Response, error) {
 	default:
 		out.StopReason = StopOther
 	}
-	return out, nil
+	return checkedTools(req, out, true)
 }
 
 func (g *gemini) Models(ctx context.Context) ([]Model, error) {

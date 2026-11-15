@@ -21,7 +21,11 @@ import (
 // Defines values for AIActivityRowFeature.
 const (
 	AIActivityRowFeatureAccessibilityFix AIActivityRowFeature = "accessibility_fix"
+	AIActivityRowFeatureAgent            AIActivityRowFeature = "agent"
 	AIActivityRowFeatureAltText          AIActivityRowFeature = "alt_text"
+	AIActivityRowFeatureBrandVoice       AIActivityRowFeature = "brand_voice"
+	AIActivityRowFeatureConnectionTest   AIActivityRowFeature = "connection_test"
+	AIActivityRowFeatureDraft            AIActivityRowFeature = "draft"
 	AIActivityRowFeatureReportSummary    AIActivityRowFeature = "report_summary"
 	AIActivityRowFeatureRewrite          AIActivityRowFeature = "rewrite"
 	AIActivityRowFeatureSegmentDraft     AIActivityRowFeature = "segment_draft"
@@ -34,7 +38,15 @@ func (e AIActivityRowFeature) Valid() bool {
 	switch e {
 	case AIActivityRowFeatureAccessibilityFix:
 		return true
+	case AIActivityRowFeatureAgent:
+		return true
 	case AIActivityRowFeatureAltText:
+		return true
+	case AIActivityRowFeatureBrandVoice:
+		return true
+	case AIActivityRowFeatureConnectionTest:
+		return true
+	case AIActivityRowFeatureDraft:
 		return true
 	case AIActivityRowFeatureReportSummary:
 		return true
@@ -163,6 +175,8 @@ func (e AIConnectionViewStatus) Valid() bool {
 const (
 	AIFeatureStateKeyAccessibilityFix AIFeatureStateKey = "accessibility_fix"
 	AIFeatureStateKeyAltText          AIFeatureStateKey = "alt_text"
+	AIFeatureStateKeyBrandVoice       AIFeatureStateKey = "brand_voice"
+	AIFeatureStateKeyDraft            AIFeatureStateKey = "draft"
 	AIFeatureStateKeyReportSummary    AIFeatureStateKey = "report_summary"
 	AIFeatureStateKeyRewrite          AIFeatureStateKey = "rewrite"
 	AIFeatureStateKeySegmentDraft     AIFeatureStateKey = "segment_draft"
@@ -176,6 +190,10 @@ func (e AIFeatureStateKey) Valid() bool {
 	case AIFeatureStateKeyAccessibilityFix:
 		return true
 	case AIFeatureStateKeyAltText:
+		return true
+	case AIFeatureStateKeyBrandVoice:
+		return true
+	case AIFeatureStateKeyDraft:
 		return true
 	case AIFeatureStateKeyReportSummary:
 		return true
@@ -249,7 +267,11 @@ func (e AIProviderEntryKind) Valid() bool {
 // Defines values for AIUsageFeatureFeature.
 const (
 	AIUsageFeatureFeatureAccessibilityFix AIUsageFeatureFeature = "accessibility_fix"
+	AIUsageFeatureFeatureAgent            AIUsageFeatureFeature = "agent"
 	AIUsageFeatureFeatureAltText          AIUsageFeatureFeature = "alt_text"
+	AIUsageFeatureFeatureBrandVoice       AIUsageFeatureFeature = "brand_voice"
+	AIUsageFeatureFeatureConnectionTest   AIUsageFeatureFeature = "connection_test"
+	AIUsageFeatureFeatureDraft            AIUsageFeatureFeature = "draft"
 	AIUsageFeatureFeatureReportSummary    AIUsageFeatureFeature = "report_summary"
 	AIUsageFeatureFeatureRewrite          AIUsageFeatureFeature = "rewrite"
 	AIUsageFeatureFeatureSegmentDraft     AIUsageFeatureFeature = "segment_draft"
@@ -262,7 +284,15 @@ func (e AIUsageFeatureFeature) Valid() bool {
 	switch e {
 	case AIUsageFeatureFeatureAccessibilityFix:
 		return true
+	case AIUsageFeatureFeatureAgent:
+		return true
 	case AIUsageFeatureFeatureAltText:
+		return true
+	case AIUsageFeatureFeatureBrandVoice:
+		return true
+	case AIUsageFeatureFeatureConnectionTest:
+		return true
+	case AIUsageFeatureFeatureDraft:
 		return true
 	case AIUsageFeatureFeatureReportSummary:
 		return true
@@ -28335,7 +28365,11 @@ func (e WorkspaceSidebarHiddenSections) Valid() bool {
 // Defines values for ListAiActivityParamsFeature.
 const (
 	ListAiActivityParamsFeatureAccessibilityFix ListAiActivityParamsFeature = "accessibility_fix"
+	ListAiActivityParamsFeatureAgent            ListAiActivityParamsFeature = "agent"
 	ListAiActivityParamsFeatureAltText          ListAiActivityParamsFeature = "alt_text"
+	ListAiActivityParamsFeatureBrandVoice       ListAiActivityParamsFeature = "brand_voice"
+	ListAiActivityParamsFeatureConnectionTest   ListAiActivityParamsFeature = "connection_test"
+	ListAiActivityParamsFeatureDraft            ListAiActivityParamsFeature = "draft"
 	ListAiActivityParamsFeatureReportSummary    ListAiActivityParamsFeature = "report_summary"
 	ListAiActivityParamsFeatureRewrite          ListAiActivityParamsFeature = "rewrite"
 	ListAiActivityParamsFeatureSegmentDraft     ListAiActivityParamsFeature = "segment_draft"
@@ -28348,7 +28382,15 @@ func (e ListAiActivityParamsFeature) Valid() bool {
 	switch e {
 	case ListAiActivityParamsFeatureAccessibilityFix:
 		return true
+	case ListAiActivityParamsFeatureAgent:
+		return true
 	case ListAiActivityParamsFeatureAltText:
+		return true
+	case ListAiActivityParamsFeatureBrandVoice:
+		return true
+	case ListAiActivityParamsFeatureConnectionTest:
+		return true
+	case ListAiActivityParamsFeatureDraft:
 		return true
 	case ListAiActivityParamsFeatureReportSummary:
 		return true
@@ -31029,6 +31071,7 @@ type AIActivityRow struct {
 	TargetId     *string              `json:"targetId,omitempty"`
 	TargetKind   *string              `json:"targetKind,omitempty"`
 	Tokens       int64                `json:"tokens"`
+	UsageKnown   bool                 `json:"usageKnown"`
 	UserId       *string              `json:"userId,omitempty"`
 }
 
@@ -31143,6 +31186,9 @@ type AIPricesView struct {
 	// Input Dollars per million input tokens
 	Input float64 `json:"input"`
 
+	// Known Prices are configured, including an explicitly free model
+	Known bool `json:"known"`
+
 	// Output Dollars per million output tokens
 	Output float64 `json:"output"`
 }
@@ -31224,17 +31270,20 @@ type AIUsageMember struct {
 
 // AIUsageView defines model for AIUsageView.
 type AIUsageView struct {
-	CostMicros   int64     `json:"costMicros"`
-	InputTokens  int64     `json:"inputTokens"`
-	MonthStart   time.Time `json:"monthStart"`
-	OutputTokens int64     `json:"outputTokens"`
-	Requests     int64     `json:"requests"`
-	ResetsAt     time.Time `json:"resetsAt"`
+	CostMicros         int64     `json:"costMicros"`
+	InputTokens        int64     `json:"inputTokens"`
+	MonthStart         time.Time `json:"monthStart"`
+	OutputTokens       int64     `json:"outputTokens"`
+	Requests           int64     `json:"requests"`
+	ReservedCostMicros int64     `json:"reservedCostMicros"`
+	ReservedTokens     int64     `json:"reservedTokens"`
+	ResetsAt           time.Time `json:"resetsAt"`
 
 	// Share Share of the cap used, 0 to 1 (0 without a cap)
-	Share  float64          `json:"share"`
-	State  AIUsageViewState `json:"state"`
-	Tokens int64            `json:"tokens"`
+	Share             float64          `json:"share"`
+	State             AIUsageViewState `json:"state"`
+	Tokens            int64            `json:"tokens"`
+	UncertainRequests int64            `json:"uncertainRequests"`
 }
 
 // AIUsageViewState defines model for AIUsageView.State.
@@ -33819,6 +33868,38 @@ type BrandStyle struct {
 	Button  BrandButtonStyle `json:"button"`
 	Colors  BrandColors      `json:"colors"`
 	Heading BrandFont        `json:"heading"`
+}
+
+// BrandVoice defines model for BrandVoice.
+type BrandVoice struct {
+	Content   BrandVoiceContent `json:"content"`
+	CreatedAt *time.Time        `json:"createdAt,omitempty"`
+	CreatedBy string            `json:"createdBy"`
+	Learned   bool              `json:"learned"`
+	Revision  int32             `json:"revision"`
+}
+
+// BrandVoiceContent defines model for BrandVoiceContent.
+type BrandVoiceContent struct {
+	Address        string `json:"address"`
+	AvoidedWords   string `json:"avoidedWords"`
+	Examples       string `json:"examples"`
+	PreferredWords string `json:"preferredWords"`
+	SentenceLength string `json:"sentenceLength"`
+	Tone           string `json:"tone"`
+}
+
+// BrandVoiceHistory defines model for BrandVoiceHistory.
+type BrandVoiceHistory struct {
+	BeforeRevision *int32       `json:"beforeRevision,omitempty"`
+	Items          []BrandVoice `json:"items"`
+}
+
+// BrandVoiceSaveInput defines model for BrandVoiceSaveInput.
+type BrandVoiceSaveInput struct {
+	BaseRevision int32               `json:"baseRevision"`
+	Content      BrandVoiceContent   `json:"content"`
+	SuggestionId *openapi_types.UUID `json:"suggestionId,omitempty"`
 }
 
 // CallTarget defines model for CallTarget.
@@ -59624,6 +59705,11 @@ type ListAutomationStepContactsParams struct {
 	Limit  *int64  `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// BrandVoiceHistoryParams defines parameters for BrandVoiceHistory.
+type BrandVoiceHistoryParams struct {
+	Before *int32 `form:"before,omitempty" json:"before,omitempty"`
+}
+
 // ListCampaignsParams defines parameters for ListCampaigns.
 type ListCampaignsParams struct {
 	Status *ListCampaignsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
@@ -60931,6 +61017,9 @@ type CreateSyncedBlockJSONRequestBody = SyncedCreateInput
 
 // SaveSyncedBlockJSONRequestBody defines body for SaveSyncedBlock for application/json ContentType.
 type SaveSyncedBlockJSONRequestBody = SyncedInput
+
+// SaveBrandVoiceJSONRequestBody defines body for SaveBrandVoice for application/json ContentType.
+type SaveBrandVoiceJSONRequestBody = BrandVoiceSaveInput
 
 // CreateCampaignJSONRequestBody defines body for CreateCampaign for application/json ContentType.
 type CreateCampaignJSONRequestBody = ComposerCreateCampaign
@@ -62450,6 +62539,30 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/synced/{kind} (the `SaveSyncedBlock` operationId).
 	SaveSyncedBlock(ctx context.Context, workspace string, kind string, body SaveSyncedBlockJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBrandVoice The saved brand voice
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice (the `GetBrandVoice` operationId).
+	GetBrandVoice(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SaveBrandVoiceWithBody Save a new voice revision without changing existing emails
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+	SaveBrandVoiceWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SaveBrandVoice Save a new voice revision without changing existing emails
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+	SaveBrandVoice(ctx context.Context, workspace string, body SaveBrandVoiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BrandVoiceHistory Saved voice revisions, newest first
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice/history (the `BrandVoiceHistory` operationId).
+	BrandVoiceHistory(ctx context.Context, workspace string, params *BrandVoiceHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListCampaigns List campaigns with status, audience, route and results
 	//
@@ -70856,6 +70969,70 @@ func (c *Client) SaveSyncedBlockWithBody(ctx context.Context, workspace string, 
 // Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/synced/{kind} (the `SaveSyncedBlock` operationId).
 func (c *Client) SaveSyncedBlock(ctx context.Context, workspace string, kind string, body SaveSyncedBlockJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSaveSyncedBlockRequest(c.Server, workspace, kind, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetBrandVoice The saved brand voice
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice (the `GetBrandVoice` operationId).
+func (c *Client) GetBrandVoice(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBrandVoiceRequest(c.Server, workspace)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SaveBrandVoiceWithBody Save a new voice revision without changing existing emails
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+func (c *Client) SaveBrandVoiceWithBody(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSaveBrandVoiceRequestWithBody(c.Server, workspace, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SaveBrandVoice Save a new voice revision without changing existing emails
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+func (c *Client) SaveBrandVoice(ctx context.Context, workspace string, body SaveBrandVoiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSaveBrandVoiceRequest(c.Server, workspace, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BrandVoiceHistory Saved voice revisions, newest first
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice/history (the `BrandVoiceHistory` operationId).
+func (c *Client) BrandVoiceHistory(ctx context.Context, workspace string, params *BrandVoiceHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBrandVoiceHistoryRequest(c.Server, workspace, params)
 	if err != nil {
 		return nil, err
 	}
@@ -91911,6 +92088,148 @@ func NewSaveSyncedBlockRequestWithBody(server string, workspace string, kind str
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetBrandVoiceRequest constructs an http.Request for the GetBrandVoice method
+func NewGetBrandVoiceRequest(server string, workspace string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/brand-kit/voice", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSaveBrandVoiceRequest calls the generic SaveBrandVoice builder with application/json body
+func NewSaveBrandVoiceRequest(server string, workspace string, body SaveBrandVoiceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSaveBrandVoiceRequestWithBody(server, workspace, "application/json", bodyReader)
+}
+
+// NewSaveBrandVoiceRequestWithBody constructs an http.Request for the SaveBrandVoice method, with any body, and a specified content type
+func NewSaveBrandVoiceRequestWithBody(server string, workspace string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/brand-kit/voice", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewBrandVoiceHistoryRequest constructs an http.Request for the BrandVoiceHistory method
+func NewBrandVoiceHistoryRequest(server string, workspace string, params *BrandVoiceHistoryParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "workspace", workspace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/workspaces/%s/brand-kit/voice/history", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Before != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", false, "before", *params.Before, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -130895,6 +131214,34 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/synced/{kind} (the `SaveSyncedBlock` operationId).
 	SaveSyncedBlockWithResponse(ctx context.Context, workspace string, kind string, body SaveSyncedBlockJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSyncedBlockResponse, error)
 
+	// GetBrandVoiceWithResponse The saved brand voice
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice (the `GetBrandVoice` operationId).
+	GetBrandVoiceWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetBrandVoiceResponse, error)
+
+	// SaveBrandVoiceWithBodyWithResponse Save a new voice revision without changing existing emails
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+	SaveBrandVoiceWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveBrandVoiceResponse, error)
+
+	// SaveBrandVoiceWithResponse Save a new voice revision without changing existing emails
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+	SaveBrandVoiceWithResponse(ctx context.Context, workspace string, body SaveBrandVoiceJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveBrandVoiceResponse, error)
+
+	// BrandVoiceHistoryWithResponse Saved voice revisions, newest first
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice/history (the `BrandVoiceHistory` operationId).
+	BrandVoiceHistoryWithResponse(ctx context.Context, workspace string, params *BrandVoiceHistoryParams, reqEditors ...RequestEditorFn) (*BrandVoiceHistoryResponse, error)
+
 	// ListCampaignsWithResponse List campaigns with status, audience, route and results
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -142132,6 +142479,150 @@ func (r SaveSyncedBlockResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r SaveSyncedBlockResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetBrandVoiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BrandVoice
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetBrandVoiceResponse) GetJSON200() *BrandVoice {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r GetBrandVoiceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetBrandVoiceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBrandVoiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBrandVoiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetBrandVoiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SaveBrandVoiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BrandVoice
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SaveBrandVoiceResponse) GetJSON200() *BrandVoice {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r SaveBrandVoiceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SaveBrandVoiceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SaveBrandVoiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SaveBrandVoiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SaveBrandVoiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type BrandVoiceHistoryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BrandVoiceHistory
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r BrandVoiceHistoryResponse) GetJSON200() *BrandVoiceHistory {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r BrandVoiceHistoryResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r BrandVoiceHistoryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r BrandVoiceHistoryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BrandVoiceHistoryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r BrandVoiceHistoryResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -179858,6 +180349,58 @@ func (c *ClientWithResponses) SaveSyncedBlockWithResponse(ctx context.Context, w
 	return ParseSaveSyncedBlockResponse(rsp)
 }
 
+// GetBrandVoiceWithResponse The saved brand voice
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice (the `GetBrandVoice` operationId).
+func (c *ClientWithResponses) GetBrandVoiceWithResponse(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*GetBrandVoiceResponse, error) {
+	rsp, err := c.GetBrandVoice(ctx, workspace, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBrandVoiceResponse(rsp)
+}
+
+// SaveBrandVoiceWithBodyWithResponse Save a new voice revision without changing existing emails
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+func (c *ClientWithResponses) SaveBrandVoiceWithBodyWithResponse(ctx context.Context, workspace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveBrandVoiceResponse, error) {
+	rsp, err := c.SaveBrandVoiceWithBody(ctx, workspace, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSaveBrandVoiceResponse(rsp)
+}
+
+// SaveBrandVoiceWithResponse Save a new voice revision without changing existing emails
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/workspaces/{workspace}/brand-kit/voice (the `SaveBrandVoice` operationId).
+func (c *ClientWithResponses) SaveBrandVoiceWithResponse(ctx context.Context, workspace string, body SaveBrandVoiceJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveBrandVoiceResponse, error) {
+	rsp, err := c.SaveBrandVoice(ctx, workspace, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSaveBrandVoiceResponse(rsp)
+}
+
+// BrandVoiceHistoryWithResponse Saved voice revisions, newest first
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/workspaces/{workspace}/brand-kit/voice/history (the `BrandVoiceHistory` operationId).
+func (c *ClientWithResponses) BrandVoiceHistoryWithResponse(ctx context.Context, workspace string, params *BrandVoiceHistoryParams, reqEditors ...RequestEditorFn) (*BrandVoiceHistoryResponse, error) {
+	rsp, err := c.BrandVoiceHistory(ctx, workspace, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBrandVoiceHistoryResponse(rsp)
+}
+
 // ListCampaignsWithResponse List campaigns with status, audience, route and results
 //
 // Returns a wrapper object for the known response body format(s).
@@ -196183,6 +196726,105 @@ func ParseSaveSyncedBlockResponse(rsp *http.Response) (*SaveSyncedBlockResponse,
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest SyncedSaved
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBrandVoiceResponse parses an HTTP response from a GetBrandVoiceWithResponse call
+func ParseGetBrandVoiceResponse(rsp *http.Response) (*GetBrandVoiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBrandVoiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BrandVoice
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSaveBrandVoiceResponse parses an HTTP response from a SaveBrandVoiceWithResponse call
+func ParseSaveBrandVoiceResponse(rsp *http.Response) (*SaveBrandVoiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SaveBrandVoiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BrandVoice
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseBrandVoiceHistoryResponse parses an HTTP response from a BrandVoiceHistoryWithResponse call
+func ParseBrandVoiceHistoryResponse(rsp *http.Response) (*BrandVoiceHistoryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BrandVoiceHistoryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BrandVoiceHistory
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

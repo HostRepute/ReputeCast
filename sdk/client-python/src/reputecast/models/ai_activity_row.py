@@ -39,6 +39,7 @@ class AIActivityRow:
             output_tokens (int):
             provider (str):
             tokens (int):
+            usage_known (bool):
             action (str | Unset): The rewrite's action, or the language translated to
             detail (str | Unset): 1 of 5, 529 overloaded
             member_color (str | Unset):
@@ -59,6 +60,7 @@ class AIActivityRow:
     output_tokens: int
     provider: str
     tokens: int
+    usage_known: bool
     action: str | Unset = UNSET
     detail: str | Unset = UNSET
     member_color: str | Unset = UNSET
@@ -95,6 +97,8 @@ class AIActivityRow:
 
         tokens = self.tokens
 
+        usage_known = self.usage_known
+
         action = self.action
 
         detail = self.detail
@@ -123,6 +127,7 @@ class AIActivityRow:
             "outputTokens": output_tokens,
             "provider": provider,
             "tokens": tokens,
+            "usageKnown": usage_known,
         })
         if action is not UNSET:
             field_dict["action"] = action
@@ -177,6 +182,8 @@ class AIActivityRow:
 
         tokens = d.pop("tokens")
 
+        usage_known = d.pop("usageKnown")
+
         action = d.pop("action", UNSET)
 
         detail = d.pop("detail", UNSET)
@@ -202,6 +209,7 @@ class AIActivityRow:
             output_tokens=output_tokens,
             provider=provider,
             tokens=tokens,
+            usage_known=usage_known,
             action=action,
             detail=detail,
             member_color=member_color,

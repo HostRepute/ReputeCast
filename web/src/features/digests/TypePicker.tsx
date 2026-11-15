@@ -13,6 +13,9 @@ import { m } from './messages'
 import { useRefreshDigest } from './shared'
 import { TextOption, useCreateText, useTextOption } from '@/features/sms/NewCampaign'
 import { ChannelOptions, useChannelOptions, useCreateChannelCampaign } from '@/features/push/CampaignRow'
+import { DraftFromBriefDialog } from '@/features/ai/DraftFromBrief'
+import { md } from '@/features/ai/draft.messages'
+import { ag } from '@/features/ai/agent.messages'
 
 /**
  * "New campaign": Regular continues to the composer's template gallery as
@@ -24,10 +27,12 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const canSend = useCan('campaigns:send')
+  const canAI = useCan('ai:use')
+  const [drafting, setDrafting] = useState(false)
   const refresh = useRefreshDigest()
   const sites = $api.useQuery('get', '/api/v1/workspaces/{workspace}/digests/sites', { params: { path: { workspace: slug } } }, { enabled: open })
   const list = sites.data?.items ?? []
-  const [kind, setKind] = useState<'regular' | 'recurring' | 'sms' | 'push' | 'whatsapp'>('regular')
+  const [kind, setKind] = useState<'regular' | 'recurring' | 'sms' | 'push' | 'whatsapp' | 'ai' | 'agent'>('regular')
   // Phase 8: a text message, once texting is set up.
   const texts = useTextOption()
   const createText = useCreateText()
@@ -41,6 +46,12 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
   const submit = async () => {
+    if (kind === 'agent') {
+      onOpenChange(false)
+      void navigate({ to: '/w/$workspace/agent/new', params: { workspace: slug } })
+      return
+    }
+    if (kind === 'ai') { setDrafting(true); return }
     if (kind === 'regular') {
       onOpenChange(false)
       void navigate({ to: '/w/$workspace/campaigns/new', params: { workspace: slug } })
@@ -75,6 +86,7 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
   }
 
   const urlPicked = source === 'url' || list.length === 0
+  if (drafting) return <DraftFromBriefDialog onClose={() => onOpenChange(false)} onAccepted={async (id) => { await navigate({ to: '/w/$workspace/campaigns/$campaignId/edit', params: { workspace: slug, campaignId: id } }) }} />
   return (
     <Dialog
       open={open}
@@ -95,6 +107,8 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
         <OptionCard name="campaign-kind" value="regular" checked={kind === 'regular'} onChange={() => setKind('regular')} title={t(m.regular)} description={t(m.regularBody)}>
           <span className="k">{t(m.regularHint)}</span>
         </OptionCard>
+        {canAI ? <OptionCard name="campaign-kind" value="ai" checked={kind === 'ai'} onChange={() => setKind('ai')} title={t(md.title)} description={t(md.lead)} /> : null}
+        {canAI ? <OptionCard name="campaign-kind" value="agent" checked={kind === 'agent'} onChange={() => setKind('agent')} title={t(ag.entry)} description={t(ag.lead)} /> : null}
         <OptionCard name="campaign-kind" value="recurring" checked={kind === 'recurring'} onChange={() => setKind('recurring')} title={t(m.recurring)} description={t(m.recurringBody)}>
           {kind === 'recurring' ? (
             <div className="mt-2 flex flex-col gap-2">

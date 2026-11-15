@@ -17,6 +17,7 @@
   "post.featuredFull": "La página de inicio destaca hasta 3 artículos. Primero deja de destacar uno en Inicio y navegación.",
   "post.contentIsCampaign": "Este artículo viene de una campaña: edita su contenido en la campaña.",
   "post.contentConflict": "Alguien guardó este artículo después de que lo abrieras. Vuelve a cargarlo para ver sus cambios o conserva los tuyos.",
+  "post.invalidDraft": "Este borrador tiene contenido no válido. Revísalo antes de conservarlo.",
   "post.alreadyPublished": "Este artículo ya está publicado.",
   "post.notSentYet": "La campaña aún no se ha enviado. Su artículo puede publicarse con el envío o a una hora concreta.",
   "post.publishedUseUnpublish": "Este artículo está publicado. Para quitarlo del sitio, anula su publicación en Sitio web › Artículos.",

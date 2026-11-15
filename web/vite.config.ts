@@ -133,6 +133,9 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': { target: backend, changeOrigin: false },
+      '/oauth/mcp/': { target: backend, changeOrigin: false },
+      '/mcp/connect': { target: backend, changeOrigin: false },
+      '/.well-known/oauth-': { target: backend, changeOrigin: false },
       '/hooks': { target: backend, changeOrigin: false },
       '/p/': { target: backend, changeOrigin: false },
       '/media/': { target: backend, changeOrigin: false },

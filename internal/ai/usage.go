@@ -9,11 +9,14 @@ import (
 
 // usage is this month's use against the cap.
 type usage struct {
-	costMicros   int64
-	inputTokens  int64
-	outputTokens int64
-	tokens       int64
-	requests     int64
+	costMicros     int64
+	inputTokens    int64
+	outputTokens   int64
+	tokens         int64
+	requests       int64
+	reservedCost   int64
+	reservedTokens int64
+	uncertain      int64
 	// share of the cap used (0 without a cap), notice at 80%, reached at 100%.
 	share   float64
 	notice  bool
@@ -28,14 +31,19 @@ func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection)
 		return usage{}, err
 	}
 	u := usage{costMicros: t.CostMicros, inputTokens: t.InputTokens, outputTokens: t.OutputTokens, tokens: t.InputTokens + t.OutputTokens, requests: t.Requests}
+	held, err := s.Q.AIBudgetMonthly(ctx, ws.ID)
+	if err != nil {
+		return usage{}, err
+	}
+	u.reservedCost, u.reservedTokens, u.uncertain = held.CostMicros, held.Tokens, held.Uncertain
 	switch c.CapKind {
 	case "usd":
 		if c.CapUsd > 0 {
-			u.share = float64(u.costMicros) / (c.CapUsd * 1e6)
+			u.share = float64(u.costMicros+u.reservedCost) / (c.CapUsd * 1e6)
 		}
 	case "tokens":
 		if c.CapTokens > 0 {
-			u.share = float64(u.tokens) / float64(c.CapTokens)
+			u.share = float64(u.tokens+u.reservedTokens) / float64(c.CapTokens)
 		}
 	}
 	u.reached = c.CapKind != "none" && u.share >= 1
@@ -45,7 +53,7 @@ func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection)
 
 // AIUsageFeature is one feature's use this month.
 type AIUsageFeature struct {
-	Feature    string `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary"`
+	Feature    string `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test"`
 	CostMicros int64  `json:"costMicros"`
 	Tokens     int64  `json:"tokens"`
 	Requests   int64  `json:"requests"`
@@ -67,8 +75,9 @@ func (s *Service) byFeature(ctx context.Context, ws *store.Workspace) ([]AIUsage
 	if err != nil {
 		return nil, err
 	}
-	out := make([]AIUsageFeature, 0, len(Features))
-	for _, f := range Features {
+	features := append(slices.Clone(Features), FeatureAgent, FeatureConnectionTest)
+	out := make([]AIUsageFeature, 0, len(features))
+	for _, f := range features {
 		e := AIUsageFeature{Feature: f}
 		for _, r := range rows {
 			if r.Feature == f {

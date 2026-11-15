@@ -25,6 +25,9 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Banner } from '@/components/ui/Note'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
+import { AutomationFromBriefDialog, supportsAutomationBrief } from '@/features/ai/AutomationFromBrief'
+import { ma } from '@/features/ai/automation-draft.messages'
+import { Sparkle, useAssist } from '@/features/ai/suggest'
 import { cn } from '@/lib/cn'
 import { count, dayMonthDate, pct } from '@/lib/format'
 import { useDocumentTitle, useMediaQuery, useReducedMotion } from '@/lib/hooks'
@@ -182,6 +185,8 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const { theme } = useTheme()
   const coarse = useMediaQuery('(pointer: coarse)')
   const canEdit = useCan('automations:edit')
+  const assist = useAssist()
+  const [briefOpen, setBriefOpen] = useState(false)
   const publishReason = usePermissionReason('automations:publish')
   const id = detail.id
   const published = detail.liveVersion !== undefined
@@ -628,6 +633,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
           {published && meta.changes > 0 && detail.liveVersion ? (
             <DiscardDraftButton id={id} changes={meta.changes} liveVersion={detail.liveVersion} disabledReason={canEdit ? undefined : editReason} onDiscarded={() => void onReload()} />
           ) : null}
+          {assist.can && !published && detail.status === 'draft' ? <Button disabledReason={!canEdit ? editReason : dirty || saving || stopped ? t(ma.unsaved) : !supportsAutomationBrief(graph) ? t(ma.unsupported) : undefined} onClick={() => setBriefOpen(true)}><Sparkle />{t(ma.title)}</Button> : null}
           <Button onClick={() => setHistoryOpen(true)}>{t(mf.versionHistory)}</Button>
           <Button variant="primary" loading={opening} disabledReason={publishBlocked} onClick={() => void openPublish()}>
             {t(mf.publishVersion, { version: meta.draftVersion })}
@@ -814,6 +820,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
       </div>
 
       <UnsavedChangesGuard dirty={Boolean(failed) && dirty} description={t(mf.unsavedGuard)} onSave={flush} />
+      {briefOpen ? <AutomationFromBriefDialog onClose={() => setBriefOpen(false)} onAccepted={onReload} target={{ id, name: detail.name, listId: graph.nodes.find((n) => n.type === 'trigger')?.data.trigger?.listId ?? '', baseRevision: meta.revision, hasUnsaved: () => latest.current.json !== latest.current.savedJson || !!latest.current.inflight || latest.current.stopped }} /> : null}
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} automationId={id} onSaveDraft={flush} />
       <VersionHistoryDialog
         open={historyOpen}

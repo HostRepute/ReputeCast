@@ -333,6 +333,10 @@ from .brand_kit_import_input import BrandKitImportInput
 from .brand_kit_input import BrandKitInput
 from .brand_logo import BrandLogo
 from .brand_style import BrandStyle
+from .brand_voice import BrandVoice
+from .brand_voice_content import BrandVoiceContent
+from .brand_voice_history import BrandVoiceHistory
+from .brand_voice_save_input import BrandVoiceSaveInput
 from .call_target import CallTarget
 from .campaign_bulk_input import CampaignBulkInput
 from .campaign_bulk_input_action import CampaignBulkInputAction
@@ -3834,6 +3838,10 @@ __all__ = (
     "BrandKitInput",
     "BrandLogo",
     "BrandStyle",
+    "BrandVoice",
+    "BrandVoiceContent",
+    "BrandVoiceHistory",
+    "BrandVoiceSaveInput",
     "CallTarget",
     "CampaignBulkInput",
     "CampaignBulkInputAction",

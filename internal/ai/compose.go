@@ -102,7 +102,8 @@ type AISubjectIdeasInput struct {
 	// MJML is the email as it is on the canvas; its text goes, without images.
 	MJML string `json:"mjml" maxLength:"2000000"`
 	// Language is the version open ("" is the source).
-	Language string `json:"language,omitempty" maxLength:"12"`
+	Language      string `json:"language,omitempty" maxLength:"12"`
+	VoiceRevision *int32 `json:"voiceRevision,omitempty" minimum:"0" doc:"Omitted: latest saved voice; zero: no voice; otherwise an exact saved revision"`
 }
 
 // AISubjectIdea is one idea with the subject checks.
@@ -150,7 +151,7 @@ func (s *Service) SubjectIdeas(ctx context.Context, ws *store.Workspace, p *auth
 		body = string([]rune(body)[:maxEmailChars])
 	}
 	t := subjectTask{Subject: in.Subject, Preheader: in.Preheader, Text: body, Language: lang, LanguageName: languageName(lang), Campaign: c.name}
-	res, err := s.run(ctx, ws, p, task{feature: FeatureSubjectIdeas, targetKind: "campaign", targetID: &c.id, targetLabel: c.name, req: subjectPrompt(t)})
+	res, err := s.run(ctx, ws, p, task{feature: FeatureSubjectIdeas, targetKind: "campaign", targetID: &c.id, targetLabel: c.name, req: subjectPrompt(t), selectedVoice: in.VoiceRevision})
 	if err != nil {
 		return AISubjectIdeas{}, err
 	}
@@ -191,8 +192,9 @@ type AIRewriteInput struct {
 	// HTML is the selected text, or the whole paragraph, as the editor holds it.
 	HTML string `json:"html" maxLength:"60000"`
 	// Field is "subject" or "preheader" when those are rewritten.
-	Field    string `json:"field,omitempty" enum:"subject,preheader"`
-	Language string `json:"language,omitempty" maxLength:"12"`
+	Field         string `json:"field,omitempty" enum:"subject,preheader"`
+	Language      string `json:"language,omitempty" maxLength:"12"`
+	VoiceRevision *int32 `json:"voiceRevision,omitempty" minimum:"0" doc:"Omitted: latest saved voice; zero: no voice; otherwise an exact saved revision"`
 }
 
 // AIReputation is the answer to a question about sender reputation: the
@@ -255,7 +257,7 @@ func (s *Service) Rewrite(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if in.Field != "" {
 		label = c.name + " " + in.Field
 	}
-	res, err := s.run(ctx, ws, p, task{feature: FeatureRewrite, action: in.Action, targetKind: "campaign", targetID: &c.id, targetLabel: label, req: rewritePrompt(t)})
+	res, err := s.run(ctx, ws, p, task{feature: FeatureRewrite, action: in.Action, targetKind: "campaign", targetID: &c.id, targetLabel: label, req: rewritePrompt(t), selectedVoice: in.VoiceRevision})
 	if err != nil {
 		return AIRewrite{}, err
 	}

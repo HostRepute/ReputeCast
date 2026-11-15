@@ -1,4 +1,10 @@
 {
+  "short.external_proposal": "propositions externes",
+  "event.external_proposal": "Proposition externe prête à examiner",
+  "audience.external_proposal": "Uniquement la personne qui a autorisé la connexion",
+  "short.ai_agent_ready": "mises à jour des tâches IA",
+  "event.ai_agent_ready": "Tâche IA prête ou action requise",
+  "audience.ai_agent_ready": "Uniquement la personne qui a lancé la tâche",
   "summary.all": "Tous les événements",
   "summary.off": "Désactivé",
   "summary.approvals": "approbations",

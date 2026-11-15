@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -36,10 +37,48 @@ type syncedKindInput struct {
 	Kind string `path:"kind" pattern:"^(header|footer|b-[0-9a-f]{12})$" doc:"A named block's key (the Header and Footer can't be deleted)"`
 }
 
+type voiceSaveInput struct {
+	api.WorkspaceInput
+	Body BrandVoiceSaveInput
+}
+
+type voiceHistoryInput struct {
+	api.WorkspaceInput
+	Before int32 `query:"before" minimum:"0"`
+}
+
+type voiceSuggestionInput struct {
+	api.WorkspaceInput
+	Suggestion string `path:"suggestion" format:"uuid"`
+}
+
 // Register adds the brand kit operations.
 func Register(h huma.API, s *Service) {
 	tags := []string{"Brand kit"}
 	base := "/workspaces/{workspace}/brand-kit"
+	api.Get(h, api.Op{ID: "get-brand-voice", Path: base + "/voice", Summary: "The saved brand voice", Tags: tags, Access: api.Workspace(authz.CampaignsView)},
+		func(ctx context.Context, _ *struct{ api.WorkspaceInput }) (*api.Body[BrandVoice], error) {
+			out, err := s.Voice(ctx, api.WorkspaceFrom(ctx))
+			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "brand-voice-history", Path: base + "/voice/history", Summary: "Saved voice revisions, newest first", Tags: tags, Access: api.Workspace(authz.CampaignsView)},
+		func(ctx context.Context, in *voiceHistoryInput) (*api.Body[BrandVoiceHistory], error) {
+			out, err := s.VoiceHistory(ctx, api.WorkspaceFrom(ctx), in.Before)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "save-brand-voice", Path: base + "/voice", Summary: "Save a new voice revision without changing existing emails", Tags: tags, Access: api.Workspace(authz.TemplatesEdit)},
+		func(ctx context.Context, in *voiceSaveInput) (*api.Body[BrandVoice], error) {
+			out, err := s.SaveVoice(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "reject-brand-voice", Path: base + "/voice/suggestions/{suggestion}", Summary: "Reject your learned voice suggestion", Tags: tags, Access: api.WorkspaceHuman(authz.AIUse)},
+		func(ctx context.Context, in *voiceSuggestionInput) (*struct{}, error) {
+			id, err := uuid.Parse(in.Suggestion)
+			if err != nil {
+				return nil, api.NotFound("Suggestion")
+			}
+			return nil, s.RejectVoice(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+		})
 	api.Get(h, api.Op{ID: "get-brand-kit", Path: base, Summary: "The brand kit, its synced blocks and the emails holding them",
 		Description: "Without a saved kit, the values are ReputeCast's defaults (saved is false).",
 		Tags:        tags, Access: api.Workspace(authz.CampaignsView)},

@@ -1,4 +1,9 @@
 {
+  "voice.invalid": "Halten Sie die Zeichenbegrenzung ein und entfernen Sie ungültige Zeichen.",
+  "voice.toneRequired": "Beschreiben Sie den Ton, bevor Sie die Markenstimme speichern.",
+  "voice.selection": "Wählen Sie eine bis zehn unterschiedliche gesendete Kampagnen innerhalb Ihres Zugriffs.",
+  "voice.gone": "Dieser Vorschlag ist abgelaufen oder bereits entschieden. Erstellen Sie einen neuen.",
+  "voice.changed": "Die gespeicherte Markenstimme wurde geändert. Laden Sie sie neu und prüfen Sie Ihre Änderungen erneut.",
   "problem.badColor": "Verwenden Sie eine Farbe wie #4338CA.",
   "problem.badFallback": "Wählen Sie eine der E-Mail-sicheren Ersatzschriften.",
   "problem.badFontUrl": "Verwenden Sie den https-Stylesheet-Link der Webschrift, mit dem Namen der Schrift.",

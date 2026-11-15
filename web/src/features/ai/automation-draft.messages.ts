@@ -1,0 +1,27 @@
+import { defineMessages } from '@/i18n'
+
+export const ma = defineMessages('ai.automationDraft', {
+  title: 'Describe the automation',
+  lead: 'Draft a list-join email sequence. Review the steps and every email before saving the bundle.',
+  brief: 'What should this sequence do?',
+  hint: 'Describe the emails, delays and engagement branches. Do not include contact details, credentials or URLs.',
+  name: 'Automation name',
+  list: 'Selected list',
+  chooseList: 'Choose a list',
+  audience: 'After you publish manually: future confirmed joins only, once per reader, excluding imports. Readers exit when they leave this list. Saving this draft does not enroll existing members.',
+  scope: 'This recipe supports email, delay, engagement branch, A/B split and exit steps. Selected links, images and Liquid are preserved. Other triggers, contact conditions, webhooks and subscription actions require the flow editor.',
+  privacy: 'Your brief, selected editorial text, permitted steps and saved voice go to your model. IDs, list and email names, link destinations and compliance footers stay here. No contacts are read and no URLs are fetched.',
+  waiting: 'Generating steps and emails. No flow or email has been saved. Stopping may still incur a provider charge.',
+  saved: 'Automation and emails saved as drafts. Nothing was published or enrolled.',
+  rejected: 'Proposal rejected. No flow or email was changed.',
+  leaveBody: 'Your unsaved brief will close. Reopen this dialog to review a generated proposal before its 24-hour expiry. No flow or email is changed.',
+  unsaved: 'Wait for the flow to save before generating or accepting a replacement.',
+  replace: 'Review the saved graph and email content against the proposal. Acceptance creates new email copies and replaces this draft graph; existing emails remain unchanged.',
+  unsupported: 'This recipe needs future confirmed list joins, once per reader, excluding imports, with exit on leaving. Keep other audience rules in the flow editor.',
+  graph: 'Steps and paths',
+  emails: 'Email drafts',
+  exact: 'Review the exact graph',
+  next: 'Next: {steps}',
+  end: 'End of path',
+  checked: 'Graph and email content validated. Publishing checks still apply.',
+})

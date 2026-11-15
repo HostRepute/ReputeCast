@@ -27,6 +27,7 @@ import { m as km } from './messages'
 import { DashedEmpty, TableSkeleton, type Key } from './parts'
 import { McpIntegrationsNote } from '@/features/integrations/ManagedWebhook'
 import { McpAssistantNote } from '@/features/ai/parts'
+import { mc } from '@/features/mcpconnect/messages'
 
 type Overview = Schemas['MCPOverview']
 
@@ -71,6 +72,7 @@ export function McpPage() {
         ) : null
       }
     >
+      <div><Link className="btn" to="/w/$workspace/settings/connections" params={{ workspace: slug }}>{t(mc.managing)}</Link></div>
       {!can ? (
         <ForbiddenState permission="mcp:manage" title={t(m.forbidden)} />
       ) : q.isError ? (

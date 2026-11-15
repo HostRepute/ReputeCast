@@ -13,13 +13,13 @@ INSERT INTO ai_connections (
     key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at,
     status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms,
     cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from,
-    features_off, notice_month, cap_notice_month, demo, updated_by, updated_at
+    features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known
 ) VALUES (
     @workspace_id, @provider, @label, @base_url, @deployment, @api_version, @model, @model_name, @image_input,
     @key_sealed, @key_added_by, @key_added_at, @connected_by, @connected_at, @disconnected_by, @disconnected_at,
     @status, @status_detail, @status_at, @last_test_at, @last_test_ok, @last_test_ms,
     @cap_kind, @cap_usd, @cap_tokens, @cap_set_by, @cap_set_at, @input_price, @output_price, @prices_from,
-    @features_off, @notice_month, @cap_notice_month, @demo, @updated_by, @updated_at
+    @features_off, @notice_month, @cap_notice_month, @demo, @updated_by, @updated_at, @price_known
 )
 ON CONFLICT (workspace_id) DO UPDATE SET
     provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url, deployment = EXCLUDED.deployment,
@@ -32,12 +32,12 @@ ON CONFLICT (workspace_id) DO UPDATE SET
     cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, input_price = EXCLUDED.input_price,
     output_price = EXCLUDED.output_price, prices_from = EXCLUDED.prices_from, features_off = EXCLUDED.features_off,
     notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month, demo = EXCLUDED.demo,
-    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at;
+    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at, price_known = EXCLUDED.price_known;
 
 -- name: AIConnectionSetStatus :execrows
 -- The provider rejected the saved key (or a passing request cleared it).
 UPDATE ai_connections SET status = @status, status_detail = @status_detail, status_at = @status_at
-WHERE workspace_id = @workspace_id AND status <> @status;
+WHERE workspace_id = @workspace_id AND status <> @status AND updated_at = @expected_updated_at;
 
 -- name: AIConnectionSetTest :exec
 UPDATE ai_connections SET last_test_at = @last_test_at, last_test_ok = @last_test_ok, last_test_ms = @last_test_ms
@@ -53,9 +53,12 @@ UPDATE ai_connections SET cap_notice_month = @month WHERE workspace_id = @worksp
 
 -- name: AIRequestInsert :exec
 INSERT INTO ai_requests (id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model,
-    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at)
+    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known)
 VALUES (@id, @workspace_id, @user_id, @feature, @action, @target_kind, @target_id, @target_label, @provider, @model,
-    @input_tokens, @output_tokens, @cost_micros, @outcome, @outcome_detail, @duration_ms, @created_at, @decided_at);
+    @input_tokens, @output_tokens, @cost_micros, @outcome, @outcome_detail, @duration_ms, @created_at, @decided_at, @voice_revision, @usage_known)
+ON CONFLICT (id) DO UPDATE SET input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
+    cost_micros = EXCLUDED.cost_micros, usage_known = EXCLUDED.usage_known
+WHERE ai_requests.workspace_id = EXCLUDED.workspace_id AND NOT ai_requests.usage_known;
 
 -- name: AIRequest :one
 SELECT * FROM ai_requests WHERE id = $1 AND workspace_id = $2;

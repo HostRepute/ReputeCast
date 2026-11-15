@@ -63,6 +63,8 @@ func init() {
 		river.AddWorker(a.JobReg.Workers, &reports.SummaryWorker{S: reportsService(a)})
 		river.AddWorker(a.JobReg.Workers, &reports.SummarySendWorker{S: reportsService(a), Log: a.Log})
 		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return reports.SummaryArgs{}, nil }, false)
+		river.AddWorker(a.JobReg.Workers, &reports.ModelRetentionWorker{S: reportsService(a)})
+		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return reports.ModelRetentionArgs{}, nil }, true)
 	})
 }
 

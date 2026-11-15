@@ -19,6 +19,7 @@ type AIStatus struct {
 	ModelName    string           `json:"modelName,omitempty"`
 	ImageInput   bool             `json:"imageInput"`
 	Features     []AIFeatureState `json:"features"`
+	Agent        AIAgentSettings  `json:"agent"`
 	Usage        AIUsageView      `json:"usage"`
 	Cap          AICapView        `json:"cap"`
 	Prices       AIPricesView     `json:"prices"`
@@ -40,6 +41,10 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	start, next := s.month(ws)
 	out := AIStatus{State: "not_configured", Features: []AIFeatureState{}, Usage: AIUsageView{State: "ok", MonthStart: start, ResetsAt: next},
 		CanManage: p.Can(authz.IntegrationsManage), Helpers: s.helpers(ctx, ws.ID), HostRepute: s.hostReputeConnected(ctx, ws.ID)}
+	out.Agent, err = s.AgentSettings(ctx, ws)
+	if err != nil {
+		return AIStatus{}, err
+	}
 	for _, f := range Features {
 		st := AIFeatureState{Key: f, On: false, Available: true}
 		if c.connected() {
@@ -55,13 +60,14 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	out.State, out.Provider, out.ProviderName, out.Model, out.ModelName, out.ImageInput = "ready", c.Provider, c.providerName(), c.Model, c.modelName(), c.ImageInput
 	out.Cap = AICapView{Kind: c.CapKind, USD: c.CapUsd, Tokens: c.CapTokens}
-	out.Prices = AIPricesView{Input: c.InputPrice, Output: c.OutputPrice, From: c.PricesFrom}
+	out.Prices = AIPricesView{Input: c.InputPrice, Output: c.OutputPrice, Known: c.PriceKnown || c.Demo, From: c.PricesFrom}
 	u, err := s.usage(ctx, ws, c)
 	if err != nil {
 		return AIStatus{}, err
 	}
 	out.Usage.CostMicros, out.Usage.InputTokens, out.Usage.OutputTokens, out.Usage.Tokens, out.Usage.Requests, out.Usage.Share =
 		u.costMicros, u.inputTokens, u.outputTokens, u.tokens, u.requests, u.share
+	out.Usage.ReservedCostMicros, out.Usage.ReservedTokens, out.Usage.UncertainRequests = u.reservedCost, u.reservedTokens, u.uncertain
 	switch {
 	case u.reached:
 		out.Usage.State, out.State = "reached", "cap_reached"

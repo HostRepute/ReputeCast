@@ -33,6 +33,65 @@ type Querier interface {
 	ABSampleCounts(ctx context.Context, campaignID uuid.UUID) ([]ABSampleCountsRow, error)
 	// The decision is kept with the campaign's test, for its report.
 	ABSaveDecision(ctx context.Context, arg ABSaveDecisionParams) error
+	AIAgentArtifactDecide(ctx context.Context, arg AIAgentArtifactDecideParams) error
+	AIAgentArtifactDiscard(ctx context.Context, id uuid.UUID) error
+	AIAgentArtifactSave(ctx context.Context, arg AIAgentArtifactSaveParams) error
+	AIAgentArtifacts(ctx context.Context, runID uuid.UUID) ([]AiAgentArtifact, error)
+	AIAgentCapability(ctx context.Context, workspaceID uuid.UUID) (AiAgentCapability, error)
+	AIAgentCapabilitySave(ctx context.Context, arg AIAgentCapabilitySaveParams) error
+	AIAgentContext(ctx context.Context, arg AIAgentContextParams) (AIAgentContextRow, error)
+	AIAgentContextInsert(ctx context.Context, arg AIAgentContextInsertParams) error
+	AIAgentContextSave(ctx context.Context, arg AIAgentContextSaveParams) error
+	// Explicit selection only. Never load codes, assignments or store credentials.
+	AIAgentCouponPool(ctx context.Context, arg AIAgentCouponPoolParams) (AIAgentCouponPoolRow, error)
+	AIAgentPurgeRunArtifacts(ctx context.Context, runID uuid.UUID) error
+	AIAgentPurgeRunContext(ctx context.Context, runID uuid.UUID) error
+	AIAgentPurgeRunMessages(ctx context.Context, runID uuid.UUID) error
+	AIAgentPurgeRunSteps(ctx context.Context, arg AIAgentPurgeRunStepsParams) error
+	// Position is a snapshot, not FIFO scheduling: a user's other workspace
+	// may hold their execution slot. Never return another task's identity.
+	AIAgentQueueStatus(ctx context.Context, arg AIAgentQueueStatusParams) (AIAgentQueueStatusRow, error)
+	AIAgentReferences(ctx context.Context, runID uuid.UUID) ([]AIAgentReferencesRow, error)
+	// Taking the same run lock as every continuation/decision prevents a late
+	// checkpoint from restoring content after the retention sweep removed it.
+	AIAgentRetentionBatch(ctx context.Context, now time.Time) ([]AiAgentRun, error)
+	AIAgentRun(ctx context.Context, arg AIAgentRunParams) (AiAgentRun, error)
+	AIAgentRunInsert(ctx context.Context, arg AIAgentRunInsertParams) error
+	AIAgentRunLock(ctx context.Context, arg AIAgentRunLockParams) (AiAgentRun, error)
+	AIAgentRunSave(ctx context.Context, arg AIAgentRunSaveParams) error
+	AIAgentRuns(ctx context.Context, arg AIAgentRunsParams) ([]AIAgentRunsRow, error)
+	AIAgentSettings(ctx context.Context, workspaceID uuid.UUID) (AiAgentSetting, error)
+	AIAgentSettingsLock(ctx context.Context, workspaceID uuid.UUID) (AiAgentSetting, error)
+	AIAgentSettingsSave(ctx context.Context, arg AIAgentSettingsSaveParams) error
+	AIAgentSlot(ctx context.Context, arg AIAgentSlotParams) (AiAgentSlot, error)
+	AIAgentSlotClaim(ctx context.Context, arg AIAgentSlotClaimParams) (AiAgentSlot, error)
+	AIAgentSlotRelease(ctx context.Context, arg AIAgentSlotReleaseParams) error
+	// Never wait for another workspace's in-flight slot while holding this
+	// workspace's connection lock. Unique constraints arbitrate claims.
+	AIAgentSlotsExpire(ctx context.Context, now time.Time) error
+	AIAgentStepInsert(ctx context.Context, arg AIAgentStepInsertParams) error
+	AIAgentStepLast(ctx context.Context, runID uuid.UUID) (AiAgentStep, error)
+	AIAgentStepRequested(ctx context.Context, arg AIAgentStepRequestedParams) error
+	// A human continuation rebinds a saved response to the new run fence, keeping
+	// its already committed tool results and next_call. Never resend its request.
+	AIAgentStepResume(ctx context.Context, arg AIAgentStepResumeParams) error
+	AIAgentStepSave(ctx context.Context, arg AIAgentStepSaveParams) error
+	AIAgentSteps(ctx context.Context, runID uuid.UUID) ([]AIAgentStepsRow, error)
+	// No provider request may run for ten minutes. A dead HTTP/worker process
+	// leaves an uncertain reservation, never an automatic release or retry.
+	AIBudgetAbandoned(ctx context.Context, before time.Time) (int64, error)
+	AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) error
+	AIBudgetLock(ctx context.Context, arg AIBudgetLockParams) (AiBudgetReservation, error)
+	// Settled reservations are already in ai_requests. Old uncertain requests
+	// stay reserved across month rollover rather than becoming free to retry.
+	AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (AIBudgetMonthlyRow, error)
+	AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([]AiBudgetReservation, error)
+	AIBudgetPurge(ctx context.Context, before time.Time) (int64, error)
+	AIBudgetRun(ctx context.Context, runID *uuid.UUID) (AIBudgetRunRow, error)
+	AIBudgetSettle(ctx context.Context, arg AIBudgetSettleParams) error
+	AIBudgetUncertain(ctx context.Context, id uuid.UUID) error
+	// Also serializes onboarding tests before an AI connection exists.
+	AIBudgetWorkspaceLock(ctx context.Context, workspaceID uuid.UUID) error
 	// What the assistant needs about a campaign: its name, content and language.
 	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
 	// AI assistant (design expansion M22): the workspace's model, the AI
@@ -47,6 +106,17 @@ type Querier interface {
 	// The provider rejected the saved key (or a passing request cleared it).
 	AIConnectionSetStatus(ctx context.Context, arg AIConnectionSetStatusParams) (int64, error)
 	AIConnectionSetTest(ctx context.Context, arg AIConnectionSetTestParams) error
+	// Only the exact version referenced by the selected flow, never recipients.
+	AIDraftAutomationEmail(ctx context.Context, arg AIDraftAutomationEmailParams) (AIDraftAutomationEmailRow, error)
+	AIDraftCampaign(ctx context.Context, arg AIDraftCampaignParams) (AIDraftCampaignRow, error)
+	AIDraftDecide(ctx context.Context, arg AIDraftDecideParams) error
+	AIDraftGet(ctx context.Context, arg AIDraftGetParams) (AiDraftProposal, error)
+	AIDraftInsert(ctx context.Context, arg AIDraftInsertParams) error
+	AIDraftList(ctx context.Context, arg AIDraftListParams) (uuid.UUID, error)
+	AIDraftLock(ctx context.Context, arg AIDraftLockParams) (AiDraftProposal, error)
+	AIDraftPending(ctx context.Context, arg AIDraftPendingParams) ([]uuid.UUID, error)
+	AIDraftPurge(ctx context.Context, now time.Time) (int64, error)
+	AIDraftTemplate(ctx context.Context, arg AIDraftTemplateParams) (string, error)
 	// The people who can allow private addresses for model servers.
 	AIInstanceAdmins(ctx context.Context) ([]string, error)
 	// An image of the workspace's media library, for alt text.
@@ -585,6 +655,22 @@ type Querier interface {
 	// The brand kit and its synced blocks (CO-11).
 	BrandKitGet(ctx context.Context, workspaceID uuid.UUID) (BrandKitGetRow, error)
 	BrandKitUpsert(ctx context.Context, arg BrandKitUpsertParams) error
+	BrandVoiceAccepted(ctx context.Context, arg BrandVoiceAcceptedParams) (int32, error)
+	// Recheck current membership and user status after an external model call.
+	BrandVoiceActor(ctx context.Context, arg BrandVoiceActorParams) (BrandVoiceActorRow, error)
+	BrandVoiceHistory(ctx context.Context, arg BrandVoiceHistoryParams) ([]BrandVoiceHistoryRow, error)
+	BrandVoiceInsert(ctx context.Context, arg BrandVoiceInsertParams) error
+	BrandVoiceLatest(ctx context.Context, workspaceID uuid.UUID) (BrandVoiceLatestRow, error)
+	// Serializes first saves as well as later revisions. No lock spans a model call.
+	BrandVoiceLock(ctx context.Context, workspaceID uuid.UUID) error
+	BrandVoiceRevision(ctx context.Context, arg BrandVoiceRevisionParams) (BrandVoiceRevisionRow, error)
+	// Only explicitly selected campaigns. No recipients, rendered HTML, URLs,
+	// names or sender addresses are returned to the learning service.
+	BrandVoiceSources(ctx context.Context, arg BrandVoiceSourcesParams) ([]BrandVoiceSourcesRow, error)
+	BrandVoiceSuggest(ctx context.Context, arg BrandVoiceSuggestParams) error
+	BrandVoiceSuggestion(ctx context.Context, arg BrandVoiceSuggestionParams) (BrandVoiceSuggestion, error)
+	BrandVoiceSuggestionDelete(ctx context.Context, arg BrandVoiceSuggestionDeleteParams) (int64, error)
+	BrandVoiceSuggestionsPurge(ctx context.Context, now time.Time) (int64, error)
 	BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
 	// Adds to one step's counters for a day. Path and provider counts are merged
 	// key by key.
@@ -2753,6 +2839,57 @@ type Querier interface {
 	LockCampaignForManage(ctx context.Context, arg LockCampaignForManageParams) (LockCampaignForManageRow, error)
 	LockDeletedList(ctx context.Context, arg LockDeletedListParams) (List, error)
 	LockList(ctx context.Context, arg LockListParams) (List, error)
+	MCPConnectAuthority(ctx context.Context, arg MCPConnectAuthorityParams) (MCPConnectAuthorityRow, error)
+	MCPConnectBindRequest(ctx context.Context, arg MCPConnectBindRequestParams) error
+	MCPConnectClaimSlot(ctx context.Context, arg MCPConnectClaimSlotParams) (uuid.UUID, error)
+	MCPConnectClient(ctx context.Context, id string) (McpConnectClient, error)
+	MCPConnectClientInUse(ctx context.Context, arg MCPConnectClientInUseParams) (bool, error)
+	MCPConnectCode(ctx context.Context, hash []byte) (McpConnectCode, error)
+	MCPConnectConnection(ctx context.Context, arg MCPConnectConnectionParams) (MCPConnectConnectionRow, error)
+	MCPConnectCreateClient(ctx context.Context, arg MCPConnectCreateClientParams) (McpConnectClient, error)
+	MCPConnectCreateCode(ctx context.Context, arg MCPConnectCreateCodeParams) error
+	MCPConnectCreateGrant(ctx context.Context, arg MCPConnectCreateGrantParams) (McpConnectGrant, error)
+	MCPConnectCreateRequest(ctx context.Context, arg MCPConnectCreateRequestParams) error
+	MCPConnectCreateToken(ctx context.Context, arg MCPConnectCreateTokenParams) error
+	MCPConnectDecideRequest(ctx context.Context, arg MCPConnectDecideRequestParams) error
+	MCPConnectGrantLock(ctx context.Context, id uuid.UUID) (McpConnectGrant, error)
+	MCPConnectGrantRead(ctx context.Context, id uuid.UUID) (McpConnectGrant, error)
+	MCPConnectGrants(ctx context.Context, arg MCPConnectGrantsParams) ([]MCPConnectGrantsRow, error)
+	MCPConnectLimit(ctx context.Context, arg MCPConnectLimitParams) (int32, error)
+	MCPConnectPolicy(ctx context.Context) (string, error)
+	MCPConnectProposal(ctx context.Context, arg MCPConnectProposalParams) (McpConnectProposal, error)
+	MCPConnectProposalByKey(ctx context.Context, arg MCPConnectProposalByKeyParams) (McpConnectProposal, error)
+	MCPConnectProposalCount(ctx context.Context, grantID uuid.UUID) (int64, error)
+	MCPConnectProposalDecide(ctx context.Context, arg MCPConnectProposalDecideParams) error
+	MCPConnectProposalInsert(ctx context.Context, arg MCPConnectProposalInsertParams) (McpConnectProposal, error)
+	MCPConnectProposalLock(ctx context.Context, arg MCPConnectProposalLockParams) (McpConnectProposal, error)
+	MCPConnectProposals(ctx context.Context, arg MCPConnectProposalsParams) ([]MCPConnectProposalsRow, error)
+	MCPConnectPurgeClients(ctx context.Context, now *time.Time) (int64, error)
+	MCPConnectPurgeCodes(ctx context.Context, now time.Time) (int64, error)
+	MCPConnectPurgeGrants(ctx context.Context, before time.Time) (int64, error)
+	MCPConnectPurgeLimits(ctx context.Context, before time.Time) (int64, error)
+	// Keep content-free idempotency receipts until the grant leaves, so a late
+	// retry cannot reuse a purged key to create another product draft. Keep the
+	// source identity for current scope checks, not its content or bindings.
+	MCPConnectPurgeProposalContent(ctx context.Context, now *time.Time) (int64, error)
+	MCPConnectPurgeRequests(ctx context.Context, now time.Time) (int64, error)
+	MCPConnectPurgeSources(ctx context.Context, now time.Time) (int64, error)
+	MCPConnectPurgeTokens(ctx context.Context, now time.Time) (int64, error)
+	MCPConnectReleaseSlot(ctx context.Context, arg MCPConnectReleaseSlotParams) error
+	MCPConnectRequestLock(ctx context.Context, handleHash []byte) (McpConnectRequest, error)
+	MCPConnectRevoke(ctx context.Context, arg MCPConnectRevokeParams) error
+	MCPConnectSegment(ctx context.Context, arg MCPConnectSegmentParams) (MCPConnectSegmentRow, error)
+	MCPConnectSelectedSource(ctx context.Context, arg MCPConnectSelectedSourceParams) (MCPConnectSelectedSourceRow, error)
+	MCPConnectSessionLock(ctx context.Context, id uuid.UUID) (Session, error)
+	MCPConnectSource(ctx context.Context, arg MCPConnectSourceParams) (McpConnectSource, error)
+	MCPConnectSourceCount(ctx context.Context, grantID uuid.UUID) (int64, error)
+	MCPConnectSourceInsert(ctx context.Context, arg MCPConnectSourceInsertParams) error
+	MCPConnectSources(ctx context.Context, arg MCPConnectSourcesParams) ([]McpConnectSource, error)
+	// Shared lock fences template edits until the source check/decision commits.
+	MCPConnectTemplate(ctx context.Context, arg MCPConnectTemplateParams) (MCPConnectTemplateRow, error)
+	MCPConnectToken(ctx context.Context, hash []byte) (McpConnectToken, error)
+	MCPConnectUseCode(ctx context.Context, arg MCPConnectUseCodeParams) (McpConnectCode, error)
+	MCPConnectUseRefresh(ctx context.Context, arg MCPConnectUseRefreshParams) (McpConnectToken, error)
 	// Applies a domain's classification to up to @lim contacts still waiting
 	// for it. It never waits for a contact another transaction has locked (a
 	// tier run, an edit): that one keeps waiting for the next pass, and the
@@ -3903,6 +4040,12 @@ type Querier interface {
 	// Clicks per link: people's clicks, people's first click per link, and
 	// the clicks the bot filter left out.
 	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
+	// Campaign/sender locks fence scope changes until the snapshot read commits.
+	// No content, audience labels or message-level rows enter the projection.
+	ReportModelCampaign(ctx context.Context, arg ReportModelCampaignParams) (ReportModelCampaignRow, error)
+	ReportModelSnapshot(ctx context.Context, campaignID uuid.UUID) (ReportModelSnapshotRow, error)
+	ReportModelSnapshotInsert(ctx context.Context, arg ReportModelSnapshotInsertParams) error
+	ReportModelSnapshotsPurge(ctx context.Context, before time.Time) (int64, error)
 	// Whether a sending provider reported opens or clicks of a campaign's
 	// messages: its own tracking counted them (review AN-4).
 	ReportProviderTracked(ctx context.Context, arg ReportProviderTrackedParams) (bool, error)
@@ -5975,6 +6118,9 @@ type Querier interface {
 	WebsiteNewIssues(ctx context.Context, arg WebsiteNewIssuesParams) ([]WebsiteNewIssuesRow, error)
 	// The payment connection the site sells through: its mode and account ("" when none is connected).
 	WebsitePayments(ctx context.Context, workspaceID uuid.UUID) (WebsitePaymentsRow, error)
+	// The caller locks and verifies the exact proposal snapshot first. Never
+	// copy publication, access, address or byline settings from model output.
+	WebsitePostAcceptDraft(ctx context.Context, arg WebsitePostAcceptDraftParams) error
 	WebsitePostAddTag(ctx context.Context, arg WebsitePostAddTagParams) error
 	WebsitePostByCampaign(ctx context.Context, campaignID *uuid.UUID) (WebsitePost, error)
 	WebsitePostBySlug(ctx context.Context, arg WebsitePostBySlugParams) (WebsitePost, error)

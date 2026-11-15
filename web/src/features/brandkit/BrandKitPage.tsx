@@ -15,6 +15,7 @@ import { clock, dayMonthDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { contrast, grade, hexColour, ratioText } from './contrast'
 import { mk } from './messages'
+import { BrandVoiceSection } from './BrandVoice'
 import { SyncedBlockDialog } from './SyncedBlockDialog'
 import './brandkit.css'
 
@@ -101,6 +102,7 @@ export function BrandKitPage() {
       ) : (
         <Editor key={q.data.updatedAt ?? 'defaults'} kit={q.data} />
       )}
+      <BrandVoiceSection />
     </Page>
   )
 }

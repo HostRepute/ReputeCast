@@ -6,6 +6,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/ai"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/integrations"
+	"github.com/hostrepute/reputecast/internal/jobs"
 )
 
 // ai is the AI assistant with the workspace's own model (M22). It holds no
@@ -18,6 +19,7 @@ func (a *App) ai() *ai.Service {
 	}
 	return &ai.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
+		Jobs: func() *jobs.Client { return a.Jobs },
 		// Model servers on a private address work when the instance allows
 		// private addresses, as SMTP servers and community adapters do.
 		AllowPrivate: func() bool { return cfg.Providers.AllowPrivateNetworks },
@@ -27,6 +29,10 @@ func (a *App) ai() *ai.Service {
 		Segments:    a.segments(),
 		Reports:     reportsService(a),
 		Languages:   languagesService(a),
+		BrandKit:    a.brandKit(),
+		Campaigns:   a.campaigns(),
+		Automations: newAutomations(a),
+		Website:     websiteService(a),
 	}
 }
 

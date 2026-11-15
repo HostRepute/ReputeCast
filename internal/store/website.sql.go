@@ -759,6 +759,37 @@ func (q *Queries) WebsitePayments(ctx context.Context, workspaceID uuid.UUID) (W
 	return i, err
 }
 
+const websitePostAcceptDraft = `-- name: WebsitePostAcceptDraft :exec
+UPDATE website_posts SET title = $1, title_edited = true, excerpt = $2, excerpt_edited = true,
+    mjml = $3, version = version + 1, autosaved_at = NULL, updated_by = $4, updated_at = $5
+WHERE workspace_id = $6 AND id = $7
+`
+
+type WebsitePostAcceptDraftParams struct {
+	Title       string     `json:"title"`
+	Excerpt     string     `json:"excerpt"`
+	Mjml        string     `json:"mjml"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	At          time.Time  `json:"at"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ID          uuid.UUID  `json:"id"`
+}
+
+// The caller locks and verifies the exact proposal snapshot first. Never
+// copy publication, access, address or byline settings from model output.
+func (q *Queries) WebsitePostAcceptDraft(ctx context.Context, arg WebsitePostAcceptDraftParams) error {
+	_, err := q.db.Exec(ctx, websitePostAcceptDraft,
+		arg.Title,
+		arg.Excerpt,
+		arg.Mjml,
+		arg.UpdatedBy,
+		arg.At,
+		arg.WorkspaceID,
+		arg.ID,
+	)
+	return err
+}
+
 const websitePostAddTag = `-- name: WebsitePostAddTag :exec
 INSERT INTO website_post_tags (post_id, tag_id, position) VALUES ($1, $2, $3)
 ON CONFLICT (post_id, tag_id) DO UPDATE SET position = EXCLUDED.position

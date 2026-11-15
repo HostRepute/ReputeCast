@@ -9,6 +9,7 @@ import { shortDate } from '@/lib/format'
 import { useDebounced } from '@/lib/hooks'
 import { useOptionalWorkspace } from '@/lib/session'
 import { m as ma } from '@/features/appearance/messages'
+import { ag } from '@/features/ai/agent.messages'
 import { useSaveTheme, useTheme } from '@/features/appearance/useTheme'
 import { settingRows } from '@/features/settings/settingsIndex'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
@@ -218,6 +219,8 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
     }
     const out: Entry[] = []
     if (can('campaigns:edit')) out.push({ key: 'goto:new-campaign', kind: 'goto', title: tt(mp.newCampaign), detail: tt(m.navCampaigns), dest: { to: '/w/$workspace/campaigns/new', params: { workspace } } })
+    if (can('ai:use')) out.push({ key: 'goto:agent', kind: 'goto', title: tt(ag.ask), detail: tt(ag.lead), dest: { to: '/w/$workspace/agent/new', params: { workspace } } })
+    out.push({ key: 'goto:agent-runs', kind: 'goto', title: tt(ag.runs), detail: '', dest: { to: '/w/$workspace/agent', params: { workspace } } })
     for (const n of NAV) {
       const perm = sectionPerm[n.key]
       if (perm && !can(perm)) continue

@@ -7,6 +7,7 @@ import { T, useT, type MessageDescriptor } from '@/i18n'
 import type { AIFeature } from './api'
 import { langName } from './format'
 import { m, ms } from './messages'
+import { ag } from './agent.messages'
 
 type ActivityRow = Schemas['AIActivityRow']
 
@@ -24,6 +25,8 @@ export const featureName: Record<AIFeature, MessageDescriptor> = {
   accessibility_fix: m.featureAccessibility,
   segment_draft: m.featureSegment,
   report_summary: m.featureSummary,
+  brand_voice: m.featureBrandVoice,
+  draft: m.featureDraft,
 }
 
 /** What each feature sends ("Sends: …"), in the settings and the connect dialog. */
@@ -35,6 +38,8 @@ export const featureSends: Record<AIFeature, MessageDescriptor> = {
   accessibility_fix: m.sendsAccessibility,
   segment_draft: m.sendsSegment,
   report_summary: m.sendsSummary,
+  brand_voice: m.sendsBrandVoice,
+  draft: m.sendsDraft,
 }
 
 /** The activity log's feature column: "Translate to Spanish", "Shorten". */
@@ -54,6 +59,14 @@ export function rowFeature(t: ReturnType<typeof useT>, r: Pick<ActivityRow, 'fea
       return t(m.rowSegment)
     case 'report_summary':
       return t(m.rowSummary)
+    case 'brand_voice':
+      return t(m.featureBrandVoice)
+    case 'draft':
+      return t(m.featureDraft)
+    case 'agent':
+      return t(ag.title)
+    case 'connection_test':
+      return t(m.testConnection)
   }
   return r.feature
 }

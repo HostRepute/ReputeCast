@@ -4,6 +4,16 @@
  * collide with the shared vocabulary in app.css.
  */
 @layer components {
+  /* Keep the decision footer visible while long proposal content scrolls. */
+  .ai-draft-dialog > .db {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-3) var(--raised);
+  }
+  .ai-draft-dialog > .df {
+    box-shadow: 0 -6px 12px color-mix(in srgb, var(--ink) 6%, transparent);
+  }
   /* The catalog card's thin usage bar. */
   .ai-meter {
     height: 6px;

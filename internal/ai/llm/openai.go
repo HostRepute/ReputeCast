@@ -32,7 +32,29 @@ type openAIMessage struct {
 	Role string `json:"role"`
 	// Content is a string for system turns and text-only turns (what every
 	// compatible server reads), a list of parts with images.
-	Content any `json:"content"`
+	Content    any              `json:"content"`
+	ToolCalls  []openAIToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string           `json:"tool_call_id,omitempty"`
+}
+
+type openAIToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
+type openAITool struct {
+	Type     string         `json:"type"`
+	Function openAIFunction `json:"function"`
+}
+
+type openAIFunction struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Parameters  map[string]any `json:"parameters"`
 }
 
 type openAIRequest struct {
@@ -41,20 +63,22 @@ type openAIRequest struct {
 	MaxTokens           int             `json:"max_tokens,omitempty"`
 	MaxCompletionTokens int             `json:"max_completion_tokens,omitempty"`
 	ResponseFormat      map[string]any  `json:"response_format,omitempty"`
+	Tools               []openAITool    `json:"tools,omitempty"`
 }
 
 type openAIResponse struct {
 	Model   string `json:"model"`
 	Choices []struct {
 		Message struct {
-			Content *string `json:"content"`
-			Refusal *string `json:"refusal"`
+			Content   *string          `json:"content"`
+			Refusal   *string          `json:"refusal"`
+			ToolCalls []openAIToolCall `json:"tool_calls"`
 		} `json:"message"`
 		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
 	Usage struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
+		PromptTokens     *int `json:"prompt_tokens"`
+		CompletionTokens *int `json:"completion_tokens"`
 	} `json:"usage"`
 }
 
@@ -98,7 +122,13 @@ func (o *openAI) endpoint(path string) string {
 }
 
 func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
+	if err := validateTools(req, false); err != nil {
+		return Response{}, err
+	}
 	body := openAIRequest{Messages: []openAIMessage{}}
+	for _, tool := range req.Tools {
+		body.Tools = append(body.Tools, openAITool{Type: "function", Function: openAIFunction(tool)})
+	}
 	if o.cfg.Kind != Azure {
 		body.Model = o.cfg.Model
 	}
@@ -113,8 +143,22 @@ func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
 		body.Messages = append(body.Messages, openAIMessage{Role: "system", Content: req.System})
 	}
 	for _, m := range req.Messages {
+		if m.Role == "tool" {
+			for _, p := range m.Parts {
+				if p.ToolResult != nil {
+					body.Messages = append(body.Messages, openAIMessage{Role: "tool", Content: string(p.ToolResult.Content), ToolCallID: p.ToolResult.ID})
+				}
+			}
+			continue
+		}
+		calls := []openAIToolCall{}
 		images := false
 		for _, p := range m.Parts {
+			if p.ToolCall != nil {
+				c := openAIToolCall{ID: p.ToolCall.ID, Type: "function"}
+				c.Function.Name, c.Function.Arguments = p.ToolCall.Name, string(p.ToolCall.Arguments)
+				calls = append(calls, c)
+			}
 			if p.Image != nil {
 				images = true
 			}
@@ -124,7 +168,7 @@ func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
 			for _, p := range m.Parts {
 				text.WriteString(p.Text)
 			}
-			body.Messages = append(body.Messages, openAIMessage{Role: m.Role, Content: text.String()})
+			body.Messages = append(body.Messages, openAIMessage{Role: m.Role, Content: text.String(), ToolCalls: calls})
 			continue
 		}
 		parts := []openAIContent{}
@@ -135,7 +179,7 @@ func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
 			}
 			parts = append(parts, openAIContent{Type: "text", Text: p.Text})
 		}
-		body.Messages = append(body.Messages, openAIMessage{Role: m.Role, Content: parts})
+		body.Messages = append(body.Messages, openAIMessage{Role: m.Role, Content: parts, ToolCalls: calls})
 	}
 	if req.JSON {
 		if req.Schema != nil && o.cfg.Kind != Compatible {
@@ -153,17 +197,31 @@ func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
 		return Response{}, err
 	}
 	var res openAIResponse
-	if err := json.Unmarshal(raw, &res); err != nil || len(res.Choices) == 0 {
+	if err := json.Unmarshal(raw, &res); err != nil {
 		return Response{}, &Error{Kind: ErrInvalid, Err: err, Message: o.name() + "'s answer couldn't be read"}
 	}
+	input, inputKnown := tokenUsage(res.Usage.PromptTokens)
+	output, outputKnown := tokenUsage(res.Usage.CompletionTokens)
+	out := Response{Model: res.Model, InputTokens: input, OutputTokens: output, UsageKnown: inputKnown && outputKnown, Message: Message{Role: "assistant", Parts: []Part{}}}
+	if len(res.Choices) != 1 {
+		return out, &Error{Kind: ErrInvalid, Message: o.name() + " answered without exactly one choice"}
+	}
 	ch := res.Choices[0]
-	out := Response{Model: res.Model, InputTokens: res.Usage.PromptTokens, OutputTokens: res.Usage.CompletionTokens}
 	if ch.Message.Content != nil {
 		out.Text = *ch.Message.Content
+		out.Message.Parts = append(out.Message.Parts, Part{Text: out.Text})
+	}
+	for _, c := range ch.Message.ToolCalls {
+		if c.Type != "function" {
+			return out, toolError()
+		}
+		out.Message.Parts = append(out.Message.Parts, Part{ToolCall: &ToolCall{ID: c.ID, Name: c.Function.Name, Arguments: json.RawMessage(c.Function.Arguments)}})
 	}
 	switch ch.FinishReason {
 	case "stop":
 		out.StopReason = StopEnd
+	case "tool_calls":
+		out.StopReason = StopTools
 	case "length":
 		out.StopReason = StopLength
 	case "content_filter":
@@ -177,7 +235,7 @@ func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
 	if out.Model == "" {
 		out.Model = o.cfg.Model
 	}
-	return out, nil
+	return checkedTools(req, out, false)
 }
 
 func (o *openAI) Models(ctx context.Context) ([]Model, error) {

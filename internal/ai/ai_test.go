@@ -499,10 +499,12 @@ func TestAINeverSendsContactData(t *testing.T) {
 	if !strings.Contains(sent, `{{ first_name | default: \"there\" }}`) {
 		t.Fatal("tokens weren't sent as written")
 	}
-	// The log has each request, never its content.
+	// The log has each feature request and the connection probe, never content.
 	var n int
-	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM ai_requests r JOIN workspaces w ON w.id = r.workspace_id WHERE w.slug = 'acme-newsletter' AND r.provider = 'compatible'`).Scan(&n)
-	if n != 8 {
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM ai_requests r JOIN workspaces w ON w.id = r.workspace_id WHERE w.slug = 'acme-newsletter' AND r.provider = 'compatible'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 9 {
 		t.Fatalf("activity log rows: %d", n)
 	}
 }
@@ -539,7 +541,7 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 		PrivateHost string
 		PrivateIP   string
 	}
-	c.Do(http.MethodPost, ws+"/ai/test", map[string]any{"provider": "compatible", "baseUrl": f.srv.URL + "/v1", "model": "gemma3:27b"}).MustStatus(t, 200).JSON(t, &test)
+	c.Do(http.MethodPost, ws+"/ai/test", map[string]any{"provider": "compatible", "baseUrl": f.srv.URL + "/v1", "model": "gemma3:27b", "inputPrice": 2, "outputPrice": 10}).MustStatus(t, 200).JSON(t, &test)
 	if !test.OK || test.Answer != "Ready." || test.PrivateIP != "127.0.0.1" {
 		t.Fatalf("test: %+v", test)
 	}
@@ -581,10 +583,10 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 	}
 	c.Do(http.MethodPut, ws+"/ai/features/translate", map[string]any{"on": true}).MustStatus(t, 200)
 
-	// Overloaded twice: an error that says so, nothing changed, logged.
+	// No automatic paid retry when a server failure leaves billing uncertain.
 	f.set("overloaded")
 	p = c.Do(http.MethodPost, ws+"/ai/rewrite", map[string]any{"campaignId": digest, "action": "shorten", "html": "Hi there, this is a long paragraph to shorten."}).MustStatus(t, 502).Problem(t)
-	if !strings.Contains(p["detail"].(string), "returned an error (503, ") || !strings.Contains(p["detail"].(string), "twice. Nothing was changed.") {
+	if !strings.Contains(p["detail"].(string), "returned an error (503, ") || strings.Contains(p["detail"].(string), "twice.") || p["meta"].(map[string]any)["attempts"] != float64(1) {
 		t.Fatalf("overloaded: %v", p)
 	}
 	// Rate limited: try again in 20 s.
@@ -687,7 +689,7 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 	}
 	// Each entry has its details line (SettingsAudit).
 	for action, want := range map[string]string{
-		"ai.connection_created": "model llama3.3:70b · key added (write-only) · cap $10.00 a month · 6 of 7 features on",
+		"ai.connection_created": "model llama3.3:70b · key added (write-only) · cap $10.00 a month · 6 of 9 features on",
 		"ai.feature_disabled":   "Translate a language version turned off",
 		"ai.cap_updated":        "cap $10.00 a month → $50.00 a month",
 		"ai.key_replaced":       "key replaced (write-only) · test passed",

@@ -4,6 +4,8 @@ import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Grid } from '@/components/ui/Layout'
 import { toast } from '@/components/ui/Toast'
+import { ma } from '@/features/ai/automation-draft.messages'
+import { Sparkle, useAssist } from '@/features/ai/suggest'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -88,13 +90,17 @@ export function StarterTemplates({ templates }: { templates: Template[] }) {
 }
 
 /** The four cards of the empty state and the "New automation" dialog. */
-export function TemplateGrid({ templates }: { templates: Template[] }) {
+export function TemplateGrid({ templates, onBrief }: { templates: Template[]; onBrief: () => void }) {
   const t = useT()
+  const assist = useAssist()
   const reason = usePermissionReason('automations:edit')
   const { start, pending } = useCreateAutomation()
   const disabled = Boolean(reason) || pending
   return (
     <Grid min={240} gap={14}>
+      {assist.can ? <button type="button" className="tpl lg" aria-disabled={disabled || undefined} title={reason} onClick={() => !disabled && onBrief()}>
+        <Sparkle /><span className="font-semibold">{t(ma.title)}</span><span className="k">{t(ma.lead)}</span>
+      </button> : null}
       {templates.map((tpl) => (
         <button key={tpl.key} type="button" className="tpl lg" aria-disabled={disabled || undefined} title={reason} onClick={() => !disabled && start(tpl.key)}>
           <MiniStrip preview={tpl.preview} full />
@@ -113,7 +119,7 @@ export function TemplateGrid({ templates }: { templates: Template[] }) {
   )
 }
 
-export function EmptyAutomations({ templates, routeLabel }: { templates: Template[]; routeLabel: string }) {
+export function EmptyAutomations({ templates, routeLabel, onBrief }: { templates: Template[]; routeLabel: string; onBrief: () => void }) {
   const t = useT()
   return (
     <section className="card flex flex-col gap-4 border-dashed p-7" aria-labelledby="automations-empty">
@@ -123,7 +129,7 @@ export function EmptyAutomations({ templates, routeLabel }: { templates: Templat
         </h2>
         <span className="text-ink-2">{t(m.routeLead, { route: routeLabel })}</span>
       </div>
-      <TemplateGrid templates={templates} />
+      <TemplateGrid templates={templates} onBrief={onBrief} />
     </section>
   )
 }

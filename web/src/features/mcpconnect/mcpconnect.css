@@ -1,0 +1,25 @@
+.mcp-consent { max-width: 1060px; margin: auto; padding: 28px; display: flex; flex-direction: column; gap: 20px; font-size: 13px; line-height: 1.5; }
+.mcp-connect-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+.mcp-connect-side { display: flex; flex-direction: column; gap: 20px; }
+.mcp-connect-form { padding: 20px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.mcp-connect-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.mcp-connect-form legend { margin-bottom: 12px; font-weight: 600; }
+.mcp-connect-form .chk { align-items: start; min-height: 44px; }
+.mcp-connect-form .chk label { cursor: pointer; min-width: 0; }
+.mcp-connect-form .chk input { flex: none; margin-top: 3px; }
+.mcp-connect-options { margin-left: 24px; display: flex; flex-direction: column; gap: 8px; }
+.mcp-connect-grid code { overflow-wrap: anywhere; }
+.mcp-connect-facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px 16px; margin: 0; }
+.mcp-connect-facts dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 1100px) {
+  .mcp-consent { padding: 24px 16px; }
+  .mcp-connect-grid { grid-template-columns: minmax(0, 1fr); }
+  .mcp-connect-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+}
+@media (max-width: 767px) {
+  .mcp-consent { padding: 20px 12px; }
+  .mcp-connect-form { padding: 16px; }
+  .mcp-connect-side { grid-template-columns: minmax(0, 1fr); }
+  .mcp-connect-facts { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .mcp-connect-facts dd { margin-bottom: 8px; }
+}

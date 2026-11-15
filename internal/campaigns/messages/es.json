@@ -1,4 +1,5 @@
 {
+  "problem.proposalRevision": "El borrador cambió después de la propuesta. Revisa una nueva propuesta antes de aceptarla.",
   "audience.all": "Todos los suscriptores",
   "audience.segments": "{count, plural, one {# segmento} other {# segmentos}}",
   "audience.paid": "{who, select, paid {Solo suscriptores de pago} other {Solo suscriptores gratuitos}}",

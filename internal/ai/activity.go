@@ -25,7 +25,7 @@ type AIActivityRow struct {
 	UserID       string    `json:"userId,omitempty"`
 	Member       string    `json:"member"`
 	MemberColor  string    `json:"memberColor,omitempty"`
-	Feature      string    `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary"`
+	Feature      string    `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test"`
 	Action       string    `json:"action,omitempty" doc:"The rewrite's action, or the language translated to"`
 	TargetKind   string    `json:"targetKind,omitempty"`
 	TargetID     string    `json:"targetId,omitempty"`
@@ -36,6 +36,7 @@ type AIActivityRow struct {
 	InputTokens  int64     `json:"inputTokens"`
 	OutputTokens int64     `json:"outputTokens"`
 	CostMicros   int64     `json:"costMicros"`
+	UsageKnown   bool      `json:"usageKnown"`
 	Outcome      string    `json:"outcome" enum:"pending,accepted,accepted_edits,kept,rejected,discarded,refused,error,nothing_drafted,cancelled"`
 	Detail       string    `json:"detail,omitempty" doc:"1 of 5, 529 overloaded"`
 }
@@ -120,7 +121,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, f AIActivit
 		p.UserID = &id
 	}
 	if f.Feature != "" {
-		if !validFeature(f.Feature) {
+		if !validFeature(f.Feature) && f.Feature != FeatureAgent && f.Feature != FeatureConnectionTest {
 			return AIActivityList{}, invalid(ctx, "query.feature", mUnknownFeature, nil)
 		}
 		p.Feature = &f.Feature
@@ -144,7 +145,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, f AIActivit
 		}
 		row := AIActivityRow{ID: r.ID.String(), At: r.CreatedAt, Member: r.UserName, MemberColor: r.UserColor, Feature: r.Feature, Action: r.Action, TargetKind: r.TargetKind,
 			On: onIn(l, r.Feature, r.TargetKind, r.TargetID, r.TargetLabel), Provider: r.Provider, Model: r.Model, InputTokens: int64(r.InputTokens), OutputTokens: int64(r.OutputTokens),
-			Tokens: int64(r.InputTokens) + int64(r.OutputTokens), CostMicros: r.CostMicros, Outcome: r.Outcome, Detail: detailIn(l, r.OutcomeDetail)}
+			Tokens: int64(r.InputTokens) + int64(r.OutputTokens), CostMicros: r.CostMicros, UsageKnown: r.UsageKnown, Outcome: r.Outcome, Detail: detailIn(l, r.OutcomeDetail)}
 		if row.Member == "" {
 			row.Member = r.UserEmail
 		}
@@ -191,7 +192,9 @@ func (s *Service) RecordOutcome(ctx context.Context, ws *store.Workspace, p *aut
 	if err != nil {
 		return err
 	}
-	if r.UserID == nil || *r.UserID != *uid || s.now().Sub(r.CreatedAt) > 24*time.Hour {
+	// Voice and draft decisions commit with their revision, not asserted by
+	// the generic activity endpoint.
+	if r.Feature == FeatureBrandVoice || r.Feature == FeatureDraft || r.Feature == FeatureAgent || r.Feature == FeatureConnectionTest || r.UserID == nil || *r.UserID != *uid || s.now().Sub(r.CreatedAt) > 24*time.Hour {
 		return problem(ctx, http.StatusConflict, "ai_suggestion_gone", mSuggestionGone, nil)
 	}
 	n, err := s.Q.AIRequestSetOutcome(ctx, store.AIRequestSetOutcomeParams{ID: id, WorkspaceID: ws.ID, UserID: uid, Outcome: in.Outcome, OutcomeDetail: strings.TrimSpace(in.Detail), DecidedAt: ptr(s.now())})
@@ -204,7 +207,26 @@ func (s *Service) RecordOutcome(ctx context.Context, ws *store.Workspace, p *aut
 	return nil
 }
 
-// Purge drops the activity log's rows older than 90 days.
+// Purge removes temporary generation content and the 90-day activity log.
 func (s *Service) Purge(ctx context.Context) (int64, error) {
-	return s.Q.AIRequestsPurge(ctx, s.now().Add(-Retention))
+	if _, err := s.purgeAgentContent(ctx); err != nil {
+		return 0, err
+	}
+	if _, err := s.Q.AIBudgetAbandoned(ctx, s.now().Add(-10*time.Minute)); err != nil {
+		return 0, err
+	}
+	if _, err := s.Q.AIBudgetPurge(ctx, s.now().Add(-Retention)); err != nil {
+		return 0, err
+	}
+	n, err := s.Q.BrandVoiceSuggestionsPurge(ctx, s.now())
+	if err != nil {
+		return n, err
+	}
+	m, err := s.Q.AIDraftPurge(ctx, s.now())
+	if err != nil {
+		return n, err
+	}
+	n += m
+	m, err = s.Q.AIRequestsPurge(ctx, s.now().Add(-Retention))
+	return n + m, err
 }

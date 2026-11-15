@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>External MCP connections · A5 design</title>
+<link rel="stylesheet" href="agent-a0.css">
+<style>
+.oauth-main{max-width:1060px;margin:auto;padding:28px;display:grid;gap:20px}.oauth-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}.oauth-copy{max-width:65ch}.oauth-actions{display:flex;gap:10px;flex-wrap:wrap}.oauth-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}.oauth-main input[type=checkbox]{flex:none;width:20px;height:20px;min-height:0;accent-color:var(--accent)}.oauth-main label.checkfield{align-items:flex-start;cursor:pointer;min-height:44px}.oauth-main .checkfield input{margin-top:3px}.oauth-main fieldset{margin:0;border:0;padding:0}.oauth-main legend{font-weight:600;margin-bottom:8px}.oauth-main code{overflow-wrap:anywhere}.oauth-main .facts{margin:0}.oauth-main dd{margin:0}.oauth-main .fact{flex-wrap:wrap}.oauth-notice{min-height:20px}.oauth-tabbar{display:flex;gap:8px;flex-wrap:wrap}.oauth-tabbar .btn{min-height:44px}dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:24px;width:min(480px,calc(100% - 32px));box-sizing:border-box}dialog::backdrop{background:var(--scrim)}dialog h2,dialog p{margin-bottom:16px}@media(max-width:1100px){.oauth-main{padding:24px 16px}.oauth-grid{grid-template-columns:1fr}.oauth-side{display:grid;grid-template-columns:1fr 1fr;gap:16px}}@media(max-width:767px){.oauth-main{padding:20px 12px}.oauth-pair,.oauth-side{grid-template-columns:1fr}.oauth-actions .btn{min-height:44px}.oauth-main h1{font-size:24px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<x-dc><div id="mcp-design"></div></x-dc>
+<script>
+{
+  const root = document.getElementById('mcp-design');
+  const defaults = () => ({ page:'consent', dark:false, scopes:['editorial:read','drafts:propose'], workspace:'Acme Newsletter', scope:'Weekly Digest only', domains:'acme.example', ips:'', connection:'not_connected', proposal:'pending', bundle:'pending', conflict:false, error:'invalid', dialog:'', message:'', allowed:true });
+  let state = defaults();
+  const escape = text => String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const button = (key,text,kind='',disabled=false) => `<button class="btn ${kind}" type="button" data-action="${key}" id="${key}" ${disabled||(['keep','accept'].includes(key)&&(state.connection==='revoked'||!state.allowed))?'disabled':''}>${text}</button>`;
+  const badge = (text,tone='') => `<span class="badge ${tone}">${text}</span>`;
+  const capabilities = [
+    ['editorial:read','Read editorial context','Selected, human-reviewed draft content, templates and voice. Links and tokens stay bound; no contact-record or recipient-list tools.'],
+    ['reports:read','Read campaign totals','Fixed campaign aggregates. No per-person activity, contact lookup or shared report links.'],
+    ['drafts:propose','Propose drafts and changes','You review exact revisions in ReputeCast. This does not grant permission to apply, send or publish.'],
+  ];
+  const notice = (title,text) => `<section class="notice oauth-copy"><div><h3>${title}</h3><p>${text}</p></div></section>`;
+  const disclosure = () => `<aside class="oauth-side stack"><section class="card pad stack"><h2>Restricted tools</h2><p class="sub">No contact lookup, recipient lists, private field values, coupon codes, secrets or exports. Filters can miss personal information in ordinary text: review and confirm each selected source before sharing.</p><p class="sub">No sending, test sends, publishing, approvals, subscription changes or settings changes.</p></section><section class="card pad stack"><h2>Separate from in-app AI</h2><p class="sub">This connection cannot use your workspace’s model or its budget. Rounded reports do not prevent inference across overlapping campaigns.</p><p class="sub">The external client controls its conversation storage, model charges, retention and training. Revoking stops future access, not copies already received.</p></section></aside>`;
+  const identity = () => `<div class="row between"><div><h2>Editorial assistant</h2><p class="sub">Requested name · not a verified ChatGPT or Claude identity</p></div>${badge('Unverified client','warn')}</div><p class="sub">Callback host: <code>assistant.example.test</code></p>`;
+  function consent() {
+    return `<h1>Allow this external connection?</h1><p class="sub">Review where your content goes and what the client may do.</p><div class="oauth-grid"><section class="card"><div class="cardhead">${identity()}</div><form id="consent-form" class="pad stack"><div class="oauth-pair"><label class="field">Workspace<select id="workspace"><option ${state.workspace==='Acme Newsletter'?'selected':''}>Acme Newsletter</option><option ${state.workspace==='Northwind'?'selected':''}>Northwind</option></select></label><label class="field">Resource scope<select id="resource-scope"><option ${state.scope==='Weekly Digest only'?'selected':''}>Weekly Digest only</option><option ${state.scope==='All permitted resources'?'selected':''}>All permitted resources</option></select></label></div><p class="sub">Sender domains: within your current access. Further restrictions can be set before connecting.</p><fieldset><legend>Capabilities requested</legend>${capabilities.map(([key,name,description])=>`<label class="checkfield"><input type="checkbox" data-scope="${key}" ${state.scopes.includes(key)?'checked':''} ${!state.allowed?'disabled':''}><span><strong>${name}</strong><br><code>${key}</code><br><span class="sub">${description}</span></span></label>`).join('')}</fieldset>${!state.allowed?notice('Permission required','You need mcp:manage and the selected resources’ normal permissions. No connection can be granted from this role.'):''}${notice('Connection expires in 30 days','Access is rechecked on every call. Revoking it or losing workspace access stops future calls. Unapplied proposals expire separately, after two hours by default.')}<p class="sub">Signed in as Linh Nguyen. This request expires in five minutes. Your workspace’s normal MFA policy applies.</p><div class="oauth-actions">${button('deny','Deny')}${button('allow','Allow connection','primary',!state.allowed||!state.scopes.length||state.connection==='active')}</div></form></section>${disclosure()}</div>`;
+  }
+  function connections() {
+    const active=state.connection==='active';
+    return `<h1>External connections</h1><p class="sub">Settings › Keys & MCP · OAuth connections are separate from legacy agent tokens.</p><div class="oauth-grid"><section class="card"><div class="cardhead row between"><h2>${state.workspace}</h2>${badge(active?'Active':state.connection==='revoked'?'Revoked':'Not connected',active?'ok':'')}</div><div class="pad stack">${identity()}<dl class="facts"><div class="fact"><dt>Connected by</dt><dd>Linh Nguyen</dd></div><div class="fact"><dt>Resource scope</dt><dd>${escape(state.scope)}</dd></div><div class="fact"><dt>IP restrictions</dt><dd>Any address within instance policy</dd></div><div class="fact"><dt>Absolute expiry</dt><dd>30 days after connection</dd></div></dl><div><h3>Granted capabilities</h3><ul>${state.scopes.map(scope=>`<li><code>${scope}</code></li>`).join('')}</ul></div><p class="sub">No bearer token, refresh token or client secret appears here.</p><div class="oauth-actions">${button('revoke','Revoke connection','danger',!active)}${button('reconnect','Connect again','',active)}</div></div></section>${disclosure()}</div>`;
+  }
+  function proposals() {
+    return `<h1>Review external proposals</h1><p class="sub">Editorial assistant · proposed for ${escape(state.workspace)} · example content, no live request</p>${notice('Your decision applies only these revisions','Proposals do not inherit your send or publish permission. The client cannot accept its own work.')}<div class="oauth-grid"><div class="stack"><h2>New drafts</h2><section class="card"><div class="cardhead row between"><h2>Team re-engagement</h2>${badge(state.bundle==='pending'?'Not reviewed':state.bundle==='kept'?'Kept as drafts':'Discarded',state.bundle==='kept'?'ok':'')}</div><div class="pad stack"><p>One staged segment, one unpublished flow and three embedded emails on days 0, 5 and 10.</p><p class="sub">Future segment entry only. Keeping does not enroll existing readers.</p><p class="sub">Builder, graph, Liquid and MJML checks passed in this design fixture. No real validation is performed by the board.</p>${state.bundle==='pending'?`<div class="oauth-actions">${button('keep','Keep bundle','primary')}${button('discard','Discard bundle','danger')}</div>`:''}</div></section><h2>Changes to existing drafts</h2><section class="card"><div class="cardhead row between"><div><h2>Weekly Digest #143</h2><p class="sub">Subject only · base revision 9 · expires in 2 hours</p></div>${badge(state.proposal==='pending'?'Not reviewed':state.proposal==='accepted'?'Accepted':'Rejected',state.proposal==='accepted'?'ok':'')}</div><div class="pad stack"><div class="diff"><p class="removed"><small>Removed · saved subject</small><del>Weekly Digest #143: what we have been building for you</del></p><p class="added"><small>Added · proposed subject</small><ins>What’s new at Acme this week</ins></p></div>${state.conflict?notice('Changed since this proposal','A person saved revision 10. Nothing was applied. Ask the client to read the fresh source and submit a new proposal.'):''}<p class="sub">Content, audience and schedule stay unchanged. Acceptance uses your current edit permission.</p>${state.proposal==='pending'?`<div class="oauth-actions">${button('accept','Accept change','primary',state.conflict)}${button('reject','Reject proposal')}${button('conflict','Simulate another edit')}</div>`:''}</div></section></div>${disclosure()}</div>`;
+  }
+  const errors = {
+    invalid:['Invalid connection request','The callback or resource could not be verified. No code was issued and this page will not redirect.','Return to the client and start a new connection.'],
+    signin:['Sign in to continue','No workspace access has been granted.','Sign in and complete the instance’s required second factor before reviewing consent.'],
+    permission:['Permission required','This role cannot grant the requested capabilities.','Ask a workspace administrator for mcp:manage and the required resource permissions.'],
+    expired:['Connection request expired','This five-minute request is no longer valid. No connection was created.','Start again in the external client.'],
+    revoked:['Connection revoked','New calls and refreshes are refused. Unapplied proposals from this connection cannot be accepted.','Kept drafts remain. Connect again only if you want to grant new access.'],
+    proposal:['Proposal expired','This proposal can no longer change the saved draft.','Ask the client for a fresh proposal or continue manually in the editor.'],
+    reuse:['Reconnect this client','A refresh token was reused. The whole connection was revoked, including its access tokens.','Reconnect from the external client. Existing drafts remain unchanged.'],
+    rate:['Too many connection attempts','No additional connection was created.','Wait for the displayed retry interval, then check status before trying again.'],
+    offline:['Could not confirm the result','The request may have reached ReputeCast. No automatic retry was started.','Reconnect and check the saved connection or proposal status before deciding again.'],
+  };
+  function states() { const [title,detail,recovery]=errors[state.error];return `<h1>Connection and proposal states</h1><label class="field">Design scenario<select id="state-picker">${Object.entries(errors).map(([key,[title]])=>`<option value="${key}" ${state.error===key?'selected':''}>${title}</option>`).join('')}</select></label><section class="card pad stack"><h2>${title}</h2><p>${detail}</p><p class="sub">${recovery}</p><div>${button('check-status','Show saved sample status')}</div></section>${notice('No silent retries','A lost response is not evidence that the action failed. Re-read durable state; repeated decisions must not apply a second change.')}`; }
+  function render(focus) {
+    document.documentElement.dataset.theme=state.dark?'dark':'light';
+    root.innerHTML=`<header class="prototype"><div class="row between"><strong>A5 · Interactive design, not a working connection</strong><span>Sample identity, revisions and expiry · no network calls</span></div><nav class="oauth-tabbar" aria-label="Design screens">${[['consent','Consent'],['connections','Connections'],['proposals','Proposals'],['states','States']].map(([page,label])=>`<button class="btn" data-page="${page}" id="page-${page}" aria-pressed="${state.page===page}">${label}</button>`).join('')}${button('theme',state.dark?'Light':'Dark')}${button('role',state.allowed?'Preview missing permission':'Preview owner')}${button('reset','Reset')}</nav></header><main class="oauth-main"><div role="status" class="oauth-notice">${escape(state.message)}</div>${state.page==='consent'?consent():state.page==='connections'?connections():state.page==='proposals'?proposals():states()}</main><dialog aria-labelledby="confirmation-title"><h2 id="confirmation-title"></h2><p id="confirmation-copy"></p><div class="oauth-actions">${button('close-dialog','Cancel')}${button('confirm-dialog','Confirm','primary')}</div></dialog>`;
+    if(state.page==='consent') {
+      const restrictions=document.createElement('div');restrictions.className='stack';
+      restrictions.innerHTML=`<label class="field">Sender domain scope<select id="domain-scope"><option value="acme.example" ${state.domains==='acme.example'?'selected':''}>acme.example only</option><option value="permitted" ${state.domains==='permitted'?'selected':''}>All permitted sender domains</option></select></label><label class="field">Allowed client IPs or CIDRs (optional)<textarea id="allowed-ips" rows="2" maxlength="400" placeholder="203.0.113.0/24" aria-describedby="ip-hint">${escape(state.ips)}</textarea></label><p id="ip-hint" class="sub">One address or CIDR per line. Changing client egress addresses may stop this connection. These restrictions apply to MCP calls and refresh, not this consent browser.</p>`;
+      root.querySelector('fieldset').before(restrictions);
+    }
+    if(state.page==='connections') {
+      const facts=root.querySelector('dl');
+      facts.insertAdjacentHTML('beforeend',`<div class="fact"><dt>Sender domains</dt><dd>${state.domains==='permitted'?'All permitted sender domains':'acme.example only'}</dd></div>`);
+      facts.children[2].querySelector('dd').textContent=state.ips||'Any address within instance policy';
+    }
+    if(state.page==='proposals'&&(state.connection==='revoked'||!state.allowed)) {
+      const message=document.createElement('div');message.innerHTML=notice(state.connection==='revoked'?'Connection revoked':'Permission required','Keep and Accept are unavailable. Kept drafts remain; review the source in its editor using your current permissions.');root.querySelector('main h1').after(message);
+    }
+    root.querySelector('dialog').addEventListener('cancel',()=>{const action=state.dialog;state.dialog='';document.getElementById(action)?.focus();});
+    document.getElementById(focus)?.focus({preventScroll:true});
+  }
+  function showDialog(action,title,copy) {state.dialog=action;const dialog=root.querySelector('dialog');dialog.querySelector('h2').textContent=title;dialog.querySelector('p').textContent=copy;dialog.showModal();document.getElementById('close-dialog').focus();}
+  root.addEventListener('change',e=>{
+    if(e.target.dataset.scope){const key=e.target.dataset.scope;state.scopes=e.target.checked?[...state.scopes,key]:state.scopes.filter(x=>x!==key);render();root.querySelector(`[data-scope="${key}"]`)?.focus();}
+    if(e.target.id==='workspace')state.workspace=e.target.value;
+    if(e.target.id==='resource-scope')state.scope=e.target.value;
+    if(e.target.id==='domain-scope')state.domains=e.target.value;
+    if(e.target.id==='allowed-ips')state.ips=e.target.value;
+    if(e.target.id==='state-picker'){state.error=e.target.value;render('state-picker');}
+  });
+  root.addEventListener('submit',e=>e.preventDefault());
+  root.addEventListener('click',e=>{
+    const el=e.target.closest('button');if(!el||el.disabled)return;
+    if(el.dataset.page){state.page=el.dataset.page;state.message='';render(el.id);return;}
+    const action=el.dataset.action;
+    if(action==='revoke'){showDialog(action,'Revoke this connection?','All access and refresh tokens stop working. Pending proposals become non-applicable. Kept drafts remain. Copies already received by the external client are not deleted.');return;}
+    if(['keep','discard','accept','reject'].includes(action)){showDialog(action,el.textContent+'?',action==='keep'?'Keep the segment, flow and embedded emails together as ordinary drafts. No enrollment or publishing.':action==='discard'?'Discard only this unkept dependency bundle. No saved resource is deleted.':action==='accept'?'Apply only this subject change against exact revision 9. If the saved revision changed, nothing is applied.':'Reject this proposal without changing the campaign.');return;}
+    if(action==='close-dialog'){root.querySelector('dialog').close();document.getElementById(state.dialog)?.focus();state.dialog='';return;}
+    if(action==='confirm-dialog'){const decision=state.dialog;if(decision==='revoke')state.connection='revoked';if(decision==='keep'||decision==='discard')state.bundle=decision==='keep'?'kept':'discarded';if(decision==='accept'||decision==='reject')state.proposal=decision==='accept'?'accepted':'rejected';state.message='Sample decision recorded. No product resource was changed.';state.dialog='';render(`page-${state.page}`);return;}
+    if(action==='allow'&&state.allowed&&state.scopes.length){state.connection='active';state.page='connections';state.message='Sample connection allowed. In production, only an authorization code returns to the validated client callback.';}
+    if(action==='deny'){state.connection='not_connected';state.message='Connection denied. No grant or token was created; a validated callback would receive access_denied.';}
+    if(action==='reconnect'){state.page='consent';state.message='Review a new request before granting access.';}
+    if(action==='conflict'){state.conflict=true;state.message='Sample saved revision is now 10. Accept is blocked.';}
+    if(action==='check-status'){state.page='connections';state.message='Saved sample state loaded; no action was repeated.';}
+    if(action==='theme')state.dark=!state.dark;
+    if(action==='role')state.allowed=!state.allowed;
+    if(action==='reset')state=defaults();
+    render(action);
+  });
+  render();
+}
+</script>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1600}}'>class Component extends DCLogic { renderVals() { return {}; } }</script>
+</body></html>

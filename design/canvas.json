@@ -2,6 +2,19 @@
  "v": 3,
  "attachments": {},
  "boards": {
+  "MCPConnect.dc.html": { "h": 1600, "is_interactive": true, "page": "agent-a5", "title": "External MCP · consent, connections and proposals", "w": 1440, "x": 0, "y": 0 },
+  "AgentRun.dc.html": { "h": 1800, "is_interactive": true, "page": "agent-a0", "title": "Agent · brief and plan", "w": 1440, "x": 0, "y": 0 },
+  "AgentReview.dc.html": { "h": 1700, "is_interactive": true, "page": "agent-a0", "title": "Agent · review drafts and diffs", "w": 1440, "x": 1500, "y": 0 },
+  "AgentStates.dc.html": { "h": 1550, "is_interactive": true, "page": "agent-a0", "title": "Agent · limits and recovery", "w": 1440, "x": 3000, "y": 0 },
+  "AgentRunTablet.dc.html": { "h": 2400, "is_interactive": true, "page": "agent-a0", "title": "Agent · run · tablet", "w": 834, "x": 0, "y": 1900 },
+  "AgentReviewTablet.dc.html": { "h": 2400, "is_interactive": true, "page": "agent-a0", "title": "Agent · review · tablet", "w": 834, "x": 1500, "y": 1900 },
+  "AgentStatesTablet.dc.html": { "h": 1800, "is_interactive": true, "page": "agent-a0", "title": "Agent · states · tablet", "w": 834, "x": 3000, "y": 1900 },
+  "AgentRunPhone.dc.html": { "h": 3000, "is_interactive": true, "page": "agent-a0", "title": "Agent · run · phone", "w": 390, "x": 900, "y": 1900 },
+  "AgentReviewPhone.dc.html": { "h": 3000, "is_interactive": true, "page": "agent-a0", "title": "Agent · review · phone", "w": 390, "x": 2400, "y": 1900 },
+  "AgentStatesPhone.dc.html": { "h": 1800, "is_interactive": true, "page": "agent-a0", "title": "Agent · states · phone", "w": 390, "x": 3900, "y": 1900 },
+  "AgentSettings.dc.html": { "h": 1400, "is_interactive": true, "page": "agent-a0", "title": "Agent · AI settings extension", "w": 1440, "x": 0, "y": 5100 },
+  "AgentVoice.dc.html": { "h": 1700, "is_interactive": true, "page": "agent-a0", "title": "Agent · brand voice", "w": 1440, "x": 1500, "y": 5100 },
+  "AgentEntry.dc.html": { "h": 1300, "is_interactive": true, "page": "agent-a0", "title": "Agent · entry points", "w": 1440, "x": 3000, "y": 5100 },
   "AccountSecurity.dc.html": {
    "expand": "fill",
    "h": 1700,
@@ -148,7 +161,7 @@
   },
   "AutomationFlow.dc.html": {
    "expand": "fill",
-   "h": 1196,
+   "h": 1496,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations · flow canvas",
@@ -224,7 +237,7 @@
   },
   "BrandKit.dc.html": {
    "expand": "fill",
-   "h": 2588,
+   "h": 2888,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · brand kit",
@@ -243,7 +256,7 @@
   },
   "Campaigns.dc.html": {
    "expand": "fill",
-   "h": 1278,
+   "h": 1578,
    "is_interactive": true,
    "page": "report",
    "title": "Campaigns list",
@@ -2870,7 +2883,7 @@
    "x": 0,
    "y": 23021,
    "w": 1440,
-   "h": 8098,
+   "h": 8398,
    "title": "Integrations · AI assistant",
    "page": "p3-create",
    "is_interactive": true,
@@ -2880,7 +2893,7 @@
    "x": 1560,
    "y": 23021,
    "w": 1440,
-   "h": 5660,
+   "h": 5960,
    "title": "Composer · AI suggestions",
    "page": "p3-create",
    "is_interactive": true,
@@ -6629,7 +6642,20 @@
   "AudienceHoldout.dc.html",
   "AudienceHoldoutStates.dc.html",
   "AudienceHoldoutTablet.dc.html",
-  "AudienceHoldoutPhone.dc.html"
+  "AudienceHoldoutPhone.dc.html",
+  "AgentRun.dc.html",
+  "AgentReview.dc.html",
+  "AgentStates.dc.html",
+  "AgentRunTablet.dc.html",
+  "AgentRunPhone.dc.html",
+  "AgentReviewTablet.dc.html",
+  "AgentReviewPhone.dc.html",
+  "AgentStatesTablet.dc.html",
+  "AgentStatesPhone.dc.html",
+  "AgentSettings.dc.html",
+  "AgentVoice.dc.html",
+  "AgentEntry.dc.html",
+  "MCPConnect.dc.html"
  ],
  "pages": [
   {
@@ -6751,6 +6777,14 @@
   {
    "id": "dark",
    "name": "M54 Dark theme"
+  },
+  {
+   "id": "agent-a0",
+   "name": "A0 AI agent · design only"
+  },
+  {
+   "id": "agent-a5",
+   "name": "A5 External MCP · design only"
   }
  ],
  "title": "ReputeCast App Prototype"

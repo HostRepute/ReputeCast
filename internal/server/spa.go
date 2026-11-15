@@ -69,6 +69,11 @@ func (s *SPA) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h := w.Header()
 	h.Set("Content-Type", "text/html; charset=utf-8")
 	h.Set("Cache-Control", "no-cache")
+	if r.URL.Path == "/mcp-consent" {
+		// The consent URL carries an opaque authorization request handle.
+		h.Set("Cache-Control", "no-store")
+		h.Set("Referrer-Policy", "no-referrer")
+	}
 	h.Add("Vary", "Accept-Language")
 	// The app is private; public pages and the landing page are indexable.
 	h.Set("X-Robots-Tag", "noindex, nofollow")

@@ -9,8 +9,10 @@ import { EmptyState, ErrorPanel, FirstLoadReveal, Skeleton } from '@/components/
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
+import { AutomationFromBriefDialog } from '@/features/ai/AutomationFromBrief'
+import { ag } from '@/features/ai/agent.messages'
 import { count, dayMonthDate, pct } from '@/lib/format'
-import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { ct, RevenueCell } from '@/features/commerce/automation'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
@@ -32,6 +34,10 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations', { params: { path: { workspace: slug }, query: { status } } })
   const templates = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/templates', { params: { path: { workspace: slug } } }, { staleTime: Infinity })
   const [creating, setCreating] = useState(false)
+  const [briefOpen, setBriefOpen] = useState(false)
+  const navigate = useNavigate()
+  const canAI = useCan('ai:use')
+  const openBrief = () => { setCreating(false); setBriefOpen(true) }
   const newReason = usePermissionReason('automations:edit')
   const data = list.data
   const empty = data !== undefined && data.counts.all === 0
@@ -67,7 +73,7 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
       ) : list.isPending ? (
         <ListSkeleton />
       ) : empty ? (
-        <EmptyAutomations templates={templates.data?.templates ?? []} routeLabel={list.data.route.label} />
+        <EmptyAutomations templates={templates.data?.templates ?? []} routeLabel={list.data.route.label} onBrief={openBrief} />
       ) : (
         <Loaded data={list.data} status={status} templates={templates.data?.templates} />
       )}
@@ -78,8 +84,10 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
         size="lg"
         description={data ? t(m.routeLead, { route: data.route.label }) : undefined}
       >
-        <TemplateGrid templates={templates.data?.templates ?? []} />
+        {canAI ? <ButtonLink className="mb-4" to="/w/$workspace/agent/new" params={{ workspace: slug }} search={{ kind: 'automation' }}>{t(ag.entry)}</ButtonLink> : null}
+        <TemplateGrid templates={templates.data?.templates ?? []} onBrief={openBrief} />
       </Dialog>
+      {briefOpen ? <AutomationFromBriefDialog onClose={() => setBriefOpen(false)} onAccepted={(id) => navigate({ to: '/w/$workspace/automations/$automationId', params: { workspace: slug, automationId: id } })} /> : null}
     </Page>
   )
 }

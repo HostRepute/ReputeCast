@@ -1,4 +1,9 @@
 {
+  "voice.invalid": "Keep each voice field within its character limit and remove invalid characters.",
+  "voice.toneRequired": "Describe the tone before saving the voice.",
+  "voice.selection": "Choose one to ten different sent campaigns within your access.",
+  "voice.gone": "This suggestion expired or was already decided. Learn a new suggestion.",
+  "voice.changed": "The saved voice changed. Reload it and review your changes again.",
   "problem.badColor": "Use a colour like #4338CA.",
   "problem.badFallback": "Choose one of the email-safe fallback fonts.",
   "problem.badFontUrl": {"message": "Use the web font's https stylesheet link, with the font's name.", "note": "a web font's CSS link, like https://fonts.googleapis.com/css2?family=Inter"},

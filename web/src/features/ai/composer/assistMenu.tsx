@@ -6,6 +6,7 @@ import { Popover } from '@/components/ui/Menu'
 import { formatList, useT } from '@/i18n'
 import { dayMonthDate } from '@/lib/format'
 import { useComposer } from '@/features/composer/context'
+import { VoiceSelection } from '@/features/brandkit/VoiceSelection'
 import { useAccessibility } from '@/features/accessibility/composer/state'
 import { useCampaignLanguages } from '@/features/languages/composer'
 import { versionLanguage } from '@/features/languages/composerParts'
@@ -16,6 +17,8 @@ import { NotConfigured, Sparkle, usageLine } from '../suggest'
 import { useIdeasInput } from './ideas'
 import { useRewriteSelected } from './rewrite'
 import { useComposerAssist } from './state'
+import { DraftFromBriefDialog } from '../DraftFromBrief'
+import { md } from '../draft.messages'
 
 /** Images on the canvas without alt text (and not marked decorative). */
 function imagesWithoutAlt(c: ReturnType<typeof useComposer>): Component[] {
@@ -39,6 +42,7 @@ export function AssistMenu() {
   const { me } = useWorkspace()
   const t = useT()
   const [open, setOpen] = useState(false)
+  const [drafting, setDrafting] = useState(false)
   const ideasInput = useIdeasInput()
   const rewriteSelected = useRewriteSelected()
   const langs = useCampaignLanguages(c.campaign.id)
@@ -122,10 +126,13 @@ export function AssistMenu() {
   )
   const offText = (f: Parameters<typeof a.featureOn>[0]) => (a.featureOn(f) ? undefined : f === 'alt_text' && s && !s.imageInput ? t(ms.noImageModel) : t(ms.featureOff))
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen} trigger={trigger} label={t(ms.assistMenu)} className="ai-menu">
+      <div className="border-b border-line-2 p-3"><VoiceSelection value={ca.voiceRevision} onChange={ca.setVoiceRevision} /></div>
       <div role="menu" aria-label={t(ms.assistMenu)} className="flex flex-col">
         {item(t(ms.assistIdeas), t(ms.assistIdeasSub), () => ca.openIdeas(ideasInput()), offText('subject_ideas'))}
         {item(t(ms.assistRewrite), rewriteSelected ? t(ms.assistRewriteSubOn) : t(ms.assistRewriteSub), rewriteSelected, offText('rewrite'))}
+        {c.kind === 'campaign' && c.campaign.status === 'draft' && !open_ && c.variant === 'A' ? item(t(md.title), t(md.lead), () => setDrafting(true), c.hasUnsaved?.() ? t(md.unsaved) : offText('draft')) : null}
         {data && offered.length
           ? item(
               t(ms.assistTranslate),
@@ -157,5 +164,7 @@ export function AssistMenu() {
         <div className="ai-mf">{usageLine(t, s)}</div>
       </div>
     </Popover>
+    {drafting ? <DraftFromBriefDialog onClose={() => setDrafting(false)} initialVoiceRevision={ca.voiceRevision} target={{ id: c.campaign.id, name: c.name, baseRevision: c.currentVersion?.() ?? c.campaign.version, hasUnsaved: () => c.hasUnsaved?.() ?? false }} onAccepted={() => c.reloadFromServer()} /> : null}
+    </>
   )
 }

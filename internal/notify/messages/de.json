@@ -1,4 +1,10 @@
 {
+  "short.external_proposal": "externe Vorschläge",
+  "event.external_proposal": "Externer Vorschlag zur Prüfung bereit",
+  "audience.external_proposal": "Nur die Person, die die Verbindung erlaubt hat",
+  "short.ai_agent_ready": "KI-Aufgaben",
+  "event.ai_agent_ready": "KI-Aufgabe bereit oder Aktion erforderlich",
+  "audience.ai_agent_ready": "Nur die Person, die die Aufgabe gestartet hat",
   "summary.all": "Alle Ereignisse",
   "summary.off": "Aus",
   "summary.approvals": "Freigaben",

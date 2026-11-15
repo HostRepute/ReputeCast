@@ -315,3 +315,38 @@ JOIN workspaces w ON w.id = a.workspace_id
 WHERE c.completed_at IS NOT NULL AND c.completed_at <= sqlc.arg(final_before)::timestamptz
 ORDER BY a.created_at
 LIMIT 500;
+
+-- name: ReportModelSnapshot :one
+SELECT content, created_at FROM report_model_snapshots WHERE campaign_id = @campaign_id;
+
+-- name: ReportModelSnapshotInsert :exec
+INSERT INTO report_model_snapshots (campaign_id, content, created_at)
+VALUES (@campaign_id, @content, @created_at)
+ON CONFLICT (campaign_id) DO NOTHING;
+
+-- name: ReportModelSnapshotsPurge :execrows
+UPDATE report_model_snapshots SET content = NULL
+WHERE campaign_id IN (
+    SELECT s.campaign_id FROM report_model_snapshots s
+    WHERE s.content IS NOT NULL AND s.created_at <= @before
+    ORDER BY s.created_at LIMIT 500 FOR UPDATE SKIP LOCKED
+);
+
+-- name: ReportModelCampaign :one
+-- Campaign/sender locks fence scope changes until the snapshot read commits.
+-- No content, audience labels or message-level rows enter the projection.
+SELECT c.id, c.name, c.started_at, c.completed_at
+FROM campaigns c
+LEFT JOIN LATERAL (SELECT email, domain_id FROM senders WHERE id = c.sender_id FOR SHARE) s ON true
+LEFT JOIN LATERAL (SELECT domain FROM sending_domains WHERE id = s.domain_id FOR SHARE) d ON true
+WHERE c.workspace_id = @workspace_id AND c.id = @id
+  AND c.deleted_at IS NULL AND c.channel = 'email' AND c.status = 'sent'
+  AND c.started_at IS NOT NULL AND c.completed_at IS NOT NULL
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR (
+    coalesce(jsonb_array_length(c.audience->'segments'), 0) = 0
+    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) l(id)
+                    WHERE NOT (l.id::uuid = ANY(@scope_lists::uuid[])))
+  ))
+  AND (cardinality(@scope_domains::text[]) = 0 OR c.sender_id IS NULL OR
+       lower(coalesce(nullif(d.domain, ''), nullif(split_part(s.email, '@', 2), ''), '')) = ANY(@scope_domains::text[]))
+FOR NO KEY UPDATE OF c;

@@ -182,6 +182,110 @@ type AgencyWorkspace struct {
 	AddedAt          time.Time  `json:"addedAt"`
 }
 
+type AiAgentArtifact struct {
+	ID           uuid.UUID       `json:"id"`
+	RunID        uuid.UUID       `json:"runId"`
+	Handle       string          `json:"handle"`
+	Kind         string          `json:"kind"`
+	Bundle       string          `json:"bundle"`
+	Revision     int64           `json:"revision"`
+	TargetID     *uuid.UUID      `json:"targetId"`
+	BaseRevision int64           `json:"baseRevision"`
+	Content      json.RawMessage `json:"content"`
+	Context      json.RawMessage `json:"context"`
+	Decision     string          `json:"decision"`
+	ResultID     *uuid.UUID      `json:"resultId"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
+}
+
+type AiAgentCapability struct {
+	WorkspaceID    uuid.UUID `json:"workspaceId"`
+	ConnectionHash string    `json:"connectionHash"`
+	Supported      bool      `json:"supported"`
+	CheckedAt      time.Time `json:"checkedAt"`
+}
+
+type AiAgentContext struct {
+	RunID    uuid.UUID       `json:"runId"`
+	Brief    json.RawMessage `json:"brief"`
+	Plan     json.RawMessage `json:"plan"`
+	Bindings json.RawMessage `json:"bindings"`
+	Messages json.RawMessage `json:"messages"`
+}
+
+type AiAgentRun struct {
+	ID               uuid.UUID  `json:"id"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	UserID           uuid.UUID  `json:"userId"`
+	State            string     `json:"state"`
+	Version          int64      `json:"version"`
+	PlanRevision     int64      `json:"planRevision"`
+	AcceptedRevision int64      `json:"acceptedRevision"`
+	ToolLimit        int32      `json:"toolLimit"`
+	TokenLimit       int64      `json:"tokenLimit"`
+	CostLimitMicros  int64      `json:"costLimitMicros"`
+	ToolCalls        int32      `json:"toolCalls"`
+	PauseReason      string     `json:"pauseReason"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	ExpiresAt        time.Time  `json:"expiresAt"`
+	ClosedAt         *time.Time `json:"closedAt"`
+	Model            string     `json:"model"`
+}
+
+type AiAgentSetting struct {
+	WorkspaceID     uuid.UUID `json:"workspaceId"`
+	Enabled         bool      `json:"enabled"`
+	ToolLimit       int32     `json:"toolLimit"`
+	TokenLimit      int64     `json:"tokenLimit"`
+	CostLimitMicros int64     `json:"costLimitMicros"`
+	Revision        int64     `json:"revision"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
+type AiAgentSlot struct {
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Slot        int32     `json:"slot"`
+	RunID       uuid.UUID `json:"runId"`
+	LeaseID     uuid.UUID `json:"leaseId"`
+	ExpiresAt   time.Time `json:"expiresAt"`
+}
+
+type AiAgentStep struct {
+	ID         uuid.UUID       `json:"id"`
+	RunID      uuid.UUID       `json:"runId"`
+	Sequence   int32           `json:"sequence"`
+	RunVersion int64           `json:"runVersion"`
+	State      string          `json:"state"`
+	Request    json.RawMessage `json:"request"`
+	Response   json.RawMessage `json:"response"`
+	Results    json.RawMessage `json:"results"`
+	NextCall   int32           `json:"nextCall"`
+	Summary    json.RawMessage `json:"summary"`
+	CreatedAt  time.Time       `json:"createdAt"`
+	UpdatedAt  time.Time       `json:"updatedAt"`
+}
+
+type AiBudgetReservation struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	UserID          *uuid.UUID `json:"userId"`
+	RunID           *uuid.UUID `json:"runId"`
+	Provider        string     `json:"provider"`
+	Model           string     `json:"model"`
+	Feature         string     `json:"feature"`
+	PricingRevision string     `json:"pricingRevision"`
+	InputPrice      float64    `json:"inputPrice"`
+	OutputPrice     float64    `json:"outputPrice"`
+	State           string     `json:"state"`
+	InputTokens     int64      `json:"inputTokens"`
+	OutputTokens    int64      `json:"outputTokens"`
+	CostMicros      int64      `json:"costMicros"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	SettledAt       *time.Time `json:"settledAt"`
+}
+
 type AiConnection struct {
 	WorkspaceID    uuid.UUID  `json:"workspaceId"`
 	Provider       string     `json:"provider"`
@@ -219,6 +323,23 @@ type AiConnection struct {
 	Demo           bool       `json:"demo"`
 	UpdatedBy      *uuid.UUID `json:"updatedBy"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
+	PriceKnown     bool       `json:"priceKnown"`
+}
+
+type AiDraftProposal struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	UserID         uuid.UUID       `json:"userId"`
+	Kind           string          `json:"kind"`
+	TargetID       *uuid.UUID      `json:"targetId"`
+	BaseRevision   int64           `json:"baseRevision"`
+	Context        json.RawMessage `json:"context"`
+	Content        json.RawMessage `json:"content"`
+	Decision       string          `json:"decision"`
+	ResultID       *uuid.UUID      `json:"resultId"`
+	ResultRevision *int64          `json:"resultRevision"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	ExpiresAt      time.Time       `json:"expiresAt"`
 }
 
 type AiReportSummary struct {
@@ -251,6 +372,8 @@ type AiRequest struct {
 	DurationMs    int32      `json:"durationMs"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	DecidedAt     *time.Time `json:"decidedAt"`
+	VoiceRevision int32      `json:"voiceRevision"`
+	UsageKnown    bool       `json:"usageKnown"`
 }
 
 type ApiKey struct {
@@ -638,6 +761,26 @@ type BrandKit struct {
 	Website     string          `json:"website"`
 	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
+type BrandVoiceRevision struct {
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	Revision        int32           `json:"revision"`
+	Content         json.RawMessage `json:"content"`
+	SourceCampaigns []uuid.UUID     `json:"sourceCampaigns"`
+	RequestID       *uuid.UUID      `json:"requestId"`
+	CreatedBy       *uuid.UUID      `json:"createdBy"`
+	CreatedAt       time.Time       `json:"createdAt"`
+}
+
+type BrandVoiceSuggestion struct {
+	ID              uuid.UUID       `json:"id"`
+	WorkspaceID     uuid.UUID       `json:"workspaceId"`
+	UserID          uuid.UUID       `json:"userId"`
+	BaseRevision    int32           `json:"baseRevision"`
+	Content         json.RawMessage `json:"content"`
+	SourceCampaigns []uuid.UUID     `json:"sourceCampaigns"`
+	ExpiresAt       time.Time       `json:"expiresAt"`
 }
 
 type Campaign struct {
@@ -2528,6 +2671,113 @@ type ListMembership struct {
 	CreatedAt      time.Time  `json:"createdAt"`
 }
 
+type McpConnectClient struct {
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	RedirectUris []string   `json:"redirectUris"`
+	AuthMethod   string     `json:"authMethod"`
+	SecretHash   []byte     `json:"secretHash"`
+	Verified     bool       `json:"verified"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	ExpiresAt    *time.Time `json:"expiresAt"`
+}
+
+type McpConnectCode struct {
+	Hash        []byte     `json:"hash"`
+	GrantID     uuid.UUID  `json:"grantId"`
+	RedirectUri string     `json:"redirectUri"`
+	Challenge   string     `json:"challenge"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+	UsedAt      *time.Time `json:"usedAt"`
+}
+
+type McpConnectGrant struct {
+	ID            uuid.UUID       `json:"id"`
+	ClientID      string          `json:"clientId"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	UserID        uuid.UUID       `json:"userId"`
+	Resource      string          `json:"resource"`
+	Scopes        []string        `json:"scopes"`
+	Permissions   []string        `json:"permissions"`
+	Scope         json.RawMessage `json:"scope"`
+	AllowedIps    []netip.Prefix  `json:"allowedIps"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	ExpiresAt     time.Time       `json:"expiresAt"`
+	RevokedAt     *time.Time      `json:"revokedAt"`
+	RevokedReason string          `json:"revokedReason"`
+}
+
+type McpConnectLimit struct {
+	Key    []byte    `json:"key"`
+	Bucket time.Time `json:"bucket"`
+	Count  int32     `json:"count"`
+}
+
+type McpConnectProposal struct {
+	ID             uuid.UUID       `json:"id"`
+	GrantID        uuid.UUID       `json:"grantId"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	UserID         uuid.UUID       `json:"userId"`
+	RequestKey     string          `json:"requestKey"`
+	RequestHash    []byte          `json:"requestHash"`
+	Kind           string          `json:"kind"`
+	TargetID       *uuid.UUID      `json:"targetId"`
+	BaseRevision   int64           `json:"baseRevision"`
+	Context        json.RawMessage `json:"context"`
+	Content        json.RawMessage `json:"content"`
+	Preview        string          `json:"preview"`
+	Decision       string          `json:"decision"`
+	DecidedBy      *uuid.UUID      `json:"decidedBy"`
+	DecidedAt      *time.Time      `json:"decidedAt"`
+	ResultID       *uuid.UUID      `json:"resultId"`
+	ResultRevision *int64          `json:"resultRevision"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	ExpiresAt      time.Time       `json:"expiresAt"`
+	PurgeAt        time.Time       `json:"purgeAt"`
+	PurgedAt       *time.Time      `json:"purgedAt"`
+}
+
+type McpConnectRequest struct {
+	HandleHash  []byte     `json:"handleHash"`
+	ClientID    string     `json:"clientId"`
+	RedirectUri string     `json:"redirectUri"`
+	Resource    string     `json:"resource"`
+	State       string     `json:"state"`
+	Challenge   string     `json:"challenge"`
+	Scopes      []string   `json:"scopes"`
+	UserID      *uuid.UUID `json:"userId"`
+	SessionID   *uuid.UUID `json:"sessionId"`
+	Status      string     `json:"status"`
+	ExpiresAt   time.Time  `json:"expiresAt"`
+}
+
+type McpConnectSlot struct {
+	GrantID   uuid.UUID `json:"grantId"`
+	LeaseID   uuid.UUID `json:"leaseId"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type McpConnectSource struct {
+	Handle       string          `json:"handle"`
+	GrantID      uuid.UUID       `json:"grantId"`
+	Kind         string          `json:"kind"`
+	TargetID     uuid.UUID       `json:"targetId"`
+	BaseRevision int64           `json:"baseRevision"`
+	Snapshot     string          `json:"snapshot"`
+	Context      json.RawMessage `json:"context"`
+	Projected    json.RawMessage `json:"projected"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	ExpiresAt    time.Time       `json:"expiresAt"`
+}
+
+type McpConnectToken struct {
+	Hash      []byte     `json:"hash"`
+	GrantID   uuid.UUID  `json:"grantId"`
+	Kind      string     `json:"kind"`
+	ExpiresAt time.Time  `json:"expiresAt"`
+	UsedAt    *time.Time `json:"usedAt"`
+}
+
 type MediaAsset struct {
 	ID                  uuid.UUID  `json:"id"`
 	WorkspaceID         uuid.UUID  `json:"workspaceId"`
@@ -3985,6 +4235,12 @@ type ReportFinalAlert struct {
 	UserID      uuid.UUID `json:"userId"`
 	WorkspaceID uuid.UUID `json:"workspaceId"`
 	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type ReportModelSnapshot struct {
+	CampaignID uuid.UUID       `json:"campaignId"`
+	Content    json.RawMessage `json:"content"`
+	CreatedAt  time.Time       `json:"createdAt"`
 }
 
 type ReportShare struct {

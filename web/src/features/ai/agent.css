@@ -1,0 +1,14 @@
+/* AgentRun / AgentReview: the board's 310px context rail stacks at tablet. */
+.agent-columns { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 20px; align-items: start; }
+.agent-main, .agent-aside { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.agent-item { padding: 15px 20px; border-bottom: 1px solid var(--line-2); }
+.agent-item:last-child { border-bottom: 0; }
+.agent-source { overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 1100px) {
+  .agent-columns { grid-template-columns: minmax(0, 1fr); }
+  .agent-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+}
+@media (max-width: 767px) {
+  .agent-aside { grid-template-columns: minmax(0, 1fr); }
+  .agent-item { padding: 14px 16px; }
+}

@@ -91,7 +91,7 @@ func TestSavedKeyStaysWithItsAddress(t *testing.T) {
 
 	// The saved address (with a final slash) keeps the saved key.
 	var test struct{ OK bool }
-	c.Do(http.MethodPost, ws+"/ai/test", map[string]any{"provider": "compatible", "baseUrl": mine.srv.URL + "/v1/", "model": "gemma3:27b"}).MustStatus(t, 200).JSON(t, &test)
+	c.Do(http.MethodPost, ws+"/ai/test", map[string]any{"provider": "compatible", "baseUrl": mine.srv.URL + "/v1/", "model": "gemma3:27b", "inputPrice": 2, "outputPrice": 10}).MustStatus(t, 200).JSON(t, &test)
 	if keys := mine.got(); !test.OK || keys[len(keys)-1] != "sk-office-1" {
 		t.Fatalf("same address: %+v, keys %v", test, keys)
 	}

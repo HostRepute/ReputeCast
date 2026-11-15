@@ -17,6 +17,7 @@
   "post.featuredFull": "Trang chủ có tối đa 3 bài viết nổi bật. Hãy bỏ nổi bật một bài trong Trang chủ và điều hướng trước.",
   "post.contentIsCampaign": "Bài viết này đến từ một chiến dịch: hãy sửa nội dung trong chiến dịch.",
   "post.contentConflict": "Có người đã lưu bài viết này sau khi bạn mở. Hãy tải lại để xem thay đổi của họ, hoặc giữ thay đổi của bạn.",
+  "post.invalidDraft": "Bản nháp này có nội dung không hợp lệ. Hãy sửa trước khi giữ lại.",
   "post.alreadyPublished": "Bài viết này đã được xuất bản.",
   "post.notSentYet": "Chiến dịch chưa được gửi. Bài viết của chiến dịch có thể được xuất bản cùng lần gửi, hoặc vào một thời điểm.",
   "post.publishedUseUnpublish": "Bài viết này đang được xuất bản. Để gỡ bài viết khỏi trang web, hãy gỡ xuất bản trong Trang web › Bài viết.",

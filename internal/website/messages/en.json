@@ -17,6 +17,7 @@
   "post.featuredFull": "The home page features up to 3 posts. Unfeature one in Home & navigation first.",
   "post.contentIsCampaign": "This post comes from a campaign: edit its content in the campaign.",
   "post.contentConflict": "Someone saved this post since you opened it. Reload it to see their changes, or keep yours.",
+  "post.invalidDraft": "This draft has invalid content. Revise it before keeping it.",
   "post.alreadyPublished": "This post is published already.",
   "post.notSentYet": "The campaign hasn't been sent yet. Its post can go live with the send, or at a time.",
   "post.publishedUseUnpublish": "This post is live. To take it off the site, unpublish it from Website › Posts.",

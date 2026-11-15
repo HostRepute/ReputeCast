@@ -24,6 +24,8 @@ export interface ComposerAssist {
   panel: AssistPanel
   ideas: Suggest<IdeasInput, Ideas>
   rewriting: Suggest<RewriteInput, Rewrite>
+  voiceRevision: number | undefined
+  setVoiceRevision: (revision: number | undefined) => void
   /** Subject ideas: opens the panel and asks the model. */
   openIdeas(input: IdeasInput): void
   /** A rewrite of a text block; "With an instruction…" waits for the instruction. */
@@ -49,6 +51,7 @@ export function useComposerAssistState(campaignId: string): ComposerAssist {
   const assist = useAssist()
   const [panel, setPanel] = useState<AssistPanel>(null)
   const [translating, setTranslating] = useState<string | null>(null)
+  const [voiceRevision, setVoiceRevision] = useState<number>()
   const ideas = useSuggest<IdeasInput, Ideas>(async (body, signal) => (await http.POST(`${aiBase}/subject-ideas`, { params: { path: { workspace: slug } }, body, signal })).data!)
   const rewriting = useSuggest<RewriteInput, Rewrite>(async (body, signal) => (await http.POST(`${aiBase}/rewrite`, { params: { path: { workspace: slug } }, body, signal })).data!)
   const translation = useSuggest<TranslateInput, Translation>(async (body, signal) => (await http.POST(`${aiBase}/translate`, { params: { path: { workspace: slug } }, body, signal })).data!)
@@ -65,20 +68,22 @@ export function useComposerAssistState(campaignId: string): ComposerAssist {
   const { start: startRewrite, cancel: cancelRewrite } = rewriting
   const openIdeas = useCallback(
     (input: IdeasInput) => {
+      input = { ...input, voiceRevision: input.voiceRevision ?? voiceRevision }
       cancelRewrite()
       setPanel({ kind: 'ideas', input })
       void startIdeas(input)
     },
-    [startIdeas, cancelRewrite],
+    [startIdeas, cancelRewrite, voiceRevision],
   )
   const rewrite = useCallback(
     (target: Omit<RewriteTarget, 'input'>, input: RewriteInput | null) => {
+      if (input) input = { ...input, voiceRevision: input.voiceRevision ?? voiceRevision }
       cancelIdeas()
       cancelRewrite()
       setPanel({ kind: 'rewrite', ...target, input })
       if (input) void startRewrite(input)
     },
-    [startRewrite, cancelIdeas, cancelRewrite],
+    [startRewrite, cancelIdeas, cancelRewrite, voiceRevision],
   )
   const closePanel = useCallback(() => {
     cancelIdeas()
@@ -86,8 +91,8 @@ export function useComposerAssistState(campaignId: string): ComposerAssist {
     setPanel(null)
   }, [cancelIdeas, cancelRewrite])
   return useMemo(
-    () => ({ assist, panel, ideas, rewriting, openIdeas, rewrite, closePanel, translating, translation, translate }),
-    [assist, panel, ideas, rewriting, openIdeas, rewrite, closePanel, translating, translation, translate],
+    () => ({ assist, panel, ideas, rewriting, openIdeas, rewrite, closePanel, translating, translation, translate, voiceRevision, setVoiceRevision }),
+    [assist, panel, ideas, rewriting, openIdeas, rewrite, closePanel, translating, translation, translate, voiceRevision],
   )
 }
 

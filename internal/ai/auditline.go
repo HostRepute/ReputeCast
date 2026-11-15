@@ -23,6 +23,8 @@ var featureLabels = map[string]string{
 	FeatureAccessibility: "Accessibility fixes",
 	FeatureSegment:       "Describe the segment",
 	FeatureSummary:       "Report summaries",
+	FeatureBrandVoice:    "Brand voice",
+	FeatureDraft:         "Draft from a brief",
 }
 
 // Key lines.

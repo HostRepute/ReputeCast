@@ -1,4 +1,9 @@
 {
+  "voice.invalid": "Respeta el límite de caracteres de cada campo y elimina los caracteres no válidos.",
+  "voice.toneRequired": "Describe el tono antes de guardar la voz de marca.",
+  "voice.selection": "Elige de una a diez campañas enviadas distintas a las que tengas acceso.",
+  "voice.gone": "Esta sugerencia caducó o ya se decidió. Genera una nueva.",
+  "voice.changed": "La voz guardada cambió. Recárgala y revisa tus cambios de nuevo.",
   "problem.badColor": "Usa un color como #4338CA.",
   "problem.badFallback": "Elige una de las fuentes alternativas seguras para correo.",
   "problem.badFontUrl": "Usa el enlace https de la hoja de estilos de la fuente web, con el nombre de la fuente.",

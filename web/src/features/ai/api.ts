@@ -13,7 +13,7 @@ export type AIStatus = Schemas['AIStatus']
 export type AIModelOption = Schemas['AIModelOption']
 
 /** The features in the settings' order. */
-export const AI_FEATURES: AIFeature[] = ['subject_ideas', 'rewrite', 'translate', 'alt_text', 'accessibility_fix', 'segment_draft', 'report_summary']
+export const AI_FEATURES: AIFeature[] = ['subject_ideas', 'rewrite', 'translate', 'alt_text', 'accessibility_fix', 'segment_draft', 'report_summary', 'brand_voice', 'draft']
 
 /** Settings › Integrations › AI assistant. */
 export function useAISettings() {

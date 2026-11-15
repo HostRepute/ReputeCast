@@ -30,10 +30,13 @@ class AIUsageView:
             month_start (datetime.datetime):
             output_tokens (int):
             requests (int):
+            reserved_cost_micros (int):
+            reserved_tokens (int):
             resets_at (datetime.datetime):
             share (float): Share of the cap used, 0 to 1 (0 without a cap)
             state (AIUsageViewState):
             tokens (int):
+            uncertain_requests (int):
      """
 
     cost_micros: int
@@ -41,10 +44,13 @@ class AIUsageView:
     month_start: datetime.datetime
     output_tokens: int
     requests: int
+    reserved_cost_micros: int
+    reserved_tokens: int
     resets_at: datetime.datetime
     share: float
     state: AIUsageViewState
     tokens: int
+    uncertain_requests: int
 
 
 
@@ -61,6 +67,10 @@ class AIUsageView:
 
         requests = self.requests
 
+        reserved_cost_micros = self.reserved_cost_micros
+
+        reserved_tokens = self.reserved_tokens
+
         resets_at = self.resets_at.isoformat()
 
         share = self.share
@@ -68,6 +78,8 @@ class AIUsageView:
         state = self.state.value
 
         tokens = self.tokens
+
+        uncertain_requests = self.uncertain_requests
 
 
         field_dict: dict[str, Any] = {}
@@ -78,10 +90,13 @@ class AIUsageView:
             "monthStart": month_start,
             "outputTokens": output_tokens,
             "requests": requests,
+            "reservedCostMicros": reserved_cost_micros,
+            "reservedTokens": reserved_tokens,
             "resetsAt": resets_at,
             "share": share,
             "state": state,
             "tokens": tokens,
+            "uncertainRequests": uncertain_requests,
         })
 
         return field_dict
@@ -104,6 +119,10 @@ class AIUsageView:
 
         requests = d.pop("requests")
 
+        reserved_cost_micros = d.pop("reservedCostMicros")
+
+        reserved_tokens = d.pop("reservedTokens")
+
         resets_at = datetime.datetime.fromisoformat(d.pop("resetsAt"))
 
 
@@ -118,16 +137,21 @@ class AIUsageView:
 
         tokens = d.pop("tokens")
 
+        uncertain_requests = d.pop("uncertainRequests")
+
         ai_usage_view = cls(
             cost_micros=cost_micros,
             input_tokens=input_tokens,
             month_start=month_start,
             output_tokens=output_tokens,
             requests=requests,
+            reserved_cost_micros=reserved_cost_micros,
+            reserved_tokens=reserved_tokens,
             resets_at=resets_at,
             share=share,
             state=state,
             tokens=tokens,
+            uncertain_requests=uncertain_requests,
         )
 
         return ai_usage_view

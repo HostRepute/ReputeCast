@@ -370,8 +370,14 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
     </main>
   </div>
 </div>
+<section aria-label="A0 agent settings extension" style="margin:24px;padding:24px;border:1px solid #E3E6EB;border-radius:10px;background:#fff;font:14px/1.5 'IBM Plex Sans',sans-serif">
+  <h2>A0 · Agent settings extension</h2>
+  <p>Agent: off until enabled by an integration manager. Requires verified Tools support. Defaults per run: 40 tool calls, 300,000 tokens and $2.00; the monthly cap still applies.</p>
+  <p>New disclosure: brief, plan and steps expire after 30 days. Only the initiator and authorized integration managers can read them, within resource scope. Brand voice has its own feature switch.</p>
+  <a href="AgentSettings.dc.html">Open Agent settings, privacy and member states</a>
+</section>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":8098}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":8398}}'>
 class Component extends DCLogic {
   renderVals() {
     return { _lq0: "{{ first_name | default: \"there\" }}", _lq1: "{{ first_name | default: \"there\" }}" };

@@ -665,6 +665,26 @@ Facebook and Instagram Lead Ads, through each workspace's own Meta app and a sys
 | `GrowthSources` (+Tablet, +Phone heights) | The source "Lead ads · Field Guide download" (Facebook and Instagram lead form): 17 joined, none left, too few to compare, and in the cohort select. The period's totals follow: 1,773 joined, net +1,301 (+2.8%), 11 sources, Other 112 joined in the chart's legend. |
 | `GrowthStates` | Imports included follows: 1,773 plus 9,509 imported, 11,282 joined, net +10,810 (+1,301 without the imports), 3 of 11 sources, Other 112 joined. |
 
+### AI agent (A0 · design only)
+
+Brief: `docs/spec/reputecast-design-addon-agent.md`. The seven product decisions are accepted; these boards specify A1–A4 and do not mark the feature implemented. A5 OAuth needs its own security and consent design. All numbers are illustrative fixtures, not additions to demo seed data.
+
+| Boards | Scope |
+|---|---|
+| `AgentRun`, `AgentRunTablet`, `AgentRunPhone` | Brief and clarified plan, staging consent, step log with a repaired coupon token, scoped conversation and run list. |
+| `AgentReview`, `AgentReviewTablet`, `AgentReviewPhone` | New dependency bundle and independent post; Keep/Discard; existing-draft subject diff with Accept/Reject; concurrent-edit block; editor handoff without publishing. |
+| `AgentStates`, `AgentStatesTablet`, `AgentStatesPhone` | Budget and monthly caps, model configuration/capabilities, provider failures, revoked permissions/scope, refusal, exhausted repairs, cancellation, reconnect, conflict, expiry, reputation boundary, empty/loading/queue and ready notification. |
+| `AgentSettings`, `AgentVoice`, `AgentEntry` | AI feature/budget/privacy settings, versioned manual/learned voice, and the Campaigns, composer, automation and command-palette entry points. Responsive at all three widths. |
+| `AISettings`, `BrandKit`, `AIComposer`, `AutomationFlow`, `Campaigns` | Linked A0 extension frames; existing one-shot, send and publish screens are otherwise unchanged. |
+
+The new boards use shared design-only `agent-a0.css` and `agent-a0.js`, standard browser rendering and one in-memory sample state. They work without the proprietary `support.js`; no model calls, API writes or local storage. The board selector, Reset and theme controls are prototype controls, not product chrome. Canvas page: **A0 AI agent · design only**. QA map entries are manual and have no production routes.
+
+The new brief resolves the old whole-campaign/chat exclusion, the distinction between staging and existing resources, bounded run-content retention, and cumulative Continue accounting. No permission key or actor type is added. Brand-kit edits reuse `templates:edit`, as the existing service does.
+
+### External MCP (A5 · design only)
+
+Security brief: `docs/spec/reputecast-design-addon-agent-oauth.md`. `MCPConnect` has working design-only consent, capability selection, connection/revocation, new-bundle Keep/Discard, existing-draft Accept/Reject, stale-revision and recovery states. It reuses Clearwater tokens from `agent-a0.css` and reflows at 1440/834/390; the scene selector, theme and role buttons are prototype controls. Canvas page: **A5 External MCP · design only**. No OAuth endpoint, token, live model call or product write is implemented by this board.
+
 ## Conflicts between the design and the spec
 
 When they disagree we follow the design for UI and the spec for behaviour.
