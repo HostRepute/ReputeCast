@@ -15,6 +15,8 @@ export const links = {
   installGuide: `${docs}/self-hosting/docker/`,
   screenshots: `${repo}#screenshots`,
   flowEditor: `${docs}/automations/overview/`,
+  // The agent runs on the AI assistant's model connection.
+  modelGuide: `${docs}/integrations/ai-assistant/`,
   hostrepute: 'https://hostrepute.com',
   withoutHostRepute: `${docs}/deliverability/hostrepute/`,
   composeUrl: 'https://get.reputecast.com/compose.yml',

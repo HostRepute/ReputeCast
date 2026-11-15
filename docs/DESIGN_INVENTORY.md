@@ -685,6 +685,16 @@ The new brief resolves the old whole-campaign/chat exclusion, the distinction be
 
 Security brief: `docs/spec/reputecast-design-addon-agent-oauth.md`. `MCPConnect` has working design-only consent, capability selection, connection/revocation, new-bundle Keep/Discard, existing-draft Accept/Reject, stale-revision and recovery states. It reuses Clearwater tokens from `agent-a0.css` and reflows at 1440/834/390; the scene selector, theme and role buttons are prototype controls. Canvas page: **A5 External MCP · design only**. No OAuth endpoint, token, live model call or product write is implemented by this board.
 
+### Landing after 1.7.0
+
+The landing page introduces the AI agent and external connections that 1.7.0 released, and the board with it.
+
+| Boards | Change |
+|---|---|
+| `Landing`, `LandingTablet`, `LandingPhone` | A section after Automations (`#agent`, "AI agent" in the navigation): the text beside a picture of one agent run. The text is "An AI agent that drafts, never sends.", one sentence, three check marks (keep or discard every draft, spending limits on every run, MCP assistants can propose drafts too) and Connect your own model (the AI assistant's docs page). The run, Agent run · Team re-engagement, drafts once, in about four seconds, when a third of it is in view: the brief appears word by word; the hero card's scan line sweeps down while a segment, an unpublished flow and three emails arrive with their checks; Drafting turns into Ready to review; the usage counts up to 18 of 40 tool calls · $0.42 of $2.00 (the default run limits) and Keep bundle pulses once. Then an MCP client's proposal (Editorial assistant, Waiting for you) and a Locked card: sending, scheduling and publishing stay with people. The pictures' buttons are hidden from assistive technology and take no pointer. Reduced motion, no JavaScript and paused motion show the run finished. Text and run sit side by side from 928 px and stack below; on phones the proposal loses its indent. |
+| `Landing`, `LandingTablet`, `LandingPhone` | Pause motion leaves the header for the footer: a text button with the pause or play icon after the footer's links. The marquee, the drifting blobs and the flow canvas's pulse still loop, so WCAG 2.2.2 still needs it; the agent run ends within five seconds and needs none. |
+| `Landing`, `LandingTablet`, `LandingPhone` | The receipt's Composer line says "AI suggestions and drafts from a brief, in your brand voice, through your own model key", and API, MCP, integrations adds "External assistants over OAuth, whose proposals wait for a person". The frames' heights follow the built page at 1440, 834 and 390 px (7,475, 10,507 and 13,847), and the tablet and phone titles sit 150 px above their frames again. |
+
 ## Conflicts between the design and the spec
 
 When they disagree we follow the design for UI and the spec for behaviour.

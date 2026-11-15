@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { Count } from '../components/Count'
-import { Header } from '../sections/Header'
+import { Footer } from '../sections/Footer'
 import { getMotion, refresh, setPaused, STORAGE_KEY, useProgress } from './motion'
 
 function mockReducedMotion(reduce: boolean) {
@@ -37,7 +37,7 @@ beforeEach(() => {
 
 describe('the Pause motion control', () => {
   it('pauses on the <html> element, remembers it, and settles entrances for good', () => {
-    render(<Header />)
+    render(<Footer />)
     const button = screen.getByRole('button', { name: /pause motion/i })
     fireEvent.click(button)
     expect(document.documentElement.dataset.motion).toBe('paused')
@@ -53,7 +53,7 @@ describe('the Pause motion control', () => {
   })
 
   it('renders both labels so the right one shows before any script runs', () => {
-    render(<Header />)
+    render(<Footer />)
     const button = screen.getByRole('button', { name: /pause motion/i })
     expect(button.querySelector('.when-playing')).toHaveTextContent('Pause motion')
     expect(button.querySelector('.when-paused')).toHaveTextContent('Play motion')

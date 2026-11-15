@@ -53,6 +53,9 @@
   --color-ok-bar: var(--ok-bar);
   --color-bad-line: var(--bad-line);
   --color-bad-tint: var(--bad-tint);
+  --color-ok-line: var(--ok-line);
+  --color-ok-tint: var(--ok-tint);
+  --color-purple-fg: var(--purple-fg);
   --color-dark-surface: var(--dark-surface);
   --color-dark-line: var(--dark-line);
   --color-dark-text: var(--dark-text);
@@ -1867,6 +1870,118 @@
 }
 
 @layer components {
+  /* The AI agent run (Agent.tsx): drafted once, in about four seconds, when a
+     third of it is in view, so nothing in it needs pausing. */
+  .ag-state {
+    display: inline-grid;
+    justify-items: end;
+  }
+  .ag-state > * {
+    grid-area: 1 / 1;
+  }
+  .ag-brief {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    background: var(--ground-2);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .ag-drafting {
+    opacity: 0;
+  }
+  /* The hero card's scan line, sweeping down the run while it drafts. */
+  .ag-scan {
+    position: relative;
+    overflow: hidden;
+  }
+  .ag-scan::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0), rgba(15, 118, 110, 0.9), rgba(15, 118, 110, 0)) top / 100% 2px no-repeat;
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* With JavaScript the run waits until it scrolls into view. Until the
+     script takes over (data-live), a fallback shows it finished after 8 s in
+     case the script never runs. The badge's fallback has keyframes of its
+     own: an animation that keeps its name keeps its start time, so the
+     run's fade would count from page load. */
+  .js .ag:not(.go) .ag-drafting {
+    opacity: 1;
+  }
+  .js .ag:not(.go) :is(.ag-ready, .ag-w, .ag-in, .ag-check > i) {
+    opacity: 0;
+  }
+  .js .ag:not(.go):not([data-live]) .ag-drafting {
+    animation: ag-hide 0s linear 8s forwards;
+  }
+  .js .ag:not(.go):not([data-live]) :is(.ag-ready, .ag-w, .ag-in, .ag-check > i) {
+    animation: flow-fallback 0s linear 8s forwards;
+  }
+  .ag.go .ag-drafting {
+    opacity: 1;
+    animation: ag-fade 0.3s ease-in 2.6s forwards;
+  }
+  .ag.go .ag-ready {
+    animation: pop 0.5s var(--ease-out-soft) 2.7s both;
+  }
+  .ag.go .ag-w {
+    animation: ag-word 0.3s ease-out calc(0.15s + var(--w) * 60ms) both;
+  }
+  .ag.go .ag-in {
+    animation: rise 0.5s var(--ease-out-soft) var(--at) both;
+  }
+  .ag.go .ag-check > i {
+    animation: pop 0.45s var(--ease-out-soft) calc(var(--at) + 0.1s) both;
+  }
+  .ag.go .ag-keep {
+    animation: livepulse 1.2s ease-out 2.9s 1;
+  }
+  .ag.go .ag-scan::after {
+    animation: scan 1.6s ease-in-out 1.1s 1 both;
+  }
+
+  /* The footer's Pause motion control: a text button among the footer's links. */
+  .ft-motion {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .ft-motion > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+@keyframes ag-word {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+@keyframes ag-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes ag-hide {
+  to {
+    opacity: 0;
+  }
+}
+
+@layer components {
   @media (max-width: 767px) {
     .wrap h1 {
       font-size: 34px !important;
@@ -1966,6 +2081,16 @@
   .fn::after {
     display: none !important;
   }
+  .ag :is(.ag-ready, .ag-w, .ag-in, .ag-check > i, .ag-keep) {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none;
+    translate: none;
+  }
+  .ag .ag-drafting,
+  .ag-scan::after {
+    display: none !important;
+  }
   .cmp-thumb {
     transition: none;
   }
@@ -2037,11 +2162,19 @@
   animation: none !important;
   opacity: 1 !important;
 }
+[data-settled] .ag :is(.ag-ready, .ag-w, .ag-in, .ag-check > i, .ag-keep) {
+  animation: none !important;
+  opacity: 1 !important;
+}
+[data-settled] .ag .ag-drafting,
+[data-settled] .ag-scan::after {
+  display: none;
+}
 /* The control's label follows the state, which is known before first paint. */
 .motion-toggle .when-paused,
 [data-motion='paused'] .motion-toggle .when-playing {
   display: none;
 }
 [data-motion='paused'] .motion-toggle .when-paused {
-  display: inline;
+  display: inline-flex;
 }

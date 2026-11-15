@@ -1,3 +1,4 @@
+import { Agent } from './sections/Agent'
 import { AllFeatures } from './sections/AllFeatures'
 import { Automations } from './sections/Automations'
 import { Compare } from './sections/Compare'
@@ -23,6 +24,7 @@ export function App() {
         <Features />
         <Providers />
         <Automations />
+        <Agent />
         <AllFeatures />
         <Compare />
         <Cost />
