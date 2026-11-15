@@ -72,6 +72,16 @@ const icons = {
   shield: <path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" />,
   import: <path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M2 13h12" />,
   arrowRight: <path d="M3 8h10M9 4l4 4-4 4" strokeWidth={1.8} />,
+  sparkle: <path d="M8 2v3M8 11v3M2 8h3M11 8h3M4 4l2 2M10 10l2 2M12 4l-2 2M6 10l-2 2" />,
+  link: <path d="M6.5 9.5a3 3 0 0 0 4.2 0l2.1-2.1a3 3 0 0 0-4.2-4.2l-.8.8M9.5 6.5a3 3 0 0 0-4.2 0L3.2 8.6a3 3 0 0 0 4.2 4.2l.8-.8" />,
+  lock: (
+    <>
+      <rect x="2" y="7" width="12" height="7" rx="1.5" strokeWidth={1.8} />
+      <path d="M5 7V5a3 3 0 0 1 6 0v2" strokeWidth={1.8} />
+    </>
+  ),
+  pause: <path d="M5.5 3v10M10.5 3v10" strokeWidth={2} />,
+  play: <path d="M5 3l8 5-8 5z" />,
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof icons

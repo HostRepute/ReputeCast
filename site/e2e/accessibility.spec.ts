@@ -60,6 +60,20 @@ test.describe('with motion', () => {
     )
     expect(opacity).toEqual(['1', '1'])
   })
+
+  test('the agent run drafts once it scrolls into view, and shows finished at once while motion is paused', async ({ page }) => {
+    // Parts of the run that are not fully shown yet.
+    const unseen = () => page.evaluate(() => [...document.querySelectorAll('#agent :is(.ag-in, .ag-w, .ag-ready)')].filter((el) => getComputedStyle(el).opacity !== '1').length)
+    await page.goto('/')
+    expect(await unseen()).toBeGreaterThan(0)
+    await page.locator('#agent .ag').scrollIntoViewIfNeeded()
+    await expect.poll(unseen, { timeout: 8000 }).toBe(0)
+
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Pause motion' }).click()
+    await page.locator('#agent .ag').scrollIntoViewIfNeeded()
+    expect(await unseen()).toBe(0)
+  })
 })
 
 test.describe('forced colours', () => {

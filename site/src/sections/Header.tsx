@@ -1,12 +1,12 @@
 import { GitHubMark, LogoMark } from '../components/Marks'
 import { links } from '../content/links'
-import { togglePaused } from '../lib/motion'
 import { githubStars } from '../content/stars'
 
 const nav = [
   { href: '#features', label: 'Features' },
   { href: '#providers', label: 'Providers' },
   { href: '#automations', label: 'Automations' },
+  { href: '#agent', label: 'AI agent' },
   { href: '#compare', label: 'Compare' },
   { href: '#cost', label: 'Cost' },
   { href: links.docs, label: 'Docs' },
@@ -29,12 +29,6 @@ export function Header() {
           ))}
         </nav>
         <div className="ml-auto flex flex-wrap gap-2.5">
-          {/* Pauses every animation on the page (WCAG 2.2.2). The label follows
-              <html data-motion>, which is restored before first paint. */}
-          <button type="button" className="btn motion-toggle min-h-10" onClick={togglePaused}>
-            <span className="when-playing">Pause motion</span>
-            <span className="when-paused">Play motion</span>
-          </button>
           <a href={links.discussions} className="btn min-h-10">
             Discussions
           </a>

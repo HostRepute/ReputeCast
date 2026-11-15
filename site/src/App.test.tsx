@@ -6,6 +6,7 @@ import { hydrateRoot } from 'react-dom/client'
 import { render as renderToString } from './entry-server'
 import { App } from './App'
 import { links } from './content/links'
+import { AGENT_RUN_LIMITS } from './sections/Agent'
 import { APP_LANGUAGE_NAMES, groups } from './sections/AllFeatures'
 import { PLATFORMS, RIVALS, rows, slug } from './sections/Compare'
 import { HERO_COMMAND } from './sections/Hero'
@@ -35,7 +36,7 @@ describe('the prerendered page', () => {
     expect(page.querySelector('main#main')).not.toBeNull()
     expect(page.querySelector('footer')).not.toBeNull()
     expect(page.querySelector('nav[aria-label="Site"]')).not.toBeNull()
-    for (const id of ['features', 'providers', 'automations', 'compare', 'cost']) expect(page.querySelector(`#${id}`)).not.toBeNull()
+    for (const id of ['features', 'providers', 'automations', 'agent', 'compare', 'cost']) expect(page.querySelector(`#${id}`)).not.toBeNull()
   })
 
   it('renders final values for everything that animates, so readers without JavaScript see the numbers', () => {
@@ -102,6 +103,13 @@ describe('the prerendered page', () => {
     expect(repoFile('deploy/railway/README.md')).toContain('${{Postgres.DATABASE_URL}}')
     expect(links.coolify).toBe(`${links.repo}/blob/main/deploy/coolify/reputecast.yaml`)
     expect(repoFile('deploy/coolify/reputecast.yaml')).toMatch(/^# port: 8080$/m)
+  })
+
+  it('shows the limits agent runs start with (internal/ai/agent.go)', () => {
+    const defaults = /AIAgentLimits\{ToolCalls: (\d+), Tokens: \d+, CostMicros: (\d+)\}/.exec(repoFile('internal/ai/agent.go'))
+    expect(defaults).not.toBeNull()
+    expect(AGENT_RUN_LIMITS).toEqual({ toolCalls: Number(defaults![1]), costUSD: Number(defaults![2]) / 1_000_000 })
+    expect(spoken(prerendered().querySelector('#agent')!)).toContain(`18 of ${AGENT_RUN_LIMITS.toolCalls} tool calls · $0.42 of $${AGENT_RUN_LIMITS.costUSD.toFixed(2)}`)
   })
 
   it('names every language the app ships in (web/src/i18n/languages.ts)', () => {

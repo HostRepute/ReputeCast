@@ -788,7 +788,7 @@
   },
   "Landing.dc.html": {
    "expand": "fill",
-   "h": 6594,
+   "h": 7475,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page",
@@ -797,22 +797,22 @@
    "y": 0
   },
   "LandingPhone.dc.html": {
-   "h": 12285,
+   "h": 13847,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · phone",
    "w": 390,
    "x": 0,
-   "y": 16397
+   "y": 18589
   },
   "LandingTablet.dc.html": {
-   "h": 9196,
+   "h": 10507,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · tablet",
    "w": 834,
    "x": 0,
-   "y": 6871
+   "y": 7752
   },
   "ListHealth.dc.html": {
    "expand": "fill",
@@ -5335,7 +5335,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 16596
+   "y": 18439
   },
   "t-landing-tablet": {
    "kind": "title1",
@@ -5344,7 +5344,7 @@
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "w": 240,
    "x": 0,
-   "y": 6769
+   "y": 7602
   },
   "t-migration": {
    "kind": "title1",

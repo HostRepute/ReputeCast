@@ -1,5 +1,7 @@
+import { Icon } from '../components/Icon'
 import { LogoMark } from '../components/Marks'
 import { links } from '../content/links'
+import { togglePaused } from '../lib/motion'
 
 const footerLinks = [
   { href: links.repo, label: 'GitHub' },
@@ -22,6 +24,18 @@ export function Footer() {
             {l.label}
           </a>
         ))}
+        {/* Pauses every animation on the page (WCAG 2.2.2). The label follows
+            <html data-motion>, which is restored before first paint. */}
+        <button type="button" className="ft-motion motion-toggle" onClick={togglePaused}>
+          <span className="when-playing">
+            <Icon name="pause" size={14} />
+            Pause motion
+          </span>
+          <span className="when-paused">
+            <Icon name="play" size={14} />
+            Play motion
+          </span>
+        </button>
         <span className="ml-auto">Open-source licence: see the repository · Built by HostRepute</span>
       </div>
     </footer>
