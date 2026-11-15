@@ -404,6 +404,24 @@ func agentFailureKey(plan AIAgentPlan, call llm.ToolCall) string {
 	return "denied"
 }
 
+// exhausted reports a repair ceiling that still blocks the run. An output's
+// counter counts only while its item is in the current plan and its bundle
+// is not discarded: a replan that drops the item must not pause again.
+func (c agentContext) exhausted() bool {
+	for key, attempts := range c.Failures {
+		if attempts < 3 {
+			continue
+		}
+		kind, handle, output := strings.Cut(key, ":")
+		if !output || slices.ContainsFunc(c.Plan.Items, func(item AIAgentPlanItem) bool {
+			return item.Kind == kind && item.Handle == handle && !c.Discarded[item.Bundle]
+		}) {
+			return true
+		}
+	}
+	return false
+}
+
 func agentStepSummary(plan AIAgentPlan, calls []llm.ToolCall, results []llm.Part) json.RawMessage {
 	operations := make([]AIAgentOperation, 0, len(results))
 	for i, part := range results {

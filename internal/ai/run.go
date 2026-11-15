@@ -194,7 +194,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if row.Outcome == OutcomeCancelled {
 			return result{}, ctx.Err()
 		}
-		return result{}, s.providerProblem(ctx, c, gerr)
+		return result{}, s.providerProblem(ctx, c, t.feature, gerr)
 	}
 	out := result{RequestID: row.ID, Response: res, conn: c, voiceRevision: t.voiceRevision, voiceChars: t.voiceChars}
 	out.CostMicros = costMicros(c, res.InputTokens, res.OutputTokens)
@@ -281,7 +281,7 @@ func shortCode(e *llm.Error) string {
 }
 
 // providerProblem says plainly what the provider did; nothing changed.
-func (s *Service) providerProblem(ctx context.Context, c *connection, err error) error {
+func (s *Service) providerProblem(ctx context.Context, c *connection, feature string, err error) error {
 	name := c.providerName()
 	e, ok := llm.AsError(err)
 	if !ok {
@@ -304,7 +304,7 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, err error)
 		return withHelpers(ctx, http.StatusBadGateway, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": name}, s.helpers(ctx, c.WorkspaceID)).
 			WithMeta("status", e.Status, "detail", e.Error())
 	case llm.ErrTimeout:
-		return problem(ctx, http.StatusGatewayTimeout, codeProviderError, mTimeout, i18n.Args{"provider": name, "seconds": int(timeoutOf("").Seconds())})
+		return problem(ctx, http.StatusGatewayTimeout, codeProviderError, mTimeout, i18n.Args{"provider": name, "seconds": int(timeoutOf(feature).Seconds())})
 	case llm.ErrNetwork:
 		if e.Blocked {
 			return problem(ctx, http.StatusBadGateway, codePrivate, mBlocked, i18n.Args{"host": hostOf(c.BaseUrl)})

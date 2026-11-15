@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
@@ -326,40 +327,50 @@ func (s *Service) SelectSource(ctx context.Context, ws *store.Workspace, p *auth
 
 func (s *Service) SelectedSources(ctx context.Context, ws *store.Workspace, p *authz.Principal, grant uuid.UUID) (MCPSelectedSources, error) {
 	out := MCPSelectedSources{Items: []MCPSelectedSource{}}
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		g, err := q.MCPConnectGrantLock(ctx, grant)
-		if err != nil || g.WorkspaceID != ws.ID {
-			return api.NotFound("Connection")
+	// A view: the grant is read without the lock that tool calls hold.
+	g, err := s.Q.MCPConnectGrantRead(ctx, grant)
+	if err != nil || g.WorkspaceID != ws.ID {
+		return out, api.NotFound("Connection")
+	}
+	fresh, err := s.human(ctx, s.Q, ws.ID, p)
+	if err != nil || (g.UserID != p.UserID && !fresh.Can(authz.MCPManage)) {
+		return out, api.NotFound("Connection")
+	}
+	external, err := s.grantAuthority(ctx, s.Q, g)
+	if err != nil {
+		return out, api.Conflict(tr(ctx, "problem.sourcePermission"))
+	}
+	rows, err := s.Q.MCPConnectSources(ctx, store.MCPConnectSourcesParams{GrantID: g.ID, Now: s.now()})
+	if err != nil {
+		return out, err
+	}
+	for _, row := range rows {
+		if !containsScope(g.Scopes, sourceScope(row.Kind)) {
+			continue
 		}
-		fresh, err := s.human(ctx, q, ws.ID, p)
-		if err != nil || (g.UserID != p.UserID && !fresh.Can(authz.MCPManage)) {
-			return api.NotFound("Connection")
-		}
-		external, err := s.grantAuthority(ctx, q, g)
-		if err != nil {
-			return api.Conflict(tr(ctx, "problem.sourcePermission"))
-		}
-		rows, err := q.MCPConnectSources(ctx, store.MCPConnectSourcesParams{GrantID: g.ID, Now: s.now()})
-		if err != nil {
-			return err
-		}
-		for _, row := range rows {
-			if !containsScope(g.Scopes, sourceScope(row.Kind)) {
-				continue
-			}
-			if checkSource(ctx, q, fresh, sourceRef(row), true) != nil || checkSource(ctx, q, external, sourceRef(row), true) != nil {
-				continue
-			}
-			var local sourceContext
-			if err := json.Unmarshal(row.Context, &local); err != nil {
+		if visibleTo(ctx, s.Pool, func(q *store.Queries) error {
+			if err := checkSource(ctx, q, fresh, sourceRef(row), true); err != nil {
 				return err
 			}
-			out.Items = append(out.Items, MCPSelectedSource{MCPSourceHandle: MCPSourceHandle{Handle: row.Handle, Kind: row.Kind, ExpiresAt: row.ExpiresAt}, ID: row.TargetID, Name: local.Name})
+			return checkSource(ctx, q, external, sourceRef(row), true)
+		}) != nil {
+			continue
 		}
-		return nil
-	})
-	return out, err
+		var local sourceContext
+		if err := json.Unmarshal(row.Context, &local); err != nil {
+			return out, err
+		}
+		out.Items = append(out.Items, MCPSelectedSource{MCPSourceHandle: MCPSourceHandle{Handle: row.Handle, Kind: row.Kind, ExpiresAt: row.ExpiresAt}, ID: row.TargetID, Name: local.Name})
+	}
+	return out, nil
+}
+
+// visibleTo runs one row's access check of a list in its own transaction.
+// Source reads lock the rows a decision would write, so a list holds each
+// row's locks only for its check, never a page of editors' drafts at once
+// or in list order, which could deadlock with another list.
+func visibleTo(ctx context.Context, pool *pgxpool.Pool, check func(*store.Queries) error) error {
+	return db.Tx(ctx, pool, func(tx pgx.Tx) error { return check(store.New(tx)) })
 }
 
 func sourceScope(kind string) string {

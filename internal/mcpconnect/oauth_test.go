@@ -597,6 +597,40 @@ func TestOAuthRegistrationAndAbuse(t *testing.T) {
 	request(t, f.env.Server.URL, "GET", "/oauth/mcp/authorize?"+v.Encode(), "", "", nil).MustStatus(t, 429)
 }
 
+// A flood from one network is refused by that network's own quota and must
+// not use up the global one: another network can still register a client.
+func TestOAuthQuotaIsolatesNetworks(t *testing.T) {
+	f := newFixture(t)
+	// A fixed clock keeps every request in one ten-minute quota window.
+	now := time.Now()
+	s := &mcpconnect.Service{Pool: f.env.App.Pool, Q: f.env.App.Q, Audit: f.env.App.Audit, Development: true, Now: func() time.Time { return now },
+		PublicURL: func() string { return f.env.Server.URL }}
+	router := chi.NewRouter()
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.RemoteAddr = r.Header.Get("X-Test-Peer") + ":4000"
+			next.ServeHTTP(w, r)
+		})
+	})
+	router.Use(server.AuditContext)
+	s.RegisterPublic(router)
+	srv := httptest.NewServer(router)
+	defer srv.Close()
+	register := func(peer string) int {
+		t.Helper()
+		return request(t, srv.URL, "POST", "/oauth/mcp/register", "application/json", `{"redirect_uris":["https://client.example/callback"]}`, http.Header{"X-Test-Peer": {peer}}).Status
+	}
+	// The global registration quota is 1,000 per ten minutes.
+	for i := range 1000 {
+		if got := register("203.0.113.10"); (i < 10 && got != 201) || (i >= 10 && got != 429) {
+			t.Fatalf("flood request %d: %d", i, got)
+		}
+	}
+	if got := register("198.51.100.20"); got != 201 {
+		t.Fatalf("another network was refused after one network's flood: %d", got)
+	}
+}
+
 func TestOAuthNetworkScopeAndRevocation(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()
@@ -684,6 +718,33 @@ func TestOAuthParallelAdmissionAndRedaction(t *testing.T) {
 	}
 	_ = writer.Close()
 	<-finished
+	f.mcp(tokens.AccessToken)
+	// A running tool call holds the connection's slot and locks its grant.
+	// A parallel request must get the slot's 429, not wait on the lock and
+	// answer 401, which would send the client to refresh its token.
+	ctx := context.Background()
+	var grant uuid.UUID
+	if err = f.env.App.Pool.QueryRow(ctx, `SELECT grant_id FROM mcp_connect_tokens WHERE hash=$1`, authn.HashToken(tokens.AccessToken)).Scan(&grant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.env.App.Pool.Exec(ctx, `INSERT INTO mcp_connect_slots (grant_id, lease_id, expires_at) VALUES ($1, $2, now() + interval '30 seconds')`, grant, uuid.Must(uuid.NewV7())); err != nil {
+		t.Fatal(err)
+	}
+	held, err := f.env.App.Pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = held.Exec(ctx, `SELECT 1 FROM mcp_connect_grants WHERE id=$1 FOR UPDATE`, grant); err != nil {
+		t.Fatal(err)
+	}
+	parallel := request(t, f.env.Server.URL, "POST", mcpconnect.Path, "application/json", `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`, http.Header{"Authorization": {"Bearer " + tokens.AccessToken}, "Accept": {"application/json, text/event-stream"}})
+	_ = held.Rollback(ctx)
+	if _, err = f.env.App.Pool.Exec(ctx, `DELETE FROM mcp_connect_slots WHERE grant_id=$1`, grant); err != nil {
+		t.Fatal(err)
+	}
+	if parallel.Status != http.StatusTooManyRequests {
+		t.Fatalf("a parallel request during a tool call answered %d", parallel.Status)
+	}
 	f.mcp(tokens.AccessToken)
 	// Malformed human API input must not echo an opaque consent handle.
 	sentinel := "PRIVATE-CONSENT-SENTINEL-" + strings.Repeat("x", 110)

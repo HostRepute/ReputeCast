@@ -27,6 +27,10 @@ import './agent.css'
 type Kind = 'campaign' | 'automation' | 'post'
 type Trigger = Schemas['AIAgentAutomationSelection']['trigger']
 type BriefFields = Pick<Schemas['AIAgentBrief'], 'brief' | 'language' | 'templateId'> & { kind: Kind; links: string; trigger: Trigger; resource: string }
+/** randomUUID needs a secure context; self-hosted installs may run on plain HTTP. */
+function newRequestKey(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
+}
 const AgentAudience = lazy(() => import('./AgentAudience').then((m) => ({ default: m.AgentAudience })))
 
 export function AgentBriefPage({ initialKind = 'campaign' }: { initialKind?: Kind }) {
@@ -50,6 +54,9 @@ export function AgentBriefPage({ initialKind = 'campaign' }: { initialKind?: Kin
   const [created, setCreated] = useState(false)
   const [error, setError] = useState('')
   const locked = useRef(false)
+  // One key per brief: resubmitting the same brief after a lost response
+  // returns the run already created instead of paying for another plan.
+  const attempt = useRef<{ body: string; key: string }>(undefined)
   const canTemplates = useCan('templates:view')
   const canReport = me.permissions.includes('reports:view') && me.permissions.includes('campaigns:view')
   const canCampaign = me.permissions.includes('campaigns:edit') && me.permissions.includes('campaigns:view')
@@ -76,13 +83,16 @@ export function AgentBriefPage({ initialKind = 'campaign' }: { initialKind?: Kin
       locked.current = true
       setBusy(true)
       try {
-        const { data } = await http.POST(agentRuns, { params: { path: { workspace: slug } }, body: {
+        const body: Schemas['AIAgentBrief'] = {
           sharingReviewed: true, brief: brief.trim(), kind: kind === 'post' ? 'post' : 'campaign', language, voiceRevision, templateId, links: addresses,
           audience: audience.groups.length ? audience : undefined,
           reportId: canReport && reportId ? reportId : undefined,
           poolId: kind !== 'post' && me.permissions.includes('campaigns:view') && poolId ? poolId : undefined,
           automation: kind === 'automation' ? { trigger, fromAudience: trigger !== 'joined_list' && fromAudience, ...(trigger === 'joined_list' ? { listId: resource } : fromAudience ? {} : { segmentId: resource }) } : undefined,
-        } })
+        }
+        const serialized = JSON.stringify(body)
+        if (attempt.current?.body !== serialized) attempt.current = { body: serialized, key: newRequestKey() }
+        const { data } = await http.POST(agentRuns, { params: { path: { workspace: slug } }, body: { ...body, requestKey: attempt.current.key } })
         setCreated(true)
         await navigate({ to: '/w/$workspace/agent/$runId', params: { workspace: slug, runId: data!.id } })
       } catch (err) { setError(errorMessage(err)) } finally { locked.current = false; setBusy(false) }

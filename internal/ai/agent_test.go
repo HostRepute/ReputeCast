@@ -118,7 +118,23 @@ func TestAgentCheckpoints(t *testing.T) {
 	if requests.Load() != 0 || runs != 0 || reserved != 0 || queuedBefore != queuedAfter {
 		t.Fatal("unreviewed brief created work or reached the model")
 	}
-	a.Do("POST", base+"/agent/runs", ai.AIAgentBrief{SharingReviewed: true, Brief: "Announce easier exports.", Language: "en"}).MustStatus(t, 200).JSON(t, &run)
+	brief := ai.AIAgentBrief{SharingReviewed: true, Brief: "Announce easier exports.", Language: "en", RequestKey: "brief-retry-1"}
+	a.Do("POST", base+"/agent/runs", brief).MustStatus(t, 200).JSON(t, &run)
+	// Retrying after a lost response returns the same run without a second
+	// plan; the same key with another brief is refused.
+	var retried ai.AIAgentRunView
+	a.Do("POST", base+"/agent/runs", brief).MustStatus(t, 200).JSON(t, &retried)
+	changed := brief
+	changed.Brief = "Announce faster imports."
+	if p := a.Do("POST", base+"/agent/runs", changed).MustStatus(t, 409).Problem(t); p["code"] != "ai_agent_request_reused" {
+		t.Fatalf("reused request key: %v", p)
+	}
+	if err := env.App.Pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM ai_agent_runs WHERE workspace_id=$1), (SELECT count(*) FROM river_job WHERE kind='ai.agent')`, ws.ID).Scan(&runs, &queuedAfter); err != nil {
+		t.Fatal(err)
+	}
+	if retried.ID != run.ID || runs != 1 || queuedAfter != queuedBefore+1 || requests.Load() != 0 {
+		t.Fatalf("a retried brief created another run: %s %s runs=%d jobs=%d", run.ID, retried.ID, runs, queuedAfter-queuedBefore)
+	}
 	path := base + "/agent/runs/" + run.ID.String()
 	b.Do("GET", path, nil).MustStatus(t, 404)
 	var list ai.AIAgentRunList
@@ -626,6 +642,17 @@ func TestAgentResumption(t *testing.T) {
 	if run.State != "paused" || run.PauseReason != "validation_exhausted" || len(run.Artifacts) != 1 || run.Artifacts[0].Handle != plan.Items[1].Handle || run.ToolCalls != 6 {
 		t.Fatalf("repair ceiling lost independent output or permitted a third repair: %+v", run)
 	}
+	// The person's replan starts the repair counts afresh: the new plan is
+	// ready to build instead of pausing again on the old output's ceiling.
+	author.Do("POST", path+"/actions", ai.AIAgentAction{SharingReviewed: true, Action: "replan", Version: run.Version, PlanRevision: run.PlanRevision, Message: "Try the introduction again."}).MustStatus(t, 204)
+	author.Do("GET", path, nil).MustStatus(t, 200).JSON(t, &run)
+	mu.Lock()
+	tools = planCalls
+	mu.Unlock()
+	execute()
+	if run.State != "ready" {
+		t.Fatalf("an earlier repair ceiling paused the person's new plan: %+v", run)
+	}
 	// Revoke the initiating user's edit permission while HTTP is in flight.
 	mu.Lock()
 	tools = planCalls
@@ -1062,6 +1089,13 @@ func TestAgentReplan(t *testing.T) {
 				if run.State != "cancelled" || len(run.PlanDiscards) != 0 || len(run.Plan.Items) != 3 {
 					t.Fatal("cancel did not restore the original review scope")
 				}
+				// Deleting the kept draft leaves the rest of the run reviewable.
+				for _, a := range run.Artifacts {
+					if a.Handle == "kept" {
+						c.Do("DELETE", "/workspaces/"+ws.Slug+"/campaigns/"+a.ResultID.String(), nil).MustStatus(t, 204)
+					}
+				}
+				get()
 				original := []ai.AIAgentArtifactRevision{}
 				for _, a := range run.Artifacts {
 					if a.Handle != "kept" {
@@ -1153,6 +1187,13 @@ func TestAgentAudience(t *testing.T) {
 				unsafe := plan
 				unsafe.Summary = "Selected&#32;tier is the audience."
 				calls = []any{call("unsafe", "propose_plan", unsafe)}
+			case 5:
+				// The selected audience's field is deleted while this
+				// request is in flight.
+				if _, err := env.App.Pool.Exec(ctx, `DELETE FROM custom_fields WHERE workspace_id=$1 AND key='contract_level'`, ws.ID); err != nil {
+					t.Error(err)
+				}
+				calls = []any{call("plan", "propose_plan", plan)}
 			}
 			if len(calls) > 0 {
 				message["content"], message["tool_calls"], stop = nil, calls, "tool_calls"
@@ -1259,9 +1300,15 @@ func TestAgentAudience(t *testing.T) {
 	if run.State != "paused" || run.PauseReason != "refused" || run.Plan != nil || run.Tokens != 132 || run.CostMicros == 0 {
 		t.Fatalf("private model output was applied or lost accounting: %+v", run)
 	}
+	// Access lost during the request pauses the run and keeps its known usage.
+	path = start()
+	execute(5)
+	if run.State != "paused" || run.PauseReason != "access_changed" || run.Tokens != 132 || run.Uncertain {
+		t.Fatalf("an in-flight access change lost accounting or left the run running: %+v", run)
+	}
 	mu.Lock()
 	defer mu.Unlock()
-	if requests.Load() != 9 || len(payloads) != 9 {
+	if requests.Load() != 10 || len(payloads) != 10 {
 		t.Fatalf("unexpected model requests: %d payloads=%d", requests.Load(), len(payloads))
 	}
 	for _, payload := range payloads {

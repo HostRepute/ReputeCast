@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { $api, ApiError, errorMessage } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
@@ -36,6 +36,12 @@ export function AgentRunPage({ id, selectedTab, onTabChange: setTab }: { id: str
   const [confirmation, setConfirmation] = useState<{ run: AgentRun; action: 'build' | 'cancel' }>()
   const [limits, setLimits] = useState<AgentRun>()
   const [error, setError] = useState('')
+  const main = useRef<HTMLDivElement>(null)
+  // Build and Stop remove the button that opened their dialog: keyboard
+  // focus continues from the selected tab instead of the start of the page.
+  const settle = () => requestAnimationFrame(() => {
+    if (document.activeElement === document.body) main.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus()
+  })
   const run = q.data
   const tab = selectedTab ?? (run && ['review', 'completed', 'cancelled'].includes(run.state) ? 'review' : 'plan')
   if (q.error instanceof ApiError && [403, 404].includes(q.error.status)) throw q.error
@@ -44,6 +50,16 @@ export function AgentRunPage({ id, selectedTab, onTabChange: setTab }: { id: str
   const act = async (body: AgentAction) => {
     setError('')
     try { await mutations.action(body) } catch (err) { setError(errorMessage(err)); throw err }
+  }
+  // Build confirms the plan on screen, but Stop applies to whatever the run is
+  // doing now: it uses the latest version, which advances after every step.
+  const stop = async (shown: AgentRun) => {
+    for (let attempt = 0; ; attempt++) {
+      const latest = (await q.refetch()).data ?? shown
+      try { return await act({ action: 'cancel', version: latest.version, planRevision: latest.planRevision }) } catch (err) {
+        if (attempt > 0 || !(err instanceof ApiError && err.code === 'ai_agent_changed')) throw err
+      }
+    }
   }
   const active = run && agentRunning(run.state)
   const modelActions = Boolean(own && can && !blocked && !mutations.busy)
@@ -59,7 +75,7 @@ export function AgentRunPage({ id, selectedTab, onTabChange: setTab }: { id: str
         <div className="flex flex-wrap gap-2"><Button variant="primary" disabled={!modelActions || run.uncertain || run.pauseReason === 'validation_exhausted'} onClick={() => void act({ action: 'continue', version: run.version, planRevision: run.planRevision }).catch(() => {})}>{t(ag.continue)}</Button>{manager ? <Button disabled={blocked || mutations.busy} onClick={() => setLimits(run)}>{t(ag.raise)}</Button> : null}<Button onClick={() => setTab('review')}>{t(ag.review)}</Button></div>{!manager ? <p className="k m-0">{t(ag.manager)}</p> : null}
       </Card> : null}
       {error ? <p className="note b m-0" role="alert">{error}</p> : null}
-      <div className="agent-columns"><div className="agent-main">
+      <div className="agent-columns"><div className="agent-main" ref={main}>
         <PanelTabs value={tab} onChange={setTab} items={[{ value: 'plan', label: t(ag.planTab) }, { value: 'steps', label: t(ag.steps) }, { value: 'review', label: t(ag.review) }]} label={t(ag.title)}>
           <TabPanel value="plan" className="mt-5 flex min-w-0 flex-col gap-5">
             {run.brief ? <Card className="p-5 max-md:p-4"><CardHeader title={t(ag.brief)} /><p className="agent-source mb-0 text-[13px] text-ink-2">{run.brief.brief}</p></Card> : null}
@@ -73,9 +89,10 @@ export function AgentRunPage({ id, selectedTab, onTabChange: setTab }: { id: str
         {run.state !== 'expired' ? <Conversation run={run} enabled={modelActions && ['needs_answers', 'ready', 'review', 'paused'].includes(run.state) && !run.uncertain} onAction={act} /> : null}
       </div><aside className="agent-aside"><AgentBudget run={run} /><AgentPrivacy /></aside></div>
     </>}
-    {confirmation ? <ConfirmDialog open onOpenChange={(open) => { if (!open) setConfirmation(undefined) }} tone="warn" badge={t(ag.title)} title={t(confirmation.action === 'build' ? ag.build : ag.cancel)} description={t(confirmation.action === 'build' ? ag.buildBody : ag.cancelBody)} confirmLabel={t(confirmation.action === 'build' ? ag.build : ag.cancel)} onConfirm={async () => {
-      await act({ action: confirmation.action, version: confirmation.run.version, planRevision: confirmation.run.planRevision, ...(confirmation.action === 'build' ? { planDiscards: confirmation.run.planDiscards } : {}) })
-      if (confirmation.action === 'build') setTab('steps')
+    {confirmation ? <ConfirmDialog open onOpenChange={(open) => { if (!open) { setConfirmation(undefined); settle() } }} tone="warn" badge={t(ag.title)} title={t(confirmation.action === 'build' ? ag.build : ag.cancel)} description={t(confirmation.action === 'build' ? ag.buildBody : ag.cancelBody)} confirmLabel={t(confirmation.action === 'build' ? ag.build : ag.cancel)} onConfirm={async () => {
+      if (confirmation.action === 'cancel') return stop(confirmation.run)
+      await act({ action: 'build', version: confirmation.run.version, planRevision: confirmation.run.planRevision, planDiscards: confirmation.run.planDiscards })
+      setTab('steps')
     }}>
       {confirmation.action === 'build' ? <div className="flex flex-col gap-3"><strong>{t(ag.planVersion, { revision: confirmation.run.planRevision })}</strong><ul className="m-0 pl-5">{confirmation.run.plan?.items.map((item) => <li key={item.handle}>{item.name}</li>)}</ul>{confirmation.run.planDiscards.length ? <><p className="note w m-0">{t(ag.replanImpact)}</p><ul className="m-0 pl-5">{confirmation.run.planDiscards.map((a) => <li key={a.id}>{confirmation.run.artifacts.find((item) => item.id === a.id)?.name} · {t(ag.revision, { revision: a.revision })}</li>)}</ul></> : null}</div> : null}
     </ConfirmDialog> : null}

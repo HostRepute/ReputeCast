@@ -11,6 +11,7 @@
   "agent.expired": "Cette tâche a expiré. Son contenu temporaire n’est plus disponible ; les brouillons conservés restent inchangés.",
   "agent.manual": "Le résultat reste invalide après deux corrections. Vérifiez les brouillons valides et modifiez le reste manuellement.",
   "agent.decided": "Ce brouillon a déjà fait l’objet d’une autre décision. Actualisez pour voir le résultat enregistré.",
+  "agent.request_reused": "Cette clé de requête a déjà servi pour une autre demande. Envoyez de nouveau la demande pour lancer une nouvelle tâche.",
   "agent.bundle": "Examinez et décidez ensemble des versions actuelles de tous les brouillons en attente de ce groupe de dépendances.",
   "budget.reconcile_confirm": "Vérifiez les deux nombres de tokens auprès du fournisseur et confirmez-les. Zéro signifie une absence de frais confirmée, pas une utilisation inconnue.",
   "budget.reconcile_changed": "Cette requête a déjà été rapprochée avec d’autres valeurs. Actualisez pour voir l’utilisation enregistrée.",

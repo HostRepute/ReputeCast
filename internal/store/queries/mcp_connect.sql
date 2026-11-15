@@ -29,7 +29,9 @@ VALUES (@id, @client_id, @workspace_id, @user_id, @resource, @scopes, @permissio
 SELECT * FROM mcp_connect_grants WHERE id = @id FOR UPDATE;
 
 -- name: MCPConnectGrantRead :one
-SELECT * FROM mcp_connect_grants WHERE id = @id FOR SHARE;
+-- Unlocked: token verification and views must not wait on a running tool
+-- call, which holds the grant FOR UPDATE and rechecks it under that lock.
+SELECT * FROM mcp_connect_grants WHERE id = @id;
 
 -- name: MCPConnectRevoke :exec
 UPDATE mcp_connect_grants SET revoked_at = @now, revoked_reason = @reason WHERE id = @id AND revoked_at IS NULL;

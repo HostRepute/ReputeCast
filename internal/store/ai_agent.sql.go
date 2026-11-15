@@ -344,6 +344,29 @@ func (q *Queries) AIAgentQueueStatus(ctx context.Context, arg AIAgentQueueStatus
 	return i, err
 }
 
+const aIAgentReferenceExists = `-- name: AIAgentReferenceExists :one
+SELECT CASE $1::text
+    WHEN 'post' THEN EXISTS (SELECT 1 FROM website_posts p WHERE p.workspace_id = $2::uuid AND p.id = $3::uuid AND p.deleted_at IS NULL)
+    WHEN 'automation' THEN EXISTS (SELECT 1 FROM automations a WHERE a.workspace_id = $2::uuid AND a.id = $3::uuid AND a.deleted_at IS NULL)
+    ELSE EXISTS (SELECT 1 FROM campaigns c WHERE c.workspace_id = $2::uuid AND c.id = $3::uuid AND c.deleted_at IS NULL)
+END::boolean AS present
+`
+
+type AIAgentReferenceExistsParams struct {
+	Kind        string    `json:"kind"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+// Whether a run's referenced resource still exists, whatever the reader's
+// scope: a deleted one no longer gates the rest of the run.
+func (q *Queries) AIAgentReferenceExists(ctx context.Context, arg AIAgentReferenceExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, aIAgentReferenceExists, arg.Kind, arg.WorkspaceID, arg.ID)
+	var present bool
+	err := row.Scan(&present)
+	return present, err
+}
+
 const aIAgentReferences = `-- name: AIAgentReferences :many
 SELECT handle, kind, target_id, result_id, decision FROM ai_agent_artifacts WHERE run_id = $1
 `
@@ -383,7 +406,7 @@ func (q *Queries) AIAgentReferences(ctx context.Context, runID uuid.UUID) ([]AIA
 }
 
 const aIAgentRetentionBatch = `-- name: AIAgentRetentionBatch :many
-SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model FROM ai_agent_runs
+SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash FROM ai_agent_runs
 WHERE (expires_at <= $1 AND state <> 'expired')
    OR (closed_at + interval '7 days' <= $1 AND EXISTS (
       SELECT 1 FROM ai_agent_contexts c WHERE c.run_id = ai_agent_runs.id AND c.messages <> '[]'::jsonb))
@@ -419,6 +442,8 @@ func (q *Queries) AIAgentRetentionBatch(ctx context.Context, now time.Time) ([]A
 			&i.ExpiresAt,
 			&i.ClosedAt,
 			&i.Model,
+			&i.RequestKey,
+			&i.RequestHash,
 		); err != nil {
 			return nil, err
 		}
@@ -431,7 +456,7 @@ func (q *Queries) AIAgentRetentionBatch(ctx context.Context, now time.Time) ([]A
 }
 
 const aIAgentRun = `-- name: AIAgentRun :one
-SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2
 `
 
 type AIAgentRunParams struct {
@@ -460,13 +485,38 @@ func (q *Queries) AIAgentRun(ctx context.Context, arg AIAgentRunParams) (AiAgent
 		&i.ExpiresAt,
 		&i.ClosedAt,
 		&i.Model,
+		&i.RequestKey,
+		&i.RequestHash,
 	)
 	return i, err
 }
 
+const aIAgentRunByRequest = `-- name: AIAgentRunByRequest :one
+SELECT id, request_hash FROM ai_agent_runs
+WHERE workspace_id = $1 AND user_id = $2 AND request_key = $3
+`
+
+type AIAgentRunByRequestParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+	RequestKey  *string   `json:"requestKey"`
+}
+
+type AIAgentRunByRequestRow struct {
+	ID          uuid.UUID `json:"id"`
+	RequestHash []byte    `json:"requestHash"`
+}
+
+func (q *Queries) AIAgentRunByRequest(ctx context.Context, arg AIAgentRunByRequestParams) (AIAgentRunByRequestRow, error) {
+	row := q.db.QueryRow(ctx, aIAgentRunByRequest, arg.WorkspaceID, arg.UserID, arg.RequestKey)
+	var i AIAgentRunByRequestRow
+	err := row.Scan(&i.ID, &i.RequestHash)
+	return i, err
+}
+
 const aIAgentRunInsert = `-- name: AIAgentRunInsert :exec
-INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at)
-VALUES ($1, $2, $3, $4, 'planning', $5, $6, $7, $8, $8, $9)
+INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at, request_key, request_hash)
+VALUES ($1, $2, $3, $4, 'planning', $5, $6, $7, $8, $8, $9, $10, $11)
 `
 
 type AIAgentRunInsertParams struct {
@@ -479,6 +529,8 @@ type AIAgentRunInsertParams struct {
 	CostLimitMicros int64     `json:"costLimitMicros"`
 	Now             time.Time `json:"now"`
 	ExpiresAt       time.Time `json:"expiresAt"`
+	RequestKey      *string   `json:"requestKey"`
+	RequestHash     []byte    `json:"requestHash"`
 }
 
 func (q *Queries) AIAgentRunInsert(ctx context.Context, arg AIAgentRunInsertParams) error {
@@ -492,12 +544,14 @@ func (q *Queries) AIAgentRunInsert(ctx context.Context, arg AIAgentRunInsertPara
 		arg.CostLimitMicros,
 		arg.Now,
 		arg.ExpiresAt,
+		arg.RequestKey,
+		arg.RequestHash,
 	)
 	return err
 }
 
 const aIAgentRunLock = `-- name: AIAgentRunLock :one
-SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2 FOR UPDATE
+SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2 FOR UPDATE
 `
 
 type AIAgentRunLockParams struct {
@@ -526,6 +580,8 @@ func (q *Queries) AIAgentRunLock(ctx context.Context, arg AIAgentRunLockParams) 
 		&i.ExpiresAt,
 		&i.ClosedAt,
 		&i.Model,
+		&i.RequestKey,
+		&i.RequestHash,
 	)
 	return i, err
 }
@@ -572,7 +628,7 @@ func (q *Queries) AIAgentRunSave(ctx context.Context, arg AIAgentRunSaveParams) 
 }
 
 const aIAgentRuns = `-- name: AIAgentRuns :many
-SELECT r.id, r.workspace_id, r.user_id, r.state, r.version, r.plan_revision, r.accepted_revision, r.tool_limit, r.token_limit, r.cost_limit_micros, r.tool_calls, r.pause_reason, r.created_at, r.updated_at, r.expires_at, r.closed_at, r.model, coalesce(nullif(u.name, ''), u.email)::text AS owner_name
+SELECT r.id, r.workspace_id, r.user_id, r.state, r.version, r.plan_revision, r.accepted_revision, r.tool_limit, r.token_limit, r.cost_limit_micros, r.tool_calls, r.pause_reason, r.created_at, r.updated_at, r.expires_at, r.closed_at, r.model, r.request_key, r.request_hash, coalesce(nullif(u.name, ''), u.email)::text AS owner_name
 FROM ai_agent_runs r JOIN users u ON u.id = r.user_id
 WHERE r.workspace_id = $1
   AND ($2::uuid IS NULL OR user_id = $2)
@@ -606,6 +662,8 @@ type AIAgentRunsRow struct {
 	ExpiresAt        time.Time  `json:"expiresAt"`
 	ClosedAt         *time.Time `json:"closedAt"`
 	Model            string     `json:"model"`
+	RequestKey       *string    `json:"requestKey"`
+	RequestHash      []byte     `json:"requestHash"`
 	OwnerName        string     `json:"ownerName"`
 }
 
@@ -642,6 +700,8 @@ func (q *Queries) AIAgentRuns(ctx context.Context, arg AIAgentRunsParams) ([]AIA
 			&i.ExpiresAt,
 			&i.ClosedAt,
 			&i.Model,
+			&i.RequestKey,
+			&i.RequestHash,
 			&i.OwnerName,
 		); err != nil {
 			return nil, err

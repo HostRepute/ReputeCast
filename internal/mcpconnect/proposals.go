@@ -300,39 +300,35 @@ func (s *Service) Proposals(ctx context.Context, ws *store.Workspace, p *authz.P
 		}
 		before = &id
 	}
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		fresh, err := s.human(ctx, q, ws.ID, p)
-		if err != nil {
-			return api.NotFound("Proposals")
+	fresh, err := s.human(ctx, s.Q, ws.ID, p)
+	if err != nil {
+		return out, api.NotFound("Proposals")
+	}
+	rows, err := s.Q.MCPConnectProposals(ctx, store.MCPConnectProposalsParams{WorkspaceID: ws.ID, UserID: fresh.UserID, Manager: fresh.Can(authz.MCPManage), BeforeID: before})
+	if err != nil {
+		return out, err
+	}
+	if len(rows) > 50 {
+		rows = rows[:50]
+		out.NextCursor = rows[49].ID.String()
+	}
+	for _, row := range rows {
+		var local proposalContext
+		if err := json.Unmarshal(row.Context, &local); err != nil {
+			return out, err
 		}
-		rows, err := q.MCPConnectProposals(ctx, store.MCPConnectProposalsParams{WorkspaceID: ws.ID, UserID: fresh.UserID, Manager: fresh.Can(authz.MCPManage), BeforeID: before})
-		if err != nil {
-			return err
+		a := store.McpConnectProposal{Kind: row.Kind, WorkspaceID: ws.ID, ResultID: row.ResultID}
+		if visibleTo(ctx, s.Pool, func(q *store.Queries) error { return proposalAccess(ctx, q, fresh, a, local, false) }) != nil {
+			continue
 		}
-		if len(rows) > 50 {
-			rows = rows[:50]
-			out.NextCursor = rows[49].ID.String()
+		purged := row.PurgedAt != nil || !row.PurgeAt.After(s.now())
+		if purged {
+			row.Name = ""
 		}
-		for _, row := range rows {
-			var local proposalContext
-			if err := json.Unmarshal(row.Context, &local); err != nil {
-				return err
-			}
-			a := store.McpConnectProposal{Kind: row.Kind, WorkspaceID: ws.ID, ResultID: row.ResultID}
-			if proposalAccess(ctx, q, fresh, a, local, false) != nil {
-				continue
-			}
-			purged := row.PurgedAt != nil || !row.PurgeAt.After(s.now())
-			if purged {
-				row.Name = ""
-			}
-			out.Items = append(out.Items, MCPProposalListItem{ID: row.ID, Kind: row.Kind, Name: row.Name, ClientName: row.ClientName,
-				Verified: row.Verified, Change: row.TargetID != nil, Decision: row.Decision, ExpiresAt: row.ExpiresAt, Purged: purged, Revoked: row.RevokedAt != nil})
-		}
-		return nil
-	})
-	return out, err
+		out.Items = append(out.Items, MCPProposalListItem{ID: row.ID, Kind: row.Kind, Name: row.Name, ClientName: row.ClientName,
+			Verified: row.Verified, Change: row.TargetID != nil, Decision: row.Decision, ExpiresAt: row.ExpiresAt, Purged: purged, Revoked: row.RevokedAt != nil})
+	}
+	return out, nil
 }
 
 // Source access is checked for both people and the still-authorized grant.

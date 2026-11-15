@@ -40,25 +40,40 @@ func (s *Service) verify(ctx context.Context, raw string, r *http.Request) (*aut
 		}
 		q := store.New(tx)
 		t, err := q.MCPConnectToken(ctx, authn.HashToken(raw))
-		if err != nil || t.Kind != "access" || !t.ExpiresAt.After(s.now()) {
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && (t.Kind != "access" || !t.ExpiresAt.After(s.now()))) {
 			return auth.ErrInvalidToken
 		}
-		g, err := q.MCPConnectGrantRead(ctx, t.GrantID)
 		if err != nil {
+			return err
+		}
+		// Unlocked: a tool call holds the grant and rechecks it under lock.
+		g, err := q.MCPConnectGrantRead(ctx, t.GrantID)
+		if errors.Is(err, pgx.ErrNoRows) {
 			return auth.ErrInvalidToken
+		}
+		if err != nil {
+			return err
 		}
 		p, err := s.grantPrincipal(ctx, q, g, audit.RequestFrom(ctx).IP)
 		if err != nil {
-			return auth.ErrInvalidToken
+			return err
 		}
 		out = &auth.TokenInfo{UserID: g.ID.String(), Scopes: g.Scopes, Expiration: t.ExpiresAt, Extra: map[string]any{"connection": &connectionCall{Grant: g, Principal: p, TokenHash: t.Hash, Request: audit.RequestFrom(ctx)}}}
 		return nil
 	})
-	if err != nil {
+	switch {
+	case err == nil:
+		return out, nil
+	case errors.Is(err, auth.ErrInvalidToken), errors.Is(err, errGrant):
 		return nil, auth.ErrInvalidToken
 	}
-	return out, nil
+	// A lock wait or database failure says nothing about the token. A 500
+	// with a fixed message lets the client retry instead of refreshing,
+	// which could look like refresh-token reuse and revoke the connection.
+	return nil, errVerifyUnavailable
 }
+
+var errVerifyUnavailable = errors.New("temporarily unavailable")
 
 func (s *Service) Handler() http.Handler {
 	// Stateless transport does not let a cached session hold old authorization.

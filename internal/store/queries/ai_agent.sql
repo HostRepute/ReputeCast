@@ -27,8 +27,12 @@ SELECT * FROM ai_agent_runs WHERE id = @id AND workspace_id = @workspace_id FOR 
 SELECT * FROM ai_agent_runs WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: AIAgentRunInsert :exec
-INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at)
-VALUES (@id, @workspace_id, @user_id, @model, 'planning', @tool_limit, @token_limit, @cost_limit_micros, @now, @now, @expires_at);
+INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at, request_key, request_hash)
+VALUES (@id, @workspace_id, @user_id, @model, 'planning', @tool_limit, @token_limit, @cost_limit_micros, @now, @now, @expires_at, sqlc.narg('request_key'), sqlc.narg('request_hash'));
+
+-- name: AIAgentRunByRequest :one
+SELECT id, request_hash FROM ai_agent_runs
+WHERE workspace_id = @workspace_id AND user_id = @user_id AND request_key = @request_key;
 
 -- name: AIAgentQueueStatus :one
 -- Position is a snapshot, not FIFO scheduling: a user's other workspace
@@ -160,3 +164,12 @@ SELECT id, name, slug, source, status, updated_at
 FROM coupon_pools
 WHERE workspace_id = @workspace_id AND id = @id
 FOR SHARE;
+
+-- name: AIAgentReferenceExists :one
+-- Whether a run's referenced resource still exists, whatever the reader's
+-- scope: a deleted one no longer gates the rest of the run.
+SELECT CASE @kind::text
+    WHEN 'post' THEN EXISTS (SELECT 1 FROM website_posts p WHERE p.workspace_id = @workspace_id::uuid AND p.id = @id::uuid AND p.deleted_at IS NULL)
+    WHEN 'automation' THEN EXISTS (SELECT 1 FROM automations a WHERE a.workspace_id = @workspace_id::uuid AND a.id = @id::uuid AND a.deleted_at IS NULL)
+    ELSE EXISTS (SELECT 1 FROM campaigns c WHERE c.workspace_id = @workspace_id::uuid AND c.id = @id::uuid AND c.deleted_at IS NULL)
+END::boolean AS present;

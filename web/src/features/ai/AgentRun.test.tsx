@@ -114,7 +114,7 @@ describe('agent review decisions', () => {
     fireEvent.click(submit)
     fireEvent.click(await screen.findByRole('button', { name: 'Share reviewed content' }))
     await screen.findByText('Report snapshot expired.')
-    expect(submitted).toEqual([{ sharingReviewed: true, brief: 'Draft a useful update.', kind: 'campaign', language: 'en', templateId: '', links: [], reportId: 'report-1' }])
+    expect(submitted).toEqual([{ sharingReviewed: true, brief: 'Draft a useful update.', kind: 'campaign', language: 'en', templateId: '', links: [], reportId: 'report-1', requestKey: expect.any(String) }])
     expect(screen.getByLabelText('What would you like to draft?')).toHaveValue('Draft a useful update.')
     fireEvent.click(screen.getByRole('button', { name: 'Do not include a report' }))
     fireEvent.click(submit)
@@ -174,6 +174,59 @@ describe('agent review decisions', () => {
     fireEvent.click(resume)
     await waitFor(() => expect(actions).toEqual([{ action: 'continue', version: 7, planRevision: 2 }]))
     expect(screen.getByText('18 / 40')).toBeVisible()
+  })
+
+  it('stops a building run even when a step finishes while the confirmation is open', async () => {
+    const actions: unknown[] = []
+    let current: AgentRun = { ...run, state: 'building' }
+    unmock = mockApi({
+      [`GET ${endpoint}`]: () => json(current),
+      'GET /api/v1/me': () => json({ user: { id: 'owner', name: 'Draft owner', email: 'owner@example.test' }, workspaces: [], instance: {} }),
+      [`POST ${endpoint}/actions`]: async (r) => {
+        const body = await r.json() as { version: number }
+        actions.push(body)
+        if (body.version !== current.version) return json({ code: 'ai_agent_changed', detail: 'This run or plan changed' }, 409)
+        current = { ...current, state: 'cancelled', version: current.version + 1 }
+        return new Response(null, { status: 204 })
+      },
+    })
+    await renderInWorkspace(<AgentRunPage id={run.id} selectedTab="steps" onTabChange={() => {}} />, { me: workspaceMe({ permissions: ['ai:use', 'campaigns:view', 'campaigns:edit'] }) })
+    const stop = await screen.findByRole('button', { name: 'Stop run' })
+    await waitFor(() => expect(stop).toBeEnabled())
+    stop.focus()
+    fireEvent.click(stop)
+    const dialog = await screen.findByRole('dialog', { name: 'Stop run' })
+    // The worker saves a step, as it does after every model response.
+    current = { ...current, version: 8 }
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Stop run' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(actions).toEqual([{ action: 'cancel', version: 8, planRevision: 2 }])
+    expect(await screen.findByText('No more steps will start. Review successful drafts below; kept drafts are not deleted.')).toBeVisible()
+    // Stop is gone with the running state; focus continues from the selected tab.
+    expect(screen.queryByRole('button', { name: 'Stop run' })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Steps' })).toHaveFocus())
+  })
+
+  it('keeps keyboard focus in the review after a decision removes its buttons', async () => {
+    let current: AgentRun = run
+    unmock = mockApi({
+      [`GET ${endpoint}`]: () => json(current),
+      'GET /api/v1/me': () => json({ user: { id: 'owner', name: 'Draft owner', email: 'owner@example.test' }, workspaces: [], instance: {} }),
+      [`POST ${endpoint}/decisions`]: () => {
+        current = { ...current, state: 'completed', version: 8, artifacts: current.artifacts.map((a) => ({ ...a, decision: 'kept', resultId: `kept-${a.id}` })) }
+        return new Response(null, { status: 204 })
+      },
+    })
+    await renderInWorkspace(<AgentRunPage id={run.id} selectedTab="review" onTabChange={() => {}} />, { me: workspaceMe({ permissions: ['ai:use', 'campaigns:view', 'campaigns:edit'] }) })
+    const keep = await screen.findByRole('button', { name: 'Keep bundle' })
+    await waitFor(() => expect(keep).toBeEnabled())
+    keep.focus()
+    fireEvent.click(keep)
+    const dialog = await screen.findByRole('dialog', { name: 'Keep bundle' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Keep bundle' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Keep bundle' })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getAllByRole('heading', { name: 'Review', level: 2 })[0]).toHaveFocus())
   })
 
   it.each(['answer', 'revise', 'replan'] as const)('requires a fresh sharing confirmation for %s and retains refused input', async (action) => {
@@ -431,8 +484,32 @@ describe('agent review decisions', () => {
     fireEvent.click(submit)
     fireEvent.click(await screen.findByRole('button', { name: 'Share reviewed content' }))
     await screen.findByText('No execution slot available.')
-    expect(submitted).toEqual([{ sharingReviewed: true, brief: 'Explain faster exports.', kind: 'campaign', language: 'en', templateId: '', links: ['https://example.test/exports'] }])
+    expect(submitted).toEqual([{ sharingReviewed: true, brief: 'Explain faster exports.', kind: 'campaign', language: 'en', templateId: '', links: ['https://example.test/exports'], requestKey: expect.any(String) }])
     expect(brief).toHaveValue('Explain faster exports.')
     expect(links).toHaveValue('https://example.test/exports')
+  })
+
+  it('resends a brief after a lost response with the same request key, and a changed brief with a new one', async () => {
+    const base = '/api/v1/workspaces/acme-newsletter'
+    const submitted: { brief: string; requestKey?: string }[] = []
+    unmock = mockApi({
+      [`GET ${base}/ai/status`]: () => json({ state: 'ready', features: [], prices: { known: true }, agent: { enabled: true, limits: run.limits }, usage: { costMicros: 0 } }),
+      [`GET ${base}/brand-kit/voice/history`]: () => json({ items: [] }),
+      [`POST ${base}/ai/agent/runs`]: async (r) => { submitted.push(await r.json()); throw new TypeError('Failed to fetch') },
+    })
+    await renderInWorkspace(<AgentBriefPage />, { me: workspaceMe({ permissions: ['ai:use', 'campaigns:view', 'campaigns:edit'] }) })
+    const submit = screen.getByRole('button', { name: 'Create a plan' })
+    const brief = screen.getByLabelText('What would you like to draft?')
+    for (const [i, text] of ['Explain faster exports.', 'Explain faster exports.', 'Explain faster imports.'].entries()) {
+      await waitFor(() => expect(submit).toBeEnabled())
+      fireEvent.change(brief, { target: { value: text } })
+      fireEvent.click(submit)
+      fireEvent.click(await screen.findByRole('button', { name: 'Share reviewed content' }))
+      await waitFor(() => expect(submitted).toHaveLength(i + 1))
+      expect(await screen.findByRole('alert')).toBeVisible()
+    }
+    expect(submitted[0]?.requestKey).toMatch(/^[A-Za-z0-9_-]{1,80}$/)
+    expect(submitted[1]?.requestKey).toBe(submitted[0]?.requestKey)
+    expect(submitted[2]?.requestKey).not.toBe(submitted[0]?.requestKey)
   })
 })

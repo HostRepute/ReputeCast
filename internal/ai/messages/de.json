@@ -11,6 +11,7 @@
   "agent.expired": "Dieser Auftrag ist abgelaufen. Seine temporären Inhalte sind nicht mehr verfügbar; übernommene Entwürfe bleiben unverändert.",
   "agent.manual": "Die Ausgabe ist nach zwei Korrekturversuchen weiterhin ungültig. Prüfen Sie erfolgreiche Entwürfe und bearbeiten Sie den Rest manuell.",
   "agent.decided": "Für diesen Entwurf wurde bereits anders entschieden. Aktualisieren Sie die Ansicht, um das gespeicherte Ergebnis zu sehen.",
+  "agent.request_reused": "Dieser Anfrageschlüssel wurde bereits für einen anderen Auftrag verwendet. Senden Sie den Auftrag erneut, um einen neuen Lauf zu starten.",
   "agent.bundle": "Prüfen und entscheiden Sie gemeinsam über die aktuellen Versionen aller offenen Entwürfe in dieser Abhängigkeitsgruppe.",
   "budget.reconcile_confirm": "Prüfen und bestätigen Sie beide Tokenzahlen beim Anbieter. Null bedeutet bestätigte Kostenfreiheit, nicht unbekannte Nutzung.",
   "budget.reconcile_changed": "Diese Anfrage wurde bereits mit anderen Werten abgeglichen. Aktualisieren Sie die Ansicht, um die erfasste Nutzung zu sehen.",

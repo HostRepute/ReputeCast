@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -36,6 +36,10 @@ export function AgentReview({ run, mutations, permissions, blocked, owner, onPla
   const [confirm, setConfirm] = useState<{ decision: Decision; version: number; artifacts: AgentArtifact[] }>()
   const [source, setSource] = useState<{ action: 'propose' | 'refresh'; artifact: AgentArtifact; version: number; planRevision: number }>()
   const [conflict, setConflict] = useState('')
+  const heading = useRef<HTMLHeadingElement>(null)
+  // A decision removes the buttons that opened its dialog: keyboard focus
+  // continues from the review heading instead of the start of the page.
+  const settle = () => requestAnimationFrame(() => { if (document.activeElement === document.body) heading.current?.focus() })
   const grouped = new Map<string, AgentArtifact[]>()
   const order = new Map(run.plan?.items.map((item, i) => [item.handle, i]))
   for (const artifact of [...run.artifacts].sort((a, b) => (order.get(a.handle) ?? Infinity) - (order.get(b.handle) ?? Infinity))) {
@@ -56,7 +60,7 @@ export function AgentReview({ run, mutations, permissions, blocked, owner, onPla
     }
   }
   return <div className="flex flex-col gap-5">
-    <div role="status" className="flex flex-wrap items-center justify-between gap-3"><h2 className="h2">{t(ag.review)}</h2><Badge tone={pending ? 'warn' : 'ok'}>{t(ag.remaining, { count: pending })}</Badge></div>
+    <div role="status" className="flex flex-wrap items-center justify-between gap-3"><h2 ref={heading} tabIndex={-1} className="h2">{t(ag.review)}</h2><Badge tone={pending ? 'warn' : 'ok'}>{t(ag.remaining, { count: pending })}</Badge></div>
     <p className="note i m-0">{t(ag.noSend)}</p>
     {!groups.length ? <p className="k">{t(ag.noDrafts)}</p> : null}
     {(['new', 'existing'] as const).map((section) => {
@@ -91,10 +95,10 @@ export function AgentReview({ run, mutations, permissions, blocked, owner, onPla
         })}
       </section>
     })}
-    {confirm ? <ConfirmDialog open onOpenChange={(open) => { if (!open) setConfirm(undefined) }} tone={confirm.decision === 'discarded' ? 'bad' : 'warn'} badge={t(ag.review)} title={t(decisions[confirm.decision])} description={t(descriptions[confirm.decision])} confirmLabel={t(decisions[confirm.decision])} onConfirm={decide}>
+    {confirm ? <ConfirmDialog open onOpenChange={(open) => { if (!open) { setConfirm(undefined); settle() } }} tone={confirm.decision === 'discarded' ? 'bad' : 'warn'} badge={t(ag.review)} title={t(decisions[confirm.decision])} description={t(descriptions[confirm.decision])} confirmLabel={t(decisions[confirm.decision])} onConfirm={decide}>
       <ul className="m-0 pl-5">{confirm.artifacts.map((a) => <li key={a.id}>{a.name} · {t(ag.revision, { revision: a.revision })}</li>)}</ul>
     </ConfirmDialog> : null}
-    {source ? <ConfirmDialog open onOpenChange={(open) => { if (!open) setSource(undefined) }} tone="warn" badge={t(ag.plan)} title={t(source.action === 'refresh' ? ag.refresh : ag.propose)} description={t(source.action === 'refresh' ? ag.refreshBody : ag.proposeBody)} confirmLabel={t(source.action === 'refresh' ? ag.refresh : ag.propose)} reason={{ label: t(ag.instruction), hint: t(ag.conversationHint), minLength: 1 }} onConfirm={async ({ reason }) => {
+    {source ? <ConfirmDialog open onOpenChange={(open) => { if (!open) { setSource(undefined); settle() } }} tone="warn" badge={t(ag.plan)} title={t(source.action === 'refresh' ? ag.refresh : ag.propose)} description={t(source.action === 'refresh' ? ag.refreshBody : ag.proposeBody)} confirmLabel={t(source.action === 'refresh' ? ag.refresh : ag.propose)} reason={{ label: t(ag.instruction), hint: t(ag.conversationHint), minLength: 1 }} onConfirm={async ({ reason }) => {
       await mutations.action({ sharingReviewed: true, action: source.action, version: source.version, planRevision: source.planRevision, handle: source.artifact.handle, message: reason })
       onPlanRequested?.()
     }}><div className="flex flex-col gap-3"><p className="m-0 text-sm">{t(md.sharingDisclosure, { recipient: run.model })}</p><p className="m-0 text-sm">{t(md.sharingRisk)}</p><p className="k m-0">{t(md.providerPolicy)}</p></div></ConfirmDialog> : null}

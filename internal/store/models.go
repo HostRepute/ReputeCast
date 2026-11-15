@@ -231,6 +231,8 @@ type AiAgentRun struct {
 	ExpiresAt        time.Time  `json:"expiresAt"`
 	ClosedAt         *time.Time `json:"closedAt"`
 	Model            string     `json:"model"`
+	RequestKey       *string    `json:"requestKey"`
+	RequestHash      []byte     `json:"requestHash"`
 }
 
 type AiAgentSetting struct {

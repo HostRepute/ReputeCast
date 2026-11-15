@@ -50,6 +50,7 @@ var notSealed = map[string]string{
 	"mcp_connect_tokens.hash":            "SHA-256 hash of a random access or refresh token",
 	"mcp_connect_limits.key":             "SHA-256 hash of the rate-limit bucket identity",
 	"mcp_connect_proposals.request_hash": "SHA-256 digest of the proposal for idempotency checks",
+	"ai_agent_runs.request_hash":         "SHA-256 digest of the brief, to recognize a retried run request",
 }
 
 // Every bytea column is either a known sealed column or known not to be

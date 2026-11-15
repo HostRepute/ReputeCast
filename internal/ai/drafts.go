@@ -100,6 +100,10 @@ func draftProblem(ctx context.Context, status int, key string) error {
 // runDraft allows two repairs, with immutable projected context, voice and
 // connection. Only a fixed validation code is returned to the model: neither
 // rejected output nor locally restored bindings may become repair context.
+// draftWriteTimeout lets a draft's answer reach the person after all three
+// attempts of runDraft, each bounded by the draft timeout.
+const draftWriteTimeout = 3*longestTimeout + time.Minute
+
 func (s *Service) runDraft(ctx context.Context, ws *store.Workspace, p *authz.Principal, t task, validate func(llm.Response) (string, error)) (result, error) {
 	c, err := s.usable(ctx, ws, t.feature)
 	if err != nil {
@@ -636,7 +640,7 @@ func registerDrafts(h huma.API, s *Service) {
 			out, err := s.pendingDrafts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), "campaign", in)
 			return api.OK(out), err
 		})
-	api.Post(h, api.Op{ID: "generate-campaign-draft", Path: base, Tags: tags, Summary: "Propose a campaign from an explicit brief, without saving a campaign", Access: api.WorkspaceHuman(authz.AIUse)},
+	api.Post(h, api.Op{ID: "generate-campaign-draft", Path: base, Tags: tags, Summary: "Propose a campaign from an explicit brief, without saving a campaign", Access: api.WorkspaceHuman(authz.AIUse), WriteTimeout: draftWriteTimeout},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
 			Body AICampaignBriefInput

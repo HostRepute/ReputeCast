@@ -42,6 +42,7 @@ type AIAgentBrief struct {
 	Automation      *AIAgentAutomationSelection `json:"automation,omitempty"`
 	ReportID        *uuid.UUID                  `json:"reportId,omitempty" doc:"Explicitly selected completed campaign; only its fixed aggregate snapshot reaches the model"`
 	PoolID          *uuid.UUID                  `json:"poolId,omitempty" doc:"Selected discount pool for new emails; codes are never read or reserved"`
+	RequestKey      string                      `json:"requestKey,omitempty" pattern:"^[A-Za-z0-9_-]{1,80}$" doc:"Generated once per brief by the client: retrying the same brief with it after a lost response returns the run already created"`
 }
 
 type AIAgentPlanItem struct {
@@ -455,7 +456,9 @@ func (s *Service) agentAccess(ctx context.Context, q *store.Queries, ws *store.W
 				return nil, api.Forbidden(authz.SegmentsEdit, nil)
 			}
 			if _, err := s.Segments.CheckProposal(ctx, q, ws.ID, fresh, *c.Brief.Audience); err != nil {
-				return nil, err
+				// A field or list deleted since selection is a domain denial
+				// that pauses the run, not an operational failure to retry.
+				return nil, segments.Problem(ctx, err)
 			}
 		}
 	}
@@ -470,16 +473,21 @@ func (s *Service) agentAccess(ctx context.Context, q *store.Queries, ws *store.W
 	type reference struct {
 		kind string
 		id   uuid.UUID
+		// optional references may since have been deleted. A deleted
+		// resource no longer gates viewing or deciding the rest of the run,
+		// nor a step after its draft was decided; an existing one's scope
+		// still does.
+		optional bool
 	}
 	refs := []reference{}
 	if c.Brief.CampaignID != nil {
-		refs = append(refs, reference{"campaign", *c.Brief.CampaignID})
+		refs = append(refs, reference{"campaign", *c.Brief.CampaignID, !execute})
 	}
 	for _, source := range c.Proposals {
-		refs = append(refs, reference{source.kind(), source.ID})
+		refs = append(refs, reference{source.kind(), source.ID, !execute})
 	}
 	if c.Brief.ReportID != nil {
-		refs = append(refs, reference{"report", *c.Brief.ReportID})
+		refs = append(refs, reference{"report", *c.Brief.ReportID, !execute})
 	}
 	artifacts, err := q.AIAgentReferences(ctx, r.ID)
 	if err != nil {
@@ -491,17 +499,40 @@ func (s *Service) agentAccess(ctx context.Context, q *store.Queries, ws *store.W
 		}
 		for _, id := range []*uuid.UUID{a.TargetID, a.ResultID} {
 			if id != nil && a.Kind != "segment" {
-				refs = append(refs, reference{a.Kind, *id})
+				refs = append(refs, reference{a.Kind, *id, !execute || a.Decision != ""})
 			}
 		}
 	}
+	gone := func(kind string, id uuid.UUID) (bool, error) {
+		present, err := q.AIAgentReferenceExists(ctx, store.AIAgentReferenceExistsParams{Kind: kind, WorkspaceID: ws.ID, ID: id})
+		return !present, err
+	}
+	// Required references sort first, so compaction keeps them.
 	slices.SortFunc(refs, func(a, b reference) int {
 		if kind := strings.Compare(a.kind, b.kind); kind != 0 {
 			return kind
 		}
-		return strings.Compare(a.id.String(), b.id.String())
+		if id := strings.Compare(a.id.String(), b.id.String()); id != 0 {
+			return id
+		}
+		if a.optional == b.optional {
+			return 0
+		}
+		if a.optional {
+			return 1
+		}
+		return -1
 	})
-	for _, ref := range slices.Compact(refs) {
+	for _, ref := range slices.CompactFunc(refs, func(a, b reference) bool { return a.kind == b.kind && a.id == b.id }) {
+		if ref.optional {
+			deleted, err := gone(ref.kind, ref.id)
+			if err != nil {
+				return nil, err
+			}
+			if deleted {
+				continue
+			}
+		}
 		if ref.kind == "automation" {
 			if _, _, err := s.agentFlow(ctx, q, ws, fresh, ref.id); err != nil {
 				return nil, err
@@ -552,6 +583,15 @@ func (s *Service) agentAccess(ctx context.Context, q *store.Queries, ws *store.W
 		}
 		pending := slices.ContainsFunc(c.Plan.Items, func(item AIAgentPlanItem) bool { return item.Target == handle }) &&
 			!slices.ContainsFunc(artifacts, func(a store.AIAgentReferencesRow) bool { return a.Handle == handle && a.Decision != "" })
+		if !execute {
+			deleted, err := gone(source.kind(), source.ID)
+			if err != nil {
+				return nil, err
+			}
+			if deleted {
+				continue
+			}
+		}
 		if err := s.agentProposalAccess(ctx, q, ws, fresh, source, execute && pending); err != nil {
 			return nil, err
 		}
@@ -1027,6 +1067,12 @@ func (s *Service) AgentAction(ctx context.Context, ws *store.Workspace, p *authz
 					return agentProblem(ctx, "decided")
 				}
 				c.Refine, r.State = in.Handle, "queued"
+				// The person's revision request starts that output's repairs afresh.
+				for _, a := range artifacts {
+					if a.Handle == in.Handle {
+						delete(c.Failures, a.Kind+":"+a.Handle)
+					}
+				}
 				c.Messages = append(c.Messages, llm.Message{Role: "user", Parts: []llm.Part{textPart("Revise only the unkept draft "+in.Handle+". Preserve its accepted scope and dependencies. If the request needs a different scope, leave drafts unchanged and explain that a revised plan needs confirmation.", tag("copy_revision", message))}})
 			} else {
 				if c.PreviousPlan == nil && r.AcceptedRevision > 0 {
@@ -1034,7 +1080,8 @@ func (s *Service) AgentAction(ctx context.Context, ws *store.Workspace, p *authz
 					c.PreviousPlan = &previous
 				}
 				r.AcceptedRevision, r.State = 0, "planning"
-				delete(c.Failures, "plan")
+				// A person's new instruction starts every repair count afresh.
+				c.Failures = nil
 				c.Messages = append(c.Messages, llm.Message{Role: "user", Parts: []llm.Part{textPart("Prepare a revised plan for confirmation. Preserve decided items. Retain existing staging items unchanged, or replace their entire bundle using fresh handles and a new bundle. Replacements discard the old staging bundle only after the person explicitly confirms its revisions. Do not rebuild before confirmation.", tag("answer", message))}})
 			}
 			c.Conversation = append(c.Conversation, AIAgentMessage{Role: "user", Text: message, Handle: in.Handle, At: s.now()})

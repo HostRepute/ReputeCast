@@ -11,6 +11,7 @@
   "agent.expired": "Tác vụ đã hết hạn. Nội dung tạm thời không còn khả dụng; các bản nháp đã giữ không thay đổi.",
   "agent.manual": "Nội dung vẫn không đạt kiểm tra sau hai lần sửa. Xem các bản nháp thành công và chỉnh sửa thủ công phần còn lại.",
   "agent.decided": "Bản nháp này đã có quyết định khác. Tải lại để xem kết quả đã lưu.",
+  "agent.request_reused": "Khóa yêu cầu này đã được dùng cho một yêu cầu khác. Gửi lại yêu cầu để bắt đầu một tác vụ mới.",
   "agent.bundle": "Xem và quyết định cùng lúc các phiên bản hiện tại của mọi bản nháp chưa quyết định trong nhóm phụ thuộc này.",
   "budget.reconcile_confirm": "Kiểm tra cả hai số lượng token với nhà cung cấp rồi xác nhận. Số 0 nghĩa là nhà cung cấp xác nhận không tính phí, không phải chưa rõ mức sử dụng.",
   "budget.reconcile_changed": "Yêu cầu đã được đối soát với số liệu khác. Tải lại để xem mức sử dụng đã ghi nhận.",

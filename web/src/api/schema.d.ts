@@ -20321,6 +20321,8 @@ export interface components {
             poolId?: string;
             /** @description Explicitly selected completed campaign; only its fixed aggregate snapshot reaches the model */
             reportId?: string;
+            /** @description Generated once per brief by the client: retrying the same brief with it after a lost response returns the run already created */
+            requestKey?: string;
             /** @description Confirm review of the brief, selected content, residual personal-data risk and provider data policy before sharing */
             sharingReviewed: boolean;
             templateId?: string;

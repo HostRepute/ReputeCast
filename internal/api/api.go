@@ -100,6 +100,10 @@ type Op struct {
 	Status int
 	// MaxBodyBytes overrides Huma's default 1 MiB request limit.
 	MaxBodyBytes int64
+	// WriteTimeout lets the response be written after the server's
+	// http.write_timeout, for an operation that waits on a slow upstream such
+	// as a model drafting an email.
+	WriteTimeout time.Duration
 }
 
 func (o Op) operation() huma.Operation {
@@ -114,6 +118,14 @@ func (o Op) operation() huma.Operation {
 		MaxBodyBytes:  o.MaxBodyBytes,
 		Metadata:      map[string]any{accessMetaKey: o.Access},
 		Extensions:    map[string]any{"x-access": string(o.Access.Kind)},
+	}
+	if d := o.WriteTimeout; d > 0 {
+		op.Middlewares = huma.Middlewares{func(ctx huma.Context, next func(huma.Context)) {
+			if w, ok := ctx.BodyWriter().(http.ResponseWriter); ok {
+				_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(d))
+			}
+			next(ctx)
+		}}
 	}
 	if o.Access.Permission != "" {
 		op.Extensions["x-permission"] = string(o.Access.Permission)

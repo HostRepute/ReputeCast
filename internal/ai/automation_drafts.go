@@ -557,7 +557,7 @@ func registerAutomationDrafts(h huma.API, s *Service) {
 			out, err := s.pendingDrafts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), "automation", in)
 			return api.OK(out), err
 		})
-	api.Post(h, api.Op{ID: "generate-automation-draft", Path: base, Tags: tags, Summary: "Propose an unpublished email flow for future confirmed list joins", Access: api.WorkspaceHuman(authz.AIUse)},
+	api.Post(h, api.Op{ID: "generate-automation-draft", Path: base, Tags: tags, Summary: "Propose an unpublished email flow for future confirmed list joins", Access: api.WorkspaceHuman(authz.AIUse), WriteTimeout: draftWriteTimeout},
 		func(ctx context.Context, in *struct {
 			api.WorkspaceInput
 			Body AIAutomationBriefInput

@@ -418,9 +418,11 @@ func (q *Queries) MCPConnectGrantLock(ctx context.Context, id uuid.UUID) (McpCon
 }
 
 const mCPConnectGrantRead = `-- name: MCPConnectGrantRead :one
-SELECT id, client_id, workspace_id, user_id, resource, scopes, permissions, scope, allowed_ips, created_at, expires_at, revoked_at, revoked_reason FROM mcp_connect_grants WHERE id = $1 FOR SHARE
+SELECT id, client_id, workspace_id, user_id, resource, scopes, permissions, scope, allowed_ips, created_at, expires_at, revoked_at, revoked_reason FROM mcp_connect_grants WHERE id = $1
 `
 
+// Unlocked: token verification and views must not wait on a running tool
+// call, which holds the grant FOR UPDATE and rechecks it under that lock.
 func (q *Queries) MCPConnectGrantRead(ctx context.Context, id uuid.UUID) (McpConnectGrant, error) {
 	row := q.db.QueryRow(ctx, mCPConnectGrantRead, id)
 	var i McpConnectGrant

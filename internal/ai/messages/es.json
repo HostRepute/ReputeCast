@@ -11,6 +11,7 @@
   "agent.expired": "Esta tarea ha caducado. Su contenido temporal ya no está disponible; los borradores conservados no han cambiado.",
   "agent.manual": "El resultado sigue sin superar la validación tras dos correcciones. Revisa los borradores válidos y edita el resto manualmente.",
   "agent.decided": "Este borrador ya tiene otra decisión. Actualiza para ver el resultado guardado.",
+  "agent.request_reused": "Esta clave de solicitud ya se usó para otro encargo. Envía el encargo de nuevo para iniciar una tarea nueva.",
   "agent.bundle": "Revisa y decide conjuntamente sobre las versiones actuales de todos los borradores pendientes de este grupo de dependencias.",
   "budget.reconcile_confirm": "Verifica ambos recuentos de tokens con el proveedor y confírmalos. Cero significa que el proveedor confirmó que no hubo cargo, no un uso desconocido.",
   "budget.reconcile_changed": "Esta solicitud ya se concilió con otros recuentos. Actualiza para ver el uso registrado.",

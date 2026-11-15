@@ -268,8 +268,13 @@ func (s *Service) Authorize(ctx context.Context, in url.Values) (string, error) 
 
 // membership fences current authority against revocation until commit. It also
 // permits recovery actions when the workspace has disabled MCP connections.
+// Database errors, such as a lock wait, are returned as they are: they say
+// nothing about the person's access.
 func (s *Service) membership(ctx context.Context, q *store.Queries, ws, user uuid.UUID) (store.MCPConnectAuthorityRow, error) {
 	r, err := q.MCPConnectAuthority(ctx, store.MCPConnectAuthorityParams{WorkspaceID: ws, UserID: user})
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return r, err
+	}
 	if err != nil || r.MemberStatus != "active" || r.UserStatus != "active" || r.MustChangePassword || r.DeletedAt != nil {
 		return r, errGrant
 	}
@@ -279,7 +284,7 @@ func (s *Service) membership(ctx context.Context, q *store.Queries, ws, user uui
 func (s *Service) authority(ctx context.Context, q *store.Queries, ws, user uuid.UUID) (authz.Set, authz.Scope, error) {
 	r, err := s.membership(ctx, q, ws, user)
 	if err != nil {
-		return nil, authz.Scope{}, errGrant
+		return nil, authz.Scope{}, err
 	}
 	settings := struct {
 		Enabled bool `json:"enabled"`

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
@@ -41,7 +43,11 @@ type AgentWorker struct {
 	S *Service
 }
 
-func (w *AgentWorker) Timeout(*river.Job[AgentArgs]) time.Duration { return 3 * time.Minute }
+// agentLease outlives one provider call and the response's checkpoint; the
+// job outlives the lease, so a slow answer is not mistaken for a lost worker.
+const agentLease = longestTimeout + time.Minute
+
+func (w *AgentWorker) Timeout(*river.Job[AgentArgs]) time.Duration { return agentLease + time.Minute }
 func (w *AgentWorker) Work(ctx context.Context, job *river.Job[AgentArgs]) error {
 	return w.S.ExecuteAgent(ctx, job.Args)
 }
@@ -68,6 +74,16 @@ func (s *Service) StartAgent(ctx context.Context, ws *store.Workspace, p *authz.
 	p, err := draftActor(ctx, s.Q, ws, p, true, authz.AIUse)
 	if err != nil {
 		return AIAgentRunView{}, err
+	}
+	var key *string
+	var digest []byte
+	if in.RequestKey != "" {
+		raw, _ := json.Marshal(in)
+		sum := sha256.Sum256(raw)
+		key, digest = &in.RequestKey, sum[:]
+		if run, retried, err := s.agentRetry(ctx, ws, p, in.RequestKey, digest); retried {
+			return run, err
+		}
 	}
 	c := agentContext{Brief: in, Draft: draftContext{Language: in.Language, TemplateID: in.TemplateID, EmailContext: editorial.EmailContext{Bindings: []editorial.Binding{}}}, Messages: []llm.Message{},
 		Conversation: []AIAgentMessage{{Role: "user", Text: brief, At: s.now()}}}
@@ -187,7 +203,8 @@ func (s *Service) StartAgent(ctx context.Context, ws *store.Workspace, p *authz.
 		}
 		c.Model = agentModelOf(conn)
 		if err := q.AIAgentRunInsert(ctx, store.AIAgentRunInsertParams{ID: id, WorkspaceID: ws.ID, UserID: p.UserID, Model: conn.Model,
-			ToolLimit: settings.ToolLimit, TokenLimit: settings.TokenLimit, CostLimitMicros: settings.CostLimitMicros, Now: now, ExpiresAt: expires}); err != nil {
+			ToolLimit: settings.ToolLimit, TokenLimit: settings.TokenLimit, CostLimitMicros: settings.CostLimitMicros, Now: now, ExpiresAt: expires,
+			RequestKey: key, RequestHash: digest}); err != nil {
 			return err
 		}
 		if err := q.AIAgentContextInsert(ctx, store.AIAgentContextInsertParams{RunID: id, Brief: json.RawMessage(`{}`), Bindings: json.RawMessage(`{}`)}); err != nil {
@@ -201,10 +218,34 @@ func (s *Service) StartAgent(ctx context.Context, ws *store.Workspace, p *authz.
 		}
 		return s.enqueueAgent(ctx, tx, r)
 	})
+	var duplicate *pgconn.PgError
+	if key != nil && errors.As(err, &duplicate) && duplicate.Code == "23505" && duplicate.ConstraintName == "ai_agent_runs_request_key_idx" {
+		// The same brief arrived twice at once; the other request created it.
+		run, _, err := s.agentRetry(ctx, ws, p, in.RequestKey, digest)
+		return run, err
+	}
 	if err != nil {
 		return AIAgentRunView{}, err
 	}
 	return s.AgentRun(ctx, ws, p, id)
+}
+
+// agentRetry answers a brief retried after a lost response with the run it
+// already created, without another plan or charge. The same key with a
+// different brief is refused rather than guessed.
+func (s *Service) agentRetry(ctx context.Context, ws *store.Workspace, p *authz.Principal, key string, digest []byte) (AIAgentRunView, bool, error) {
+	prior, err := s.Q.AIAgentRunByRequest(ctx, store.AIAgentRunByRequestParams{WorkspaceID: ws.ID, UserID: p.UserID, RequestKey: &key})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AIAgentRunView{}, false, nil
+	}
+	if err != nil {
+		return AIAgentRunView{}, true, err
+	}
+	if !bytes.Equal(prior.RequestHash, digest) {
+		return AIAgentRunView{}, true, agentProblem(ctx, "request_reused")
+	}
+	run, err := s.AgentRun(ctx, ws, p, prior.ID)
+	return run, true, err
 }
 
 func agentRunning(state string) bool {
@@ -322,7 +363,7 @@ func (s *Service) ExecuteAgent(ctx context.Context, args AgentArgs) error {
 			return err
 		}
 		lease = uuid.Must(uuid.NewV7())
-		if _, err := q.AIAgentSlotClaim(ctx, store.AIAgentSlotClaimParams{UserID: r.UserID, WorkspaceID: ws.ID, RunID: r.ID, LeaseID: lease, ExpiresAt: s.now().Add(2 * time.Minute)}); errors.Is(err, pgx.ErrNoRows) {
+		if _, err := q.AIAgentSlotClaim(ctx, store.AIAgentSlotClaimParams{UserID: r.UserID, WorkspaceID: ws.ID, RunID: r.ID, LeaseID: lease, ExpiresAt: s.now().Add(agentLease)}); errors.Is(err, pgx.ErrNoRows) {
 			busy = true
 			return nil
 		} else if err != nil {
@@ -613,11 +654,8 @@ func (s *Service) executeAgentResponse(ctx context.Context, ws *store.Workspace,
 			}
 			// Finish the saved response before stopping: a failed output must
 			// not throw away independent successful drafts later in that response.
-			for _, attempts := range c.Failures {
-				if attempts >= 3 {
-					r.State, r.PauseReason = "paused", "validation_exhausted"
-					break
-				}
+			if c.exhausted() {
+				r.State, r.PauseReason = "paused", "validation_exhausted"
 			}
 			if err := q.AIAgentStepSave(ctx, store.AIAgentStepSaveParams{ID: step.ID, State: "done", Response: step.Response, Results: step.Results,
 				NextCall: step.NextCall, Summary: agentStepSummary(c.Plan, calls, results), UpdatedAt: s.now()}); err != nil {

@@ -188,17 +188,24 @@ func (s *Service) policy() netguard.Policy {
 	return netguard.Policy{AllowPrivate: s.AllowPrivate != nil && s.AllowPrivate()}
 }
 
-// client returns the HTTP client that reaches providers.
+// client returns the HTTP client that reaches providers. Its own limit is the
+// longest feature's; each request's context sets its feature's timeout.
 func (s *Service) client() *http.Client {
 	if s.HTTP != nil {
 		return s.HTTP
 	}
-	return s.policy().Client(llm.DefaultTimeout)
+	return s.policy().Client(longestTimeout)
 }
 
-// timeouts per feature: a translation of a whole email takes longest.
+// longestTimeout bounds a draft or an agent step: up to 8,000 output tokens
+// of MJML take minutes at typical provider speeds.
+const longestTimeout = 3 * time.Minute
+
+// timeouts per feature.
 func timeoutOf(feature string) time.Duration {
 	switch feature {
+	case FeatureAgent, FeatureDraft:
+		return longestTimeout
 	case FeatureTranslate:
 		return 120 * time.Second
 	case FeatureSummary, FeatureSegment, FeatureSubjectIdeas:

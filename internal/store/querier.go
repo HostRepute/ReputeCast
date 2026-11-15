@@ -51,11 +51,15 @@ type Querier interface {
 	// Position is a snapshot, not FIFO scheduling: a user's other workspace
 	// may hold their execution slot. Never return another task's identity.
 	AIAgentQueueStatus(ctx context.Context, arg AIAgentQueueStatusParams) (AIAgentQueueStatusRow, error)
+	// Whether a run's referenced resource still exists, whatever the reader's
+	// scope: a deleted one no longer gates the rest of the run.
+	AIAgentReferenceExists(ctx context.Context, arg AIAgentReferenceExistsParams) (bool, error)
 	AIAgentReferences(ctx context.Context, runID uuid.UUID) ([]AIAgentReferencesRow, error)
 	// Taking the same run lock as every continuation/decision prevents a late
 	// checkpoint from restoring content after the retention sweep removed it.
 	AIAgentRetentionBatch(ctx context.Context, now time.Time) ([]AiAgentRun, error)
 	AIAgentRun(ctx context.Context, arg AIAgentRunParams) (AiAgentRun, error)
+	AIAgentRunByRequest(ctx context.Context, arg AIAgentRunByRequestParams) (AIAgentRunByRequestRow, error)
 	AIAgentRunInsert(ctx context.Context, arg AIAgentRunInsertParams) error
 	AIAgentRunLock(ctx context.Context, arg AIAgentRunLockParams) (AiAgentRun, error)
 	AIAgentRunSave(ctx context.Context, arg AIAgentRunSaveParams) error
@@ -2853,6 +2857,8 @@ type Querier interface {
 	MCPConnectCreateToken(ctx context.Context, arg MCPConnectCreateTokenParams) error
 	MCPConnectDecideRequest(ctx context.Context, arg MCPConnectDecideRequestParams) error
 	MCPConnectGrantLock(ctx context.Context, id uuid.UUID) (McpConnectGrant, error)
+	// Unlocked: token verification and views must not wait on a running tool
+	// call, which holds the grant FOR UPDATE and rechecks it under that lock.
 	MCPConnectGrantRead(ctx context.Context, id uuid.UUID) (McpConnectGrant, error)
 	MCPConnectGrants(ctx context.Context, arg MCPConnectGrantsParams) ([]MCPConnectGrantsRow, error)
 	MCPConnectLimit(ctx context.Context, arg MCPConnectLimitParams) (int32, error)

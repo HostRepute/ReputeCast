@@ -80,8 +80,11 @@ func (s *Service) metadata(w http.ResponseWriter, r *http.Request) {
 }
 
 // Quotas are shared by replicas, count rejected attempts, and use hashed network
-// keys. A global ceiling bounds distributed registration floods as well.
-func (s *Service) limit(w http.ResponseWriter, r *http.Request, kind string, ceiling int32) bool {
+// keys. The network's own quota is checked first, so attempts it refuses never
+// use up the global one. Only kinds that create rows (registration, consent
+// requests) have a global quota: one network must not be able to refuse token
+// refresh or revocation to every other client.
+func (s *Service) limit(w http.ResponseWriter, r *http.Request, kind string, perNetwork, global int32) bool {
 	ip := "unknown"
 	if addr := audit.RequestFrom(r.Context()).IP; addr != nil {
 		ip = addr.Unmap().String()
@@ -89,10 +92,15 @@ func (s *Service) limit(w http.ResponseWriter, r *http.Request, kind string, cei
 			ip = netip.PrefixFrom(*addr, 64).Masked().String()
 		}
 	}
-	for _, item := range []struct {
+	type quota struct {
 		key string
 		max int32
-	}{{kind + ":global", ceiling * 100}, {kind + ":" + ip, ceiling}} {
+	}
+	quotas := []quota{{kind + ":" + ip, perNetwork}}
+	if global > 0 {
+		quotas = append(quotas, quota{kind + ":global", global})
+	}
+	for _, item := range quotas {
 		_, err := s.Q.MCPConnectLimit(r.Context(), store.MCPConnectLimitParams{Key: authn.HashToken(item.key), Bucket: s.now().Truncate(10 * time.Minute), Ceiling: item.max})
 		if errors.Is(err, pgx.ErrNoRows) {
 			w.Header().Set("Retry-After", "600")
@@ -160,7 +168,7 @@ func decodeObject(r *http.Request, out any) error {
 
 func (s *Service) register(w http.ResponseWriter, r *http.Request) {
 	noStore(w)
-	if !s.limit(w, r, "registration", 10) {
+	if !s.limit(w, r, "registration", 10, 1000) {
 		return
 	}
 	var in ClientRegistration
@@ -194,7 +202,7 @@ func parameters(raw string, allowed []string) (url.Values, error) {
 
 func (s *Service) authorize(w http.ResponseWriter, r *http.Request) {
 	noStore(w)
-	if !s.limit(w, r, "authorization", 30) {
+	if !s.limit(w, r, "authorization", 30, 3000) {
 		return
 	}
 	in, err := parameters(r.URL.RawQuery, []string{"client_id", "redirect_uri", "response_type", "scope", "state", "resource", "code_challenge", "code_challenge_method"})
@@ -257,7 +265,7 @@ func (s *Service) authenticateClient(r *http.Request, in url.Values) (store.McpC
 
 func (s *Service) exchange(w http.ResponseWriter, r *http.Request) {
 	noStore(w)
-	if !s.limit(w, r, "token", 120) {
+	if !s.limit(w, r, "token", 120, 0) {
 		return
 	}
 	in, err := form(r)
@@ -280,7 +288,7 @@ func (s *Service) exchange(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) revokeToken(w http.ResponseWriter, r *http.Request) {
 	noStore(w)
-	if !s.limit(w, r, "revoke", 120) {
+	if !s.limit(w, r, "revoke", 120, 0) {
 		return
 	}
 	in, err := form(r)

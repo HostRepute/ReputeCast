@@ -11,6 +11,7 @@
   "agent.expired": "This run has expired. Its temporary content is no longer available; kept drafts are unchanged.",
   "agent.manual": "The output still failed validation after two repairs. Review successful drafts and edit the remaining content manually.",
   "agent.decided": "This draft already has a different decision. Refresh to see the saved result.",
+  "agent.request_reused": "This request key was already used for a different brief. Submit the brief again to start a new run.",
   "agent.bundle": "Review the exact current versions of every undecided draft in this dependency bundle together.",
   "budget.reconcile_confirm": "Verify both token counts with the provider and confirm them. Zero means the provider confirmed no charge, not unknown usage.",
   "budget.reconcile_changed": "This request was already reconciled with different counts. Refresh to see its recorded usage.",
