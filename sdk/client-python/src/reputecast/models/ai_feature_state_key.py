@@ -3,6 +3,8 @@ from enum import StrEnum
 class AIFeatureStateKey(StrEnum):
     ACCESSIBILITY_FIX = "accessibility_fix"
     ALT_TEXT = "alt_text"
+    BRAND_VOICE = "brand_voice"
+    DRAFT = "draft"
     REPORT_SUMMARY = "report_summary"
     REWRITE = "rewrite"
     SEGMENT_DRAFT = "segment_draft"

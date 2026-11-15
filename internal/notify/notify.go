@@ -58,8 +58,10 @@ const (
 	KindAutomationAttention = "automation_attention"
 	KindDigestDraftReady    = "digest_draft_ready" // draft mode: an issue is a draft to send through Review & send
 	// AI assistant (design expansion, phase 3).
-	KindAIUsage       = "ai_usage"        // this month's AI use reached 80% of the cap, or the cap
-	KindAIKeyRejected = "ai_key_rejected" // the model provider rejected the workspace's key
+	KindAIUsage          = "ai_usage"          // this month's AI use reached 80% of the cap, or the cap
+	KindAIKeyRejected    = "ai_key_rejected"   // the model provider rejected the workspace's key
+	KindAIAgentReady     = "ai_agent_ready"    // a task needs its initiator's review or action
+	KindExternalProposal = "external_proposal" // a connected client staged a proposal for its consenting person
 	// Earn (design expansion, phase 6).
 	KindPaymentsAttention = "payments_attention"      // a payment provider's key rejected, webhook missing or silent
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier
@@ -168,6 +170,12 @@ func (n Notification) data() ([]byte, error) {
 // ToUser stores a notification for one person, honouring their preferences:
 // nothing is stored when both in-app and email are off for the event type.
 func ToUser(ctx context.Context, q store.DBTX, userID uuid.UUID, n Notification) error {
+	return ToUserWith(ctx, store.New(q), userID, n)
+}
+
+// ToUserWith joins the caller's transaction, so a state change and its
+// notification either both commit or neither does.
+func ToUserWith(ctx context.Context, q *store.Queries, userID uuid.UUID, n Notification) error {
 	if n.Severity == "" {
 		n.Severity = "info"
 	}
@@ -177,7 +185,7 @@ func ToUser(ctx context.Context, q store.DBTX, userID uuid.UUID, n Notification)
 		return err
 	}
 	ev := EventFor(n.Kind)
-	_, err = store.New(q).InsertNotification(ctx, store.InsertNotificationParams{
+	_, err = q.InsertNotification(ctx, store.InsertNotificationParams{
 		ID:           uuid.Must(uuid.NewV7()),
 		WorkspaceID:  n.WorkspaceID,
 		Kind:         n.Kind,

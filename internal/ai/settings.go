@@ -71,6 +71,7 @@ type AICapView struct {
 type AIPricesView struct {
 	Input  float64 `json:"input" doc:"Dollars per million input tokens"`
 	Output float64 `json:"output" doc:"Dollars per million output tokens"`
+	Known  bool    `json:"known" doc:"Prices are configured, including an explicitly free model"`
 	// From is the price list's date when the prices came from it.
 	From *time.Time `json:"from,omitempty"`
 }
@@ -105,20 +106,23 @@ type AIConnectionView struct {
 
 // AIUsageView is this month's use against the cap.
 type AIUsageView struct {
-	CostMicros   int64     `json:"costMicros"`
-	InputTokens  int64     `json:"inputTokens"`
-	OutputTokens int64     `json:"outputTokens"`
-	Tokens       int64     `json:"tokens"`
-	Requests     int64     `json:"requests"`
-	Share        float64   `json:"share" doc:"Share of the cap used, 0 to 1 (0 without a cap)"`
-	State        string    `json:"state" enum:"ok,notice,reached"`
-	MonthStart   time.Time `json:"monthStart"`
-	ResetsAt     time.Time `json:"resetsAt"`
+	CostMicros         int64     `json:"costMicros"`
+	ReservedCostMicros int64     `json:"reservedCostMicros"`
+	ReservedTokens     int64     `json:"reservedTokens"`
+	UncertainRequests  int64     `json:"uncertainRequests"`
+	InputTokens        int64     `json:"inputTokens"`
+	OutputTokens       int64     `json:"outputTokens"`
+	Tokens             int64     `json:"tokens"`
+	Requests           int64     `json:"requests"`
+	Share              float64   `json:"share" doc:"Share of the cap used, 0 to 1 (0 without a cap)"`
+	State              string    `json:"state" enum:"ok,notice,reached"`
+	MonthStart         time.Time `json:"monthStart"`
+	ResetsAt           time.Time `json:"resetsAt"`
 }
 
 // AIFeatureState is a feature's switch.
 type AIFeatureState struct {
-	Key string `json:"key" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary"`
+	Key string `json:"key" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft"`
 	On  bool   `json:"on"`
 	// Available is false for alt text with a model that doesn't read images.
 	Available bool `json:"available"`
@@ -190,7 +194,7 @@ func (s *Service) connectionView(ctx context.Context, c *connection) *AIConnecti
 	v := &AIConnectionView{Provider: c.Provider, ProviderName: c.providerName(), Label: c.Label, BaseURL: c.BaseUrl, Deployment: c.Deployment, APIVersion: c.ApiVersion,
 		Model: c.Model, ModelName: c.modelName(), ImageInput: c.ImageInput, ConnectedAt: c.ConnectedAt, ConnectedBy: s.userName(ctx, c.ConnectedBy),
 		Status: "connected", Cap: AICapView{Kind: c.CapKind, USD: c.CapUsd, Tokens: c.CapTokens, SetBy: s.userName(ctx, c.CapSetBy), SetAt: c.CapSetAt},
-		Prices: AIPricesView{Input: c.InputPrice, Output: c.OutputPrice, From: c.PricesFrom}, Demo: c.Demo}
+		Prices: AIPricesView{Input: c.InputPrice, Output: c.OutputPrice, Known: c.PriceKnown || c.Demo, From: c.PricesFrom}, Demo: c.Demo}
 	if len(c.KeySealed) > 0 {
 		v.Key = AIKeyView{Set: true, AddedAt: c.KeyAddedAt, AddedBy: s.userName(ctx, c.KeyAddedBy)}
 	}
@@ -226,18 +230,23 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		out.Connected = c.connected()
 		out.Disconnected = !c.connected()
 		out.Connection = s.connectionView(ctx, c)
-		u, err := s.usage(ctx, ws, c)
-		if err != nil {
-			return AISettings{}, err
-		}
-		out.Usage.CostMicros, out.Usage.InputTokens, out.Usage.OutputTokens, out.Usage.Tokens, out.Usage.Requests, out.Usage.Share =
-			u.costMicros, u.inputTokens, u.outputTokens, u.tokens, u.requests, u.share
-		switch {
-		case u.reached:
-			out.Usage.State = "reached"
-		case u.notice:
-			out.Usage.State = "notice"
-		}
+	}
+	cap := c
+	if cap == nil {
+		cap = &connection{store.AiConnection{CapKind: "usd", CapUsd: 25}}
+	}
+	u, err := s.usage(ctx, ws, cap)
+	if err != nil {
+		return AISettings{}, err
+	}
+	out.Usage.CostMicros, out.Usage.InputTokens, out.Usage.OutputTokens, out.Usage.Tokens, out.Usage.Requests, out.Usage.Share =
+		u.costMicros, u.inputTokens, u.outputTokens, u.tokens, u.requests, u.share
+	out.Usage.ReservedCostMicros, out.Usage.ReservedTokens, out.Usage.UncertainRequests = u.reservedCost, u.reservedTokens, u.uncertain
+	switch {
+	case u.reached:
+		out.Usage.State = "reached"
+	case u.notice:
+		out.Usage.State = "notice"
 	}
 	for _, f := range Features {
 		st := AIFeatureState{Key: f, On: true, Available: true}
@@ -332,7 +341,7 @@ type AIConnectInput struct {
 	InputPrice  *float64 `json:"inputPrice,omitempty" minimum:"0"`
 	OutputPrice *float64 `json:"outputPrice,omitempty" minimum:"0"`
 	// Features to switch on (all when empty).
-	Features []string `json:"features,omitempty" maxItems:"7"`
+	Features []string `json:"features,omitempty" maxItems:"8"`
 }
 
 // candidate is a connection being set up or changed.
@@ -449,8 +458,9 @@ type AITestResult struct {
 	PrivateIP   string `json:"privateIp,omitempty"`
 }
 
-// test sends the fixed prompt, with no workspace content.
-func (s *Service) test(ctx context.Context, c candidate, demo bool) AITestResult {
+// test sends only the fixed prompt. Onboarding, saved-key tests and key
+// replacement all reserve/account usage, without granting ai:use to managers.
+func (s *Service) test(ctx context.Context, ws *store.Workspace, p *authz.Principal, c candidate, priced *connection) (AITestResult, error) {
 	prompt := mTestPrompt.Text(i18n.For(i18n.English), nil)
 	out := AITestResult{Prompt: prompt, SentAt: s.now()}
 	if c.baseURL != "" {
@@ -460,16 +470,17 @@ func (s *Service) test(ctx context.Context, c candidate, demo bool) AITestResult
 	}
 	var prov llm.Provider
 	var err error
-	if demo {
+	if priced.Demo {
 		if !s.Development {
 			out.ErrorKind, out.ErrorMessage = "bad_request", errDemoElsewhere.Error()
 			out.AnsweredAt = s.now()
-			return out
+			return out, nil
 		}
 		prov = demoModel{}
 	} else {
+		retries := 0
 		cfg := llm.Config{Kind: c.provider, BaseURL: c.baseURL, APIKey: c.key, Model: c.model, Deployment: c.deployment, APIVersion: c.apiVersion,
-			HTTP: s.client(), Timeout: 30 * time.Second, Retries: s.Retries, RetryWait: s.RetryWait}
+			HTTP: s.client(), Timeout: 30 * time.Second, Retries: &retries, RetryWait: s.RetryWait}
 		if s.Provider != nil {
 			prov, err = s.Provider(cfg)
 		} else {
@@ -477,35 +488,63 @@ func (s *Service) test(ctx context.Context, c candidate, demo bool) AITestResult
 		}
 		if err != nil {
 			out.ErrorKind, out.ErrorMessage, out.AnsweredAt = "bad_request", err.Error(), s.now()
-			return out
+			return out, nil //nolint:nilerr // The connection-test result carries the failure for the settings UI.
 		}
 	}
+	t := task{feature: FeatureConnectionTest, req: llm.Request{MaxTokens: 16, Messages: []llm.Message{{Role: "user", Parts: []llm.Part{{Text: prompt}}}}, Task: testTask{}}}
+	id := uuid.Must(uuid.NewV7())
+	if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		return s.reserveIn(ctx, store.New(tx), ws, p, priced, &t, nil, id)
+	}); err != nil {
+		return out, err
+	}
 	start := time.Now()
-	res, err := prov.Generate(ctx, llm.Request{MaxTokens: 16, Messages: []llm.Message{{Role: "user", Parts: []llm.Part{{Text: prompt}}}}, Task: testTask{}})
+	res, err := prov.Generate(ctx, t.req)
 	out.Ms = int(time.Since(start).Milliseconds())
 	out.AnsweredAt = s.now()
+	row := store.AIRequestInsertParams{ID: id, WorkspaceID: ws.ID, UserID: actorID(p), Feature: FeatureConnectionTest,
+		Provider: c.provider, Model: c.model, Outcome: OutcomeNothingDrafted, CreatedAt: out.SentAt, DecidedAt: &out.AnsweredAt, DurationMs: int32(out.Ms)}
+	if err != nil {
+		row.Outcome, row.OutcomeDetail = OutcomeError, errorDetail(err)
+	}
+	if accountErr := s.account(ctx, row, res, err); accountErr != nil {
+		return out, accountErr
+	}
 	if err != nil {
 		e, ok := llm.AsError(err)
 		if !ok {
 			out.ErrorKind, out.ErrorMessage = "invalid", err.Error()
-			return out
+			return out, nil
 		}
 		out.ErrorKind, out.ErrorStatus, out.ErrorDetail = string(e.Kind), e.Status, e.Error()
 		if e.Blocked {
 			out.ErrorKind = "private"
 		}
-		return out
+		return out, nil
 	}
 	out.OK, out.Answer, out.Model, out.InputTokens, out.OutputTokens = true, strings.TrimSpace(res.Text), res.Model, res.InputTokens, res.OutputTokens
 	if out.Model == "" {
 		out.Model = c.model
 	}
-	if demo {
+	if priced.Demo {
 		// The sample answers at once; it reports the recording's time.
 		out.Ms = demoTestMs
 		out.AnsweredAt = out.SentAt.Add(demoTestMs * time.Millisecond)
 	}
-	return out
+	return out, nil
+}
+
+// A candidate's own prices must never inherit another model's prices. Before
+// first connection its tests use the normal $25 monthly default; an existing
+// connection's cap (including while disconnected) wins inside reserveIn.
+func (s *Service) testPricing(ctx context.Context, ws *store.Workspace, c candidate, in, out *float64) (*connection, error) {
+	input, output, from := pricesOf(c.provider, c.model, in, out)
+	if err := validPrices(ctx, input, output); err != nil {
+		return nil, err
+	}
+	return &connection{store.AiConnection{WorkspaceID: ws.ID, Provider: c.provider, Model: c.model,
+		InputPrice: input, OutputPrice: output, PricesFrom: from, PriceKnown: pricesKnown(c.provider, c.model, in, out),
+		CapKind: "usd", CapUsd: 25, UpdatedAt: s.now()}}, nil
 }
 
 // demoTestMs is how long the recorded test took (AISettings: "answered in 1.2 s").
@@ -516,12 +555,14 @@ type testTask struct{}
 
 // AITestInput tests a connection: empty tests the saved one.
 type AITestInput struct {
-	Provider   string `json:"provider,omitempty" enum:"anthropic,openai,google,azure,compatible"`
-	BaseURL    string `json:"baseUrl,omitempty" maxLength:"500"`
-	Deployment string `json:"deployment,omitempty" maxLength:"120"`
-	APIVersion string `json:"apiVersion,omitempty" maxLength:"40"`
-	APIKey     string `json:"apiKey,omitempty" maxLength:"500"`
-	Model      string `json:"model,omitempty" maxLength:"120"`
+	Provider    string   `json:"provider,omitempty" enum:"anthropic,openai,google,azure,compatible"`
+	BaseURL     string   `json:"baseUrl,omitempty" maxLength:"500"`
+	Deployment  string   `json:"deployment,omitempty" maxLength:"120"`
+	APIVersion  string   `json:"apiVersion,omitempty" maxLength:"40"`
+	APIKey      string   `json:"apiKey,omitempty" maxLength:"500"`
+	Model       string   `json:"model,omitempty" maxLength:"120"`
+	InputPrice  *float64 `json:"inputPrice,omitempty" minimum:"0" maximum:"1000"`
+	OutputPrice *float64 `json:"outputPrice,omitempty" minimum:"0" maximum:"1000"`
 }
 
 // Test runs Test connection on the saved model, or on the one being set up.
@@ -540,16 +581,29 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 				return AITestResult{}, err
 			}
 		}
-		res := s.test(ctx, c, cur.Demo)
+		res, err := s.test(ctx, ws, p, c, cur)
+		if err != nil {
+			return res, err
+		}
 		ms := int32(res.Ms)
 		now := s.now()
-		if err := s.Q.AIConnectionSetTest(ctx, store.AIConnectionSetTestParams{WorkspaceID: ws.ID, LastTestAt: &now, LastTestOk: &res.OK, LastTestMs: &ms}); err != nil {
+		if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
+				return err
+			}
+			if err := q.AIConnectionSetTest(ctx, store.AIConnectionSetTestParams{WorkspaceID: ws.ID, LastTestAt: &now, LastTestOk: &res.OK, LastTestMs: &ms}); err != nil {
+				return err
+			}
+			if res.OK && cur.Status != "ok" {
+				_, err := q.AIConnectionSetStatus(ctx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "ok", StatusAt: &now, ExpectedUpdatedAt: cur.UpdatedAt})
+				return err
+			}
+			return nil
+		}); err != nil {
 			return AITestResult{}, err
 		}
-		switch {
-		case res.OK && cur.Status != "ok":
-			_, _ = s.Q.AIConnectionSetStatus(ctx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "ok", StatusAt: &now})
-		case res.ErrorKind == string(llm.ErrAuth):
+		if res.ErrorKind == string(llm.ErrAuth) {
 			s.keyRejected(ctx, ws, cur, &llm.Error{Kind: llm.ErrAuth, Status: res.ErrorStatus, Message: res.ErrorDetail})
 		}
 		s.explain(ctx, &res, cur.providerName())
@@ -562,9 +616,13 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err := s.validCandidate(ctx, &c); err != nil {
 		return AITestResult{}, err
 	}
-	res := s.test(ctx, c, false)
+	priced, err := s.testPricing(ctx, ws, c, in.InputPrice, in.OutputPrice)
+	if err != nil {
+		return AITestResult{}, err
+	}
+	res, err := s.test(ctx, ws, p, c, priced)
 	s.explain(ctx, &res, llm.Info(c.provider).Name)
-	return res, nil
+	return res, err
 }
 
 // explain words a failed test for the person.
@@ -710,6 +768,11 @@ func pricesOf(provider, model string, in, outp *float64) (float64, float64, *tim
 	return input, output, from
 }
 
+func pricesKnown(provider, model string, input, output *float64) bool {
+	_, known := llm.Known(provider, model)
+	return known || (input != nil && output != nil)
+}
+
 func validCap(ctx context.Context, kind string, usd float64, tokens int64) error {
 	switch kind {
 	case "usd":
@@ -815,7 +878,14 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return AISettings{}, err
 		}
 	}
-	res := s.test(ctx, c, false)
+	priced, err := s.testPricing(ctx, ws, c, in.InputPrice, in.OutputPrice)
+	if err != nil {
+		return AISettings{}, err
+	}
+	res, err := s.test(ctx, ws, p, c, priced)
+	if err != nil {
+		return AISettings{}, err
+	}
 	if !res.OK {
 		s.explain(ctx, &res, llm.Info(c.provider).Name)
 		return AISettings{}, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
@@ -840,6 +910,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		ConnectedBy: actor, ConnectedAt: now, Status: "ok", LastTestAt: &now, LastTestOk: &ok, LastTestMs: &ms,
 		CapKind: in.CapKind, CapUsd: in.CapUSD, CapTokens: in.CapTokens, CapSetBy: actor, CapSetAt: &now,
 		InputPrice: input, OutputPrice: output, PricesFrom: from, FeaturesOff: off, UpdatedBy: actor, UpdatedAt: now,
+		PriceKnown: pricesKnown(c.provider, c.model, in.InputPrice, in.OutputPrice),
 	}
 	if row.CapKind == "" {
 		row.CapKind = "usd"
@@ -862,6 +933,9 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
+			return err
+		}
 		if err := q.AIConnectionSave(ctx, saveParams(row)); err != nil {
 			return err
 		}
@@ -903,7 +977,12 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 		return AISettings{}, AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
 	}
 	c := candidate{provider: cur.Provider, baseURL: cur.BaseUrl, deployment: cur.Deployment, apiVersion: cur.ApiVersion, model: cur.Model, key: strings.TrimSpace(in.APIKey)}
-	res := s.test(ctx, c, false)
+	priced := *cur
+	priced.Demo = false
+	res, err := s.test(ctx, ws, p, c, &priced)
+	if err != nil {
+		return AISettings{}, res, err
+	}
 	if !res.OK {
 		s.explain(ctx, &res, cur.providerName())
 		return AISettings{}, res, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
@@ -920,6 +999,9 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 	row.LastTestAt, row.LastTestOk, row.LastTestMs, row.Demo, row.UpdatedBy, row.UpdatedAt = &now, &ok, &ms, false, actorID(p), now
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
+		if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
+			return err
+		}
 		if err := q.AIConnectionSave(ctx, saveParams(row)); err != nil {
 			return err
 		}
@@ -931,6 +1013,35 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 	}
 	out, err := s.Settings(ctx, ws, p)
 	return out, res, err
+}
+
+// A successful test cannot overwrite newer settings or outlive the manager's
+// access. Onboarding serializes the absent row with other first connections.
+func checkTestConnection(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, before *connection) error {
+	if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+		return err
+	}
+	row, err := q.AIConnectionForUpdate(ctx, ws.ID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if before == nil {
+		if err := q.AIBudgetWorkspaceLock(ctx, ws.ID); err != nil {
+			return err
+		}
+		_, err := q.AIConnection(ctx, ws.ID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return budgetProblem(ctx, "connection_changed")
+	}
+	if err != nil || !row.UpdatedAt.Equal(before.UpdatedAt) {
+		return budgetProblem(ctx, "connection_changed")
+	}
+	return nil
 }
 
 // AIModelInput changes the model (Change model).
@@ -991,6 +1102,7 @@ func (s *Service) ChangeModel(ctx context.Context, ws *store.Workspace, p *authz
 			name = llm.ModelName(row.Provider, model)
 		}
 		row.Model, row.ModelName, row.ImageInput, row.InputPrice, row.OutputPrice, row.PricesFrom = model, name, llm.ImageInput(row.Provider, model), input, output, from
+		row.PriceKnown = pricesKnown(row.Provider, model, in.InputPrice, in.OutputPrice)
 		if row.Provider == llm.Azure {
 			row.Deployment = model
 		}
@@ -1037,6 +1149,7 @@ func (s *Service) SetPrices(ctx context.Context, ws *store.Workspace, p *authz.P
 		summary := pricesLine(row.InputPrice, row.OutputPrice, in.Input, in.Output)
 		in1, out1 := in.Input, in.Output
 		row.InputPrice, row.OutputPrice, row.PricesFrom = pricesOf(row.Provider, row.Model, &in1, &out1)
+		row.PriceKnown = true
 		return auditChange{before, map[string]any{"inputPrice": in.Input, "outputPrice": in.Output}, summary}, nil
 	})
 }

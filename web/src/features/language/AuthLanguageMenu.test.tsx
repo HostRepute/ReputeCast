@@ -27,6 +27,16 @@ describe('AuthLanguageMenu', () => {
     expect(window.localStorage.getItem('rc.language')).toBe('"vi"')
   })
 
+  it('lets a person read consent in another language without replacing their saved preferences', async () => {
+    window.localStorage.setItem('rc.language', '"en"')
+    window.localStorage.setItem('rc.i18n', '{"locale":"de"}')
+    await renderInWorkspace(<AuthLanguageMenu languages={[{ code: 'en' }, { code: 'vi' }]} />, { path: '/mcp-consent' })
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếng Việt' }))
+    await waitFor(() => expect(getI18n().locale).toBe('vi'))
+    expect(window.localStorage.getItem('rc.language')).toBe('"en"')
+    expect(window.localStorage.getItem('rc.i18n')).toBe('{"locale":"de"}')
+  })
+
   it('stays out of the app and out of single-language instances', async () => {
     const { unmount } = await renderInWorkspace(<AuthLanguageMenu languages={[{ code: 'en' }, { code: 'vi' }]} />)
     expect(screen.queryByRole('navigation', { name: 'Language' })).toBeNull()

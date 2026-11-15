@@ -1,7 +1,7 @@
 import { useRouterState } from '@tanstack/react-router'
 import { Fragment } from 'react'
 import { Icon } from '@/components/icons/Icon'
-import { PSEUDO_LOCALE, pickableLanguages, useI18n, useT } from '@/i18n'
+import { PSEUDO_LOCALE, pickableLanguages, setLocale, useI18n, useT } from '@/i18n'
 import { chooseVisitorLanguage, isVisitorPath } from '@/i18n/sync'
 import { m } from './messages'
 import './language.css'
@@ -18,7 +18,8 @@ export function AuthLanguageMenu({ languages }: { languages?: readonly { code: s
   const { locale } = useI18n()
   const path = useRouterState({ select: (s) => s.location.pathname })
   const options = pickableLanguages({ serverLanguages: languages?.map((l) => l.code), pseudo: true })
-  if (!isVisitorPath(path) || options.length < 2) return null
+  const consent = path === '/mcp-consent'
+  if ((!isVisitorPath(path) && !consent) || options.length < 2) return null
   return (
     <nav className="lang-auth-menu" aria-label={t(m.menuLabel)}>
       <Icon name="language" size={14} />
@@ -29,7 +30,7 @@ export function AuthLanguageMenu({ languages }: { languages?: readonly { code: s
             type="button"
             lang={l.code === PSEUDO_LOCALE ? 'en' : l.code}
             aria-current={l.code === locale ? 'true' : undefined}
-            onClick={() => void chooseVisitorLanguage(l.code)}
+            onClick={() => void (consent ? setLocale(l.code) : chooseVisitorLanguage(l.code))}
           >
             {l.name}
           </button>

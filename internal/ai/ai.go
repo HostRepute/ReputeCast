@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"slices"
 	"strings"
@@ -39,27 +40,36 @@ import (
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/brandkit"
+	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/reports"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/website"
 )
 
 // Features, each with its own switch.
 const (
-	FeatureSubjectIdeas  = "subject_ideas"
-	FeatureRewrite       = "rewrite"
-	FeatureTranslate     = "translate"
-	FeatureAltText       = "alt_text"
-	FeatureAccessibility = "accessibility_fix"
-	FeatureSegment       = "segment_draft"
-	FeatureSummary       = "report_summary"
+	FeatureSubjectIdeas   = "subject_ideas"
+	FeatureRewrite        = "rewrite"
+	FeatureTranslate      = "translate"
+	FeatureAltText        = "alt_text"
+	FeatureAccessibility  = "accessibility_fix"
+	FeatureSegment        = "segment_draft"
+	FeatureSummary        = "report_summary"
+	FeatureBrandVoice     = "brand_voice"
+	FeatureDraft          = "draft"
+	FeatureAgent          = "agent"
+	FeatureConnectionTest = "connection_test"
 )
 
 // Features in the settings' order.
-var Features = []string{FeatureSubjectIdeas, FeatureRewrite, FeatureTranslate, FeatureAltText, FeatureAccessibility, FeatureSegment, FeatureSummary}
+var Features = []string{FeatureSubjectIdeas, FeatureRewrite, FeatureTranslate, FeatureAltText, FeatureAccessibility, FeatureSegment, FeatureSummary, FeatureBrandVoice, FeatureDraft}
 
 func validFeature(f string) bool { return slices.Contains(Features, f) }
 
@@ -90,6 +100,7 @@ type Service struct {
 	Audit *audit.Logger
 	Box   *secrets.Box
 	Log   *slog.Logger
+	Jobs  func() *jobs.Client
 	// AllowPrivate reports whether model servers may resolve to private
 	// addresses (providers.allow_private_networks: the setting SMTP
 	// servers and community adapters use).
@@ -106,10 +117,14 @@ type Service struct {
 	RetryWait time.Duration
 	// Segments, Reports and Languages are the domains the drafts, the
 	// summaries and the translations read and write (wired in internal/app).
-	Segments  *segments.Service
-	Reports   *reports.Service
-	Languages *languages.Service
-	Now       func() time.Time
+	Segments    *segments.Service
+	Reports     *reports.Service
+	Languages   *languages.Service
+	BrandKit    *brandkit.Service
+	Campaigns   *campaigns.Service
+	Automations *automations.Service
+	Website     *website.Service
+	Now         func() time.Time
 }
 
 func (s *Service) now() time.Time {
@@ -173,17 +188,24 @@ func (s *Service) policy() netguard.Policy {
 	return netguard.Policy{AllowPrivate: s.AllowPrivate != nil && s.AllowPrivate()}
 }
 
-// client returns the HTTP client that reaches providers.
+// client returns the HTTP client that reaches providers. Its own limit is the
+// longest feature's; each request's context sets its feature's timeout.
 func (s *Service) client() *http.Client {
 	if s.HTTP != nil {
 		return s.HTTP
 	}
-	return s.policy().Client(llm.DefaultTimeout)
+	return s.policy().Client(longestTimeout)
 }
 
-// timeouts per feature: a translation of a whole email takes longest.
+// longestTimeout bounds a draft or an agent step: up to 8,000 output tokens
+// of MJML take minutes at typical provider speeds.
+const longestTimeout = 3 * time.Minute
+
+// timeouts per feature.
 func timeoutOf(feature string) time.Duration {
 	switch feature {
+	case FeatureAgent, FeatureDraft:
+		return longestTimeout
 	case FeatureTranslate:
 		return 120 * time.Second
 	case FeatureSummary, FeatureSegment, FeatureSubjectIdeas:
@@ -194,9 +216,12 @@ func timeoutOf(feature string) time.Duration {
 
 // configOf is how to reach a connection.
 func (s *Service) configOf(c *connection, key, feature string) llm.Config {
+	// Paid retries must have their own reservation and checkpoint. The
+	// transport cannot infer that a missing response was never billed.
+	retries := 0
 	return llm.Config{
 		Kind: c.Provider, BaseURL: c.BaseUrl, APIKey: key, Model: c.Model, Deployment: c.Deployment, APIVersion: c.ApiVersion,
-		HTTP: s.client(), Timeout: timeoutOf(feature), Retries: s.Retries, RetryWait: s.RetryWait,
+		HTTP: s.client(), Timeout: timeoutOf(feature), Retries: &retries, RetryWait: s.RetryWait,
 	}
 }
 
@@ -249,7 +274,7 @@ func monthKey(start time.Time) string { return start.Format("2006-01") }
 // costMicros is the estimated cost of a request in millionths of a
 // dollar: prices are dollars per million tokens.
 func costMicros(c *connection, in, out int) int64 {
-	return int64(float64(in)*c.InputPrice + float64(out)*c.OutputPrice + 0.5)
+	return int64(math.Ceil(float64(in)*c.InputPrice + float64(out)*c.OutputPrice))
 }
 
 // actorID returns the person's id, nil for others.

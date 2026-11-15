@@ -5,6 +5,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { T, formatList, useT, type MessageDescriptor } from '@/i18n'
 import { money } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
+import { mv } from '@/features/brandkit/voice.messages'
 import { aiBase, problemCode, problemMeta, useAIStatus, type AIFeature, type AIStatus } from './api'
 import { costLine, dollars, tokens } from './format'
 import { m, ms } from './messages'
@@ -149,8 +150,9 @@ export function useOutcome() {
 }
 
 /** "Sent to Anthropic (Claude Sonnet 5.5): …. No contact data. About $0.01." */
-export function sentText(t: ReturnType<typeof useT>, msg: MessageDescriptor, sent: Pick<AISent, 'providerName' | 'modelName' | 'costMicros'>, values: Record<string, string | number> = {}): string {
-  return `${t(msg, { provider: sent.providerName, model: sent.modelName, ...values })} ${costLine(sent.costMicros)}`
+export function sentText(t: ReturnType<typeof useT>, msg: MessageDescriptor, sent: Pick<AISent, 'providerName' | 'modelName' | 'costMicros' | 'voiceRevision'>, values: Record<string, string | number> = {}): string {
+  const voice = sent.voiceRevision ? ` ${t(mv.usedVoice, { revision: sent.voiceRevision })}` : ''
+  return `${t(msg, { provider: sent.providerName, model: sent.modelName, ...values })} ${costLine(sent.costMicros)}${voice}`
 }
 
 /** The same line before the answer, with the estimate for what is about to be sent. */

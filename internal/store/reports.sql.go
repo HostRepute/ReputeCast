@@ -857,6 +857,107 @@ func (q *Queries) ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]Repo
 	return items, nil
 }
 
+const reportModelCampaign = `-- name: ReportModelCampaign :one
+SELECT c.id, c.name, c.started_at, c.completed_at
+FROM campaigns c
+LEFT JOIN LATERAL (SELECT email, domain_id FROM senders WHERE id = c.sender_id FOR SHARE) s ON true
+LEFT JOIN LATERAL (SELECT domain FROM sending_domains WHERE id = s.domain_id FOR SHARE) d ON true
+WHERE c.workspace_id = $1 AND c.id = $2
+  AND c.deleted_at IS NULL AND c.channel = 'email' AND c.status = 'sent'
+  AND c.started_at IS NOT NULL AND c.completed_at IS NOT NULL
+  AND (cardinality($3::uuid[]) = 0 OR (
+    coalesce(jsonb_array_length(c.audience->'segments'), 0) = 0
+    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(coalesce(c.audience->'lists', '[]'::jsonb)) l(id)
+                    WHERE NOT (l.id::uuid = ANY($3::uuid[])))
+  ))
+  AND (cardinality($4::text[]) = 0 OR c.sender_id IS NULL OR
+       lower(coalesce(nullif(d.domain, ''), nullif(split_part(s.email, '@', 2), ''), '')) = ANY($4::text[]))
+FOR NO KEY UPDATE OF c
+`
+
+type ReportModelCampaignParams struct {
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	ID           uuid.UUID   `json:"id"`
+	ScopeLists   []uuid.UUID `json:"scopeLists"`
+	ScopeDomains []string    `json:"scopeDomains"`
+}
+
+type ReportModelCampaignRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Name        string     `json:"name"`
+	StartedAt   *time.Time `json:"startedAt"`
+	CompletedAt *time.Time `json:"completedAt"`
+}
+
+// Campaign/sender locks fence scope changes until the snapshot read commits.
+// No content, audience labels or message-level rows enter the projection.
+func (q *Queries) ReportModelCampaign(ctx context.Context, arg ReportModelCampaignParams) (ReportModelCampaignRow, error) {
+	row := q.db.QueryRow(ctx, reportModelCampaign,
+		arg.WorkspaceID,
+		arg.ID,
+		arg.ScopeLists,
+		arg.ScopeDomains,
+	)
+	var i ReportModelCampaignRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.StartedAt,
+		&i.CompletedAt,
+	)
+	return i, err
+}
+
+const reportModelSnapshot = `-- name: ReportModelSnapshot :one
+SELECT content, created_at FROM report_model_snapshots WHERE campaign_id = $1
+`
+
+type ReportModelSnapshotRow struct {
+	Content   json.RawMessage `json:"content"`
+	CreatedAt time.Time       `json:"createdAt"`
+}
+
+func (q *Queries) ReportModelSnapshot(ctx context.Context, campaignID uuid.UUID) (ReportModelSnapshotRow, error) {
+	row := q.db.QueryRow(ctx, reportModelSnapshot, campaignID)
+	var i ReportModelSnapshotRow
+	err := row.Scan(&i.Content, &i.CreatedAt)
+	return i, err
+}
+
+const reportModelSnapshotInsert = `-- name: ReportModelSnapshotInsert :exec
+INSERT INTO report_model_snapshots (campaign_id, content, created_at)
+VALUES ($1, $2, $3)
+ON CONFLICT (campaign_id) DO NOTHING
+`
+
+type ReportModelSnapshotInsertParams struct {
+	CampaignID uuid.UUID       `json:"campaignId"`
+	Content    json.RawMessage `json:"content"`
+	CreatedAt  time.Time       `json:"createdAt"`
+}
+
+func (q *Queries) ReportModelSnapshotInsert(ctx context.Context, arg ReportModelSnapshotInsertParams) error {
+	_, err := q.db.Exec(ctx, reportModelSnapshotInsert, arg.CampaignID, arg.Content, arg.CreatedAt)
+	return err
+}
+
+const reportModelSnapshotsPurge = `-- name: ReportModelSnapshotsPurge :execrows
+UPDATE report_model_snapshots SET content = NULL
+WHERE campaign_id IN (
+    SELECT s.campaign_id FROM report_model_snapshots s
+    WHERE s.content IS NOT NULL AND s.created_at <= $1
+    ORDER BY s.created_at LIMIT 500 FOR UPDATE SKIP LOCKED
+)
+`
+
+func (q *Queries) ReportModelSnapshotsPurge(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, reportModelSnapshotsPurge, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const reportProviderTracked = `-- name: ReportProviderTracked :one
 SELECT EXISTS (
     SELECT 1 FROM delivery_events

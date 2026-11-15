@@ -1,4 +1,10 @@
 {
+  "short.external_proposal": "đề xuất bên ngoài",
+  "event.external_proposal": "Đề xuất bên ngoài sẵn sàng để duyệt",
+  "audience.external_proposal": "Chỉ người đã cho phép kết nối",
+  "short.ai_agent_ready": "cập nhật tác vụ AI",
+  "event.ai_agent_ready": "Tác vụ AI sẵn sàng hoặc cần xử lý",
+  "audience.ai_agent_ready": "Chỉ người bắt đầu tác vụ",
   "summary.all": "Tất cả sự kiện",
   "summary.off": "Tắt",
   "summary.approvals": "phê duyệt",

@@ -2,7 +2,11 @@ from enum import StrEnum
 
 class AIActivityRowFeature(StrEnum):
     ACCESSIBILITY_FIX = "accessibility_fix"
+    AGENT = "agent"
     ALT_TEXT = "alt_text"
+    BRAND_VOICE = "brand_voice"
+    CONNECTION_TEST = "connection_test"
+    DRAFT = "draft"
     REPORT_SUMMARY = "report_summary"
     REWRITE = "rewrite"
     SEGMENT_DRAFT = "segment_draft"

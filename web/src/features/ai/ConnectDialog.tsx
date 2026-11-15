@@ -146,7 +146,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
     setProblem(undefined)
     setKeyError(undefined)
   }
-  const candidate = { provider, baseUrl: baseUrl.trim() || undefined, deployment: deployment.trim() || undefined, apiVersion: apiVersion.trim() || undefined, apiKey: key.trim() || undefined, model: modelId || undefined }
+  const candidate = { provider, baseUrl: baseUrl.trim() || undefined, deployment: deployment.trim() || undefined, apiVersion: apiVersion.trim() || undefined, apiKey: key.trim() || undefined, model: modelId || undefined, inputPrice: parse(shownInput), outputPrice: parse(shownOutput) }
 
   function failed(e: unknown) {
     const code = problemCode(e)
@@ -407,6 +407,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
             </div>
           )}
 
+          <p className="k">{t(m.testBilling)}</p>
           <CapFields
             compatible={compatible}
             kind={capKind}
@@ -701,6 +702,7 @@ export function TestPanel({
           ) : null}
         </div>
       </header>
+      <p className="k px-4">{t(m.testBilling)}</p>
       {running ? (
         <div className="flex flex-col" aria-busy="true">
           <Ev icon="live" title={t(m.sentFixed)} sub={t(m.testing)} />

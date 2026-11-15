@@ -28,7 +28,10 @@ const budget = {
   // 6 MB since Đợt 2 (M58–M66): its nine milestones' screens and their copy
   // in five languages add about 300 KB (5,742 KB before, 6,044 KB after),
   // nearly all in lazy chunks (the first load grew 3 KB, to 316 KB).
-  total: 6 * 1024 * KB,
+  // A1–A5 add 126 KB across lazy Agent, voice and external-connection
+  // screens and five locales (6,170 KB total). Allow 192 KB for this track;
+  // the first-load and per-chunk limits stay unchanged (322/342 KB measured).
+  total: (6 * 1024 + 192) * KB,
 }
 
 const dist = new URL('../dist/', import.meta.url).pathname

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"math"
 	"regexp"
 	"slices"
@@ -11,6 +12,8 @@ import (
 	"unicode"
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
+	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/brandkit"
 	"github.com/hostrepute/reputecast/internal/segments"
 )
 
@@ -46,9 +49,44 @@ func (demoModel) Generate(ctx context.Context, req llm.Request) (llm.Response, e
 	var answer any
 	switch t := req.Task.(type) {
 	case testTask:
-		return llm.Response{Text: "Ready.", Model: "claude-sonnet-5-5", InputTokens: 14, OutputTokens: 3, StopReason: llm.StopEnd}, nil
+		return llm.Response{Text: "Ready.", Model: "claude-sonnet-5-5", InputTokens: 14, OutputTokens: 3, UsageKnown: true, StopReason: llm.StopEnd}, nil
 	case subjectTask:
 		answer = map[string]any{"subjects": demoSubjects(t)}
+	case voiceTask:
+		answer = brandkit.BrandVoiceContent{Tone: "Warm, direct and specific", Address: "Address the reader as you", SentenceLength: "Short sentences, one idea at a time", PreferredWords: "try, build", AvoidedWords: "revolutionary, game-changing", Examples: "A few useful things shipped this week. Here is what changed, and how to try them."}
+	case automationDraftTask:
+		// A visibly labelled demo recipe, not an evaluation of model quality.
+		flow := AIAutomationContent{Graph: automations.AutomationGraph{
+			Nodes: []automations.AutomationNode{
+				{ID: "start", Type: "trigger", Data: automations.AutomationNodeData{Trigger: &automations.AutomationTrigger{Kind: "joined_list", ListID: "selected_list", ConfirmedOnly: true, Reentry: "once", ExitOnLeave: true}}},
+				{ID: "email", Type: "email", Data: automations.AutomationNodeData{Email: &automations.AutomationEmailStep{EmailID: "intro", EmailVersion: 1, Subject: "Demo draft preview"}}},
+				{ID: "end", Type: "exit"},
+			},
+			Edges: []automations.AutomationEdge{{ID: "first", Source: "start", Target: "email"}, {ID: "last", Source: "email", Target: "end"}},
+		}}
+		if t.Graph != nil {
+			flow.Graph, _ = automations.ParseGraph(t.Graph.MustJSON())
+		}
+		seen := map[string]bool{}
+		for i := range flow.Graph.Nodes {
+			e := flow.Graph.Nodes[i].Data.Email
+			if e == nil || seen[e.EmailID] {
+				continue
+			}
+			seen[e.EmailID] = true
+			source, ok := t.Emails[e.EmailID]
+			if !ok {
+				source = t.Starter
+				source.Subject = "Demo draft preview"
+			}
+			source.Brief = t.Brief
+			mail := demoDraftEmail(source)
+			e.Subject = mail.Subject
+			flow.Emails = append(flow.Emails, automations.ProposedEmail{Key: e.EmailID, Name: "Demo email", Subject: mail.Subject, Preheader: mail.Preheader, MJML: mail.MJML})
+		}
+		answer = flow
+	case campaignDraftTask:
+		answer = demoDraftEmail(t)
 	case rewriteTask:
 		if t.Action == "instruction" && demoRefuses(t.Instruction) {
 			answer = map[string]any{"refusal": "I can't write a subject that pretends to be a reply to an email the reader never sent."}
@@ -75,7 +113,7 @@ func (demoModel) Generate(ctx context.Context, req llm.Request) (llm.Response, e
 		return llm.Response{}, &llm.Error{Kind: llm.ErrBadRequest, Status: 400, Code: "invalid_request_error", Message: "the demo model answers the assistant's features only"}
 	}
 	b, _ := json.Marshal(answer)
-	return llm.Response{Text: string(b), Model: "claude-sonnet-5-5", InputTokens: estimate(strings.Repeat("x", in)), OutputTokens: estimate(string(b)), StopReason: llm.StopEnd}, nil
+	return llm.Response{Text: string(b), Model: "claude-sonnet-5-5", InputTokens: estimate(strings.Repeat("x", in)), OutputTokens: estimate(string(b)), UsageKnown: true, StopReason: llm.StopEnd}, nil
 }
 
 // demoRefuses: an instruction to fake a reply.
@@ -573,6 +611,28 @@ func demoAnswer(t askTask) string {
 		}
 	}
 	return "Of the {delivered} delivered, {humanOpens} people opened it ({humanOpenRateMeasurable} of measurable) and {clicks} clicked ({clickRate})."
+}
+
+// A deterministic, labelled preview, not a paid-model quality fixture.
+func demoDraftEmail(t campaignDraftTask) AIDraftEmail {
+	var body strings.Builder
+	body.WriteString("<mjml><mj-body><mj-section><mj-column><mj-text><h1>Draft preview</h1><p>")
+	body.WriteString(html.EscapeString(t.Brief))
+	body.WriteString("</p><p>")
+	body.WriteString(html.EscapeString(t.Source))
+	body.WriteString("</p></mj-text>")
+	for _, image := range t.Images {
+		fmt.Fprintf(&body, `<mj-image src="%s" alt="Selected image"/>`, html.EscapeString(image))
+	}
+	for _, link := range t.Links {
+		fmt.Fprintf(&body, `<mj-button href="%s">Read more</mj-button>`, html.EscapeString(link))
+	}
+	body.WriteString("</mj-column></mj-section></mj-body></mjml>")
+	subject := t.Subject
+	if subject == "" {
+		subject = "A useful update"
+	}
+	return AIDraftEmail{Subject: subject, Preheader: t.Preheader, MJML: body.String()}
 }
 
 // groupThousands writes 47548 as 47,548.

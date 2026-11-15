@@ -15,9 +15,15 @@ const anthropicVersion = "2023-06-01"
 type anthropic struct{ cfg Config }
 
 type anthropicContent struct {
-	Type   string                `json:"type"`
-	Text   string                `json:"text,omitempty"`
-	Source *anthropicImageSource `json:"source,omitempty"`
+	Type      string                `json:"type"`
+	Text      string                `json:"text,omitempty"`
+	Source    *anthropicImageSource `json:"source,omitempty"`
+	ID        string                `json:"id,omitempty"`
+	Name      string                `json:"name,omitempty"`
+	Input     json.RawMessage       `json:"input,omitempty"`
+	ToolUseID string                `json:"tool_use_id,omitempty"`
+	Content   string                `json:"content,omitempty"`
+	IsError   bool                  `json:"is_error,omitempty"`
 }
 
 type anthropicImageSource struct {
@@ -36,18 +42,24 @@ type anthropicRequest struct {
 	MaxTokens int                `json:"max_tokens"`
 	System    string             `json:"system,omitempty"`
 	Messages  []anthropicMessage `json:"messages"`
+	Tools     []anthropicTool    `json:"tools,omitempty"`
+}
+
+type anthropicTool struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	InputSchema map[string]any `json:"input_schema"`
 }
 
 type anthropicResponse struct {
-	Model      string `json:"model"`
-	StopReason string `json:"stop_reason"`
-	Content    []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	} `json:"content"`
-	Usage struct {
-		InputTokens  int `json:"input_tokens"`
-		OutputTokens int `json:"output_tokens"`
+	Model      string             `json:"model"`
+	StopReason string             `json:"stop_reason"`
+	Content    []anthropicContent `json:"content"`
+	Usage      struct {
+		InputTokens   *int `json:"input_tokens"`
+		OutputTokens  *int `json:"output_tokens"`
+		CacheRead     *int `json:"cache_read_input_tokens"`
+		CacheCreation *int `json:"cache_creation_input_tokens"`
 	} `json:"usage"`
 }
 
@@ -59,7 +71,13 @@ func (a *anthropic) headers() http.Header {
 }
 
 func (a *anthropic) Generate(ctx context.Context, req Request) (Response, error) {
+	if err := validateTools(req, false); err != nil {
+		return Response{}, err
+	}
 	body := anthropicRequest{Model: a.cfg.Model, MaxTokens: maxTokens(req), System: req.System, Messages: []anthropicMessage{}}
+	for _, tool := range req.Tools {
+		body.Tools = append(body.Tools, anthropicTool{Name: tool.Name, Description: tool.Description, InputSchema: tool.Parameters})
+	}
 	system := req.System
 	if req.JSON && !strings.Contains(strings.ToLower(system), "json") {
 		system += "\n\nAnswer with one JSON object only."
@@ -67,7 +85,18 @@ func (a *anthropic) Generate(ctx context.Context, req Request) (Response, error)
 	body.System = system
 	for _, m := range req.Messages {
 		msg := anthropicMessage{Role: m.Role, Content: []anthropicContent{}}
+		if m.Role == "tool" {
+			msg.Role = "user"
+		}
 		for _, p := range m.Parts {
+			if p.ToolCall != nil {
+				msg.Content = append(msg.Content, anthropicContent{Type: "tool_use", ID: p.ToolCall.ID, Name: p.ToolCall.Name, Input: p.ToolCall.Arguments})
+				continue
+			}
+			if p.ToolResult != nil {
+				msg.Content = append(msg.Content, anthropicContent{Type: "tool_result", ToolUseID: p.ToolResult.ID, Content: string(p.ToolResult.Content), IsError: p.ToolResult.IsError})
+				continue
+			}
 			if p.Image != nil {
 				msg.Content = append(msg.Content, anthropicContent{Type: "image", Source: &anthropicImageSource{Type: "base64", MediaType: p.Image.MediaType, Data: base64.StdEncoding.EncodeToString(p.Image.Data)}})
 				continue
@@ -84,16 +113,29 @@ func (a *anthropic) Generate(ctx context.Context, req Request) (Response, error)
 	if err := json.Unmarshal(raw, &res); err != nil {
 		return Response{}, &Error{Kind: ErrInvalid, Err: err, Message: "Anthropic's answer couldn't be read"}
 	}
+	input, inputKnown := tokenUsage(res.Usage.InputTokens, res.Usage.CacheRead, res.Usage.CacheCreation)
+	output, outputKnown := tokenUsage(res.Usage.OutputTokens)
+	out := Response{Model: res.Model, InputTokens: input, OutputTokens: output, UsageKnown: inputKnown && outputKnown, Message: Message{Role: "assistant", Parts: []Part{}}}
 	var text strings.Builder
 	for _, c := range res.Content {
-		if c.Type == "text" {
+		switch c.Type {
+		case "text":
 			text.WriteString(c.Text)
+			out.Message.Parts = append(out.Message.Parts, Part{Text: c.Text})
+		case "tool_use":
+			out.Message.Parts = append(out.Message.Parts, Part{ToolCall: &ToolCall{ID: c.ID, Name: c.Name, Arguments: c.Input}})
+		default:
+			// Dropping an unknown block could lose a required signature or
+			// hide a provider-hosted action. Do not execute a partial turn.
+			return out, toolError()
 		}
 	}
-	out := Response{Text: text.String(), Model: res.Model, InputTokens: res.Usage.InputTokens, OutputTokens: res.Usage.OutputTokens}
+	out.Text = text.String()
 	switch res.StopReason {
 	case "end_turn", "stop_sequence":
 		out.StopReason = StopEnd
+	case "tool_use":
+		out.StopReason = StopTools
 	case "max_tokens":
 		out.StopReason = StopLength
 	case "refusal":
@@ -101,7 +143,7 @@ func (a *anthropic) Generate(ctx context.Context, req Request) (Response, error)
 	default:
 		out.StopReason = StopOther
 	}
-	return out, nil
+	return checkedTools(req, out, false)
 }
 
 func (a *anthropic) Models(ctx context.Context) ([]Model, error) {

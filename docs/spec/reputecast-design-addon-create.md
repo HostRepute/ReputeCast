@@ -34,7 +34,7 @@ Read all of it before you start.
 
 ## 1. Principles
 
-1. **Everything is free.** No limits on digests, issues, conditional blocks, polls, surveys or AI features. The only AI limit is the monthly cap the workspace sets on its own model account.
+1. **Everything is free.** No paid limits on digests, issues, conditional blocks, polls, surveys or AI features. AI uses the workspace's own model account with its monthly cap; the agent add-on also defines per-run safety budgets.
 2. **One editor, one public theme.**
    - Digests, conditional content, poll blocks and AI suggestions all live in the GrapesJS + MJML composer. The Feed items and Poll blocks are custom GrapesJS blocks.
    - The answer page and the survey page use the publisher branding from Forms & pages.
@@ -48,7 +48,7 @@ Read all of it before you start.
 5. **The workspace's own model, and nothing else.**
    - AI is off until someone connects a model with the workspace's own key.
    - ReputeCast sends the content being edited, never contact data, and only when a person asks.
-   - Every suggestion is a diff to accept or reject. Nothing changes on its own.
+   - One-shot suggestions are diffs to accept or reject. The agent add-on permits new staging drafts after a person confirms a run's plan; changes to pre-existing resources still require an accepted diff. See `reputecast-design-addon-agent.md`.
 6. **Stay on ReputeCast's side of the HostRepute line.** The assistant writes and edits; it doesn't diagnose sender reputation. Reputation questions link to HostRepute's assistant when HostRepute is connected.
 7. **Same access rules as the team add-on.**
    - Permission keys, the escalation guard, write-only secrets and audit entries.
@@ -80,6 +80,8 @@ Read all of it before you start.
 - **Suggestion:** the model's output, shown as a diff to accept, edit or reject.
 - **AI activity log:** a record of each AI request: who, when, which feature, on what, the model, tokens and the outcome. It never stores the content.
 - **Usage cap:** what the workspace allows its model to cost in a month, estimated from the token counts the provider reports and the prices entered.
+
+Agent runs have a separate, access-controlled content record with 30-day expiry; this does not put content in the AI activity log. See the agent add-on §3.6.
 
 ---
 
@@ -212,6 +214,8 @@ Read all of it before you start.
 - **Privacy:** answers and comments are contact data. They are erased with the contact (subscribers:delete) and included in the contact's data export.
 
 ### 3.4 AI assistant, with the workspace's own model
+This section describes the existing one-shot assistant. The agent and brand-voice add-on extends its settings, data disclosures and workflows; its run-specific exceptions do not change one-shot acceptance behavior.
+
 - **Settings › Integrations › AI assistant** (the hub's "AI models" group):
   - **Catalog:** Anthropic, OpenAI, Google (Gemini), Azure OpenAI, and OpenAI-compatible servers such as Ollama, vLLM or LM Studio.
   - Capability badges: text, image input, structured output, runs on your own network (a server on a private address), data region (Azure).
@@ -315,7 +319,7 @@ Waiting-for-approval issues use the existing "Approval requested" kind.
 - **Digests:** several feeds in one digest, full-text items, feeds that need a sign-in, choosing items per recipient (use Visibility on blocks instead).
 - **Conditional content:** score (phase 4), paid tier (phase 6), conditions in transactional templates.
 - **Polls and surveys:** quizzes with right answers, image answers, multi-page surveys, branching logic, file uploads.
-- **AI:** reputation diagnosis, sending or scheduling, writing a whole campaign from a prompt, image generation, a chat window, contact data in prompts.
+- **AI:** reputation diagnosis, sending or scheduling, image generation, general-purpose chat and contact data in prompts. Whole-campaign drafting and conversation attached to a task are now scoped in `reputecast-design-addon-agent.md`; they remain outside the one-shot assistant implemented in this phase.
 
 ### 3.10 Countdown timers and unique discount codes (M59)
 Added after the November 2026 look at competitors (item 12). Both are blocks in campaigns and automation emails; neither is offered in transactional templates.

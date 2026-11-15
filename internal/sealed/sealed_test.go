@@ -43,7 +43,14 @@ var notSealed = map[string]string{
 	"website_import_files.data": "uploaded file", "website_imports.report_csv": "report file",
 	"earn_group_seats.invite_hash": "hash", "sponsor_bookings.status_token_hash": "hash",
 	"lead_connections.callback_token_hash": "hash", "lead_events.body": "raw webhook (ids only)",
-	"tracker_visitors.vid_hash": "hash of the visitor id (internal/tracker)",
+	"tracker_visitors.vid_hash":          "hash of the visitor id (internal/tracker)",
+	"mcp_connect_clients.secret_hash":    "SHA-256 hash of the random OAuth client secret",
+	"mcp_connect_requests.handle_hash":   "SHA-256 hash of the random consent handle",
+	"mcp_connect_codes.hash":             "SHA-256 hash of the random authorization code",
+	"mcp_connect_tokens.hash":            "SHA-256 hash of a random access or refresh token",
+	"mcp_connect_limits.key":             "SHA-256 hash of the rate-limit bucket identity",
+	"mcp_connect_proposals.request_hash": "SHA-256 digest of the proposal for idempotency checks",
+	"ai_agent_runs.request_hash":         "SHA-256 digest of the brief, to recognize a retried run request",
 }
 
 // Every bytea column is either a known sealed column or known not to be

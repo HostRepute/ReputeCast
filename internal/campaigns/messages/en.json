@@ -1,4 +1,5 @@
 {
+  "problem.proposalRevision": "This draft changed since the proposal. Review a new proposal before accepting.",
   "audience.all": { "message": "All subscribers", "note": "the audience of a campaign sent to every list" },
   "audience.segments": "{count, plural, one {# segment} other {# segments}}",
   "audience.paid": { "message": "{who, select, paid {Paid members only} other {Free subscribers only}}", "note": "who on the lists gets a paid-only campaign (Earn)" },

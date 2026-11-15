@@ -1,4 +1,10 @@
 {
+  "short.external_proposal": "external proposals",
+  "event.external_proposal": "External proposal ready for review",
+  "audience.external_proposal": "Only the person who allowed the connection",
+  "short.ai_agent_ready": "AI task updates",
+  "event.ai_agent_ready": "AI task ready or needs action",
+  "audience.ai_agent_ready": "Only the person who started the task",
   "summary.all": {"message": "All events", "note": "Account & security › Notification preferences: what notifies you in-app or by email"},
   "summary.off": {"message": "Off", "note": "no event notifies you on this channel; quiet hours are off"},
   "summary.approvals": {"message": "approvals", "note": "the three approval events at once; a summary starts with it: Approvals, auto-pauses, provider down"},

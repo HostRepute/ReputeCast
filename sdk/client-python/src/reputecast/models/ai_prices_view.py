@@ -26,11 +26,13 @@ class AIPricesView:
     """ 
         Attributes:
             input_ (float): Dollars per million input tokens
+            known (bool): Prices are configured, including an explicitly free model
             output (float): Dollars per million output tokens
             from_ (datetime.datetime | Unset):
      """
 
     input_: float
+    known: bool
     output: float
     from_: datetime.datetime | Unset = UNSET
 
@@ -40,6 +42,8 @@ class AIPricesView:
 
     def to_dict(self) -> dict[str, Any]:
         input_ = self.input_
+
+        known = self.known
 
         output = self.output
 
@@ -52,6 +56,7 @@ class AIPricesView:
 
         field_dict.update({
             "input": input_,
+            "known": known,
             "output": output,
         })
         if from_ is not UNSET:
@@ -65,6 +70,8 @@ class AIPricesView:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         input_ = d.pop("input")
+
+        known = d.pop("known")
 
         output = d.pop("output")
 
@@ -80,6 +87,7 @@ class AIPricesView:
 
         ai_prices_view = cls(
             input_=input_,
+            known=known,
             output=output,
             from_=from_,
         )

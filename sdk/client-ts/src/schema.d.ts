@@ -1120,6 +1120,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/brand-kit/voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The saved brand voice */
+        get: operations["get-brand-voice"];
+        /** Save a new voice revision without changing existing emails */
+        put: operations["save-brand-voice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/voice/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved voice revisions, newest first */
+        get: operations["brand-voice-history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns": {
         parameters: {
             query?: never;
@@ -12935,7 +12970,7 @@ export interface components {
             /** @description 1 of 5, 529 overloaded */
             detail?: string;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
             id: string;
             /** Format: int64 */
             inputTokens: number;
@@ -12953,6 +12988,7 @@ export interface components {
             targetKind?: string;
             /** Format: int64 */
             tokens: number;
+            usageKnown: boolean;
             userId?: string;
         };
         AICapView: {
@@ -12995,7 +13031,7 @@ export interface components {
         AIFeatureState: {
             available: boolean;
             /** @enum {string} */
-            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
             on: boolean;
         };
         AIKeptSummary: {
@@ -13047,6 +13083,8 @@ export interface components {
              * @description Dollars per million input tokens
              */
             input: number;
+            /** @description Prices are configured, including an explicitly free model */
+            known: boolean;
             /**
              * Format: double
              * @description Dollars per million output tokens
@@ -13100,7 +13138,7 @@ export interface components {
             /** Format: int64 */
             costMicros: number;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
             /** Format: int64 */
             requests: number;
             /** Format: int64 */
@@ -13127,6 +13165,10 @@ export interface components {
             outputTokens: number;
             /** Format: int64 */
             requests: number;
+            /** Format: int64 */
+            reservedCostMicros: number;
+            /** Format: int64 */
+            reservedTokens: number;
             /** Format: date-time */
             resetsAt: string;
             /**
@@ -13138,6 +13180,8 @@ export interface components {
             state: "ok" | "notice" | "reached";
             /** Format: int64 */
             tokens: number;
+            /** Format: int64 */
+            uncertainRequests: number;
         };
         APIKeyCategoryRef: {
             id: string;
@@ -15459,6 +15503,35 @@ export interface components {
             button: components["schemas"]["BrandButtonStyle"];
             colors: components["schemas"]["BrandColors"];
             heading: components["schemas"]["BrandFont"];
+        };
+        BrandVoice: {
+            content: components["schemas"]["BrandVoiceContent"];
+            /** Format: date-time */
+            createdAt?: string;
+            createdBy: string;
+            learned: boolean;
+            /** Format: int32 */
+            revision: number;
+        };
+        BrandVoiceContent: {
+            address: string;
+            avoidedWords: string;
+            examples: string;
+            preferredWords: string;
+            sentenceLength: string;
+            tone: string;
+        };
+        BrandVoiceHistory: {
+            /** Format: int32 */
+            beforeRevision?: number;
+            items: components["schemas"]["BrandVoice"][];
+        };
+        BrandVoiceSaveInput: {
+            /** Format: int32 */
+            baseRevision: number;
+            content: components["schemas"]["BrandVoiceContent"];
+            /** Format: uuid */
+            suggestionId?: string;
         };
         CallTarget: {
             email?: string;
@@ -39650,7 +39723,7 @@ export interface operations {
             query?: {
                 /** @description A member's id */
                 member?: string;
-                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
                 outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
                 cursor?: string;
                 limit?: number;
@@ -41911,6 +41984,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncedDeleted"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-brand-voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandVoice"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-brand-voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandVoiceSaveInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandVoice"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "brand-voice-history": {
+        parameters: {
+            query?: {
+                before?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandVoiceHistory"];
                 };
             };
             /** @description Error */

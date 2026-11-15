@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
 import { BrandKitPage } from './BrandKitPage'
+import { BrandVoiceSection } from './BrandVoice'
 
 // CO-11: Settings › Brand kit (BrandKit board).
 
@@ -181,5 +182,95 @@ describe('brand kit', () => {
     expect(await screen.findByText('People who edit templates can change the brand kit.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save brand kit' })).toBeNull()
     expect(screen.getByLabelText('Primary button colour')).toBeDisabled()
+  })
+})
+
+describe('brand voice', () => {
+  const content = { tone: 'Direct', address: 'you', sentenceLength: 'Short', preferredWords: 'try', avoidedWords: 'hype', examples: '' }
+  const initial = { revision: 1, content, learned: false, createdBy: 'Linh' }
+  const ai = '/api/v1/workspaces/acme-newsletter/ai'
+  const aiEditor = workspaceMe({ permissions: [...editor.permissions, 'ai:use'] })
+
+  it('keeps local edits across refetches, rejects a changed base and reloads only on discard', async () => {
+    let voice = initial
+    let offline = false
+    const writes: unknown[] = []
+    unmock = mockApi({
+      [`GET ${base}/voice`]: () => offline ? json({ detail: 'Temporarily offline' }, 503) : json(voice),
+      [`GET ${base}/voice/history`]: () => json({ items: [voice] }),
+      [`PUT ${base}/voice`]: async (r) => {
+        const body = await r.json()
+        writes.push(body)
+        if (body.baseRevision !== voice.revision) return json({ status: 409, detail: 'Changed since you started editing.' }, 409)
+        voice = { ...voice, revision: voice.revision + 1, content: body.content }
+        return json(voice)
+      },
+    })
+    const { queryClient } = await renderInWorkspace(<BrandVoiceSection />, { me: editor })
+    fireEvent.change(await screen.findByLabelText('Tone'), { target: { value: 'My local edit' } })
+    offline = true
+    await queryClient.invalidateQueries()
+    expect(screen.getByLabelText('Tone')).toHaveValue('My local edit')
+    offline = false
+    voice = { ...voice, revision: 2, content: { ...content, tone: 'Another member’s edit' } }
+    await queryClient.invalidateQueries()
+    expect(screen.getByLabelText('Tone')).toHaveValue('My local edit')
+    fireEvent.click(screen.getByRole('button', { name: 'Save voice' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Changed since you started editing.')
+    expect(writes).toEqual([{ baseRevision: 1, content: { ...content, tone: 'My local edit' } }])
+    expect(screen.getByLabelText('Tone')).toHaveValue('My local edit')
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
+    expect(screen.getByLabelText('Tone')).toHaveValue('Another member’s edit')
+    fireEvent.change(screen.getByLabelText('Tone'), { target: { value: 'Calm and precise' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save voice' }))
+    expect(await screen.findByText('Voice revision 3 saved')).toBeInTheDocument()
+    expect(voice.content.tone).toBe('Calm and precise')
+  })
+
+  it('sends selected sources only, reviews before saving and submits edited suggestions with provenance', async () => {
+    let voice = initial
+    const writes: unknown[] = []
+    const learns: unknown[] = []
+    unmock = mockApi({
+      [`GET ${base}/voice`]: () => json(voice),
+      [`GET ${base}/voice/history`]: () => json({ items: [voice] }),
+      [`GET ${ai}/status`]: () => json({ state: 'ready', providerName: 'Fixture', modelName: 'Local model', features: [{ key: 'brand_voice', on: true, available: true }], prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }),
+      'GET /api/v1/workspaces/acme-newsletter/campaigns': () => json({ items: [{ id: 'selected', name: 'Selected campaign' }, { id: 'excluded', name: 'Other campaign' }], total: 2 }),
+      [`POST ${ai}/brand-voice`]: async (r) => {
+        learns.push(await r.json())
+        return json({ requestId: 'suggestion-1', baseRevision: 1, content: { ...content, tone: 'Warm' }, sent: { providerName: 'Fixture', modelName: 'Local model', characters: 123, costMicros: 1000 }, expiresAt: '2026-11-16T09:00:00Z' })
+      },
+      [`PUT ${base}/voice`]: async (r) => {
+        const body = await r.json()
+        writes.push(body)
+        voice = { ...voice, revision: 2, content: body.content, learned: true }
+        return json(voice)
+      },
+    })
+    await renderInWorkspace(<BrandVoiceSection />, { me: aiEditor })
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Selected campaign' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Learn a suggested voice' }))
+    const sharing = within(await screen.findByRole('dialog', { name: 'Review before sharing' }))
+    expect(learns).toEqual([])
+    fireEvent.click(sharing.getByRole('button', { name: 'Share reviewed content' }))
+    expect(await screen.findByRole('button', { name: 'Save suggested revision' })).toBeInTheDocument()
+    expect(learns).toEqual([{ campaignIds: ['selected'], sharingReviewed: true }])
+    expect(writes).toEqual([])
+    expect(screen.getByLabelText('Tone')).toHaveValue('Warm')
+    fireEvent.change(screen.getByLabelText('Tone'), { target: { value: 'Warm and precise' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save suggested revision' }))
+    expect(await screen.findByText('Voice revision 2 saved')).toBeInTheDocument()
+    expect(writes).toEqual([{ baseRevision: 1, suggestionId: 'suggestion-1', content: { ...content, tone: 'Warm and precise' } }])
+  })
+
+  it('shows the saved voice without offering edits or model calls to a viewer', async () => {
+    unmock = mockApi({
+      [`GET ${base}/voice`]: () => json(initial),
+      [`GET ${base}/voice/history`]: () => json({ items: [initial] }),
+    })
+    await renderInWorkspace(<BrandVoiceSection />, { me: viewer })
+    expect(await screen.findByLabelText('Tone')).toHaveAttribute('readonly')
+    expect(screen.queryByRole('button', { name: 'Save voice' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Learn a suggested voice' })).toBeNull()
   })
 })

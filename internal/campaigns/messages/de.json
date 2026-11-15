@@ -1,4 +1,5 @@
 {
+  "problem.proposalRevision": "Dieser Entwurf wurde seit dem Vorschlag geändert. Prüfen Sie vor der Annahme einen neuen Vorschlag.",
   "audience.all": "Alle Abonnenten",
   "audience.segments": "{count, plural, one {# Segment} other {# Segmente}}",
   "audience.paid": "{who, select, paid {Nur zahlende Mitglieder} other {Nur kostenlose Abonnenten}}",

@@ -115,6 +115,18 @@ var openToMembers = map[string]string{
 	"report-wordpress-site":        "WordPress integration keys only, limited to the operations their integration was given",
 	"report-woocommerce-checkouts": "WordPress integration keys only, limited to the operations their integration was given",
 	"search-workspace":             "the command palette: each kind is searched only with the permission that opens it, a scoped member's within their lists",
+	"list-ai-agent-runs":           "human members only; each run is filtered by ownership, resource read permissions and current scope",
+	"get-ai-agent-run":             "human members only; the service checks ownership and every referenced resource's read permission and scope",
+	"act-on-ai-agent-run":          "the human initiator only; model actions require ai:use and each resource's edit permission, while Cancel preserves recovery access",
+	"decide-ai-agent-drafts":       "human run access plus each selected resource's edit permission; recovery decisions do not require ai:use or campaign permissions for unrelated kinds",
+	"list-mcp-connections":         "human members may list their own connections; listing another member's requires mcp:manage",
+	"get-mcp-connection":           "human members may read their own connection; reading another member's requires mcp:manage",
+	"revoke-mcp-connection":        "human members may revoke their own connection after losing mcp:manage; revoking another member's still requires it",
+	"list-mcp-selected-sources":    "human connection ownership or mcp:manage, plus current resource read permission and scope for both the person and grant",
+	"select-mcp-source":            "human connection ownership or mcp:manage, plus current resource read permission and scope for both the person and grant",
+	"list-mcp-proposals":           "human proposal ownership or mcp:manage, with each proposal filtered by current resource read permission and scope",
+	"get-mcp-proposal":             "human proposal ownership or mcp:manage, plus current resource read permission and scope, including recovery after revocation",
+	"decide-mcp-proposal":          "human proposal ownership or mcp:manage, plus each affected resource's current edit permission and scope; applying also rechecks the grant",
 }
 
 // Every operation declares its access (an operation without one is

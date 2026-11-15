@@ -38,5 +38,6 @@ func (w *RetentionWorker) Work(ctx context.Context, _ *river.Job[RetentionArgs])
 // RegisterJobs adds the assistant's job: the 90-day retention, every 6 hours.
 func RegisterJobs(reg *jobs.Registry, s *Service) {
 	river.AddWorker(reg.Workers, &RetentionWorker{S: s})
+	river.AddWorker(reg.Workers, &AgentWorker{S: s})
 	reg.Every(6*time.Hour, func() (river.JobArgs, *river.InsertOpts) { return RetentionArgs{}, nil }, true)
 }

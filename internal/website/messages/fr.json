@@ -17,6 +17,7 @@
   "post.featuredFull": "La page d’accueil met 3 articles à la une au maximum. Retirez-en d’abord un de la une dans Accueil et navigation.",
   "post.contentIsCampaign": "Cet article provient d’une campagne\u00A0: modifiez son contenu dans la campagne.",
   "post.contentConflict": "Quelqu’un a enregistré cet article depuis que vous l’avez ouvert. Rechargez-le pour voir ses modifications, ou conservez les vôtres.",
+  "post.invalidDraft": "Ce brouillon contient du contenu non valide. Modifiez-le avant de le conserver.",
   "post.alreadyPublished": "Cet article est déjà publié.",
   "post.notSentYet": "La campagne n’a pas encore été envoyée. Son article peut être mis en ligne avec l’envoi, ou à une heure donnée.",
   "post.publishedUseUnpublish": "Cet article est en ligne. Pour le retirer du site, dépubliez-le depuis Site web › Articles.",

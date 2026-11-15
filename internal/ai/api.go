@@ -15,10 +15,16 @@ type settingsInput struct {
 	api.WorkspaceInput
 }
 
+type budgetReconcileInput struct {
+	api.WorkspaceInput
+	ID   uuid.UUID `path:"id"`
+	Body AIBudgetReconcileInput
+}
+
 type activityInput struct {
 	api.WorkspaceInput
 	Member  string `query:"member" doc:"A member's id"`
-	Feature string `query:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary"`
+	Feature string `query:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test"`
 	Outcome string `query:"outcome" enum:"accepted,kept,rejected,refused,error,nothing_drafted,pending"`
 	Cursor  string `query:"cursor" maxLength:"200"`
 	Limit   int    `query:"limit" minimum:"1" maximum:"100" default:"50"`
@@ -72,8 +78,13 @@ type AIFeatureInput struct {
 
 type featureInput struct {
 	api.WorkspaceInput
-	Feature string `path:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary"`
+	Feature string `path:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft"`
 	Body    AIFeatureInput
+}
+
+type learnVoiceInput struct {
+	api.WorkspaceInput
+	Body AILearnVoiceInput
 }
 
 type subjectInput struct {
@@ -159,12 +170,29 @@ func campaignID(raw string) (uuid.UUID, error) {
 // only). The suggestions need ai:use, which API keys and MCP agents can't
 // hold: agents bring their own model.
 func Register(h huma.API, s *Service) {
+	registerDrafts(h, s)
+	registerAutomationDrafts(h, s)
+	registerAgent(h, s)
 	tags := []string{"AI assistant"}
 	base := "/workspaces/{workspace}/ai"
 	view := api.Workspace(authz.IntegrationsView)
 	manage := api.WorkspaceHuman(authz.IntegrationsManage)
 	use := api.WorkspaceHuman(authz.AIUse)
 
+	api.Get(h, api.Op{ID: "list-ai-budget-holds", Path: base + "/budget-holds", Summary: "List reserved AI usage awaiting a response or reconciliation", Tags: tags, Access: manage},
+		func(ctx context.Context, in *settingsInput) (*api.Body[AIBudgetHolds], error) {
+			out, err := s.BudgetHolds(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "reconcile-ai-budget", Path: base + "/budget-holds/{id}/reconcile", Summary: "Record provider-verified usage without retrying the request", Tags: tags, Access: manage},
+		func(ctx context.Context, in *budgetReconcileInput) (*api.Empty, error) {
+			return api.NoContent, s.ReconcileBudget(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.ID, in.Body)
+		})
+	api.Post(h, api.Op{ID: "learn-brand-voice", Path: base + "/brand-voice", Summary: "Suggest a voice from up to ten selected sent campaigns", Tags: tags, Access: use},
+		func(ctx context.Context, in *learnVoiceInput) (*api.Body[AILearnedVoice], error) {
+			out, err := s.LearnVoice(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "get-ai-settings", Path: base, Summary: "The AI assistant's settings: the model, the cap, this month's usage and the features",
 		Description: "The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.", Tags: tags, Access: view},
 		func(ctx context.Context, in *settingsInput) (*api.Body[AISettings], error) {

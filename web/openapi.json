@@ -137,7 +137,11 @@
               "alt_text",
               "accessibility_fix",
               "segment_draft",
-              "report_summary"
+              "report_summary",
+              "brand_voice",
+              "draft",
+              "agent",
+              "connection_test"
             ],
             "type": "string"
           },
@@ -193,6 +197,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "usageKnown": {
+            "type": "boolean"
+          },
           "userId": {
             "type": "string"
           }
@@ -209,7 +216,913 @@
           "inputTokens",
           "outputTokens",
           "costMicros",
+          "usageKnown",
           "outcome"
+        ],
+        "type": "object"
+      },
+      "AIAgentAction": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "build",
+              "cancel",
+              "continue",
+              "answer",
+              "revise",
+              "replan",
+              "propose",
+              "refresh"
+            ],
+            "type": "string"
+          },
+          "handle": {
+            "pattern": "^[a-z][a-z0-9_]{0,39}$",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "planDiscards": {
+            "description": "Build only: explicitly acknowledge all replaced staging revisions shown by the run",
+            "items": {
+              "$ref": "#/components/schemas/AIAgentArtifactRevision"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "planRevision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sharingReviewed": {
+            "description": "Required for answer, revise, replan, propose and refresh: confirm review of newly shared content and the data policy",
+            "type": "boolean"
+          },
+          "version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "planRevision",
+          "action"
+        ],
+        "type": "object"
+      },
+      "AIAgentArtifact": {
+        "additionalProperties": false,
+        "properties": {
+          "automation": {
+            "$ref": "#/components/schemas/AIAutomationContent"
+          },
+          "before": {
+            "$ref": "#/components/schemas/AIDraftEmail"
+          },
+          "beforeAutomation": {
+            "$ref": "#/components/schemas/AutomationGraph"
+          },
+          "beforeEmails": {
+            "items": {
+              "$ref": "#/components/schemas/AIAutomationEmailBefore"
+            },
+            "type": "array"
+          },
+          "bundle": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "email": {
+            "$ref": "#/components/schemas/AIDraftEmail"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "segment",
+              "automation",
+              "post"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "post": {
+            "$ref": "#/components/schemas/AIAgentPost"
+          },
+          "previews": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "resultId": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "segment": {
+            "$ref": "#/components/schemas/SegmentDefinition"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "triggerName": {
+            "description": "Human review only; the selected list or segment name is never model context",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "handle",
+          "kind",
+          "bundle",
+          "revision",
+          "decision",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AIAgentArtifactRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "AIAgentAudienceSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rounding": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "at",
+          "rounding"
+        ],
+        "type": "object"
+      },
+      "AIAgentAutomationSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "fromAudience": {
+            "type": "boolean"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "segmentId": {
+            "type": "string"
+          },
+          "trigger": {
+            "enum": [
+              "joined_list",
+              "segment_entered",
+              "segment_left"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "trigger",
+          "fromAudience"
+        ],
+        "type": "object"
+      },
+      "AIAgentBrief": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/SegmentDefinition",
+            "description": "Explicit builder conditions; literal values stay on this instance"
+          },
+          "automation": {
+            "$ref": "#/components/schemas/AIAgentAutomationSelection"
+          },
+          "baseRevision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "brief": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "kind": {
+            "description": "Primary draft kind; campaign when omitted",
+            "enum": [
+              "campaign",
+              "post"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "vi",
+              "de",
+              "es",
+              "fr"
+            ],
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "poolId": {
+            "description": "Selected discount pool for new emails; codes are never read or reserved",
+            "type": "string"
+          },
+          "reportId": {
+            "description": "Explicitly selected completed campaign; only its fixed aggregate snapshot reaches the model",
+            "type": "string"
+          },
+          "requestKey": {
+            "description": "Generated once per brief by the client: retrying the same brief with it after a lost response returns the run already created",
+            "pattern": "^[A-Za-z0-9_-]{1,80}$",
+            "type": "string"
+          },
+          "sharingReviewed": {
+            "description": "Confirm review of the brief, selected content, residual personal-data risk and provider data policy before sharing",
+            "type": "boolean"
+          },
+          "templateId": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "voiceRevision": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sharingReviewed",
+          "brief",
+          "language"
+        ],
+        "type": "object"
+      },
+      "AIAgentCapability": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "untested",
+              "supported",
+              "unsupported"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "AIAgentCostEstimate": {
+        "additionalProperties": false,
+        "properties": {
+          "highMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lowMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pricingAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lowMicros",
+          "highMicros",
+          "pricingAt"
+        ],
+        "type": "object"
+      },
+      "AIAgentDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAgentArtifactRevision"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "decision": {
+            "enum": [
+              "kept",
+              "discarded",
+              "accepted",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "decision",
+          "artifacts"
+        ],
+        "type": "object"
+      },
+      "AIAgentLimitChange": {
+        "additionalProperties": false,
+        "properties": {
+          "limits": {
+            "$ref": "#/components/schemas/AIAgentLimits"
+          },
+          "version": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "limits"
+        ],
+        "type": "object"
+      },
+      "AIAgentLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "maximum": 100000000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "tokens": {
+            "format": "int64",
+            "maximum": 2000000,
+            "minimum": 1000,
+            "type": "integer"
+          },
+          "toolCalls": {
+            "format": "int32",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "toolCalls",
+          "tokens",
+          "costMicros"
+        ],
+        "type": "object"
+      },
+      "AIAgentMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "text",
+          "at"
+        ],
+        "type": "object"
+      },
+      "AIAgentOperation": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "failed": {
+            "type": "boolean"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "tool": {
+            "enum": [
+              "propose_plan",
+              "stage_campaign",
+              "stage_segment",
+              "stage_automation",
+              "stage_post",
+              "inspect_audience",
+              "read_report",
+              "denied"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "code",
+          "failed"
+        ],
+        "type": "object"
+      },
+      "AIAgentPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AIAgentPlanItem"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "items",
+          "questions"
+        ],
+        "type": "object"
+      },
+      "AIAgentPlanItem": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle": {
+            "pattern": "^[a-z][a-z0-9_]{0,39}$",
+            "type": "string"
+          },
+          "dependsOn": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "handle": {
+            "pattern": "^[a-z][a-z0-9_]{0,39}$",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "segment",
+              "automation",
+              "post"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 40,
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "kind",
+          "name",
+          "purpose",
+          "bundle",
+          "dependsOn"
+        ],
+        "type": "object"
+      },
+      "AIAgentPoolSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "free": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "source",
+          "free",
+          "at",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "AIAgentPost": {
+        "additionalProperties": false,
+        "properties": {
+          "excerpt": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 100000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "excerpt",
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "AIAgentRunList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AIAgentRunListItem"
+            },
+            "type": "array"
+          },
+          "next": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "AIAgentRunListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uncertain": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ownerId",
+          "ownerName",
+          "title",
+          "model",
+          "state",
+          "updatedAt",
+          "expiresAt",
+          "tokens",
+          "costMicros",
+          "uncertain"
+        ],
+        "type": "object"
+      },
+      "AIAgentRunView": {
+        "additionalProperties": false,
+        "properties": {
+          "acceptedRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "artifacts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAgentArtifact"
+            },
+            "type": "array"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/AIAgentAudienceSnapshot"
+          },
+          "brief": {
+            "$ref": "#/components/schemas/AIAgentBrief"
+          },
+          "conversation": {
+            "items": {
+              "$ref": "#/components/schemas/AIAgentMessage"
+            },
+            "type": "array"
+          },
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "estimate": {
+            "$ref": "#/components/schemas/AIAgentCostEstimate",
+            "description": "Remaining build scenarios, not a quote or spending authority; absent when pricing or the model connection is unavailable"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AIAgentLimits"
+          },
+          "model": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "pauseReason": {
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/AIAgentPlan"
+          },
+          "planDiscards": {
+            "description": "Exact staging revisions that confirming this plan discards; kept resources are never included",
+            "items": {
+              "$ref": "#/components/schemas/AIAgentArtifactRevision"
+            },
+            "type": "array"
+          },
+          "planRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pool": {
+            "$ref": "#/components/schemas/AIAgentPoolSnapshot"
+          },
+          "queuePosition": {
+            "description": "Waiting position snapshot; per-user execution limits can change ordering",
+            "format": "int64",
+            "type": "integer"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ModelSnapshot"
+          },
+          "state": {
+            "enum": [
+              "brief",
+              "planning",
+              "needs_answers",
+              "ready",
+              "queued",
+              "building",
+              "paused",
+              "review",
+              "completed",
+              "cancelled",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AIAgentStepView"
+            },
+            "type": "array"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "toolCalls": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "uncertain": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "ownerId",
+          "state",
+          "version",
+          "planRevision",
+          "acceptedRevision",
+          "pauseReason",
+          "limits",
+          "toolCalls",
+          "tokens",
+          "costMicros",
+          "uncertain",
+          "model",
+          "createdAt",
+          "updatedAt",
+          "expiresAt",
+          "planDiscards",
+          "artifacts",
+          "steps",
+          "conversation"
+        ],
+        "type": "object"
+      },
+      "AIAgentSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "$ref": "#/components/schemas/AIAgentCapability",
+            "readOnly": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AIAgentLimits"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "limits",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "AIAgentStepView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/AIAgentOperation"
+            },
+            "type": "array"
+          },
+          "sequence": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sequence",
+          "state",
+          "createdAt",
+          "updatedAt",
+          "operations"
         ],
         "type": "object"
       },
@@ -279,6 +1192,391 @@
         "required": [
           "campaignId",
           "src"
+        ],
+        "type": "object"
+      },
+      "AIAutomationBriefInput": {
+        "additionalProperties": false,
+        "properties": {
+          "automationId": {
+            "type": "string"
+          },
+          "baseRevision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "brief": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "vi",
+              "de",
+              "es",
+              "fr"
+            ],
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sharingReviewed": {
+            "description": "Confirm review of the brief, selected content, residual personal-data risk and provider data policy before sharing",
+            "type": "boolean"
+          },
+          "templateId": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "voiceRevision": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sharingReviewed",
+          "brief",
+          "name",
+          "language",
+          "listId"
+        ],
+        "type": "object"
+      },
+      "AIAutomationContent": {
+        "additionalProperties": false,
+        "properties": {
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/ProposedEmail"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/AutomationGraph"
+          }
+        },
+        "required": [
+          "graph",
+          "emails"
+        ],
+        "type": "object"
+      },
+      "AIAutomationEmailBefore": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/AIDraftEmail"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "id",
+          "version",
+          "name",
+          "content",
+          "html"
+        ],
+        "type": "object"
+      },
+      "AIAutomationProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "automationId": {
+            "type": "string"
+          },
+          "baseRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "before": {
+            "$ref": "#/components/schemas/AutomationGraph"
+          },
+          "beforeEmails": {
+            "items": {
+              "$ref": "#/components/schemas/AIAutomationEmailBefore"
+            },
+            "type": "array"
+          },
+          "content": {
+            "$ref": "#/components/schemas/AIAutomationContent"
+          },
+          "decision": {
+            "enum": [
+              "",
+              "accepted",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "listId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "previews": {
+            "description": "Compiled email previews, in content.emails order; no personalization rendering",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "baseRevision",
+          "listId",
+          "beforeEmails",
+          "content",
+          "previews",
+          "sent",
+          "expiresAt",
+          "decision"
+        ],
+        "type": "object"
+      },
+      "AIBudgetHold": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "reconcileAfter": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reservedCostMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reservedTokens": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "model",
+          "createdAt",
+          "reservedTokens",
+          "reservedCostMicros",
+          "reconcileAfter"
+        ],
+        "type": "object"
+      },
+      "AIBudgetHolds": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AIBudgetHold"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "AIBudgetReconcileInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "description": "The manager verified these counts with the provider; zero means confirmed non-billable, not unknown",
+            "type": "boolean"
+          },
+          "inputTokens": {
+            "format": "int64",
+            "maximum": 1000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "outputTokens": {
+            "format": "int64",
+            "maximum": 1000000000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "inputTokens",
+          "outputTokens",
+          "confirmed"
+        ],
+        "type": "object"
+      },
+      "AICampaignBriefInput": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "brief": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "vi",
+              "de",
+              "es",
+              "fr"
+            ],
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sharingReviewed": {
+            "description": "Confirm review of the brief, selected content, residual personal-data risk and provider data policy before sharing",
+            "type": "boolean"
+          },
+          "templateId": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "voiceRevision": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sharingReviewed",
+          "brief",
+          "name",
+          "language"
+        ],
+        "type": "object"
+      },
+      "AICampaignProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "before": {
+            "$ref": "#/components/schemas/AIDraftEmail"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/AIDraftEmail"
+          },
+          "decision": {
+            "enum": [
+              "",
+              "accepted",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          },
+          "subjectCheck": {
+            "$ref": "#/components/schemas/AISubjectIdea"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "baseRevision",
+          "content",
+          "html",
+          "subjectCheck",
+          "sent",
+          "expiresAt",
+          "decision"
         ],
         "type": "object"
       },
@@ -384,7 +1682,7 @@
             "items": {
               "type": "string"
             },
-            "maxItems": 7,
+            "maxItems": 8,
             "type": "array"
           },
           "inputPrice": {
@@ -521,6 +1819,70 @@
         ],
         "type": "object"
       },
+      "AIDraftDecided": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "type": "object"
+      },
+      "AIDraftDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "type": "object"
+      },
+      "AIDraftEmail": {
+        "additionalProperties": false,
+        "properties": {
+          "mjml": {
+            "maxLength": 200000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "mjml"
+        ],
+        "type": "object"
+      },
       "AIFeatureInput": {
         "additionalProperties": false,
         "properties": {
@@ -547,7 +1909,9 @@
               "alt_text",
               "accessibility_fix",
               "segment_draft",
-              "report_summary"
+              "report_summary",
+              "brand_voice",
+              "draft"
             ],
             "type": "string"
           },
@@ -685,6 +2049,62 @@
         },
         "required": [
           "set"
+        ],
+        "type": "object"
+      },
+      "AILearnVoiceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "sharingReviewed": {
+            "description": "Confirm review of the selected content, residual personal-data risk and provider data policy before sharing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "campaignIds",
+          "sharingReviewed"
+        ],
+        "type": "object"
+      },
+      "AILearnedVoice": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "content": {
+            "$ref": "#/components/schemas/BrandVoiceContent"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "refusal": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "sent": {
+            "$ref": "#/components/schemas/AISent"
+          }
+        },
+        "required": [
+          "requestId",
+          "baseRevision",
+          "content",
+          "sent",
+          "expiresAt"
         ],
         "type": "object"
       },
@@ -910,6 +2330,45 @@
         ],
         "type": "object"
       },
+      "AIPendingDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "AIPendingDrafts": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AIPendingDraft"
+            },
+            "type": "array"
+          },
+          "next": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "AIPricesInput": {
         "additionalProperties": false,
         "properties": {
@@ -944,6 +2403,10 @@
             "format": "double",
             "type": "number"
           },
+          "known": {
+            "description": "Prices are configured, including an explicitly free model",
+            "type": "boolean"
+          },
           "output": {
             "description": "Dollars per million output tokens",
             "format": "double",
@@ -952,7 +2415,8 @@
         },
         "required": [
           "input",
-          "output"
+          "output",
+          "known"
         ],
         "type": "object"
       },
@@ -1218,6 +2682,12 @@
           "language": {
             "maxLength": 12,
             "type": "string"
+          },
+          "voiceRevision": {
+            "description": "Omitted: latest saved voice; zero: no voice; otherwise an exact saved revision",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -1404,6 +2874,10 @@
           },
           "providerName": {
             "type": "string"
+          },
+          "voiceRevision": {
+            "format": "int32",
+            "type": "integer"
           }
         },
         "required": [
@@ -1513,6 +2987,9 @@
       "AIStatus": {
         "additionalProperties": false,
         "properties": {
+          "agent": {
+            "$ref": "#/components/schemas/AIAgentSettings"
+          },
           "canManage": {
             "type": "boolean"
           },
@@ -1577,6 +3054,7 @@
           "state",
           "imageInput",
           "features",
+          "agent",
           "usage",
           "cap",
           "prices",
@@ -1672,6 +3150,12 @@
           "subject": {
             "maxLength": 500,
             "type": "string"
+          },
+          "voiceRevision": {
+            "description": "Omitted: latest saved voice; zero: no voice; otherwise an exact saved revision",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -1700,9 +3184,21 @@
             "maxLength": 120,
             "type": "string"
           },
+          "inputPrice": {
+            "format": "double",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "number"
+          },
           "model": {
             "maxLength": 120,
             "type": "string"
+          },
+          "outputPrice": {
+            "format": "double",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "number"
           },
           "provider": {
             "enum": [
@@ -2160,7 +3656,11 @@
               "alt_text",
               "accessibility_fix",
               "segment_draft",
-              "report_summary"
+              "report_summary",
+              "brand_voice",
+              "draft",
+              "agent",
+              "connection_test"
             ],
             "type": "string"
           },
@@ -2234,6 +3734,14 @@
             "format": "int64",
             "type": "integer"
           },
+          "reservedCostMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reservedTokens": {
+            "format": "int64",
+            "type": "integer"
+          },
           "resetsAt": {
             "format": "date-time",
             "type": "string"
@@ -2254,10 +3762,17 @@
           "tokens": {
             "format": "int64",
             "type": "integer"
+          },
+          "uncertainRequests": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "required": [
           "costMicros",
+          "reservedCostMicros",
+          "reservedTokens",
+          "uncertainRequests",
           "inputTokens",
           "outputTokens",
           "tokens",
@@ -14740,6 +16255,114 @@
         ],
         "type": "object"
       },
+      "BrandVoice": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/BrandVoiceContent"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "learned": {
+            "type": "boolean"
+          },
+          "revision": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "content",
+          "learned",
+          "createdBy"
+        ],
+        "type": "object"
+      },
+      "BrandVoiceContent": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "avoidedWords": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "examples": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "preferredWords": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "sentenceLength": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "tone": {
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "tone",
+          "address",
+          "sentenceLength",
+          "preferredWords",
+          "avoidedWords",
+          "examples"
+        ],
+        "type": "object"
+      },
+      "BrandVoiceHistory": {
+        "additionalProperties": false,
+        "properties": {
+          "beforeRevision": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BrandVoice"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "BrandVoiceSaveInput": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "content": {
+            "$ref": "#/components/schemas/BrandVoiceContent"
+          },
+          "suggestionId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseRevision",
+          "content"
+        ],
+        "type": "object"
+      },
       "CallTarget": {
         "additionalProperties": false,
         "properties": {
@@ -16216,6 +17839,47 @@
         },
         "required": [
           "theme"
+        ],
+        "type": "object"
+      },
+      "ClientRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "client_name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "grant_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "redirect_uris": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "response_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "token_endpoint_auth_method": {
+            "enum": [
+              "none",
+              "client_secret_basic",
+              "client_secret_post"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirect_uris"
         ],
         "type": "object"
       },
@@ -23053,6 +24717,19 @@
           "status",
           "requestedAt",
           "until"
+        ],
+        "type": "object"
+      },
+      "ConsentDenyInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "request": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "request"
         ],
         "type": "object"
       },
@@ -48478,6 +50155,254 @@
         ],
         "type": "object"
       },
+      "MCPConnection": {
+        "additionalProperties": false,
+        "properties": {
+          "allowedIps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "revokedReason": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "clientName",
+          "verified",
+          "userName",
+          "userId",
+          "scopes",
+          "lists",
+          "senderDomains",
+          "allowedIps",
+          "createdAt",
+          "expiresAt",
+          "revokedReason"
+        ],
+        "type": "object"
+      },
+      "MCPConnectionList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MCPConnection"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "MCPConsent": {
+        "additionalProperties": false,
+        "properties": {
+          "callbackHost": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "clientName",
+          "clientId",
+          "verified",
+          "callbackHost",
+          "scopes",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "MCPConsentDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "allowedIps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "request": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 3,
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "request",
+          "scopes",
+          "lists",
+          "senderDomains",
+          "allowedIps"
+        ],
+        "type": "object"
+      },
+      "MCPConsentList": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MCPConsentOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "defaultDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "defaultLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/MCPConsentList"
+            },
+            "type": "array"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "senderDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "endpoint",
+          "scopes",
+          "lists",
+          "senderDomains",
+          "defaultLists",
+          "defaultDomains"
+        ],
+        "type": "object"
+      },
+      "MCPConsentResult": {
+        "additionalProperties": false,
+        "properties": {
+          "redirect": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirect"
+        ],
+        "type": "object"
+      },
       "MCPOverview": {
         "additionalProperties": false,
         "properties": {
@@ -48550,6 +50475,274 @@
         ],
         "type": "object"
       },
+      "MCPProposalDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "kept",
+              "discarded",
+              "accepted",
+              "rejected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "type": "object"
+      },
+      "MCPProposalList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MCPProposalListItem"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "MCPProposalListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "change": {
+            "type": "boolean"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "purged": {
+            "type": "boolean"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "clientName",
+          "verified",
+          "change",
+          "decision",
+          "expiresAt",
+          "purged",
+          "revoked"
+        ],
+        "type": "object"
+      },
+      "MCPProposalView": {
+        "additionalProperties": false,
+        "properties": {
+          "baseRevision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "before": {
+            "$ref": "#/components/schemas/MCPProposedEmail"
+          },
+          "beforeFlow": {
+            "$ref": "#/components/schemas/MCPProposedFlow"
+          },
+          "blocked": {
+            "enum": [
+              "",
+              "expired",
+              "revoked",
+              "changed",
+              "purged",
+              "permission"
+            ],
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "email": {
+            "$ref": "#/components/schemas/MCPProposedEmail"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "resultId": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "triggerName": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/MCPWorkflowContent"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "clientName",
+          "verified",
+          "userName",
+          "createdAt",
+          "canDecide",
+          "baseRevision",
+          "email",
+          "html",
+          "decision",
+          "blocked",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "MCPProposedEmail": {
+        "additionalProperties": false,
+        "properties": {
+          "mjml": {
+            "maxLength": 100000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "preheader",
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "MCPProposedFlow": {
+        "additionalProperties": false,
+        "properties": {
+          "emails": {
+            "items": {
+              "$ref": "#/components/schemas/ProposedEmail"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/AutomationGraph"
+          }
+        },
+        "required": [
+          "graph",
+          "emails"
+        ],
+        "type": "object"
+      },
+      "MCPSelectedSource": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "handle",
+          "kind",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "MCPSelectedSources": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MCPSelectedSource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "MCPSettingsInput": {
         "additionalProperties": false,
         "properties": {
@@ -48576,6 +50769,58 @@
         ],
         "type": "object"
       },
+      "MCPSourceHandle": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "kind",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "MCPSourceSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "post",
+              "template",
+              "voice",
+              "list",
+              "segment",
+              "automation",
+              "report"
+            ],
+            "type": "string"
+          },
+          "sharingReviewed": {
+            "description": "Confirm review of the selected content, residual privacy risk and external client data policy before sharing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sharingReviewed",
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
       "MCPToolInfo": {
         "additionalProperties": false,
         "properties": {
@@ -48597,6 +50842,30 @@
           "description",
           "permission",
           "writes"
+        ],
+        "type": "object"
+      },
+      "MCPWorkflowContent": {
+        "additionalProperties": false,
+        "properties": {
+          "flow": {
+            "$ref": "#/components/schemas/MCPProposedFlow"
+          },
+          "previews": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "segment": {
+            "$ref": "#/components/schemas/SegmentDefinition"
+          },
+          "segmentName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "previews"
         ],
         "type": "object"
       },
@@ -49124,6 +51393,50 @@
           "index",
           "label",
           "mjml"
+        ],
+        "type": "object"
+      },
+      "ModelSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "asOf": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "rounding": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sentFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sentThrough": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "asOf",
+          "sentFrom",
+          "sentThrough",
+          "rounding",
+          "metrics"
         ],
         "type": "object"
       },
@@ -58037,6 +60350,44 @@
           "products",
           "from",
           "until"
+        ],
+        "type": "object"
+      },
+      "ProposedEmail": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "mjml": {
+            "maxLength": 200000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "preheader": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "subject",
+          "preheader",
+          "mjml"
         ],
         "type": "object"
       },
@@ -68888,6 +71239,64 @@
           "code",
           "url",
           "error"
+        ],
+        "type": "object"
+      },
+      "RegisteredClient": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_id_issued_at": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "client_name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "client_secret_expires_at": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "grant_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "redirect_uris": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "response_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "token_endpoint_auth_method": {
+            "enum": [
+              "none",
+              "client_secret_basic",
+              "client_secret_post"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "client_id_issued_at",
+          "client_secret_expires_at",
+          "redirect_uris"
         ],
         "type": "object"
       },
@@ -110291,6 +112700,60 @@
         "x-access": "instance_admin"
       }
     },
+    "/api/v1/admin/mcp-connect/clients": {
+      "post": {
+        "operationId": "register-verified-mcp-client",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientRegistration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredClient"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pre-register an operator-verified OAuth client and disclose its secret once",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
     "/api/v1/admin/policy": {
       "get": {
         "operationId": "get-instance-policy",
@@ -114985,6 +117448,126 @@
         "x-access": "public"
       }
     },
+    "/api/v1/mcp-connect/consent": {
+      "get": {
+        "operationId": "get-mcp-consent",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "request",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPConsent"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Review and bind an external connection request to this session",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/mcp-connect/consent/deny": {
+      "post": {
+        "operationId": "deny-mcp-consent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentDenyInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPConsentResult"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Deny a connection without granting workspace access",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "user"
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "get-me",
@@ -118141,7 +120724,11 @@
                 "alt_text",
                 "accessibility_fix",
                 "segment_draft",
-                "report_summary"
+                "report_summary",
+                "brand_voice",
+                "draft",
+                "agent",
+                "connection_test"
               ],
               "type": "string"
             }
@@ -118223,6 +120810,547 @@
         "x-permission": "integrations:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai/agent/runs": {
+      "get": {
+        "operationId": "list-ai-agent-runs",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAgentRunList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List only runs permitted by current membership and resource scope",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace"
+      },
+      "post": {
+        "operationId": "start-ai-agent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAgentBrief"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAgentRunView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Start a task and queue its first planning request",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}": {
+      "get": {
+        "operationId": "get-ai-agent-run",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAgentRunView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read a permitted task and its reviewable drafts without hidden reasoning",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}/actions": {
+      "post": {
+        "operationId": "act-on-ai-agent-run",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAgentAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Confirm a plan, answer, stop or continue without resetting usage",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}/decisions": {
+      "post": {
+        "operationId": "decide-ai-agent-drafts",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAgentDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Keep or discard new drafts; accept or reject exact existing-resource proposals",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}/limits": {
+      "put": {
+        "operationId": "set-ai-agent-run-limits",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAgentLimitChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Raise cumulative limits on a paused run without continuing it",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/agent/settings": {
+      "get": {
+        "operationId": "get-ai-agent-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAgentSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Agent availability and default cumulative run ceilings",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      },
+      "put": {
+        "operationId": "set-ai-agent-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAgentSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Configure Agent and defaults without changing existing runs",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/agent/test": {
+      "post": {
+        "operationId": "test-ai-agent-tools",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAgentCapability"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Test tool calling with fixed data, using the monthly AI budget",
+        "tags": [
+          "AI agent"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai/alt-text": {
       "post": {
         "operationId": "suggest-alt-text",
@@ -118285,6 +121413,189 @@
         ],
         "x-access": "workspace",
         "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/brand-voice": {
+      "post": {
+        "operationId": "learn-brand-voice",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AILearnVoiceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AILearnedVoice"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Suggest a voice from up to ten selected sent campaigns",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/budget-holds": {
+      "get": {
+        "operationId": "list-ai-budget-holds",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIBudgetHolds"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List reserved AI usage awaiting a response or reconciliation",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/budget-holds/{id}/reconcile": {
+      "post": {
+        "operationId": "reconcile-ai-budget",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIBudgetReconcileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Record provider-verified usage without retrying the request",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/ai/cap": {
@@ -118469,6 +121780,562 @@
         "x-permission": "integrations:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai/drafts/automations": {
+      "get": {
+        "operationId": "list-automation-draft-proposals",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "target",
+            "schema": {
+              "format": "uuid",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "uuid",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "all",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPendingDrafts"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Recover your pending proposals for this draft or new automations",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      },
+      "post": {
+        "operationId": "generate-automation-draft",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAutomationBriefInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAutomationProposal"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Propose an unpublished email flow for future confirmed list joins",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/drafts/automations/{proposal}": {
+      "get": {
+        "operationId": "get-automation-draft-proposal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposal",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAutomationProposal"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read your unexpired automation proposal",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/drafts/automations/{proposal}/decision": {
+      "post": {
+        "operationId": "decide-automation-draft-proposal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposal",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIDraftDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIDraftDecided"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Accept or reject an automation proposal without publishing or enrolling",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "automations:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/drafts/campaigns": {
+      "get": {
+        "operationId": "list-campaign-draft-proposals",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "target",
+            "schema": {
+              "format": "uuid",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "uuid",
+              "maxLength": 36,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "all",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPendingDrafts"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Recover your pending proposals for this draft or new campaigns",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "post": {
+        "operationId": "generate-campaign-draft",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AICampaignBriefInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AICampaignProposal"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Propose a campaign from an explicit brief, without saving a campaign",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/drafts/campaigns/{proposal}": {
+      "get": {
+        "operationId": "get-campaign-draft-proposal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposal",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AICampaignProposal"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read your unexpired campaign proposal",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/drafts/campaigns/{proposal}/decision": {
+      "post": {
+        "operationId": "decide-campaign-draft-proposal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposal",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIDraftDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIDraftDecided"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Accept exactly this proposal or reject it; never send or schedule",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai/features/{feature}": {
       "put": {
         "operationId": "set-ai-feature",
@@ -118499,7 +122366,9 @@
                 "alt_text",
                 "accessibility_fix",
                 "segment_draft",
-                "report_summary"
+                "report_summary",
+                "brand_voice",
+                "draft"
               ],
               "type": "string"
             }
@@ -124965,6 +128834,251 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/brand-kit/voice": {
+      "get": {
+        "operationId": "get-brand-voice",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandVoice"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The saved brand voice",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "put": {
+        "operationId": "save-brand-voice",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandVoiceSaveInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandVoice"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a new voice revision without changing existing emails",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/brand-kit/voice/history": {
+      "get": {
+        "operationId": "brand-voice-history",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandVoiceHistory"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saved voice revisions, newest first",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/brand-kit/voice/suggestions/{suggestion}": {
+      "delete": {
+        "operationId": "reject-brand-voice",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "suggestion",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Reject your learned voice suggestion",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns": {
@@ -162433,6 +166547,628 @@
         "x-permission": "mcp:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/mcp-connect/connections": {
+      "get": {
+        "operationId": "list-mcp-connections",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPConnectionList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List own external connections, or permitted connections managed by this member",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-connect/connections/{id}": {
+      "delete": {
+        "operationId": "revoke-mcp-connection",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Revoke an external connection without deleting accepted drafts",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      },
+      "get": {
+        "operationId": "get-mcp-connection",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPConnection"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Check saved connection status without repeating a decision",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-connect/connections/{id}/sources": {
+      "get": {
+        "operationId": "list-mcp-selected-sources",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPSelectedSources"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Check saved source selections without sharing another resource",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      },
+      "post": {
+        "operationId": "select-mcp-source",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MCPSourceSelection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPSourceHandle"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Select one editorial source for this external connection",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-connect/consent": {
+      "post": {
+        "operationId": "decide-mcp-consent",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MCPConsentDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPConsentResult"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Allow selected external capabilities in one workspace",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-connect/options": {
+      "get": {
+        "operationId": "get-mcp-consent-options",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPConsentOptions"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read the capabilities and resource scope this person may grant",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace",
+        "x-permission": "mcp:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-connect/proposals": {
+      "get": {
+        "operationId": "list-mcp-proposals",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 36,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPProposalList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List permitted external proposals for human review",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-connect/proposals/{id}": {
+      "get": {
+        "operationId": "get-mcp-proposal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPProposalView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Review an external proposal without applying it",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/mcp-connect/proposals/{id}/decision": {
+      "post": {
+        "operationId": "decide-mcp-proposal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MCPProposalDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Apply or reject an immutable external proposal as a person",
+        "tags": [
+          "External MCP"
+        ],
+        "x-access": "workspace"
+      }
+    },
     "/api/v1/workspaces/{workspace}/me": {
       "get": {
         "operationId": "get-workspace-me",
@@ -163350,7 +168086,9 @@
                 "transactional",
                 "earn",
                 "website",
-                "grow"
+                "grow",
+                "integrations",
+                "ai"
               ],
               "type": "string"
             }

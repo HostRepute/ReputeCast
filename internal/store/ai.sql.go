@@ -50,7 +50,7 @@ func (q *Queries) AICampaignBrief(ctx context.Context, arg AICampaignBriefParams
 
 const aIConnection = `-- name: AIConnection :one
 
-SELECT workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input, key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from, features_off, notice_month, cap_notice_month, demo, updated_by, updated_at FROM ai_connections WHERE workspace_id = $1
+SELECT workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input, key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from, features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known FROM ai_connections WHERE workspace_id = $1
 `
 
 // AI assistant (design expansion M22): the workspace's model, the AI
@@ -95,6 +95,7 @@ func (q *Queries) AIConnection(ctx context.Context, workspaceID uuid.UUID) (AiCo
 		&i.Demo,
 		&i.UpdatedBy,
 		&i.UpdatedAt,
+		&i.PriceKnown,
 	)
 	return i, err
 }
@@ -136,7 +137,7 @@ func (q *Queries) AIConnectionClaimNotice(ctx context.Context, arg AIConnectionC
 }
 
 const aIConnectionForUpdate = `-- name: AIConnectionForUpdate :one
-SELECT workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input, key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from, features_off, notice_month, cap_notice_month, demo, updated_by, updated_at FROM ai_connections WHERE workspace_id = $1 FOR UPDATE
+SELECT workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input, key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from, features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known FROM ai_connections WHERE workspace_id = $1 FOR UPDATE
 `
 
 func (q *Queries) AIConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error) {
@@ -179,6 +180,7 @@ func (q *Queries) AIConnectionForUpdate(ctx context.Context, workspaceID uuid.UU
 		&i.Demo,
 		&i.UpdatedBy,
 		&i.UpdatedAt,
+		&i.PriceKnown,
 	)
 	return i, err
 }
@@ -189,13 +191,13 @@ INSERT INTO ai_connections (
     key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at,
     status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms,
     cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from,
-    features_off, notice_month, cap_notice_month, demo, updated_by, updated_at
+    features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9,
     $10, $11, $12, $13, $14, $15, $16,
     $17, $18, $19, $20, $21, $22,
     $23, $24, $25, $26, $27, $28, $29, $30,
-    $31, $32, $33, $34, $35, $36
+    $31, $32, $33, $34, $35, $36, $37
 )
 ON CONFLICT (workspace_id) DO UPDATE SET
     provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url, deployment = EXCLUDED.deployment,
@@ -208,7 +210,7 @@ ON CONFLICT (workspace_id) DO UPDATE SET
     cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, input_price = EXCLUDED.input_price,
     output_price = EXCLUDED.output_price, prices_from = EXCLUDED.prices_from, features_off = EXCLUDED.features_off,
     notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month, demo = EXCLUDED.demo,
-    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at, price_known = EXCLUDED.price_known
 `
 
 type AIConnectionSaveParams struct {
@@ -248,6 +250,7 @@ type AIConnectionSaveParams struct {
 	Demo           bool       `json:"demo"`
 	UpdatedBy      *uuid.UUID `json:"updatedBy"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
+	PriceKnown     bool       `json:"priceKnown"`
 }
 
 func (q *Queries) AIConnectionSave(ctx context.Context, arg AIConnectionSaveParams) error {
@@ -288,20 +291,22 @@ func (q *Queries) AIConnectionSave(ctx context.Context, arg AIConnectionSavePara
 		arg.Demo,
 		arg.UpdatedBy,
 		arg.UpdatedAt,
+		arg.PriceKnown,
 	)
 	return err
 }
 
 const aIConnectionSetStatus = `-- name: AIConnectionSetStatus :execrows
 UPDATE ai_connections SET status = $1, status_detail = $2, status_at = $3
-WHERE workspace_id = $4 AND status <> $1
+WHERE workspace_id = $4 AND status <> $1 AND updated_at = $5
 `
 
 type AIConnectionSetStatusParams struct {
-	Status       string     `json:"status"`
-	StatusDetail string     `json:"statusDetail"`
-	StatusAt     *time.Time `json:"statusAt"`
-	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	Status            string     `json:"status"`
+	StatusDetail      string     `json:"statusDetail"`
+	StatusAt          *time.Time `json:"statusAt"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	ExpectedUpdatedAt time.Time  `json:"expectedUpdatedAt"`
 }
 
 // The provider rejected the saved key (or a passing request cleared it).
@@ -311,6 +316,7 @@ func (q *Queries) AIConnectionSetStatus(ctx context.Context, arg AIConnectionSet
 		arg.StatusDetail,
 		arg.StatusAt,
 		arg.WorkspaceID,
+		arg.ExpectedUpdatedAt,
 	)
 	if err != nil {
 		return 0, err
@@ -521,7 +527,7 @@ func (q *Queries) AIReportSummarySave(ctx context.Context, arg AIReportSummarySa
 }
 
 const aIRequest = `-- name: AIRequest :one
-SELECT id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model, input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at FROM ai_requests WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model, input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known FROM ai_requests WHERE id = $1 AND workspace_id = $2
 `
 
 type AIRequestParams struct {
@@ -551,6 +557,8 @@ func (q *Queries) AIRequest(ctx context.Context, arg AIRequestParams) (AiRequest
 		&i.DurationMs,
 		&i.CreatedAt,
 		&i.DecidedAt,
+		&i.VoiceRevision,
+		&i.UsageKnown,
 	)
 	return i, err
 }
@@ -573,9 +581,12 @@ func (q *Queries) AIRequestCount(ctx context.Context, arg AIRequestCountParams) 
 
 const aIRequestInsert = `-- name: AIRequestInsert :exec
 INSERT INTO ai_requests (id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model,
-    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at)
+    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13, $14, $15, $16, $17, $18)
+    $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+ON CONFLICT (id) DO UPDATE SET input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
+    cost_micros = EXCLUDED.cost_micros, usage_known = EXCLUDED.usage_known
+WHERE ai_requests.workspace_id = EXCLUDED.workspace_id AND NOT ai_requests.usage_known
 `
 
 type AIRequestInsertParams struct {
@@ -597,6 +608,8 @@ type AIRequestInsertParams struct {
 	DurationMs    int32      `json:"durationMs"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	DecidedAt     *time.Time `json:"decidedAt"`
+	VoiceRevision int32      `json:"voiceRevision"`
+	UsageKnown    bool       `json:"usageKnown"`
 }
 
 func (q *Queries) AIRequestInsert(ctx context.Context, arg AIRequestInsertParams) error {
@@ -619,6 +632,8 @@ func (q *Queries) AIRequestInsert(ctx context.Context, arg AIRequestInsertParams
 		arg.DurationMs,
 		arg.CreatedAt,
 		arg.DecidedAt,
+		arg.VoiceRevision,
+		arg.UsageKnown,
 	)
 	return err
 }
@@ -656,7 +671,7 @@ func (q *Queries) AIRequestSetOutcome(ctx context.Context, arg AIRequestSetOutco
 }
 
 const aIRequests = `-- name: AIRequests :many
-SELECT r.id, r.workspace_id, r.user_id, r.feature, r.action, r.target_kind, r.target_id, r.target_label, r.provider, r.model, r.input_tokens, r.output_tokens, r.cost_micros, r.outcome, r.outcome_detail, r.duration_ms, r.created_at, r.decided_at, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email, coalesce(u.avatar_color, '')::text AS user_color
+SELECT r.id, r.workspace_id, r.user_id, r.feature, r.action, r.target_kind, r.target_id, r.target_label, r.provider, r.model, r.input_tokens, r.output_tokens, r.cost_micros, r.outcome, r.outcome_detail, r.duration_ms, r.created_at, r.decided_at, r.voice_revision, r.usage_known, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email, coalesce(u.avatar_color, '')::text AS user_color
 FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
 WHERE r.workspace_id = $1 AND r.created_at >= $2
   AND ($3::uuid IS NULL OR r.user_id = $3)
@@ -697,6 +712,8 @@ type AIRequestsRow struct {
 	DurationMs    int32      `json:"durationMs"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	DecidedAt     *time.Time `json:"decidedAt"`
+	VoiceRevision int32      `json:"voiceRevision"`
+	UsageKnown    bool       `json:"usageKnown"`
 	UserName      string     `json:"userName"`
 	UserEmail     string     `json:"userEmail"`
 	UserColor     string     `json:"userColor"`
@@ -740,6 +757,8 @@ func (q *Queries) AIRequests(ctx context.Context, arg AIRequestsParams) ([]AIReq
 			&i.DurationMs,
 			&i.CreatedAt,
 			&i.DecidedAt,
+			&i.VoiceRevision,
+			&i.UsageKnown,
 			&i.UserName,
 			&i.UserEmail,
 			&i.UserColor,

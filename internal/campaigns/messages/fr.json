@@ -1,4 +1,5 @@
 {
+  "problem.proposalRevision": "Ce brouillon a changé depuis la proposition. Examinez une nouvelle proposition avant de l’accepter.",
   "audience.all": "Tous les abonnés",
   "audience.segments": "{count, plural, one {# segment} other {# segments}}",
   "audience.paid": "{who, select, paid {Abonnés payants uniquement} other {Abonnés gratuits uniquement}}",

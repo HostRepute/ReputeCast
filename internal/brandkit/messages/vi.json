@@ -1,4 +1,9 @@
 {
+  "voice.invalid": "Giữ mỗi mục trong giới hạn ký tự và xóa ký tự không hợp lệ.",
+  "voice.toneRequired": "Mô tả giọng điệu trước khi lưu giọng thương hiệu.",
+  "voice.selection": "Chọn từ một đến mười chiến dịch đã gửi khác nhau trong phạm vi truy cập của bạn.",
+  "voice.gone": "Gợi ý này đã hết hạn hoặc đã được xử lý. Hãy tạo gợi ý mới.",
+  "voice.changed": "Giọng thương hiệu đã thay đổi. Tải lại và xem xét thay đổi của bạn lần nữa.",
   "problem.badColor": "Hãy dùng mã màu như #4338CA.",
   "problem.badFallback": "Hãy chọn một phông chữ dự phòng an toàn cho email.",
   "problem.badFontUrl": "Hãy dùng liên kết stylesheet https của phông web, kèm tên phông.",

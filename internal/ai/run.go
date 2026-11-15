@@ -14,10 +14,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/editorial"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -28,22 +32,30 @@ var errDemoElsewhere = errors.New("the demo's sample model only answers in devel
 
 // task is one request a feature makes.
 type task struct {
-	feature     string
-	action      string
-	targetKind  string
-	targetID    *uuid.UUID
-	targetLabel string
-	req         llm.Request
+	feature         string
+	action          string
+	targetKind      string
+	targetID        *uuid.UUID
+	targetLabel     string
+	req             llm.Request
+	selectedVoice   *int32
+	voiceRevision   int32
+	voiceChars      int
+	privateLiterals privateLiterals
+	// Draft repairs must recheck the source in the reservation transaction.
+	checkSource func(context.Context, *store.Queries, *authz.Principal) error
 }
 
 // result is what the model answered, and what it cost.
 type result struct {
-	RequestID  uuid.UUID
-	Response   llm.Response
-	JSON       json.RawMessage
-	Refusal    string
-	CostMicros int64
-	conn       *connection
+	RequestID     uuid.UUID
+	Response      llm.Response
+	JSON          json.RawMessage
+	Refusal       string
+	CostMicros    int64
+	conn          *connection
+	voiceRevision int32
+	voiceChars    int
 }
 
 // AISent says what went to the model, for the card's footer.
@@ -55,14 +67,15 @@ type AISent struct {
 	// Characters of the person's content that were sent.
 	Characters int `json:"characters"`
 	// CostMicros is the estimated cost in millionths of a dollar.
-	CostMicros   int64 `json:"costMicros"`
-	InputTokens  int   `json:"inputTokens"`
-	OutputTokens int   `json:"outputTokens"`
+	CostMicros    int64 `json:"costMicros"`
+	InputTokens   int   `json:"inputTokens"`
+	OutputTokens  int   `json:"outputTokens"`
+	VoiceRevision int32 `json:"voiceRevision,omitempty"`
 }
 
 func (r result) sent(chars int) AISent {
-	return AISent{Provider: r.conn.Provider, ProviderName: r.conn.providerName(), Model: r.conn.Model, ModelName: r.conn.modelName(), Characters: chars,
-		CostMicros: r.CostMicros, InputTokens: r.Response.InputTokens, OutputTokens: r.Response.OutputTokens}
+	return AISent{Provider: r.conn.Provider, ProviderName: r.conn.providerName(), Model: r.conn.Model, ModelName: r.conn.modelName(), Characters: chars + r.voiceChars,
+		CostMicros: r.CostMicros, InputTokens: r.Response.InputTokens, OutputTokens: r.Response.OutputTokens, VoiceRevision: r.voiceRevision}
 }
 
 // usable checks that a feature can send a request now: a model is
@@ -122,6 +135,11 @@ func (s *Service) run(ctx context.Context, ws *store.Workspace, p *authz.Princip
 	if err != nil {
 		return result{}, err
 	}
+	if t.feature == FeatureSubjectIdeas || t.feature == FeatureRewrite || t.feature == FeatureDraft {
+		if err := s.withVoice(ctx, ws, &t); err != nil {
+			return result{}, err
+		}
+	}
 	return s.send(ctx, ws, p, c, t)
 }
 
@@ -133,6 +151,22 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err != nil {
 		return result{}, err
 	}
+	id := uuid.Must(uuid.NewV7())
+	if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := s.reserveIn(ctx, q, ws, p, c, &t, nil, id); err != nil {
+			return err
+		}
+		// Record the sharing decision before HTTP, including requests that
+		// fail or are cancelled after the provider receives their content.
+		if t.feature == FeatureBrandVoice || t.feature == FeatureDraft {
+			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.sharing.reviewed", TargetType: "ai_request", TargetID: id.String(),
+				Metadata: map[string]any{"feature": t.feature, "provider": c.Provider, "model": c.Model, "sharing_policy": editorial.SharingPolicy}})
+		}
+		return nil
+	}); err != nil {
+		return result{}, err
+	}
 	start := s.now()
 	res, gerr := prov.Generate(ctx, t.req)
 	elapsed := time.Since(start)
@@ -140,9 +174,9 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		elapsed = 0
 	}
 	row := store.AIRequestInsertParams{
-		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, UserID: actorID(p), Feature: t.feature, Action: t.action, TargetKind: t.targetKind,
+		ID: id, WorkspaceID: ws.ID, UserID: actorID(p), Feature: t.feature, Action: t.action, TargetKind: t.targetKind,
 		TargetID: t.targetID, TargetLabel: clip(t.targetLabel, 200), Provider: c.Provider, Model: c.Model, Outcome: OutcomePending,
-		DurationMs: int32(min(elapsed.Milliseconds(), math.MaxInt32)), CreatedAt: start,
+		DurationMs: int32(min(elapsed.Milliseconds(), math.MaxInt32)), CreatedAt: start, VoiceRevision: t.voiceRevision,
 	}
 	// The log keeps what happened even when the person left the page.
 	logCtx := context.WithoutCancel(ctx)
@@ -154,15 +188,15 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if e, ok := llm.AsError(gerr); ok && e.Kind == llm.ErrAuth {
 			s.keyRejected(logCtx, ws, c, e)
 		}
-		if err := s.Q.AIRequestInsert(logCtx, row); err != nil {
-			s.log().WarnContext(ctx, "ai: log a failed request", "err", err)
+		if err := s.account(logCtx, row, res, gerr); err != nil {
+			return result{}, err
 		}
 		if row.Outcome == OutcomeCancelled {
 			return result{}, ctx.Err()
 		}
-		return result{}, s.providerProblem(ctx, c, gerr)
+		return result{}, s.providerProblem(ctx, c, t.feature, gerr)
 	}
-	out := result{RequestID: row.ID, Response: res, conn: c}
+	out := result{RequestID: row.ID, Response: res, conn: c, voiceRevision: t.voiceRevision, voiceChars: t.voiceChars}
 	out.CostMicros = costMicros(c, res.InputTokens, res.OutputTokens)
 	row.InputTokens, row.OutputTokens, row.CostMicros = int32(res.InputTokens), int32(res.OutputTokens), out.CostMicros
 	if raw, ok := llm.FirstJSON(res.Text); ok {
@@ -181,20 +215,19 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		row.Outcome = OutcomeRefused
 		now := s.now()
 		row.DecidedAt = &now
-	} else if out.JSON == nil && t.req.JSON {
+	} else if out.JSON == nil && t.req.JSON && t.feature != FeatureDraft {
 		row.Outcome, row.OutcomeDetail = OutcomeError, "unreadable answer"
-		if err := s.Q.AIRequestInsert(logCtx, row); err != nil {
-			s.log().WarnContext(ctx, "ai: log a request", "err", err)
+		if err := s.account(logCtx, row, res, nil); err != nil {
+			return result{}, err
 		}
 		return result{}, problem(ctx, http.StatusBadGateway, codeProviderError, mUnreadable, i18n.Args{"provider": c.providerName()})
 	}
-	if err := s.Q.AIRequestInsert(logCtx, row); err != nil {
+	if err := s.account(logCtx, row, res, nil); err != nil {
 		return result{}, err
 	}
 	if c.Status != "ok" {
-		_, _ = s.Q.AIConnectionSetStatus(logCtx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "ok", StatusAt: ptr(s.now())})
+		_, _ = s.Q.AIConnectionSetStatus(logCtx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "ok", StatusAt: ptr(s.now()), ExpectedUpdatedAt: c.UpdatedAt})
 	}
-	s.afterUse(logCtx, ws, c)
 	return out, nil
 }
 
@@ -248,7 +281,7 @@ func shortCode(e *llm.Error) string {
 }
 
 // providerProblem says plainly what the provider did; nothing changed.
-func (s *Service) providerProblem(ctx context.Context, c *connection, err error) error {
+func (s *Service) providerProblem(ctx context.Context, c *connection, feature string, err error) error {
 	name := c.providerName()
 	e, ok := llm.AsError(err)
 	if !ok {
@@ -271,7 +304,7 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, err error)
 		return withHelpers(ctx, http.StatusBadGateway, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": name}, s.helpers(ctx, c.WorkspaceID)).
 			WithMeta("status", e.Status, "detail", e.Error())
 	case llm.ErrTimeout:
-		return problem(ctx, http.StatusGatewayTimeout, codeProviderError, mTimeout, i18n.Args{"provider": name, "seconds": int(timeoutOf("").Seconds())})
+		return problem(ctx, http.StatusGatewayTimeout, codeProviderError, mTimeout, i18n.Args{"provider": name, "seconds": int(timeoutOf(feature).Seconds())})
 	case llm.ErrNetwork:
 		if e.Blocked {
 			return problem(ctx, http.StatusBadGateway, codePrivate, mBlocked, i18n.Args{"host": hostOf(c.BaseUrl)})
@@ -295,7 +328,7 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, err error)
 // can replace it, once.
 func (s *Service) keyRejected(ctx context.Context, ws *store.Workspace, c *connection, e *llm.Error) {
 	now := s.now()
-	n, err := s.Q.AIConnectionSetStatus(ctx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "key_rejected", StatusDetail: clip(e.Error(), 300), StatusAt: &now})
+	n, err := s.Q.AIConnectionSetStatus(ctx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "key_rejected", StatusDetail: clip(e.Error(), 300), StatusAt: &now, ExpectedUpdatedAt: c.UpdatedAt})
 	if err != nil || n == 0 {
 		return
 	}
@@ -310,8 +343,11 @@ func (s *Service) keyRejected(ctx context.Context, ws *store.Workspace, c *conne
 }
 
 // afterUse sends this month's 80% notice and the cap notice, once each.
-func (s *Service) afterUse(ctx context.Context, ws *store.Workspace, c *connection) {
-	if c.CapKind == "none" {
+func (s *Service) afterUse(ctx context.Context, ws *store.Workspace) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	c, err := s.load(ctx, s.Q, ws.ID)
+	if err != nil || !c.connected() || c.CapKind == "none" {
 		return
 	}
 	u, err := s.usage(ctx, ws, c)

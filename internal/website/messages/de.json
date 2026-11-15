@@ -17,6 +17,7 @@
   "post.featuredFull": "Die Startseite hebt bis zu 3 Beiträge hervor. Heben Sie zuerst unter Startseite & Navigation die Hervorhebung eines Beitrags auf.",
   "post.contentIsCampaign": "Dieser Beitrag stammt aus einer Kampagne: Bearbeiten Sie den Inhalt in der Kampagne.",
   "post.contentConflict": "Jemand hat diesen Beitrag gespeichert, seit Sie ihn geöffnet haben. Laden Sie ihn neu, um die Änderungen zu sehen, oder behalten Sie Ihre.",
+  "post.invalidDraft": "Dieser Entwurf enthält ungültige Inhalte. Überarbeiten Sie ihn, bevor Sie ihn übernehmen.",
   "post.alreadyPublished": "Dieser Beitrag ist bereits veröffentlicht.",
   "post.notSentYet": "Die Kampagne wurde noch nicht gesendet. Der zugehörige Beitrag kann mit dem Versand oder zu einem festen Zeitpunkt online gehen.",
   "post.publishedUseUnpublish": "Dieser Beitrag ist online. Um ihn von der Website zu nehmen, ziehen Sie die Veröffentlichung unter Website › Beiträge zurück.",

@@ -599,6 +599,16 @@ type draftRow struct {
 // the creation's audit entry (its target is filled in); without it the
 // caller writes one.
 func (s *Service) insertDraft(ctx context.Context, ws *store.Workspace, p *authz.Principal, d draftRow, event *audit.Event) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		var err error
+		id, err = s.insertDraftIn(ctx, store.New(tx), ws, p, d, event)
+		return err
+	})
+	return id, err
+}
+
+func (s *Service) insertDraftIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, d draftRow, event *audit.Event) (uuid.UUID, error) {
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
 	actor := userRef(p)
@@ -607,27 +617,23 @@ func (s *Service) insertDraft(ctx context.Context, ws *store.Workspace, p *authz
 		autosaved = &now
 	}
 	plain := contentcheck.PlainText(d.html)
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		if err := q.InsertComposerCampaign(ctx, store.InsertComposerCampaignParams{
-			ID: id, WorkspaceID: ws.ID, Name: d.name, Subject: d.subject, Preheader: d.preheader, SenderID: d.sender, Audience: d.audience, AudienceCount: d.count,
-			Mjml: d.mjml, Html: d.html, PlainText: plain, AbTest: d.ab, ContentHash: ContentHash(d.subject, d.preheader, d.mjml, d.html, d.ab),
-			CreatedBy: actor, Now: now, AutosavedAt: autosaved,
-		}); err != nil {
-			return err
-		}
-		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: d.subject, Preheader: d.preheader, Mjml: d.mjml, Html: d.html,
-			PlainText: plain, AbTest: d.ab, SavedBy: actor, SavedAt: now, Label: d.label, Source: d.source, SizeBytes: int32(len(d.html))}); err != nil {
-			return err
-		}
-		if event == nil {
-			return nil
-		}
-		e := *event
-		e.TargetID = id.String()
-		return s.Audit.LogWith(ctx, q, e)
-	})
-	return id, err
+	if err := q.InsertComposerCampaign(ctx, store.InsertComposerCampaignParams{
+		ID: id, WorkspaceID: ws.ID, Name: d.name, Subject: d.subject, Preheader: d.preheader, SenderID: d.sender, Audience: d.audience, AudienceCount: d.count,
+		Mjml: d.mjml, Html: d.html, PlainText: plain, AbTest: d.ab, ContentHash: ContentHash(d.subject, d.preheader, d.mjml, d.html, d.ab),
+		CreatedBy: actor, Now: now, AutosavedAt: autosaved,
+	}); err != nil {
+		return id, err
+	}
+	if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: d.subject, Preheader: d.preheader, Mjml: d.mjml, Html: d.html,
+		PlainText: plain, AbTest: d.ab, SavedBy: actor, SavedAt: now, Label: d.label, Source: d.source, SizeBytes: int32(len(d.html))}); err != nil {
+		return id, err
+	}
+	if event == nil {
+		return id, nil
+	}
+	e := *event
+	e.TargetID = id.String()
+	return id, s.Audit.LogWith(ctx, q, e)
 }
 
 // userRef is the person behind an action, for the columns that name one

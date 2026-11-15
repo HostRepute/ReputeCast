@@ -19,6 +19,9 @@ import { useMe, useWorkspace } from '@/lib/session'
 import '@/features/integrations/integrations.css'
 import { aiBase, AI_FEATURES, referenceOf, useAISettings, useRefreshAI, type AIConnection, type AIFeature, type AISettings, type AITest } from './api'
 import { AIModelCard, AITile } from './catalog'
+import { BudgetHolds } from './BudgetHolds'
+import { AgentSettings } from './AgentSettings'
+import { ag } from './agent.messages'
 import { CapDialog, ChangeModelDialog, ConnectDialog, DisconnectDialog, PricesDialog, ReplaceKeyDialog, TestPanel } from './ConnectDialog'
 import { AI_PROVIDERS, type AIProvider } from './entries'
 import { ALT_TEXT_WIDTH, calendarDay, dollars, seconds, tokens } from './format'
@@ -89,6 +92,8 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
           ) : null}
           {!s.canManage ? <ReadOnlyNote s={s} /> : null}
           {live ? <Connected s={s} c={live} onDialog={(kind) => setDialog({ kind })} /> : <NotConnected s={s} onConnect={(provider) => setDialog({ kind: 'connect', provider })} />}
+          {s.canManage ? <BudgetHolds /> : null}
+          <AgentSettings />
           {live ? <ActivityLog /> : null}
           {live && s.canManage ? (
             <section className="card ai-dz" aria-labelledby="ai-dz-h">
@@ -191,6 +196,7 @@ function Header({ s, onDialog, onTest, testing }: { s: AISettings; onDialog: (k:
             </Button>
           </div>
         ) : null}
+        {s.canManage ? <p className="k">{t(m.testBilling)}</p> : null}
       </section>
     )
   }
@@ -228,6 +234,7 @@ function Header({ s, onDialog, onTest, testing }: { s: AISettings; onDialog: (k:
           </ButtonLink>
         </div>
       ) : null}
+      {s.canManage ? <p className="k">{t(m.testBilling)}</p> : null}
     </section>
   )
 }
@@ -423,6 +430,7 @@ export function UsageCard({ s, c, onDialog, caption }: { s: AISettings; c: AICon
   const kind = c.cap.kind
   const reset = dayMonthDate(u.resetsAt)
   const big = kind === 'tokens' ? tokens(u.tokens) : dollars(u.costMicros)
+  const held = kind === 'tokens' ? tokens(u.tokens + u.reservedTokens) : dollars(u.costMicros + u.reservedCostMicros)
   const of =
     kind === 'tokens'
       ? t(m.usageOfTokens, { cap: tokens(c.cap.tokens), date: reset })
@@ -445,7 +453,7 @@ export function UsageCard({ s, c, onDialog, caption }: { s: AISettings; c: AICon
             <>
               <div
                 role="meter"
-                aria-label={t(m.usageBarLabel, { spent: big, cap: capAmount(c) })}
+                aria-label={t(m.usageBarLabel, { spent: held, cap: capAmount(c) })}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(share * 100)}
@@ -462,6 +470,9 @@ export function UsageCard({ s, c, onDialog, caption }: { s: AISettings; c: AICon
             </>
           )}
         </div>
+        {u.reservedTokens > 0 || u.reservedCostMicros > 0 ? <p className="k">{t(m.usageReserved, { tokens: tokens(u.reservedTokens), cost: dollars(u.reservedCostMicros) })}</p> : null}
+        {u.uncertainRequests > 0 ? <AINote tone="warn"><strong>{t(m.usageUnknown)}</strong><p>{t(m.usageUncertain, { count: u.uncertainRequests })}</p></AINote> : null}
+        {!c.prices.known ? <AINote tone="warn">{t(m.pricesUnknown)}</AINote> : null}
         {u.state === 'notice' || u.state === 'reached' ? (
           <AINote tone={u.state === 'reached' ? 'bad' : 'warn'}>
             <div className="flex flex-col items-start gap-2">
@@ -494,7 +505,7 @@ export function UsageCard({ s, c, onDialog, caption }: { s: AISettings; c: AICon
                 <span>
                   <span className="k">{t(m.pricesTitle)}</span>
                   <span className="text-[13px]">
-                    <T msg={m.pricesValue} values={{ ...tags, input: money(c.prices.input), output: money(c.prices.output) }} />
+                    {c.prices.known ? <T msg={m.pricesValue} values={{ ...tags, input: money(c.prices.input), output: money(c.prices.output) }} /> : t(m.usageUnknown)}
                   </span>
                 </span>
                 {manage ? (
@@ -548,10 +559,10 @@ function ShareRows({ rows }: { rows: { key: string; label: string; value: string
 function ByFeature({ s, c }: { s: AISettings; c: AIConnection }) {
   const t = useT()
   const byTokens = c.cap.kind === 'tokens'
-  const rows = AI_FEATURES.map((f) => {
+  const rows = [...AI_FEATURES, 'agent' as const, 'connection_test' as const].map((f) => {
     const u = s.byFeature.find((x) => x.feature === f)
     const amount = byTokens ? (u?.tokens ?? 0) : (u?.costMicros ?? 0)
-    return { key: f, label: t(featureName[f]), amount, value: byTokens ? tokens(amount) : dollars(amount) }
+    return { key: f, label: t(f === 'agent' ? ag.title : f === 'connection_test' ? m.testConnection : featureName[f]), amount, value: byTokens ? tokens(amount) : dollars(amount) }
   })
   return (
     <section className="card ai-card" aria-labelledby="ai-feat-h">
@@ -740,7 +751,7 @@ function ActivityLog() {
                     <Td>{rowFeature(t, r)}</Td>
                     <Td>{r.on}</Td>
                     <Td num align="right">
-                      {count(r.tokens)}
+                      {r.usageKnown ? count(r.tokens) : t(m.usageUnknown)}
                     </Td>
                     <Td nowrap>
                       <OutcomeBadge outcome={r.outcome} detail={r.detail} />
@@ -762,7 +773,7 @@ function ActivityLog() {
                   <OutcomeBadge outcome={r.outcome} detail={r.detail} />
                 </div>
                 <span className="text-[13px]">{r.on ? `${rowFeature(t, r)} · ${r.on}` : rowFeature(t, r)}</span>
-                <span className="k">{`${shortDate(r.at)} ${clock(r.at)} · ${t(m.tokensCount, { count: r.tokens })}`}</span>
+                <span className="k">{`${shortDate(r.at)} ${clock(r.at)} · ${r.usageKnown ? t(m.tokensCount, { count: r.tokens }) : t(m.usageUnknown)}`}</span>
               </div>
             ))}
             </div>

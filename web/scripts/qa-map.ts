@@ -355,6 +355,12 @@ export const entries: Entry[] = [
   // refused, read-only, disconnect) and AIStates' cap and key states need clicks or data changes.
   { board: 'AISettings', path: `${ws}/settings/integrations/ai`, widths: [1440] },
   { board: 'AIStates', manual: true },
+  // Agent boards use illustrative run fixtures, reproduced through the real A4 API in dedicated E2E checks.
+  ...['AgentRun', 'AgentReview', 'AgentStates', 'AgentSettings', 'AgentVoice', 'AgentEntry',
+    'AgentRunTablet', 'AgentRunPhone', 'AgentReviewTablet', 'AgentReviewPhone',
+    'AgentStatesTablet', 'AgentStatesPhone'].map(board => ({ board, manual: true })),
+  // A5 OAuth has a separate design-only security and consent board.
+  { board: 'MCPConnect', manual: true, widths: [1440, 834, 390] },
   // The composer with the assistant: Weekly Digest #143, the draft. Its frames (Ideas, a rewrite
   // shown inline, alt text, the accessibility fixes, a translation's blocks) open from the Assist
   // menu and the selection's toolbar, so the sweep compares the composer around them.

@@ -144,6 +144,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/mcp-connect/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pre-register an operator-verified OAuth client and disclose its secret once */
+        post: operations["register-verified-mcp-client"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/policy": {
         parameters: {
             query?: never;
@@ -1516,6 +1533,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mcp-connect/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review and bind an external connection request to this session */
+        get: operations["get-mcp-consent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp-connect/consent/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny a connection without granting workspace access */
+        post: operations["deny-mcp-consent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -2502,6 +2553,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai/agent/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List only runs permitted by current membership and resource scope */
+        get: operations["list-ai-agent-runs"];
+        put?: never;
+        /** Start a task and queue its first planning request */
+        post: operations["start-ai-agent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a permitted task and its reviewable drafts without hidden reasoning */
+        get: operations["get-ai-agent-run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a plan, answer, stop or continue without resetting usage */
+        post: operations["act-on-ai-agent-run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep or discard new drafts; accept or reject exact existing-resource proposals */
+        post: operations["decide-ai-agent-drafts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/agent/runs/{id}/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Raise cumulative limits on a paused run without continuing it */
+        put: operations["set-ai-agent-run-limits"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/agent/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Agent availability and default cumulative run ceilings */
+        get: operations["get-ai-agent-settings"];
+        /** Configure Agent and defaults without changing existing runs */
+        put: operations["set-ai-agent-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/agent/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test tool calling with fixed data, using the monthly AI budget */
+        post: operations["test-ai-agent-tools"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/ai/alt-text": {
         parameters: {
             query?: never;
@@ -2513,6 +2685,57 @@ export interface paths {
         put?: never;
         /** Alt text for an image: the image at 1,024 px and the text around it */
         post: operations["suggest-alt-text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/brand-voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suggest a voice from up to ten selected sent campaigns */
+        post: operations["learn-brand-voice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/budget-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List reserved AI usage awaiting a response or reconciliation */
+        get: operations["list-ai-budget-holds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/budget-holds/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record provider-verified usage without retrying the request */
+        post: operations["reconcile-ai-budget"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2555,6 +2778,110 @@ export interface paths {
          * @description The model, the cap and the prices are kept for the next connection; the activity log, kept summaries and accepted text stay. Audited as ai.connection_removed.
          */
         delete: operations["disconnect-ai-model"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/drafts/automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recover your pending proposals for this draft or new automations */
+        get: operations["list-automation-draft-proposals"];
+        put?: never;
+        /** Propose an unpublished email flow for future confirmed list joins */
+        post: operations["generate-automation-draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/drafts/automations/{proposal}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read your unexpired automation proposal */
+        get: operations["get-automation-draft-proposal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/drafts/automations/{proposal}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept or reject an automation proposal without publishing or enrolling */
+        post: operations["decide-automation-draft-proposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/drafts/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recover your pending proposals for this draft or new campaigns */
+        get: operations["list-campaign-draft-proposals"];
+        put?: never;
+        /** Propose a campaign from an explicit brief, without saving a campaign */
+        post: operations["generate-campaign-draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/drafts/campaigns/{proposal}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read your unexpired campaign proposal */
+        get: operations["get-campaign-draft-proposal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/drafts/campaigns/{proposal}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept exactly this proposal or reject it; never send or schedule */
+        post: operations["decide-campaign-draft-proposal"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3920,6 +4247,58 @@ export interface paths {
          * @description Drafts and scheduled emails holding it keep its content as ordinary sections, in a new version; emails in an approval, sending, paused or sent keep theirs. The Header and Footer can't be deleted.
          */
         delete: operations["delete-synced-block"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The saved brand voice */
+        get: operations["get-brand-voice"];
+        /** Save a new voice revision without changing existing emails */
+        put: operations["save-brand-voice"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/voice/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved voice revisions, newest first */
+        get: operations["brand-voice-history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/voice/suggestions/{suggestion}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Reject your learned voice suggestion */
+        delete: operations["reject-brand-voice"];
         options?: never;
         head?: never;
         patch?: never;
@@ -11973,6 +12352,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/mcp-connect/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List own external connections, or permitted connections managed by this member */
+        get: operations["list-mcp-connections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-connect/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check saved connection status without repeating a decision */
+        get: operations["get-mcp-connection"];
+        put?: never;
+        post?: never;
+        /** Revoke an external connection without deleting accepted drafts */
+        delete: operations["revoke-mcp-connection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-connect/connections/{id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check saved source selections without sharing another resource */
+        get: operations["list-mcp-selected-sources"];
+        put?: never;
+        /** Select one editorial source for this external connection */
+        post: operations["select-mcp-source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-connect/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Allow selected external capabilities in one workspace */
+        post: operations["decide-mcp-consent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-connect/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the capabilities and resource scope this person may grant */
+        get: operations["get-mcp-consent-options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-connect/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List permitted external proposals for human review */
+        get: operations["list-mcp-proposals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-connect/proposals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review an external proposal without applying it */
+        get: operations["get-mcp-proposal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/mcp-connect/proposals/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply or reject an immutable external proposal as a person */
+        post: operations["decide-mcp-proposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/me": {
         parameters: {
             query?: never;
@@ -19702,7 +20219,7 @@ export interface components {
             /** @description 1 of 5, 529 overloaded */
             detail?: string;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
             id: string;
             /** Format: int64 */
             inputTokens: number;
@@ -19720,7 +20237,260 @@ export interface components {
             targetKind?: string;
             /** Format: int64 */
             tokens: number;
+            usageKnown: boolean;
             userId?: string;
+        };
+        AIAgentAction: {
+            /** @enum {string} */
+            action: "build" | "cancel" | "continue" | "answer" | "revise" | "replan" | "propose" | "refresh";
+            handle?: string;
+            message?: string;
+            /** @description Build only: explicitly acknowledge all replaced staging revisions shown by the run */
+            planDiscards?: components["schemas"]["AIAgentArtifactRevision"][];
+            /** Format: int64 */
+            planRevision: number;
+            /** @description Required for answer, revise, replan, propose and refresh: confirm review of newly shared content and the data policy */
+            sharingReviewed?: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        AIAgentArtifact: {
+            automation?: components["schemas"]["AIAutomationContent"];
+            before?: components["schemas"]["AIDraftEmail"];
+            beforeAutomation?: components["schemas"]["AutomationGraph"];
+            beforeEmails?: components["schemas"]["AIAutomationEmailBefore"][];
+            bundle: string;
+            decision: string;
+            email?: components["schemas"]["AIDraftEmail"];
+            handle: string;
+            html?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "segment" | "automation" | "post";
+            name: string;
+            post?: components["schemas"]["AIAgentPost"];
+            previews?: string[];
+            resultId?: string;
+            /** Format: int64 */
+            revision: number;
+            segment?: components["schemas"]["SegmentDefinition"];
+            targetId?: string;
+            /** @description Human review only; the selected list or segment name is never model context */
+            triggerName?: string;
+        };
+        AIAgentArtifactRevision: {
+            id: string;
+            /** Format: int64 */
+            revision: number;
+        };
+        AIAgentAudienceSnapshot: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            count?: number;
+            /** Format: int64 */
+            rounding: number;
+            status: string;
+            /** Format: int64 */
+            total?: number;
+        };
+        AIAgentAutomationSelection: {
+            fromAudience: boolean;
+            listId?: string;
+            segmentId?: string;
+            /** @enum {string} */
+            trigger: "joined_list" | "segment_entered" | "segment_left";
+        };
+        AIAgentBrief: {
+            /** @description Explicit builder conditions; literal values stay on this instance */
+            audience?: components["schemas"]["SegmentDefinition"];
+            automation?: components["schemas"]["AIAgentAutomationSelection"];
+            /** Format: int64 */
+            baseRevision?: number;
+            brief: string;
+            campaignId?: string;
+            /**
+             * @description Primary draft kind; campaign when omitted
+             * @enum {string}
+             */
+            kind?: "campaign" | "post";
+            /** @enum {string} */
+            language: "en" | "vi" | "de" | "es" | "fr";
+            links?: string[];
+            /** @description Selected discount pool for new emails; codes are never read or reserved */
+            poolId?: string;
+            /** @description Explicitly selected completed campaign; only its fixed aggregate snapshot reaches the model */
+            reportId?: string;
+            /** @description Generated once per brief by the client: retrying the same brief with it after a lost response returns the run already created */
+            requestKey?: string;
+            /** @description Confirm review of the brief, selected content, residual personal-data risk and provider data policy before sharing */
+            sharingReviewed: boolean;
+            templateId?: string;
+            /** Format: int32 */
+            voiceRevision?: number;
+        };
+        AIAgentCapability: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @enum {string} */
+            state: "untested" | "supported" | "unsupported";
+        };
+        AIAgentCostEstimate: {
+            /** Format: int64 */
+            highMicros: number;
+            /** Format: int64 */
+            lowMicros: number;
+            /** Format: date-time */
+            pricingAt: string;
+        };
+        AIAgentDecision: {
+            artifacts: components["schemas"]["AIAgentArtifactRevision"][];
+            /** @enum {string} */
+            decision: "kept" | "discarded" | "accepted" | "rejected";
+            /** Format: int64 */
+            version: number;
+        };
+        AIAgentLimitChange: {
+            limits: components["schemas"]["AIAgentLimits"];
+            /** Format: int64 */
+            version: number;
+        };
+        AIAgentLimits: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int32 */
+            toolCalls: number;
+        };
+        AIAgentMessage: {
+            /** Format: date-time */
+            at: string;
+            handle?: string;
+            /** @enum {string} */
+            role: "user" | "assistant";
+            text: string;
+        };
+        AIAgentOperation: {
+            code: string;
+            failed: boolean;
+            handle?: string;
+            /** @enum {string} */
+            tool: "propose_plan" | "stage_campaign" | "stage_segment" | "stage_automation" | "stage_post" | "inspect_audience" | "read_report" | "denied";
+        };
+        AIAgentPlan: {
+            items: components["schemas"]["AIAgentPlanItem"][];
+            questions: string[];
+            summary: string;
+        };
+        AIAgentPlanItem: {
+            bundle: string;
+            dependsOn: string[];
+            handle: string;
+            /** @enum {string} */
+            kind: "campaign" | "segment" | "automation" | "post";
+            name: string;
+            purpose: string;
+            target?: string;
+        };
+        AIAgentPoolSnapshot: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            free: number;
+            name: string;
+            slug: string;
+            source: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AIAgentPost: {
+            excerpt: string;
+            mjml: string;
+            title: string;
+        };
+        AIAgentRunList: {
+            items: components["schemas"]["AIAgentRunListItem"][];
+            next?: string;
+        };
+        AIAgentRunListItem: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            model: string;
+            ownerId: string;
+            ownerName: string;
+            state: string;
+            title: string;
+            /** Format: int64 */
+            tokens: number;
+            uncertain: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AIAgentRunView: {
+            /** Format: int64 */
+            acceptedRevision: number;
+            artifacts: components["schemas"]["AIAgentArtifact"][];
+            audience?: components["schemas"]["AIAgentAudienceSnapshot"];
+            brief?: components["schemas"]["AIAgentBrief"];
+            conversation: components["schemas"]["AIAgentMessage"][];
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Remaining build scenarios, not a quote or spending authority; absent when pricing or the model connection is unavailable */
+            estimate?: components["schemas"]["AIAgentCostEstimate"];
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            limits: components["schemas"]["AIAgentLimits"];
+            model: string;
+            ownerId: string;
+            pauseReason: string;
+            plan?: components["schemas"]["AIAgentPlan"];
+            /** @description Exact staging revisions that confirming this plan discards; kept resources are never included */
+            planDiscards: components["schemas"]["AIAgentArtifactRevision"][];
+            /** Format: int64 */
+            planRevision: number;
+            pool?: components["schemas"]["AIAgentPoolSnapshot"];
+            /**
+             * Format: int64
+             * @description Waiting position snapshot; per-user execution limits can change ordering
+             */
+            queuePosition?: number;
+            report?: components["schemas"]["ModelSnapshot"];
+            /** @enum {string} */
+            state: "brief" | "planning" | "needs_answers" | "ready" | "queued" | "building" | "paused" | "review" | "completed" | "cancelled" | "expired";
+            steps: components["schemas"]["AIAgentStepView"][];
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int32 */
+            toolCalls: number;
+            uncertain: boolean;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AIAgentSettings: {
+            readonly capability?: components["schemas"]["AIAgentCapability"];
+            enabled: boolean;
+            limits: components["schemas"]["AIAgentLimits"];
+            /** Format: int64 */
+            revision: number;
+        };
+        AIAgentStepView: {
+            /** Format: date-time */
+            createdAt: string;
+            operations: components["schemas"]["AIAgentOperation"][];
+            /** Format: int32 */
+            sequence: number;
+            state: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         AIAltText: {
             /** Format: int64 */
@@ -19740,6 +20510,108 @@ export interface components {
             context?: string;
             language?: string;
             src: string;
+        };
+        AIAutomationBriefInput: {
+            automationId?: string;
+            /** Format: int64 */
+            baseRevision?: number;
+            brief: string;
+            /** @enum {string} */
+            language: "en" | "vi" | "de" | "es" | "fr";
+            links?: string[];
+            listId: string;
+            name: string;
+            /** @description Confirm review of the brief, selected content, residual personal-data risk and provider data policy before sharing */
+            sharingReviewed: boolean;
+            templateId?: string;
+            /** Format: int32 */
+            voiceRevision?: number;
+        };
+        AIAutomationContent: {
+            emails: components["schemas"]["ProposedEmail"][];
+            graph: components["schemas"]["AutomationGraph"];
+        };
+        AIAutomationEmailBefore: {
+            content: components["schemas"]["AIDraftEmail"];
+            html: string;
+            id: string;
+            key: string;
+            name: string;
+            /** Format: int32 */
+            version: number;
+        };
+        AIAutomationProposal: {
+            automationId?: string;
+            /** Format: int64 */
+            baseRevision: number;
+            before?: components["schemas"]["AutomationGraph"];
+            beforeEmails: components["schemas"]["AIAutomationEmailBefore"][];
+            content: components["schemas"]["AIAutomationContent"];
+            /** @enum {string} */
+            decision: "" | "accepted" | "rejected";
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            listId: string;
+            name: string;
+            /** @description Compiled email previews, in content.emails order; no personalization rendering */
+            previews: string[];
+            sent: components["schemas"]["AISent"];
+        };
+        AIBudgetHold: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            model: string;
+            provider: string;
+            /** Format: date-time */
+            reconcileAfter: string;
+            /** Format: int64 */
+            reservedCostMicros: number;
+            /** Format: int64 */
+            reservedTokens: number;
+        };
+        AIBudgetHolds: {
+            items: components["schemas"]["AIBudgetHold"][];
+        };
+        AIBudgetReconcileInput: {
+            /** @description The manager verified these counts with the provider; zero means confirmed non-billable, not unknown */
+            confirmed: boolean;
+            /** Format: int64 */
+            inputTokens: number;
+            /** Format: int64 */
+            outputTokens: number;
+        };
+        AICampaignBriefInput: {
+            /** Format: int64 */
+            baseRevision?: number;
+            brief: string;
+            campaignId?: string;
+            /** @enum {string} */
+            language: "en" | "vi" | "de" | "es" | "fr";
+            links?: string[];
+            name: string;
+            /** @description Confirm review of the brief, selected content, residual personal-data risk and provider data policy before sharing */
+            sharingReviewed: boolean;
+            templateId?: string;
+            /** Format: int32 */
+            voiceRevision?: number;
+        };
+        AICampaignProposal: {
+            /** Format: int64 */
+            baseRevision: number;
+            before?: components["schemas"]["AIDraftEmail"];
+            campaignId?: string;
+            content: components["schemas"]["AIDraftEmail"];
+            /** @enum {string} */
+            decision: "" | "accepted" | "rejected";
+            /** Format: date-time */
+            expiresAt: string;
+            html: string;
+            id: string;
+            name: string;
+            sent: components["schemas"]["AISent"];
+            subjectCheck: components["schemas"]["AISubjectIdea"];
         };
         AICapInput: {
             /** @enum {string} */
@@ -19808,13 +20680,29 @@ export interface components {
             statusAt?: string;
             statusDetail?: string;
         };
+        AIDraftDecided: {
+            /** @enum {string} */
+            decision: "accepted" | "rejected";
+            id?: string;
+            /** Format: int64 */
+            revision?: number;
+        };
+        AIDraftDecision: {
+            /** @enum {string} */
+            decision: "accepted" | "rejected";
+        };
+        AIDraftEmail: {
+            mjml: string;
+            preheader: string;
+            subject: string;
+        };
         AIFeatureInput: {
             on: boolean;
         };
         AIFeatureState: {
             available: boolean;
             /** @enum {string} */
-            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
             on: boolean;
         };
         AIKeepSummaryInput: {
@@ -19849,6 +20737,21 @@ export interface components {
             addedAt?: string;
             addedBy?: string;
             set: boolean;
+        };
+        AILearnVoiceInput: {
+            campaignIds: string[];
+            /** @description Confirm review of the selected content, residual personal-data risk and provider data policy before sharing */
+            sharingReviewed: boolean;
+        };
+        AILearnedVoice: {
+            /** Format: int32 */
+            baseRevision: number;
+            content: components["schemas"]["BrandVoiceContent"];
+            /** Format: date-time */
+            expiresAt: string;
+            refusal?: string;
+            requestId: string;
+            sent: components["schemas"]["AISent"];
         };
         AILinkText: {
             href: string;
@@ -19913,6 +20816,16 @@ export interface components {
             /** @enum {string} */
             outcome: "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded";
         };
+        AIPendingDraft: {
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            name: string;
+        };
+        AIPendingDrafts: {
+            items: components["schemas"]["AIPendingDraft"][];
+            next?: string;
+        };
         AIPricesInput: {
             /**
              * Format: double
@@ -19933,6 +20846,8 @@ export interface components {
              * @description Dollars per million input tokens
              */
             input: number;
+            /** @description Prices are configured, including an explicitly free model */
+            known: boolean;
             /**
              * Format: double
              * @description Dollars per million output tokens
@@ -20007,6 +20922,11 @@ export interface components {
             html: string;
             instruction?: string;
             language?: string;
+            /**
+             * Format: int32
+             * @description Omitted: latest saved voice; zero: no voice; otherwise an exact saved revision
+             */
+            voiceRevision?: number;
         };
         AISegmentDraft: {
             /** Format: int64 */
@@ -20058,6 +20978,8 @@ export interface components {
             /** @enum {string} */
             provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
             providerName: string;
+            /** Format: int32 */
+            voiceRevision?: number;
         };
         AISettings: {
             aiUseRoles: string[];
@@ -20078,6 +21000,7 @@ export interface components {
             withoutAiUse: components["schemas"]["AIMemberRole"][];
         };
         AIStatus: {
+            agent: components["schemas"]["AIAgentSettings"];
             canManage: boolean;
             cap: components["schemas"]["AICapView"];
             features: components["schemas"]["AIFeatureState"][];
@@ -20117,13 +21040,22 @@ export interface components {
             mjml: string;
             preheader?: string;
             subject: string;
+            /**
+             * Format: int32
+             * @description Omitted: latest saved voice; zero: no voice; otherwise an exact saved revision
+             */
+            voiceRevision?: number;
         };
         AITestInput: {
             apiKey?: string;
             apiVersion?: string;
             baseUrl?: string;
             deployment?: string;
+            /** Format: double */
+            inputPrice?: number;
             model?: string;
+            /** Format: double */
+            outputPrice?: number;
             /** @enum {string} */
             provider?: "anthropic" | "openai" | "google" | "azure" | "compatible";
         };
@@ -20254,7 +21186,7 @@ export interface components {
             /** Format: int64 */
             costMicros: number;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
             /** Format: int64 */
             requests: number;
             /** Format: int64 */
@@ -20281,6 +21213,10 @@ export interface components {
             outputTokens: number;
             /** Format: int64 */
             requests: number;
+            /** Format: int64 */
+            reservedCostMicros: number;
+            /** Format: int64 */
+            reservedTokens: number;
             /** Format: date-time */
             resetsAt: string;
             /**
@@ -20292,6 +21228,8 @@ export interface components {
             state: "ok" | "notice" | "reached";
             /** Format: int64 */
             tokens: number;
+            /** Format: int64 */
+            uncertainRequests: number;
         };
         APIKeyAllowedIPsInput: {
             /** @description Addresses or networks: 203.0.113.7, 203.0.113.0/24, 2001:db8::/48. Empty allows any address. */
@@ -23827,6 +24765,35 @@ export interface components {
             colors: components["schemas"]["BrandColors"];
             heading: components["schemas"]["BrandFont"];
         };
+        BrandVoice: {
+            content: components["schemas"]["BrandVoiceContent"];
+            /** Format: date-time */
+            createdAt?: string;
+            createdBy: string;
+            learned: boolean;
+            /** Format: int32 */
+            revision: number;
+        };
+        BrandVoiceContent: {
+            address: string;
+            avoidedWords: string;
+            examples: string;
+            preferredWords: string;
+            sentenceLength: string;
+            tone: string;
+        };
+        BrandVoiceHistory: {
+            /** Format: int32 */
+            beforeRevision?: number;
+            items: components["schemas"]["BrandVoice"][];
+        };
+        BrandVoiceSaveInput: {
+            /** Format: int32 */
+            baseRevision: number;
+            content: components["schemas"]["BrandVoiceContent"];
+            /** Format: uuid */
+            suggestionId?: string;
+        };
         CallTarget: {
             email?: string;
             endpoint?: string;
@@ -24267,6 +25234,14 @@ export interface components {
              * @enum {string}
              */
             theme: "system" | "light" | "dark";
+        };
+        ClientRegistration: {
+            client_name?: string;
+            grant_types?: string[];
+            redirect_uris: string[];
+            response_types?: string[];
+            /** @enum {string} */
+            token_endpoint_auth_method?: "none" | "client_secret_basic" | "client_secret_post";
         };
         CloudflareInput: {
             /** @description A Cloudflare API token with Zone › DNS › Edit on the domain's zone. Used once, never stored. */
@@ -26143,6 +27118,9 @@ export interface components {
             status: "waiting" | "arrived" | "missing" | "refused";
             /** Format: date-time */
             until: string;
+        };
+        ConsentDenyInputBody: {
+            request: string;
         };
         ContactActivityItem: {
             actor?: string;
@@ -33568,6 +34546,59 @@ export interface components {
             /** @enum {string} */
             level: "allow" | "approve" | "partial" | "deny";
         };
+        MCPConnection: {
+            allowedIps: string[];
+            clientName: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            lists: string[];
+            /** Format: date-time */
+            revokedAt?: string;
+            revokedReason: string;
+            scopes: string[];
+            senderDomains: string[];
+            userId: string;
+            userName: string;
+            verified: boolean;
+        };
+        MCPConnectionList: {
+            items: components["schemas"]["MCPConnection"][];
+            nextCursor?: string;
+        };
+        MCPConsent: {
+            callbackHost: string;
+            clientId: string;
+            clientName: string;
+            /** Format: date-time */
+            expiresAt: string;
+            scopes: string[];
+            verified: boolean;
+        };
+        MCPConsentDecision: {
+            allowedIps: string[];
+            lists: string[];
+            request: string;
+            scopes: string[];
+            senderDomains: string[];
+        };
+        MCPConsentList: {
+            id: string;
+            name: string;
+        };
+        MCPConsentOptions: {
+            defaultDomains: string[];
+            defaultLists: string[];
+            endpoint: string;
+            lists: components["schemas"]["MCPConsentList"][];
+            scopes: string[];
+            senderDomains: string[];
+        };
+        MCPConsentResult: {
+            redirect: string;
+        };
         MCPOverview: {
             agents: components["schemas"]["MCPAgentRow"][];
             /** Format: int64 */
@@ -33584,6 +34615,73 @@ export interface components {
             /** @enum {string} */
             transport: "streamable_http";
         };
+        MCPProposalDecision: {
+            /** @enum {string} */
+            decision: "kept" | "discarded" | "accepted" | "rejected";
+        };
+        MCPProposalList: {
+            items: components["schemas"]["MCPProposalListItem"][];
+            nextCursor?: string;
+        };
+        MCPProposalListItem: {
+            change: boolean;
+            clientName: string;
+            decision: string;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            kind: string;
+            name: string;
+            purged: boolean;
+            revoked: boolean;
+            verified: boolean;
+        };
+        MCPProposalView: {
+            /** Format: int64 */
+            baseRevision: number;
+            before?: components["schemas"]["MCPProposedEmail"];
+            beforeFlow?: components["schemas"]["MCPProposedFlow"];
+            /** @enum {string} */
+            blocked: "" | "expired" | "revoked" | "changed" | "purged" | "permission";
+            canDecide: boolean;
+            clientName: string;
+            /** Format: date-time */
+            createdAt: string;
+            decision: string;
+            email: components["schemas"]["MCPProposedEmail"];
+            /** Format: date-time */
+            expiresAt: string;
+            html: string;
+            id: string;
+            kind: string;
+            name: string;
+            resultId?: string;
+            targetId?: string;
+            triggerName?: string;
+            userName: string;
+            verified: boolean;
+            workflow?: components["schemas"]["MCPWorkflowContent"];
+        };
+        MCPProposedEmail: {
+            mjml: string;
+            preheader: string;
+            subject: string;
+        };
+        MCPProposedFlow: {
+            emails: components["schemas"]["ProposedEmail"][];
+            graph: components["schemas"]["AutomationGraph"];
+        };
+        MCPSelectedSource: {
+            /** Format: date-time */
+            expiresAt: string;
+            handle: string;
+            id: string;
+            kind: string;
+            name: string;
+        };
+        MCPSelectedSources: {
+            items: components["schemas"]["MCPSelectedSource"][];
+        };
         MCPSettingsInput: {
             /** Format: int64 */
             approvalExpiryHours: number;
@@ -33591,11 +34689,30 @@ export interface components {
             /** Format: int64 */
             rateLimitPerMinute: number;
         };
+        MCPSourceHandle: {
+            /** Format: date-time */
+            expiresAt: string;
+            handle: string;
+            kind: string;
+        };
+        MCPSourceSelection: {
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "post" | "template" | "voice" | "list" | "segment" | "automation" | "report";
+            /** @description Confirm review of the selected content, residual privacy risk and external client data policy before sharing */
+            sharingReviewed: boolean;
+        };
         MCPToolInfo: {
             description: string;
             name: string;
             permission: string;
             writes: boolean;
+        };
+        MCPWorkflowContent: {
+            flow?: components["schemas"]["MCPProposedFlow"];
+            previews: string[];
+            segment?: components["schemas"]["SegmentDefinition"];
+            segmentName?: string;
         };
         MJMLProblem: {
             /** Format: int64 */
@@ -33756,6 +34873,22 @@ export interface components {
             index: number;
             label: string;
             mjml: string;
+        };
+        ModelSnapshot: {
+            /** Format: date-time */
+            asOf: string;
+            metrics: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            rounding: number;
+            /** Format: int64 */
+            sent?: number;
+            /** Format: date-time */
+            sentFrom: string;
+            /** Format: date-time */
+            sentThrough: string;
+            status: string;
         };
         MoveCheck: {
             key: string;
@@ -36335,6 +37468,13 @@ export interface components {
             refundedOrders: number;
             /** Format: date-time */
             until: string;
+        };
+        ProposedEmail: {
+            key: string;
+            mjml: string;
+            name: string;
+            preheader: string;
+            subject: string;
         };
         ProviderAuthFailure: {
             down: components["schemas"]["ProviderDownState"];
@@ -39398,6 +40538,20 @@ export interface components {
             /** Format: int64 */
             status: number;
             url: string;
+        };
+        RegisteredClient: {
+            client_id: string;
+            /** Format: int64 */
+            client_id_issued_at: number;
+            client_name?: string;
+            client_secret?: string;
+            /** Format: int64 */
+            client_secret_expires_at: number;
+            grant_types?: string[];
+            redirect_uris: string[];
+            response_types?: string[];
+            /** @enum {string} */
+            token_endpoint_auth_method?: "none" | "client_secret_basic" | "client_secret_post";
         };
         RemovalItem: {
             /** Format: int64 */
@@ -51366,6 +52520,40 @@ export interface operations {
             };
         };
     };
+    "register-verified-mcp-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientRegistration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisteredClient"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-instance-policy": {
         parameters: {
             query?: never;
@@ -54452,6 +55640,74 @@ export interface operations {
             };
         };
     };
+    "get-mcp-consent": {
+        parameters: {
+            query: {
+                request: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Referrer-Policy"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPConsent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "deny-mcp-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentDenyInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Referrer-Policy"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPConsentResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-me": {
         parameters: {
             query?: never;
@@ -56423,7 +57679,7 @@ export interface operations {
             query?: {
                 /** @description A member's id */
                 member?: string;
-                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
                 outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
                 cursor?: string;
                 limit?: number;
@@ -56444,6 +57700,312 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AIActivityList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-agent-runs": {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentRunList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-ai-agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAgentBrief"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentRunView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-agent-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentRunView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "act-on-ai-agent-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAgentAction"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-ai-agent-drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAgentDecision"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-agent-run-limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAgentLimitChange"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-agent-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-agent-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAgentSettings"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-agent-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentCapability"];
                 };
             };
             /** @description Error */
@@ -56481,6 +58043,109 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AIAltText"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "learn-brand-voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AILearnVoiceInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AILearnedVoice"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-budget-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIBudgetHolds"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconcile-ai-budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIBudgetReconcileInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -56597,6 +58262,290 @@ export interface operations {
             };
         };
     };
+    "list-automation-draft-proposals": {
+        parameters: {
+            query?: {
+                target?: string;
+                before?: string;
+                all?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPendingDrafts"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "generate-automation-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAutomationBriefInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAutomationProposal"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-draft-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                proposal: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAutomationProposal"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-automation-draft-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                proposal: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIDraftDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIDraftDecided"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-campaign-draft-proposals": {
+        parameters: {
+            query?: {
+                target?: string;
+                before?: string;
+                all?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPendingDrafts"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "generate-campaign-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AICampaignBriefInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AICampaignProposal"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-draft-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                proposal: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AICampaignProposal"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-campaign-draft-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                proposal: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIDraftDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIDraftDecided"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "set-ai-feature": {
         parameters: {
             query?: never;
@@ -56604,7 +58553,7 @@ export interface operations {
             path: {
                 /** @description Workspace slug */
                 workspace: string;
-                feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary";
+                feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
             };
             cookie?: never;
         };
@@ -59741,6 +61690,139 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SyncedDeleted"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-brand-voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandVoice"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-brand-voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandVoiceSaveInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandVoice"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "brand-voice-history": {
+        parameters: {
+            query?: {
+                before?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandVoiceHistory"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reject-brand-voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                suggestion: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -78266,6 +80348,346 @@ export interface operations {
             };
         };
     };
+    "list-mcp-connections": {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPConnectionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-mcp-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPConnection"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-mcp-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-mcp-selected-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPSelectedSources"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "select-mcp-source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPSourceSelection"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPSourceHandle"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-mcp-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPConsentDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Referrer-Policy"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPConsentResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-mcp-consent-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPConsentOptions"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-mcp-proposals": {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPProposalList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-mcp-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPProposalView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-mcp-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPProposalDecision"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-workspace-me": {
         parameters: {
             query?: never;
@@ -78720,7 +81142,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Notification center tab */
-                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "website" | "grow";
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "website" | "grow" | "integrations" | "ai";
                 /** @description Opaque cursor from a previous page */
                 cursor?: string;
                 limit?: number;

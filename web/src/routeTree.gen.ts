@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as McpConsentRouteImport } from './routes/mcp-consent'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SignInRouteImport } from './routes/sign-in'
@@ -40,6 +41,9 @@ import { Route as WWorkspaceAppAdminInstanceRouteImport } from './routes/w/$work
 import { Route as WWorkspaceAppAdminSystemRouteImport } from './routes/w/$workspace/_app/admin/system'
 import { Route as WWorkspaceAppAdminUsersRouteImport } from './routes/w/$workspace/_app/admin/users'
 import { Route as WWorkspaceAppAdminWorkspacesRouteImport } from './routes/w/$workspace/_app/admin/workspaces'
+import { Route as WWorkspaceAppAgentIndexRouteImport } from './routes/w/$workspace/_app/agent/index'
+import { Route as WWorkspaceAppAgentRunIdRouteImport } from './routes/w/$workspace/_app/agent/$runId'
+import { Route as WWorkspaceAppAgentNewRouteImport } from './routes/w/$workspace/_app/agent/new'
 import { Route as WWorkspaceAppApprovalsIndexRouteImport } from './routes/w/$workspace/_app/approvals/index'
 import { Route as WWorkspaceAppApprovalsApprovalIdRouteImport } from './routes/w/$workspace/_app/approvals/$approvalId'
 import { Route as WWorkspaceAppAudienceIndexRouteImport } from './routes/w/$workspace/_app/audience/index'
@@ -66,6 +70,8 @@ import { Route as WWorkspaceAppFormsSubscribeRouteImport } from './routes/w/$wor
 import { Route as WWorkspaceAppFormsUnsubscribeRouteImport } from './routes/w/$workspace/_app/forms/unsubscribe'
 import { Route as WWorkspaceAppGrowIndexRouteImport } from './routes/w/$workspace/_app/grow/index'
 import { Route as WWorkspaceAppGrowRecommendationsRouteImport } from './routes/w/$workspace/_app/grow/recommendations'
+import { Route as WWorkspaceAppProposalsIndexRouteImport } from './routes/w/$workspace/_app/proposals/index'
+import { Route as WWorkspaceAppProposalsProposalRouteImport } from './routes/w/$workspace/_app/proposals/$proposal'
 import { Route as WWorkspaceAppProvidersIndexRouteImport } from './routes/w/$workspace/_app/providers/index'
 import { Route as WWorkspaceAppProvidersAdaptersRouteImport } from './routes/w/$workspace/_app/providers/adapters'
 import { Route as WWorkspaceAppProvidersEventsRouteImport } from './routes/w/$workspace/_app/providers/events'
@@ -76,6 +82,7 @@ import { Route as WWorkspaceAppSettingsIndexRouteImport } from './routes/w/$work
 import { Route as WWorkspaceAppSettingsApprovalsRouteImport } from './routes/w/$workspace/_app/settings/approvals'
 import { Route as WWorkspaceAppSettingsAuditRouteImport } from './routes/w/$workspace/_app/settings/audit'
 import { Route as WWorkspaceAppSettingsBrandKitRouteImport } from './routes/w/$workspace/_app/settings/brand-kit'
+import { Route as WWorkspaceAppSettingsConnectionsRouteImport } from './routes/w/$workspace/_app/settings/connections'
 import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$workspace/_app/settings/keys'
 import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
 import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
@@ -183,6 +190,11 @@ import { Route as WWorkspaceAppSettingsIntegrationsStoresStoreIdRouteImport } fr
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpConsentRoute = McpConsentRouteImport.update({
+  id: '/mcp-consent',
+  path: '/mcp-consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -342,6 +354,21 @@ const WWorkspaceAppAdminWorkspacesRoute =
     path: '/admin/workspaces',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppAgentIndexRoute = WWorkspaceAppAgentIndexRouteImport.update({
+  id: '/agent/',
+  path: '/agent/',
+  getParentRoute: () => WWorkspaceAppRouteRoute,
+} as any)
+const WWorkspaceAppAgentRunIdRoute = WWorkspaceAppAgentRunIdRouteImport.update({
+  id: '/agent/$runId',
+  path: '/agent/$runId',
+  getParentRoute: () => WWorkspaceAppRouteRoute,
+} as any)
+const WWorkspaceAppAgentNewRoute = WWorkspaceAppAgentNewRouteImport.update({
+  id: '/agent/new',
+  path: '/agent/new',
+  getParentRoute: () => WWorkspaceAppRouteRoute,
+} as any)
 const WWorkspaceAppApprovalsIndexRoute =
   WWorkspaceAppApprovalsIndexRouteImport.update({
     id: '/approvals/',
@@ -494,6 +521,18 @@ const WWorkspaceAppGrowRecommendationsRoute =
     path: '/grow/recommendations',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppProposalsIndexRoute =
+  WWorkspaceAppProposalsIndexRouteImport.update({
+    id: '/proposals/',
+    path: '/proposals/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProposalsProposalRoute =
+  WWorkspaceAppProposalsProposalRouteImport.update({
+    id: '/proposals/$proposal',
+    path: '/proposals/$proposal',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppProvidersIndexRoute =
   WWorkspaceAppProvidersIndexRouteImport.update({
     id: '/providers/',
@@ -552,6 +591,12 @@ const WWorkspaceAppSettingsBrandKitRoute =
   WWorkspaceAppSettingsBrandKitRouteImport.update({
     id: '/settings/brand-kit',
     path: '/settings/brand-kit',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsConnectionsRoute =
+  WWorkspaceAppSettingsConnectionsRouteImport.update({
+    id: '/settings/connections',
+    path: '/settings/connections',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsKeysRoute =
@@ -1175,6 +1220,7 @@ const WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mcp-consent': typeof McpConsentRoute
   '/reset-password': typeof ResetPasswordRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
@@ -1204,6 +1250,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/admin/system': typeof WWorkspaceAppAdminSystemRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
+  '/w/$workspace/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
+  '/w/$workspace/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
@@ -1222,6 +1270,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
   '/w/$workspace/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
+  '/w/$workspace/proposals/$proposal': typeof WWorkspaceAppProposalsProposalRoute
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
@@ -1230,6 +1279,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
   '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
+  '/w/$workspace/settings/connections': typeof WWorkspaceAppSettingsConnectionsRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1252,6 +1302,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
   '/w/$workspace/transactional/templates/$templateId': typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
   '/w/$workspace/transactional/templates/new': typeof WWorkspaceTransactionalTemplatesNewRoute
+  '/w/$workspace/agent/': typeof WWorkspaceAppAgentIndexRoute
   '/w/$workspace/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience/': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/automations/': typeof WWorkspaceAppAutomationsIndexRoute
@@ -1260,6 +1311,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/earn/': typeof WWorkspaceAppEarnIndexRoute
   '/w/$workspace/forms/': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/grow/': typeof WWorkspaceAppGrowIndexRoute
+  '/w/$workspace/proposals/': typeof WWorkspaceAppProposalsIndexRoute
   '/w/$workspace/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings/': typeof WWorkspaceAppSettingsIndexRoute
   '/w/$workspace/transactional/': typeof WWorkspaceAppTransactionalIndexRoute
@@ -1346,6 +1398,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mcp-consent': typeof McpConsentRoute
   '/reset-password': typeof ResetPasswordRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
@@ -1373,6 +1426,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/admin/system': typeof WWorkspaceAppAdminSystemRoute
   '/w/$workspace/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
+  '/w/$workspace/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
+  '/w/$workspace/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
@@ -1391,6 +1446,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
   '/w/$workspace/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
+  '/w/$workspace/proposals/$proposal': typeof WWorkspaceAppProposalsProposalRoute
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
@@ -1399,6 +1455,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
   '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
+  '/w/$workspace/settings/connections': typeof WWorkspaceAppSettingsConnectionsRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1421,6 +1478,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
   '/w/$workspace/transactional/templates/$templateId': typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
   '/w/$workspace/transactional/templates/new': typeof WWorkspaceTransactionalTemplatesNewRoute
+  '/w/$workspace/agent': typeof WWorkspaceAppAgentIndexRoute
   '/w/$workspace/approvals': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/audience': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/automations': typeof WWorkspaceAppAutomationsIndexRoute
@@ -1429,6 +1487,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/earn': typeof WWorkspaceAppEarnIndexRoute
   '/w/$workspace/forms': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/grow': typeof WWorkspaceAppGrowIndexRoute
+  '/w/$workspace/proposals': typeof WWorkspaceAppProposalsIndexRoute
   '/w/$workspace/providers': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/settings': typeof WWorkspaceAppSettingsIndexRoute
   '/w/$workspace/transactional': typeof WWorkspaceAppTransactionalIndexRoute
@@ -1516,6 +1575,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mcp-consent': typeof McpConsentRoute
   '/reset-password': typeof ResetPasswordRouteWithChildren
   '/setup': typeof SetupRoute
   '/sign-in': typeof SignInRoute
@@ -1546,6 +1606,8 @@ export interface FileRoutesById {
   '/w/$workspace/_app/admin/system': typeof WWorkspaceAppAdminSystemRoute
   '/w/$workspace/_app/admin/users': typeof WWorkspaceAppAdminUsersRoute
   '/w/$workspace/_app/admin/workspaces': typeof WWorkspaceAppAdminWorkspacesRoute
+  '/w/$workspace/_app/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
+  '/w/$workspace/_app/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
   '/w/$workspace/_app/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
@@ -1564,6 +1626,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/_app/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
   '/w/$workspace/_app/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
+  '/w/$workspace/_app/proposals/$proposal': typeof WWorkspaceAppProposalsProposalRoute
   '/w/$workspace/_app/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/_app/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/_app/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
@@ -1572,6 +1635,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/_app/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
   '/w/$workspace/_app/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
+  '/w/$workspace/_app/settings/connections': typeof WWorkspaceAppSettingsConnectionsRoute
   '/w/$workspace/_app/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/_app/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1594,6 +1658,7 @@ export interface FileRoutesById {
   '/w/$workspace/providers/connect/$adapter': typeof WWorkspaceProvidersConnectAdapterRoute
   '/w/$workspace/transactional/templates/$templateId': typeof WWorkspaceTransactionalTemplatesTemplateIdRoute
   '/w/$workspace/transactional/templates/new': typeof WWorkspaceTransactionalTemplatesNewRoute
+  '/w/$workspace/_app/agent/': typeof WWorkspaceAppAgentIndexRoute
   '/w/$workspace/_app/approvals/': typeof WWorkspaceAppApprovalsIndexRoute
   '/w/$workspace/_app/audience/': typeof WWorkspaceAppAudienceIndexRoute
   '/w/$workspace/_app/automations/': typeof WWorkspaceAppAutomationsIndexRoute
@@ -1602,6 +1667,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/earn/': typeof WWorkspaceAppEarnIndexRoute
   '/w/$workspace/_app/forms/': typeof WWorkspaceAppFormsIndexRoute
   '/w/$workspace/_app/grow/': typeof WWorkspaceAppGrowIndexRoute
+  '/w/$workspace/_app/proposals/': typeof WWorkspaceAppProposalsIndexRoute
   '/w/$workspace/_app/providers/': typeof WWorkspaceAppProvidersIndexRoute
   '/w/$workspace/_app/settings/': typeof WWorkspaceAppSettingsIndexRoute
   '/w/$workspace/_app/transactional/': typeof WWorkspaceAppTransactionalIndexRoute
@@ -1690,6 +1756,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/mcp-consent'
     | '/reset-password'
     | '/setup'
     | '/sign-in'
@@ -1719,6 +1786,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/admin/system'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
+    | '/w/$workspace/agent/$runId'
+    | '/w/$workspace/agent/new'
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
@@ -1737,6 +1806,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
     | '/w/$workspace/grow/recommendations'
+    | '/w/$workspace/proposals/$proposal'
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
@@ -1745,6 +1815,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
     | '/w/$workspace/settings/brand-kit'
+    | '/w/$workspace/settings/connections'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -1767,6 +1838,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/connect/$adapter'
     | '/w/$workspace/transactional/templates/$templateId'
     | '/w/$workspace/transactional/templates/new'
+    | '/w/$workspace/agent/'
     | '/w/$workspace/approvals/'
     | '/w/$workspace/audience/'
     | '/w/$workspace/automations/'
@@ -1775,6 +1847,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/'
     | '/w/$workspace/forms/'
     | '/w/$workspace/grow/'
+    | '/w/$workspace/proposals/'
     | '/w/$workspace/providers/'
     | '/w/$workspace/settings/'
     | '/w/$workspace/transactional/'
@@ -1861,6 +1934,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/mcp-consent'
     | '/reset-password'
     | '/setup'
     | '/sign-in'
@@ -1888,6 +1962,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/admin/system'
     | '/w/$workspace/admin/users'
     | '/w/$workspace/admin/workspaces'
+    | '/w/$workspace/agent/$runId'
+    | '/w/$workspace/agent/new'
     | '/w/$workspace/approvals/$approvalId'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
@@ -1906,6 +1982,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
     | '/w/$workspace/grow/recommendations'
+    | '/w/$workspace/proposals/$proposal'
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
@@ -1914,6 +1991,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
     | '/w/$workspace/settings/brand-kit'
+    | '/w/$workspace/settings/connections'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -1936,6 +2014,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/connect/$adapter'
     | '/w/$workspace/transactional/templates/$templateId'
     | '/w/$workspace/transactional/templates/new'
+    | '/w/$workspace/agent'
     | '/w/$workspace/approvals'
     | '/w/$workspace/audience'
     | '/w/$workspace/automations'
@@ -1944,6 +2023,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn'
     | '/w/$workspace/forms'
     | '/w/$workspace/grow'
+    | '/w/$workspace/proposals'
     | '/w/$workspace/providers'
     | '/w/$workspace/settings'
     | '/w/$workspace/transactional'
@@ -2030,6 +2110,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/mcp-consent'
     | '/reset-password'
     | '/setup'
     | '/sign-in'
@@ -2060,6 +2141,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/admin/system'
     | '/w/$workspace/_app/admin/users'
     | '/w/$workspace/_app/admin/workspaces'
+    | '/w/$workspace/_app/agent/$runId'
+    | '/w/$workspace/_app/agent/new'
     | '/w/$workspace/_app/approvals/$approvalId'
     | '/w/$workspace/_app/audience/growth'
     | '/w/$workspace/_app/audience/health'
@@ -2078,6 +2161,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/forms/subscribe'
     | '/w/$workspace/_app/forms/unsubscribe'
     | '/w/$workspace/_app/grow/recommendations'
+    | '/w/$workspace/_app/proposals/$proposal'
     | '/w/$workspace/_app/providers/adapters'
     | '/w/$workspace/_app/providers/events'
     | '/w/$workspace/_app/providers/routing'
@@ -2086,6 +2170,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/approvals'
     | '/w/$workspace/_app/settings/audit'
     | '/w/$workspace/_app/settings/brand-kit'
+    | '/w/$workspace/_app/settings/connections'
     | '/w/$workspace/_app/settings/keys'
     | '/w/$workspace/_app/settings/mcp'
     | '/w/$workspace/_app/settings/providers'
@@ -2108,6 +2193,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/connect/$adapter'
     | '/w/$workspace/transactional/templates/$templateId'
     | '/w/$workspace/transactional/templates/new'
+    | '/w/$workspace/_app/agent/'
     | '/w/$workspace/_app/approvals/'
     | '/w/$workspace/_app/audience/'
     | '/w/$workspace/_app/automations/'
@@ -2116,6 +2202,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/earn/'
     | '/w/$workspace/_app/forms/'
     | '/w/$workspace/_app/grow/'
+    | '/w/$workspace/_app/proposals/'
     | '/w/$workspace/_app/providers/'
     | '/w/$workspace/_app/settings/'
     | '/w/$workspace/_app/transactional/'
@@ -2203,6 +2290,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  McpConsentRoute: typeof McpConsentRoute
   ResetPasswordRoute: typeof ResetPasswordRouteWithChildren
   SetupRoute: typeof SetupRoute
   SignInRoute: typeof SignInRoute
@@ -2220,6 +2308,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp-consent': {
+      id: '/mcp-consent'
+      path: '/mcp-consent'
+      fullPath: '/mcp-consent'
+      preLoaderRoute: typeof McpConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -2432,6 +2527,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppAdminWorkspacesRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/agent/': {
+      id: '/w/$workspace/_app/agent/'
+      path: '/agent'
+      fullPath: '/w/$workspace/agent/'
+      preLoaderRoute: typeof WWorkspaceAppAgentIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/agent/$runId': {
+      id: '/w/$workspace/_app/agent/$runId'
+      path: '/agent/$runId'
+      fullPath: '/w/$workspace/agent/$runId'
+      preLoaderRoute: typeof WWorkspaceAppAgentRunIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/agent/new': {
+      id: '/w/$workspace/_app/agent/new'
+      path: '/agent/new'
+      fullPath: '/w/$workspace/agent/new'
+      preLoaderRoute: typeof WWorkspaceAppAgentNewRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/approvals/': {
       id: '/w/$workspace/_app/approvals/'
       path: '/approvals'
@@ -2614,6 +2730,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppGrowRecommendationsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/proposals/': {
+      id: '/w/$workspace/_app/proposals/'
+      path: '/proposals'
+      fullPath: '/w/$workspace/proposals/'
+      preLoaderRoute: typeof WWorkspaceAppProposalsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/proposals/$proposal': {
+      id: '/w/$workspace/_app/proposals/$proposal'
+      path: '/proposals/$proposal'
+      fullPath: '/w/$workspace/proposals/$proposal'
+      preLoaderRoute: typeof WWorkspaceAppProposalsProposalRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/providers/': {
       id: '/w/$workspace/_app/providers/'
       path: '/providers'
@@ -2682,6 +2812,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/brand-kit'
       fullPath: '/w/$workspace/settings/brand-kit'
       preLoaderRoute: typeof WWorkspaceAppSettingsBrandKitRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/connections': {
+      id: '/w/$workspace/_app/settings/connections'
+      path: '/settings/connections'
+      fullPath: '/w/$workspace/settings/connections'
+      preLoaderRoute: typeof WWorkspaceAppSettingsConnectionsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/keys': {
@@ -3431,6 +3568,8 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAdminSystemRoute: typeof WWorkspaceAppAdminSystemRoute
   WWorkspaceAppAdminUsersRoute: typeof WWorkspaceAppAdminUsersRoute
   WWorkspaceAppAdminWorkspacesRoute: typeof WWorkspaceAppAdminWorkspacesRoute
+  WWorkspaceAppAgentRunIdRoute: typeof WWorkspaceAppAgentRunIdRoute
+  WWorkspaceAppAgentNewRoute: typeof WWorkspaceAppAgentNewRoute
   WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
   WWorkspaceAppAudienceGrowthRoute: typeof WWorkspaceAppAudienceGrowthRoute
   WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
@@ -3449,6 +3588,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppFormsSubscribeRoute: typeof WWorkspaceAppFormsSubscribeRoute
   WWorkspaceAppFormsUnsubscribeRoute: typeof WWorkspaceAppFormsUnsubscribeRoute
   WWorkspaceAppGrowRecommendationsRoute: typeof WWorkspaceAppGrowRecommendationsRoute
+  WWorkspaceAppProposalsProposalRoute: typeof WWorkspaceAppProposalsProposalRoute
   WWorkspaceAppProvidersAdaptersRoute: typeof WWorkspaceAppProvidersAdaptersRoute
   WWorkspaceAppProvidersEventsRoute: typeof WWorkspaceAppProvidersEventsRoute
   WWorkspaceAppProvidersRoutingRoute: typeof WWorkspaceAppProvidersRoutingRoute
@@ -3457,6 +3597,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsApprovalsRoute: typeof WWorkspaceAppSettingsApprovalsRoute
   WWorkspaceAppSettingsAuditRoute: typeof WWorkspaceAppSettingsAuditRoute
   WWorkspaceAppSettingsBrandKitRoute: typeof WWorkspaceAppSettingsBrandKitRoute
+  WWorkspaceAppSettingsConnectionsRoute: typeof WWorkspaceAppSettingsConnectionsRoute
   WWorkspaceAppSettingsKeysRoute: typeof WWorkspaceAppSettingsKeysRoute
   WWorkspaceAppSettingsMcpRoute: typeof WWorkspaceAppSettingsMcpRoute
   WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
@@ -3465,6 +3606,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppTransactionalImportRoute: typeof WWorkspaceAppTransactionalImportRoute
   WWorkspaceAppTransactionalSettingsRoute: typeof WWorkspaceAppTransactionalSettingsRoute
   WWorkspaceAppTransactionalSetupRoute: typeof WWorkspaceAppTransactionalSetupRoute
+  WWorkspaceAppAgentIndexRoute: typeof WWorkspaceAppAgentIndexRoute
   WWorkspaceAppApprovalsIndexRoute: typeof WWorkspaceAppApprovalsIndexRoute
   WWorkspaceAppAudienceIndexRoute: typeof WWorkspaceAppAudienceIndexRoute
   WWorkspaceAppAutomationsIndexRoute: typeof WWorkspaceAppAutomationsIndexRoute
@@ -3473,6 +3615,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppEarnIndexRoute: typeof WWorkspaceAppEarnIndexRoute
   WWorkspaceAppFormsIndexRoute: typeof WWorkspaceAppFormsIndexRoute
   WWorkspaceAppGrowIndexRoute: typeof WWorkspaceAppGrowIndexRoute
+  WWorkspaceAppProposalsIndexRoute: typeof WWorkspaceAppProposalsIndexRoute
   WWorkspaceAppProvidersIndexRoute: typeof WWorkspaceAppProvidersIndexRoute
   WWorkspaceAppSettingsIndexRoute: typeof WWorkspaceAppSettingsIndexRoute
   WWorkspaceAppTransactionalIndexRoute: typeof WWorkspaceAppTransactionalIndexRoute
@@ -3561,6 +3704,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAdminSystemRoute: WWorkspaceAppAdminSystemRoute,
   WWorkspaceAppAdminUsersRoute: WWorkspaceAppAdminUsersRoute,
   WWorkspaceAppAdminWorkspacesRoute: WWorkspaceAppAdminWorkspacesRoute,
+  WWorkspaceAppAgentRunIdRoute: WWorkspaceAppAgentRunIdRoute,
+  WWorkspaceAppAgentNewRoute: WWorkspaceAppAgentNewRoute,
   WWorkspaceAppApprovalsApprovalIdRoute: WWorkspaceAppApprovalsApprovalIdRoute,
   WWorkspaceAppAudienceGrowthRoute: WWorkspaceAppAudienceGrowthRoute,
   WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
@@ -3581,6 +3726,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppFormsSubscribeRoute: WWorkspaceAppFormsSubscribeRoute,
   WWorkspaceAppFormsUnsubscribeRoute: WWorkspaceAppFormsUnsubscribeRoute,
   WWorkspaceAppGrowRecommendationsRoute: WWorkspaceAppGrowRecommendationsRoute,
+  WWorkspaceAppProposalsProposalRoute: WWorkspaceAppProposalsProposalRoute,
   WWorkspaceAppProvidersAdaptersRoute: WWorkspaceAppProvidersAdaptersRoute,
   WWorkspaceAppProvidersEventsRoute: WWorkspaceAppProvidersEventsRoute,
   WWorkspaceAppProvidersRoutingRoute: WWorkspaceAppProvidersRoutingRoute,
@@ -3590,6 +3736,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppSettingsApprovalsRoute: WWorkspaceAppSettingsApprovalsRoute,
   WWorkspaceAppSettingsAuditRoute: WWorkspaceAppSettingsAuditRoute,
   WWorkspaceAppSettingsBrandKitRoute: WWorkspaceAppSettingsBrandKitRoute,
+  WWorkspaceAppSettingsConnectionsRoute: WWorkspaceAppSettingsConnectionsRoute,
   WWorkspaceAppSettingsKeysRoute: WWorkspaceAppSettingsKeysRoute,
   WWorkspaceAppSettingsMcpRoute: WWorkspaceAppSettingsMcpRoute,
   WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,
@@ -3600,6 +3747,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppTransactionalSettingsRoute:
     WWorkspaceAppTransactionalSettingsRoute,
   WWorkspaceAppTransactionalSetupRoute: WWorkspaceAppTransactionalSetupRoute,
+  WWorkspaceAppAgentIndexRoute: WWorkspaceAppAgentIndexRoute,
   WWorkspaceAppApprovalsIndexRoute: WWorkspaceAppApprovalsIndexRoute,
   WWorkspaceAppAudienceIndexRoute: WWorkspaceAppAudienceIndexRoute,
   WWorkspaceAppAutomationsIndexRoute: WWorkspaceAppAutomationsIndexRoute,
@@ -3608,6 +3756,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppEarnIndexRoute: WWorkspaceAppEarnIndexRoute,
   WWorkspaceAppFormsIndexRoute: WWorkspaceAppFormsIndexRoute,
   WWorkspaceAppGrowIndexRoute: WWorkspaceAppGrowIndexRoute,
+  WWorkspaceAppProposalsIndexRoute: WWorkspaceAppProposalsIndexRoute,
   WWorkspaceAppProvidersIndexRoute: WWorkspaceAppProvidersIndexRoute,
   WWorkspaceAppSettingsIndexRoute: WWorkspaceAppSettingsIndexRoute,
   WWorkspaceAppTransactionalIndexRoute: WWorkspaceAppTransactionalIndexRoute,
@@ -3845,6 +3994,7 @@ const WWorkspaceRouteRouteWithChildren = WWorkspaceRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  McpConsentRoute: McpConsentRoute,
   ResetPasswordRoute: ResetPasswordRouteWithChildren,
   SetupRoute: SetupRoute,
   SignInRoute: SignInRoute,

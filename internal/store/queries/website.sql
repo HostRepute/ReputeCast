@@ -162,6 +162,13 @@ WHERE workspace_id = @workspace_id AND id = @id;
 UPDATE website_posts SET mjml = @mjml, version = @version, autosaved_at = sqlc.narg(autosaved_at), updated_by = sqlc.narg(updated_by), updated_at = @at
 WHERE workspace_id = @workspace_id AND id = @id;
 
+-- name: WebsitePostAcceptDraft :exec
+-- The caller locks and verifies the exact proposal snapshot first. Never
+-- copy publication, access, address or byline settings from model output.
+UPDATE website_posts SET title = @title, title_edited = true, excerpt = @excerpt, excerpt_edited = true,
+    mjml = @mjml, version = version + 1, autosaved_at = NULL, updated_by = sqlc.narg(updated_by), updated_at = @at
+WHERE workspace_id = @workspace_id AND id = @id;
+
 -- name: WebsitePostVersionInsert :exec
 INSERT INTO website_post_versions (post_id, version, title, mjml, saved_by, saved_at, label)
 VALUES (@post_id, @version, @title, @mjml, sqlc.narg(saved_by), @at, @label)

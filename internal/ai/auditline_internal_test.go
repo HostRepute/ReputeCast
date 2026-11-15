@@ -9,7 +9,7 @@ import (
 func TestAuditLines(t *testing.T) {
 	row := store.AiConnection{Model: "claude-sonnet-5-5", ImageInput: true, CapKind: "usd", CapUsd: 25, FeaturesOff: []string{}}
 	cases := []struct{ name, got, want string }{
-		{"connected", connectionLine(row, keyAdded), "model claude-sonnet-5-5 · key added (write-only) · cap $25.00 a month · all 7 features on"},
+		{"connected", connectionLine(row, keyAdded), "model claude-sonnet-5-5 · key added (write-only) · cap $25.00 a month · all 9 features on"},
 		{"a big cap", usdText(100000), "$100,000.00"},
 		{"cents", usdText(0.5), "$0.50"},
 		{"a token cap", capText("tokens", 0, 20000000), "20,000,000 tokens a month"},
@@ -26,7 +26,7 @@ func TestAuditLines(t *testing.T) {
 	}
 	// Alt text needs a model that reads images; every switch off says so.
 	text := store.AiConnection{Model: "llama3.3:70b", CapKind: "none", FeaturesOff: []string{FeatureTranslate}}
-	if got := connectionLine(text, keyNone); got != "model llama3.3:70b · no key · no cap · 5 of 7 features on" {
+	if got := connectionLine(text, keyNone); got != "model llama3.3:70b · no key · no cap · 7 of 9 features on" {
 		t.Errorf("a text-only model: %q", got)
 	}
 	if got := featuresText(store.AiConnection{FeaturesOff: Features}); got != "every feature off" {
