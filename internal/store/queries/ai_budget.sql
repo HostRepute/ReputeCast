@@ -1,12 +1,14 @@
 -- name: AIBudgetWorkspaceLock :exec
--- Also serializes onboarding tests before an AI connection exists.
+-- The workspace budget's lock, across all its accounts and models. It is
+-- taken after the AI configuration lock (AIWorkspaceSettingsLock), never
+-- before; accounting needs only this one.
 SELECT pg_advisory_xact_lock(hashtextextended('ai_budget:' || (@workspace_id::uuid)::text, 0));
 
 -- name: AIBudgetInsert :exec
 INSERT INTO ai_budget_reservations (id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision,
-    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at)
+    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, account_id, model_id)
 VALUES (@id, @workspace_id, sqlc.narg(user_id), sqlc.narg(run_id), @provider, @model, @feature, @pricing_revision,
-    @input_price, @output_price, 'reserved', @input_tokens, @output_tokens, @cost_micros, @created_at);
+    @input_price, @output_price, 'reserved', @input_tokens, @output_tokens, @cost_micros, @created_at, sqlc.narg(account_id), sqlc.narg(model_id));
 
 -- name: AIBudgetLock :one
 SELECT * FROM ai_budget_reservations WHERE id = @id AND workspace_id = @workspace_id FOR UPDATE;

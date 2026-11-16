@@ -81,10 +81,17 @@ func (r result) sent(chars int) AISent {
 // usable checks that a feature can send a request now: a model is
 // connected, the feature is on, the key works and the cap isn't reached.
 func (s *Service) usable(ctx context.Context, ws *store.Workspace, feature string) (*connection, error) {
-	c, err := s.load(ctx, s.Q, ws.ID)
+	c, err := s.loadFor(ctx, s.Q, ws.ID, feature)
 	if err != nil {
 		return nil, err
 	}
+	return s.ready(ctx, ws, c, feature)
+}
+
+// ready checks that a model can take a feature's request now. A feature
+// whose default model is disconnected waits for it: another model is never
+// used instead.
+func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection, feature string) (*connection, error) {
 	if !c.connected() {
 		return nil, s.notConnected(ctx, ws)
 	}
@@ -226,7 +233,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return result{}, err
 	}
 	if c.Status != "ok" {
-		_, _ = s.Q.AIConnectionSetStatus(logCtx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "ok", StatusAt: ptr(s.now()), ExpectedUpdatedAt: c.UpdatedAt})
+		_, _ = s.Q.AIAccountSetStatus(logCtx, store.AIAccountSetStatusParams{ID: c.AccountID, WorkspaceID: ws.ID, Status: "ok", StatusAt: ptr(s.now()), ExpectedRevision: c.AccountRevision})
 	}
 	return out, nil
 }
@@ -324,11 +331,11 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, feature st
 	return problem(ctx, http.StatusBadGateway, codeProviderError, m, args).WithMeta("status", e.Status, "attempts", e.Attempts)
 }
 
-// keyRejected marks the connection's key rejected and tells the members who
+// keyRejected marks the account's key rejected and tells the members who
 // can replace it, once.
 func (s *Service) keyRejected(ctx context.Context, ws *store.Workspace, c *connection, e *llm.Error) {
 	now := s.now()
-	n, err := s.Q.AIConnectionSetStatus(ctx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "key_rejected", StatusDetail: clip(e.Error(), 300), StatusAt: &now, ExpectedUpdatedAt: c.UpdatedAt})
+	n, err := s.Q.AIAccountSetStatus(ctx, store.AIAccountSetStatusParams{ID: c.AccountID, WorkspaceID: ws.ID, Status: "key_rejected", StatusDetail: clip(e.Error(), 300), StatusAt: &now, ExpectedRevision: c.AccountRevision})
 	if err != nil || n == 0 {
 		return
 	}
@@ -366,7 +373,7 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace) {
 	}
 	link := "/w/" + ws.Slug + "/settings/integrations/ai"
 	if u.reached {
-		if n, err := s.Q.AIConnectionClaimCapNotice(ctx, store.AIConnectionClaimCapNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
+		if n, err := s.Q.AIWorkspaceSettingsClaimCapNotice(ctx, store.AIWorkspaceSettingsClaimCapNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
 			return
 		}
 		body := mNotifyCapBody
@@ -384,7 +391,7 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace) {
 	if !u.notice {
 		return
 	}
-	if n, err := s.Q.AIConnectionClaimNotice(ctx, store.AIConnectionClaimNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
+	if n, err := s.Q.AIWorkspaceSettingsClaimNotice(ctx, store.AIWorkspaceSettingsClaimNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
 		return
 	}
 	body := mNotifyUsageBody

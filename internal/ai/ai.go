@@ -66,12 +66,18 @@ const (
 	FeatureDraft          = "draft"
 	FeatureAgent          = "agent"
 	FeatureConnectionTest = "connection_test"
+	// FeatureAssistant is the assistant's threads (B3); it has a default
+	// model already.
+	FeatureAssistant = "assistant"
 )
 
 // Features in the settings' order.
 var Features = []string{FeatureSubjectIdeas, FeatureRewrite, FeatureTranslate, FeatureAltText, FeatureAccessibility, FeatureSegment, FeatureSummary, FeatureBrandVoice, FeatureDraft}
 
 func validFeature(f string) bool { return slices.Contains(Features, f) }
+
+// defaultFeatures are the features with a default model.
+var defaultFeatures = append(slices.Clone(Features), FeatureAgent, FeatureAssistant)
 
 // Outcomes of a request in the activity log.
 const (
@@ -141,12 +147,15 @@ func (s *Service) log() *slog.Logger {
 	return slog.Default()
 }
 
-// keyAD is the associated data the key is sealed with.
-func keyAD(ws uuid.UUID) string { return "ai:" + ws.String() + ":key" }
+// keyAD is the associated data an account's key is sealed with. The account
+// migration 03630 made of a workspace's one connection kept the workspace's
+// id, so the key sealed then with "ai:<workspace>:key" opens unchanged.
+func keyAD(account uuid.UUID) string { return "ai:" + account.String() + ":key" }
 
-// connection is the workspace's model, when one is connected.
+// connection is a model with its account and the workspace's AI settings:
+// what a request is bound to (assistant brief D3).
 type connection struct {
-	store.AiConnection
+	store.AIBindingRow
 }
 
 // connected reports whether a model is connected (and not disconnected).
@@ -184,10 +193,40 @@ func (c *connection) modelName() string {
 	return llm.ModelName(c.Provider, c.Model)
 }
 
-// load returns the workspace's connection row, nil when there has never
+// load returns the workspace's first account's first model, which the
+// single-model settings and operations act on; nil when there has never
 // been one.
 func (s *Service) load(ctx context.Context, q *store.Queries, ws uuid.UUID) (*connection, error) {
-	row, err := q.AIConnection(ctx, ws)
+	id, err := q.AIPrimaryModel(ctx, ws)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.binding(ctx, q, ws, &id)
+}
+
+// loadFor returns the model a feature uses (its default), nil when it has
+// none.
+func (s *Service) loadFor(ctx context.Context, q *store.Queries, ws uuid.UUID, feature string) (*connection, error) {
+	id, err := q.AIFeatureModel(ctx, store.AIFeatureModelParams{WorkspaceID: ws, Feature: feature})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.binding(ctx, q, ws, &id)
+}
+
+// binding returns a model of the workspace with its account and settings,
+// nil when there is no such model.
+func (s *Service) binding(ctx context.Context, q *store.Queries, ws uuid.UUID, model *uuid.UUID) (*connection, error) {
+	if model == nil {
+		return nil, nil
+	}
+	row, err := q.AIBinding(ctx, store.AIBindingParams{WorkspaceID: ws, ModelID: *model})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -195,6 +234,30 @@ func (s *Service) load(ctx context.Context, q *store.Queries, ws uuid.UUID) (*co
 		return nil, err
 	}
 	return &connection{row}, nil
+}
+
+// lockSettings takes the AI configuration lock: the workspace's settings
+// row, made with the default cap when there is none yet. Every change to
+// the settings, accounts, models and defaults takes it first, and so does
+// every reservation (before the budget lock).
+func lockSettings(ctx context.Context, q *store.Queries, ws uuid.UUID) (store.AiWorkspaceSetting, error) {
+	row, err := q.AIWorkspaceSettingsLock(ctx, ws)
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return row, err
+	}
+	if err := q.AIWorkspaceSettingsEnsure(ctx, ws); err != nil {
+		return row, err
+	}
+	return q.AIWorkspaceSettingsLock(ctx, ws)
+}
+
+// current re-reads a request's model under the configuration lock, for a
+// result's commit: nil when the model is gone.
+func (s *Service) current(ctx context.Context, q *store.Queries, ws uuid.UUID, c *connection) (*connection, error) {
+	if _, err := lockSettings(ctx, q, ws); err != nil {
+		return nil, err
+	}
+	return s.binding(ctx, q, ws, &c.ModelID)
 }
 
 // policy is the SSRF guard for model servers.
@@ -250,7 +313,7 @@ func (s *Service) provider(c *connection, feature string) (llm.Provider, error) 
 	}
 	key := ""
 	if len(c.KeySealed) > 0 {
-		k, err := s.Box.OpenString(c.KeySealed, keyAD(c.WorkspaceID))
+		k, err := s.Box.OpenString(c.KeySealed, keyAD(c.AccountID))
 		if err != nil {
 			return nil, fmt.Errorf("open the AI key: %w", err)
 		}

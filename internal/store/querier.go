@@ -33,11 +33,16 @@ type Querier interface {
 	ABSampleCounts(ctx context.Context, campaignID uuid.UUID) ([]ABSampleCountsRow, error)
 	// The decision is kept with the campaign's test, for its report.
 	ABSaveDecision(ctx context.Context, arg ABSaveDecisionParams) error
+	AIAccountSave(ctx context.Context, arg AIAccountSaveParams) error
+	// The provider rejected the saved key (or a passing request cleared it),
+	// unless the account changed since the request was bound to it.
+	AIAccountSetStatus(ctx context.Context, arg AIAccountSetStatusParams) (int64, error)
+	AIAccountSetTest(ctx context.Context, arg AIAccountSetTestParams) error
 	AIAgentArtifactDecide(ctx context.Context, arg AIAgentArtifactDecideParams) error
 	AIAgentArtifactDiscard(ctx context.Context, id uuid.UUID) error
 	AIAgentArtifactSave(ctx context.Context, arg AIAgentArtifactSaveParams) error
 	AIAgentArtifacts(ctx context.Context, runID uuid.UUID) ([]AiAgentArtifact, error)
-	AIAgentCapability(ctx context.Context, workspaceID uuid.UUID) (AiAgentCapability, error)
+	AIAgentCapability(ctx context.Context, arg AIAgentCapabilityParams) (AiAgentCapability, error)
 	AIAgentCapabilitySave(ctx context.Context, arg AIAgentCapabilitySaveParams) error
 	AIAgentContext(ctx context.Context, arg AIAgentContextParams) (AIAgentContextRow, error)
 	AIAgentContextInsert(ctx context.Context, arg AIAgentContextInsertParams) error
@@ -81,6 +86,12 @@ type Querier interface {
 	AIAgentStepResume(ctx context.Context, arg AIAgentStepResumeParams) error
 	AIAgentStepSave(ctx context.Context, arg AIAgentStepSaveParams) error
 	AIAgentSteps(ctx context.Context, runID uuid.UUID) ([]AIAgentStepsRow, error)
+	// AI assistant (design expansion M22): the workspace's AI settings, its
+	// model accounts and models (assistant brief D3), the AI activity log, kept
+	// report summaries and AI translations.
+	// A model with its account and the workspace's settings: what a request is
+	// bound to. The column names are the single connection's before B1.
+	AIBinding(ctx context.Context, arg AIBindingParams) (AIBindingRow, error)
 	// No provider request may run for ten minutes. A dead HTTP/worker process
 	// leaves an uncertain reservation, never an automatic release or retry.
 	AIBudgetAbandoned(ctx context.Context, before time.Time) (int64, error)
@@ -94,22 +105,12 @@ type Querier interface {
 	AIBudgetRun(ctx context.Context, runID *uuid.UUID) (AIBudgetRunRow, error)
 	AIBudgetSettle(ctx context.Context, arg AIBudgetSettleParams) error
 	AIBudgetUncertain(ctx context.Context, id uuid.UUID) error
-	// Also serializes onboarding tests before an AI connection exists.
+	// The workspace budget's lock, across all its accounts and models. It is
+	// taken after the AI configuration lock (AIWorkspaceSettingsLock), never
+	// before; accounting needs only this one.
 	AIBudgetWorkspaceLock(ctx context.Context, workspaceID uuid.UUID) error
 	// What the assistant needs about a campaign: its name, content and language.
 	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
-	// AI assistant (design expansion M22): the workspace's model, the AI
-	// activity log, kept report summaries and AI translations.
-	AIConnection(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error)
-	// Claims this month's cap-reached notice, once.
-	AIConnectionClaimCapNotice(ctx context.Context, arg AIConnectionClaimCapNoticeParams) (int64, error)
-	// Claims this month's 80% notice, once.
-	AIConnectionClaimNotice(ctx context.Context, arg AIConnectionClaimNoticeParams) (int64, error)
-	AIConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error)
-	AIConnectionSave(ctx context.Context, arg AIConnectionSaveParams) error
-	// The provider rejected the saved key (or a passing request cleared it).
-	AIConnectionSetStatus(ctx context.Context, arg AIConnectionSetStatusParams) (int64, error)
-	AIConnectionSetTest(ctx context.Context, arg AIConnectionSetTestParams) error
 	// Only the exact version referenced by the selected flow, never recipients.
 	AIDraftAutomationEmail(ctx context.Context, arg AIDraftAutomationEmailParams) (AIDraftAutomationEmailRow, error)
 	AIDraftCampaign(ctx context.Context, arg AIDraftCampaignParams) (AIDraftCampaignRow, error)
@@ -121,12 +122,22 @@ type Querier interface {
 	AIDraftPending(ctx context.Context, arg AIDraftPendingParams) ([]uuid.UUID, error)
 	AIDraftPurge(ctx context.Context, now time.Time) (int64, error)
 	AIDraftTemplate(ctx context.Context, arg AIDraftTemplateParams) (string, error)
+	AIFeatureModel(ctx context.Context, arg AIFeatureModelParams) (uuid.UUID, error)
+	// A first model is every feature's default; features with one keep it.
+	AIFeatureModelsFill(ctx context.Context, arg AIFeatureModelsFillParams) error
+	// Features whose default is one of an account's other models move to its kept one.
+	AIFeatureModelsMove(ctx context.Context, arg AIFeatureModelsMoveParams) error
 	// The people who can allow private addresses for model servers.
 	AIInstanceAdmins(ctx context.Context) ([]string, error)
 	// An image of the workspace's media library, for alt text.
 	AIMediaImage(ctx context.Context, arg AIMediaImageParams) (AIMediaImageRow, error)
 	// The members with their role, for "Members with ai:use: Owner, Admin…".
 	AIMembersRoles(ctx context.Context, workspaceID uuid.UUID) ([]AIMembersRolesRow, error)
+	AIModelSave(ctx context.Context, arg AIModelSaveParams) error
+	AIModelsDeleteOthers(ctx context.Context, arg AIModelsDeleteOthersParams) error
+	// The workspace's first account and its first model: what the single-model
+	// settings and operations act on.
+	AIPrimaryModel(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
 	AIReportSummary(ctx context.Context, arg AIReportSummaryParams) (AIReportSummaryRow, error)
 	AIReportSummaryDelete(ctx context.Context, arg AIReportSummaryDeleteParams) (int64, error)
 	AIReportSummarySave(ctx context.Context, arg AIReportSummarySaveParams) error
@@ -151,6 +162,15 @@ type Querier interface {
 	AIUsageByFeature(ctx context.Context, arg AIUsageByFeatureParams) ([]AIUsageByFeatureRow, error)
 	AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams) ([]AIUsageByMemberRow, error)
 	AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error)
+	AIWorkspaceSettings(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error)
+	// Claims this month's cap-reached notice, once.
+	AIWorkspaceSettingsClaimCapNotice(ctx context.Context, arg AIWorkspaceSettingsClaimCapNoticeParams) (int64, error)
+	// Claims this month's 80% notice, once.
+	AIWorkspaceSettingsClaimNotice(ctx context.Context, arg AIWorkspaceSettingsClaimNoticeParams) (int64, error)
+	AIWorkspaceSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	// The AI configuration lock (see migration 03630).
+	AIWorkspaceSettingsLock(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error)
+	AIWorkspaceSettingsSave(ctx context.Context, arg AIWorkspaceSettingsSaveParams) error
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
 	AcceptPendingInvitation(ctx context.Context, arg AcceptPendingInvitationParams) (int64, error)
 	// Access requests from the "403 · no permission" screen (internal/accessrequests).

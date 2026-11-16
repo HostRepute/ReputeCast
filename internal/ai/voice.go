@@ -179,11 +179,10 @@ func (s *Service) LearnVoice(ctx context.Context, ws *store.Workspace, p *authz.
 		if _, err := brandkit.VoiceSources(ctx, q, ws, fresh, in.CampaignIDs); err != nil {
 			return err
 		}
-		locked, err := q.AIConnectionForUpdate(ctx, ws.ID)
+		c, err := s.current(ctx, q, ws.ID, res.conn)
 		if err != nil {
 			return err
 		}
-		c := &connection{AiConnection: locked}
 		if !c.connected() || !c.featureOn(FeatureBrandVoice) {
 			return problem(ctx, http.StatusConflict, codeFeatureOff, msgs.M("voice.unavailable"), nil)
 		}

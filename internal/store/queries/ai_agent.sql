@@ -5,13 +5,14 @@ SELECT * FROM ai_agent_settings WHERE workspace_id = @workspace_id;
 SELECT * FROM ai_agent_settings WHERE workspace_id = @workspace_id FOR UPDATE;
 
 -- name: AIAgentCapability :one
-SELECT * FROM ai_agent_capabilities WHERE workspace_id = @workspace_id;
+SELECT * FROM ai_agent_capabilities WHERE workspace_id = @workspace_id AND model_id = @model_id;
 
 -- name: AIAgentCapabilitySave :exec
-INSERT INTO ai_agent_capabilities (workspace_id, connection_hash, supported, checked_at)
-VALUES (@workspace_id, @connection_hash, @supported, @checked_at)
-ON CONFLICT (workspace_id) DO UPDATE SET connection_hash = EXCLUDED.connection_hash,
-    supported = EXCLUDED.supported, checked_at = EXCLUDED.checked_at;
+INSERT INTO ai_agent_capabilities (workspace_id, model_id, connection_hash, supported, checked_at)
+VALUES (@workspace_id, @model_id, @connection_hash, @supported, @checked_at)
+ON CONFLICT (model_id) DO UPDATE SET connection_hash = EXCLUDED.connection_hash,
+    supported = EXCLUDED.supported, checked_at = EXCLUDED.checked_at
+WHERE ai_agent_capabilities.workspace_id = EXCLUDED.workspace_id;
 
 -- name: AIAgentSettingsSave :exec
 INSERT INTO ai_agent_settings (workspace_id, enabled, tool_limit, token_limit, cost_limit_micros, updated_at)
@@ -27,8 +28,8 @@ SELECT * FROM ai_agent_runs WHERE id = @id AND workspace_id = @workspace_id FOR 
 SELECT * FROM ai_agent_runs WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: AIAgentRunInsert :exec
-INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at, request_key, request_hash)
-VALUES (@id, @workspace_id, @user_id, @model, 'planning', @tool_limit, @token_limit, @cost_limit_micros, @now, @now, @expires_at, sqlc.narg('request_key'), sqlc.narg('request_hash'));
+INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, model_id, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at, request_key, request_hash)
+VALUES (@id, @workspace_id, @user_id, @model, @model_id, 'planning', @tool_limit, @token_limit, @cost_limit_micros, @now, @now, @expires_at, sqlc.narg('request_key'), sqlc.narg('request_hash'));
 
 -- name: AIAgentRunByRequest :one
 SELECT id, request_hash FROM ai_agent_runs

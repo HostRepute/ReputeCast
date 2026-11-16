@@ -238,12 +238,22 @@ type agentModel struct {
 	Provider, Model, BaseURL, Deployment, APIVersion string
 }
 
-func agentModelOf(c store.AiConnection) agentModel {
+func agentModelOf(c store.AIBindingRow) agentModel {
 	return agentModel{c.Provider, c.Model, c.BaseUrl, c.Deployment, c.ApiVersion}
 }
 
+// agentModel is the model a run uses: the one it started with, kept when
+// the agent's default changes; a new run takes the agent's default. Nil when
+// the run's model was removed.
+func (s *Service) agentModel(ctx context.Context, q *store.Queries, ws uuid.UUID, r store.AiAgentRun, c agentContext) (*connection, error) {
+	if r.ModelID == nil && c.Model.Provider == "" {
+		return s.loadFor(ctx, q, ws, FeatureAgent)
+	}
+	return s.binding(ctx, q, ws, r.ModelID)
+}
+
 func agentBuildEstimate(c agentContext, artifacts []store.AiAgentArtifact, conn *connection) *AIAgentCostEstimate {
-	if !conn.connected() || (!conn.PriceKnown && !conn.Demo) || c.Model != agentModelOf(conn.AiConnection) {
+	if !conn.connected() || (!conn.PriceKnown && !conn.Demo) || c.Model != agentModelOf(conn.AIBindingRow) {
 		return nil
 	}
 	outputs := []int64{}
@@ -262,7 +272,7 @@ func agentBuildEstimate(c agentContext, artifacts []store.AiAgentArtifact, conn 
 		}
 		outputs = append(outputs, output)
 	}
-	estimate := &AIAgentCostEstimate{PricingAt: conn.UpdatedAt}
+	estimate := &AIAgentCostEstimate{PricingAt: conn.ModelUpdatedAt}
 	if len(outputs) == 0 {
 		return estimate
 	}
@@ -308,7 +318,7 @@ func (s *Service) AgentSettings(ctx context.Context, ws *store.Workspace) (AIAge
 	if errors.Is(err, pgx.ErrNoRows) {
 		out.Limits = AIAgentLimits{ToolCalls: 40, Tokens: 300000, CostMicros: 2000000}
 	}
-	c, err := s.load(ctx, s.Q, ws.ID)
+	c, err := s.loadFor(ctx, s.Q, ws.ID, FeatureAgent)
 	if err != nil {
 		return AIAgentSettings{}, err
 	}
@@ -327,9 +337,12 @@ func (s *Service) SetAgentSettings(ctx context.Context, ws *store.Workspace, p *
 		if err != nil {
 			return err
 		}
-		// The connection is the shared configuration lock, including the
+		// The AI settings row is the shared configuration lock, including the
 		// first insertion where no agent settings row exists to lock yet.
-		if _, err := q.AIConnectionForUpdate(ctx, ws.ID); err != nil {
+		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
+			return err
+		}
+		if _, err := q.AIPrimaryModel(ctx, ws.ID); err != nil {
 			return api.MapError(err, "AI connection")
 		}
 		cur, err := q.AIAgentSettings(ctx, ws.ID)
@@ -600,27 +613,36 @@ func (s *Service) agentAccess(ctx context.Context, q *store.Queries, ws *store.W
 		return nil, err
 	}
 	if execute {
-		// Reading under the connection lock fences switch changes with the
+		// Reading under the configuration lock fences switch changes with the
 		// same lock used when a request reserves or a response commits.
-		row, err := q.AIConnectionForUpdate(ctx, ws.ID)
+		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
+			return nil, err
+		}
+		conn, err := s.agentModel(ctx, q, ws.ID, r, c)
 		if err != nil {
-			return nil, api.MapError(err, "AI connection")
+			return nil, err
+		}
+		if conn == nil && r.ModelID == nil && c.Model.Provider == "" {
+			return nil, api.NotFound("AI connection")
+		}
+		if conn == nil {
+			return nil, budgetProblem(ctx, "connection_changed")
 		}
 		settings, err := q.AIAgentSettings(ctx, ws.ID)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
 		}
-		if !settings.Enabled || !(&connection{row}).connected() {
+		if !settings.Enabled || !conn.connected() {
 			return nil, agentProblem(ctx, "unavailable")
 		}
-		capability, err := agentCapability(ctx, q, &connection{row})
+		capability, err := agentCapability(ctx, q, conn)
 		if err != nil {
 			return nil, err
 		}
 		if capability.State == "unsupported" {
 			return nil, agentProblem(ctx, "tools_unavailable")
 		}
-		if c.Model.Provider != "" && c.Model != agentModelOf(row) {
+		if c.Model.Provider != "" && c.Model != agentModelOf(conn.AIBindingRow) {
 			return nil, budgetProblem(ctx, "connection_changed")
 		}
 	}
@@ -749,7 +771,7 @@ func (s *Service) agentRun(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			return err
 		}
 		if r.State == "ready" && len(c.Plan.Questions) == 0 {
-			conn, err := s.load(ctx, q, ws.ID)
+			conn, err := s.binding(ctx, q, ws.ID, r.ModelID)
 			if err != nil {
 				return err
 			}

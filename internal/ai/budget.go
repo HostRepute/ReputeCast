@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"image"
 	"math"
 	"slices"
@@ -30,8 +29,9 @@ func budgetProblem(ctx context.Context, key string) error {
 	return api.Err(409, "ai_"+key, text(ctx, msgs.M("budget."+key), nil))
 }
 
-// reserveIn serializes every spending path, even before a connection exists.
-// A caller handling a run also locks that run before calling this function.
+// reserveIn serializes every spending path of the workspace, across all its
+// accounts and models, even before a connection exists. A caller handling a
+// run also locks that run before calling this function.
 // No database lock spans an HTTP call. Request IDs survive worker retries.
 func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, c *connection, t *task, run *store.AiAgentRun, id uuid.UUID) error {
 	fresh, err := brandkit.VoiceActor(ctx, q, ws, p)
@@ -50,31 +50,28 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 			return err
 		}
 	}
-	row, err := q.AIConnectionForUpdate(ctx, ws.ID)
-	missing := errors.Is(err, pgx.ErrNoRows)
-	if errors.Is(err, pgx.ErrNoRows) && t.feature == FeatureConnectionTest {
-		row, err = c.AiConnection, nil
-	}
-	if err != nil {
-		return api.MapError(err, "AI connection")
-	}
 	// Domain continuations may already hold the configuration lock. Always
 	// acquire it before the budget lock; accounting needs only the latter.
+	// A first connection's test makes the settings row, with the default cap.
+	row, err := lockSettings(ctx, q, ws.ID)
+	if err != nil {
+		return err
+	}
 	if err := q.AIBudgetWorkspaceLock(ctx, ws.ID); err != nil {
 		return err
 	}
-	if missing {
-		// A first connection may have committed while this probe waited.
-		// Its cap applies now; never take a row lock after the budget lock.
-		current, err := q.AIConnection(ctx, ws.ID)
-		if err == nil {
-			row = current
-		} else if !errors.Is(err, pgx.ErrNoRows) {
+	if t.feature != FeatureConnectionTest {
+		// The request is bound to its model, that model's account and their
+		// prices as they were when it was prepared; any change since refuses it.
+		cur, err := s.binding(ctx, q, ws.ID, &c.ModelID)
+		if err != nil {
 			return err
 		}
-	}
-	if t.feature != FeatureConnectionTest && (!row.UpdatedAt.Equal(c.UpdatedAt) || row.DisconnectedAt != nil || row.Status == "key_rejected" || !(&connection{row}).featureOn(t.feature)) {
-		return budgetProblem(ctx, "connection_changed")
+		if cur == nil || cur.SettingsRevision != c.SettingsRevision || cur.AccountRevision != c.AccountRevision || cur.ModelRevision != c.ModelRevision ||
+			!cur.connected() || cur.Status == "key_rejected" || !cur.featureOn(t.feature) {
+			return budgetProblem(ctx, "connection_changed")
+		}
+		c = cur
 	}
 	if !c.PriceKnown && !c.Demo {
 		return budgetProblem(ctx, "price_unknown")
@@ -152,11 +149,17 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 		}
 	}
 	t.req.MaxTokens = int(output)
-	pricing, _ := json.Marshal([]any{c.Provider, c.Model, c.InputPrice, c.OutputPrice, c.UpdatedAt})
+	pricing, _ := json.Marshal([]any{c.AccountID, c.AccountRevision, c.ModelID, c.ModelRevision, c.Provider, c.Model, c.InputPrice, c.OutputPrice})
 	digest := sha256.Sum256(pricing)
+	// A candidate being tested has no account or model yet.
+	var account, model *uuid.UUID
+	if c.ModelID != uuid.Nil {
+		account, model = &c.AccountID, &c.ModelID
+	}
 	return q.AIBudgetInsert(ctx, store.AIBudgetInsertParams{ID: id, WorkspaceID: ws.ID, UserID: actorID(p), RunID: runID, Feature: t.feature,
 		Provider: c.Provider, Model: c.Model, PricingRevision: hex.EncodeToString(digest[:]), InputPrice: c.InputPrice, OutputPrice: c.OutputPrice,
-		InputTokens: input, OutputTokens: output, CostMicros: int64(math.Ceil(float64(input)*c.InputPrice + float64(output)*c.OutputPrice)), CreatedAt: s.now()})
+		InputTokens: input, OutputTokens: output, CostMicros: int64(math.Ceil(float64(input)*c.InputPrice + float64(output)*c.OutputPrice)), CreatedAt: s.now(),
+		AccountID: account, ModelID: model})
 }
 
 func affordableOutput(micros, input int64, inputPrice, outputPrice float64) int64 {
@@ -186,6 +189,9 @@ func (s *Service) accountIn(ctx context.Context, q *store.Queries, row store.AIR
 	if r.State == "settled" {
 		return true, nil
 	}
+	// The log names the model and account the reservation bound, whatever
+	// the caller passed.
+	row.Provider, row.Model, row.AccountID, row.ModelID = r.Provider, r.Model, r.AccountID, r.ModelID
 	known := res.UsageKnown
 	// Explicit pre-execution HTTP rejections are non-billable. Timeouts,
 	// server errors and invalid/oversized responses are not safe to retry.

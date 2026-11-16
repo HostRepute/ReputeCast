@@ -594,7 +594,7 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 		}
 	}
 	var stored []byte
-	_ = env.App.Pool.QueryRow(ctx, `SELECT key_sealed FROM ai_connections c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter'`).Scan(&stored)
+	_ = env.App.Pool.QueryRow(ctx, `SELECT key_sealed FROM ai_accounts c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter'`).Scan(&stored)
 	if len(stored) == 0 || strings.Contains(string(stored), key) {
 		t.Fatal("the key isn't sealed")
 	}

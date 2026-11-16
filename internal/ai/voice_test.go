@@ -245,7 +245,7 @@ func TestBrandVoice(t *testing.T) {
 	for _, revoke := range []string{
 		`UPDATE workspace_members SET role_id = (SELECT id FROM roles WHERE workspace_id = $1 AND key = 'viewer') WHERE workspace_id = $1 AND user_id = $2`,
 		`UPDATE workspace_members SET scope = '{"senderDomains":["outside.test"]}' WHERE workspace_id = $1 AND user_id = $2`,
-		`UPDATE ai_connections SET features_off = '{brand_voice}' WHERE workspace_id = $1 AND $2::uuid IS NOT NULL`,
+		`UPDATE ai_workspace_settings SET features_off = '{brand_voice}' WHERE workspace_id = $1 AND $2::uuid IS NOT NULL`,
 	} {
 		for _, refusal := range []bool{false, true} {
 			mu.Lock()
@@ -270,7 +270,7 @@ func TestBrandVoice(t *testing.T) {
 			override = ""
 			mu.Unlock()
 			exec(`UPDATE workspace_members SET role_id = (SELECT id FROM roles WHERE workspace_id = $1 AND key = 'editor'), scope = '{}' WHERE workspace_id = $1 AND user_id = $2`, w.ID, other.ID)
-			exec(`UPDATE ai_connections SET features_off = '{}' WHERE workspace_id = $1`, w.ID)
+			exec(`UPDATE ai_workspace_settings SET features_off = '{}' WHERE workspace_id = $1`, w.ID)
 		}
 	}
 

@@ -290,11 +290,11 @@ func (s *Service) GenerateCampaign(ctx context.Context, ws *store.Workspace, p *
 		if err := checkSource(ctx, q, fresh); err != nil {
 			return err
 		}
-		conn, err := q.AIConnectionForUpdate(ctx, ws.ID)
+		conn, err := s.current(ctx, q, ws.ID, res.conn)
 		if err != nil {
 			return err
 		}
-		if !(&connection{conn}).connected() || !(&connection{conn}).featureOn(FeatureDraft) {
+		if !conn.connected() || !conn.featureOn(FeatureDraft) {
 			return draftProblem(ctx, 409, "unavailable")
 		}
 		if err := q.AIDraftInsert(ctx, store.AIDraftInsertParams{ID: res.RequestID, WorkspaceID: ws.ID, UserID: p.UserID, Kind: "campaign", TargetID: in.CampaignID,

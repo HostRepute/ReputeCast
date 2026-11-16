@@ -22,9 +22,11 @@ type AIAgentCapability struct {
 	CheckedAt *time.Time `json:"checkedAt,omitempty"`
 }
 
-// Pricing, labels and feature switches do not change tool support. An
-// endpoint, model or credential change does; never reuse its previous test.
-func agentConnectionHash(c store.AiConnection) string {
+// Tool support is a model's. Pricing, labels and feature switches do not
+// change it. An endpoint, model or credential change does; never reuse its
+// previous test. The inputs are those of the single connection before B1, so
+// a test made then still applies to the model it became.
+func agentConnectionHash(c store.AIBindingRow) string {
 	raw, _ := json.Marshal([]any{agentModelOf(c), c.KeySealed, c.ConnectedAt, c.DisconnectedAt, c.Demo})
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:])
@@ -35,14 +37,14 @@ func agentCapability(ctx context.Context, q *store.Queries, c *connection) (AIAg
 	if !c.connected() {
 		return out, nil
 	}
-	r, err := q.AIAgentCapability(ctx, c.WorkspaceID)
+	r, err := q.AIAgentCapability(ctx, store.AIAgentCapabilityParams{WorkspaceID: c.WorkspaceID, ModelID: c.ModelID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, nil
 	}
 	if err != nil {
 		return out, err
 	}
-	if r.ConnectionHash == agentConnectionHash(c.AiConnection) {
+	if r.ConnectionHash == agentConnectionHash(c.AIBindingRow) {
 		out.State, out.CheckedAt = "unsupported", &r.CheckedAt
 		if r.Supported {
 			out.State = "supported"
@@ -54,13 +56,17 @@ func agentCapability(ctx context.Context, q *store.Queries, c *connection) (AIAg
 // TestAgentTools has one harmless schema, no domain dispatcher and no user
 // content. Managers without ai:use can test, but cannot supply a prompt or
 // start a task. The ordinary reservation ledger accounts this fixed probe.
+// It tests the agent's model.
 func (s *Service) TestAgentTools(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIAgentCapability, error) {
 	p, err := draftActor(ctx, s.Q, ws, p, false, authz.IntegrationsManage)
 	if err != nil {
 		return AIAgentCapability{}, err
 	}
-	c, err := s.usable(ctx, ws, FeatureConnectionTest)
+	c, err := s.loadFor(ctx, s.Q, ws.ID, FeatureAgent)
 	if err != nil {
+		return AIAgentCapability{}, err
+	}
+	if c, err = s.ready(ctx, ws, c, FeatureConnectionTest); err != nil {
 		return AIAgentCapability{}, err
 	}
 	t := task{feature: FeatureConnectionTest, action: "tools", req: llm.Request{MaxTokens: 128,
@@ -95,7 +101,7 @@ func (s *Service) TestAgentTools(ctx context.Context, ws *store.Workspace, p *au
 		if err := checkTestConnection(ctx, q, ws, p, c); err != nil {
 			return err
 		}
-		if err := q.AIAgentCapabilitySave(ctx, store.AIAgentCapabilitySaveParams{WorkspaceID: ws.ID, ConnectionHash: agentConnectionHash(c.AiConnection), Supported: valid, CheckedAt: *out.CheckedAt}); err != nil {
+		if err := q.AIAgentCapabilitySave(ctx, store.AIAgentCapabilitySaveParams{WorkspaceID: ws.ID, ModelID: c.ModelID, ConnectionHash: agentConnectionHash(c.AIBindingRow), Supported: valid, CheckedAt: *out.CheckedAt}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(audit.WithPrincipal(ctx, p), q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.agent.tools_tested", TargetType: "ai_assistant", TargetID: ws.ID.String(), Metadata: map[string]any{"supported": valid, "request_id": res.RequestID}})

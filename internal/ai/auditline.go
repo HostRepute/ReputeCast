@@ -60,7 +60,7 @@ func pricesText(input, output float64) string {
 
 // featuresText counts the features that are on, as the settings show them:
 // alt text needs a model that reads images.
-func featuresText(row store.AiConnection) string {
+func featuresText(row store.AIBindingRow) string {
 	on := 0
 	for _, f := range Features {
 		if !slices.Contains(row.FeaturesOff, f) && (f != FeatureAltText || row.ImageInput) {
@@ -77,7 +77,7 @@ func featuresText(row store.AiConnection) string {
 }
 
 // connectionLine describes a connection made or changed.
-func connectionLine(row store.AiConnection, key string) string {
+func connectionLine(row store.AIBindingRow, key string) string {
 	parts := []string{"model " + row.Model, key}
 	if row.CapKind == "none" {
 		parts = append(parts, "no cap")
@@ -98,7 +98,7 @@ func modelLine(from, to string, beforeIn, beforeOut, afterIn, afterOut float64) 
 }
 
 // capLine is "cap $20.00 a month → $25.00 a month".
-func capLine(row store.AiConnection, kind string, usd float64, tokens int64) string {
+func capLine(row store.AIBindingRow, kind string, usd float64, tokens int64) string {
 	return "cap " + capText(row.CapKind, row.CapUsd, row.CapTokens) + " → " + capText(kind, usd, tokens)
 }
 

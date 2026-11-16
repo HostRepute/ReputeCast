@@ -29,9 +29,9 @@ func (q *Queries) AIBudgetAbandoned(ctx context.Context, before time.Time) (int6
 
 const aIBudgetInsert = `-- name: AIBudgetInsert :exec
 INSERT INTO ai_budget_reservations (id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision,
-    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at)
+    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, account_id, model_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-    $9, $10, 'reserved', $11, $12, $13, $14)
+    $9, $10, 'reserved', $11, $12, $13, $14, $15, $16)
 `
 
 type AIBudgetInsertParams struct {
@@ -49,6 +49,8 @@ type AIBudgetInsertParams struct {
 	OutputTokens    int64      `json:"outputTokens"`
 	CostMicros      int64      `json:"costMicros"`
 	CreatedAt       time.Time  `json:"createdAt"`
+	AccountID       *uuid.UUID `json:"accountId"`
+	ModelID         *uuid.UUID `json:"modelId"`
 }
 
 func (q *Queries) AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) error {
@@ -67,12 +69,14 @@ func (q *Queries) AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) 
 		arg.OutputTokens,
 		arg.CostMicros,
 		arg.CreatedAt,
+		arg.AccountID,
+		arg.ModelID,
 	)
 	return err
 }
 
 const aIBudgetLock = `-- name: AIBudgetLock :one
-SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2 FOR UPDATE
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2 FOR UPDATE
 `
 
 type AIBudgetLockParams struct {
@@ -100,6 +104,8 @@ func (q *Queries) AIBudgetLock(ctx context.Context, arg AIBudgetLockParams) (AiB
 		&i.CostMicros,
 		&i.CreatedAt,
 		&i.SettledAt,
+		&i.AccountID,
+		&i.ModelID,
 	)
 	return i, err
 }
@@ -127,7 +133,7 @@ func (q *Queries) AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (A
 }
 
 const aIBudgetPending = `-- name: AIBudgetPending :many
-SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at FROM ai_budget_reservations
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id FROM ai_budget_reservations
 WHERE workspace_id = $1 AND state <> 'settled'
 ORDER BY created_at, id LIMIT 100
 `
@@ -158,6 +164,8 @@ func (q *Queries) AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([
 			&i.CostMicros,
 			&i.CreatedAt,
 			&i.SettledAt,
+			&i.AccountID,
+			&i.ModelID,
 		); err != nil {
 			return nil, err
 		}
@@ -246,7 +254,9 @@ const aIBudgetWorkspaceLock = `-- name: AIBudgetWorkspaceLock :exec
 SELECT pg_advisory_xact_lock(hashtextextended('ai_budget:' || ($1::uuid)::text, 0))
 `
 
-// Also serializes onboarding tests before an AI connection exists.
+// The workspace budget's lock, across all its accounts and models. It is
+// taken after the AI configuration lock (AIWorkspaceSettingsLock), never
+// before; accounting needs only this one.
 func (q *Queries) AIBudgetWorkspaceLock(ctx context.Context, workspaceID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, aIBudgetWorkspaceLock, workspaceID)
 	return err

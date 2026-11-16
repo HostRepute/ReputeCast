@@ -1,61 +1,122 @@
--- AI assistant (design expansion M22): the workspace's model, the AI
--- activity log, kept report summaries and AI translations.
+-- AI assistant (design expansion M22): the workspace's AI settings, its
+-- model accounts and models (assistant brief D3), the AI activity log, kept
+-- report summaries and AI translations.
 
--- name: AIConnection :one
-SELECT * FROM ai_connections WHERE workspace_id = $1;
+-- name: AIBinding :one
+-- A model with its account and the workspace's settings: what a request is
+-- bound to. The column names are the single connection's before B1.
+SELECT m.id AS model_id, a.id AS account_id, s.workspace_id,
+    a.provider, a.label, a.base_url, m.deployment, a.api_version, m.model, m.model_name, m.image_input,
+    a.key_sealed, a.key_added_by, a.key_added_at, a.connected_by, a.connected_at, a.disconnected_by, a.disconnected_at,
+    a.status, a.status_detail, a.status_at, a.last_test_at, a.last_test_ok, a.last_test_ms,
+    s.cap_kind, s.cap_usd, s.cap_tokens, s.cap_set_by, s.cap_set_at,
+    m.input_price, m.output_price, m.prices_from, m.price_known,
+    s.features_off, s.notice_month, s.cap_notice_month, a.demo,
+    s.revision AS settings_revision, a.revision AS account_revision, m.revision AS model_revision,
+    m.updated_at AS model_updated_at
+FROM ai_models m
+JOIN ai_accounts a ON a.id = m.account_id AND a.workspace_id = m.workspace_id
+JOIN ai_workspace_settings s ON s.workspace_id = m.workspace_id
+WHERE m.workspace_id = @workspace_id AND m.id = @model_id;
 
--- name: AIConnectionForUpdate :one
-SELECT * FROM ai_connections WHERE workspace_id = $1 FOR UPDATE;
+-- name: AIPrimaryModel :one
+-- The workspace's first account and its first model: what the single-model
+-- settings and operations act on.
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = @workspace_id
+ORDER BY a.created_at, a.id, m.created_at, m.id
+LIMIT 1;
 
--- name: AIConnectionSave :exec
-INSERT INTO ai_connections (
-    workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input,
-    key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at,
-    status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms,
-    cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from,
-    features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known
-) VALUES (
-    @workspace_id, @provider, @label, @base_url, @deployment, @api_version, @model, @model_name, @image_input,
-    @key_sealed, @key_added_by, @key_added_at, @connected_by, @connected_at, @disconnected_by, @disconnected_at,
-    @status, @status_detail, @status_at, @last_test_at, @last_test_ok, @last_test_ms,
-    @cap_kind, @cap_usd, @cap_tokens, @cap_set_by, @cap_set_at, @input_price, @output_price, @prices_from,
-    @features_off, @notice_month, @cap_notice_month, @demo, @updated_by, @updated_at, @price_known
-)
-ON CONFLICT (workspace_id) DO UPDATE SET
-    provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url, deployment = EXCLUDED.deployment,
-    api_version = EXCLUDED.api_version, model = EXCLUDED.model, model_name = EXCLUDED.model_name, image_input = EXCLUDED.image_input,
-    key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by, key_added_at = EXCLUDED.key_added_at,
-    connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at, disconnected_by = EXCLUDED.disconnected_by,
-    disconnected_at = EXCLUDED.disconnected_at, status = EXCLUDED.status, status_detail = EXCLUDED.status_detail,
-    status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at, last_test_ok = EXCLUDED.last_test_ok,
-    last_test_ms = EXCLUDED.last_test_ms, cap_kind = EXCLUDED.cap_kind, cap_usd = EXCLUDED.cap_usd, cap_tokens = EXCLUDED.cap_tokens,
-    cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, input_price = EXCLUDED.input_price,
-    output_price = EXCLUDED.output_price, prices_from = EXCLUDED.prices_from, features_off = EXCLUDED.features_off,
-    notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month, demo = EXCLUDED.demo,
-    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at, price_known = EXCLUDED.price_known;
+-- name: AIFeatureModel :one
+SELECT model_id FROM ai_feature_models WHERE workspace_id = @workspace_id AND feature = @feature;
 
--- name: AIConnectionSetStatus :execrows
--- The provider rejected the saved key (or a passing request cleared it).
-UPDATE ai_connections SET status = @status, status_detail = @status_detail, status_at = @status_at
-WHERE workspace_id = @workspace_id AND status <> @status AND updated_at = @expected_updated_at;
+-- name: AIFeatureModelsFill :exec
+-- A first model is every feature's default; features with one keep it.
+INSERT INTO ai_feature_models (workspace_id, feature, model_id)
+SELECT @workspace_id::uuid, f, @model_id::uuid FROM unnest(@features::text[]) AS f
+ON CONFLICT (workspace_id, feature) DO NOTHING;
 
--- name: AIConnectionSetTest :exec
-UPDATE ai_connections SET last_test_at = @last_test_at, last_test_ok = @last_test_ok, last_test_ms = @last_test_ms
-WHERE workspace_id = @workspace_id;
+-- name: AIFeatureModelsMove :exec
+-- Features whose default is one of an account's other models move to its kept one.
+UPDATE ai_feature_models f SET model_id = @keep_id
+WHERE f.workspace_id = @workspace_id AND f.model_id IN (
+    SELECT m.id FROM ai_models m WHERE m.workspace_id = @workspace_id AND m.account_id = @account_id AND m.id <> @keep_id);
 
--- name: AIConnectionClaimNotice :execrows
+-- name: AIModelsDeleteOthers :exec
+DELETE FROM ai_models WHERE workspace_id = @workspace_id AND account_id = @account_id AND id <> @keep_id;
+
+-- name: AIWorkspaceSettings :one
+SELECT * FROM ai_workspace_settings WHERE workspace_id = $1;
+
+-- name: AIWorkspaceSettingsLock :one
+-- The AI configuration lock (see migration 03630).
+SELECT * FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE;
+
+-- name: AIWorkspaceSettingsEnsure :exec
+INSERT INTO ai_workspace_settings (workspace_id) VALUES ($1) ON CONFLICT (workspace_id) DO NOTHING;
+
+-- name: AIWorkspaceSettingsSave :exec
+INSERT INTO ai_workspace_settings (workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off,
+    notice_month, cap_notice_month, updated_by, updated_at)
+VALUES (@workspace_id, @cap_kind, @cap_usd, @cap_tokens, @cap_set_by, @cap_set_at, @features_off,
+    @notice_month, @cap_notice_month, @updated_by, @updated_at)
+ON CONFLICT (workspace_id) DO UPDATE SET cap_kind = EXCLUDED.cap_kind, cap_usd = EXCLUDED.cap_usd, cap_tokens = EXCLUDED.cap_tokens,
+    cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, features_off = EXCLUDED.features_off,
+    notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month,
+    revision = ai_workspace_settings.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at;
+
+-- name: AIAccountSave :exec
+INSERT INTO ai_accounts (id, workspace_id, provider, label, base_url, api_version, key_sealed, key_added_by, key_added_at,
+    connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at,
+    last_test_at, last_test_ok, last_test_ms, demo, created_at, updated_by, updated_at)
+VALUES (@id, @workspace_id, @provider, @label, @base_url, @api_version, @key_sealed, @key_added_by, @key_added_at,
+    @connected_by, @connected_at, @disconnected_by, @disconnected_at, @status, @status_detail, @status_at,
+    @last_test_at, @last_test_ok, @last_test_ms, @demo, @updated_at, @updated_by, @updated_at)
+ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url,
+    api_version = EXCLUDED.api_version, key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by,
+    key_added_at = EXCLUDED.key_added_at, connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at,
+    disconnected_by = EXCLUDED.disconnected_by, disconnected_at = EXCLUDED.disconnected_at, status = EXCLUDED.status,
+    status_detail = EXCLUDED.status_detail, status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at,
+    last_test_ok = EXCLUDED.last_test_ok, last_test_ms = EXCLUDED.last_test_ms, demo = EXCLUDED.demo,
+    revision = ai_accounts.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+WHERE ai_accounts.workspace_id = EXCLUDED.workspace_id;
+
+-- name: AIModelSave :exec
+INSERT INTO ai_models (id, workspace_id, account_id, model, model_name, deployment, image_input, input_price, output_price,
+    prices_from, price_known, created_at, updated_by, updated_at)
+VALUES (@id, @workspace_id, @account_id, @model, @model_name, @deployment, @image_input, @input_price, @output_price,
+    @prices_from, @price_known, @updated_at, @updated_by, @updated_at)
+ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, model_name = EXCLUDED.model_name, deployment = EXCLUDED.deployment,
+    image_input = EXCLUDED.image_input, input_price = EXCLUDED.input_price, output_price = EXCLUDED.output_price,
+    prices_from = EXCLUDED.prices_from, price_known = EXCLUDED.price_known,
+    revision = ai_models.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+WHERE ai_models.workspace_id = EXCLUDED.workspace_id AND ai_models.account_id = EXCLUDED.account_id;
+
+-- name: AIAccountSetStatus :execrows
+-- The provider rejected the saved key (or a passing request cleared it),
+-- unless the account changed since the request was bound to it.
+UPDATE ai_accounts SET status = @status, status_detail = @status_detail, status_at = @status_at
+WHERE id = @id AND workspace_id = @workspace_id AND status <> @status AND revision = @expected_revision;
+
+-- name: AIAccountSetTest :exec
+UPDATE ai_accounts SET last_test_at = @last_test_at, last_test_ok = @last_test_ok, last_test_ms = @last_test_ms
+WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: AIWorkspaceSettingsClaimNotice :execrows
 -- Claims this month's 80% notice, once.
-UPDATE ai_connections SET notice_month = @month WHERE workspace_id = @workspace_id AND notice_month <> @month;
+UPDATE ai_workspace_settings SET notice_month = @month WHERE workspace_id = @workspace_id AND notice_month <> @month;
 
--- name: AIConnectionClaimCapNotice :execrows
+-- name: AIWorkspaceSettingsClaimCapNotice :execrows
 -- Claims this month's cap-reached notice, once.
-UPDATE ai_connections SET cap_notice_month = @month WHERE workspace_id = @workspace_id AND cap_notice_month <> @month;
+UPDATE ai_workspace_settings SET cap_notice_month = @month WHERE workspace_id = @workspace_id AND cap_notice_month <> @month;
 
 -- name: AIRequestInsert :exec
 INSERT INTO ai_requests (id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model,
-    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known)
+    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known,
+    account_id, model_id)
 VALUES (@id, @workspace_id, @user_id, @feature, @action, @target_kind, @target_id, @target_label, @provider, @model,
-    @input_tokens, @output_tokens, @cost_micros, @outcome, @outcome_detail, @duration_ms, @created_at, @decided_at, @voice_revision, @usage_known)
+    @input_tokens, @output_tokens, @cost_micros, @outcome, @outcome_detail, @duration_ms, @created_at, @decided_at, @voice_revision, @usage_known,
+    @account_id, @model_id)
 ON CONFLICT (id) DO UPDATE SET input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
     cost_micros = EXCLUDED.cost_micros, usage_known = EXCLUDED.usage_known
 WHERE ai_requests.workspace_id = EXCLUDED.workspace_id AND NOT ai_requests.usage_known;

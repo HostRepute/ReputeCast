@@ -398,11 +398,11 @@ func (s *Service) GenerateAutomation(ctx context.Context, ws *store.Workspace, p
 		if err := checkSource(ctx, q, fresh); err != nil {
 			return err
 		}
-		conn, err := q.AIConnectionForUpdate(ctx, ws.ID)
+		conn, err := s.current(ctx, q, ws.ID, r.conn)
 		if err != nil {
 			return err
 		}
-		if !(&connection{conn}).connected() || !(&connection{conn}).featureOn(FeatureDraft) {
+		if !conn.connected() || !conn.featureOn(FeatureDraft) {
 			return draftProblem(ctx, 409, "unavailable")
 		}
 		if err := q.AIDraftInsert(ctx, store.AIDraftInsertParams{ID: r.RequestID, WorkspaceID: ws.ID, UserID: p.UserID, Kind: "automation", TargetID: in.AutomationID, BaseRevision: in.BaseRevision, Context: contextJSON, Content: contentJSON, CreatedAt: now, ExpiresAt: now.Add(24 * time.Hour)}); err != nil {

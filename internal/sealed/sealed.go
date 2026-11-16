@@ -54,7 +54,7 @@ func ids(cols ...string) []string { return cols }
 var Columns = []Column{
 	{Table: "adapter_runtimes", Column: "secret_enc", Key: ids("adapter_id:uuid"), AD: `'adapter:' || adapter_id::text || ':secret'`},
 	{Table: "adapter_runtimes", Column: "previous_secret_enc", Key: ids("adapter_id:uuid"), AD: `'adapter:' || adapter_id::text || ':secret'`},
-	{Table: "ai_connections", Column: "key_sealed", Key: ids("workspace_id:uuid"), AD: `'ai:' || workspace_id::text || ':key'`},
+	{Table: "ai_accounts", Column: "key_sealed", Key: ids("id:uuid"), AD: `'ai:' || id::text || ':key'`},
 	{Table: "auth_challenges", Column: "data", JSONField: "secret", Where: "kind = 'totp_setup'", Key: ids("id:uuid"), AD: `'totp-pending:' || user_id::text`, ShortLived: true},
 	{Table: "auth_challenges", Column: "data", JSONField: "invite_enc", Where: "kind = 'oidc_flow'", Key: ids("id:uuid"), AD: `'sso:invite'`, ShortLived: true},
 	{Table: "automation_step_secrets", Column: "secret_enc", Key: ids("automation_id:uuid", "node_id:text"), AD: `'automation:' || automation_id::text || ':step:' || node_id || ':secret'`},

@@ -12,6 +12,251 @@ import (
 	"github.com/google/uuid"
 )
 
+const aIAccountSave = `-- name: AIAccountSave :exec
+INSERT INTO ai_accounts (id, workspace_id, provider, label, base_url, api_version, key_sealed, key_added_by, key_added_at,
+    connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at,
+    last_test_at, last_test_ok, last_test_ms, demo, created_at, updated_by, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+    $10, $11, $12, $13, $14, $15, $16,
+    $17, $18, $19, $20, $21, $22, $21)
+ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url,
+    api_version = EXCLUDED.api_version, key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by,
+    key_added_at = EXCLUDED.key_added_at, connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at,
+    disconnected_by = EXCLUDED.disconnected_by, disconnected_at = EXCLUDED.disconnected_at, status = EXCLUDED.status,
+    status_detail = EXCLUDED.status_detail, status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at,
+    last_test_ok = EXCLUDED.last_test_ok, last_test_ms = EXCLUDED.last_test_ms, demo = EXCLUDED.demo,
+    revision = ai_accounts.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+WHERE ai_accounts.workspace_id = EXCLUDED.workspace_id
+`
+
+type AIAccountSaveParams struct {
+	ID             uuid.UUID  `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	Provider       string     `json:"provider"`
+	Label          string     `json:"label"`
+	BaseUrl        string     `json:"baseUrl"`
+	ApiVersion     string     `json:"apiVersion"`
+	KeySealed      []byte     `json:"keySealed"`
+	KeyAddedBy     *uuid.UUID `json:"keyAddedBy"`
+	KeyAddedAt     *time.Time `json:"keyAddedAt"`
+	ConnectedBy    *uuid.UUID `json:"connectedBy"`
+	ConnectedAt    time.Time  `json:"connectedAt"`
+	DisconnectedBy *uuid.UUID `json:"disconnectedBy"`
+	DisconnectedAt *time.Time `json:"disconnectedAt"`
+	Status         string     `json:"status"`
+	StatusDetail   string     `json:"statusDetail"`
+	StatusAt       *time.Time `json:"statusAt"`
+	LastTestAt     *time.Time `json:"lastTestAt"`
+	LastTestOk     *bool      `json:"lastTestOk"`
+	LastTestMs     *int32     `json:"lastTestMs"`
+	Demo           bool       `json:"demo"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+	UpdatedBy      *uuid.UUID `json:"updatedBy"`
+}
+
+func (q *Queries) AIAccountSave(ctx context.Context, arg AIAccountSaveParams) error {
+	_, err := q.db.Exec(ctx, aIAccountSave,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.Provider,
+		arg.Label,
+		arg.BaseUrl,
+		arg.ApiVersion,
+		arg.KeySealed,
+		arg.KeyAddedBy,
+		arg.KeyAddedAt,
+		arg.ConnectedBy,
+		arg.ConnectedAt,
+		arg.DisconnectedBy,
+		arg.DisconnectedAt,
+		arg.Status,
+		arg.StatusDetail,
+		arg.StatusAt,
+		arg.LastTestAt,
+		arg.LastTestOk,
+		arg.LastTestMs,
+		arg.Demo,
+		arg.UpdatedAt,
+		arg.UpdatedBy,
+	)
+	return err
+}
+
+const aIAccountSetStatus = `-- name: AIAccountSetStatus :execrows
+UPDATE ai_accounts SET status = $1, status_detail = $2, status_at = $3
+WHERE id = $4 AND workspace_id = $5 AND status <> $1 AND revision = $6
+`
+
+type AIAccountSetStatusParams struct {
+	Status           string     `json:"status"`
+	StatusDetail     string     `json:"statusDetail"`
+	StatusAt         *time.Time `json:"statusAt"`
+	ID               uuid.UUID  `json:"id"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	ExpectedRevision int64      `json:"expectedRevision"`
+}
+
+// The provider rejected the saved key (or a passing request cleared it),
+// unless the account changed since the request was bound to it.
+func (q *Queries) AIAccountSetStatus(ctx context.Context, arg AIAccountSetStatusParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIAccountSetStatus,
+		arg.Status,
+		arg.StatusDetail,
+		arg.StatusAt,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.ExpectedRevision,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIAccountSetTest = `-- name: AIAccountSetTest :exec
+UPDATE ai_accounts SET last_test_at = $1, last_test_ok = $2, last_test_ms = $3
+WHERE id = $4 AND workspace_id = $5
+`
+
+type AIAccountSetTestParams struct {
+	LastTestAt  *time.Time `json:"lastTestAt"`
+	LastTestOk  *bool      `json:"lastTestOk"`
+	LastTestMs  *int32     `json:"lastTestMs"`
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+}
+
+func (q *Queries) AIAccountSetTest(ctx context.Context, arg AIAccountSetTestParams) error {
+	_, err := q.db.Exec(ctx, aIAccountSetTest,
+		arg.LastTestAt,
+		arg.LastTestOk,
+		arg.LastTestMs,
+		arg.ID,
+		arg.WorkspaceID,
+	)
+	return err
+}
+
+const aIBinding = `-- name: AIBinding :one
+
+SELECT m.id AS model_id, a.id AS account_id, s.workspace_id,
+    a.provider, a.label, a.base_url, m.deployment, a.api_version, m.model, m.model_name, m.image_input,
+    a.key_sealed, a.key_added_by, a.key_added_at, a.connected_by, a.connected_at, a.disconnected_by, a.disconnected_at,
+    a.status, a.status_detail, a.status_at, a.last_test_at, a.last_test_ok, a.last_test_ms,
+    s.cap_kind, s.cap_usd, s.cap_tokens, s.cap_set_by, s.cap_set_at,
+    m.input_price, m.output_price, m.prices_from, m.price_known,
+    s.features_off, s.notice_month, s.cap_notice_month, a.demo,
+    s.revision AS settings_revision, a.revision AS account_revision, m.revision AS model_revision,
+    m.updated_at AS model_updated_at
+FROM ai_models m
+JOIN ai_accounts a ON a.id = m.account_id AND a.workspace_id = m.workspace_id
+JOIN ai_workspace_settings s ON s.workspace_id = m.workspace_id
+WHERE m.workspace_id = $1 AND m.id = $2
+`
+
+type AIBindingParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ModelID     uuid.UUID `json:"modelId"`
+}
+
+type AIBindingRow struct {
+	ModelID          uuid.UUID  `json:"modelId"`
+	AccountID        uuid.UUID  `json:"accountId"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	Provider         string     `json:"provider"`
+	Label            string     `json:"label"`
+	BaseUrl          string     `json:"baseUrl"`
+	Deployment       string     `json:"deployment"`
+	ApiVersion       string     `json:"apiVersion"`
+	Model            string     `json:"model"`
+	ModelName        string     `json:"modelName"`
+	ImageInput       bool       `json:"imageInput"`
+	KeySealed        []byte     `json:"keySealed"`
+	KeyAddedBy       *uuid.UUID `json:"keyAddedBy"`
+	KeyAddedAt       *time.Time `json:"keyAddedAt"`
+	ConnectedBy      *uuid.UUID `json:"connectedBy"`
+	ConnectedAt      time.Time  `json:"connectedAt"`
+	DisconnectedBy   *uuid.UUID `json:"disconnectedBy"`
+	DisconnectedAt   *time.Time `json:"disconnectedAt"`
+	Status           string     `json:"status"`
+	StatusDetail     string     `json:"statusDetail"`
+	StatusAt         *time.Time `json:"statusAt"`
+	LastTestAt       *time.Time `json:"lastTestAt"`
+	LastTestOk       *bool      `json:"lastTestOk"`
+	LastTestMs       *int32     `json:"lastTestMs"`
+	CapKind          string     `json:"capKind"`
+	CapUsd           float64    `json:"capUsd"`
+	CapTokens        int64      `json:"capTokens"`
+	CapSetBy         *uuid.UUID `json:"capSetBy"`
+	CapSetAt         *time.Time `json:"capSetAt"`
+	InputPrice       float64    `json:"inputPrice"`
+	OutputPrice      float64    `json:"outputPrice"`
+	PricesFrom       *time.Time `json:"pricesFrom"`
+	PriceKnown       bool       `json:"priceKnown"`
+	FeaturesOff      []string   `json:"featuresOff"`
+	NoticeMonth      string     `json:"noticeMonth"`
+	CapNoticeMonth   string     `json:"capNoticeMonth"`
+	Demo             bool       `json:"demo"`
+	SettingsRevision int64      `json:"settingsRevision"`
+	AccountRevision  int64      `json:"accountRevision"`
+	ModelRevision    int64      `json:"modelRevision"`
+	ModelUpdatedAt   time.Time  `json:"modelUpdatedAt"`
+}
+
+// AI assistant (design expansion M22): the workspace's AI settings, its
+// model accounts and models (assistant brief D3), the AI activity log, kept
+// report summaries and AI translations.
+// A model with its account and the workspace's settings: what a request is
+// bound to. The column names are the single connection's before B1.
+func (q *Queries) AIBinding(ctx context.Context, arg AIBindingParams) (AIBindingRow, error) {
+	row := q.db.QueryRow(ctx, aIBinding, arg.WorkspaceID, arg.ModelID)
+	var i AIBindingRow
+	err := row.Scan(
+		&i.ModelID,
+		&i.AccountID,
+		&i.WorkspaceID,
+		&i.Provider,
+		&i.Label,
+		&i.BaseUrl,
+		&i.Deployment,
+		&i.ApiVersion,
+		&i.Model,
+		&i.ModelName,
+		&i.ImageInput,
+		&i.KeySealed,
+		&i.KeyAddedBy,
+		&i.KeyAddedAt,
+		&i.ConnectedBy,
+		&i.ConnectedAt,
+		&i.DisconnectedBy,
+		&i.DisconnectedAt,
+		&i.Status,
+		&i.StatusDetail,
+		&i.StatusAt,
+		&i.LastTestAt,
+		&i.LastTestOk,
+		&i.LastTestMs,
+		&i.CapKind,
+		&i.CapUsd,
+		&i.CapTokens,
+		&i.CapSetBy,
+		&i.CapSetAt,
+		&i.InputPrice,
+		&i.OutputPrice,
+		&i.PricesFrom,
+		&i.PriceKnown,
+		&i.FeaturesOff,
+		&i.NoticeMonth,
+		&i.CapNoticeMonth,
+		&i.Demo,
+		&i.SettingsRevision,
+		&i.AccountRevision,
+		&i.ModelRevision,
+		&i.ModelUpdatedAt,
+	)
+	return i, err
+}
+
 const aICampaignBrief = `-- name: AICampaignBrief :one
 SELECT c.id, c.name, c.subject, c.preheader, c.mjml, c.html, c.status
 FROM campaigns c WHERE c.id = $1 AND c.workspace_id = $2
@@ -48,301 +293,55 @@ func (q *Queries) AICampaignBrief(ctx context.Context, arg AICampaignBriefParams
 	return i, err
 }
 
-const aIConnection = `-- name: AIConnection :one
-
-SELECT workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input, key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from, features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known FROM ai_connections WHERE workspace_id = $1
+const aIFeatureModel = `-- name: AIFeatureModel :one
+SELECT model_id FROM ai_feature_models WHERE workspace_id = $1 AND feature = $2
 `
 
-// AI assistant (design expansion M22): the workspace's model, the AI
-// activity log, kept report summaries and AI translations.
-func (q *Queries) AIConnection(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error) {
-	row := q.db.QueryRow(ctx, aIConnection, workspaceID)
-	var i AiConnection
-	err := row.Scan(
-		&i.WorkspaceID,
-		&i.Provider,
-		&i.Label,
-		&i.BaseUrl,
-		&i.Deployment,
-		&i.ApiVersion,
-		&i.Model,
-		&i.ModelName,
-		&i.ImageInput,
-		&i.KeySealed,
-		&i.KeyAddedBy,
-		&i.KeyAddedAt,
-		&i.ConnectedBy,
-		&i.ConnectedAt,
-		&i.DisconnectedBy,
-		&i.DisconnectedAt,
-		&i.Status,
-		&i.StatusDetail,
-		&i.StatusAt,
-		&i.LastTestAt,
-		&i.LastTestOk,
-		&i.LastTestMs,
-		&i.CapKind,
-		&i.CapUsd,
-		&i.CapTokens,
-		&i.CapSetBy,
-		&i.CapSetAt,
-		&i.InputPrice,
-		&i.OutputPrice,
-		&i.PricesFrom,
-		&i.FeaturesOff,
-		&i.NoticeMonth,
-		&i.CapNoticeMonth,
-		&i.Demo,
-		&i.UpdatedBy,
-		&i.UpdatedAt,
-		&i.PriceKnown,
-	)
-	return i, err
-}
-
-const aIConnectionClaimCapNotice = `-- name: AIConnectionClaimCapNotice :execrows
-UPDATE ai_connections SET cap_notice_month = $1 WHERE workspace_id = $2 AND cap_notice_month <> $1
-`
-
-type AIConnectionClaimCapNoticeParams struct {
-	Month       string    `json:"month"`
+type AIFeatureModelParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Feature     string    `json:"feature"`
 }
 
-// Claims this month's cap-reached notice, once.
-func (q *Queries) AIConnectionClaimCapNotice(ctx context.Context, arg AIConnectionClaimCapNoticeParams) (int64, error) {
-	result, err := q.db.Exec(ctx, aIConnectionClaimCapNotice, arg.Month, arg.WorkspaceID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) AIFeatureModel(ctx context.Context, arg AIFeatureModelParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, aIFeatureModel, arg.WorkspaceID, arg.Feature)
+	var model_id uuid.UUID
+	err := row.Scan(&model_id)
+	return model_id, err
 }
 
-const aIConnectionClaimNotice = `-- name: AIConnectionClaimNotice :execrows
-UPDATE ai_connections SET notice_month = $1 WHERE workspace_id = $2 AND notice_month <> $1
+const aIFeatureModelsFill = `-- name: AIFeatureModelsFill :exec
+INSERT INTO ai_feature_models (workspace_id, feature, model_id)
+SELECT $1::uuid, f, $2::uuid FROM unnest($3::text[]) AS f
+ON CONFLICT (workspace_id, feature) DO NOTHING
 `
 
-type AIConnectionClaimNoticeParams struct {
-	Month       string    `json:"month"`
+type AIFeatureModelsFillParams struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ModelID     uuid.UUID `json:"modelId"`
+	Features    []string  `json:"features"`
 }
 
-// Claims this month's 80% notice, once.
-func (q *Queries) AIConnectionClaimNotice(ctx context.Context, arg AIConnectionClaimNoticeParams) (int64, error) {
-	result, err := q.db.Exec(ctx, aIConnectionClaimNotice, arg.Month, arg.WorkspaceID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const aIConnectionForUpdate = `-- name: AIConnectionForUpdate :one
-SELECT workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input, key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from, features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known FROM ai_connections WHERE workspace_id = $1 FOR UPDATE
-`
-
-func (q *Queries) AIConnectionForUpdate(ctx context.Context, workspaceID uuid.UUID) (AiConnection, error) {
-	row := q.db.QueryRow(ctx, aIConnectionForUpdate, workspaceID)
-	var i AiConnection
-	err := row.Scan(
-		&i.WorkspaceID,
-		&i.Provider,
-		&i.Label,
-		&i.BaseUrl,
-		&i.Deployment,
-		&i.ApiVersion,
-		&i.Model,
-		&i.ModelName,
-		&i.ImageInput,
-		&i.KeySealed,
-		&i.KeyAddedBy,
-		&i.KeyAddedAt,
-		&i.ConnectedBy,
-		&i.ConnectedAt,
-		&i.DisconnectedBy,
-		&i.DisconnectedAt,
-		&i.Status,
-		&i.StatusDetail,
-		&i.StatusAt,
-		&i.LastTestAt,
-		&i.LastTestOk,
-		&i.LastTestMs,
-		&i.CapKind,
-		&i.CapUsd,
-		&i.CapTokens,
-		&i.CapSetBy,
-		&i.CapSetAt,
-		&i.InputPrice,
-		&i.OutputPrice,
-		&i.PricesFrom,
-		&i.FeaturesOff,
-		&i.NoticeMonth,
-		&i.CapNoticeMonth,
-		&i.Demo,
-		&i.UpdatedBy,
-		&i.UpdatedAt,
-		&i.PriceKnown,
-	)
-	return i, err
-}
-
-const aIConnectionSave = `-- name: AIConnectionSave :exec
-INSERT INTO ai_connections (
-    workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input,
-    key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at,
-    status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms,
-    cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from,
-    features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9,
-    $10, $11, $12, $13, $14, $15, $16,
-    $17, $18, $19, $20, $21, $22,
-    $23, $24, $25, $26, $27, $28, $29, $30,
-    $31, $32, $33, $34, $35, $36, $37
-)
-ON CONFLICT (workspace_id) DO UPDATE SET
-    provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url, deployment = EXCLUDED.deployment,
-    api_version = EXCLUDED.api_version, model = EXCLUDED.model, model_name = EXCLUDED.model_name, image_input = EXCLUDED.image_input,
-    key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by, key_added_at = EXCLUDED.key_added_at,
-    connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at, disconnected_by = EXCLUDED.disconnected_by,
-    disconnected_at = EXCLUDED.disconnected_at, status = EXCLUDED.status, status_detail = EXCLUDED.status_detail,
-    status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at, last_test_ok = EXCLUDED.last_test_ok,
-    last_test_ms = EXCLUDED.last_test_ms, cap_kind = EXCLUDED.cap_kind, cap_usd = EXCLUDED.cap_usd, cap_tokens = EXCLUDED.cap_tokens,
-    cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, input_price = EXCLUDED.input_price,
-    output_price = EXCLUDED.output_price, prices_from = EXCLUDED.prices_from, features_off = EXCLUDED.features_off,
-    notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month, demo = EXCLUDED.demo,
-    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at, price_known = EXCLUDED.price_known
-`
-
-type AIConnectionSaveParams struct {
-	WorkspaceID    uuid.UUID  `json:"workspaceId"`
-	Provider       string     `json:"provider"`
-	Label          string     `json:"label"`
-	BaseUrl        string     `json:"baseUrl"`
-	Deployment     string     `json:"deployment"`
-	ApiVersion     string     `json:"apiVersion"`
-	Model          string     `json:"model"`
-	ModelName      string     `json:"modelName"`
-	ImageInput     bool       `json:"imageInput"`
-	KeySealed      []byte     `json:"keySealed"`
-	KeyAddedBy     *uuid.UUID `json:"keyAddedBy"`
-	KeyAddedAt     *time.Time `json:"keyAddedAt"`
-	ConnectedBy    *uuid.UUID `json:"connectedBy"`
-	ConnectedAt    time.Time  `json:"connectedAt"`
-	DisconnectedBy *uuid.UUID `json:"disconnectedBy"`
-	DisconnectedAt *time.Time `json:"disconnectedAt"`
-	Status         string     `json:"status"`
-	StatusDetail   string     `json:"statusDetail"`
-	StatusAt       *time.Time `json:"statusAt"`
-	LastTestAt     *time.Time `json:"lastTestAt"`
-	LastTestOk     *bool      `json:"lastTestOk"`
-	LastTestMs     *int32     `json:"lastTestMs"`
-	CapKind        string     `json:"capKind"`
-	CapUsd         float64    `json:"capUsd"`
-	CapTokens      int64      `json:"capTokens"`
-	CapSetBy       *uuid.UUID `json:"capSetBy"`
-	CapSetAt       *time.Time `json:"capSetAt"`
-	InputPrice     float64    `json:"inputPrice"`
-	OutputPrice    float64    `json:"outputPrice"`
-	PricesFrom     *time.Time `json:"pricesFrom"`
-	FeaturesOff    []string   `json:"featuresOff"`
-	NoticeMonth    string     `json:"noticeMonth"`
-	CapNoticeMonth string     `json:"capNoticeMonth"`
-	Demo           bool       `json:"demo"`
-	UpdatedBy      *uuid.UUID `json:"updatedBy"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
-	PriceKnown     bool       `json:"priceKnown"`
-}
-
-func (q *Queries) AIConnectionSave(ctx context.Context, arg AIConnectionSaveParams) error {
-	_, err := q.db.Exec(ctx, aIConnectionSave,
-		arg.WorkspaceID,
-		arg.Provider,
-		arg.Label,
-		arg.BaseUrl,
-		arg.Deployment,
-		arg.ApiVersion,
-		arg.Model,
-		arg.ModelName,
-		arg.ImageInput,
-		arg.KeySealed,
-		arg.KeyAddedBy,
-		arg.KeyAddedAt,
-		arg.ConnectedBy,
-		arg.ConnectedAt,
-		arg.DisconnectedBy,
-		arg.DisconnectedAt,
-		arg.Status,
-		arg.StatusDetail,
-		arg.StatusAt,
-		arg.LastTestAt,
-		arg.LastTestOk,
-		arg.LastTestMs,
-		arg.CapKind,
-		arg.CapUsd,
-		arg.CapTokens,
-		arg.CapSetBy,
-		arg.CapSetAt,
-		arg.InputPrice,
-		arg.OutputPrice,
-		arg.PricesFrom,
-		arg.FeaturesOff,
-		arg.NoticeMonth,
-		arg.CapNoticeMonth,
-		arg.Demo,
-		arg.UpdatedBy,
-		arg.UpdatedAt,
-		arg.PriceKnown,
-	)
+// A first model is every feature's default; features with one keep it.
+func (q *Queries) AIFeatureModelsFill(ctx context.Context, arg AIFeatureModelsFillParams) error {
+	_, err := q.db.Exec(ctx, aIFeatureModelsFill, arg.WorkspaceID, arg.ModelID, arg.Features)
 	return err
 }
 
-const aIConnectionSetStatus = `-- name: AIConnectionSetStatus :execrows
-UPDATE ai_connections SET status = $1, status_detail = $2, status_at = $3
-WHERE workspace_id = $4 AND status <> $1 AND updated_at = $5
+const aIFeatureModelsMove = `-- name: AIFeatureModelsMove :exec
+UPDATE ai_feature_models f SET model_id = $1
+WHERE f.workspace_id = $2 AND f.model_id IN (
+    SELECT m.id FROM ai_models m WHERE m.workspace_id = $2 AND m.account_id = $3 AND m.id <> $1)
 `
 
-type AIConnectionSetStatusParams struct {
-	Status            string     `json:"status"`
-	StatusDetail      string     `json:"statusDetail"`
-	StatusAt          *time.Time `json:"statusAt"`
-	WorkspaceID       uuid.UUID  `json:"workspaceId"`
-	ExpectedUpdatedAt time.Time  `json:"expectedUpdatedAt"`
+type AIFeatureModelsMoveParams struct {
+	KeepID      uuid.UUID `json:"keepId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	AccountID   uuid.UUID `json:"accountId"`
 }
 
-// The provider rejected the saved key (or a passing request cleared it).
-func (q *Queries) AIConnectionSetStatus(ctx context.Context, arg AIConnectionSetStatusParams) (int64, error) {
-	result, err := q.db.Exec(ctx, aIConnectionSetStatus,
-		arg.Status,
-		arg.StatusDetail,
-		arg.StatusAt,
-		arg.WorkspaceID,
-		arg.ExpectedUpdatedAt,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const aIConnectionSetTest = `-- name: AIConnectionSetTest :exec
-UPDATE ai_connections SET last_test_at = $1, last_test_ok = $2, last_test_ms = $3
-WHERE workspace_id = $4
-`
-
-type AIConnectionSetTestParams struct {
-	LastTestAt  *time.Time `json:"lastTestAt"`
-	LastTestOk  *bool      `json:"lastTestOk"`
-	LastTestMs  *int32     `json:"lastTestMs"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-}
-
-func (q *Queries) AIConnectionSetTest(ctx context.Context, arg AIConnectionSetTestParams) error {
-	_, err := q.db.Exec(ctx, aIConnectionSetTest,
-		arg.LastTestAt,
-		arg.LastTestOk,
-		arg.LastTestMs,
-		arg.WorkspaceID,
-	)
+// Features whose default is one of an account's other models move to its kept one.
+func (q *Queries) AIFeatureModelsMove(ctx context.Context, arg AIFeatureModelsMoveParams) error {
+	_, err := q.db.Exec(ctx, aIFeatureModelsMove, arg.KeepID, arg.WorkspaceID, arg.AccountID)
 	return err
 }
 
@@ -437,6 +436,84 @@ func (q *Queries) AIMembersRoles(ctx context.Context, workspaceID uuid.UUID) ([]
 	return items, nil
 }
 
+const aIModelSave = `-- name: AIModelSave :exec
+INSERT INTO ai_models (id, workspace_id, account_id, model, model_name, deployment, image_input, input_price, output_price,
+    prices_from, price_known, created_at, updated_by, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+    $10, $11, $12, $13, $12)
+ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, model_name = EXCLUDED.model_name, deployment = EXCLUDED.deployment,
+    image_input = EXCLUDED.image_input, input_price = EXCLUDED.input_price, output_price = EXCLUDED.output_price,
+    prices_from = EXCLUDED.prices_from, price_known = EXCLUDED.price_known,
+    revision = ai_models.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+WHERE ai_models.workspace_id = EXCLUDED.workspace_id AND ai_models.account_id = EXCLUDED.account_id
+`
+
+type AIModelSaveParams struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	AccountID   uuid.UUID  `json:"accountId"`
+	Model       string     `json:"model"`
+	ModelName   string     `json:"modelName"`
+	Deployment  string     `json:"deployment"`
+	ImageInput  bool       `json:"imageInput"`
+	InputPrice  float64    `json:"inputPrice"`
+	OutputPrice float64    `json:"outputPrice"`
+	PricesFrom  *time.Time `json:"pricesFrom"`
+	PriceKnown  bool       `json:"priceKnown"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+}
+
+func (q *Queries) AIModelSave(ctx context.Context, arg AIModelSaveParams) error {
+	_, err := q.db.Exec(ctx, aIModelSave,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.AccountID,
+		arg.Model,
+		arg.ModelName,
+		arg.Deployment,
+		arg.ImageInput,
+		arg.InputPrice,
+		arg.OutputPrice,
+		arg.PricesFrom,
+		arg.PriceKnown,
+		arg.UpdatedAt,
+		arg.UpdatedBy,
+	)
+	return err
+}
+
+const aIModelsDeleteOthers = `-- name: AIModelsDeleteOthers :exec
+DELETE FROM ai_models WHERE workspace_id = $1 AND account_id = $2 AND id <> $3
+`
+
+type AIModelsDeleteOthersParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	AccountID   uuid.UUID `json:"accountId"`
+	KeepID      uuid.UUID `json:"keepId"`
+}
+
+func (q *Queries) AIModelsDeleteOthers(ctx context.Context, arg AIModelsDeleteOthersParams) error {
+	_, err := q.db.Exec(ctx, aIModelsDeleteOthers, arg.WorkspaceID, arg.AccountID, arg.KeepID)
+	return err
+}
+
+const aIPrimaryModel = `-- name: AIPrimaryModel :one
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = $1
+ORDER BY a.created_at, a.id, m.created_at, m.id
+LIMIT 1
+`
+
+// The workspace's first account and its first model: what the single-model
+// settings and operations act on.
+func (q *Queries) AIPrimaryModel(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, aIPrimaryModel, workspaceID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const aIReportSummary = `-- name: AIReportSummary :one
 SELECT s.campaign_id, s.workspace_id, s.summary, s.model, s.model_name, s.request_id, s.kept_by, s.kept_at, coalesce(u.name, '')::text AS kept_by_name
 FROM ai_report_summaries s LEFT JOIN users u ON u.id = s.kept_by
@@ -527,7 +604,7 @@ func (q *Queries) AIReportSummarySave(ctx context.Context, arg AIReportSummarySa
 }
 
 const aIRequest = `-- name: AIRequest :one
-SELECT id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model, input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known FROM ai_requests WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model, input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known, account_id, model_id FROM ai_requests WHERE id = $1 AND workspace_id = $2
 `
 
 type AIRequestParams struct {
@@ -559,6 +636,8 @@ func (q *Queries) AIRequest(ctx context.Context, arg AIRequestParams) (AiRequest
 		&i.DecidedAt,
 		&i.VoiceRevision,
 		&i.UsageKnown,
+		&i.AccountID,
+		&i.ModelID,
 	)
 	return i, err
 }
@@ -581,9 +660,11 @@ func (q *Queries) AIRequestCount(ctx context.Context, arg AIRequestCountParams) 
 
 const aIRequestInsert = `-- name: AIRequestInsert :exec
 INSERT INTO ai_requests (id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model,
-    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known)
+    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known,
+    account_id, model_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+    $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+    $21, $22)
 ON CONFLICT (id) DO UPDATE SET input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
     cost_micros = EXCLUDED.cost_micros, usage_known = EXCLUDED.usage_known
 WHERE ai_requests.workspace_id = EXCLUDED.workspace_id AND NOT ai_requests.usage_known
@@ -610,6 +691,8 @@ type AIRequestInsertParams struct {
 	DecidedAt     *time.Time `json:"decidedAt"`
 	VoiceRevision int32      `json:"voiceRevision"`
 	UsageKnown    bool       `json:"usageKnown"`
+	AccountID     *uuid.UUID `json:"accountId"`
+	ModelID       *uuid.UUID `json:"modelId"`
 }
 
 func (q *Queries) AIRequestInsert(ctx context.Context, arg AIRequestInsertParams) error {
@@ -634,6 +717,8 @@ func (q *Queries) AIRequestInsert(ctx context.Context, arg AIRequestInsertParams
 		arg.DecidedAt,
 		arg.VoiceRevision,
 		arg.UsageKnown,
+		arg.AccountID,
+		arg.ModelID,
 	)
 	return err
 }
@@ -671,7 +756,7 @@ func (q *Queries) AIRequestSetOutcome(ctx context.Context, arg AIRequestSetOutco
 }
 
 const aIRequests = `-- name: AIRequests :many
-SELECT r.id, r.workspace_id, r.user_id, r.feature, r.action, r.target_kind, r.target_id, r.target_label, r.provider, r.model, r.input_tokens, r.output_tokens, r.cost_micros, r.outcome, r.outcome_detail, r.duration_ms, r.created_at, r.decided_at, r.voice_revision, r.usage_known, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email, coalesce(u.avatar_color, '')::text AS user_color
+SELECT r.id, r.workspace_id, r.user_id, r.feature, r.action, r.target_kind, r.target_id, r.target_label, r.provider, r.model, r.input_tokens, r.output_tokens, r.cost_micros, r.outcome, r.outcome_detail, r.duration_ms, r.created_at, r.decided_at, r.voice_revision, r.usage_known, r.account_id, r.model_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email, coalesce(u.avatar_color, '')::text AS user_color
 FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
 WHERE r.workspace_id = $1 AND r.created_at >= $2
   AND ($3::uuid IS NULL OR r.user_id = $3)
@@ -714,6 +799,8 @@ type AIRequestsRow struct {
 	DecidedAt     *time.Time `json:"decidedAt"`
 	VoiceRevision int32      `json:"voiceRevision"`
 	UsageKnown    bool       `json:"usageKnown"`
+	AccountID     *uuid.UUID `json:"accountId"`
+	ModelID       *uuid.UUID `json:"modelId"`
 	UserName      string     `json:"userName"`
 	UserEmail     string     `json:"userEmail"`
 	UserColor     string     `json:"userColor"`
@@ -759,6 +846,8 @@ func (q *Queries) AIRequests(ctx context.Context, arg AIRequestsParams) ([]AIReq
 			&i.DecidedAt,
 			&i.VoiceRevision,
 			&i.UsageKnown,
+			&i.AccountID,
+			&i.ModelID,
 			&i.UserName,
 			&i.UserEmail,
 			&i.UserColor,
@@ -1045,4 +1134,140 @@ func (q *Queries) AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIU
 		&i.Requests,
 	)
 	return i, err
+}
+
+const aIWorkspaceSettings = `-- name: AIWorkspaceSettings :one
+SELECT workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off, notice_month, cap_notice_month, revision, updated_by, updated_at FROM ai_workspace_settings WHERE workspace_id = $1
+`
+
+func (q *Queries) AIWorkspaceSettings(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error) {
+	row := q.db.QueryRow(ctx, aIWorkspaceSettings, workspaceID)
+	var i AiWorkspaceSetting
+	err := row.Scan(
+		&i.WorkspaceID,
+		&i.CapKind,
+		&i.CapUsd,
+		&i.CapTokens,
+		&i.CapSetBy,
+		&i.CapSetAt,
+		&i.FeaturesOff,
+		&i.NoticeMonth,
+		&i.CapNoticeMonth,
+		&i.Revision,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const aIWorkspaceSettingsClaimCapNotice = `-- name: AIWorkspaceSettingsClaimCapNotice :execrows
+UPDATE ai_workspace_settings SET cap_notice_month = $1 WHERE workspace_id = $2 AND cap_notice_month <> $1
+`
+
+type AIWorkspaceSettingsClaimCapNoticeParams struct {
+	Month       string    `json:"month"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// Claims this month's cap-reached notice, once.
+func (q *Queries) AIWorkspaceSettingsClaimCapNotice(ctx context.Context, arg AIWorkspaceSettingsClaimCapNoticeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIWorkspaceSettingsClaimCapNotice, arg.Month, arg.WorkspaceID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIWorkspaceSettingsClaimNotice = `-- name: AIWorkspaceSettingsClaimNotice :execrows
+UPDATE ai_workspace_settings SET notice_month = $1 WHERE workspace_id = $2 AND notice_month <> $1
+`
+
+type AIWorkspaceSettingsClaimNoticeParams struct {
+	Month       string    `json:"month"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// Claims this month's 80% notice, once.
+func (q *Queries) AIWorkspaceSettingsClaimNotice(ctx context.Context, arg AIWorkspaceSettingsClaimNoticeParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIWorkspaceSettingsClaimNotice, arg.Month, arg.WorkspaceID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIWorkspaceSettingsEnsure = `-- name: AIWorkspaceSettingsEnsure :exec
+INSERT INTO ai_workspace_settings (workspace_id) VALUES ($1) ON CONFLICT (workspace_id) DO NOTHING
+`
+
+func (q *Queries) AIWorkspaceSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIWorkspaceSettingsEnsure, workspaceID)
+	return err
+}
+
+const aIWorkspaceSettingsLock = `-- name: AIWorkspaceSettingsLock :one
+SELECT workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off, notice_month, cap_notice_month, revision, updated_by, updated_at FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE
+`
+
+// The AI configuration lock (see migration 03630).
+func (q *Queries) AIWorkspaceSettingsLock(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error) {
+	row := q.db.QueryRow(ctx, aIWorkspaceSettingsLock, workspaceID)
+	var i AiWorkspaceSetting
+	err := row.Scan(
+		&i.WorkspaceID,
+		&i.CapKind,
+		&i.CapUsd,
+		&i.CapTokens,
+		&i.CapSetBy,
+		&i.CapSetAt,
+		&i.FeaturesOff,
+		&i.NoticeMonth,
+		&i.CapNoticeMonth,
+		&i.Revision,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const aIWorkspaceSettingsSave = `-- name: AIWorkspaceSettingsSave :exec
+INSERT INTO ai_workspace_settings (workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off,
+    notice_month, cap_notice_month, updated_by, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+    $8, $9, $10, $11)
+ON CONFLICT (workspace_id) DO UPDATE SET cap_kind = EXCLUDED.cap_kind, cap_usd = EXCLUDED.cap_usd, cap_tokens = EXCLUDED.cap_tokens,
+    cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, features_off = EXCLUDED.features_off,
+    notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month,
+    revision = ai_workspace_settings.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+`
+
+type AIWorkspaceSettingsSaveParams struct {
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	CapKind        string     `json:"capKind"`
+	CapUsd         float64    `json:"capUsd"`
+	CapTokens      int64      `json:"capTokens"`
+	CapSetBy       *uuid.UUID `json:"capSetBy"`
+	CapSetAt       *time.Time `json:"capSetAt"`
+	FeaturesOff    []string   `json:"featuresOff"`
+	NoticeMonth    string     `json:"noticeMonth"`
+	CapNoticeMonth string     `json:"capNoticeMonth"`
+	UpdatedBy      *uuid.UUID `json:"updatedBy"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+}
+
+func (q *Queries) AIWorkspaceSettingsSave(ctx context.Context, arg AIWorkspaceSettingsSaveParams) error {
+	_, err := q.db.Exec(ctx, aIWorkspaceSettingsSave,
+		arg.WorkspaceID,
+		arg.CapKind,
+		arg.CapUsd,
+		arg.CapTokens,
+		arg.CapSetBy,
+		arg.CapSetAt,
+		arg.FeaturesOff,
+		arg.NoticeMonth,
+		arg.CapNoticeMonth,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+	)
+	return err
 }
