@@ -141,3 +141,17 @@ The A0 brief in `docs/spec/reputecast-design-addon-agent.md` defines this track.
 | A3 · Durable agent runtime | `agent-a3-runtime` | `ai`, typed `ai/llm` tools, persisted staging, shared usage reservations, River jobs | 03600–03609 |
 | A4 · Run/review UX | `agent-a4-review` | `web/src/features/ai`, run routes, responsive and accessibility QA | None |
 | A5 · External MCP | `agent-a5-mcp-connect` | `mcpconnect`, OAuth lifecycle, restricted external tools and human consent/review | 03620–03629 |
+
+## AI assistant implementation
+
+The B0 brief in `docs/spec/reputecast-design-addon-assistant.md` defines this track. Reserve each migration range when that phase starts; the agent track's ranges stay as they are.
+
+| Phase | Branch | Owners | Migrations |
+|---|---|---|---|
+| B0 · Brief and boards | `assistant-b0` | `docs/spec`, `design/boards`, canvas, inventory, QA map | None |
+| B1 · Model registry and keys | `assistant-b1-models` | `ai` (connections, per-feature defaults, personal keys), `ai/llm` catalog, AI settings UI | Reserved at start |
+| B2 · Streaming | `assistant-b2-streaming` | `ai/llm` adapters and contract suite | None |
+| B3 · Threads and turns | `assistant-b3-runtime` | `ai/assistant` (new), River jobs, SSE, shared tool registry, retention | Reserved at start |
+| B4 · Panel and screens | `assistant-b4-ui` | `web/src/features/assistant` (new), shell entry points, settings screens | None |
+| B5 · MCP servers | `assistant-b5-mcp` | `mcpclient` (new), OAuth client, tool approval, MCP settings UI | Reserved at start |
+| B6 · Hardening | `assistant-b6-hardening` | Injection fixtures, `loadtest`, docs | None |

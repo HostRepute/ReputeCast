@@ -48,6 +48,22 @@ PR #81 review follow-up (pre-merge): the external OAuth endpoints check a networ
 
 Remaining acceptance work: test connection/reconnect/scope denial/proposal review in both real external clients with owner authorization. The accepted policy does not certify anonymous prose; report rounding/suppression and immutable shared snapshots prevent refresh differencing within a campaign, not identification across overlapping campaigns. Resource discovery stays explicitly human-selected; Agent/external flow triggers currently cover list join and segment entry/exit, with bounded email/delay/engagement-branch/split/exit steps, not the entire automation catalog. Production-load benchmarks and paid-model quality evaluation remain unrun.
 
+### AI assistant track (B0–B6)
+
+**Brief and boards:** `docs/spec/reputecast-design-addon-assistant.md`, canvas page **B0 AI assistant · design only**. The owner accepted decisions D1–D7 on 16 November 2026: general assistant threads with run-like bounds, approved third-party MCP tools with per-call confirmation for writes, several models per workspace, optional personal keys, `react-markdown` and `remark-gfm` for messages, OpenAI-compatible presets with Bedrock deferred, and threads only their initiator can read. These exceptions apply to the assistant only; agent runs keep the A0 rules.
+
+| Phase | Scope | State |
+|---|---|---|
+| B0 | Brief, agent-brief amendments, interactive panel/states/entry/models/MCP boards at 1440/834/390 in light and dark | Design prepared for review |
+| B1 | Model registry: several accounts, per-feature defaults, OpenAI-compatible presets, capability checks, personal keys | ⏳ |
+| B2 | Streaming in `internal/ai/llm` with recorded SSE contract fixtures | ⏳ |
+| B3 | Threads and turns on River, stream events and SSE, budgets and slots, tool registry, retention, audit | ⏳ |
+| B4 | The panel, states and settings screens, five locales, accessibility and responsive checks | ⏳ |
+| B5 | MCP servers: remote transports, OAuth per member, tool approval and pinning, confirmations | ⏳ |
+| B6 | Injection fixtures, load test of concurrent streams, docs | ⏳ |
+
+B1 and B2 can proceed in parallel; B3 needs both; B4 can start against mocked responses once B3's API is fixed; B5 needs B3. Migration ranges are reserved when each phase starts.
+
 | Milestone | Scope | Workstreams | Status |
 |---|---|---|---|
 | **M0 Skeleton** | Repo layout, Makefile, docker compose (Postgres 18 + Mailpit), goose, sqlc, River, chi + Huma (`/healthz`, `/readyz`, `/metrics`, OpenAPI 3.1), embedded SPA, openapi-typescript, CI (Go 1.27 × PG 16/17/18, web lint/typecheck/test/build), GoReleaser, Dockerfile. Design system foundation in the web app (tokens, components, shell). | core | ✅ |

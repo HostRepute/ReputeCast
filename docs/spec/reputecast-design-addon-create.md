@@ -319,7 +319,7 @@ Waiting-for-approval issues use the existing "Approval requested" kind.
 - **Digests:** several feeds in one digest, full-text items, feeds that need a sign-in, choosing items per recipient (use Visibility on blocks instead).
 - **Conditional content:** score (phase 4), paid tier (phase 6), conditions in transactional templates.
 - **Polls and surveys:** quizzes with right answers, image answers, multi-page surveys, branching logic, file uploads.
-- **AI:** reputation diagnosis, sending or scheduling, image generation, general-purpose chat and contact data in prompts. Whole-campaign drafting and conversation attached to a task are now scoped in `reputecast-design-addon-agent.md`; they remain outside the one-shot assistant implemented in this phase.
+- **AI:** reputation diagnosis, sending or scheduling, image generation, general-purpose chat and contact data in prompts. Whole-campaign drafting and conversation attached to a task are now scoped in `reputecast-design-addon-agent.md`; they remain outside the one-shot assistant implemented in this phase. General assistant threads are scoped in `reputecast-design-addon-assistant.md` (B0).
 
 ### 3.10 Countdown timers and unique discount codes (M59)
 Added after the November 2026 look at competitors (item 12). Both are blocks in campaigns and automation emails; neither is offered in transactional templates.

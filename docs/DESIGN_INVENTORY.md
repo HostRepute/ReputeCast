@@ -685,6 +685,22 @@ The new brief resolves the old whole-campaign/chat exclusion, the distinction be
 
 Security brief: `docs/spec/reputecast-design-addon-agent-oauth.md`. `MCPConnect` has working design-only consent, capability selection, connection/revocation, new-bundle Keep/Discard, existing-draft Accept/Reject, stale-revision and recovery states. It reuses Clearwater tokens from `agent-a0.css` and reflows at 1440/834/390; the scene selector, theme and role buttons are prototype controls. Canvas page: **A5 External MCP · design only**. No OAuth endpoint, token, live model call or product write is implemented by this board.
 
+### AI assistant (B0 · design only)
+
+Brief: `docs/spec/reputecast-design-addon-assistant.md`. The owner accepted decisions D1–D7 on 16 November 2026; these boards specify B1–B6 and do not mark the feature implemented. All numbers are illustrative fixtures, not additions to demo seed data.
+
+| Boards | Scope |
+|---|---|
+| `AssistantPanel`, `AssistantPanelTablet`, `AssistantPanelPhone` | The October Product Update report with the panel docked (desktop), as a sheet (tablet) or full screen (phone): attached and suggested context with the sharing review, the answer with tool rows, the Linear `create_issue` confirmation (Allow once, Deny), Stop, a follow-up answer, the model menu and the thread list. |
+| `AssistantStates`, `AssistantStatesTablet`, `AssistantStatesPhone` | Empty thread with fixed suggestions, no model, no `ai:use`, assistant off, thread limit, monthly cap with a personal key, key rejected, rate limited, provider down, refusal, reconnecting, contacts refused, MCP sign-in needed, changed tool, expired thread, access lost during an answer and the HostRepute boundary; manager and Editor views. |
+| `AssistantEntry` | The top-bar button with ⌘J and its waiting dot, ⌘K › Ask the assistant, and the contextual buttons on a report tile, a Send Readiness row and a composer warning. |
+| `AIModels` | Several model accounts with write-only keys, a server that failed the tool check, defaults per feature, the assistant switch with its limits, personal keys and the person's own key; the Add account dialog with the OpenAI-compatible presets. |
+| `MCPServers` | Linear, Notion and an internal wiki; tool kinds and states; the review dialog with the server's description, schema and hints; a tool whose description changed after approval, blocked or approved again; the Add server dialog. |
+
+The boards use the shared `agent-a0.css` with `assistant-b0.css` and `assistant-b0.js`, one in-memory sample state and standard browser rendering, without the proprietary `support.js`. They make no model, MCP or API requests and use no storage. The board selector, theme, role and Reset buttons are prototype controls, not product chrome. Canvas page: **B0 AI assistant · design only**. QA map entries are manual and have no production routes.
+
+No permission key, role or actor type is added. The assistant's exceptions to the agent brief (general threads, approved third-party tools, several models and personal keys, private threads) are recorded in the B0 brief §7 and noted in the agent brief §0.
+
 ### Landing after 1.7.0
 
 The landing page introduces the AI agent and external connections that 1.7.0 released, and the board with it.
