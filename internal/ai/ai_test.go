@@ -553,6 +553,32 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 		t.Fatalf("models: %+v", models)
 	}
 	c.Do(http.MethodDelete, ws+"/ai/connection", nil).MustStatus(t, 200)
+	// A hosted OpenAI-compatible service needs its key, unlike a server on
+	// the workspace's own network: refused before anything is sent.
+	var catalog struct {
+		Catalog []struct {
+			Kind    string
+			Presets []struct{ ID, BaseURL string }
+		}
+	}
+	c.Do(http.MethodGet, ws+"/ai", nil).MustStatus(t, 200).JSON(t, &catalog)
+	if p := catalog.Catalog[len(catalog.Catalog)-1]; p.Kind != "compatible" || len(p.Presets) != 7 || p.Presets[0].BaseURL != "https://openrouter.ai/api/v1" {
+		t.Fatalf("compatible presets: %+v", p)
+	}
+	f.mu.Lock()
+	before := f.requests
+	f.mu.Unlock()
+	hosted := map[string]any{"provider": "compatible", "baseUrl": "https://openrouter.ai/api/v1/", "model": "openai/gpt-5-mini", "capKind": "usd", "capUsd": 10, "inputPrice": 0.25, "outputPrice": 2}
+	if r := c.Do(http.MethodPut, ws+"/ai/connection", hosted).MustStatus(t, 422); !strings.Contains(string(r.Body), "body.apiKey") || !strings.Contains(string(r.Body), "OpenRouter") {
+		t.Fatalf("hosted preset without a key: %s", r.Body)
+	}
+	c.Do(http.MethodPost, ws+"/ai/test", hosted).MustStatus(t, 422)
+	f.mu.Lock()
+	after := f.requests
+	f.mu.Unlock()
+	if after != before {
+		t.Fatalf("a refused preset reached a model server: %d requests", after-before)
+	}
 	key := "sk-local-secret-key-0042"
 	r := c.Do(http.MethodPut, ws+"/ai/connection", map[string]any{"provider": "compatible", "baseUrl": f.srv.URL + "/v1", "apiKey": key, "model": "llama3.3:70b", "capKind": "usd", "capUsd": 10,
 		"inputPrice": 2, "outputPrice": 10, "features": []string{"subject_ideas", "rewrite", "translate", "alt_text", "accessibility_fix", "segment_draft", "report_summary"}})

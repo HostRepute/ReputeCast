@@ -31108,6 +31108,7 @@ type AIConnectionView struct {
 	LastTest       *AITestView              `json:"lastTest,omitempty"`
 	Model          string                   `json:"model"`
 	ModelName      string                   `json:"modelName"`
+	Preset         *string                  `json:"preset,omitempty"`
 	Prices         AIPricesView             `json:"prices"`
 	PrivateNetwork bool                     `json:"privateNetwork"`
 	Provider       AIConnectionViewProvider `json:"provider"`
@@ -31202,6 +31203,7 @@ type AIProviderEntry struct {
 	Name         string                        `json:"name"`
 	NeedsBaseUrl bool                          `json:"needsBaseUrl"`
 	NeedsKey     bool                          `json:"needsKey"`
+	Presets      []AIProviderPreset            `json:"presets"`
 }
 
 // AIProviderEntryCapabilities defines model for AIProviderEntry.Capabilities.
@@ -31209,6 +31211,13 @@ type AIProviderEntryCapabilities string
 
 // AIProviderEntryKind defines model for AIProviderEntry.Kind.
 type AIProviderEntryKind string
+
+// AIProviderPreset defines model for AIProviderPreset.
+type AIProviderPreset struct {
+	BaseUrl string `json:"baseUrl"`
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+}
 
 // AISettings defines model for AISettings.
 type AISettings struct {

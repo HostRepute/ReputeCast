@@ -32,6 +32,17 @@ type AIProviderEntry struct {
 	DefaultModel string   `json:"defaultModel,omitempty"`
 	// Models are the price list's models of the provider.
 	Models []AIModelOption `json:"models"`
+	// Presets are hosted services that speak this provider's API, with their
+	// address filled in (OpenAI-compatible only).
+	Presets []AIProviderPreset `json:"presets"`
+}
+
+// AIProviderPreset is a hosted OpenAI-compatible service. It needs a key;
+// its models come from the service and its prices from the person.
+type AIProviderPreset struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	BaseURL string `json:"baseUrl"`
 }
 
 // AIModelOption is a model to pick, with its prices from the price list.
@@ -102,6 +113,8 @@ type AIConnectionView struct {
 	PrivateNetwork bool `json:"privateNetwork"`
 	// Demo is the demo's sample connection (answers from recordings).
 	Demo bool `json:"demo"`
+	// Preset is the hosted OpenAI-compatible service the address belongs to.
+	Preset string `json:"preset,omitempty"`
 }
 
 // AIUsageView is this month's use against the cap.
@@ -164,7 +177,12 @@ type AISettings struct {
 func catalog() []AIProviderEntry {
 	out := make([]AIProviderEntry, 0, len(llm.Providers))
 	for _, p := range llm.Providers {
-		e := AIProviderEntry{Kind: p.Kind, Name: p.Name, NeedsKey: p.NeedsKey, NeedsBaseURL: p.NeedsBaseURL, Capabilities: slices.Clone(p.Capabilities), DefaultModel: p.DefaultModel, Models: []AIModelOption{}}
+		e := AIProviderEntry{Kind: p.Kind, Name: p.Name, NeedsKey: p.NeedsKey, NeedsBaseURL: p.NeedsBaseURL, Capabilities: slices.Clone(p.Capabilities), DefaultModel: p.DefaultModel, Models: []AIModelOption{}, Presets: []AIProviderPreset{}}
+		if p.Kind == llm.Compatible {
+			for _, pr := range llm.Presets {
+				e.Presets = append(e.Presets, AIProviderPreset{ID: pr.ID, Name: pr.Name, BaseURL: pr.BaseURL})
+			}
+		}
 		for _, k := range llm.PriceList {
 			if k.Provider == p.Kind {
 				e.Models = append(e.Models, AIModelOption{ID: k.ID, Name: k.Name, Known: true, Input: k.Input, Output: k.Output, ImageInput: k.ImageInput})
@@ -195,6 +213,9 @@ func (s *Service) connectionView(ctx context.Context, c *connection) *AIConnecti
 		Model: c.Model, ModelName: c.modelName(), ImageInput: c.ImageInput, ConnectedAt: c.ConnectedAt, ConnectedBy: s.userName(ctx, c.ConnectedBy),
 		Status: "connected", Cap: AICapView{Kind: c.CapKind, USD: c.CapUsd, Tokens: c.CapTokens, SetBy: s.userName(ctx, c.CapSetBy), SetAt: c.CapSetAt},
 		Prices: AIPricesView{Input: c.InputPrice, Output: c.OutputPrice, Known: c.PriceKnown || c.Demo, From: c.PricesFrom}, Demo: c.Demo}
+	if p, ok := c.preset(); ok {
+		v.Preset = p.ID
+	}
 	if len(c.KeySealed) > 0 {
 		v.Key = AIKeyView{Set: true, AddedAt: c.KeyAddedAt, AddedBy: s.userName(ctx, c.KeyAddedBy)}
 	}
@@ -421,6 +442,18 @@ func (s *Service) validCandidate(ctx context.Context, c *candidate) error {
 	return nil
 }
 
+// keyNeeded reports whether a candidate can't be reached without a key, and
+// the provider's name for the message: the hosted providers, and a hosted
+// OpenAI-compatible service (unlike a server on the workspace's network).
+func keyNeeded(provider, baseURL string) (string, bool) {
+	if provider == llm.Compatible {
+		p, ok := llm.PresetOf(baseURL)
+		return p.Name, ok
+	}
+	info := llm.Info(provider)
+	return info.Name, info.NeedsKey
+}
+
 // savedKey is the key a form left blank stands for: the saved one, for the
 // same provider at the same server address (Change model, Test connection,
 // saving other settings). A saved key is never sent to an address it wasn't
@@ -616,12 +649,16 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err := s.validCandidate(ctx, &c); err != nil {
 		return AITestResult{}, err
 	}
+	name, need := keyNeeded(c.provider, c.baseURL)
+	if need && c.key == "" {
+		return AITestResult{}, invalid(ctx, "body.apiKey", mKeyNeeded, i18n.Args{"provider": name})
+	}
 	priced, err := s.testPricing(ctx, ws, c, in.InputPrice, in.OutputPrice)
 	if err != nil {
 		return AITestResult{}, err
 	}
 	res, err := s.test(ctx, ws, p, c, priced)
-	s.explain(ctx, &res, llm.Info(c.provider).Name)
+	s.explain(ctx, &res, (&connection{store.AiConnection{Provider: c.provider, BaseUrl: c.baseURL}}).providerName())
 	return res, err
 }
 
@@ -684,7 +721,7 @@ func (s *Service) Models(ctx context.Context, ws *store.Workspace, in AIModelsIn
 	if cur.connected() && cur.Demo && cur.Provider == c.provider && in.APIKey == "" {
 		return out, nil
 	}
-	if llm.Info(c.provider).NeedsKey && c.key == "" {
+	if _, need := keyNeeded(c.provider, c.baseURL); need && c.key == "" {
 		return out, nil
 	}
 	if err := s.validCandidate(ctx, &c); err != nil {
@@ -877,6 +914,9 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if c.key, err = s.savedKey(ctx, ws, cur, c); err != nil {
 			return AISettings{}, err
 		}
+	}
+	if name, need := keyNeeded(c.provider, c.baseURL); need && c.key == "" {
+		return AISettings{}, invalid(ctx, "body.apiKey", mKeyNeeded, i18n.Args{"provider": name})
 	}
 	priced, err := s.testPricing(ctx, ws, c, in.InputPrice, in.OutputPrice)
 	if err != nil {

@@ -69,6 +69,7 @@ from .ai_prices_view import AIPricesView
 from .ai_provider_entry import AIProviderEntry
 from .ai_provider_entry_capabilities_item import AIProviderEntryCapabilitiesItem
 from .ai_provider_entry_kind import AIProviderEntryKind
+from .ai_provider_preset import AIProviderPreset
 from .ai_settings import AISettings
 from .ai_test_view import AITestView
 from .ai_translation_mark import AITranslationMark
@@ -3574,6 +3575,7 @@ __all__ = (
     "AIProviderEntry",
     "AIProviderEntryCapabilitiesItem",
     "AIProviderEntryKind",
+    "AIProviderPreset",
     "AISettings",
     "AITestView",
     "AITranslationMark",

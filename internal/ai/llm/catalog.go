@@ -46,6 +46,38 @@ func Info(kind string) ProviderInfo {
 	return ProviderInfo{Kind: kind, Name: kind}
 }
 
+// Preset is a hosted service that speaks the OpenAI API: a Compatible
+// connection whose address is filled in. Its models come from the service's
+// own /models list, and it has no prices here: they change too often for a
+// release's price list, so a manager enters them.
+type Preset struct {
+	ID      string
+	Name    string
+	BaseURL string
+}
+
+// Presets are the hosted OpenAI-compatible services, in the dialog's order.
+var Presets = []Preset{
+	{ID: "openrouter", Name: "OpenRouter", BaseURL: "https://openrouter.ai/api/v1"},
+	{ID: "mistral", Name: "Mistral", BaseURL: "https://api.mistral.ai/v1"},
+	{ID: "groq", Name: "Groq", BaseURL: "https://api.groq.com/openai/v1"},
+	{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1"},
+	{ID: "xai", Name: "xAI", BaseURL: "https://api.x.ai/v1"},
+	{ID: "together", Name: "Together AI", BaseURL: "https://api.together.xyz/v1"},
+	{ID: "fireworks", Name: "Fireworks AI", BaseURL: "https://api.fireworks.ai/inference/v1"},
+}
+
+// PresetOf returns the preset a Compatible connection's address belongs to.
+func PresetOf(baseURL string) (Preset, bool) {
+	u := strings.TrimRight(strings.ToLower(strings.TrimSpace(baseURL)), "/")
+	for _, p := range Presets {
+		if u == p.BaseURL {
+			return p, true
+		}
+	}
+	return Preset{}, false
+}
+
 // PriceListDate is the date of the price list below, the one ReputeCast's
 // release ships with.
 var PriceListDate = time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)

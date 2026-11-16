@@ -15,6 +15,7 @@ from typing import cast
 
 if TYPE_CHECKING:
   from ..models.ai_model_option import AIModelOption
+  from ..models.ai_provider_preset import AIProviderPreset
 
 
 
@@ -34,6 +35,7 @@ class AIProviderEntry:
             name (str):
             needs_base_url (bool):
             needs_key (bool):
+            presets (list[AIProviderPreset]):
             default_model (str | Unset):
      """
 
@@ -43,6 +45,7 @@ class AIProviderEntry:
     name: str
     needs_base_url: bool
     needs_key: bool
+    presets: list[AIProviderPreset]
     default_model: str | Unset = UNSET
 
 
@@ -51,6 +54,7 @@ class AIProviderEntry:
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.ai_model_option import AIModelOption # noqa: PLC0415
+        from ..models.ai_provider_preset import AIProviderPreset # noqa: PLC0415
         capabilities = []
         for capabilities_item_data in self.capabilities:
             capabilities_item = capabilities_item_data.value
@@ -73,6 +77,13 @@ class AIProviderEntry:
 
         needs_key = self.needs_key
 
+        presets = []
+        for presets_item_data in self.presets:
+            presets_item = presets_item_data.to_dict()
+            presets.append(presets_item)
+
+
+
         default_model = self.default_model
 
 
@@ -85,6 +96,7 @@ class AIProviderEntry:
             "name": name,
             "needsBaseUrl": needs_base_url,
             "needsKey": needs_key,
+            "presets": presets,
         })
         if default_model is not UNSET:
             field_dict["defaultModel"] = default_model
@@ -96,6 +108,7 @@ class AIProviderEntry:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.ai_model_option import AIModelOption # noqa: PLC0415
+        from ..models.ai_provider_preset import AIProviderPreset # noqa: PLC0415
         d = dict(src_dict)
         capabilities = []
         _capabilities = d.pop("capabilities")
@@ -128,6 +141,16 @@ class AIProviderEntry:
 
         needs_key = d.pop("needsKey")
 
+        presets = []
+        _presets = d.pop("presets")
+        for presets_item_data in (_presets):
+            presets_item = AIProviderPreset.from_dict(presets_item_data)
+
+
+
+            presets.append(presets_item)
+
+
         default_model = d.pop("defaultModel", UNSET)
 
         ai_provider_entry = cls(
@@ -137,6 +160,7 @@ class AIProviderEntry:
             name=name,
             needs_base_url=needs_base_url,
             needs_key=needs_key,
+            presets=presets,
             default_model=default_model,
         )
 

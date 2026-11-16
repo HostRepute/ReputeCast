@@ -13017,6 +13017,7 @@ export interface components {
             lastTest?: components["schemas"]["AITestView"];
             model: string;
             modelName: string;
+            preset?: string;
             prices: components["schemas"]["AIPricesView"];
             privateNetwork: boolean;
             /** @enum {string} */
@@ -13100,6 +13101,12 @@ export interface components {
             name: string;
             needsBaseUrl: boolean;
             needsKey: boolean;
+            presets: components["schemas"]["AIProviderPreset"][];
+        };
+        AIProviderPreset: {
+            baseUrl: string;
+            id: string;
+            name: string;
         };
         AISettings: {
             aiUseRoles: string[];

@@ -50,6 +50,7 @@ class AIConnectionView:
             deployment (str | Unset):
             label (str | Unset):
             last_test (AITestView | Unset):
+            preset (str | Unset):
             status_at (datetime.datetime | Unset):
             status_detail (str | Unset):
      """
@@ -72,6 +73,7 @@ class AIConnectionView:
     deployment: str | Unset = UNSET
     label: str | Unset = UNSET
     last_test: AITestView | Unset = UNSET
+    preset: str | Unset = UNSET
     status_at: datetime.datetime | Unset = UNSET
     status_detail: str | Unset = UNSET
 
@@ -122,6 +124,8 @@ class AIConnectionView:
         if not isinstance(self.last_test, Unset):
             last_test = self.last_test.to_dict()
 
+        preset = self.preset
+
         status_at: str | Unset = UNSET
         if not isinstance(self.status_at, Unset):
             status_at = self.status_at.isoformat()
@@ -157,6 +161,8 @@ class AIConnectionView:
             field_dict["label"] = label
         if last_test is not UNSET:
             field_dict["lastTest"] = last_test
+        if preset is not UNSET:
+            field_dict["preset"] = preset
         if status_at is not UNSET:
             field_dict["statusAt"] = status_at
         if status_detail is not UNSET:
@@ -235,6 +241,8 @@ class AIConnectionView:
 
 
 
+        preset = d.pop("preset", UNSET)
+
         _status_at = d.pop("statusAt", UNSET)
         status_at: datetime.datetime | Unset
         if isinstance(_status_at,  Unset):
@@ -266,6 +274,7 @@ class AIConnectionView:
             deployment=deployment,
             label=label,
             last_test=last_test,
+            preset=preset,
             status_at=status_at,
             status_detail=status_detail,
         )

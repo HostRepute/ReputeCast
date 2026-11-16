@@ -159,8 +159,22 @@ func (c *connection) featureOn(f string) bool {
 	return !slices.Contains(c.FeaturesOff, f)
 }
 
-// providerName is how people call the provider ("Anthropic").
-func (c *connection) providerName() string { return llm.Info(c.Provider).Name }
+// providerName is how people call the provider ("Anthropic"): a hosted
+// OpenAI-compatible service by its own name ("OpenRouter").
+func (c *connection) providerName() string {
+	if p, ok := c.preset(); ok {
+		return p.Name
+	}
+	return llm.Info(c.Provider).Name
+}
+
+// preset is the hosted service a Compatible connection's address belongs to.
+func (c *connection) preset() (llm.Preset, bool) {
+	if c.Provider != llm.Compatible {
+		return llm.Preset{}, false
+	}
+	return llm.PresetOf(c.BaseUrl)
+}
 
 // modelName is how people call the model ("Claude Sonnet 5.5").
 func (c *connection) modelName() string {

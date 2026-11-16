@@ -1769,6 +1769,9 @@
           "modelName": {
             "type": "string"
           },
+          "preset": {
+            "type": "string"
+          },
           "prices": {
             "$ref": "#/components/schemas/AIPricesView"
           },
@@ -2463,6 +2466,12 @@
           },
           "needsKey": {
             "type": "boolean"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/AIProviderPreset"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -2471,7 +2480,28 @@
           "needsKey",
           "needsBaseUrl",
           "capabilities",
-          "models"
+          "models",
+          "presets"
+        ],
+        "type": "object"
+      },
+      "AIProviderPreset": {
+        "additionalProperties": false,
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "baseUrl"
         ],
         "type": "object"
       },
