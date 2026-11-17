@@ -312,7 +312,7 @@ const longestTimeout = 3 * time.Minute
 // timeouts per feature.
 func timeoutOf(feature string) time.Duration {
 	switch feature {
-	case FeatureAgent, FeatureDraft:
+	case FeatureAgent, FeatureDraft, FeatureAssistant:
 		return longestTimeout
 	case FeatureTranslate:
 		return 120 * time.Second

@@ -27,6 +27,9 @@ const (
 	QueueEvents      = "events"
 	QueueSystem      = "system"
 	QueueMaintenance = "maintenance"
+	// QueueAssistant answers the AI assistant's turns: each streams for up
+	// to minutes, mostly waiting on the model.
+	QueueAssistant = "ai_assistant"
 )
 
 // Client is River's client bound to pgx.
@@ -82,6 +85,7 @@ func NewClient(pool *pgxpool.Pool, reg *Registry, o Options) (*Client, error) {
 			QueueEvents:      {MaxWorkers: max(c/2, 2)},
 			QueueSystem:      {MaxWorkers: max(c/5, 2)},
 			QueueMaintenance: {MaxWorkers: 2},
+			QueueAssistant:   {MaxWorkers: max(c/2, 10)},
 		}
 		cfg.PeriodicJobs = reg.Periodic
 	}

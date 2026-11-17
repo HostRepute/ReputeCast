@@ -146,7 +146,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger) (*App, error
 		}
 	})
 	a.Metrics.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	opsmetrics.Register(a.Metrics, a.Pool, jobs.QueueDefault, jobs.QueueSending, jobs.QueueEvents, jobs.QueueSystem, jobs.QueueMaintenance)
+	opsmetrics.Register(a.Metrics, a.Pool, jobs.QueueDefault, jobs.QueueSending, jobs.QueueEvents, jobs.QueueSystem, jobs.QueueMaintenance, jobs.QueueAssistant)
 	a.Auth = &api.Authenticator{
 		Q:          q,
 		Audit:      a.Audit,
@@ -238,8 +238,13 @@ func (a *App) InvalidatePolicy() {
 	a.policyMu.Unlock()
 }
 
-// Close releases the database pool.
-func (a *App) Close() { a.Pool.Close() }
+// Close releases what the domains keep per App, then the database pool.
+func (a *App) Close() {
+	for _, hook := range closeHooks {
+		hook(a)
+	}
+	a.Pool.Close()
+}
 
 // NewHumaConfig returns the OpenAPI configuration shared by the server and
 // the `reputecast openapi` command.

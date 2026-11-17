@@ -20,11 +20,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/ai"
+	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/brandkit"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -38,11 +40,19 @@ type Models interface {
 	ResolveAssistantModel(ctx context.Context, q *store.Queries, ws, user uuid.UUID, model *uuid.UUID) (*ai.AssistantModel, error)
 	AssistantModelView(ctx context.Context, q *store.Queries, ws, user uuid.UUID, model *uuid.UUID) (*ai.AIAssistantModel, error)
 	AssistantAttachment(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind string, id uuid.UUID, snapshot bool) (ai.AssistantAttachment, error)
+	// A turn's request: ready, reserved under the thread's lock, sent,
+	// then accounted.
+	LockAssistantConfig(ctx context.Context, q *store.Queries, ws uuid.UUID) error
+	ReadyAssistant(ctx context.Context, ws *store.Workspace, m *ai.AssistantModel) error
+	ReserveAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, m *ai.AssistantModel, req *llm.Request, l ai.AssistantLedger, id uuid.UUID) error
+	AssistantProvider(m *ai.AssistantModel) (llm.Provider, error)
+	AccountAssistant(ctx context.Context, q *store.Queries, r ai.AssistantRequest, res llm.Response, callErr error) (bool, error)
+	AfterAssistant(ctx context.Context, ws *store.Workspace, m *ai.AssistantModel, callErr error)
 }
 
 var _ Models = (*ai.Service)(nil)
 
-// Service is the assistant's threads.
+// Service is the assistant's threads, their turns and streams.
 type Service struct {
 	Pool  *pgxpool.Pool
 	Q     *store.Queries
@@ -50,8 +60,21 @@ type Service struct {
 	Box   *secrets.Box
 	AI    Models
 	Log   *slog.Logger
+	// Jobs enqueues turns (any role's client can insert).
+	Jobs func() *jobs.Client
+	// Hub wakes this process's streams; one per process.
+	Hub *Hub
 	// Now is the clock (tests); nil is the wall clock.
 	Now func() time.Time
+	// Heartbeat, WatchEvery and SlowClient tune streams and turns (tests);
+	// zero takes the default: a heartbeat event every 15 s, a turn's
+	// access and Stop checked every second while it answers, a stream cut
+	// once one event takes 5 s to reach its client.
+	Heartbeat, WatchEvery, SlowClient time.Duration
+
+	// afterAnswer runs once the provider answered, before the turn's
+	// checkpoint (tests).
+	afterAnswer func(turn uuid.UUID)
 }
 
 // Retention is how long a thread keeps its content after its last activity.
@@ -80,6 +103,11 @@ var (
 	mExpired       = msgs.M("problem.expired")
 	mNothingToSave = msgs.M("problem.nothingToSave")
 	mCursor        = msgs.M("problem.cursor")
+	mTurnActive    = msgs.M("problem.turnActive")
+	mNothingToSend = msgs.M("problem.nothingToSend")
+	mModelGone     = msgs.M("problem.modelGone")
+	mTurnKey       = msgs.M("problem.turnKey")
+	mReputation    = msgs.M("answer.reputation")
 )
 
 // Error codes of the assistant's problems.
@@ -90,6 +118,9 @@ const (
 	codeContextsFull  = "ai_assistant_contexts_full"
 	codeExpired       = "ai_assistant_thread_expired"
 	codeNothingToSave = "ai_assistant_nothing_to_save"
+	codeTurnActive    = "ai_assistant_turn_active"
+	codeModelGone     = "ai_assistant_model_gone"
+	codeTurnKey       = "ai_assistant_turn_key"
 )
 
 func problem(ctx context.Context, status int, code string, m i18n.Msg, args i18n.Args) *api.Problem {

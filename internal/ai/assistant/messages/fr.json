@@ -5,5 +5,10 @@
   "problem.contextsFull": "Une conversation peut contenir jusqu’à {max} ressources jointes. Retirez-en une d’abord.",
   "problem.expired": "Cette conversation a expiré. Son contenu a été supprimé après 30 jours sans activité. Commencez une nouvelle conversation.",
   "problem.nothingToSave": "Donnez un nouveau titre à la conversation ou choisissez un autre modèle.",
-  "problem.cursor": "Cette page de conversations n’existe plus. Rechargez la liste."
+  "problem.cursor": "Cette page de conversations n’existe plus. Rechargez la liste.",
+  "problem.turnActive": "L’assistant répond encore dans cette conversation. Attendez la réponse ou arrêtez-la, puis envoyez votre message.",
+  "problem.nothingToSend": "Écrivez d’abord un message.",
+  "problem.modelGone": "Le modèle de cette conversation a été supprimé. Choisissez un autre modèle pour la conversation, puis renvoyez votre message.",
+  "problem.turnKey": "Cette clé de requête a déjà servi pour un autre message. Utilisez une nouvelle clé pour un nouveau message.",
+  "answer.reputation": "Les questions sur la réputation de l’expéditeur, les listes de blocage et l’arrivée en boîte de réception relèvent de HostRepute : il surveille vos domaines et vos IP et vous dit quoi corriger. Posez-moi vos questions sur l’utilisation de ReputeCast ou sur ce que vous avez joint."
 }

@@ -3,6 +3,7 @@ package assistant
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"slices"
@@ -34,7 +35,8 @@ type AIThread struct {
 	Usage    AIThreadUsage        `json:"usage"`
 	Contexts []AIThreadContext    `json:"contexts"`
 	Messages []AIThreadMessage    `json:"messages"`
-	// Turn is the turn answering now, if any.
+	// Turn is the thread's latest turn: the one answering now, or how the
+	// last one ended. Absent before the first message.
 	Turn *AIThreadTurn `json:"turn,omitempty"`
 	// EventSeq is the thread's last stream event: a stream resumes after it.
 	EventSeq       int64     `json:"eventSeq"`
@@ -67,20 +69,37 @@ type AIThreadContext struct {
 
 // AIThreadMessage is one message of a thread.
 type AIThreadMessage struct {
-	ID        uuid.UUID  `json:"id"`
-	Role      string     `json:"role" enum:"user,assistant"`
-	Text      string     `json:"text"`
-	TurnID    *uuid.UUID `json:"turnId,omitempty"`
-	CreatedAt time.Time  `json:"createdAt"`
+	ID     uuid.UUID  `json:"id"`
+	Role   string     `json:"role" enum:"user,assistant"`
+	Text   string     `json:"text"`
+	TurnID *uuid.UUID `json:"turnId,omitempty"`
+	// Partial: the answer stopped before it ended (its turn failed); it is
+	// what arrived.
+	Partial bool `json:"partial,omitempty"`
+	// Card is a fixed answer the app shows as a card, without a model call:
+	// hostrepute, for questions about reputation, blocklists or placement.
+	Card      string    `json:"card,omitempty" enum:"hostrepute"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // AIThreadTurn is a turn's state: Queued, Answering, Waiting for you,
-// Stopped, Failed or Done.
+// Stopped, Failed or Done. Reason says why it stopped, failed or ended
+// short: stopped; interrupted (the worker was lost, so its usage is
+// unknown); access_lost, assistant_off; model_gone, a model problem
+// (not_connected, key_rejected, tools_unchecked, personal_keys_off…), a
+// budget problem (cap_reached, reservation_cap, thread_cap,
+// usage_unknown…), a provider problem (rate_limited, timeout,
+// provider_error, too_large), refused; length (done, cut at its length);
+// reputation (done, the HostRepute card); not_started.
 type AIThreadTurn struct {
-	ID        uuid.UUID  `json:"id"`
-	Sequence  int32      `json:"sequence"`
-	State     string     `json:"state" enum:"queued,answering,waiting,stopped,failed,done"`
-	Reason    string     `json:"reason,omitempty"`
+	ID       uuid.UUID `json:"id"`
+	Sequence int32     `json:"sequence"`
+	State    string    `json:"state" enum:"queued,answering,waiting,stopped,failed,done"`
+	Reason   string    `json:"reason,omitempty"`
+	// ModelID is the model the turn uses, fixed when it was sent.
+	ModelID *uuid.UUID `json:"modelId,omitempty"`
+	// Text is the answer so far while it answers.
+	Text      string     `json:"text,omitempty"`
 	CreatedAt time.Time  `json:"createdAt"`
 	StartedAt *time.Time `json:"startedAt,omitempty"`
 	EndedAt   *time.Time `json:"endedAt,omitempty"`
@@ -229,13 +248,12 @@ func (s *Service) Thread(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return AIThread{}, err
 	}
-	return s.view(ctx, ws, fresh, t)
+	return s.view(ctx, s.Q, ws, fresh, t)
 }
 
-// view is a thread with its usage and its attached resources as the person
-// may read them now. Its messages and its answering turn come with the
-// turns (Messages stays empty and Turn absent until then).
-func (s *Service) view(ctx context.Context, ws *store.Workspace, p *authz.Principal, t store.AiAssistantThread) (AIThread, error) {
+// view is a thread with its usage, its attached resources as the person
+// may read them now, its messages and its latest turn, as q reads them.
+func (s *Service) view(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, t store.AiAssistantThread) (AIThread, error) {
 	title, err := s.title(t)
 	if err != nil {
 		return AIThread{}, err
@@ -243,21 +261,21 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	out := AIThread{ID: t.ID, Title: title, State: t.State, Screen: t.Screen, EventSeq: t.EventSeq, CreatedAt: t.CreatedAt, LastActivityAt: t.LastActivityAt,
 		ExpiresAt: t.ExpiresAt, Limits: ai.AIAgentLimits{ToolCalls: t.ToolLimit, Tokens: t.TokenLimit, CostMicros: t.CostLimitMicros},
 		Contexts: []AIThreadContext{}, Messages: []AIThreadMessage{}}
-	if out.Model, err = s.AI.AssistantModelView(ctx, s.Q, ws.ID, t.UserID, t.ModelID); err != nil {
+	if out.Model, err = s.AI.AssistantModelView(ctx, q, ws.ID, t.UserID, t.ModelID); err != nil {
 		return AIThread{}, err
 	}
-	used, err := s.Q.AIBudgetThread(ctx, &t.ID)
+	used, err := q.AIBudgetThread(ctx, &t.ID)
 	if err != nil {
 		return AIThread{}, err
 	}
 	out.Usage = AIThreadUsage{ToolCalls: t.ToolCalls, Tokens: used.Tokens, CostMicros: used.CostMicros, Requests: used.Requests, UncertainRequests: used.Uncertain}
-	contexts, err := s.Q.AIAssistantContexts(ctx, t.ID)
+	contexts, err := q.AIAssistantContexts(ctx, t.ID)
 	if err != nil {
 		return AIThread{}, err
 	}
 	for _, c := range contexts {
 		v := AIThreadContext{ID: c.ID, Kind: c.Kind, TargetID: c.TargetID, Revision: c.Revision, SharedAt: c.SharedAt}
-		a, err := s.AI.AssistantAttachment(ctx, s.Q, ws, p, c.Kind, c.TargetID, false)
+		a, err := s.AI.AssistantAttachment(ctx, q, ws, p, c.Kind, c.TargetID, false)
 		var pr *api.Problem
 		switch {
 		case err == nil:
@@ -267,7 +285,82 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		out.Contexts = append(out.Contexts, v)
 	}
+	messages, err := q.AIAssistantMessages(ctx, t.ID)
+	if err != nil {
+		return AIThread{}, err
+	}
+	for _, m := range messages {
+		if m.Role != "user" && m.Role != "assistant" {
+			continue
+		}
+		c, err := s.messageContent(m)
+		if err != nil {
+			return AIThread{}, err
+		}
+		out.Messages = append(out.Messages, AIThreadMessage{ID: m.ID, Role: m.Role, Text: c.Text, TurnID: m.TurnID, Partial: c.Partial, Card: c.Card, CreatedAt: m.CreatedAt})
+	}
+	turn, err := q.AIAssistantThreadLastTurn(ctx, t.ID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return out, nil
+	}
+	if err != nil {
+		return AIThread{}, err
+	}
+	v := turnView(turn)
+	if turnActive(turn.State) {
+		if v.Text, err = s.answerSoFar(ctx, q, t.ID, turn.ID, t.EventSeq); err != nil {
+			return AIThread{}, err
+		}
+	}
+	out.Turn = &v
 	return out, nil
+}
+
+func turnView(t store.AiAssistantTurn) AIThreadTurn {
+	return AIThreadTurn{ID: t.ID, Sequence: t.Sequence, State: t.State, Reason: t.Reason, ModelID: t.ModelID, CreatedAt: t.CreatedAt, StartedAt: t.StartedAt, EndedAt: t.EndedAt}
+}
+
+// turnActive: the turn is queued, answering or waiting for the person.
+func turnActive(state string) bool {
+	return state == "queued" || state == "answering" || state == "waiting"
+}
+
+// messageAD is the associated data a message is sealed with.
+func messageAD(message uuid.UUID) string { return "ai_assistant_message:" + message.String() }
+
+// messageContent is a message as it is sealed.
+type messageContent struct {
+	Text    string `json:"text"`
+	Partial bool   `json:"partial,omitempty"`
+	Card    string `json:"card,omitempty"`
+}
+
+func (s *Service) messageContent(m store.AiAssistantMessage) (messageContent, error) {
+	var c messageContent
+	raw, err := s.Box.Open(m.ContentSealed, messageAD(m.ID))
+	if err != nil {
+		return c, err
+	}
+	return c, json.Unmarshal(raw, &c)
+}
+
+// addMessage seals and saves a message of a locked thread.
+func (s *Service) addMessage(ctx context.Context, q *store.Queries, thread uuid.UUID, turn *uuid.UUID, role string, model *uuid.UUID, c messageContent) (AIThreadMessage, error) {
+	id := uuid.Must(uuid.NewV7())
+	raw, err := json.Marshal(c)
+	if err != nil {
+		return AIThreadMessage{}, err
+	}
+	sealed, err := s.Box.Seal(raw, messageAD(id))
+	if err != nil {
+		return AIThreadMessage{}, err
+	}
+	now := s.now()
+	if err := q.AIAssistantMessageInsert(ctx, store.AIAssistantMessageInsertParams{ID: id, ThreadID: thread, TurnID: turn, Role: role, ModelID: model,
+		ContentSealed: sealed, Bytes: int32(len(c.Text)), CreatedAt: now}); err != nil {
+		return AIThreadMessage{}, err
+	}
+	return AIThreadMessage{ID: id, Role: role, Text: c.Text, TurnID: turn, Partial: c.Partial, Card: c.Card, CreatedAt: now}, nil
 }
 
 // maxSearched bounds the threads a title search decrypts.

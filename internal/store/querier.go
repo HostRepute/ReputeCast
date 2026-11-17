@@ -97,24 +97,70 @@ type Querier interface {
 	AIAssistantContextDelete(ctx context.Context, arg AIAssistantContextDeleteParams) (AIAssistantContextDeleteRow, error)
 	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
 	AIAssistantContexts(ctx context.Context, threadID uuid.UUID) ([]AiAssistantContext, error)
+	AIAssistantEventInsert(ctx context.Context, arg AIAssistantEventInsertParams) error
+	// The next stream event's number. Only under the thread's lock: events are
+	// numbered without gaps, in commit order.
+	AIAssistantEventSeq(ctx context.Context, id uuid.UUID) (int64, error)
+	// A thread's events after a stream's cursor, in order.
+	AIAssistantEvents(ctx context.Context, arg AIAssistantEventsParams) ([]AIAssistantEventsRow, error)
+	AIAssistantMessageInsert(ctx context.Context, arg AIAssistantMessageInsertParams) error
+	// The person's message a turn answers.
+	AIAssistantMessageOfTurn(ctx context.Context, turnID *uuid.UUID) (AiAssistantMessage, error)
+	AIAssistantMessages(ctx context.Context, threadID uuid.UUID) ([]AiAssistantMessage, error)
+	// Wakes the streams of a thread when the transaction commits. The payload
+	// is "thread:seq" only: readers read the events themselves.
+	AIAssistantNotify(ctx context.Context, payload string) error
 	// The AI assistant (B3): its settings, threads and their attached context.
 	// A thread is read only through its owner: every query that returns one
 	// names the person.
 	AIAssistantSettings(ctx context.Context, workspaceID uuid.UUID) (AiAssistantSetting, error)
 	AIAssistantSettingsSave(ctx context.Context, arg AIAssistantSettingsSaveParams) error
+	// A turn's slot: the thread's only one, one of the person's per_person and
+	// one of the workspace's per_workspace. None free: no row.
+	AIAssistantSlotClaim(ctx context.Context, arg AIAssistantSlotClaimParams) (uuid.UUID, error)
+	// The sweep frees a dead worker's slot.
+	AIAssistantSlotDrop(ctx context.Context, turnID uuid.UUID) error
+	// A turn's slot while its lease holds.
+	AIAssistantSlotOfTurn(ctx context.Context, arg AIAssistantSlotOfTurnParams) (AiAssistantSlot, error)
+	AIAssistantSlotRelease(ctx context.Context, arg AIAssistantSlotReleaseParams) error
+	AIAssistantSlotRenew(ctx context.Context, arg AIAssistantSlotRenewParams) (int64, error)
+	// Frees the workspace's slots whose lease lapsed. Their turns are the
+	// sweep's: answering without a live slot is a worker that died.
+	AIAssistantSlotsExpire(ctx context.Context, arg AIAssistantSlotsExpireParams) error
+	AIAssistantStepInsert(ctx context.Context, arg AIAssistantStepInsertParams) error
+	AIAssistantStepLast(ctx context.Context, turnID uuid.UUID) (AiAssistantStep, error)
+	AIAssistantStepSave(ctx context.Context, arg AIAssistantStepSaveParams) error
+	// Turns no worker answers: answering without a live slot (the worker died
+	// or lost its lease), or queued since before @queued_before (their job is
+	// gone).
+	AIAssistantSweepTurns(ctx context.Context, arg AIAssistantSweepTurnsParams) ([]AIAssistantSweepTurnsRow, error)
 	// One of the person's threads; another person's isn't there, a manager's
 	// view included.
 	AIAssistantThread(ctx context.Context, arg AIAssistantThreadParams) (AiAssistantThread, error)
+	// The thread's turn that is queued, answering or waiting, if any.
+	AIAssistantThreadActiveTurn(ctx context.Context, threadID uuid.UUID) (AiAssistantTurn, error)
 	AIAssistantThreadByRequest(ctx context.Context, arg AIAssistantThreadByRequestParams) (AiAssistantThread, error)
 	// Deleting a thread removes its content at once: messages, contexts and
 	// stream events go with it. The usage ledger stays (without the thread).
 	AIAssistantThreadDelete(ctx context.Context, arg AIAssistantThreadDeleteParams) (int64, error)
 	AIAssistantThreadInsert(ctx context.Context, arg AIAssistantThreadInsertParams) error
+	AIAssistantThreadLastTurn(ctx context.Context, threadID uuid.UUID) (AiAssistantTurn, error)
 	AIAssistantThreadLock(ctx context.Context, arg AIAssistantThreadLockParams) (AiAssistantThread, error)
+	// A thread as its turns' worker and the sweep lock it: the owner's lock,
+	// without naming the owner (the worker is nobody's session).
+	AIAssistantThreadLockByID(ctx context.Context, arg AIAssistantThreadLockByIDParams) (AiAssistantThread, error)
 	// Saves what the person changed. Only an open thread changes.
 	AIAssistantThreadSave(ctx context.Context, arg AIAssistantThreadSaveParams) error
 	// The person's threads, the most recently active first.
 	AIAssistantThreads(ctx context.Context, arg AIAssistantThreadsParams) ([]AiAssistantThread, error)
+	AIAssistantTurnByRequest(ctx context.Context, arg AIAssistantTurnByRequestParams) (AiAssistantTurn, error)
+	// What a turn wrote so far, up to an event: its answer's pieces.
+	AIAssistantTurnDeltas(ctx context.Context, arg AIAssistantTurnDeltasParams) ([]AIAssistantTurnDeltasRow, error)
+	// A turn's version and state, read under its thread's lock.
+	AIAssistantTurnFence(ctx context.Context, id uuid.UUID) (AIAssistantTurnFenceRow, error)
+	AIAssistantTurnInsert(ctx context.Context, arg AIAssistantTurnInsertParams) (AiAssistantTurn, error)
+	AIAssistantTurnLock(ctx context.Context, arg AIAssistantTurnLockParams) (AiAssistantTurn, error)
+	AIAssistantTurnSave(ctx context.Context, arg AIAssistantTurnSaveParams) error
 	// AI assistant (design expansion M22): the workspace's AI settings, its
 	// model accounts and models (assistant brief D3), the AI activity log, kept
 	// report summaries and AI translations.

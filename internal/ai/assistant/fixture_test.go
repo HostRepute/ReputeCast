@@ -19,15 +19,25 @@ import (
 )
 
 // fakeModel is an OpenAI-compatible server: it passes the tool-calling
-// check and answers anything else with a sentence.
-func fakeModel(t *testing.T) *httptest.Server {
+// check, streams answers as st's script says, and answers anything else
+// with a sentence.
+func fakeModel(t *testing.T, st *fakeStreams) *httptest.Server {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Tools []struct {
+			Stream bool `json:"stream"`
+			Tools  []struct {
 				Function struct{ Name string } `json:"function"`
 			} `json:"tools"`
+			Messages []struct {
+				Role    string `json:"role"`
+				Content any    `json:"content"`
+			} `json:"messages"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.Stream {
+			st.serve(w, r)
+			return
+		}
 		message := map[string]any{"role": "assistant", "content": "Ready."}
 		stop := "stop"
 		if len(req.Tools) > 0 && req.Tools[0].Function.Name == "check_tools" {
@@ -52,6 +62,7 @@ type fixture struct {
 	ws                       store.Workspace
 	base                     string
 	model                    *httptest.Server
+	streams                  *fakeStreams
 	owner, member, colleague uuid.UUID
 	oc, mc, cc, vc           *apptest.Client
 	accountID, modelID       uuid.UUID
@@ -60,7 +71,8 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	env := apptest.New(t)
-	f := &fixture{t: t, env: env, model: fakeModel(t)}
+	f := &fixture{t: t, env: env, streams: newFakeStreams()}
+	f.model = fakeModel(t, f.streams)
 	owner := env.CreateUser(apptest.UserOpts{Email: "owner@assistant.test", Name: "Assistant Owner"})
 	f.ws = env.CreateWorkspace("Assistant", owner.ID)
 	f.base = "/workspaces/" + f.ws.Slug + "/ai"

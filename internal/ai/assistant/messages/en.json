@@ -5,5 +5,10 @@
   "problem.contextsFull": { "message": "A thread holds up to {max} attached resources. Remove one first.", "note": "max: 10" },
   "problem.expired": { "message": "This thread expired: its content was removed after 30 days without activity. Start a new thread.", "note": "a thread whose content retention removed" },
   "problem.nothingToSave": "Give the thread a new title or pick another model.",
-  "problem.cursor": "This page of threads no longer exists. Load the list again."
+  "problem.cursor": "This page of threads no longer exists. Load the list again.",
+  "problem.turnActive": { "message": "The assistant is still answering in this thread. Wait for the answer or stop it, then send your message.", "note": "sending a message while a turn answers" },
+  "problem.nothingToSend": "Write a message first.",
+  "problem.modelGone": { "message": "This thread's model was removed. Pick another model for the thread, then send your message again.", "note": "the thread's model was deleted" },
+  "problem.turnKey": { "message": "This request key was already used for another message. Use a new key for a new message.", "note": "a client retried with the same key but another text" },
+  "answer.reputation": { "message": "Sender reputation, blocklists and inbox placement are for HostRepute to answer: it watches your domains and IPs and tells you what to fix. Ask me about using ReputeCast, or about what you attached.", "note": "the fixed answer of the HostRepute card, sent without a model call" }
 }

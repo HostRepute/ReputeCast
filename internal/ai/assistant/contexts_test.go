@@ -23,7 +23,7 @@ const demoAI = "/workspaces/acme-newsletter/ai"
 func TestAssistantContexts(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
-	model := fakeModel(t)
+	model := fakeModel(t, newFakeStreams())
 	ctx := context.Background()
 	client := func(email string) *apptest.Client {
 		c := env.Client()

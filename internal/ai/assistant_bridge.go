@@ -176,6 +176,15 @@ func (s *Service) ReadyAssistant(ctx context.Context, ws *store.Workspace, m *As
 	return err
 }
 
+// LockAssistantConfig takes the workspace's AI configuration lock, which
+// every model request takes before its budget's. A turn's worker takes it
+// before its thread's: removing a model clears the threads using it under
+// this lock.
+func (s *Service) LockAssistantConfig(ctx context.Context, q *store.Queries, ws uuid.UUID) error {
+	_, err := lockSettings(ctx, q, ws)
+	return err
+}
+
 // AssistantLedger is a thread's cumulative ceilings.
 type AssistantLedger struct {
 	ThreadID                    uuid.UUID
@@ -214,6 +223,16 @@ func (s *Service) AccountAssistant(ctx context.Context, q *store.Queries, r Assi
 // AssistantProvider is how a thread's requests reach the model.
 func (s *Service) AssistantProvider(m *AssistantModel) (llm.Provider, error) {
 	return s.provider(m.c, FeatureAssistant)
+}
+
+// AfterAssistant follows up a thread's request once its result is saved:
+// a key the provider rejected is marked so (and its managers or owner are
+// told), and the monthly cap's notices go out.
+func (s *Service) AfterAssistant(ctx context.Context, ws *store.Workspace, m *AssistantModel, callErr error) {
+	if e, ok := llm.AsError(callErr); ok && e.Kind == llm.ErrAuth {
+		s.keyRejected(ctx, ws, m.c, e)
+	}
+	s.afterUse(ctx, ws)
 }
 
 // AssistantAttachment is a resource attached to a thread, as its owner may

@@ -2899,7 +2899,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One of the caller's threads: its messages, attached resources, usage and the turn answering now */
+        /** One of the caller's threads: its messages, attached resources, usage and latest turn */
         get: operations["get-ai-thread"];
         put?: never;
         post?: never;
@@ -2952,6 +2952,66 @@ export interface paths {
          * @description Audited as ai_assistant_context.remove.
          */
         delete: operations["detach-ai-thread-context"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a message: it starts a turn on the thread's model
+         * @description The answer streams on the thread's events (stream-ai-thread). One turn answers at a time in a thread (409 while one does). A question about sender reputation, blocklists or placement gets the HostRepute card at once, without a model call. A retry with the same request key returns the thread. Audited as ai_assistant_turn.created, without the text.
+         */
+        post: operations["send-ai-thread-message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Server-sent events of a thread: its turns, their answers as they arrive, its messages and usage
+         * @description Each event's id is its number in the thread; a client that reconnects with Last-Event-ID (or lastEventId) gets every event after it, once, in order. Without a cursor, or when the events after it are gone (24 hours after their turn, or lost in a crash), a `snapshot` event carries the whole thread first. A `heartbeat` event every 15 s says the connection is alive. A client that doesn't read is cut, and resumes from its last event. A `problem` event ends a stream the caller may not read (the thread isn't theirs, they lost ai:use, the assistant is off): don't reconnect after it.
+         */
+        get: operations["stream-ai-thread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/turns/{turn}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop a turn
+         * @description No model request starts for it any more; what a request already answering writes after now is dropped, and it is still accounted (the provider may charge for it). Stopping a turn that ended changes nothing. Works with the assistant switched off. Audited as ai_assistant_turn.cancelled.
+         */
+        post: operations["stop-ai-thread-turn"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -21882,6 +21942,14 @@ export interface components {
             /** @description The person reviewed what is shared with the model and confirmed it */
             sharingReviewed: boolean;
         };
+        AIThreadDeltaEvent: {
+            text: string;
+            turnId: string;
+        };
+        AIThreadHeartbeat: {
+            /** Format: date-time */
+            at: string;
+        };
         AIThreadInput: {
             /** Format: uuid */
             modelId?: string;
@@ -21905,13 +21973,32 @@ export interface components {
             title: string;
         };
         AIThreadMessage: {
+            /** @enum {string} */
+            card?: "hostrepute";
             /** Format: date-time */
             createdAt: string;
             id: string;
+            partial?: boolean;
             /** @enum {string} */
             role: "user" | "assistant";
             text: string;
             turnId?: string;
+        };
+        AIThreadMessageEvent: {
+            message: components["schemas"]["AIThreadMessage"];
+        };
+        AIThreadMessageInput: {
+            requestKey: string;
+            text: string;
+        };
+        AIThreadSnapshotEvent: {
+            thread: components["schemas"]["AIThread"];
+        };
+        AIThreadStreamProblem: {
+            code: string;
+            detail: string;
+            /** Format: int64 */
+            status: number;
         };
         AIThreadTurn: {
             /** Format: date-time */
@@ -21919,6 +22006,7 @@ export interface components {
             /** Format: date-time */
             endedAt?: string;
             id: string;
+            modelId?: string;
             reason?: string;
             /** Format: int32 */
             sequence: number;
@@ -21926,6 +22014,10 @@ export interface components {
             startedAt?: string;
             /** @enum {string} */
             state: "queued" | "answering" | "waiting" | "stopped" | "failed" | "done";
+            text?: string;
+        };
+        AIThreadTurnEvent: {
+            turn: components["schemas"]["AIThreadTurn"];
         };
         AIThreadUpdate: {
             /** Format: uuid */
@@ -21943,6 +22035,9 @@ export interface components {
             toolCalls: number;
             /** Format: int64 */
             uncertainRequests: number;
+        };
+        AIThreadUsageEvent: {
+            usage: components["schemas"]["AIThreadUsage"];
         };
         AITranslateInput: {
             /** Format: uuid */
@@ -59459,6 +59554,197 @@ export interface operations {
                 thread: string;
                 /** @description The attached resource's id */
                 context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-ai-thread-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadMessageInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stream-ai-thread": {
+        parameters: {
+            query?: {
+                /** @description Same as the Last-Event-ID header, for a new stream */
+                lastEventId?: string;
+            };
+            header?: {
+                /** @description Resume after this event id */
+                "Last-Event-ID"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": ({
+                        data: components["schemas"]["AIThreadDeltaEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "delta";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadHeartbeat"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "heartbeat";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadMessageEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event?: "message";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadStreamProblem"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "problem";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadSnapshotEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "snapshot";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadTurnEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "turn";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadUsageEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "usage";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    })[];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stop-ai-thread-turn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+                /** @description The turn's id */
+                turn: string;
             };
             cookie?: never;
         };

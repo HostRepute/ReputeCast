@@ -4160,6 +4160,35 @@
         ],
         "type": "object"
       },
+      "AIThreadDeltaEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "turnId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "turnId",
+          "text"
+        ],
+        "type": "object"
+      },
+      "AIThreadHeartbeat": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at"
+        ],
+        "type": "object"
+      },
       "AIThreadInput": {
         "additionalProperties": false,
         "properties": {
@@ -4244,12 +4273,21 @@
       "AIThreadMessage": {
         "additionalProperties": false,
         "properties": {
+          "card": {
+            "enum": [
+              "hostrepute"
+            ],
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
           },
           "id": {
             "type": "string"
+          },
+          "partial": {
+            "type": "boolean"
           },
           "role": {
             "enum": [
@@ -4273,6 +4311,70 @@
         ],
         "type": "object"
       },
+      "AIThreadMessageEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "$ref": "#/components/schemas/AIThreadMessage"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "AIThreadMessageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "requestKey": {
+            "pattern": "^[A-Za-z0-9_-]{1,80}$",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "requestKey"
+        ],
+        "type": "object"
+      },
+      "AIThreadSnapshotEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "thread": {
+            "$ref": "#/components/schemas/AIThread"
+          }
+        },
+        "required": [
+          "thread"
+        ],
+        "type": "object"
+      },
+      "AIThreadStreamProblem": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "code",
+          "detail"
+        ],
+        "type": "object"
+      },
       "AIThreadTurn": {
         "additionalProperties": false,
         "properties": {
@@ -4285,6 +4387,9 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "modelId": {
             "type": "string"
           },
           "reason": {
@@ -4308,6 +4413,9 @@
               "done"
             ],
             "type": "string"
+          },
+          "text": {
+            "type": "string"
           }
         },
         "required": [
@@ -4315,6 +4423,18 @@
           "sequence",
           "state",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "AIThreadTurnEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "turn": {
+            "$ref": "#/components/schemas/AIThreadTurn"
+          }
+        },
+        "required": [
+          "turn"
         ],
         "type": "object"
       },
@@ -4362,6 +4482,18 @@
           "costMicros",
           "requests",
           "uncertainRequests"
+        ],
+        "type": "object"
+      },
+      "AIThreadUsageEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/AIThreadUsage"
+          }
+        },
+        "required": [
+          "usage"
         ],
         "type": "object"
       },
@@ -123375,7 +123507,7 @@
             "session": []
           }
         ],
-        "summary": "One of the caller's threads: its messages, attached resources, usage and the turn answering now",
+        "summary": "One of the caller's threads: its messages, attached resources, usage and latest turn",
         "tags": [
           "AI assistant"
         ],
@@ -123603,6 +123735,480 @@
           }
         ],
         "summary": "Remove an attached resource from a thread",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/messages": {
+      "post": {
+        "description": "The answer streams on the thread's events (stream-ai-thread). One turn answers at a time in a thread (409 while one does). A question about sender reputation, blocklists or placement gets the HostRepute card at once, without a model call. A retry with the same request key returns the thread. Audited as ai_assistant_turn.created, without the text.",
+        "operationId": "send-ai-thread-message",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIThreadMessageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Send a message: it starts a turn on the thread's model",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/stream": {
+      "get": {
+        "description": "Each event's id is its number in the thread; a client that reconnects with Last-Event-ID (or lastEventId) gets every event after it, once, in order. Without a cursor, or when the events after it are gone (24 hours after their turn, or lost in a crash), a `snapshot` event carries the whole thread first. A `heartbeat` event every 15 s says the connection is alive. A client that doesn't read is cut, and resumes from its last event. A `problem` event ends a stream the caller may not read (the thread isn't theirs, they lost ai:use, the assistant is off): don't reconnect after it.",
+        "operationId": "stream-ai-thread",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Resume after this event id",
+            "in": "header",
+            "name": "Last-Event-ID",
+            "schema": {
+              "description": "Resume after this event id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Same as the Last-Event-ID header, for a new stream",
+            "explode": false,
+            "in": "query",
+            "name": "lastEventId",
+            "schema": {
+              "description": "Same as the Last-Event-ID header, for a new stream",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "description": "Each oneOf object in the array represents one possible Server Sent Events (SSE) message, serialized as UTF-8 text according to the SSE specification.",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadDeltaEvent"
+                          },
+                          "event": {
+                            "const": "delta",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event delta",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadHeartbeat"
+                          },
+                          "event": {
+                            "const": "heartbeat",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event heartbeat",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadMessageEvent"
+                          },
+                          "event": {
+                            "const": "message",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data"
+                        ],
+                        "title": "Event message",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadStreamProblem"
+                          },
+                          "event": {
+                            "const": "problem",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event problem",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadSnapshotEvent"
+                          },
+                          "event": {
+                            "const": "snapshot",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event snapshot",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadTurnEvent"
+                          },
+                          "event": {
+                            "const": "turn",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event turn",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadUsageEvent"
+                          },
+                          "event": {
+                            "const": "usage",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event usage",
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "title": "Server Sent Events",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Server-sent events of a thread: its turns, their answers as they arrive, its messages and usage",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/turns/{turn}/stop": {
+      "post": {
+        "description": "No model request starts for it any more; what a request already answering writes after now is dropped, and it is still accounted (the provider may charge for it). Stopping a turn that ended changes nothing. Works with the assistant switched off. Audited as ai_assistant_turn.cancelled.",
+        "operationId": "stop-ai-thread-turn",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The turn's id",
+            "in": "path",
+            "name": "turn",
+            "required": true,
+            "schema": {
+              "description": "The turn's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Stop a turn",
         "tags": [
           "AI assistant"
         ],
