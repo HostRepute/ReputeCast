@@ -56,7 +56,7 @@ Remaining acceptance work: test connection/reconnect/scope denial/proposal revie
 |---|---|---|
 | B0 | Brief, agent-brief amendments, interactive panel/states/entry/models/MCP boards at 1440/834/390 in light and dark | Design prepared for review |
 | B1 | Model registry: several accounts, per-feature defaults, OpenAI-compatible presets, capability checks, personal keys (03630–03631) | Implemented locally on `assistant-b1-models`: hosted OpenAI-compatible presets; settings, accounts, models and each feature's model split from the one connection with its key, usage, caps and runs kept; reservations locked on the settings row and bound to the model's price; account/model/feature endpoints; personal keys behind a manager switch with their own cap, lock and reconcile, deleted when the member leaves. API only: the settings screens are B4 |
-| B2 | Streaming in `internal/ai/llm` with recorded SSE contract fixtures | ⏳ |
+| B2 | Streaming in `internal/ai/llm` with SSE contract fixtures (recorded from live accounts later) | Implemented locally on `assistant-b2-streaming`: `llm.Streamer` on every adapter (Anthropic events, Chat Completions chunks for OpenAI, Azure and compatible servers with `include_usage`, Gemini `streamGenerateContent?alt=sse`) returning the same checked `Response` as `Generate`; `StreamOrGenerate` for providers that don't stream; one SSE reader with a line limit, the response limit over the whole stream, a 30 s idle timeout and retries only before the stream begins. Not wired into features: that is B3 |
 | B3 | Threads and turns on River, stream events and SSE, budgets and slots, tool registry, retention, audit | ⏳ |
 | B4 | The panel, states and settings screens, five locales, accessibility and responsive checks | ⏳ |
 | B5 | MCP servers: remote transports, OAuth per member, tool approval and pinning, confirmations | ⏳ |
@@ -65,6 +65,8 @@ Remaining acceptance work: test connection/reconnect/scope denial/proposal revie
 B1 and B2 can proceed in parallel; B3 needs both; B4 can start against mocked responses once B3's API is fixed; B5 needs B3. Migration ranges are reserved when each phase starts.
 
 B1 verification: Go tests on Postgres 18.7 for `internal/ai` (including `-race`, 834 s wall alone), `sealed`, `mcpconnect`, `demo`, `app`, `auditlog`, `integrations`, `team`, `accounts`, `instance`, `agency` and `sso`; web `tsc -b`; the TypeScript, Python and Go client tests after regenerating them. Each regression test (another model's price, a reservation serialized per account or on the wrong ledger, a key opened with the workspace's associated data, a fallback from an unusable default, a run following a changed default, a manager reaching a personal key or hold) was checked to fail with its fix removed. Not covered: Postgres 16/17, a whole-repository `make test`/`make lint`, and real provider accounts.
+
+B2 verification: `go test -race ./internal/ai/llm/...` (the contract suite's stream scenarios for all five providers, `-count=3` too) and `internal/ai`'s connection and agent tests on Postgres 18. Each new check was made to fail once by breaking what it guards (26 mutations, from usage taken from `message_start` to a retry after the stream began). The fixtures are synthetic, written from each provider's documentation and SDKs, not captured from live accounts; Gemini's plain-JSON error inside a stream follows `google-genai`'s reader, not a recording. Not covered: `make lint` (golangci-lint isn't installed here) and real provider accounts.
 
 | Milestone | Scope | Workstreams | Status |
 |---|---|---|---|

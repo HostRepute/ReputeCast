@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \"private reasoning fixture\", \"thought\": true, \"thoughtSignature\": \"c2lnbmF0dXJlMQ==\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 113, \"totalTokenCount\": 113}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \"Reading selected\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 113, \"totalTokenCount\": 113}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \" drafts.\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 113, \"totalTokenCount\": 113}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"functionCall\": {\"id\": \"call_a\", \"name\": \"read_draft\", \"args\": {\"handle\": \"draft_a\"}}, \"thoughtSignature\": \"c2lnbmF0dXJlMg==\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 113, \"totalTokenCount\": 113}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"functionCall\": {\"name\": \"read_draft\", \"args\": {\"handle\": \"draft_b\"}}}], \"role\": \"model\"}, \"index\": 0, \"finishReason\": \"STOP\"}], \"usageMetadata\": {\"promptTokenCount\": 113, \"candidatesTokenCount\": 18, \"thoughtsTokenCount\": 11, \"totalTokenCount\": 142}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n"
+  ]
+}

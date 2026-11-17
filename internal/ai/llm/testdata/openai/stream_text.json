@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\",\"refusal\":null},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"Qm4f\"}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Re\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"t1\"}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"content\":\"ady\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"9z\"}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"content\":\".\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null,\"obfuscation\":\"Lp0q\"}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{},\"logprobs\":null,\"finish_reason\":\"stop\"}],\"usage\":null,\"obfuscation\":\"b\"}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[],\"usage\":{\"prompt_tokens\":19,\"completion_tokens\":2,\"total_tokens\":21,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}},\"obfuscation\":\"vXk2\"}\n\n",
+    "data: [DONE]\n\n"
+  ]
+}

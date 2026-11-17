@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -58,12 +59,14 @@ type openAIFunction struct {
 }
 
 type openAIRequest struct {
-	Model               string          `json:"model,omitempty"`
-	Messages            []openAIMessage `json:"messages"`
-	MaxTokens           int             `json:"max_tokens,omitempty"`
-	MaxCompletionTokens int             `json:"max_completion_tokens,omitempty"`
-	ResponseFormat      map[string]any  `json:"response_format,omitempty"`
-	Tools               []openAITool    `json:"tools,omitempty"`
+	Model               string               `json:"model,omitempty"`
+	Messages            []openAIMessage      `json:"messages"`
+	MaxTokens           int                  `json:"max_tokens,omitempty"`
+	MaxCompletionTokens int                  `json:"max_completion_tokens,omitempty"`
+	ResponseFormat      map[string]any       `json:"response_format,omitempty"`
+	Tools               []openAITool         `json:"tools,omitempty"`
+	Stream              bool                 `json:"stream,omitempty"`
+	StreamOptions       *openAIStreamOptions `json:"stream_options,omitempty"`
 }
 
 type openAIResponse struct {
@@ -76,10 +79,7 @@ type openAIResponse struct {
 		} `json:"message"`
 		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
-	Usage struct {
-		PromptTokens     *int `json:"prompt_tokens"`
-		CompletionTokens *int `json:"completion_tokens"`
-	} `json:"usage"`
+	Usage openAIUsage `json:"usage"`
 }
 
 func (o *openAI) name() string {
@@ -122,8 +122,49 @@ func (o *openAI) endpoint(path string) string {
 }
 
 func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
-	if err := validateTools(req, false); err != nil {
+	body, err := o.request(req)
+	if err != nil {
 		return Response{}, err
+	}
+	raw, err := o.completions(body).do(ctx)
+	if err != nil {
+		return Response{}, err
+	}
+	var res openAIResponse
+	if err := json.Unmarshal(raw, &res); err != nil {
+		return Response{}, &Error{Kind: ErrInvalid, Err: err, Message: o.name() + "'s answer couldn't be read"}
+	}
+	input, inputKnown := tokenUsage(res.Usage.PromptTokens)
+	output, outputKnown := tokenUsage(res.Usage.CompletionTokens)
+	out := Response{Model: res.Model, InputTokens: input, OutputTokens: output, UsageKnown: inputKnown && outputKnown, Message: Message{Role: "assistant", Parts: []Part{}}}
+	if len(res.Choices) != 1 {
+		return out, &Error{Kind: ErrInvalid, Message: o.name() + " answered without exactly one choice"}
+	}
+	ch := res.Choices[0]
+	if ch.Message.Content != nil {
+		out.Text = *ch.Message.Content
+		out.Message.Parts = append(out.Message.Parts, Part{Text: out.Text})
+	}
+	for _, c := range ch.Message.ToolCalls {
+		if c.Type != "function" {
+			return out, toolError()
+		}
+		out.Message.Parts = append(out.Message.Parts, Part{ToolCall: &ToolCall{ID: c.ID, Name: c.Function.Name, Arguments: json.RawMessage(c.Function.Arguments)}})
+	}
+	openAIStop(ch.FinishReason, &out)
+	if ch.Message.Refusal != nil && strings.TrimSpace(*ch.Message.Refusal) != "" {
+		out.Refused, out.StopReason, out.Text = true, StopRefusal, *ch.Message.Refusal
+	}
+	if out.Model == "" {
+		out.Model = o.cfg.Model
+	}
+	return checkedTools(req, out, false)
+}
+
+// request is the Chat Completions request of req.
+func (o *openAI) request(req Request) (openAIRequest, error) {
+	if err := validateTools(req, false); err != nil {
+		return openAIRequest{}, err
 	}
 	body := openAIRequest{Messages: []openAIMessage{}}
 	for _, tool := range req.Tools {
@@ -192,32 +233,16 @@ func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
 			body.ResponseFormat = map[string]any{"type": "json_object"}
 		}
 	}
-	raw, err := call{cfg: o.cfg, method: http.MethodPost, url: o.endpoint("/chat/completions"), header: o.headers(), body: body, classify: openAIError}.do(ctx)
-	if err != nil {
-		return Response{}, err
-	}
-	var res openAIResponse
-	if err := json.Unmarshal(raw, &res); err != nil {
-		return Response{}, &Error{Kind: ErrInvalid, Err: err, Message: o.name() + "'s answer couldn't be read"}
-	}
-	input, inputKnown := tokenUsage(res.Usage.PromptTokens)
-	output, outputKnown := tokenUsage(res.Usage.CompletionTokens)
-	out := Response{Model: res.Model, InputTokens: input, OutputTokens: output, UsageKnown: inputKnown && outputKnown, Message: Message{Role: "assistant", Parts: []Part{}}}
-	if len(res.Choices) != 1 {
-		return out, &Error{Kind: ErrInvalid, Message: o.name() + " answered without exactly one choice"}
-	}
-	ch := res.Choices[0]
-	if ch.Message.Content != nil {
-		out.Text = *ch.Message.Content
-		out.Message.Parts = append(out.Message.Parts, Part{Text: out.Text})
-	}
-	for _, c := range ch.Message.ToolCalls {
-		if c.Type != "function" {
-			return out, toolError()
-		}
-		out.Message.Parts = append(out.Message.Parts, Part{ToolCall: &ToolCall{ID: c.ID, Name: c.Function.Name, Arguments: json.RawMessage(c.Function.Arguments)}})
-	}
-	switch ch.FinishReason {
+	return body, nil
+}
+
+func (o *openAI) completions(body openAIRequest) call {
+	return call{cfg: o.cfg, method: http.MethodPost, url: o.endpoint("/chat/completions"), header: o.headers(), body: body, classify: openAIError}
+}
+
+// openAIStop maps a finish reason.
+func openAIStop(reason string, out *Response) {
+	switch reason {
 	case "stop":
 		out.StopReason = StopEnd
 	case "tool_calls":
@@ -229,13 +254,191 @@ func (o *openAI) Generate(ctx context.Context, req Request) (Response, error) {
 	default:
 		out.StopReason = StopOther
 	}
-	if ch.Message.Refusal != nil && strings.TrimSpace(*ch.Message.Refusal) != "" {
-		out.Refused, out.StopReason, out.Text = true, StopRefusal, *ch.Message.Refusal
+}
+
+// Stream reads Chat Completions chunks
+// (https://platform.openai.com/docs/api-reference/chat-streaming): the
+// text in delta.content, refusals in delta.refusal, tool calls in
+// delta.tool_calls by index, the finish reason, and, asked for with
+// stream_options.include_usage, a last chunk with the usage and no
+// choices, then data: [DONE]. A server that sends no usage chunk leaves
+// the usage unknown. Azure answers the same, after a first chunk with its
+// prompt filter results and no choices.
+func (o *openAI) Stream(ctx context.Context, req Request, emit func(Delta) error) (Response, error) {
+	body, err := o.request(req)
+	if err != nil {
+		return Response{}, err
 	}
+	body.Stream = true
+	body.StreamOptions = &openAIStreamOptions{IncludeUsage: true}
+	st := &openAIStream{name: o.name(), emit: emit, current: -1}
+	err = o.completions(body).stream(ctx, st)
+	out := st.response()
 	if out.Model == "" {
 		out.Model = o.cfg.Model
 	}
+	if err != nil {
+		return out, err
+	}
+	if st.unknown {
+		return out, toolError()
+	}
 	return checkedTools(req, out, false)
+}
+
+type openAIStreamOptions struct {
+	IncludeUsage bool `json:"include_usage"`
+}
+
+type openAIUsage struct {
+	PromptTokens     *int `json:"prompt_tokens"`
+	CompletionTokens *int `json:"completion_tokens"`
+}
+
+type openAIChunk struct {
+	Model   string `json:"model"`
+	Choices []struct {
+		Index int `json:"index"`
+		Delta struct {
+			Content   *string `json:"content"`
+			Refusal   *string `json:"refusal"`
+			ToolCalls []struct {
+				Index    int    `json:"index"`
+				ID       string `json:"id"`
+				Type     string `json:"type"`
+				Function struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				} `json:"function"`
+			} `json:"tool_calls"`
+		} `json:"delta"`
+		FinishReason *string `json:"finish_reason"`
+	} `json:"choices"`
+	Usage *openAIUsage    `json:"usage"`
+	Error json.RawMessage `json:"error"`
+}
+
+type openAIStream struct {
+	name    string
+	emit    func(Delta) error
+	model   string
+	text    strings.Builder // what was emitted: content, then a refusal
+	content strings.Builder
+	refusal strings.Builder
+	calls   []ToolCall
+	args    []strings.Builder
+	byIndex map[int]int
+	current int // the index whose arguments are being emitted
+	finish  string
+	// usage is the last reported; final once it came with or after the
+	// finish reason, or the stream ended with [DONE].
+	usage   *openAIUsage
+	final   bool
+	done    bool
+	unknown bool
+}
+
+func (s *openAIStream) complete() bool { return s.done || s.finish != "" }
+
+func (s *openAIStream) event(ev sseEvent) error {
+	if bytes.Equal(bytes.TrimSpace(ev.data), []byte("[DONE]")) {
+		s.done, s.final = true, s.usage != nil
+		return errStreamEnd
+	}
+	var c openAIChunk
+	if err := decodeEvent(s.name, ev, &c); err != nil {
+		return err
+	}
+	if len(c.Error) > 0 && !bytes.Equal(c.Error, []byte("null")) {
+		return midStream(openAIError(0, nil, ev.data))
+	}
+	if s.model == "" {
+		s.model = c.Model
+	}
+	if len(c.Choices) > 1 || (len(c.Choices) == 1 && c.Choices[0].Index != 0) {
+		return &Error{Kind: ErrInvalid, Message: s.name + " answered without exactly one choice"}
+	}
+	for _, ch := range c.Choices {
+		d := ch.Delta
+		if d.Content != nil && *d.Content != "" {
+			s.content.WriteString(*d.Content)
+			if err := s.say(*d.Content); err != nil {
+				return err
+			}
+		}
+		if d.Refusal != nil && *d.Refusal != "" {
+			s.refusal.WriteString(*d.Refusal)
+			if err := s.say(*d.Refusal); err != nil {
+				return err
+			}
+		}
+		for _, tc := range d.ToolCalls {
+			if tc.Type != "" && tc.Type != "function" {
+				s.unknown = true
+			}
+			i, ok := s.byIndex[tc.Index]
+			if !ok {
+				if s.byIndex == nil {
+					s.byIndex = map[int]int{}
+				}
+				i = len(s.calls)
+				s.byIndex[tc.Index] = i
+				s.calls = append(s.calls, ToolCall{ID: tc.ID, Name: tc.Function.Name})
+				s.args = append(s.args, strings.Builder{})
+				s.current = i
+				if err := s.emit(Delta{ToolCallStart: &ToolCall{ID: tc.ID, Name: tc.Function.Name}}); err != nil {
+					return err
+				}
+			}
+			if tc.Function.Arguments == "" {
+				continue
+			}
+			s.args[i].WriteString(tc.Function.Arguments)
+			// Calls arrive one after another; a fragment of an earlier one
+			// is kept in its call but not emitted as the current call's.
+			if i == s.current {
+				if err := s.emit(Delta{ToolArgs: tc.Function.Arguments}); err != nil {
+					return err
+				}
+			}
+		}
+		if ch.FinishReason != nil && *ch.FinishReason != "" {
+			s.finish = *ch.FinishReason
+		}
+	}
+	if c.Usage != nil {
+		s.usage, s.final = c.Usage, s.finish != ""
+	}
+	return nil
+}
+
+func (s *openAIStream) say(t string) error {
+	s.text.WriteString(t)
+	return s.emit(Delta{Text: t})
+}
+
+// response is the answer so far.
+func (s *openAIStream) response() Response {
+	out := Response{Model: s.model, Text: s.text.String(), Message: Message{Role: "assistant", Parts: []Part{}}}
+	if s.final {
+		input, inputKnown := tokenUsage(s.usage.PromptTokens)
+		output, outputKnown := tokenUsage(s.usage.CompletionTokens)
+		out.InputTokens, out.OutputTokens, out.UsageKnown = input, output, inputKnown && outputKnown
+	}
+	if s.content.Len() > 0 {
+		out.Message.Parts = append(out.Message.Parts, Part{Text: s.content.String()})
+	}
+	for i, c := range s.calls {
+		c.Arguments = json.RawMessage(s.args[i].String())
+		out.Message.Parts = append(out.Message.Parts, Part{ToolCall: &c})
+	}
+	if s.finish != "" {
+		openAIStop(s.finish, &out)
+	}
+	if strings.TrimSpace(s.refusal.String()) != "" {
+		out.Refused, out.StopReason = true, StopRefusal
+	}
+	return out
 }
 
 func (o *openAI) Models(ctx context.Context) ([]Model, error) {
