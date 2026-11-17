@@ -12,7 +12,7 @@ import { T, useT, type MessageDescriptor } from '@/i18n'
 import { useApiReference } from '@/lib/apiReference'
 import { ago, money } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
-import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
+import { AIGroupLink, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
 import { isAIProvider } from '@/features/ai/entries'
 import { isPayment, PaymentAction, PaymentFact, paymentUnavailable, UnavailableBadge } from '@/features/earn/entries'
 import { StoreAction, StoreBadge, StoreFact } from '@/features/commerce/catalog'
@@ -235,7 +235,7 @@ function Catalog({
             const full = !narrowGroups.includes(g.key)
             const cards = g.entries.map((e) =>
               g.key === 'ai' && isAIProvider(e.key) ? (
-                <AIModelCard key={e.key} provider={e.key} status={e.status} facts={e.facts.ai} canManage={hub.canManage} />
+                <AIModelCard key={e.key} provider={e.key} status={e.status} facts={e.facts.ai} canManage={hub.canManage} helpers={hub.helpers} />
               ) : (
                 <EntryCard key={e.key} entry={e} canManage={hub.canManage} onConnect={onConnect} />
               ),
@@ -250,7 +250,6 @@ function Catalog({
                   {g.key === 'ai' ? <AIGroupLink /> : null}
                 </div>
                 {full ? <div className="ih-grid">{cards}</div> : cards}
-                {g.key === 'ai' ? <AIGroupNote entries={g.entries} /> : null}
               </section>
             )
           })}
