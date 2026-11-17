@@ -9,6 +9,8 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 from ..models.ai_feature_state_key import AIFeatureStateKey
+from ..types import UNSET, Unset
+from uuid import UUID
 
 
 
@@ -26,11 +28,13 @@ class AIFeatureState:
             available (bool):
             key (AIFeatureStateKey):
             on (bool):
+            model_id (UUID | Unset):
      """
 
     available: bool
     key: AIFeatureStateKey
     on: bool
+    model_id: UUID | Unset = UNSET
 
 
 
@@ -43,6 +47,10 @@ class AIFeatureState:
 
         on = self.on
 
+        model_id: str | Unset = UNSET
+        if not isinstance(self.model_id, Unset):
+            model_id = str(self.model_id)
+
 
         field_dict: dict[str, Any] = {}
 
@@ -51,6 +59,8 @@ class AIFeatureState:
             "key": key,
             "on": on,
         })
+        if model_id is not UNSET:
+            field_dict["modelId"] = model_id
 
         return field_dict
 
@@ -68,10 +78,21 @@ class AIFeatureState:
 
         on = d.pop("on")
 
+        _model_id = d.pop("modelId", UNSET)
+        model_id: UUID | Unset
+        if isinstance(_model_id,  Unset):
+            model_id = UNSET
+        else:
+            model_id = UUID(_model_id)
+
+
+
+
         ai_feature_state = cls(
             available=available,
             key=key,
             on=on,
+            model_id=model_id,
         )
 
         return ai_feature_state

@@ -12947,6 +12947,30 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AIAccountView: {
+            apiVersion?: string;
+            baseUrl?: string;
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy?: string;
+            demo: boolean;
+            id: string;
+            key: components["schemas"]["AIKeyView"];
+            label?: string;
+            lastTest?: components["schemas"]["AITestView"];
+            models: components["schemas"]["AIModelView"][];
+            preset?: string;
+            primary: boolean;
+            privateNetwork: boolean;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected" | "disconnected";
+            /** Format: date-time */
+            statusAt?: string;
+            statusDetail?: string;
+        };
         AIActivityList: {
             items: components["schemas"]["AIActivityRow"][];
             members: components["schemas"]["AIActivityMember"][];
@@ -12991,6 +13015,12 @@ export interface components {
             usageKnown: boolean;
             userId?: string;
         };
+        AIAgentCapability: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @enum {string} */
+            state: "untested" | "supported" | "unsupported";
+        };
         AICapView: {
             /** @enum {string} */
             kind: "usd" | "tokens" | "none";
@@ -13029,10 +13059,17 @@ export interface components {
             statusAt?: string;
             statusDetail?: string;
         };
+        AIFeatureDefault: {
+            /** @enum {string} */
+            feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            modelId: string;
+        };
         AIFeatureState: {
             available: boolean;
             /** @enum {string} */
             key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            /** Format: uuid */
+            modelId?: string;
             on: boolean;
         };
         AIKeptSummary: {
@@ -13076,6 +13113,16 @@ export interface components {
              */
             output: number;
         };
+        AIModelView: {
+            deployment?: string;
+            features: ("assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft")[];
+            id: string;
+            imageInput: boolean;
+            model: string;
+            modelName: string;
+            prices: components["schemas"]["AIPricesView"];
+            tools: components["schemas"]["AIAgentCapability"];
+        };
         AIPricesView: {
             /** Format: date-time */
             from?: string;
@@ -13109,6 +13156,7 @@ export interface components {
             name: string;
         };
         AISettings: {
+            accounts: components["schemas"]["AIAccountView"][];
             aiUseRoles: string[];
             allowPrivate: boolean;
             byFeature: components["schemas"]["AIUsageFeature"][];
@@ -13117,6 +13165,7 @@ export interface components {
             catalog: components["schemas"]["AIProviderEntry"][];
             connected: boolean;
             connection?: components["schemas"]["AIConnectionView"];
+            defaults: components["schemas"]["AIFeatureDefault"][];
             disconnected: boolean;
             features: components["schemas"]["AIFeatureState"][];
             helpers: string[];

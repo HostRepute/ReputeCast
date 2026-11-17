@@ -103,6 +103,16 @@ var (
 	mSuggestionID         = msgs.M("problem.suggestionId")
 	mVersionTranslated    = msgs.M("version.translated")
 
+	mModelExists         = msgs.M("problem.modelExists")
+	mModelInUse          = msgs.M("problem.modelInUse")
+	mAccountInUse        = msgs.M("problem.accountInUse")
+	mLastModel           = msgs.M("problem.lastModel")
+	mAccountDisconnected = msgs.M("problem.accountDisconnected")
+	mKeyRejectedModel    = msgs.M("problem.keyRejectedModel")
+	mDefaultNoImages     = msgs.M("problem.defaultNoImages")
+	mToolsUnchecked      = msgs.M("problem.toolsUnchecked")
+	mFeatureName         = msgs.M("feature.name")
+
 	mImageAddress      = msgs.M("image.address")
 	mImageNotInLibrary = msgs.M("image.notInLibrary")
 	mImageWhere        = msgs.M("image.where")
@@ -144,6 +154,12 @@ const (
 	codeDemoModel     = "ai_demo_model"
 	codePrivate       = "ai_private_address"
 	codeOneModel      = "ai_one_model"
+
+	codeModelExists         = "ai_model_exists"
+	codeModelInUse          = "ai_model_in_use"
+	codeLastModel           = "ai_last_model"
+	codeAccountDisconnected = "ai_account_disconnected"
+	codeToolsUnchecked      = "ai_tools_unchecked"
 )
 
 // text writes a message in the request's language.

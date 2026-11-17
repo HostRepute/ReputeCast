@@ -53,7 +53,9 @@ func newModelServer(t *testing.T) *modelServer {
 	m.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Model string `json:"model"`
-			Tools []any  `json:"tools"`
+			Tools []struct {
+				Function struct{ Name string } `json:"function"`
+			} `json:"tools"`
 		}
 		_ = json.NewDecoder(r.Body).Decode(&req)
 		m.mu.Lock()
@@ -67,9 +69,14 @@ func newModelServer(t *testing.T) *modelServer {
 		message := map[string]any{"role": "assistant", "content": string(answer)}
 		stop := "stop"
 		if len(req.Tools) > 0 {
-			args, _ := json.Marshal(plan)
+			// The tool-calling check, or a plan for the agent.
+			name, args := "propose_plan", any(plan)
+			if req.Tools[0].Function.Name == "check_tools" {
+				name, args = "check_tools", map[string]string{"value": "ready"}
+			}
+			raw, _ := json.Marshal(args)
 			message["content"] = nil
-			message["tool_calls"] = []any{map[string]any{"id": "call1", "type": "function", "function": map[string]any{"name": "propose_plan", "arguments": string(args)}}}
+			message["tool_calls"] = []any{map[string]any{"id": "call1", "type": "function", "function": map[string]any{"name": name, "arguments": string(raw)}}}
 			stop = "tool_calls"
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -97,6 +104,7 @@ type registry struct {
 	ws      store.Workspace
 	c       *apptest.Client
 	base    string
+	owner   uuid.UUID
 	account uuid.UUID // the first account
 	model   uuid.UUID // its model, every feature's default
 }
@@ -105,7 +113,7 @@ func newRegistry(t *testing.T, first *modelServer, connect map[string]any) *regi
 	env := apptest.New(t)
 	owner := env.CreateUser(apptest.UserOpts{Email: "owner@registry.test", Name: "Registry Owner"})
 	ws := env.CreateWorkspace("Registry", owner.ID)
-	r := &registry{t: t, env: env, ws: ws, c: env.Client(), base: "/workspaces/" + ws.Slug + "/ai"}
+	r := &registry{t: t, env: env, ws: ws, c: env.Client(), base: "/workspaces/" + ws.Slug + "/ai", owner: owner.ID}
 	r.c.SignInDemo(owner.Email)
 	in := map[string]any{"provider": "compatible", "baseUrl": first.srv.URL, "model": "model-a", "capKind": "none", "inputPrice": 1, "outputPrice": 2}
 	for k, v := range connect {
@@ -154,6 +162,22 @@ func (r *registry) setDefault(feature string, model uuid.UUID) {
 	r.exec(`UPDATE ai_feature_models SET model_id = $3 WHERE workspace_id = $1 AND feature = $2`, r.ws.ID, feature, model)
 }
 
+// waitForLock waits until n requests wait for a lock the test holds.
+func (r *registry) waitForLock(n int) {
+	r.t.Helper()
+	for range 200 {
+		var got int
+		if err := r.env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&got); err != nil {
+			r.t.Fatal(err)
+		}
+		if got >= n {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	r.t.Fatalf("%d requests aren't waiting for the AI configuration lock", n)
+}
+
 func (r *registry) draft() *apptest.Response {
 	return r.c.Do("POST", r.base+"/drafts/campaigns", ai.AICampaignBriefInput{SharingReviewed: true, Brief: "Announce easier exports.", Name: "Exports", Language: "en"})
 }
@@ -194,14 +218,18 @@ func TestAIFeatureModelPrices(t *testing.T) {
 
 // Reservations on all the workspace's accounts take the same lock and share
 // its monthly cap: of two requests racing for the last of it on two accounts,
-// one reserves and the other is refused before reaching its server.
+// one reserves and the other is refused before reaching its server. (Two
+// requests of one feature always go to the same model: they race the saved
+// models' tests, each on its own account.)
 func TestAIReservationsSpanAccounts(t *testing.T) {
 	first, second := newModelServer(t), newModelServer(t)
 	defer first.free()
 	defer second.free()
 	r := newRegistry(t, first, map[string]any{"capKind": "tokens", "capTokens": 10000, "inputPrice": 3, "outputPrice": 7})
-	account := r.addAccount(second.srv.URL, "")
-	model := r.addModel(account, "model-b", 3, 7)
+	model := r.addModel(r.addAccount(second.srv.URL, ""), "model-b", 3, 7)
+	// The connection's test used 142 tokens. A test reserves about 4,300
+	// (its estimated input and 16 out): 6,000 left cover one, not two.
+	r.exec(`UPDATE ai_workspace_settings SET cap_tokens = 6142 WHERE workspace_id = $1`, r.ws.ID)
 	first.hold.Store(true)
 	second.hold.Store(true)
 	ctx := context.Background()
@@ -214,26 +242,11 @@ func TestAIReservationsSpanAccounts(t *testing.T) {
 	if _, err := tx.Exec(ctx, `SELECT 1 FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE`, r.ws.ID); err != nil {
 		t.Fatal(err)
 	}
-	waiting := func(n int) {
-		t.Helper()
-		for range 200 {
-			var got int
-			if err := r.env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`).Scan(&got); err != nil {
-				t.Fatal(err)
-			}
-			if got >= n {
-				return
-			}
-			time.Sleep(50 * time.Millisecond)
-		}
-		t.Fatalf("%d requests aren't waiting for the AI configuration lock", n)
-	}
 	done := make(chan *apptest.Response, 2)
-	go func() { done <- r.draft() }()
-	waiting(1)
-	r.setDefault("draft", model)
-	go func() { done <- r.draft() }()
-	waiting(2)
+	for _, id := range []uuid.UUID{r.model, model} {
+		go func() { done <- r.c.Do("POST", r.base+"/test", map[string]any{"modelId": id}) }()
+	}
+	r.waitForLock(2)
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -256,9 +269,9 @@ func TestAIReservationsSpanAccounts(t *testing.T) {
 	if len(firstKeys)+len(secondKeys) != 2 {
 		t.Fatalf("requests reached the servers: %d and %d", len(firstKeys)-1, len(secondKeys))
 	}
-	var held int64
-	if err := r.env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM ai_budget_reservations WHERE workspace_id = $1 AND feature = 'draft'`, r.ws.ID).Scan(&held); err != nil || held != 1 {
-		t.Fatalf("%d draft reservations (%v), want 1", held, err)
+	var tests int64
+	if err := r.env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM ai_budget_reservations WHERE workspace_id = $1 AND model_id IS NOT NULL`, r.ws.ID).Scan(&tests); err != nil || tests != 1 {
+		t.Fatalf("%d reservations of the saved models (%v), want 1", tests, err)
 	}
 }
 

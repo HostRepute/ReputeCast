@@ -30,13 +30,28 @@ type AIStatus struct {
 	// HostRepute: HostRepute is connected, so reputation questions go to
 	// its assistant.
 	HostRepute bool `json:"hostRepute"`
+	// Accounts are the model accounts with their models; Defaults the
+	// model each feature uses.
+	Accounts []AIAccountView    `json:"accounts"`
+	Defaults []AIFeatureDefault `json:"defaults"`
 }
 
-// Status describes the assistant for a person with ai:use.
+// Status describes the assistant for a person with ai:use. Each feature is
+// on when its own model's account is connected. The model it names is the
+// first account's, or else the first connected model a feature uses.
 func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIStatus, error) {
-	c, err := s.load(ctx, s.Q, ws.ID)
+	m, err := s.models(ctx, s.Q, ws.ID)
 	if err != nil {
 		return AIStatus{}, err
+	}
+	var c *connection
+	if len(m.list) > 0 && m.list[0].connected() {
+		c = m.list[0]
+	}
+	for _, f := range Features {
+		if d := m.of(f); c == nil && d.connected() {
+			c = d
+		}
 	}
 	start, next := s.month(ws)
 	out := AIStatus{State: "not_configured", Features: []AIFeatureState{}, Usage: AIUsageView{State: "ok", MonthStart: start, ResetsAt: next},
@@ -45,12 +60,19 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return AIStatus{}, err
 	}
+	if out.Accounts, err = s.accountViews(ctx, s.Q, m); err != nil {
+		return AIStatus{}, err
+	}
+	out.Defaults = m.defaultViews()
 	for _, f := range Features {
 		st := AIFeatureState{Key: f, On: false, Available: true}
-		if c.connected() {
-			st.On = !slices.Contains(c.FeaturesOff, f)
-			if f == FeatureAltText && !c.ImageInput {
-				st.On, st.Available = false, false
+		if d := m.of(f); d != nil {
+			st.ModelID = &d.ModelID
+			if d.connected() {
+				st.On = !slices.Contains(d.FeaturesOff, f)
+				if f == FeatureAltText && !d.ImageInput {
+					st.On, st.Available = false, false
+				}
 			}
 		}
 		out.Features = append(out.Features, st)

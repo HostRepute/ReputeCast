@@ -134,8 +134,9 @@ var Categories = []AuditCategory{
 	// Recurring digests (design expansion, phase 3).
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
 	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
-	// The AI assistant's connection, key, cap, prices and features (phase 3).
-	{Key: "ai", Label: "AI", Groups: []string{"ai"}},
+	// The AI assistant's connection, key, cap, prices and features (phase 3),
+	// and its model accounts, models and the model each feature uses (B1).
+	{Key: "ai", Label: "AI", Groups: []string{"ai", "ai_account", "ai_model", "ai_feature"}},
 	// Earn (design expansion, phase 6).
 	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member", "sponsors", "sponsor_settings", "sponsor_booking"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},

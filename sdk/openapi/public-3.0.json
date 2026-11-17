@@ -1,6 +1,95 @@
 {
   "components": {
     "schemas": {
+      "AIAccountView": {
+        "additionalProperties": false,
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "demo": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "$ref": "#/components/schemas/AIKeyView"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastTest": {
+            "$ref": "#/components/schemas/AITestView"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AIModelView"
+            },
+            "type": "array"
+          },
+          "preset": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "privateNetwork": {
+            "type": "boolean"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "key_rejected",
+              "disconnected"
+            ],
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "statusDetail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "providerName",
+          "key",
+          "status",
+          "connectedAt",
+          "privateNetwork",
+          "demo",
+          "primary",
+          "models"
+        ],
+        "type": "object"
+      },
       "AIActivityList": {
         "additionalProperties": false,
         "properties": {
@@ -163,6 +252,27 @@
         ],
         "type": "object"
       },
+      "AIAgentCapability": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "untested",
+              "supported",
+              "unsupported"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
       "AICapView": {
         "additionalProperties": false,
         "properties": {
@@ -293,6 +403,35 @@
         ],
         "type": "object"
       },
+      "AIFeatureDefault": {
+        "additionalProperties": false,
+        "properties": {
+          "feature": {
+            "enum": [
+              "assistant",
+              "agent",
+              "subject_ideas",
+              "rewrite",
+              "translate",
+              "alt_text",
+              "accessibility_fix",
+              "segment_draft",
+              "report_summary",
+              "brand_voice",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "modelId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "feature",
+          "modelId"
+        ],
+        "type": "object"
+      },
       "AIFeatureState": {
         "additionalProperties": false,
         "properties": {
@@ -311,6 +450,10 @@
               "brand_voice",
               "draft"
             ],
+            "type": "string"
+          },
+          "modelId": {
+            "format": "uuid",
             "type": "string"
           },
           "on": {
@@ -451,6 +594,61 @@
         ],
         "type": "object"
       },
+      "AIModelView": {
+        "additionalProperties": false,
+        "properties": {
+          "deployment": {
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "enum": [
+                "assistant",
+                "agent",
+                "subject_ideas",
+                "rewrite",
+                "translate",
+                "alt_text",
+                "accessibility_fix",
+                "segment_draft",
+                "report_summary",
+                "brand_voice",
+                "draft"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "imageInput": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/AIPricesView"
+          },
+          "tools": {
+            "$ref": "#/components/schemas/AIAgentCapability"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "modelName",
+          "imageInput",
+          "prices",
+          "tools",
+          "features"
+        ],
+        "type": "object"
+      },
       "AIPricesView": {
         "additionalProperties": false,
         "properties": {
@@ -565,6 +763,12 @@
       "AISettings": {
         "additionalProperties": false,
         "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAccountView"
+            },
+            "type": "array"
+          },
           "aiUseRoles": {
             "items": {
               "type": "string"
@@ -600,6 +804,12 @@
           },
           "connection": {
             "$ref": "#/components/schemas/AIConnectionView"
+          },
+          "defaults": {
+            "items": {
+              "$ref": "#/components/schemas/AIFeatureDefault"
+            },
+            "type": "array"
           },
           "disconnected": {
             "type": "boolean"
@@ -650,7 +860,9 @@
           "withoutAiUse",
           "priceListDate",
           "allowPrivate",
-          "instanceAdmins"
+          "instanceAdmins",
+          "accounts",
+          "defaults"
         ],
         "type": "object"
       },

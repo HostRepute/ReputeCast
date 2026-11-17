@@ -139,6 +139,8 @@ type AIFeatureState struct {
 	On  bool   `json:"on"`
 	// Available is false for alt text with a model that doesn't read images.
 	Available bool `json:"available"`
+	// ModelID is the model the feature uses.
+	ModelID *uuid.UUID `json:"modelId,omitempty" format:"uuid"`
 }
 
 // AIMemberRole is a member and their role.
@@ -172,6 +174,10 @@ type AISettings struct {
 	// addresses; InstanceAdmins can change that.
 	AllowPrivate   bool     `json:"allowPrivate"`
 	InstanceAdmins []string `json:"instanceAdmins"`
+	// Accounts are the model accounts with their models, the first
+	// (Connection's) first; Defaults the model each feature uses.
+	Accounts []AIAccountView    `json:"accounts"`
+	Defaults []AIFeatureDefault `json:"defaults"`
 }
 
 func catalog() []AIProviderEntry {
@@ -269,11 +275,23 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	case u.notice:
 		out.Usage.State = "notice"
 	}
+	m, err := s.models(ctx, s.Q, ws.ID)
+	if err != nil {
+		return AISettings{}, err
+	}
+	if out.Accounts, err = s.accountViews(ctx, s.Q, m); err != nil {
+		return AISettings{}, err
+	}
+	out.Defaults = m.defaultViews()
 	for _, f := range Features {
 		st := AIFeatureState{Key: f, On: true, Available: true}
 		if c != nil {
 			st.On = !slices.Contains(c.FeaturesOff, f)
-			if f == FeatureAltText && !c.ImageInput {
+		}
+		// Alt text needs the model it uses to read images.
+		if d := m.of(f); d != nil {
+			st.ModelID = &d.ModelID
+			if f == FeatureAltText && !d.ImageInput {
 				st.On, st.Available = false, false
 			}
 		}
@@ -595,11 +613,36 @@ type AITestInput struct {
 	Model       string   `json:"model,omitempty" maxLength:"120"`
 	InputPrice  *float64 `json:"inputPrice,omitempty" minimum:"0" maximum:"1000"`
 	OutputPrice *float64 `json:"outputPrice,omitempty" minimum:"0" maximum:"1000"`
+	// ModelID tests a saved model instead of the first account's; AccountID
+	// tests an account's first model, or lends its saved key to a model
+	// being set up on it.
+	ModelID   *uuid.UUID `json:"modelId,omitempty" format:"uuid"`
+	AccountID *uuid.UUID `json:"accountId,omitempty" format:"uuid"`
+}
+
+// testedModel is the saved model a test or a model list is about: the one
+// named, an account's first, or the first account's.
+func (s *Service) testedModel(ctx context.Context, ws uuid.UUID, model, account *uuid.UUID) (*connection, error) {
+	switch {
+	case model != nil:
+		c, err := s.binding(ctx, s.Q, ws, model)
+		if err == nil && c == nil {
+			return nil, api.NotFound("AI model")
+		}
+		return c, err
+	case account != nil:
+		c, err := s.accountModel(ctx, s.Q, ws, *account)
+		if err == nil && c == nil {
+			return nil, api.NotFound("AI account")
+		}
+		return c, err
+	}
+	return s.load(ctx, s.Q, ws)
 }
 
 // Test runs Test connection on the saved model, or on the one being set up.
 func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AITestInput) (AITestResult, error) {
-	cur, err := s.load(ctx, s.Q, ws.ID)
+	cur, err := s.testedModel(ctx, ws.ID, in.ModelID, in.AccountID)
 	if err != nil {
 		return AITestResult{}, err
 	}
@@ -690,6 +733,9 @@ type AIModelsInput struct {
 	Deployment string `json:"deployment,omitempty" maxLength:"120"`
 	APIVersion string `json:"apiVersion,omitempty" maxLength:"40"`
 	APIKey     string `json:"apiKey,omitempty" maxLength:"500"`
+	// AccountID lends that account's saved key (at the same address)
+	// instead of the first account's.
+	AccountID *uuid.UUID `json:"accountId,omitempty" format:"uuid"`
 }
 
 // AIModelList is a provider's models, the price list's first.
@@ -710,7 +756,7 @@ func (s *Service) Models(ctx context.Context, ws *store.Workspace, in AIModelsIn
 		}
 	}
 	c := candidate{provider: in.Provider, baseURL: in.BaseURL, deployment: in.Deployment, apiVersion: in.APIVersion, key: in.APIKey, model: "list"}
-	cur, err := s.load(ctx, s.Q, ws.ID)
+	cur, err := s.testedModel(ctx, ws.ID, nil, in.AccountID)
 	if err != nil {
 		return out, err
 	}
@@ -1012,7 +1058,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			}
 		}
 		if err := q.AIModelSave(ctx, modelParams(row, actor, now)); err != nil {
-			return err
+			return modelExists(ctx, err, row.Model)
 		}
 		if err := q.AIFeatureModelsFill(ctx, store.AIFeatureModelsFillParams{WorkspaceID: ws.ID, ModelID: modelID, Features: defaultFeatures}); err != nil {
 			return err
@@ -1051,6 +1097,12 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 	if err != nil {
 		return AISettings{}, AITestResult{}, err
 	}
+	return s.replaceKey(ctx, ws, p, cur, in, "ai.key_replaced", ws.ID.String())
+}
+
+// replaceKey tests a new key for a model's account with that model, and
+// saves it.
+func (s *Service) replaceKey(ctx context.Context, ws *store.Workspace, p *authz.Principal, cur *connection, in AIKeyInput, action, target string) (AISettings, AITestResult, error) {
 	if !cur.connected() {
 		return AISettings{}, AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
 	}
@@ -1083,7 +1135,7 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 		if err := q.AIAccountSave(ctx, accountParams(row, actorID(p), now)); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.key_replaced", TargetType: "ai_assistant", TargetID: ws.ID.String(),
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "ai_assistant", TargetID: target,
 			TargetName: cur.providerName(), Metadata: map[string]any{"key": "replaced (write-only)", "test": map[string]any{"ok": true, "ms": res.Ms}, "summary": keyReplaced + " · test passed"}})
 	})
 	if err != nil {
@@ -1177,7 +1229,7 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		if parts&saveModel != 0 {
 			if err := q.AIModelSave(ctx, modelParams(row, by, at)); err != nil {
-				return err
+				return modelExists(ctx, err, row.Model)
 			}
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "ai_assistant", TargetID: ws.ID.String(),

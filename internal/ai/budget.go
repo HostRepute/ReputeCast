@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"image"
 	"math"
 	"slices"
@@ -70,6 +71,17 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 		if cur == nil || cur.SettingsRevision != c.SettingsRevision || cur.AccountRevision != c.AccountRevision || cur.ModelRevision != c.ModelRevision ||
 			!cur.connected() || cur.Status == "key_rejected" || !cur.featureOn(t.feature) {
 			return budgetProblem(ctx, "connection_changed")
+		}
+		// A one-shot request goes to its feature's model; once a manager
+		// picks another one, it isn't sent. A run keeps the model it began with.
+		if run == nil {
+			model, err := q.AIFeatureModel(ctx, store.AIFeatureModelParams{WorkspaceID: ws.ID, Feature: t.feature})
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+			if err != nil || model != c.ModelID {
+				return budgetProblem(ctx, "connection_changed")
+			}
 		}
 		c = cur
 	}

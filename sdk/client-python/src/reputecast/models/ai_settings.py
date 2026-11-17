@@ -13,7 +13,9 @@ from typing import cast
 import datetime
 
 if TYPE_CHECKING:
+  from ..models.ai_account_view import AIAccountView
   from ..models.ai_connection_view import AIConnectionView
+  from ..models.ai_feature_default import AIFeatureDefault
   from ..models.ai_feature_state import AIFeatureState
   from ..models.ai_member_role import AIMemberRole
   from ..models.ai_provider_entry import AIProviderEntry
@@ -33,6 +35,7 @@ T = TypeVar("T", bound="AISettings")
 class AISettings:
     """ 
         Attributes:
+            accounts (list[AIAccountView]):
             ai_use_roles (list[str]):
             allow_private (bool):
             by_feature (list[AIUsageFeature]):
@@ -40,6 +43,7 @@ class AISettings:
             can_manage (bool):
             catalog (list[AIProviderEntry]):
             connected (bool):
+            defaults (list[AIFeatureDefault]):
             disconnected (bool):
             features (list[AIFeatureState]):
             helpers (list[str]):
@@ -50,6 +54,7 @@ class AISettings:
             connection (AIConnectionView | Unset):
      """
 
+    accounts: list[AIAccountView]
     ai_use_roles: list[str]
     allow_private: bool
     by_feature: list[AIUsageFeature]
@@ -57,6 +62,7 @@ class AISettings:
     can_manage: bool
     catalog: list[AIProviderEntry]
     connected: bool
+    defaults: list[AIFeatureDefault]
     disconnected: bool
     features: list[AIFeatureState]
     helpers: list[str]
@@ -71,13 +77,22 @@ class AISettings:
 
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.ai_account_view import AIAccountView # noqa: PLC0415
         from ..models.ai_connection_view import AIConnectionView # noqa: PLC0415
+        from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_feature_state import AIFeatureState # noqa: PLC0415
         from ..models.ai_member_role import AIMemberRole # noqa: PLC0415
         from ..models.ai_provider_entry import AIProviderEntry # noqa: PLC0415
         from ..models.ai_usage_feature import AIUsageFeature # noqa: PLC0415
         from ..models.ai_usage_member import AIUsageMember # noqa: PLC0415
         from ..models.ai_usage_view import AIUsageView # noqa: PLC0415
+        accounts = []
+        for accounts_item_data in self.accounts:
+            accounts_item = accounts_item_data.to_dict()
+            accounts.append(accounts_item)
+
+
+
         ai_use_roles = self.ai_use_roles
 
 
@@ -108,6 +123,13 @@ class AISettings:
 
 
         connected = self.connected
+
+        defaults = []
+        for defaults_item_data in self.defaults:
+            defaults_item = defaults_item_data.to_dict()
+            defaults.append(defaults_item)
+
+
 
         disconnected = self.disconnected
 
@@ -145,6 +167,7 @@ class AISettings:
         field_dict: dict[str, Any] = {}
 
         field_dict.update({
+            "accounts": accounts,
             "aiUseRoles": ai_use_roles,
             "allowPrivate": allow_private,
             "byFeature": by_feature,
@@ -152,6 +175,7 @@ class AISettings:
             "canManage": can_manage,
             "catalog": catalog,
             "connected": connected,
+            "defaults": defaults,
             "disconnected": disconnected,
             "features": features,
             "helpers": helpers,
@@ -169,7 +193,9 @@ class AISettings:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
+        from ..models.ai_account_view import AIAccountView # noqa: PLC0415
         from ..models.ai_connection_view import AIConnectionView # noqa: PLC0415
+        from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_feature_state import AIFeatureState # noqa: PLC0415
         from ..models.ai_member_role import AIMemberRole # noqa: PLC0415
         from ..models.ai_provider_entry import AIProviderEntry # noqa: PLC0415
@@ -177,6 +203,16 @@ class AISettings:
         from ..models.ai_usage_member import AIUsageMember # noqa: PLC0415
         from ..models.ai_usage_view import AIUsageView # noqa: PLC0415
         d = dict(src_dict)
+        accounts = []
+        _accounts = d.pop("accounts")
+        for accounts_item_data in (_accounts):
+            accounts_item = AIAccountView.from_dict(accounts_item_data)
+
+
+
+            accounts.append(accounts_item)
+
+
         ai_use_roles = cast(list[str], d.pop("aiUseRoles"))
 
 
@@ -215,6 +251,16 @@ class AISettings:
 
 
         connected = d.pop("connected")
+
+        defaults = []
+        _defaults = d.pop("defaults")
+        for defaults_item_data in (_defaults):
+            defaults_item = AIFeatureDefault.from_dict(defaults_item_data)
+
+
+
+            defaults.append(defaults_item)
+
 
         disconnected = d.pop("disconnected")
 
@@ -265,6 +311,7 @@ class AISettings:
 
 
         ai_settings = cls(
+            accounts=accounts,
             ai_use_roles=ai_use_roles,
             allow_private=allow_private,
             by_feature=by_feature,
@@ -272,6 +319,7 @@ class AISettings:
             can_manage=can_manage,
             catalog=catalog,
             connected=connected,
+            defaults=defaults,
             disconnected=disconnected,
             features=features,
             helpers=helpers,

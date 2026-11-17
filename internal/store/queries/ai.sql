@@ -27,6 +27,44 @@ WHERE a.workspace_id = @workspace_id
 ORDER BY a.created_at, a.id, m.created_at, m.id
 LIMIT 1;
 
+-- name: AIWorkspaceModels :many
+-- The workspace's models, the first account's first model first.
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = @workspace_id
+ORDER BY a.created_at, a.id, m.created_at, m.id;
+
+-- name: AIAccountFirstModel :one
+-- An account's first model: what its key is tested with.
+SELECT m.id FROM ai_models m
+WHERE m.workspace_id = @workspace_id AND m.account_id = @account_id
+ORDER BY m.created_at, m.id
+LIMIT 1;
+
+-- name: AIAccountModelCount :one
+SELECT count(*)::bigint FROM ai_models WHERE workspace_id = @workspace_id AND account_id = @account_id;
+
+-- name: AIAccountDelete :execrows
+DELETE FROM ai_accounts WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: AIModelDelete :execrows
+DELETE FROM ai_models WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: AIFeatureModels :many
+SELECT feature, model_id FROM ai_feature_models WHERE workspace_id = @workspace_id ORDER BY feature;
+
+-- name: AIFeaturesOfAccount :many
+-- The features whose default is one of an account's models.
+SELECT f.feature FROM ai_feature_models f JOIN ai_models m ON m.id = f.model_id
+WHERE f.workspace_id = @workspace_id AND m.account_id = @account_id
+ORDER BY f.feature;
+
+-- name: AIFeaturesOfModel :many
+SELECT feature FROM ai_feature_models WHERE workspace_id = @workspace_id AND model_id = @model_id ORDER BY feature;
+
+-- name: AIFeatureModelSet :exec
+INSERT INTO ai_feature_models (workspace_id, feature, model_id) VALUES (@workspace_id, @feature, @model_id)
+ON CONFLICT (workspace_id, feature) DO UPDATE SET model_id = EXCLUDED.model_id;
+
 -- name: AIFeatureModel :one
 SELECT model_id FROM ai_feature_models WHERE workspace_id = @workspace_id AND feature = @feature;
 

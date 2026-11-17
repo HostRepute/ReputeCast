@@ -58,11 +58,16 @@ func agentCapability(ctx context.Context, q *store.Queries, c *connection) (AIAg
 // start a task. The ordinary reservation ledger accounts this fixed probe.
 // It tests the agent's model.
 func (s *Service) TestAgentTools(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIAgentCapability, error) {
-	p, err := draftActor(ctx, s.Q, ws, p, false, authz.IntegrationsManage)
+	c, err := s.loadFor(ctx, s.Q, ws.ID, FeatureAgent)
 	if err != nil {
 		return AIAgentCapability{}, err
 	}
-	c, err := s.loadFor(ctx, s.Q, ws.ID, FeatureAgent)
+	return s.testTools(ctx, ws, p, c)
+}
+
+// testTools runs the tool-calling check on a model.
+func (s *Service) testTools(ctx context.Context, ws *store.Workspace, p *authz.Principal, c *connection) (AIAgentCapability, error) {
+	p, err := draftActor(ctx, s.Q, ws, p, false, authz.IntegrationsManage)
 	if err != nil {
 		return AIAgentCapability{}, err
 	}

@@ -18,6 +18,54 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AIAccountViewProvider.
+const (
+	AIAccountViewProviderAnthropic  AIAccountViewProvider = "anthropic"
+	AIAccountViewProviderAzure      AIAccountViewProvider = "azure"
+	AIAccountViewProviderCompatible AIAccountViewProvider = "compatible"
+	AIAccountViewProviderGoogle     AIAccountViewProvider = "google"
+	AIAccountViewProviderOpenai     AIAccountViewProvider = "openai"
+)
+
+// Valid indicates whether the value is a known member of the AIAccountViewProvider enum.
+func (e AIAccountViewProvider) Valid() bool {
+	switch e {
+	case AIAccountViewProviderAnthropic:
+		return true
+	case AIAccountViewProviderAzure:
+		return true
+	case AIAccountViewProviderCompatible:
+		return true
+	case AIAccountViewProviderGoogle:
+		return true
+	case AIAccountViewProviderOpenai:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AIAccountViewStatus.
+const (
+	AIAccountViewStatusConnected    AIAccountViewStatus = "connected"
+	AIAccountViewStatusDisconnected AIAccountViewStatus = "disconnected"
+	AIAccountViewStatusKeyRejected  AIAccountViewStatus = "key_rejected"
+)
+
+// Valid indicates whether the value is a known member of the AIAccountViewStatus enum.
+func (e AIAccountViewStatus) Valid() bool {
+	switch e {
+	case AIAccountViewStatusConnected:
+		return true
+	case AIAccountViewStatusDisconnected:
+		return true
+	case AIAccountViewStatusKeyRejected:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AIActivityRowFeature.
 const (
 	AIActivityRowFeatureAccessibilityFix AIActivityRowFeature = "accessibility_fix"
@@ -105,6 +153,27 @@ func (e AIActivityRowOutcome) Valid() bool {
 	}
 }
 
+// Defines values for AIAgentCapabilityState.
+const (
+	AIAgentCapabilityStateSupported   AIAgentCapabilityState = "supported"
+	AIAgentCapabilityStateUnsupported AIAgentCapabilityState = "unsupported"
+	AIAgentCapabilityStateUntested    AIAgentCapabilityState = "untested"
+)
+
+// Valid indicates whether the value is a known member of the AIAgentCapabilityState enum.
+func (e AIAgentCapabilityState) Valid() bool {
+	switch e {
+	case AIAgentCapabilityStateSupported:
+		return true
+	case AIAgentCapabilityStateUnsupported:
+		return true
+	case AIAgentCapabilityStateUntested:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AICapViewKind.
 const (
 	AICapViewKindNone   AICapViewKind = "none"
@@ -171,6 +240,51 @@ func (e AIConnectionViewStatus) Valid() bool {
 	}
 }
 
+// Defines values for AIFeatureDefaultFeature.
+const (
+	AIFeatureDefaultFeatureAccessibilityFix AIFeatureDefaultFeature = "accessibility_fix"
+	AIFeatureDefaultFeatureAgent            AIFeatureDefaultFeature = "agent"
+	AIFeatureDefaultFeatureAltText          AIFeatureDefaultFeature = "alt_text"
+	AIFeatureDefaultFeatureAssistant        AIFeatureDefaultFeature = "assistant"
+	AIFeatureDefaultFeatureBrandVoice       AIFeatureDefaultFeature = "brand_voice"
+	AIFeatureDefaultFeatureDraft            AIFeatureDefaultFeature = "draft"
+	AIFeatureDefaultFeatureReportSummary    AIFeatureDefaultFeature = "report_summary"
+	AIFeatureDefaultFeatureRewrite          AIFeatureDefaultFeature = "rewrite"
+	AIFeatureDefaultFeatureSegmentDraft     AIFeatureDefaultFeature = "segment_draft"
+	AIFeatureDefaultFeatureSubjectIdeas     AIFeatureDefaultFeature = "subject_ideas"
+	AIFeatureDefaultFeatureTranslate        AIFeatureDefaultFeature = "translate"
+)
+
+// Valid indicates whether the value is a known member of the AIFeatureDefaultFeature enum.
+func (e AIFeatureDefaultFeature) Valid() bool {
+	switch e {
+	case AIFeatureDefaultFeatureAccessibilityFix:
+		return true
+	case AIFeatureDefaultFeatureAgent:
+		return true
+	case AIFeatureDefaultFeatureAltText:
+		return true
+	case AIFeatureDefaultFeatureAssistant:
+		return true
+	case AIFeatureDefaultFeatureBrandVoice:
+		return true
+	case AIFeatureDefaultFeatureDraft:
+		return true
+	case AIFeatureDefaultFeatureReportSummary:
+		return true
+	case AIFeatureDefaultFeatureRewrite:
+		return true
+	case AIFeatureDefaultFeatureSegmentDraft:
+		return true
+	case AIFeatureDefaultFeatureSubjectIdeas:
+		return true
+	case AIFeatureDefaultFeatureTranslate:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AIFeatureStateKey.
 const (
 	AIFeatureStateKeyAccessibilityFix AIFeatureStateKey = "accessibility_fix"
@@ -204,6 +318,51 @@ func (e AIFeatureStateKey) Valid() bool {
 	case AIFeatureStateKeySubjectIdeas:
 		return true
 	case AIFeatureStateKeyTranslate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AIModelViewFeatures.
+const (
+	AIModelViewFeaturesAccessibilityFix AIModelViewFeatures = "accessibility_fix"
+	AIModelViewFeaturesAgent            AIModelViewFeatures = "agent"
+	AIModelViewFeaturesAltText          AIModelViewFeatures = "alt_text"
+	AIModelViewFeaturesAssistant        AIModelViewFeatures = "assistant"
+	AIModelViewFeaturesBrandVoice       AIModelViewFeatures = "brand_voice"
+	AIModelViewFeaturesDraft            AIModelViewFeatures = "draft"
+	AIModelViewFeaturesReportSummary    AIModelViewFeatures = "report_summary"
+	AIModelViewFeaturesRewrite          AIModelViewFeatures = "rewrite"
+	AIModelViewFeaturesSegmentDraft     AIModelViewFeatures = "segment_draft"
+	AIModelViewFeaturesSubjectIdeas     AIModelViewFeatures = "subject_ideas"
+	AIModelViewFeaturesTranslate        AIModelViewFeatures = "translate"
+)
+
+// Valid indicates whether the value is a known member of the AIModelViewFeatures enum.
+func (e AIModelViewFeatures) Valid() bool {
+	switch e {
+	case AIModelViewFeaturesAccessibilityFix:
+		return true
+	case AIModelViewFeaturesAgent:
+		return true
+	case AIModelViewFeaturesAltText:
+		return true
+	case AIModelViewFeaturesAssistant:
+		return true
+	case AIModelViewFeaturesBrandVoice:
+		return true
+	case AIModelViewFeaturesDraft:
+		return true
+	case AIModelViewFeaturesReportSummary:
+		return true
+	case AIModelViewFeaturesRewrite:
+		return true
+	case AIModelViewFeaturesSegmentDraft:
+		return true
+	case AIModelViewFeaturesSubjectIdeas:
+		return true
+	case AIModelViewFeaturesTranslate:
 		return true
 	default:
 		return false
@@ -31032,6 +31191,34 @@ func (e ListWebsitePostsParamsSource) Valid() bool {
 	}
 }
 
+// AIAccountView defines model for AIAccountView.
+type AIAccountView struct {
+	ApiVersion     *string               `json:"apiVersion,omitempty"`
+	BaseUrl        *string               `json:"baseUrl,omitempty"`
+	ConnectedAt    time.Time             `json:"connectedAt"`
+	ConnectedBy    *string               `json:"connectedBy,omitempty"`
+	Demo           bool                  `json:"demo"`
+	Id             string                `json:"id"`
+	Key            AIKeyView             `json:"key"`
+	Label          *string               `json:"label,omitempty"`
+	LastTest       *AITestView           `json:"lastTest,omitempty"`
+	Models         []AIModelView         `json:"models"`
+	Preset         *string               `json:"preset,omitempty"`
+	Primary        bool                  `json:"primary"`
+	PrivateNetwork bool                  `json:"privateNetwork"`
+	Provider       AIAccountViewProvider `json:"provider"`
+	ProviderName   string                `json:"providerName"`
+	Status         AIAccountViewStatus   `json:"status"`
+	StatusAt       *time.Time            `json:"statusAt,omitempty"`
+	StatusDetail   *string               `json:"statusDetail,omitempty"`
+}
+
+// AIAccountViewProvider defines model for AIAccountView.Provider.
+type AIAccountViewProvider string
+
+// AIAccountViewStatus defines model for AIAccountView.Status.
+type AIAccountViewStatus string
+
 // AIActivityList defines model for AIActivityList.
 type AIActivityList struct {
 	Items         []AIActivityRow    `json:"items"`
@@ -31081,6 +31268,15 @@ type AIActivityRowFeature string
 // AIActivityRowOutcome defines model for AIActivityRow.Outcome.
 type AIActivityRowOutcome string
 
+// AIAgentCapability defines model for AIAgentCapability.
+type AIAgentCapability struct {
+	CheckedAt *time.Time             `json:"checkedAt,omitempty"`
+	State     AIAgentCapabilityState `json:"state"`
+}
+
+// AIAgentCapabilityState defines model for AIAgentCapability.State.
+type AIAgentCapabilityState string
+
 // AICapView defines model for AICapView.
 type AICapView struct {
 	Kind   AICapViewKind `json:"kind"`
@@ -31124,11 +31320,21 @@ type AIConnectionViewProvider string
 // AIConnectionViewStatus defines model for AIConnectionView.Status.
 type AIConnectionViewStatus string
 
+// AIFeatureDefault defines model for AIFeatureDefault.
+type AIFeatureDefault struct {
+	Feature AIFeatureDefaultFeature `json:"feature"`
+	ModelId string                  `json:"modelId"`
+}
+
+// AIFeatureDefaultFeature defines model for AIFeatureDefault.Feature.
+type AIFeatureDefaultFeature string
+
 // AIFeatureState defines model for AIFeatureState.
 type AIFeatureState struct {
-	Available bool              `json:"available"`
-	Key       AIFeatureStateKey `json:"key"`
-	On        bool              `json:"on"`
+	Available bool                `json:"available"`
+	Key       AIFeatureStateKey   `json:"key"`
+	ModelId   *openapi_types.UUID `json:"modelId,omitempty"`
+	On        bool                `json:"on"`
 }
 
 // AIFeatureStateKey defines model for AIFeatureState.Key.
@@ -31180,6 +31386,21 @@ type AIModelOption struct {
 	Output float64 `json:"output"`
 }
 
+// AIModelView defines model for AIModelView.
+type AIModelView struct {
+	Deployment *string               `json:"deployment,omitempty"`
+	Features   []AIModelViewFeatures `json:"features"`
+	Id         string                `json:"id"`
+	ImageInput bool                  `json:"imageInput"`
+	Model      string                `json:"model"`
+	ModelName  string                `json:"modelName"`
+	Prices     AIPricesView          `json:"prices"`
+	Tools      AIAgentCapability     `json:"tools"`
+}
+
+// AIModelViewFeatures defines model for AIModelView.Features.
+type AIModelViewFeatures string
+
 // AIPricesView defines model for AIPricesView.
 type AIPricesView struct {
 	From *time.Time `json:"from,omitempty"`
@@ -31221,21 +31442,23 @@ type AIProviderPreset struct {
 
 // AISettings defines model for AISettings.
 type AISettings struct {
-	AiUseRoles     []string          `json:"aiUseRoles"`
-	AllowPrivate   bool              `json:"allowPrivate"`
-	ByFeature      []AIUsageFeature  `json:"byFeature"`
-	ByMember       []AIUsageMember   `json:"byMember"`
-	CanManage      bool              `json:"canManage"`
-	Catalog        []AIProviderEntry `json:"catalog"`
-	Connected      bool              `json:"connected"`
-	Connection     *AIConnectionView `json:"connection,omitempty"`
-	Disconnected   bool              `json:"disconnected"`
-	Features       []AIFeatureState  `json:"features"`
-	Helpers        []string          `json:"helpers"`
-	InstanceAdmins []string          `json:"instanceAdmins"`
-	PriceListDate  time.Time         `json:"priceListDate"`
-	Usage          AIUsageView       `json:"usage"`
-	WithoutAiUse   []AIMemberRole    `json:"withoutAiUse"`
+	Accounts       []AIAccountView    `json:"accounts"`
+	AiUseRoles     []string           `json:"aiUseRoles"`
+	AllowPrivate   bool               `json:"allowPrivate"`
+	ByFeature      []AIUsageFeature   `json:"byFeature"`
+	ByMember       []AIUsageMember    `json:"byMember"`
+	CanManage      bool               `json:"canManage"`
+	Catalog        []AIProviderEntry  `json:"catalog"`
+	Connected      bool               `json:"connected"`
+	Connection     *AIConnectionView  `json:"connection,omitempty"`
+	Defaults       []AIFeatureDefault `json:"defaults"`
+	Disconnected   bool               `json:"disconnected"`
+	Features       []AIFeatureState   `json:"features"`
+	Helpers        []string           `json:"helpers"`
+	InstanceAdmins []string           `json:"instanceAdmins"`
+	PriceListDate  time.Time          `json:"priceListDate"`
+	Usage          AIUsageView        `json:"usage"`
+	WithoutAiUse   []AIMemberRole     `json:"withoutAiUse"`
 }
 
 // AITestView defines model for AITestView.

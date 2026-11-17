@@ -33,6 +33,10 @@ type Querier interface {
 	ABSampleCounts(ctx context.Context, campaignID uuid.UUID) ([]ABSampleCountsRow, error)
 	// The decision is kept with the campaign's test, for its report.
 	ABSaveDecision(ctx context.Context, arg ABSaveDecisionParams) error
+	AIAccountDelete(ctx context.Context, arg AIAccountDeleteParams) (int64, error)
+	// An account's first model: what its key is tested with.
+	AIAccountFirstModel(ctx context.Context, arg AIAccountFirstModelParams) (uuid.UUID, error)
+	AIAccountModelCount(ctx context.Context, arg AIAccountModelCountParams) (int64, error)
 	AIAccountSave(ctx context.Context, arg AIAccountSaveParams) error
 	// The provider rejected the saved key (or a passing request cleared it),
 	// unless the account changed since the request was bound to it.
@@ -123,16 +127,22 @@ type Querier interface {
 	AIDraftPurge(ctx context.Context, now time.Time) (int64, error)
 	AIDraftTemplate(ctx context.Context, arg AIDraftTemplateParams) (string, error)
 	AIFeatureModel(ctx context.Context, arg AIFeatureModelParams) (uuid.UUID, error)
+	AIFeatureModelSet(ctx context.Context, arg AIFeatureModelSetParams) error
+	AIFeatureModels(ctx context.Context, workspaceID uuid.UUID) ([]AIFeatureModelsRow, error)
 	// A first model is every feature's default; features with one keep it.
 	AIFeatureModelsFill(ctx context.Context, arg AIFeatureModelsFillParams) error
 	// Features whose default is one of an account's other models move to its kept one.
 	AIFeatureModelsMove(ctx context.Context, arg AIFeatureModelsMoveParams) error
+	// The features whose default is one of an account's models.
+	AIFeaturesOfAccount(ctx context.Context, arg AIFeaturesOfAccountParams) ([]string, error)
+	AIFeaturesOfModel(ctx context.Context, arg AIFeaturesOfModelParams) ([]string, error)
 	// The people who can allow private addresses for model servers.
 	AIInstanceAdmins(ctx context.Context) ([]string, error)
 	// An image of the workspace's media library, for alt text.
 	AIMediaImage(ctx context.Context, arg AIMediaImageParams) (AIMediaImageRow, error)
 	// The members with their role, for "Members with ai:use: Owner, Admin…".
 	AIMembersRoles(ctx context.Context, workspaceID uuid.UUID) ([]AIMembersRolesRow, error)
+	AIModelDelete(ctx context.Context, arg AIModelDeleteParams) (int64, error)
 	AIModelSave(ctx context.Context, arg AIModelSaveParams) error
 	AIModelsDeleteOthers(ctx context.Context, arg AIModelsDeleteOthersParams) error
 	// The workspace's first account and its first model: what the single-model
@@ -162,6 +172,8 @@ type Querier interface {
 	AIUsageByFeature(ctx context.Context, arg AIUsageByFeatureParams) ([]AIUsageByFeatureRow, error)
 	AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams) ([]AIUsageByMemberRow, error)
 	AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error)
+	// The workspace's models, the first account's first model first.
+	AIWorkspaceModels(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
 	AIWorkspaceSettings(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error)
 	// Claims this month's cap-reached notice, once.
 	AIWorkspaceSettingsClaimCapNotice(ctx context.Context, arg AIWorkspaceSettingsClaimCapNoticeParams) (int64, error)

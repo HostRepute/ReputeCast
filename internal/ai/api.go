@@ -157,6 +157,47 @@ type acceptInput struct {
 	Body       AITranslationAcceptInput
 }
 
+type accountPath struct {
+	api.WorkspaceInput
+	Account uuid.UUID `path:"account" format:"uuid" doc:"The account's id"`
+}
+
+type addAccountInput struct {
+	api.WorkspaceInput
+	Body AIAccountInput
+}
+
+type accountKeyInput struct {
+	api.WorkspaceInput
+	Account uuid.UUID `path:"account" format:"uuid" doc:"The account's id"`
+	Body    AIKeyInput
+}
+
+type addModelInput struct {
+	api.WorkspaceInput
+	Account uuid.UUID `path:"account" format:"uuid" doc:"The account's id"`
+	Body    AIAccountModelInput
+}
+
+type modelPath struct {
+	api.WorkspaceInput
+	Account uuid.UUID `path:"account" format:"uuid" doc:"The account's id"`
+	Model   uuid.UUID `path:"model" format:"uuid" doc:"The model's id"`
+}
+
+type modelPricesInput struct {
+	api.WorkspaceInput
+	Account uuid.UUID `path:"account" format:"uuid" doc:"The account's id"`
+	Model   uuid.UUID `path:"model" format:"uuid" doc:"The model's id"`
+	Body    AIPricesInput
+}
+
+type featureModelInput struct {
+	api.WorkspaceInput
+	Feature string `path:"feature" enum:"assistant,agent,subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft"`
+	Body    AIFeatureModelInput
+}
+
 func campaignID(raw string) (uuid.UUID, error) {
 	id, err := uuid.Parse(raw)
 	if err != nil {
@@ -217,7 +258,7 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Test(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
-	api.Put(h, api.Op{ID: "connect-ai-model", Path: base + "/connection", Summary: "Connect the workspace's model (one per workspace), after the test passes",
+	api.Put(h, api.Op{ID: "connect-ai-model", Path: base + "/connection", Summary: "Connect the workspace's model (its first account's first model), after the test passes",
 		Description: "The key is sealed and never returned. Audited as ai.connection_created or ai.connection_updated.", Tags: tags, Access: manage},
 		func(ctx context.Context, in *connectInput) (*api.Body[AISettings], error) {
 			out, err := s.Connect(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
@@ -253,6 +294,58 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "set-ai-feature", Path: base + "/features/{feature}", Summary: "Turn a feature on or off", Tags: tags, Access: manage},
 		func(ctx context.Context, in *featureInput) (*api.Body[AISettings], error) {
 			out, err := s.SetFeature(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Feature, in.Body.On)
+			return api.OK(out), err
+		})
+
+	// Model accounts, their models and the model each feature uses. The
+	// operations above act on the first account and its first model.
+	api.Post(h, api.Op{ID: "add-ai-account", Path: base + "/accounts", Summary: "Add a model account with its first model, after the test passes",
+		Description: "The key is sealed and never returned. A workspace's first model becomes every feature's model. Audited as ai_account.add.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *addAccountInput) (*api.Body[AISettings], error) {
+			out, err := s.AddAccount(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "remove-ai-account", Path: base + "/accounts/{account}", Status: http.StatusOK, Summary: "Remove an account, its key and its models",
+		Description: "Refused while a feature uses one of its models. The activity log keeps their requests. Audited as ai_account.remove.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *accountPath) (*api.Body[AISettings], error) {
+			out, err := s.RemoveAccount(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Account)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "replace-ai-account-key", Path: base + "/accounts/{account}/key", Summary: "Replace an account's key, after it passes the test with the account's first model",
+		Description: "Audited as ai_account.key_replace.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *accountKeyInput) (*api.Body[AIKeyReplaced], error) {
+			out, test, err := s.ReplaceAccountKey(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Account, in.Body)
+			return api.OK(AIKeyReplaced{Settings: out, Test: test}), err
+		})
+	api.Post(h, api.Op{ID: "add-ai-account-model", Path: base + "/accounts/{account}/models", Summary: "Add a model to an account, with its prices",
+		Description: "Prices follow the price list for a known model unless given. Audited as ai_model.add.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *addModelInput) (*api.Body[AISettings], error) {
+			out, err := s.AddModel(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Account, in.Body)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "set-ai-model-prices", Path: base + "/accounts/{account}/models/{model}/prices", Summary: "Set a model's prices per million tokens",
+		Description: "Audited as ai_model.prices.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *modelPricesInput) (*api.Body[AISettings], error) {
+			out, err := s.SetModelPrices(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Account, in.Model, in.Body)
+			return api.OK(out), err
+		})
+	api.Delete(h, api.Op{ID: "remove-ai-model", Path: base + "/accounts/{account}/models/{model}", Status: http.StatusOK, Summary: "Remove a model from an account",
+		Description: "Refused while a feature uses it, and for an account's only model. Audited as ai_model.remove.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *modelPath) (*api.Body[AISettings], error) {
+			out, err := s.RemoveModel(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Account, in.Model)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "test-ai-model-tools", Path: base + "/accounts/{account}/models/{model}/test-tools", Summary: "Test a model's tool calling with fixed data, using the monthly AI budget",
+		Description: "The agent and the assistant use only a model that passed.", Tags: tags, Access: manage},
+		func(ctx context.Context, in *modelPath) (*api.Body[AIAgentCapability], error) {
+			out, err := s.TestModelTools(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Account, in.Model)
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "set-ai-feature-model", Path: base + "/features/{feature}/model", Summary: "Pick the model a feature uses",
+		Description: "A model of a connected account whose key works; alt text needs one that reads images, the agent and the assistant one that passed the tool-calling check. Requests already prepared with the previous model aren't sent; agent runs keep the model they began with. Audited as ai_feature.model.",
+		Tags:        tags, Access: manage},
+		func(ctx context.Context, in *featureModelInput) (*api.Body[AISettings], error) {
+			out, err := s.SetFeatureModel(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Feature, in.Body)
 			return api.OK(out), err
 		})
 

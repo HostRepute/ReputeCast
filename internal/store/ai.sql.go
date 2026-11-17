@@ -12,6 +12,59 @@ import (
 	"github.com/google/uuid"
 )
 
+const aIAccountDelete = `-- name: AIAccountDelete :execrows
+DELETE FROM ai_accounts WHERE workspace_id = $1 AND id = $2
+`
+
+type AIAccountDeleteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) AIAccountDelete(ctx context.Context, arg AIAccountDeleteParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIAccountDelete, arg.WorkspaceID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIAccountFirstModel = `-- name: AIAccountFirstModel :one
+SELECT m.id FROM ai_models m
+WHERE m.workspace_id = $1 AND m.account_id = $2
+ORDER BY m.created_at, m.id
+LIMIT 1
+`
+
+type AIAccountFirstModelParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	AccountID   uuid.UUID `json:"accountId"`
+}
+
+// An account's first model: what its key is tested with.
+func (q *Queries) AIAccountFirstModel(ctx context.Context, arg AIAccountFirstModelParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, aIAccountFirstModel, arg.WorkspaceID, arg.AccountID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const aIAccountModelCount = `-- name: AIAccountModelCount :one
+SELECT count(*)::bigint FROM ai_models WHERE workspace_id = $1 AND account_id = $2
+`
+
+type AIAccountModelCountParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	AccountID   uuid.UUID `json:"accountId"`
+}
+
+func (q *Queries) AIAccountModelCount(ctx context.Context, arg AIAccountModelCountParams) (int64, error) {
+	row := q.db.QueryRow(ctx, aIAccountModelCount, arg.WorkspaceID, arg.AccountID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const aIAccountSave = `-- name: AIAccountSave :exec
 INSERT INTO ai_accounts (id, workspace_id, provider, label, base_url, api_version, key_sealed, key_added_by, key_added_at,
     connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at,
@@ -309,6 +362,51 @@ func (q *Queries) AIFeatureModel(ctx context.Context, arg AIFeatureModelParams) 
 	return model_id, err
 }
 
+const aIFeatureModelSet = `-- name: AIFeatureModelSet :exec
+INSERT INTO ai_feature_models (workspace_id, feature, model_id) VALUES ($1, $2, $3)
+ON CONFLICT (workspace_id, feature) DO UPDATE SET model_id = EXCLUDED.model_id
+`
+
+type AIFeatureModelSetParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Feature     string    `json:"feature"`
+	ModelID     uuid.UUID `json:"modelId"`
+}
+
+func (q *Queries) AIFeatureModelSet(ctx context.Context, arg AIFeatureModelSetParams) error {
+	_, err := q.db.Exec(ctx, aIFeatureModelSet, arg.WorkspaceID, arg.Feature, arg.ModelID)
+	return err
+}
+
+const aIFeatureModels = `-- name: AIFeatureModels :many
+SELECT feature, model_id FROM ai_feature_models WHERE workspace_id = $1 ORDER BY feature
+`
+
+type AIFeatureModelsRow struct {
+	Feature string    `json:"feature"`
+	ModelID uuid.UUID `json:"modelId"`
+}
+
+func (q *Queries) AIFeatureModels(ctx context.Context, workspaceID uuid.UUID) ([]AIFeatureModelsRow, error) {
+	rows, err := q.db.Query(ctx, aIFeatureModels, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIFeatureModelsRow{}
+	for rows.Next() {
+		var i AIFeatureModelsRow
+		if err := rows.Scan(&i.Feature, &i.ModelID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const aIFeatureModelsFill = `-- name: AIFeatureModelsFill :exec
 INSERT INTO ai_feature_models (workspace_id, feature, model_id)
 SELECT $1::uuid, f, $2::uuid FROM unnest($3::text[]) AS f
@@ -343,6 +441,67 @@ type AIFeatureModelsMoveParams struct {
 func (q *Queries) AIFeatureModelsMove(ctx context.Context, arg AIFeatureModelsMoveParams) error {
 	_, err := q.db.Exec(ctx, aIFeatureModelsMove, arg.KeepID, arg.WorkspaceID, arg.AccountID)
 	return err
+}
+
+const aIFeaturesOfAccount = `-- name: AIFeaturesOfAccount :many
+SELECT f.feature FROM ai_feature_models f JOIN ai_models m ON m.id = f.model_id
+WHERE f.workspace_id = $1 AND m.account_id = $2
+ORDER BY f.feature
+`
+
+type AIFeaturesOfAccountParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	AccountID   uuid.UUID `json:"accountId"`
+}
+
+// The features whose default is one of an account's models.
+func (q *Queries) AIFeaturesOfAccount(ctx context.Context, arg AIFeaturesOfAccountParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, aIFeaturesOfAccount, arg.WorkspaceID, arg.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var feature string
+		if err := rows.Scan(&feature); err != nil {
+			return nil, err
+		}
+		items = append(items, feature)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIFeaturesOfModel = `-- name: AIFeaturesOfModel :many
+SELECT feature FROM ai_feature_models WHERE workspace_id = $1 AND model_id = $2 ORDER BY feature
+`
+
+type AIFeaturesOfModelParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ModelID     uuid.UUID `json:"modelId"`
+}
+
+func (q *Queries) AIFeaturesOfModel(ctx context.Context, arg AIFeaturesOfModelParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, aIFeaturesOfModel, arg.WorkspaceID, arg.ModelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var feature string
+		if err := rows.Scan(&feature); err != nil {
+			return nil, err
+		}
+		items = append(items, feature)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const aIInstanceAdmins = `-- name: AIInstanceAdmins :many
@@ -434,6 +593,23 @@ func (q *Queries) AIMembersRoles(ctx context.Context, workspaceID uuid.UUID) ([]
 		return nil, err
 	}
 	return items, nil
+}
+
+const aIModelDelete = `-- name: AIModelDelete :execrows
+DELETE FROM ai_models WHERE workspace_id = $1 AND id = $2
+`
+
+type AIModelDeleteParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) AIModelDelete(ctx context.Context, arg AIModelDeleteParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIModelDelete, arg.WorkspaceID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const aIModelSave = `-- name: AIModelSave :exec
@@ -1134,6 +1310,33 @@ func (q *Queries) AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIU
 		&i.Requests,
 	)
 	return i, err
+}
+
+const aIWorkspaceModels = `-- name: AIWorkspaceModels :many
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = $1
+ORDER BY a.created_at, a.id, m.created_at, m.id
+`
+
+// The workspace's models, the first account's first model first.
+func (q *Queries) AIWorkspaceModels(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, aIWorkspaceModels, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const aIWorkspaceSettings = `-- name: AIWorkspaceSettings :one
