@@ -431,12 +431,17 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return err
 		}
+		// Their assistant threads here go, content and all (deactivation keeps them).
+		threads, err := q.AIAssistantThreadsRemove(ctx, store.AIAssistantThreadsRemoveParams{WorkspaceID: ws.ID, UserID: m.UserID})
+		if err != nil {
+			return err
+		}
 		if _, err := q.TeamDeleteMember(ctx, store.TeamDeleteMemberParams{ID: m.ID, WorkspaceID: ws.ID}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "member.removed", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
 			Before:   map[string]any{"email": m.Email, "role": m.RoleName, "status": m.Status},
-			After:    map[string]any{"keys_revoked": names, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys},
+			After:    map[string]any{"keys_revoked": names, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys, "assistant_threads_removed": threads},
 			Metadata: map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}})
 	})
 }

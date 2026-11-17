@@ -48,6 +48,12 @@ type Models interface {
 	AssistantProvider(m *ai.AssistantModel) (llm.Provider, error)
 	AccountAssistant(ctx context.Context, q *store.Queries, r ai.AssistantRequest, res llm.Response, callErr error) (bool, error)
 	AfterAssistant(ctx context.Context, ws *store.Workspace, m *ai.AssistantModel, callErr error)
+	// The tools' reads and handoffs, each authorized as the owner now.
+	AssistantFeatureOn(ctx context.Context, q *store.Queries, ws uuid.UUID, feature string) (bool, error)
+	AssistantReadCampaign(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (ai.AssistantCampaign, error)
+	AssistantProposeCampaign(ctx context.Context, ws *store.Workspace, p *authz.Principal, thread, id uuid.UUID, base int64, email ai.AIDraftEmail) (uuid.UUID, error)
+	AssistantSubjectIdeas(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (ai.AISubjectIdeas, error)
+	AssistantRewrite(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, text, action, instruction string) (ai.AIRewrite, error)
 }
 
 var _ Models = (*ai.Service)(nil)
@@ -82,6 +88,13 @@ const Retention = 30 * 24 * time.Hour
 
 // maxContexts bounds what one thread has attached.
 const maxContexts = 10
+
+func (s *Service) log() *slog.Logger {
+	if s.Log != nil {
+		return s.Log
+	}
+	return slog.Default()
+}
 
 func (s *Service) now() time.Time {
 	if s.Now != nil {

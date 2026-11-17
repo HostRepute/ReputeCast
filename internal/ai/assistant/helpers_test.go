@@ -25,11 +25,57 @@ import (
 // fakeStreams is the fake model's streamed answers: each streaming request
 // runs the script set last (by default, "Hello there.").
 type fakeStreams struct {
-	mu       sync.Mutex
-	script   func(ctx context.Context, w *chunks)
+	mu     sync.Mutex
+	script func(ctx context.Context, w *chunks)
+	// queued scripts answer the next streaming requests, in order, before
+	// script; each sees the request's body.
+	queued   []func(ctx context.Context, w *chunks, body []byte)
+	bodies   [][]byte
 	requests atomic.Int32
 	// started gets a value as each streaming request arrives.
 	started chan struct{}
+}
+
+// then queues scripts for the next streaming requests.
+func (st *fakeStreams) then(scripts ...func(ctx context.Context, w *chunks, body []byte)) {
+	st.mu.Lock()
+	st.queued = append(st.queued, scripts...)
+	st.mu.Unlock()
+}
+
+// record keeps a request's body (streamed or not), in order.
+func (st *fakeStreams) record(body []byte) {
+	st.mu.Lock()
+	st.bodies = append(st.bodies, body)
+	st.mu.Unlock()
+}
+
+// body is the n-th request's body (every request, the one-shot ones too).
+func (st *fakeStreams) body(n int) []byte {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if n >= len(st.bodies) {
+		return nil
+	}
+	return st.bodies[n]
+}
+
+// streamed are the streaming requests' bodies, decoded.
+func (st *fakeStreams) streamed(t *testing.T) []map[string]any {
+	t.Helper()
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	out := []map[string]any{}
+	for _, b := range st.bodies {
+		var m map[string]any
+		if err := json.Unmarshal(b, &m); err != nil {
+			t.Fatal(err)
+		}
+		if m["stream"] == true {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 func newFakeStreams() *fakeStreams { return &fakeStreams{started: make(chan struct{}, 64)} }
@@ -40,20 +86,50 @@ func (st *fakeStreams) set(script func(ctx context.Context, w *chunks)) {
 	st.mu.Unlock()
 }
 
-func (st *fakeStreams) serve(w http.ResponseWriter, r *http.Request) {
+func (st *fakeStreams) serve(w http.ResponseWriter, r *http.Request, body []byte) {
 	st.requests.Add(1)
 	select {
 	case st.started <- struct{}{}:
 	default:
 	}
 	st.mu.Lock()
+	st.bodies = append(st.bodies, body)
 	script := st.script
+	var next func(context.Context, *chunks, []byte)
+	if len(st.queued) > 0 {
+		next, st.queued = st.queued[0], st.queued[1:]
+	}
 	st.mu.Unlock()
 	if script == nil {
 		script = answer("Hello", " there.")
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
-	script(r.Context(), &chunks{w: w, f: w.(http.Flusher)})
+	c := &chunks{w: w, f: w.(http.Flusher)}
+	if next != nil {
+		next(r.Context(), c, body)
+		return
+	}
+	script(r.Context(), c)
+}
+
+// calls streams tool calls (name and JSON arguments, in pairs) and ends
+// with finish_reason tool_calls.
+func calls(nameArgs ...string) func(context.Context, *chunks, []byte) {
+	return func(_ context.Context, c *chunks, _ []byte) {
+		for i := 0; i+1 < len(nameArgs); i += 2 {
+			c.data(map[string]any{"choices": []any{map[string]any{"index": 0, "delta": map[string]any{"tool_calls": []any{map[string]any{
+				"index": i / 2, "id": fmt.Sprintf("call_%d", i/2), "type": "function", "function": map[string]any{"name": nameArgs[i], "arguments": nameArgs[i+1]}}}}}}})
+		}
+		c.data(map[string]any{"choices": []any{map[string]any{"index": 0, "delta": map[string]any{}, "finish_reason": "tool_calls"}}})
+		c.data(map[string]any{"choices": []any{}, "usage": map[string]int{"prompt_tokens": 100, "completion_tokens": 20}})
+		_, _ = io.WriteString(c.w, "data: [DONE]\n\n")
+		c.f.Flush()
+	}
+}
+
+// says streams a plain answer.
+func says(text string) func(context.Context, *chunks, []byte) {
+	return func(ctx context.Context, c *chunks, _ []byte) { answer(text)(ctx, c) }
 }
 
 // waitStarted waits for n more streaming requests.

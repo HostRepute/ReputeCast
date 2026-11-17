@@ -4089,6 +4089,37 @@
         ],
         "type": "object"
       },
+      "AIThreadCard": {
+        "additionalProperties": false,
+        "properties": {
+          "brief": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "link",
+              "proposal",
+              "agent_task"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "proposalId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "path"
+        ],
+        "type": "object"
+      },
       "AIThreadContext": {
         "additionalProperties": false,
         "properties": {
@@ -4292,12 +4323,20 @@
           "role": {
             "enum": [
               "user",
-              "assistant"
+              "assistant",
+              "tool",
+              "summary"
             ],
             "type": "string"
           },
           "text": {
             "type": "string"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/AIThreadToolRow"
+            },
+            "type": "array"
           },
           "turnId": {
             "type": "string"
@@ -4372,6 +4411,56 @@
           "status",
           "code",
           "detail"
+        ],
+        "type": "object"
+      },
+      "AIThreadToolEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "tool": {
+            "$ref": "#/components/schemas/AIThreadToolRow"
+          },
+          "turnId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "turnId",
+          "tool"
+        ],
+        "type": "object"
+      },
+      "AIThreadToolRow": {
+        "additionalProperties": false,
+        "properties": {
+          "callId": {
+            "type": "string"
+          },
+          "card": {
+            "$ref": "#/components/schemas/AIThreadCard"
+          },
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "callId",
+          "name",
+          "ok",
+          "ms"
         ],
         "type": "object"
       },
@@ -124038,6 +124127,39 @@
                           "event"
                         ],
                         "title": "Event snapshot",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadToolEvent"
+                          },
+                          "event": {
+                            "const": "tool",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event tool",
                         "type": "object"
                       },
                       {

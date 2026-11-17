@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/hostrepute/reputecast/internal/ai"
+	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -67,10 +68,12 @@ type AIThreadContext struct {
 	SharedAt  time.Time `json:"sharedAt"`
 }
 
-// AIThreadMessage is one message of a thread.
+// AIThreadMessage is one message of a thread: the person's, the
+// assistant's, the tools a turn called (their rows), or the marker where
+// earlier messages were summarized (summary).
 type AIThreadMessage struct {
 	ID     uuid.UUID  `json:"id"`
-	Role   string     `json:"role" enum:"user,assistant"`
+	Role   string     `json:"role" enum:"user,assistant,tool,summary"`
 	Text   string     `json:"text"`
 	TurnID *uuid.UUID `json:"turnId,omitempty"`
 	// Partial: the answer stopped before it ended (its turn failed); it is
@@ -78,8 +81,10 @@ type AIThreadMessage struct {
 	Partial bool `json:"partial,omitempty"`
 	// Card is a fixed answer the app shows as a card, without a model call:
 	// hostrepute, for questions about reputation, blocklists or placement.
-	Card      string    `json:"card,omitempty" enum:"hostrepute"`
-	CreatedAt time.Time `json:"createdAt"`
+	Card string `json:"card,omitempty" enum:"hostrepute"`
+	// Tools are a tool message's calls.
+	Tools     []AIThreadToolRow `json:"tools,omitempty"`
+	CreatedAt time.Time         `json:"createdAt"`
 }
 
 // AIThreadTurn is a turn's state: Queued, Answering, Waiting for you,
@@ -90,7 +95,8 @@ type AIThreadMessage struct {
 // budget problem (cap_reached, reservation_cap, thread_cap,
 // usage_unknown…), a provider problem (rate_limited, timeout,
 // provider_error, too_large), refused; length (done, cut at its length);
-// reputation (done, the HostRepute card); not_started.
+// reputation (done, the HostRepute card); not_started; expired (retention
+// removed the thread's content while it answered).
 type AIThreadTurn struct {
 	ID       uuid.UUID `json:"id"`
 	Sequence int32     `json:"sequence"`
@@ -290,14 +296,14 @@ func (s *Service) view(ctx context.Context, q *store.Queries, ws *store.Workspac
 		return AIThread{}, err
 	}
 	for _, m := range messages {
-		if m.Role != "user" && m.Role != "assistant" {
-			continue
-		}
 		c, err := s.messageContent(m)
 		if err != nil {
 			return AIThread{}, err
 		}
-		out.Messages = append(out.Messages, AIThreadMessage{ID: m.ID, Role: m.Role, Text: c.Text, TurnID: m.TurnID, Partial: c.Partial, Card: c.Card, CreatedAt: m.CreatedAt})
+		if m.Role == "assistant" && strings.TrimSpace(c.Text) == "" {
+			continue // only tool calls: the tool message shows them
+		}
+		out.Messages = append(out.Messages, c.view(m))
 	}
 	turn, err := q.AIAssistantThreadLastTurn(ctx, t.ID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -328,11 +334,22 @@ func turnActive(state string) bool {
 // messageAD is the associated data a message is sealed with.
 func messageAD(message uuid.UUID) string { return "ai_assistant_message:" + message.String() }
 
-// messageContent is a message as it is sealed.
+// messageContent is a message as it is sealed. Replay is the model's own
+// message (its tool calls, Gemini's thought parts), sent back to the same
+// model; Results a tool message's results as the model read them; Upto the
+// last message a summary covers.
 type messageContent struct {
-	Text    string `json:"text"`
-	Partial bool   `json:"partial,omitempty"`
-	Card    string `json:"card,omitempty"`
+	Text    string            `json:"text"`
+	Partial bool              `json:"partial,omitempty"`
+	Card    string            `json:"card,omitempty"`
+	Replay  *llm.Message      `json:"replay,omitempty"`
+	Results []llm.Part        `json:"results,omitempty"`
+	Tools   []AIThreadToolRow `json:"tools,omitempty"`
+	Upto    int32             `json:"upto,omitempty"`
+}
+
+func (c messageContent) view(m store.AiAssistantMessage) AIThreadMessage {
+	return AIThreadMessage{ID: m.ID, Role: m.Role, Text: c.Text, TurnID: m.TurnID, Partial: c.Partial, Card: c.Card, Tools: c.Tools, CreatedAt: m.CreatedAt}
 }
 
 func (s *Service) messageContent(m store.AiAssistantMessage) (messageContent, error) {
@@ -357,10 +374,10 @@ func (s *Service) addMessage(ctx context.Context, q *store.Queries, thread uuid.
 	}
 	now := s.now()
 	if err := q.AIAssistantMessageInsert(ctx, store.AIAssistantMessageInsertParams{ID: id, ThreadID: thread, TurnID: turn, Role: role, ModelID: model,
-		ContentSealed: sealed, Bytes: int32(len(c.Text)), CreatedAt: now}); err != nil {
+		ContentSealed: sealed, Bytes: int32(len(raw)), CreatedAt: now}); err != nil {
 		return AIThreadMessage{}, err
 	}
-	return AIThreadMessage{ID: id, Role: role, Text: c.Text, TurnID: turn, Partial: c.Partial, Card: c.Card, CreatedAt: now}, nil
+	return c.view(store.AiAssistantMessage{ID: id, Role: role, TurnID: turn, CreatedAt: now}), nil
 }
 
 // maxSearched bounds the threads a title search decrypts.

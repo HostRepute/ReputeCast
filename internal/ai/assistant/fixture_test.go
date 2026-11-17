@@ -3,6 +3,7 @@ package assistant_test
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -33,12 +34,18 @@ func fakeModel(t *testing.T, st *fakeStreams) *httptest.Server {
 				Content any    `json:"content"`
 			} `json:"messages"`
 		}
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		raw, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(raw, &req)
 		if req.Stream {
-			st.serve(w, r)
+			st.serve(w, r, raw)
 			return
 		}
+		st.record(raw)
 		message := map[string]any{"role": "assistant", "content": "Ready."}
+		if strings.Contains(string(raw), "subjects") {
+			// The subject ideas' one-shot request.
+			message["content"] = `{"subjects":["Fresh ideas for spring","Your spring update"]}`
+		}
 		stop := "stop"
 		if len(req.Tools) > 0 && req.Tools[0].Function.Name == "check_tools" {
 			message["content"] = nil

@@ -21922,6 +21922,14 @@ export interface components {
             turn?: components["schemas"]["AIThreadTurn"];
             usage: components["schemas"]["AIThreadUsage"];
         };
+        AIThreadCard: {
+            brief?: string;
+            /** @enum {string} */
+            kind: "link" | "proposal" | "agent_task";
+            path: string;
+            proposalId?: string;
+            title: string;
+        };
         AIThreadContext: {
             available: boolean;
             id: string;
@@ -21980,8 +21988,9 @@ export interface components {
             id: string;
             partial?: boolean;
             /** @enum {string} */
-            role: "user" | "assistant";
+            role: "user" | "assistant" | "tool" | "summary";
             text: string;
+            tools?: components["schemas"]["AIThreadToolRow"][];
             turnId?: string;
         };
         AIThreadMessageEvent: {
@@ -21999,6 +22008,20 @@ export interface components {
             detail: string;
             /** Format: int64 */
             status: number;
+        };
+        AIThreadToolEvent: {
+            tool: components["schemas"]["AIThreadToolRow"];
+            turnId: string;
+        };
+        AIThreadToolRow: {
+            callId: string;
+            card?: components["schemas"]["AIThreadCard"];
+            code?: string;
+            label?: string;
+            /** Format: int64 */
+            ms: number;
+            name: string;
+            ok: boolean;
         };
         AIThreadTurn: {
             /** Format: date-time */
@@ -59694,6 +59717,17 @@ export interface operations {
                          * @constant
                          */
                         event: "snapshot";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadToolEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "tool";
                         /** @description The event ID. */
                         id?: number | string;
                         /** @description The retry time in milliseconds. */

@@ -9,6 +9,8 @@ type ProposalOrigin struct {
 	ArtifactID uuid.UUID
 	RunID      *uuid.UUID
 	GrantID    *uuid.UUID
+	// ThreadID is the assistant thread that proposed it.
+	ThreadID *uuid.UUID
 }
 
 func (p ProposalOrigin) Metadata() map[string]any {
@@ -18,6 +20,9 @@ func (p ProposalOrigin) Metadata() map[string]any {
 	}
 	if p.ArtifactID != uuid.Nil {
 		m["artifact_id"] = p.ArtifactID.String()
+	}
+	if p.ThreadID != nil {
+		m["thread_id"] = p.ThreadID.String()
 	}
 	if p.RunID != nil {
 		m["via"], m["run_id"] = "ai_agent", p.RunID.String()

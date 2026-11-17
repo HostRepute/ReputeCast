@@ -35,7 +35,9 @@ func init() {
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		river.AddWorker(a.JobReg.Workers, &assistant.TurnWorker{S: a.Assistant()})
 		river.AddWorker(a.JobReg.Workers, &assistant.SweepWorker{S: a.Assistant()})
+		river.AddWorker(a.JobReg.Workers, &assistant.RetentionWorker{S: a.Assistant()})
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return assistant.SweepArgs{}, nil }, true)
+		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return assistant.RetentionArgs{}, nil }, true)
 	})
 	closeHooks = append(closeHooks, func(a *App) {
 		if v, ok := assistants.LoadAndDelete(a); ok {

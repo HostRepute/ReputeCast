@@ -85,6 +85,8 @@ type draftContext struct {
 	// Agent checkpoints keep the validated preview so polling never
 	// recompiles an unchanged email. It stays local, outside model context.
 	PreviewHTML string `json:",omitempty"`
+	// ThreadID is the assistant thread that proposed it, if one did.
+	ThreadID *uuid.UUID `json:",omitempty"`
 }
 
 type campaignDraftTask struct {
@@ -615,7 +617,7 @@ func (s *Service) DecideCampaign(ctx context.Context, ws *store.Workspace, p *au
 			if err := c.validateSaved(ctx, q, ws, email); err != nil {
 				return draftProblem(ctx, 422, "invalid")
 			}
-			result, revision, err := s.Campaigns.AcceptDraftIn(ctx, tx, ws, fresh, r.TargetID, r.BaseRevision, c.Name, email.Subject, email.Preheader, email.MJML, audit.ProposalOrigin{ProposalID: id})
+			result, revision, err := s.Campaigns.AcceptDraftIn(ctx, tx, ws, fresh, r.TargetID, r.BaseRevision, c.Name, email.Subject, email.Preheader, email.MJML, audit.ProposalOrigin{ProposalID: id, ThreadID: c.ThreadID})
 			if err != nil {
 				return err
 			}

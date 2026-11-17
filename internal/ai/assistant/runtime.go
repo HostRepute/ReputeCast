@@ -104,6 +104,12 @@ type turnRun struct {
 	step    uuid.UUID
 	lease   uuid.UUID
 	started time.Time
+	// kind is the round's ("answer" or "summary"), upto the last message a
+	// summary covers; rounds counts the turn's requests.
+	kind       string
+	upto       int32
+	rounds     int
+	summarized bool
 }
 
 // Why a worker cut its own stream.
@@ -212,19 +218,12 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspa
 	} else if err != nil {
 		return nil, false, err
 	}
-	req, err := s.request(ctx, q, ws, fresh, t)
-	if err != nil {
-		return nil, false, err
-	}
-	step := uuid.Must(uuid.NewV7())
-	if err := s.AI.ReserveAssistant(ctx, q, ws, fresh, m, &req, ai.AssistantLedger{ThreadID: t.ID, TokenLimit: t.TokenLimit, CostLimitMicros: t.CostLimitMicros}, step); err != nil {
+	run := &turnRun{thread: t, turn: turn, owner: fresh, model: m, lease: lease}
+	if err := s.prepareRound(ctx, q, ws, run); err != nil {
 		if err := q.AIAssistantSlotRelease(ctx, store.AIAssistantSlotReleaseParams{TurnID: turn.ID, LeaseID: lease}); err != nil {
 			return nil, false, err
 		}
 		return nil, false, s.failFor(ctx, q, &turn, err)
-	}
-	if err := q.AIAssistantStepInsert(ctx, store.AIAssistantStepInsertParams{ID: step, TurnID: turn.ID, TurnVersion: turn.Version, Kind: "answer", Now: now}); err != nil {
-		return nil, false, err
 	}
 	turn.State, turn.StartedAt = "answering", &now
 	if err := q.AIAssistantTurnSave(ctx, store.AIAssistantTurnSaveParams{ID: turn.ID, State: turn.State, Reason: "", Version: turn.Version, StartedAt: turn.StartedAt}); err != nil {
@@ -233,7 +232,189 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspa
 	if err := s.turnEvent(ctx, q, turn); err != nil {
 		return nil, false, err
 	}
-	return &turnRun{thread: t, turn: turn, owner: fresh, model: m, req: req, step: step, lease: lease, started: now}, false, nil
+	run.turn = turn
+	return run, false, nil
+}
+
+// prepareRound assembles the turn's next request, reserves its budget in
+// the thread's ledger and saves its step: committed before it is sent.
+// The thread and the turn are locked.
+func (s *Service) prepareRound(ctx context.Context, q *store.Queries, ws *store.Workspace, run *turnRun) error {
+	req, kind, upto, err := s.request(ctx, q, ws, run)
+	if err != nil {
+		return err
+	}
+	step := uuid.Must(uuid.NewV7())
+	t := run.thread
+	if err := s.AI.ReserveAssistant(ctx, q, ws, run.owner, run.model, &req, ai.AssistantLedger{ThreadID: t.ID, TokenLimit: t.TokenLimit, CostLimitMicros: t.CostLimitMicros}, step); err != nil {
+		return err
+	}
+	now := s.now()
+	if err := q.AIAssistantStepInsert(ctx, store.AIAssistantStepInsertParams{ID: step, TurnID: run.turn.ID, TurnVersion: run.turn.Version, Kind: kind, Now: now}); err != nil {
+		return err
+	}
+	run.req, run.kind, run.upto, run.step, run.started = req, kind, upto, step, now
+	run.rounds++
+	run.summarized = run.summarized || kind == "summary"
+	return nil
+}
+
+// lockActive locks a running turn's thread and turn, and reports whether
+// the turn is still this worker's: its version, answering, its thread
+// open and its lease held.
+func (s *Service) lockActive(ctx context.Context, q *store.Queries, ws *store.Workspace, args TurnArgs, run *turnRun) (store.AiAssistantThread, store.AiAssistantTurn, bool, error) {
+	var turn store.AiAssistantTurn
+	t, err := q.AIAssistantThreadLockByID(ctx, store.AIAssistantThreadLockByIDParams{WorkspaceID: ws.ID, ID: run.thread.ID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return t, turn, false, nil
+	}
+	if err != nil {
+		return t, turn, false, err
+	}
+	turn, err = q.AIAssistantTurnLock(ctx, store.AIAssistantTurnLockParams{ThreadID: t.ID, ID: run.turn.ID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return t, turn, false, nil
+	}
+	if err != nil {
+		return t, turn, false, err
+	}
+	if turn.Version != args.Version || turn.State != "answering" || t.State != "open" {
+		return t, turn, false, nil
+	}
+	slot, err := q.AIAssistantSlotOfTurn(ctx, store.AIAssistantSlotOfTurnParams{TurnID: turn.ID, Now: s.now()})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return t, turn, false, nil
+	}
+	return t, turn, err == nil && slot.LeaseID == run.lease, err
+}
+
+// runTools runs a response's tool calls in order, each as the owner is
+// now, while the turn stays this worker's and the thread's tool-call
+// ceiling allows; then saves their results for the next request. A call
+// past the ceiling doesn't run: the model reads tool_limit, and its next
+// request offers no tools.
+func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, calls []llm.ToolCall) (bool, error) {
+	results := []llm.Part{}
+	rows := []AIThreadToolRow{}
+	for _, call := range calls {
+		allowed := false
+		c := &toolCall{ws: ws, owner: run.owner, args: call.Arguments}
+		active := false
+		err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			t, _, ok, err := s.lockActive(ctx, q, ws, args, run)
+			if err != nil || !ok {
+				return err
+			}
+			active = true
+			fresh, _, err := s.actor(ctx, q, ws, run.owner, true)
+			if err != nil {
+				return s.failRunning(ctx, q, run, err)
+			}
+			c.owner, c.thread = fresh, t
+			if c.contexts, err = q.AIAssistantContexts(ctx, t.ID); err != nil {
+				return err
+			}
+			if t.ToolCalls >= t.ToolLimit {
+				return nil
+			}
+			allowed = true
+			return q.AIAssistantThreadToolCall(ctx, t.ID)
+		})
+		if err != nil || !active || c.thread.ID == uuid.Nil {
+			return false, err
+		}
+		start := time.Now()
+		r, content := toolResult{code: "tool_limit"}, envelope(call.Name, toolResult{code: "tool_limit"})
+		if allowed {
+			r, content = s.runTool(ctx, s.Q, c, call.Name)
+		}
+		row := AIThreadToolRow{CallID: call.ID, Name: call.Name, OK: r.code == "", Code: r.code, Ms: time.Since(start).Milliseconds(), Label: clip(r.label, 120), Card: r.card}
+		results = append(results, llm.Part{ToolResult: &llm.ToolResult{ID: call.ID, Name: call.Name, Content: content, IsError: r.code != ""}})
+		rows = append(rows, row)
+		active = false
+		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			t, turn, ok, err := s.lockActive(ctx, q, ws, args, run)
+			if err != nil || !ok {
+				return err
+			}
+			active = true
+			return s.appendEvent(ctx, q, t.ID, &turn.ID, kindTool, AIThreadToolEvent{TurnID: turn.ID, Tool: row})
+		})
+		if err != nil || !active {
+			return false, err
+		}
+	}
+	active := false
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		t, turn, ok, err := s.lockActive(ctx, q, ws, args, run)
+		if err != nil || !ok {
+			return err
+		}
+		active = true
+		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "tool", turn.ModelID, messageContent{Results: results, Tools: rows})
+		if err != nil {
+			return err
+		}
+		if err := s.appendEvent(ctx, q, t.ID, &turn.ID, kindMessage, AIThreadMessageEvent{Message: msg}); err != nil {
+			return err
+		}
+		return q.AIAssistantStepSave(ctx, store.AIAssistantStepSaveParams{ID: run.step, State: "done", Now: s.now()})
+	})
+	return active, err
+}
+
+// failRunning fails a running turn for a domain problem: its slot goes.
+func (s *Service) failRunning(ctx context.Context, q *store.Queries, run *turnRun, err error) error {
+	var p *api.Problem
+	if !errors.As(err, &p) || p.Status >= 500 {
+		return err
+	}
+	if err := q.AIAssistantSlotRelease(ctx, store.AIAssistantSlotReleaseParams{TurnID: run.turn.ID, LeaseID: run.lease}); err != nil {
+		return err
+	}
+	turn, err := q.AIAssistantTurnLock(ctx, store.AIAssistantTurnLockParams{ThreadID: run.thread.ID, ID: run.turn.ID})
+	if err != nil {
+		return err
+	}
+	return s.endTurn(ctx, q, &turn, "failed", reasonOf(p))
+}
+
+// nextRound prepares the turn's next request after its tools ran: the
+// owner's access and the turn's model as they are now.
+func (s *Service) nextRound(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun) (bool, error) {
+	ok := false
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := s.AI.LockAssistantConfig(ctx, q, ws.ID); err != nil {
+			return err
+		}
+		t, turn, active, err := s.lockActive(ctx, q, ws, args, run)
+		if err != nil || !active {
+			return err
+		}
+		run.thread, run.turn = t, turn
+		fresh, _, err := s.actor(ctx, q, ws, run.owner, true)
+		if err != nil {
+			return s.failRunning(ctx, q, run, err)
+		}
+		if turn.ModelID == nil {
+			return s.failRunning(ctx, q, run, api.NotFound("AI model"))
+		}
+		m, err := s.AI.ResolveAssistantModel(ctx, q, ws.ID, t.UserID, turn.ModelID)
+		if err != nil {
+			return s.failRunning(ctx, q, run, err)
+		}
+		run.owner, run.model = fresh, m
+		if err := s.prepareRound(ctx, q, ws, run); err != nil {
+			return s.failRunning(ctx, q, run, err)
+		}
+		ok = true
+		return nil
+	})
+	return ok, err
 }
 
 // failFor fails a turn for a domain problem (its code is the reason); an
@@ -285,12 +466,50 @@ func providerReason(err error) string {
 	return "provider_error"
 }
 
-// answer sends the claimed turn's request, streams its answer and saves
-// the result.
+// answer sends the claimed turn's requests, one round at a time: each
+// streams its answer and is saved; one that calls tools runs them, then
+// the next request goes with their results.
 func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun) error {
+	for {
+		r := s.send(ctx, ws, run)
+		calls, more, err := s.checkpoint(ctx, ws, args, run, r)
+		if err != nil {
+			return err
+		}
+		s.AI.AfterAssistant(ctx, ws, run.model, r.callErr)
+		if !more {
+			return nil
+		}
+		if len(calls) > 0 {
+			if ok, err := s.runTools(ctx, ws, args, run, calls); err != nil || !ok {
+				return err
+			}
+		}
+		if ok, err := s.nextRound(ctx, ws, args, run); err != nil || !ok {
+			return err
+		}
+	}
+}
+
+// sent is a round's request as it went: the response, the call's error,
+// why the worker cut it (cause), everything that arrived (text) and what
+// wasn't written yet (rest).
+type sent struct {
+	res            llm.Response
+	callErr, cause error
+	text, rest     string
+}
+
+// send sends a round's request and streams its answer (a summary's isn't
+// shown).
+func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) sent {
 	sctx, stop := context.WithCancelCause(ctx)
 	defer stop(nil)
 	w := &deltaWriter{s: s, ws: ws.ID, thread: run.thread.ID, turn: run.turn.ID, version: run.turn.Version, stop: stop}
+	emit := w.emit
+	if run.kind == "summary" {
+		emit = func(llm.Delta) error { return nil }
+	}
 	var res llm.Response
 	var cause error
 	prov, callErr := s.AI.AssistantProvider(run.model)
@@ -303,7 +522,7 @@ func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs
 			defer close(watched)
 			s.watch(sctx, ws, run, stop)
 		}()
-		res, callErr = llm.StreamOrGenerate(sctx, prov, run.req, w.emit)
+		res, callErr = llm.StreamOrGenerate(sctx, prov, run.req, emit)
 		cause = context.Cause(sctx)
 		if ctx.Err() != nil {
 			// The worker is stopping (a deploy): the answer was cut short.
@@ -316,11 +535,18 @@ func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs
 	if s.afterAnswer != nil {
 		s.afterAnswer(run.turn.ID)
 	}
-	err := s.checkpoint(ctx, ws, args, run, res, callErr, cause, w.text(), rest)
-	if err == nil {
-		s.AI.AfterAssistant(ctx, ws, run.model, callErr)
+	return sent{res: res, callErr: callErr, cause: cause, text: w.text(), rest: rest}
+}
+
+// toolCalls are a response's calls, in order.
+func toolCalls(m llm.Message) []llm.ToolCall {
+	out := []llm.ToolCall{}
+	for _, p := range m.Parts {
+		if p.ToolCall != nil {
+			out = append(out, *p.ToolCall)
+		}
 	}
-	return err
+	return out
 }
 
 // watch checks, while the answer streams, that the turn is still this
@@ -360,12 +586,17 @@ func (s *Service) watch(ctx context.Context, ws *store.Workspace, run *turnRun, 
 	}
 }
 
-// checkpoint accounts the request and, while the turn is still this
-// worker's, saves what it answered and ends the turn.
-func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, res llm.Response, callErr, cause error, text, rest string) error {
+// checkpoint accounts the round's request and, while the turn is still
+// this worker's, saves what it answered: a summary, or the model's
+// message and its tool calls (the turn goes on: more), or the answer that
+// ends the turn.
+func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, r sent) ([]llm.ToolCall, bool, error) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
 	defer cancel()
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	res, callErr, cause, text, rest := r.res, r.callErr, r.cause, r.text, r.rest
+	var calls []llm.ToolCall
+	more := false
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		active := false
 		t, err := q.AIAssistantThreadLockByID(ctx, store.AIAssistantThreadLockByIDParams{WorkspaceID: ws.ID, ID: run.thread.ID})
@@ -405,7 +636,7 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 		// Always, even when the turn was stopped meanwhile: the provider may
 		// charge for the request.
 		known, err := s.AI.AccountAssistant(ctx, q, ai.AssistantRequest{ID: run.step, WorkspaceID: ws.ID, UserID: run.thread.UserID, ThreadID: run.thread.ID,
-			Action: "answer", Outcome: outcome, CreatedAt: run.started}, res, callErr)
+			Action: run.kind, Outcome: outcome, CreatedAt: run.started}, res, callErr)
 		if err != nil {
 			return err
 		}
@@ -421,11 +652,11 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 			return slotErr
 		}
 		leaseLost := slotErr != nil || slot.LeaseID != run.lease || errors.Is(cause, errLeaseLost) || errors.Is(cause, errShutdown)
-		if err := q.AIAssistantSlotRelease(ctx, store.AIAssistantSlotReleaseParams{TurnID: run.turn.ID, LeaseID: run.lease}); err != nil {
-			return err
+		release := func() error {
+			return q.AIAssistantSlotRelease(ctx, store.AIAssistantSlotReleaseParams{TurnID: run.turn.ID, LeaseID: run.lease})
 		}
 		if !active {
-			return nil
+			return release()
 		}
 		if rest != "" {
 			if err := s.appendEvent(ctx, q, t.ID, &turn.ID, kindDelta, AIThreadDeltaEvent{TurnID: turn.ID, Text: rest}); err != nil {
@@ -450,6 +681,44 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 		if callErr == nil && res.Text != "" {
 			text = res.Text
 		}
+		if state == "done" && run.kind == "summary" {
+			// Earlier messages are summarized: later requests send the
+			// summary instead of them.
+			if strings.TrimSpace(text) != "" {
+				msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "summary", turn.ModelID, messageContent{Text: text, Upto: run.upto})
+				if err != nil {
+					return err
+				}
+				if err := s.appendEvent(ctx, q, t.ID, &turn.ID, kindMessage, AIThreadMessageEvent{Message: msg}); err != nil {
+					return err
+				}
+			}
+			more = true
+			return s.usageEvent(ctx, q, t, turn.ID)
+		}
+		if state == "done" && res.StopReason == llm.StopTools && len(toolCalls(res.Message)) > 0 {
+			// The model's message and its calls; the turn goes on.
+			replay := res.Message
+			msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Replay: &replay})
+			if err != nil {
+				return err
+			}
+			if strings.TrimSpace(text) != "" {
+				if err := s.appendEvent(ctx, q, t.ID, &turn.ID, kindMessage, AIThreadMessageEvent{Message: msg}); err != nil {
+					return err
+				}
+			}
+			calls, more = toolCalls(res.Message), true
+			if known {
+				if err := q.AIAssistantStepSave(ctx, store.AIAssistantStepSaveParams{ID: run.step, State: "responded", Now: s.now()}); err != nil {
+					return err
+				}
+			}
+			return s.usageEvent(ctx, q, t, turn.ID)
+		}
+		if err := release(); err != nil {
+			return err
+		}
 		if strings.TrimSpace(text) != "" {
 			msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Partial: state == "failed" && reason != "refused"})
 			if err != nil {
@@ -467,6 +736,7 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 		}
 		return s.touch(ctx, q, t)
 	})
+	return calls, more, err
 }
 
 // interrupt fails a turn whose worker was lost while it answered: what it

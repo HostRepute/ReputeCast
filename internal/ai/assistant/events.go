@@ -40,6 +40,12 @@ type AIThreadMessageEvent struct {
 	Message AIThreadMessage `json:"message"`
 }
 
+// AIThreadToolEvent is a tool call of a turn, once it ran.
+type AIThreadToolEvent struct {
+	TurnID uuid.UUID       `json:"turnId"`
+	Tool   AIThreadToolRow `json:"tool"`
+}
+
 // AIThreadUsageEvent is the thread's usage after a request was accounted.
 type AIThreadUsageEvent struct {
 	Usage AIThreadUsage `json:"usage"`
@@ -72,6 +78,7 @@ const (
 	kindDelta   = "delta"
 	kindMessage = "message"
 	kindUsage   = "usage"
+	kindTool    = "tool"
 )
 
 // eventAD is the associated data an event's payload is sealed with.

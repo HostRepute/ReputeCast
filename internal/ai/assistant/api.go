@@ -155,7 +155,7 @@ func Register(h huma.API, s *Service) {
 		Metadata:    map[string]any{"reputecast.access": use},
 		Extensions:  map[string]any{"x-access": string(api.AccessWorkspace), "x-permission": string(authz.AIUse)},
 		Middlewares: huma.Middlewares{keepWriter},
-	}, map[string]any{"turn": AIThreadTurnEvent{}, "delta": AIThreadDeltaEvent{}, "message": AIThreadMessageEvent{}, "usage": AIThreadUsageEvent{},
+	}, map[string]any{"turn": AIThreadTurnEvent{}, "delta": AIThreadDeltaEvent{}, "message": AIThreadMessageEvent{}, "usage": AIThreadUsageEvent{}, "tool": AIThreadToolEvent{},
 		"snapshot": AIThreadSnapshotEvent{}, "heartbeat": AIThreadHeartbeat{}, "problem": AIThreadStreamProblem{}},
 		func(ctx context.Context, in *streamInput, send sse.Sender) {
 			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)

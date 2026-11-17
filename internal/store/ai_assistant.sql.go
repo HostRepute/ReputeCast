@@ -97,6 +97,15 @@ func (q *Queries) AIAssistantContexts(ctx context.Context, threadID uuid.UUID) (
 	return items, nil
 }
 
+const aIAssistantContextsPurge = `-- name: AIAssistantContextsPurge :exec
+DELETE FROM ai_assistant_contexts WHERE thread_id = $1
+`
+
+func (q *Queries) AIAssistantContextsPurge(ctx context.Context, threadID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIAssistantContextsPurge, threadID)
+	return err
+}
+
 const aIAssistantEventInsert = `-- name: AIAssistantEventInsert :exec
 INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -169,6 +178,68 @@ func (q *Queries) AIAssistantEvents(ctx context.Context, arg AIAssistantEventsPa
 			&i.TurnID,
 			&i.Kind,
 			&i.PayloadSealed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIAssistantEventsPurge = `-- name: AIAssistantEventsPurge :execrows
+DELETE FROM ai_assistant_events e
+WHERE (e.thread_id, e.seq) IN (
+    SELECT x.thread_id, x.seq FROM ai_assistant_events x JOIN ai_assistant_turns t ON t.id = x.turn_id
+    WHERE t.ended_at < $1 LIMIT 5000)
+`
+
+// Stream events 24 hours after their turn ended.
+func (q *Queries) AIAssistantEventsPurge(ctx context.Context, before *time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, aIAssistantEventsPurge, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIAssistantExpiring = `-- name: AIAssistantExpiring :many
+SELECT id, workspace_id, user_id, model_id, title_sealed, state, screen, event_seq, tool_calls, tool_limit, token_limit, cost_limit_micros, request_key, created_at, updated_at, last_activity_at, expires_at FROM ai_assistant_threads WHERE state = 'open' AND expires_at <= $1
+ORDER BY expires_at, id LIMIT 100 FOR UPDATE SKIP LOCKED
+`
+
+// Open threads past their 30 days without activity, locked in the
+// threads' lock order; a thread a worker or a person holds waits for the
+// next run.
+func (q *Queries) AIAssistantExpiring(ctx context.Context, now time.Time) ([]AiAssistantThread, error) {
+	rows, err := q.db.Query(ctx, aIAssistantExpiring, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AiAssistantThread{}
+	for rows.Next() {
+		var i AiAssistantThread
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.UserID,
+			&i.ModelID,
+			&i.TitleSealed,
+			&i.State,
+			&i.Screen,
+			&i.EventSeq,
+			&i.ToolCalls,
+			&i.ToolLimit,
+			&i.TokenLimit,
+			&i.CostLimitMicros,
+			&i.RequestKey,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastActivityAt,
+			&i.ExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -265,6 +336,15 @@ func (q *Queries) AIAssistantMessages(ctx context.Context, threadID uuid.UUID) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const aIAssistantMessagesPurge = `-- name: AIAssistantMessagesPurge :exec
+DELETE FROM ai_assistant_messages WHERE thread_id = $1
+`
+
+func (q *Queries) AIAssistantMessagesPurge(ctx context.Context, threadID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIAssistantMessagesPurge, threadID)
+	return err
 }
 
 const aIAssistantNotify = `-- name: AIAssistantNotify :exec
@@ -688,6 +768,30 @@ func (q *Queries) AIAssistantThreadDelete(ctx context.Context, arg AIAssistantTh
 	return result.RowsAffected(), nil
 }
 
+const aIAssistantThreadEventsPurge = `-- name: AIAssistantThreadEventsPurge :exec
+DELETE FROM ai_assistant_events WHERE thread_id = $1
+`
+
+func (q *Queries) AIAssistantThreadEventsPurge(ctx context.Context, threadID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIAssistantThreadEventsPurge, threadID)
+	return err
+}
+
+const aIAssistantThreadExpire = `-- name: AIAssistantThreadExpire :exec
+UPDATE ai_assistant_threads SET state = 'expired', title_sealed = NULL, updated_at = $1 WHERE id = $2
+`
+
+type AIAssistantThreadExpireParams struct {
+	Now time.Time `json:"now"`
+	ID  uuid.UUID `json:"id"`
+}
+
+// An expired thread keeps its row (a tombstone: usage, no content).
+func (q *Queries) AIAssistantThreadExpire(ctx context.Context, arg AIAssistantThreadExpireParams) error {
+	_, err := q.db.Exec(ctx, aIAssistantThreadExpire, arg.Now, arg.ID)
+	return err
+}
+
 const aIAssistantThreadInsert = `-- name: AIAssistantThreadInsert :exec
 INSERT INTO ai_assistant_threads (id, workspace_id, user_id, model_id, title_sealed, screen, tool_limit, token_limit, cost_limit_micros,
     request_key, created_at, updated_at, last_activity_at, expires_at)
@@ -851,6 +955,58 @@ func (q *Queries) AIAssistantThreadSave(ctx context.Context, arg AIAssistantThre
 	return err
 }
 
+const aIAssistantThreadSlotPurge = `-- name: AIAssistantThreadSlotPurge :exec
+DELETE FROM ai_assistant_slots WHERE thread_id = $1
+`
+
+func (q *Queries) AIAssistantThreadSlotPurge(ctx context.Context, threadID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIAssistantThreadSlotPurge, threadID)
+	return err
+}
+
+const aIAssistantThreadToolCall = `-- name: AIAssistantThreadToolCall :exec
+UPDATE ai_assistant_threads SET tool_calls = tool_calls + 1 WHERE id = $1
+`
+
+// One more of the thread's tool calls, under its lock.
+func (q *Queries) AIAssistantThreadToolCall(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIAssistantThreadToolCall, id)
+	return err
+}
+
+const aIAssistantThreadTurnsEnd = `-- name: AIAssistantThreadTurnsEnd :many
+UPDATE ai_assistant_turns SET state = 'failed', reason = 'expired', version = version + 1, ended_at = $1
+WHERE thread_id = $2 AND state IN ('queued', 'answering', 'waiting')
+RETURNING id
+`
+
+type AIAssistantThreadTurnsEndParams struct {
+	Now      *time.Time `json:"now"`
+	ThreadID uuid.UUID  `json:"threadId"`
+}
+
+// Retention ends a thread's active turns: their version moves on, so a
+// worker that comes back writes nothing of them.
+func (q *Queries) AIAssistantThreadTurnsEnd(ctx context.Context, arg AIAssistantThreadTurnsEndParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, aIAssistantThreadTurnsEnd, arg.Now, arg.ThreadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const aIAssistantThreads = `-- name: AIAssistantThreads :many
 SELECT id, workspace_id, user_id, model_id, title_sealed, state, screen, event_seq, tool_calls, tool_limit, token_limit, cost_limit_micros, request_key, created_at, updated_at, last_activity_at, expires_at FROM ai_assistant_threads
 WHERE workspace_id = $1 AND user_id = $2
@@ -910,6 +1066,40 @@ func (q *Queries) AIAssistantThreads(ctx context.Context, arg AIAssistantThreads
 		return nil, err
 	}
 	return items, nil
+}
+
+const aIAssistantThreadsRemove = `-- name: AIAssistantThreadsRemove :execrows
+DELETE FROM ai_assistant_threads WHERE workspace_id = $1 AND user_id = $2
+`
+
+type AIAssistantThreadsRemoveParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+}
+
+// A person left the workspace or was removed from it: their threads there
+// go, with all their content. Deactivation keeps them.
+func (q *Queries) AIAssistantThreadsRemove(ctx context.Context, arg AIAssistantThreadsRemoveParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIAssistantThreadsRemove, arg.WorkspaceID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIAssistantTombstonesPurge = `-- name: AIAssistantTombstonesPurge :execrows
+DELETE FROM ai_assistant_threads d WHERE d.id IN (
+    SELECT x.id FROM ai_assistant_threads x WHERE x.state = 'expired' AND x.expires_at <= $1
+    ORDER BY x.expires_at LIMIT 1000 FOR UPDATE SKIP LOCKED)
+`
+
+// Expired threads' tombstones, 90 days after their content went.
+func (q *Queries) AIAssistantTombstonesPurge(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, aIAssistantTombstonesPurge, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const aIAssistantTurnByRequest = `-- name: AIAssistantTurnByRequest :one

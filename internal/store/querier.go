@@ -97,16 +97,24 @@ type Querier interface {
 	AIAssistantContextDelete(ctx context.Context, arg AIAssistantContextDeleteParams) (AIAssistantContextDeleteRow, error)
 	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
 	AIAssistantContexts(ctx context.Context, threadID uuid.UUID) ([]AiAssistantContext, error)
+	AIAssistantContextsPurge(ctx context.Context, threadID uuid.UUID) error
 	AIAssistantEventInsert(ctx context.Context, arg AIAssistantEventInsertParams) error
 	// The next stream event's number. Only under the thread's lock: events are
 	// numbered without gaps, in commit order.
 	AIAssistantEventSeq(ctx context.Context, id uuid.UUID) (int64, error)
 	// A thread's events after a stream's cursor, in order.
 	AIAssistantEvents(ctx context.Context, arg AIAssistantEventsParams) ([]AIAssistantEventsRow, error)
+	// Stream events 24 hours after their turn ended.
+	AIAssistantEventsPurge(ctx context.Context, before *time.Time) (int64, error)
+	// Open threads past their 30 days without activity, locked in the
+	// threads' lock order; a thread a worker or a person holds waits for the
+	// next run.
+	AIAssistantExpiring(ctx context.Context, now time.Time) ([]AiAssistantThread, error)
 	AIAssistantMessageInsert(ctx context.Context, arg AIAssistantMessageInsertParams) error
 	// The person's message a turn answers.
 	AIAssistantMessageOfTurn(ctx context.Context, turnID *uuid.UUID) (AiAssistantMessage, error)
 	AIAssistantMessages(ctx context.Context, threadID uuid.UUID) ([]AiAssistantMessage, error)
+	AIAssistantMessagesPurge(ctx context.Context, threadID uuid.UUID) error
 	// Wakes the streams of a thread when the transaction commits. The payload
 	// is "thread:seq" only: readers read the events themselves.
 	AIAssistantNotify(ctx context.Context, payload string) error
@@ -143,6 +151,9 @@ type Querier interface {
 	// Deleting a thread removes its content at once: messages, contexts and
 	// stream events go with it. The usage ledger stays (without the thread).
 	AIAssistantThreadDelete(ctx context.Context, arg AIAssistantThreadDeleteParams) (int64, error)
+	AIAssistantThreadEventsPurge(ctx context.Context, threadID uuid.UUID) error
+	// An expired thread keeps its row (a tombstone: usage, no content).
+	AIAssistantThreadExpire(ctx context.Context, arg AIAssistantThreadExpireParams) error
 	AIAssistantThreadInsert(ctx context.Context, arg AIAssistantThreadInsertParams) error
 	AIAssistantThreadLastTurn(ctx context.Context, threadID uuid.UUID) (AiAssistantTurn, error)
 	AIAssistantThreadLock(ctx context.Context, arg AIAssistantThreadLockParams) (AiAssistantThread, error)
@@ -151,8 +162,19 @@ type Querier interface {
 	AIAssistantThreadLockByID(ctx context.Context, arg AIAssistantThreadLockByIDParams) (AiAssistantThread, error)
 	// Saves what the person changed. Only an open thread changes.
 	AIAssistantThreadSave(ctx context.Context, arg AIAssistantThreadSaveParams) error
+	AIAssistantThreadSlotPurge(ctx context.Context, threadID uuid.UUID) error
+	// One more of the thread's tool calls, under its lock.
+	AIAssistantThreadToolCall(ctx context.Context, id uuid.UUID) error
+	// Retention ends a thread's active turns: their version moves on, so a
+	// worker that comes back writes nothing of them.
+	AIAssistantThreadTurnsEnd(ctx context.Context, arg AIAssistantThreadTurnsEndParams) ([]uuid.UUID, error)
 	// The person's threads, the most recently active first.
 	AIAssistantThreads(ctx context.Context, arg AIAssistantThreadsParams) ([]AiAssistantThread, error)
+	// A person left the workspace or was removed from it: their threads there
+	// go, with all their content. Deactivation keeps them.
+	AIAssistantThreadsRemove(ctx context.Context, arg AIAssistantThreadsRemoveParams) (int64, error)
+	// Expired threads' tombstones, 90 days after their content went.
+	AIAssistantTombstonesPurge(ctx context.Context, before time.Time) (int64, error)
 	AIAssistantTurnByRequest(ctx context.Context, arg AIAssistantTurnByRequestParams) (AiAssistantTurn, error)
 	// What a turn wrote so far, up to an event: its answer's pieces.
 	AIAssistantTurnDeltas(ctx context.Context, arg AIAssistantTurnDeltasParams) ([]AIAssistantTurnDeltasRow, error)

@@ -178,3 +178,55 @@ SELECT t.id, t.thread_id, h.workspace_id FROM ai_assistant_turns t JOIN ai_assis
 WHERE (t.state = 'answering' AND NOT EXISTS (SELECT 1 FROM ai_assistant_slots s WHERE s.turn_id = t.id AND s.expires_at > @now))
    OR (t.state = 'queued' AND t.created_at < @queued_before)
 ORDER BY t.created_at LIMIT 100;
+
+-- name: AIAssistantThreadToolCall :exec
+-- One more of the thread's tool calls, under its lock.
+UPDATE ai_assistant_threads SET tool_calls = tool_calls + 1 WHERE id = @id;
+
+-- name: AIAssistantThreadsRemove :execrows
+-- A person left the workspace or was removed from it: their threads there
+-- go, with all their content. Deactivation keeps them.
+DELETE FROM ai_assistant_threads WHERE workspace_id = @workspace_id AND user_id = @user_id;
+
+-- name: AIAssistantEventsPurge :execrows
+-- Stream events 24 hours after their turn ended.
+DELETE FROM ai_assistant_events e
+WHERE (e.thread_id, e.seq) IN (
+    SELECT x.thread_id, x.seq FROM ai_assistant_events x JOIN ai_assistant_turns t ON t.id = x.turn_id
+    WHERE t.ended_at < @before LIMIT 5000);
+
+-- name: AIAssistantExpiring :many
+-- Open threads past their 30 days without activity, locked in the
+-- threads' lock order; a thread a worker or a person holds waits for the
+-- next run.
+SELECT * FROM ai_assistant_threads WHERE state = 'open' AND expires_at <= @now
+ORDER BY expires_at, id LIMIT 100 FOR UPDATE SKIP LOCKED;
+
+-- name: AIAssistantThreadTurnsEnd :many
+-- Retention ends a thread's active turns: their version moves on, so a
+-- worker that comes back writes nothing of them.
+UPDATE ai_assistant_turns SET state = 'failed', reason = 'expired', version = version + 1, ended_at = @now
+WHERE thread_id = @thread_id AND state IN ('queued', 'answering', 'waiting')
+RETURNING id;
+
+-- name: AIAssistantMessagesPurge :exec
+DELETE FROM ai_assistant_messages WHERE thread_id = @thread_id;
+
+-- name: AIAssistantContextsPurge :exec
+DELETE FROM ai_assistant_contexts WHERE thread_id = @thread_id;
+
+-- name: AIAssistantThreadEventsPurge :exec
+DELETE FROM ai_assistant_events WHERE thread_id = @thread_id;
+
+-- name: AIAssistantThreadSlotPurge :exec
+DELETE FROM ai_assistant_slots WHERE thread_id = @thread_id;
+
+-- name: AIAssistantThreadExpire :exec
+-- An expired thread keeps its row (a tombstone: usage, no content).
+UPDATE ai_assistant_threads SET state = 'expired', title_sealed = NULL, updated_at = @now WHERE id = @id;
+
+-- name: AIAssistantTombstonesPurge :execrows
+-- Expired threads' tombstones, 90 days after their content went.
+DELETE FROM ai_assistant_threads d WHERE d.id IN (
+    SELECT x.id FROM ai_assistant_threads x WHERE x.state = 'expired' AND x.expires_at <= @before
+    ORDER BY x.expires_at LIMIT 1000 FOR UPDATE SKIP LOCKED);
