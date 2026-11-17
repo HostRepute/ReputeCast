@@ -40,7 +40,7 @@ export default translate(m, {
   noModelPicked: 'Chọn mô hình',
   cost: '{used} trên {limit}',
   costTitle: '{calls} trên {limit} lượt gọi công cụ · cuộc trò chuyện này',
-  costUnknown: '{used} trên {limit} · có mức sử dụng chưa rõ',
+  costUnknown: '{used} trên {limit} · chưa rõ chi phí của {count} yêu cầu, đã tính ở mức tối đa ({held})',
 
   contextLabel: 'Ngữ cảnh đã đính kèm',
   suggested: 'Gợi ý: {title}',
@@ -169,8 +169,6 @@ export default translate(m, {
   expiredTitle: 'Cuộc trò chuyện này đã hết hạn',
   expiredBadge: 'Đã hết hạn',
   expiredBody: 'Cuộc trò chuyện giữ nội dung 30 ngày sau tin nhắn cuối. Mức sử dụng vẫn còn trong nhật ký hoạt động AI, không kèm nội dung.',
-  usageUnknownTitle: 'Cuộc trò chuyện đang chờ chi phí',
-  usageUnknownBody: 'Một câu trả lời trước đã dừng trước khi nhà cung cấp báo chi phí. Cuộc trò chuyện tạm dừng cho đến khi người quản lý tích hợp đối soát yêu cầu đó trong nhật ký hoạt động AI. Hãy bắt đầu cuộc trò chuyện mới để tiếp tục.',
   lostTitle: 'Quyền của bạn đã thay đổi trong lúc trả lời',
   lostBadge: 'Đã dừng',
   lostBody: 'Vai trò của bạn không còn dùng được tính năng AI. Câu trả lời dừng trước bước tiếp theo; phần đã viết vẫn đọc được.',

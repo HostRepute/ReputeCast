@@ -40,7 +40,8 @@ export default translate(m, {
   noModelPicked: 'Elegir un modelo',
   cost: '{used} de {limit}',
   costTitle: '{calls} de {limit} llamadas a herramientas · esta conversación',
-  costUnknown: '{used} de {limit} · parte del uso es desconocida',
+  costUnknown:
+    '{used} de {limit} · {count, plural, one {costo desconocido de # solicitud, contada por su máximo ({held})} other {costo desconocido de # solicitudes, contadas por su máximo ({held})}}',
 
   contextLabel: 'Contexto adjunto',
   suggested: 'Sugerido: {title}',
@@ -169,8 +170,6 @@ export default translate(m, {
   expiredTitle: 'Esta conversación caducó',
   expiredBadge: 'Caducada',
   expiredBody: 'Las conversaciones conservan su contenido 30 días después del último mensaje. Su uso queda en el registro de actividad de IA, sin contenido.',
-  usageUnknownTitle: 'Esta conversación espera un costo',
-  usageUnknownBody: 'Una respuesta anterior se detuvo antes de que el proveedor informara su costo. La conversación queda en pausa hasta que alguien que administra integraciones concilie esa solicitud en el registro de actividad de IA. Empieza una conversación nueva para seguir.',
   lostTitle: 'Tu acceso cambió durante esta respuesta',
   lostBadge: 'Detenida',
   lostBody: 'Tu rol ya no puede usar funciones de IA. La respuesta se detuvo antes de su siguiente paso; lo escrito sigue siendo legible.',

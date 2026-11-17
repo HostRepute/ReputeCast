@@ -36,7 +36,6 @@ export type TurnProblem =
   | 'modelGone'
   | 'interrupted'
   | 'expired'
-  | 'usageUnknown'
   | 'failed'
 
 export function problemOf(reason: string | undefined): TurnProblem {
@@ -46,8 +45,6 @@ export function problemOf(reason: string | undefined): TurnProblem {
     case 'cap_reached':
     case 'reservation_cap':
       return 'monthly'
-    case 'usage_unknown':
-      return 'usageUnknown'
     case 'personal_cap_reached':
       return 'personalCap'
     case 'key_rejected':
@@ -97,7 +94,6 @@ export const problemCopy: Record<TurnProblem, { title: MessageDescriptor; badge:
   modelGone: { title: m.modelGoneTitle, badge: m.failedBadge, tone: 'bad' },
   interrupted: { title: m.interruptedTitle, badge: m.failedBadge, tone: 'bad' },
   expired: { title: m.expiredTitle, badge: m.expiredBadge, tone: 'neutral' },
-  usageUnknown: { title: m.usageUnknownTitle, badge: m.threadCapBadge, tone: 'warn' },
   failed: { title: m.failedTitle, badge: m.failedBadge, tone: 'bad' },
 }
 

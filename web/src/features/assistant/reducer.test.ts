@@ -5,7 +5,7 @@ import { initialThreadState, threadReducer, type StreamEvent, type Thread, type 
 const at = '2026-11-17T10:00:00Z'
 const turn = (state: ThreadTurn['state'], extra: Partial<ThreadTurn> = {}): ThreadTurn => ({ id: 't1', sequence: 1, state, createdAt: at, ...extra })
 const msg = (id: string, role: ThreadMessage['role'], text: string, extra: Partial<ThreadMessage> = {}): ThreadMessage => ({ id, role, text, createdAt: at, turnId: 't1', ...extra })
-const usage = { costMicros: 0, requests: 0, tokens: 0, toolCalls: 0, uncertainRequests: 0 }
+const usage = { costMicros: 0, requests: 0, tokens: 0, toolCalls: 0, uncertainRequests: 0, uncertainTokens: 0, uncertainCostMicros: 0 }
 const thread = (extra: Partial<Thread> = {}): Thread => ({
   id: 'th1',
   title: 'Why opens fell',

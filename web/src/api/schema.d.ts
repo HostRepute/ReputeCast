@@ -22057,7 +22057,11 @@ export interface components {
             /** Format: int32 */
             toolCalls: number;
             /** Format: int64 */
+            uncertainCostMicros: number;
+            /** Format: int64 */
             uncertainRequests: number;
+            /** Format: int64 */
+            uncertainTokens: number;
         };
         AIThreadUsageEvent: {
             usage: components["schemas"]["AIThreadUsage"];

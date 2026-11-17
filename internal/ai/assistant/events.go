@@ -119,8 +119,7 @@ func (s *Service) usageEvent(ctx context.Context, q *store.Queries, t store.AiAs
 	if err != nil {
 		return err
 	}
-	return s.appendEvent(ctx, q, t.ID, &turn, kindUsage, AIThreadUsageEvent{Usage: AIThreadUsage{ToolCalls: t.ToolCalls, Tokens: used.Tokens,
-		CostMicros: used.CostMicros, Requests: used.Requests, UncertainRequests: used.Uncertain}})
+	return s.appendEvent(ctx, q, t.ID, &turn, kindUsage, AIThreadUsageEvent{Usage: usageOf(t, used)})
 }
 
 // openEvent reads an event's data.
@@ -132,7 +131,9 @@ func (s *Service) openEvent(thread uuid.UUID, seq int64, sealed []byte, v any) e
 	return json.Unmarshal(raw, v)
 }
 
-// answerSoFar is what a turn's deltas wrote up to an event.
+// answerSoFar is what a turn's deltas wrote up to an event and no message
+// saved yet: the answer of its current request (an earlier request's is in
+// its message).
 func (s *Service) answerSoFar(ctx context.Context, q *store.Queries, thread, turn uuid.UUID, upto int64) (string, error) {
 	rows, err := q.AIAssistantTurnDeltas(ctx, store.AIAssistantTurnDeltasParams{ThreadID: thread, TurnID: &turn, Upto: upto})
 	if err != nil {
@@ -140,6 +141,10 @@ func (s *Service) answerSoFar(ctx context.Context, q *store.Queries, thread, tur
 	}
 	var b strings.Builder
 	for _, r := range rows {
+		if r.Kind == kindMessage {
+			b.Reset()
+			continue
+		}
 		var d AIThreadDeltaEvent
 		if err := s.openEvent(thread, r.Seq, r.PayloadSealed, &d); err != nil {
 			return "", err

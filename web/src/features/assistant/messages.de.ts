@@ -40,7 +40,8 @@ export default translate(m, {
   noModelPicked: 'Modell wählen',
   cost: '{used} von {limit}',
   costTitle: '{calls} von {limit} Tool-Aufrufen · diese Unterhaltung',
-  costUnknown: '{used} von {limit} · Nutzung teilweise unbekannt',
+  costUnknown:
+    '{used} von {limit} · {count, plural, one {Kosten von # Anfrage unbekannt, mit ihrem Höchstwert gezählt ({held})} other {Kosten von # Anfragen unbekannt, mit ihrem Höchstwert gezählt ({held})}}',
 
   contextLabel: 'Angehängter Kontext',
   suggested: 'Vorschlag: {title}',
@@ -169,8 +170,6 @@ export default translate(m, {
   expiredTitle: 'Diese Unterhaltung ist abgelaufen',
   expiredBadge: 'Abgelaufen',
   expiredBody: 'Unterhaltungen behalten ihre Inhalte 30 Tage nach der letzten Nachricht. Ihre Nutzung bleibt im KI-Aktivitätsprotokoll, ohne Inhalte.',
-  usageUnknownTitle: 'Diese Unterhaltung wartet auf Kosten',
-  usageUnknownBody: 'Eine frühere Antwort stoppte, bevor der Anbieter ihre Kosten gemeldet hat. Die Unterhaltung pausiert, bis Integrationsverantwortliche diese Anfrage im KI-Aktivitätsprotokoll abgleichen. Beginnen Sie eine neue Unterhaltung, um weiterzumachen.',
   lostTitle: 'Ihr Zugriff hat sich während dieser Antwort geändert',
   lostBadge: 'Gestoppt',
   lostBody: 'Ihre Rolle kann keine KI-Funktionen mehr nutzen. Die Antwort stoppte vor ihrem nächsten Schritt; was geschrieben wurde, bleibt lesbar.',

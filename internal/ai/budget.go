@@ -50,7 +50,7 @@ func runLedger(r *store.AiAgentRun) *ledger {
 func (l *ledger) used(ctx context.Context, q *store.Queries) (store.AIBudgetRunRow, error) {
 	if l.threadID != nil {
 		u, err := q.AIBudgetThread(ctx, l.threadID)
-		return store.AIBudgetRunRow(u), err
+		return store.AIBudgetRunRow{Tokens: u.Tokens, CostMicros: u.CostMicros, Uncertain: u.Uncertain, Requests: u.Requests}, err
 	}
 	return q.AIBudgetRun(ctx, l.runID)
 }
@@ -213,7 +213,11 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 		if err != nil {
 			return err
 		}
-		if used.Uncertain > 0 {
+		// A run waits for its unknown usage to be reconciled. A thread goes
+		// on: its uncertain requests count at their reserved maximum (as
+		// every hold does, against the monthly or personal cap too), so its
+		// ceilings still hold.
+		if used.Uncertain > 0 && l.threadID == nil {
 			return budgetProblem(ctx, "usage_unknown")
 		}
 		output = min(output, l.tokenLimit-used.Tokens-input,

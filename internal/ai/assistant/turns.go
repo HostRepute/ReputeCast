@@ -153,7 +153,8 @@ func (s *Service) StopTurn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		if err != nil {
 			return err
 		}
-		if _, err := lockThread(ctx, q, ws.ID, fresh.UserID, thread); err != nil {
+		th, err := lockThread(ctx, q, ws.ID, fresh.UserID, thread)
+		if err != nil {
 			return err
 		}
 		t, err := q.AIAssistantTurnLock(ctx, store.AIAssistantTurnLockParams{ThreadID: thread, ID: turn})
@@ -167,6 +168,21 @@ func (s *Service) StopTurn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			return nil
 		}
 		was := t.State
+		// What it wrote stays, up to the last batch before Stop: batches
+		// after it are fenced, and so is the worker's checkpoint.
+		text, err := s.answerSoFar(ctx, q, th.ID, t.ID, th.EventSeq)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(text) != "" {
+			msg, err := s.addMessage(ctx, q, th.ID, &t.ID, "assistant", t.ModelID, messageContent{Text: text, Partial: true})
+			if err != nil {
+				return err
+			}
+			if err := s.appendEvent(ctx, q, th.ID, &t.ID, kindMessage, AIThreadMessageEvent{Message: msg}); err != nil {
+				return err
+			}
+		}
 		if err := s.endTurn(ctx, q, &t, "stopped", "stopped"); err != nil {
 			return err
 		}

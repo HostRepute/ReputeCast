@@ -304,7 +304,9 @@ function Cost({ c }: { c: ThreadController }) {
   return (
     <span className={warn ? 'asst-cost warn' : 'asst-cost'} title={t(m.costTitle, { calls: usage.toolCalls, limit: thread.limits.toolCalls })}>
       {warn ? <AsstIcon name="warn" size={14} /> : null}
-      {usage.uncertainRequests > 0 ? t(m.costUnknown, { used, limit }) : t(m.cost, { used, limit })}
+      {usage.uncertainRequests > 0
+        ? t(m.costUnknown, { used, limit, count: usage.uncertainRequests, held: money(usage.uncertainCostMicros / 1e6) })
+        : t(m.cost, { used, limit })}
     </span>
   )
 }
@@ -507,10 +509,6 @@ function TurnProblemCard({ c, problem }: { c: ThreadController; problem: TurnPro
       break
     case 'expired':
       body = t(m.expiredBody)
-      actions = newThread
-      break
-    case 'usageUnknown':
-      body = t(m.usageUnknownBody)
       actions = newThread
       break
     default:

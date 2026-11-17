@@ -47,7 +47,10 @@ export const m = defineMessages('assistant', {
   cost: '{used} of {limit}',
   // calls, limit: tool calls of the thread.
   costTitle: '{calls} of {limit} tool calls · this thread',
-  costUnknown: '{used} of {limit} · some usage unknown',
+  // count: requests whose usage the provider never reported; held: what
+  // they count at, their reserved maximum (included in used).
+  costUnknown:
+    '{used} of {limit} · {count, plural, one {cost unknown for # request, counted at its maximum ({held})} other {cost unknown for # requests, counted at their maximum ({held})}}',
 
   // ── Attached context ────────────────────────────────────────────────
   contextLabel: 'Attached context',
@@ -191,8 +194,6 @@ export const m = defineMessages('assistant', {
   expiredTitle: 'This thread expired',
   expiredBadge: 'Expired',
   expiredBody: 'Threads keep content for 30 days after the last message. Its usage stays in the AI activity log, without content.',
-  usageUnknownTitle: 'This thread waits for a cost',
-  usageUnknownBody: 'An earlier answer stopped before its provider reported what it cost. The thread pauses until an integration manager reconciles that request in the AI activity log. Start a new thread to go on.',
   lostTitle: 'Your access changed during this answer',
   lostBadge: 'Stopped',
   lostBody: 'Your role can no longer use AI features. The answer stopped before its next step; what was written stays readable.',
@@ -202,7 +203,7 @@ export const m = defineMessages('assistant', {
   interruptedBody: 'The server answering it stopped. What was written is kept; its cost stays unknown until a manager reconciles it. Retry sends a new request with its own cost.',
   failedTitle: 'The answer didn’t finish',
   failedBadge: 'Failed',
-  // reason: the turn's reason code (provider_error, usage_unknown…).
+  // reason: the turn's reason code (provider_error, refused…).
   failedBody: 'It stopped ({reason}). What was written is kept. Retry sends a new request with its own cost.',
   retry: 'Retry',
   closePanel: 'Close',

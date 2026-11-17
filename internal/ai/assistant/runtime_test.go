@@ -296,9 +296,13 @@ func TestAssistantStopMidStream(t *testing.T) {
 	if last := evs[len(evs)-1]; last.Seq != stopped.EventSeq || last.Kind != "turn" {
 		t.Fatalf("events after the stopped one: %v (stopped at %d)", evs, stopped.EventSeq)
 	}
+	// After a reload, the answer stays as far as it was written before
+	// Stop: exactly the batches flushed until then, nothing after.
 	after := f.get(f.mc, th.ID)
-	if after.Turn.State != "stopped" || len(after.Messages) != 1 || after.Usage.Requests != 1 {
-		t.Fatalf("after the worker: %+v", after)
+	written := f.deltaText(th.ID)
+	if after.Turn.State != "stopped" || len(after.Messages) != 2 || after.Messages[1].Role != "assistant" || !after.Messages[1].Partial ||
+		written == "" || after.Messages[1].Text != written || strings.Count(written, "word ") >= 200 || after.Usage.Requests != 1 {
+		t.Fatalf("after the worker: %+v (written before Stop: %q)", after, written)
 	}
 	if n := f.count(`SELECT count(*) FROM ai_requests r JOIN ai_assistant_steps s ON s.id = r.id WHERE s.turn_id = $1 AND r.outcome = 'cancelled'`, turn) +
 		f.count(`SELECT count(*) FROM ai_budget_reservations b JOIN ai_assistant_steps s ON s.id = b.id WHERE s.turn_id = $1 AND b.state = 'reserved'`, turn)*10 +
@@ -324,8 +328,11 @@ func TestAssistantStopAfterAnswer(t *testing.T) {
 	if err := w.ExecuteTurn(context.Background(), f.job(turn)); err != nil {
 		t.Fatal(err)
 	}
+	// Stop keeps what was written before it (a partial message, if a batch
+	// was flushed); the checkpoint saves nothing.
 	after := f.get(f.mc, th.ID)
-	if after.Turn.State != "stopped" || len(after.Messages) != 1 || after.EventSeq != stopped.EventSeq {
+	if after.Turn.State != "stopped" || after.EventSeq != stopped.EventSeq || len(after.Messages) > 2 ||
+		(len(after.Messages) == 2 && (!after.Messages[1].Partial || after.Messages[1].Text != f.deltaText(th.ID))) {
 		t.Fatalf("after Stop: %+v (stopped at %d)", after, stopped.EventSeq)
 	}
 	if n := f.count(`SELECT count(*) FROM ai_requests r JOIN ai_budget_reservations b ON b.id = r.id JOIN ai_assistant_steps s ON s.id = r.id
@@ -458,5 +465,86 @@ func TestAssistantAccessLostMidStream(t *testing.T) {
 	}
 	if n := f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = $1 AND state = 'failed' AND reason = 'access_lost'`, turn); n != 1 {
 		t.Fatal("the turn didn't fail on access")
+	}
+}
+
+// A stopped request's usage is unknown: it counts at its reserved maximum
+// against the thread's ceilings, and the thread goes on. The next request
+// is bounded by what that leaves; a thread the maxima fill refuses with
+// thread_cap; reconciling the hold frees the difference.
+func TestAssistantUncertainHoldCounts(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	th := f.thread(f.mc, map[string]any{})
+	first := f.send(f.mc, th.ID, "Tell me a long story").Turn.ID
+	f.streams.set(drip("word ", 50*time.Millisecond, 200))
+	done := make(chan error, 1)
+	args := f.job(first)
+	go func() { done <- f.worker().ExecuteTurn(ctx, args) }()
+	f.waitKind(th.ID, "delta")
+	f.mc.Do(http.MethodPost, f.base+"/assistant/threads/"+th.ID.String()+"/turns/"+first.String()+"/stop", nil).MustStatus(t, 200)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	var hold uuid.UUID
+	var heldCost, heldTokens, input int64
+	if err := f.env.App.Pool.QueryRow(ctx, `SELECT b.id, b.cost_micros, b.input_tokens + b.output_tokens, b.input_tokens FROM ai_budget_reservations b
+		JOIN ai_assistant_steps s ON s.id = b.id WHERE s.turn_id = $1 AND b.state = 'uncertain'`, first).Scan(&hold, &heldCost, &heldTokens, &input); err != nil {
+		t.Fatalf("the stopped request's hold: %v", err)
+	}
+	if u := f.get(f.mc, th.ID).Usage; u.UncertainRequests != 1 || u.UncertainCostMicros != heldCost || u.UncertainTokens != heldTokens || u.CostMicros != heldCost {
+		t.Fatalf("the usage: %+v, held %d µ$", u, heldCost)
+	}
+	limit := func(micros int64) {
+		if _, err := f.env.App.Pool.Exec(ctx, `UPDATE ai_assistant_threads SET cost_limit_micros = $2 WHERE id = $1`, th.ID, micros); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run := func(text string) uuid.UUID {
+		turn := f.send(f.mc, th.ID, text).Turn.ID
+		if err := f.worker().ExecuteTurn(ctx, f.job(turn)); err != nil {
+			t.Fatal(err)
+		}
+		return turn
+	}
+	// Room for a short answer only, once the hold counts at its maximum.
+	ceiling := heldCost + input + 3000
+	limit(ceiling)
+	release := make(chan struct{})
+	f.streams.set(held(release, "Short."))
+	second := f.send(f.mc, th.ID, "A short one").Turn.ID
+	args = f.job(second)
+	go func() { done <- f.worker().ExecuteTurn(ctx, args) }()
+	// The reservation as it was made (settling replaces it with the usage).
+	var in, out int64
+	waitFor(t, "the next request's reservation", func() bool {
+		return f.env.App.Pool.QueryRow(ctx, `SELECT b.input_tokens, b.output_tokens FROM ai_budget_reservations b JOIN ai_assistant_steps s ON s.id = b.id
+			WHERE s.turn_id = $1 AND b.state = 'reserved'`, second).Scan(&in, &out) == nil
+	})
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if want := (ceiling - heldCost - in) / 2; want >= 4000 || out != want {
+		t.Fatalf("the next request reserved %d output tokens, want %d (the thread's room with the hold at its maximum)", out, want)
+	}
+	if n := f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = $1 AND state = 'done'`, second); n != 1 {
+		t.Fatal("the next turn didn't answer")
+	}
+	// The maxima fill the ceiling: refused.
+	limit(heldCost + 180 + 100)
+	if third := run("Another"); f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = $1 AND state = 'failed' AND reason = 'thread_cap'`, third) != 1 {
+		t.Fatal("a thread full of uncertain maxima took another request")
+	}
+	// Reconciled with what the provider billed: the difference is free.
+	if _, err := f.env.App.Pool.Exec(ctx, `UPDATE ai_budget_reservations SET created_at = now() - interval '11 minutes' WHERE id = $1`, hold); err != nil {
+		t.Fatal(err)
+	}
+	f.oc.Do(http.MethodPost, f.base+"/budget-holds/"+hold.String()+"/reconcile", map[string]any{"inputTokens": 100, "outputTokens": 10, "confirmed": true}).MustStatus(t, 204)
+	if u := f.get(f.mc, th.ID).Usage; u.UncertainRequests != 0 || u.CostMicros != 120+180 {
+		t.Fatalf("after reconciling: %+v", u)
+	}
+	if fourth := run("Now?"); f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = $1 AND state = 'done'`, fourth) != 1 {
+		t.Fatal("the reconciled thread refused")
 	}
 }

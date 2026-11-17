@@ -41,7 +41,8 @@ export default translate(m, {
   noModelPicked: 'Choisir un modèle',
   cost: '{used} sur {limit}',
   costTitle: '{calls} appels d’outils sur {limit} · cette conversation',
-  costUnknown: '{used} sur {limit} · consommation en partie inconnue',
+  costUnknown:
+    '{used} sur {limit} · {count, plural, one {coût inconnu pour # requête, comptée à son maximum ({held})} other {coût inconnu pour # requêtes, comptées à leur maximum ({held})}}',
 
   contextLabel: 'Contexte joint',
   suggested: 'Suggestion\u00A0: {title}',
@@ -170,8 +171,6 @@ export default translate(m, {
   expiredTitle: 'Cette conversation a expiré',
   expiredBadge: 'Expirée',
   expiredBody: 'Les conversations gardent leur contenu 30\u00A0jours après le dernier message. Sa consommation reste dans le journal d’activité de l’IA, sans contenu.',
-  usageUnknownTitle: 'Cette conversation attend un coût',
-  usageUnknownBody: 'Une réponse précédente s’est arrêtée avant que le fournisseur n’en indique le coût. La conversation est en pause jusqu’à ce qu’un responsable des intégrations rapproche cette requête dans le journal d’activité de l’IA. Commencez une nouvelle conversation pour continuer.',
   lostTitle: 'Votre accès a changé pendant cette réponse',
   lostBadge: 'Arrêtée',
   lostBody: 'Votre rôle ne peut plus utiliser les fonctionnalités d’IA. La réponse s’est arrêtée avant l’étape suivante\u202F; ce qui a été écrit reste lisible.',
