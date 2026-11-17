@@ -1,0 +1,154 @@
+import { useSyncExternalStore } from 'react'
+
+/**
+ * The assistant panel's state outside it (assistant brief §3.1): open or
+ * closed, its width on a desktop, the thread it shows and what waits in its
+ * composer. It lives with the launcher in the first load; the panel itself
+ * is a lazy chunk (loadPanel), fetched when the launcher is hovered or
+ * focused, or on ⌘J.
+ */
+export interface AssistantUi {
+  open: boolean
+  /** The docked width on a desktop, PANEL_MIN–PANEL_MAX. */
+  width: number
+  view: 'thread' | 'list'
+  /** The thread shown, by workspace; none: a new thread starts on sending. */
+  threads: Record<string, string | undefined>
+  /** Text put into the composer from outside (⌘K › Ask the assistant), unsent; nonce tells a new one. */
+  draft: string
+  draftNonce: number
+  /** A confirmation waits in the closed panel: the launcher's dot. */
+  waiting: boolean
+  /** Panels mounted (AppShell's slot): the launcher shows only where one is. */
+  slots: number
+}
+
+export const PANEL_MIN = 360
+export const PANEL_MAX = 640
+export const PANEL_DEFAULT = 400
+
+const WIDTH_KEY = 'rc.assistant.width'
+const threadKey = (ws: string) => `rc.assistant.thread.${ws}`
+
+function stored(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function store(key: string, value: string | undefined) {
+  try {
+    if (value === undefined) window.localStorage.removeItem(key)
+    else window.localStorage.setItem(key, value)
+  } catch {
+    // Private mode or full storage: it lasts for this page only.
+  }
+}
+
+export function clampWidth(w: number): number {
+  return Math.min(PANEL_MAX, Math.max(PANEL_MIN, Math.round(w)))
+}
+
+let state: AssistantUi = {
+  open: false,
+  width: typeof window === 'undefined' ? PANEL_DEFAULT : clampWidth(Number(stored(WIDTH_KEY)) || PANEL_DEFAULT),
+  view: 'thread',
+  threads: {},
+  draft: '',
+  draftNonce: 0,
+  waiting: false,
+  slots: 0,
+}
+const listeners = new Set<() => void>()
+/** What had focus when the panel opened: focus goes back there on close. */
+let opener: HTMLElement | null = null
+
+function set(patch: Partial<AssistantUi>) {
+  state = { ...state, ...patch }
+  for (const l of listeners) l()
+}
+
+function subscribe(l: () => void) {
+  listeners.add(l)
+  return () => {
+    listeners.delete(l)
+  }
+}
+
+export function useAssistant(): AssistantUi {
+  return useSyncExternalStore(subscribe, () => state, () => state)
+}
+
+export function getAssistant(): AssistantUi {
+  return state
+}
+
+let panel: Promise<unknown> | undefined
+/** Fetches the panel's chunk ahead of opening it. */
+export function loadPanel() {
+  panel ??= import('./Panel').catch((e: unknown) => {
+    panel = undefined
+    throw e
+  })
+  return panel
+}
+
+/** Opens the panel; with a draft, the composer holds it, unsent. */
+export function openAssistant(opts: { draft?: string } = {}) {
+  void loadPanel().catch(() => {})
+  if (!state.open) opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
+  set({ open: true, waiting: false, view: opts.draft !== undefined ? 'thread' : state.view, ...(opts.draft !== undefined ? { draft: opts.draft, draftNonce: state.draftNonce + 1 } : {}) })
+}
+
+/** Closes the panel and gives focus back to what opened it, or to the launcher. */
+export function closeAssistant(opts: { waiting?: boolean; refocus?: boolean } = {}) {
+  set({ open: false, waiting: Boolean(opts.waiting) })
+  if (opts.refocus === false) return
+  const back = opener && opener.isConnected ? opener : document.querySelector<HTMLElement>('[data-assistant-launcher]')
+  opener = null
+  window.setTimeout(() => back?.focus({ preventScroll: true }))
+}
+
+export function toggleAssistant() {
+  if (state.open) closeAssistant()
+  else openAssistant()
+}
+
+export function setAssistantWidth(w: number) {
+  const width = clampWidth(w)
+  if (width === state.width) return
+  set({ width })
+  store(WIDTH_KEY, String(width))
+}
+
+export function setAssistantView(view: AssistantUi['view']) {
+  set({ view })
+}
+
+/** The thread a workspace's panel shows (kept for the next visit). */
+export function threadOf(ws: string): string | undefined {
+  if (ws in state.threads) return state.threads[ws]
+  return stored(threadKey(ws)) ?? undefined
+}
+
+export function setAssistantThread(ws: string, thread: string | undefined) {
+  set({ threads: { ...state.threads, [ws]: thread }, view: 'thread' })
+  store(threadKey(ws), thread)
+}
+
+let taken = 0
+/** The outside draft, while no composer has taken it yet. */
+export function untakenDraft(): string {
+  return state.draftNonce !== taken ? state.draft : ''
+}
+/** A composer took the outside draft of this nonce. */
+export function markDraftTaken(nonce: number) {
+  taken = nonce
+}
+
+export function mountSlot(): () => void {
+  set({ slots: state.slots + 1 })
+  return () => set({ slots: state.slots - 1, open: state.slots - 1 > 0 && state.open })
+}

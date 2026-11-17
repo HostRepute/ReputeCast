@@ -204,5 +204,6 @@ export default translate(m, {
   shortcutReadiness: 'Versandbereitschaft öffnen',
   shortcutClose: 'Bereich oder Dialog schließen',
   shortcutHelp: 'Diese Übersicht',
+  shortcutAssistant: 'Assistenten öffnen oder schließen',
   shortcutsFootnote: 'Jedes Tastenkürzel hat einen sichtbaren Button als Gegenstück; keines ist erforderlich.',
 })

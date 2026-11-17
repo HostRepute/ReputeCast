@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/ai"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -104,6 +105,16 @@ func seedAIImpl(ctx context.Context, s *Seeder) error {
 	}
 	if err := s.Q.AIFeatureModelsFill(ctx, store.AIFeatureModelsFillParams{WorkspaceID: ws.ID, ModelID: model,
 		Features: []string{"assistant", "agent", "subject_ideas", "rewrite", "translate", "alt_text", "accessibility_fix", "segment_draft", "report_summary", "brand_voice", "draft"}}); err != nil {
+		return err
+	}
+	// The assistant's panel (assistant brief B4): Marcus ran the model's
+	// tool check when he connected it, and Linh switched the assistant on
+	// with the brief's limits per thread.
+	if err := ai.DemoToolsPassed(ctx, s.Q, ws.ID, model, connected.Add(2*time.Minute)); err != nil {
+		return err
+	}
+	if err := s.Q.AIAssistantSettingsSave(ctx, store.AIAssistantSettingsSaveParams{WorkspaceID: ws.ID, Enabled: true, ToolLimit: 40, TokenLimit: 300000,
+		CostLimitMicros: 2_000_000, PerPerson: 2, PerWorkspace: 10, UpdatedBy: &linh.ID, UpdatedAt: capSet}); err != nil {
 		return err
 	}
 	meta, _ := json.Marshal(map[string]any{"key": "added (write-only)", "test": map[string]any{"ok": true, "ms": 1200},

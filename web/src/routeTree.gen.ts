@@ -46,6 +46,7 @@ import { Route as WWorkspaceAppAgentRunIdRouteImport } from './routes/w/$workspa
 import { Route as WWorkspaceAppAgentNewRouteImport } from './routes/w/$workspace/_app/agent/new'
 import { Route as WWorkspaceAppApprovalsIndexRouteImport } from './routes/w/$workspace/_app/approvals/index'
 import { Route as WWorkspaceAppApprovalsApprovalIdRouteImport } from './routes/w/$workspace/_app/approvals/$approvalId'
+import { Route as WWorkspaceAppAssistantThreadRouteImport } from './routes/w/$workspace/_app/assistant/$thread'
 import { Route as WWorkspaceAppAudienceIndexRouteImport } from './routes/w/$workspace/_app/audience/index'
 import { Route as WWorkspaceAppAudienceGrowthRouteImport } from './routes/w/$workspace/_app/audience/growth'
 import { Route as WWorkspaceAppAudienceHealthRouteImport } from './routes/w/$workspace/_app/audience/health'
@@ -379,6 +380,12 @@ const WWorkspaceAppApprovalsApprovalIdRoute =
   WWorkspaceAppApprovalsApprovalIdRouteImport.update({
     id: '/approvals/$approvalId',
     path: '/approvals/$approvalId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAssistantThreadRoute =
+  WWorkspaceAppAssistantThreadRouteImport.update({
+    id: '/assistant/$thread',
+    path: '/assistant/$thread',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAudienceIndexRoute =
@@ -1253,6 +1260,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
   '/w/$workspace/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/assistant/$thread': typeof WWorkspaceAppAssistantThreadRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
@@ -1429,6 +1437,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
   '/w/$workspace/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/assistant/$thread': typeof WWorkspaceAppAssistantThreadRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
@@ -1609,6 +1618,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
   '/w/$workspace/_app/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/_app/assistant/$thread': typeof WWorkspaceAppAssistantThreadRoute
   '/w/$workspace/_app/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/_app/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
@@ -1789,6 +1799,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/agent/$runId'
     | '/w/$workspace/agent/new'
     | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/assistant/$thread'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
     | '/w/$workspace/audience/holdout'
@@ -1965,6 +1976,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/agent/$runId'
     | '/w/$workspace/agent/new'
     | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/assistant/$thread'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
     | '/w/$workspace/audience/holdout'
@@ -2144,6 +2156,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/agent/$runId'
     | '/w/$workspace/_app/agent/new'
     | '/w/$workspace/_app/approvals/$approvalId'
+    | '/w/$workspace/_app/assistant/$thread'
     | '/w/$workspace/_app/audience/growth'
     | '/w/$workspace/_app/audience/health'
     | '/w/$workspace/_app/audience/holdout'
@@ -2560,6 +2573,13 @@ declare module '@tanstack/react-router' {
       path: '/approvals/$approvalId'
       fullPath: '/w/$workspace/approvals/$approvalId'
       preLoaderRoute: typeof WWorkspaceAppApprovalsApprovalIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/assistant/$thread': {
+      id: '/w/$workspace/_app/assistant/$thread'
+      path: '/assistant/$thread'
+      fullPath: '/w/$workspace/assistant/$thread'
+      preLoaderRoute: typeof WWorkspaceAppAssistantThreadRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/audience/': {
@@ -3571,6 +3591,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAgentRunIdRoute: typeof WWorkspaceAppAgentRunIdRoute
   WWorkspaceAppAgentNewRoute: typeof WWorkspaceAppAgentNewRoute
   WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
+  WWorkspaceAppAssistantThreadRoute: typeof WWorkspaceAppAssistantThreadRoute
   WWorkspaceAppAudienceGrowthRoute: typeof WWorkspaceAppAudienceGrowthRoute
   WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
   WWorkspaceAppAudienceHoldoutRoute: typeof WWorkspaceAppAudienceHoldoutRoute
@@ -3707,6 +3728,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAgentRunIdRoute: WWorkspaceAppAgentRunIdRoute,
   WWorkspaceAppAgentNewRoute: WWorkspaceAppAgentNewRoute,
   WWorkspaceAppApprovalsApprovalIdRoute: WWorkspaceAppApprovalsApprovalIdRoute,
+  WWorkspaceAppAssistantThreadRoute: WWorkspaceAppAssistantThreadRoute,
   WWorkspaceAppAudienceGrowthRoute: WWorkspaceAppAudienceGrowthRoute,
   WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
   WWorkspaceAppAudienceHoldoutRoute: WWorkspaceAppAudienceHoldoutRoute,

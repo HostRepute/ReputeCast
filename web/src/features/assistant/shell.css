@@ -1,0 +1,149 @@
+/*
+ * The assistant's place in the shell (AssistantPanel boards, assistant-b0.css):
+ * the top bar's button and where the panel goes at each width. Loaded with
+ * the shell; the panel's own styles come with its chunk (assistant.css).
+ */
+@layer components {
+  .asst-launch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 8px;
+    min-width: 36px;
+    min-height: 36px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink-2);
+    font: inherit;
+    cursor: pointer;
+    box-sizing: border-box;
+    flex: none;
+  }
+  .asst-launch[aria-expanded='true'] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .asst-launch .asst-label {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 10px 0 4px;
+  }
+  .asst-launch .dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+  @media (hover: hover) {
+    .asst-launch:hover {
+      background: var(--hover);
+    }
+  }
+
+  /* The panel: header, sub row, messages, composer. */
+  .asst {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
+    background: var(--surface);
+    min-width: 0;
+    box-sizing: border-box;
+    color: var(--ink);
+  }
+  .asst > * {
+    min-width: 0;
+  }
+  .asst:focus {
+    outline: none;
+  }
+  /* Docked: a column of the shell, as tall as the window, beside the content. */
+  .asst.asst-docked {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    flex: none;
+    width: var(--asst-w, 400px);
+    height: 100vh;
+    height: 100dvh;
+    border-left: 1px solid var(--line);
+  }
+  /* Over the content, when beside it the content would be under 720 px. */
+  .asst.asst-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    width: var(--asst-w, 400px);
+    border-left: 1px solid var(--line);
+    box-shadow: var(--shadow-lg);
+  }
+  /* 768–1100 px: a sheet over the content with a scrim. */
+  .asst.asst-sheet {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 57;
+    width: min(440px, calc(100vw - 96px));
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    background: var(--raised);
+  }
+  /* 767 px and below: the whole screen, above the keyboard. */
+  .asst.asst-full {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--asst-vv-top, 0px);
+    height: var(--asst-vv-h, 100dvh);
+    z-index: 57;
+  }
+  .asst-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 56;
+    background: var(--scrim);
+  }
+  .asst-scrim.clear {
+    background: transparent;
+  }
+  .asst-wait {
+    grid-row: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+}
+
+/* The content column narrows beside the docked panel: the shell stays one row. */
+.app.asst-docked {
+  flex-wrap: nowrap;
+}
+@media (max-width: 1100px) {
+  .asst-launch .asst-label {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .asst-launch {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* The tab bar hides behind the full-screen panel. */
+  .app.asst-fullscreen .side {
+    display: none;
+  }
+}

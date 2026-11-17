@@ -11,8 +11,10 @@ import { useOptionalWorkspace } from '@/lib/session'
 import { m as ma } from '@/features/appearance/messages'
 import { ag } from '@/features/ai/agent.messages'
 import { useSaveTheme, useTheme } from '@/features/appearance/useTheme'
+import { getAssistant, openAssistant } from '@/features/assistant/store'
 import { settingRows } from '@/features/settings/settingsIndex'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { Icon } from '../icons/Icon'
 import { m } from './messages'
 import { NAV } from './nav'
 import { mp } from './palette.messages'
@@ -271,6 +273,23 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
       }))
       .filter((e) => `${e.title} ${e.detail}`.toLowerCase().includes(low))
     if (themeHits.length) groups.push({ label: t(ma.title), entries: themeHits })
+    // ⌘K › Ask the assistant (AssistantEntry): the question moves into the
+    // assistant's composer, unsent, where the shell has the panel.
+    if (can('ai:use') && getAssistant().slots > 0) {
+      groups.push({
+        label: t(mp.assistant),
+        entries: [
+          {
+            key: 'action:assistant',
+            kind: 'action',
+            title: t(mp.askAssistant, { q: typed }),
+            detail: t(mp.askAssistantDetail),
+            dest: { to: '/w/$workspace', params: { workspace } },
+            run: () => openAssistant({ draft: typed }),
+          },
+        ],
+      })
+    }
   }
   const flat = groups.flatMap((g) => g.entries)
   // The highlight starts over on the first row whenever the rows change.
@@ -371,7 +390,7 @@ function Palette({ workspace, permissions, close }: { workspace: string; permiss
                   onKeyDown={(ev) => ev.key === 'Enter' && go(e)}
                 >
                   <span className="pal-ico" aria-hidden="true">
-                    {kindIcon[e.kind]}
+                    {e.key === 'action:assistant' ? <Icon name="chat" size={16} /> : kindIcon[e.kind]}
                   </span>
                   <span className="pal-t">
                     <b>
