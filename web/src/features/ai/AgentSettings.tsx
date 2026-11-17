@@ -54,7 +54,7 @@ function SettingsForm({ settings, can }: { settings: Schemas['AIAgentSettings'];
   </Card>
 }
 
-function LimitFields({ limits, minimum, onChange }: { limits: Limits; minimum?: Limits; onChange: (value: Limits) => void }) {
+export function LimitFields({ limits, minimum, onChange }: { limits: Limits; minimum?: Limits; onChange: (value: Limits) => void }) {
   const t = useT()
   return <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-1">
     <Field label={t(ag.calls)} hint={minimum ? t(ag.currentLimit, { limit: count(minimum.toolCalls) }) : undefined}><Input type="number" required min={minimum?.toolCalls ?? 1} max={200} step={1} value={limits.toolCalls || ''} onChange={(e) => onChange({ ...limits, toolCalls: Number(e.target.value) })} /></Field>

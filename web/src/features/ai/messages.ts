@@ -43,10 +43,10 @@ export const m = defineMessages('ai', {
   view: 'View',
 
   // ── Settings › Integrations › AI assistant ───────────────────────────
-  documentTitle: 'AI assistant · Integrations · Settings',
+  documentTitle: 'AI models · Integrations · Settings',
   crumbSettings: 'Settings',
   crumbIntegrations: 'Integrations',
-  title: 'AI assistant',
+  title: 'AI models',
   tileAI: 'AI',
   statusConnected: 'Connected',
   statusNotConnected: 'Not connected',
@@ -241,7 +241,7 @@ export const m = defineMessages('ai', {
   replaceKey: 'Replace key',
 
   // ── Connect dialog ──────────────────────────────────────────────────
-  connectEyebrow: 'Settings › Integrations › AI assistant',
+  connectEyebrow: 'Settings › Integrations › AI models',
   connectTitle: 'Connect an AI model',
   changeTitle: 'Change model',
   replaceTitle: 'Replace the key',

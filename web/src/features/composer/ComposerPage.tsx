@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { $api, ApiError, http } from '@/api/client'
 import { ForbiddenState, NotFoundState, problemReference, ServerErrorState } from '@/components/shell/SystemScreens'
 import { ButtonLink } from '@/components/ui/Button'
+import { AssistantOver } from '@/features/assistant/AssistantShell'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useCan, useWorkspace } from '@/lib/session'
 import { Composer, type ComposerSearch } from './Composer'
@@ -117,8 +118,11 @@ export function ComposerPage({ campaignId, search, onSearch }: { campaignId: str
   if (campaign.isError) return <ComposerError error={campaign.error} path={path} campaignId={campaignId} retry={() => void campaign.refetch()} />
   if (context.isError) return <ComposerError error={context.error} path={path} retry={() => void context.refetch()} />
   if (!campaign.data || !context.data) return <ComposerSkeleton title={t(m.openingCampaign)} detail={t(m.openingCampaignDetail)} />
+  // The composer is outside AppShell: the assistant's panel goes over it (its warnings' Ask the assistant).
   return (
-    <Composer key={`${campaign.data.id}:${campaign.data.language}:${lang.missing ?? ''}`} campaign={campaign.data} context={context.data} search={search} onSearch={onSearch} missingLanguage={lang.missing} />
+    <AssistantOver>
+      <Composer key={`${campaign.data.id}:${campaign.data.language}:${lang.missing ?? ''}`} campaign={campaign.data} context={context.data} search={search} onSearch={onSearch} missingLanguage={lang.missing} />
+    </AssistantOver>
   )
 }
 

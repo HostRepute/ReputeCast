@@ -7,4 +7,6 @@ export default translate(ml, {
   launcherTitle: 'Assistent ({keys})',
   loading: 'Assistent wird geladen…',
   loadFailed: 'Der Assistent wurde nicht geladen',
+  ask: 'Den Assistenten fragen',
+  askAbout: 'Den Assistenten fragen zu: {about}',
 })

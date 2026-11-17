@@ -46,10 +46,10 @@ export default {
     view: 'Xem',
 
     // ── Settings › Integrations › AI assistant ───────────────────────────
-    documentTitle: 'Trợ lý AI · Tích hợp · Cài đặt',
+    documentTitle: 'Mô hình AI · Tích hợp · Cài đặt',
     crumbSettings: 'Cài đặt',
     crumbIntegrations: 'Tích hợp',
-    title: 'Trợ lý AI',
+    title: 'Mô hình AI',
     tileAI: 'AI',
     statusConnected: 'Đã kết nối',
     statusNotConnected: 'Chưa kết nối',
@@ -248,7 +248,7 @@ export default {
     replaceKey: 'Thay khóa',
 
     // ── Connect dialog ──────────────────────────────────────────────────
-    connectEyebrow: 'Cài đặt › Tích hợp › Trợ lý AI',
+    connectEyebrow: 'Cài đặt › Tích hợp › Mô hình AI',
     connectTitle: 'Kết nối mô hình AI',
     changeTitle: 'Đổi mô hình',
     replaceTitle: 'Thay khóa',

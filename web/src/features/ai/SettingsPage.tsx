@@ -6,32 +6,32 @@ import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
-import { Button, ButtonLink } from '@/components/ui/Button'
+import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Select, Toggle } from '@/components/ui/Field'
 
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
-import { clock, count, dayMonthDate, money, shortDate, weekdayDate } from '@/lib/format'
+import { clock, count, dayMonthDate, money, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import '@/features/integrations/integrations.css'
-import { aiBase, AI_FEATURES, referenceOf, useAISettings, useRefreshAI, type AIConnection, type AIFeature, type AISettings, type AITest } from './api'
-import { AIModelCard, AITile } from './catalog'
+import { aiBase, AI_FEATURES, referenceOf, useAISettings, useRefreshAI, type AIConnection, type AIFeature, type AISettings } from './api'
+import { AIModelCard } from './catalog'
 import { BudgetHolds } from './BudgetHolds'
 import { AgentSettings } from './AgentSettings'
 import { ag } from './agent.messages'
-import { CapDialog, ChangeModelDialog, ConnectDialog, DisconnectDialog, PricesDialog, ReplaceKeyDialog, TestPanel } from './ConnectDialog'
+import { CapDialog, ConnectDialog, DisconnectDialog, PricesDialog } from './ConnectDialog'
+import { AssistantCard, FeatureModels, ModelAccounts, PersonalKeys, PersonalPeople, YourPersonalKey } from './ModelSettings'
 import { AI_PROVIDERS, type AIProvider } from './entries'
-import { ALT_TEXT_WIDTH, calendarDay, dollars, seconds, tokens } from './format'
+import { ALT_TEXT_WIDTH, calendarDay, dollars, tokens } from './format'
 import { m } from './messages'
-import { AINote, EyeOffIcon, featureName, featureSends, LeavesNote, OutcomeBadge, rowFeature, tags } from './parts'
+import { AINote, CardHead, featureName, featureSends, LeavesNote, OutcomeBadge, rowFeature, tags } from './parts'
 import './ai.css'
 import { Pager } from '@/components/ui/Pager'
 
-type Dialog = { kind: 'connect'; provider: AIProvider } | { kind: 'change' | 'key' | 'cap' | 'prices' | 'disconnect' } | null
-type TestState = { running: boolean; result?: AITest; error?: string }
+type Dialog = { kind: 'connect'; provider: AIProvider } | { kind: 'cap' | 'prices' | 'disconnect' } | null
 type ActivityList = Schemas['AIActivityList']
 type Outcome = 'accepted' | 'kept' | 'rejected' | 'refused' | 'error'
 
@@ -39,7 +39,12 @@ type Outcome = 'accepted' | 'kept' | 'rejected' | 'refused' | 'error'
 const FIRST = 6
 const MORE = 25
 
-/** Settings › Integrations › AI assistant (AISettings, AIStates). */
+/**
+ * Settings › Integrations › AI models (AISettings, AIModels, AIStates): with
+ * no account, the providers to connect the first; then the model accounts,
+ * each feature's model, the assistant, personal keys and the person's own
+ * key, this month's usage, the features, the agent and the activity log.
+ */
 export function AISettingsPage({ connect }: { connect?: AIProvider }) {
   const { slug } = useWorkspace()
   const t = useT()
@@ -47,8 +52,6 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
   const q = useAISettings()
   const s = q.data
   const [dialog, setDialog] = useState<Dialog>(connect ? { kind: 'connect', provider: connect } : null)
-  const [test, setTest] = useState<TestState | null>(null)
-  const refresh = useRefreshAI()
 
   const close = () => {
     setDialog(null)
@@ -56,20 +59,9 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
   }
   const onOpenChange = (o: boolean) => !o && close()
 
-  async function runTest() {
-    setTest({ running: true })
-    try {
-      const res = await http.POST(`${aiBase}/test`, { params: { path: { workspace: slug } }, body: {} })
-      setTest({ running: false, result: res.data })
-    } catch (e) {
-      setTest({ running: false, error: errorMessage(e) })
-    } finally {
-      void refresh()
-    }
-  }
-
   const c = s?.connection
   const live = s?.connected && c ? c : undefined
+  const accounts = Boolean(s?.accounts.length)
   return (
     <Page
       title={t(m.title)}
@@ -86,12 +78,24 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
         <SettingsSkeleton />
       ) : (
         <>
-          <Header s={s} onDialog={(kind) => setDialog({ kind })} onTest={runTest} testing={test?.running ?? false} />
-          {test && live ? (
-            <TestPanel provider={live.providerName} running={test.running} result={test.result} error={test.error} onClose={() => setTest(null)} onPasteKey={s.canManage ? () => setDialog({ kind: 'key' }) : undefined} />
-          ) : null}
+          {accounts ? null : <Header s={s} />}
           {!s.canManage ? <ReadOnlyNote s={s} /> : null}
-          {live ? <Connected s={s} c={live} onDialog={(kind) => setDialog({ kind })} /> : <NotConnected s={s} onConnect={(provider) => setDialog({ kind: 'connect', provider })} />}
+          {accounts ? (
+            <>
+              <ModelAccounts s={s} />
+              <FeatureModels s={s} />
+              <AssistantCard s={s} />
+              <PersonalKeys s={s} />
+              <PersonalPeople s={s} />
+              <YourPersonalKey s={s} />
+              {c ? <Connected s={s} c={c} onDialog={(kind) => setDialog({ kind })} /> : null}
+            </>
+          ) : (
+            <>
+              <NotConnected s={s} onConnect={(provider) => setDialog({ kind: 'connect', provider })} />
+              {s.personal.enabled || s.personal.accounts.length ? <YourPersonalKey s={s} /> : null}
+            </>
+          )}
           {s.canManage ? <BudgetHolds /> : null}
           <AgentSettings />
           {live ? <ActivityLog /> : null}
@@ -109,23 +113,13 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
             </section>
           ) : null}
 
-          {dialog?.kind === 'connect' && s.canManage && !s.connected ? <ConnectDialog s={s} initial={dialog.provider} open onOpenChange={onOpenChange} /> : null}
-          {live && s.canManage ? (
+          {/* The first connection, or (?connect from the catalog) another account. */}
+          {dialog?.kind === 'connect' && s.canManage ? <ConnectDialog s={s} initial={dialog.provider} target={accounts ? 'account' : undefined} open onOpenChange={onOpenChange} /> : null}
+          {c && s.canManage ? (
             <>
-              {dialog?.kind === 'change' ? <ChangeModelDialog s={s} c={live} open onOpenChange={onOpenChange} /> : null}
-              {dialog?.kind === 'key' ? (
-                <ReplaceKeyDialog
-                  c={live}
-                  open
-                  onOpenChange={onOpenChange}
-                  onTested={(r) => {
-                    setTest({ running: false, result: r })
-                  }}
-                />
-              ) : null}
-              {dialog?.kind === 'cap' ? <CapDialog c={live} open onOpenChange={onOpenChange} /> : null}
-              {dialog?.kind === 'prices' ? <PricesDialog c={live} open onOpenChange={onOpenChange} /> : null}
-              {dialog?.kind === 'disconnect' ? <DisconnectDialog c={live} open onOpenChange={onOpenChange} /> : null}
+              {dialog?.kind === 'cap' ? <CapDialog c={c} open onOpenChange={onOpenChange} /> : null}
+              {dialog?.kind === 'prices' ? <PricesDialog c={c} open onOpenChange={onOpenChange} /> : null}
+              {dialog?.kind === 'disconnect' && live ? <DisconnectDialog c={live} open onOpenChange={onOpenChange} /> : null}
             </>
           ) : null}
         </>
@@ -134,220 +128,33 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
   )
 }
 
-/** Tile, title, status, the connection's facts and the actions. */
-function Header({ s, onDialog, onTest, testing }: { s: AISettings; onDialog: (k: 'change' | 'key') => void; onTest: () => void; testing: boolean }) {
-  const { slug } = useWorkspace()
+/** No account yet: the tile, the title, who can connect one and the lead. */
+function Header({ s }: { s: AISettings }) {
   const t = useT()
-  const c = s.connected ? s.connection : undefined
   const helpers = formatList(s.helpers, 'disjunction')
-  if (!c) {
-    return (
-      <section className="card ai-head" aria-labelledby="ai-h">
-        <div className="ai-head-main">
-          <span className="ih-tile lg" aria-hidden="true">
-            {t(m.tileAI)}
-          </span>
-          <div className="ai-head-text">
-            <div className="row gap-2.5">
-              <h2 className="ih-ttl" id="ai-h">
-                {t(m.title)}
-              </h2>
-              <Badge tone="neutral">{t(m.statusNotConnected)}</Badge>
-            </div>
-            <span className="ai-head-sub">{s.helpers.length ? t(m.notConnectedLine, { helpers }) : t(m.notConnectedLineNobody)}</span>
-            <p>{t(m.lead)}</p>
-          </div>
-        </div>
-      </section>
-    )
-  }
-  if (c.status === 'key_rejected') {
-    const at = c.statusAt ?? c.connectedAt
-    const today = dayMonthDate(at) === dayMonthDate(new Date())
-    return (
-      <section className="card ai-head ai-bad" aria-labelledby="ai-h">
-        <div className="ai-head-main">
-          <AITile provider={c.provider} size="lg" />
-          <div className="ai-head-text">
-            <div className="row flex-wrap gap-2.5">
-              <h2 className="ih-ttl" id="ai-h">
-                {t(m.title)}
-              </h2>
-              <Badge tone="bad" dot>
-                {t(m.statusKeyRejected)}
-              </Badge>
-            </div>
-            <span className="ai-head-sub">{`${c.providerName} · ${c.modelName}`}</span>
-          </div>
-        </div>
-        <AINote tone="bad">
-          <T
-            msg={m.keyRejectedBody}
-            values={{ ...tags, provider: c.providerName, when: today ? t(m.keyRejectedToday, { time: clock(at) }) : t(m.keyRejectedOn, { date: dayMonthDate(at) }), detail: c.statusDetail ?? '' }}
-          />
-        </AINote>
-        {s.canManage ? (
-          <div className="row flex-wrap gap-2">
-            <Button variant="primary" onClick={() => onDialog('key')}>
-              {t(m.replaceKey)}
-            </Button>
-            <Button icon="refresh" onClick={onTest} loading={testing}>
-              {t(m.testConnection)}
-            </Button>
-          </div>
-        ) : null}
-        {s.canManage ? <p className="k">{t(m.testBilling)}</p> : null}
-      </section>
-    )
-  }
-  const sub = c.connectedBy
-    ? t(m.connectedLine, { provider: c.providerName, model: c.modelName, name: c.connectedBy, date: weekdayDate(c.connectedAt) })
-    : t(m.connectedLineNoBy, { provider: c.providerName, model: c.modelName, date: weekdayDate(c.connectedAt) })
   return (
     <section className="card ai-head" aria-labelledby="ai-h">
-      <div className="ai-head-row">
-        <div className="ai-head-main">
-          <AITile provider={c.provider} size="lg" />
-          <div className="ai-head-text">
-            <div className="row flex-wrap gap-2.5">
-              <h2 className="ih-ttl" id="ai-h">
-                {t(m.title)}
-              </h2>
-              <Badge tone="ok" dot>
-                {t(m.statusConnected)}
-              </Badge>
-            </div>
-            <span className="ai-head-sub">{sub}</span>
-            <p>{t(m.lead)}</p>
+      <div className="ai-head-main">
+        <span className="ih-tile lg" aria-hidden="true">
+          {t(m.tileAI)}
+        </span>
+        <div className="ai-head-text">
+          <div className="row gap-2.5">
+            <h2 className="ih-ttl" id="ai-h">
+              {t(m.title)}
+            </h2>
+            <Badge tone="neutral">{t(m.statusNotConnected)}</Badge>
           </div>
+          <span className="ai-head-sub">{s.helpers.length ? t(m.notConnectedLine, { helpers }) : t(m.notConnectedLineNobody)}</span>
+          <p>{t(m.lead)}</p>
         </div>
-        <div className="ai-kvp">{s.canManage ? <ManagerFacts c={c} onReplace={() => onDialog('key')} /> : <ReaderFacts c={c} />}</div>
       </div>
-      {s.canManage ? (
-        <div className="row flex-wrap gap-2">
-          <Button icon="refresh" onClick={onTest} loading={testing}>
-            {t(m.testConnection)}
-          </Button>
-          <Button onClick={() => onDialog('change')}>{t(m.changeModel)}</Button>
-          <ButtonLink to="/w/$workspace/settings/integrations" params={{ workspace: slug }}>
-            {t(m.allIntegrations)}
-          </ButtonLink>
-        </div>
-      ) : null}
-      {s.canManage ? <p className="k">{t(m.testBilling)}</p> : null}
     </section>
   )
 }
 
-function lastTest(t: ReturnType<typeof useT>, c: AIConnection, reader: boolean): string {
-  const lt = c.lastTest
-  if (!lt) return t(m.lastTestNever)
-  const values = { date: shortDate(lt.at), time: clock(lt.at), seconds: seconds(lt.ms) }
-  if (!lt.ok) return t(m.lastTestFailed, values)
-  return reader || !lt.ms ? t(m.lastTestPassed, values) : t(m.lastTestAnswered, values)
-}
-
-/** Model, API key, endpoint, last test (people with integrations:manage). */
-function ManagerFacts({ c, onReplace }: { c: AIConnection; onReplace: () => void }) {
-  const t = useT()
-  const compatible = c.provider === 'compatible'
-  const azure = c.provider === 'azure'
-  return (
-    <dl className="kv">
-      <dt>{t(m.kvModel)}</dt>
-      <dd>
-        {c.modelName && c.modelName !== c.model ? (
-          <>
-            {c.modelName} · <span className="mono text-[12.5px]">{c.model}</span>
-          </>
-        ) : (
-          <span className="mono text-[12.5px]">{c.model}</span>
-        )}
-      </dd>
-      {azure ? (
-        <>
-          <dt>{t(m.kvDeployment)}</dt>
-          <dd className="mono text-[12.5px]">{c.deployment}</dd>
-        </>
-      ) : null}
-      <dt>{t(m.kvKey)}</dt>
-      <dd>
-        {c.key.set ? (
-          <span className="inline-flex flex-wrap items-center gap-2">
-            <span className="ai-mask">
-              <EyeOffIcon />
-              <span aria-label={t(m.keyHidden)}>••••••</span>
-              <Badge tone="neutral" className="h-5 font-mono text-[11px]">
-                {t(m.writeOnly)}
-              </Badge>
-            </span>
-            {c.key.addedAt ? (
-              <span className="k">{c.key.addedBy ? t(m.keyAdded, { date: dayMonthDate(c.key.addedAt), name: c.key.addedBy }) : t(m.keyAddedNoBy, { date: dayMonthDate(c.key.addedAt) })}</span>
-            ) : null}
-            <Button size="sm" onClick={onReplace}>
-              {t(m.replace)}
-            </Button>
-          </span>
-        ) : (
-          <span className="inline-flex flex-wrap items-center gap-2">
-            <span className="k">{t(m.keyNone)}</span>
-            {compatible ? (
-              <Button size="sm" onClick={onReplace}>
-                {t(m.addKey)}
-              </Button>
-            ) : null}
-          </span>
-        )}
-      </dd>
-      <dt>{compatible ? t(m.kvServer) : t(m.kvEndpoint)}</dt>
-      <dd>
-        {c.baseUrl ? (
-          <span className="mono text-[12.5px]">{c.baseUrl}</span>
-        ) : (
-          <T msg={m.endpointDefault} values={{ url: <span className="mono text-[12.5px]">{defaultEndpoint(c.provider)}</span>, provider: c.providerName }} />
-        )}
-      </dd>
-      <dt>{t(m.kvLastTest)}</dt>
-      <dd>{lastTest(t, c, false)}</dd>
-    </dl>
-  )
-}
-
-/** Model, cap, last test (read-only). */
-function ReaderFacts({ c }: { c: AIConnection }) {
-  const t = useT()
-  return (
-    <dl className="kv">
-      <dt>{t(m.kvModel)}</dt>
-      <dd>{c.modelName || c.model}</dd>
-      <dt>{t(m.kvCap)}</dt>
-      <dd>{capShort(t, c)}</dd>
-      <dt>{t(m.kvLastTest)}</dt>
-      <dd>{lastTest(t, c, true)}</dd>
-    </dl>
-  )
-}
-
-function defaultEndpoint(p: string): string {
-  switch (p) {
-    case 'anthropic':
-      return 'https://api.anthropic.com'
-    case 'openai':
-      return 'https://api.openai.com'
-    case 'google':
-      return 'https://generativelanguage.googleapis.com'
-  }
-  return ''
-}
-
 function capAmount(c: AIConnection): string {
   return c.cap.kind === 'tokens' ? count(c.cap.tokens) : money(c.cap.usd)
-}
-
-function capShort(t: ReturnType<typeof useT>, c: AIConnection): string {
-  if (c.cap.kind === 'none') return t(m.capShortNone)
-  const cap = c.cap.kind === 'tokens' ? t(m.capTokens, { amount: tokens(c.cap.tokens) }) : money(c.cap.usd)
-  return c.cap.setBy ? t(m.capShort, { cap, name: c.cap.setBy }) : cap
 }
 
 /** "Read-only · Sofia Rossi, Editor." */
@@ -406,20 +213,6 @@ function Connected({ s, c, onDialog }: { s: AISettings; c: AIConnection; onDialo
       </div>
       {features}
     </>
-  )
-}
-
-function CardHead({ id, title, caption, children }: { id: string; title: string; caption?: ReactNode; children?: ReactNode }) {
-  return (
-    <div className="ai-ch">
-      <div>
-        <h2 className="h2" id={id}>
-          {title}
-        </h2>
-        {caption ? <span className="k">{caption}</span> : null}
-      </div>
-      {children}
-    </div>
   )
 }
 

@@ -847,6 +847,7 @@ function ReviewBody({
             onRerun={a.canEdit && c.editable ? () => void runChecks() : undefined}
             onUndismiss={(x) => void undismiss(x)}
             undoReason={a.canEdit ? undefined : whoCan('edit', editHelpers)}
+            campaignId={campaignId}
           />
           <PlacementReviewCard
             campaignId={campaignId}

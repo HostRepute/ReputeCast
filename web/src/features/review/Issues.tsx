@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { m as am } from '@/features/accessibility/messages'
 import { CodeText, newGroups, Swatch } from '@/features/accessibility/review'
+import { AskAssistant, useCanAsk } from '@/features/assistant/AskButton'
 import { CheckRowsGrid } from '@/features/languages/review'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
@@ -18,6 +19,8 @@ type Actions = {
   /** Undo a warning's dismissal in the composer; undoReason says who can when the person can't. */
   onUndismiss?: (c: Check) => void
   undoReason?: string
+  /** The campaign under review: a block or a warning offers Ask the assistant with it suggested. */
+  campaignId?: string
 }
 
 /**
@@ -100,9 +103,11 @@ function NotChecked({ checks, ...actions }: { checks: Check[] } & Actions) {
   )
 }
 
-function Issue({ check: c, first, busy, reasonFor, onApply, onRerun, onUndismiss, undoReason }: { check: Check; first: boolean } & Actions) {
+function Issue({ check: c, first, busy, reasonFor, onApply, onRerun, onUndismiss, undoReason, campaignId }: { check: Check; first: boolean } & Actions) {
   const t = useT()
   const rerun = c.status === 'unknown' && newGroups.has(c.group)
+  // It explains the finding; the fix stays the row's own button (AssistantEntry).
+  const ask = useCanAsk() && campaignId && c.status !== 'unknown' ? <AskAssistant resource={{ kind: 'campaign', id: campaignId }} about={flatTitle(c)} /> : null
   return (
     <div className={cn('rv-srow', first && 's-first', c.status === 'block' && 's-bad', c.status === 'warn' && 's-warn')} role={rerun ? 'alert' : undefined}>
       <CheckBadge status={c.status} />
@@ -122,9 +127,19 @@ function Issue({ check: c, first, busy, reasonFor, onApply, onRerun, onUndismiss
               {t(am.runAgain)}
             </Button>
           ) : null}
+          {ask}
         </div>
       ) : c.note ? (
-        <span className="k rv-sfixes">{c.note}</span>
+        ask ? (
+          <div className="rv-sfixes">
+            <span className="k">{c.note}</span>
+            {ask}
+          </div>
+        ) : (
+          <span className="k rv-sfixes">{c.note}</span>
+        )
+      ) : ask ? (
+        <div className="rv-sfixes">{ask}</div>
       ) : null}
       {c.technical?.length || c.raw?.length ? <TechDetails check={c} /> : null}
     </div>

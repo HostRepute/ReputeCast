@@ -7,4 +7,6 @@ export default translate(ml, {
   launcherTitle: 'Trợ lý ({keys})',
   loading: 'Đang tải trợ lý…',
   loadFailed: 'Không tải được trợ lý',
+  ask: 'Hỏi trợ lý',
+  askAbout: 'Hỏi trợ lý về {about}',
 })

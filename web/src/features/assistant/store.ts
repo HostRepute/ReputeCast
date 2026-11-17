@@ -21,6 +21,16 @@ export interface AssistantUi {
   waiting: boolean
   /** Panels mounted (AppShell's slot): the launcher shows only where one is. */
   slots: number
+  /** What a contextual button suggests, on the screen it was pressed on; nothing is attached until the person attaches it. */
+  suggest?: AssistantSuggestion
+}
+
+/** A resource an "Ask the assistant" button suggests as context (a report, a draft campaign). */
+export interface AssistantSuggestion {
+  kind: 'report' | 'campaign'
+  id: string
+  /** The page it was suggested on: elsewhere the route's own suggestion stands. */
+  path: string
 }
 
 export const PANEL_MIN = 360
@@ -95,11 +105,21 @@ export function loadPanel() {
   return panel
 }
 
-/** Opens the panel; with a draft, the composer holds it, unsent. */
-export function openAssistant(opts: { draft?: string } = {}) {
+/**
+ * Opens the panel; with a draft, the composer holds it, unsent; with a
+ * resource, the thread suggests it as context (a contextual button).
+ */
+export function openAssistant(opts: { draft?: string; suggest?: Omit<AssistantSuggestion, 'path'> } = {}) {
   void loadPanel().catch(() => {})
   if (!state.open) opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
-  set({ open: true, waiting: false, view: opts.draft !== undefined ? 'thread' : state.view, ...(opts.draft !== undefined ? { draft: opts.draft, draftNonce: state.draftNonce + 1 } : {}) })
+  const toThread = opts.draft !== undefined || opts.suggest !== undefined
+  set({
+    open: true,
+    waiting: false,
+    view: toThread ? 'thread' : state.view,
+    suggest: opts.suggest ? { ...opts.suggest, path: window.location.pathname } : undefined,
+    ...(opts.draft !== undefined ? { draft: opts.draft, draftNonce: state.draftNonce + 1 } : {}),
+  })
 }
 
 /** Closes the panel and gives focus back to what opened it, or to the launcher. */

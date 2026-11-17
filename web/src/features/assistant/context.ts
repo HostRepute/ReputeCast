@@ -3,6 +3,7 @@ import { $api } from '@/api/client'
 import type { MessageDescriptor } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
+import { useAssistant, type AssistantSuggestion } from './store'
 
 /**
  * What the assistant knows of the screen it opened on (assistant brief
@@ -21,6 +22,7 @@ export interface ScreenContext {
 const routes: [RegExp, (m: RegExpMatchArray) => ScreenContext][] = [
   [/^\/w\/[^/]+\/campaigns\/([^/]+)\/(?:sms-|push-|whatsapp-)?report$/, (x) => ({ screen: 'campaign.report', kind: 'report', resource: { kind: 'report', id: x[1]! } })],
   [/^\/w\/[^/]+\/campaigns\/([^/]+)\/(?:sms-|push-|whatsapp-)?review$/, (x) => ({ screen: 'campaign.review', kind: 'campaign', resource: { kind: 'campaign', id: x[1]! } })],
+  [/^\/w\/[^/]+\/campaigns\/([^/]+)\/edit$/, (x) => ({ screen: 'campaign.edit', kind: 'campaign', resource: { kind: 'campaign', id: x[1]! } })],
   [/^\/w\/[^/]+\/campaigns\/([^/]+)\/live$/, () => ({ screen: 'campaign.live', kind: 'campaigns' })],
   [/^\/w\/[^/]+\/campaigns\/?$/, () => ({ screen: 'campaigns', kind: 'campaigns' })],
   [/^\/w\/[^/]+\/approvals\/?/, () => ({ screen: 'approvals', kind: 'campaigns' })],
@@ -48,9 +50,21 @@ export function screenOf(pathname: string): ScreenContext {
   return { kind: 'other' }
 }
 
+/**
+ * The screen's context. A contextual button's resource (Ask the assistant
+ * on a report card, a Send Readiness row or a composer warning) takes the
+ * route's place on the page it was pressed on.
+ */
 export function useScreenContext(): ScreenContext {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  return screenOf(pathname)
+  const { suggest } = useAssistant()
+  return withSuggestion(screenOf(pathname), suggest, pathname)
+}
+
+/** The screen with a contextual button's resource, on the page it was pressed on only. */
+export function withSuggestion(screen: ScreenContext, suggest: AssistantSuggestion | undefined, pathname: string): ScreenContext {
+  if (!suggest || suggest.path !== pathname) return screen
+  return { ...screen, kind: suggest.kind, resource: { kind: suggest.kind, id: suggest.id } }
 }
 
 /** The suggested resource's name (and whether a campaign is still a draft). */

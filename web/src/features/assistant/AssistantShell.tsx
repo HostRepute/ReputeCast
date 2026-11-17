@@ -41,8 +41,12 @@ function subscribeResize(cb: () => void) {
   return () => window.removeEventListener('resize', cb)
 }
 
-/** Where the panel goes at this width: docked, over the content, a sheet or the whole screen. */
-export function useAssistantLayout(): PanelLayout {
+/**
+ * Where the panel goes at this width: docked, over the content, a sheet or
+ * the whole screen. Without docking (a full-screen editor) it goes over
+ * the content on a desktop.
+ */
+export function useAssistantLayout(dock = true): PanelLayout {
   const { width } = useAssistant()
   const phone = useMediaQuery('(max-width: 767px)')
   const tablet = useMediaQuery('(max-width: 1100px)')
@@ -50,6 +54,7 @@ export function useAssistantLayout(): PanelLayout {
   const review = useRouterState({ select: (s) => REVIEW_SCREEN.test(s.location.pathname) })
   if (phone) return { mode: 'full', width }
   if (tablet) return { mode: 'sheet', width }
+  if (!dock) return { mode: 'overlay', width }
   const room = vw - SIDEBAR - MIN_CONTENT
   if (width <= room) return { mode: 'docked', width }
   if (review) return { mode: 'docked', width: Math.max(PANEL_MIN, Math.min(width, room)) }
@@ -58,6 +63,20 @@ export function useAssistantLayout(): PanelLayout {
 
 /** Inside AppShell, which has the panel's place: the launcher shows only there. */
 export const AssistantPlace = createContext(false)
+
+/**
+ * The panel's place on a screen outside AppShell (the composer): over the
+ * content, never docked, for the contextual buttons and ⌘J there.
+ */
+export function AssistantOver({ children }: { children: ReactNode }) {
+  const layout = useAssistantLayout(false)
+  return (
+    <AssistantPlace.Provider value>
+      {children}
+      <AssistantSlot layout={layout} />
+    </AssistantPlace.Provider>
+  )
+}
 
 /** The top bar's Assistant button, next to the bell (AssistantEntry). */
 export function AssistantLauncher() {

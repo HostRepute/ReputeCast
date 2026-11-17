@@ -86,13 +86,16 @@
     border-left: 1px solid var(--line);
     box-shadow: var(--shadow-lg);
   }
-  /* 768–1100 px: a sheet over the content with a scrim. */
+  /* 768–1100 px: a sheet over the content with a scrim. The modal panel
+     shares the dialogs' layer (60): the one opened last is on top, so a
+     panel opened from a dialog (the composer's Checks on a phone) covers it
+     and a dialog opened from the panel covers the panel. */
   .asst.asst-sheet {
     position: fixed;
     top: 12px;
     right: 12px;
     bottom: 12px;
-    z-index: 57;
+    z-index: 60;
     width: min(440px, calc(100vw - 96px));
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -106,12 +109,12 @@
     right: 0;
     top: var(--asst-vv-top, 0px);
     height: var(--asst-vv-h, 100dvh);
-    z-index: 57;
+    z-index: 60;
   }
   .asst-scrim {
     position: fixed;
     inset: 0;
-    z-index: 56;
+    z-index: 60;
     background: var(--scrim);
   }
   .asst-scrim.clear {
