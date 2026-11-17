@@ -1,6 +1,9 @@
 package llm_test
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -271,5 +274,28 @@ func TestCatalog(t *testing.T) {
 	}
 	if _, err := llm.New(llm.Config{Kind: "palm"}); err == nil {
 		t.Fatal("unknown provider")
+	}
+}
+
+// A server that quotes the key it refused: the error's message, which the
+// app shows, logs and stores, must not carry it.
+func TestErrorNeverQuotesTheKey(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":{"message":"Incorrect API key provided: ` + testKey + `. Check it.","type":"invalid_request_error"}}`))
+	}))
+	defer srv.Close()
+	p, err := llm.New(llm.Config{Kind: llm.Compatible, BaseURL: srv.URL + "/v1", APIKey: testKey, Model: "m", HTTP: srv.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = p.Generate(context.Background(), llm.Request{Messages: []llm.Message{{Role: "user", Parts: []llm.Part{{Text: "hi"}}}}})
+	e, ok := llm.AsError(err)
+	if !ok || e.Kind != llm.ErrAuth {
+		t.Fatalf("error: %v", err)
+	}
+	if strings.Contains(e.Message, testKey) || strings.Contains(err.Error(), testKey) || !strings.Contains(e.Message, "[key]") {
+		t.Fatalf("the message quotes the key: %q / %q", e.Message, err.Error())
 	}
 }
