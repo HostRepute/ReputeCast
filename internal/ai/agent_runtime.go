@@ -378,7 +378,7 @@ func (s *Service) ExecuteAgent(ctx context.Context, args AgentArgs) error {
 		req = llm.Request{System: agentSystem, Messages: c.Messages, Tools: agentTools(r.AcceptedRevision > 0, c.Audience != nil, c.Brief.Automation != nil, c.Report != nil), MaxTokens: 8000}
 		t := task{feature: FeatureAgent, req: req}
 		id := uuid.Must(uuid.NewV7())
-		if err := s.reserveIn(ctx, q, &ws, owner, conn, &t, &r, id); err != nil {
+		if err := s.reserveIn(ctx, q, &ws, owner, conn, &t, runLedger(&r), id); err != nil {
 			if releaseErr := q.AIAgentSlotRelease(ctx, store.AIAgentSlotReleaseParams{RunID: r.ID, LeaseID: lease}); releaseErr != nil {
 				return releaseErr
 			}

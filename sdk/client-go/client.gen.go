@@ -71,6 +71,7 @@ const (
 	AIActivityRowFeatureAccessibilityFix AIActivityRowFeature = "accessibility_fix"
 	AIActivityRowFeatureAgent            AIActivityRowFeature = "agent"
 	AIActivityRowFeatureAltText          AIActivityRowFeature = "alt_text"
+	AIActivityRowFeatureAssistant        AIActivityRowFeature = "assistant"
 	AIActivityRowFeatureBrandVoice       AIActivityRowFeature = "brand_voice"
 	AIActivityRowFeatureConnectionTest   AIActivityRowFeature = "connection_test"
 	AIActivityRowFeatureDraft            AIActivityRowFeature = "draft"
@@ -89,6 +90,8 @@ func (e AIActivityRowFeature) Valid() bool {
 	case AIActivityRowFeatureAgent:
 		return true
 	case AIActivityRowFeatureAltText:
+		return true
+	case AIActivityRowFeatureAssistant:
 		return true
 	case AIActivityRowFeatureBrandVoice:
 		return true
@@ -115,6 +118,7 @@ func (e AIActivityRowFeature) Valid() bool {
 const (
 	AIActivityRowOutcomeAccepted       AIActivityRowOutcome = "accepted"
 	AIActivityRowOutcomeAcceptedEdits  AIActivityRowOutcome = "accepted_edits"
+	AIActivityRowOutcomeAnswered       AIActivityRowOutcome = "answered"
 	AIActivityRowOutcomeCancelled      AIActivityRowOutcome = "cancelled"
 	AIActivityRowOutcomeDiscarded      AIActivityRowOutcome = "discarded"
 	AIActivityRowOutcomeError          AIActivityRowOutcome = "error"
@@ -131,6 +135,8 @@ func (e AIActivityRowOutcome) Valid() bool {
 	case AIActivityRowOutcomeAccepted:
 		return true
 	case AIActivityRowOutcomeAcceptedEdits:
+		return true
+	case AIActivityRowOutcomeAnswered:
 		return true
 	case AIActivityRowOutcomeCancelled:
 		return true
@@ -497,6 +503,7 @@ const (
 	AIUsageFeatureFeatureAccessibilityFix AIUsageFeatureFeature = "accessibility_fix"
 	AIUsageFeatureFeatureAgent            AIUsageFeatureFeature = "agent"
 	AIUsageFeatureFeatureAltText          AIUsageFeatureFeature = "alt_text"
+	AIUsageFeatureFeatureAssistant        AIUsageFeatureFeature = "assistant"
 	AIUsageFeatureFeatureBrandVoice       AIUsageFeatureFeature = "brand_voice"
 	AIUsageFeatureFeatureConnectionTest   AIUsageFeatureFeature = "connection_test"
 	AIUsageFeatureFeatureDraft            AIUsageFeatureFeature = "draft"
@@ -515,6 +522,8 @@ func (e AIUsageFeatureFeature) Valid() bool {
 	case AIUsageFeatureFeatureAgent:
 		return true
 	case AIUsageFeatureFeatureAltText:
+		return true
+	case AIUsageFeatureFeatureAssistant:
 		return true
 	case AIUsageFeatureFeatureBrandVoice:
 		return true
@@ -28595,6 +28604,7 @@ const (
 	ListAiActivityParamsFeatureAccessibilityFix ListAiActivityParamsFeature = "accessibility_fix"
 	ListAiActivityParamsFeatureAgent            ListAiActivityParamsFeature = "agent"
 	ListAiActivityParamsFeatureAltText          ListAiActivityParamsFeature = "alt_text"
+	ListAiActivityParamsFeatureAssistant        ListAiActivityParamsFeature = "assistant"
 	ListAiActivityParamsFeatureBrandVoice       ListAiActivityParamsFeature = "brand_voice"
 	ListAiActivityParamsFeatureConnectionTest   ListAiActivityParamsFeature = "connection_test"
 	ListAiActivityParamsFeatureDraft            ListAiActivityParamsFeature = "draft"
@@ -28613,6 +28623,8 @@ func (e ListAiActivityParamsFeature) Valid() bool {
 	case ListAiActivityParamsFeatureAgent:
 		return true
 	case ListAiActivityParamsFeatureAltText:
+		return true
+	case ListAiActivityParamsFeatureAssistant:
 		return true
 	case ListAiActivityParamsFeatureBrandVoice:
 		return true
@@ -28638,6 +28650,7 @@ func (e ListAiActivityParamsFeature) Valid() bool {
 // Defines values for ListAiActivityParamsOutcome.
 const (
 	ListAiActivityParamsOutcomeAccepted       ListAiActivityParamsOutcome = "accepted"
+	ListAiActivityParamsOutcomeAnswered       ListAiActivityParamsOutcome = "answered"
 	ListAiActivityParamsOutcomeError          ListAiActivityParamsOutcome = "error"
 	ListAiActivityParamsOutcomeKept           ListAiActivityParamsOutcome = "kept"
 	ListAiActivityParamsOutcomeNothingDrafted ListAiActivityParamsOutcome = "nothing_drafted"
@@ -28650,6 +28663,8 @@ const (
 func (e ListAiActivityParamsOutcome) Valid() bool {
 	switch e {
 	case ListAiActivityParamsOutcomeAccepted:
+		return true
+	case ListAiActivityParamsOutcomeAnswered:
 		return true
 	case ListAiActivityParamsOutcomeError:
 		return true
@@ -31347,6 +31362,22 @@ type AIAgentCapability struct {
 // AIAgentCapabilityState defines model for AIAgentCapability.State.
 type AIAgentCapabilityState string
 
+// AIAgentLimits defines model for AIAgentLimits.
+type AIAgentLimits struct {
+	CostMicros int64 `json:"costMicros"`
+	Tokens     int64 `json:"tokens"`
+	ToolCalls  int32 `json:"toolCalls"`
+}
+
+// AIAssistantSettings defines model for AIAssistantSettings.
+type AIAssistantSettings struct {
+	Enabled      bool          `json:"enabled"`
+	Limits       AIAgentLimits `json:"limits"`
+	PerPerson    int32         `json:"perPerson"`
+	PerWorkspace int32         `json:"perWorkspace"`
+	Revision     int64         `json:"revision"`
+}
+
 // AICapView defines model for AICapView.
 type AICapView struct {
 	Kind   AICapViewKind `json:"kind"`
@@ -31565,24 +31596,25 @@ type AIProviderPreset struct {
 
 // AISettings defines model for AISettings.
 type AISettings struct {
-	Accounts       []AIAccountView    `json:"accounts"`
-	AiUseRoles     []string           `json:"aiUseRoles"`
-	AllowPrivate   bool               `json:"allowPrivate"`
-	ByFeature      []AIUsageFeature   `json:"byFeature"`
-	ByMember       []AIUsageMember    `json:"byMember"`
-	CanManage      bool               `json:"canManage"`
-	Catalog        []AIProviderEntry  `json:"catalog"`
-	Connected      bool               `json:"connected"`
-	Connection     *AIConnectionView  `json:"connection,omitempty"`
-	Defaults       []AIFeatureDefault `json:"defaults"`
-	Disconnected   bool               `json:"disconnected"`
-	Features       []AIFeatureState   `json:"features"`
-	Helpers        []string           `json:"helpers"`
-	InstanceAdmins []string           `json:"instanceAdmins"`
-	Personal       AIPersonalSettings `json:"personal"`
-	PriceListDate  time.Time          `json:"priceListDate"`
-	Usage          AIUsageView        `json:"usage"`
-	WithoutAiUse   []AIMemberRole     `json:"withoutAiUse"`
+	Accounts       []AIAccountView     `json:"accounts"`
+	AiUseRoles     []string            `json:"aiUseRoles"`
+	AllowPrivate   bool                `json:"allowPrivate"`
+	Assistant      AIAssistantSettings `json:"assistant"`
+	ByFeature      []AIUsageFeature    `json:"byFeature"`
+	ByMember       []AIUsageMember     `json:"byMember"`
+	CanManage      bool                `json:"canManage"`
+	Catalog        []AIProviderEntry   `json:"catalog"`
+	Connected      bool                `json:"connected"`
+	Connection     *AIConnectionView   `json:"connection,omitempty"`
+	Defaults       []AIFeatureDefault  `json:"defaults"`
+	Disconnected   bool                `json:"disconnected"`
+	Features       []AIFeatureState    `json:"features"`
+	Helpers        []string            `json:"helpers"`
+	InstanceAdmins []string            `json:"instanceAdmins"`
+	Personal       AIPersonalSettings  `json:"personal"`
+	PriceListDate  time.Time           `json:"priceListDate"`
+	Usage          AIUsageView         `json:"usage"`
+	WithoutAiUse   []AIMemberRole      `json:"withoutAiUse"`
 }
 
 // AITestView defines model for AITestView.

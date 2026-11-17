@@ -119,6 +119,8 @@ var (
 	mPersonalNoKey       = msgs.M("problem.personalNoKey")
 	mPersonalModel       = msgs.M("problem.personalModel")
 	mNotifyPersonalKey   = msgs.M("notify.personalKeyBody")
+	mAssistantLimits     = msgs.M("problem.assistantLimits")
+	mAssistantChanged    = msgs.M("problem.assistantChanged")
 
 	mImageAddress      = msgs.M("image.address")
 	mImageNotInLibrary = msgs.M("image.notInLibrary")
@@ -171,6 +173,9 @@ const (
 	codePersonalKeysOff    = "ai_personal_keys_off"
 	codePersonalCapReached = "ai_personal_cap_reached"
 	codePersonalModel      = "ai_personal_model"
+
+	codeAssistantLimits  = "ai_assistant_limits"
+	codeAssistantChanged = "ai_assistant_changed"
 )
 
 // text writes a message in the request's language.

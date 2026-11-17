@@ -1,0 +1,9 @@
+{
+  "problem.off": "L’assistant IA est désactivé dans cet espace de travail. Une personne autorisée à gérer les intégrations peut l’activer dans Paramètres › Intégrations · Assistant IA.",
+  "problem.requestKey": "Cette clé de requête a déjà servi pour une autre conversation. Utilisez une nouvelle clé pour une nouvelle conversation.",
+  "problem.sharingReview": "Vérifiez ce que vous joignez et confirmez son partage avec le modèle. Rien n’a été joint.",
+  "problem.contextsFull": "Une conversation peut contenir jusqu’à {max} ressources jointes. Retirez-en une d’abord.",
+  "problem.expired": "Cette conversation a expiré. Son contenu a été supprimé après 30 jours sans activité. Commencez une nouvelle conversation.",
+  "problem.nothingToSave": "Donnez un nouveau titre à la conversation ou choisissez un autre modèle.",
+  "problem.cursor": "Cette page de conversations n’existe plus. Rechargez la liste."
+}

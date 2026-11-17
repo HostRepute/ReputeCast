@@ -1,0 +1,9 @@
+{
+  "problem.off": "El asistente de IA está desactivado en este espacio de trabajo. Alguien que pueda gestionar integraciones puede activarlo en Configuración › Integraciones · Asistente de IA.",
+  "problem.requestKey": "Esta clave de solicitud ya se usó para otra conversación. Usa una clave nueva para una conversación nueva.",
+  "problem.sharingReview": "Revisa lo que adjuntas y confirma que se comparte con el modelo. No se adjuntó nada.",
+  "problem.contextsFull": "Una conversación admite hasta {max} recursos adjuntos. Quita uno primero.",
+  "problem.expired": "Esta conversación caducó: su contenido se eliminó tras 30 días sin actividad. Empieza una conversación nueva.",
+  "problem.nothingToSave": "Pon un título nuevo a la conversación o elige otro modelo.",
+  "problem.cursor": "Esta página de conversaciones ya no existe. Vuelve a cargar la lista."
+}

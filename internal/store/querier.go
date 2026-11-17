@@ -94,6 +94,27 @@ type Querier interface {
 	AIAgentStepResume(ctx context.Context, arg AIAgentStepResumeParams) error
 	AIAgentStepSave(ctx context.Context, arg AIAgentStepSaveParams) error
 	AIAgentSteps(ctx context.Context, runID uuid.UUID) ([]AIAgentStepsRow, error)
+	AIAssistantContextDelete(ctx context.Context, arg AIAssistantContextDeleteParams) (AIAssistantContextDeleteRow, error)
+	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
+	AIAssistantContexts(ctx context.Context, threadID uuid.UUID) ([]AiAssistantContext, error)
+	// The AI assistant (B3): its settings, threads and their attached context.
+	// A thread is read only through its owner: every query that returns one
+	// names the person.
+	AIAssistantSettings(ctx context.Context, workspaceID uuid.UUID) (AiAssistantSetting, error)
+	AIAssistantSettingsSave(ctx context.Context, arg AIAssistantSettingsSaveParams) error
+	// One of the person's threads; another person's isn't there, a manager's
+	// view included.
+	AIAssistantThread(ctx context.Context, arg AIAssistantThreadParams) (AiAssistantThread, error)
+	AIAssistantThreadByRequest(ctx context.Context, arg AIAssistantThreadByRequestParams) (AiAssistantThread, error)
+	// Deleting a thread removes its content at once: messages, contexts and
+	// stream events go with it. The usage ledger stays (without the thread).
+	AIAssistantThreadDelete(ctx context.Context, arg AIAssistantThreadDeleteParams) (int64, error)
+	AIAssistantThreadInsert(ctx context.Context, arg AIAssistantThreadInsertParams) error
+	AIAssistantThreadLock(ctx context.Context, arg AIAssistantThreadLockParams) (AiAssistantThread, error)
+	// Saves what the person changed. Only an open thread changes.
+	AIAssistantThreadSave(ctx context.Context, arg AIAssistantThreadSaveParams) error
+	// The person's threads, the most recently active first.
+	AIAssistantThreads(ctx context.Context, arg AIAssistantThreadsParams) ([]AiAssistantThread, error)
 	// AI assistant (design expansion M22): the workspace's AI settings, its
 	// model accounts and models (assistant brief D3), the AI activity log, kept
 	// report summaries and AI translations.
@@ -123,6 +144,8 @@ type Querier interface {
 	// Whose budget a reservation is in; set when it is made and never changed.
 	AIBudgetScope(ctx context.Context, arg AIBudgetScopeParams) (AIBudgetScopeRow, error)
 	AIBudgetSettle(ctx context.Context, arg AIBudgetSettleParams) error
+	// An assistant thread's cumulative use, reserved and settled.
+	AIBudgetThread(ctx context.Context, threadID *uuid.UUID) (AIBudgetThreadRow, error)
 	AIBudgetUncertain(ctx context.Context, id uuid.UUID) error
 	// The workspace budget's lock, across all its accounts and models. It is
 	// taken after the AI configuration lock (AIWorkspaceSettingsLock), never

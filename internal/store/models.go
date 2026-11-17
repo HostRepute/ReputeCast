@@ -299,6 +299,107 @@ type AiAgentStep struct {
 	UpdatedAt  time.Time       `json:"updatedAt"`
 }
 
+type AiAssistantContext struct {
+	ID             uuid.UUID `json:"id"`
+	ThreadID       uuid.UUID `json:"threadId"`
+	Kind           string    `json:"kind"`
+	TargetID       uuid.UUID `json:"targetId"`
+	Revision       int64     `json:"revision"`
+	SnapshotSealed []byte    `json:"snapshotSealed"`
+	SharedAt       time.Time `json:"sharedAt"`
+}
+
+type AiAssistantEvent struct {
+	ThreadID      uuid.UUID  `json:"threadId"`
+	Seq           int64      `json:"seq"`
+	TurnID        *uuid.UUID `json:"turnId"`
+	Kind          string     `json:"kind"`
+	PayloadSealed []byte     `json:"payloadSealed"`
+	CreatedAt     time.Time  `json:"createdAt"`
+}
+
+type AiAssistantMessage struct {
+	ID            uuid.UUID  `json:"id"`
+	ThreadID      uuid.UUID  `json:"threadId"`
+	TurnID        *uuid.UUID `json:"turnId"`
+	Sequence      int32      `json:"sequence"`
+	Role          string     `json:"role"`
+	ModelID       *uuid.UUID `json:"modelId"`
+	ContentSealed []byte     `json:"contentSealed"`
+	Bytes         int32      `json:"bytes"`
+	CreatedAt     time.Time  `json:"createdAt"`
+}
+
+type AiAssistantSetting struct {
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Enabled         bool       `json:"enabled"`
+	ToolLimit       int32      `json:"toolLimit"`
+	TokenLimit      int64      `json:"tokenLimit"`
+	CostLimitMicros int64      `json:"costLimitMicros"`
+	PerPerson       int32      `json:"perPerson"`
+	PerWorkspace    int32      `json:"perWorkspace"`
+	Revision        int64      `json:"revision"`
+	UpdatedBy       *uuid.UUID `json:"updatedBy"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+type AiAssistantSlot struct {
+	ThreadID    uuid.UUID `json:"threadId"`
+	TurnID      uuid.UUID `json:"turnId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+	WsSlot      int32     `json:"wsSlot"`
+	UserSlot    int32     `json:"userSlot"`
+	LeaseID     uuid.UUID `json:"leaseId"`
+	ExpiresAt   time.Time `json:"expiresAt"`
+}
+
+type AiAssistantStep struct {
+	ID          uuid.UUID `json:"id"`
+	TurnID      uuid.UUID `json:"turnId"`
+	Sequence    int32     `json:"sequence"`
+	TurnVersion int64     `json:"turnVersion"`
+	Kind        string    `json:"kind"`
+	State       string    `json:"state"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type AiAssistantThread struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	UserID          uuid.UUID  `json:"userId"`
+	ModelID         *uuid.UUID `json:"modelId"`
+	TitleSealed     []byte     `json:"titleSealed"`
+	State           string     `json:"state"`
+	Screen          string     `json:"screen"`
+	EventSeq        int64      `json:"eventSeq"`
+	ToolCalls       int32      `json:"toolCalls"`
+	ToolLimit       int32      `json:"toolLimit"`
+	TokenLimit      int64      `json:"tokenLimit"`
+	CostLimitMicros int64      `json:"costLimitMicros"`
+	RequestKey      *string    `json:"requestKey"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+	LastActivityAt  time.Time  `json:"lastActivityAt"`
+	ExpiresAt       time.Time  `json:"expiresAt"`
+}
+
+type AiAssistantTurn struct {
+	ID         uuid.UUID  `json:"id"`
+	ThreadID   uuid.UUID  `json:"threadId"`
+	Sequence   int32      `json:"sequence"`
+	ModelID    *uuid.UUID `json:"modelId"`
+	Version    int64      `json:"version"`
+	State      string     `json:"state"`
+	Reason     string     `json:"reason"`
+	RequestKey string     `json:"requestKey"`
+	RetryOf    *uuid.UUID `json:"retryOf"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	StartedAt  *time.Time `json:"startedAt"`
+	EndedAt    *time.Time `json:"endedAt"`
+}
+
 type AiBudgetReservation struct {
 	ID              uuid.UUID  `json:"id"`
 	WorkspaceID     uuid.UUID  `json:"workspaceId"`
@@ -319,6 +420,7 @@ type AiBudgetReservation struct {
 	AccountID       *uuid.UUID `json:"accountId"`
 	ModelID         *uuid.UUID `json:"modelId"`
 	Personal        bool       `json:"personal"`
+	ThreadID        *uuid.UUID `json:"threadId"`
 }
 
 type AiDraftProposal struct {

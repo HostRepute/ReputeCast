@@ -1,0 +1,9 @@
+{
+  "problem.off": "Trợ lý AI đang tắt trong không gian làm việc này. Người có quyền quản lý tích hợp có thể bật trong Cài đặt › Tích hợp · Trợ lý AI.",
+  "problem.requestKey": "Khóa yêu cầu này đã được dùng cho một cuộc trò chuyện khác. Hãy dùng khóa mới cho cuộc trò chuyện mới.",
+  "problem.sharingReview": "Hãy xem lại nội dung bạn đính kèm và xác nhận chia sẻ với mô hình. Chưa có gì được đính kèm.",
+  "problem.contextsFull": "Mỗi cuộc trò chuyện có tối đa {max} tài nguyên đính kèm. Hãy gỡ một tài nguyên trước.",
+  "problem.expired": "Cuộc trò chuyện này đã hết hạn: nội dung đã bị xóa sau 30 ngày không hoạt động. Hãy bắt đầu cuộc trò chuyện mới.",
+  "problem.nothingToSave": "Hãy đặt tiêu đề mới cho cuộc trò chuyện hoặc chọn mô hình khác.",
+  "problem.cursor": "Trang danh sách cuộc trò chuyện này không còn nữa. Hãy tải lại danh sách."
+}

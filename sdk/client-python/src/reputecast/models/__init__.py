@@ -58,6 +58,8 @@ from .ai_activity_row_feature import AIActivityRowFeature
 from .ai_activity_row_outcome import AIActivityRowOutcome
 from .ai_agent_capability import AIAgentCapability
 from .ai_agent_capability_state import AIAgentCapabilityState
+from .ai_agent_limits import AIAgentLimits
+from .ai_assistant_settings import AIAssistantSettings
 from .ai_cap_view import AICapView
 from .ai_cap_view_kind import AICapViewKind
 from .ai_connection_view import AIConnectionView
@@ -3580,6 +3582,8 @@ __all__ = (
     "AIActivityRowOutcome",
     "AIAgentCapability",
     "AIAgentCapabilityState",
+    "AIAgentLimits",
+    "AIAssistantSettings",
     "AICapView",
     "AICapViewKind",
     "AIConnectionView",

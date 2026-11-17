@@ -2831,6 +2831,132 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai/assistant/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The models a thread may use: the workspace's and the caller's own
+         * @description Each says whether a thread can use it now, and why not.
+         */
+        get: operations["list-ai-assistant-models"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn the assistant on or off and set its limits per thread and its turns at once
+         * @description Limits apply to threads started afterwards. The revision is the one read: a change since then is refused. Audited as ai_assistant.settings_updated.
+         */
+        put: operations["set-ai-assistant-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's assistant threads, the most recently active first */
+        get: operations["list-ai-threads"];
+        put?: never;
+        /**
+         * Start an assistant thread
+         * @description On the model given, or the caller's own pick for the assistant, or the workspace's; it needs a passed tool-calling check. A retry with the same request key returns the same thread. Audited as ai_assistant_thread.created.
+         */
+        post: operations["create-ai-thread"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of the caller's threads: its messages, attached resources, usage and the turn answering now */
+        get: operations["get-ai-thread"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a thread and all its content at once
+         * @description Its messages, attached resources and stream events go; the activity log keeps its usage. Works with the assistant switched off. Audited as ai_assistant_thread.deleted.
+         */
+        delete: operations["delete-ai-thread"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a thread, or pick another model for its next turns
+         * @description Audited as ai_assistant_thread.updated, without the title.
+         */
+        patch: operations["update-ai-thread"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach a resource to a thread, after the person reviewed sharing it
+         * @description The caller must be able to read it; every later read checks again. A report's numbers are its fixed snapshot. Audited as ai_assistant_context.add.
+         */
+        post: operations["attach-ai-thread-context"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts/{context}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an attached resource from a thread
+         * @description Audited as ai_assistant_context.remove.
+         */
+        delete: operations["detach-ai-thread-context"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/ai/brand-voice": {
         parameters: {
             query?: never;
@@ -20711,7 +20837,7 @@ export interface components {
             /** @description 1 of 5, 529 overloaded */
             detail?: string;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             id: string;
             /** Format: int64 */
             inputTokens: number;
@@ -20721,7 +20847,7 @@ export interface components {
             /** @description What it was about: Weekly Digest #143 */
             on: string;
             /** @enum {string} */
-            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
+            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled" | "answered";
             /** Format: int64 */
             outputTokens: number;
             personal: boolean;
@@ -21003,6 +21129,37 @@ export interface components {
             context?: string;
             language?: string;
             src: string;
+        };
+        AIAssistantModel: {
+            accountId: string;
+            id: string;
+            imageInput: boolean;
+            model: string;
+            modelName: string;
+            personal: boolean;
+            prices: components["schemas"]["AIPricesView"];
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            reason?: "disconnected" | "key_rejected" | "tools_unchecked" | "personal_keys_off";
+            tools: components["schemas"]["AIAgentCapability"];
+            usable: boolean;
+        };
+        AIAssistantModelList: {
+            /** Format: uuid */
+            defaultId?: string;
+            models: components["schemas"]["AIAssistantModel"][];
+        };
+        AIAssistantSettings: {
+            enabled: boolean;
+            limits: components["schemas"]["AIAgentLimits"];
+            /** Format: int32 */
+            perPerson: number;
+            /** Format: int32 */
+            perWorkspace: number;
+            /** Format: int64 */
+            revision: number;
         };
         AIAutomationBriefInput: {
             automationId?: string;
@@ -21567,6 +21724,7 @@ export interface components {
             accounts: components["schemas"]["AIAccountView"][];
             aiUseRoles: string[];
             allowPrivate: boolean;
+            assistant: components["schemas"]["AIAssistantSettings"];
             byFeature: components["schemas"]["AIUsageFeature"][];
             byMember: components["schemas"]["AIUsageMember"][];
             canManage: boolean;
@@ -21683,6 +21841,109 @@ export interface components {
             ms: number;
             ok: boolean;
         };
+        AIThread: {
+            contexts: components["schemas"]["AIThreadContext"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            eventSeq: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            /** Format: date-time */
+            lastActivityAt: string;
+            limits: components["schemas"]["AIAgentLimits"];
+            messages: components["schemas"]["AIThreadMessage"][];
+            model?: components["schemas"]["AIAssistantModel"];
+            screen?: string;
+            /** @enum {string} */
+            state: "open" | "expired";
+            title: string;
+            turn?: components["schemas"]["AIThreadTurn"];
+            usage: components["schemas"]["AIThreadUsage"];
+        };
+        AIThreadContext: {
+            available: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "post" | "report" | "segment" | "automation";
+            /** Format: int64 */
+            revision: number;
+            /** Format: date-time */
+            sharedAt: string;
+            targetId: string;
+            title: string;
+        };
+        AIThreadContextInput: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "report";
+            /** @description The person reviewed what is shared with the model and confirmed it */
+            sharingReviewed: boolean;
+        };
+        AIThreadInput: {
+            /** Format: uuid */
+            modelId?: string;
+            requestKey: string;
+            screen?: string;
+            title?: string;
+        };
+        AIThreadList: {
+            items: components["schemas"]["AIThreadListItem"][];
+            next?: string;
+        };
+        AIThreadListItem: {
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            /** Format: date-time */
+            lastActivityAt: string;
+            modelId?: string;
+            /** @enum {string} */
+            state: "open" | "expired";
+            title: string;
+        };
+        AIThreadMessage: {
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** @enum {string} */
+            role: "user" | "assistant";
+            text: string;
+            turnId?: string;
+        };
+        AIThreadTurn: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            endedAt?: string;
+            id: string;
+            reason?: string;
+            /** Format: int32 */
+            sequence: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            state: "queued" | "answering" | "waiting" | "stopped" | "failed" | "done";
+        };
+        AIThreadUpdate: {
+            /** Format: uuid */
+            modelId?: string;
+            title?: string;
+        };
+        AIThreadUsage: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int32 */
+            toolCalls: number;
+            /** Format: int64 */
+            uncertainRequests: number;
+        };
         AITranslateInput: {
             /** Format: uuid */
             campaignId: string;
@@ -21777,7 +22038,7 @@ export interface components {
             /** Format: int64 */
             costMicros: number;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             /** Format: int64 */
             requests: number;
             /** Format: int64 */
@@ -58528,8 +58789,8 @@ export interface operations {
             query?: {
                 /** @description A member's id */
                 member?: string;
-                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
-                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
+                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending" | "answered";
                 cursor?: string;
                 limit?: number;
             };
@@ -58891,6 +59152,325 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AIAltText"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-assistant-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAssistantModelList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-assistant-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAssistantSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-threads": {
+        parameters: {
+            query?: {
+                /** @description Threads whose title has this */
+                q?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThreadList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "attach-ai-thread-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadContextInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "detach-ai-thread-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+                /** @description The attached resource's id */
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
                 };
             };
             /** @description Error */

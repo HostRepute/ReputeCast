@@ -1,0 +1,9 @@
+{
+  "problem.off": { "message": "The AI assistant is off in this workspace. Someone who can manage integrations can turn it on in Settings › Integrations · AI assistant.", "note": "the assistant's switch is off" },
+  "problem.requestKey": { "message": "This request key was already used for another thread. Use a new key for a new thread.", "note": "a client retried with the same key but a different request" },
+  "problem.sharingReview": { "message": "Review what you are attaching and confirm sharing it with the model. Nothing was attached.", "note": "attaching a resource to a thread" },
+  "problem.contextsFull": { "message": "A thread holds up to {max} attached resources. Remove one first.", "note": "max: 10" },
+  "problem.expired": { "message": "This thread expired: its content was removed after 30 days without activity. Start a new thread.", "note": "a thread whose content retention removed" },
+  "problem.nothingToSave": "Give the thread a new title or pick another model.",
+  "problem.cursor": "This page of threads no longer exists. Load the list again."
+}

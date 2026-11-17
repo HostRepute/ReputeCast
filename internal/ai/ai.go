@@ -91,6 +91,8 @@ const (
 	OutcomeError          = "error"
 	OutcomeNothingDrafted = "nothing_drafted"
 	OutcomeCancelled      = "cancelled"
+	// OutcomeAnswered is an assistant turn's answer (B3).
+	OutcomeAnswered = "answered"
 )
 
 // Retention of the activity log.

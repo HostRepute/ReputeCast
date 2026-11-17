@@ -12994,7 +12994,7 @@ export interface components {
             /** @description 1 of 5, 529 overloaded */
             detail?: string;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             id: string;
             /** Format: int64 */
             inputTokens: number;
@@ -13004,7 +13004,7 @@ export interface components {
             /** @description What it was about: Weekly Digest #143 */
             on: string;
             /** @enum {string} */
-            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
+            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled" | "answered";
             /** Format: int64 */
             outputTokens: number;
             personal: boolean;
@@ -13021,6 +13021,24 @@ export interface components {
             checkedAt?: string;
             /** @enum {string} */
             state: "untested" | "supported" | "unsupported";
+        };
+        AIAgentLimits: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int32 */
+            toolCalls: number;
+        };
+        AIAssistantSettings: {
+            enabled: boolean;
+            limits: components["schemas"]["AIAgentLimits"];
+            /** Format: int32 */
+            perPerson: number;
+            /** Format: int32 */
+            perWorkspace: number;
+            /** Format: int64 */
+            revision: number;
         };
         AICapView: {
             /** @enum {string} */
@@ -13210,6 +13228,7 @@ export interface components {
             accounts: components["schemas"]["AIAccountView"][];
             aiUseRoles: string[];
             allowPrivate: boolean;
+            assistant: components["schemas"]["AIAssistantSettings"];
             byFeature: components["schemas"]["AIUsageFeature"][];
             byMember: components["schemas"]["AIUsageMember"][];
             canManage: boolean;
@@ -13246,7 +13265,7 @@ export interface components {
             /** Format: int64 */
             costMicros: number;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             /** Format: int64 */
             requests: number;
             /** Format: int64 */
@@ -39831,8 +39850,8 @@ export interface operations {
             query?: {
                 /** @description A member's id */
                 member?: string;
-                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
-                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
+                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending" | "answered";
                 cursor?: string;
                 limit?: number;
             };

@@ -25,7 +25,7 @@ type AIActivityRow struct {
 	UserID       string    `json:"userId,omitempty"`
 	Member       string    `json:"member"`
 	MemberColor  string    `json:"memberColor,omitempty"`
-	Feature      string    `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test"`
+	Feature      string    `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test,assistant"`
 	Action       string    `json:"action,omitempty" doc:"The rewrite's action, or the language translated to"`
 	TargetKind   string    `json:"targetKind,omitempty"`
 	TargetID     string    `json:"targetId,omitempty"`
@@ -37,7 +37,7 @@ type AIActivityRow struct {
 	OutputTokens int64     `json:"outputTokens"`
 	CostMicros   int64     `json:"costMicros"`
 	UsageKnown   bool      `json:"usageKnown"`
-	Outcome      string    `json:"outcome" enum:"pending,accepted,accepted_edits,kept,rejected,discarded,refused,error,nothing_drafted,cancelled"`
+	Outcome      string    `json:"outcome" enum:"pending,accepted,accepted_edits,kept,rejected,discarded,refused,error,nothing_drafted,cancelled,answered"`
 	Detail       string    `json:"detail,omitempty" doc:"1 of 5, 529 overloaded"`
 	// Personal: sent with the member's own key (personal keys), in their
 	// own budget.
@@ -88,6 +88,8 @@ func outcomesOf(f string) []string {
 		return []string{OutcomeNothingDrafted}
 	case "pending":
 		return []string{OutcomePending}
+	case "answered":
+		return []string{OutcomeAnswered}
 	}
 	return nil
 }
@@ -124,7 +126,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, f AIActivit
 		p.UserID = &id
 	}
 	if f.Feature != "" {
-		if !validFeature(f.Feature) && f.Feature != FeatureAgent && f.Feature != FeatureConnectionTest {
+		if !validFeature(f.Feature) && f.Feature != FeatureAgent && f.Feature != FeatureConnectionTest && f.Feature != FeatureAssistant {
 			return AIActivityList{}, invalid(ctx, "query.feature", mUnknownFeature, nil)
 		}
 		p.Feature = &f.Feature
@@ -200,7 +202,7 @@ func (s *Service) RecordOutcome(ctx context.Context, ws *store.Workspace, p *aut
 	}
 	// Voice and draft decisions commit with their revision, not asserted by
 	// the generic activity endpoint.
-	if r.Feature == FeatureBrandVoice || r.Feature == FeatureDraft || r.Feature == FeatureAgent || r.Feature == FeatureConnectionTest || r.UserID == nil || *r.UserID != *uid || s.now().Sub(r.CreatedAt) > 24*time.Hour {
+	if r.Feature == FeatureBrandVoice || r.Feature == FeatureDraft || r.Feature == FeatureAgent || r.Feature == FeatureConnectionTest || r.Feature == FeatureAssistant || r.UserID == nil || *r.UserID != *uid || s.now().Sub(r.CreatedAt) > 24*time.Hour {
 		return problem(ctx, http.StatusConflict, "ai_suggestion_gone", mSuggestionGone, nil)
 	}
 	n, err := s.Q.AIRequestSetOutcome(ctx, store.AIRequestSetOutcomeParams{ID: id, WorkspaceID: ws.ID, UserID: uid, Outcome: in.Outcome, OutcomeDetail: strings.TrimSpace(in.Detail), DecidedAt: ptr(s.now())})

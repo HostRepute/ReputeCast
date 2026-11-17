@@ -24,8 +24,8 @@ type budgetReconcileInput struct {
 type activityInput struct {
 	api.WorkspaceInput
 	Member  string `query:"member" doc:"A member's id"`
-	Feature string `query:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test"`
-	Outcome string `query:"outcome" enum:"accepted,kept,rejected,refused,error,nothing_drafted,pending"`
+	Feature string `query:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test,assistant"`
+	Outcome string `query:"outcome" enum:"accepted,kept,rejected,refused,error,nothing_drafted,pending,answered"`
 	Cursor  string `query:"cursor" maxLength:"200"`
 	Limit   int    `query:"limit" minimum:"1" maximum:"100" default:"50"`
 }
@@ -203,6 +203,11 @@ type featurePath struct {
 	Feature string `path:"feature" enum:"assistant,agent,subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft"`
 }
 
+type assistantSettingsInput struct {
+	api.WorkspaceInput
+	Body AIAssistantSettings
+}
+
 type personalKeysInput struct {
 	api.WorkspaceInput
 	Body AIPersonalKeysInput
@@ -363,6 +368,14 @@ func Register(h huma.API, s *Service) {
 		Tags:        tags, Access: manage},
 		func(ctx context.Context, in *featureModelInput) (*api.Body[AISettings], error) {
 			out, err := s.SetFeatureModel(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Feature, in.Body)
+			return api.OK(out), err
+		})
+
+	api.Put(h, api.Op{ID: "set-ai-assistant-settings", Path: base + "/assistant/settings", Summary: "Turn the assistant on or off and set its limits per thread and its turns at once",
+		Description: "Limits apply to threads started afterwards. The revision is the one read: a change since then is refused. Audited as ai_assistant.settings_updated.",
+		Tags:        tags, Access: manage},
+		func(ctx context.Context, in *assistantSettingsInput) (*api.Body[AISettings], error) {
+			out, err := s.SetAssistantSettings(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 

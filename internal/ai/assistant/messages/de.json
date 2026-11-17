@@ -1,0 +1,9 @@
+{
+  "problem.off": "Der KI-Assistent ist in diesem Arbeitsbereich ausgeschaltet. Wer Integrationen verwalten darf, kann ihn unter Einstellungen › Integrationen · KI-Assistent einschalten.",
+  "problem.requestKey": "Dieser Anfrageschlüssel wurde schon für einen anderen Verlauf verwendet. Verwenden Sie für einen neuen Verlauf einen neuen Schlüssel.",
+  "problem.sharingReview": "Prüfen Sie, was Sie anhängen, und bestätigen Sie, dass es mit dem Modell geteilt wird. Es wurde nichts angehängt.",
+  "problem.contextsFull": "Ein Verlauf hat höchstens {max} angehängte Ressourcen. Entfernen Sie zuerst eine.",
+  "problem.expired": "Dieser Verlauf ist abgelaufen: Sein Inhalt wurde nach 30 Tagen ohne Aktivität entfernt. Beginnen Sie einen neuen Verlauf.",
+  "problem.nothingToSave": "Geben Sie dem Verlauf einen neuen Titel oder wählen Sie ein anderes Modell.",
+  "problem.cursor": "Diese Seite der Verläufe gibt es nicht mehr. Laden Sie die Liste neu."
+}

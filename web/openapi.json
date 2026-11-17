@@ -321,7 +321,8 @@
               "brand_voice",
               "draft",
               "agent",
-              "connection_test"
+              "connection_test",
+              "assistant"
             ],
             "type": "string"
           },
@@ -356,7 +357,8 @@
               "refused",
               "error",
               "nothing_drafted",
-              "cancelled"
+              "cancelled",
+              "answered"
             ],
             "type": "string"
           },
@@ -1376,6 +1378,129 @@
         "required": [
           "campaignId",
           "src"
+        ],
+        "type": "object"
+      },
+      "AIAssistantModel": {
+        "additionalProperties": false,
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "imageInput": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "personal": {
+            "type": "boolean"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/AIPricesView"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "disconnected",
+              "key_rejected",
+              "tools_unchecked",
+              "personal_keys_off"
+            ],
+            "type": "string"
+          },
+          "tools": {
+            "$ref": "#/components/schemas/AIAgentCapability"
+          },
+          "usable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "provider",
+          "providerName",
+          "model",
+          "modelName",
+          "imageInput",
+          "prices",
+          "personal",
+          "tools",
+          "usable"
+        ],
+        "type": "object"
+      },
+      "AIAssistantModelList": {
+        "additionalProperties": false,
+        "properties": {
+          "defaultId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AIAssistantModel"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "type": "object"
+      },
+      "AIAssistantSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AIAgentLimits"
+          },
+          "perPerson": {
+            "format": "int32",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "perWorkspace": {
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "limits",
+          "perPerson",
+          "perWorkspace",
+          "revision"
         ],
         "type": "object"
       },
@@ -3440,6 +3565,9 @@
           "allowPrivate": {
             "type": "boolean"
           },
+          "assistant": {
+            "$ref": "#/components/schemas/AIAssistantSettings"
+          },
           "byFeature": {
             "items": {
               "$ref": "#/components/schemas/AIUsageFeature"
@@ -3528,7 +3656,8 @@
           "instanceAdmins",
           "accounts",
           "defaults",
-          "personal"
+          "personal",
+          "assistant"
         ],
         "type": "object"
       },
@@ -3885,6 +4014,357 @@
         ],
         "type": "object"
       },
+      "AIThread": {
+        "additionalProperties": false,
+        "properties": {
+          "contexts": {
+            "items": {
+              "$ref": "#/components/schemas/AIThreadContext"
+            },
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "eventSeq": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastActivityAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AIAgentLimits"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AIThreadMessage"
+            },
+            "type": "array"
+          },
+          "model": {
+            "$ref": "#/components/schemas/AIAssistantModel"
+          },
+          "screen": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "turn": {
+            "$ref": "#/components/schemas/AIThreadTurn"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AIThreadUsage"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "state",
+          "limits",
+          "usage",
+          "contexts",
+          "messages",
+          "eventSeq",
+          "createdAt",
+          "lastActivityAt",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "AIThreadContext": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "post",
+              "report",
+              "segment",
+              "automation"
+            ],
+            "type": "string"
+          },
+          "revision": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sharedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "targetId",
+          "title",
+          "available",
+          "revision",
+          "sharedAt"
+        ],
+        "type": "object"
+      },
+      "AIThreadContextInput": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "report"
+            ],
+            "type": "string"
+          },
+          "sharingReviewed": {
+            "description": "The person reviewed what is shared with the model and confirmed it",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "sharingReviewed"
+        ],
+        "type": "object"
+      },
+      "AIThreadInput": {
+        "additionalProperties": false,
+        "properties": {
+          "modelId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestKey": {
+            "pattern": "^[A-Za-z0-9_-]{1,80}$",
+            "type": "string"
+          },
+          "screen": {
+            "maxLength": 80,
+            "pattern": "^[a-z0-9_.-]*$",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestKey"
+        ],
+        "type": "object"
+      },
+      "AIThreadList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AIThreadListItem"
+            },
+            "type": "array"
+          },
+          "next": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "AIThreadListItem": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastActivityAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modelId": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "state",
+          "lastActivityAt",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "AIThreadMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "turnId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "text",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AIThreadTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "sequence": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "answering",
+              "waiting",
+              "stopped",
+              "failed",
+              "done"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sequence",
+          "state",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AIThreadUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "modelId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AIThreadUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tokens": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "toolCalls": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "uncertainRequests": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "toolCalls",
+          "tokens",
+          "costMicros",
+          "requests",
+          "uncertainRequests"
+        ],
+        "type": "object"
+      },
       "AITranslateInput": {
         "additionalProperties": false,
         "properties": {
@@ -4230,7 +4710,8 @@
               "brand_voice",
               "draft",
               "agent",
-              "connection_test"
+              "connection_test",
+              "assistant"
             ],
             "type": "string"
           },
@@ -121822,7 +122303,8 @@
                 "brand_voice",
                 "draft",
                 "agent",
-                "connection_test"
+                "connection_test",
+                "assistant"
               ],
               "type": "string"
             }
@@ -121839,7 +122321,8 @@
                 "refused",
                 "error",
                 "nothing_drafted",
-                "pending"
+                "pending",
+                "answered"
               ],
               "type": "string"
             }
@@ -122502,6 +122985,624 @@
           }
         ],
         "summary": "Alt text for an image: the image at 1,024 px and the text around it",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/models": {
+      "get": {
+        "description": "Each says whether a thread can use it now, and why not.",
+        "operationId": "list-ai-assistant-models",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAssistantModelList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The models a thread may use: the workspace's and the caller's own",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/settings": {
+      "put": {
+        "description": "Limits apply to threads started afterwards. The revision is the one read: a change since then is refused. Audited as ai_assistant.settings_updated.",
+        "operationId": "set-ai-assistant-settings",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAssistantSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn the assistant on or off and set its limits per thread and its turns at once",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads": {
+      "get": {
+        "operationId": "list-ai-threads",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Threads whose title has this",
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "description": "Threads whose title has this",
+              "maxLength": 120,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThreadList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The caller's assistant threads, the most recently active first",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      },
+      "post": {
+        "description": "On the model given, or the caller's own pick for the assistant, or the workspace's; it needs a passed tool-calling check. A retry with the same request key returns the same thread. Audited as ai_assistant_thread.created.",
+        "operationId": "create-ai-thread",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIThreadInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Start an assistant thread",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}": {
+      "delete": {
+        "description": "Its messages, attached resources and stream events go; the activity log keeps its usage. Works with the assistant switched off. Audited as ai_assistant_thread.deleted.",
+        "operationId": "delete-ai-thread",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a thread and all its content at once",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      },
+      "get": {
+        "operationId": "get-ai-thread",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "One of the caller's threads: its messages, attached resources, usage and the turn answering now",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      },
+      "patch": {
+        "description": "Audited as ai_assistant_thread.updated, without the title.",
+        "operationId": "update-ai-thread",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIThreadUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rename a thread, or pick another model for its next turns",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts": {
+      "post": {
+        "description": "The caller must be able to read it; every later read checks again. A report's numbers are its fixed snapshot. Audited as ai_assistant_context.add.",
+        "operationId": "attach-ai-thread-context",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIThreadContextInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Attach a resource to a thread, after the person reviewed sharing it",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts/{context}": {
+      "delete": {
+        "description": "Audited as ai_assistant_context.remove.",
+        "operationId": "detach-ai-thread-context",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The attached resource's id",
+            "in": "path",
+            "name": "context",
+            "required": true,
+            "schema": {
+              "description": "The attached resource's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove an attached resource from a thread",
         "tags": [
           "AI assistant"
         ],

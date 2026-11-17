@@ -29,9 +29,10 @@ func (q *Queries) AIBudgetAbandoned(ctx context.Context, before time.Time) (int6
 
 const aIBudgetInsert = `-- name: AIBudgetInsert :exec
 INSERT INTO ai_budget_reservations (id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision,
-    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, account_id, model_id, personal)
+    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, account_id, model_id, personal, thread_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-    $9, $10, 'reserved', $11, $12, $13, $14, $15, $16, $17)
+    $9, $10, 'reserved', $11, $12, $13, $14, $15, $16, $17,
+    $18)
 `
 
 type AIBudgetInsertParams struct {
@@ -52,6 +53,7 @@ type AIBudgetInsertParams struct {
 	AccountID       *uuid.UUID `json:"accountId"`
 	ModelID         *uuid.UUID `json:"modelId"`
 	Personal        bool       `json:"personal"`
+	ThreadID        *uuid.UUID `json:"threadId"`
 }
 
 func (q *Queries) AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) error {
@@ -73,12 +75,13 @@ func (q *Queries) AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) 
 		arg.AccountID,
 		arg.ModelID,
 		arg.Personal,
+		arg.ThreadID,
 	)
 	return err
 }
 
 const aIBudgetLock = `-- name: AIBudgetLock :one
-SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2 FOR UPDATE
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal, thread_id FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2 FOR UPDATE
 `
 
 type AIBudgetLockParams struct {
@@ -109,6 +112,7 @@ func (q *Queries) AIBudgetLock(ctx context.Context, arg AIBudgetLockParams) (AiB
 		&i.AccountID,
 		&i.ModelID,
 		&i.Personal,
+		&i.ThreadID,
 	)
 	return i, err
 }
@@ -136,7 +140,7 @@ func (q *Queries) AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (A
 }
 
 const aIBudgetPending = `-- name: AIBudgetPending :many
-SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal FROM ai_budget_reservations
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal, thread_id FROM ai_budget_reservations
 WHERE workspace_id = $1 AND state <> 'settled' AND NOT personal
 ORDER BY created_at, id LIMIT 100
 `
@@ -171,6 +175,7 @@ func (q *Queries) AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([
 			&i.AccountID,
 			&i.ModelID,
 			&i.Personal,
+			&i.ThreadID,
 		); err != nil {
 			return nil, err
 		}
@@ -224,7 +229,7 @@ func (q *Queries) AIBudgetPersonal(ctx context.Context, arg AIBudgetPersonalPara
 }
 
 const aIBudgetPersonalPending = `-- name: AIBudgetPersonalPending :many
-SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal FROM ai_budget_reservations
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal, thread_id FROM ai_budget_reservations
 WHERE workspace_id = $1 AND user_id = $2 AND state <> 'settled' AND personal
 ORDER BY created_at, id LIMIT 100
 `
@@ -264,6 +269,7 @@ func (q *Queries) AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPerso
 			&i.AccountID,
 			&i.ModelID,
 			&i.Personal,
+			&i.ThreadID,
 		); err != nil {
 			return nil, err
 		}
@@ -359,6 +365,34 @@ func (q *Queries) AIBudgetSettle(ctx context.Context, arg AIBudgetSettleParams) 
 		arg.ID,
 	)
 	return err
+}
+
+const aIBudgetThread = `-- name: AIBudgetThread :one
+SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
+       coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
+       count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain,
+       count(*)::bigint AS requests
+FROM ai_budget_reservations WHERE thread_id = $1
+`
+
+type AIBudgetThreadRow struct {
+	Tokens     int64 `json:"tokens"`
+	CostMicros int64 `json:"costMicros"`
+	Uncertain  int64 `json:"uncertain"`
+	Requests   int64 `json:"requests"`
+}
+
+// An assistant thread's cumulative use, reserved and settled.
+func (q *Queries) AIBudgetThread(ctx context.Context, threadID *uuid.UUID) (AIBudgetThreadRow, error) {
+	row := q.db.QueryRow(ctx, aIBudgetThread, threadID)
+	var i AIBudgetThreadRow
+	err := row.Scan(
+		&i.Tokens,
+		&i.CostMicros,
+		&i.Uncertain,
+		&i.Requests,
+	)
+	return i, err
 }
 
 const aIBudgetUncertain = `-- name: AIBudgetUncertain :exec
