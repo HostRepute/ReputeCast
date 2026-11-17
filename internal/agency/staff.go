@@ -1182,12 +1182,17 @@ func (s *Service) unassignTx(ctx context.Context, q *store.Queries, wsID uuid.UU
 			}
 		}
 	}
+	// Their personal AI keys there stop working and are deleted.
+	aiKeys, err := q.AIPersonalKeysRemove(ctx, store.AIPersonalKeysRemoveParams{UserID: &m.UserID, WorkspaceID: &wsID})
+	if err != nil {
+		return err
+	}
 	if _, err := q.TeamDeleteMember(ctx, store.TeamDeleteMemberParams{ID: m.ID, WorkspaceID: wsID}); err != nil {
 		return err
 	}
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "agency.unassigned", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
 		Before:   map[string]any{"role": m.RoleName, "source": m.Source},
-		After:    map[string]any{"keys_revoked": revoked, "keys_kept": kept},
+		After:    map[string]any{"keys_revoked": revoked, "keys_kept": kept, "personal_ai_keys_removed": aiKeys},
 		Metadata: map[string]any{"user_id": m.UserID.String(), "permission": string(authz.AgencyManage)}})
 }
 

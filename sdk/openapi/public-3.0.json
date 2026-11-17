@@ -215,6 +215,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "personal": {
+            "type": "boolean"
+          },
           "provider": {
             "type": "string"
           },
@@ -248,7 +251,8 @@
           "outputTokens",
           "costMicros",
           "usageKnown",
-          "outcome"
+          "outcome",
+          "personal"
         ],
         "type": "object"
       },
@@ -649,6 +653,183 @@
         ],
         "type": "object"
       },
+      "AIPersonalAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "key_rejected",
+              "disconnected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "providerName",
+          "status",
+          "models"
+        ],
+        "type": "object"
+      },
+      "AIPersonalPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AIPersonalAccount"
+            },
+            "type": "array"
+          },
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "accounts",
+          "costMicros",
+          "requests"
+        ],
+        "type": "object"
+      },
+      "AIPersonalSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAccountView"
+            },
+            "type": "array"
+          },
+          "canAdd": {
+            "type": "boolean"
+          },
+          "capSetAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "capSetBy": {
+            "type": "string"
+          },
+          "capUsd": {
+            "format": "double",
+            "type": "number"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/AIFeatureDefault"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/AIPersonalPerson"
+            },
+            "type": "array"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AIPersonalUsageView"
+          }
+        },
+        "required": [
+          "enabled",
+          "capUsd",
+          "canAdd",
+          "accounts",
+          "choices",
+          "usage",
+          "people"
+        ],
+        "type": "object"
+      },
+      "AIPersonalUsageView": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reservedCostMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "resetsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "share": {
+            "description": "Share of the cap used, 0 to 1",
+            "format": "double",
+            "type": "number"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "notice",
+              "reached"
+            ],
+            "type": "string"
+          },
+          "uncertainRequests": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "costMicros",
+          "reservedCostMicros",
+          "uncertainRequests",
+          "requests",
+          "share",
+          "state",
+          "resetsAt"
+        ],
+        "type": "object"
+      },
       "AIPricesView": {
         "additionalProperties": false,
         "properties": {
@@ -832,6 +1013,9 @@
             },
             "type": "array"
           },
+          "personal": {
+            "$ref": "#/components/schemas/AIPersonalSettings"
+          },
           "priceListDate": {
             "format": "date-time",
             "type": "string"
@@ -862,7 +1046,8 @@
           "allowPrivate",
           "instanceAdmins",
           "accounts",
-          "defaults"
+          "defaults",
+          "personal"
         ],
         "type": "object"
       },

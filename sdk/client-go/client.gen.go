@@ -369,6 +369,75 @@ func (e AIModelViewFeatures) Valid() bool {
 	}
 }
 
+// Defines values for AIPersonalAccountProvider.
+const (
+	AIPersonalAccountProviderAnthropic  AIPersonalAccountProvider = "anthropic"
+	AIPersonalAccountProviderAzure      AIPersonalAccountProvider = "azure"
+	AIPersonalAccountProviderCompatible AIPersonalAccountProvider = "compatible"
+	AIPersonalAccountProviderGoogle     AIPersonalAccountProvider = "google"
+	AIPersonalAccountProviderOpenai     AIPersonalAccountProvider = "openai"
+)
+
+// Valid indicates whether the value is a known member of the AIPersonalAccountProvider enum.
+func (e AIPersonalAccountProvider) Valid() bool {
+	switch e {
+	case AIPersonalAccountProviderAnthropic:
+		return true
+	case AIPersonalAccountProviderAzure:
+		return true
+	case AIPersonalAccountProviderCompatible:
+		return true
+	case AIPersonalAccountProviderGoogle:
+		return true
+	case AIPersonalAccountProviderOpenai:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AIPersonalAccountStatus.
+const (
+	AIPersonalAccountStatusConnected    AIPersonalAccountStatus = "connected"
+	AIPersonalAccountStatusDisconnected AIPersonalAccountStatus = "disconnected"
+	AIPersonalAccountStatusKeyRejected  AIPersonalAccountStatus = "key_rejected"
+)
+
+// Valid indicates whether the value is a known member of the AIPersonalAccountStatus enum.
+func (e AIPersonalAccountStatus) Valid() bool {
+	switch e {
+	case AIPersonalAccountStatusConnected:
+		return true
+	case AIPersonalAccountStatusDisconnected:
+		return true
+	case AIPersonalAccountStatusKeyRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AIPersonalUsageViewState.
+const (
+	AIPersonalUsageViewStateNotice  AIPersonalUsageViewState = "notice"
+	AIPersonalUsageViewStateOk      AIPersonalUsageViewState = "ok"
+	AIPersonalUsageViewStateReached AIPersonalUsageViewState = "reached"
+)
+
+// Valid indicates whether the value is a known member of the AIPersonalUsageViewState enum.
+func (e AIPersonalUsageViewState) Valid() bool {
+	switch e {
+	case AIPersonalUsageViewStateNotice:
+		return true
+	case AIPersonalUsageViewStateOk:
+		return true
+	case AIPersonalUsageViewStateReached:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AIProviderEntryCapabilities.
 const (
 	AIProviderEntryCapabilitiesDataRegion       AIProviderEntryCapabilities = "data_region"
@@ -31254,6 +31323,7 @@ type AIActivityRow struct {
 	On           string               `json:"on"`
 	Outcome      AIActivityRowOutcome `json:"outcome"`
 	OutputTokens int64                `json:"outputTokens"`
+	Personal     bool                 `json:"personal"`
 	Provider     string               `json:"provider"`
 	TargetId     *string              `json:"targetId,omitempty"`
 	TargetKind   *string              `json:"targetKind,omitempty"`
@@ -31401,6 +31471,59 @@ type AIModelView struct {
 // AIModelViewFeatures defines model for AIModelView.Features.
 type AIModelViewFeatures string
 
+// AIPersonalAccount defines model for AIPersonalAccount.
+type AIPersonalAccount struct {
+	Id           string                    `json:"id"`
+	Models       []string                  `json:"models"`
+	Provider     AIPersonalAccountProvider `json:"provider"`
+	ProviderName string                    `json:"providerName"`
+	Status       AIPersonalAccountStatus   `json:"status"`
+}
+
+// AIPersonalAccountProvider defines model for AIPersonalAccount.Provider.
+type AIPersonalAccountProvider string
+
+// AIPersonalAccountStatus defines model for AIPersonalAccount.Status.
+type AIPersonalAccountStatus string
+
+// AIPersonalPerson defines model for AIPersonalPerson.
+type AIPersonalPerson struct {
+	Accounts   []AIPersonalAccount `json:"accounts"`
+	CostMicros int64               `json:"costMicros"`
+	Name       string              `json:"name"`
+	Requests   int64               `json:"requests"`
+	UserId     string              `json:"userId"`
+}
+
+// AIPersonalSettings defines model for AIPersonalSettings.
+type AIPersonalSettings struct {
+	Accounts []AIAccountView     `json:"accounts"`
+	CanAdd   bool                `json:"canAdd"`
+	CapSetAt *time.Time          `json:"capSetAt,omitempty"`
+	CapSetBy *string             `json:"capSetBy,omitempty"`
+	CapUsd   float64             `json:"capUsd"`
+	Choices  []AIFeatureDefault  `json:"choices"`
+	Enabled  bool                `json:"enabled"`
+	People   []AIPersonalPerson  `json:"people"`
+	Usage    AIPersonalUsageView `json:"usage"`
+}
+
+// AIPersonalUsageView defines model for AIPersonalUsageView.
+type AIPersonalUsageView struct {
+	CostMicros         int64     `json:"costMicros"`
+	Requests           int64     `json:"requests"`
+	ReservedCostMicros int64     `json:"reservedCostMicros"`
+	ResetsAt           time.Time `json:"resetsAt"`
+
+	// Share Share of the cap used, 0 to 1
+	Share             float64                  `json:"share"`
+	State             AIPersonalUsageViewState `json:"state"`
+	UncertainRequests int64                    `json:"uncertainRequests"`
+}
+
+// AIPersonalUsageViewState defines model for AIPersonalUsageView.State.
+type AIPersonalUsageViewState string
+
 // AIPricesView defines model for AIPricesView.
 type AIPricesView struct {
 	From *time.Time `json:"from,omitempty"`
@@ -31456,6 +31579,7 @@ type AISettings struct {
 	Features       []AIFeatureState   `json:"features"`
 	Helpers        []string           `json:"helpers"`
 	InstanceAdmins []string           `json:"instanceAdmins"`
+	Personal       AIPersonalSettings `json:"personal"`
 	PriceListDate  time.Time          `json:"priceListDate"`
 	Usage          AIUsageView        `json:"usage"`
 	WithoutAiUse   []AIMemberRole     `json:"withoutAiUse"`

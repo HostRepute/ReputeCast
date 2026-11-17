@@ -188,7 +188,7 @@ func (s *Service) KeepSummary(ctx context.Context, ws *store.Workspace, p *authz
 			map[string]any{"numbers": strings.Join(bad, ", "), "count": len(bad)})
 	}
 	name := r.Model
-	if c, err := s.loadFor(ctx, s.Q, ws.ID, FeatureSummary); err == nil && c != nil && c.Model == r.Model {
+	if c, err := s.loadFor(ctx, s.Q, ws.ID, actorID(p), FeatureSummary); err == nil && c != nil && c.Model == r.Model {
 		name = c.modelName()
 	}
 	before, _ := s.Q.AIReportSummary(ctx, store.AIReportSummaryParams{CampaignID: id, WorkspaceID: ws.ID})

@@ -178,6 +178,9 @@ type AISettings struct {
 	// (Connection's) first; Defaults the model each feature uses.
 	Accounts []AIAccountView    `json:"accounts"`
 	Defaults []AIFeatureDefault `json:"defaults"`
+	// Personal is the personal-keys switch, each person's cap, the caller's
+	// own accounts and, for managers, who has personal accounts.
+	Personal AIPersonalSettings `json:"personal"`
 }
 
 func catalog() []AIProviderEntry {
@@ -304,6 +307,9 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return AISettings{}, err
 	}
 	out.AIUseRoles, out.WithoutAIUse = s.aiUseHolders(ctx, ws)
+	if out.Personal, err = s.Personal(ctx, ws, p); err != nil {
+		return AISettings{}, err
+	}
 	return out, nil
 }
 
@@ -620,18 +626,19 @@ type AITestInput struct {
 	AccountID *uuid.UUID `json:"accountId,omitempty" format:"uuid"`
 }
 
-// testedModel is the saved model a test or a model list is about: the one
-// named, an account's first, or the first account's.
+// testedModel is the workspace's saved model a test or a model list is
+// about: the one named, an account's first, or the first account's. A
+// personal key's model is its owner's (the personal operations).
 func (s *Service) testedModel(ctx context.Context, ws uuid.UUID, model, account *uuid.UUID) (*connection, error) {
 	switch {
 	case model != nil:
 		c, err := s.binding(ctx, s.Q, ws, model)
-		if err == nil && c == nil {
+		if err == nil && (c == nil || c.personal()) {
 			return nil, api.NotFound("AI model")
 		}
 		return c, err
 	case account != nil:
-		c, err := s.accountModel(ctx, s.Q, ws, *account)
+		c, err := s.accountModel(ctx, s.Q, ws, *account, nil)
 		if err == nil && c == nil {
 			return nil, api.NotFound("AI account")
 		}
@@ -647,42 +654,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return AITestResult{}, err
 	}
 	if in.Provider == "" {
-		if !cur.connected() {
-			return AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
-		}
-		c := candidate{provider: cur.Provider, baseURL: cur.BaseUrl, deployment: cur.Deployment, apiVersion: cur.ApiVersion, model: cur.Model}
-		if len(cur.KeySealed) > 0 {
-			if c.key, err = s.Box.OpenString(cur.KeySealed, keyAD(cur.AccountID)); err != nil {
-				return AITestResult{}, err
-			}
-		}
-		res, err := s.test(ctx, ws, p, c, cur)
-		if err != nil {
-			return res, err
-		}
-		ms := int32(res.Ms)
-		now := s.now()
-		if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-			q := store.New(tx)
-			if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
-				return err
-			}
-			if err := q.AIAccountSetTest(ctx, store.AIAccountSetTestParams{ID: cur.AccountID, WorkspaceID: ws.ID, LastTestAt: &now, LastTestOk: &res.OK, LastTestMs: &ms}); err != nil {
-				return err
-			}
-			if res.OK && cur.Status != "ok" {
-				_, err := q.AIAccountSetStatus(ctx, store.AIAccountSetStatusParams{ID: cur.AccountID, WorkspaceID: ws.ID, Status: "ok", StatusAt: &now, ExpectedRevision: cur.AccountRevision})
-				return err
-			}
-			return nil
-		}); err != nil {
-			return AITestResult{}, err
-		}
-		if res.ErrorKind == string(llm.ErrAuth) {
-			s.keyRejected(ctx, ws, cur, &llm.Error{Kind: llm.ErrAuth, Status: res.ErrorStatus, Message: res.ErrorDetail})
-		}
-		s.explain(ctx, &res, cur.providerName())
-		return res, nil
+		return s.testSaved(ctx, ws, p, cur)
 	}
 	c := candidate{provider: in.Provider, baseURL: in.BaseURL, deployment: in.Deployment, apiVersion: in.APIVersion, key: in.APIKey, model: in.Model}
 	if c.key, err = s.savedKey(ctx, ws, cur, c); err != nil {
@@ -700,18 +672,64 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return AITestResult{}, err
 	}
 	res, err := s.test(ctx, ws, p, c, priced)
-	s.explain(ctx, &res, (&connection{store.AIBindingRow{Provider: c.provider, BaseUrl: c.baseURL}}).providerName())
+	s.explain(ctx, &res, (&connection{store.AIBindingRow{Provider: c.provider, BaseUrl: c.baseURL}}).providerName(), false)
 	return res, err
 }
 
-// explain words a failed test for the person.
-func (s *Service) explain(ctx context.Context, res *AITestResult, provider string) {
+// testSaved tests a saved model with its saved key and records the test on
+// its account.
+func (s *Service) testSaved(ctx context.Context, ws *store.Workspace, p *authz.Principal, cur *connection) (AITestResult, error) {
+	if !cur.connected() {
+		return AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
+	}
+	c := candidate{provider: cur.Provider, baseURL: cur.BaseUrl, deployment: cur.Deployment, apiVersion: cur.ApiVersion, model: cur.Model}
+	if len(cur.KeySealed) > 0 {
+		var err error
+		if c.key, err = s.Box.OpenString(cur.KeySealed, keyAD(cur.AccountID)); err != nil {
+			return AITestResult{}, err
+		}
+	}
+	res, err := s.test(ctx, ws, p, c, cur)
+	if err != nil {
+		return res, err
+	}
+	ms := int32(res.Ms)
+	now := s.now()
+	if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
+			return err
+		}
+		if err := q.AIAccountSetTest(ctx, store.AIAccountSetTestParams{ID: cur.AccountID, WorkspaceID: ws.ID, LastTestAt: &now, LastTestOk: &res.OK, LastTestMs: &ms}); err != nil {
+			return err
+		}
+		if res.OK && cur.Status != "ok" {
+			_, err := q.AIAccountSetStatus(ctx, store.AIAccountSetStatusParams{ID: cur.AccountID, WorkspaceID: ws.ID, Status: "ok", StatusAt: &now, ExpectedRevision: cur.AccountRevision})
+			return err
+		}
+		return nil
+	}); err != nil {
+		return AITestResult{}, err
+	}
+	if res.ErrorKind == string(llm.ErrAuth) {
+		s.keyRejected(ctx, ws, cur, &llm.Error{Kind: llm.ErrAuth, Status: res.ErrorStatus, Message: res.ErrorDetail})
+	}
+	s.explain(ctx, &res, cur.providerName(), cur.personal())
+	return res, nil
+}
+
+// explain words a failed test for the person (whose own key a personal
+// one is).
+func (s *Service) explain(ctx context.Context, res *AITestResult, provider string, personal bool) {
 	if res.OK || res.ErrorKind == "" {
 		return
 	}
 	switch llm.ErrorKind(res.ErrorKind) {
 	case llm.ErrAuth:
 		res.ErrorMessage = text(ctx, mKeyRejectedAlone, i18n.Args{"provider": provider})
+		if personal {
+			res.ErrorMessage = text(ctx, mPersonalKeyRejected, i18n.Args{"provider": provider})
+		}
 	case llm.ErrRateLimit:
 		res.ErrorMessage = text(ctx, mRateLimitedNow, i18n.Args{"provider": provider})
 	case llm.ErrTimeout:
@@ -935,7 +953,7 @@ func accountParams(c store.AIBindingRow, by *uuid.UUID, at time.Time) store.AIAc
 	return store.AIAccountSaveParams{ID: c.AccountID, WorkspaceID: c.WorkspaceID, Provider: c.Provider, Label: c.Label, BaseUrl: c.BaseUrl, ApiVersion: c.ApiVersion,
 		KeySealed: c.KeySealed, KeyAddedBy: c.KeyAddedBy, KeyAddedAt: c.KeyAddedAt, ConnectedBy: c.ConnectedBy, ConnectedAt: c.ConnectedAt,
 		DisconnectedBy: c.DisconnectedBy, DisconnectedAt: c.DisconnectedAt, Status: c.Status, StatusDetail: c.StatusDetail, StatusAt: c.StatusAt,
-		LastTestAt: c.LastTestAt, LastTestOk: c.LastTestOk, LastTestMs: c.LastTestMs, Demo: c.Demo, UpdatedBy: by, UpdatedAt: at}
+		LastTestAt: c.LastTestAt, LastTestOk: c.LastTestOk, LastTestMs: c.LastTestMs, Demo: c.Demo, UpdatedBy: by, UpdatedAt: at, UserID: c.AccountUserID}
 }
 
 func modelParams(c store.AIBindingRow, by *uuid.UUID, at time.Time) store.AIModelSaveParams {
@@ -987,7 +1005,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return AISettings{}, err
 	}
 	if !res.OK {
-		s.explain(ctx, &res, llm.Info(c.provider).Name)
+		s.explain(ctx, &res, llm.Info(c.provider).Name, false)
 		return AISettings{}, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
 	}
 	now := s.now()
@@ -1097,29 +1115,35 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 	if err != nil {
 		return AISettings{}, AITestResult{}, err
 	}
-	return s.replaceKey(ctx, ws, p, cur, in, "ai.key_replaced", ws.ID.String())
+	test, err := s.replaceKey(ctx, ws, p, cur, in, "ai.key_replaced", ws.ID.String())
+	if err != nil {
+		return AISettings{}, test, err
+	}
+	out, err := s.Settings(ctx, ws, p)
+	return out, test, err
 }
 
 // replaceKey tests a new key for a model's account with that model, and
-// saves it.
-func (s *Service) replaceKey(ctx context.Context, ws *store.Workspace, p *authz.Principal, cur *connection, in AIKeyInput, action, target string) (AISettings, AITestResult, error) {
-	if !cur.connected() {
-		return AISettings{}, AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
+// saves it. A person's own account whose key was removed (they left the
+// workspace and came back) is connected again with a new key.
+func (s *Service) replaceKey(ctx context.Context, ws *store.Workspace, p *authz.Principal, cur *connection, in AIKeyInput, action, target string) (AITestResult, error) {
+	if !cur.connected() && !cur.personal() {
+		return AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
 	}
 	c := candidate{provider: cur.Provider, baseURL: cur.BaseUrl, deployment: cur.Deployment, apiVersion: cur.ApiVersion, model: cur.Model, key: strings.TrimSpace(in.APIKey)}
 	priced := *cur
 	priced.Demo = false
 	res, err := s.test(ctx, ws, p, c, &priced)
 	if err != nil {
-		return AISettings{}, res, err
+		return res, err
 	}
 	if !res.OK {
-		s.explain(ctx, &res, cur.providerName())
-		return AISettings{}, res, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
+		s.explain(ctx, &res, cur.providerName(), cur.personal())
+		return res, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
 	}
 	sealed, err := s.Box.SealString(c.key, keyAD(cur.AccountID))
 	if err != nil {
-		return AISettings{}, res, err
+		return res, err
 	}
 	now := s.now()
 	row := cur.AIBindingRow
@@ -1127,6 +1151,13 @@ func (s *Service) replaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 	ms := int32(res.Ms)
 	row.KeySealed, row.KeyAddedBy, row.KeyAddedAt, row.Status, row.StatusDetail, row.StatusAt = sealed, actorID(p), &now, "ok", "", &now
 	row.LastTestAt, row.LastTestOk, row.LastTestMs, row.Demo = &now, &ok, &ms, false
+	if !cur.connected() {
+		row.ConnectedBy, row.ConnectedAt, row.DisconnectedBy, row.DisconnectedAt = actorID(p), now, nil, nil
+	}
+	meta := map[string]any{"key": "replaced (write-only)", "test": map[string]any{"ok": true, "ms": res.Ms}, "summary": keyReplaced + " · test passed"}
+	if cur.personal() {
+		meta["personal"] = true
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
@@ -1136,19 +1167,20 @@ func (s *Service) replaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "ai_assistant", TargetID: target,
-			TargetName: cur.providerName(), Metadata: map[string]any{"key": "replaced (write-only)", "test": map[string]any{"ok": true, "ms": res.Ms}, "summary": keyReplaced + " · test passed"}})
+			TargetName: cur.providerName(), Metadata: meta})
 	})
-	if err != nil {
-		return AISettings{}, res, err
-	}
-	out, err := s.Settings(ctx, ws, p)
-	return out, res, err
+	return res, err
 }
 
 // A successful test cannot overwrite newer settings or outlive the manager's
 // access. Onboarding serializes the absent model with other first connections.
 func checkTestConnection(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, before *connection) error {
-	if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+	// A personal key's owner tests and saves it with ai:use.
+	permission := authz.IntegrationsManage
+	if before.personal() {
+		permission = authz.AIUse
+	}
+	if _, err := draftActor(ctx, q, ws, p, false, permission); err != nil {
 		return err
 	}
 	if _, err := lockSettings(ctx, q, ws.ID); err != nil {

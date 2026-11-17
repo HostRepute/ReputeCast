@@ -207,17 +207,46 @@ func (s *Service) load(ctx context.Context, q *store.Queries, ws uuid.UUID) (*co
 	return s.binding(ctx, q, ws, &id)
 }
 
-// loadFor returns the model a feature uses (its default), nil when it has
-// none.
-func (s *Service) loadFor(ctx context.Context, q *store.Queries, ws uuid.UUID, feature string) (*connection, error) {
-	id, err := q.AIFeatureModel(ctx, store.AIFeatureModelParams{WorkspaceID: ws, Feature: feature})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
+// loadFor returns the model a feature uses for a person (nil: the
+// workspace's default), nil when it has none.
+func (s *Service) loadFor(ctx context.Context, q *store.Queries, ws uuid.UUID, user *uuid.UUID, feature string) (*connection, error) {
+	id, ok, err := featureModel(ctx, q, ws, user, feature)
+	if err != nil || !ok {
 		return nil, err
 	}
 	return s.binding(ctx, q, ws, &id)
+}
+
+// featureModel is the model a feature's requests go to for a person: one of
+// their own models they picked for it, or else the workspace's default.
+func featureModel(ctx context.Context, q *store.Queries, ws uuid.UUID, user *uuid.UUID, feature string) (uuid.UUID, bool, error) {
+	if user != nil {
+		id, err := q.AIMemberFeatureModel(ctx, store.AIMemberFeatureModelParams{WorkspaceID: ws, UserID: *user, Feature: feature})
+		if err == nil {
+			return id, true, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, false, err
+		}
+	}
+	id, err := q.AIFeatureModel(ctx, store.AIFeatureModelParams{WorkspaceID: ws, Feature: feature})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, false, nil
+	}
+	return id, err == nil, err
+}
+
+// personal reports whether a model is on a person's own account (a
+// personal key, assistant brief D4).
+func (c *connection) personal() bool { return c != nil && c.AccountUserID != nil }
+
+// ownedBy reports whether a model is on the account of owner (nil: the
+// workspace's).
+func (c *connection) ownedBy(owner *uuid.UUID) bool {
+	if c.AccountUserID == nil || owner == nil {
+		return c.AccountUserID == nil && owner == nil
+	}
+	return *c.AccountUserID == *owner
 }
 
 // binding returns a model of the workspace with its account and settings,

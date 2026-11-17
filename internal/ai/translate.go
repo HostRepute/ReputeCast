@@ -197,7 +197,7 @@ func (s *Service) Translate(ctx context.Context, ws *store.Workspace, p *authz.P
 		return AITranslation{}, invalid(ctx, "body.campaignId", mTooLong, map[string]any{"count": t.Chars, "max": maxEmailChars})
 	}
 	// The demo's sample connection answers from recordings in Spanish and German only.
-	if conn, err := s.loadFor(ctx, s.Q, ws.ID, FeatureTranslate); err == nil && conn != nil && conn.Demo && conn.connected() && demoPhrases[target] == nil {
+	if conn, err := s.loadFor(ctx, s.Q, ws.ID, actorID(p), FeatureTranslate); err == nil && conn != nil && conn.Demo && conn.connected() && demoPhrases[target] == nil {
 		return AITranslation{}, problem(ctx, http.StatusConflict, codeDemoModel, mDemoLanguage, map[string]any{"language": languageIn(i18n.LangFrom(ctx), target)})
 	}
 	res, err := s.run(ctx, ws, p, task{feature: FeatureTranslate, action: target, targetKind: "campaign", targetID: &c.id, targetLabel: c.name, req: translatePrompt(t)})
@@ -366,7 +366,7 @@ func (s *Service) AcceptTranslation(ctx context.Context, ws *store.Workspace, p 
 	if err != nil {
 		return AITranslationAccepted{}, err
 	}
-	conn, err := s.loadFor(ctx, s.Q, ws.ID, FeatureTranslate)
+	conn, err := s.loadFor(ctx, s.Q, ws.ID, actorID(p), FeatureTranslate)
 	if err != nil {
 		return AITranslationAccepted{}, err
 	}

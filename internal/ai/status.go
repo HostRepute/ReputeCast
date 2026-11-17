@@ -64,11 +64,20 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return AIStatus{}, err
 	}
 	out.Defaults = m.defaultViews()
+	// A feature follows the person's own pick of their models, if any.
+	mine, err := s.memberModels(ctx, s.Q, ws.ID, actorID(p))
+	if err != nil {
+		return AIStatus{}, err
+	}
 	for _, f := range Features {
 		st := AIFeatureState{Key: f, On: false, Available: true}
-		if d := m.of(f); d != nil {
+		d := m.of(f)
+		if o, ok := mine[f]; ok {
+			d = o
+		}
+		if d != nil {
 			st.ModelID = &d.ModelID
-			if d.connected() {
+			if d.connected() && (!d.personal() || d.PersonalKeys) {
 				st.On = !slices.Contains(d.FeaturesOff, f)
 				if f == FeatureAltText && !d.ImageInput {
 					st.On, st.Available = false, false

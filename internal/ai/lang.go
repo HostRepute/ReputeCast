@@ -113,6 +113,13 @@ var (
 	mToolsUnchecked      = msgs.M("problem.toolsUnchecked")
 	mFeatureName         = msgs.M("feature.name")
 
+	mPersonalKeysOff     = msgs.M("problem.personalKeysOff")
+	mPersonalCapReached  = msgs.M("problem.personalCapReached")
+	mPersonalKeyRejected = msgs.M("problem.personalKeyRejected")
+	mPersonalNoKey       = msgs.M("problem.personalNoKey")
+	mPersonalModel       = msgs.M("problem.personalModel")
+	mNotifyPersonalKey   = msgs.M("notify.personalKeyBody")
+
 	mImageAddress      = msgs.M("image.address")
 	mImageNotInLibrary = msgs.M("image.notInLibrary")
 	mImageWhere        = msgs.M("image.where")
@@ -160,6 +167,10 @@ const (
 	codeLastModel           = "ai_last_model"
 	codeAccountDisconnected = "ai_account_disconnected"
 	codeToolsUnchecked      = "ai_tools_unchecked"
+
+	codePersonalKeysOff    = "ai_personal_keys_off"
+	codePersonalCapReached = "ai_personal_cap_reached"
+	codePersonalModel      = "ai_personal_model"
 )
 
 // text writes a message in the request's language.

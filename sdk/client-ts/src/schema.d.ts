@@ -13007,6 +13007,7 @@ export interface components {
             outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
             /** Format: int64 */
             outputTokens: number;
+            personal: boolean;
             provider: string;
             targetId?: string;
             targetKind?: string;
@@ -13123,6 +13124,56 @@ export interface components {
             prices: components["schemas"]["AIPricesView"];
             tools: components["schemas"]["AIAgentCapability"];
         };
+        AIPersonalAccount: {
+            id: string;
+            models: string[];
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected" | "disconnected";
+        };
+        AIPersonalPerson: {
+            accounts: components["schemas"]["AIPersonalAccount"][];
+            /** Format: int64 */
+            costMicros: number;
+            name: string;
+            /** Format: int64 */
+            requests: number;
+            userId: string;
+        };
+        AIPersonalSettings: {
+            accounts: components["schemas"]["AIAccountView"][];
+            canAdd: boolean;
+            /** Format: date-time */
+            capSetAt?: string;
+            capSetBy?: string;
+            /** Format: double */
+            capUsd: number;
+            choices: components["schemas"]["AIFeatureDefault"][];
+            enabled: boolean;
+            people: components["schemas"]["AIPersonalPerson"][];
+            usage: components["schemas"]["AIPersonalUsageView"];
+        };
+        AIPersonalUsageView: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            reservedCostMicros: number;
+            /** Format: date-time */
+            resetsAt: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1
+             */
+            share: number;
+            /** @enum {string} */
+            state: "ok" | "notice" | "reached";
+            /** Format: int64 */
+            uncertainRequests: number;
+        };
         AIPricesView: {
             /** Format: date-time */
             from?: string;
@@ -13170,6 +13221,7 @@ export interface components {
             features: components["schemas"]["AIFeatureState"][];
             helpers: string[];
             instanceAdmins: string[];
+            personal: components["schemas"]["AIPersonalSettings"];
             /** Format: date-time */
             priceListDate: string;
             usage: components["schemas"]["AIUsageView"];

@@ -68,10 +68,10 @@ func (q *Queries) AIAccountModelCount(ctx context.Context, arg AIAccountModelCou
 const aIAccountSave = `-- name: AIAccountSave :exec
 INSERT INTO ai_accounts (id, workspace_id, provider, label, base_url, api_version, key_sealed, key_added_by, key_added_at,
     connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at,
-    last_test_at, last_test_ok, last_test_ms, demo, created_at, updated_by, updated_at)
+    last_test_at, last_test_ok, last_test_ms, demo, created_at, updated_by, updated_at, user_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
     $10, $11, $12, $13, $14, $15, $16,
-    $17, $18, $19, $20, $21, $22, $21)
+    $17, $18, $19, $20, $21, $22, $21, $23)
 ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url,
     api_version = EXCLUDED.api_version, key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by,
     key_added_at = EXCLUDED.key_added_at, connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at,
@@ -79,7 +79,7 @@ ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, label = EXCLUDED.la
     status_detail = EXCLUDED.status_detail, status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at,
     last_test_ok = EXCLUDED.last_test_ok, last_test_ms = EXCLUDED.last_test_ms, demo = EXCLUDED.demo,
     revision = ai_accounts.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
-WHERE ai_accounts.workspace_id = EXCLUDED.workspace_id
+WHERE ai_accounts.workspace_id = EXCLUDED.workspace_id AND ai_accounts.user_id IS NOT DISTINCT FROM EXCLUDED.user_id
 `
 
 type AIAccountSaveParams struct {
@@ -105,8 +105,10 @@ type AIAccountSaveParams struct {
 	Demo           bool       `json:"demo"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 	UpdatedBy      *uuid.UUID `json:"updatedBy"`
+	UserID         *uuid.UUID `json:"userId"`
 }
 
+// An account's owner (user_id) is set when it is made and never changes.
 func (q *Queries) AIAccountSave(ctx context.Context, arg AIAccountSaveParams) error {
 	_, err := q.db.Exec(ctx, aIAccountSave,
 		arg.ID,
@@ -131,6 +133,7 @@ func (q *Queries) AIAccountSave(ctx context.Context, arg AIAccountSaveParams) er
 		arg.Demo,
 		arg.UpdatedAt,
 		arg.UpdatedBy,
+		arg.UserID,
 	)
 	return err
 }
@@ -190,6 +193,47 @@ func (q *Queries) AIAccountSetTest(ctx context.Context, arg AIAccountSetTestPara
 	return err
 }
 
+const aIActivityMembers = `-- name: AIActivityMembers :many
+SELECT r.user_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email
+FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
+WHERE r.workspace_id = $1 AND r.created_at >= $2 AND r.user_id IS NOT NULL
+GROUP BY r.user_id, u.name, u.email
+ORDER BY sum(r.cost_micros) DESC, user_name
+`
+
+type AIActivityMembersParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type AIActivityMembersRow struct {
+	UserID    *uuid.UUID `json:"userId"`
+	UserName  string     `json:"userName"`
+	UserEmail string     `json:"userEmail"`
+}
+
+// The people who asked this month, on the workspace's keys or their own,
+// the biggest first: the activity log's member filter.
+func (q *Queries) AIActivityMembers(ctx context.Context, arg AIActivityMembersParams) ([]AIActivityMembersRow, error) {
+	rows, err := q.db.Query(ctx, aIActivityMembers, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIActivityMembersRow{}
+	for rows.Next() {
+		var i AIActivityMembersRow
+		if err := rows.Scan(&i.UserID, &i.UserName, &i.UserEmail); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const aIBinding = `-- name: AIBinding :one
 
 SELECT m.id AS model_id, a.id AS account_id, s.workspace_id,
@@ -200,7 +244,7 @@ SELECT m.id AS model_id, a.id AS account_id, s.workspace_id,
     m.input_price, m.output_price, m.prices_from, m.price_known,
     s.features_off, s.notice_month, s.cap_notice_month, a.demo,
     s.revision AS settings_revision, a.revision AS account_revision, m.revision AS model_revision,
-    m.updated_at AS model_updated_at
+    m.updated_at AS model_updated_at, a.user_id AS account_user_id, s.personal_keys, s.personal_cap_usd
 FROM ai_models m
 JOIN ai_accounts a ON a.id = m.account_id AND a.workspace_id = m.workspace_id
 JOIN ai_workspace_settings s ON s.workspace_id = m.workspace_id
@@ -254,6 +298,9 @@ type AIBindingRow struct {
 	AccountRevision  int64      `json:"accountRevision"`
 	ModelRevision    int64      `json:"modelRevision"`
 	ModelUpdatedAt   time.Time  `json:"modelUpdatedAt"`
+	AccountUserID    *uuid.UUID `json:"accountUserId"`
+	PersonalKeys     bool       `json:"personalKeys"`
+	PersonalCapUsd   float64    `json:"personalCapUsd"`
 }
 
 // AI assistant (design expansion M22): the workspace's AI settings, its
@@ -306,6 +353,9 @@ func (q *Queries) AIBinding(ctx context.Context, arg AIBindingParams) (AIBinding
 		&i.AccountRevision,
 		&i.ModelRevision,
 		&i.ModelUpdatedAt,
+		&i.AccountUserID,
+		&i.PersonalKeys,
+		&i.PersonalCapUsd,
 	)
 	return i, err
 }
@@ -551,6 +601,97 @@ func (q *Queries) AIMediaImage(ctx context.Context, arg AIMediaImageParams) (AIM
 	return i, err
 }
 
+const aIMemberFeatureModel = `-- name: AIMemberFeatureModel :one
+SELECT model_id FROM ai_member_feature_models WHERE workspace_id = $1 AND user_id = $2 AND feature = $3
+`
+
+type AIMemberFeatureModelParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+	Feature     string    `json:"feature"`
+}
+
+func (q *Queries) AIMemberFeatureModel(ctx context.Context, arg AIMemberFeatureModelParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, aIMemberFeatureModel, arg.WorkspaceID, arg.UserID, arg.Feature)
+	var model_id uuid.UUID
+	err := row.Scan(&model_id)
+	return model_id, err
+}
+
+const aIMemberFeatureModelClear = `-- name: AIMemberFeatureModelClear :execrows
+DELETE FROM ai_member_feature_models WHERE workspace_id = $1 AND user_id = $2 AND feature = $3
+`
+
+type AIMemberFeatureModelClearParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+	Feature     string    `json:"feature"`
+}
+
+func (q *Queries) AIMemberFeatureModelClear(ctx context.Context, arg AIMemberFeatureModelClearParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIMemberFeatureModelClear, arg.WorkspaceID, arg.UserID, arg.Feature)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIMemberFeatureModelSet = `-- name: AIMemberFeatureModelSet :exec
+INSERT INTO ai_member_feature_models (workspace_id, user_id, feature, model_id) VALUES ($1, $2, $3, $4)
+ON CONFLICT (workspace_id, user_id, feature) DO UPDATE SET model_id = EXCLUDED.model_id
+`
+
+type AIMemberFeatureModelSetParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+	Feature     string    `json:"feature"`
+	ModelID     uuid.UUID `json:"modelId"`
+}
+
+func (q *Queries) AIMemberFeatureModelSet(ctx context.Context, arg AIMemberFeatureModelSetParams) error {
+	_, err := q.db.Exec(ctx, aIMemberFeatureModelSet,
+		arg.WorkspaceID,
+		arg.UserID,
+		arg.Feature,
+		arg.ModelID,
+	)
+	return err
+}
+
+const aIMemberFeatureModels = `-- name: AIMemberFeatureModels :many
+SELECT feature, model_id FROM ai_member_feature_models WHERE workspace_id = $1 AND user_id = $2 ORDER BY feature
+`
+
+type AIMemberFeatureModelsParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+}
+
+type AIMemberFeatureModelsRow struct {
+	Feature string    `json:"feature"`
+	ModelID uuid.UUID `json:"modelId"`
+}
+
+func (q *Queries) AIMemberFeatureModels(ctx context.Context, arg AIMemberFeatureModelsParams) ([]AIMemberFeatureModelsRow, error) {
+	rows, err := q.db.Query(ctx, aIMemberFeatureModels, arg.WorkspaceID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIMemberFeatureModelsRow{}
+	for rows.Next() {
+		var i AIMemberFeatureModelsRow
+		if err := rows.Scan(&i.Feature, &i.ModelID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const aIMembersRoles = `-- name: AIMembersRoles :many
 SELECT coalesce(nullif(u.name, ''), u.email)::text AS name, r.key AS role_key, r.name AS role_name, r.builtin, r.permissions
 FROM workspace_members m
@@ -674,9 +815,177 @@ func (q *Queries) AIModelsDeleteOthers(ctx context.Context, arg AIModelsDeleteOt
 	return err
 }
 
+const aIPersonalAccounts = `-- name: AIPersonalAccounts :many
+SELECT a.id, a.user_id, a.provider, a.base_url, a.status, a.disconnected_at, a.created_at,
+    coalesce(nullif(u.name, ''), u.email)::text AS user_name,
+    coalesce((SELECT array_agg(coalesce(nullif(m.model_name, ''), m.model) ORDER BY m.created_at, m.id) FROM ai_models m WHERE m.account_id = a.id), '{}')::text[] AS models
+FROM ai_accounts a JOIN users u ON u.id = a.user_id
+WHERE a.workspace_id = $1 AND a.user_id IS NOT NULL
+ORDER BY user_name, a.user_id, a.created_at, a.id
+`
+
+type AIPersonalAccountsRow struct {
+	ID             uuid.UUID  `json:"id"`
+	UserID         *uuid.UUID `json:"userId"`
+	Provider       string     `json:"provider"`
+	BaseUrl        string     `json:"baseUrl"`
+	Status         string     `json:"status"`
+	DisconnectedAt *time.Time `json:"disconnectedAt"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UserName       string     `json:"userName"`
+	Models         []string   `json:"models"`
+}
+
+// Who has personal accounts, for managers: never a key.
+func (q *Queries) AIPersonalAccounts(ctx context.Context, workspaceID uuid.UUID) ([]AIPersonalAccountsRow, error) {
+	rows, err := q.db.Query(ctx, aIPersonalAccounts, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIPersonalAccountsRow{}
+	for rows.Next() {
+		var i AIPersonalAccountsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Provider,
+			&i.BaseUrl,
+			&i.Status,
+			&i.DisconnectedAt,
+			&i.CreatedAt,
+			&i.UserName,
+			&i.Models,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIPersonalKeysRemove = `-- name: AIPersonalKeysRemove :execrows
+UPDATE ai_accounts SET key_sealed = NULL, key_added_by = NULL, key_added_at = NULL,
+    disconnected_at = coalesce(disconnected_at, now()), revision = revision + 1, updated_at = now()
+WHERE user_id = $1 AND ($2::uuid IS NULL OR workspace_id = $2)
+  AND (key_sealed IS NOT NULL OR disconnected_at IS NULL)
+`
+
+type AIPersonalKeysRemoveParams struct {
+	UserID      *uuid.UUID `json:"userId"`
+	WorkspaceID *uuid.UUID `json:"workspaceId"`
+}
+
+// A person left the workspace or was deactivated (sqlc.narg(workspace_id)
+// NULL: every workspace): their personal accounts lose their keys and stop
+// working. The revision fences requests already prepared.
+func (q *Queries) AIPersonalKeysRemove(ctx context.Context, arg AIPersonalKeysRemoveParams) (int64, error) {
+	result, err := q.db.Exec(ctx, aIPersonalKeysRemove, arg.UserID, arg.WorkspaceID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const aIPersonalModels = `-- name: AIPersonalModels :many
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = $1 AND a.user_id = $2
+ORDER BY a.created_at, a.id, m.created_at, m.id
+`
+
+type AIPersonalModelsParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      *uuid.UUID `json:"userId"`
+}
+
+// A person's own models in the workspace.
+func (q *Queries) AIPersonalModels(ctx context.Context, arg AIPersonalModelsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, aIPersonalModels, arg.WorkspaceID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIPersonalUsageByUser = `-- name: AIPersonalUsageByUser :many
+SELECT user_id, coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests
+FROM ai_requests WHERE workspace_id = $1 AND created_at >= $2 AND personal AND user_id IS NOT NULL
+GROUP BY user_id
+`
+
+type AIPersonalUsageByUserParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Since       time.Time `json:"since"`
+}
+
+type AIPersonalUsageByUserRow struct {
+	UserID     *uuid.UUID `json:"userId"`
+	CostMicros int64      `json:"costMicros"`
+	Requests   int64      `json:"requests"`
+}
+
+func (q *Queries) AIPersonalUsageByUser(ctx context.Context, arg AIPersonalUsageByUserParams) ([]AIPersonalUsageByUserRow, error) {
+	rows, err := q.db.Query(ctx, aIPersonalUsageByUser, arg.WorkspaceID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIPersonalUsageByUserRow{}
+	for rows.Next() {
+		var i AIPersonalUsageByUserRow
+		if err := rows.Scan(&i.UserID, &i.CostMicros, &i.Requests); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIPersonalUsageTotal = `-- name: AIPersonalUsageTotal :one
+SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests
+FROM ai_requests WHERE workspace_id = $1 AND user_id = $2 AND created_at >= $3 AND personal
+`
+
+type AIPersonalUsageTotalParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      *uuid.UUID `json:"userId"`
+	Since       time.Time  `json:"since"`
+}
+
+type AIPersonalUsageTotalRow struct {
+	CostMicros int64 `json:"costMicros"`
+	Requests   int64 `json:"requests"`
+}
+
+// A person's use of their own keys.
+func (q *Queries) AIPersonalUsageTotal(ctx context.Context, arg AIPersonalUsageTotalParams) (AIPersonalUsageTotalRow, error) {
+	row := q.db.QueryRow(ctx, aIPersonalUsageTotal, arg.WorkspaceID, arg.UserID, arg.Since)
+	var i AIPersonalUsageTotalRow
+	err := row.Scan(&i.CostMicros, &i.Requests)
+	return i, err
+}
+
 const aIPrimaryModel = `-- name: AIPrimaryModel :one
 SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
-WHERE a.workspace_id = $1
+WHERE a.workspace_id = $1 AND a.user_id IS NULL
 ORDER BY a.created_at, a.id, m.created_at, m.id
 LIMIT 1
 `
@@ -780,7 +1089,7 @@ func (q *Queries) AIReportSummarySave(ctx context.Context, arg AIReportSummarySa
 }
 
 const aIRequest = `-- name: AIRequest :one
-SELECT id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model, input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known, account_id, model_id FROM ai_requests WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model, input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known, account_id, model_id, personal FROM ai_requests WHERE id = $1 AND workspace_id = $2
 `
 
 type AIRequestParams struct {
@@ -814,6 +1123,7 @@ func (q *Queries) AIRequest(ctx context.Context, arg AIRequestParams) (AiRequest
 		&i.UsageKnown,
 		&i.AccountID,
 		&i.ModelID,
+		&i.Personal,
 	)
 	return i, err
 }
@@ -837,10 +1147,10 @@ func (q *Queries) AIRequestCount(ctx context.Context, arg AIRequestCountParams) 
 const aIRequestInsert = `-- name: AIRequestInsert :exec
 INSERT INTO ai_requests (id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model,
     input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known,
-    account_id, model_id)
+    account_id, model_id, personal)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-    $21, $22)
+    $21, $22, $23)
 ON CONFLICT (id) DO UPDATE SET input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
     cost_micros = EXCLUDED.cost_micros, usage_known = EXCLUDED.usage_known
 WHERE ai_requests.workspace_id = EXCLUDED.workspace_id AND NOT ai_requests.usage_known
@@ -869,6 +1179,7 @@ type AIRequestInsertParams struct {
 	UsageKnown    bool       `json:"usageKnown"`
 	AccountID     *uuid.UUID `json:"accountId"`
 	ModelID       *uuid.UUID `json:"modelId"`
+	Personal      bool       `json:"personal"`
 }
 
 func (q *Queries) AIRequestInsert(ctx context.Context, arg AIRequestInsertParams) error {
@@ -895,6 +1206,7 @@ func (q *Queries) AIRequestInsert(ctx context.Context, arg AIRequestInsertParams
 		arg.UsageKnown,
 		arg.AccountID,
 		arg.ModelID,
+		arg.Personal,
 	)
 	return err
 }
@@ -932,7 +1244,7 @@ func (q *Queries) AIRequestSetOutcome(ctx context.Context, arg AIRequestSetOutco
 }
 
 const aIRequests = `-- name: AIRequests :many
-SELECT r.id, r.workspace_id, r.user_id, r.feature, r.action, r.target_kind, r.target_id, r.target_label, r.provider, r.model, r.input_tokens, r.output_tokens, r.cost_micros, r.outcome, r.outcome_detail, r.duration_ms, r.created_at, r.decided_at, r.voice_revision, r.usage_known, r.account_id, r.model_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email, coalesce(u.avatar_color, '')::text AS user_color
+SELECT r.id, r.workspace_id, r.user_id, r.feature, r.action, r.target_kind, r.target_id, r.target_label, r.provider, r.model, r.input_tokens, r.output_tokens, r.cost_micros, r.outcome, r.outcome_detail, r.duration_ms, r.created_at, r.decided_at, r.voice_revision, r.usage_known, r.account_id, r.model_id, r.personal, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email, coalesce(u.avatar_color, '')::text AS user_color
 FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
 WHERE r.workspace_id = $1 AND r.created_at >= $2
   AND ($3::uuid IS NULL OR r.user_id = $3)
@@ -977,6 +1289,7 @@ type AIRequestsRow struct {
 	UsageKnown    bool       `json:"usageKnown"`
 	AccountID     *uuid.UUID `json:"accountId"`
 	ModelID       *uuid.UUID `json:"modelId"`
+	Personal      bool       `json:"personal"`
 	UserName      string     `json:"userName"`
 	UserEmail     string     `json:"userEmail"`
 	UserColor     string     `json:"userColor"`
@@ -1024,6 +1337,7 @@ func (q *Queries) AIRequests(ctx context.Context, arg AIRequestsParams) ([]AIReq
 			&i.UsageKnown,
 			&i.AccountID,
 			&i.ModelID,
+			&i.Personal,
 			&i.UserName,
 			&i.UserEmail,
 			&i.UserColor,
@@ -1191,7 +1505,7 @@ func (q *Queries) AITranslationReviewed(ctx context.Context, arg AITranslationRe
 
 const aIUsageByFeature = `-- name: AIUsageByFeature :many
 SELECT feature, coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = $1 AND created_at >= $2
+FROM ai_requests WHERE workspace_id = $1 AND created_at >= $2 AND NOT personal
 GROUP BY feature
 `
 
@@ -1236,7 +1550,7 @@ const aIUsageByMember = `-- name: AIUsageByMember :many
 SELECT r.user_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email,
        coalesce(sum(r.cost_micros), 0)::bigint AS cost_micros, coalesce(sum(r.input_tokens + r.output_tokens), 0)::bigint AS tokens, count(*)::bigint AS requests
 FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
-WHERE r.workspace_id = $1 AND r.created_at >= $2
+WHERE r.workspace_id = $1 AND r.created_at >= $2 AND NOT r.personal
 GROUP BY r.user_id, u.name, u.email
 ORDER BY cost_micros DESC, user_name
 `
@@ -1285,7 +1599,7 @@ func (q *Queries) AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams
 const aIUsageTotal = `-- name: AIUsageTotal :one
 SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
        coalesce(sum(output_tokens), 0)::bigint AS output_tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = $1 AND created_at >= $2
+FROM ai_requests WHERE workspace_id = $1 AND created_at >= $2 AND NOT personal
 `
 
 type AIUsageTotalParams struct {
@@ -1300,6 +1614,7 @@ type AIUsageTotalRow struct {
 	Requests     int64 `json:"requests"`
 }
 
+// The workspace's use: personal keys' never counts.
 func (q *Queries) AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error) {
 	row := q.db.QueryRow(ctx, aIUsageTotal, arg.WorkspaceID, arg.Since)
 	var i AIUsageTotalRow
@@ -1314,7 +1629,7 @@ func (q *Queries) AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIU
 
 const aIWorkspaceModels = `-- name: AIWorkspaceModels :many
 SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
-WHERE a.workspace_id = $1
+WHERE a.workspace_id = $1 AND a.user_id IS NULL
 ORDER BY a.created_at, a.id, m.created_at, m.id
 `
 
@@ -1339,8 +1654,39 @@ func (q *Queries) AIWorkspaceModels(ctx context.Context, workspaceID uuid.UUID) 
 	return items, nil
 }
 
+const aIWorkspacePersonalSave = `-- name: AIWorkspacePersonalSave :exec
+UPDATE ai_workspace_settings SET personal_keys = $1, personal_cap_usd = $2,
+    personal_cap_set_by = $3, personal_cap_set_at = $4,
+    revision = revision + 1, updated_by = $5, updated_at = $6
+WHERE workspace_id = $7
+`
+
+type AIWorkspacePersonalSaveParams struct {
+	PersonalKeys     bool       `json:"personalKeys"`
+	PersonalCapUsd   float64    `json:"personalCapUsd"`
+	PersonalCapSetBy *uuid.UUID `json:"personalCapSetBy"`
+	PersonalCapSetAt *time.Time `json:"personalCapSetAt"`
+	UpdatedBy        *uuid.UUID `json:"updatedBy"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+}
+
+// The personal-keys switch and the cap each person's own use has.
+func (q *Queries) AIWorkspacePersonalSave(ctx context.Context, arg AIWorkspacePersonalSaveParams) error {
+	_, err := q.db.Exec(ctx, aIWorkspacePersonalSave,
+		arg.PersonalKeys,
+		arg.PersonalCapUsd,
+		arg.PersonalCapSetBy,
+		arg.PersonalCapSetAt,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+		arg.WorkspaceID,
+	)
+	return err
+}
+
 const aIWorkspaceSettings = `-- name: AIWorkspaceSettings :one
-SELECT workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off, notice_month, cap_notice_month, revision, updated_by, updated_at FROM ai_workspace_settings WHERE workspace_id = $1
+SELECT workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off, notice_month, cap_notice_month, revision, updated_by, updated_at, personal_keys, personal_cap_usd, personal_cap_set_by, personal_cap_set_at FROM ai_workspace_settings WHERE workspace_id = $1
 `
 
 func (q *Queries) AIWorkspaceSettings(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error) {
@@ -1359,6 +1705,10 @@ func (q *Queries) AIWorkspaceSettings(ctx context.Context, workspaceID uuid.UUID
 		&i.Revision,
 		&i.UpdatedBy,
 		&i.UpdatedAt,
+		&i.PersonalKeys,
+		&i.PersonalCapUsd,
+		&i.PersonalCapSetBy,
+		&i.PersonalCapSetAt,
 	)
 	return i, err
 }
@@ -1409,7 +1759,7 @@ func (q *Queries) AIWorkspaceSettingsEnsure(ctx context.Context, workspaceID uui
 }
 
 const aIWorkspaceSettingsLock = `-- name: AIWorkspaceSettingsLock :one
-SELECT workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off, notice_month, cap_notice_month, revision, updated_by, updated_at FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE
+SELECT workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off, notice_month, cap_notice_month, revision, updated_by, updated_at, personal_keys, personal_cap_usd, personal_cap_set_by, personal_cap_set_at FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE
 `
 
 // The AI configuration lock (see migration 03630).
@@ -1429,6 +1779,10 @@ func (q *Queries) AIWorkspaceSettingsLock(ctx context.Context, workspaceID uuid.
 		&i.Revision,
 		&i.UpdatedBy,
 		&i.UpdatedAt,
+		&i.PersonalKeys,
+		&i.PersonalCapUsd,
+		&i.PersonalCapSetBy,
+		&i.PersonalCapSetAt,
 	)
 	return i, err
 }

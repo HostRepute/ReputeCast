@@ -207,6 +207,7 @@ type AiAccount struct {
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedBy      *uuid.UUID `json:"updatedBy"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
+	UserID         *uuid.UUID `json:"userId"`
 }
 
 type AiAgentArtifact struct {
@@ -317,6 +318,7 @@ type AiBudgetReservation struct {
 	SettledAt       *time.Time `json:"settledAt"`
 	AccountID       *uuid.UUID `json:"accountId"`
 	ModelID         *uuid.UUID `json:"modelId"`
+	Personal        bool       `json:"personal"`
 }
 
 type AiDraftProposal struct {
@@ -337,6 +339,13 @@ type AiDraftProposal struct {
 
 type AiFeatureModel struct {
 	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Feature     string    `json:"feature"`
+	ModelID     uuid.UUID `json:"modelId"`
+}
+
+type AiMemberFeatureModel struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
 	Feature     string    `json:"feature"`
 	ModelID     uuid.UUID `json:"modelId"`
 }
@@ -393,21 +402,26 @@ type AiRequest struct {
 	UsageKnown    bool       `json:"usageKnown"`
 	AccountID     *uuid.UUID `json:"accountId"`
 	ModelID       *uuid.UUID `json:"modelId"`
+	Personal      bool       `json:"personal"`
 }
 
 type AiWorkspaceSetting struct {
-	WorkspaceID    uuid.UUID  `json:"workspaceId"`
-	CapKind        string     `json:"capKind"`
-	CapUsd         float64    `json:"capUsd"`
-	CapTokens      int64      `json:"capTokens"`
-	CapSetBy       *uuid.UUID `json:"capSetBy"`
-	CapSetAt       *time.Time `json:"capSetAt"`
-	FeaturesOff    []string   `json:"featuresOff"`
-	NoticeMonth    string     `json:"noticeMonth"`
-	CapNoticeMonth string     `json:"capNoticeMonth"`
-	Revision       int64      `json:"revision"`
-	UpdatedBy      *uuid.UUID `json:"updatedBy"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	CapKind          string     `json:"capKind"`
+	CapUsd           float64    `json:"capUsd"`
+	CapTokens        int64      `json:"capTokens"`
+	CapSetBy         *uuid.UUID `json:"capSetBy"`
+	CapSetAt         *time.Time `json:"capSetAt"`
+	FeaturesOff      []string   `json:"featuresOff"`
+	NoticeMonth      string     `json:"noticeMonth"`
+	CapNoticeMonth   string     `json:"capNoticeMonth"`
+	Revision         int64      `json:"revision"`
+	UpdatedBy        *uuid.UUID `json:"updatedBy"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	PersonalKeys     bool       `json:"personalKeys"`
+	PersonalCapUsd   float64    `json:"personalCapUsd"`
+	PersonalCapSetBy *uuid.UUID `json:"personalCapSetBy"`
+	PersonalCapSetAt *time.Time `json:"personalCapSetAt"`
 }
 
 type ApiKey struct {

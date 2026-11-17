@@ -29,9 +29,9 @@ func (q *Queries) AIBudgetAbandoned(ctx context.Context, before time.Time) (int6
 
 const aIBudgetInsert = `-- name: AIBudgetInsert :exec
 INSERT INTO ai_budget_reservations (id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision,
-    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, account_id, model_id)
+    input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, account_id, model_id, personal)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-    $9, $10, 'reserved', $11, $12, $13, $14, $15, $16)
+    $9, $10, 'reserved', $11, $12, $13, $14, $15, $16, $17)
 `
 
 type AIBudgetInsertParams struct {
@@ -51,6 +51,7 @@ type AIBudgetInsertParams struct {
 	CreatedAt       time.Time  `json:"createdAt"`
 	AccountID       *uuid.UUID `json:"accountId"`
 	ModelID         *uuid.UUID `json:"modelId"`
+	Personal        bool       `json:"personal"`
 }
 
 func (q *Queries) AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) error {
@@ -71,12 +72,13 @@ func (q *Queries) AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) 
 		arg.CreatedAt,
 		arg.AccountID,
 		arg.ModelID,
+		arg.Personal,
 	)
 	return err
 }
 
 const aIBudgetLock = `-- name: AIBudgetLock :one
-SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2 FOR UPDATE
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2 FOR UPDATE
 `
 
 type AIBudgetLockParams struct {
@@ -106,6 +108,7 @@ func (q *Queries) AIBudgetLock(ctx context.Context, arg AIBudgetLockParams) (AiB
 		&i.SettledAt,
 		&i.AccountID,
 		&i.ModelID,
+		&i.Personal,
 	)
 	return i, err
 }
@@ -114,7 +117,7 @@ const aIBudgetMonthly = `-- name: AIBudgetMonthly :one
 SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
        coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
        count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain
-FROM ai_budget_reservations WHERE workspace_id = $1 AND state <> 'settled'
+FROM ai_budget_reservations WHERE workspace_id = $1 AND state <> 'settled' AND NOT personal
 `
 
 type AIBudgetMonthlyRow struct {
@@ -133,11 +136,12 @@ func (q *Queries) AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (A
 }
 
 const aIBudgetPending = `-- name: AIBudgetPending :many
-SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id FROM ai_budget_reservations
-WHERE workspace_id = $1 AND state <> 'settled'
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal FROM ai_budget_reservations
+WHERE workspace_id = $1 AND state <> 'settled' AND NOT personal
 ORDER BY created_at, id LIMIT 100
 `
 
+// The workspace's holds; personal keys' are their owners'.
 func (q *Queries) AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([]AiBudgetReservation, error) {
 	rows, err := q.db.Query(ctx, aIBudgetPending, workspaceID)
 	if err != nil {
@@ -166,6 +170,100 @@ func (q *Queries) AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([
 			&i.SettledAt,
 			&i.AccountID,
 			&i.ModelID,
+			&i.Personal,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIBudgetPersonLock = `-- name: AIBudgetPersonLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('ai_budget:' || ($1::uuid)::text || ':' || ($2::uuid)::text, 0))
+`
+
+type AIBudgetPersonLockParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+}
+
+// A person's own budget (their personal keys' cap) has its own lock, so it
+// never waits for the workspace's nor the workspace's for it. Taken after
+// the AI configuration lock, like the workspace's.
+func (q *Queries) AIBudgetPersonLock(ctx context.Context, arg AIBudgetPersonLockParams) error {
+	_, err := q.db.Exec(ctx, aIBudgetPersonLock, arg.WorkspaceID, arg.UserID)
+	return err
+}
+
+const aIBudgetPersonal = `-- name: AIBudgetPersonal :one
+SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
+       count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain
+FROM ai_budget_reservations WHERE workspace_id = $1 AND user_id = $2 AND state <> 'settled' AND personal
+`
+
+type AIBudgetPersonalParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      *uuid.UUID `json:"userId"`
+}
+
+type AIBudgetPersonalRow struct {
+	CostMicros int64 `json:"costMicros"`
+	Uncertain  int64 `json:"uncertain"`
+}
+
+// What a person's own requests in flight hold of their cap.
+func (q *Queries) AIBudgetPersonal(ctx context.Context, arg AIBudgetPersonalParams) (AIBudgetPersonalRow, error) {
+	row := q.db.QueryRow(ctx, aIBudgetPersonal, arg.WorkspaceID, arg.UserID)
+	var i AIBudgetPersonalRow
+	err := row.Scan(&i.CostMicros, &i.Uncertain)
+	return i, err
+}
+
+const aIBudgetPersonalPending = `-- name: AIBudgetPersonalPending :many
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal FROM ai_budget_reservations
+WHERE workspace_id = $1 AND user_id = $2 AND state <> 'settled' AND personal
+ORDER BY created_at, id LIMIT 100
+`
+
+type AIBudgetPersonalPendingParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      *uuid.UUID `json:"userId"`
+}
+
+// A person's holds on their own keys.
+func (q *Queries) AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPersonalPendingParams) ([]AiBudgetReservation, error) {
+	rows, err := q.db.Query(ctx, aIBudgetPersonalPending, arg.WorkspaceID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AiBudgetReservation{}
+	for rows.Next() {
+		var i AiBudgetReservation
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.UserID,
+			&i.RunID,
+			&i.Provider,
+			&i.Model,
+			&i.Feature,
+			&i.PricingRevision,
+			&i.InputPrice,
+			&i.OutputPrice,
+			&i.State,
+			&i.InputTokens,
+			&i.OutputTokens,
+			&i.CostMicros,
+			&i.CreatedAt,
+			&i.SettledAt,
+			&i.AccountID,
+			&i.ModelID,
+			&i.Personal,
 		); err != nil {
 			return nil, err
 		}
@@ -213,6 +311,28 @@ func (q *Queries) AIBudgetRun(ctx context.Context, runID *uuid.UUID) (AIBudgetRu
 		&i.Uncertain,
 		&i.Requests,
 	)
+	return i, err
+}
+
+const aIBudgetScope = `-- name: AIBudgetScope :one
+SELECT personal, user_id FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2
+`
+
+type AIBudgetScopeParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type AIBudgetScopeRow struct {
+	Personal bool       `json:"personal"`
+	UserID   *uuid.UUID `json:"userId"`
+}
+
+// Whose budget a reservation is in; set when it is made and never changed.
+func (q *Queries) AIBudgetScope(ctx context.Context, arg AIBudgetScopeParams) (AIBudgetScopeRow, error) {
+	row := q.db.QueryRow(ctx, aIBudgetScope, arg.ID, arg.WorkspaceID)
+	var i AIBudgetScopeRow
+	err := row.Scan(&i.Personal, &i.UserID)
 	return i, err
 }
 

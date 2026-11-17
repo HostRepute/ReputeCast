@@ -2586,7 +2586,7 @@ export interface paths {
         get?: never;
         /**
          * Replace an account's key, after it passes the test with the account's first model
-         * @description Audited as ai_account.key_replace.
+         * @description Audited as ai_account.key_replaced.
          */
         put: operations["replace-ai-account-key"];
         post?: never;
@@ -2646,7 +2646,7 @@ export interface paths {
         get?: never;
         /**
          * Set a model's prices per million tokens
-         * @description Audited as ai_model.prices.
+         * @description Audited as ai_model.prices_updated.
          */
         put: operations["set-ai-model-prices"];
         post?: never;
@@ -3054,7 +3054,7 @@ export interface paths {
         get?: never;
         /**
          * Pick the model a feature uses
-         * @description A model of a connected account whose key works; alt text needs one that reads images, the agent and the assistant one that passed the tool-calling check. Requests already prepared with the previous model aren't sent; agent runs keep the model they began with. Audited as ai_feature.model.
+         * @description A model of a connected account whose key works; alt text needs one that reads images, the agent and the assistant one that passed the tool-calling check. Requests already prepared with the previous model aren't sent; agent runs keep the model they began with. A personal key's model can't be one. Audited as ai_feature.model_changed.
          */
         put: operations["set-ai-feature-model"];
         post?: never;
@@ -3130,6 +3130,290 @@ export interface paths {
          */
         post: operations["list-ai-models"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's personal keys: their own accounts, models, picks and use
+         * @description The key is write-only: only whether one is set, and when.
+         */
+        get: operations["get-ai-personal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn personal keys on or off and set each person's monthly cap
+         * @description Turning them off keeps the accounts; their requests are refused until they are on again. Audited as ai_personal_keys.enabled, ai_personal_keys.disabled or ai_personal_keys.cap_updated.
+         */
+        put: operations["set-ai-personal-keys"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal-keys/accounts/{account}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a member's personal account, its key and its models
+         * @description For offboarding. The member's picks of its models go with it; the activity log keeps their requests. Audited as ai_account.remove.
+         */
+        delete: operations["remove-ai-member-account"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add one's own model account with its first model, after the test passes
+         * @description Needs personal keys on. The key is sealed and never returned; only its owner's requests use it, in their own monthly cap. Audited as ai_account.add.
+         */
+        post: operations["add-ai-personal-account"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove one's own account, its key and its models
+         * @description Refused while one of its models is picked for a feature. Audited as ai_account.remove.
+         */
+        delete: operations["remove-ai-personal-account"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace one's own account's key, after it passes the test
+         * @description Also adds the key again to an account whose key was removed. Audited as ai_account.key_replaced.
+         */
+        put: operations["replace-ai-personal-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a model to one's own account, with its prices
+         * @description Audited as ai_model.add.
+         */
+        post: operations["add-ai-personal-model"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a model from one's own account
+         * @description Refused while it is picked for a feature, and for an account's only model. Audited as ai_model.remove.
+         */
+        delete: operations["remove-ai-personal-model"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set one's own model's prices per million tokens
+         * @description Audited as ai_model.prices_updated.
+         */
+        put: operations["set-ai-personal-model-prices"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test one's own model: a fixed prompt with no workspace content
+         * @description In the caller's own monthly cap.
+         */
+        post: operations["test-ai-personal-model"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/test-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test one's own model's tool calling with fixed data
+         * @description In the caller's own monthly cap. The agent and the assistant use a personal model only once it passed.
+         */
+        post: operations["test-ai-personal-model-tools"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/budget-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List one's own usage reserved on personal keys, awaiting a response or reconciliation
+         * @description Only the caller's own holds; they count against the caller's personal monthly cap.
+         */
+        get: operations["list-ai-personal-budget-holds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/budget-holds/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record provider-verified usage of one's own hold without retrying the request
+         * @description Settles the hold in the caller's own budget. Another person's hold isn't found. Audited as ai.usage_reconciled.
+         */
+        post: operations["reconcile-ai-personal-budget"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/features/{feature}/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pick one of one's own models for one's own requests of a feature
+         * @description The rules of the workspace's models apply. Requests already prepared with another model aren't sent; agent runs keep the model they began with. Audited as ai_feature.model_changed.
+         */
+        put: operations["set-ai-personal-feature-model"];
+        post?: never;
+        /**
+         * Go back to the workspace's model for one's own requests of a feature
+         * @description Audited as ai_feature.model_changed.
+         */
+        delete: operations["clear-ai-personal-feature-model"];
         options?: never;
         head?: never;
         patch?: never;
@@ -20440,6 +20724,7 @@ export interface components {
             outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
             /** Format: int64 */
             outputTokens: number;
+            personal: boolean;
             provider: string;
             targetId?: string;
             targetKind?: string;
@@ -21058,6 +21343,65 @@ export interface components {
             items: components["schemas"]["AIPendingDraft"][];
             next?: string;
         };
+        AIPersonalAccount: {
+            id: string;
+            models: string[];
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected" | "disconnected";
+        };
+        AIPersonalKeyReplaced: {
+            personal: components["schemas"]["AIPersonalSettings"];
+            test: components["schemas"]["AITestResult"];
+        };
+        AIPersonalKeysInput: {
+            /** Format: double */
+            capUsd: number;
+            enabled: boolean;
+        };
+        AIPersonalPerson: {
+            accounts: components["schemas"]["AIPersonalAccount"][];
+            /** Format: int64 */
+            costMicros: number;
+            name: string;
+            /** Format: int64 */
+            requests: number;
+            userId: string;
+        };
+        AIPersonalSettings: {
+            accounts: components["schemas"]["AIAccountView"][];
+            canAdd: boolean;
+            /** Format: date-time */
+            capSetAt?: string;
+            capSetBy?: string;
+            /** Format: double */
+            capUsd: number;
+            choices: components["schemas"]["AIFeatureDefault"][];
+            enabled: boolean;
+            people: components["schemas"]["AIPersonalPerson"][];
+            usage: components["schemas"]["AIPersonalUsageView"];
+        };
+        AIPersonalUsageView: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            reservedCostMicros: number;
+            /** Format: date-time */
+            resetsAt: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1
+             */
+            share: number;
+            /** @enum {string} */
+            state: "ok" | "notice" | "reached";
+            /** Format: int64 */
+            uncertainRequests: number;
+        };
         AIPricesInput: {
             /**
              * Format: double
@@ -21234,6 +21578,7 @@ export interface components {
             features: components["schemas"]["AIFeatureState"][];
             helpers: string[];
             instanceAdmins: string[];
+            personal: components["schemas"]["AIPersonalSettings"];
             /** Format: date-time */
             priceListDate: string;
             usage: components["schemas"]["AIUsageView"];
@@ -59255,6 +59600,539 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AIModelList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-personal-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPersonalKeysInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-member-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-ai-personal-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAccountInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-personal-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-ai-personal-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalKeyReplaced"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-ai-personal-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAccountModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-personal-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-personal-model-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPricesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-personal-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-personal-model-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentCapability"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-personal-budget-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIBudgetHolds"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconcile-ai-personal-budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIBudgetReconcileInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-personal-feature-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIFeatureModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "clear-ai-personal-feature-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
                 };
             };
             /** @description Error */

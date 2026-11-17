@@ -18,6 +18,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -78,10 +79,10 @@ func (r result) sent(chars int) AISent {
 		CostMicros: r.CostMicros, InputTokens: r.Response.InputTokens, OutputTokens: r.Response.OutputTokens, VoiceRevision: r.voiceRevision}
 }
 
-// usable checks that a feature can send a request now: a model is
+// usable checks that a feature can send a person's request now: a model is
 // connected, the feature is on, the key works and the cap isn't reached.
-func (s *Service) usable(ctx context.Context, ws *store.Workspace, feature string) (*connection, error) {
-	c, err := s.loadFor(ctx, s.Q, ws.ID, feature)
+func (s *Service) usable(ctx context.Context, ws *store.Workspace, p *authz.Principal, feature string) (*connection, error) {
+	c, err := s.loadFor(ctx, s.Q, ws.ID, actorID(p), feature)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +91,16 @@ func (s *Service) usable(ctx context.Context, ws *store.Workspace, feature strin
 
 // ready checks that a model can take a feature's request now. A feature
 // whose default model is disconnected waits for it: another model is never
-// used instead.
+// used instead. A personal key is its owner's to fix.
 func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection, feature string) (*connection, error) {
+	if c.personal() {
+		if !c.PersonalKeys {
+			return nil, personalKeysOff(ctx)
+		}
+		if !c.connected() {
+			return nil, problem(ctx, http.StatusConflict, codeNotConnected, mPersonalNoKey, i18n.Args{"provider": c.providerName()})
+		}
+	}
 	if !c.connected() {
 		return nil, s.notConnected(ctx, ws)
 	}
@@ -102,6 +111,9 @@ func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection,
 		return nil, withHelpers(ctx, http.StatusConflict, codeFeatureOff, mFeatureOff, mFeatureOffAlone, i18n.Args{"feature": feature}, s.helpers(ctx, ws.ID))
 	}
 	if c.Status == "key_rejected" {
+		if c.personal() {
+			return nil, problem(ctx, http.StatusConflict, codeKeyRejected, mPersonalKeyRejected, i18n.Args{"provider": c.providerName()})
+		}
 		return nil, withHelpers(ctx, http.StatusConflict, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": c.providerName()}, s.helpers(ctx, ws.ID))
 	}
 	u, err := s.usage(ctx, ws, c)
@@ -109,6 +121,9 @@ func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection,
 		return nil, err
 	}
 	if u.reached {
+		if c.personal() {
+			return nil, s.personalCapReached(ctx, ws, c, u)
+		}
 		return nil, s.capReached(ctx, ws, c, u)
 	}
 	return c, nil
@@ -134,11 +149,25 @@ func (s *Service) capReached(ctx context.Context, ws *store.Workspace, c *connec
 		WithMeta("resetsAt", next, "capUsd", c.CapUsd, "spentMicros", u.costMicros)
 }
 
+// personalCapReached: a person's own budget for their personal keys is
+// used up this month.
+func (s *Service) personalCapReached(ctx context.Context, ws *store.Workspace, c *connection, u usage) *api.Problem {
+	l := i18n.LangFrom(ctx)
+	_, next := s.month(ws)
+	return problem(ctx, http.StatusConflict, codePersonalCapReached, mPersonalCapReached, i18n.Args{"date": l.Region.DayMonth(next), "cap": l.Region.Money(c.PersonalCapUsd, 2)}).
+		WithMeta("resetsAt", next, "capUsd", c.PersonalCapUsd, "spentMicros", u.costMicros)
+}
+
+// personalKeysOff: managers turned personal keys off; the accounts stay.
+func personalKeysOff(ctx context.Context) *api.Problem {
+	return problem(ctx, http.StatusConflict, codePersonalKeysOff, mPersonalKeysOff, nil)
+}
+
 // run sends one request and records it in the activity log. A refusal is
 // an answer (Refusal is set); errors are problems that say nothing was
 // changed.
 func (s *Service) run(ctx context.Context, ws *store.Workspace, p *authz.Principal, t task) (result, error) {
-	c, err := s.usable(ctx, ws, t.feature)
+	c, err := s.usable(ctx, ws, p, t.feature)
 	if err != nil {
 		return result{}, err
 	}
@@ -308,6 +337,9 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, feature st
 		}
 		return p.WithMeta("retryAfter", secs)
 	case llm.ErrAuth:
+		if c.personal() {
+			return problem(ctx, http.StatusBadGateway, codeKeyRejected, mPersonalKeyRejected, i18n.Args{"provider": name}).WithMeta("status", e.Status, "detail", e.Error())
+		}
 		return withHelpers(ctx, http.StatusBadGateway, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": name}, s.helpers(ctx, c.WorkspaceID)).
 			WithMeta("status", e.Status, "detail", e.Error())
 	case llm.ErrTimeout:
@@ -339,11 +371,17 @@ func (s *Service) keyRejected(ctx context.Context, ws *store.Workspace, c *conne
 	if err != nil || n == 0 {
 		return
 	}
-	err = s.notifyMembers(ctx, ws.ID, authz.IntegrationsManage, func(l i18n.Lang) notify.Notification {
+	notification := func(l i18n.Lang, body i18n.Msg) notify.Notification {
 		return notify.Notification{Kind: notify.KindAIKeyRejected, Severity: "bad", Title: mNotifyKeyTitle.Text(l, nil),
-			Body: mNotifyKeyBody.Text(l, i18n.Args{"provider": c.providerName(), "status": e.Status}),
-			Link: "/w/" + ws.Slug + "/settings/integrations/ai"}
-	})
+			Body: body.Text(l, i18n.Args{"provider": c.providerName(), "status": e.Status}),
+			Link: "/w/" + ws.Slug + "/settings/integrations/ai", WorkspaceID: &ws.ID}
+	}
+	if c.personal() {
+		// A personal key is its owner's to replace.
+		err = notify.ToUser(ctx, s.Pool, *c.AccountUserID, notification(applang.ForUserID(ctx, s.Q, *c.AccountUserID), mNotifyPersonalKey))
+	} else {
+		err = s.notifyMembers(ctx, ws.ID, authz.IntegrationsManage, func(l i18n.Lang) notify.Notification { return notification(l, mNotifyKeyBody) })
+	}
 	if err != nil {
 		s.log().WarnContext(ctx, "ai: notify a rejected key", "err", err)
 	}

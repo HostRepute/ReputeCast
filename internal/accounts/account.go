@@ -587,7 +587,12 @@ func (s *Service) LeaveWorkspace(ctx context.Context) error {
 			return err
 		}
 		wsID := ws.ID
+		// Their personal AI keys there stop working and are deleted.
+		aiKeys, err := q.AIPersonalKeysRemove(ctx, store.AIPersonalKeysRemoveParams{UserID: &u.ID, WorkspaceID: &wsID})
+		if err != nil {
+			return err
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "member.leave", TargetType: "member", TargetID: m.ID.String(), TargetName: u.Email,
-			Before: map[string]any{"role": m.RoleKey}, Metadata: map[string]any{"api_keys_revoked": keys}})
+			Before: map[string]any{"role": m.RoleKey}, Metadata: map[string]any{"api_keys_revoked": keys, "personal_ai_keys_removed": aiKeys}})
 	})
 }

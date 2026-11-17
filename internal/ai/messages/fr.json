@@ -103,6 +103,11 @@
   "problem.keyRejectedModel": "{provider} a refusé la clé de ce compte. Remplacez la clé, puis choisissez à nouveau son modèle.",
   "problem.defaultNoImages": "Le texte alternatif nécessite un modèle capable de lire les images. Choisissez-en un.",
   "problem.toolsUnchecked": "L’agent IA et l’assistant IA nécessitent un modèle ayant réussi le test d’appel d’outils. Testez d’abord les outils de ce modèle.",
+  "problem.personalKeysOff": "Les clés personnelles sont désactivées dans cet espace de travail. Vos propres clés ne sont donc pas utilisées et aucune ne peut être ajoutée. Rien n’a été envoyé. Une personne autorisée à gérer les intégrations peut les activer.",
+  "problem.personalCapReached": "Le budget de ce mois pour vos propres clés ({cap}) est épuisé. Elles fonctionneront à nouveau le {date}. Rien n’a été envoyé.",
+  "problem.personalKeyRejected": "{provider} a refusé votre propre clé. Rien n’a été envoyé. Remplacez-la dans Paramètres › Intégrations · Assistant IA.",
+  "problem.personalNoKey": "Votre propre compte {provider} n’a plus de clé, donc rien n’a été envoyé. Ajoutez à nouveau sa clé, ou revenez au modèle de l’espace de travail, dans Paramètres › Intégrations · Assistant IA.",
+  "problem.personalModel": "Le modèle d’une clé personnelle ne peut pas être le modèle de l’espace de travail pour une fonctionnalité. Seules les demandes de son propriétaire l’utilisent. Choisissez un modèle d’un compte de l’espace de travail.",
   "feature.name": "{feature, select, subject_ideas {Idées d’objet} rewrite {Réécrire, raccourcir et changer le ton} translate {Traduire une version linguistique} alt_text {Texte alternatif} accessibility_fix {Corrections d’accessibilité} segment_draft {Décrire le segment} report_summary {Résumés de rapports} brand_voice {Apprentissage de la voix de marque} draft {Brouillon à partir d’une consigne} agent {Agent IA} assistant {Assistant IA} other {{feature}}}",
   "activity.newSegment": "Nouveau segment",
   "activity.onField": "{field, select, subject {Objet} other {Texte d’aperçu}}\u00A0: {name}",
@@ -122,5 +127,6 @@
   "notify.tokenUsageBody": "{spent} tokens sur {cap} ce mois-ci. Une fois le plafond atteint, les fonctionnalités d’IA sont suspendues jusqu’au {date}.",
   "notify.tokenCapBody": "Les {cap} tokens de ce mois sont épuisés. Les fonctionnalités d’IA sont suspendues jusqu’au {date}\u202F; l’édition, les envois et les rapports fonctionnent normalement.",
   "notify.keyTitle": "Clé d’IA refusée par le fournisseur",
-  "notify.keyBody": "{provider} a répondu {status} pour la clé de l’espace de travail. Remplacez-la dans Paramètres › Intégrations · Assistant IA."
+  "notify.keyBody": "{provider} a répondu {status} pour la clé de l’espace de travail. Remplacez-la dans Paramètres › Intégrations · Assistant IA.",
+  "notify.personalKeyBody": "{provider} a répondu {status} pour votre propre clé. Remplacez-la dans Paramètres › Intégrations · Assistant IA."
 }

@@ -58,16 +58,21 @@ func agentCapability(ctx context.Context, q *store.Queries, c *connection) (AIAg
 // start a task. The ordinary reservation ledger accounts this fixed probe.
 // It tests the agent's model.
 func (s *Service) TestAgentTools(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIAgentCapability, error) {
-	c, err := s.loadFor(ctx, s.Q, ws.ID, FeatureAgent)
+	c, err := s.loadFor(ctx, s.Q, ws.ID, nil, FeatureAgent)
 	if err != nil {
 		return AIAgentCapability{}, err
 	}
 	return s.testTools(ctx, ws, p, c)
 }
 
-// testTools runs the tool-calling check on a model.
+// testTools runs the tool-calling check on a model: a workspace model's by
+// a manager, a personal key's by its owner.
 func (s *Service) testTools(ctx context.Context, ws *store.Workspace, p *authz.Principal, c *connection) (AIAgentCapability, error) {
-	p, err := draftActor(ctx, s.Q, ws, p, false, authz.IntegrationsManage)
+	permission := authz.IntegrationsManage
+	if c.personal() {
+		permission = authz.AIUse
+	}
+	p, err := draftActor(ctx, s.Q, ws, p, false, permission)
 	if err != nil {
 		return AIAgentCapability{}, err
 	}
@@ -109,7 +114,8 @@ func (s *Service) testTools(ctx context.Context, ws *store.Workspace, p *authz.P
 		if err := q.AIAgentCapabilitySave(ctx, store.AIAgentCapabilitySaveParams{WorkspaceID: ws.ID, ModelID: c.ModelID, ConnectionHash: agentConnectionHash(c.AIBindingRow), Supported: valid, CheckedAt: *out.CheckedAt}); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(audit.WithPrincipal(ctx, p), q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.agent.tools_tested", TargetType: "ai_assistant", TargetID: ws.ID.String(), Metadata: map[string]any{"supported": valid, "request_id": res.RequestID}})
+		return s.Audit.LogWith(audit.WithPrincipal(ctx, p), q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.agent.tools_tested", TargetType: "ai_assistant", TargetID: ws.ID.String(),
+			Metadata: personalMeta(c.AccountUserID, map[string]any{"supported": valid, "request_id": res.RequestID})})
 	})
 	if err != nil {
 		return AIAgentCapability{}, err

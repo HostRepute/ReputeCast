@@ -247,7 +247,7 @@ func agentModelOf(c store.AIBindingRow) agentModel {
 // the run's model was removed.
 func (s *Service) agentModel(ctx context.Context, q *store.Queries, ws uuid.UUID, r store.AiAgentRun, c agentContext) (*connection, error) {
 	if r.ModelID == nil && c.Model.Provider == "" {
-		return s.loadFor(ctx, q, ws, FeatureAgent)
+		return s.loadFor(ctx, q, ws, &r.UserID, FeatureAgent)
 	}
 	return s.binding(ctx, q, ws, r.ModelID)
 }
@@ -318,7 +318,7 @@ func (s *Service) AgentSettings(ctx context.Context, ws *store.Workspace) (AIAge
 	if errors.Is(err, pgx.ErrNoRows) {
 		out.Limits = AIAgentLimits{ToolCalls: 40, Tokens: 300000, CostMicros: 2000000}
 	}
-	c, err := s.loadFor(ctx, s.Q, ws.ID, FeatureAgent)
+	c, err := s.loadFor(ctx, s.Q, ws.ID, nil, FeatureAgent)
 	if err != nil {
 		return AIAgentSettings{}, err
 	}
@@ -641,6 +641,19 @@ func (s *Service) agentAccess(ctx context.Context, q *store.Queries, ws *store.W
 		}
 		if capability.State == "unsupported" {
 			return nil, agentProblem(ctx, "tools_unavailable")
+		}
+		// A personal key's model runs only its owner's runs, while personal
+		// keys are on, and only once its tool check passed.
+		if conn.personal() {
+			if *conn.AccountUserID != r.UserID {
+				return nil, budgetProblem(ctx, "connection_changed")
+			}
+			if !conn.PersonalKeys {
+				return nil, personalKeysOff(ctx)
+			}
+			if capability.State != "supported" {
+				return nil, agentProblem(ctx, "tools_unavailable")
+			}
 		}
 		if c.Model.Provider != "" && c.Model != agentModelOf(conn.AIBindingRow) {
 			return nil, budgetProblem(ctx, "connection_changed")

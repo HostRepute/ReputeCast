@@ -18,6 +18,7 @@ if TYPE_CHECKING:
   from ..models.ai_feature_default import AIFeatureDefault
   from ..models.ai_feature_state import AIFeatureState
   from ..models.ai_member_role import AIMemberRole
+  from ..models.ai_personal_settings import AIPersonalSettings
   from ..models.ai_provider_entry import AIProviderEntry
   from ..models.ai_usage_feature import AIUsageFeature
   from ..models.ai_usage_member import AIUsageMember
@@ -48,6 +49,7 @@ class AISettings:
             features (list[AIFeatureState]):
             helpers (list[str]):
             instance_admins (list[str]):
+            personal (AIPersonalSettings):
             price_list_date (datetime.datetime):
             usage (AIUsageView):
             without_ai_use (list[AIMemberRole]):
@@ -67,6 +69,7 @@ class AISettings:
     features: list[AIFeatureState]
     helpers: list[str]
     instance_admins: list[str]
+    personal: AIPersonalSettings
     price_list_date: datetime.datetime
     usage: AIUsageView
     without_ai_use: list[AIMemberRole]
@@ -82,6 +85,7 @@ class AISettings:
         from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_feature_state import AIFeatureState # noqa: PLC0415
         from ..models.ai_member_role import AIMemberRole # noqa: PLC0415
+        from ..models.ai_personal_settings import AIPersonalSettings # noqa: PLC0415
         from ..models.ai_provider_entry import AIProviderEntry # noqa: PLC0415
         from ..models.ai_usage_feature import AIUsageFeature # noqa: PLC0415
         from ..models.ai_usage_member import AIUsageMember # noqa: PLC0415
@@ -148,6 +152,8 @@ class AISettings:
 
 
 
+        personal = self.personal.to_dict()
+
         price_list_date = self.price_list_date.isoformat()
 
         usage = self.usage.to_dict()
@@ -180,6 +186,7 @@ class AISettings:
             "features": features,
             "helpers": helpers,
             "instanceAdmins": instance_admins,
+            "personal": personal,
             "priceListDate": price_list_date,
             "usage": usage,
             "withoutAiUse": without_ai_use,
@@ -198,6 +205,7 @@ class AISettings:
         from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_feature_state import AIFeatureState # noqa: PLC0415
         from ..models.ai_member_role import AIMemberRole # noqa: PLC0415
+        from ..models.ai_personal_settings import AIPersonalSettings # noqa: PLC0415
         from ..models.ai_provider_entry import AIProviderEntry # noqa: PLC0415
         from ..models.ai_usage_feature import AIUsageFeature # noqa: PLC0415
         from ..models.ai_usage_member import AIUsageMember # noqa: PLC0415
@@ -280,6 +288,11 @@ class AISettings:
         instance_admins = cast(list[str], d.pop("instanceAdmins"))
 
 
+        personal = AIPersonalSettings.from_dict(d.pop("personal"))
+
+
+
+
         price_list_date = datetime.datetime.fromisoformat(d.pop("priceListDate"))
 
 
@@ -324,6 +337,7 @@ class AISettings:
             features=features,
             helpers=helpers,
             instance_admins=instance_admins,
+            personal=personal,
             price_list_date=price_list_date,
             usage=usage,
             without_ai_use=without_ai_use,

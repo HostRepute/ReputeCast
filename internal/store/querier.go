@@ -37,11 +37,15 @@ type Querier interface {
 	// An account's first model: what its key is tested with.
 	AIAccountFirstModel(ctx context.Context, arg AIAccountFirstModelParams) (uuid.UUID, error)
 	AIAccountModelCount(ctx context.Context, arg AIAccountModelCountParams) (int64, error)
+	// An account's owner (user_id) is set when it is made and never changes.
 	AIAccountSave(ctx context.Context, arg AIAccountSaveParams) error
 	// The provider rejected the saved key (or a passing request cleared it),
 	// unless the account changed since the request was bound to it.
 	AIAccountSetStatus(ctx context.Context, arg AIAccountSetStatusParams) (int64, error)
 	AIAccountSetTest(ctx context.Context, arg AIAccountSetTestParams) error
+	// The people who asked this month, on the workspace's keys or their own,
+	// the biggest first: the activity log's member filter.
+	AIActivityMembers(ctx context.Context, arg AIActivityMembersParams) ([]AIActivityMembersRow, error)
 	AIAgentArtifactDecide(ctx context.Context, arg AIAgentArtifactDecideParams) error
 	AIAgentArtifactDiscard(ctx context.Context, id uuid.UUID) error
 	AIAgentArtifactSave(ctx context.Context, arg AIAgentArtifactSaveParams) error
@@ -104,9 +108,20 @@ type Querier interface {
 	// Settled reservations are already in ai_requests. Old uncertain requests
 	// stay reserved across month rollover rather than becoming free to retry.
 	AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (AIBudgetMonthlyRow, error)
+	// The workspace's holds; personal keys' are their owners'.
 	AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([]AiBudgetReservation, error)
+	// A person's own budget (their personal keys' cap) has its own lock, so it
+	// never waits for the workspace's nor the workspace's for it. Taken after
+	// the AI configuration lock, like the workspace's.
+	AIBudgetPersonLock(ctx context.Context, arg AIBudgetPersonLockParams) error
+	// What a person's own requests in flight hold of their cap.
+	AIBudgetPersonal(ctx context.Context, arg AIBudgetPersonalParams) (AIBudgetPersonalRow, error)
+	// A person's holds on their own keys.
+	AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPersonalPendingParams) ([]AiBudgetReservation, error)
 	AIBudgetPurge(ctx context.Context, before time.Time) (int64, error)
 	AIBudgetRun(ctx context.Context, runID *uuid.UUID) (AIBudgetRunRow, error)
+	// Whose budget a reservation is in; set when it is made and never changed.
+	AIBudgetScope(ctx context.Context, arg AIBudgetScopeParams) (AIBudgetScopeRow, error)
 	AIBudgetSettle(ctx context.Context, arg AIBudgetSettleParams) error
 	AIBudgetUncertain(ctx context.Context, id uuid.UUID) error
 	// The workspace budget's lock, across all its accounts and models. It is
@@ -140,11 +155,26 @@ type Querier interface {
 	AIInstanceAdmins(ctx context.Context) ([]string, error)
 	// An image of the workspace's media library, for alt text.
 	AIMediaImage(ctx context.Context, arg AIMediaImageParams) (AIMediaImageRow, error)
+	AIMemberFeatureModel(ctx context.Context, arg AIMemberFeatureModelParams) (uuid.UUID, error)
+	AIMemberFeatureModelClear(ctx context.Context, arg AIMemberFeatureModelClearParams) (int64, error)
+	AIMemberFeatureModelSet(ctx context.Context, arg AIMemberFeatureModelSetParams) error
+	AIMemberFeatureModels(ctx context.Context, arg AIMemberFeatureModelsParams) ([]AIMemberFeatureModelsRow, error)
 	// The members with their role, for "Members with ai:use: Owner, Admin…".
 	AIMembersRoles(ctx context.Context, workspaceID uuid.UUID) ([]AIMembersRolesRow, error)
 	AIModelDelete(ctx context.Context, arg AIModelDeleteParams) (int64, error)
 	AIModelSave(ctx context.Context, arg AIModelSaveParams) error
 	AIModelsDeleteOthers(ctx context.Context, arg AIModelsDeleteOthersParams) error
+	// Who has personal accounts, for managers: never a key.
+	AIPersonalAccounts(ctx context.Context, workspaceID uuid.UUID) ([]AIPersonalAccountsRow, error)
+	// A person left the workspace or was deactivated (sqlc.narg(workspace_id)
+	// NULL: every workspace): their personal accounts lose their keys and stop
+	// working. The revision fences requests already prepared.
+	AIPersonalKeysRemove(ctx context.Context, arg AIPersonalKeysRemoveParams) (int64, error)
+	// A person's own models in the workspace.
+	AIPersonalModels(ctx context.Context, arg AIPersonalModelsParams) ([]uuid.UUID, error)
+	AIPersonalUsageByUser(ctx context.Context, arg AIPersonalUsageByUserParams) ([]AIPersonalUsageByUserRow, error)
+	// A person's use of their own keys.
+	AIPersonalUsageTotal(ctx context.Context, arg AIPersonalUsageTotalParams) (AIPersonalUsageTotalRow, error)
 	// The workspace's first account and its first model: what the single-model
 	// settings and operations act on.
 	AIPrimaryModel(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
@@ -171,9 +201,12 @@ type Querier interface {
 	AITranslationReviewed(ctx context.Context, arg AITranslationReviewedParams) (int64, error)
 	AIUsageByFeature(ctx context.Context, arg AIUsageByFeatureParams) ([]AIUsageByFeatureRow, error)
 	AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams) ([]AIUsageByMemberRow, error)
+	// The workspace's use: personal keys' never counts.
 	AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error)
 	// The workspace's models, the first account's first model first.
 	AIWorkspaceModels(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
+	// The personal-keys switch and the cap each person's own use has.
+	AIWorkspacePersonalSave(ctx context.Context, arg AIWorkspacePersonalSaveParams) error
 	AIWorkspaceSettings(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error)
 	// Claims this month's cap-reached notice, once.
 	AIWorkspaceSettingsClaimCapNotice(ctx context.Context, arg AIWorkspaceSettingsClaimCapNoticeParams) (int64, error)

@@ -103,6 +103,11 @@
   "problem.keyRejectedModel": "{provider} đã từ chối khóa của tài khoản này. Hãy thay khóa, rồi chọn lại mô hình của tài khoản.",
   "problem.defaultNoImages": "Văn bản thay thế cần một mô hình đọc được hình ảnh. Hãy chọn một mô hình như vậy.",
   "problem.toolsUnchecked": "Tác tử AI và trợ lý AI cần một mô hình đã vượt qua kiểm tra gọi công cụ. Hãy kiểm tra công cụ của mô hình này trước.",
+  "problem.personalKeysOff": "Khóa cá nhân đang tắt trong không gian làm việc này, nên khóa của riêng bạn không được dùng và không thể thêm khóa mới. Chưa có gì được gửi đi. Người có quyền quản lý tích hợp có thể bật lại.",
+  "problem.personalCapReached": "Ngân sách tháng này cho khóa của riêng bạn ({cap}) đã dùng hết. Khóa sẽ dùng lại được vào {date}. Chưa có gì được gửi đi.",
+  "problem.personalKeyRejected": "{provider} đã từ chối khóa của riêng bạn. Chưa có gì được gửi đi. Hãy thay khóa trong Cài đặt › Tích hợp · Trợ lý AI.",
+  "problem.personalNoKey": "Tài khoản {provider} của riêng bạn không còn khóa, nên chưa có gì được gửi đi. Hãy thêm lại khóa, hoặc quay về mô hình của không gian làm việc, trong Cài đặt › Tích hợp · Trợ lý AI.",
+  "problem.personalModel": "Mô hình của khóa cá nhân không thể là mô hình của không gian làm việc cho một tính năng. Chỉ yêu cầu của chủ khóa mới dùng nó. Hãy chọn một mô hình của một tài khoản thuộc không gian làm việc.",
   "feature.name": "{feature, select, subject_ideas {Gợi ý tiêu đề} rewrite {Viết lại, rút gọn và đổi giọng} translate {Dịch một phiên bản ngôn ngữ} alt_text {Văn bản thay thế} accessibility_fix {Sửa lỗi khả năng tiếp cận} segment_draft {Mô tả phân khúc} report_summary {Tóm tắt báo cáo} brand_voice {Học giọng thương hiệu} draft {Tạo nháp từ yêu cầu} agent {Tác tử AI} assistant {Trợ lý AI} other {{feature}}}",
   "activity.newSegment": "Phân khúc mới",
   "activity.onField": "{field, select, subject {Tiêu đề} other {Dòng xem trước}} của {name}",
@@ -122,5 +127,6 @@
   "notify.tokenUsageBody": "Đã dùng {spent} trên {cap} token của tháng này. Khi đạt hạn mức, các tính năng AI sẽ tạm dừng đến {date}.",
   "notify.tokenCapBody": "Hạn mức {cap} token của tháng này đã dùng hết. Các tính năng AI tạm dừng đến {date}; chỉnh sửa, gửi và báo cáo vẫn hoạt động như thường.",
   "notify.keyTitle": "Nhà cung cấp đã từ chối khóa AI",
-  "notify.keyBody": "{provider} trả về {status} cho khóa của không gian làm việc. Hãy thay khóa trong Cài đặt › Tích hợp · Trợ lý AI."
+  "notify.keyBody": "{provider} trả về {status} cho khóa của không gian làm việc. Hãy thay khóa trong Cài đặt › Tích hợp · Trợ lý AI.",
+  "notify.personalKeyBody": "{provider} trả về {status} cho khóa của riêng bạn. Hãy thay khóa trong Cài đặt › Tích hợp · Trợ lý AI."
 }

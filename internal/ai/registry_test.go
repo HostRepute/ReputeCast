@@ -401,10 +401,26 @@ func TestAIRegistryMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = p.Close() })
-	const version = 3630
-	if _, err := p.ApplyVersion(ctx, version, false); err != nil {
-		t.Fatal(err)
+	// 03631 (personal keys) builds on 03630's tables: it goes down first
+	// and up after.
+	const version, personal = 3630, 3631
+	down := func() {
+		t.Helper()
+		for _, v := range []int64{personal, version} {
+			if _, err := p.ApplyVersion(ctx, v, false); err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
+	up := func() {
+		t.Helper()
+		for _, v := range []int64{version, personal} {
+			if _, err := p.ApplyVersion(ctx, v, true); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	down()
 	// The connection as the app kept it before.
 	sealed, err := env.App.Secrets.SealString("sk-legacy-0042", "ai:"+ws.ID.String()+":key")
 	if err != nil {
@@ -436,9 +452,7 @@ func TestAIRegistryMigration(t *testing.T) {
 	hash := sha256.Sum256(raw)
 	exec(`INSERT INTO ai_agent_capabilities (workspace_id, connection_hash, supported, checked_at) VALUES ($1, $2, true, now())`, ws.ID, hex.EncodeToString(hash[:]))
 
-	if _, err := p.ApplyVersion(ctx, version, true); err != nil {
-		t.Fatal(err)
-	}
+	up()
 	var account, modelID uuid.UUID
 	var defaults int
 	var runModel, capability *uuid.UUID
@@ -481,9 +495,7 @@ func TestAIRegistryMigration(t *testing.T) {
 	}
 
 	// Down brings the connection back as it was.
-	if _, err := p.ApplyVersion(ctx, version, false); err != nil {
-		t.Fatal(err)
-	}
+	down()
 	var restored []byte
 	var capTokens int64
 	var off []string
@@ -495,7 +507,5 @@ func TestAIRegistryMigration(t *testing.T) {
 	if string(restored) != string(sealed) || capTokens != 500000 || !slices.Equal(off, []string{"translate"}) || input != 3 || output != 7 {
 		t.Fatalf("down: cap %d, off %v, prices %v/%v, key kept %v", capTokens, off, input, output, string(restored) == string(sealed))
 	}
-	if _, err := p.ApplyVersion(ctx, version, true); err != nil {
-		t.Fatal(err)
-	}
+	up()
 }

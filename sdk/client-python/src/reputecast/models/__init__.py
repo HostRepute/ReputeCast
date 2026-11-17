@@ -74,6 +74,13 @@ from .ai_member_role import AIMemberRole
 from .ai_model_option import AIModelOption
 from .ai_model_view import AIModelView
 from .ai_model_view_features_item import AIModelViewFeaturesItem
+from .ai_personal_account import AIPersonalAccount
+from .ai_personal_account_provider import AIPersonalAccountProvider
+from .ai_personal_account_status import AIPersonalAccountStatus
+from .ai_personal_person import AIPersonalPerson
+from .ai_personal_settings import AIPersonalSettings
+from .ai_personal_usage_view import AIPersonalUsageView
+from .ai_personal_usage_view_state import AIPersonalUsageViewState
 from .ai_prices_view import AIPricesView
 from .ai_provider_entry import AIProviderEntry
 from .ai_provider_entry_capabilities_item import AIProviderEntryCapabilitiesItem
@@ -3589,6 +3596,13 @@ __all__ = (
     "AIModelOption",
     "AIModelView",
     "AIModelViewFeaturesItem",
+    "AIPersonalAccount",
+    "AIPersonalAccountProvider",
+    "AIPersonalAccountStatus",
+    "AIPersonalPerson",
+    "AIPersonalSettings",
+    "AIPersonalUsageView",
+    "AIPersonalUsageViewState",
     "AIPricesView",
     "AIProviderEntry",
     "AIProviderEntryCapabilitiesItem",

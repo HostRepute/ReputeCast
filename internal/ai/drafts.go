@@ -105,7 +105,7 @@ func draftProblem(ctx context.Context, status int, key string) error {
 const draftWriteTimeout = 3*longestTimeout + time.Minute
 
 func (s *Service) runDraft(ctx context.Context, ws *store.Workspace, p *authz.Principal, t task, validate func(llm.Response) (string, error)) (result, error) {
-	c, err := s.usable(ctx, ws, t.feature)
+	c, err := s.usable(ctx, ws, p, t.feature)
 	if err != nil {
 		return result{}, err
 	}

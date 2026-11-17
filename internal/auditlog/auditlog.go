@@ -135,8 +135,9 @@ var Categories = []AuditCategory{
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
 	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
 	// The AI assistant's connection, key, cap, prices and features (phase 3),
-	// and its model accounts, models and the model each feature uses (B1).
-	{Key: "ai", Label: "AI", Groups: []string{"ai", "ai_account", "ai_model", "ai_feature"}},
+	// its model accounts, models and the model each feature uses, and the
+	// personal-keys switch and cap (B1).
+	{Key: "ai", Label: "AI", Groups: []string{"ai", "ai_account", "ai_model", "ai_feature", "ai_personal_keys"}},
 	// Earn (design expansion, phase 6).
 	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member", "sponsors", "sponsor_settings", "sponsor_booking"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},

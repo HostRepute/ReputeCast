@@ -160,8 +160,9 @@ func (s *Service) accountViews(ctx context.Context, q *store.Queries, m models) 
 }
 
 // accountModel returns an account's first model, nil when the workspace has
-// no such account.
-func (s *Service) accountModel(ctx context.Context, q *store.Queries, ws, account uuid.UUID) (*connection, error) {
+// no such account of owner (nil: a workspace account). Someone else's
+// personal account is as absent as one that doesn't exist.
+func (s *Service) accountModel(ctx context.Context, q *store.Queries, ws, account uuid.UUID, owner *uuid.UUID) (*connection, error) {
 	id, err := q.AIAccountFirstModel(ctx, store.AIAccountFirstModelParams{WorkspaceID: ws, AccountID: account})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -169,17 +170,21 @@ func (s *Service) accountModel(ctx context.Context, q *store.Queries, ws, accoun
 	if err != nil {
 		return nil, err
 	}
-	return s.binding(ctx, q, ws, &id)
+	c, err := s.binding(ctx, q, ws, &id)
+	if err != nil || c == nil || !c.ownedBy(owner) {
+		return nil, err
+	}
+	return c, nil
 }
 
-// accountsModel returns a model of an account: 404 when the workspace has
-// no such model on that account.
-func (s *Service) accountsModel(ctx context.Context, q *store.Queries, ws, account, model uuid.UUID) (*connection, error) {
+// accountsModel returns a model of an account of owner (nil: a workspace
+// account): 404 when the workspace has no such model on that account.
+func (s *Service) accountsModel(ctx context.Context, q *store.Queries, ws, account, model uuid.UUID, owner *uuid.UUID) (*connection, error) {
 	c, err := s.binding(ctx, q, ws, &model)
 	if err != nil {
 		return nil, err
 	}
-	if c == nil || c.AccountID != account {
+	if c == nil || c.AccountID != account || !c.ownedBy(owner) {
 		return nil, api.NotFound("AI model")
 	}
 	return c, nil
@@ -248,53 +253,73 @@ type AIAccountInput struct {
 // AddAccount adds a model account, after the fixed test prompt passes with
 // its first model. A workspace's first model is every feature's default.
 func (s *Service) AddAccount(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AIAccountInput) (AISettings, error) {
+	if err := s.addAccount(ctx, ws, p, in, nil); err != nil {
+		return AISettings{}, err
+	}
+	return s.Settings(ctx, ws, p)
+}
+
+// addAccount adds a workspace account (owner nil) or a person's own.
+func (s *Service) addAccount(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AIAccountInput, owner *uuid.UUID) error {
+	if owner != nil {
+		if on, err := s.personalKeysOn(ctx, ws.ID); err != nil || !on {
+			return errOr(err, personalKeysOff(ctx))
+		}
+	}
 	c := candidate{provider: in.Provider, label: strings.TrimSpace(in.Label), baseURL: in.BaseURL, deployment: strings.TrimSpace(in.Deployment), apiVersion: strings.TrimSpace(in.APIVersion),
 		key: strings.TrimSpace(in.APIKey), model: strings.TrimSpace(in.Model)}
 	if err := s.validCandidate(ctx, &c); err != nil {
-		return AISettings{}, err
+		return err
 	}
 	if name, need := keyNeeded(c.provider, c.baseURL); need && c.key == "" {
-		return AISettings{}, invalid(ctx, "body.apiKey", mKeyNeeded, i18n.Args{"provider": name})
+		return invalid(ctx, "body.apiKey", mKeyNeeded, i18n.Args{"provider": name})
 	}
 	input, output, from := pricesOf(c.provider, c.model, in.InputPrice, in.OutputPrice)
 	if err := validPrices(ctx, input, output); err != nil {
-		return AISettings{}, err
+		return err
 	}
 	name := (&connection{store.AIBindingRow{Provider: c.provider, BaseUrl: c.baseURL}}).providerName()
 	priced, err := s.testPricing(ctx, ws, c, in.InputPrice, in.OutputPrice)
 	if err != nil {
-		return AISettings{}, err
+		return err
 	}
+	// A personal key's test is in its owner's budget.
+	priced.AccountUserID = owner
 	res, err := s.test(ctx, ws, p, c, priced)
 	if err != nil {
-		return AISettings{}, err
+		return err
 	}
 	if !res.OK {
-		s.explain(ctx, &res, name)
-		return AISettings{}, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
+		s.explain(ctx, &res, name, owner != nil)
+		return api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
 	}
 	now := s.now()
 	actor := actorID(p)
 	row := store.AIBindingRow{ModelID: uuid.Must(uuid.NewV7()), AccountID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Provider: c.provider, Label: c.label,
 		BaseUrl: c.baseURL, Deployment: c.deployment, ApiVersion: c.apiVersion, Model: c.model, ModelName: strings.TrimSpace(in.ModelName),
 		ImageInput: llm.ImageInput(c.provider, c.model), ConnectedBy: actor, ConnectedAt: now, Status: "ok", LastTestAt: &now, LastTestOk: ptr(true),
-		LastTestMs: ptr(int32(res.Ms)), InputPrice: input, OutputPrice: output, PricesFrom: from, PriceKnown: pricesKnown(c.provider, c.model, in.InputPrice, in.OutputPrice)}
+		LastTestMs: ptr(int32(res.Ms)), InputPrice: input, OutputPrice: output, PricesFrom: from, PriceKnown: pricesKnown(c.provider, c.model, in.InputPrice, in.OutputPrice),
+		AccountUserID: owner}
 	if row.ModelName == "" {
 		row.ModelName = llm.ModelName(c.provider, c.model)
 	}
 	if c.key != "" {
 		if row.KeySealed, err = s.Box.SealString(c.key, keyAD(row.AccountID)); err != nil {
-			return AISettings{}, err
+			return err
 		}
 		row.KeyAddedBy, row.KeyAddedAt = actor, &now
 	}
-	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+		if _, err := draftActor(ctx, q, ws, p, false, ownerPermission(owner)); err != nil {
 			return err
 		}
-		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
+		settings, err := lockSettings(ctx, q, ws.ID)
+		if err != nil {
 			return err
+		}
+		if owner != nil && !settings.PersonalKeys {
+			return personalKeysOff(ctx)
 		}
 		if err := q.AIAccountSave(ctx, accountParams(row, actor, now)); err != nil {
 			return err
@@ -302,8 +327,11 @@ func (s *Service) AddAccount(ctx context.Context, ws *store.Workspace, p *authz.
 		if err := q.AIModelSave(ctx, modelParams(row, actor, now)); err != nil {
 			return modelExists(ctx, err, row.Model)
 		}
-		if err := q.AIFeatureModelsFill(ctx, store.AIFeatureModelsFillParams{WorkspaceID: ws.ID, ModelID: row.ModelID, Features: defaultFeatures}); err != nil {
-			return err
+		// A personal model is never a workspace default.
+		if owner == nil {
+			if err := q.AIFeatureModelsFill(ctx, store.AIFeatureModelsFillParams{WorkspaceID: ws.ID, ModelID: row.ModelID, Features: defaultFeatures}); err != nil {
+				return err
+			}
 		}
 		key := keyNone
 		if c.key != "" {
@@ -312,35 +340,54 @@ func (s *Service) AddAccount(ctx context.Context, ws *store.Workspace, p *authz.
 		after := accountAudit(row)
 		after["models"] = []any{modelAudit(row)}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai_account.add", TargetType: "ai_assistant", TargetID: row.AccountID.String(),
-			TargetName: name, After: after, Metadata: map[string]any{"test": map[string]any{"ok": true, "ms": res.Ms}, "summary": "model " + row.Model + " · " + key}})
+			TargetName: name, After: after, Metadata: personalMeta(owner, map[string]any{"test": map[string]any{"ok": true, "ms": res.Ms}, "summary": "model " + row.Model + " · " + key})})
 	})
-	if err != nil {
-		return AISettings{}, err
-	}
-	return s.Settings(ctx, ws, p)
 }
 
 // RemoveAccount removes an account, its key and its models. The activity
 // log keeps their requests. An account a feature uses stays.
 func (s *Service) RemoveAccount(ctx context.Context, ws *store.Workspace, p *authz.Principal, account uuid.UUID) (AISettings, error) {
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	if err := s.removeAccount(ctx, ws, p, account, authz.IntegrationsManage, func(c *connection) bool { return !c.personal() }); err != nil {
+		return AISettings{}, err
+	}
+	return s.Settings(ctx, ws, p)
+}
+
+// removeAccount removes an account mine accepts: a workspace account, the
+// caller's own, or for managers any person's own (offboarding).
+func (s *Service) removeAccount(ctx context.Context, ws *store.Workspace, p *authz.Principal, account uuid.UUID, permission authz.Permission, mine func(*connection) bool) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+		if _, err := draftActor(ctx, q, ws, p, false, permission); err != nil {
 			return err
 		}
 		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
 			return err
 		}
-		c, err := s.accountModel(ctx, q, ws.ID, account)
+		id, err := q.AIAccountFirstModel(ctx, store.AIAccountFirstModelParams{WorkspaceID: ws.ID, AccountID: account})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.NotFound("AI account")
+		}
 		if err != nil {
 			return err
 		}
-		if c == nil {
+		c, err := s.binding(ctx, q, ws.ID, &id)
+		if err != nil {
+			return err
+		}
+		if c == nil || !mine(c) {
 			return api.NotFound("AI account")
 		}
 		used, err := q.AIFeaturesOfAccount(ctx, store.AIFeaturesOfAccountParams{WorkspaceID: ws.ID, AccountID: account})
 		if err != nil {
 			return err
+		}
+		// Its owner picked its models for their own requests: theirs to
+		// change first (a manager's removal takes the picks with it).
+		if c.personal() && c.ownedBy(actorID(p)) {
+			if used, err = s.pickedFeatures(ctx, q, ws.ID, *c.AccountUserID, func(m *connection) bool { return m.AccountID == account }); err != nil {
+				return err
+			}
 		}
 		if len(used) > 0 {
 			return inUse(ctx, mAccountInUse, used)
@@ -348,24 +395,33 @@ func (s *Service) RemoveAccount(ctx context.Context, ws *store.Workspace, p *aut
 		if _, err := q.AIAccountDelete(ctx, store.AIAccountDeleteParams{WorkspaceID: ws.ID, ID: account}); err != nil {
 			return err
 		}
+		meta := personalMeta(c.AccountUserID, map[string]any{"summary": "account removed · key deleted"})
+		if c.personal() {
+			meta["owner"] = c.AccountUserID.String()
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai_account.remove", TargetType: "ai_assistant", TargetID: account.String(),
-			TargetName: c.providerName(), Before: accountAudit(c.AIBindingRow), Metadata: map[string]any{"summary": "account removed · key deleted"}})
+			TargetName: c.providerName(), Before: accountAudit(c.AIBindingRow), Metadata: meta})
 	})
-	if err != nil {
-		return AISettings{}, err
-	}
-	return s.Settings(ctx, ws, p)
 }
 
 // ReplaceAccountKey tests a new key with the account's first model and
 // saves it.
 func (s *Service) ReplaceAccountKey(ctx context.Context, ws *store.Workspace, p *authz.Principal, account uuid.UUID, in AIKeyInput) (AISettings, AITestResult, error) {
-	cur, err := s.accountModel(ctx, s.Q, ws.ID, account)
+	test, err := s.replaceAccountKey(ctx, ws, p, account, in, nil)
 	if err != nil {
-		return AISettings{}, AITestResult{}, err
+		return AISettings{}, test, err
+	}
+	out, err := s.Settings(ctx, ws, p)
+	return out, test, err
+}
+
+func (s *Service) replaceAccountKey(ctx context.Context, ws *store.Workspace, p *authz.Principal, account uuid.UUID, in AIKeyInput, owner *uuid.UUID) (AITestResult, error) {
+	cur, err := s.accountModel(ctx, s.Q, ws.ID, account, owner)
+	if err != nil {
+		return AITestResult{}, err
 	}
 	if cur == nil {
-		return AISettings{}, AITestResult{}, api.NotFound("AI account")
+		return AITestResult{}, api.NotFound("AI account")
 	}
 	return s.replaceKey(ctx, ws, p, cur, in, "ai_account.key_replaced", account.String())
 }
@@ -384,20 +440,31 @@ type AIAccountModelInput struct {
 
 // AddModel adds a model to a connected account.
 func (s *Service) AddModel(ctx context.Context, ws *store.Workspace, p *authz.Principal, account uuid.UUID, in AIAccountModelInput) (AISettings, error) {
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	if err := s.addModel(ctx, ws, p, account, in, nil); err != nil {
+		return AISettings{}, err
+	}
+	return s.Settings(ctx, ws, p)
+}
+
+func (s *Service) addModel(ctx context.Context, ws *store.Workspace, p *authz.Principal, account uuid.UUID, in AIAccountModelInput, owner *uuid.UUID) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+		if _, err := draftActor(ctx, q, ws, p, false, ownerPermission(owner)); err != nil {
 			return err
 		}
-		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
+		settings, err := lockSettings(ctx, q, ws.ID)
+		if err != nil {
 			return err
 		}
-		c, err := s.accountModel(ctx, q, ws.ID, account)
+		c, err := s.accountModel(ctx, q, ws.ID, account, owner)
 		if err != nil {
 			return err
 		}
 		if c == nil {
 			return api.NotFound("AI account")
+		}
+		if owner != nil && !settings.PersonalKeys {
+			return personalKeysOff(ctx)
 		}
 		if !c.connected() {
 			return problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
@@ -424,28 +491,31 @@ func (s *Service) AddModel(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			return modelExists(ctx, err, model)
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai_model.add", TargetType: "ai_assistant", TargetID: row.ModelID.String(),
-			TargetName: row.ModelName, After: modelAudit(row), Metadata: map[string]any{"summary": "model " + model + " · prices " + pricesText(input, output) + " per million tokens"}})
+			TargetName: row.ModelName, After: modelAudit(row), Metadata: personalMeta(owner, map[string]any{"summary": "model " + model + " · prices " + pricesText(input, output) + " per million tokens"})})
 	})
-	if err != nil {
+}
+
+// SetModelPrices changes the prices a model's requests are estimated with.
+func (s *Service) SetModelPrices(ctx context.Context, ws *store.Workspace, p *authz.Principal, account, model uuid.UUID, in AIPricesInput) (AISettings, error) {
+	if err := s.setModelPrices(ctx, ws, p, account, model, in, nil); err != nil {
 		return AISettings{}, err
 	}
 	return s.Settings(ctx, ws, p)
 }
 
-// SetModelPrices changes the prices a model's requests are estimated with.
-func (s *Service) SetModelPrices(ctx context.Context, ws *store.Workspace, p *authz.Principal, account, model uuid.UUID, in AIPricesInput) (AISettings, error) {
+func (s *Service) setModelPrices(ctx context.Context, ws *store.Workspace, p *authz.Principal, account, model uuid.UUID, in AIPricesInput, owner *uuid.UUID) error {
 	if err := validPrices(ctx, in.Input, in.Output); err != nil {
-		return AISettings{}, err
+		return err
 	}
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+		if _, err := draftActor(ctx, q, ws, p, false, ownerPermission(owner)); err != nil {
 			return err
 		}
 		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
 			return err
 		}
-		c, err := s.accountsModel(ctx, q, ws.ID, account, model)
+		c, err := s.accountsModel(ctx, q, ws.ID, account, model, owner)
 		if err != nil {
 			return err
 		}
@@ -458,32 +528,40 @@ func (s *Service) SetModelPrices(ctx context.Context, ws *store.Workspace, p *au
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai_model.prices_updated", TargetType: "ai_assistant", TargetID: model.String(),
 			TargetName: c.modelName(), Before: map[string]any{"inputPrice": c.InputPrice, "outputPrice": c.OutputPrice},
-			After: map[string]any{"inputPrice": in.Input, "outputPrice": in.Output}, Metadata: map[string]any{"summary": pricesLine(c.InputPrice, c.OutputPrice, in.Input, in.Output)}})
+			After: map[string]any{"inputPrice": in.Input, "outputPrice": in.Output}, Metadata: personalMeta(owner, map[string]any{"summary": pricesLine(c.InputPrice, c.OutputPrice, in.Input, in.Output)})})
 	})
-	if err != nil {
-		return AISettings{}, err
-	}
-	return s.Settings(ctx, ws, p)
 }
 
 // RemoveModel removes a model no feature uses. An account keeps at least
 // one model: removing the last one is removing the account.
 func (s *Service) RemoveModel(ctx context.Context, ws *store.Workspace, p *authz.Principal, account, model uuid.UUID) (AISettings, error) {
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	if err := s.removeModel(ctx, ws, p, account, model, nil); err != nil {
+		return AISettings{}, err
+	}
+	return s.Settings(ctx, ws, p)
+}
+
+func (s *Service) removeModel(ctx context.Context, ws *store.Workspace, p *authz.Principal, account, model uuid.UUID, owner *uuid.UUID) error {
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+		if _, err := draftActor(ctx, q, ws, p, false, ownerPermission(owner)); err != nil {
 			return err
 		}
 		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
 			return err
 		}
-		c, err := s.accountsModel(ctx, q, ws.ID, account, model)
+		c, err := s.accountsModel(ctx, q, ws.ID, account, model, owner)
 		if err != nil {
 			return err
 		}
 		used, err := q.AIFeaturesOfModel(ctx, store.AIFeaturesOfModelParams{WorkspaceID: ws.ID, ModelID: model})
 		if err != nil {
 			return err
+		}
+		if owner != nil {
+			if used, err = s.pickedFeatures(ctx, q, ws.ID, *owner, func(m *connection) bool { return m.ModelID == model }); err != nil {
+				return err
+			}
 		}
 		if len(used) > 0 {
 			return inUse(ctx, mModelInUse, used)
@@ -499,12 +577,8 @@ func (s *Service) RemoveModel(ctx context.Context, ws *store.Workspace, p *authz
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai_model.remove", TargetType: "ai_assistant", TargetID: model.String(),
-			TargetName: c.modelName(), Before: modelAudit(c.AIBindingRow), Metadata: map[string]any{"summary": "model " + c.Model + " removed"}})
+			TargetName: c.modelName(), Before: modelAudit(c.AIBindingRow), Metadata: personalMeta(owner, map[string]any{"summary": "model " + c.Model + " removed"})})
 	})
-	if err != nil {
-		return AISettings{}, err
-	}
-	return s.Settings(ctx, ws, p)
 }
 
 // AIFeatureModelInput picks the model a feature uses.
@@ -535,22 +609,13 @@ func (s *Service) SetFeatureModel(ctx context.Context, ws *store.Workspace, p *a
 		if c == nil {
 			return api.NotFound("AI model")
 		}
-		switch {
-		case !c.connected():
-			return problem(ctx, http.StatusConflict, codeAccountDisconnected, mAccountDisconnected, nil)
-		case c.Status == "key_rejected":
-			return problem(ctx, http.StatusConflict, codeKeyRejected, mKeyRejectedModel, i18n.Args{"provider": c.providerName()})
-		case feature == FeatureAltText && !c.ImageInput:
-			return problem(ctx, http.StatusConflict, codeNoImageInput, mDefaultNoImages, nil)
+		// A person's own key answers only them: the workspace's features
+		// never use it.
+		if c.personal() {
+			return problem(ctx, http.StatusConflict, codePersonalModel, mPersonalModel, nil)
 		}
-		if feature == FeatureAgent || feature == FeatureAssistant {
-			tools, err := agentCapability(ctx, q, c)
-			if err != nil {
-				return err
-			}
-			if tools.State != "supported" {
-				return problem(ctx, http.StatusConflict, codeToolsUnchecked, mToolsUnchecked, nil)
-			}
+		if err := suits(ctx, q, c, feature); err != nil {
+			return err
 		}
 		before := map[string]any{"feature": feature}
 		if prev, err := q.AIFeatureModel(ctx, store.AIFeatureModelParams{WorkspaceID: ws.ID, Feature: feature}); err == nil {
@@ -571,9 +636,33 @@ func (s *Service) SetFeatureModel(ctx context.Context, ws *store.Workspace, p *a
 	return s.Settings(ctx, ws, p)
 }
 
+// suits checks that a model can be a feature's: its account is connected
+// and its key works, it reads images for alt text, and it passed the
+// tool-calling check for the agent and the assistant.
+func suits(ctx context.Context, q *store.Queries, c *connection, feature string) error {
+	switch {
+	case !c.connected():
+		return problem(ctx, http.StatusConflict, codeAccountDisconnected, mAccountDisconnected, nil)
+	case c.Status == "key_rejected":
+		return problem(ctx, http.StatusConflict, codeKeyRejected, mKeyRejectedModel, i18n.Args{"provider": c.providerName()})
+	case feature == FeatureAltText && !c.ImageInput:
+		return problem(ctx, http.StatusConflict, codeNoImageInput, mDefaultNoImages, nil)
+	}
+	if feature == FeatureAgent || feature == FeatureAssistant {
+		tools, err := agentCapability(ctx, q, c)
+		if err != nil {
+			return err
+		}
+		if tools.State != "supported" {
+			return problem(ctx, http.StatusConflict, codeToolsUnchecked, mToolsUnchecked, nil)
+		}
+	}
+	return nil
+}
+
 // TestModelTools runs the tool-calling check on one model of an account.
 func (s *Service) TestModelTools(ctx context.Context, ws *store.Workspace, p *authz.Principal, account, model uuid.UUID) (AIAgentCapability, error) {
-	c, err := s.accountsModel(ctx, s.Q, ws.ID, account, model)
+	c, err := s.accountsModel(ctx, s.Q, ws.ID, account, model, nil)
 	if err != nil {
 		return AIAgentCapability{}, err
 	}

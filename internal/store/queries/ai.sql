@@ -13,7 +13,7 @@ SELECT m.id AS model_id, a.id AS account_id, s.workspace_id,
     m.input_price, m.output_price, m.prices_from, m.price_known,
     s.features_off, s.notice_month, s.cap_notice_month, a.demo,
     s.revision AS settings_revision, a.revision AS account_revision, m.revision AS model_revision,
-    m.updated_at AS model_updated_at
+    m.updated_at AS model_updated_at, a.user_id AS account_user_id, s.personal_keys, s.personal_cap_usd
 FROM ai_models m
 JOIN ai_accounts a ON a.id = m.account_id AND a.workspace_id = m.workspace_id
 JOIN ai_workspace_settings s ON s.workspace_id = m.workspace_id
@@ -23,15 +23,52 @@ WHERE m.workspace_id = @workspace_id AND m.id = @model_id;
 -- The workspace's first account and its first model: what the single-model
 -- settings and operations act on.
 SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
-WHERE a.workspace_id = @workspace_id
+WHERE a.workspace_id = @workspace_id AND a.user_id IS NULL
 ORDER BY a.created_at, a.id, m.created_at, m.id
 LIMIT 1;
 
 -- name: AIWorkspaceModels :many
 -- The workspace's models, the first account's first model first.
 SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
-WHERE a.workspace_id = @workspace_id
+WHERE a.workspace_id = @workspace_id AND a.user_id IS NULL
 ORDER BY a.created_at, a.id, m.created_at, m.id;
+
+-- name: AIPersonalModels :many
+-- A person's own models in the workspace.
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = @workspace_id AND a.user_id = @user_id
+ORDER BY a.created_at, a.id, m.created_at, m.id;
+
+-- name: AIPersonalAccounts :many
+-- Who has personal accounts, for managers: never a key.
+SELECT a.id, a.user_id, a.provider, a.base_url, a.status, a.disconnected_at, a.created_at,
+    coalesce(nullif(u.name, ''), u.email)::text AS user_name,
+    coalesce((SELECT array_agg(coalesce(nullif(m.model_name, ''), m.model) ORDER BY m.created_at, m.id) FROM ai_models m WHERE m.account_id = a.id), '{}')::text[] AS models
+FROM ai_accounts a JOIN users u ON u.id = a.user_id
+WHERE a.workspace_id = @workspace_id AND a.user_id IS NOT NULL
+ORDER BY user_name, a.user_id, a.created_at, a.id;
+
+-- name: AIMemberFeatureModel :one
+SELECT model_id FROM ai_member_feature_models WHERE workspace_id = @workspace_id AND user_id = @user_id AND feature = @feature;
+
+-- name: AIMemberFeatureModels :many
+SELECT feature, model_id FROM ai_member_feature_models WHERE workspace_id = @workspace_id AND user_id = @user_id ORDER BY feature;
+
+-- name: AIMemberFeatureModelSet :exec
+INSERT INTO ai_member_feature_models (workspace_id, user_id, feature, model_id) VALUES (@workspace_id, @user_id, @feature, @model_id)
+ON CONFLICT (workspace_id, user_id, feature) DO UPDATE SET model_id = EXCLUDED.model_id;
+
+-- name: AIMemberFeatureModelClear :execrows
+DELETE FROM ai_member_feature_models WHERE workspace_id = @workspace_id AND user_id = @user_id AND feature = @feature;
+
+-- name: AIPersonalKeysRemove :execrows
+-- A person left the workspace or was deactivated (sqlc.narg(workspace_id)
+-- NULL: every workspace): their personal accounts lose their keys and stop
+-- working. The revision fences requests already prepared.
+UPDATE ai_accounts SET key_sealed = NULL, key_added_by = NULL, key_added_at = NULL,
+    disconnected_at = coalesce(disconnected_at, now()), revision = revision + 1, updated_at = now()
+WHERE user_id = @user_id AND (sqlc.narg(workspace_id)::uuid IS NULL OR workspace_id = sqlc.narg(workspace_id))
+  AND (key_sealed IS NOT NULL OR disconnected_at IS NULL);
 
 -- name: AIAccountFirstModel :one
 -- An account's first model: what its key is tested with.
@@ -104,12 +141,13 @@ ON CONFLICT (workspace_id) DO UPDATE SET cap_kind = EXCLUDED.cap_kind, cap_usd =
     revision = ai_workspace_settings.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at;
 
 -- name: AIAccountSave :exec
+-- An account's owner (user_id) is set when it is made and never changes.
 INSERT INTO ai_accounts (id, workspace_id, provider, label, base_url, api_version, key_sealed, key_added_by, key_added_at,
     connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at,
-    last_test_at, last_test_ok, last_test_ms, demo, created_at, updated_by, updated_at)
+    last_test_at, last_test_ok, last_test_ms, demo, created_at, updated_by, updated_at, user_id)
 VALUES (@id, @workspace_id, @provider, @label, @base_url, @api_version, @key_sealed, @key_added_by, @key_added_at,
     @connected_by, @connected_at, @disconnected_by, @disconnected_at, @status, @status_detail, @status_at,
-    @last_test_at, @last_test_ok, @last_test_ms, @demo, @updated_at, @updated_by, @updated_at)
+    @last_test_at, @last_test_ok, @last_test_ms, @demo, @updated_at, @updated_by, @updated_at, sqlc.narg(user_id))
 ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url,
     api_version = EXCLUDED.api_version, key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by,
     key_added_at = EXCLUDED.key_added_at, connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at,
@@ -117,7 +155,7 @@ ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, label = EXCLUDED.la
     status_detail = EXCLUDED.status_detail, status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at,
     last_test_ok = EXCLUDED.last_test_ok, last_test_ms = EXCLUDED.last_test_ms, demo = EXCLUDED.demo,
     revision = ai_accounts.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
-WHERE ai_accounts.workspace_id = EXCLUDED.workspace_id;
+WHERE ai_accounts.workspace_id = EXCLUDED.workspace_id AND ai_accounts.user_id IS NOT DISTINCT FROM EXCLUDED.user_id;
 
 -- name: AIModelSave :exec
 INSERT INTO ai_models (id, workspace_id, account_id, model, model_name, deployment, image_input, input_price, output_price,
@@ -140,6 +178,13 @@ WHERE id = @id AND workspace_id = @workspace_id AND status <> @status AND revisi
 UPDATE ai_accounts SET last_test_at = @last_test_at, last_test_ok = @last_test_ok, last_test_ms = @last_test_ms
 WHERE id = @id AND workspace_id = @workspace_id;
 
+-- name: AIWorkspacePersonalSave :exec
+-- The personal-keys switch and the cap each person's own use has.
+UPDATE ai_workspace_settings SET personal_keys = @personal_keys, personal_cap_usd = @personal_cap_usd,
+    personal_cap_set_by = @personal_cap_set_by, personal_cap_set_at = @personal_cap_set_at,
+    revision = revision + 1, updated_by = @updated_by, updated_at = @updated_at
+WHERE workspace_id = @workspace_id;
+
 -- name: AIWorkspaceSettingsClaimNotice :execrows
 -- Claims this month's 80% notice, once.
 UPDATE ai_workspace_settings SET notice_month = @month WHERE workspace_id = @workspace_id AND notice_month <> @month;
@@ -151,10 +196,10 @@ UPDATE ai_workspace_settings SET cap_notice_month = @month WHERE workspace_id = 
 -- name: AIRequestInsert :exec
 INSERT INTO ai_requests (id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model,
     input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known,
-    account_id, model_id)
+    account_id, model_id, personal)
 VALUES (@id, @workspace_id, @user_id, @feature, @action, @target_kind, @target_id, @target_label, @provider, @model,
     @input_tokens, @output_tokens, @cost_micros, @outcome, @outcome_detail, @duration_ms, @created_at, @decided_at, @voice_revision, @usage_known,
-    @account_id, @model_id)
+    @account_id, @model_id, @personal)
 ON CONFLICT (id) DO UPDATE SET input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
     cost_micros = EXCLUDED.cost_micros, usage_known = EXCLUDED.usage_known
 WHERE ai_requests.workspace_id = EXCLUDED.workspace_id AND NOT ai_requests.usage_known;
@@ -185,22 +230,42 @@ LIMIT @lim;
 SELECT count(*)::bigint FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since;
 
 -- name: AIUsageTotal :one
+-- The workspace's use: personal keys' never counts.
 SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
        coalesce(sum(output_tokens), 0)::bigint AS output_tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since;
+FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since AND NOT personal;
+
+-- name: AIPersonalUsageTotal :one
+-- A person's use of their own keys.
+SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests
+FROM ai_requests WHERE workspace_id = @workspace_id AND user_id = @user_id AND created_at >= @since AND personal;
+
+-- name: AIPersonalUsageByUser :many
+SELECT user_id, coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests
+FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since AND personal AND user_id IS NOT NULL
+GROUP BY user_id;
 
 -- name: AIUsageByFeature :many
 SELECT feature, coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since
+FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since AND NOT personal
 GROUP BY feature;
 
 -- name: AIUsageByMember :many
 SELECT r.user_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email,
        coalesce(sum(r.cost_micros), 0)::bigint AS cost_micros, coalesce(sum(r.input_tokens + r.output_tokens), 0)::bigint AS tokens, count(*)::bigint AS requests
 FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
-WHERE r.workspace_id = @workspace_id AND r.created_at >= @since
+WHERE r.workspace_id = @workspace_id AND r.created_at >= @since AND NOT r.personal
 GROUP BY r.user_id, u.name, u.email
 ORDER BY cost_micros DESC, user_name;
+
+-- name: AIActivityMembers :many
+-- The people who asked this month, on the workspace's keys or their own,
+-- the biggest first: the activity log's member filter.
+SELECT r.user_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email
+FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
+WHERE r.workspace_id = @workspace_id AND r.created_at >= @since AND r.user_id IS NOT NULL
+GROUP BY r.user_id, u.name, u.email
+ORDER BY sum(r.cost_micros) DESC, user_name;
 
 -- name: AIRequestsPurge :execrows
 -- The activity log keeps 90 days.
