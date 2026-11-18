@@ -278,7 +278,10 @@
   root.addEventListener('input', e => { if (e.target.id === 'draft') state.draft = e.target.value; });
   root.addEventListener('change', e => {
     const t = e.target;
-    if ((t.id === 'example-picker' && t.value in examples) || (t.id === 'provider' && presets.some(([k]) => k === t.value))) { state[t.id === 'provider' ? 'provider' : 'example'] = t.value; state.tested = false; state.open = true; render(t.id); }
+    const known = t.id === 'example-picker' ? Object.keys(examples) : t.id === 'provider' ? presets.map(([k]) => k) : [];
+    // The value is one of the known keys, never the DOM's own text.
+    const pick = known.find(k => k === t.value);
+    if (pick) { if (t.id === 'provider') state.provider = pick; else state.example = pick; state.tested = false; state.open = true; render(t.id); }
     else if (t.dataset.check === 'shared') { state.shared = t.checked; render('shared'); }
     else if (t.dataset.kind) state.toolClass = t.dataset.kind;
   });
