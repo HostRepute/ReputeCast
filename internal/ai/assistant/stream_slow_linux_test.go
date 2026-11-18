@@ -44,7 +44,17 @@ func TestAssistantSlowClientIsCut(t *testing.T) {
 		return serr
 	}}
 	hc := &http.Client{Transport: &http.Transport{DialContext: dialer.DialContext, DisableCompression: true}}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.env.Server.URL+"/api/v1"+f.base+"/assistant/threads/"+th.ID.String()+"/stream", nil)
+	// The app behind a listener whose connections have a small send buffer
+	// too: the kernel otherwise grows it to megabytes (more on some CI
+	// runners), and the whole answer would fit without a write waiting.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := &http.Server{Handler: f.env.Server.Config.Handler, ReadHeaderTimeout: 5 * time.Second}
+	go func() { _ = srv.Serve(smallSendBuffer{ln}) }()
+	t.Cleanup(func() { _ = srv.Close() })
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+ln.Addr().String()+"/api/v1"+f.base+"/assistant/threads/"+th.ID.String()+"/stream", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,4 +114,17 @@ func TestAssistantSlowClientIsCut(t *testing.T) {
 	if text.String() != strings.Join(pieces, "") {
 		t.Fatalf("the deltas make %d bytes, want %d", text.Len(), len(strings.Join(pieces, "")))
 	}
+}
+
+// smallSendBuffer accepts connections with a 4 KB send buffer.
+type smallSendBuffer struct{ net.Listener }
+
+func (l smallSendBuffer) Accept() (net.Conn, error) {
+	c, err := l.Listener.Accept()
+	if err == nil {
+		if tc, ok := c.(*net.TCPConn); ok {
+			_ = tc.SetWriteBuffer(4096)
+		}
+	}
+	return c, err
 }
