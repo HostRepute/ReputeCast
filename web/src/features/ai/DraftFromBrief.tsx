@@ -41,7 +41,7 @@ export function DraftFromBriefDialog({ onClose, target, onAccepted, initialVoice
 }) {
   const { slug } = useWorkspace()
   const t = useT()
-  const assist = useAssist()
+  const assist = useAssist('draft')
   const [reviewSharing, sharingDialog] = useSharingReview(`${assist.provider} · ${assist.model}`)
   const canEdit = useCan('campaigns:edit')
   const editReason = usePermissionReason('campaigns:edit')

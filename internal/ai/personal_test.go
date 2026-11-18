@@ -245,6 +245,68 @@ func TestAIPersonalBudget(t *testing.T) {
 	draftBy(p.c, p.base).MustStatus(t, 200)
 }
 
+// Status follows each feature's own model and budget, as the requests do:
+// the member's draft on their own key is ready with the workspace's cap used
+// up, stops at their own cap while the workspace is ready, and is ready with
+// no workspace model connected.
+func TestAIStatusFollowsPersonalBudget(t *testing.T) {
+	first, mine := newModelServer(t), newModelServer(t)
+	p := newPersonal(t, first, map[string]any{"capKind": "usd", "capUsd": 25})
+	p.enable(5)
+	_, model := p.addOwn(mine.srv.URL, "", 1, 2)
+	p.pick("draft", model)
+	status := func() (st ai.AIStatus, draft, rewrite ai.AIStatusFeature) {
+		t.Helper()
+		p.mc.Do(http.MethodGet, p.base+"/status", nil).MustStatus(t, 200).JSON(t, &st)
+		for _, f := range st.Features {
+			switch f.Key {
+			case "draft":
+				draft = f
+			case "rewrite":
+				rewrite = f
+			}
+		}
+		return st, draft, rewrite
+	}
+
+	// The workspace's cap used up: the draft, in the member's own budget
+	// (so far the add's test, 113 in and 29 out at $1/$2), is still ready.
+	spent := uuid.Must(uuid.NewV7())
+	p.exec(`INSERT INTO ai_requests (id, workspace_id, user_id, feature, provider, model, cost_micros, outcome, created_at)
+		VALUES ($1, $2, $3, 'rewrite', 'compatible', 'model-a', 25000000, 'accepted', now())`, spent, p.ws.ID, p.owner)
+	st, draft, rewrite := status()
+	if st.State != "cap_reached" || st.Usage.State != "reached" || rewrite.State != "cap_reached" || rewrite.Personal || rewrite.Cap.USD != 25 {
+		t.Fatalf("the workspace at its cap: %+v, rewrite %+v", st, rewrite)
+	}
+	if draft.State != "ready" || !draft.On || !draft.Personal || draft.ModelName != "own-model" || draft.Prices.Input != 1 || draft.Prices.Output != 2 ||
+		draft.Cap.Kind != "usd" || draft.Cap.USD != 5 || draft.Usage.State != "ok" || draft.Usage.Requests != 1 || draft.Usage.CostMicros != 113*1+29*2 {
+		t.Fatalf("the member's draft with the workspace at its cap: %+v", draft)
+	}
+	draftBy(p.mc, p.base).MustStatus(t, 200)
+
+	// The member's cap used up: their draft stops, the workspace is ready.
+	p.exec(`DELETE FROM ai_requests WHERE id = $1`, spent)
+	own := uuid.Must(uuid.NewV7())
+	p.exec(`INSERT INTO ai_requests (id, workspace_id, user_id, feature, provider, model, cost_micros, outcome, created_at, personal)
+		VALUES ($1, $2, $3, 'rewrite', 'compatible', 'own-model', 5000000, 'accepted', now(), true)`, own, p.ws.ID, p.member)
+	st, draft, rewrite = status()
+	if st.State != "ready" || rewrite.State != "ready" || draft.State != "cap_reached" || draft.Usage.State != "reached" {
+		t.Fatalf("the member at their cap: %s, rewrite %+v, draft %+v", st.State, rewrite, draft)
+	}
+	if res := draftBy(p.mc, p.base).MustStatus(t, 409).Problem(t); res["code"] != "ai_personal_cap_reached" {
+		t.Fatalf("the member's draft at their cap: %v", res)
+	}
+
+	// No workspace model connected: only the member's own draft is ready.
+	p.exec(`DELETE FROM ai_requests WHERE id = $1`, own)
+	p.c.Do(http.MethodDelete, p.base+"/connection", nil).MustStatus(t, 200)
+	st, draft, rewrite = status()
+	if st.State != "not_configured" || rewrite.State != "not_configured" || rewrite.On || draft.State != "ready" || !draft.On || !draft.Personal {
+		t.Fatalf("without a workspace model: %s, rewrite %+v, draft %+v", st.State, rewrite, draft)
+	}
+	draftBy(p.mc, p.base).MustStatus(t, 200)
+}
+
 // Two requests on one person's key race that person's cap: of two tests
 // that each fit alone, one reserves and the other is refused before it is
 // sent. (The workspace has no cap.)
