@@ -1229,7 +1229,9 @@ const (
 )
 
 // update applies a change to the connected model (the workspace's first),
-// its account or the workspace's settings, and audits it.
+// its account or the workspace's settings, and audits it. The settings (the
+// cap, the feature switches) are the workspace's, not the first account's:
+// they change while that account is disconnected and others serve.
 func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Principal, action string, parts int, change func(row *store.AIBindingRow) (auditChange, error)) (AISettings, error) {
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -1240,7 +1242,7 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return err
 		}
-		if !c.connected() {
+		if c == nil || (parts != saveSettings && !c.connected()) {
 			return problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
 		}
 		row := c.AIBindingRow

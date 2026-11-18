@@ -354,3 +354,46 @@ func TestAIStatusFollowsFeatureModels(t *testing.T) {
 		t.Fatalf("the catalog's connected account: %+v", catalog)
 	}
 }
+
+// The cap and the feature switches are the workspace's: with the first
+// account disconnected and rewrite served by another, they still change,
+// apply to the account that serves and are audited.
+func TestAIWorkspaceSettingsWithFirstAccountDisconnected(t *testing.T) {
+	first, second := newModelServer(t), newModelServer(t)
+	r := newRegistry(t, first, nil)
+	var s ai.AISettings
+	r.c.Do(http.MethodPost, r.base+"/accounts", map[string]any{"provider": "compatible", "baseUrl": second.srv.URL, "model": "model-b", "inputPrice": 1, "outputPrice": 2}).MustStatus(t, 200).JSON(t, &s)
+	r.c.Do(http.MethodPut, r.base+"/features/rewrite/model", map[string]any{"modelId": s.Accounts[1].Models[0].ID}).MustStatus(t, 200)
+	r.c.Do(http.MethodDelete, r.base+"/connection", nil).MustStatus(t, 200)
+
+	r.c.Do(http.MethodPut, r.base+"/cap", map[string]any{"kind": "usd", "usd": 40}).MustStatus(t, 200).JSON(t, &s)
+	if s.Connection == nil || s.Connection.Cap.Kind != "usd" || s.Connection.Cap.USD != 40 {
+		t.Fatalf("the cap after the change: %+v", s.Connection)
+	}
+	rewrite := func(st ai.AIStatus) bool {
+		for _, f := range st.Features {
+			if f.Key == "rewrite" {
+				return f.On
+			}
+		}
+		return false
+	}
+	var st ai.AIStatus
+	r.c.Do(http.MethodPut, r.base+"/features/rewrite", map[string]any{"on": false}).MustStatus(t, 200)
+	r.c.Do(http.MethodGet, r.base+"/status", nil).MustStatus(t, 200).JSON(t, &st)
+	if st.Model != "model-b" || st.Cap.USD != 40 || rewrite(st) {
+		t.Fatalf("status with rewrite off: %+v", st)
+	}
+	r.c.Do(http.MethodPut, r.base+"/features/rewrite", map[string]any{"on": true}).MustStatus(t, 200)
+	r.c.Do(http.MethodGet, r.base+"/status", nil).MustStatus(t, 200).JSON(t, &st)
+	if !rewrite(st) {
+		t.Fatalf("status with rewrite on again: %+v", st.Features)
+	}
+	var actions []string
+	if err := pgxCollect(context.Background(), r, `SELECT action FROM audit_events WHERE workspace_id = $1 AND action IN ('ai.cap_updated', 'ai.feature_disabled', 'ai.feature_enabled') ORDER BY occurred_at, id`, &actions, r.ws.ID); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(actions, []string{"ai.cap_updated", "ai.feature_disabled", "ai.feature_enabled"}) {
+		t.Fatalf("the settings' audit entries: %v", actions)
+	}
+}
