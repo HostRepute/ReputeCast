@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -141,11 +143,16 @@ func (s *Service) ExecuteTurn(ctx context.Context, args TurnArgs) error {
 	}
 	var run *turnRun
 	busy := false
+	release, err := configGate(ctx, ws.ID)
+	if err != nil {
+		return err
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
 		run, busy, err = s.claim(ctx, store.New(tx), &ws, args)
 		return err
 	})
+	release()
 	if err != nil {
 		return err
 	}
@@ -209,7 +216,7 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspa
 	if err != nil {
 		return nil, false, s.failFor(ctx, q, &turn, err)
 	}
-	if err := s.AI.ReadyAssistant(ctx, ws, m); err != nil {
+	if err := s.AI.ReadyAssistant(ctx, q, ws, m); err != nil {
 		return nil, false, s.failFor(ctx, q, &turn, err)
 	}
 	if err := q.AIAssistantSlotsExpire(ctx, store.AIAssistantSlotsExpireParams{WorkspaceID: ws.ID, Now: now}); err != nil {
@@ -402,6 +409,14 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			content = envelope(call.Name, r)
 		}
 		row := AIThreadToolRow{CallID: call.ID, Name: call.Name, OK: r.code == "", Code: r.code, Ms: time.Since(start).Milliseconds(), Label: clip(r.label, 120), Card: r.card}
+		kind := "reputecast"
+		switch {
+		case decided:
+			kind = "mcp_write"
+		case strings.HasPrefix(call.Name, "mcp__"):
+			kind = "mcp_read"
+		}
+		opsmetrics.AssistantToolCalls.WithLabelValues(kind, opsmetrics.ToolOutcome(r.code)).Inc()
 		rd.Results = append(rd.Results, llm.Part{ToolResult: &llm.ToolResult{ID: call.ID, Name: call.Name, Content: content, IsError: r.code != ""}})
 		rd.Rows = append(rd.Rows, row)
 		active = false
@@ -464,7 +479,12 @@ func (s *Service) failRunning(ctx context.Context, q *store.Queries, run *turnRu
 // owner's access and the turn's model as they are now.
 func (s *Service) nextRound(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun) (bool, error) {
 	ok := false
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	release, err := configGate(ctx, ws.ID)
+	if err != nil {
+		return false, err
+	}
+	defer release()
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := s.AI.LockAssistantConfig(ctx, q, ws.ID); err != nil {
 			return err
@@ -585,6 +605,8 @@ type sent struct {
 	res            llm.Response
 	callErr, cause error
 	text, rest     string
+	// took is how long the request streamed (zero: it was never sent).
+	took time.Duration
 }
 
 // send sends a round's request and streams its answer (a summary's isn't
@@ -599,6 +621,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) s
 	}
 	var res llm.Response
 	var cause error
+	var took time.Duration
 	prov, callErr := s.AI.AssistantProvider(run.model)
 	if callErr != nil {
 		// Built here, before any request: nothing was sent.
@@ -609,8 +632,17 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) s
 			defer close(watched)
 			s.watch(sctx, ws, run, stop)
 		}()
+		sentAt := time.Now()
 		res, callErr = llm.StreamOrGenerate(sctx, prov, run.req, emit)
+		took = time.Since(sentAt)
 		cause = context.Cause(sctx)
+		if firstAt, committedAt := w.first(); run.rounds == 1 && run.kind == "answer" && !committedAt.IsZero() {
+			// What the server added before the first token: everything
+			// from the person's message to its commit but the provider's
+			// own time to its first token.
+			overhead := committedAt.Sub(run.turn.CreatedAt) - firstAt.Sub(sentAt)
+			opsmetrics.AssistantTTFTOverhead.Observe(max(overhead, 0).Seconds())
+		}
 		if ctx.Err() != nil {
 			// The worker is stopping (a deploy): the answer was cut short.
 			cause = errShutdown
@@ -622,7 +654,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) s
 	if s.afterAnswer != nil {
 		s.afterAnswer(run.turn.ID)
 	}
-	return sent{res: res, callErr: callErr, cause: cause, text: w.text(), rest: rest}
+	return sent{res: res, callErr: callErr, cause: cause, text: w.text(), rest: rest, took: took}
 }
 
 // toolCalls are a response's calls, in order.
@@ -719,6 +751,13 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 			outcome = ai.OutcomeError
 		case res.Refused:
 			outcome = ai.OutcomeRefused
+		}
+		if r.took > 0 {
+			opsmetrics.AssistantStream.WithLabelValues(run.kind, outcome).Observe(r.took.Seconds())
+			if res.UsageKnown {
+				opsmetrics.AssistantTokens.WithLabelValues("input").Add(float64(res.InputTokens))
+				opsmetrics.AssistantTokens.WithLabelValues("output").Add(float64(res.OutputTokens))
+			}
 		}
 		// Always, even when the turn was stopped meanwhile: the provider may
 		// charge for the request.
@@ -864,6 +903,27 @@ func (s *Service) interrupt(ctx context.Context, q *store.Queries, t store.AiAss
 		return err
 	}
 	return s.endTurn(ctx, q, turn, "failed", "interrupted")
+}
+
+// gates are this process's turns waiting for a workspace's AI
+// configuration lock, one channel a workspace.
+var gates sync.Map // uuid.UUID → chan struct{}
+
+// configGate lets one of this process's claims (or next rounds) of a
+// workspace into its transaction at a time; release lets the next one in.
+// The database's configuration lock is what serializes them: waiting here
+// instead keeps a hundred turns starting at once from holding a hundred
+// pool connections while they wait for it, which starved the streams'
+// reads (B6's load test).
+func configGate(ctx context.Context, ws uuid.UUID) (func(), error) {
+	v, _ := gates.LoadOrStore(ws, make(chan struct{}, 1))
+	gate := v.(chan struct{})
+	select {
+	case gate <- struct{}{}:
+		return func() { <-gate }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 // SweepArgs is the minute's sweep of turns no worker answers.

@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -93,6 +94,8 @@ func (s *Service) Stream(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		_ = c.do(sse.Message{Data: streamProblem(err)})
 		return
 	}
+	opsmetrics.AssistantStreams.Inc()
+	defer opsmetrics.AssistantStreams.Dec()
 	var wake <-chan struct{}
 	if s.Hub != nil {
 		ch, cancel := s.Hub.Subscribe(thread)
@@ -106,15 +109,18 @@ func (s *Service) Stream(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	check := time.NewTicker(streamAccessEvery)
 	defer check.Stop()
 	_ = c.do(sse.Message{Retry: 2000, Comment: "connected"})
+	// What the stream catches up on first isn't late: it is the client's.
+	live := false
 	for {
 		var err error
-		if after, snapshot, err = s.sendEvents(ctx, ws, p, thread, after, snapshot, c); err != nil {
+		if after, snapshot, err = s.sendEvents(ctx, ws, p, thread, after, snapshot, live, c); err != nil {
 			var pr *api.Problem
 			if errors.As(err, &pr) {
 				_ = c.do(sse.Message{Data: streamProblem(err)})
 			}
 			return
 		}
+		live = true
 		select {
 		case <-ctx.Done():
 			return
@@ -135,7 +141,10 @@ func (s *Service) Stream(ctx context.Context, ws *store.Workspace, p *authz.Prin
 // sendEvents sends what the thread has after the cursor and returns the
 // new cursor. A send that fails (the client left, or was cut) ends the
 // stream.
-func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.Principal, thread uuid.UUID, after int64, snapshot bool, c cutter) (int64, bool, error) {
+func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.Principal, thread uuid.UUID, after int64, snapshot, live bool, c cutter) (int64, bool, error) {
+	// checked: the thread was read after the last events read, so every
+	// event it counts was committed when the events were read again.
+	checked := false
 	for {
 		if snapshot {
 			th, err := s.snapshot(ctx, ws, p, thread)
@@ -147,25 +156,34 @@ func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.
 			}
 			after, snapshot = th.EventSeq, false
 		}
-		t, err := s.Q.AIAssistantThread(ctx, store.AIAssistantThreadParams{WorkspaceID: ws.ID, UserID: p.UserID, ID: thread})
-		if errors.Is(err, pgx.ErrNoRows) {
-			return after, false, threadNotFound()
-		}
-		if err != nil {
-			return after, false, err
-		}
-		if after == t.EventSeq {
-			return after, false, nil
-		}
+		// The events first: one read a wake while the thread streams. The
+		// thread is read only when there is nothing new or a gap, to tell
+		// which (and whether it is still there).
 		rows, err := s.Q.AIAssistantEvents(ctx, store.AIAssistantEventsParams{ThreadID: thread, After: after, Lim: streamPage})
 		if err != nil {
 			return after, false, err
 		}
-		// Events this cursor needs are gone, or it is from elsewhere.
-		if after > t.EventSeq || len(rows) == 0 || rows[0].Seq != after+1 {
-			snapshot = true
+		if len(rows) == 0 || rows[0].Seq != after+1 {
+			t, err := s.Q.AIAssistantThread(ctx, store.AIAssistantThreadParams{WorkspaceID: ws.ID, UserID: p.UserID, ID: thread})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return after, false, threadNotFound()
+			}
+			if err != nil {
+				return after, false, err
+			}
+			if after == t.EventSeq {
+				return after, false, nil
+			}
+			if !checked && after < t.EventSeq {
+				// Committed between the two reads: read them now.
+				checked = true
+				continue
+			}
+			// Events this cursor needs are gone, or it is from elsewhere.
+			snapshot, checked = true, false
 			continue
 		}
+		checked = false
 		for _, r := range rows {
 			data, err := s.eventData(thread, r)
 			if err != nil {
@@ -174,7 +192,14 @@ func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.
 			if err := c.do(sse.Message{IDString: strconv.FormatInt(r.Seq, 10), Data: data}); err != nil {
 				return after, false, err
 			}
+			if live {
+				opsmetrics.AssistantEventLag.WithLabelValues(r.Kind).Observe(time.Since(r.CreatedAt).Seconds())
+			}
 			after = r.Seq
+		}
+		if len(rows) < streamPage {
+			// Caught up as of that read; a later event wakes the stream.
+			return after, false, nil
 		}
 	}
 }

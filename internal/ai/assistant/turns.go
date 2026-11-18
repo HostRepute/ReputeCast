@@ -67,7 +67,7 @@ func (s *Service) SendMessage(ctx context.Context, ws *store.Workspace, p *authz
 		}
 		reputation := ai.AsksAboutReputation(text)
 		if !reputation {
-			if err := s.AI.ReadyAssistant(ctx, ws, m); err != nil {
+			if err := s.AI.ReadyAssistant(ctx, q, ws, m); err != nil {
 				return err
 			}
 		}

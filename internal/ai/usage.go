@@ -29,16 +29,23 @@ type usage struct {
 // usage sums this month's requests against a model's budget: the
 // workspace's, or for a personal key its owner's own.
 func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection) (usage, error) {
+	return s.usageIn(ctx, s.Q, ws, c)
+}
+
+// usageIn is usage read through q: a caller in a transaction passes its
+// own, so the check never waits for a second connection of the pool while
+// it holds one (and its locks).
+func (s *Service) usageIn(ctx context.Context, q *store.Queries, ws *store.Workspace, c *connection) (usage, error) {
 	start, _ := s.month(ws)
 	if c.personal() {
-		return s.personalUsage(ctx, ws.ID, *c.AccountUserID, start, c.PersonalCapUsd)
+		return s.personalUsageIn(ctx, q, ws.ID, *c.AccountUserID, start, c.PersonalCapUsd)
 	}
-	t, err := s.Q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
+	t, err := q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
 	if err != nil {
 		return usage{}, err
 	}
 	u := usage{costMicros: t.CostMicros, inputTokens: t.InputTokens, outputTokens: t.OutputTokens, tokens: t.InputTokens + t.OutputTokens, requests: t.Requests}
-	held, err := s.Q.AIBudgetMonthly(ctx, ws.ID)
+	held, err := q.AIBudgetMonthly(ctx, ws.ID)
 	if err != nil {
 		return usage{}, err
 	}
@@ -61,11 +68,15 @@ func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection)
 // personalUsage is a person's use of their own keys this month against
 // their cap (in dollars).
 func (s *Service) personalUsage(ctx context.Context, ws, user uuid.UUID, start time.Time, capUSD float64) (usage, error) {
-	t, err := s.Q.AIPersonalUsageTotal(ctx, store.AIPersonalUsageTotalParams{WorkspaceID: ws, UserID: &user, Since: start})
+	return s.personalUsageIn(ctx, s.Q, ws, user, start, capUSD)
+}
+
+func (s *Service) personalUsageIn(ctx context.Context, q *store.Queries, ws, user uuid.UUID, start time.Time, capUSD float64) (usage, error) {
+	t, err := q.AIPersonalUsageTotal(ctx, store.AIPersonalUsageTotalParams{WorkspaceID: ws, UserID: &user, Since: start})
 	if err != nil {
 		return usage{}, err
 	}
-	held, err := s.Q.AIBudgetPersonal(ctx, store.AIBudgetPersonalParams{WorkspaceID: ws, UserID: &user})
+	held, err := q.AIBudgetPersonal(ctx, store.AIBudgetPersonalParams{WorkspaceID: ws, UserID: &user})
 	if err != nil {
 		return usage{}, err
 	}

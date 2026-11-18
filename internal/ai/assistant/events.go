@@ -154,8 +154,9 @@ func (s *Service) answerSoFar(ctx context.Context, q *store.Queries, thread, tur
 	return b.String(), nil
 }
 
-// Deltas are written in batches: once 2 KB arrived, or 100 ms after the
-// first piece of a batch.
+// Deltas are written in batches: the answer's first piece at once (the
+// person sees the answer begin), then once 2 KB arrived, or 100 ms after
+// the first piece of a batch.
 const (
 	batchBytes = 2 << 10
 	batchWait  = 100 * time.Millisecond
@@ -179,6 +180,9 @@ type deltaWriter struct {
 	all   strings.Builder // everything that arrived
 	timer *time.Timer
 	err   error
+	// firstAt is when the first piece arrived, committedAt when it was
+	// committed (the metrics' time to first token).
+	firstAt, committedAt time.Time
 	// flushing serializes batches, so they commit in order.
 	flushing sync.Mutex
 }
@@ -199,6 +203,9 @@ func (w *deltaWriter) emit(d llm.Delta) error {
 	w.buf.WriteString(d.Text)
 	w.all.WriteString(d.Text)
 	full := w.buf.Len() >= batchBytes
+	if w.firstAt.IsZero() {
+		w.firstAt, full = time.Now(), true
+	}
 	if !full && w.timer == nil {
 		w.timer = time.AfterFunc(batchWait, func() { _ = w.flush() })
 	}
@@ -228,6 +235,14 @@ func (w *deltaWriter) take() string {
 	return rest
 }
 
+// first is when the answer's first piece arrived and was committed (zero
+// when none was).
+func (w *deltaWriter) first() (time.Time, time.Time) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.firstAt, w.committedAt
+}
+
 // text is everything that arrived.
 func (w *deltaWriter) text() string {
 	w.mu.Lock()
@@ -252,6 +267,15 @@ func (w *deltaWriter) flush() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = db.Tx(ctx, w.s.Pool, func(tx pgx.Tx) error {
+		// A batch's only lasting change is its thread's event number (the
+		// events table is unlogged): its commit needn't wait for the WAL
+		// to reach the disk. A crash may lose the last batches' numbers
+		// with the events themselves; streams then resume from a snapshot.
+		// Transactions that notify commit one at a time, so waiting for
+		// the disk in each one held up every stream (B6's load test).
+		if _, err := tx.Exec(ctx, "SET LOCAL synchronous_commit TO OFF"); err != nil {
+			return err
+		}
 		q := store.New(tx)
 		if _, err := q.AIAssistantThreadLockByID(ctx, store.AIAssistantThreadLockByIDParams{WorkspaceID: w.ws, ID: w.thread}); errors.Is(err, pgx.ErrNoRows) {
 			return errFenced
@@ -267,6 +291,13 @@ func (w *deltaWriter) flush() error {
 		}
 		return w.s.appendEvent(ctx, q, w.thread, &w.turn, kindDelta, AIThreadDeltaEvent{TurnID: w.turn, Text: text})
 	})
+	if err == nil {
+		w.mu.Lock()
+		if w.committedAt.IsZero() {
+			w.committedAt = time.Now()
+		}
+		w.mu.Unlock()
+	}
 	if err != nil {
 		w.mu.Lock()
 		if w.err == nil {

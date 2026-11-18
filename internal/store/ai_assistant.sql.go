@@ -146,7 +146,7 @@ func (q *Queries) AIAssistantEventSeq(ctx context.Context, id uuid.UUID) (int64,
 }
 
 const aIAssistantEvents = `-- name: AIAssistantEvents :many
-SELECT seq, turn_id, kind, payload_sealed FROM ai_assistant_events
+SELECT seq, turn_id, kind, payload_sealed, created_at FROM ai_assistant_events
 WHERE thread_id = $1 AND seq > $2 ORDER BY seq LIMIT $3
 `
 
@@ -161,6 +161,7 @@ type AIAssistantEventsRow struct {
 	TurnID        *uuid.UUID `json:"turnId"`
 	Kind          string     `json:"kind"`
 	PayloadSealed []byte     `json:"payloadSealed"`
+	CreatedAt     time.Time  `json:"createdAt"`
 }
 
 // A thread's events after a stream's cursor, in order.
@@ -178,6 +179,7 @@ func (q *Queries) AIAssistantEvents(ctx context.Context, arg AIAssistantEventsPa
 			&i.TurnID,
 			&i.Kind,
 			&i.PayloadSealed,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

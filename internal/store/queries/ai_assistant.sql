@@ -81,7 +81,7 @@ SELECT pg_notify('ai_assistant', @payload::text);
 
 -- name: AIAssistantEvents :many
 -- A thread's events after a stream's cursor, in order.
-SELECT seq, turn_id, kind, payload_sealed FROM ai_assistant_events
+SELECT seq, turn_id, kind, payload_sealed, created_at FROM ai_assistant_events
 WHERE thread_id = @thread_id AND seq > @after ORDER BY seq LIMIT @lim;
 
 -- name: AIAssistantTurnDeltas :many

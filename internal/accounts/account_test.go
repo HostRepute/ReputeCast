@@ -243,15 +243,22 @@ func TestLeaveWorkspace(t *testing.T) {
 	if p := c.Do("POST", "/workspaces/"+ws.Slug+"/leave", nil).MustStatus(t, 409).Problem(t); p["code"] != "last_owner" {
 		t.Fatalf("last owner: %v", p)
 	}
+	env.SeedAssistantThread(ws.ID, marcus.ID)
+	env.SeedMCPSignIn(ws.ID, marcus.ID)
 	m := env.Client()
 	m.SignIn("marcus@acme.io", "")
 	m.Do("POST", "/workspaces/"+ws.Slug+"/leave", nil).MustStatus(t, 204)
+	// Their assistant threads and MCP sign-ins there go with them.
+	if threads, signIns := env.MemberLeftovers(ws.ID, marcus.ID); threads != 0 || signIns != 0 {
+		t.Fatalf("after leaving: %d threads, %d MCP sign-ins", threads, signIns)
+	}
 	m.Do("GET", "/workspaces/"+ws.Slug+"/me", nil).MustStatus(t, 404)
 	k := env.Client()
 	k.Bearer = key
 	k.Do("GET", "/workspaces/"+ws.Slug+"/me", nil).MustStatus(t, 401)
 	var n int
-	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'member.leave' AND workspace_id = $1`, ws.ID).Scan(&n)
+	_ = env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'member.leave' AND workspace_id = $1
+		AND (metadata->>'assistant_threads_removed')::int = 1 AND (metadata->>'mcp_sign_ins_removed')::int = 1`, ws.ID).Scan(&n)
 	if n != 1 {
 		t.Fatalf("audit: %d", n)
 	}

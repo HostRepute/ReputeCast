@@ -171,8 +171,8 @@ func (s *Service) AssistantModelView(ctx context.Context, q *store.Queries, ws, 
 
 // ReadyAssistant checks that a thread's model can take a request now: the
 // key works, the switch and the caps allow it.
-func (s *Service) ReadyAssistant(ctx context.Context, ws *store.Workspace, m *AssistantModel) error {
-	_, err := s.ready(ctx, ws, m.c, FeatureAssistant)
+func (s *Service) ReadyAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, m *AssistantModel) error {
+	_, err := s.readyIn(ctx, q, ws, m.c, FeatureAssistant)
 	return err
 }
 

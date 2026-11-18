@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -94,6 +94,13 @@ type resume struct {
 	round round
 }
 
+// What of a server's tool definition reaches the model: its description,
+// at most 1,000 characters; its input schema, at most 8 KB.
+const (
+	maxToolDescription = 1000
+	maxToolSchema      = 8 << 10
+)
+
 // mcpSpecs are the MCP tools a thread may offer, at most room of them.
 func (s *Service) mcpSpecs(ctx context.Context, q *store.Queries, ws *store.Workspace, owner *authz.Principal, thread uuid.UUID, room int) ([]ToolSpec, error) {
 	if s.MCP == nil || thread == uuid.Nil || room <= 0 {
@@ -110,10 +117,15 @@ func (s *Service) mcpSpecs(ctx context.Context, q *store.Queries, ws *store.Work
 		if t.Writes {
 			desc += "; each call waits for the person to allow it"
 		}
-		desc += ". " + clip(t.Description, 1000)
+		desc += ". " + defang(clip(t.Description, maxToolDescription))
 		params := t.InputSchema
 		if params["type"] != "object" {
 			params = map[string]any{"type": "object", "properties": map[string]any{}}
+		}
+		// A schema is the server's text too: one too large to read isn't
+		// offered.
+		if raw, err := json.Marshal(params); err != nil || len(raw) > maxToolSchema {
+			continue
 		}
 		out = append(out, ToolSpec{Name: t.ModelName, Description: desc, Parameters: params, Permission: authz.AIUse, Confirm: t.Writes, mcp: &t})
 		if len(out) == room {
@@ -140,12 +152,11 @@ func (s *Service) runMCP(ctx context.Context, c *toolCall, spec ToolSpec, hash [
 	return res, untrusted(source, r.Text, !r.IsError)
 }
 
-var delimiter = regexp.MustCompile(`(?i)<(\s*/?\s*untrusted_content)`)
-
 // untrusted is an MCP result as the model reads it: inside delimiters
-// naming its source, which its text can't close.
+// naming its source, which its text can't close (nor open another
+// reserved tag) and its source can't leave.
 func untrusted(source, text string, ok bool) json.RawMessage {
-	data := "<untrusted_content source=\"" + tagSafe(source) + "\">\n" + delimiter.ReplaceAllString(text, "‹$1") + "\n</untrusted_content>"
+	data := "<untrusted_content source=\"" + strings.ReplaceAll(tagSafe(source), `"`, "'") + "\">\n" + defang(text) + "\n</untrusted_content>"
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false)

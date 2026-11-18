@@ -93,6 +93,11 @@ func (s *Service) usable(ctx context.Context, ws *store.Workspace, p *authz.Prin
 // whose default model is disconnected waits for it: another model is never
 // used instead. A personal key is its owner's to fix.
 func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection, feature string) (*connection, error) {
+	return s.readyIn(ctx, s.Q, ws, c, feature)
+}
+
+// readyIn is ready read through q (a caller's transaction: see usageIn).
+func (s *Service) readyIn(ctx context.Context, q *store.Queries, ws *store.Workspace, c *connection, feature string) (*connection, error) {
 	if c.personal() {
 		if !c.PersonalKeys {
 			return nil, personalKeysOff(ctx)
@@ -102,21 +107,21 @@ func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection,
 		}
 	}
 	if !c.connected() {
-		return nil, s.notConnected(ctx, ws)
+		return nil, s.notConnected(ctx, q, ws)
 	}
 	if feature == FeatureAltText && !c.ImageInput {
-		return nil, withHelpers(ctx, http.StatusConflict, codeNoImageInput, mNoImageInput, mNoImageInputAlone, nil, s.helpers(ctx, ws.ID))
+		return nil, withHelpers(ctx, http.StatusConflict, codeNoImageInput, mNoImageInput, mNoImageInputAlone, nil, helpersIn(ctx, q, ws.ID))
 	}
 	if !c.featureOn(feature) {
-		return nil, withHelpers(ctx, http.StatusConflict, codeFeatureOff, mFeatureOff, mFeatureOffAlone, i18n.Args{"feature": feature}, s.helpers(ctx, ws.ID))
+		return nil, withHelpers(ctx, http.StatusConflict, codeFeatureOff, mFeatureOff, mFeatureOffAlone, i18n.Args{"feature": feature}, helpersIn(ctx, q, ws.ID))
 	}
 	if c.Status == "key_rejected" {
 		if c.personal() {
 			return nil, problem(ctx, http.StatusConflict, codeKeyRejected, mPersonalKeyRejected, i18n.Args{"provider": c.providerName()})
 		}
-		return nil, withHelpers(ctx, http.StatusConflict, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": c.providerName()}, s.helpers(ctx, ws.ID))
+		return nil, withHelpers(ctx, http.StatusConflict, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": c.providerName()}, helpersIn(ctx, q, ws.ID))
 	}
-	u, err := s.usage(ctx, ws, c)
+	u, err := s.usageIn(ctx, q, ws, c)
 	if err != nil {
 		return nil, err
 	}
@@ -124,28 +129,28 @@ func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection,
 		if c.personal() {
 			return nil, s.personalCapReached(ctx, ws, c, u)
 		}
-		return nil, s.capReached(ctx, ws, c, u)
+		return nil, s.capReached(ctx, q, ws, c, u)
 	}
 	return c, nil
 }
 
-func (s *Service) notConnected(ctx context.Context, ws *store.Workspace) *api.Problem {
+func (s *Service) notConnected(ctx context.Context, q *store.Queries, ws *store.Workspace) *api.Problem {
 	if p := api.PrincipalFrom(ctx); p.Can(authz.IntegrationsManage) {
 		return problem(ctx, http.StatusConflict, codeNotConnected, mNotConnected, nil)
 	}
-	return withHelpers(ctx, http.StatusConflict, codeNotConnected, mNotConnectedAsk, mNotConnectedAlone, nil, s.helpers(ctx, ws.ID))
+	return withHelpers(ctx, http.StatusConflict, codeNotConnected, mNotConnectedAsk, mNotConnectedAlone, nil, helpersIn(ctx, q, ws.ID))
 }
 
-func (s *Service) capReached(ctx context.Context, ws *store.Workspace, c *connection, u usage) *api.Problem {
+func (s *Service) capReached(ctx context.Context, q *store.Queries, ws *store.Workspace, c *connection, u usage) *api.Problem {
 	l := i18n.LangFrom(ctx)
 	_, next := s.month(ws)
 	args := i18n.Args{"date": l.Region.DayMonth(next), "cap": l.Region.Money(c.CapUsd, 2)}
 	if c.CapKind == "tokens" {
 		args["cap"] = l.Region.Int(c.CapTokens)
-		return withHelpers(ctx, http.StatusConflict, codeCapReached, mTokenCapReached, mCapReachedAlone, args, s.helpers(ctx, ws.ID)).
+		return withHelpers(ctx, http.StatusConflict, codeCapReached, mTokenCapReached, mCapReachedAlone, args, helpersIn(ctx, q, ws.ID)).
 			WithMeta("resetsAt", next, "capTokens", c.CapTokens)
 	}
-	return withHelpers(ctx, http.StatusConflict, codeCapReached, mCapReached, mCapReachedAlone, args, s.helpers(ctx, ws.ID)).
+	return withHelpers(ctx, http.StatusConflict, codeCapReached, mCapReached, mCapReachedAlone, args, helpersIn(ctx, q, ws.ID)).
 		WithMeta("resetsAt", next, "capUsd", c.CapUsd, "spentMicros", u.costMicros)
 }
 

@@ -157,7 +157,8 @@ func TestAssistantRetention(t *testing.T) {
 	if after.State != "expired" || after.Title != "" || len(after.Messages) != 0 || after.Usage.Requests != 1 {
 		t.Fatalf("the tombstone: %+v", after)
 	}
-	f.contentGone(th.ID.String(), "4d2e")
+	// With its word: four hex digits alone can be part of an id.
+	f.contentGone(th.ID.String(), "sentinel 4d2e")
 	if r, err := at(122 * 24 * time.Hour).Purge(ctx); err != nil || r.Tombstones != 1 {
 		t.Fatalf("90 days after that: %+v %v", r, err)
 	}
@@ -223,7 +224,7 @@ func TestAssistantThreadsGoWithTheMember(t *testing.T) {
 	if n := f.count(`SELECT count(*) FROM ai_assistant_threads WHERE workspace_id = $1 AND user_id = $2`, f.ws.ID, f.member); n != 0 {
 		t.Fatalf("%d threads of the removed member", n)
 	}
-	f.contentGone(mine.ID.String(), "77ab")
+	f.contentGone(mine.ID.String(), "sentinel 77ab")
 	if n := f.count(`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action = 'member.removed' AND (after->>'assistant_threads_removed')::int = 1`, f.ws.ID); n != 1 {
 		t.Fatal("the removal doesn't say the threads went")
 	}

@@ -43,7 +43,7 @@ type Models interface {
 	// A turn's request: ready, reserved under the thread's lock, sent,
 	// then accounted.
 	LockAssistantConfig(ctx context.Context, q *store.Queries, ws uuid.UUID) error
-	ReadyAssistant(ctx context.Context, ws *store.Workspace, m *ai.AssistantModel) error
+	ReadyAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, m *ai.AssistantModel) error
 	ReserveAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, m *ai.AssistantModel, req *llm.Request, l ai.AssistantLedger, id uuid.UUID) error
 	AssistantProvider(m *ai.AssistantModel) (llm.Provider, error)
 	AccountAssistant(ctx context.Context, q *store.Queries, r ai.AssistantRequest, res llm.Response, callErr error) (bool, error)

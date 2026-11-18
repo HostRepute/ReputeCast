@@ -359,7 +359,11 @@ func (s *Service) provider(c *connection, feature string) (llm.Provider, error) 
 
 // helpers are the members who can connect or change the model.
 func (s *Service) helpers(ctx context.Context, ws uuid.UUID) []string {
-	return access.Helpers(ctx, s.Q, ws, authz.IntegrationsManage)
+	return helpersIn(ctx, s.Q, ws)
+}
+
+func helpersIn(ctx context.Context, q *store.Queries, ws uuid.UUID) []string {
+	return access.Helpers(ctx, q, ws, authz.IntegrationsManage)
 }
 
 // month returns the start of the current month and of the next one, in

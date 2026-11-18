@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -81,7 +82,7 @@ func (s *Service) request(ctx context.Context, q *store.Queries, ws *store.Works
 		req.Tools = llmTools(offered)
 	}
 	if summary != "" {
-		req.Messages = append(req.Messages, llm.Message{Role: "user", Parts: []llm.Part{{Text: "<summary_of_earlier_messages>\n" + summary + "\n</summary_of_earlier_messages>"}}})
+		req.Messages = append(req.Messages, llm.Message{Role: "user", Parts: []llm.Part{{Text: "<summary_of_earlier_messages>\n" + defang(summary) + "\n</summary_of_earlier_messages>"}}})
 	}
 	older := []int{}
 	for i, m := range messages {
@@ -118,7 +119,7 @@ func (s *Service) request(ctx context.Context, q *store.Queries, ws *store.Works
 func (s *Service) replay(m store.AiAssistantMessage, c messageContent, next string, model uuid.UUID) (llm.Message, bool) {
 	switch m.Role {
 	case "user":
-		return llm.Message{Role: "user", Parts: []llm.Part{{Text: c.Text}}}, strings.TrimSpace(c.Text) != ""
+		return llm.Message{Role: "user", Parts: []llm.Part{{Text: defang(c.Text)}}}, strings.TrimSpace(c.Text) != ""
 	case "assistant":
 		if c.Replay == nil {
 			return llm.Message{Role: "assistant", Parts: []llm.Part{{Text: c.Text}}}, strings.TrimSpace(c.Text) != ""
@@ -183,17 +184,17 @@ func estimateTokens(req llm.Request) int {
 func summaryRequest(previous string, messages []store.AiAssistantMessage, contents []messageContent, older []int) llm.Request {
 	var b strings.Builder
 	if previous != "" {
-		b.WriteString("<previous_summary>\n" + previous + "\n</previous_summary>\n")
+		b.WriteString("<previous_summary>\n" + defang(previous) + "\n</previous_summary>\n")
 	}
 	b.WriteString("<conversation>\n")
 	for _, i := range older {
 		c := contents[i]
 		switch messages[i].Role {
 		case "user":
-			b.WriteString("Person: " + c.Text + "\n")
+			b.WriteString("Person: " + defang(c.Text) + "\n")
 		case "assistant":
 			if strings.TrimSpace(c.Text) != "" {
-				b.WriteString("Assistant: " + c.Text + "\n")
+				b.WriteString("Assistant: " + defang(c.Text) + "\n")
 			}
 		case "tool":
 			for _, r := range c.Tools {
@@ -208,6 +209,15 @@ func summaryRequest(previous string, messages []store.AiAssistantMessage, conten
 	b.WriteString("</conversation>")
 	return llm.Request{System: summarySystem, Messages: []llm.Message{{Role: "user", Parts: []llm.Part{{Text: b.String()}}}}, MaxTokens: 1500}
 }
+
+// reserved are the tags a request's own parts are delimited with: the
+// summary, the conversation it summarizes, the screen and attachments,
+// MCP results. Text from anywhere else (the person's messages, a summary,
+// a server's result) can't open or close one.
+var reserved = regexp.MustCompile(`(?i)<(\s*/?\s*(?:untrusted_content|summary_of_earlier_messages|previous_summary|conversation|context|screen|attached)\b)`)
+
+// defang keeps text from opening or closing a reserved tag.
+func defang(s string) string { return reserved.ReplaceAllString(s, "‹$1") }
 
 // tagSafe keeps a title from closing the tags it is listed between.
 func tagSafe(s string) string {

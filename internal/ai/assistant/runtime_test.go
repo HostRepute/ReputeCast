@@ -548,3 +548,41 @@ func TestAssistantUncertainHoldCounts(t *testing.T) {
 		t.Fatal("the reconciled thread refused")
 	}
 }
+
+// Many turns starting at once don't exhaust the database pool: a claim
+// holds one connection (and the workspace's configuration lock) and never
+// waits for a second one, so turns more than the pool's connections all
+// answer (B6's load test found claims waiting on each other for minutes).
+func TestAssistantTurnsShareThePool(t *testing.T) {
+	f := newFixture(t)
+	f.setAssistant(ai.AIAssistantSettings{Enabled: true, Limits: ai.AIAgentLimits{ToolCalls: 40, Tokens: 300000, CostMicros: 2000000}, PerPerson: 10, PerWorkspace: 10})
+	n := int(f.env.App.Cfg.Database.MaxConns) + 2
+	jobs := make([]assistant.TurnArgs, n)
+	for i := range jobs {
+		th := f.thread(f.mc, map[string]any{})
+		jobs[i] = f.job(f.send(f.mc, th.ID, "Hello").Turn.ID)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	errs := make(chan error, n)
+	for _, args := range jobs {
+		go func() {
+			for {
+				err := f.worker().ExecuteTurn(ctx, args)
+				if !isSnooze(err) {
+					errs <- err
+					return
+				}
+				time.Sleep(50 * time.Millisecond)
+			}
+		}()
+	}
+	for range n {
+		if err := <-errs; err != nil {
+			t.Fatalf("a turn of %d at once: %v", n, err)
+		}
+	}
+	if got := f.count(`SELECT count(*) FROM ai_assistant_turns t JOIN ai_assistant_threads h ON h.id = t.thread_id WHERE h.workspace_id = $1 AND t.state = 'done'`, f.ws.ID); got != n {
+		t.Fatalf("%d of %d turns done", got, n)
+	}
+}

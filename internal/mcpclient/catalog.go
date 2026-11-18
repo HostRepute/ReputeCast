@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/net/html"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -438,6 +440,9 @@ func (s *Service) Current(ctx context.Context, q *store.Queries, ws *store.Works
 	return t, srv, nil
 }
 
+// maxErrorText bounds what a server's refusal of a call says to the model.
+const maxErrorText = 2000
+
 // Result is a call's result as the model may read it: text only, images
 // and HTML stripped, at most MaxResult bytes.
 type Result struct {
@@ -472,8 +477,15 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 	}
 	start := s.now()
 	outcome := "ok"
+	began := time.Now()
 	defer func() {
 		r.Ms = s.now().Sub(start).Milliseconds()
+		if outcome == "ok" {
+			opsmetrics.MCPCall.WithLabelValues("ok").Observe(time.Since(began).Seconds())
+		} else {
+			opsmetrics.MCPCall.WithLabelValues("error").Observe(time.Since(began).Seconds())
+			opsmetrics.MCPCallErrors.WithLabelValues(opsmetrics.MCPErrorCode(outcome)).Inc()
+		}
 		_ = s.Audit.Log(context.WithoutCancel(ctx), audit.Event{WorkspaceID: &ws.ID, Actor: &audit.Actor{Type: authz.ActorUser, ID: &fresh.UserID, Name: fresh.Name},
 			Action: "mcp_tool.called", TargetType: "mcp_tool", TargetID: t.ID.String(), TargetName: t.Name,
 			Metadata: map[string]any{"via": "ai_assistant", "thread_id": thread.String(), "server_id": srv.ID.String(), "arguments_digest": hexOf(digest),
@@ -499,6 +511,14 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 		if errors.Is(cctx.Err(), context.DeadlineExceeded) {
 			outcome = "timeout"
 			return r, problem(ctx, http.StatusGatewayTimeout, CodeTimeout, "problem.timeout", i18n.Args{"server": srv.Name})
+		}
+		var rpc *jsonrpc.Error
+		if errors.As(err, &rpc) {
+			// The server refused the call itself: what it said is its own
+			// text, read like a result (bounded, HTML stripped).
+			outcome = "tool_error"
+			r.Text, r.IsError = clip(stripHTML(rpc.Message), maxErrorText), true
+			return r, nil
 		}
 		err = s.connectProblem(ctx, srv, sess.rt, err)
 		outcome = problemCode(err)
