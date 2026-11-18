@@ -40,16 +40,12 @@ func (s *Service) usageIn(ctx context.Context, q *store.Queries, ws *store.Works
 	if c.personal() {
 		return s.personalUsageIn(ctx, q, ws.ID, *c.AccountUserID, start, c.PersonalCapUsd)
 	}
-	t, err := q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
+	t, err := q.AIBudgetTotals(ctx, store.AIBudgetTotalsParams{WorkspaceID: ws.ID, Since: start})
 	if err != nil {
 		return usage{}, err
 	}
-	u := usage{costMicros: t.CostMicros, inputTokens: t.InputTokens, outputTokens: t.OutputTokens, tokens: t.InputTokens + t.OutputTokens, requests: t.Requests}
-	held, err := q.AIBudgetMonthly(ctx, ws.ID)
-	if err != nil {
-		return usage{}, err
-	}
-	u.reservedCost, u.reservedTokens, u.uncertain = held.CostMicros, held.Tokens, held.Uncertain
+	u := usage{costMicros: t.CostMicros, inputTokens: t.InputTokens, outputTokens: t.OutputTokens, tokens: t.InputTokens + t.OutputTokens, requests: t.Requests,
+		reservedCost: t.HeldCostMicros, reservedTokens: t.HeldTokens, uncertain: t.HeldUncertain}
 	switch c.CapKind {
 	case "usd":
 		if c.CapUsd > 0 {
@@ -72,15 +68,11 @@ func (s *Service) personalUsage(ctx context.Context, ws, user uuid.UUID, start t
 }
 
 func (s *Service) personalUsageIn(ctx context.Context, q *store.Queries, ws, user uuid.UUID, start time.Time, capUSD float64) (usage, error) {
-	t, err := q.AIPersonalUsageTotal(ctx, store.AIPersonalUsageTotalParams{WorkspaceID: ws, UserID: &user, Since: start})
+	t, err := q.AIPersonalBudgetTotals(ctx, store.AIPersonalBudgetTotalsParams{WorkspaceID: ws, UserID: user, Since: start})
 	if err != nil {
 		return usage{}, err
 	}
-	held, err := q.AIBudgetPersonal(ctx, store.AIBudgetPersonalParams{WorkspaceID: ws, UserID: &user})
-	if err != nil {
-		return usage{}, err
-	}
-	u := usage{costMicros: t.CostMicros, requests: t.Requests, reservedCost: held.CostMicros, uncertain: held.Uncertain}
+	u := usage{costMicros: t.CostMicros, requests: t.Requests, reservedCost: t.HeldCostMicros, uncertain: t.HeldUncertain}
 	if capUSD > 0 {
 		u.share = float64(u.costMicros+u.reservedCost) / (capUSD * 1e6)
 	}

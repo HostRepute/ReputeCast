@@ -360,6 +360,64 @@ func (q *Queries) AIBinding(ctx context.Context, arg AIBindingParams) (AIBinding
 	return i, err
 }
 
+const aIBudgetTotals = `-- name: AIBudgetTotals :one
+WITH edge AS (SELECT $1::timestamptz AS since, ai_usage_hour_after($1::timestamptz) AS at),
+parts AS (
+    SELECT h.requests, h.input_tokens, h.output_tokens, h.cost_micros FROM ai_usage_hours h, edge
+    WHERE h.workspace_id = $2 AND NOT h.personal AND h.user_id = '00000000-0000-0000-0000-000000000000' AND h.hour >= edge.at
+    UNION ALL
+    SELECT 1, r.input_tokens, r.output_tokens, r.cost_micros FROM ai_requests r, edge
+    WHERE r.workspace_id = $2 AND NOT r.personal AND r.created_at >= edge.since AND r.created_at < edge.at),
+held AS (
+    SELECT input_tokens, output_tokens, cost_micros, state FROM ai_budget_reservations
+    WHERE workspace_id = $2 AND state <> 'settled' AND NOT personal)
+SELECT (SELECT coalesce(sum(cost_micros), 0) FROM parts)::bigint AS cost_micros,
+       (SELECT coalesce(sum(input_tokens), 0) FROM parts)::bigint AS input_tokens,
+       (SELECT coalesce(sum(output_tokens), 0) FROM parts)::bigint AS output_tokens,
+       (SELECT coalesce(sum(requests), 0) FROM parts)::bigint AS requests,
+       (SELECT coalesce(sum(input_tokens + output_tokens), 0) FROM held)::bigint AS held_tokens,
+       (SELECT coalesce(sum(cost_micros), 0) FROM held)::bigint AS held_cost_micros,
+       (SELECT count(*) FILTER (WHERE state = 'uncertain') FROM held)::bigint AS held_uncertain
+`
+
+type AIBudgetTotalsParams struct {
+	Since       time.Time `json:"since"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+type AIBudgetTotalsRow struct {
+	CostMicros     int64 `json:"costMicros"`
+	InputTokens    int64 `json:"inputTokens"`
+	OutputTokens   int64 `json:"outputTokens"`
+	Requests       int64 `json:"requests"`
+	HeldTokens     int64 `json:"heldTokens"`
+	HeldCostMicros int64 `json:"heldCostMicros"`
+	HeldUncertain  int64 `json:"heldUncertain"`
+}
+
+// The workspace budget since a time, in one snapshot: what it used
+// (personal keys' never counts) and what its requests in flight hold. A
+// request settled meanwhile is in exactly one of the two, so reserving
+// doesn't wait for accounting (accountIn). The use is the hourly totals
+// (ai_usage_hours) from the first whole hour on, and the requests of the
+// hour before it when since isn't on the hour. Settled reservations are
+// in ai_requests; old uncertain ones stay held across the month's end
+// rather than becoming free to retry.
+func (q *Queries) AIBudgetTotals(ctx context.Context, arg AIBudgetTotalsParams) (AIBudgetTotalsRow, error) {
+	row := q.db.QueryRow(ctx, aIBudgetTotals, arg.Since, arg.WorkspaceID)
+	var i AIBudgetTotalsRow
+	err := row.Scan(
+		&i.CostMicros,
+		&i.InputTokens,
+		&i.OutputTokens,
+		&i.Requests,
+		&i.HeldTokens,
+		&i.HeldCostMicros,
+		&i.HeldUncertain,
+	)
+	return i, err
+}
+
 const aICampaignBrief = `-- name: AICampaignBrief :one
 SELECT c.id, c.name, c.subject, c.preheader, c.mjml, c.html, c.status
 FROM campaigns c WHERE c.id = $1 AND c.workspace_id = $2
@@ -394,6 +452,30 @@ func (q *Queries) AICampaignBrief(ctx context.Context, arg AICampaignBriefParams
 		&i.Status,
 	)
 	return i, err
+}
+
+const aIConfigLock = `-- name: AIConfigLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('ai_config:' || ($1::uuid)::text, 0))
+`
+
+// The AI configuration lock, taken alone: every change to the AI settings,
+// accounts, models and defaults, and every reservation but an assistant
+// turn's, takes it (with the settings row). A lock of the lock manager, so
+// a change waiting for it is served before claims that ask after it.
+func (q *Queries) AIConfigLock(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIConfigLock, workspaceID)
+	return err
+}
+
+const aIConfigLockShared = `-- name: AIConfigLockShared :exec
+SELECT pg_advisory_xact_lock_shared(hashtextextended('ai_config:' || ($1::uuid)::text, 0))
+`
+
+// The AI configuration lock shared: an assistant turn's claim or next
+// round, with the workspace's other turns, never with a change.
+func (q *Queries) AIConfigLockShared(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, aIConfigLockShared, workspaceID)
+	return err
 }
 
 const aIFeatureModel = `-- name: AIFeatureModel :one
@@ -867,6 +949,50 @@ func (q *Queries) AIPersonalAccounts(ctx context.Context, workspaceID uuid.UUID)
 	return items, nil
 }
 
+const aIPersonalBudgetTotals = `-- name: AIPersonalBudgetTotals :one
+WITH edge AS (SELECT $1::timestamptz AS since, ai_usage_hour_after($1::timestamptz) AS at),
+parts AS (
+    SELECT h.requests, h.cost_micros FROM ai_usage_hours h, edge
+    WHERE h.workspace_id = $2 AND h.personal AND h.user_id = $3::uuid AND h.hour >= edge.at
+    UNION ALL
+    SELECT 1, r.cost_micros FROM ai_requests r, edge
+    WHERE r.workspace_id = $2 AND r.personal AND r.user_id = $3::uuid AND r.created_at >= edge.since AND r.created_at < edge.at),
+held AS (
+    SELECT cost_micros, state FROM ai_budget_reservations
+    WHERE workspace_id = $2 AND user_id = $3::uuid AND state <> 'settled' AND personal)
+SELECT (SELECT coalesce(sum(cost_micros), 0) FROM parts)::bigint AS cost_micros,
+       (SELECT coalesce(sum(requests), 0) FROM parts)::bigint AS requests,
+       (SELECT coalesce(sum(cost_micros), 0) FROM held)::bigint AS held_cost_micros,
+       (SELECT count(*) FILTER (WHERE state = 'uncertain') FROM held)::bigint AS held_uncertain
+`
+
+type AIPersonalBudgetTotalsParams struct {
+	Since       time.Time `json:"since"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	UserID      uuid.UUID `json:"userId"`
+}
+
+type AIPersonalBudgetTotalsRow struct {
+	CostMicros     int64 `json:"costMicros"`
+	Requests       int64 `json:"requests"`
+	HeldCostMicros int64 `json:"heldCostMicros"`
+	HeldUncertain  int64 `json:"heldUncertain"`
+}
+
+// A person's own budget (their personal keys') as AIBudgetTotals reads the
+// workspace's.
+func (q *Queries) AIPersonalBudgetTotals(ctx context.Context, arg AIPersonalBudgetTotalsParams) (AIPersonalBudgetTotalsRow, error) {
+	row := q.db.QueryRow(ctx, aIPersonalBudgetTotals, arg.Since, arg.WorkspaceID, arg.UserID)
+	var i AIPersonalBudgetTotalsRow
+	err := row.Scan(
+		&i.CostMicros,
+		&i.Requests,
+		&i.HeldCostMicros,
+		&i.HeldUncertain,
+	)
+	return i, err
+}
+
 const aIPersonalKeysRemove = `-- name: AIPersonalKeysRemove :execrows
 UPDATE ai_accounts SET key_sealed = NULL, key_added_by = NULL, key_added_at = NULL,
     disconnected_at = coalesce(disconnected_at, now()), revision = revision + 1, updated_at = now()
@@ -957,30 +1083,6 @@ func (q *Queries) AIPersonalUsageByUser(ctx context.Context, arg AIPersonalUsage
 		return nil, err
 	}
 	return items, nil
-}
-
-const aIPersonalUsageTotal = `-- name: AIPersonalUsageTotal :one
-SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = $1 AND user_id = $2 AND created_at >= $3 AND personal
-`
-
-type AIPersonalUsageTotalParams struct {
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	UserID      *uuid.UUID `json:"userId"`
-	Since       time.Time  `json:"since"`
-}
-
-type AIPersonalUsageTotalRow struct {
-	CostMicros int64 `json:"costMicros"`
-	Requests   int64 `json:"requests"`
-}
-
-// A person's use of their own keys.
-func (q *Queries) AIPersonalUsageTotal(ctx context.Context, arg AIPersonalUsageTotalParams) (AIPersonalUsageTotalRow, error) {
-	row := q.db.QueryRow(ctx, aIPersonalUsageTotal, arg.WorkspaceID, arg.UserID, arg.Since)
-	var i AIPersonalUsageTotalRow
-	err := row.Scan(&i.CostMicros, &i.Requests)
-	return i, err
 }
 
 const aIPrimaryModel = `-- name: AIPrimaryModel :one
@@ -1596,37 +1698,6 @@ func (q *Queries) AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams
 	return items, nil
 }
 
-const aIUsageTotal = `-- name: AIUsageTotal :one
-SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
-       coalesce(sum(output_tokens), 0)::bigint AS output_tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = $1 AND created_at >= $2 AND NOT personal
-`
-
-type AIUsageTotalParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	Since       time.Time `json:"since"`
-}
-
-type AIUsageTotalRow struct {
-	CostMicros   int64 `json:"costMicros"`
-	InputTokens  int64 `json:"inputTokens"`
-	OutputTokens int64 `json:"outputTokens"`
-	Requests     int64 `json:"requests"`
-}
-
-// The workspace's use: personal keys' never counts.
-func (q *Queries) AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error) {
-	row := q.db.QueryRow(ctx, aIUsageTotal, arg.WorkspaceID, arg.Since)
-	var i AIUsageTotalRow
-	err := row.Scan(
-		&i.CostMicros,
-		&i.InputTokens,
-		&i.OutputTokens,
-		&i.Requests,
-	)
-	return i, err
-}
-
 const aIWorkspaceModels = `-- name: AIWorkspaceModels :many
 SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
 WHERE a.workspace_id = $1 AND a.user_id IS NULL
@@ -1762,7 +1833,7 @@ const aIWorkspaceSettingsLock = `-- name: AIWorkspaceSettingsLock :one
 SELECT workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off, notice_month, cap_notice_month, revision, updated_by, updated_at, personal_keys, personal_cap_usd, personal_cap_set_by, personal_cap_set_at FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE
 `
 
-// The AI configuration lock (see migration 03630).
+// The AI configuration lock's row (see migration 03630), after AIConfigLock.
 func (q *Queries) AIWorkspaceSettingsLock(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error) {
 	row := q.db.QueryRow(ctx, aIWorkspaceSettingsLock, workspaceID)
 	var i AiWorkspaceSetting

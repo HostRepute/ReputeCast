@@ -115,6 +115,13 @@ type Querier interface {
 	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
 	AIAssistantContexts(ctx context.Context, threadID uuid.UUID) ([]AiAssistantContext, error)
 	AIAssistantContextsPurge(ctx context.Context, threadID uuid.UUID) error
+	// A batch of an answer's next event number: the update takes the thread's
+	// lock (a worker's batch needs no more of the thread). No row: the thread
+	// is gone.
+	AIAssistantDeltaSeq(ctx context.Context, arg AIAssistantDeltaSeqParams) (int64, error)
+	// Adds an event and wakes the thread's streams when the transaction
+	// commits. The notification's payload is "thread:seq" only: readers read
+	// the events themselves.
 	AIAssistantEventInsert(ctx context.Context, arg AIAssistantEventInsertParams) error
 	// The next stream event's number. Only under the thread's lock: events are
 	// numbered without gaps, in commit order.
@@ -132,9 +139,6 @@ type Querier interface {
 	AIAssistantMessageOfTurn(ctx context.Context, turnID *uuid.UUID) (AiAssistantMessage, error)
 	AIAssistantMessages(ctx context.Context, threadID uuid.UUID) ([]AiAssistantMessage, error)
 	AIAssistantMessagesPurge(ctx context.Context, threadID uuid.UUID) error
-	// Wakes the streams of a thread when the transaction commits. The payload
-	// is "thread:seq" only: readers read the events themselves.
-	AIAssistantNotify(ctx context.Context, payload string) error
 	// The AI assistant (B3): its settings, threads and their attached context.
 	// A thread is read only through its owner: every query that returns one
 	// names the person.
@@ -152,6 +156,9 @@ type Querier interface {
 	// Frees the workspace's slots whose lease lapsed. Their turns are the
 	// sweep's: answering without a live slot is a worker that died.
 	AIAssistantSlotsExpire(ctx context.Context, arg AIAssistantSlotsExpireParams) error
+	// The workspace's and the person's slots whose lease holds: a turn that
+	// would find none free waits without trying.
+	AIAssistantSlotsTaken(ctx context.Context, arg AIAssistantSlotsTakenParams) (AIAssistantSlotsTakenRow, error)
 	AIAssistantStepInsert(ctx context.Context, arg AIAssistantStepInsertParams) error
 	AIAssistantStepLast(ctx context.Context, turnID uuid.UUID) (AiAssistantStep, error)
 	AIAssistantStepSave(ctx context.Context, arg AIAssistantStepSaveParams) error
@@ -187,6 +194,13 @@ type Querier interface {
 	AIAssistantThreadTurnsEnd(ctx context.Context, arg AIAssistantThreadTurnsEndParams) ([]uuid.UUID, error)
 	// The person's threads, the most recently active first.
 	AIAssistantThreads(ctx context.Context, arg AIAssistantThreadsParams) ([]AiAssistantThread, error)
+	// Removing models (or their account) first locks the assistant threads
+	// whose rows their removal sets to NULL (the threads', or their turns'):
+	// in the threads' lock order, before the model rows. A turn writing its
+	// thread meanwhile finishes first; otherwise its foreign key check would
+	// wait for the model row the removal holds while the removal waits for
+	// the thread.
+	AIAssistantThreadsOfModelsLock(ctx context.Context, arg AIAssistantThreadsOfModelsLockParams) ([]uuid.UUID, error)
 	// A person left the workspace or was removed from it: their threads there
 	// go, with all their content and the notices of calls waiting in them.
 	// Deactivation keeps them.
@@ -215,20 +229,18 @@ type Querier interface {
 	AIBudgetAbandoned(ctx context.Context, before time.Time) (int64, error)
 	AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) error
 	AIBudgetLock(ctx context.Context, arg AIBudgetLockParams) (AiBudgetReservation, error)
-	// Settled reservations are already in ai_requests. Old uncertain requests
-	// stay reserved across month rollover rather than becoming free to retry.
-	AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (AIBudgetMonthlyRow, error)
 	// The workspace's holds; personal keys' are their owners'.
 	AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([]AiBudgetReservation, error)
 	// A person's own budget (their personal keys' cap) has its own lock, so it
 	// never waits for the workspace's nor the workspace's for it. Taken after
 	// the AI configuration lock, like the workspace's.
 	AIBudgetPersonLock(ctx context.Context, arg AIBudgetPersonLockParams) error
-	// What a person's own requests in flight hold of their cap.
-	AIBudgetPersonal(ctx context.Context, arg AIBudgetPersonalParams) (AIBudgetPersonalRow, error)
 	// A person's holds on their own keys.
 	AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPersonalPendingParams) ([]AiBudgetReservation, error)
 	AIBudgetPurge(ctx context.Context, before time.Time) (int64, error)
+	// A reservation as accounting first reads it, without its lock: whose
+	// budget it is in, what it holds and at which prices never change.
+	AIBudgetReservation(ctx context.Context, arg AIBudgetReservationParams) (AiBudgetReservation, error)
 	AIBudgetRun(ctx context.Context, runID *uuid.UUID) (AIBudgetRunRow, error)
 	// Whose budget a reservation is in; set when it is made and never changed.
 	AIBudgetScope(ctx context.Context, arg AIBudgetScopeParams) (AIBudgetScopeRow, error)
@@ -236,13 +248,30 @@ type Querier interface {
 	// An assistant thread's cumulative use, reserved and settled; uncertain
 	// requests count at their reserved maximum.
 	AIBudgetThread(ctx context.Context, threadID *uuid.UUID) (AIBudgetThreadRow, error)
+	// The workspace budget since a time, in one snapshot: what it used
+	// (personal keys' never counts) and what its requests in flight hold. A
+	// request settled meanwhile is in exactly one of the two, so reserving
+	// doesn't wait for accounting (accountIn). The use is the hourly totals
+	// (ai_usage_hours) from the first whole hour on, and the requests of the
+	// hour before it when since isn't on the hour. Settled reservations are
+	// in ai_requests; old uncertain ones stay held across the month's end
+	// rather than becoming free to retry.
+	AIBudgetTotals(ctx context.Context, arg AIBudgetTotalsParams) (AIBudgetTotalsRow, error)
 	AIBudgetUncertain(ctx context.Context, id uuid.UUID) error
-	// The workspace budget's lock, across all its accounts and models. It is
-	// taken after the AI configuration lock (AIWorkspaceSettingsLock), never
-	// before; accounting needs only this one.
+	// The workspace budget's lock, across all its accounts and models: every
+	// reservation takes it, after the AI configuration lock, never before.
+	// Accounting takes only this one, and only to settle above a reservation.
 	AIBudgetWorkspaceLock(ctx context.Context, workspaceID uuid.UUID) error
 	// What the assistant needs about a campaign: its name, content and language.
 	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
+	// The AI configuration lock, taken alone: every change to the AI settings,
+	// accounts, models and defaults, and every reservation but an assistant
+	// turn's, takes it (with the settings row). A lock of the lock manager, so
+	// a change waiting for it is served before claims that ask after it.
+	AIConfigLock(ctx context.Context, workspaceID uuid.UUID) error
+	// The AI configuration lock shared: an assistant turn's claim or next
+	// round, with the workspace's other turns, never with a change.
+	AIConfigLockShared(ctx context.Context, workspaceID uuid.UUID) error
 	// Only the exact version referenced by the selected flow, never recipients.
 	AIDraftAutomationEmail(ctx context.Context, arg AIDraftAutomationEmailParams) (AIDraftAutomationEmailRow, error)
 	AIDraftCampaign(ctx context.Context, arg AIDraftCampaignParams) (AIDraftCampaignRow, error)
@@ -279,6 +308,9 @@ type Querier interface {
 	AIModelsDeleteOthers(ctx context.Context, arg AIModelsDeleteOthersParams) error
 	// Who has personal accounts, for managers: never a key.
 	AIPersonalAccounts(ctx context.Context, workspaceID uuid.UUID) ([]AIPersonalAccountsRow, error)
+	// A person's own budget (their personal keys') as AIBudgetTotals reads the
+	// workspace's.
+	AIPersonalBudgetTotals(ctx context.Context, arg AIPersonalBudgetTotalsParams) (AIPersonalBudgetTotalsRow, error)
 	// A person left the workspace or was deactivated (sqlc.narg(workspace_id)
 	// NULL: every workspace): their personal accounts lose their keys and stop
 	// working. The revision fences requests already prepared.
@@ -286,8 +318,6 @@ type Querier interface {
 	// A person's own models in the workspace.
 	AIPersonalModels(ctx context.Context, arg AIPersonalModelsParams) ([]uuid.UUID, error)
 	AIPersonalUsageByUser(ctx context.Context, arg AIPersonalUsageByUserParams) ([]AIPersonalUsageByUserRow, error)
-	// A person's use of their own keys.
-	AIPersonalUsageTotal(ctx context.Context, arg AIPersonalUsageTotalParams) (AIPersonalUsageTotalRow, error)
 	// The workspace's first account and its first model: what the single-model
 	// settings and operations act on.
 	AIPrimaryModel(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
@@ -314,8 +344,6 @@ type Querier interface {
 	AITranslationReviewed(ctx context.Context, arg AITranslationReviewedParams) (int64, error)
 	AIUsageByFeature(ctx context.Context, arg AIUsageByFeatureParams) ([]AIUsageByFeatureRow, error)
 	AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams) ([]AIUsageByMemberRow, error)
-	// The workspace's use: personal keys' never counts.
-	AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error)
 	// The workspace's models, the first account's first model first.
 	AIWorkspaceModels(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
 	// The personal-keys switch and the cap each person's own use has.
@@ -326,7 +354,7 @@ type Querier interface {
 	// Claims this month's 80% notice, once.
 	AIWorkspaceSettingsClaimNotice(ctx context.Context, arg AIWorkspaceSettingsClaimNoticeParams) (int64, error)
 	AIWorkspaceSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
-	// The AI configuration lock (see migration 03630).
+	// The AI configuration lock's row (see migration 03630), after AIConfigLock.
 	AIWorkspaceSettingsLock(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error)
 	AIWorkspaceSettingsSave(ctx context.Context, arg AIWorkspaceSettingsSaveParams) error
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error

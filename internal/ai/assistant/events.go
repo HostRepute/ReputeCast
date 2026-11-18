@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
-	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -97,15 +96,18 @@ func (s *Service) appendEvent(ctx context.Context, q *store.Queries, thread uuid
 	if err != nil {
 		return err
 	}
+	return s.insertEvent(ctx, q, thread, seq, turn, kind, raw)
+}
+
+// insertEvent seals and adds event seq, which the caller numbered under the
+// thread's lock; its streams wake once the transaction commits.
+func (s *Service) insertEvent(ctx context.Context, q *store.Queries, thread uuid.UUID, seq int64, turn *uuid.UUID, kind string, raw []byte) error {
 	sealed, err := s.Box.Seal(raw, eventAD(thread, seq))
 	if err != nil {
 		return err
 	}
-	if err := q.AIAssistantEventInsert(ctx, store.AIAssistantEventInsertParams{ThreadID: thread, Seq: seq, TurnID: turn, Kind: kind, PayloadSealed: sealed,
-		CreatedAt: s.now()}); err != nil {
-		return err
-	}
-	return q.AIAssistantNotify(ctx, thread.String()+":"+strconv.FormatInt(seq, 10))
+	return q.AIAssistantEventInsert(ctx, store.AIAssistantEventInsertParams{ThreadID: thread, Seq: seq, TurnID: turn, Kind: kind, PayloadSealed: sealed,
+		CreatedAt: s.now()})
 }
 
 // turnEvent tells a turn's new state.
@@ -266,31 +268,7 @@ func (w *deltaWriter) flush() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	err = db.Tx(ctx, w.s.Pool, func(tx pgx.Tx) error {
-		// A batch's only lasting change is its thread's event number (the
-		// events table is unlogged): its commit needn't wait for the WAL
-		// to reach the disk. A crash may lose the last batches' numbers
-		// with the events themselves; streams then resume from a snapshot.
-		// Transactions that notify commit one at a time, so waiting for
-		// the disk in each one held up every stream (B6's load test).
-		if _, err := tx.Exec(ctx, "SET LOCAL synchronous_commit TO OFF"); err != nil {
-			return err
-		}
-		q := store.New(tx)
-		if _, err := q.AIAssistantThreadLockByID(ctx, store.AIAssistantThreadLockByIDParams{WorkspaceID: w.ws, ID: w.thread}); errors.Is(err, pgx.ErrNoRows) {
-			return errFenced
-		} else if err != nil {
-			return err
-		}
-		f, err := q.AIAssistantTurnFence(ctx, w.turn)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Version != w.version || f.State != "answering")) {
-			return errFenced
-		}
-		if err != nil {
-			return err
-		}
-		return w.s.appendEvent(ctx, q, w.thread, &w.turn, kindDelta, AIThreadDeltaEvent{TurnID: w.turn, Text: text})
-	})
+	err = w.write(ctx, text)
 	if err == nil {
 		w.mu.Lock()
 		if w.committedAt.IsZero() {
@@ -307,4 +285,45 @@ func (w *deltaWriter) flush() error {
 		w.stop(err)
 	}
 	return err
+}
+
+// write commits a batch: the thread's next number (its update takes the
+// thread's lock), the turn's fence read under that lock, then the event.
+// Every stream's batches hold pool connections, so a batch makes four
+// round trips (B6's load test: 200 streams waited for connections).
+func (w *deltaWriter) write(ctx context.Context, text string) error {
+	raw, err := json.Marshal(AIThreadDeltaEvent{TurnID: w.turn, Text: text})
+	if err != nil {
+		return err
+	}
+	// A batch's only lasting change is its thread's event number (the
+	// events table is unlogged): its commit needn't wait for the WAL to
+	// reach the disk. A crash may lose the last batches' numbers with the
+	// events themselves; streams then resume from a snapshot. Transactions
+	// that notify commit one at a time, so waiting for the disk in each one
+	// held up every stream (B6's load test).
+	tx, err := w.s.Pool.BeginTx(ctx, pgx.TxOptions{BeginQuery: "BEGIN; SET LOCAL synchronous_commit TO OFF"})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(context.WithoutCancel(ctx)) }()
+	q := store.New(tx)
+	seq, err := q.AIAssistantDeltaSeq(ctx, store.AIAssistantDeltaSeqParams{WorkspaceID: w.ws, ID: w.thread})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errFenced
+	}
+	if err != nil {
+		return err
+	}
+	f, err := q.AIAssistantTurnFence(ctx, w.turn)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Version != w.version || f.State != "answering")) {
+		return errFenced
+	}
+	if err != nil {
+		return err
+	}
+	if err := w.s.insertEvent(ctx, q, w.thread, seq, &w.turn, kindDelta, raw); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

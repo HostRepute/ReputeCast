@@ -227,10 +227,10 @@ func TestAssistantLastDollar(t *testing.T) {
 	defer close(release)
 	f.streams.set(held(release, "Spent."))
 	w := f.worker()
-	var turns []uuid.UUID
+	var threads, turns []uuid.UUID
 	for _, c := range []*apptest.Client{f.mc, f.cc} {
 		th := f.thread(c, map[string]any{})
-		turns = append(turns, f.send(c, th.ID, "Draft an intro").Turn.ID)
+		threads, turns = append(threads, th.ID), append(turns, f.send(c, th.ID, "Draft an intro").Turn.ID)
 	}
 	errs := make(chan error, 2)
 	for _, turn := range turns {
@@ -261,6 +261,20 @@ func TestAssistantLastDollar(t *testing.T) {
 	}
 	if n := f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = ANY($1) AND state = 'answering'`, turns); n != 1 {
 		t.Fatalf("%d turns answering", n)
+	}
+	// The refused turn never started: its claim saved the start and the
+	// step before reserving, and the refusal undid them. Its turn events
+	// are its queued and its failed state.
+	if n := f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = ANY($1) AND state = 'failed' AND started_at IS NULL
+		AND NOT EXISTS (SELECT 1 FROM ai_assistant_steps s WHERE s.turn_id = ai_assistant_turns.id)
+		AND (SELECT count(*) FROM ai_assistant_events e WHERE e.turn_id = ai_assistant_turns.id AND e.kind = 'turn') = 2`, turns); n != 1 {
+		t.Fatal("the refused turn kept its start, its step or its started event")
+	}
+	for _, th := range threads {
+		if n := f.count(`SELECT count(*) FROM ai_assistant_threads t WHERE id = $1
+			AND event_seq = (SELECT count(*) FROM ai_assistant_events e WHERE e.thread_id = t.id)`, th); n != 1 {
+			t.Fatal("a thread's events aren't numbered without gaps")
+		}
 	}
 }
 

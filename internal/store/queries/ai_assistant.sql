@@ -60,6 +60,21 @@ SELECT * FROM ai_assistant_contexts WHERE thread_id = @thread_id ORDER BY shared
 -- name: AIAssistantContextDelete :one
 DELETE FROM ai_assistant_contexts WHERE thread_id = @thread_id AND id = @id RETURNING kind, target_id;
 
+-- name: AIAssistantThreadsOfModelsLock :many
+-- Removing models (or their account) first locks the assistant threads
+-- whose rows their removal sets to NULL (the threads', or their turns'):
+-- in the threads' lock order, before the model rows. A turn writing its
+-- thread meanwhile finishes first; otherwise its foreign key check would
+-- wait for the model row the removal holds while the removal waits for
+-- the thread.
+WITH m AS (
+    SELECT id FROM ai_models WHERE workspace_id = @workspace_id AND (id = sqlc.narg(model_id)::uuid OR account_id = sqlc.narg(account_id)::uuid)
+)
+SELECT h.id FROM ai_assistant_threads h
+WHERE h.workspace_id = @workspace_id AND (h.model_id IN (SELECT id FROM m)
+   OR EXISTS (SELECT 1 FROM ai_assistant_turns t WHERE t.thread_id = h.id AND t.model_id IN (SELECT id FROM m)))
+ORDER BY h.id FOR UPDATE OF h;
+
 -- name: AIAssistantThreadLockByID :one
 -- A thread as its turns' worker and the sweep lock it: the owner's lock,
 -- without naming the owner (the worker is nobody's session).
@@ -70,14 +85,21 @@ SELECT * FROM ai_assistant_threads WHERE workspace_id = @workspace_id AND id = @
 -- numbered without gaps, in commit order.
 UPDATE ai_assistant_threads SET event_seq = event_seq + 1 WHERE id = @id RETURNING event_seq;
 
--- name: AIAssistantEventInsert :exec
-INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
-VALUES (@thread_id, @seq, sqlc.narg(turn_id), @kind, @payload_sealed, @created_at);
+-- name: AIAssistantDeltaSeq :one
+-- A batch of an answer's next event number: the update takes the thread's
+-- lock (a worker's batch needs no more of the thread). No row: the thread
+-- is gone.
+UPDATE ai_assistant_threads SET event_seq = event_seq + 1 WHERE workspace_id = @workspace_id AND id = @id RETURNING event_seq;
 
--- name: AIAssistantNotify :exec
--- Wakes the streams of a thread when the transaction commits. The payload
--- is "thread:seq" only: readers read the events themselves.
-SELECT pg_notify('ai_assistant', @payload::text);
+-- name: AIAssistantEventInsert :exec
+-- Adds an event and wakes the thread's streams when the transaction
+-- commits. The notification's payload is "thread:seq" only: readers read
+-- the events themselves.
+WITH e AS (
+    INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
+    VALUES (@thread_id, @seq, sqlc.narg(turn_id), @kind, @payload_sealed, @created_at)
+    RETURNING thread_id, seq)
+SELECT pg_notify('ai_assistant', e.thread_id::text || ':' || e.seq::text) FROM e;
 
 -- name: AIAssistantEvents :many
 -- A thread's events after a stream's cursor, in order.
@@ -144,6 +166,12 @@ UPDATE ai_assistant_steps SET state = @state, updated_at = @now WHERE id = @id;
 -- Frees the workspace's slots whose lease lapsed. Their turns are the
 -- sweep's: answering without a live slot is a worker that died.
 DELETE FROM ai_assistant_slots WHERE workspace_id = @workspace_id AND expires_at <= @now;
+
+-- name: AIAssistantSlotsTaken :one
+-- The workspace's and the person's slots whose lease holds: a turn that
+-- would find none free waits without trying.
+SELECT count(*)::int AS workspace, (count(*) FILTER (WHERE user_id = @user_id))::int AS person
+FROM ai_assistant_slots WHERE workspace_id = @workspace_id AND expires_at > @now;
 
 -- name: AIAssistantSlotClaim :one
 -- A turn's slot: the thread's only one, one of the person's per_person and

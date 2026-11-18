@@ -9,9 +9,9 @@ SELECT pg_advisory_xact_lock(hashtextextended('ai_budget:' || (@workspace_id::uu
 SELECT personal, user_id FROM ai_budget_reservations WHERE id = @id AND workspace_id = @workspace_id;
 
 -- name: AIBudgetWorkspaceLock :exec
--- The workspace budget's lock, across all its accounts and models. It is
--- taken after the AI configuration lock (AIWorkspaceSettingsLock), never
--- before; accounting needs only this one.
+-- The workspace budget's lock, across all its accounts and models: every
+-- reservation takes it, after the AI configuration lock, never before.
+-- Accounting takes only this one, and only to settle above a reservation.
 SELECT pg_advisory_xact_lock(hashtextextended('ai_budget:' || (@workspace_id::uuid)::text, 0));
 
 -- name: AIBudgetInsert :exec
@@ -21,22 +21,13 @@ VALUES (@id, @workspace_id, sqlc.narg(user_id), sqlc.narg(run_id), @provider, @m
     @input_price, @output_price, 'reserved', @input_tokens, @output_tokens, @cost_micros, @created_at, sqlc.narg(account_id), sqlc.narg(model_id), @personal,
     sqlc.narg(thread_id));
 
+-- name: AIBudgetReservation :one
+-- A reservation as accounting first reads it, without its lock: whose
+-- budget it is in, what it holds and at which prices never change.
+SELECT * FROM ai_budget_reservations WHERE id = @id AND workspace_id = @workspace_id;
+
 -- name: AIBudgetLock :one
 SELECT * FROM ai_budget_reservations WHERE id = @id AND workspace_id = @workspace_id FOR UPDATE;
-
--- name: AIBudgetMonthly :one
--- Settled reservations are already in ai_requests. Old uncertain requests
--- stay reserved across month rollover rather than becoming free to retry.
-SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
-       coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
-       count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain
-FROM ai_budget_reservations WHERE workspace_id = @workspace_id AND state <> 'settled' AND NOT personal;
-
--- name: AIBudgetPersonal :one
--- What a person's own requests in flight hold of their cap.
-SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
-       count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain
-FROM ai_budget_reservations WHERE workspace_id = @workspace_id AND user_id = @user_id AND state <> 'settled' AND personal;
 
 -- name: AIBudgetRun :one
 SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,

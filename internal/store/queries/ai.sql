@@ -124,8 +124,20 @@ DELETE FROM ai_models WHERE workspace_id = @workspace_id AND account_id = @accou
 SELECT * FROM ai_workspace_settings WHERE workspace_id = $1;
 
 -- name: AIWorkspaceSettingsLock :one
--- The AI configuration lock (see migration 03630).
+-- The AI configuration lock's row (see migration 03630), after AIConfigLock.
 SELECT * FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE;
+
+-- name: AIConfigLock :exec
+-- The AI configuration lock, taken alone: every change to the AI settings,
+-- accounts, models and defaults, and every reservation but an assistant
+-- turn's, takes it (with the settings row). A lock of the lock manager, so
+-- a change waiting for it is served before claims that ask after it.
+SELECT pg_advisory_xact_lock(hashtextextended('ai_config:' || (@workspace_id::uuid)::text, 0));
+
+-- name: AIConfigLockShared :exec
+-- The AI configuration lock shared: an assistant turn's claim or next
+-- round, with the workspace's other turns, never with a change.
+SELECT pg_advisory_xact_lock_shared(hashtextextended('ai_config:' || (@workspace_id::uuid)::text, 0));
 
 -- name: AIWorkspaceSettingsEnsure :exec
 INSERT INTO ai_workspace_settings (workspace_id) VALUES ($1) ON CONFLICT (workspace_id) DO NOTHING;
@@ -229,16 +241,50 @@ LIMIT @lim;
 -- name: AIRequestCount :one
 SELECT count(*)::bigint FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since;
 
--- name: AIUsageTotal :one
--- The workspace's use: personal keys' never counts.
-SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
-       coalesce(sum(output_tokens), 0)::bigint AS output_tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since AND NOT personal;
+-- name: AIBudgetTotals :one
+-- The workspace budget since a time, in one snapshot: what it used
+-- (personal keys' never counts) and what its requests in flight hold. A
+-- request settled meanwhile is in exactly one of the two, so reserving
+-- doesn't wait for accounting (accountIn). The use is the hourly totals
+-- (ai_usage_hours) from the first whole hour on, and the requests of the
+-- hour before it when since isn't on the hour. Settled reservations are
+-- in ai_requests; old uncertain ones stay held across the month's end
+-- rather than becoming free to retry.
+WITH edge AS (SELECT sqlc.arg(since)::timestamptz AS since, ai_usage_hour_after(sqlc.arg(since)::timestamptz) AS at),
+parts AS (
+    SELECT h.requests, h.input_tokens, h.output_tokens, h.cost_micros FROM ai_usage_hours h, edge
+    WHERE h.workspace_id = @workspace_id AND NOT h.personal AND h.user_id = '00000000-0000-0000-0000-000000000000' AND h.hour >= edge.at
+    UNION ALL
+    SELECT 1, r.input_tokens, r.output_tokens, r.cost_micros FROM ai_requests r, edge
+    WHERE r.workspace_id = @workspace_id AND NOT r.personal AND r.created_at >= edge.since AND r.created_at < edge.at),
+held AS (
+    SELECT input_tokens, output_tokens, cost_micros, state FROM ai_budget_reservations
+    WHERE workspace_id = @workspace_id AND state <> 'settled' AND NOT personal)
+SELECT (SELECT coalesce(sum(cost_micros), 0) FROM parts)::bigint AS cost_micros,
+       (SELECT coalesce(sum(input_tokens), 0) FROM parts)::bigint AS input_tokens,
+       (SELECT coalesce(sum(output_tokens), 0) FROM parts)::bigint AS output_tokens,
+       (SELECT coalesce(sum(requests), 0) FROM parts)::bigint AS requests,
+       (SELECT coalesce(sum(input_tokens + output_tokens), 0) FROM held)::bigint AS held_tokens,
+       (SELECT coalesce(sum(cost_micros), 0) FROM held)::bigint AS held_cost_micros,
+       (SELECT count(*) FILTER (WHERE state = 'uncertain') FROM held)::bigint AS held_uncertain;
 
--- name: AIPersonalUsageTotal :one
--- A person's use of their own keys.
-SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = @workspace_id AND user_id = @user_id AND created_at >= @since AND personal;
+-- name: AIPersonalBudgetTotals :one
+-- A person's own budget (their personal keys') as AIBudgetTotals reads the
+-- workspace's.
+WITH edge AS (SELECT sqlc.arg(since)::timestamptz AS since, ai_usage_hour_after(sqlc.arg(since)::timestamptz) AS at),
+parts AS (
+    SELECT h.requests, h.cost_micros FROM ai_usage_hours h, edge
+    WHERE h.workspace_id = @workspace_id AND h.personal AND h.user_id = @user_id::uuid AND h.hour >= edge.at
+    UNION ALL
+    SELECT 1, r.cost_micros FROM ai_requests r, edge
+    WHERE r.workspace_id = @workspace_id AND r.personal AND r.user_id = @user_id::uuid AND r.created_at >= edge.since AND r.created_at < edge.at),
+held AS (
+    SELECT cost_micros, state FROM ai_budget_reservations
+    WHERE workspace_id = @workspace_id AND user_id = @user_id::uuid AND state <> 'settled' AND personal)
+SELECT (SELECT coalesce(sum(cost_micros), 0) FROM parts)::bigint AS cost_micros,
+       (SELECT coalesce(sum(requests), 0) FROM parts)::bigint AS requests,
+       (SELECT coalesce(sum(cost_micros), 0) FROM held)::bigint AS held_cost_micros,
+       (SELECT count(*) FILTER (WHERE state = 'uncertain') FROM held)::bigint AS held_uncertain;
 
 -- name: AIPersonalUsageByUser :many
 SELECT user_id, coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests

@@ -84,6 +84,9 @@ type Service struct {
 	// afterAnswer runs once the provider answered, before the turn's
 	// checkpoint (tests).
 	afterAnswer func(turn uuid.UUID)
+	// inClaim runs in a claim's transaction: once its locks are taken
+	// ("locked"), and once its slot is ("slot") (tests).
+	inClaim func(turn uuid.UUID, stage string)
 }
 
 // Retention is how long a thread keeps its content after its last activity.

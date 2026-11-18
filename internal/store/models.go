@@ -536,6 +536,17 @@ type AiRequest struct {
 	Personal      bool       `json:"personal"`
 }
 
+type AiUsageHour struct {
+	WorkspaceID  uuid.UUID `json:"workspaceId"`
+	Personal     bool      `json:"personal"`
+	UserID       uuid.UUID `json:"userId"`
+	Hour         time.Time `json:"hour"`
+	Requests     int64     `json:"requests"`
+	InputTokens  int64     `json:"inputTokens"`
+	OutputTokens int64     `json:"outputTokens"`
+	CostMicros   int64     `json:"costMicros"`
+}
+
 type AiWorkspaceSetting struct {
 	WorkspaceID      uuid.UUID  `json:"workspaceId"`
 	CapKind          string     `json:"capKind"`

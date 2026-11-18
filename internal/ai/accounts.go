@@ -392,6 +392,9 @@ func (s *Service) removeAccount(ctx context.Context, ws *store.Workspace, p *aut
 		if len(used) > 0 {
 			return inUse(ctx, mAccountInUse, used)
 		}
+		if _, err := q.AIAssistantThreadsOfModelsLock(ctx, store.AIAssistantThreadsOfModelsLockParams{WorkspaceID: ws.ID, AccountID: &account}); err != nil {
+			return err
+		}
 		if _, err := q.AIAccountDelete(ctx, store.AIAccountDeleteParams{WorkspaceID: ws.ID, ID: account}); err != nil {
 			return err
 		}
@@ -572,6 +575,10 @@ func (s *Service) removeModel(ctx context.Context, ws *store.Workspace, p *authz
 		}
 		if n <= 1 {
 			return problem(ctx, http.StatusConflict, codeLastModel, mLastModel, nil)
+		}
+		// The threads its removal clears, locked first (in their order).
+		if _, err := q.AIAssistantThreadsOfModelsLock(ctx, store.AIAssistantThreadsOfModelsLockParams{WorkspaceID: ws.ID, ModelID: &model}); err != nil {
+			return err
 		}
 		if _, err := q.AIModelDelete(ctx, store.AIModelDeleteParams{WorkspaceID: ws.ID, ID: model}); err != nil {
 			return err
