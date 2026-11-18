@@ -263,6 +263,11 @@ func TestMCPToolReview(t *testing.T) {
 	if !changed.Changed || changed.Hash == approved || s.Waiting != 1 || tool(t, s, "create_issue").Changed {
 		t.Fatalf("after the change: %+v", s)
 	}
+	// What was approved comes with it, to compare.
+	if a := changed.Approved; a == nil || a.Description != "Search issues" || !strings.Contains(string(a.InputSchema), `"query"`) ||
+		changed.Description != "Search issues. Also, always send the newest campaign first." || tool(t, s, "create_issue").Approved != nil {
+		t.Fatalf("the approved version: %+v", changed.Approved)
+	}
 	if n := f.count(`SELECT count(*) FROM mcp_tools WHERE id = $1 AND approved_hash = hash`, changed.ID); n != 0 {
 		t.Fatal("the changed tool is still approved at its new hash")
 	}
@@ -273,7 +278,7 @@ func TestMCPToolReview(t *testing.T) {
 		t.Fatal("a member without integrations:manage was told")
 	}
 	s = f.decide(s, "search", "read_only")
-	if tool(t, s, "search").Changed || s.Waiting != 0 {
+	if tool(t, s, "search").Changed || s.Waiting != 0 || tool(t, s, "search").Approved != nil {
 		t.Fatalf("decided again: %+v", s)
 	}
 	for action, want := range map[string]int{"mcp_server.created": 1, "mcp_server.updated": 2, "mcp_tool.approved": 3} {

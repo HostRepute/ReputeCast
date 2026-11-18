@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
@@ -593,6 +594,9 @@ export function AssistantCard({ s }: { s: AISettings }) {
         <AINote tone="neutral" role="note">
           <b>{t(mm.leavesTitle)}</b>
           <div>{t(mm.leavesBody)}</div>
+          <Link to="/w/$workspace/settings/integrations/mcp-servers" params={{ workspace: slug }}>
+            {t(mm.mcpLink)}
+          </Link>
         </AINote>
       </div>
       <div className="ai-foot">

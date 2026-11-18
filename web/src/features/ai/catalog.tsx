@@ -34,14 +34,19 @@ export function ServerIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-/** "AI assistant settings", at the right of the group's heading. */
+/** "AI assistant settings" and "MCP servers", at the right of the group's heading. */
 export function AIGroupLink() {
   const { slug } = useWorkspace()
   const t = useT()
   return (
-    <Link to="/w/$workspace/settings/integrations/ai" params={{ workspace: slug }} className="ih-lnk">
-      {t(m.groupSettings)}
-    </Link>
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <Link to="/w/$workspace/settings/integrations/ai" params={{ workspace: slug }} className="ih-lnk">
+        {t(m.groupSettings)}
+      </Link>
+      <Link to="/w/$workspace/settings/integrations/mcp-servers" params={{ workspace: slug }} className="ih-lnk">
+        {t(m.groupMCP)}
+      </Link>
+    </span>
   )
 }
 

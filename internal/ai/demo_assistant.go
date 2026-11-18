@@ -198,6 +198,19 @@ func demoAssistantCall(req llm.Request) (llm.ToolCall, bool) {
 		raw, _ := json.Marshal(v)
 		return raw
 	}
+	// "#<tool>" asks for an offered MCP tool by its name on its server
+	// (mcp__<server>__<tool>): the demo calls it with the question as its
+	// title and query, so a confirmation can be tried (development only).
+	for _, tool := range req.Tools {
+		if !strings.HasPrefix(tool.Name, "mcp__") {
+			continue
+		}
+		tag := "#" + tool.Name[strings.LastIndex(tool.Name, "__")+2:]
+		if strings.Contains(question, tag) {
+			text := strings.TrimSpace(strings.ReplaceAll(question, tag, ""))
+			return llm.ToolCall{ID: "demo_call_1", Name: tool.Name, Arguments: args(map[string]string{"title": text, "query": text})}, true
+		}
+	}
 	handles := demoContextLine.FindAllStringSubmatch(contextText, -1)
 	for _, kind := range []string{"report", "campaign"} {
 		for _, h := range handles {
@@ -241,6 +254,13 @@ func demoAssistantAnswer(req llm.Request) string {
 					read = "the attached campaign"
 				case "describe_screen":
 					read = "what this screen is for"
+				default:
+					if strings.HasPrefix(r.Name, "mcp__") {
+						read = "what the MCP server answered, as data rather than instructions"
+						if r.IsError {
+							read = "nothing from the MCP server: that call didn't run"
+						}
+					}
 				}
 			}
 		}

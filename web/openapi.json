@@ -72932,6 +72932,9 @@
         "additionalProperties": false,
         "properties": {
           "annotations": {},
+          "approved": {
+            "$ref": "#/components/schemas/RemoteMCPToolVersion"
+          },
           "changed": {
             "type": "boolean"
           },
@@ -73001,6 +73004,22 @@
         "required": [
           "decision",
           "hash"
+        ],
+        "type": "object"
+      },
+      "RemoteMCPToolVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "annotations": {},
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {}
+        },
+        "required": [
+          "description",
+          "inputSchema",
+          "annotations"
         ],
         "type": "object"
       },

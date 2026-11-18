@@ -395,6 +395,10 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			}
 			r, content = s.runTool(ctx, s.Q, c, call.Name, confirmed)
 		} else {
+			if decided {
+				// A denied or half-sent call is still named by its server and tool.
+				r.label = conf.ServerName + " · " + conf.ToolName
+			}
 			content = envelope(call.Name, r)
 		}
 		row := AIThreadToolRow{CallID: call.ID, Name: call.Name, OK: r.code == "", Code: r.code, Ms: time.Since(start).Milliseconds(), Label: clip(r.label, 120), Card: r.card}

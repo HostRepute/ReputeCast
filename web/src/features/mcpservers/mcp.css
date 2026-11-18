@@ -1,0 +1,282 @@
+/*
+ * Settings › Integrations › MCP servers (MCPServers board): the board's own
+ * classes, value for value (design/boards/agent-a0.css, assistant-b0.css),
+ * prefixed `mcp-`. Cards, headers and footers are the AI models page's.
+ */
+@layer components {
+  .mcp-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 20px;
+    align-items: start;
+  }
+  .mcp-main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .mcp-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .mcp-item:last-of-type {
+    border-bottom: 0;
+  }
+  .mcp-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 12px;
+    flex-wrap: wrap;
+  }
+  .mcp-item h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .mcp-item .sub {
+    font-size: 13px;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+  .mcp-item-acts {
+    display: flex;
+    align-items: center;
+    gap: 8px 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .mcp-item-acts small {
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .mcp-show[aria-expanded='true'] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  /* A tool on a phone (the integrations' list rows): name, description, badges, action. */
+  .mcp-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .mcp-list .mcp-tool-desc {
+    max-width: none;
+  }
+  .mcp-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .mcp-list .ih-it > span:last-child {
+    margin-top: 6px;
+  }
+  .mcp-empty {
+    padding: 20px;
+    display: grid;
+    gap: 6px;
+  }
+  .mcp-tool-name {
+    font-family: var(--font-family-mono);
+    font-size: 13px;
+  }
+  .mcp-tool-desc {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-3);
+    overflow-wrap: anywhere;
+    max-width: 52ch;
+  }
+  /* What a server sent: untrusted text, never rendered. */
+  .mcp-pre {
+    margin: 0;
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    line-height: 1.6;
+    background: var(--ground-3);
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--ink-2);
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .mcp-radios {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0;
+  }
+  .mcp-radio {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    padding: 10px 0;
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .mcp-radio input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--accent);
+    flex: none;
+  }
+  .mcp-radio:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* The change: before and after, as the board's diff. */
+  .mcp-changed {
+    padding: 20px;
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+  }
+  .mcp-changed > .badge {
+    justify-self: start;
+  }
+  .mcp-changed h2 {
+    margin: 0;
+  }
+  .mcp-diff {
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .mcp-diff > div,
+  .mcp-diff > p {
+    margin: 0;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+  .mcp-diff > div {
+    display: grid;
+    gap: 4px;
+  }
+  .mcp-diff > p {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .mcp-notice {
+    background: var(--ground-3);
+  }
+  .mcp-diff .removed {
+    background: var(--bad-bg);
+    color: var(--bad-fg);
+  }
+  .mcp-diff .added {
+    background: var(--ok-bg);
+    color: var(--ok-fg);
+  }
+  .mcp-diff pre {
+    margin: 0;
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .mcp-diff pre.code {
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .mcp-part {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+  .mcp-acts {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  /* How calls are allowed */
+  .mcp-aside {
+    padding: 20px;
+    display: grid;
+    gap: 14px;
+  }
+  .mcp-aside h2 {
+    margin: 0;
+  }
+  .mcp-checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .mcp-checklist li {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 13px;
+  }
+  .mcp-checklist svg {
+    color: var(--accent);
+    flex: none;
+    margin-top: 2px;
+  }
+  .mcp-dlg {
+    display: grid;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .mcp-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  .mcp-item {
+    padding: 14px 16px;
+  }
+  .mcp-changed,
+  .mcp-aside,
+  .mcp-empty {
+    padding: 16px;
+  }
+  .mcp-radio {
+    min-height: 44px;
+    padding: 0;
+  }
+  .mcp-item-acts .btn,
+  .mcp-acts .btn {
+    min-height: 44px;
+  }
+}
+@layer components {
+  .mcp-client-body {
+    display: grid;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .mcp-client > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 2px 0;
+  }
+}
+@media (max-width: 767px) {
+  .mcp-client > summary {
+    padding: 12px 0;
+  }
+}
+/* The kind and the state stay whole in a table that fits its card. */
+table.tbl.fit td.mcp-nw {
+  white-space: nowrap;
+}

@@ -9,14 +9,18 @@ import { useSharingReview } from '@/features/ai/SharingReview'
 import { useT } from '@/i18n'
 import { count, money } from '@/lib/format'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
-import { attachContext, createThread, detachContext, requestKey, sendMessage, stopTurn, updateThread, useAssistantModels, useRefreshThreads, useThread, type AssistantModel } from './api'
+import { startSignIn, useUsableMCPServers, type MCPServer } from '@/features/mcpservers/api'
+import { attachContext, createThread, decideConfirmation, detachContext, requestKey, sendMessage, setThreadServers, stopTurn, updateThread, useAssistantModels, useRefreshThreads, useThread, type AssistantModel } from './api'
 import { Composer, type ComposerHandle } from './Composer'
+import { CONFIRM_ID, ConfirmCard, MCPStates, pendingConfirmation, WaitingLine } from './Confirmation'
 import { buildItems, Conversation } from './Conversation'
 import { placeholderOf, suggestions, useResourceTitle, useScreenContext } from './context'
 import { AsstIcon } from './icons'
+import { mx } from './mcp.messages'
 import { m } from './messages'
 import { ModelPicker } from './ModelPicker'
-import { initialThreadState, threadReducer, turnActive, type ThreadContext } from './reducer'
+import { initialThreadState, threadReducer, turnActive, type Confirmation, type ThreadContext } from './reducer'
+import { ServerPicker } from './ServerPicker'
 import { problemCopy, problemOf, StateCard, useProblemTitle, type TurnProblem } from './states'
 import { getAssistant, markDraftTaken, setAssistantThread, untakenDraft, useAssistant } from './store'
 import { MAX_ATTEMPTS } from '@/features/live/useLiveSend'
@@ -72,6 +76,13 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   }, [])
   const screen = useScreenContext()
   const resourceTitle = useResourceTitle(screen.resource)
+  // MCP servers: those the person may pick, the thread's, and a call waiting on them.
+  const usable = useUsableMCPServers()
+  const servers = usable.data?.servers ?? []
+  const [pickedServers, setPickedServers] = useState<string[]>([])
+  const [deciding, setDeciding] = useState<'allow' | 'deny'>()
+  const [closedConf, setClosedConf] = useState<Confirmation>()
+  const [confProblem, setConfProblem] = useState<{ id: string; code: 'mcp_tool_changed' | 'mcp_tool_blocked' }>()
 
   // A new thread starts from nothing; the API's thread replaces what was kept.
   useEffect(() => {
@@ -129,6 +140,14 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     }
   }
 
+  // A call that waits for the person is announced once.
+  const asking = state.confirmation?.state === 'pending' ? state.confirmation : undefined
+  const [seenConf, setSeenConf] = useState<string>()
+  if (asking && seenConf !== asking.id) {
+    setSeenConf(asking.id)
+    setAnnounce(t(mx.announce, { server: asking.serverName, tool: asking.tool }))
+  }
+
   // What keeps the assistant from answering here.
   const offCode = 'ai_assistant_off'
   let gate: Gate | undefined
@@ -143,13 +162,15 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   const ensureThread = useCallback(
     async (title?: string): Promise<string> => {
       if (threadId) return threadId
-      const th = await createThread(slug, { requestKey: requestKey(), screen: screen.screen, modelId: picked, title: title ? clip(title, 80) : undefined })
+      let th = await createThread(slug, { requestKey: requestKey(), screen: screen.screen, modelId: picked, title: title ? clip(title, 80) : undefined })
+      // Servers picked before the thread existed come with it.
+      if (pickedServers.length) th = await setThreadServers(slug, th.id, pickedServers)
       dispatch({ type: 'thread', thread: th })
       setAssistantThread(slug, th.id)
       void refreshThreads()
       return th.id
     },
-    [threadId, slug, screen.screen, picked, refreshThreads],
+    [threadId, slug, screen.screen, picked, pickedServers, refreshThreads],
   )
 
   const send = useCallback(
@@ -245,9 +266,56 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     }
   }
 
+  const serverIds = state.thread?.mcpServerIds ?? pickedServers
+  const toggleServer = async (id: string, on: boolean) => {
+    const server = servers.find((x) => x.id === id)
+    const next = on ? [...new Set([...serverIds, id])] : serverIds.filter((x) => x !== id)
+    if (!threadId || !state.thread) setPickedServers(next)
+    else {
+      try {
+        dispatch({ type: 'thread', thread: await setThreadServers(slug, threadId, next) })
+      } catch (e) {
+        toast({ kind: 'error', title: t(mx.failed), detail: errorMessage(e) })
+        return
+      }
+    }
+    if (server) setAnnounce(t(on ? mx.on : mx.off, { server: server.name }))
+  }
+  /** The person's own sign-in to an OAuth server: the browser goes to its authorization page and comes back to Settings › MCP servers. */
+  const signIn = async (server: MCPServer) => {
+    try {
+      await startSignIn(slug, server.id)
+    } catch (e) {
+      toast({ kind: 'error', title: t(mx.signInFailed, { server: server.name }), detail: errorMessage(e) })
+    }
+  }
+  /** Allow once or Deny: sent once; a call closed meanwhile (409) keeps its card, saying so. */
+  const decide = async (conf: Confirmation, decision: 'allow' | 'deny') => {
+    if (!threadId || deciding) return
+    setDeciding(decision)
+    try {
+      dispatch({ type: 'thread', thread: await decideConfirmation(slug, threadId, conf.id, decision) })
+      setAnnounce(t(decision === 'allow' ? mx.announceAllowed : mx.announceDenied, { server: conf.serverName, tool: conf.tool }))
+      focusComposer()
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409 && e.code === 'ai_assistant_confirmation_closed') {
+        setClosedConf(conf)
+        setAnnounce(t(mx.closed))
+        void refetch()
+      } else if (e instanceof ApiError && (e.code === 'mcp_tool_changed' || e.code === 'mcp_tool_blocked')) {
+        // The tool moved since the model asked: it can't run, only be denied.
+        setConfProblem({ id: conf.id, code: e.code })
+        setAnnounce(t(e.code === 'mcp_tool_blocked' ? mx.confirmBlocked : mx.confirmChanged, { server: conf.serverName, tool: conf.tool }))
+      } else toast({ kind: 'error', title: t(mx.decideFailed), detail: errorMessage(e) })
+    } finally {
+      setDeciding(undefined)
+    }
+  }
+
   const newThread = () => {
     setAssistantThread(slug, undefined)
     setPicked(undefined)
+    setPickedServers([])
     setSendProblem(undefined)
     if (opts.onNewThread) opts.onNewThread()
     else focusComposer()
@@ -287,6 +355,15 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     attach,
     detach,
     newThread,
+    servers,
+    serverIds,
+    toggleServer,
+    signIn,
+    decide,
+    deciding,
+    closedConf,
+    confirmClosed: closedConf?.id,
+    confProblem,
   }
 }
 
@@ -321,6 +398,9 @@ export function ThreadSub({ c }: { c: ThreadController }) {
       {c.list.length || c.state.thread ? (
         <div className="asst-sub">
           {c.list.length ? <ModelPicker models={c.list} value={c.model?.id} onChange={(id) => void c.pickModel(id)} open={c.pickerOpen} onOpenChange={c.setPickerOpen} /> : null}
+          {!c.gate && (c.servers.length || c.serverIds.length) ? (
+            <ServerPicker servers={c.servers} value={c.serverIds} onToggle={(id, on) => void c.toggleServer(id, on)} onSignIn={(srv) => void c.signIn(srv)} canManage={c.canManage} slug={c.slug} />
+          ) : null}
           <Cost c={c} />
         </div>
       ) : null}
@@ -532,7 +612,7 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
   const liveLength = c.state.live?.text.length ?? 0
   // The conversation sticks to its end while the person is there.
   const near = useRef(true)
-  const content = `${items.length}:${c.state.messages.length}:${c.state.pending ? 1 : 0}:${liveLength}:${c.state.tools.length}:${turn?.id}:${turn?.state}:${c.sendProblem ?? ''}`
+  const content = `${items.length}:${c.state.messages.length}:${c.state.pending ? 1 : 0}:${liveLength}:${c.state.tools.length}:${turn?.id}:${turn?.state}:${c.sendProblem ?? ''}:${c.state.confirmation?.id ?? ''}`
   const sending = Boolean(c.state.pending)
   useLayoutEffect(() => {
     const el = log.current
@@ -560,6 +640,19 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
   }, [reconnecting, c.stream.lostAt])
   const kind = c.screen.kind
   const emptyId = useId()
+  // The call the turn waits on, or one closed as it was decided (its card says so).
+  const asking = pendingConfirmation(c)
+  const conf = asking ?? (c.closedConf && c.closedConf.turnId === turn?.id && turnActive(turn) ? c.closedConf : undefined)
+  const latestRows = latest && latest.kind === 'answer' ? latest.tools : []
+  // A new request takes focus, unless the person is typing.
+  const askingId = asking?.id
+  useEffect(() => {
+    if (!askingId) return
+    const card = document.getElementById(CONFIRM_ID)
+    const el = document.activeElement
+    const typing = (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) && el.value.trim() !== ''
+    if (card && !typing && (el === document.body || (el && log.current?.closest('.asst')?.contains(el)))) card.focus({ preventScroll: true })
+  }, [askingId])
   return (
     // The log scrolls: it takes focus, as a scrolling region must.
     // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
@@ -619,6 +712,8 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
             <p>{t(m.contactsBody)}</p>
           </StateCard>
         ) : null}
+        <MCPStates c={c} rows={latestRows} />
+        {conf ? <ConfirmCard c={c} conf={conf} /> : null}
         {problem ? <TurnProblemCard c={c} problem={problem} /> : null}
         {c.gate === 'lost' ? <GateCard c={c} gate="lost" /> : null}
       </Conversation>
@@ -632,6 +727,7 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
           <p>{c.stream.status === 'stopped' ? t(m.reconnectStopped, { seconds: lostFor }) : t(m.reconnectBody, { seconds: lostFor, attempt: c.stream.attempt, max: MAX_ATTEMPTS })}</p>
         </StateCard>
       ) : null}
+      {asking ? <WaitingLine conf={asking} /> : null}
     </div>
   )
 }

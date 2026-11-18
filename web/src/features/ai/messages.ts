@@ -37,6 +37,8 @@ export const m = defineMessages('ai', {
   factUsageTokens: '{spent} of {cap} tokens this month',
   factUsageNoCap: '{spent} this month',
   groupSettings: 'AI assistant settings',
+  // The catalog's link to Settings › Integrations › MCP servers.
+  groupMCP: 'MCP servers',
   groupLineConnected: 'Your own model for subject ideas, rewrites, translations and alt text. Nothing is sent anywhere until a person asks.',
   connect: 'Connect',
   manage: 'Manage',

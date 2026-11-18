@@ -289,6 +289,16 @@ func TestAssistantMCPDeniedAndLostCalls(t *testing.T) {
 	if n := len(fake.Calls("create_issue")); n != 0 {
 		t.Fatalf("%d calls, want none", n)
 	}
+	// Their rows still name the server and the tool.
+	labels := []string{}
+	for _, msg := range f.get(f.mc, th.ID).Messages {
+		for _, row := range msg.Tools {
+			labels = append(labels, row.Code+": "+row.Label)
+		}
+	}
+	if strings.Join(labels, ", ") != "denied: Linear · create_issue, outcome_unknown: Linear · create_issue" {
+		t.Fatalf("the rows: %v", labels)
+	}
 	if n := f.count(`SELECT count(*) FROM audit_events WHERE action = 'ai_assistant_confirmation.rejected'`); n != 1 {
 		t.Fatal("the denial isn't audited")
 	}

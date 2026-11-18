@@ -52,7 +52,10 @@ WHERE id = @id;
 UPDATE mcp_tools SET removed_at = @now::timestamptz WHERE id = @id AND removed_at IS NULL;
 
 -- name: MCPToolDecide :exec
-UPDATE mcp_tools SET decision = @decision, approved_hash = @approved_hash, decided_by = sqlc.narg(decided_by), decided_at = @now::timestamptz WHERE id = @id;
+-- The tool as reviewed is kept with the decision: a later change shows as
+-- a diff against it.
+UPDATE mcp_tools SET decision = @decision, approved_hash = @approved_hash, approved_description = description, approved_input_schema = input_schema,
+    approved_annotations = annotations, decided_by = sqlc.narg(decided_by), decided_at = @now::timestamptz WHERE id = @id;
 
 -- name: MCPThreadTools :many
 -- The tools a thread may offer: on servers its owner chose, enabled, and

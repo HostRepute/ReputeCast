@@ -656,7 +656,7 @@ func (q *Queries) MCPThreadServersClear(ctx context.Context, threadID uuid.UUID)
 }
 
 const mCPThreadTools = `-- name: MCPThreadTools :many
-SELECT t.id, t.server_id, t.name, t.model_name, t.description, t.input_schema, t.annotations, t.hash, t.decision, t.approved_hash, t.decided_by, t.decided_at, t.first_seen_at, t.removed_at, s.name AS server_name, s.key AS server_key, s.auth AS server_auth, s.access_roles AS server_roles
+SELECT t.id, t.server_id, t.name, t.model_name, t.description, t.input_schema, t.annotations, t.hash, t.decision, t.approved_hash, t.decided_by, t.decided_at, t.first_seen_at, t.removed_at, t.approved_description, t.approved_input_schema, t.approved_annotations, s.name AS server_name, s.key AS server_key, s.auth AS server_auth, s.access_roles AS server_roles
 FROM ai_assistant_thread_servers ts
 JOIN mcp_servers s ON s.id = ts.server_id
 JOIN mcp_tools t ON t.server_id = s.id
@@ -671,24 +671,27 @@ type MCPThreadToolsParams struct {
 }
 
 type MCPThreadToolsRow struct {
-	ID           uuid.UUID       `json:"id"`
-	ServerID     uuid.UUID       `json:"serverId"`
-	Name         string          `json:"name"`
-	ModelName    string          `json:"modelName"`
-	Description  string          `json:"description"`
-	InputSchema  json.RawMessage `json:"inputSchema"`
-	Annotations  json.RawMessage `json:"annotations"`
-	Hash         []byte          `json:"hash"`
-	Decision     string          `json:"decision"`
-	ApprovedHash []byte          `json:"approvedHash"`
-	DecidedBy    *uuid.UUID      `json:"decidedBy"`
-	DecidedAt    *time.Time      `json:"decidedAt"`
-	FirstSeenAt  time.Time       `json:"firstSeenAt"`
-	RemovedAt    *time.Time      `json:"removedAt"`
-	ServerName   string          `json:"serverName"`
-	ServerKey    string          `json:"serverKey"`
-	ServerAuth   string          `json:"serverAuth"`
-	ServerRoles  []string        `json:"serverRoles"`
+	ID                  uuid.UUID       `json:"id"`
+	ServerID            uuid.UUID       `json:"serverId"`
+	Name                string          `json:"name"`
+	ModelName           string          `json:"modelName"`
+	Description         string          `json:"description"`
+	InputSchema         json.RawMessage `json:"inputSchema"`
+	Annotations         json.RawMessage `json:"annotations"`
+	Hash                []byte          `json:"hash"`
+	Decision            string          `json:"decision"`
+	ApprovedHash        []byte          `json:"approvedHash"`
+	DecidedBy           *uuid.UUID      `json:"decidedBy"`
+	DecidedAt           *time.Time      `json:"decidedAt"`
+	FirstSeenAt         time.Time       `json:"firstSeenAt"`
+	RemovedAt           *time.Time      `json:"removedAt"`
+	ApprovedDescription *string         `json:"approvedDescription"`
+	ApprovedInputSchema json.RawMessage `json:"approvedInputSchema"`
+	ApprovedAnnotations json.RawMessage `json:"approvedAnnotations"`
+	ServerName          string          `json:"serverName"`
+	ServerKey           string          `json:"serverKey"`
+	ServerAuth          string          `json:"serverAuth"`
+	ServerRoles         []string        `json:"serverRoles"`
 }
 
 // The tools a thread may offer: on servers its owner chose, enabled, and
@@ -717,6 +720,9 @@ func (q *Queries) MCPThreadTools(ctx context.Context, arg MCPThreadToolsParams) 
 			&i.DecidedAt,
 			&i.FirstSeenAt,
 			&i.RemovedAt,
+			&i.ApprovedDescription,
+			&i.ApprovedInputSchema,
+			&i.ApprovedAnnotations,
 			&i.ServerName,
 			&i.ServerKey,
 			&i.ServerAuth,
@@ -849,7 +855,7 @@ func (q *Queries) MCPTokensRemove(ctx context.Context, arg MCPTokensRemoveParams
 }
 
 const mCPTool = `-- name: MCPTool :one
-SELECT t.id, t.server_id, t.name, t.model_name, t.description, t.input_schema, t.annotations, t.hash, t.decision, t.approved_hash, t.decided_by, t.decided_at, t.first_seen_at, t.removed_at FROM mcp_tools t JOIN mcp_servers s ON s.id = t.server_id WHERE s.workspace_id = $1 AND t.id = $2
+SELECT t.id, t.server_id, t.name, t.model_name, t.description, t.input_schema, t.annotations, t.hash, t.decision, t.approved_hash, t.decided_by, t.decided_at, t.first_seen_at, t.removed_at, t.approved_description, t.approved_input_schema, t.approved_annotations FROM mcp_tools t JOIN mcp_servers s ON s.id = t.server_id WHERE s.workspace_id = $1 AND t.id = $2
 `
 
 type MCPToolParams struct {
@@ -875,12 +881,16 @@ func (q *Queries) MCPTool(ctx context.Context, arg MCPToolParams) (McpTool, erro
 		&i.DecidedAt,
 		&i.FirstSeenAt,
 		&i.RemovedAt,
+		&i.ApprovedDescription,
+		&i.ApprovedInputSchema,
+		&i.ApprovedAnnotations,
 	)
 	return i, err
 }
 
 const mCPToolDecide = `-- name: MCPToolDecide :exec
-UPDATE mcp_tools SET decision = $1, approved_hash = $2, decided_by = $3, decided_at = $4::timestamptz WHERE id = $5
+UPDATE mcp_tools SET decision = $1, approved_hash = $2, approved_description = description, approved_input_schema = input_schema,
+    approved_annotations = annotations, decided_by = $3, decided_at = $4::timestamptz WHERE id = $5
 `
 
 type MCPToolDecideParams struct {
@@ -891,6 +901,8 @@ type MCPToolDecideParams struct {
 	ID           uuid.UUID  `json:"id"`
 }
 
+// The tool as reviewed is kept with the decision: a later change shows as
+// a diff against it.
 func (q *Queries) MCPToolDecide(ctx context.Context, arg MCPToolDecideParams) error {
 	_, err := q.db.Exec(ctx, mCPToolDecide,
 		arg.Decision,
@@ -975,7 +987,7 @@ func (q *Queries) MCPToolSeen(ctx context.Context, arg MCPToolSeenParams) error 
 }
 
 const mCPTools = `-- name: MCPTools :many
-SELECT id, server_id, name, model_name, description, input_schema, annotations, hash, decision, approved_hash, decided_by, decided_at, first_seen_at, removed_at FROM mcp_tools WHERE server_id = $1 ORDER BY name
+SELECT id, server_id, name, model_name, description, input_schema, annotations, hash, decision, approved_hash, decided_by, decided_at, first_seen_at, removed_at, approved_description, approved_input_schema, approved_annotations FROM mcp_tools WHERE server_id = $1 ORDER BY name
 `
 
 func (q *Queries) MCPTools(ctx context.Context, serverID uuid.UUID) ([]McpTool, error) {
@@ -1002,6 +1014,9 @@ func (q *Queries) MCPTools(ctx context.Context, serverID uuid.UUID) ([]McpTool, 
 			&i.DecidedAt,
 			&i.FirstSeenAt,
 			&i.RemovedAt,
+			&i.ApprovedDescription,
+			&i.ApprovedInputSchema,
+			&i.ApprovedAnnotations,
 		); err != nil {
 			return nil, err
 		}

@@ -41812,6 +41812,7 @@ export interface components {
         };
         RemoteMCPTool: {
             annotations: unknown;
+            approved?: components["schemas"]["RemoteMCPToolVersion"];
             changed: boolean;
             /** Format: date-time */
             decidedAt?: string;
@@ -41830,6 +41831,11 @@ export interface components {
             decision: "read_only" | "writes" | "blocked";
             /** @description The hash of the description, schema and annotations reviewed */
             hash: string;
+        };
+        RemoteMCPToolVersion: {
+            annotations: unknown;
+            description: string;
+            inputSchema: unknown;
         };
         RemovalItem: {
             /** Format: int64 */

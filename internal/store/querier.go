@@ -3095,6 +3095,8 @@ type Querier interface {
 	// NULL: every workspace): their MCP sign-ins go.
 	MCPTokensRemove(ctx context.Context, arg MCPTokensRemoveParams) (int64, error)
 	MCPTool(ctx context.Context, arg MCPToolParams) (McpTool, error)
+	// The tool as reviewed is kept with the decision: a later change shows as
+	// a diff against it.
 	MCPToolDecide(ctx context.Context, arg MCPToolDecideParams) error
 	MCPToolGone(ctx context.Context, arg MCPToolGoneParams) error
 	MCPToolInsert(ctx context.Context, arg MCPToolInsertParams) error

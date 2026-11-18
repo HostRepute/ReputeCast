@@ -3009,20 +3009,23 @@ type McpToken struct {
 }
 
 type McpTool struct {
-	ID           uuid.UUID       `json:"id"`
-	ServerID     uuid.UUID       `json:"serverId"`
-	Name         string          `json:"name"`
-	ModelName    string          `json:"modelName"`
-	Description  string          `json:"description"`
-	InputSchema  json.RawMessage `json:"inputSchema"`
-	Annotations  json.RawMessage `json:"annotations"`
-	Hash         []byte          `json:"hash"`
-	Decision     string          `json:"decision"`
-	ApprovedHash []byte          `json:"approvedHash"`
-	DecidedBy    *uuid.UUID      `json:"decidedBy"`
-	DecidedAt    *time.Time      `json:"decidedAt"`
-	FirstSeenAt  time.Time       `json:"firstSeenAt"`
-	RemovedAt    *time.Time      `json:"removedAt"`
+	ID                  uuid.UUID       `json:"id"`
+	ServerID            uuid.UUID       `json:"serverId"`
+	Name                string          `json:"name"`
+	ModelName           string          `json:"modelName"`
+	Description         string          `json:"description"`
+	InputSchema         json.RawMessage `json:"inputSchema"`
+	Annotations         json.RawMessage `json:"annotations"`
+	Hash                []byte          `json:"hash"`
+	Decision            string          `json:"decision"`
+	ApprovedHash        []byte          `json:"approvedHash"`
+	DecidedBy           *uuid.UUID      `json:"decidedBy"`
+	DecidedAt           *time.Time      `json:"decidedAt"`
+	FirstSeenAt         time.Time       `json:"firstSeenAt"`
+	RemovedAt           *time.Time      `json:"removedAt"`
+	ApprovedDescription *string         `json:"approvedDescription"`
+	ApprovedInputSchema json.RawMessage `json:"approvedInputSchema"`
+	ApprovedAnnotations json.RawMessage `json:"approvedAnnotations"`
 }
 
 type MediaAsset struct {

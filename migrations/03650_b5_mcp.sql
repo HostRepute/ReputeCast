@@ -40,7 +40,9 @@ CREATE TABLE mcp_servers (
 
 -- A server's tools as its last sync listed them. hash covers the
 -- description, input schema and annotations; approved_hash is what a
--- manager decided on. A tool whose hash moved is off until decided again.
+-- manager decided on, and the approved_ columns keep that version's text so
+-- a tool that changed afterwards is reviewed as a diff. A tool whose hash
+-- moved is off until decided again.
 CREATE TABLE mcp_tools (
     id            uuid PRIMARY KEY,
     server_id     uuid NOT NULL REFERENCES mcp_servers(id) ON DELETE CASCADE,
@@ -56,6 +58,9 @@ CREATE TABLE mcp_tools (
     decided_at    timestamptz,
     first_seen_at timestamptz NOT NULL,
     removed_at    timestamptz,
+    approved_description  text,
+    approved_input_schema jsonb,
+    approved_annotations  jsonb,
     UNIQUE (server_id, name),
     UNIQUE (server_id, model_name)
 );

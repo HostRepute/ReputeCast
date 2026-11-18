@@ -86,3 +86,15 @@ export async function detachContext(slug: string, thread: string, context: strin
   const { data } = await http.DELETE(`${base}/threads/{thread}/contexts/{context}`, { params: { path: { workspace: slug, thread, context } } })
   return data!
 }
+
+/** Allow once or Deny a writing MCP tool's call: the same decision again is fine; a closed call is a 409. */
+export async function decideConfirmation(slug: string, thread: string, confirmation: string, decision: 'allow' | 'deny') {
+  const { data } = await http.POST(`${base}/threads/{thread}/confirmations/{confirmation}`, { params: { path: { workspace: slug, thread, confirmation } }, body: { decision } })
+  return data!
+}
+
+/** The MCP servers a thread may use (from list-ai-assistant-mcp-servers). */
+export async function setThreadServers(slug: string, thread: string, serverIds: string[]) {
+  const { data } = await http.PUT(`${base}/threads/{thread}/mcp-servers`, { params: { path: { workspace: slug, thread } }, body: { serverIds } })
+  return data!
+}

@@ -206,6 +206,17 @@ type RemoteMCPTool struct {
 	Changed   bool       `json:"changed"`
 	Removed   bool       `json:"removed"`
 	DecidedAt *time.Time `json:"decidedAt,omitempty"`
+	// Approved is the version decided on, for a tool that changed since:
+	// what a manager approved, to compare with what the server says now.
+	Approved *RemoteMCPToolVersion `json:"approved,omitempty"`
+}
+
+// RemoteMCPToolVersion is a tool's description, schema and annotations as
+// a manager reviewed them.
+type RemoteMCPToolVersion struct {
+	Description string          `json:"description"`
+	InputSchema json.RawMessage `json:"inputSchema"`
+	Annotations json.RawMessage `json:"annotations"`
 }
 
 // RemoteMCPServerList is the workspace's servers.
@@ -299,9 +310,21 @@ func (s *Service) view(ctx context.Context, q *store.Queries, srv store.McpServe
 }
 
 func toolView(t store.McpTool) RemoteMCPTool {
-	return RemoteMCPTool{ID: t.ID, Name: t.Name, ModelName: t.ModelName, Description: t.Description, InputSchema: t.InputSchema, Annotations: t.Annotations,
+	v := RemoteMCPTool{ID: t.ID, Name: t.Name, ModelName: t.ModelName, Description: t.Description, InputSchema: t.InputSchema, Annotations: t.Annotations,
 		Hash: hexOf(t.Hash), Decision: t.Decision, Changed: t.Decision != "pending" && !slices.Equal(t.ApprovedHash, t.Hash), Removed: t.RemovedAt != nil,
 		DecidedAt: t.DecidedAt}
+	if v.Changed && t.ApprovedDescription != nil {
+		v.Approved = &RemoteMCPToolVersion{Description: *t.ApprovedDescription, InputSchema: jsonOr(t.ApprovedInputSchema), Annotations: jsonOr(t.ApprovedAnnotations)}
+	}
+	return v
+}
+
+// jsonOr is a kept JSON value, or an empty object.
+func jsonOr(raw json.RawMessage) json.RawMessage {
+	if len(raw) == 0 {
+		return json.RawMessage("{}")
+	}
+	return raw
 }
 
 func hexOf(b []byte) string {
