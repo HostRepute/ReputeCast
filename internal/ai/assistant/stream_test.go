@@ -42,8 +42,13 @@ func TestAssistantStreamResumes(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()
 	th := f.thread(f.mc, map[string]any{})
-	if resp, err := f.vc.Stream(ctx, f.base+"/assistant/threads/"+th.ID.String()+"/stream"); err != nil || resp.StatusCode != 403 {
-		t.Fatalf("a viewer's stream: %v %v", resp.StatusCode, err)
+	resp, err := f.vc.Stream(ctx, f.base+"/assistant/threads/"+th.ID.String()+"/stream")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("a viewer's stream: %d", resp.StatusCode)
 	}
 	other := f.openStream(f.cc, th.ID, "")
 	if ev := other.next(t, 5*time.Second); ev.Event != "problem" || !json.Valid(ev.Data) {
@@ -75,12 +80,12 @@ func TestAssistantStreamResumes(t *testing.T) {
 		}
 	}
 	// From the last event (lastEventId), the next message's first.
-	resp, err := f.mc.Stream(ctx, f.base+"/assistant/threads/"+th.ID.String()+"/stream?lastEventId="+evs[len(evs)-1].ID)
+	resp, err = f.mc.Stream(ctx, f.base+"/assistant/threads/"+th.ID.String()+"/stream?lastEventId="+evs[len(evs)-1].ID)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	q := &stream{resp: resp, r: newReader(resp), stop: func() {}}
-	defer q.close()
 	f.send(f.mc, th.ID, "And one more")
 	if ev := q.next(t, 5*time.Second); ev.Event != "message" || ev.ID != strconv.Itoa(len(evs)+1) {
 		t.Fatalf("after the last event: %s %s", ev.Event, ev.ID)
