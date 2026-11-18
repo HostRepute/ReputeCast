@@ -107,7 +107,9 @@ seat or workspace limit.
   client.
 - **AI assistant, with your own key.** Suggestions shown as diffs in the
   composer, for segments and in reports, through the model provider and
-  monthly cap your workspace sets.
+  monthly cap your workspace sets, and a chat panel that explains what you
+  attach and hands work to the screens that own it
+  ([AI assistant](docs/ai/README.md)).
 - **Imports that keep consent** from Brevo, Mailchimp, MailerLite, listmonk,
   Keila, CSV or XLSX.
 - **Privacy built in.** Erasing a contact reaches every table that holds their
