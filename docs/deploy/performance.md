@@ -27,6 +27,8 @@ takes about 8 minutes; the database grows by 3 GB. Development only.
 | Go benchmarks | The same calls, and storing provider events | `go test -run '^$' -bench . ./internal/loadtest/` |
 | k6 scripts in `loadtest/k6` | Contacts, segment counts, the send API and webhook ingest against a running server | `k6 run loadtest/k6/contacts.js` with `BASE_URL` and `COOKIE` (`loadtest/session.sh` prints one) |
 | The "Load test" workflow | All of the above on a GitHub runner, Postgres 16, 17 or 18 | Actions › Load test › Run workflow; results are an artifact |
+| `loadtest/assistant` | The AI assistant's event streams: each event from its commit to a client, and the server's time to a turn's first token | `go run ./loadtest/assistant` against a running server ([below](#the-ai-assistant)) |
+| `web/scripts/assistant-perf.ts` | The assistant panel in Chrome: opening it, a streamed answer's delta to paint, and INP while it streams | `node scripts/assistant-perf.ts --app <url>` from `web/` |
 
 ## Results
 
@@ -647,3 +649,104 @@ was half of that. A campaign sent in one language has nothing to show
 there, and its send snapshot says so: the report now skips that query for
 it, and takes 20–21 ms for the same send in one language. A send in two or
 more languages still reads it (46–54 ms).
+
+## The AI assistant
+
+The targets: 200 event streams open at once with a delta's p95 under
+100 ms (the brief's B6 gate); the server's time to a turn's first token,
+without the provider's own, at a p95 under 150 ms; and in the browser, a
+delta painted within 50 ms and INP under 200 ms while an answer streams.
+
+### Event streams under load
+
+```bash
+REPUTECAST_DATABASE__URL=… go run ./loadtest/assistant -base http://127.0.0.1:8090 \
+  -fake 127.0.0.1:9711 -streams 200 -rounds 3 -chunks 150 -every 20ms \
+  [-spread 10s] -metrics … -metrics-token …
+```
+
+The program opens one thread stream per thread, sends a message in each
+thread (three rounds, each once the thread's previous turn ended) and
+answers the model requests itself, as a fake OpenAI-compatible provider
+that streams 150 pieces 20 ms apart. It times each event from its commit
+(the event row's `created_at`) to its arrival on the stream, on the same
+machine's clock. The streams are spread over the two Acme workspaces.
+Without `-spread` every message goes at once; `-spread 10s` sends each
+after a random wait of up to 10 seconds.
+
+Its setup writes to the database directly, so use it on a development or
+load test instance only. It needs the Acme sample (`reputecast seed`),
+`providers.allow_private_networks` for the fake on loopback, and
+`worker.concurrency` 400, which gives the `ai_assistant` queue 200 workers.
+It connects every workspace's model to the fake, raises the assistant's
+limits to 10 answers at once per person and 100 per workspace, and adds
+Editors with sessions. The header of `loadtest/assistant/main.go` has the
+details.
+
+The machine: 4 vCPUs (Xeon, 2.20 GHz), 15 GB of RAM, Postgres 18.7 with
+default settings, and one `reputecast serve` process with every role, a
+pool of 20 and `worker.concurrency` 400. The load test and the fake
+provider ran on the same machine, and **the machine was shared with other
+work during the runs**, so treat the tails (p99) in particular as rough.
+
+200 streams, each event from its commit to the client:
+
+| Run | Delta p50 | p95 | p99 | Target p95 under 100 ms |
+|---|---|---|---|---|
+| All at once, run 1 | 9.9 ms | 76.7 ms | 341 ms | met |
+| All at once, run 2 | 10.0 ms | 70.6 ms | 166 ms | met |
+| Spread over 10 s | — | 50.6 ms | 92.8 ms | met |
+
+When all 200 messages go at once, the time to the first token, as the
+client sees it, is p50 6.7 s and p95 7.5 s. Claiming a turn holds the
+workspace's AI configuration lock for the claim's whole transaction, so the
+claims of each workspace's 100 turns run one after another.
+
+The server's time to the first token, what
+`reputecast_ai_assistant_ttft_overhead_seconds` measures: from the
+person's message committed to the first piece of the answer committed,
+without the provider's own time to its first token.
+
+| Load | p50 | p95 | p99 | Target p95 under 150 ms |
+|---|---|---|---|---|
+| 1 stream | 43 ms | 150 ms | 238 ms | at the limit |
+| 10 streams, spread | 28 ms | 99 ms | 148 ms | met |
+| 50 streams, spread | 31 ms | 114 ms | 131 ms | met |
+| 10 at once in one workspace | 93 ms | 156 ms | 182 ms | missed |
+
+Ten messages sent at once in one workspace miss the target for the same
+reason: their claims take the workspace's configuration lock one at a time,
+one every 14–18 ms.
+
+### The panel in the browser
+
+`web/scripts/assistant-perf.ts`, in Chrome with the CPU four times slower,
+against the production build the binary serves, with the development demo
+model answering:
+
+```bash
+node scripts/assistant-perf.ts --app http://localhost:8080 [--runs 10] [--only open|stream] [--no-input]
+```
+
+- **Open:** from pressing the top bar's **Assistant** button to a focused,
+  usable composer.
+- **Delta to paint:** from a streamed delta's arrival until its words are on
+  screen and a frame has painted, over a 360-word answer in pieces of three.
+- **INP while streaming:** taps and typing during that answer on a phone
+  (390 px, touch), from the page's Event Timing entries.
+
+| Measure | Median / p95 |
+|---|---|
+| Open, prefetched by hovering the button | 99 / 117 ms |
+| Open after a reload, the panel's code in the HTTP cache | 82 / 92 ms |
+| Open on a phone | 105 / 120 ms |
+
+- **Delta to paint, p95:** 33 ms on a desktop. On a phone, 35–41 ms with no
+  input, and 57–66 ms while typing and tapping: the 50 ms target is missed
+  then.
+- **INP while streaming, on a phone:** 120–160 ms, under the 200 ms target.
+
+The panel's code is fetched once the page is idle, for people who can use
+the assistant while it's on, and not on Save-Data or 2G connections; on a
+touch screen, where nothing hovers, that is what makes the first open
+quick.

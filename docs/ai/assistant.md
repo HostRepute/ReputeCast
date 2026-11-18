@@ -35,6 +35,10 @@ assistant on and connect a model that passed its tool check
   composer warning. The panel opens with that report or draft suggested as
   context. Nothing is shared until you attach it.
 
+The panel's code loads in the background once the page is idle, so it opens
+at once. That happens only for people who can use the assistant, while it's
+on, and not on a connection set to save data or on 2G.
+
 Where the panel goes depends on the window's width:
 
 | Width | Panel |
@@ -183,8 +187,30 @@ Server · tool**, with **Go to the request**, and shows a card:
 **Allow once** sends that call, with those arguments, once. **Deny** tells
 the model the call was refused, and nothing is sent. Either way the answer
 goes on. While a call waits, the thread takes no new message: decide, or
-Stop. If you close the panel while a call waits, the **Assistant** button
-shows a dot.
+Stop.
+
+You don't have to keep the panel open:
+
+- You get a notification, **The assistant is waiting for you**: "Server ·
+  tool waits for you to allow or deny it. Nothing is sent until you do." It
+  names the server and the tool, never the arguments. It is in-app; email
+  for it is off unless you turn it on in your notification preferences
+  ("AI assistant waiting for your confirmation"). Opening it opens the
+  panel on that thread, or the thread's full page on screens without the
+  panel.
+- The **Assistant** button shows a dot while the notification is unread,
+  and pressing it then opens the panel on that thread. So the dot is still
+  there after a reload, and it also shows when the call started waiting
+  after you closed the panel. If you turned the notification off, the dot
+  only shows when you close the panel while the call waits.
+- The notification goes away once you allow or deny the call, stop the
+  answer, or delete the thread, or when the call expires.
+
+A call nobody decides on expires after 24 hours. Nothing is sent: the card
+keeps the arguments and says "This request expired after 24 hours without
+a decision. Nothing was sent to …", and the answer ends with **The request
+expired**. **Retry** sends your message again as a new message, with its
+own cost.
 
 If a manager blocked or changed the tool after the model asked, the card
 says so and **Allow once** can't run it; **Deny** lets the assistant go on.
@@ -259,6 +285,9 @@ assistant's to answer.
 - What you send reaches the model's provider, and an MCP tool's arguments
   reach that server. Their own terms decide how long they keep it.
   Deleting a thread doesn't undo what a tool you allowed did elsewhere.
+- The notification for a waiting call names only the server and the tool.
+  It is deleted once the call is decided, stopped or expired, or the thread
+  is deleted or expires.
 
 ## State cards
 
@@ -272,7 +301,7 @@ its button names who can do it.
 | **No model connected** | Not configured | The workspace has no model account. | A manager adds one: **Connect a model**. |
 | **No model can answer here** | Not configured | No model can be used now, most often because none passed its tool check. | **Switch model**, or a manager runs the tool check. |
 | **Your role can't use AI** | No access | Your role doesn't have `ai:use`. | Ask someone who manages the team. |
-| **The assistant is off** | Off | A manager switched it off. Threads are kept but can't be opened meanwhile. | A manager switches it on: **Open AI settings**. |
+| **The assistant is off** | Off | A manager switched it off. Nothing new can be sent. Threads are kept, and until it's on again they can only be stopped or deleted, through the API: the panel doesn't open them meanwhile. | A manager switches it on: **Open AI settings**. |
 | **This thread expired** | Expired | Its content was deleted 30 days after its last message. | **New thread**. |
 | **Your access changed during this answer** | Stopped | Your role lost `ai:use` while it answered. What was written stays. | Ask someone who manages the team. |
 
@@ -283,17 +312,27 @@ its button names who can do it.
 | **This thread reached its limit** | Paused | The next request wouldn't fit the thread's tool calls, tokens or cost. | **New thread**. Nothing is lost. |
 | **Monthly AI cap reached** | Paused | The workspace used its monthly cap. | **Use … (personal)** if you have a personal key, or a manager raises the cap. |
 | **Your personal cap is reached** | Paused | Your key used its monthly cap. | **Switch model** to a workspace model, or wait for next month. |
-| **… rejected the key** | Key rejected | The provider refused the key. Its models stop; others still work. | A manager uses **Replace key**; for your own key, replace it under **Your personal key**. Or **Switch model**. |
+| **… rejected the key** | Key rejected | The provider refused the key. Its models stop; others still work. | For your own key, **Replace key** takes you to **Your personal key**; for a workspace key, a manager replaces it. Or **Switch model**. |
 | **… is limiting requests** | Rate limited | The provider's rate limit for this key. | Wait, then **Retry**. |
 | **… is unavailable** | Failed | The provider failed, didn't answer in time, or answered too much. The answer so far is kept. | **Retry** or **Switch model**. |
 | **The model declined** | Refused | The model refused the request. | **Edit message**, or ask about something you attach. |
-| **This thread's model was removed** | Failed | The thread's model was removed, its account disconnected, it no longer passes the tool check, or personal keys were turned off. | **Switch model**, then send again. |
+| **This thread's model was removed** | Failed | The thread's model was removed, alone or with its account. | **Switch model**, then send again. |
+| **The model's account was disconnected** | Disconnected | The account of the thread's model has no connection. Nothing was sent. | **Open AI models** (yours to reconnect for your own key, a manager's otherwise), or **Switch model**. |
+| **… hasn't passed its tool check** | Not checked | The thread's model hasn't passed the tool check, for example because its key was replaced. Nothing was sent. | **Run the tool check** (for your own model, or as a manager), then **Retry**; or **Switch model**. |
+| **Personal keys are off** | Off | The thread uses your own key, and managers turned personal keys off. Nothing was sent. | **Switch model** to a workspace model, or ask a manager to turn personal keys on. |
+| **The model isn't set up** | Not configured | There's no key for your own model, or no model account is connected. Nothing was sent. | **Add your key**, or **Switch model**; for the workspace, a manager uses **Connect a model**. |
+| **The request expired** | Expired | A call waited 24 hours for your decision. Nothing was sent. | **Retry** sends your message again. |
 | **The answer was interrupted** | Failed | The worker answering it stopped (a restart or deploy), or no worker took it within 30 minutes. Its cost stays unknown until a manager reconciles it. | **Retry**. If it keeps happening, tell whoever runs the instance. |
 | **The answer didn't finish** | Failed | Any other reason, named in brackets. | **Retry**. |
 | **The assistant can't read contacts** | Denied | The model tried to read contacts, recipients or exports. | **Ask about a segment** asks about segment sizes instead. |
 | **Reconnecting** | Reconnecting | The connection to the server dropped. The answer goes on on the server. | Wait, or **Reconnect now**. |
 
 Every **Retry** sends a new request with its own cost.
+
+The cards about the thread's model say whose fix it is: yours when the
+model is on your own key, a manager's when it's the workspace's. When a
+message is refused before it starts, they show the server's own
+explanation, which names the same.
 
 Notes in the conversation, without a card: **Stopped. An in-flight request
 may still be charged.**, **The answer stopped before it ended. What arrived

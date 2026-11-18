@@ -9,8 +9,10 @@ untrusted data.
 
 **Interoperability with real public MCP servers hasn't been verified yet.**
 ReputeCast's tests use the MCP Go SDK's own server handlers and a fake
-authorization server on loopback. No public MCP server or public
-authorization server has been tried. Read
+authorization server on loopback, including the discovery variants below
+(a 401's challenge, the root metadata document, OpenID Connect discovery)
+and revocation. No public MCP server or public authorization server has
+been tried. Read
 [what ReputeCast expects from an OAuth server](#what-reputecast-expects-from-an-oauth-server)
 before you add one.
 
@@ -51,7 +53,7 @@ integrations catalog's AI group and from AI models.
 | **Name** | How threads and tool rows name it ("Linear · search_issues"). Its first letters also prefix its tools' names for the model: `mcp__linear__search_issues`. |
 | **Server address** | The server's MCP endpoint: Streamable HTTP, or HTTP with SSE. ReputeCast tries Streamable HTTP and falls back to HTTP with SSE when the server doesn't take it. Use the exact address: ReputeCast doesn't follow redirects. |
 | **Sign-in** | **OAuth, each member signs in**, **Shared header secret** or **None**. See [sign-in](#sign-in). |
-| **Who can use it** | **Everyone with Use AI features** or **Owners and Admins**. |
+| **Who can use it** | **Everyone with “Use the AI assistant”** or **Owners and Admins**. |
 
 Only remote servers can be added. Local process servers (stdio) aren't
 supported.
@@ -74,8 +76,9 @@ value (**Replace**), the OAuth client, and **Offer its tools to threads**
 (off: threads stop offering its tools; nothing is removed). The address, the
 sign-in kind and the header's name can't change: remove the server and add
 it again. **Remove server** removes its tools and every member's sign-in to
-it; threads stop offering its tools, and a call waiting for confirmation
-can no longer be allowed, only denied.
+it (their refresh tokens are [revoked](#revoking-removed-sign-ins) where
+the authorization server allows it); threads stop offering its tools, and
+a call waiting for confirmation can no longer be allowed, only denied.
 
 ## Sign-in
 
@@ -125,24 +128,34 @@ client; expect them to sign in again.
 
 ReputeCast follows the MCP authorization flow with PKCE (S256), the resource
 indicator, and a state bound to the person's session that works once and
-for ten minutes. Its discovery covers less than the specification asks of
-clients:
+for ten minutes. Discovery runs at the first sign-in to the server (and
+again after its **Client ID** is cleared):
 
-1. It reads the protected resource metadata at
-   `https://<host>/.well-known/oauth-protected-resource<path>`, built from
-   the server address. Its `resource` must be the server address exactly.
-   ReputeCast doesn't read the `WWW-Authenticate` header and doesn't try
-   the root `/.well-known/oauth-protected-resource` when the server address
-   has a path.
-2. It takes the first authorization server listed and reads
-   `https://<issuer host>/.well-known/oauth-authorization-server<issuer path>`.
-   It doesn't try OpenID Connect discovery. The metadata must list `S256`
-   in `code_challenge_methods_supported`.
-3. Without a client you entered, the authorization server needs a
+1. It sends the server an MCP `initialize` request without credentials. If
+   the answer is a 401, it reads `resource_metadata` and `scope` from its
+   `WWW-Authenticate` Bearer challenge.
+2. It reads the protected resource metadata from, in order: the address
+   the 401 named; `https://<host>/.well-known/oauth-protected-resource<path>`,
+   built from the server address; and the root
+   `https://<host>/.well-known/oauth-protected-resource`. A document from
+   the first two must name the server address as its `resource`. The root
+   document must name the server's origin (`https://<host>`), and that
+   origin is then the resource ReputeCast asks tokens for. A document that
+   names any other resource is refused.
+3. It takes the first authorization server listed and reads its metadata:
+   OAuth (RFC 8414) first, then OpenID Connect discovery, with the issuer's
+   path inserted after `/.well-known/` and, for OpenID Connect, also
+   appended. The metadata must list `S256` in
+   `code_challenge_methods_supported`.
+4. Without a client you entered, the authorization server needs a
    `registration_endpoint`. Client ID metadata documents aren't supported.
-4. It asks for every scope in the resource's `scopes_supported`.
-5. Client authentication is none, or HTTP basic with the client secret.
-6. Metadata addresses must be https (plain http only on loopback).
+5. It asks for the scope the 401 named, or else every scope in the
+   resource's `scopes_supported`.
+6. Client authentication is none, or HTTP basic with the client secret.
+   Other methods (`client_secret_post`, `private_key_jwt`) aren't supported.
+7. Metadata addresses must be https (plain http only on loopback).
+8. It keeps the authorization server's `revocation_endpoint`, if it has
+   one, to [revoke removed sign-ins](#revoking-removed-sign-ins).
 
 When any of these fails, the sign-in says "…'s sign-in couldn't be set up:
 its authorization server didn't answer as expected. Check the address or
@@ -172,7 +185,8 @@ it looks harmless. A read-only tool's arguments still leave the instance:
 the model writes them, and they can contain what a person attached.
 
 Other states: **Changed · off** ([below](#when-a-tool-changes)) and **Gone
-from the server** (the last sync didn't list it; it isn't offered).
+from the server** (the server's last listing didn't include it; it isn't
+offered).
 
 ## When a tool changes
 
@@ -182,25 +196,41 @@ schema and annotations as you reviewed them. If the tool changed on the
 server while you reviewed it, the decision isn't saved and the page shows
 the new version: "This tool changed on the server while you reviewed it."
 
-ReputeCast compares tools when a manager syncs; there is no automatic sync.
-When a sync finds that an approved or blocked tool changed:
+ReputeCast compares a server's tools with what was decided at three
+moments:
+
+- **Before every call.** In the call's own session, ReputeCast lists the
+  server's tools first. If the tool is no longer listed, or its
+  description, schema or annotations differ from the version decided on,
+  the call isn't sent. Whatever else the listing changed is recorded too.
+- **Every hour**, for servers with **None** or a **Shared header secret**
+  that are on and were synced before: the `mcp.servers_sync` job lists
+  them as the system, at most 20 servers a run across the instance, the
+  least recently updated first. A server that doesn't answer is tried
+  again an hour later. OAuth servers are listed as a person, so only the
+  check before each call and a manager's **Sync tools** cover them.
+- **When a manager clicks Sync tools.**
+
+When one of them finds that an approved or blocked tool changed:
 
 - the tool is **Changed · off**: no thread offers it, and a call waiting for
   confirmation can't run;
 - members who manage integrations get a notification ("Tools of … changed");
-- threads that tried to use it show **A tool changed and is off**;
+- threads whose call hit it show **A tool changed and is off**;
 - **Review the change** shows **Before** and **After** for the description,
   the input schema and the annotations, with **Block the tool** and
   **Approve the new version**.
 
-Between syncs, threads offer the description and schema ReputeCast stored at
-the last sync, and calls go to the tool by its name.
+A tool the server no longer lists becomes **Gone from the server** and isn't
+offered or called; no notification is sent for it. The hourly sync and the
+check before a call write an audit entry, as the system, only when the
+catalog changed.
 
 ## Who can use a server
 
 **Who can use it**:
 
-- **Everyone with Use AI features**: everyone with `ai:use`.
+- **Everyone with “Use the AI assistant”**: everyone with `ai:use`.
 - **Owners and Admins**: those two roles.
 - Through the API, any list of role keys.
 
@@ -217,8 +247,10 @@ tools of those servers after ReputeCast's own, within 40 tools a request,
 ordered by server name and then tool name; the rest aren't offered. On an
 OAuth server, only members who signed in get its tools.
 
-Each call opens its own session with the server, as the thread's owner, and
-has 30 seconds to answer. Tool rows say "Server · tool" and how long it
+Each call opens its own session with the server, as the thread's owner. In
+that session ReputeCast first lists the server's tools
+([when a tool changes](#when-a-tool-changes)), then calls the tool; the two
+together have 30 seconds. Tool rows say "Server · tool" and how long it
 took, or what went wrong: sign-in needed, changed, blocked, unreachable, no
 answer in 30 s, an answer over 32 KB, or an error the server reported.
 
@@ -245,6 +277,9 @@ to steer it. That is why tools that write ask every time and there is no
 - The arguments of their own tools' calls, as the model wrote them. For a
   writing tool, exactly the arguments the person allowed.
 - Their credential: the shared header, or the member's own OAuth token.
+- For OAuth servers: an MCP `initialize` request without credentials at
+  discovery, and a removed sign-in's refresh token at the authorization
+  server's revocation endpoint.
 
 Nothing else: no ReputeCast keys, and nothing from the thread unless the
 model puts it in a call's arguments.
@@ -271,11 +306,29 @@ On an OAuth server each member signs in for themselves:
 - ReputeCast refreshes the token by itself shortly before it expires. When
   the refresh is refused, or the server answers 401 or 403, the sign-in is
   removed and threads show **Sign in to … again**.
-- **Disconnect** deletes the tokens ReputeCast holds. It doesn't revoke them
-  at the authorization server; do that in the server's own settings if you
-  need to.
+- **Disconnect** deletes the tokens ReputeCast holds.
 
 A member's sign-ins in a workspace are deleted when they leave it, are
 removed from it or are deactivated. Deactivating a person in Instance admin
 deletes their sign-ins in every workspace. Removing a server deletes every
 member's sign-in to it.
+
+### Revoking removed sign-ins
+
+When the authorization server advertised a `revocation_endpoint` at
+discovery, ReputeCast also revokes the refresh token of every sign-in it
+removes: on **Disconnect**, when the member leaves, is removed or is
+deactivated, when the server is removed, and when the server refused the
+sign-in. The token is queued, still encrypted, and sent to the endpoint
+(RFC 7009) as the client it was issued to:
+
+- On **Disconnect** ReputeCast works through the queue at once (up to 10
+  tokens, for up to 10 seconds), so the member's own token normally goes
+  then.
+- The `mcp.tokens_revoke` job sends what is left every minute, up to 100
+  tokens a run.
+
+It is best effort. Each token is tried once: a failed revocation is logged,
+without the token, and not tried again, and the sign-in is gone either way.
+Access tokens aren't revoked; they lapse when they expire. Without a
+`revocation_endpoint`, nothing is revoked: use the server's own settings.

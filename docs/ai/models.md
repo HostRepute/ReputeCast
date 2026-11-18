@@ -107,8 +107,10 @@ counts toward the monthly cap (for a personal key, its owner's cap).
 
 The result belongs to the model with its key, address and connection.
 Replacing the key or reconnecting the account resets it to **Tool check not
-run**: run it again, or threads on that model stop with **This thread's
-model was removed**. Prices, names and feature switches don't reset it.
+run**: run it again. Until then, messages in threads on that model aren't
+sent, and the thread says "… hasn't passed its tool check", with **Run the
+tool check** for managers (or for the key's owner, on a personal key).
+Prices, names and feature switches don't reset it.
 
 ## Default model for each feature
 
@@ -134,7 +136,7 @@ The **Assistant** card:
 
 | Row | Default | Notes |
 |---|---|---|
-| **Enable the assistant** | Off | Off: nobody can send a new message, and the panel shows **The assistant is off**. Threads are kept, still expire on schedule, and can't be opened until it's on again. |
+| **Enable the assistant** | Off | Off: nobody can send a new message, and the panel shows **The assistant is off**. Threads are kept and still expire on schedule. Until it's on again they can only be stopped or deleted, through the API (`stop-ai-thread-turn`, `delete-ai-thread`); the panel doesn't open them. |
 | **Limit per thread** | 40 tool calls · 300,000 tokens · $2.00 | Each thread's cumulative ceiling. Up to 200 tool calls, 2,000,000 tokens and US$100. |
 | **At once** | 1 per thread · 2 per person · 10 per workspace | Answers written at the same time, apart from agent runs. **Answers at once per person**: 1 to 10. **Answers at once in the workspace**: 1 to 100. |
 | **Content kept** | 30 days after the last message | Fixed. |
@@ -239,4 +241,5 @@ stores what it receives.
 - **The audit log** records changes to accounts, models, prices, defaults,
   the assistant's settings and personal keys, and, for threads, that one was
   started, renamed or deleted, what was attached (kind and ID) and which
-  calls were allowed or denied. Never titles, messages, arguments or keys.
+  calls were allowed, denied or expired (an expiry is the system's entry).
+  Never titles, messages, arguments or keys.

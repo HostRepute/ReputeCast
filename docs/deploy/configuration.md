@@ -120,7 +120,7 @@ This is what it asks of the instance.
 | Role | What it does for the assistant |
 |---|---|
 | `web` | The panel and its API, the MCP servers' OAuth callback, and each open thread's event stream (server-sent events). |
-| `worker` | Answers turns on the `ai_assistant` River queue. On the `maintenance` queue: the sweep of turns no worker answers (every minute), retention of thread content and events (hourly), and the purge of unfinished MCP sign-ins (hourly). |
+| `worker` | Answers turns on the `ai_assistant` River queue. On the `maintenance` queue: every minute, the sweep of turns no worker answers and of calls that waited 24 hours for a confirmation, and `mcp.tokens_revoke`, which revokes removed MCP sign-ins' refresh tokens; every hour, retention of thread content and events, the purge of unfinished MCP sign-ins, and `mcp.servers_sync`, which lists the tools of MCP servers without per-member sign-in (20 servers a run). |
 | `ingest` | Nothing. |
 
 - A person's message is committed with its job, and any worker process
@@ -138,6 +138,13 @@ This is what it asks of the instance.
   cost stays unknown until a manager reconciles it, and the person can
   retry.
 - A turn waiting for a person's confirmation holds no worker and no slot.
+  After 24 hours the sweep expires the call: nothing is sent, and the turn
+  ends.
+- Besides the model providers, both roles reach MCP servers and their
+  authorization servers: workers for each call (its tool listing first),
+  the hourly sync and the revocation job; web processes for sign-ins, a
+  manager's **Sync tools** and the revocation on **Disconnect**. Allow both
+  out through any egress firewall.
 
 ### The event stream's database connection
 
@@ -188,11 +195,12 @@ in Instance admin › Instance & updates, or `REPUTECAST_PUBLIC_URL`.
 
 ### Secrets
 
-Model keys, MCP header secrets, OAuth client secrets and tokens, and thread
-content (titles, messages, attached snapshots, events, waiting calls'
-arguments) are encrypted with the instance's secret key
-(`REPUTECAST_SECRETS__KEY` or its key file). `reputecast secrets reseal`
-covers them. Without the key, none of them can be read after a restore.
+Model keys, MCP header secrets, OAuth client secrets and tokens (refresh
+tokens waiting to be revoked included), and thread content (titles,
+messages, attached snapshots, events, waiting calls' arguments) are
+encrypted with the instance's secret key (`REPUTECAST_SECRETS__KEY` or its
+key file). `reputecast secrets reseal` covers them. Without the key, none
+of them can be read after a restore.
 
 ### Timeouts
 
@@ -207,9 +215,13 @@ These are fixed in this release; there are no settings for them.
 | Automatic retries of a model request | None: a request the provider may have charged isn't repeated |
 | A job attempt of a turn | 4 minutes |
 | A queued turn no worker takes | 30 minutes |
+| A call waiting for a person's confirmation | 24 hours |
 | **Test connection** / the tool check / listing a provider's models | 30 / 45 / 20 seconds |
-| Connecting to an MCP server, and one tool call | 30 seconds each |
-| OAuth discovery, registration and token requests | 15 seconds each |
+| Connecting to an MCP server | 30 seconds |
+| One MCP tool call: the server's tool listing, then the call | 30 seconds together |
+| OAuth discovery, registration, token and revocation requests | 15 seconds each |
+| Revoking on **Disconnect**, before the answer returns | 10 seconds |
+| One run of the hourly MCP sync | 25 minutes |
 | The event stream's heartbeat | Every 15 seconds while nothing else is sent |
 | A browser that doesn't read an event | Cut after 5 seconds; it resumes from its last event |
 
