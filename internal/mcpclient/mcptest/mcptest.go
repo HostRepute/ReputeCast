@@ -37,6 +37,8 @@ type Server struct {
 	mu          sync.Mutex
 	bearer      func(token string) bool
 	metadata    map[string]any
+	metaPath    string // where metadata is served
+	challenge   string // its 401s' WWW-Authenticate
 	credentials []string
 	calls       map[string][]json.RawMessage
 }
@@ -55,9 +57,9 @@ func NewServer(t testing.TB, header, value string) *Server {
 		}
 		s.mu.Lock()
 		s.credentials = append(s.credentials, cred)
-		bearer, metadata := s.bearer, s.metadata
+		bearer, metadata, metaPath, challenge := s.bearer, s.metadata, s.metaPath, s.challenge
 		s.mu.Unlock()
-		if metadata != nil && r.URL.Path == "/.well-known/oauth-protected-resource/mcp" {
+		if metadata != nil && r.URL.Path == metaPath {
 			writeJSON(w, http.StatusOK, metadata)
 			return
 		}
@@ -65,7 +67,10 @@ func NewServer(t testing.TB, header, value string) *Server {
 		case s.Unauthorized.Load(),
 			s.Header != "" && cred != s.Value,
 			bearer != nil && !bearer(strings.TrimPrefix(cred, "Bearer ")):
-			w.Header().Set("WWW-Authenticate", `Bearer resource_metadata="`+s.URL+`/.well-known/oauth-protected-resource/mcp"`)
+			if challenge == "" {
+				challenge = `Bearer resource_metadata="` + s.URL + `/.well-known/oauth-protected-resource/mcp"`
+			}
+			w.Header().Set("WWW-Authenticate", challenge)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -152,6 +157,42 @@ type Auth struct {
 	// refreshDelay holds each refresh before it is answered, so two that
 	// overlap are seen.
 	refreshDelay atomic.Int64
+	// RevokeStatus is how the revocation endpoint answers (200 when 0).
+	RevokeStatus atomic.Int32
+	revoked      []string // "<token> <hint> <client>[ <secret>]"
+	scopes       []string // the scope each authorization asked for
+}
+
+// AuthOptions are how the protected resource and its authorization server
+// are found (MCP authorization, 2025-11-25).
+type AuthOptions struct {
+	// Metadata is where the server's protected resource metadata is: ""
+	// (at the endpoint's path-inserted well-known address, named in its
+	// 401s), "root" (at the root well-known address, for the server's
+	// origin, not named), or "header" (at an address only its 401s name).
+	Metadata string
+	// Resource is another resource for the metadata to name.
+	Resource string
+	// Scope is the scope the server's 401s ask for.
+	Scope string
+	// OIDC: the issuer has a path and only OpenID Connect discovery,
+	// appended to it.
+	OIDC bool
+}
+
+// Revoked are the tokens revoked, as "<token> <token_type_hint> <client_id>",
+// then the client's secret when it authenticated with one.
+func (a *Auth) Revoked() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.revoked...)
+}
+
+// Scopes are the scopes the authorizations asked for, in order.
+func (a *Auth) Scopes() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.scopes...)
 }
 
 // DelayRefreshes holds each refresh for d before it is answered.
@@ -163,14 +204,45 @@ type grant struct {
 
 // NewAuth starts an authorization server and serves the protected
 // resource metadata of srv's endpoint on srv itself.
-func NewAuth(t testing.TB, srv *Server) *Auth {
+func NewAuth(t testing.TB, srv *Server) *Auth { return NewAuthWith(t, srv, AuthOptions{}) }
+
+// NewAuthWith is NewAuth, with the metadata found as o says.
+func NewAuthWith(t testing.TB, srv *Server, o AuthOptions) *Auth {
 	a := &Auth{Resource: srv.Endpoint(), clients: map[string][]string{}, codes: map[string]grant{}, access: map[string]string{}, refresh: map[string]string{},
 		used: map[string]bool{}, ExpiresIn: 3600}
+	if o.Metadata == "root" {
+		a.Resource = srv.URL
+	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"issuer": a.URL, "authorization_endpoint": a.URL + "/authorize", "token_endpoint": a.URL + "/token",
-			"registration_endpoint": a.URL + "/register", "code_challenge_methods_supported": []string{"S256"}, "response_types_supported": []string{"code"},
-			"grant_types_supported": []string{"authorization_code", "refresh_token"}, "token_endpoint_auth_methods_supported": []string{"none"}})
+	meta := func(w http.ResponseWriter, r *http.Request) {
+		issuer := a.URL
+		if o.OIDC {
+			issuer += "/tenant"
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"issuer": issuer, "authorization_endpoint": a.URL + "/authorize", "token_endpoint": a.URL + "/token",
+			"registration_endpoint": a.URL + "/register", "revocation_endpoint": a.URL + "/revoke", "code_challenge_methods_supported": []string{"S256"},
+			"response_types_supported": []string{"code"}, "grant_types_supported": []string{"authorization_code", "refresh_token"},
+			"token_endpoint_auth_methods_supported": []string{"none"}})
+	}
+	if o.OIDC {
+		mux.HandleFunc("/tenant/.well-known/openid-configuration", meta)
+	} else {
+		mux.HandleFunc("/.well-known/oauth-authorization-server", meta)
+	}
+	mux.HandleFunc("/revoke", func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		a.mu.Lock()
+		entry := r.Form.Get("token") + " " + r.Form.Get("token_type_hint") + " " + r.Form.Get("client_id")
+		if _, secret, ok := r.BasicAuth(); ok {
+			entry += " " + secret
+		}
+		a.revoked = append(a.revoked, entry)
+		a.mu.Unlock()
+		if st := a.RevokeStatus.Load(); st != 0 {
+			w.WriteHeader(int(st))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
@@ -187,9 +259,32 @@ func NewAuth(t testing.TB, srv *Server) *Auth {
 	mux.HandleFunc("/token", a.token)
 	a.Server = httptest.NewServer(mux)
 	t.Cleanup(a.Close)
+	issuer := a.URL
+	if o.OIDC {
+		issuer += "/tenant"
+	}
+	resource := a.Resource
+	if o.Resource != "" {
+		resource = o.Resource
+	}
 	srv.mu.Lock()
-	srv.metadata = map[string]any{"resource": a.Resource, "authorization_servers": []string{a.URL}, "scopes_supported": []string{"read", "write"}}
+	srv.metadata = map[string]any{"resource": resource, "authorization_servers": []string{issuer}, "scopes_supported": []string{"read", "write"}}
 	srv.bearer = a.Valid
+	params := []string{}
+	switch o.Metadata {
+	case "root":
+		srv.metaPath = "/.well-known/oauth-protected-resource"
+	case "header":
+		srv.metaPath = "/meta/resource.json"
+		params = append(params, `resource_metadata="`+srv.URL+srv.metaPath+`"`)
+	default:
+		srv.metaPath = "/.well-known/oauth-protected-resource/mcp"
+		params = append(params, `resource_metadata="`+srv.URL+srv.metaPath+`"`)
+	}
+	if o.Scope != "" {
+		params = append(params, `scope="`+o.Scope+`"`)
+	}
+	srv.challenge = strings.TrimSpace("Bearer " + strings.Join(params, ", "))
 	srv.mu.Unlock()
 	return a
 }
@@ -222,6 +317,7 @@ func (a *Auth) Authorize(t testing.TB, authorizationURL, user string) (code, sta
 		t.Fatalf("authorization request: %v", q)
 	}
 	a.n++
+	a.scopes = append(a.scopes, q.Get("scope"))
 	code = "code-" + strconv.Itoa(a.n)
 	a.codes[code] = grant{client: q.Get("client_id"), redirect: q.Get("redirect_uri"), challenge: q.Get("code_challenge"), resource: q.Get("resource"), user: user}
 	return code, q.Get("state"), q.Get("redirect_uri")

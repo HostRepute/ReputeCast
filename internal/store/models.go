@@ -2995,6 +2995,8 @@ type McpServer struct {
 	CreatedBy             *uuid.UUID `json:"createdBy"`
 	CreatedAt             time.Time  `json:"createdAt"`
 	UpdatedAt             time.Time  `json:"updatedAt"`
+	Resource              string     `json:"resource"`
+	RevocationEndpoint    string     `json:"revocationEndpoint"`
 }
 
 type McpToken struct {
@@ -3006,6 +3008,17 @@ type McpToken struct {
 	ExpiresAt     *time.Time `json:"expiresAt"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
+}
+
+type McpTokenRevocation struct {
+	ID                 int64     `json:"id"`
+	ServerID           uuid.UUID `json:"serverId"`
+	UserID             uuid.UUID `json:"userId"`
+	RevocationEndpoint string    `json:"revocationEndpoint"`
+	ClientID           string    `json:"clientId"`
+	ClientSecretSealed []byte    `json:"clientSecretSealed"`
+	RefreshSealed      []byte    `json:"refreshSealed"`
+	CreatedAt          time.Time `json:"createdAt"`
 }
 
 type McpTool struct {

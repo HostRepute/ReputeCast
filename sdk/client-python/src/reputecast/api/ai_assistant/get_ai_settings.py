@@ -67,7 +67,7 @@ def sync_detailed(
 ) -> Response[AISettings | Problem]:
     """ The AI assistant's settings: the model, the cap, this month's usage and the features
 
-     The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+     The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.
@@ -100,7 +100,7 @@ def sync(
 ) -> AISettings | Problem | None:
     """ The AI assistant's settings: the model, the cap, this month's usage and the features
 
-     The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+     The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.
@@ -128,7 +128,7 @@ async def asyncio_detailed(
 ) -> Response[AISettings | Problem]:
     """ The AI assistant's settings: the model, the cap, this month's usage and the features
 
-     The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+     The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.
@@ -161,7 +161,7 @@ async def asyncio(
 ) -> AISettings | Problem | None:
     """ The AI assistant's settings: the model, the cap, this month's usage and the features
 
-     The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+     The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 
     Args:
         workspace (str): Workspace slug Example: acme-newsletter.

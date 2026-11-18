@@ -33,6 +33,10 @@ func init() {
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		river.AddWorker(a.JobReg.Workers, &mcpclient.PurgeWorker{S: a.MCPClient()})
 		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return mcpclient.PurgeArgs{}, nil }, true)
+		river.AddWorker(a.JobReg.Workers, &mcpclient.SyncWorker{S: a.MCPClient()})
+		a.JobReg.Every(time.Hour, func() (river.JobArgs, *river.InsertOpts) { return mcpclient.SyncArgs{}, nil }, false)
+		river.AddWorker(a.JobReg.Workers, &mcpclient.RevokeWorker{S: a.MCPClient()})
+		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return mcpclient.RevokeArgs{}, nil }, true)
 	})
 	closeHooks = append(closeHooks, func(a *App) { mcpClients.Delete(a) })
 }

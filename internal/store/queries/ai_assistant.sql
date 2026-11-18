@@ -184,10 +184,28 @@ ORDER BY t.created_at LIMIT 100;
 -- One more of the thread's tool calls, under its lock.
 UPDATE ai_assistant_threads SET tool_calls = tool_calls + 1 WHERE id = @id;
 
--- name: AIAssistantThreadsRemove :execrows
+-- name: AIAssistantThreadsRemove :one
 -- A person left the workspace or was removed from it: their threads there
--- go, with all their content. Deactivation keeps them.
-DELETE FROM ai_assistant_threads WHERE workspace_id = @workspace_id AND user_id = @user_id;
+-- go, with all their content and the notices of calls waiting in them.
+-- Deactivation keeps them.
+WITH gone AS (
+    DELETE FROM ai_assistant_threads h WHERE h.workspace_id = @workspace_id AND h.user_id = @user_id RETURNING h.id
+), notices AS (
+    DELETE FROM notifications n WHERE n.user_id = @user_id AND n.workspace_id = @workspace_id AND n.kind = 'ai_assistant_confirmation' RETURNING 1
+)
+SELECT count(*) FROM gone;
+
+-- name: AIAssistantConfirmationNoticesRemove :exec
+-- The notice of a call waiting in a thread goes once the call was decided,
+-- stopped or expired, or the thread went (a thread has one waiting call at
+-- most).
+DELETE FROM notifications WHERE user_id = @user_id AND kind = 'ai_assistant_confirmation' AND data->>'thread_id' = @thread_id::text;
+
+-- name: AIAssistantConfirmationsExpiring :many
+-- Calls waiting for their owner since before @before: they expire.
+SELECT c.id, c.thread_id, h.workspace_id FROM ai_assistant_confirmations c JOIN ai_assistant_threads h ON h.id = c.thread_id
+WHERE c.state = 'pending' AND c.created_at < @before
+ORDER BY c.created_at, c.id LIMIT 100;
 
 -- name: AIAssistantEventsPurge :execrows
 -- Stream events 24 hours after their turn ended.

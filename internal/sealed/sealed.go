@@ -65,6 +65,8 @@ var Columns = []Column{
 	{Table: "mcp_oauth_states", Column: "verifier_sealed", Key: ids("id:uuid"), AD: `'mcp_oauth_state:' || id::text`, ShortLived: true},
 	{Table: "mcp_tokens", Column: "access_sealed", Key: ids("server_id:uuid", "user_id:uuid"), AD: `'mcp_token:' || server_id::text || ':' || user_id::text || ':access'`},
 	{Table: "mcp_tokens", Column: "refresh_sealed", Key: ids("server_id:uuid", "user_id:uuid"), AD: `'mcp_token:' || server_id::text || ':' || user_id::text || ':refresh'`},
+	{Table: "mcp_token_revocations", Column: "refresh_sealed", Key: ids("id:bigint"), AD: `'mcp_token:' || server_id::text || ':' || user_id::text || ':refresh'`, ShortLived: true},
+	{Table: "mcp_token_revocations", Column: "client_secret_sealed", Key: ids("id:bigint"), AD: `'mcp_server:' || server_id::text || ':client_secret'`, ShortLived: true},
 	{Table: "ai_assistant_confirmations", Column: "arguments_sealed", Key: ids("id:uuid"), AD: `'ai_assistant_confirmation:' || id::text || ':arguments'`},
 	{Table: "ai_assistant_confirmations", Column: "done_sealed", Key: ids("id:uuid"), AD: `'ai_assistant_confirmation:' || id::text || ':done'`},
 	{Table: "auth_challenges", Column: "data", JSONField: "secret", Where: "kind = 'totp_setup'", Key: ids("id:uuid"), AD: `'totp-pending:' || user_id::text`, ShortLived: true},

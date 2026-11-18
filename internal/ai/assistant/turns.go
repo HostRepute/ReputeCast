@@ -63,12 +63,12 @@ func (s *Service) SendMessage(ctx context.Context, ws *store.Workspace, p *authz
 		}
 		m, err := s.AI.ResolveAssistantModel(ctx, q, ws.ID, fresh.UserID, t.ModelID)
 		if err != nil {
-			return err
+			return s.modelProblem(ctx, q, ws.ID, fresh.UserID, t.ModelID, err)
 		}
 		reputation := ai.AsksAboutReputation(text)
 		if !reputation {
 			if err := s.AI.ReadyAssistant(ctx, q, ws, m); err != nil {
-				return err
+				return s.modelProblem(ctx, q, ws.ID, fresh.UserID, t.ModelID, err)
 			}
 		}
 		now := s.now()
@@ -171,6 +171,9 @@ func (s *Service) StopTurn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		// A call waiting for the person, or allowed and not sent yet, never
 		// runs.
 		if err := q.AIAssistantConfirmationsClose(ctx, t.ID); err != nil {
+			return err
+		}
+		if err := noticesGone(ctx, q, th); err != nil {
 			return err
 		}
 		// What it wrote stays, up to the last batch before Stop: batches

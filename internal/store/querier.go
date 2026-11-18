@@ -97,6 +97,10 @@ type Querier interface {
 	AIAssistantConfirmationDecide(ctx context.Context, arg AIAssistantConfirmationDecideParams) error
 	AIAssistantConfirmationInsert(ctx context.Context, arg AIAssistantConfirmationInsertParams) error
 	AIAssistantConfirmationLock(ctx context.Context, arg AIAssistantConfirmationLockParams) (AiAssistantConfirmation, error)
+	// The notice of a call waiting in a thread goes once the call was decided,
+	// stopped or expired, or the thread went (a thread has one waiting call at
+	// most).
+	AIAssistantConfirmationNoticesRemove(ctx context.Context, arg AIAssistantConfirmationNoticesRemoveParams) error
 	// A turn's call waiting for, or carrying, its owner's decision.
 	AIAssistantConfirmationOpen(ctx context.Context, turnID uuid.UUID) (AiAssistantConfirmation, error)
 	// A thread's call waiting for its owner, as the thread shows it.
@@ -104,6 +108,8 @@ type Querier interface {
 	AIAssistantConfirmationSet(ctx context.Context, arg AIAssistantConfirmationSetParams) error
 	// Stop: a turn's open call is closed without running.
 	AIAssistantConfirmationsClose(ctx context.Context, turnID uuid.UUID) error
+	// Calls waiting for their owner since before @before: they expire.
+	AIAssistantConfirmationsExpiring(ctx context.Context, before time.Time) ([]AIAssistantConfirmationsExpiringRow, error)
 	AIAssistantConfirmationsPurge(ctx context.Context, threadID uuid.UUID) error
 	AIAssistantContextDelete(ctx context.Context, arg AIAssistantContextDeleteParams) (AIAssistantContextDeleteRow, error)
 	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
@@ -182,7 +188,8 @@ type Querier interface {
 	// The person's threads, the most recently active first.
 	AIAssistantThreads(ctx context.Context, arg AIAssistantThreadsParams) ([]AiAssistantThread, error)
 	// A person left the workspace or was removed from it: their threads there
-	// go, with all their content. Deactivation keeps them.
+	// go, with all their content and the notices of calls waiting in them.
+	// Deactivation keeps them.
 	AIAssistantThreadsRemove(ctx context.Context, arg AIAssistantThreadsRemoveParams) (int64, error)
 	// Expired threads' tombstones, 90 days after their content went.
 	AIAssistantTombstonesPurge(ctx context.Context, before time.Time) (int64, error)
@@ -3078,9 +3085,17 @@ type Querier interface {
 	MCPServerInsert(ctx context.Context, arg MCPServerInsertParams) error
 	MCPServerKeys(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	MCPServerLock(ctx context.Context, arg MCPServerLockParams) (McpServer, error)
+	// A server is deleted: its members' refresh tokens are queued for
+	// revocation first, in the delete's transaction (the rows outlive it).
+	MCPServerRevocationsQueue(ctx context.Context, arg MCPServerRevocationsQueueParams) (int64, error)
 	MCPServerSave(ctx context.Context, arg MCPServerSaveParams) error
 	MCPServerStatus(ctx context.Context, arg MCPServerStatusParams) error
 	MCPServers(ctx context.Context, workspaceID uuid.UUID) ([]McpServer, error)
+	// Servers the hourly sync looks at: enabled, synced before but neither
+	// synced nor tried since @before (one that fails waits its hour too), with
+	// a shared credential or none (an OAuth server is listed as a person: by a
+	// manager's sync, and before each call).
+	MCPServersDue(ctx context.Context, arg MCPServersDueParams) ([]MCPServersDueRow, error)
 	MCPThreadServerAdd(ctx context.Context, arg MCPThreadServerAddParams) error
 	MCPThreadServers(ctx context.Context, threadID uuid.UUID) ([]uuid.UUID, error)
 	MCPThreadServersClear(ctx context.Context, threadID uuid.UUID) error
@@ -3088,11 +3103,18 @@ type Querier interface {
 	// decided on at their current hash (read-only or writes), still listed.
 	MCPThreadTools(ctx context.Context, arg MCPThreadToolsParams) ([]MCPThreadToolsRow, error)
 	MCPToken(ctx context.Context, arg MCPTokenParams) (McpToken, error)
+	// A person's sign-in to a server goes; its refresh token is queued for
+	// revocation when the authorization server has an endpoint for it (data-
+	// modifying CTEs run whether or not they're read).
 	MCPTokenDelete(ctx context.Context, arg MCPTokenDeleteParams) (int64, error)
 	MCPTokenLock(ctx context.Context, arg MCPTokenLockParams) (McpToken, error)
+	// Up to @lim queued refresh tokens with what revoking them needs, taken
+	// off the queue (revocation is best effort: a token is tried once).
+	MCPTokenRevocationsTake(ctx context.Context, lim int32) ([]MCPTokenRevocationsTakeRow, error)
 	MCPTokenSave(ctx context.Context, arg MCPTokenSaveParams) error
 	// A person left the workspace or was deactivated (sqlc.narg(workspace_id)
-	// NULL: every workspace): their MCP sign-ins go.
+	// NULL: every workspace): their MCP sign-ins go, their refresh tokens
+	// queued for revocation as MCPTokenDelete does.
 	MCPTokensRemove(ctx context.Context, arg MCPTokensRemoveParams) (int64, error)
 	MCPTool(ctx context.Context, arg MCPToolParams) (McpTool, error)
 	// The tool as reviewed is kept with the decision: a later change shows as

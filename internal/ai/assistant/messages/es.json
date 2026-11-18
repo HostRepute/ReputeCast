@@ -1,5 +1,5 @@
 {
-  "problem.off": "El asistente de IA está desactivado en este espacio de trabajo. Alguien que pueda gestionar integraciones puede activarlo en Configuración › Integraciones · Asistente de IA.",
+  "problem.off": "El asistente de IA está desactivado en este espacio de trabajo. Alguien que pueda gestionar integraciones puede activarlo en Configuración › Integraciones · Modelos de IA.",
   "problem.requestKey": "Esta clave de solicitud ya se usó para otra conversación. Usa una clave nueva para una conversación nueva.",
   "problem.sharingReview": "Revisa lo que adjuntas y confirma que se comparte con el modelo. No se adjuntó nada.",
   "problem.contextsFull": "Una conversación admite hasta {max} recursos adjuntos. Quita uno primero.",
@@ -11,5 +11,14 @@
   "problem.modelGone": "Se eliminó el modelo de esta conversación. Elige otro modelo para la conversación y vuelve a enviar tu mensaje.",
   "problem.turnKey": "Esta clave de solicitud ya se usó para otro mensaje. Usa una clave nueva para un mensaje nuevo.",
   "answer.reputation": "Las preguntas sobre la reputación del remitente, las listas de bloqueo y la llegada a la bandeja de entrada las responde HostRepute: vigila tus dominios e IP y te dice qué corregir. Pregúntame sobre cómo usar ReputeCast o sobre lo que adjuntaste.",
-  "problem.confirmationClosed": "Esta llamada ya se decidió, o su respuesta terminó. No se ejecutó nada."
+  "problem.confirmationClosed": "Esta llamada ya se decidió, o su respuesta terminó. No se ejecutó nada.",
+  "notify.confirmationTitle": "El asistente te está esperando",
+  "notify.confirmationBody": "{server} · {tool} espera a que permitas o rechaces la llamada. No se envía nada hasta que lo hagas.",
+  "problem.model.disconnected": "La cuenta del modelo de esta conversación se desconectó, así que no se envió nada. Alguien que pueda gestionar integraciones puede volver a conectarla en Configuración › Integraciones · Modelos de IA, o puedes elegir otro modelo para la conversación.",
+  "problem.model.disconnectedOwn": "Tu propia cuenta para el modelo de esta conversación se desconectó, así que no se envió nada. Vuelve a conectarla en Configuración › Integraciones · Modelos de IA, o elige otro modelo para la conversación.",
+  "problem.model.keyRejected": "{provider} rechazó la clave del modelo de esta conversación, así que no se envió nada. Alguien que pueda gestionar integraciones puede reemplazarla en Configuración › Integraciones · Modelos de IA, o puedes elegir otro modelo para la conversación.",
+  "problem.model.keyRejectedOwn": "{provider} rechazó tu propia clave, así que no se envió nada. Reemplázala en Configuración › Integraciones · Modelos de IA, o elige otro modelo para la conversación.",
+  "problem.model.toolsUnchecked": "El modelo de esta conversación no ha superado la prueba de llamadas a herramientas que necesita el asistente (se repite tras reemplazar una clave), así que no se envió nada. Alguien que pueda gestionar integraciones puede probar sus herramientas en Configuración › Integraciones · Modelos de IA, o puedes elegir otro modelo para la conversación.",
+  "problem.model.toolsUncheckedOwn": "Tu propio modelo no ha superado la prueba de llamadas a herramientas que necesita el asistente (se repite tras reemplazar una clave), así que no se envió nada. Prueba sus herramientas en Configuración › Integraciones · Modelos de IA, o elige otro modelo para la conversación.",
+  "problem.model.personalKeysOff": "Las claves personales se desactivaron en este espacio de trabajo, así que esta conversación no puede usar tu propio modelo y no se envió nada. Elige uno de los modelos del espacio de trabajo para la conversación, o pide a alguien que pueda gestionar integraciones que vuelva a activar las claves personales."
 }

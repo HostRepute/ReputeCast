@@ -93126,7 +93126,7 @@
     },
     "/api/v1/workspaces/{workspace}/ai": {
       "get": {
-        "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.",
+        "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.",
         "operationId": "get-ai-settings",
         "parameters": [
           {

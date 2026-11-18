@@ -62380,7 +62380,7 @@ type ClientInterface interface {
 
 	// GetAiSettings The AI assistant's settings: the model, the cap, this month's usage and the features
 	//
-	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/ai (the `GetAiSettings` operationId).
 	GetAiSettings(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -69959,7 +69959,7 @@ func (c *Client) GetWorkspaceAgency(ctx context.Context, workspace string, reqEd
 
 // GetAiSettings The AI assistant's settings: the model, the cap, this month's usage and the features
 //
-// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 //
 // Corresponds with GET /api/v1/workspaces/{workspace}/ai (the `GetAiSettings` operationId).
 func (c *Client) GetAiSettings(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -130966,7 +130966,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetAiSettingsWithResponse The AI assistant's settings: the model, the cap, this month's usage and the features
 	//
-	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -179585,7 +179585,7 @@ func (c *ClientWithResponses) GetWorkspaceAgencyWithResponse(ctx context.Context
 
 // GetAiSettingsWithResponse The AI assistant's settings: the model, the cap, this month's usage and the features
 //
-// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 //
 // Returns a wrapper object for the known response body format(s).
 //

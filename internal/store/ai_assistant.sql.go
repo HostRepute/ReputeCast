@@ -12,6 +12,56 @@ import (
 	"github.com/google/uuid"
 )
 
+const aIAssistantConfirmationNoticesRemove = `-- name: AIAssistantConfirmationNoticesRemove :exec
+DELETE FROM notifications WHERE user_id = $1 AND kind = 'ai_assistant_confirmation' AND data->>'thread_id' = $2::text
+`
+
+type AIAssistantConfirmationNoticesRemoveParams struct {
+	UserID   uuid.UUID `json:"userId"`
+	ThreadID string    `json:"threadId"`
+}
+
+// The notice of a call waiting in a thread goes once the call was decided,
+// stopped or expired, or the thread went (a thread has one waiting call at
+// most).
+func (q *Queries) AIAssistantConfirmationNoticesRemove(ctx context.Context, arg AIAssistantConfirmationNoticesRemoveParams) error {
+	_, err := q.db.Exec(ctx, aIAssistantConfirmationNoticesRemove, arg.UserID, arg.ThreadID)
+	return err
+}
+
+const aIAssistantConfirmationsExpiring = `-- name: AIAssistantConfirmationsExpiring :many
+SELECT c.id, c.thread_id, h.workspace_id FROM ai_assistant_confirmations c JOIN ai_assistant_threads h ON h.id = c.thread_id
+WHERE c.state = 'pending' AND c.created_at < $1
+ORDER BY c.created_at, c.id LIMIT 100
+`
+
+type AIAssistantConfirmationsExpiringRow struct {
+	ID          uuid.UUID `json:"id"`
+	ThreadID    uuid.UUID `json:"threadId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// Calls waiting for their owner since before @before: they expire.
+func (q *Queries) AIAssistantConfirmationsExpiring(ctx context.Context, before time.Time) ([]AIAssistantConfirmationsExpiringRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantConfirmationsExpiring, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantConfirmationsExpiringRow{}
+	for rows.Next() {
+		var i AIAssistantConfirmationsExpiringRow
+		if err := rows.Scan(&i.ID, &i.ThreadID, &i.WorkspaceID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const aIAssistantContextDelete = `-- name: AIAssistantContextDelete :one
 DELETE FROM ai_assistant_contexts WHERE thread_id = $1 AND id = $2 RETURNING kind, target_id
 `
@@ -1072,8 +1122,13 @@ func (q *Queries) AIAssistantThreads(ctx context.Context, arg AIAssistantThreads
 	return items, nil
 }
 
-const aIAssistantThreadsRemove = `-- name: AIAssistantThreadsRemove :execrows
-DELETE FROM ai_assistant_threads WHERE workspace_id = $1 AND user_id = $2
+const aIAssistantThreadsRemove = `-- name: AIAssistantThreadsRemove :one
+WITH gone AS (
+    DELETE FROM ai_assistant_threads h WHERE h.workspace_id = $1 AND h.user_id = $2 RETURNING h.id
+), notices AS (
+    DELETE FROM notifications n WHERE n.user_id = $2 AND n.workspace_id = $1 AND n.kind = 'ai_assistant_confirmation' RETURNING 1
+)
+SELECT count(*) FROM gone
 `
 
 type AIAssistantThreadsRemoveParams struct {
@@ -1082,13 +1137,13 @@ type AIAssistantThreadsRemoveParams struct {
 }
 
 // A person left the workspace or was removed from it: their threads there
-// go, with all their content. Deactivation keeps them.
+// go, with all their content and the notices of calls waiting in them.
+// Deactivation keeps them.
 func (q *Queries) AIAssistantThreadsRemove(ctx context.Context, arg AIAssistantThreadsRemoveParams) (int64, error) {
-	result, err := q.db.Exec(ctx, aIAssistantThreadsRemove, arg.WorkspaceID, arg.UserID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	row := q.db.QueryRow(ctx, aIAssistantThreadsRemove, arg.WorkspaceID, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const aIAssistantTombstonesPurge = `-- name: AIAssistantTombstonesPurge :execrows

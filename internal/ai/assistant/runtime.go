@@ -950,10 +950,15 @@ func (w *SweepWorker) Work(ctx context.Context, _ *river.Job[SweepArgs]) error {
 }
 
 // Sweep fails the turns no worker answers: answering without a live lease
-// (interrupted) and queued for half an hour (not_started). It reports how
-// many it looked at.
+// (interrupted) and queued for half an hour (not_started); and the turns
+// whose call waited a day for its owner (confirmation_expired). It
+// reports how many it looked at.
 func (s *Service) Sweep(ctx context.Context) (int, error) {
 	now := s.now()
+	expired, err := s.expireConfirmations(ctx, now)
+	if err != nil {
+		return expired, err
+	}
 	rows, err := s.Q.AIAssistantSweepTurns(ctx, store.AIAssistantSweepTurnsParams{Now: now, QueuedBefore: now.Add(-queueTimeout)})
 	if err != nil {
 		return 0, err
@@ -997,9 +1002,9 @@ func (s *Service) Sweep(ctx context.Context) (int, error) {
 			return nil
 		})
 		if err != nil {
-			return n, fmt.Errorf("assistant sweep: %w", err)
+			return expired + n, fmt.Errorf("assistant sweep: %w", err)
 		}
 		n++
 	}
-	return n, nil
+	return expired + n, nil
 }

@@ -108,7 +108,7 @@ func Register(h huma.API, s *Service) {
 			return api.NoContent, s.Disconnect(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Server)
 		})
 	api.Get(h, api.Op{ID: "list-ai-assistant-mcp-servers", Path: "/workspaces/{workspace}/ai/assistant/mcp-servers", Summary: "The MCP servers the caller may pick for their threads",
-		Description: "Enabled servers for everyone with Use AI features or for the caller's role, with whether the caller still has to sign in (connected).",
+		Description: "Enabled servers for everyone with Use the AI assistant (ai:use) or for the caller's role, with whether the caller still has to sign in (connected).",
 		Tags:        tags, Access: use},
 		func(ctx context.Context, in *workspaceInput) (*api.Body[RemoteMCPServerList], error) {
 			out, err := s.Usable(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))

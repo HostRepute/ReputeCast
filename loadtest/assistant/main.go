@@ -523,6 +523,27 @@ func report(ctx context.Context, pool *pgxpool.Pool, o options, threads []*threa
 			}
 		}
 	}
+	// The server's time to the first token, from the database: each turn's
+	// message committed (its created_at) to its first delta committed. The
+	// fake streams its first piece at once, so this is what the TTFT
+	// overhead histogram measures, per turn rather than by bucket.
+	srows, err := pool.Query(ctx, `SELECT t.created_at, min(e.created_at) FROM ai_assistant_turns t
+		JOIN ai_assistant_events e ON e.turn_id = t.id AND e.kind = 'delta' WHERE t.thread_id = ANY($1) GROUP BY t.id, t.created_at`, ids)
+	if err != nil {
+		return err
+	}
+	overhead := []float64{}
+	for srows.Next() {
+		var sent, first time.Time
+		if err := srows.Scan(&sent, &first); err != nil {
+			return err
+		}
+		overhead = append(overhead, first.Sub(sent).Seconds()*1000)
+	}
+	srows.Close()
+	if err := srows.Err(); err != nil {
+		return err
+	}
 	cpus, model := machine()
 	fmt.Printf("\nmachine: %d CPUs (%s), Go %s, %s\n", cpus, model, runtime.Version(), time.Now().UTC().Format(time.RFC3339))
 	fmt.Printf("run: %d streams, %d turns (%d rounds, each message up to %s after the last turn), %d model streams answered by the fake (%d pieces every %s), %s\n",
@@ -531,6 +552,7 @@ func report(ctx context.Context, pool *pgxpool.Pool, o options, threads []*threa
 	fmt.Printf("delta events, commit to client (ms): %s\n", quantiles(deltas))
 	fmt.Printf("all events, commit to client (ms):   %s\n", quantiles(all))
 	fmt.Printf("time to first token, message sent to its first delta (ms): %s\n", quantiles(ttft))
+	fmt.Printf("server time to first token, message committed to its first delta committed (ms): %s\n", quantiles(overhead))
 	secs := took.Seconds()
 	fmt.Printf("CPU: server %.1f s (%.2f cores), Postgres %.1f s (%.2f cores), over %.1f s\n", cpu1.server-cpu0.server, (cpu1.server-cpu0.server)/secs,
 		cpu1.postgres-cpu0.postgres, (cpu1.postgres-cpu0.postgres)/secs, secs)

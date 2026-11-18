@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -16,9 +17,12 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mcpclient"
+	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -55,10 +59,12 @@ type AIThreadConfirmation struct {
 	ModelName  string     `json:"modelName" doc:"The tool's name for the model: mcp__<server>__<tool>"`
 	// Arguments are exactly what the call sends once allowed.
 	Arguments json.RawMessage `json:"arguments"`
-	State     string          `json:"state" enum:"pending,allowed,denied,calling,done"`
-	Decision  string          `json:"decision,omitempty" enum:"allow,deny"`
-	CreatedAt time.Time       `json:"createdAt"`
-	DecidedAt *time.Time      `json:"decidedAt,omitempty"`
+	// State: expired after a day without the owner's decision (the turn
+	// ended, nothing was sent).
+	State     string     `json:"state" enum:"pending,allowed,denied,calling,done,expired"`
+	Decision  string     `json:"decision,omitempty" enum:"allow,deny"`
+	CreatedAt time.Time  `json:"createdAt"`
+	DecidedAt *time.Time `json:"decidedAt,omitempty"`
 }
 
 // AIThreadConfirmationEvent: a call waits for the owner, or was decided.
@@ -164,9 +170,13 @@ func untrusted(source, text string, ok bool) json.RawMessage {
 	return bytes.TrimSpace(b.Bytes())
 }
 
+// confirmationTTL is how long a call waits for its owner before it expires.
+const confirmationTTL = 24 * time.Hour
+
 // pause stops a turn at a call of a writing tool: the call waits, sealed,
 // with the results of the response's earlier calls; the slot goes; the
-// owner is told. The thread and the turn are locked.
+// owner is told, in the thread and in their notifications (the server and
+// the tool, never the arguments). The thread and the turn are locked.
 func (s *Service) pause(ctx context.Context, q *store.Queries, run *turnRun, turn store.AiAssistantTurn, rd round, index int, spec ToolSpec) error {
 	id := uuid.Must(uuid.NewV7())
 	call := rd.Calls[index]
@@ -207,7 +217,98 @@ func (s *Service) pause(ctx context.Context, q *store.Queries, run *turnRun, tur
 	if err != nil {
 		return err
 	}
-	return s.confirmationEvent(ctx, q, c)
+	if err := s.confirmationEvent(ctx, q, c); err != nil {
+		return err
+	}
+	return s.notifyConfirmation(ctx, q, run.thread, c)
+}
+
+// notifyConfirmation tells a thread's owner a call waits for them, as
+// their notification preferences allow: the server and the tool only.
+func (s *Service) notifyConfirmation(ctx context.Context, q *store.Queries, t store.AiAssistantThread, c store.AiAssistantConfirmation) error {
+	ws, err := q.GetWorkspace(ctx, t.WorkspaceID)
+	if err != nil {
+		return err
+	}
+	args := i18n.Args{"server": c.ServerName, "tool": c.ToolName}
+	return notify.ToUserWith(ctx, q, t.UserID, notify.Notification{WorkspaceID: &t.WorkspaceID, Kind: notify.KindAIAssistantConfirmation, Severity: "warn",
+		TitleText: msgs.M("notify.confirmationTitle").Keep(nil), BodyText: msgs.M("notify.confirmationBody").Keep(args),
+		Link: "/w/" + ws.Slug + "/assistant/" + t.ID.String(),
+		Data: map[string]any{"thread_id": t.ID.String(), "turn_id": c.TurnID.String(), "confirmation_id": c.ID.String(), "server": c.ServerName, "tool": c.ToolName}})
+}
+
+// noticesGone removes the notice of a call waiting in a thread: it was
+// decided, stopped or expired, or the thread went.
+func noticesGone(ctx context.Context, q *store.Queries, t store.AiAssistantThread) error {
+	return q.AIAssistantConfirmationNoticesRemove(ctx, store.AIAssistantConfirmationNoticesRemoveParams{UserID: t.UserID, ThreadID: t.ID.String()})
+}
+
+// expireConfirmations ends the turns whose call waited a day for its
+// owner: the call is never sent, the turn fails as confirmation_expired
+// (its slot went when it paused, and its requests were accounted), the
+// notice goes. It reports how many expired.
+func (s *Service) expireConfirmations(ctx context.Context, now time.Time) (int, error) {
+	rows, err := s.Q.AIAssistantConfirmationsExpiring(ctx, now.Add(-confirmationTTL))
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, r := range rows {
+		err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			q := store.New(tx)
+			t, err := q.AIAssistantThreadLockByID(ctx, store.AIAssistantThreadLockByIDParams{WorkspaceID: r.WorkspaceID, ID: r.ThreadID})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			c, err := q.AIAssistantConfirmationLock(ctx, store.AIAssistantConfirmationLockParams{ThreadID: t.ID, ID: r.ID})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			if c.State != "pending" || !c.CreatedAt.Before(now.Add(-confirmationTTL)) {
+				return nil
+			}
+			turn, err := q.AIAssistantTurnLock(ctx, store.AIAssistantTurnLockParams{ThreadID: t.ID, ID: c.TurnID})
+			if err != nil {
+				return err
+			}
+			if err := q.AIAssistantConfirmationSet(ctx, store.AIAssistantConfirmationSetParams{ID: c.ID, State: "expired"}); err != nil {
+				return err
+			}
+			c.State = "expired"
+			if err := s.confirmationEvent(ctx, q, c); err != nil {
+				return err
+			}
+			if err := noticesGone(ctx, q, t); err != nil {
+				return err
+			}
+			if turn.State == "waiting" {
+				if err := q.AIAssistantSlotDrop(ctx, turn.ID); err != nil {
+					return err
+				}
+				if err := s.endTurn(ctx, q, &turn, "failed", "confirmation_expired"); err != nil {
+					return err
+				}
+			}
+			n++
+			meta := map[string]any{"turn_id": turn.ID, "confirmation_id": c.ID, "tool": c.ModelName, "arguments_digest": hex.EncodeToString(c.ArgumentsDigest)}
+			if c.ServerID != nil {
+				meta["server_id"] = *c.ServerID
+			}
+			ev := threadEvent(t.WorkspaceID, t.ID, "ai_assistant_confirmation.expired", meta)
+			ev.Actor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
+			return s.Audit.LogWith(ctx, q, ev)
+		})
+		if err != nil {
+			return n, fmt.Errorf("assistant: expire a confirmation: %w", err)
+		}
+	}
+	return n, nil
 }
 
 func (s *Service) confirmationView(c store.AiAssistantConfirmation) (AIThreadConfirmation, error) {
@@ -318,6 +419,9 @@ func (s *Service) DecideConfirmation(ctx context.Context, ws *store.Workspace, p
 		}
 		turn.State = "queued"
 		if err := s.confirmationEvent(ctx, q, c); err != nil {
+			return err
+		}
+		if err := noticesGone(ctx, q, th); err != nil {
 			return err
 		}
 		if err := s.turnEvent(ctx, q, turn); err != nil {

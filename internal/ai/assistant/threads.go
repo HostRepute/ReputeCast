@@ -105,13 +105,18 @@ type AIThreadMessage struct {
 // AIThreadTurn is a turn's state: Queued, Answering, Waiting for you,
 // Stopped, Failed or Done. Reason says why it stopped, failed or ended
 // short: stopped; interrupted (the worker was lost, so its usage is
-// unknown); access_lost, assistant_off; model_gone, a model problem
-// (not_connected, key_rejected, tools_unchecked, personal_keys_off…), a
-// budget problem (cap_reached, reservation_cap, thread_cap…), a
-// provider problem (rate_limited, timeout,
-// provider_error, too_large), refused; length (done, cut at its length);
-// reputation (done, the HostRepute card); not_started; expired (retention
-// removed the thread's content while it answered).
+// unknown); not_started (no worker took it within half an hour);
+// confirmation_expired (a call waited a day for its owner: nothing was
+// sent); access_lost, assistant_off; the thread's model: model_gone (it
+// was removed, with its account or alone), account_disconnected (its
+// account was disconnected), key_rejected, tools_unchecked (its tool
+// check isn't passed, for example after its key was replaced),
+// personal_keys_off (it is on the owner's own key and personal keys were
+// turned off), not_configured; a budget: cap_reached, reservation_cap,
+// personal_cap_reached, thread_cap…; the provider: rate_limited, timeout,
+// provider_error, too_large; refused; length (done, cut at its length);
+// reputation (done, the HostRepute card); expired (retention removed the
+// thread's content while it answered).
 type AIThreadTurn struct {
 	ID       uuid.UUID `json:"id"`
 	Sequence int32     `json:"sequence"`
@@ -560,6 +565,9 @@ func (s *Service) DeleteThread(ctx context.Context, ws *store.Workspace, p *auth
 		}
 		if n == 0 {
 			return threadNotFound()
+		}
+		if err := noticesGone(ctx, q, store.AiAssistantThread{ID: id, UserID: fresh.UserID}); err != nil {
+			return err
 		}
 		return s.Audit.LogWith(ctx, q, threadEvent(ws.ID, id, "ai_assistant_thread.deleted", nil))
 	})
