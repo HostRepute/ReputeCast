@@ -54,3 +54,29 @@ func TestStreamOrGenerate(t *testing.T) {
 		t.Fatalf("emit's error: %v", err)
 	}
 }
+
+// Tool calls whose fragments interleave: index 0 starts, index 1 starts
+// (growing the builders' slice), then index 0 goes on. Each call keeps its
+// own arguments.
+func TestOpenAIStreamInterleavedToolCalls(t *testing.T) {
+	s := &openAIStream{name: "OpenAI", emit: func(Delta) error { return nil }}
+	chunks := []string{
+		`{"model":"m","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"a","type":"function","function":{"name":"one","arguments":"{\"x\""}}]}}]}`,
+		`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"b","type":"function","function":{"name":"two","arguments":"{\"y\":2}"}}]}}]}`,
+		`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":":1}"}}]},"finish_reason":"tool_calls"}]}`,
+	}
+	for _, c := range chunks {
+		if err := s.event(sseEvent{data: []byte(c)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var got []string
+	for _, p := range s.response().Message.Parts {
+		if p.ToolCall != nil {
+			got = append(got, p.ToolCall.Name+" "+string(p.ToolCall.Arguments))
+		}
+	}
+	if want := []string{`one {"x":1}`, `two {"y":2}`}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("calls: %q, want %q", got, want)
+	}
+}
