@@ -1,7 +1,7 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
-import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Page } from '@/components/shell/Page'
 import { Avatar } from '@/components/ui/Avatar'
@@ -15,18 +15,19 @@ import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
 import { clock, count, dayMonthDate, money, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
-import { useMe, useWorkspace } from '@/lib/session'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
 import '@/features/integrations/integrations.css'
-import { aiBase, AI_FEATURES, referenceOf, useAISettings, useRefreshAI, type AIConnection, type AIFeature, type AISettings } from './api'
+import { aiBase, AI_FEATURES, referenceOf, useAISettings, useAIStatus, useRefreshAI, type AIConnection, type AIFeature, type AISettings } from './api'
 import { AIModelCard } from './catalog'
 import { BudgetHolds } from './BudgetHolds'
 import { AgentSettings } from './AgentSettings'
 import { ag } from './agent.messages'
-import { CapDialog, ConnectDialog, DisconnectDialog, PricesDialog } from './ConnectDialog'
+import { CapDialog, ConnectDialog, connectTarget, DisconnectDialog, PricesDialog } from './ConnectDialog'
 import { AssistantCard, FeatureModels, ModelAccounts, PersonalKeys, PersonalPeople, YourPersonalKey } from './ModelSettings'
 import { AI_PROVIDERS, type AIProvider } from './entries'
 import { ALT_TEXT_WIDTH, calendarDay, dollars, tokens } from './format'
 import { m } from './messages'
+import { mm } from './models.messages'
 import { AINote, CardHead, featureName, featureSends, LeavesNote, OutcomeBadge, rowFeature, tags } from './parts'
 import './ai.css'
 import { Pager } from '@/components/ui/Pager'
@@ -49,7 +50,10 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
   const { slug } = useWorkspace()
   const t = useT()
   const navigate = useNavigate()
-  const q = useAISettings()
+  // Someone with ai:use but not integrations:view manages only their own key, from its own endpoint.
+  const canUse = useCan('ai:use')
+  const personalOnly = !useCan('integrations:view') && canUse
+  const q = useAISettings(!personalOnly)
   const s = q.data
   const [dialog, setDialog] = useState<Dialog>(connect ? { kind: 'connect', provider: connect } : null)
 
@@ -72,7 +76,9 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
         { label: t(m.title) },
       ]}
     >
-      {q.isError ? (
+      {personalOnly ? (
+        <PersonalOnly />
+      ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => void q.refetch()} />
       ) : !s ? (
         <SettingsSkeleton />
@@ -113,8 +119,10 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
             </section>
           ) : null}
 
-          {/* The first connection, or (?connect from the catalog) another account. */}
-          {dialog?.kind === 'connect' && s.canManage ? <ConnectDialog s={s} initial={dialog.provider} target={accounts ? 'account' : undefined} open onOpenChange={onOpenChange} /> : null}
+          {/* The first connection, the kept account again (Disconnect keeps it; the catalog's Connect on its provider), or (?connect from the catalog) another account. */}
+          {dialog?.kind === 'connect' && s.canManage ? (
+            <ConnectDialog s={s} initial={dialog.provider} target={connectTarget(s, dialog.provider)} open onOpenChange={onOpenChange} />
+          ) : null}
           {c && s.canManage ? (
             <>
               {dialog?.kind === 'cap' ? <CapDialog c={c} open onOpenChange={onOpenChange} /> : null}
@@ -125,6 +133,31 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
         </>
       )}
     </Page>
+  )
+}
+
+/**
+ * Your personal key alone, for someone who holds ai:use but not
+ * integrations:view: from the personal endpoint, with the workspace's
+ * models and helpers from the person's AI status. Model lists for a new key
+ * come with the workspace's settings, so its model is typed.
+ */
+function PersonalOnly() {
+  const { slug } = useWorkspace()
+  const t = useT()
+  const p = $api.useQuery('get', `${aiBase}/personal`, { params: { path: { workspace: slug } } })
+  const status = useAIStatus()
+  if (p.isError) return <LoadError error={p.error} onRetry={() => void p.refetch()} />
+  if (!p.data || status.isPending) return <SettingsSkeleton />
+  const st = status.data
+  const helpers = st?.helpers ?? []
+  // Only the parts Your personal key reads; the rest are the workspace's, which this person doesn't see.
+  const s = { personal: p.data, accounts: st?.accounts ?? [], defaults: st?.defaults ?? [], helpers, canManage: false, catalog: [], connected: false, disconnected: false, instanceAdmins: [], aiUseRoles: [], priceListDate: '' } as unknown as AISettings
+  return (
+    <>
+      <AINote tone="neutral">{t(mm.personalOnly, { helpers: helpers.length ? formatList(helpers, 'disjunction') : 'none' })}</AINote>
+      <YourPersonalKey s={s} />
+    </>
   )
 }
 

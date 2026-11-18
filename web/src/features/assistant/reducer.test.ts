@@ -74,6 +74,24 @@ describe('threadReducer', () => {
     expect(s.stopped?.text).toBe('Here are')
   })
 
+  it('shows a stopped answer once when Stop’s response already has it saved', () => {
+    let s = run(initialThreadState, snap(2), turnEv(3, turn('answering')), delta(4, 'Here are'))
+    const saved = msg('a1', 'assistant', 'Here are', { partial: true })
+    s = threadReducer(s, { type: 'thread', thread: thread({ eventSeq: 6, turn: turn('stopped', { reason: 'stopped' }), messages: [msg('u1', 'user', 'Why did opens fall?'), saved] }) })
+    expect(s.stopped).toBeUndefined()
+    // The stream's message and turn events (5, 6) come after the response, and are skipped.
+    s = run(s, message(5, saved), turnEv(6, turn('stopped', { reason: 'stopped' })))
+    const answer = buildItems(s).find((x) => x.kind === 'answer')
+    expect(answer && answer.kind === 'answer' ? [answer.texts.map((x) => x.text), answer.stopped] : []).toEqual([['Here are'], undefined])
+  })
+
+  it('drops the kept copy when the stopped answer’s saved message comes after its turn event', () => {
+    let s = run(initialThreadState, snap(2), turnEv(3, turn('answering')), delta(4, 'Here are'), turnEv(5, turn('stopped', { reason: 'stopped' })))
+    expect(s.stopped?.text).toBe('Here are')
+    s = run(s, message(6, msg('a1', 'assistant', 'Here are', { partial: true })))
+    expect(s.stopped).toBeUndefined()
+  })
+
   it('takes an API response only when it is as new as the stream', () => {
     let s = run(initialThreadState, snap(2), turnEv(3, turn('answering')), message(4, msg('a1', 'assistant', 'Done.')))
     // A response read before event 4 must not take the answer away.

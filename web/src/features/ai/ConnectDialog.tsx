@@ -62,6 +62,15 @@ function useModels(provider: AIProvider, s: AISettings) {
   return { models, fromProvider: Boolean(mine?.fromProvider), error: mine?.error, ask }
 }
 
+/**
+ * What Connect on a provider opens once the workspace has accounts: Add
+ * account, except on the provider of the first account kept after
+ * Disconnect, which connects again (undefined: the connection's own dialog).
+ */
+export function connectTarget(s: AISettings, provider: AIProvider): 'account' | undefined {
+  return s.accounts.length && !(s.disconnected && s.connection?.provider === provider) ? 'account' : undefined
+}
+
 /** The hosted OpenAI-compatible service an address belongs to (OpenRouter, Mistral…). */
 function presetOf(presets: AIProviderPreset[], baseUrl: string): AIProviderPreset | undefined {
   const u = baseUrl.trim().replace(/\/+$/, '').toLowerCase()

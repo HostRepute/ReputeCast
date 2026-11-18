@@ -11,6 +11,7 @@ import { mx } from './mcp.messages'
 import { m } from './messages'
 import { turnActive, type ThreadMessage, type ThreadState, type ToolRow } from './reducer'
 import { StateCard } from './states'
+import { closeAssistant } from './store'
 import type { LiveText } from './useThreadStream'
 
 /** One block of the conversation: the person's message, an answer (a turn's tools and text), or the summary marker. */
@@ -110,6 +111,11 @@ function ToolRowView({ row }: { row: ToolRow }) {
   )
 }
 
+/** A sheet or the full screen would cover the page a card's link opens. */
+export const uncover = () => {
+  if (!document.querySelector('.asst-docked')) closeAssistant({ refocus: false })
+}
+
 /** A handoff into an existing screen (it only navigates). */
 function HandoffCard({ card }: { card: NonNullable<ToolRow['card']> }) {
   const t = useT()
@@ -125,7 +131,13 @@ function HandoffCard({ card }: { card: NonNullable<ToolRow['card']> }) {
         <strong>{card.title}</strong>
         <small>{t(desc)}</small>
       </div>
-      <Link to={card.path as never} className="btn">
+      {/* An agent task's brief goes with it as the page's state (its content isn't in the URL); the person still starts it. */}
+      <Link
+        to={card.path as never}
+        state={card.kind === 'agent_task' && card.brief ? ({ agentBrief: { workspace: slug, text: card.brief.slice(0, 4000) } } as never) : undefined}
+        className="btn"
+        onClick={uncover}
+      >
         {t(label)}
       </Link>
     </div>

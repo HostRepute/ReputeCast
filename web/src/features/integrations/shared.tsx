@@ -38,9 +38,9 @@ export const KNOWN_PLUGIN = '1.4.0'
 export { isPlatform } from './platforms'
 
 /** The catalog: groups, entries and the attention banners. */
-export function useHub() {
+export function useHub(enabled = true) {
   const { slug } = useWorkspace()
-  return $api.useQuery('get', `${base}/catalog`, { params: { path: { workspace: slug } } })
+  return $api.useQuery('get', `${base}/catalog`, { params: { path: { workspace: slug } } }, { enabled })
 }
 
 /** Zapier's, Make's or n8n's page. */

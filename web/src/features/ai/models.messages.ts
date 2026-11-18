@@ -10,6 +10,10 @@ export const mm = defineMessages('ai.models', {
   accountsTitle: 'Model accounts',
   accountsCaption: 'Keys are write-only. They are never shown again and never sent to another address.',
   addAccount: 'Add account',
+  // The workspace's first account, disconnected with its models kept: connected again with a key.
+  reconnect: 'Reconnect',
+  // On AI models for someone who holds ai:use but not integrations:view; helpers: who can grant it, or none.
+  personalOnly: 'Model accounts are for people who can view integrations.{helpers, select, none {} other { Ask {helpers}.}}',
   thAccount: 'Account',
   thModels: 'Models',
   thStatus: 'Status',

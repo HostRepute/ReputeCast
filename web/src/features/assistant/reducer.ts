@@ -82,9 +82,11 @@ function fromThread(s: ThreadState, thread: Thread, id: number): ThreadState {
   const turn = thread.turn
   const live = turn && turnActive(turn) && turn.text ? { turnId: turn.id, text: turn.text } : undefined
   const pending = s.pending && !thread.messages.some((m) => m.role === 'user' && m.text === s.pending) ? s.pending : undefined
-  // A stopped turn keeps what it wrote on screen (the server saves none of it).
+  // A stopped turn keeps what it wrote on screen, unless the thread has it
+  // saved (Stop saves what arrived as a partial message).
   const wrote = s.stopped ?? (s.live?.text ? s.live : undefined)
-  const stopped = wrote && turn?.id === wrote.turnId && turn.state === 'stopped' ? wrote : undefined
+  const saved = wrote && thread.messages.some((m) => m.role === 'assistant' && m.turnId === wrote.turnId)
+  const stopped = wrote && !saved && turn?.id === wrote.turnId && turn.state === 'stopped' ? wrote : undefined
   // A thread read while its turn waits has the call; otherwise a decided one of the same turn stays.
   const confirmation = thread.confirmation ?? (s.confirmation && s.confirmation.turnId === turn?.id && s.confirmation.state !== 'pending' ? s.confirmation : undefined)
   return { ...s, thread, messages: thread.messages, turn, usage: thread.usage, live, tools: [], toolsTurn: undefined, stopped, pending, confirmation, lastId: Math.max(id, 0), problem: undefined }
@@ -130,15 +132,17 @@ function applyEvent(s: ThreadState, e: StreamEvent): ThreadState {
     case 'message': {
       const m = e.data.message
       const messages = upsert(s.messages, m)
-      let { live, tools, toolsTurn, pending } = s
+      let { live, tools, toolsTurn, pending, stopped } = s
       if (m.role === 'assistant' && live && live.turnId === m.turnId) live = undefined
+      // A stopped answer's saved message replaces the copy kept on screen.
+      if (m.role === 'assistant' && stopped?.turnId === m.turnId) stopped = undefined
       if (m.role === 'tool' && toolsTurn === m.turnId) {
         const held = new Set((m.tools ?? []).map((t) => t.callId))
         tools = tools.filter((t) => !held.has(t.callId))
         if (!tools.length) toolsTurn = undefined
       }
       if (m.role === 'user' && pending === m.text) pending = undefined
-      return { ...s, messages, live, tools, toolsTurn, pending, lastId }
+      return { ...s, messages, live, tools, toolsTurn, pending, stopped, lastId }
     }
     case 'usage':
       return { ...s, usage: e.data.usage, lastId }

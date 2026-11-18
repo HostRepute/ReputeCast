@@ -10,6 +10,8 @@ export default translate(mm, {
   accountsTitle: 'Tài khoản mô hình',
   accountsCaption: 'Khóa chỉ ghi. Khóa không bao giờ hiện lại và không bao giờ được gửi tới địa chỉ khác.',
   addAccount: 'Thêm tài khoản',
+  reconnect: 'Kết nối lại',
+  personalOnly: 'Tài khoản mô hình dành cho người có quyền xem tích hợp.{helpers, select, none {} other { Hãy hỏi {helpers}.}}',
   thAccount: 'Tài khoản',
   thModels: 'Mô hình',
   thStatus: 'Trạng thái',

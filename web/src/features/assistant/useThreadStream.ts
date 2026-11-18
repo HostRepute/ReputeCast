@@ -74,11 +74,16 @@ export const SILENT_AFTER = 45_000
  * event ends it for good (the thread isn't the person's, they lost ai:use,
  * the assistant is off). Events are handed over once per animation frame,
  * so a burst of deltas renders once.
+ *
+ * `applied` is the last event the thread's state applied, and whose thread
+ * that state is: right after a switch it is still the previous thread's,
+ * whose number means nothing here.
  */
-export function useThreadStream(slug: string, thread: string | undefined, lastId: number, enabled: boolean, dispatch: Dispatch<Action>): ThreadStream {
+export function useThreadStream(slug: string, thread: string | undefined, applied: { thread?: string; id: number }, enabled: boolean, dispatch: Dispatch<Action>): ThreadStream {
   const [state, setState] = useState<{ status: StreamStatus; attempt: number; lostAt?: Date }>({ status: 'idle', attempt: 0 })
   const [nonce, setNonce] = useState(0)
   // The last event applied (or received) of this thread: a new stream starts after it.
+  const lastId = applied.thread === thread ? applied.id : 0
   const cursor = useRef<{ thread?: string; id: number }>({ thread, id: lastId })
   useEffect(() => {
     cursor.current = cursor.current.thread === thread ? { thread, id: Math.max(cursor.current.id, lastId) } : { thread, id: lastId }
@@ -150,7 +155,8 @@ export function useThreadStream(slug: string, thread: string | undefined, lastId
           } catch {
             return // A malformed event is skipped; the next snapshot is whole.
           }
-          if (id > 0) cursor.current = { thread, id: Math.max(cursor.current.id, id) }
+          // A snapshot is the whole thread as of its number: the cursor is that, even when lower.
+          if (id > 0) cursor.current = { thread, id: kind === 'snapshot' ? id : Math.max(cursor.current.id, id) }
           queue.push({ type: kind, id, data } as StreamEvent)
           if (kind === 'problem') {
             es?.close()

@@ -10,6 +10,8 @@ export default translate(mm, {
   accountsTitle: 'Modellkonten',
   accountsCaption: 'Schlüssel sind nicht auslesbar. Sie werden nie wieder angezeigt und nie an eine andere Adresse gesendet.',
   addAccount: 'Konto hinzufügen',
+  reconnect: 'Wieder verbinden',
+  personalOnly: 'Modellkonten sind für alle, die Integrationen ansehen dürfen.{helpers, select, none {} other { Fragen Sie {helpers}.}}',
   thAccount: 'Konto',
   thModels: 'Modelle',
   thStatus: 'Status',
