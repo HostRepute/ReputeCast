@@ -1,6 +1,7 @@
 {
   "problem.unreachable": "{server} hat nicht geantwortet. Prüfen Sie, ob der Server läuft und die Adresse stimmt, und versuchen Sie es erneut.",
   "problem.refused": "{server} hat die Zugangsdaten von ReputeCast abgelehnt. Verwaltende können das gemeinsame Geheimnis unter Einstellungen › Integrationen · MCP-Server ersetzen.",
+  "problem.elsewhere": "{server} wollte, dass ReputeCast seine Anfragen an eine andere Adresse sendet. Sie gehen nur an die für den Server eingetragene Adresse, daher wurde dorthin nichts gesendet. Prüfen Sie die Adresse des Servers unter Einstellungen › Integrationen · MCP-Server.",
   "problem.signIn": "Melden Sie sich bei {server} an, um seine Werkzeuge zu nutzen: Ihre Anmeldung fehlt oder ist abgelaufen.",
   "problem.toolChanged": "{tool} hat sich seit der Freigabe geändert oder wurde entfernt. Verwaltende müssen es erneut prüfen, bevor es läuft.",
   "problem.toolBlocked": "Verwaltende haben {tool} gesperrt. Es läuft nicht.",

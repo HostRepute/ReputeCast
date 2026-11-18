@@ -1,6 +1,7 @@
 {
   "problem.unreachable": "{server} no respondió. Comprueba que el servidor está en marcha y que la dirección es correcta, y vuelve a intentarlo.",
   "problem.refused": "{server} rechazó las credenciales de ReputeCast. Quien administra puede reemplazar el secreto compartido en Configuración › Integraciones · Servidores MCP.",
+  "problem.elsewhere": "{server} pidió a ReputeCast que enviara sus solicitudes a otra dirección. Solo van a la dirección indicada para el servidor, así que no se envió nada allí. Comprueba la dirección del servidor en Configuración › Integraciones · Servidores MCP.",
   "problem.signIn": "Inicia sesión en {server} para usar sus herramientas: tu sesión falta o caducó.",
   "problem.toolChanged": "{tool} cambió o se quitó desde que se aprobó. Quien administra tiene que revisarla de nuevo antes de que se ejecute.",
   "problem.toolBlocked": "Quien administra bloqueó {tool}. No se ejecuta.",

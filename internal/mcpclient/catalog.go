@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -33,14 +35,45 @@ import (
 
 // authTransport adds a server's credential to each request and remembers
 // the last status, to tell a refused sign-in from an unreachable server.
+// It sends only to the configured server's origin (scheme, host and port):
+// a request elsewhere, such as an HTTP with SSE endpoint event naming
+// another host or plain http for an https server, isn't sent at all.
 type authTransport struct {
 	base          http.RoundTripper
+	serverOrigin  string
 	header, value string
 	mu            sync.Mutex
 	status        int
+	elsewhere     string
+}
+
+// errElsewhere is a request refused for going to another origin.
+var errElsewhere = errors.New("mcp: request to another origin than the server's refused")
+
+// canonicalOrigin is a URL's scheme, host and port, the default port spelled out.
+func canonicalOrigin(u *url.URL) string {
+	scheme, port := strings.ToLower(u.Scheme), u.Port()
+	if port == "" {
+		switch scheme {
+		case "https":
+			port = "443"
+		case "http":
+			port = "80"
+		}
+	}
+	return scheme + "://" + net.JoinHostPort(strings.ToLower(u.Hostname()), port)
 }
 
 func (t *authTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if o := canonicalOrigin(r.URL); o != t.serverOrigin {
+		if r.Body != nil {
+			_ = r.Body.Close()
+		}
+		t.mu.Lock()
+		t.elsewhere = o
+		t.mu.Unlock()
+		return nil, errElsewhere
+	}
 	r = r.Clone(r.Context())
 	if t.header != "" {
 		r.Header.Set(t.header, t.value)
@@ -58,6 +91,13 @@ func (t *authTransport) unauthorized() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.status == http.StatusUnauthorized || t.status == http.StatusForbidden
+}
+
+// refused is the origin of a request refused for going elsewhere, if any.
+func (t *authTransport) refused() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.elsewhere
 }
 
 // session is a connection to a server as one person.
@@ -81,7 +121,11 @@ func (s *session) close() {
 func (s *Service) connect(ctx context.Context, srv store.McpServer, user uuid.UUID, transport string) (*session, error) {
 	// The call's own context bounds it; the transport's header timeout is
 	// only a backstop.
-	rt := &authTransport{base: s.policy().Client(s.callTimeout() + 10*time.Second).Transport}
+	u, err := url.Parse(srv.Url)
+	if err != nil {
+		return nil, unreachable(ctx, srv.Name)
+	}
+	rt := &authTransport{base: s.policy().Client(s.callTimeout() + 10*time.Second).Transport, serverOrigin: canonicalOrigin(u)}
 	switch srv.Auth {
 	case "header":
 		v, err := s.Box.OpenString(srv.HeaderSealed, headerAD(srv.ID))
@@ -123,6 +167,9 @@ func (s *Service) connectProblem(ctx context.Context, srv store.McpServer, rt *a
 	switch {
 	case errors.As(err, &p):
 		return err
+	case rt.refused() != "":
+		s.log().WarnContext(ctx, "mcp: a request to another origin was refused", "server", srv.ID, "origin", rt.refused())
+		return problem(ctx, http.StatusBadGateway, CodeUnreachable, "problem.elsewhere", i18n.Args{"server": srv.Name})
 	case rt.unauthorized():
 		if srv.Auth == "oauth" {
 			return signIn(ctx, srv)
@@ -256,6 +303,9 @@ func (s *Service) list(ctx context.Context, srv store.McpServer, user uuid.UUID)
 		if errors.As(err, &p) && p.Code == CodeUnreachable {
 			if alt, altErr := s.connect(ctx, srv, user, "sse"); altErr == nil {
 				sess, err, transport = alt, nil, "sse"
+			} else if errors.As(altErr, &p) && p.Code == CodeUnreachable {
+				// HTTP with SSE got as far: its problem can say more.
+				err = altErr
 			}
 		}
 	}

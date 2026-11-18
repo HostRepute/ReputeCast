@@ -1,6 +1,7 @@
 {
   "problem.unreachable": "{server} n’a pas répondu. Vérifiez que le serveur fonctionne et que son adresse est correcte, puis réessayez.",
   "problem.refused": "{server} a refusé les identifiants de ReputeCast. Un responsable peut remplacer le secret partagé dans Paramètres › Intégrations · Serveurs MCP.",
+  "problem.elsewhere": "{server} a demandé à ReputeCast d’envoyer ses requêtes à une autre adresse. Elles ne vont qu’à l’adresse saisie pour le serveur, donc rien n’y a été envoyé. Vérifiez l’adresse du serveur dans Paramètres › Intégrations · Serveurs MCP.",
   "problem.signIn": "Connectez-vous à {server} pour utiliser ses outils : votre connexion manque ou a expiré.",
   "problem.toolChanged": "{tool} a changé ou a été retiré depuis son approbation. Un responsable doit le revoir avant qu’il s’exécute.",
   "problem.toolBlocked": "Un responsable a bloqué {tool}. Il ne s’exécute pas.",
