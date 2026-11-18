@@ -50,16 +50,6 @@ func (st *fakeStreams) record(body []byte) {
 	st.mu.Unlock()
 }
 
-// body is the n-th request's body (every request, the one-shot ones too).
-func (st *fakeStreams) body(n int) []byte {
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	if n >= len(st.bodies) {
-		return nil
-	}
-	return st.bodies[n]
-}
-
 // streamed are the streaming requests' bodies, decoded.
 func (st *fakeStreams) streamed(t *testing.T) []map[string]any {
 	t.Helper()
@@ -349,14 +339,15 @@ func (f *fixture) openStream(c *apptest.Client, thread uuid.UUID, cursor string)
 	if cursor != "" {
 		c.Header = http.Header{"Last-Event-Id": {cursor}}
 	}
-	resp, err := c.Stream(ctx, path)
+	resp, err := c.Stream(ctx, path) //nolint:bodyclose // s.close closes it at cleanup
 	c.Header = nil
 	if err != nil {
 		cancel()
 		f.t.Fatal(err)
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		cancel()
+		_ = resp.Body.Close()
 		f.t.Fatalf("stream: status %d", resp.StatusCode)
 	}
 	s := &stream{resp: resp, r: newReader(resp), stop: cancel}
