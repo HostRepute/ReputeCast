@@ -3687,7 +3687,7 @@
           },
           "features": {
             "items": {
-              "$ref": "#/components/schemas/AIFeatureState"
+              "$ref": "#/components/schemas/AIStatusFeature"
             },
             "type": "array"
           },
@@ -3752,6 +3752,87 @@
           "hostRepute",
           "accounts",
           "defaults"
+        ],
+        "type": "object"
+      },
+      "AIStatusFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "cap": {
+            "$ref": "#/components/schemas/AICapView"
+          },
+          "key": {
+            "enum": [
+              "subject_ideas",
+              "rewrite",
+              "translate",
+              "alt_text",
+              "accessibility_fix",
+              "segment_draft",
+              "report_summary",
+              "brand_voice",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "personal": {
+            "type": "boolean"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/AIPricesView"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible",
+              ""
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ready",
+              "not_configured",
+              "key_rejected",
+              "cap_reached"
+            ],
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AIUsageView"
+          }
+        },
+        "required": [
+          "state",
+          "personal",
+          "usage",
+          "cap",
+          "prices",
+          "key",
+          "on",
+          "available"
         ],
         "type": "object"
       },
