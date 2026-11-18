@@ -39,6 +39,11 @@ type AIThread struct {
 	// Turn is the thread's latest turn: the one answering now, or how the
 	// last one ended. Absent before the first message.
 	Turn *AIThreadTurn `json:"turn,omitempty"`
+	// Confirmation is the call of a writing MCP tool its turn waits on
+	// (the turn is "waiting"): its owner allows or denies it.
+	Confirmation *AIThreadConfirmation `json:"confirmation,omitempty"`
+	// MCPServerIDs are the MCP servers the thread may use.
+	MCPServerIDs []uuid.UUID `json:"mcpServerIds"`
 	// EventSeq is the thread's last stream event: a stream resumes after it.
 	EventSeq       int64     `json:"eventSeq"`
 	CreatedAt      time.Time `json:"createdAt"`
@@ -276,7 +281,13 @@ func (s *Service) view(ctx context.Context, q *store.Queries, ws *store.Workspac
 	}
 	out := AIThread{ID: t.ID, Title: title, State: t.State, Screen: t.Screen, EventSeq: t.EventSeq, CreatedAt: t.CreatedAt, LastActivityAt: t.LastActivityAt,
 		ExpiresAt: t.ExpiresAt, Limits: ai.AIAgentLimits{ToolCalls: t.ToolLimit, Tokens: t.TokenLimit, CostMicros: t.CostLimitMicros},
-		Contexts: []AIThreadContext{}, Messages: []AIThreadMessage{}}
+		Contexts: []AIThreadContext{}, Messages: []AIThreadMessage{}, MCPServerIDs: []uuid.UUID{}}
+	if out.MCPServerIDs, err = q.MCPThreadServers(ctx, t.ID); err != nil {
+		return AIThread{}, err
+	}
+	if out.MCPServerIDs == nil {
+		out.MCPServerIDs = []uuid.UUID{}
+	}
 	if out.Model, err = s.AI.AssistantModelView(ctx, q, ws.ID, t.UserID, t.ModelID); err != nil {
 		return AIThread{}, err
 	}
@@ -329,6 +340,19 @@ func (s *Service) view(ctx context.Context, q *store.Queries, ws *store.Workspac
 		}
 	}
 	out.Turn = &v
+	if turn.State == "waiting" {
+		c, err := q.AIAssistantConfirmationPending(ctx, t.ID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return AIThread{}, err
+		}
+		if err == nil {
+			cv, err := s.confirmationView(c)
+			if err != nil {
+				return AIThread{}, err
+			}
+			out.Confirmation = &cv
+		}
+	}
 	return out, nil
 }
 

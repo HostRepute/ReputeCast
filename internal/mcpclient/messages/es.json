@@ -1,0 +1,16 @@
+{
+  "problem.unreachable": "{server} no respondió. Comprueba que el servidor está en marcha y que la dirección es correcta, y vuelve a intentarlo.",
+  "problem.refused": "{server} rechazó las credenciales de ReputeCast. Quien administra puede reemplazar el secreto compartido en Configuración › Integraciones · Servidores MCP.",
+  "problem.signIn": "Inicia sesión en {server} para usar sus herramientas: tu sesión falta o caducó.",
+  "problem.toolChanged": "{tool} cambió o se quitó desde que se aprobó. Quien administra tiene que revisarla de nuevo antes de que se ejecute.",
+  "problem.toolBlocked": "Quien administra bloqueó {tool}. No se ejecuta.",
+  "problem.timeout": "{server} tardó demasiado en responder. Inténtalo más tarde.",
+  "problem.tooLarge": "{server} respondió con más de {kb} KB. El resultado no se leyó.",
+  "problem.url": "Esta dirección no se puede usar: {reason}. Usa la dirección https:// pública del servidor.",
+  "problem.input": "Revisa el nombre, la autenticación y las credenciales del servidor: no encajan entre sí.",
+  "problem.state": "Este enlace de inicio de sesión caducó o ya se usó. Vuelve a iniciar sesión desde Configuración › Integraciones · Servidores MCP.",
+  "problem.oauth": "No se pudo configurar el inicio de sesión de {server}: su servidor de autorización no respondió como se esperaba. Revisa la dirección o introduce un cliente registrado.",
+  "problem.reviewed": "{tool} cambió desde que la revisaste. Revisa su nueva descripción y su esquema y vuelve a decidir.",
+  "notify.changedTitle": "Cambiaron herramientas de {server}",
+  "notify.changedBody": "{count, plural, one {# herramienta} other {# herramientas}} de {server} cambiaron después de aprobarse y quedan desactivadas hasta que las revises."
+}

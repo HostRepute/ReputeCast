@@ -10,5 +10,6 @@
   "problem.nothingToSend": "Write a message first.",
   "problem.modelGone": { "message": "This thread's model was removed. Pick another model for the thread, then send your message again.", "note": "the thread's model was deleted" },
   "problem.turnKey": { "message": "This request key was already used for another message. Use a new key for a new message.", "note": "a client retried with the same key but another text" },
-  "answer.reputation": { "message": "Sender reputation, blocklists and inbox placement are for HostRepute to answer: it watches your domains and IPs and tells you what to fix. Ask me about using ReputeCast, or about what you attached.", "note": "the fixed answer of the HostRepute card, sent without a model call" }
+  "answer.reputation": { "message": "Sender reputation, blocklists and inbox placement are for HostRepute to answer: it watches your domains and IPs and tells you what to fix. Ask me about using ReputeCast, or about what you attached.", "note": "the fixed answer of the HostRepute card, sent without a model call" },
+  "problem.confirmationClosed": { "message": "This call was already decided, or its turn ended. Nothing ran.", "note": "allowing or denying an MCP tool call twice with different answers, or after Stop" }
 }

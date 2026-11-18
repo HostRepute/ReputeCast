@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/mcpclient"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -39,10 +40,12 @@ type ToolSpec struct {
 	Feature    string
 	Needs      string
 	// Confirm: the call waits for the person to confirm that exact call
-	// (the turn is "waiting"). B5's tools that write outside ReputeCast; no
-	// tool here needs it.
+	// (the turn is "waiting"): MCP tools that write outside ReputeCast; no
+	// tool of ReputeCast's own needs it.
 	Confirm bool
 	run     func(ctx context.Context, s *Service, c *toolCall) toolResult
+	// mcp is an MCP server's tool (run is nil).
+	mcp *mcpclient.ThreadTool
 }
 
 // maxTools bounds the tools of a request (ReputeCast's own come first).
@@ -57,6 +60,7 @@ type toolCall struct {
 	owner    *authz.Principal
 	thread   store.AiAssistantThread
 	contexts []store.AiAssistantContext
+	callID   string
 	args     json.RawMessage
 }
 
@@ -133,8 +137,9 @@ var tools = []ToolSpec{
 		Permission: authz.CampaignsEdit, Feature: ai.FeatureRewrite, Needs: "campaign", run: runRewrite},
 }
 
-// offered is the tools the owner may use in a thread now.
-func (s *Service) offered(ctx context.Context, q *store.Queries, ws uuid.UUID, owner *authz.Principal, contexts []store.AiAssistantContext) ([]ToolSpec, error) {
+// offered is the tools the owner may use in a thread now: ReputeCast's
+// own first, then the MCP tools of the servers the thread may use.
+func (s *Service) offered(ctx context.Context, q *store.Queries, ws *store.Workspace, owner *authz.Principal, thread uuid.UUID, contexts []store.AiAssistantContext) ([]ToolSpec, error) {
 	out := []ToolSpec{}
 	for _, t := range tools {
 		if !owner.Can(t.Permission) || t.Confirm {
@@ -152,7 +157,7 @@ func (s *Service) offered(ctx context.Context, q *store.Queries, ws uuid.UUID, o
 			}
 		}
 		if t.Feature != "" {
-			on, err := s.AI.AssistantFeatureOn(ctx, q, ws, t.Feature)
+			on, err := s.AI.AssistantFeatureOn(ctx, q, ws.ID, t.Feature)
 			if err != nil {
 				return nil, err
 			}
@@ -165,7 +170,11 @@ func (s *Service) offered(ctx context.Context, q *store.Queries, ws uuid.UUID, o
 			break
 		}
 	}
-	return out, nil
+	more, err := s.mcpSpecs(ctx, q, ws, owner, thread, maxTools-len(out))
+	if err != nil {
+		return nil, err
+	}
+	return append(out, more...), nil
 }
 
 func llmTools(specs []ToolSpec) []llm.Tool {
@@ -177,18 +186,32 @@ func llmTools(specs []ToolSpec) []llm.Tool {
 }
 
 // runTool runs a call as the owner is now: a tool they may no longer use,
-// or one they weren't offered, fails without running.
-func (s *Service) runTool(ctx context.Context, q *store.Queries, c *toolCall, name string) (toolResult, json.RawMessage) {
+// or one they weren't offered, fails without running. A tool that needs
+// a confirmation runs only as the call its owner allowed (confirmed).
+func (s *Service) runTool(ctx context.Context, q *store.Queries, c *toolCall, name string, confirmed *store.AiAssistantConfirmation) (toolResult, json.RawMessage) {
 	result := failed("not_available")
-	offered, err := s.offered(ctx, q, c.ws.ID, c.owner, c.contexts)
+	var content json.RawMessage
+	offered, err := s.offered(ctx, q, c.ws, c.owner, c.thread.ID, c.contexts)
 	if err != nil {
 		result = failed("unavailable")
 	} else if i := slices.IndexFunc(offered, func(t ToolSpec) bool { return t.Name == name }); i >= 0 {
+		t := offered[i]
 		cctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-		result = offered[i].run(cctx, s, c)
+		switch {
+		case t.mcp == nil:
+			result = t.run(cctx, s, c)
+		case !t.Confirm:
+			result, content = s.runMCP(cctx, c, t, t.mcp.Hash)
+		case confirmed != nil && confirmed.ToolID != nil && *confirmed.ToolID == t.mcp.ID:
+			result, content = s.runMCP(cctx, c, t, confirmed.ToolHash)
+		default:
+			result = failed("confirmation_required")
+		}
 		cancel()
 	}
-	content := envelope(name, result)
+	if content == nil {
+		content = envelope(name, result)
+	}
 	if len(content) > maxToolResult {
 		result = failed("too_large")
 		content = envelope(name, result)
@@ -214,6 +237,8 @@ func problemCode(err error) string {
 	switch {
 	case !errors.As(err, &p):
 		return "unavailable"
+	case strings.HasPrefix(p.Code, "mcp_"):
+		return p.Code
 	case p.Status == 404:
 		return "not_found"
 	case p.Status == 403:

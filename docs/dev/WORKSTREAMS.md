@@ -153,5 +153,5 @@ The B0 brief in `docs/spec/reputecast-design-addon-assistant.md` defines this tr
 | B2 · Streaming | `assistant-b2-streaming` | `ai/llm` adapters and contract suite | None |
 | B3 · Threads and turns | `assistant-b3-runtime` | `ai/assistant` (new), River jobs, SSE, shared tool registry, retention | 03640–03649 |
 | B4 · Panel and screens | `assistant-b4-ui` | `web/src/features/assistant` (new), shell entry points, settings screens | None |
-| B5 · MCP servers | `assistant-b5-mcp` | `mcpclient` (new), OAuth client, tool approval, MCP settings UI | Reserved at start |
+| B5 · MCP servers | `assistant-b5-mcp` | `mcpclient` (new), OAuth client, tool approval, MCP settings UI | 03650–03659 |
 | B6 · Hardening | `assistant-b6-hardening` | Injection fixtures, `loadtest`, docs | None |

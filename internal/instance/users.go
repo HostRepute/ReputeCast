@@ -446,6 +446,11 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 		if err != nil {
 			return err
 		}
+		// So do their sign-ins to the assistant's MCP servers.
+		mcpSignIns, err := q.MCPTokensRemove(ctx, store.MCPTokensRemoveParams{UserID: id})
+		if err != nil {
+			return err
+		}
 		parts := []any{keep("audit.reason", i18n.Args{"reason": reason})}
 		if res.Keys > 0 {
 			parts = append(parts, keep("audit.keysRevoked", i18n.Args{"count": res.Keys}))
@@ -453,7 +458,8 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 		parts = append(parts, keep("audit.sessionsEnded", i18n.Args{"count": res.Sessions}))
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.deactivated", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
 			Reason: reason, Before: map[string]any{"status": "active"}, After: map[string]any{"status": "deactivated"},
-			Metadata: audit.KeepSummary(map[string]any{"sessions": res.Sessions, "keys_revoked": res.Keys, "memberships": res.Memberships, "personal_ai_keys_removed": aiKeys}, parts...)})
+			Metadata: audit.KeepSummary(map[string]any{"sessions": res.Sessions, "keys_revoked": res.Keys, "memberships": res.Memberships, "personal_ai_keys_removed": aiKeys,
+				"mcp_sign_ins_removed": mcpSignIns}, parts...)})
 	})
 	return res, err
 }

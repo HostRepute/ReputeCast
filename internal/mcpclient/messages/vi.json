@@ -1,0 +1,16 @@
+{
+  "problem.unreachable": "{server} không phản hồi. Hãy kiểm tra máy chủ đang chạy và địa chỉ đúng, rồi thử lại.",
+  "problem.refused": "{server} từ chối thông tin xác thực của ReputeCast. Người quản lý có thể thay khóa bí mật dùng chung trong Cài đặt › Tích hợp · Máy chủ MCP.",
+  "problem.signIn": "Hãy đăng nhập vào {server} để dùng công cụ của nó: phiên đăng nhập của bạn bị thiếu hoặc đã hết hạn.",
+  "problem.toolChanged": "{tool} đã thay đổi hoặc bị gỡ từ khi được duyệt. Người quản lý cần xem lại trước khi nó chạy.",
+  "problem.toolBlocked": "Người quản lý đã chặn {tool}. Công cụ này không chạy.",
+  "problem.timeout": "{server} trả lời quá lâu. Hãy thử lại sau.",
+  "problem.tooLarge": "{server} trả về hơn {kb} KB. Kết quả không được đọc.",
+  "problem.url": "Không dùng được địa chỉ này: {reason}. Hãy dùng địa chỉ https:// công khai của máy chủ.",
+  "problem.input": "Hãy kiểm tra tên, cách xác thực và thông tin xác thực của máy chủ: chúng không khớp nhau.",
+  "problem.state": "Liên kết đăng nhập này đã hết hạn hoặc đã được dùng. Hãy bắt đầu đăng nhập lại từ Cài đặt › Tích hợp · Máy chủ MCP.",
+  "problem.oauth": "Không thiết lập được đăng nhập cho {server}: máy chủ cấp quyền không trả lời như mong đợi. Hãy kiểm tra địa chỉ hoặc nhập một client đã đăng ký.",
+  "problem.reviewed": "{tool} đã thay đổi từ khi bạn xem. Hãy xem mô tả và lược đồ mới, rồi quyết định lại.",
+  "notify.changedTitle": "Công cụ của {server} đã thay đổi",
+  "notify.changedBody": "{count, plural, other {# công cụ}} của {server} đã thay đổi sau khi được duyệt và đang tắt cho đến khi bạn xem lại."
+}

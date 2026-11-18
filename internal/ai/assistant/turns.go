@@ -168,6 +168,11 @@ func (s *Service) StopTurn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			return nil
 		}
 		was := t.State
+		// A call waiting for the person, or allowed and not sent yet, never
+		// runs.
+		if err := q.AIAssistantConfirmationsClose(ctx, t.ID); err != nil {
+			return err
+		}
 		// What it wrote stays, up to the last batch before Stop: batches
 		// after it are fenced, and so is the worker's checkpoint.
 		text, err := s.answerSoFar(ctx, q, th.ID, t.ID, th.EventSeq)

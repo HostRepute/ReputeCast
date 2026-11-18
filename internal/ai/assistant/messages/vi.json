@@ -10,5 +10,6 @@
   "problem.nothingToSend": "Hãy viết tin nhắn trước.",
   "problem.modelGone": "Mô hình của cuộc trò chuyện này đã bị xóa. Hãy chọn mô hình khác cho cuộc trò chuyện, rồi gửi lại tin nhắn.",
   "problem.turnKey": "Khóa yêu cầu này đã được dùng cho một tin nhắn khác. Hãy dùng khóa mới cho tin nhắn mới.",
-  "answer.reputation": "Các câu hỏi về uy tín người gửi, danh sách chặn và khả năng vào hộp thư đến là việc của HostRepute: dịch vụ này theo dõi tên miền và IP của bạn và cho bạn biết cần sửa gì. Hãy hỏi tôi về cách dùng ReputeCast hoặc về những gì bạn đã đính kèm."
+  "answer.reputation": "Các câu hỏi về uy tín người gửi, danh sách chặn và khả năng vào hộp thư đến là việc của HostRepute: dịch vụ này theo dõi tên miền và IP của bạn và cho bạn biết cần sửa gì. Hãy hỏi tôi về cách dùng ReputeCast hoặc về những gì bạn đã đính kèm.",
+  "problem.confirmationClosed": "Lệnh gọi này đã được quyết định, hoặc lượt trả lời đã kết thúc. Không có gì được chạy."
 }

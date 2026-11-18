@@ -94,6 +94,17 @@ type Querier interface {
 	AIAgentStepResume(ctx context.Context, arg AIAgentStepResumeParams) error
 	AIAgentStepSave(ctx context.Context, arg AIAgentStepSaveParams) error
 	AIAgentSteps(ctx context.Context, runID uuid.UUID) ([]AIAgentStepsRow, error)
+	AIAssistantConfirmationDecide(ctx context.Context, arg AIAssistantConfirmationDecideParams) error
+	AIAssistantConfirmationInsert(ctx context.Context, arg AIAssistantConfirmationInsertParams) error
+	AIAssistantConfirmationLock(ctx context.Context, arg AIAssistantConfirmationLockParams) (AiAssistantConfirmation, error)
+	// A turn's call waiting for, or carrying, its owner's decision.
+	AIAssistantConfirmationOpen(ctx context.Context, turnID uuid.UUID) (AiAssistantConfirmation, error)
+	// A thread's call waiting for its owner, as the thread shows it.
+	AIAssistantConfirmationPending(ctx context.Context, threadID uuid.UUID) (AiAssistantConfirmation, error)
+	AIAssistantConfirmationSet(ctx context.Context, arg AIAssistantConfirmationSetParams) error
+	// Stop: a turn's open call is closed without running.
+	AIAssistantConfirmationsClose(ctx context.Context, turnID uuid.UUID) error
+	AIAssistantConfirmationsPurge(ctx context.Context, threadID uuid.UUID) error
 	AIAssistantContextDelete(ctx context.Context, arg AIAssistantContextDeleteParams) (AIAssistantContextDeleteRow, error)
 	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
 	AIAssistantContexts(ctx context.Context, threadID uuid.UUID) ([]AiAssistantContext, error)
@@ -183,6 +194,8 @@ type Querier interface {
 	AIAssistantTurnFence(ctx context.Context, id uuid.UUID) (AIAssistantTurnFenceRow, error)
 	AIAssistantTurnInsert(ctx context.Context, arg AIAssistantTurnInsertParams) (AiAssistantTurn, error)
 	AIAssistantTurnLock(ctx context.Context, arg AIAssistantTurnLockParams) (AiAssistantTurn, error)
+	// A waiting turn goes on once its owner decided: a new version for its job.
+	AIAssistantTurnRequeue(ctx context.Context, arg AIAssistantTurnRequeueParams) error
 	AIAssistantTurnSave(ctx context.Context, arg AIAssistantTurnSaveParams) error
 	// AI assistant (design expansion M22): the workspace's AI settings, its
 	// model accounts and models (assistant brief D3), the AI activity log, kept
@@ -3054,6 +3067,41 @@ type Querier interface {
 	MCPConnectToken(ctx context.Context, hash []byte) (McpConnectToken, error)
 	MCPConnectUseCode(ctx context.Context, arg MCPConnectUseCodeParams) (McpConnectCode, error)
 	MCPConnectUseRefresh(ctx context.Context, arg MCPConnectUseRefreshParams) (McpConnectToken, error)
+	MCPOAuthStateInsert(ctx context.Context, arg MCPOAuthStateInsertParams) error
+	// A state is used once, by the session that started it, within its ten
+	// minutes.
+	MCPOAuthStateUse(ctx context.Context, arg MCPOAuthStateUseParams) (McpOauthState, error)
+	MCPOAuthStatesPurge(ctx context.Context, before time.Time) (int64, error)
+	MCPServer(ctx context.Context, arg MCPServerParams) (McpServer, error)
+	MCPServerDelete(ctx context.Context, arg MCPServerDeleteParams) (int64, error)
+	// B5: remote MCP servers, their tools and members' sign-ins.
+	MCPServerInsert(ctx context.Context, arg MCPServerInsertParams) error
+	MCPServerKeys(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	MCPServerLock(ctx context.Context, arg MCPServerLockParams) (McpServer, error)
+	MCPServerSave(ctx context.Context, arg MCPServerSaveParams) error
+	MCPServerStatus(ctx context.Context, arg MCPServerStatusParams) error
+	MCPServers(ctx context.Context, workspaceID uuid.UUID) ([]McpServer, error)
+	MCPThreadServerAdd(ctx context.Context, arg MCPThreadServerAddParams) error
+	MCPThreadServers(ctx context.Context, threadID uuid.UUID) ([]uuid.UUID, error)
+	MCPThreadServersClear(ctx context.Context, threadID uuid.UUID) error
+	// The tools a thread may offer: on servers its owner chose, enabled, and
+	// decided on at their current hash (read-only or writes), still listed.
+	MCPThreadTools(ctx context.Context, arg MCPThreadToolsParams) ([]MCPThreadToolsRow, error)
+	MCPToken(ctx context.Context, arg MCPTokenParams) (McpToken, error)
+	MCPTokenDelete(ctx context.Context, arg MCPTokenDeleteParams) (int64, error)
+	MCPTokenLock(ctx context.Context, arg MCPTokenLockParams) (McpToken, error)
+	MCPTokenSave(ctx context.Context, arg MCPTokenSaveParams) error
+	// A person left the workspace or was deactivated (sqlc.narg(workspace_id)
+	// NULL: every workspace): their MCP sign-ins go.
+	MCPTokensRemove(ctx context.Context, arg MCPTokensRemoveParams) (int64, error)
+	MCPTool(ctx context.Context, arg MCPToolParams) (McpTool, error)
+	MCPToolDecide(ctx context.Context, arg MCPToolDecideParams) error
+	MCPToolGone(ctx context.Context, arg MCPToolGoneParams) error
+	MCPToolInsert(ctx context.Context, arg MCPToolInsertParams) error
+	// A sync saw the tool again: as it is now. A tool whose hash moved from
+	// the one decided on is off until a manager decides again.
+	MCPToolSeen(ctx context.Context, arg MCPToolSeenParams) error
+	MCPTools(ctx context.Context, serverID uuid.UUID) ([]McpTool, error)
 	// Applies a domain's classification to up to @lim contacts still waiting
 	// for it. It never waits for a contact another transaction has locked (a
 	// tier run, an edit): that one keeps waiting for the next pass, and the

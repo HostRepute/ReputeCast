@@ -1220,6 +1220,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/mcp/oauth/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where an OAuth MCP server's authorization server sends the person back
+         * @description The state must be the caller's, from the session that started the sign-in, unused and at most ten minutes old (400 mcp_oauth_state otherwise). Redirects to Settings › MCP servers with connected=1 or error=denied|token. Audited as mcp_server.connect.
+         */
+        get: operations["remote-mcp-oauth-callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/identify": {
         parameters: {
             query?: never;
@@ -2831,6 +2851,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai/assistant/mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The MCP servers the caller may pick for their threads
+         * @description Enabled servers for everyone with Use AI features or for the caller's role, with whether the caller still has to sign in (connected).
+         */
+        get: operations["list-ai-assistant-mcp-servers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/ai/assistant/models": {
         parameters: {
             query?: never;
@@ -2917,6 +2957,26 @@ export interface paths {
         patch: operations["update-ai-thread"];
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/confirmations/{confirmation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allow or deny a call of a writing MCP tool
+         * @description Only the thread's owner, as they are now. allow runs that exact call once (the tool must be as it was offered: changed, blocked or removed is a 409); deny tells the model it was refused. Either way the turn goes on. The same decision sent again changes nothing; another one, or one after Stop, is a 409 (ai_assistant_confirmation_closed). Audited as ai_assistant_confirmation.approved or .rejected, with the arguments' digest, never their content.
+         */
+        post: operations["decide-ai-thread-confirmation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts": {
         parameters: {
             query?: never;
@@ -2952,6 +3012,26 @@ export interface paths {
          * @description Audited as ai_assistant_context.remove.
          */
         delete: operations["detach-ai-thread-context"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pick the MCP servers a thread may use
+         * @description Servers the caller may use now (list-ai-assistant-mcp-servers); their approved tools are offered after ReputeCast's own, within 40. Audited as ai_assistant_thread.updated.
+         */
+        put: operations["set-ai-thread-mcp-servers"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3278,6 +3358,118 @@ export interface paths {
         put?: never;
         /** Link text that says where a link goes (an accessibility fix) */
         post: operations["suggest-link-text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's MCP servers and their tools
+         * @description Never their secrets: headerSet and clientSecretSet say whether one is stored. A tool is offered to threads once a manager marked it read-only or writes at its current hash; changed says it moved since and is off.
+         */
+        get: operations["list-remote-mcp-servers"];
+        put?: never;
+        /**
+         * Add a remote MCP server
+         * @description Streamable HTTP, or HTTP with SSE; never a local process. Its address must pass the SSRF guard. Authentication: none, a shared header (write-only), or OAuth per member. It has no tools until a sync. Audited as mcp_server.created, without secrets.
+         */
+        post: operations["create-remote-mcp-server"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an MCP server, its tools and every member's sign-in to it
+         * @description Threads stop offering its tools; a call waiting for confirmation fails. Audited as mcp_server.deleted.
+         */
+        delete: operations["delete-remote-mcp-server"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename an MCP server, switch it, change who may use it or replace its secrets
+         * @description Audited as mcp_server.updated, without secrets.
+         */
+        patch: operations["update-remote-mcp-server"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Begin the caller's own sign-in to an OAuth MCP server
+         * @description Returns the authorization server's address to open in the browser; it sends the person back to remote-mcp-oauth-callback. The sign-in is the caller's only, and only from this session.
+         */
+        post: operations["start-remote-mcp-oauth"];
+        /**
+         * Remove the caller's own sign-in to an OAuth MCP server
+         * @description Audited as mcp_server.disconnect.
+         */
+        delete: operations["disconnect-remote-mcp-oauth"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List an MCP server's tools into its catalog
+         * @description As the caller (an OAuth server needs their own sign-in). New tools wait for a decision; a tool whose description, schema or annotations changed after a decision is off, and managers are notified. Audited as mcp_server.updated.
+         */
+        post: operations["sync-remote-mcp-server"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/tools/{tool}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark a tool read-only, writes or blocked
+         * @description At the hash the manager reviewed: a tool that changed since is a 409 (mcp_tool_reviewed). Annotations are the server's hints, not evidence. A read-only tool runs without asking; each call of a writing tool waits for its person's confirmation. Audited as mcp_tool.approved or mcp_tool.revoked.
+         */
+        put: operations["decide-remote-mcp-tool"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -21902,6 +22094,7 @@ export interface components {
             ok: boolean;
         };
         AIThread: {
+            confirmation?: components["schemas"]["AIThreadConfirmation"];
             contexts: components["schemas"]["AIThreadContext"][];
             /** Format: date-time */
             createdAt: string;
@@ -21913,6 +22106,7 @@ export interface components {
             /** Format: date-time */
             lastActivityAt: string;
             limits: components["schemas"]["AIAgentLimits"];
+            mcpServerIds: string[];
             messages: components["schemas"]["AIThreadMessage"][];
             model?: components["schemas"]["AIAssistantModel"];
             screen?: string;
@@ -21929,6 +22123,35 @@ export interface components {
             path: string;
             proposalId?: string;
             title: string;
+        };
+        AIThreadConfirmation: {
+            arguments: unknown;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** @enum {string} */
+            decision?: "allow" | "deny";
+            id: string;
+            /** @description The tool's name for the model: mcp__<server>__<tool> */
+            modelName: string;
+            serverId?: string;
+            serverName: string;
+            /** @enum {string} */
+            state: "pending" | "allowed" | "denied" | "calling" | "done";
+            /** @description The tool's name on its server */
+            tool: string;
+            turnId: string;
+        };
+        AIThreadConfirmationDecision: {
+            /**
+             * @description allow runs this call once; deny tells the model it was refused
+             * @enum {string}
+             */
+            decision: "allow" | "deny";
+        };
+        AIThreadConfirmationEvent: {
+            confirmation: components["schemas"]["AIThreadConfirmation"];
         };
         AIThreadContext: {
             available: boolean;
@@ -21999,6 +22222,10 @@ export interface components {
         AIThreadMessageInput: {
             requestKey: string;
             text: string;
+        };
+        AIThreadServersInput: {
+            /** @description Servers from list-ai-assistant-mcp-servers; empty: none */
+            serverIds: string[];
         };
         AIThreadSnapshotEvent: {
             thread: components["schemas"]["AIThread"];
@@ -41527,6 +41754,83 @@ export interface components {
             /** @enum {string} */
             token_endpoint_auth_method?: "none" | "client_secret_basic" | "client_secret_post";
         };
+        RemoteMCPOAuthStart: {
+            authorizationUrl: string;
+        };
+        RemoteMCPServer: {
+            /** @enum {string} */
+            auth: "none" | "header" | "oauth";
+            clientId?: string;
+            clientRegistered: boolean;
+            clientSecretSet: boolean;
+            connected: boolean;
+            enabled: boolean;
+            headerName?: string;
+            headerSet: boolean;
+            id: string;
+            /** @description The prefix of its tools for the model: mcp__<key>__<tool> */
+            key: string;
+            name: string;
+            redirectUri?: string;
+            roles: string[];
+            /** @enum {string} */
+            status: "new" | "ok" | "unreachable" | "sign_in";
+            statusDetail?: string;
+            /** Format: date-time */
+            syncedAt?: string;
+            tools: components["schemas"]["RemoteMCPTool"][];
+            /** @enum {string} */
+            transport: "streamable" | "sse";
+            url: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        RemoteMCPServerInput: {
+            /** @enum {string} */
+            auth: "none" | "header" | "oauth";
+            clientId?: string;
+            clientSecret?: string;
+            headerName?: string;
+            headerValue?: string;
+            name: string;
+            roles?: string[];
+            /** @enum {string} */
+            transport?: "streamable" | "sse";
+            /** @description The server's MCP endpoint (Streamable HTTP, or HTTP with SSE) */
+            url: string;
+        };
+        RemoteMCPServerList: {
+            servers: components["schemas"]["RemoteMCPServer"][];
+        };
+        RemoteMCPServerUpdate: {
+            clientId?: string;
+            clientSecret?: string;
+            enabled?: boolean;
+            headerValue?: string;
+            name?: string;
+            roles?: string[];
+        };
+        RemoteMCPTool: {
+            annotations: unknown;
+            changed: boolean;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** @enum {string} */
+            decision: "pending" | "read_only" | "writes" | "blocked";
+            description: string;
+            hash: string;
+            id: string;
+            inputSchema: unknown;
+            modelName: string;
+            name: string;
+            removed: boolean;
+        };
+        RemoteMCPToolDecision: {
+            /** @enum {string} */
+            decision: "read_only" | "writes" | "blocked";
+            /** @description The hash of the description, schema and annotations reviewed */
+            hash: string;
+        };
         RemovalItem: {
             /** Format: int64 */
             changed?: number;
@@ -55986,6 +56290,38 @@ export interface operations {
             };
         };
     };
+    "remote-mcp-oauth-callback": {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description See Other */
+            303: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "auth-identify": {
         parameters: {
             query?: never;
@@ -59287,6 +59623,38 @@ export interface operations {
             };
         };
     };
+    "list-ai-assistant-mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-ai-assistant-models": {
         parameters: {
             query?: never;
@@ -59532,6 +59900,46 @@ export interface operations {
             };
         };
     };
+    "decide-ai-thread-confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+                /** @description The call's confirmation id */
+                confirmation: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadConfirmationDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "attach-ai-thread-context": {
         parameters: {
             query?: never;
@@ -59585,6 +59993,44 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-thread-mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadServersInput"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -59671,6 +60117,17 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": ({
+                        data: components["schemas"]["AIThreadConfirmationEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "confirmation";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
                         data: components["schemas"]["AIThreadDeltaEvent"];
                         /**
                          * @description The event name.
@@ -60432,6 +60889,284 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AILinkText"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-remote-mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoteMCPServerInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoteMCPServerUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-remote-mcp-oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPOAuthStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-remote-mcp-oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sync-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-remote-mcp-tool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+                /** @description The tool's id */
+                tool: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoteMCPToolDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
                 };
             };
             /** @description Error */

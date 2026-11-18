@@ -67,6 +67,19 @@ type streamInput struct {
 	LastEventIDQuery string `query:"lastEventId" doc:"Same as the Last-Event-ID header, for a new stream"`
 }
 
+type confirmationInput struct {
+	api.WorkspaceInput
+	Thread       uuid.UUID `path:"thread" format:"uuid" doc:"The thread's id"`
+	Confirmation uuid.UUID `path:"confirmation" format:"uuid" doc:"The call's confirmation id"`
+	Body         AIThreadConfirmationDecision
+}
+
+type serversInput struct {
+	api.WorkspaceInput
+	Thread uuid.UUID `path:"thread" format:"uuid" doc:"The thread's id"`
+	Body   AIThreadServersInput
+}
+
 type contextPath struct {
 	api.WorkspaceInput
 	Thread  uuid.UUID `path:"thread" format:"uuid" doc:"The thread's id"`
@@ -156,7 +169,7 @@ func Register(h huma.API, s *Service) {
 		Extensions:  map[string]any{"x-access": string(api.AccessWorkspace), "x-permission": string(authz.AIUse)},
 		Middlewares: huma.Middlewares{keepWriter},
 	}, map[string]any{"turn": AIThreadTurnEvent{}, "delta": AIThreadDeltaEvent{}, "message": AIThreadMessageEvent{}, "usage": AIThreadUsageEvent{}, "tool": AIThreadToolEvent{},
-		"snapshot": AIThreadSnapshotEvent{}, "heartbeat": AIThreadHeartbeat{}, "problem": AIThreadStreamProblem{}},
+		"confirmation": AIThreadConfirmationEvent{}, "snapshot": AIThreadSnapshotEvent{}, "heartbeat": AIThreadHeartbeat{}, "problem": AIThreadStreamProblem{}},
 		func(ctx context.Context, in *streamInput, send sse.Sender) {
 			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)
 			if ws == nil || p == nil {
@@ -167,6 +180,20 @@ func Register(h huma.API, s *Service) {
 				cursor = in.LastEventIDQuery
 			}
 			s.Stream(ctx, ws, p, in.Thread, cursor, send)
+		})
+	api.Put(h, api.Op{ID: "set-ai-thread-mcp-servers", Path: base + "/threads/{thread}/mcp-servers", Summary: "Pick the MCP servers a thread may use",
+		Description: "Servers the caller may use now (list-ai-assistant-mcp-servers); their approved tools are offered after ReputeCast's own, within 40. Audited as ai_assistant_thread.updated.",
+		Tags:        tags, Access: use},
+		func(ctx context.Context, in *serversInput) (*api.Body[AIThread], error) {
+			out, err := s.SetThreadServers(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Thread, in.Body)
+			return api.OK(out), err
+		})
+	api.Post(h, api.Op{ID: "decide-ai-thread-confirmation", Path: base + "/threads/{thread}/confirmations/{confirmation}", Summary: "Allow or deny a call of a writing MCP tool",
+		Description: "Only the thread's owner, as they are now. allow runs that exact call once (the tool must be as it was offered: changed, blocked or removed is a 409); deny tells the model it was refused. Either way the turn goes on. The same decision sent again changes nothing; another one, or one after Stop, is a 409 (ai_assistant_confirmation_closed). Audited as ai_assistant_confirmation.approved or .rejected, with the arguments' digest, never their content.",
+		Tags:        tags, Access: use},
+		func(ctx context.Context, in *confirmationInput) (*api.Body[AIThread], error) {
+			out, err := s.DecideConfirmation(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), in.Thread, in.Confirmation, in.Body)
+			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "detach-ai-thread-context", Path: base + "/threads/{thread}/contexts/{context}", Status: http.StatusOK, Summary: "Remove an attached resource from a thread",
 		Description: "Audited as ai_assistant_context.remove.", Tags: tags, Access: use},

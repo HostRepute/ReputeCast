@@ -83,7 +83,8 @@ func (s *Service) Purge(ctx context.Context) (PurgeResult, error) {
 				if _, err := q.AIAssistantThreadTurnsEnd(ctx, store.AIAssistantThreadTurnsEndParams{ThreadID: t.ID, Now: &now}); err != nil {
 					return err
 				}
-				for _, purge := range []func(context.Context, uuid.UUID) error{q.AIAssistantMessagesPurge, q.AIAssistantContextsPurge, q.AIAssistantThreadEventsPurge, q.AIAssistantThreadSlotPurge} {
+				for _, purge := range []func(context.Context, uuid.UUID) error{q.AIAssistantMessagesPurge, q.AIAssistantContextsPurge, q.AIAssistantThreadEventsPurge, q.AIAssistantThreadSlotPurge,
+					q.AIAssistantConfirmationsPurge} {
 					if err := purge(ctx, t.ID); err != nil {
 						return err
 					}

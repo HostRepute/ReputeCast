@@ -10,5 +10,6 @@
   "problem.nothingToSend": "Écrivez d’abord un message.",
   "problem.modelGone": "Le modèle de cette conversation a été supprimé. Choisissez un autre modèle pour la conversation, puis renvoyez votre message.",
   "problem.turnKey": "Cette clé de requête a déjà servi pour un autre message. Utilisez une nouvelle clé pour un nouveau message.",
-  "answer.reputation": "Les questions sur la réputation de l’expéditeur, les listes de blocage et l’arrivée en boîte de réception relèvent de HostRepute : il surveille vos domaines et vos IP et vous dit quoi corriger. Posez-moi vos questions sur l’utilisation de ReputeCast ou sur ce que vous avez joint."
+  "answer.reputation": "Les questions sur la réputation de l’expéditeur, les listes de blocage et l’arrivée en boîte de réception relèvent de HostRepute : il surveille vos domaines et vos IP et vous dit quoi corriger. Posez-moi vos questions sur l’utilisation de ReputeCast ou sur ce que vous avez joint.",
+  "problem.confirmationClosed": "Cet appel a déjà été décidé, ou sa réponse est terminée. Rien n’a été exécuté."
 }

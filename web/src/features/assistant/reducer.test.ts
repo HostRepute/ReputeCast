@@ -18,6 +18,7 @@ const thread = (extra: Partial<Thread> = {}): Thread => ({
   limits: { toolCalls: 40, tokens: 300000, costMicros: 2000000 },
   usage,
   contexts: [],
+  mcpServerIds: [],
   messages: [msg('u1', 'user', 'Why did opens fall?')],
   turn: turn('queued'),
   ...extra,
