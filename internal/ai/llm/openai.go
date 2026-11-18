@@ -326,7 +326,7 @@ type openAIStream struct {
 	content strings.Builder
 	refusal strings.Builder
 	calls   []ToolCall
-	args    []strings.Builder
+	args    []*strings.Builder // pointers: a grown slice must not copy a used Builder
 	byIndex map[int]int
 	current int // the index whose arguments are being emitted
 	finish  string
@@ -384,7 +384,7 @@ func (s *openAIStream) event(ev sseEvent) error {
 				i = len(s.calls)
 				s.byIndex[tc.Index] = i
 				s.calls = append(s.calls, ToolCall{ID: tc.ID, Name: tc.Function.Name})
-				s.args = append(s.args, strings.Builder{})
+				s.args = append(s.args, &strings.Builder{})
 				s.current = i
 				if err := s.emit(Delta{ToolCallStart: &ToolCall{ID: tc.ID, Name: tc.Function.Name}}); err != nil {
 					return err

@@ -27,16 +27,23 @@ export function Sparkle({ size = 14, color = 'var(--accent)' }: { size?: number;
 
 /**
  * The assistant as the signed-in person sees it: whether they hold ai:use,
- * the model, and whether a feature can be asked for now.
+ * the model, and whether a feature can be asked for now. For one feature,
+ * the state, model, prices, cap and use are that feature's own model's (the
+ * person's own pick, or the workspace's), as its requests go.
  */
-export function useAssist() {
+export function useAssist(feature?: AIFeature) {
   const can = useCan('ai:use')
   const q = useAIStatus()
-  const status = can ? q.data : undefined
+  const data = can ? q.data : undefined
   const loading = can && q.isPending
   const refetch = q.refetch
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const own = feature ? data?.features.find((x) => x.key === feature) : undefined
+    const status: AIStatus | undefined =
+      data && own
+        ? { ...data, state: own.state, provider: own.provider, providerName: own.providerName, model: own.model, modelName: own.modelName, prices: own.prices, cap: own.cap, usage: own.usage }
+        : data
+    return {
       can,
       status,
       loading,
@@ -46,9 +53,8 @@ export function useAssist() {
       provider: status?.providerName ?? '',
       featureOn: (f: AIFeature) => Boolean(status?.features.find((x) => x.key === f && x.on && x.available)),
       refetch,
-    }),
-    [can, status, loading, refetch],
-  )
+    }
+  }, [can, data, feature, loading, refetch])
 }
 
 export type Assist = ReturnType<typeof useAssist>

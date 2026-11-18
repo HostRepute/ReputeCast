@@ -1,6 +1,7 @@
 {
   "problem.unreachable": "{server} không phản hồi. Hãy kiểm tra máy chủ đang chạy và địa chỉ đúng, rồi thử lại.",
   "problem.refused": "{server} từ chối thông tin xác thực của ReputeCast. Người quản lý có thể thay khóa bí mật dùng chung trong Cài đặt › Tích hợp · Máy chủ MCP.",
+  "problem.elsewhere": "{server} yêu cầu ReputeCast gửi yêu cầu đến một địa chỉ khác. Yêu cầu chỉ được gửi đến địa chỉ đã nhập cho máy chủ, nên không có gì được gửi đến đó. Hãy kiểm tra địa chỉ của máy chủ trong Cài đặt › Tích hợp · Máy chủ MCP.",
   "problem.signIn": "Hãy đăng nhập vào {server} để dùng công cụ của nó: phiên đăng nhập của bạn bị thiếu hoặc đã hết hạn.",
   "problem.toolChanged": "{tool} đã thay đổi hoặc bị gỡ từ khi được duyệt. Người quản lý cần xem lại trước khi nó chạy.",
   "problem.toolBlocked": "Người quản lý đã chặn {tool}. Công cụ này không chạy.",

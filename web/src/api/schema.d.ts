@@ -22000,12 +22000,31 @@ export interface components {
             canManage: boolean;
             cap: components["schemas"]["AICapView"];
             defaults: components["schemas"]["AIFeatureDefault"][];
-            features: components["schemas"]["AIFeatureState"][];
+            features: components["schemas"]["AIStatusFeature"][];
             helpers: string[];
             hostRepute: boolean;
             imageInput: boolean;
             model?: string;
             modelName?: string;
+            prices: components["schemas"]["AIPricesView"];
+            /** @enum {string} */
+            provider?: "anthropic" | "openai" | "google" | "azure" | "compatible" | "";
+            providerName?: string;
+            /** @enum {string} */
+            state: "ready" | "not_configured" | "key_rejected" | "cap_reached";
+            usage: components["schemas"]["AIUsageView"];
+        };
+        AIStatusFeature: {
+            available: boolean;
+            cap: components["schemas"]["AICapView"];
+            /** @enum {string} */
+            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            model?: string;
+            /** Format: uuid */
+            modelId?: string;
+            modelName?: string;
+            on: boolean;
+            personal: boolean;
             prices: components["schemas"]["AIPricesView"];
             /** @enum {string} */
             provider?: "anthropic" | "openai" | "google" | "azure" | "compatible" | "";

@@ -7,7 +7,8 @@ import { AutomationFromBriefDialog } from './AutomationFromBrief'
 const base = '/api/v1/workspaces/acme-newsletter'
 const endpoint = `${base}/ai/drafts/automations`
 const editor = workspaceMe({ permissions: ['ai:use', 'automations:view', 'automations:edit', 'audience:view', 'templates:view'] })
-const status = { state: 'ready', providerName: 'Fixture', modelName: 'Local model', features: [{ key: 'draft', on: true, available: true }], prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }
+const draft = { key: 'draft', on: true, available: true, state: 'ready', personal: false, providerName: 'Fixture', modelName: 'Local model', prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }
+const status = { state: 'ready', providerName: 'Fixture', modelName: 'Local model', features: [draft], prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }
 const graph = {
   nodes: [
     { id: 'start', type: 'trigger', data: { trigger: { kind: 'joined_list', listId: 'list-1', confirmedOnly: true, includeImports: false, reentry: 'once', exitOnLeave: true } } },

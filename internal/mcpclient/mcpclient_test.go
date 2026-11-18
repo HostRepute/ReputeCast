@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"sync"
@@ -304,6 +305,62 @@ func TestMCPServerSSEFallback(t *testing.T) {
 	if s.Transport != "sse" || len(s.Tools) != 1 {
 		t.Fatalf("after the sync: %+v", s)
 	}
+}
+
+// A server's credential stays with its origin: an HTTP with SSE server
+// whose endpoint event names another origin has the session's first
+// request refused before it is sent, with the sync's fallback to HTTP with
+// SSE or without it. The other origin never hears from ReputeCast.
+func TestMCPCredentialStaysWithItsOrigin(t *testing.T) {
+	f := newFx(t)
+	const secret = "mcp-header-sentinel-handoff-4d2e"
+	// The other origin would take the secret, as the server's own does.
+	other := mcptest.NewServer(t, "X-Api-Key", secret)
+	var mu sync.Mutex
+	var got []string
+	done := make(chan struct{})
+	handoff := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		got = append(got, r.Header.Get("X-Api-Key"))
+		mu.Unlock()
+		if r.Method != http.MethodGet {
+			http.Error(w, "HTTP with SSE only", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("event: endpoint\ndata: " + other.URL + "/sse?sessionid=handoff\n\n"))
+		w.(http.Flusher).Flush()
+		select {
+		case <-r.Context().Done():
+		case <-done:
+		}
+	}))
+	t.Cleanup(handoff.Close)
+	t.Cleanup(func() { close(done) })
+	for _, transport := range []string{"streamable", "sse"} {
+		s := f.create(map[string]any{"name": "Handoff " + transport, "url": handoff.URL + "/sse", "transport": transport, "auth": "header",
+			"headerName": "X-Api-Key", "headerValue": secret})
+		res := f.oc.Do(http.MethodPost, f.base+"/"+s.ID.String()+"/sync", nil)
+		f.bodies = append(f.bodies, string(res.Body))
+		if n := other.Requests.Load(); n != 0 {
+			t.Fatalf("the other origin got %d requests over %q, with %q", n, transport, other.Credentials())
+		}
+		p := res.MustStatus(t, 502).Problem(t)
+		if detail, _ := p["detail"].(string); p["code"] != "mcp_unreachable" || !strings.Contains(detail, "another address") {
+			t.Fatalf("the sync over %q: %v", transport, p)
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(got) < 2 {
+		t.Fatalf("the server's own origin got %d requests", len(got))
+	}
+	for _, c := range got {
+		if c != secret {
+			t.Fatalf("the server's own origin got %q", got)
+		}
+	}
+	f.noSecret(secret)
 }
 
 // What a call returns is text only: HTML and images stripped, at most
