@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useId, useState, type ReactNode } from 'react'
+import { memo, useId, useState, type ReactNode } from 'react'
 import { ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import { HOSTREPUTE } from '@/lib/hostrepute'
@@ -61,8 +61,11 @@ export function mcpOf(row: Pick<ToolRow, 'name' | 'label'>): { key: string; serv
   const x = splitModelName(row.name)
   if (!x) return undefined
   const suffix = ` · ${x.tool}`
-  const server = row.label && row.label.endsWith(suffix) ? row.label.slice(0, -suffix.length) : x.key
-  return { key: x.key, server, tool: x.tool, label: `${server}${suffix}` }
+  if (row.label && row.label.endsWith(suffix)) return { key: x.key, server: row.label.slice(0, -suffix.length), tool: x.tool, label: row.label }
+  // A tool whose own name isn't safe for the model (mcp__linear__note_b_ for "note<b>") keeps it in the label.
+  const at = row.label ? row.label.lastIndexOf(' · ') : -1
+  if (row.label && at > 0) return { key: x.key, server: row.label.slice(0, at), tool: row.label.slice(at + 3), label: row.label }
+  return { key: x.key, server: x.key, tool: x.tool, label: `${x.key}${suffix}` }
 }
 
 /** "Read report · September Product Update · 0.3 s"; "Linear · search_issues · 1.2 s". */
@@ -152,7 +155,26 @@ function HostReputeCard({ text }: { text: string }) {
   )
 }
 
-function Answer({ item }: { item: Extract<Item, { kind: 'answer' }> }) {
+type AnswerItem = Extract<Item, { kind: 'answer' }>
+const sameList = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((x, i) => x === b[i])
+
+/**
+ * An answer renders again only when it changed: a streaming answer's
+ * deltas, or a keystroke in the composer, leave the finished ones alone
+ * (buildItems makes new items each time, from the same messages and rows).
+ */
+const Answer = memo(
+  AnswerView,
+  (a, b) =>
+    a.item.key === b.item.key &&
+    a.item.status === b.item.status &&
+    a.item.live === b.item.live &&
+    a.item.stopped === b.item.stopped &&
+    sameList(a.item.tools, b.item.tools) &&
+    sameList(a.item.texts, b.item.texts),
+)
+
+function AnswerView({ item }: { item: AnswerItem }) {
   const t = useT()
   const id = useId()
   const streaming = item.status !== undefined
@@ -199,7 +221,9 @@ function Answer({ item }: { item: Extract<Item, { kind: 'answer' }> }) {
   )
 }
 
-function UserMessage({ item }: { item: Extract<Item, { kind: 'user' }> }) {
+const UserMessage = memo(UserMessageView, (a, b) => a.item.key === b.item.key && a.item.text === b.item.text && a.item.pending === b.item.pending)
+
+function UserMessageView({ item }: { item: Extract<Item, { kind: 'user' }> }) {
   const t = useT()
   const id = useId()
   return (

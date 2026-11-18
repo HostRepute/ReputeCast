@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { clock, dayMonthDate } from '@/lib/format'
+import { useReducedMotion } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { deniedReason, useCan, useMe, useWorkspace } from '@/lib/session'
 import { useAISettings } from '@/features/ai/api'
@@ -93,6 +94,7 @@ export function MCPServersPage({ callback }: { callback: Callback }) {
   const helpers = useAISettings().data?.helpers ?? []
   const user = useMe().data?.user
   const refresh = useRefreshMCP()
+  const reduced = useReducedMotion()
   const servers = q.data?.servers
   // The server whose tools are shown; null: the person hid them.
   const [picked, setPicked] = useState<string | null | undefined>(callback.server)
@@ -165,7 +167,7 @@ export function MCPServersPage({ callback }: { callback: Callback }) {
     setPicked(s.id)
     window.setTimeout(() => {
       const card = document.getElementById(`mcp-changed-${s.id}`)
-      card?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      card?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' })
       card?.focus({ preventScroll: true })
     })
   }

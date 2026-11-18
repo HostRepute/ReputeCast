@@ -71,8 +71,10 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   const attachComposer = useCallback((h: ComposerHandle | null) => {
     composer.current = h
   }, [])
-  const focusComposer = useCallback(() => {
-    window.setTimeout(() => composer.current?.focus())
+  /** Focus to the composer: at once when it is there (the panel opening), else once it is. */
+  const focusComposer = useCallback((now = false) => {
+    if (now && composer.current) composer.current.focus()
+    else window.setTimeout(() => composer.current?.focus())
   }, [])
   const screen = useScreenContext()
   const resourceTitle = useResourceTitle(screen.resource)

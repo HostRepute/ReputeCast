@@ -168,5 +168,7 @@ describe('mcpOf', () => {
     expect(mcpOf({ name: 'mcp__linear__create_issue', label: 'Linear · create_issue' })).toEqual({ key: 'linear', server: 'Linear', tool: 'create_issue', label: 'Linear · create_issue' })
     expect(mcpOf({ name: 'mcp__wiki__search' })?.label).toBe('wiki · search')
     expect(mcpOf({ name: 'read_report', label: 'September' })).toBeUndefined()
+    // A name the model can't take is sanitized in its tool name, never in the label.
+    expect(mcpOf({ name: 'mcp__wiki__note_b_', label: '<i>Wiki</i> · note<b>' })).toMatchObject({ server: '<i>Wiki</i>', tool: 'note<b>' })
   })
 })

@@ -1,5 +1,5 @@
 import { useRouterState } from '@tanstack/react-router'
-import { Component, createContext, lazy, Suspense, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { Component, createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import { Icon } from '@/components/icons/Icon'
 import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n'
@@ -9,7 +9,7 @@ import { useOptionalWorkspace } from '@/lib/session'
 import { modKeyLabel, useShortcutHandler } from '@/lib/shortcuts'
 import { ml } from './launcher.messages'
 import type { AssistantPanel } from './Panel'
-import { loadPanel, mountSlot, PANEL_MIN, toggleAssistant, useAssistant } from './store'
+import { loadedPanel, loadPanel, mountSlot, PANEL_MIN, toggleAssistant, useAssistant } from './store'
 import './shell.css'
 
 /**
@@ -109,9 +109,7 @@ export function AssistantLauncher() {
   )
 }
 
-const Panel = lazy(() => loadPanel().then((mod) => ({ default: (mod as { AssistantPanel: typeof AssistantPanel }).AssistantPanel })))
-
-/** The panel's chunk failed to load: say so where the panel goes, with Retry. */
+/** The panel failed to render: say so where the panel goes, with Retry. */
 class PanelBoundary extends Component<{ children: ReactNode; fallback: () => ReactNode }, { failed: boolean }> {
   state = { failed: false }
   static getDerivedStateFromError() {
@@ -141,24 +139,26 @@ export function AssistantSlot({ layout }: { layout: PanelLayout }) {
   useShortcutHandler('assistant', () => {
     toggleAssistant()
   })
+  useEffect(() => {
+    if (ui.open) void loadPanel().catch(() => {})
+  }, [ui.open])
   if (!ui.open) return null
+  const failed = (
+    <PanelFrame layout={layout}>
+      <b role="alert">{t(ml.loadFailed)}</b>
+      <span>
+        {/* A chunk that didn't load (a new release meanwhile) comes with the page again. */}
+        <Button size="sm" onClick={() => window.location.reload()}>
+          {t(common.retry)}
+        </Button>
+      </span>
+    </PanelFrame>
+  )
+  const Panel = (loadedPanel() as { AssistantPanel: typeof AssistantPanel } | undefined)?.AssistantPanel
+  if (!Panel) return ui.panel === 'failed' ? failed : <PanelFrame layout={layout}>{t(ml.loading)}</PanelFrame>
   return (
-    <PanelBoundary
-      fallback={() => (
-        <PanelFrame layout={layout}>
-          <b role="alert">{t(ml.loadFailed)}</b>
-          <span>
-            {/* A chunk that didn't load (a new release meanwhile) comes with the page again. */}
-            <Button size="sm" onClick={() => window.location.reload()}>
-              {t(common.retry)}
-            </Button>
-          </span>
-        </PanelFrame>
-      )}
-    >
-      <Suspense fallback={<PanelFrame layout={layout}>{t(ml.loading)}</PanelFrame>}>
-        <Panel layout={layout} />
-      </Suspense>
+    <PanelBoundary fallback={() => failed}>
+      <Panel layout={layout} />
     </PanelBoundary>
   )
 }

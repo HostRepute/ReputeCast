@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch } from 'react'
+import { flushSync } from 'react-dom'
 import { MAX_ATTEMPTS, retryDelay } from '@/features/live/useLiveSend'
 import type { Action, StreamEvent } from './reducer'
 
@@ -49,17 +50,38 @@ export function useThreadStream(slug: string, thread: string | undefined, lastId
     let lost: Date | undefined
     let queue: StreamEvent[] = []
     let heard = Date.now()
-    const flush = () => {
+    // What applying a batch costs here (render and layout), and when the last ended.
+    let cost = 0
+    let ended = 0
+    const flush = (now = false) => {
       frame = undefined
       if (!queue.length || disposed) return
       const events = queue
       queue = []
-      dispatch({ type: 'events', events })
+      const start = performance.now()
+      // In the frame's callback the update renders at once, so this frame
+      // paints it (not the next one, after a task React would schedule).
+      if (now) flushSync(() => dispatch({ type: 'events', events }))
+      else dispatch({ type: 'events', events })
+      ended = performance.now()
+      cost = cost * 0.7 + (ended - start) * 0.3
     }
     const schedule = () => {
       if (frame !== undefined) return
       // Hidden tabs don't paint: hand the events over on a timer there.
-      frame = document.hidden ? window.setTimeout(flush, 100) : window.requestAnimationFrame(flush)
+      if (document.hidden) {
+        frame = window.setTimeout(() => flush(), 100)
+        return
+      }
+      // Where a batch takes longer than a frame (a slow phone), the next
+      // waits as long again, so taps and typing get half the time; the
+      // deltas meanwhile render together.
+      const wait = ended + cost - performance.now()
+      if (cost > 12 && wait > 4) {
+        frame = window.setTimeout(() => {
+          frame = window.requestAnimationFrame(() => flush(true))
+        }, wait)
+      } else frame = window.requestAnimationFrame(() => flush(true))
     }
     const url = `/api/v1/workspaces/${encodeURIComponent(slug)}/ai/assistant/threads/${encodeURIComponent(thread)}/stream`
     const connect = () => {

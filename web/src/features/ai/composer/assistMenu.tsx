@@ -49,6 +49,7 @@ export function AssistMenu() {
   // Quick review on a phone has no inspector: alt text and the accessibility
   // fixes open there, so they say where they work instead of doing nothing.
   const quickReview = useMediaQuery('(max-width: 767px)') && c.view === 'visual'
+  const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   if (!ca || !ca.assist.can || c.kind === 'transactional' || !c.canEdit) return null
   const a = ca.assist
   const s = a.status
@@ -155,7 +156,7 @@ export function AssistMenu() {
                 const first = images[0]!
                 c.editor?.select(first)
                 c.setRightTab('settings')
-                first.getEl()?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                first.getEl()?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' })
               }
             : undefined,
           quickReview ? t(ms.largerScreen) : offText('alt_text'),

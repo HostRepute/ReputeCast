@@ -23,6 +23,8 @@ export interface AssistantUi {
   slots: number
   /** What a contextual button suggests, on the screen it was pressed on; nothing is attached until the person attaches it. */
   suggest?: AssistantSuggestion
+  /** The panel's chunk: loaded (it renders at once), or failed to load. */
+  panel?: 'ready' | 'failed'
 }
 
 /** A resource an "Ask the assistant" button suggests as context (a report, a draft campaign). */
@@ -96,13 +98,31 @@ export function getAssistant(): AssistantUi {
 }
 
 let panel: Promise<unknown> | undefined
-/** Fetches the panel's chunk ahead of opening it. */
+let panelModule: unknown
+/**
+ * Fetches the panel's chunk ahead of opening it. Once it is in, the slot
+ * renders the panel at once, never through a Suspense fallback (whose
+ * reveal React holds back for up to 300 ms).
+ */
 export function loadPanel() {
-  panel ??= import('./Panel').catch((e: unknown) => {
-    panel = undefined
-    throw e
-  })
+  panel ??= import('./Panel').then(
+    (mod) => {
+      panelModule = mod
+      set({ panel: 'ready' })
+      return mod
+    },
+    (e: unknown) => {
+      panel = undefined
+      set({ panel: 'failed' })
+      throw e
+    },
+  )
   return panel
+}
+
+/** The panel's module, once loaded. */
+export function loadedPanel(): unknown {
+  return panelModule
 }
 
 /**

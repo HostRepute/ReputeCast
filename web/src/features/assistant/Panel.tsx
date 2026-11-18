@@ -134,7 +134,7 @@ function Body({ c, list, panel }: { c: ThreadController; list: boolean; panel: R
   // The composer has focus when the panel opens and when the thread view comes back.
   const { focusComposer } = c
   useEffect(() => {
-    if (!list) focusComposer()
+    if (!list) focusComposer(true)
   }, [list, focusComposer])
   if (list)
     return (

@@ -57,16 +57,22 @@ export function Composer({
     })
     return () => handle?.(null)
   }, [handle])
-  // Grow with the text, up to 40% of the panel's height.
+  // Grow with the text, up to 40% of the panel's height: measured only when
+  // the text changes (measuring forces a layout of the panel, which a
+  // streaming answer re-renders many times a second).
+  const boundRef = useRef(bound)
+  useLayoutEffect(() => {
+    boundRef.current = bound
+  })
   useLayoutEffect(() => {
     const el = area.current
     if (!el) return
-    const limit = Math.max(44, (bound?.()?.clientHeight ?? window.innerHeight) * 0.4)
+    const limit = Math.max(44, (boundRef.current?.()?.clientHeight ?? window.innerHeight) * 0.4)
     el.style.height = 'auto'
     const next = Math.min(el.scrollHeight, limit)
     el.style.height = `${next}px`
     el.style.overflowY = el.scrollHeight > limit ? 'auto' : 'hidden'
-  }, [value, bound])
+  }, [value])
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Enter' || e.shiftKey) return
     // An input method uses Enter to commit a word: never send then.

@@ -180,6 +180,8 @@
     scroll-padding-bottom: 24px;
     overscroll-behavior: contain;
     min-height: 0;
+    /* A streaming answer relays out and repaints the log alone, not the page. */
+    contain: content;
   }
   .asst-msgs:focus-visible {
     outline: 2px solid var(--accent);
@@ -205,6 +207,8 @@
     display: grid;
     gap: 6px;
     min-width: 0;
+    /* A long word, link or token breaks rather than widening the panel. */
+    overflow-wrap: anywhere;
   }
   .asst-md > * {
     margin: 0;
@@ -272,6 +276,8 @@
   }
   .asst-table th,
   .asst-table td {
+    /* A table scrolls in its own region instead. */
+    overflow-wrap: normal;
     border-bottom: 1px solid var(--line-2);
     padding: 4px 6px;
     text-align: left;
@@ -379,6 +385,10 @@
     justify-self: start;
     max-width: 100%;
   }
+  .asst-tool > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   .asst-tool svg {
     flex: none;
   }
@@ -483,6 +493,11 @@
   }
   .asst-waiting svg {
     flex: none;
+  }
+  .asst-waiting > span {
+    flex: 1 1 12rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .asst-waiting a {
     color: var(--accent);
