@@ -151,7 +151,7 @@ export default translate(m, {
   clientHint: 'Không bắt buộc. Để trống cả hai khi máy chủ tự đăng ký ReputeCast.',
   redirectHint: 'Địa chỉ chuyển hướng cần đăng ký: {uri}',
   fieldWho: 'Ai được dùng',
-  whoAll: 'Mọi người có quyền Dùng tính năng AI',
+  whoAll: 'Mọi người có quyền Dùng trợ lý AI',
   whoManagers: 'Chủ sở hữu và Quản trị viên',
   whoCustom: 'Chỉ {roles}',
   enabled: 'Đưa công cụ của máy chủ vào các cuộc trò chuyện',

@@ -9,6 +9,7 @@ import { pretty } from '@/features/mcpservers/tools'
 import { mcpOf } from './Conversation'
 import { AsstIcon } from './icons'
 import { mx } from './mcp.messages'
+import { m } from './messages'
 import type { Confirmation, ToolRow } from './reducer'
 import { StateCard } from './states'
 import type { ThreadController } from './ThreadView'
@@ -25,7 +26,8 @@ export function pendingConfirmation(c: ThreadController): Confirmation | undefin
 /**
  * The confirmation card (AssistantPanel › Confirm): server · tool, the
  * model that asked, the exact arguments as plain JSON (scrolls, copies),
- * Deny and Allow once. A decision is sent once; a closed call (409) says so.
+ * Deny and Allow once. A decision is sent once; a closed call (409) says
+ * so, and so does one that expired (24 hours without a decision).
  */
 export function ConfirmCard({ c, conf }: { c: ThreadController; conf: Confirmation }) {
   const t = useT()
@@ -34,6 +36,7 @@ export function ConfirmCard({ c, conf }: { c: ThreadController; conf: Confirmati
   const args = pretty(conf.arguments)
   const values = { server: conf.serverName, tool: conf.tool }
   const busy = c.deciding
+  const expired = conf.state === 'expired'
   const copy = () => {
     void navigator.clipboard?.writeText(args).then(
       () => {
@@ -47,9 +50,9 @@ export function ConfirmCard({ c, conf }: { c: ThreadController; conf: Confirmati
     <section className="asst-confirm" id={CONFIRM_ID} aria-labelledby={titleId} tabIndex={-1}>
       <div className="asst-confirm-head">
         <strong id={titleId}>{t(mx.title, values)}</strong>
-        <Badge tone="warn">{t(mx.badge)}</Badge>
+        <Badge tone={expired ? 'neutral' : 'warn'}>{t(expired ? m.expiredBadge : mx.badge)}</Badge>
       </div>
-      <p className="sub">{t(mx.check, { server: conf.serverName })}</p>
+      {expired ? null : <p className="sub">{t(mx.check, { server: conf.serverName })}</p>}
       <small className="k">{t(mx.askedBy, { model: c.model?.modelName || c.model?.model || '', name: conf.modelName })}</small>
       <div className="asst-confirm-args">
         <ScrollPre className="asst-tooldetail" label={t(mx.argsLabel, values)} vertical>
@@ -63,14 +66,16 @@ export function ConfirmCard({ c, conf }: { c: ThreadController; conf: Confirmati
           {copied ? t(common.copied) : ''}
         </span>
       </div>
-      <small>{t(mx.note)}</small>
+      {expired ? null : <small>{t(mx.note)}</small>}
       {c.confProblem?.id === conf.id ? (
         <p className="asst-status asst-confirm-problem">
           <AsstIcon name="warn" size={14} />
           <span>{t(c.confProblem.code === 'mcp_tool_blocked' ? mx.confirmBlocked : mx.confirmChanged, values)}</span>
         </p>
       ) : null}
-      {c.confirmClosed === conf.id ? (
+      {expired ? (
+        <p className="asst-status">{t(mx.expired, values)}</p>
+      ) : c.confirmClosed === conf.id ? (
         <p className="asst-status" role="status">
           {t(mx.closed)}
         </p>

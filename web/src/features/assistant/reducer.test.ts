@@ -1,6 +1,9 @@
+import { act, renderHook } from '@testing-library/react'
 import { buildItems, mcpOf } from './Conversation'
 import { streamBlocks } from './Markdown'
 import { initialThreadState, threadReducer, type Confirmation, type StreamEvent, type Thread, type ThreadMessage, type ThreadState, type ThreadTurn } from './reducer'
+import { problemOf } from './states'
+import { useThreadState } from './useThreadStream'
 
 const at = '2026-11-17T10:00:00Z'
 const turn = (state: ThreadTurn['state'], extra: Partial<ThreadTurn> = {}): ThreadTurn => ({ id: 't1', sequence: 1, state, createdAt: at, ...extra })
@@ -170,5 +173,54 @@ describe('mcpOf', () => {
     expect(mcpOf({ name: 'read_report', label: 'September' })).toBeUndefined()
     // A name the model can't take is sanitized in its tool name, never in the label.
     expect(mcpOf({ name: 'mcp__wiki__note_b_', label: '<i>Wiki</i> · note<b>' })).toMatchObject({ server: '<i>Wiki</i>', tool: 'note<b>' })
+  })
+})
+
+describe('useThreadState', () => {
+  it('holds deltas that only lengthen the answer, and applies them before anything else', () => {
+    const { result } = renderHook(() => useThreadState())
+    const send = (...events: StreamEvent[]) => act(() => result.current[1]({ type: 'events', events }))
+    send(snap(2), turnEv(3, turn('answering')), delta(4, 'Opens '))
+    const shown = result.current[0]
+    expect(shown.live?.text).toBe('Opens ')
+    const heard: string[] = []
+    const off = result.current[2].subscribe(() => heard.push(result.current[2].get()?.text ?? ''))
+    send(delta(5, 'fell '))
+    send(delta(6, 'by 4%.'))
+    // The panel's state didn't change; only the live text did.
+    expect(result.current[0]).toBe(shown)
+    expect(heard).toEqual(['Opens fell ', 'Opens fell by 4%.'])
+    // The next other event comes after them, as if each had been dispatched.
+    send(message(7, msg('a1', 'assistant', 'Opens fell by 4%.')), turnEv(8, turn('done')))
+    const direct = run(initialThreadState, snap(2), turnEv(3, turn('answering')), delta(4, 'Opens '), delta(5, 'fell '), delta(6, 'by 4%.'), message(7, msg('a1', 'assistant', 'Opens fell by 4%.')), turnEv(8, turn('done')))
+    expect(result.current[0]).toEqual(direct)
+    expect(result.current[2].get()).toBeUndefined()
+    off()
+  })
+
+  it('applies held deltas before a stop, so the stopped text is whole', () => {
+    const { result } = renderHook(() => useThreadState())
+    const send = (...events: StreamEvent[]) => act(() => result.current[1]({ type: 'events', events }))
+    send(snap(2), turnEv(3, turn('answering')), delta(4, 'Opens '))
+    send(delta(5, 'fell'))
+    send(turnEv(6, turn('stopped')))
+    expect(result.current[0].stopped).toEqual({ turnId: 't1', text: 'Opens fell' })
+  })
+})
+
+describe('problemOf', () => {
+  it('tells each model problem and an expired call apart, as reasons and as refused messages’ codes', () => {
+    const cases: [string, string][] = [
+      ['model_gone', 'modelGone'],
+      ['assistant_model_gone', 'modelGone'],
+      ['account_disconnected', 'disconnected'],
+      ['key_rejected', 'key'],
+      ['tools_unchecked', 'toolsUnchecked'],
+      ['personal_keys_off', 'personalKeysOff'],
+      ['not_configured', 'notConfigured'],
+      ['confirmation_expired', 'confirmationExpired'],
+      ['something_new', 'failed'],
+    ]
+    for (const [reason, problem] of cases) expect(problemOf(reason), reason).toBe(problem)
   })
 })

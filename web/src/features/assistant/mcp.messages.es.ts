@@ -30,6 +30,7 @@ export default translate(mx, {
   deny: 'Denegar',
   allow: 'Permitir una vez',
   closed: 'Esta solicitud ya estaba cerrada, así que tu decisión no se envió. La conversación muestra lo que pasó.',
+  expired: 'Esta solicitud caducó tras 24 horas sin decisión. No se envió nada a {server}.',
   confirmChanged: '{server} · {tool} cambió después de que el modelo lo pidiera, así que no puede ejecutarse. Deniégalo para que el asistente siga.',
   confirmBlocked: 'Alguien que administra integraciones bloqueó {server} · {tool} después de que el modelo lo pidiera, así que no puede ejecutarse. Deniégalo para que el asistente siga.',
   decideFailed: 'No se envió tu decisión',

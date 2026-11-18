@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { memo, useId, useState, type ReactNode } from 'react'
+import { createContext, memo, useContext, useId, useLayoutEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import { HOSTREPUTE } from '@/lib/hostrepute'
@@ -11,6 +11,7 @@ import { mx } from './mcp.messages'
 import { m } from './messages'
 import { turnActive, type ThreadMessage, type ThreadState, type ToolRow } from './reducer'
 import { StateCard } from './states'
+import type { LiveText } from './useThreadStream'
 
 /** One block of the conversation: the person's message, an answer (a turn's tools and text), or the summary marker. */
 export type Item =
@@ -155,6 +156,28 @@ function HostReputeCard({ text }: { text: string }) {
   )
 }
 
+/**
+ * The streaming answer's text as it arrives (useThreadState), and what
+ * keeps the conversation at its end meanwhile (the log's own scrolling).
+ */
+export const LiveContext = createContext<{ text: LiveText; stick: () => void } | undefined>(undefined)
+const unsubscribed = () => () => {}
+
+/**
+ * The streaming answer's Markdown: the turn's newest text, which renders
+ * here alone, without the panel around it, for each frame of deltas.
+ */
+function LiveMarkdown({ turnId, text }: { turnId?: string; text: string }) {
+  const ctx = useContext(LiveContext)
+  const now = useSyncExternalStore(ctx?.text.subscribe ?? unsubscribed, () => ctx?.text.get())
+  const shown = now && now.turnId === turnId && now.text.length >= text.length ? now.text : text
+  const stick = ctx?.stick
+  useLayoutEffect(() => {
+    stick?.()
+  }, [shown, stick])
+  return <StreamingMarkdown text={shown} />
+}
+
 type AnswerItem = Extract<Item, { kind: 'answer' }>
 const sameList = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((x, i) => x === b[i])
 
@@ -199,7 +222,7 @@ function AnswerView({ item }: { item: AnswerItem }) {
       )}
       {item.live ? (
         <div className="asst-md">
-          <StreamingMarkdown text={item.live} />
+          <LiveMarkdown turnId={item.turnId} text={item.live} />
         </div>
       ) : null}
       {item.stopped ? (

@@ -151,7 +151,7 @@ export default translate(m, {
   clientHint: 'Optional. Lassen Sie beides leer, wenn der Server ReputeCast selbst registriert.',
   redirectHint: 'Zu registrierende Weiterleitungsadresse: {uri}',
   fieldWho: 'Wer ihn nutzen kann',
-  whoAll: 'Alle mit „KI-Funktionen nutzen“',
+  whoAll: 'Alle mit „KI-Assistenten nutzen“',
   whoManagers: 'Inhaber und Admins',
   whoCustom: 'Nur {roles}',
   enabled: 'Seine Tools in Unterhaltungen anbieten',

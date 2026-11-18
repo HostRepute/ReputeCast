@@ -1,7 +1,51 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type Dispatch } from 'react'
 import { flushSync } from 'react-dom'
 import { MAX_ATTEMPTS, retryDelay } from '@/features/live/useLiveSend'
-import type { Action, StreamEvent } from './reducer'
+import { initialThreadState, threadReducer, type Action, type StreamEvent, type ThreadState } from './reducer'
+
+/** The streaming answer's text, ahead of the thread's state (useThreadState). */
+export interface LiveText {
+  get: () => ThreadState['live']
+  subscribe: (listener: () => void) => () => void
+}
+
+/**
+ * The thread's state (threadReducer) with one shortcut: deltas that only
+ * lengthen the answer already on screen don't change it. They go to
+ * LiveText, which only that answer's text reads, so the rest of the panel
+ * doesn't render again for each frame of deltas; the next other action
+ * applies them first, so the state is the same as if each had been
+ * dispatched.
+ */
+export function useThreadState(): [ThreadState, Dispatch<Action>, LiveText] {
+  const [state, apply] = useReducer(threadReducer, initialThreadState)
+  // What the state is once React has applied every action, and the deltas it hasn't been given.
+  const ref = useRef({ latest: initialThreadState, held: [] as StreamEvent[], listeners: new Set<() => void>() })
+  const dispatch = useCallback((a: Action) => {
+    const box = ref.current
+    const before = box.latest
+    box.latest = threadReducer(before, a)
+    const turn = before.live?.turnId
+    if (turn && a.type === 'events' && a.events.every((e) => e.type === 'delta' && e.data.turnId === turn)) box.held.push(...a.events)
+    else {
+      if (box.held.length) apply({ type: 'events', events: box.held })
+      box.held = []
+      apply(a)
+    }
+    if (box.latest.live !== before.live) for (const l of box.listeners) l()
+  }, [])
+  const live = useMemo<LiveText>(
+    () => ({
+      get: () => ref.current.latest.live,
+      subscribe: (l) => {
+        ref.current.listeners.add(l)
+        return () => ref.current.listeners.delete(l)
+      },
+    }),
+    [],
+  )
+  return [state, dispatch, live]
+}
 
 export type StreamStatus = 'idle' | 'connecting' | 'open' | 'retrying' | 'stopped' | 'ended'
 

@@ -1,5 +1,5 @@
 import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router'
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ManagedByCard, useClientSections, useIsClientPerson } from '@/features/agency/WorkspaceParts'
 import { AssistantPlace, AssistantSlot, useAssistantLayout } from '@/features/assistant/AssistantShell'
 import { useAssistant } from '@/features/assistant/store'
@@ -35,10 +35,7 @@ export function AppShell({ children }: { children?: ReactNode } = {}) {
   const layout = useAssistantLayout()
   const docked = open && layout.mode === 'docked'
   return (
-    <div
-      className={cn('app rc-app', docked && 'asst-docked', open && layout.mode === 'full' && 'asst-fullscreen')}
-      style={docked || (open && layout.mode === 'overlay') ? ({ '--asst-w': `${layout.width}px` } as CSSProperties) : undefined}
-    >
+    <div className={cn('app rc-app', docked && 'asst-docked', open && layout.mode === 'full' && 'asst-fullscreen')}>
       <a href="#main" className="skip">
         {t(m.skipToContent)}
       </a>

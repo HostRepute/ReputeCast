@@ -4,8 +4,8 @@
  *
  * - open: from the press on the top bar's Assistant button to a usable
  *   composer (focused and enabled), the CPU four times slower, its chunk
- *   either prefetched by hovering the button or only in the HTTP cache (a
- *   reload since; on touch nothing hovers);
+ *   either prefetched by hovering the button or, after a reload, fetched
+ *   from the HTTP cache once the page was idle (on touch nothing hovers);
  * - delta to paint: from each streamed delta's arrival (the EventSource
  *   event) until its words are on screen and a frame has painted, over
  *   the demo's "#long" answer (360 distinct words in pieces of three);
@@ -13,7 +13,7 @@
  *   phone (390 px, touch, the CPU four times slower), from the page's
  *   Event Timing entries.
  *
- *   node scripts/assistant-perf.ts --app http://localhost:8080 [--runs 10]
+ *   node scripts/assistant-perf.ts --app http://localhost:8080 [--runs 10] [--only open|stream] [--no-input]
  *
  * Measure the production build the binary serves (`pnpm build`, then
  * `go build ./cmd/reputecast`), not Vite's dev server.
@@ -28,9 +28,11 @@ function opt(name: string, def: string) {
 }
 const app = opt('app', process.env.SHOT_APP ?? 'http://localhost:8080')
 const runs = Number(opt('runs', '10'))
-// The phone's device pixel ratio (Pixel 7: 2.625); --only open|stream runs one part.
+// The phone's device pixel ratio (Pixel 7: 2.625); --only open|stream runs one part;
+// --no-input streams on the phone without the taps and typing (delta to paint alone).
 const dpr = Number(opt('dpr', '3'))
 const only = opt('only', '')
+const noInput = args.includes('--no-input')
 const home = `${app}/w/acme-newsletter`
 
 // Before the page's own scripts: each delta's arrival, every interaction's
@@ -133,7 +135,7 @@ async function openTimes(label: string, touch: boolean, viewport: { width: numbe
   for (const prefetch of touch ? [false] : [true, false]) {
     const all: number[] = []
     for (let i = 0; i < runs; i++) all.push(await openOnce(page, ctx, prefetch, touch))
-    console.log(`open, ${label}, ${prefetch ? 'chunk prefetched by hover' : 'chunk in the HTTP cache only'}: median ${ms(pct(all, 50))}, p95 ${ms(pct(all, 95))}, max ${ms(Math.max(...all))} (${runs} runs, CPU 4×)`)
+    console.log(`open, ${label}, ${prefetch ? 'chunk prefetched by hover' : 'after a reload, chunk from the HTTP cache when idle'}: median ${ms(pct(all, 50))}, p95 ${ms(pct(all, 95))}, max ${ms(Math.max(...all))} (${runs} runs, CPU 4×)`)
   }
   await browser.close()
 }
@@ -160,7 +162,7 @@ async function stream(label: string, phone: boolean) {
   const cdp = await throttle(page, ctx, phone ? 4 : 1)
   await composer.press('Enter')
   await until(page, lastAnswerHas('w001'), 60_000)
-  if (phone) {
+  if (phone && !noInput) {
     // Interactions while it streams: typing, the tool row, the model menu.
     for (let i = 0; i < 6 && !(await done(page)); i++) {
       await composer.tap()
@@ -183,7 +185,7 @@ async function stream(label: string, phone: boolean) {
   const lags = perf.deltas.filter((d) => d.word && d.shown).map((d) => d.shown - d.at)
   const missed = perf.deltas.filter((d) => d.word && !d.shown).length
   console.log(`delta to paint, ${label}: p50 ${ms(pct(lags, 50))}, p95 ${ms(pct(lags, 95))}, max ${ms(Math.max(...lags))} over ${lags.length} deltas${missed ? `, ${missed} never seen` : ''}`)
-  if (phone) {
+  if (phone && !noInput) {
     // Only what happened while the answer streamed.
     const from = perf.deltas[0]?.at ?? 0
     const during = perf.events.filter((e) => e[3] >= from)
@@ -203,5 +205,5 @@ if (only !== 'stream') {
 }
 if (only !== 'open') {
   await stream('desktop 1440 px, CPU 1×', false)
-  await stream(`phone 390 px at ${dpr}×, touch, CPU 4×`, true)
+  await stream(`phone 390 px at ${dpr}×, touch, CPU 4×${noInput ? ', no input meanwhile' : ', taps and typing meanwhile'}`, true)
 }

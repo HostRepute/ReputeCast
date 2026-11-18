@@ -79,7 +79,7 @@ function authLine(t: ReturnType<typeof useT>, s: MCPServer): string {
  * Settings › Integrations › MCP servers (MCPServers): the servers with
  * their status, each one's tools with how they are allowed, a tool that
  * changed after approval with its change, and how calls are allowed.
- * Managers add, edit, sync and review; everyone with Use AI features
+ * Managers add, edit, sync and review; everyone with Use the AI assistant
  * connects their own account to an OAuth server. The OAuth callback lands
  * here (?server=…&connected=1 or &error=denied|token): it is announced and
  * the address cleaned.

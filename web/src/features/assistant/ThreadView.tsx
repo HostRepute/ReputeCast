@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, errorMessage } from '@/api/client'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
@@ -8,28 +9,50 @@ import { useAIStatus } from '@/features/ai/api'
 import { useSharingReview } from '@/features/ai/SharingReview'
 import { useT } from '@/i18n'
 import { count, money } from '@/lib/format'
-import { deniedReason, useCan, useWorkspace } from '@/lib/session'
+import { deniedReason, useCan, useWorkspace, workspaceMeKey } from '@/lib/session'
+import type { NotificationItem } from '@/components/shell/NotificationsPopover'
 import { startSignIn, useUsableMCPServers, type MCPServer } from '@/features/mcpservers/api'
-import { attachContext, createThread, decideConfirmation, detachContext, requestKey, sendMessage, setThreadServers, stopTurn, updateThread, useAssistantModels, useRefreshThreads, useThread, type AssistantModel } from './api'
+import { attachContext, createThread, decideConfirmation, detachContext, requestKey, sendMessage, setThreadServers, stopTurn, testModelTools, updateThread, useAssistantModels, useRefreshThreads, useThread, type AssistantModel } from './api'
 import { Composer, type ComposerHandle } from './Composer'
 import { CONFIRM_ID, ConfirmCard, MCPStates, pendingConfirmation, WaitingLine } from './Confirmation'
-import { buildItems, Conversation } from './Conversation'
+import { buildItems, Conversation, LiveContext } from './Conversation'
 import { placeholderOf, suggestions, useResourceTitle, useScreenContext } from './context'
 import { AsstIcon } from './icons'
 import { mx } from './mcp.messages'
 import { m } from './messages'
 import { ModelPicker } from './ModelPicker'
-import { initialThreadState, threadReducer, turnActive, type Confirmation, type ThreadContext } from './reducer'
+import { turnActive, type Confirmation, type ThreadContext } from './reducer'
 import { ServerPicker } from './ServerPicker'
-import { problemCopy, problemOf, StateCard, useProblemTitle, type TurnProblem } from './states'
-import { getAssistant, markDraftTaken, setAssistantThread, untakenDraft, useAssistant } from './store'
+import { modelProblems, problemCopy, problemOf, StateCard, useProblemTitle, type TurnProblem } from './states'
+import { closeAssistant, getAssistant, markDraftTaken, setAssistantThread, untakenDraft, useAssistant, waitingThread } from './store'
 import { MAX_ATTEMPTS } from '@/features/live/useLiveSend'
-import { useThreadStream } from './useThreadStream'
+import { useThreadState, useThreadStream } from './useThreadStream'
 
 /** A state that keeps the assistant from answering here at all. */
 export type Gate = 'noAccess' | 'off' | 'noModel' | 'noUsable' | 'expired' | 'lost'
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s)
+
+/** A text that renders only where it's read (the composer's draft). */
+function textStore(initial: string) {
+  let value = initial
+  const listeners = new Set<() => void>()
+  return {
+    get: () => value,
+    set: (next: string | ((now: string) => string)) => {
+      const v = typeof next === 'function' ? next(value) : next
+      if (v === value) return
+      value = v
+      for (const l of listeners) l()
+    },
+    subscribe: (l: () => void) => {
+      listeners.add(l)
+      return () => {
+        listeners.delete(l)
+      }
+    },
+  }
+}
 
 /** An answer's first sentence, without Markdown marks, for the live region. */
 export function firstSentence(text: string): string {
@@ -59,13 +82,15 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   const models = useAssistantModels()
   const query = useThread(threadId)
   const refreshThreads = useRefreshThreads()
-  const [state, dispatch] = useReducer(threadReducer, initialThreadState)
-  const [draft, setDraft] = useState(untakenDraft)
+  const [state, dispatch, live] = useThreadState()
+  // The composer's text lives outside this state: a keystroke renders the composer alone.
+  const [draft] = useState(() => textStore(untakenDraft()))
+  const setDraft = draft.set
   const [picked, setPicked] = useState<string>()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [announce, setAnnounce] = useState('')
-  // A message refused before its turn started (the monthly cap, a rejected key…).
-  const [sendProblem, setSendProblem] = useState<TurnProblem>()
+  // A message refused before its turn started (the monthly cap, a rejected key…), with the server's words.
+  const [sendProblem, setSendProblem] = useState<{ problem: TurnProblem; detail?: string }>()
   // The composer registers its handle; the controller only focuses it.
   const composer = useRef<ComposerHandle | null>(null)
   const attachComposer = useCallback((h: ComposerHandle | null) => {
@@ -89,14 +114,28 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   // A new thread starts from nothing; the API's thread replaces what was kept.
   useEffect(() => {
     dispatch({ type: 'reset' })
-  }, [threadId])
+  }, [threadId, dispatch])
   useEffect(() => {
     if (query.data && query.data.id === threadId) dispatch({ type: 'thread', thread: query.data })
-  }, [query.data, threadId])
+  }, [query.data, threadId, dispatch])
   // A thread that is gone (deleted, not this person's) leaves a new one.
   useEffect(() => {
     if (query.error instanceof ApiError && query.error.status === 404) setAssistantThread(slug, undefined)
   }, [query.error, slug])
+
+  // The server removes a waiting call's notification once the call is
+  // decided, stopped or expired: a thread that shows here without its call
+  // waiting, while a notification of it is still kept, has the bell and the
+  // launcher's dot asked again.
+  const qc = useQueryClient()
+  const shown = state.thread && state.thread.id === threadId ? (state.turn?.state ?? 'none') : undefined
+  useEffect(() => {
+    if (!threadId || !shown || shown === 'waiting') return
+    const notes = qc.getQueriesData<{ items?: NotificationItem[] }>({ queryKey: ['get', '/api/v1/workspaces/{workspace}/notifications'] })
+    if (!notes.some(([, d]) => d?.items?.some((n) => waitingThread(n) === threadId))) return
+    void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/notifications'] })
+    void qc.invalidateQueries({ queryKey: workspaceMeKey(slug) })
+  }, [threadId, shown, qc, slug])
 
   // A stopped turn's request is accounted after it stops, with no usage
   // event: read the thread again for its cost.
@@ -111,15 +150,15 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   const stream = useThreadStream(slug, threadId, state.lastId, Boolean(state.thread && state.thread.id === threadId && state.thread.state === 'open'), dispatch)
 
   // ⌘K › Ask the assistant: the question waits in the composer, unsent.
-  const [nonce, setNonce] = useState(ui.draftNonce)
-  if (nonce !== ui.draftNonce) {
-    setNonce(ui.draftNonce)
-    setDraft(getAssistant().draft)
-  }
+  const nonce = useRef(ui.draftNonce)
   useEffect(() => {
+    if (nonce.current !== ui.draftNonce) {
+      nonce.current = ui.draftNonce
+      setDraft(getAssistant().draft)
+    }
     markDraftTaken(ui.draftNonce)
     if (ui.draftNonce) focusComposer()
-  }, [ui.draftNonce, focusComposer])
+  }, [ui.draftNonce, focusComposer, setDraft])
 
   const list = models.data?.models ?? []
   const modelId = state.thread?.model?.id ?? picked ?? models.data?.defaultId
@@ -172,7 +211,7 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
       void refreshThreads()
       return th.id
     },
-    [threadId, slug, screen.screen, picked, pickedServers, refreshThreads],
+    [threadId, slug, screen.screen, picked, pickedServers, refreshThreads, dispatch],
   )
 
   const send = useCallback(
@@ -194,12 +233,12 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
         // A refusal the panel has a state for shows as that state; anything else is a toast.
         const known = e instanceof ApiError && e.code ? problemOf(e.code.replace(/^ai_/, '')) : 'failed'
         if (known !== 'failed') {
-          setSendProblem(known)
+          setSendProblem({ problem: known, detail: e instanceof ApiError ? e.problem.detail : undefined })
           setAnnounce(t(m.announceFailed, { title: t(problemCopy[known].title, { provider: model?.providerName ?? '', model: model?.modelName ?? '' }) }))
         } else toast({ kind: 'error', title: t(m.sendFailed), detail: errorMessage(e) })
       }
     },
-    [active, gate, ensureThread, state.thread, slug, t, refreshThreads, model],
+    [active, gate, ensureThread, state.thread, slug, t, refreshThreads, model, dispatch, setDraft],
   )
 
   const stop = useCallback(async () => {
@@ -210,10 +249,11 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     } catch (e) {
       toast({ kind: 'error', title: t(m.stopFailed), detail: errorMessage(e) })
     }
-  }, [state.turn, threadId, slug, t])
+  }, [state.turn, threadId, slug, t, dispatch])
 
   const lastQuestion = [...state.messages].reverse().find((x) => x.role === 'user')?.text ?? ''
-  const retry = () => void send(lastQuestion)
+  // A refused message waits in the composer; a failed turn's question is the thread's last.
+  const retry = () => void send(sendProblem ? draft.get() || lastQuestion : lastQuestion)
   const edit = () => {
     setDraft(lastQuestion)
     focusComposer()
@@ -329,6 +369,7 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     threadId,
     query,
     state,
+    live,
     stream,
     models,
     list,
@@ -435,17 +476,73 @@ export function ThreadSub({ c }: { c: ThreadController }) {
   )
 }
 
+/** A sheet or the full screen would cover the page a card's link opens. */
+const uncover = () => {
+  if (!document.querySelector('.asst-docked')) closeAssistant({ refocus: false })
+}
+
 /** A state card's manager action: a link for those who can, a disabled button naming who can for the rest. */
 function ManagerAction({ c, label }: { c: ThreadController; label: string }) {
   if (c.canManage)
     return (
-      <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }} variant="primary">
+      <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }} variant="primary" onClick={uncover}>
         {label}
       </ButtonLink>
     )
   return (
     <Button variant="primary" disabledReason={deniedReason('integrations:manage', c.helpers)}>
       {label}
+    </Button>
+  )
+}
+
+/** A state card's action on the person's own key: Settings › Integrations › AI models, at Your personal key. */
+function OwnKeyAction({ c, label }: { c: ThreadController; label: string }) {
+  return (
+    <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }} hash="ai-yk-h" variant="primary" onClick={uncover}>
+      {label}
+    </ButtonLink>
+  )
+}
+
+/**
+ * Runs the model's tool check again, from its card: the person's own
+ * model, or a workspace model for those who manage integrations (the rest
+ * see who can). Once it passes, Retry sends the message.
+ */
+function ToolCheck({ c }: { c: ThreadController }) {
+  const t = useT()
+  const [state, setState] = useState<'idle' | 'running' | 'passed'>('idle')
+  const model = c.model
+  const name = model?.modelName || model?.model || ''
+  if (state === 'passed')
+    return (
+      <Button variant="primary" onClick={c.retry}>
+        {t(m.retry)}
+      </Button>
+    )
+  if (!model?.personal && !c.canManage)
+    return (
+      <Button variant="primary" disabledReason={deniedReason('integrations:manage', c.helpers)}>
+        {t(m.runCheck)}
+      </Button>
+    )
+  const run = async () => {
+    if (!model) return
+    setState('running')
+    try {
+      const passed = await testModelTools(c.slug, model)
+      await c.models.refetch()
+      setState(passed ? 'passed' : 'idle')
+      toast(passed ? { kind: 'success', title: t(m.checkPassed, { model: name }) } : { kind: 'error', title: t(m.checkFailed, { model: name }) })
+    } catch (e) {
+      setState('idle')
+      toast({ kind: 'error', title: t(m.checkFailed, { model: name }), detail: errorMessage(e) })
+    }
+  }
+  return (
+    <Button variant="primary" loading={state === 'running'} onClick={() => void run()}>
+      {t(m.runCheck)}
     </Button>
   )
 }
@@ -511,6 +608,8 @@ function TurnProblemCard({ c, problem }: { c: ThreadController; problem: TurnPro
   const thread = c.state.thread
   const usage = c.state.usage ?? thread?.usage
   const values = { provider: c.model?.providerName, model: c.model?.modelName || c.model?.model }
+  // The thread's model on the person's own key: they fix it themselves.
+  const own = c.model?.personal ? 'yes' : 'no'
   const copy = problemCopy[problem]
   const personal = c.list.find((x) => x.personal && x.usable && x.id !== c.model?.id)
   const retry = <Button variant="primary" onClick={c.retry}>{t(m.retry)}</Button>
@@ -550,13 +649,54 @@ function TurnProblemCard({ c, problem }: { c: ThreadController; problem: TurnPro
       actions = switchModel
       break
     case 'key':
-      body = t(m.keyBody, values)
+      body = t(m.keyBody, { ...values, own })
       actions = (
         <>
-          <ManagerAction c={c} label={t(m.replaceKey)} />
+          {own === 'yes' ? <OwnKeyAction c={c} label={t(m.replaceKey)} /> : <ManagerAction c={c} label={t(m.replaceKey)} />}
           {switchModel}
         </>
       )
+      break
+    case 'disconnected':
+      body = t(m.disconnectedBody, { ...values, own })
+      actions = (
+        <>
+          {own === 'yes' ? <OwnKeyAction c={c} label={t(m.openModels)} /> : <ManagerAction c={c} label={t(m.openModels)} />}
+          {switchModel}
+        </>
+      )
+      break
+    case 'toolsUnchecked':
+      body = t(m.toolsBody, { own })
+      actions = (
+        <>
+          <ToolCheck c={c} />
+          {switchModel}
+        </>
+      )
+      break
+    case 'personalKeysOff':
+      body = t(m.personalOffBody, { workspace: c.workspace })
+      actions = (
+        <Button variant="primary" onClick={() => c.setPickerOpen(true)}>
+          {t(m.switchModel)}
+        </Button>
+      )
+      break
+    case 'notConfigured':
+      body = t(m.notConfiguredBody, { ...values, own })
+      actions =
+        own === 'yes' ? (
+          <>
+            <OwnKeyAction c={c} label={t(m.addKey)} />
+            {switchModel}
+          </>
+        ) : (
+          <ManagerAction c={c} label={t(m.noModelAction)} />
+        )
+      break
+    case 'confirmationExpired':
+      body = t(m.confirmExpiredBody)
       break
     case 'rate':
       body = t(m.rateBody)
@@ -596,6 +736,9 @@ function TurnProblemCard({ c, problem }: { c: ThreadController; problem: TurnPro
     default:
       body = t(m.failedBody, { reason: c.state.turn?.reason || 'error' })
   }
+  // A refused message's detail already says what happened and who can fix it, in the server's words.
+  const detail = c.sendProblem?.problem === problem && modelProblems.has(problem) ? c.sendProblem.detail : undefined
+  if (detail) body = detail
   return (
     <StateCard tone={copy.tone} badge={t(copy.badge)} title={title(problem, values)} actions={actions}>
       <p>{body}</p>
@@ -614,7 +757,7 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
   const liveLength = c.state.live?.text.length ?? 0
   // The conversation sticks to its end while the person is there.
   const near = useRef(true)
-  const content = `${items.length}:${c.state.messages.length}:${c.state.pending ? 1 : 0}:${liveLength}:${c.state.tools.length}:${turn?.id}:${turn?.state}:${c.sendProblem ?? ''}:${c.state.confirmation?.id ?? ''}`
+  const content = `${items.length}:${c.state.messages.length}:${c.state.pending ? 1 : 0}:${liveLength}:${c.state.tools.length}:${turn?.id}:${turn?.state}:${c.sendProblem?.problem ?? ''}:${c.state.confirmation?.id ?? ''}`
   const sending = Boolean(c.state.pending)
   useLayoutEffect(() => {
     const el = log.current
@@ -626,11 +769,23 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
     const el = log.current
     if (el) near.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
   }
+  // The streaming answer grows without the log rendering again: it keeps the log at its end itself.
+  const liveText = c.live
+  const live = useMemo(
+    () => ({
+      text: liveText,
+      stick: () => {
+        const el = log.current
+        if (el && near.current) el.scrollTop = el.scrollHeight
+      },
+    }),
+    [liveText],
+  )
   const loading = Boolean(c.threadId) && !c.state.thread && c.query.isPending
   const empty = !c.gate && !loading && !c.query.isError && items.length === 0 && !c.sendProblem
   const latest = items[items.length - 1]
   const denied = latest && latest.kind === 'answer' && latest.tools.some((r) => !r.ok && (r.code === 'not_available' || r.code === 'forbidden') && contactTool.test(r.name))
-  const problem = c.sendProblem ?? (turn && turn.state === 'failed' ? problemOf(turn.reason) : undefined)
+  const problem = c.sendProblem?.problem ?? (turn && turn.state === 'failed' ? problemOf(turn.reason) : undefined)
   const [lostFor, setLostFor] = useState(0)
   const reconnecting = c.stream.status === 'retrying' || c.stream.status === 'stopped'
   useEffect(() => {
@@ -644,7 +799,9 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
   const emptyId = useId()
   // The call the turn waits on, or one closed as it was decided (its card says so).
   const asking = pendingConfirmation(c)
-  const conf = asking ?? (c.closedConf && c.closedConf.turnId === turn?.id && turnActive(turn) ? c.closedConf : undefined)
+  // An expired call keeps its card, saying so, beside the turn it stopped.
+  const expired = c.state.confirmation?.state === 'expired' && c.state.confirmation.turnId === turn?.id ? c.state.confirmation : undefined
+  const conf = asking ?? (c.closedConf && c.closedConf.turnId === turn?.id && turnActive(turn) ? c.closedConf : undefined) ?? expired
   const latestRows = latest && latest.kind === 'answer' ? latest.tools : []
   // A new request takes focus, unless the person is typing.
   const askingId = asking?.id
@@ -691,34 +848,36 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
           <small>{t(m.emptyNote)}</small>
         </section>
       ) : null}
-      <Conversation items={items}>
-        {turn?.state === 'stopped' ? <p className="asst-status">{t(m.stoppedNote)}</p> : null}
-        {turn?.state === 'done' && turn.reason === 'length' ? <p className="asst-status">{t(m.lengthNote)}</p> : null}
-        {denied ? (
-          <StateCard
-                        tone="bad"
-            badge={t(m.contactsBadge)}
-            title={t(m.contactsTitle)}
-            actions={
-              <Button
-                variant="primary"
-                onClick={() => {
-                  c.setDraft(t(m.contactsQuestion))
-                  c.focusComposer()
-                }}
-              >
-                {t(m.contactsAction)}
-              </Button>
-            }
-          >
-            <p>{t(m.contactsBody)}</p>
-          </StateCard>
-        ) : null}
-        <MCPStates c={c} rows={latestRows} />
-        {conf ? <ConfirmCard c={c} conf={conf} /> : null}
-        {problem ? <TurnProblemCard c={c} problem={problem} /> : null}
-        {c.gate === 'lost' ? <GateCard c={c} gate="lost" /> : null}
-      </Conversation>
+      <LiveContext.Provider value={live}>
+        <Conversation items={items}>
+          {turn?.state === 'stopped' ? <p className="asst-status">{t(m.stoppedNote)}</p> : null}
+          {turn?.state === 'done' && turn.reason === 'length' ? <p className="asst-status">{t(m.lengthNote)}</p> : null}
+          {denied ? (
+            <StateCard
+              tone="bad"
+              badge={t(m.contactsBadge)}
+              title={t(m.contactsTitle)}
+              actions={
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    c.setDraft(t(m.contactsQuestion))
+                    c.focusComposer()
+                  }}
+                >
+                  {t(m.contactsAction)}
+                </Button>
+              }
+            >
+              <p>{t(m.contactsBody)}</p>
+            </StateCard>
+          ) : null}
+          <MCPStates c={c} rows={latestRows} />
+          {conf ? <ConfirmCard c={c} conf={conf} /> : null}
+          {problem ? <TurnProblemCard c={c} problem={problem} /> : null}
+          {c.gate === 'lost' ? <GateCard c={c} gate="lost" /> : null}
+        </Conversation>
+      </LiveContext.Provider>
       {reconnecting ? (
         <StateCard
                     tone="warn"
@@ -738,12 +897,13 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
 export function ThreadComposer({ c, bound }: { c: ThreadController; bound?: () => HTMLElement | null }) {
   const t = useT()
   const answering = turnActive(c.state.turn)
+  const value = useSyncExternalStore(c.draft.subscribe, c.draft.get)
   return (
     <Composer
       handle={c.attachComposer}
-      value={c.draft}
+      value={value}
       onChange={c.setDraft}
-      onSend={() => void c.send(c.draft)}
+      onSend={() => void c.send(value)}
       onStop={() => void c.stop()}
       answering={answering}
       blocked={c.gate ? t(problemCopyOfGate(c.gate)) : undefined}

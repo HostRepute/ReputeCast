@@ -2545,7 +2545,7 @@ export interface paths {
         };
         /**
          * The AI assistant's settings: the model, the cap, this month's usage and the features
-         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
          */
         get: operations["get-ai-settings"];
         put?: never;
@@ -2860,7 +2860,7 @@ export interface paths {
         };
         /**
          * The MCP servers the caller may pick for their threads
-         * @description Enabled servers for everyone with Use AI features or for the caller's role, with whether the caller still has to sign in (connected).
+         * @description Enabled servers for everyone with Use the AI assistant (ai:use) or for the caller's role, with whether the caller still has to sign in (connected).
          */
         get: operations["list-ai-assistant-mcp-servers"];
         put?: never;
@@ -22138,7 +22138,7 @@ export interface components {
             serverId?: string;
             serverName: string;
             /** @enum {string} */
-            state: "pending" | "allowed" | "denied" | "calling" | "done";
+            state: "pending" | "allowed" | "denied" | "calling" | "done" | "expired";
             /** @description The tool's name on its server */
             tool: string;
             turnId: string;

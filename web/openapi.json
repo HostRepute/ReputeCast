@@ -4168,7 +4168,8 @@
               "allowed",
               "denied",
               "calling",
-              "done"
+              "done",
+              "expired"
             ],
             "type": "string"
           },
@@ -122418,7 +122419,7 @@
     },
     "/api/v1/workspaces/{workspace}/ai": {
       "get": {
-        "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.",
+        "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.",
         "operationId": "get-ai-settings",
         "parameters": [
           {
@@ -123733,7 +123734,7 @@
     },
     "/api/v1/workspaces/{workspace}/ai/assistant/mcp-servers": {
       "get": {
-        "description": "Enabled servers for everyone with Use AI features or for the caller's role, with whether the caller still has to sign in (connected).",
+        "description": "Enabled servers for everyone with Use the AI assistant (ai:use) or for the caller's role, with whether the caller still has to sign in (connected).",
         "operationId": "list-ai-assistant-mcp-servers",
         "parameters": [
           {

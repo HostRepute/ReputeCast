@@ -30,6 +30,7 @@ export default translate(mx, {
   deny: 'Từ chối',
   allow: 'Cho phép một lần',
   closed: 'Yêu cầu này đã đóng nên quyết định của bạn không được gửi. Cuộc trò chuyện cho thấy điều đã xảy ra.',
+  expired: 'Yêu cầu này đã hết hạn sau 24 giờ không có quyết định. Chưa có gì được gửi tới {server}.',
   confirmChanged: '{server} · {tool} đã thay đổi sau khi mô hình yêu cầu nên không chạy được. Hãy từ chối để trợ lý tiếp tục.',
   confirmBlocked: 'Người quản lý đã chặn {server} · {tool} sau khi mô hình yêu cầu nên không chạy được. Hãy từ chối để trợ lý tiếp tục.',
   decideFailed: 'Chưa gửi được quyết định của bạn',

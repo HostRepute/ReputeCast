@@ -22,7 +22,10 @@ export function StateCard({ badge, tone, title, children, actions }: { badge: st
   )
 }
 
-/** What a failed turn's reason means (internal/ai/assistant AIThreadTurn.reason). */
+/**
+ * What a failed turn's reason means (internal/ai/assistant
+ * AIThreadTurn.reason), or a refused message's problem code without "ai_".
+ */
 export type TurnProblem =
   | 'threadCap'
   | 'monthly'
@@ -34,6 +37,11 @@ export type TurnProblem =
   | 'lost'
   | 'off'
   | 'modelGone'
+  | 'disconnected'
+  | 'toolsUnchecked'
+  | 'personalKeysOff'
+  | 'notConfigured'
+  | 'confirmationExpired'
   | 'interrupted'
   | 'expired'
   | 'failed'
@@ -62,23 +70,31 @@ export function problemOf(reason: string | undefined): TurnProblem {
     case 'assistant_off':
       return 'off'
     case 'model_gone':
-    case 'not_configured':
-    case 'tools_unchecked':
-    case 'personal_keys_off':
-    case 'account_disconnected':
+    case 'assistant_model_gone':
       return 'modelGone'
+    case 'account_disconnected':
+      return 'disconnected'
+    case 'tools_unchecked':
+      return 'toolsUnchecked'
+    case 'personal_keys_off':
+      return 'personalKeysOff'
+    case 'not_configured':
+      return 'notConfigured'
+    case 'confirmation_expired':
+      return 'confirmationExpired'
     case 'interrupted':
     case 'not_started':
       return 'interrupted'
     case 'expired':
     case 'assistant_thread_expired':
       return 'expired'
-    case 'assistant_model_gone':
-      return 'modelGone'
     default:
       return 'failed'
   }
 }
+
+/** The model's problems, whose refused message's detail (the server's words) says what happened and who can fix it. */
+export const modelProblems = new Set<TurnProblem>(['modelGone', 'disconnected', 'key', 'toolsUnchecked', 'personalKeysOff', 'notConfigured'])
 
 /** The title, badge and tone of each problem, as the boards word them. */
 export const problemCopy: Record<TurnProblem, { title: MessageDescriptor; badge: MessageDescriptor; tone: Tone }> = {
@@ -92,6 +108,11 @@ export const problemCopy: Record<TurnProblem, { title: MessageDescriptor; badge:
   lost: { title: m.lostTitle, badge: m.lostBadge, tone: 'bad' },
   off: { title: m.offTitle, badge: m.offBadge, tone: 'neutral' },
   modelGone: { title: m.modelGoneTitle, badge: m.failedBadge, tone: 'bad' },
+  disconnected: { title: m.disconnectedTitle, badge: m.disconnectedBadge, tone: 'bad' },
+  toolsUnchecked: { title: m.toolsTitle, badge: m.toolsBadge, tone: 'warn' },
+  personalKeysOff: { title: m.personalOffTitle, badge: m.offBadge, tone: 'neutral' },
+  notConfigured: { title: m.notConfiguredTitle, badge: m.noModelBadge, tone: 'neutral' },
+  confirmationExpired: { title: m.confirmExpiredTitle, badge: m.expiredBadge, tone: 'neutral' },
   interrupted: { title: m.interruptedTitle, badge: m.failedBadge, tone: 'bad' },
   expired: { title: m.expiredTitle, badge: m.expiredBadge, tone: 'neutral' },
   failed: { title: m.failedTitle, badge: m.failedBadge, tone: 'bad' },

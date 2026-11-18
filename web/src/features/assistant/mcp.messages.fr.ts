@@ -30,6 +30,7 @@ export default translate(mx, {
   deny: 'Refuser',
   allow: 'Autoriser une fois',
   closed: 'Cette demande était déjà close, votre décision n’a donc pas été envoyée. La conversation montre ce qui s’est passé.',
+  expired: 'Cette demande a expiré après 24\u00A0heures sans décision. Rien n’a été envoyé à {server}.',
   confirmChanged: '{server} · {tool} a changé après la demande du modèle et ne peut donc pas s’exécuter. Refusez-le pour que l’assistant continue.',
   confirmBlocked: 'Un responsable a bloqué {server} · {tool} après la demande du modèle, il ne peut donc pas s’exécuter. Refusez-le pour que l’assistant continue.',
   decideFailed: 'Votre décision n’a pas été envoyée',

@@ -35,6 +35,7 @@ export const mx = defineMessages('assistant.mcp', {
   deny: 'Deny',
   allow: 'Allow once',
   closed: 'This request was already closed, so your decision wasn’t sent. The thread shows what happened.',
+  expired: 'This request expired after 24 hours without a decision. Nothing was sent to {server}.',
   confirmChanged: '{server} · {tool} changed after the model asked, so it can’t run. Deny it to let the assistant go on.',
   confirmBlocked: 'A manager blocked {server} · {tool} after the model asked, so it can’t run. Deny it to let the assistant go on.',
   decideFailed: 'Your decision wasn’t sent',

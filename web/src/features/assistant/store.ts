@@ -19,6 +19,11 @@ export interface AssistantUi {
   draftNonce: number
   /** A confirmation waits in the closed panel: the launcher's dot. */
   waiting: boolean
+  /**
+   * Until when (ms since 1970) the launcher looks out for a call that waits,
+   * after the panel closed while its turn was answering; 0: it doesn't.
+   */
+  watch: number
   /** Panels mounted (AppShell's slot): the launcher shows only where one is. */
   slots: number
   /** What a contextual button suggests, on the screen it was pressed on; nothing is attached until the person attaches it. */
@@ -71,6 +76,7 @@ let state: AssistantUi = {
   draft: '',
   draftNonce: 0,
   waiting: false,
+  watch: 0,
   slots: 0,
 }
 const listeners = new Set<() => void>()
@@ -136,15 +142,25 @@ export function openAssistant(opts: { draft?: string; suggest?: Omit<AssistantSu
   set({
     open: true,
     waiting: false,
+    watch: 0,
     view: toThread ? 'thread' : state.view,
     suggest: opts.suggest ? { ...opts.suggest, path: window.location.pathname } : undefined,
     ...(opts.draft !== undefined ? { draft: opts.draft, draftNonce: state.draftNonce + 1 } : {}),
   })
 }
 
-/** Closes the panel and gives focus back to what opened it, or to the launcher. */
-export function closeAssistant(opts: { waiting?: boolean; refocus?: boolean } = {}) {
-  set({ open: false, waiting: Boolean(opts.waiting) })
+/** How long the launcher looks out for a call that waits, after the panel closed mid-answer. */
+const WATCH_FOR = 10 * 60_000
+
+/**
+ * Closes the panel and gives focus back to what opened it, or to the
+ * launcher. A call that waits leaves the launcher's dot; a turn still
+ * answering, a watch for one; neither when the thread goes on showing
+ * on its full page.
+ */
+export function closeAssistant(opts: { refocus?: boolean; toPage?: boolean } = {}) {
+  const was = opts.toPage ? undefined : activity
+  set({ open: false, waiting: was === 'waiting', watch: was === 'answering' ? Date.now() + WATCH_FOR : 0 })
   if (opts.refocus === false) return
   const back = opener && opener.isConnected ? opener : document.querySelector<HTMLElement>('[data-assistant-launcher]')
   opener = null
@@ -161,6 +177,24 @@ export function setAssistantWidth(w: number) {
   if (width === state.width) return
   set({ width })
   store(WIDTH_KEY, String(width))
+}
+
+/** What the open panel's turn does, while one runs in it: closing then leaves a dot, or a watch. */
+let activity: 'answering' | 'waiting' | undefined
+export function setAssistantActivity(now: typeof activity) {
+  activity = now
+}
+
+/**
+ * The notification a call waiting for its owner's confirmation leaves
+ * (notify.KindAIAssistantConfirmation). Its link is the thread's full
+ * page, /w/{workspace}/assistant/{thread}.
+ */
+export const WAITING_KIND = 'ai_assistant_confirmation'
+
+/** The thread a waiting call's notification is about, or undefined for any other notification. */
+export function waitingThread(n: { kind: string; link: string }): string | undefined {
+  return n.kind === WAITING_KIND ? /\/assistant\/([^/?#]+)/.exec(n.link)?.[1] : undefined
 }
 
 export function setAssistantView(view: AssistantUi['view']) {

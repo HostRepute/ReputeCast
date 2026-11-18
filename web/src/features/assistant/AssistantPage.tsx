@@ -26,7 +26,7 @@ export function AssistantPage({ thread }: { thread: string }) {
   // The panel shows the same thread next time; one stream of it is enough now.
   useEffect(() => {
     setAssistantThread(c.slug, thread)
-    if (getAssistant().open) closeAssistant({ refocus: false })
+    if (getAssistant().open) closeAssistant({ refocus: false, toPage: true })
   }, [c.slug, thread])
   const title = c.state.thread?.title || t(m.untitled)
   // Another person's thread, or one that was deleted, isn't found.

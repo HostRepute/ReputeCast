@@ -219,14 +219,37 @@ export function streamBlocks(text: string): string[] {
   return out
 }
 
-/** A streaming answer: its finished blocks memoized, the last one live. */
+/**
+ * What Markdown would read in a line of prose: inline marks, links,
+ * images, HTML, entities, Liquid, tables, autolinked addresses.
+ */
+const marks = /[\\`*_~[\]!<>&{}|#@]|https?:|www\.|mailto:|xmpp:/i
+
+/**
+ * The text of a block that Markdown renders as one paragraph holding
+ * exactly that text: one line without anything Markdown reads, not
+ * indented as code nor starting like a list, a heading or a rule.
+ * Anything else is undefined.
+ */
+export function plainParagraph(block: string): string | undefined {
+  const s = block.replace(/[ \t\r\n]+$/, '')
+  if (!s || /[\r\n]/.test(s) || /^ *\t|^ {4}/.test(s) || marks.test(s)) return undefined
+  const t = s.replace(/^ +/, '')
+  return /^([-+=]|\d{1,9}[.)](\s|$))/.test(t) ? undefined : t
+}
+
+/**
+ * A streaming answer: its finished blocks memoized, the last one live.
+ * While the last one is plain prose (as most of an answer is), it renders
+ * as the paragraph Markdown would make of it, without parsing; once it
+ * holds Markdown, or another block follows it, it is parsed.
+ */
 export function StreamingMarkdown({ text }: { text: string }) {
   const blocks = streamBlocks(text)
+  const plain = blocks.length ? plainParagraph(blocks[blocks.length - 1]!) : undefined
   return (
     <>
-      {blocks.map((b, i) => (
-        <MarkdownText key={i} text={b} />
-      ))}
+      {blocks.map((b, i) => (plain !== undefined && i === blocks.length - 1 ? <p key={i}>{plain}</p> : <MarkdownText key={i} text={b} />))}
     </>
   )
 }

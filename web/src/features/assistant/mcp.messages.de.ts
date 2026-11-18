@@ -30,6 +30,7 @@ export default translate(mx, {
   deny: 'Ablehnen',
   allow: 'Einmal erlauben',
   closed: 'Diese Anfrage war schon geschlossen, Ihre Entscheidung wurde daher nicht gesendet. Die Unterhaltung zeigt, was passiert ist.',
+  expired: 'Diese Anfrage ist nach 24 Stunden ohne Entscheidung abgelaufen. An {server} wurde nichts gesendet.',
   confirmChanged: '{server} · {tool} hat sich nach der Anfrage des Modells geändert und kann nicht laufen. Lehnen Sie ab, damit der Assistent weitermacht.',
   confirmBlocked: 'Eine verantwortliche Person hat {server} · {tool} nach der Anfrage des Modells gesperrt, es kann nicht laufen. Lehnen Sie ab, damit der Assistent weitermacht.',
   decideFailed: 'Ihre Entscheidung wurde nicht gesendet',

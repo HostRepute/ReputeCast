@@ -121,10 +121,10 @@ export const mm = defineMessages('ai.models', {
   leavesBody: 'Only what a person attaches and confirms, ReputeCast’s help articles and the answers of approved MCP tools. MCP servers receive only the arguments of their own tools’ calls. The model account’s own terms decide how the provider stores it.',
   // The link from the note to Settings › Integrations › MCP servers.
   mcpLink: 'MCP servers and their approved tools',
-  limitsFoot: 'Limits apply to threads started after a change. Answers already written stay readable when the assistant is off.',
+  limitsFoot: 'Limits apply to threads started after a change. While the assistant is off, threads are kept, and they can only be stopped or deleted until it’s switched on again.',
   assistantOnToast: 'The assistant is on',
   assistantOffToast: 'The assistant is off',
-  assistantOffDetail: 'Threads keep their answers; nobody can send a new message until it’s on again.',
+  assistantOffDetail: 'Threads are kept; until it’s switched on again, they can only be stopped or deleted.',
   assistantChanged: 'Someone changed these settings meanwhile. The page shows their version now.',
   editLimits: 'Edit limits',
   limitsTitle: 'Assistant limits',

@@ -1,13 +1,14 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Dialog as RDialog } from 'radix-ui'
-import { useEffect, useId, useRef, type KeyboardEvent, type PointerEvent, type RefObject } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type RefObject } from 'react'
 import { useT } from '@/i18n'
 import { useReducedMotion } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import type { PanelLayout } from './AssistantShell'
 import { AsstIcon, type AsstIconName } from './icons'
 import { m } from './messages'
-import { closeAssistant, PANEL_MAX, PANEL_MIN, setAssistantThread, setAssistantView, setAssistantWidth, threadOf, useAssistant } from './store'
+import { turnActive } from './reducer'
+import { closeAssistant, PANEL_MAX, PANEL_MIN, setAssistantActivity, setAssistantThread, setAssistantView, setAssistantWidth, threadOf, useAssistant } from './store'
 import { ThreadList } from './ThreadList'
 import { ThreadComposer, ThreadLog, ThreadSub, useThreadController, type ThreadController } from './ThreadView'
 import './assistant.css'
@@ -116,7 +117,7 @@ function Header({ c, list, onClose, dialog, titleId }: { c: ThreadController; li
               label={t(m.fullPage)}
               onClick={() => {
                 const thread = c.threadId!
-                closeAssistant({ refocus: false })
+                closeAssistant({ refocus: false, toPage: true })
                 void navigate({ to: '/w/$workspace/assistant/$thread', params: { workspace: c.slug, thread } })
               }}
             />
@@ -167,6 +168,29 @@ function Body({ c, list, panel }: { c: ThreadController; list: boolean; panel: R
   )
 }
 
+const close = () => closeAssistant()
+
+/**
+ * The panel's header and body, with the thread's state: a keystroke or a
+ * frame of an answer renders them, not the dialog or landmark around them.
+ */
+function PanelContent({ list, dialog, titleId, panel }: { list: boolean; dialog: boolean; titleId: string; panel: RefObject<HTMLElement | null> }) {
+  const { slug } = useWorkspace()
+  const ui = useAssistant()
+  void ui.threads // the thread shown changes with the store
+  const c = useThreadController(threadOf(slug))
+  // What the turn does, for the launcher once the panel closes.
+  const activity = c.state.turn?.state === 'waiting' ? 'waiting' : turnActive(c.state.turn) ? 'answering' : undefined
+  useEffect(() => setAssistantActivity(activity), [activity])
+  useEffect(() => () => setAssistantActivity(undefined), [])
+  return (
+    <>
+      <Header c={c} list={list} onClose={close} dialog={dialog} titleId={titleId} />
+      <Body c={c} list={list} panel={panel} />
+    </>
+  )
+}
+
 /**
  * The assistant panel (AssistantPanel, AssistantPanelTablet,
  * AssistantPanelPhone): docked beside the content above 1100 px (a
@@ -179,14 +203,20 @@ export function AssistantPanel({ layout }: { layout: PanelLayout }) {
   const reduced = useReducedMotion()
   const panel = useRef<HTMLElement>(null)
   const titleId = useId()
-  const { slug } = useWorkspace()
-  void ui.threads // the thread shown changes with the store
-  const c = useThreadController(threadOf(slug))
   const list = ui.view === 'list'
   const dialog = layout.mode === 'sheet' || layout.mode === 'full'
   useVisualViewport(panel, layout.mode === 'full')
-  const waiting = c.state.turn?.state === 'waiting'
-  const close = () => closeAssistant({ waiting })
+  // Full screen, the screen under the panel isn't drawn (shell.css), so the
+  // page loses its height: it comes back where it was, before it paints.
+  const [scrolled] = useState(() => ({ y: window.scrollY, path: window.location.pathname }))
+  useLayoutEffect(() => {
+    if (layout.mode !== 'full') return
+    return () => {
+      window.requestAnimationFrame(() => {
+        if (window.location.pathname === scrolled.path) window.scrollTo(0, scrolled.y)
+      })
+    }
+  }, [layout.mode, scrolled])
   const aside = layout.mode === 'docked' || layout.mode === 'overlay'
   // Docked, Escape closes the panel while focus is in it; menus and dialogs
   // opened from it are portals outside it, whose Escape is their own.
@@ -195,21 +225,17 @@ export function AssistantPanel({ layout }: { layout: PanelLayout }) {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented || !(e.target instanceof Node) || !panel.current?.contains(e.target)) return
       e.preventDefault()
-      closeAssistant({ waiting })
+      closeAssistant()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [aside, waiting])
+  }, [aside])
   const enter = reduced ? '' : ' asst-enter'
-  const content = (
-    <>
-      <Header c={c} list={list} onClose={close} dialog={dialog} titleId={titleId} />
-      <Body c={c} list={list} panel={panel} />
-    </>
-  )
+  const content = <PanelContent list={list} dialog={dialog} titleId={titleId} panel={panel} />
   if (aside) {
     return (
-      <aside ref={panel} id="assistant" className={`asst asst-${layout.mode}${enter}`} aria-labelledby={titleId}>
+      // Its width is its own (not the shell's, whose every element would be styled again for it).
+      <aside ref={panel} id="assistant" className={`asst asst-${layout.mode}${enter}`} aria-labelledby={titleId} style={{ '--asst-w': `${layout.width}px` } as CSSProperties}>
         {layout.mode === 'docked' ? <Separator width={layout.width} /> : null}
         {content}
       </aside>

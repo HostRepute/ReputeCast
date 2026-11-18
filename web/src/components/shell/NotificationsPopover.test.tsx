@@ -2,7 +2,8 @@ import { act, fireEvent, screen } from '@testing-library/react'
 import { useQuery } from '@tanstack/react-query'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace } from '@/test/app'
-import { useNotificationActions } from './NotificationsPopover'
+import { closeAssistant, getAssistant, mountSlot, threadOf, waitingThread, WAITING_KIND } from '@/features/assistant/store'
+import { NotificationLink, useNotificationActions, type NotificationItem } from './NotificationsPopover'
 
 const key = ['get', '/api/v1/workspaces/{workspace}/notifications', { params: { path: { workspace: 'acme-newsletter' } } }]
 const page = { items: [{ id: 'n-1', read: false, title: 'Approval needed' }], unread: 1, total: 1, retentionDays: 90 }
@@ -53,5 +54,40 @@ describe('marking a notification read', () => {
     await finish()
     expect(await screen.findByText('unread')).toBeInTheDocument()
     expect(screen.getByText('unread 1')).toBeInTheDocument()
+  })
+})
+
+// A call waiting for its owner (B6): its notification opens the assistant's
+// panel on its thread where the screen has the panel, else its full page.
+describe('a waiting call’s notification', () => {
+  let unmock = () => {}
+  afterEach(() => {
+    unmock()
+    closeAssistant({ refocus: false })
+  })
+  const note = { id: 'n-2', kind: WAITING_KIND, read: false, title: 'A call waits for you', summary: '', link: '/w/acme-newsletter/assistant/th-9', severity: 'warn' } as NotificationItem
+
+  it('opens the panel on its thread, without leaving the screen', async () => {
+    unmock = mockApi({ 'POST /api/v1/workspaces/acme-newsletter/notifications/n-2/read': () => new Response(null, { status: 204 }), 'GET /api/v1/workspaces/acme-newsletter/notifications': () => json(page) })
+    const unmount = mountSlot()
+    const { router } = await renderInWorkspace(<NotificationLink n={note}>Waiting</NotificationLink>)
+    fireEvent.click(screen.getByRole('link', { name: /Waiting/ }))
+    expect(getAssistant().open).toBe(true)
+    expect(threadOf('acme-newsletter')).toBe('th-9')
+    expect(router.state.location.pathname).toBe('/w/acme-newsletter/campaigns')
+    unmount()
+  })
+
+  it('goes to the thread’s page where there is no panel', async () => {
+    unmock = mockApi({ 'POST /api/v1/workspaces/acme-newsletter/notifications/n-2/read': () => new Response(null, { status: 204 }), 'GET /api/v1/workspaces/acme-newsletter/notifications': () => json(page) })
+    const { router } = await renderInWorkspace(<NotificationLink n={note}>Waiting</NotificationLink>)
+    fireEvent.click(screen.getByRole('link', { name: /Waiting/ }))
+    expect(getAssistant().open).toBe(false)
+    expect(router.state.location.pathname).toBe('/w/acme-newsletter/assistant/th-9')
+  })
+
+  it('names its thread only for that kind', () => {
+    expect(waitingThread(note)).toBe('th-9')
+    expect(waitingThread({ ...note, kind: 'approval_requested' })).toBeUndefined()
   })
 })
