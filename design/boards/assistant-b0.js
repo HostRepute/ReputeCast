@@ -98,6 +98,7 @@
     return `<div class="menu" role="menu" id="model-menu" aria-label="Choose a model" style="top:100%;left:12px">${['Workspace', 'Personal'].map(group => `<div class="group">${group}</div>${models.filter(m => (group === 'Personal') === m.conn.includes('personal')).map(m => `<button type="button" role="menuitemradio" data-model="${m.id}" id="model-${m.id}" aria-checked="${state.model === m.id}" ${m.disabled ? 'disabled aria-disabled="true"' : ''}><strong>${m.name}</strong><span class="muted">${state.model === m.id ? icon('check') : ''}</span><small>${m.conn} · ${m.caps} · ${m.price}</small>${m.disabled ? `<small>${m.disabled}</small>` : ''}</button>`).join('')}`).join('')}</div>`;
   }
 
+  const presets = [['anthropic', 'Anthropic'], ['openai', 'OpenAI'], ['google', 'Google Gemini'], ['azure', 'Azure OpenAI'], ['preset-openrouter', 'OpenRouter'], ['preset-mistral', 'Mistral'], ['preset-groq', 'Groq'], ['preset-deepseek', 'DeepSeek'], ['preset-xai', 'xAI'], ['preset-together', 'Together'], ['preset-fireworks', 'Fireworks'], ['compatible', 'Other OpenAI-compatible server']];
   const examples = {
     empty: ['Ask about October Product Update', '', 'The assistant reads what you attach, explains it and hands work to the right screen. It never sends, schedules or publishes.', '', ''],
     nomodel: ['No model connected', 'Not configured', 'Connect a model account in Settings › Integrations › AI models to use the assistant.', 'Connect a model', 'Ask Marcus Chen or Linh Nguyen'],
@@ -225,13 +226,12 @@
         `${btn('dialog-cancel', 'Cancel')}${btn('dialog-attach', 'Attach', 'primary', state.shared ? '' : 'disabled')}`);
     }
     if (state.dialog === 'add-model') {
-      const presets = [['anthropic', 'Anthropic'], ['openai', 'OpenAI'], ['google', 'Google Gemini'], ['azure', 'Azure OpenAI'], ['preset-openrouter', 'OpenRouter'], ['preset-mistral', 'Mistral'], ['preset-groq', 'Groq'], ['preset-deepseek', 'DeepSeek'], ['preset-xai', 'xAI'], ['preset-together', 'Together'], ['preset-fireworks', 'Fireworks'], ['compatible', 'Other OpenAI-compatible server']];
       return wrap('Add a model account', `<label class="field">Provider<select id="provider" data-field="provider">${presets.map(([k, v]) => `<option value="${k}" ${state.provider === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label><small>OpenRouter, Mistral, Groq, DeepSeek, xAI, Together and Fireworks speak the OpenAI API; their address is filled in.</small><label class="field">API key<input type="password" autocomplete="off" placeholder="Paste the key" aria-describedby="key-help"></label><small id="key-help">Write-only. ReputeCast never shows it again and only sends it to this provider's address.</small>${state.tested ? `<div class="alert-status" role="status">Answered in 1.2 s · tools work · streaming works · usage reported</div>` : ''}`,
         `${btn('dialog-cancel', 'Cancel')}${btn('dialog-test', 'Test connection')}${btn('dialog-connect', 'Connect', 'primary', state.tested ? '' : 'disabled')}`);
     }
     if (state.dialog === 'tool') {
       const write = state.tool === 'create_issue';
-      return wrap(`Review ${state.tool}`, `<p class="sub" style="margin:0">From ${servers()[state.server].name}. The description is the server's own text; read it as untrusted.</p><pre class="tooldetail">${esc(write ? 'Create a new issue in a team. Returns the issue key.' : 'Search issues by text. Returns keys, titles and states.')}\n\ninputSchema: ${esc(write ? '{"team":"string","title":"string","description":"string"}' : '{"query":"string","limit":"integer"}')}\nannotations (hints only): readOnlyHint ${!write}, destructiveHint false</pre>
+      return wrap(`Review ${esc(state.tool)}`, `<p class="sub" style="margin:0">From ${servers()[state.server].name}. The description is the server's own text; read it as untrusted.</p><pre class="tooldetail">${esc(write ? 'Create a new issue in a team. Returns the issue key.' : 'Search issues by text. Returns keys, titles and states.')}\n\ninputSchema: ${esc(write ? '{"team":"string","title":"string","description":"string"}' : '{"query":"string","limit":"integer"}')}\nannotations (hints only): readOnlyHint ${!write}, destructiveHint false</pre>
         <fieldset class="stack" style="border:0;padding:0;margin:0;gap:8px"><legend class="sr">Kind</legend>${[['read', 'Read-only · runs after approval'], ['write', 'Writes · asks the person every time'], ['block', 'Blocked · never offered to the model']].map(([k, v]) => `<label class="checkfield"><input type="radio" name="kind" data-kind="${k}" ${state.toolClass === k ? 'checked' : ''}> ${v}</label>`).join('')}</fieldset><small>Approving pins this description and schema. Any change turns the tool off.</small>`,
         `${btn('dialog-cancel', 'Cancel')}${btn('dialog-save-tool', 'Save', 'primary')}`);
     }
@@ -275,10 +275,10 @@
     render('draft');
   }
 
-  root.addEventListener('input', e => { const f = e.target.dataset.field; if (f) state[f] = e.target.value; });
+  root.addEventListener('input', e => { if (e.target.id === 'draft') state.draft = e.target.value; });
   root.addEventListener('change', e => {
     const t = e.target;
-    if (t.dataset.field === 'example' || t.dataset.field === 'provider') { state[t.dataset.field] = t.value; state.tested = false; state.open = true; render(t.id); }
+    if ((t.id === 'example-picker' && t.value in examples) || (t.id === 'provider' && presets.some(([k]) => k === t.value))) { state[t.id === 'provider' ? 'provider' : 'example'] = t.value; state.tested = false; state.open = true; render(t.id); }
     else if (t.dataset.check === 'shared') { state.shared = t.checked; render('shared'); }
     else if (t.dataset.kind) state.toolClass = t.dataset.kind;
   });
