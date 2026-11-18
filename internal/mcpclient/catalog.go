@@ -346,7 +346,7 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "mcp_tool", TargetID: t.ID.String(), TargetName: t.Name,
 			Before: map[string]any{"decision": t.Decision}, After: map[string]any{"decision": in.Decision, "hash": in.Hash},
-			Metadata: map[string]any{"server_id": server.String(), "annotations": json.RawMessage(t.Annotations)}}); err != nil {
+			Metadata: map[string]any{"server_id": server.String(), "annotations": t.Annotations}}); err != nil {
 			return err
 		}
 		out, err = s.view(ctx, q, srv, fresh.UserID, true)

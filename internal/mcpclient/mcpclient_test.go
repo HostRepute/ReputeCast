@@ -315,7 +315,7 @@ func TestMCPCallResults(t *testing.T) {
 	fake.Tool("slow", "Think", true, mcptest.Slow(3*time.Second, "late"))
 	sampled := make(chan error, 1)
 	fake.MCP.AddTool(&mcp.Tool{Name: "ask", Description: "Ask", InputSchema: map[string]any{"type": "object"}}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		_, err := req.Session.CreateMessage(ctx, &mcp.CreateMessageParams{MaxTokens: 10, Messages: []*mcp.SamplingMessage{{Role: "user", Content: &mcp.TextContent{Text: "hi"}}}})
+		_, err := req.Session.CreateMessage(ctx, &mcp.CreateMessageParams{MaxTokens: 10, Messages: []*mcp.SamplingMessage{{Role: "user", Content: &mcp.TextContent{Text: "hi"}}}}) //nolint:staticcheck // SA1019: the server asks for sampling to check the client refuses it
 		sampled <- err
 		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: "asked"}}}, nil
 	})
