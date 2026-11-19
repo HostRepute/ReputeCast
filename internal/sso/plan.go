@@ -620,6 +620,11 @@ func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.Ss
 	if err != nil {
 		return err
 	}
+	// Their assistant threads there go, content and all.
+	threads, err := q.AIAssistantThreadsRemove(ctx, store.AIAssistantThreadsRemoveParams{WorkspaceID: ws, UserID: u.ID})
+	if err != nil {
+		return err
+	}
 	if _, err := q.DeleteMember(ctx, store.DeleteMemberParams{ID: *c.MemberID, WorkspaceID: ws}); err != nil {
 		return err
 	}
@@ -628,7 +633,7 @@ func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.Ss
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: "member.removed", TargetType: "member", TargetID: c.MemberID.String(), TargetName: displayName(u),
 		Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
 		Before:   map[string]any{"email": u.Email, "role": c.FromName, "status": "active"},
-		After:    map[string]any{"keys_revoked": names, "personal_ai_keys_removed": aiKeys},
+		After:    map[string]any{"keys_revoked": names, "personal_ai_keys_removed": aiKeys, "assistant_threads_removed": threads},
 		Metadata: meta})
 }
 

@@ -29,12 +29,46 @@ func budgetProblem(ctx context.Context, key string) error {
 	return api.Err(409, "ai_"+key, text(ctx, msgs.M("budget."+key), nil))
 }
 
+// ledger is what a request counts against besides the monthly cap: an agent
+// run's or an assistant thread's cumulative ceilings. A request in one is
+// pinned to the model it began with; one without (nil) goes to its
+// feature's model.
+type ledger struct {
+	runID, threadID             *uuid.UUID
+	tokenLimit, costLimitMicros int64
+}
+
+// runLedger is an agent run's ledger.
+func runLedger(r *store.AiAgentRun) *ledger {
+	if r == nil {
+		return nil
+	}
+	return &ledger{runID: &r.ID, tokenLimit: r.TokenLimit, costLimitMicros: r.CostLimitMicros}
+}
+
+// used sums what the ledger's requests reserved and used.
+func (l *ledger) used(ctx context.Context, q *store.Queries) (store.AIBudgetRunRow, error) {
+	if l.threadID != nil {
+		u, err := q.AIBudgetThread(ctx, l.threadID)
+		return store.AIBudgetRunRow(u), err
+	}
+	return q.AIBudgetRun(ctx, l.runID)
+}
+
+// capProblem is the problem of a request the ledger can't cover.
+func (l *ledger) capProblem(ctx context.Context) error {
+	if l.threadID != nil {
+		return budgetProblem(ctx, "thread_cap")
+	}
+	return budgetProblem(ctx, "run_cap")
+}
+
 // reserveIn serializes every spending path of a budget, across all its
 // accounts and models, even before a connection exists: the workspace's,
-// or a person's own for their personal keys. A caller handling a run also
-// locks that run before calling this function.
+// or a person's own for their personal keys. A caller handling a run or a
+// thread also locks it before calling this function.
 // No database lock spans an HTTP call. Request IDs survive worker retries.
-func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, c *connection, t *task, run *store.AiAgentRun, id uuid.UUID) error {
+func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, c *connection, t *task, l *ledger, id uuid.UUID) error {
 	fresh, err := brandkit.VoiceActor(ctx, q, ws, p)
 	if err != nil {
 		return err
@@ -87,8 +121,8 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 		}
 		// A one-shot request goes to its feature's model (the person's own
 		// pick, or the workspace's default); once that changes, it isn't
-		// sent. A run keeps the model it began with.
-		if run == nil {
+		// sent. A run or a thread keeps the model it began with.
+		if l == nil {
 			model, ok, err := featureModel(ctx, q, ws.ID, &fresh.UserID, t.feature)
 			if err != nil {
 				return err
@@ -172,20 +206,20 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 	if output < minimumOutput {
 		return budgetProblem(ctx, "reservation_cap")
 	}
-	var runID *uuid.UUID
-	if run != nil {
-		runID = &run.ID
-		used, err := q.AIBudgetRun(ctx, runID)
+	var runID, threadID *uuid.UUID
+	if l != nil {
+		runID, threadID = l.runID, l.threadID
+		used, err := l.used(ctx, q)
 		if err != nil {
 			return err
 		}
 		if used.Uncertain > 0 {
 			return budgetProblem(ctx, "usage_unknown")
 		}
-		output = min(output, run.TokenLimit-used.Tokens-input,
-			affordableOutput(run.CostLimitMicros-used.CostMicros, input, c.InputPrice, c.OutputPrice))
+		output = min(output, l.tokenLimit-used.Tokens-input,
+			affordableOutput(l.costLimitMicros-used.CostMicros, input, c.InputPrice, c.OutputPrice))
 		if output < minimumOutput {
-			return budgetProblem(ctx, "run_cap")
+			return l.capProblem(ctx)
 		}
 	}
 	t.req.MaxTokens = int(output)
@@ -199,7 +233,7 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 	return q.AIBudgetInsert(ctx, store.AIBudgetInsertParams{ID: id, WorkspaceID: ws.ID, UserID: actorID(p), RunID: runID, Feature: t.feature,
 		Provider: c.Provider, Model: c.Model, PricingRevision: hex.EncodeToString(digest[:]), InputPrice: c.InputPrice, OutputPrice: c.OutputPrice,
 		InputTokens: input, OutputTokens: output, CostMicros: int64(math.Ceil(float64(input)*c.InputPrice + float64(output)*c.OutputPrice)), CreatedAt: s.now(),
-		AccountID: account, ModelID: model, Personal: owner != nil})
+		AccountID: account, ModelID: model, Personal: owner != nil, ThreadID: threadID})
 }
 
 // budgetLock takes a budget's lock, after the configuration lock: the

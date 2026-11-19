@@ -4,6 +4,7 @@ class ListAiActivityFeature(StrEnum):
     ACCESSIBILITY_FIX = "accessibility_fix"
     AGENT = "agent"
     ALT_TEXT = "alt_text"
+    ASSISTANT = "assistant"
     BRAND_VOICE = "brand_voice"
     CONNECTION_TEST = "connection_test"
     DRAFT = "draft"

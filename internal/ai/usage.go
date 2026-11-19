@@ -80,7 +80,7 @@ func (s *Service) personalUsage(ctx context.Context, ws, user uuid.UUID, start t
 
 // AIUsageFeature is one feature's use this month.
 type AIUsageFeature struct {
-	Feature    string `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test"`
+	Feature    string `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test,assistant"`
 	CostMicros int64  `json:"costMicros"`
 	Tokens     int64  `json:"tokens"`
 	Requests   int64  `json:"requests"`
@@ -102,7 +102,7 @@ func (s *Service) byFeature(ctx context.Context, ws *store.Workspace) ([]AIUsage
 	if err != nil {
 		return nil, err
 	}
-	features := append(slices.Clone(Features), FeatureAgent, FeatureConnectionTest)
+	features := append(slices.Clone(Features), FeatureAgent, FeatureConnectionTest, FeatureAssistant)
 	out := make([]AIUsageFeature, 0, len(features))
 	for _, f := range features {
 		e := AIUsageFeature{Feature: f}

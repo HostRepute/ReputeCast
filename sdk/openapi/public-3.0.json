@@ -172,7 +172,8 @@
               "brand_voice",
               "draft",
               "agent",
-              "connection_test"
+              "connection_test",
+              "assistant"
             ],
             "type": "string"
           },
@@ -207,7 +208,8 @@
               "refused",
               "error",
               "nothing_drafted",
-              "cancelled"
+              "cancelled",
+              "answered"
             ],
             "type": "string"
           },
@@ -274,6 +276,71 @@
         },
         "required": [
           "state"
+        ],
+        "type": "object"
+      },
+      "AIAgentLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "maximum": 100000000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "tokens": {
+            "format": "int64",
+            "maximum": 2000000,
+            "minimum": 1000,
+            "type": "integer"
+          },
+          "toolCalls": {
+            "format": "int32",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "toolCalls",
+          "tokens",
+          "costMicros"
+        ],
+        "type": "object"
+      },
+      "AIAssistantSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AIAgentLimits"
+          },
+          "perPerson": {
+            "format": "int32",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "perWorkspace": {
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "revision": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "limits",
+          "perPerson",
+          "perWorkspace",
+          "revision"
         ],
         "type": "object"
       },
@@ -959,6 +1026,9 @@
           "allowPrivate": {
             "type": "boolean"
           },
+          "assistant": {
+            "$ref": "#/components/schemas/AIAssistantSettings"
+          },
           "byFeature": {
             "items": {
               "$ref": "#/components/schemas/AIUsageFeature"
@@ -1047,7 +1117,8 @@
           "instanceAdmins",
           "accounts",
           "defaults",
-          "personal"
+          "personal",
+          "assistant"
         ],
         "type": "object"
       },
@@ -1127,7 +1198,8 @@
               "brand_voice",
               "draft",
               "agent",
-              "connection_test"
+              "connection_test",
+              "assistant"
             ],
             "type": "string"
           },
@@ -92877,7 +92949,8 @@
                 "brand_voice",
                 "draft",
                 "agent",
-                "connection_test"
+                "connection_test",
+                "assistant"
               ],
               "type": "string"
             }
@@ -92894,7 +92967,8 @@
                 "refused",
                 "error",
                 "nothing_drafted",
-                "pending"
+                "pending",
+                "answered"
               ],
               "type": "string"
             }

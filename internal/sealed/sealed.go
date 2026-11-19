@@ -55,6 +55,11 @@ var Columns = []Column{
 	{Table: "adapter_runtimes", Column: "secret_enc", Key: ids("adapter_id:uuid"), AD: `'adapter:' || adapter_id::text || ':secret'`},
 	{Table: "adapter_runtimes", Column: "previous_secret_enc", Key: ids("adapter_id:uuid"), AD: `'adapter:' || adapter_id::text || ':secret'`},
 	{Table: "ai_accounts", Column: "key_sealed", Key: ids("id:uuid"), AD: `'ai:' || id::text || ':key'`},
+	// The AI assistant's thread content (B3).
+	{Table: "ai_assistant_threads", Column: "title_sealed", Key: ids("id:uuid"), AD: `'ai_assistant_thread:' || id::text || ':title'`},
+	{Table: "ai_assistant_messages", Column: "content_sealed", Key: ids("id:uuid"), AD: `'ai_assistant_message:' || id::text`},
+	{Table: "ai_assistant_contexts", Column: "snapshot_sealed", Key: ids("id:uuid"), AD: `'ai_assistant_context:' || id::text`},
+	{Table: "ai_assistant_events", Column: "payload_sealed", Key: ids("thread_id:uuid", "seq:bigint"), AD: `'ai_assistant_event:' || thread_id::text || ':' || seq::text`, ShortLived: true},
 	{Table: "auth_challenges", Column: "data", JSONField: "secret", Where: "kind = 'totp_setup'", Key: ids("id:uuid"), AD: `'totp-pending:' || user_id::text`, ShortLived: true},
 	{Table: "auth_challenges", Column: "data", JSONField: "invite_enc", Where: "kind = 'oidc_flow'", Key: ids("id:uuid"), AD: `'sso:invite'`, ShortLived: true},
 	{Table: "automation_step_secrets", Column: "secret_enc", Key: ids("automation_id:uuid", "node_id:text"), AD: `'automation:' || automation_id::text || ':step:' || node_id || ':secret'`},

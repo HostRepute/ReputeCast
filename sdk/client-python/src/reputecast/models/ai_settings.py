@@ -14,6 +14,7 @@ import datetime
 
 if TYPE_CHECKING:
   from ..models.ai_account_view import AIAccountView
+  from ..models.ai_assistant_settings import AIAssistantSettings
   from ..models.ai_connection_view import AIConnectionView
   from ..models.ai_feature_default import AIFeatureDefault
   from ..models.ai_feature_state import AIFeatureState
@@ -39,6 +40,7 @@ class AISettings:
             accounts (list[AIAccountView]):
             ai_use_roles (list[str]):
             allow_private (bool):
+            assistant (AIAssistantSettings):
             by_feature (list[AIUsageFeature]):
             by_member (list[AIUsageMember]):
             can_manage (bool):
@@ -59,6 +61,7 @@ class AISettings:
     accounts: list[AIAccountView]
     ai_use_roles: list[str]
     allow_private: bool
+    assistant: AIAssistantSettings
     by_feature: list[AIUsageFeature]
     by_member: list[AIUsageMember]
     can_manage: bool
@@ -81,6 +84,7 @@ class AISettings:
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.ai_account_view import AIAccountView # noqa: PLC0415
+        from ..models.ai_assistant_settings import AIAssistantSettings # noqa: PLC0415
         from ..models.ai_connection_view import AIConnectionView # noqa: PLC0415
         from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_feature_state import AIFeatureState # noqa: PLC0415
@@ -102,6 +106,8 @@ class AISettings:
 
 
         allow_private = self.allow_private
+
+        assistant = self.assistant.to_dict()
 
         by_feature = []
         for by_feature_item_data in self.by_feature:
@@ -176,6 +182,7 @@ class AISettings:
             "accounts": accounts,
             "aiUseRoles": ai_use_roles,
             "allowPrivate": allow_private,
+            "assistant": assistant,
             "byFeature": by_feature,
             "byMember": by_member,
             "canManage": can_manage,
@@ -201,6 +208,7 @@ class AISettings:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.ai_account_view import AIAccountView # noqa: PLC0415
+        from ..models.ai_assistant_settings import AIAssistantSettings # noqa: PLC0415
         from ..models.ai_connection_view import AIConnectionView # noqa: PLC0415
         from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_feature_state import AIFeatureState # noqa: PLC0415
@@ -225,6 +233,11 @@ class AISettings:
 
 
         allow_private = d.pop("allowPrivate")
+
+        assistant = AIAssistantSettings.from_dict(d.pop("assistant"))
+
+
+
 
         by_feature = []
         _by_feature = d.pop("byFeature")
@@ -327,6 +340,7 @@ class AISettings:
             accounts=accounts,
             ai_use_roles=ai_use_roles,
             allow_private=allow_private,
+            assistant=assistant,
             by_feature=by_feature,
             by_member=by_member,
             can_manage=can_manage,

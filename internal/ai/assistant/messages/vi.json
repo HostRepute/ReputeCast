@@ -1,0 +1,14 @@
+{
+  "problem.off": "Trợ lý AI đang tắt trong không gian làm việc này. Người có quyền quản lý tích hợp có thể bật trong Cài đặt › Tích hợp · Trợ lý AI.",
+  "problem.requestKey": "Khóa yêu cầu này đã được dùng cho một cuộc trò chuyện khác. Hãy dùng khóa mới cho cuộc trò chuyện mới.",
+  "problem.sharingReview": "Hãy xem lại nội dung bạn đính kèm và xác nhận chia sẻ với mô hình. Chưa có gì được đính kèm.",
+  "problem.contextsFull": "Mỗi cuộc trò chuyện có tối đa {max} tài nguyên đính kèm. Hãy gỡ một tài nguyên trước.",
+  "problem.expired": "Cuộc trò chuyện này đã hết hạn: nội dung đã bị xóa sau 30 ngày không hoạt động. Hãy bắt đầu cuộc trò chuyện mới.",
+  "problem.nothingToSave": "Hãy đặt tiêu đề mới cho cuộc trò chuyện hoặc chọn mô hình khác.",
+  "problem.cursor": "Trang danh sách cuộc trò chuyện này không còn nữa. Hãy tải lại danh sách.",
+  "problem.turnActive": "Trợ lý vẫn đang trả lời trong cuộc trò chuyện này. Hãy chờ câu trả lời hoặc dừng nó, rồi gửi tin nhắn của bạn.",
+  "problem.nothingToSend": "Hãy viết tin nhắn trước.",
+  "problem.modelGone": "Mô hình của cuộc trò chuyện này đã bị xóa. Hãy chọn mô hình khác cho cuộc trò chuyện, rồi gửi lại tin nhắn.",
+  "problem.turnKey": "Khóa yêu cầu này đã được dùng cho một tin nhắn khác. Hãy dùng khóa mới cho tin nhắn mới.",
+  "answer.reputation": "Các câu hỏi về uy tín người gửi, danh sách chặn và khả năng vào hộp thư đến là việc của HostRepute: dịch vụ này theo dõi tên miền và IP của bạn và cho bạn biết cần sửa gì. Hãy hỏi tôi về cách dùng ReputeCast hoặc về những gì bạn đã đính kèm."
+}

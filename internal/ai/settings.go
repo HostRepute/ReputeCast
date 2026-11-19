@@ -181,6 +181,9 @@ type AISettings struct {
 	// Personal is the personal-keys switch, each person's cap, the caller's
 	// own accounts and, for managers, who has personal accounts.
 	Personal AIPersonalSettings `json:"personal"`
+	// Assistant is the assistant's switch, its limits per thread and the
+	// turns answering at once.
+	Assistant AIAssistantSettings `json:"assistant"`
 }
 
 func catalog() []AIProviderEntry {
@@ -308,6 +311,9 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	out.AIUseRoles, out.WithoutAIUse = s.aiUseHolders(ctx, ws)
 	if out.Personal, err = s.Personal(ctx, ws, p); err != nil {
+		return AISettings{}, err
+	}
+	if out.Assistant, err = s.AssistantSettings(ctx, s.Q, ws.ID); err != nil {
 		return AISettings{}, err
 	}
 	return out, nil

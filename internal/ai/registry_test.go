@@ -401,12 +401,12 @@ func TestAIRegistryMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = p.Close() })
-	// 03631 (personal keys) builds on 03630's tables: it goes down first
-	// and up after.
-	const version, personal = 3630, 3631
+	// 03631 (personal keys) and 03640 (the assistant) build on 03630's
+	// tables: they go down first and up after.
+	const version, personal, assistant = 3630, 3631, 3640
 	down := func() {
 		t.Helper()
-		for _, v := range []int64{personal, version} {
+		for _, v := range []int64{assistant, personal, version} {
 			if _, err := p.ApplyVersion(ctx, v, false); err != nil {
 				t.Fatal(err)
 			}
@@ -414,7 +414,7 @@ func TestAIRegistryMigration(t *testing.T) {
 	}
 	up := func() {
 		t.Helper()
-		for _, v := range []int64{version, personal} {
+		for _, v := range []int64{version, personal, assistant} {
 			if _, err := p.ApplyVersion(ctx, v, true); err != nil {
 				t.Fatal(err)
 			}

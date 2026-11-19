@@ -91,6 +91,8 @@ const (
 	OutcomeError          = "error"
 	OutcomeNothingDrafted = "nothing_drafted"
 	OutcomeCancelled      = "cancelled"
+	// OutcomeAnswered is an assistant turn's answer (B3).
+	OutcomeAnswered = "answered"
 )
 
 // Retention of the activity log.
@@ -310,7 +312,7 @@ const longestTimeout = 3 * time.Minute
 // timeouts per feature.
 func timeoutOf(feature string) time.Duration {
 	switch feature {
-	case FeatureAgent, FeatureDraft:
+	case FeatureAgent, FeatureDraft, FeatureAssistant:
 		return longestTimeout
 	case FeatureTranslate:
 		return 120 * time.Second
