@@ -689,18 +689,10 @@ pool of 20 and `worker.concurrency` 400. The load test and the fake
 provider ran on the same machine, and **the machine was shared with other
 work during the runs**, so treat the tails (p99) in particular as rough.
 
-200 streams, each event from its commit to the client:
-
-| Run | Delta p50 | p95 | p99 | Target p95 under 100 ms |
-|---|---|---|---|---|
-| All at once, run 1 | 9.9 ms | 76.7 ms | 341 ms | met |
-| All at once, run 2 | 10.0 ms | 70.6 ms | 166 ms | met |
-| Spread over 10 s | — | 50.6 ms | 92.8 ms | met |
-
-When all 200 messages go at once, the time to the first token, as the
-client sees it, is p50 6.7 s and p95 7.5 s. Claiming a turn holds the
-workspace's AI configuration lock for the claim's whole transaction, so the
-claims of each workspace's 100 turns run one after another.
+After claims stopped queueing on the workspace's configuration lock (the
+claims share it now, and the monthly caps read hourly totals instead of
+summing the month's requests), the same session measured, each run started
+with the machine's load average under 1.2 after a three-round warm-up:
 
 The server's time to the first token, what
 `reputecast_ai_assistant_ttft_overhead_seconds` measures: from the
@@ -709,14 +701,28 @@ without the provider's own time to its first token.
 
 | Load | p50 | p95 | p99 | Target p95 under 150 ms |
 |---|---|---|---|---|
-| 1 stream | 43 ms | 150 ms | 238 ms | at the limit |
-| 10 streams, spread | 28 ms | 99 ms | 148 ms | met |
-| 50 streams, spread | 31 ms | 114 ms | 131 ms | met |
-| 10 at once in one workspace | 93 ms | 156 ms | 182 ms | missed |
+| 1 stream, spread | 29.0 ms | 43.7 ms | 50.3 ms | met |
+| 10 streams, spread | 43.0 ms | 66.6 ms | 69.8 ms | met |
+| 50 streams, spread | 25.6 ms | 49.1 ms | 67.2 ms | met |
+| 10 at once in one workspace (5 runs, 300 turns) | 45.5 ms | 91.5 ms | 110 ms | met (358 ms before the change) |
 
-Ten messages sent at once in one workspace miss the target for the same
-reason: their claims take the workspace's configuration lock one at a time,
-one every 14–18 ms.
+200 streams, each event from its commit to the client:
+
+| Run | Time to first token p50 / p95 | Delta p50 | p95 | Target p95 under 100 ms |
+|---|---|---|---|---|
+| All at once, run 1 | 1.5 / 2.6 s | 39 ms | 164 ms | missed |
+| All at once, run 2 | 1.8 / 2.8 s | 39 ms | 157 ms | missed |
+| Before the change, all at once | 8.5 / 10.2 s | 6 ms | 30 ms | met |
+
+Before the change, the 200 streams met the delta target only because slow
+claims staggered them: each workspace's turns started one after another.
+Now all 200 answer at once, and on this machine, with the load generator
+and the fake provider on the same 4 vCPUs, the delta p95 misses. With
+200 fully overlapping 30-second answers both versions miss (255 ms now,
+274 ms before). Postgres averaged three active backends, mostly waiting on
+the client, so the limit was the server process and the shared CPU, not
+database locks. A run with the load generator on another machine hasn't
+been done.
 
 ### The panel in the browser
 
