@@ -3,12 +3,13 @@ import type { ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
-import { useT, type MessageDescriptor } from '@/i18n'
+import { formatList, useT, type MessageDescriptor } from '@/i18n'
 import { count, money } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
-import { aiCapabilities, aiEntryLine, aiEntryName, aiMaintainer, isAIProvider, type AIProvider } from './entries'
+import { aiCapabilities, aiEntryLine, aiEntryName, aiMaintainer, type AIProvider } from './entries'
 import { dollars } from './format'
 import { m } from './messages'
+import { mm } from './models.messages'
 
 type Entry = Schemas['IntegrationEntry']
 
@@ -33,14 +34,19 @@ export function ServerIcon({ size = 18 }: { size?: number }) {
   )
 }
 
-/** "AI assistant settings", at the right of the group's heading. */
+/** "AI assistant settings" and "MCP servers", at the right of the group's heading. */
 export function AIGroupLink() {
   const { slug } = useWorkspace()
   const t = useT()
   return (
-    <Link to="/w/$workspace/settings/integrations/ai" params={{ workspace: slug }} className="ih-lnk">
-      {t(m.groupSettings)}
-    </Link>
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <Link to="/w/$workspace/settings/integrations/ai" params={{ workspace: slug }} className="ih-lnk">
+        {t(m.groupSettings)}
+      </Link>
+      <Link to="/w/$workspace/settings/integrations/mcp-servers" params={{ workspace: slug }} className="ih-lnk">
+        {t(m.groupMCP)}
+      </Link>
+    </span>
   )
 }
 
@@ -49,18 +55,11 @@ export function aiGroupLine(entries: Entry[], invite: MessageDescriptor): Messag
   return entries.some((e) => e.status === 'connected' || e.status === 'attention') ? m.groupLineConnected : invite
 }
 
-/** "One model per workspace: disconnect Anthropic first to switch provider." under the group. */
-export function AIGroupNote({ entries }: { entries: Entry[] }) {
-  const t = useT()
-  const on = entries.find((e) => (e.status === 'connected' || e.status === 'attention') && isAIProvider(e.key))
-  if (!on || !isAIProvider(on.key)) return null
-  return <p className="k m-0">{t(m.oneModelNote, { provider: t(aiEntryName[on.key]) })}</p>
-}
-
 /**
  * One provider's card in the "AI models" group (IntegrationsCatalog,
- * AISettings): the connected one with this month's use and Manage; the
- * others with Connect, which waits while another model is connected.
+ * AISettings): the connected one with this month's use and Manage; once
+ * one is connected, the others are added beside it as more model accounts
+ * (AI models › Add account), by people who can manage integrations.
  */
 export function AIModelCard({
   provider,
@@ -70,6 +69,7 @@ export function AIModelCard({
   own,
   onConnect,
   denied,
+  helpers = [],
 }: {
   provider: AIProvider
   status: Entry['status']
@@ -79,6 +79,8 @@ export function AIModelCard({
   onConnect?: (p: AIProvider) => void
   /** On the AI page, why someone without integrations:manage can't connect. */
   denied?: string
+  /** In the catalog, who can add another account, for people who can't. */
+  helpers?: string[]
 }) {
   const { slug } = useWorkspace()
   const t = useT()
@@ -96,7 +98,7 @@ export function AIModelCard({
           ? t(m.factUsageNoCap, { spent: dollars(ai.costMicros) })
           : t(m.factUsage, { spent: dollars(ai.costMicros), cap: money(ai.capUsd) })
   } else if (other) {
-    fact = t(m.factOneModel)
+    fact = t(m.factAlongside, { provider: ai?.connected ?? '' })
   } else {
     fact = t(provider === 'compatible' ? m.factNoKey : provider === 'azure' && !own ? m.factAzure : m.factCap)
   }
@@ -109,9 +111,14 @@ export function AIModelCard({
       </ButtonLink>
     )
   } else if (other) {
-    action = (
-      <Button size="sm" disabledReason={t(m.oneModelNote, { provider: ai?.connected ?? '' })}>
-        {t(m.connect)}
+    // Another account beside the connected one: Add account on AI models, opened on this provider.
+    action = canManage ? (
+      <ButtonLink size="sm" to="/w/$workspace/settings/integrations/ai" params={settings} search={{ connect: provider }}>
+        {t(mm.addAccount)}
+      </ButtonLink>
+    ) : (
+      <Button size="sm" disabledReason={helpers.length ? t(m.connectWhoAsk, { helpers: formatList(helpers, 'disjunction') }) : t(m.connectWho)}>
+        {t(mm.addAccount)}
       </Button>
     )
   } else if (own && !canManage && denied) {

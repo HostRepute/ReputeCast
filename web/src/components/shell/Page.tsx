@@ -1,5 +1,6 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
 import { Fragment, useEffect, useRef, type ReactNode } from 'react'
+import { AssistantLauncher } from '@/features/assistant/AssistantShell'
 import { LanguageSuggestion } from '@/features/language/LanguageSuggestion'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
@@ -12,7 +13,8 @@ import { UserMenu } from './UserMenu'
 
 /**
  * One screen inside the app shell: the top bar (title, optional caption,
- * actions, bell and user menu, optional section tabs) and the content column.
+ * actions, the Assistant button, bell and user menu, optional section tabs)
+ * and the content column.
  */
 export function Page({
   title,
@@ -70,6 +72,7 @@ export function Page({
     <div className="acts">
       {actions}
       <div className="tools">
+        <AssistantLauncher />
         {bell ?? <NotificationBell />}
         <UserMenu />
       </div>

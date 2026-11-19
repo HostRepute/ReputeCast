@@ -62,6 +62,12 @@ const (
 	KindAIKeyRejected    = "ai_key_rejected"   // the model provider rejected the workspace's key
 	KindAIAgentReady     = "ai_agent_ready"    // a task needs its initiator's review or action
 	KindExternalProposal = "external_proposal" // a connected client staged a proposal for its consenting person
+
+	// KindAIAssistantConfirmation: a call of an MCP tool that writes waits
+	// for the assistant thread's owner (server · tool only, never its
+	// arguments); it goes once the call is decided, stopped or expired.
+	KindAIAssistantConfirmation = "ai_assistant_confirmation"
+
 	// Earn (design expansion, phase 6).
 	KindPaymentsAttention = "payments_attention"      // a payment provider's key rejected, webhook missing or silent
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier

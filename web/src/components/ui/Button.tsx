@@ -1,5 +1,5 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { forwardRef, type ButtonHTMLAttributes, type MouseEventHandler, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { Icon, type IconName } from '../icons/Icon'
 import { DisabledReason } from './DisabledReason'
@@ -101,7 +101,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   return 'disabledReason' in props ? <DisabledReason reason={disabledReason}>{button}</DisabledReason> : button
 })
 
-export type ButtonLinkProps = LinkProps & ButtonStyleProps & { className?: string; children?: ReactNode; 'aria-label'?: string; title?: string }
+export type ButtonLinkProps = LinkProps &
+  ButtonStyleProps & { className?: string; children?: ReactNode; 'aria-label'?: string; title?: string; onClick?: MouseEventHandler<HTMLAnchorElement> }
 
 /** A router link styled as a button (the prototype's `<a class="btn">`). */
 export function ButtonLink({ variant, size = 'md', icon, iconRight, iconOnly, block, className, children, ...rest }: ButtonLinkProps) {

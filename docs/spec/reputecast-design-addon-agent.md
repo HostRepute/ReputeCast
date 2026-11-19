@@ -8,6 +8,8 @@ The owner accepted the seven decisions below. A0 delivers this brief and the boa
 
 Use the existing Clearwater tokens, shell, composer, segment builder, automation editor, permissions, audit and approval rules. All product copy is English; implementation must localize into the app's five languages. All features remain free and self-hosted, using the workspace's own model account.
 
+**Amended by B0 (16 November 2026).** `reputecast-design-addon-assistant.md` records decisions D1–D7 for the in-app assistant: general threads with run-like bounds (decision 1 and §3.8), approved third-party MCP tools with per-call confirmation for writes (§3.5), several models per workspace with optional personal keys, and threads only their initiator can read (decision 6 and §3.6). These exceptions apply to assistant threads only; agent runs keep every rule below.
+
 ## 1. The seven accepted decisions
 
 1. **Scope:** whole-campaign generation and conversation within a named task/run. No general-purpose chat detached from a task.

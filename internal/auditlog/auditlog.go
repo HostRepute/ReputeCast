@@ -134,8 +134,13 @@ var Categories = []AuditCategory{
 	// Recurring digests (design expansion, phase 3).
 	{Key: "digests", Label: "Digests", Groups: []string{"digest"}},
 	{Key: "polls", Label: "Polls & surveys", Groups: []string{"poll", "survey"}},
-	// The AI assistant's connection, key, cap, prices and features (phase 3).
-	{Key: "ai", Label: "AI", Groups: []string{"ai"}},
+	// The AI assistant's connection, key, cap, prices and features (phase 3),
+	// its model accounts, models and the model each feature uses, and the
+	// personal-keys switch and cap (B1); its settings, threads and what they
+	// have attached (B3); its MCP servers, their tools, and the calls
+	// people allowed or denied (B5).
+	{Key: "ai", Label: "AI", Groups: []string{"ai", "ai_account", "ai_model", "ai_feature", "ai_personal_keys", "ai_assistant", "ai_assistant_thread", "ai_assistant_context", "ai_assistant_turn",
+		"mcp_server", "mcp_tool", "ai_assistant_confirmation"}},
 	// Earn (design expansion, phase 6).
 	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member", "sponsors", "sponsor_settings", "sponsor_booking"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
@@ -622,6 +627,7 @@ var verbs = map[string]string{
 	"reactivated": "reactivated", "removed": "removed", "signed_out": "signedOut", "invite_revoked": "revokedInvitation",
 	"invite_resent": "resentInvitation", "transferred": "transferredOwnership", "sign_in": "signedInTo", "tested": "tested",
 	"retried": "retriedDeliveries", "secret_rotated": "rotatedSecret", "settings_updated": "changedSettings",
+	"called": "called", "expired": "expired",
 	// Actions named in the present tense.
 	"create": "created", "update": "changed", "delete": "deleted", "remove": "removed", "rename": "renamed", "pause": "paused",
 	"resume": "resumed", "restore": "restored", "restored": "restored", "unscheduled": "unscheduled", "cancel": "cancelled",

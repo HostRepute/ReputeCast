@@ -21,7 +21,7 @@ type Definition = Schemas['SegmentDefinition']
 export function useSegmentAssist({ current, segmentId, fields, onDraft }: { current: () => Definition; segmentId?: string; fields: string[]; onDraft: (d: SegmentDraft) => void }) {
   const { slug } = useWorkspace()
   const t = useT()
-  const assist = useAssist()
+  const assist = useAssist('segment_draft')
   const outcome = useOutcome()
   const [text, setText] = useState('')
   const area = useRef<HTMLTextAreaElement>(null)

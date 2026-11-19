@@ -11,8 +11,11 @@ import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { T, useT, type MessageDescriptor } from '@/i18n'
 import { useApiReference } from '@/lib/apiReference'
 import { ago, money } from '@/lib/format'
-import { useCan, useWorkspace } from '@/lib/session'
-import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
+import { deniedReason, useCan, useWorkspace } from '@/lib/session'
+import { Note } from '@/components/ui/Note'
+import { useAIStatus } from '@/features/ai/api'
+import { mm } from '@/features/ai/models.messages'
+import { AIGroupLink, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
 import { isAIProvider } from '@/features/ai/entries'
 import { isPayment, PaymentAction, PaymentFact, paymentUnavailable, UnavailableBadge } from '@/features/earn/entries'
 import { StoreAction, StoreBadge, StoreFact } from '@/features/commerce/catalog'
@@ -80,7 +83,9 @@ export function CatalogPage() {
   const apiReference = useApiReference()
   const { slug } = useWorkspace()
   const t = useT()
-  const q = useHub()
+  // Without integrations:view the catalog isn't the person's; with ai:use their own key still is.
+  const canView = useCan('integrations:view')
+  const q = useHub(canView)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [connecting, setConnecting] = useState<PlatformKind | null>(null)
@@ -98,7 +103,9 @@ export function CatalogPage() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} aria-label={t(m.searchLabel)} placeholder={t(m.searchLabel)} type="search" />
         </label>
       </div>
-      {q.isError ? (
+      {!canView ? (
+        <NoCatalog />
+      ) : q.isError ? (
         <LoadError detail={errorMessage(q.error)} onRetry={() => void q.refetch()} />
       ) : !q.data ? (
         <CatalogSkeleton />
@@ -133,6 +140,24 @@ export function CatalogPage() {
         />
       ) : null}
     </Page>
+  )
+}
+
+/** The catalog needs integrations:view; who can grant it, and (with ai:use) the way to the person's own key. */
+function NoCatalog() {
+  const { slug } = useWorkspace()
+  const t = useT()
+  const canUse = useCan('ai:use')
+  const helpers = useAIStatus().data?.helpers ?? []
+  return (
+    <div className="flex flex-col items-start gap-3">
+      <Note tone="neutral">{deniedReason('integrations:view', helpers, t(m.title))}</Note>
+      {canUse ? (
+        <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: slug }}>
+          {t(mm.yourTitle)}
+        </ButtonLink>
+      ) : null}
+    </div>
   )
 }
 
@@ -235,7 +260,7 @@ function Catalog({
             const full = !narrowGroups.includes(g.key)
             const cards = g.entries.map((e) =>
               g.key === 'ai' && isAIProvider(e.key) ? (
-                <AIModelCard key={e.key} provider={e.key} status={e.status} facts={e.facts.ai} canManage={hub.canManage} />
+                <AIModelCard key={e.key} provider={e.key} status={e.status} facts={e.facts.ai} canManage={hub.canManage} helpers={hub.helpers} />
               ) : (
                 <EntryCard key={e.key} entry={e} canManage={hub.canManage} onConnect={onConnect} />
               ),
@@ -250,7 +275,6 @@ function Catalog({
                   {g.key === 'ai' ? <AIGroupLink /> : null}
                 </div>
                 {full ? <div className="ih-grid">{cards}</div> : cards}
-                {g.key === 'ai' ? <AIGroupNote entries={g.entries} /> : null}
               </section>
             )
           })}

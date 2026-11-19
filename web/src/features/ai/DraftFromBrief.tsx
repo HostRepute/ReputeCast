@@ -41,7 +41,7 @@ export function DraftFromBriefDialog({ onClose, target, onAccepted, initialVoice
 }) {
   const { slug } = useWorkspace()
   const t = useT()
-  const assist = useAssist()
+  const assist = useAssist('draft')
   const [reviewSharing, sharingDialog] = useSharingReview(`${assist.provider} · ${assist.model}`)
   const canEdit = useCan('campaigns:edit')
   const editReason = usePermissionReason('campaigns:edit')
@@ -150,9 +150,9 @@ export function DraftUnavailable({ assist }: { assist: Assist }) {
   const state = assist.status?.state
   const message = denied ?? (state === 'cap_reached'
     ? t(ms.capMenuAlone, { date: shortDate(assist.status!.usage.resetsAt) })
-    : state === 'key_rejected' ? t(ms.keyRejectedMenuAlone, { provider: assist.provider }) : t(md.unavailable))
+    : state === 'key_rejected' ? t(assist.personal ? ms.keyRejectedOwn : ms.keyRejectedMenuAlone, { provider: assist.provider }) : t(md.unavailable))
   return <div role="status" className="note w m-0 flex flex-col gap-2"><span>{message}</span>
-    {canSettings ? <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: slug }}>{t(md.settings)}</ButtonLink> : null}
+    {canSettings || (assist.personal && state === 'key_rejected') ? <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: slug }}>{t(md.settings)}</ButtonLink> : null}
   </div>
 }
 

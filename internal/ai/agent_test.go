@@ -184,7 +184,7 @@ func TestAgentCheckpoints(t *testing.T) {
 		model  string
 		quote  bool
 	}{{1, true, "agent-fixture", true}, {0, true, "agent-fixture", true}, {0, false, "agent-fixture", false}, {1, true, "different-model", false}} {
-		if _, err := env.App.Pool.Exec(ctx, `UPDATE ai_connections SET input_price=0,output_price=$2,price_known=$3,model=$4 WHERE workspace_id=$1`, ws.ID, price.output, price.known, price.model); err != nil {
+		if _, err := env.App.Pool.Exec(ctx, `UPDATE ai_models SET input_price=0,output_price=$2,price_known=$3,model=$4 WHERE workspace_id=$1`, ws.ID, price.output, price.known, price.model); err != nil {
 			t.Fatal(err)
 		}
 		var quoted ai.AIAgentRunView
@@ -202,7 +202,7 @@ func TestAgentCheckpoints(t *testing.T) {
 	// A prior conversation is resent, not free. Adding exactly 4,000 ASCII
 	// bytes adds 1,000 estimated input tokens to both low-scenario requests,
 	// and 4,000 to each of the four conservative-scenario requests.
-	if _, err := env.App.Pool.Exec(ctx, `UPDATE ai_connections SET input_price=1,output_price=0,price_known=true,model='agent-fixture' WHERE workspace_id=$1`, ws.ID); err != nil {
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE ai_models SET input_price=1,output_price=0,price_known=true,model='agent-fixture' WHERE workspace_id=$1`, ws.ID); err != nil {
 		t.Fatal(err)
 	}
 	var beforeQuote, afterQuote ai.AIAgentRunView
@@ -221,7 +221,7 @@ func TestAgentCheckpoints(t *testing.T) {
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE ai_agent_contexts SET messages=$2 WHERE run_id=$1`, run.ID, messages); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := env.App.Pool.Exec(ctx, `UPDATE ai_connections SET input_price=3,output_price=7,price_known=true,model='agent-fixture' WHERE workspace_id=$1`, ws.ID); err != nil {
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE ai_models SET input_price=3,output_price=7,price_known=true,model='agent-fixture' WHERE workspace_id=$1`, ws.ID); err != nil {
 		t.Fatal(err)
 	}
 	countCampaigns := func() int {

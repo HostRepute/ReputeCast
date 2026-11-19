@@ -6,6 +6,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import { andList, count, shortDate } from '@/lib/format'
 import { useCan, useOptionalWorkspace } from '@/lib/session'
+import { AskAssistant } from '@/features/assistant/AskButton'
 import { money } from '@/features/earn/format'
 import { mrp } from '@/features/earn/revenue/report.messages'
 import { m } from './messages'
@@ -19,7 +20,7 @@ const tone: Record<Insight['tone'], Tone> = { bad: 'bad', warn: 'warn', info: 'i
  * "Insights": what stands out in the report's numbers, each with what to
  * do about it (Report board). Read-only links show them without actions.
  */
-export function Insights({ r, onShowLink }: { r: CampaignReport; onShowLink?: (position: number, variant?: string) => void }) {
+export function Insights({ r, onShowLink, campaignId }: { r: CampaignReport; onShowLink?: (position: number, variant?: string) => void; campaignId?: string }) {
   const t = useT()
   const ws = useOptionalWorkspace()
   const word: Record<Insight['kind'], string> = { blocked: t(m.insightBlocked), mailbox_bounces: t(m.insightWarn), top_link: t(m.insightInfo) }
@@ -55,7 +56,11 @@ export function Insights({ r, onShowLink }: { r: CampaignReport; onShowLink?: (p
         <h2 className="h2" id="rep-ins-h">
           {t(m.insightsTitle)}
         </h2>
-        <span className="k">{t(m.insightsCaption)}</span>
+        <span className="row gap-2">
+          <span className="k">{t(m.insightsCaption)}</span>
+          {/* With this report suggested as context, not attached (AssistantEntry). */}
+          {campaignId ? <AskAssistant resource={{ kind: 'report', id: campaignId }} about={t(m.insightsTitle)} className="rep-noprint" /> : null}
+        </span>
       </div>
       {r.insights.length ? (
         <ul className="rep-ins">

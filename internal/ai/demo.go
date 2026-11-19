@@ -47,6 +47,13 @@ func (demoModel) Generate(ctx context.Context, req llm.Request) (llm.Response, e
 		}
 	}
 	var answer any
+	if req.Task == nil && demoToolCheck(req) {
+		// The tool-calling check (Settings › Integrations › AI models): one
+		// call to check_tools, as a model that supports tools makes it.
+		call := llm.ToolCall{ID: "demo_check", Name: "check_tools", Arguments: json.RawMessage(`{"value":"ready"}`)}
+		return llm.Response{Model: "claude-sonnet-5-5", InputTokens: 40, OutputTokens: 12, UsageKnown: true, StopReason: llm.StopTools,
+			Message: llm.Message{Role: "assistant", Parts: []llm.Part{{ToolCall: &call}}}}, nil
+	}
 	switch t := req.Task.(type) {
 	case testTask:
 		return llm.Response{Text: "Ready.", Model: "claude-sonnet-5-5", InputTokens: 14, OutputTokens: 3, UsageKnown: true, StopReason: llm.StopEnd}, nil

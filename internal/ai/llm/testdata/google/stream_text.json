@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \"Re\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 12, \"totalTokenCount\": 12}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"part",
+    "s\": [{\"text\": \"ady\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 12, \"totalTokenCount\": 12}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \".\"}], \"role\": \"model\"}, \"index\": 0, \"finishReason\": \"STOP\"}], \"usageMetadata\": {\"promptTokenCount\": 12, \"candidatesTokenCount\": 2, \"totalTokenCount\": 14}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n"
+  ]
+}

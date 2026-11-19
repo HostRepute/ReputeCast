@@ -264,5 +264,31 @@ func asksAboutReputation(instruction string) bool {
 	return reputationTermsRe.MatchString(instruction) || placementRe.MatchString(instruction) || whyRe.MatchString(instruction)
 }
 
+// The assistant's HostRepute card answers only diagnosis questions: is a
+// sender listed, what is its reputation, why does mail land in spam. How
+// to set up DKIM, SPF, DMARC or other deliverability settings is the
+// model's to answer (it has the help and the rule to send diagnosis to
+// HostRepute). People write in the app's five languages; the words outside
+// English are matched without \b, which only knows ASCII letters.
+var (
+	diagnosisTermsRe = regexp.MustCompile(`(?i)\b(block ?list(s|ed|ing)?|black ?list(s|ed|ing)?|sender (reputation|score)|(domain|ip|sending) reputation|spam ?traps?|postmaster tools|snds)\b`)
+	diagnosisWordsRe = regexp.MustCompile(`(?i)(` +
+		// Vietnamese
+		`danh sách (đen|chặn)|uy tín (người gửi|tên miền|ip)|bẫy (thư rác|spam)|(vào|rơi vào|bị đưa vào) (hộp |mục )?(thư rác|spam)|(tại sao|vì sao)[^?.!]*(thư rác|spam|bị chặn)|` +
+		// German
+		`sperrliste|schwarze[nr]? liste|absender(reputation|ruf)|spamfalle|(landen|landet|gehen|geht|kommen|kommt)[^?.!]* im spam|(warum|wieso|weshalb)[^?.!]*(spam|junk|blockiert)|` +
+		// Spanish
+		`lista (negra|de bloqueo)|reputaci[oó]n del (remitente|dominio)|trampas? de spam|(llegan|van|caen|terminan|acaban)[^?.!]* (a|en) (la carpeta de )?(spam|correo no deseado)|por ?qu[eé][^?.!]*(spam|correo no deseado|bloquead)|` +
+		// French
+		`liste (noire|de blocage)|r[ée]putation (de l['’]exp[ée]diteur|d['’]exp[ée]diteur|du domaine)|pi[eè]ges? [àa] spam|(arrivent|vont|tombent|finissent)[^?.!]* (dans|en) (les )?(spams?|courriers? ind[ée]sirables?)|pourquoi[^?.!]*(spams?|ind[ée]sirables?|bloqu)` +
+		`)`)
+)
+
+// asksForReputationDiagnosis reports whether a person asks the assistant to
+// diagnose sender reputation, a listing or spam placement.
+func asksForReputationDiagnosis(text string) bool {
+	return diagnosisTermsRe.MatchString(text) || placementRe.MatchString(text) || whyRe.MatchString(text) || diagnosisWordsRe.MatchString(text)
+}
+
 // imageOfRe catches alt text that starts with "Image of".
 var imageOfRe = regexp.MustCompile(`(?i)^\s*(an? )?(image|picture|photo|graphic|screenshot) (of|showing)\b`)

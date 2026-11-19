@@ -120,30 +120,38 @@ func (q *Queries) AIAgentArtifacts(ctx context.Context, runID uuid.UUID) ([]AiAg
 }
 
 const aIAgentCapability = `-- name: AIAgentCapability :one
-SELECT workspace_id, connection_hash, supported, checked_at FROM ai_agent_capabilities WHERE workspace_id = $1
+SELECT workspace_id, connection_hash, supported, checked_at, model_id FROM ai_agent_capabilities WHERE workspace_id = $1 AND model_id = $2
 `
 
-func (q *Queries) AIAgentCapability(ctx context.Context, workspaceID uuid.UUID) (AiAgentCapability, error) {
-	row := q.db.QueryRow(ctx, aIAgentCapability, workspaceID)
+type AIAgentCapabilityParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ModelID     uuid.UUID `json:"modelId"`
+}
+
+func (q *Queries) AIAgentCapability(ctx context.Context, arg AIAgentCapabilityParams) (AiAgentCapability, error) {
+	row := q.db.QueryRow(ctx, aIAgentCapability, arg.WorkspaceID, arg.ModelID)
 	var i AiAgentCapability
 	err := row.Scan(
 		&i.WorkspaceID,
 		&i.ConnectionHash,
 		&i.Supported,
 		&i.CheckedAt,
+		&i.ModelID,
 	)
 	return i, err
 }
 
 const aIAgentCapabilitySave = `-- name: AIAgentCapabilitySave :exec
-INSERT INTO ai_agent_capabilities (workspace_id, connection_hash, supported, checked_at)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (workspace_id) DO UPDATE SET connection_hash = EXCLUDED.connection_hash,
+INSERT INTO ai_agent_capabilities (workspace_id, model_id, connection_hash, supported, checked_at)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (model_id) DO UPDATE SET connection_hash = EXCLUDED.connection_hash,
     supported = EXCLUDED.supported, checked_at = EXCLUDED.checked_at
+WHERE ai_agent_capabilities.workspace_id = EXCLUDED.workspace_id
 `
 
 type AIAgentCapabilitySaveParams struct {
 	WorkspaceID    uuid.UUID `json:"workspaceId"`
+	ModelID        uuid.UUID `json:"modelId"`
 	ConnectionHash string    `json:"connectionHash"`
 	Supported      bool      `json:"supported"`
 	CheckedAt      time.Time `json:"checkedAt"`
@@ -152,6 +160,7 @@ type AIAgentCapabilitySaveParams struct {
 func (q *Queries) AIAgentCapabilitySave(ctx context.Context, arg AIAgentCapabilitySaveParams) error {
 	_, err := q.db.Exec(ctx, aIAgentCapabilitySave,
 		arg.WorkspaceID,
+		arg.ModelID,
 		arg.ConnectionHash,
 		arg.Supported,
 		arg.CheckedAt,
@@ -406,7 +415,7 @@ func (q *Queries) AIAgentReferences(ctx context.Context, runID uuid.UUID) ([]AIA
 }
 
 const aIAgentRetentionBatch = `-- name: AIAgentRetentionBatch :many
-SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash FROM ai_agent_runs
+SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash, model_id FROM ai_agent_runs
 WHERE (expires_at <= $1 AND state <> 'expired')
    OR (closed_at + interval '7 days' <= $1 AND EXISTS (
       SELECT 1 FROM ai_agent_contexts c WHERE c.run_id = ai_agent_runs.id AND c.messages <> '[]'::jsonb))
@@ -444,6 +453,7 @@ func (q *Queries) AIAgentRetentionBatch(ctx context.Context, now time.Time) ([]A
 			&i.Model,
 			&i.RequestKey,
 			&i.RequestHash,
+			&i.ModelID,
 		); err != nil {
 			return nil, err
 		}
@@ -456,7 +466,7 @@ func (q *Queries) AIAgentRetentionBatch(ctx context.Context, now time.Time) ([]A
 }
 
 const aIAgentRun = `-- name: AIAgentRun :one
-SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash, model_id FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2
 `
 
 type AIAgentRunParams struct {
@@ -487,6 +497,7 @@ func (q *Queries) AIAgentRun(ctx context.Context, arg AIAgentRunParams) (AiAgent
 		&i.Model,
 		&i.RequestKey,
 		&i.RequestHash,
+		&i.ModelID,
 	)
 	return i, err
 }
@@ -515,22 +526,23 @@ func (q *Queries) AIAgentRunByRequest(ctx context.Context, arg AIAgentRunByReque
 }
 
 const aIAgentRunInsert = `-- name: AIAgentRunInsert :exec
-INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at, request_key, request_hash)
-VALUES ($1, $2, $3, $4, 'planning', $5, $6, $7, $8, $8, $9, $10, $11)
+INSERT INTO ai_agent_runs (id, workspace_id, user_id, model, model_id, state, tool_limit, token_limit, cost_limit_micros, created_at, updated_at, expires_at, request_key, request_hash)
+VALUES ($1, $2, $3, $4, $5, 'planning', $6, $7, $8, $9, $9, $10, $11, $12)
 `
 
 type AIAgentRunInsertParams struct {
-	ID              uuid.UUID `json:"id"`
-	WorkspaceID     uuid.UUID `json:"workspaceId"`
-	UserID          uuid.UUID `json:"userId"`
-	Model           string    `json:"model"`
-	ToolLimit       int32     `json:"toolLimit"`
-	TokenLimit      int64     `json:"tokenLimit"`
-	CostLimitMicros int64     `json:"costLimitMicros"`
-	Now             time.Time `json:"now"`
-	ExpiresAt       time.Time `json:"expiresAt"`
-	RequestKey      *string   `json:"requestKey"`
-	RequestHash     []byte    `json:"requestHash"`
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	UserID          uuid.UUID  `json:"userId"`
+	Model           string     `json:"model"`
+	ModelID         *uuid.UUID `json:"modelId"`
+	ToolLimit       int32      `json:"toolLimit"`
+	TokenLimit      int64      `json:"tokenLimit"`
+	CostLimitMicros int64      `json:"costLimitMicros"`
+	Now             time.Time  `json:"now"`
+	ExpiresAt       time.Time  `json:"expiresAt"`
+	RequestKey      *string    `json:"requestKey"`
+	RequestHash     []byte     `json:"requestHash"`
 }
 
 func (q *Queries) AIAgentRunInsert(ctx context.Context, arg AIAgentRunInsertParams) error {
@@ -539,6 +551,7 @@ func (q *Queries) AIAgentRunInsert(ctx context.Context, arg AIAgentRunInsertPara
 		arg.WorkspaceID,
 		arg.UserID,
 		arg.Model,
+		arg.ModelID,
 		arg.ToolLimit,
 		arg.TokenLimit,
 		arg.CostLimitMicros,
@@ -551,7 +564,7 @@ func (q *Queries) AIAgentRunInsert(ctx context.Context, arg AIAgentRunInsertPara
 }
 
 const aIAgentRunLock = `-- name: AIAgentRunLock :one
-SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2 FOR UPDATE
+SELECT id, workspace_id, user_id, state, version, plan_revision, accepted_revision, tool_limit, token_limit, cost_limit_micros, tool_calls, pause_reason, created_at, updated_at, expires_at, closed_at, model, request_key, request_hash, model_id FROM ai_agent_runs WHERE id = $1 AND workspace_id = $2 FOR UPDATE
 `
 
 type AIAgentRunLockParams struct {
@@ -582,6 +595,7 @@ func (q *Queries) AIAgentRunLock(ctx context.Context, arg AIAgentRunLockParams) 
 		&i.Model,
 		&i.RequestKey,
 		&i.RequestHash,
+		&i.ModelID,
 	)
 	return i, err
 }
@@ -628,7 +642,7 @@ func (q *Queries) AIAgentRunSave(ctx context.Context, arg AIAgentRunSaveParams) 
 }
 
 const aIAgentRuns = `-- name: AIAgentRuns :many
-SELECT r.id, r.workspace_id, r.user_id, r.state, r.version, r.plan_revision, r.accepted_revision, r.tool_limit, r.token_limit, r.cost_limit_micros, r.tool_calls, r.pause_reason, r.created_at, r.updated_at, r.expires_at, r.closed_at, r.model, r.request_key, r.request_hash, coalesce(nullif(u.name, ''), u.email)::text AS owner_name
+SELECT r.id, r.workspace_id, r.user_id, r.state, r.version, r.plan_revision, r.accepted_revision, r.tool_limit, r.token_limit, r.cost_limit_micros, r.tool_calls, r.pause_reason, r.created_at, r.updated_at, r.expires_at, r.closed_at, r.model, r.request_key, r.request_hash, r.model_id, coalesce(nullif(u.name, ''), u.email)::text AS owner_name
 FROM ai_agent_runs r JOIN users u ON u.id = r.user_id
 WHERE r.workspace_id = $1
   AND ($2::uuid IS NULL OR user_id = $2)
@@ -664,6 +678,7 @@ type AIAgentRunsRow struct {
 	Model            string     `json:"model"`
 	RequestKey       *string    `json:"requestKey"`
 	RequestHash      []byte     `json:"requestHash"`
+	ModelID          *uuid.UUID `json:"modelId"`
 	OwnerName        string     `json:"ownerName"`
 }
 
@@ -702,6 +717,7 @@ func (q *Queries) AIAgentRuns(ctx context.Context, arg AIAgentRunsParams) ([]AIA
 			&i.Model,
 			&i.RequestKey,
 			&i.RequestHash,
+			&i.ModelID,
 			&i.OwnerName,
 		); err != nil {
 			return nil, err

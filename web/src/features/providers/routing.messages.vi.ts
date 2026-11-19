@@ -17,7 +17,6 @@ export default translate(mr, {
   savedAgoBy: '{name} lưu lần cuối {ago}',
   discard: 'Hủy thay đổi',
   upToDate: 'Định tuyến chưa có gì thay đổi',
-  upToDateDetail: 'Hãy đổi một tuyến, tỷ trọng chia hoặc chính sách chuyển dự phòng trước.',
   saveRouting: 'Lưu định tuyến',
   asideLabel: 'Công cụ thử tuyến và cài đặt dùng chung',
   leaveTitle: 'Rời đi mà không lưu định tuyến?',
@@ -56,13 +55,9 @@ export default translate(mr, {
   templatesAndLog: 'Mẫu và nhật ký',
 
   weightedSplit: 'Chia theo tỷ trọng',
-  splitUse: 'dùng khi chuyển nhà cung cấp và khởi động',
-  splitUseWarming: 'dùng khi chuyển nhà cung cấp và khởi động · tự điều chỉnh mỗi ngày theo kế hoạch của {provider}',
   unknown: 'Không rõ',
-  plannerRaises: 'Trình lập kế hoạch khởi động tự tăng tỷ trọng này: {steps}.',
   plannerStep: '{share} vào ngày {day}',
   shareLabel: 'Tỷ trọng {provider}',
-  sharePercent: 'Phần trăm của {provider}',
 
   conditionsBeforeSplit: 'Điều kiện · được kiểm tra trước khi chia tỷ trọng',
   conditionsBeforePrimary: 'Điều kiện · được kiểm tra trước nhà cung cấp chính',
@@ -131,7 +126,6 @@ export default translate(mr, {
 
   // ── Route tester ─────────────────────────────────────────────────────
   testerTitle: 'Công cụ thử tuyến',
-  testerLine: 'Nhà cung cấp nào sẽ gửi email này?',
   testerStream: 'Luồng',
   testerTemplate: 'Mẫu',
   noTemplates: 'Chưa có mẫu nào',
@@ -222,7 +216,6 @@ export default translate(mr, {
   checkSandbox: '{result, select, pass {không ở sandbox} other {đang ở sandbox}}',
   checkAvailable: '{result, select, pass {sẵn sàng} other {hiện không sẵn sàng}}',
   checkBulk: '{result, select, pass {điều khoản cho phép Gửi hàng loạt} other {điều khoản không cho phép Gửi hàng loạt}}',
-  noTarget: 'Không có nhà cung cấp dự phòng để kiểm tra.',
   mxNote: 'Gmail bao gồm người nhận Google Workspace và Outlook bao gồm người nhận Microsoft 365 (xác định từ bản ghi MX). Các nhà cung cấp hộp thư khắt khe có giới hạn thấp hơn riêng trong lúc một nhà cung cấp khởi động.',
   testerSaved: 'Nhà cung cấp nào sẽ gửi thư này? Kiểm tra theo định tuyến đã lưu.',
   tabRecipient: 'Người nhận',
@@ -234,7 +227,6 @@ export default translate(mr, {
   draftLine: 'Với tỷ lệ chia {pair} chưa lưu của bạn:',
   draftStays: 'địa chỉ này vẫn ở {provider}.',
   draftMoves: 'địa chỉ này chuyển sang {provider}.',
-  draftSame: 'định tuyến không đổi.',
   campaignLoading: 'Đang tính chiến dịch sẽ đi đâu…',
   campaignNone: 'Chưa có chiến dịch gửi hàng loạt nào để mô phỏng. Hãy viết hoặc lên lịch một chiến dịch và nó sẽ hiện ở đây.',
   campaignTitle: 'Chiến dịch',

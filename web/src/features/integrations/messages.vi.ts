@@ -188,11 +188,8 @@ export default translate(m, {
   actions: 'Hành động',
   triggersHint: 'tức thì, qua các webhook {name} tạo',
   triggersHintConnect: 'tức thì, qua một webhook {name} tạo',
-  triggersAllAvailable: 'có đủ cả {count}',
   actionsHint: 'các lần gọi bằng khóa',
   actionsHintConnect: 'các lần gọi {name} thực hiện bằng khóa',
-  actionsSomeAvailable: 'có {available} trên {total}',
-  triggersOn: '{count} đang bật',
   available: 'Có sẵn',
   off: 'Tắt',
   onByDefault: 'Bật theo mặc định',
@@ -225,7 +222,6 @@ export default translate(m, {
   loadingApp: 'Đang tải {name}',
   loadAppError: 'Không tải được hoạt động của {name}',
   loadAppErrorBody: '{detail} {name} vẫn hoạt động: khóa và các lần gọi của nó không phụ thuộc vào trang này.',
-  notFoundTitle: 'Không có tích hợp nào tên “{kind}”',
 
   statCalls: 'Lần gọi · 7 ngày',
   statCallsFrom: '{kind, select, zapier {từ {count, plural, other {# Zap}}} make {từ {count, plural, other {# kịch bản}}} other {từ {count, plural, other {# quy trình}}}}',
@@ -252,7 +248,6 @@ export default translate(m, {
   colWorkflow: '{kind, select, zapier {Zap} make {Kịch bản} other {Quy trình}}',
   colUses: 'Dùng',
   colCalls7d: 'Lần gọi · 7 ngày',
-  colLast7d: '7 ngày qua',
   colErrors: 'Lỗi',
   colLastRun: 'Lần chạy gần nhất',
   consentKept: 'giữ đúng đồng ý',
@@ -315,9 +310,7 @@ export default translate(m, {
   opSample: 'Dữ liệu mẫu',
   opLists: 'Liệt kê danh sách',
   opFields: 'Liệt kê trường',
-  opTemplates: 'Liệt kê mẫu',
   opReport: 'Gửi báo cáo',
-  opOther: '{method} {path}',
   explainMissing:
     '<mono>{vars}</mono> là bắt buộc, và {kind, select, zapier {Zap} make {kịch bản} other {quy trình}} đã không gửi {count, plural, other {chúng}}.',
   toChange: '<b>Cần đổi trong {name}:</b> {fix}',
@@ -506,7 +499,6 @@ export default translate(m, {
   checkReach: 'Truy cập được từ internet',
   checkedAgo: 'kiểm tra {ago}',
   keyLabel: 'Khóa · {key}',
-  newKey: 'Khóa mới',
   copyKey: 'Sao chép khóa',
   copy: 'Sao chép',
   copied: 'Đã sao chép',
@@ -538,7 +530,6 @@ export default translate(m, {
   evConnectedCard: 'Thẻ và trang của {name} được cập nhật',
   close: 'Đóng',
   done: 'Xong',
-  connectedTitle: '{name} đã kết nối',
   evKeyCreatedLine: '{time} · {key} · {count, plural, other {# trình kích hoạt và hành động}}',
   evCalledAt: '{name} đã gọi lúc {time}',
   evCalledSub: '{operation} · {status} · {ip} · {client}',
@@ -564,8 +555,6 @@ export default translate(m, {
   unreachableListed:
     '{triggers, plural, other {# trình kích hoạt}} và {actions, plural, other {# hành động}} được liệt kê ở đây, như ở bước 1, khi {name} truy cập được hệ thống. Chưa có gì được tạo cho đến lúc đó: không khóa, không webhook.',
   needsPublic: 'Bước 2 và 3 cần địa chỉ công khai',
-  checkingPublic: 'Đang kiểm tra địa chỉ công khai',
-  n8nEyebrow: 'n8n trong mạng của bạn',
   n8nAddress: 'Địa chỉ n8n của bạn',
   n8nAddressHint: 'Để mở n8n từ đây, và để kiểm tra ReputeCast truy cập được nó cho trình kích hoạt.',
   n8nAddressPlaceholder: 'https://n8n.example.com',
@@ -593,11 +582,8 @@ export default translate(m, {
   wpFirstReportSub: 'Phiên bản plugin, WordPress và PHP, nguồn cấp, và nơi dùng biểu mẫu',
   wpConnectedSub: 'Trang hiện trên trang này',
   wpWaitFoot: 'Plugin gửi báo cáo khi bạn nhấn Connect trong WordPress, rồi mỗi 12 giờ và với mỗi bài viết. Bạn có thể đóng hộp thoại; khóa vẫn hợp lệ.',
-  wpConnectedTitle: '{host} đã kết nối',
   wpReportedAt: '{host} đã gửi báo cáo lúc {time}',
-  wpReportedSub: 'Plugin {version}',
   wpConnectedNote: 'Trang hiện ở đây, cùng biểu mẫu đăng ký và phiên bản plugin.',
-  connectError: 'Không tạo được khóa',
 
   // ── Key dialogs ──────────────────────────────────────────────────────
   eyebrowPath: 'Cài đặt › Tích hợp › {name}',
@@ -624,10 +610,6 @@ export default translate(m, {
   takeOverConfirm: 'Tiếp quản',
   takenOverToast: 'Giờ bạn là chủ của {key}',
   takeOverError: 'Không tiếp quản được khóa',
-  reconnectTitle: 'Kết nối lại {name}?',
-  reconnectBody: 'Một khóa mới được tạo với những gì {name} được làm hiện giờ, và chỉ hiện một lần. Hãy dán nó vào {name} để các lần gọi chạy lại.',
-  reconnectConfirm: 'Tạo khóa mới',
-  reconnectError: 'Không kết nối lại được',
   disconnectDialogTitle: 'Ngắt kết nối {name}?',
   disconnectDialogBody:
     '{kind, select, zapier {Khóa ngừng hoạt động ngay. Các Zap dùng ReputeCast sẽ lỗi từ lần chạy tới.} make {Khóa ngừng hoạt động ngay. Các kịch bản dùng ReputeCast sẽ lỗi từ lần chạy tới.} other {Khóa ngừng hoạt động ngay. Các quy trình dùng ReputeCast sẽ lỗi từ lần chạy tới.}}',
@@ -655,7 +637,6 @@ export default translate(m, {
   changeConfirm: 'Lưu',
   changedToast: 'Đã lưu những gì {name} được làm',
   changedDetail: '{removed, plural, =0 {Khóa đã đổi tại chỗ.} other {Khóa đã đổi tại chỗ, và # webhook của trình kích hoạt đã tắt bị xóa.}}',
-  changeError: 'Không lưu được những gì {name} được làm',
   loadingDialog: 'Đang tải',
 
   // ── WordPress sites ──────────────────────────────────────────────────
@@ -815,7 +796,6 @@ export default translate(m, {
   memberDisconnect: 'Ngắt kết nối',
   memberFoot: 'Tiếp quản đưa bạn thành chủ của các khóa. Khóa giữ nguyên giá trị, nên không có gì thay đổi trong {tools}.',
   memberNoManage: 'Những mục này ngừng hoạt động cho đến khi người có thể quản lý tích hợp tiếp quản hoặc ngắt kết nối chúng trong Cài đặt › Tích hợp.',
-  memberError: 'Không bàn giao được {name}',
 
   // ── HostRepute ───────────────────────────────────────────────────────
   hrAdds: 'Bổ sung',

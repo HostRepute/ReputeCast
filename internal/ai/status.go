@@ -4,25 +4,29 @@ import (
 	"context"
 	"slices"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // AIStatus is what the entry points need: whether a model is connected and
 // works, its name, the features on, this month's use and who can help.
+// State, the model, Cap, Usage and Prices are the workspace's model's; a
+// feature on the person's own model has its own in Features.
 type AIStatus struct {
 	// State: ready, not_configured, key_rejected or cap_reached.
-	State        string           `json:"state" enum:"ready,not_configured,key_rejected,cap_reached"`
-	Provider     string           `json:"provider,omitempty" enum:"anthropic,openai,google,azure,compatible,"`
-	ProviderName string           `json:"providerName,omitempty"`
-	Model        string           `json:"model,omitempty"`
-	ModelName    string           `json:"modelName,omitempty"`
-	ImageInput   bool             `json:"imageInput"`
-	Features     []AIFeatureState `json:"features"`
-	Agent        AIAgentSettings  `json:"agent"`
-	Usage        AIUsageView      `json:"usage"`
-	Cap          AICapView        `json:"cap"`
-	Prices       AIPricesView     `json:"prices"`
+	State        string            `json:"state" enum:"ready,not_configured,key_rejected,cap_reached"`
+	Provider     string            `json:"provider,omitempty" enum:"anthropic,openai,google,azure,compatible,"`
+	ProviderName string            `json:"providerName,omitempty"`
+	Model        string            `json:"model,omitempty"`
+	ModelName    string            `json:"modelName,omitempty"`
+	ImageInput   bool              `json:"imageInput"`
+	Features     []AIStatusFeature `json:"features"`
+	Agent        AIAgentSettings   `json:"agent"`
+	Usage        AIUsageView       `json:"usage"`
+	Cap          AICapView         `json:"cap"`
+	Prices       AIPricesView      `json:"prices"`
 	// CanManage: the person can connect a model, raise the cap or turn a
 	// feature on; Helpers can.
 	CanManage bool     `json:"canManage"`
@@ -30,52 +34,143 @@ type AIStatus struct {
 	// HostRepute: HostRepute is connected, so reputation questions go to
 	// its assistant.
 	HostRepute bool `json:"hostRepute"`
+	// Accounts are the model accounts with their models; Defaults the
+	// model each feature uses.
+	Accounts []AIAccountView    `json:"accounts"`
+	Defaults []AIFeatureDefault `json:"defaults"`
 }
 
-// Status describes the assistant for a person with ai:use.
+// AIStatusFeature is a feature for the person: its switch, and whether it
+// can be asked for now with the model it uses for them (their own pick, or
+// the workspace's) in the budget that model's requests count against (the
+// workspace's cap, or the person's own for their own model). The features
+// are the settings' and then the agent, for the model a new run of theirs
+// takes.
+type AIStatusFeature struct {
+	// State is as the top-level State, for this feature's model and budget;
+	// On says whether the switches (the feature's, personal keys) allow it.
+	State string `json:"state" enum:"ready,not_configured,key_rejected,cap_reached"`
+	// Personal: the model is the person's own.
+	Personal     bool         `json:"personal"`
+	Provider     string       `json:"provider,omitempty" enum:"anthropic,openai,google,azure,compatible,"`
+	ProviderName string       `json:"providerName,omitempty"`
+	Model        string       `json:"model,omitempty"`
+	ModelName    string       `json:"modelName,omitempty"`
+	Usage        AIUsageView  `json:"usage"`
+	Cap          AICapView    `json:"cap"`
+	Prices       AIPricesView `json:"prices"`
+	// Key, On, Available and ModelID are as AIFeatureState's. The agent's On
+	// is its switch (the agent's settings) with a model whose tool check
+	// lets runs start; Available is false when the check doesn't.
+	Key       string     `json:"key" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent"`
+	On        bool       `json:"on"`
+	Available bool       `json:"available"`
+	ModelID   *uuid.UUID `json:"modelId,omitempty" format:"uuid"`
+}
+
+// Status describes the assistant for a person with ai:use. Each feature is
+// on when its own model's account is connected, and has that model's state
+// and budget. The model it names is the first account's, or else the first
+// connected model a feature uses.
 func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIStatus, error) {
-	c, err := s.load(ctx, s.Q, ws.ID)
+	m, err := s.models(ctx, s.Q, ws.ID)
 	if err != nil {
 		return AIStatus{}, err
 	}
+	var c *connection
+	if len(m.list) > 0 && m.list[0].connected() {
+		c = m.list[0]
+	}
+	for _, f := range Features {
+		if d := m.of(f); c == nil && d.connected() {
+			c = d
+		}
+	}
 	start, next := s.month(ws)
-	out := AIStatus{State: "not_configured", Features: []AIFeatureState{}, Usage: AIUsageView{State: "ok", MonthStart: start, ResetsAt: next},
+	out := AIStatus{State: "not_configured", Features: []AIStatusFeature{}, Usage: AIUsageView{State: "ok", MonthStart: start, ResetsAt: next},
 		CanManage: p.Can(authz.IntegrationsManage), Helpers: s.helpers(ctx, ws.ID), HostRepute: s.hostReputeConnected(ctx, ws.ID)}
 	out.Agent, err = s.AgentSettings(ctx, ws)
 	if err != nil {
 		return AIStatus{}, err
 	}
-	for _, f := range Features {
-		st := AIFeatureState{Key: f, On: false, Available: true}
-		if c.connected() {
-			st.On = !slices.Contains(c.FeaturesOff, f)
-			if f == FeatureAltText && !c.ImageInput {
-				st.On, st.Available = false, false
+	if out.Accounts, err = s.accountViews(ctx, s.Q, m); err != nil {
+		return AIStatus{}, err
+	}
+	out.Defaults = m.defaultViews()
+	// Each budget's use this month, read once: the workspace's, and the
+	// person's own for their models.
+	used := map[bool]usage{}
+	budget := func(b *connection) (state string, limit AICapView, view AIUsageView, err error) {
+		u, ok := used[b.personal()]
+		if !ok {
+			if u, err = s.usage(ctx, ws, b); err != nil {
+				return "", limit, view, err
 			}
+			used[b.personal()] = u
+		}
+		state, view = "ready", AIUsageView{CostMicros: u.costMicros, ReservedCostMicros: u.reservedCost, ReservedTokens: u.reservedTokens, UncertainRequests: u.uncertain,
+			InputTokens: u.inputTokens, OutputTokens: u.outputTokens, Tokens: u.tokens, Requests: u.requests, Share: u.share, State: "ok", MonthStart: start, ResetsAt: next}
+		limit = AICapView{Kind: b.CapKind, USD: b.CapUsd, Tokens: b.CapTokens}
+		if b.personal() {
+			limit = AICapView{Kind: "usd", USD: b.PersonalCapUsd}
+		}
+		switch {
+		case u.reached:
+			view.State, state = "reached", "cap_reached"
+		case u.notice:
+			view.State = "notice"
+		}
+		if b.Status == "key_rejected" {
+			state = "key_rejected"
+		}
+		return state, limit, view, nil
+	}
+	// A feature follows the person's own pick of their models, if any.
+	mine, err := s.memberModels(ctx, s.Q, ws.ID, actorID(p))
+	if err != nil {
+		return AIStatus{}, err
+	}
+	for _, f := range append(slices.Clone(Features), FeatureAgent) {
+		st := AIStatusFeature{Key: f, On: false, Available: true, State: "not_configured", Usage: AIUsageView{State: "ok", MonthStart: start, ResetsAt: next}}
+		d := m.of(f)
+		if o, ok := mine[f]; ok {
+			d = o
+		}
+		if d != nil {
+			st.ModelID = &d.ModelID
+			if d.connected() && (!d.personal() || d.PersonalKeys) {
+				st.On = !slices.Contains(d.FeaturesOff, f)
+				switch {
+				case f == FeatureAltText && !d.ImageInput:
+					st.On, st.Available = false, false
+				case f == FeatureAgent:
+					// As a run starts: the agent's switch, and a tool check
+					// that didn't fail (a personal key's must have passed).
+					tools, err := agentCapability(ctx, s.Q, d)
+					if err != nil {
+						return AIStatus{}, err
+					}
+					st.Available = tools.State == "supported" || (tools.State == "untested" && !d.personal())
+					st.On = out.Agent.Enabled && st.Available
+				}
+			}
+		}
+		if d.connected() {
+			if st.State, st.Cap, st.Usage, err = budget(d); err != nil {
+				return AIStatus{}, err
+			}
+			st.Personal, st.Provider, st.ProviderName, st.Model, st.ModelName = d.personal(), d.Provider, d.providerName(), d.Model, d.modelName()
+			st.Prices = AIPricesView{Input: d.InputPrice, Output: d.OutputPrice, Known: d.PriceKnown || d.Demo, From: d.PricesFrom}
 		}
 		out.Features = append(out.Features, st)
 	}
 	if !c.connected() {
 		return out, nil
 	}
-	out.State, out.Provider, out.ProviderName, out.Model, out.ModelName, out.ImageInput = "ready", c.Provider, c.providerName(), c.Model, c.modelName(), c.ImageInput
-	out.Cap = AICapView{Kind: c.CapKind, USD: c.CapUsd, Tokens: c.CapTokens}
+	out.Provider, out.ProviderName, out.Model, out.ModelName, out.ImageInput = c.Provider, c.providerName(), c.Model, c.modelName(), c.ImageInput
 	out.Prices = AIPricesView{Input: c.InputPrice, Output: c.OutputPrice, Known: c.PriceKnown || c.Demo, From: c.PricesFrom}
-	u, err := s.usage(ctx, ws, c)
-	if err != nil {
+	if out.State, out.Cap, out.Usage, err = budget(c); err != nil {
 		return AIStatus{}, err
-	}
-	out.Usage.CostMicros, out.Usage.InputTokens, out.Usage.OutputTokens, out.Usage.Tokens, out.Usage.Requests, out.Usage.Share =
-		u.costMicros, u.inputTokens, u.outputTokens, u.tokens, u.requests, u.share
-	out.Usage.ReservedCostMicros, out.Usage.ReservedTokens, out.Usage.UncertainRequests = u.reservedCost, u.reservedTokens, u.uncertain
-	switch {
-	case u.reached:
-		out.Usage.State, out.State = "reached", "cap_reached"
-	case u.notice:
-		out.Usage.State = "notice"
-	}
-	if c.Status == "key_rejected" {
-		out.State = "key_rejected"
 	}
 	return out, nil
 }

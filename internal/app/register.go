@@ -33,6 +33,9 @@ var (
 	// startHooks run after dependencies exist and before serving, in file
 	// order (wire domains that need each other, such as the system mailer).
 	startHooks []func(*App) error
+	// closeHooks release what a domain keeps per App (a connection of its
+	// own) when the App closes, before its pool.
+	closeHooks []func(*App)
 )
 
 // registerAPI adds every domain's Huma operations.

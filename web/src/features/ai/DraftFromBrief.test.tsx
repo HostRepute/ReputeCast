@@ -7,7 +7,8 @@ import { DraftFromBriefDialog } from './DraftFromBrief'
 const base = '/api/v1/workspaces/acme-newsletter'
 const endpoint = `${base}/ai/drafts/campaigns`
 const editor = workspaceMe({ permissions: ['ai:use', 'campaigns:view', 'campaigns:edit', 'templates:view'] })
-const status = { state: 'ready', providerName: 'Fixture', modelName: 'Local model', features: [{ key: 'draft', on: true, available: true }], prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }
+const draft = { key: 'draft', on: true, available: true, state: 'ready', personal: false, providerName: 'Fixture', modelName: 'Local model', prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }
+const status = { state: 'ready', providerName: 'Fixture', modelName: 'Local model', features: [draft], prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }
 const content = { subject: 'Faster exports', preheader: 'Try the new export', mjml: '<mjml><mj-body><mj-section><mj-column><mj-text>New export</mj-text></mj-column></mj-section></mj-body></mjml>' }
 const proposal = { id: 'proposal-1', name: 'Export update', content, html: '<html><head></head><body><p>New export</p><a href="https://example.test">Read</a></body></html>', subjectCheck: { heuristics: [] }, sent: { modelName: 'Local model', inputTokens: 120, outputTokens: 90, costMicros: 1000, voiceRevision: 3 }, expiresAt: '2026-11-16T09:00:00Z', decision: '' }
 const reads = {
@@ -144,5 +145,32 @@ describe('draft from a brief', () => {
     unmock = mockApi(reads)
     await renderInWorkspace(<DraftFromBriefDialog onClose={vi.fn()} onAccepted={vi.fn()} />, { me: workspaceMe({ permissions: ['ai:use', 'campaigns:view'] }) })
     expect(await screen.findByRole('button', { name: 'Generate proposal' })).toBeDisabled()
+  })
+
+  it('generates on the person’s own model for drafts while the workspace is at its cap', async () => {
+    const own = { ...draft, personal: true, providerName: 'Own', modelName: 'Own model', cap: { kind: 'usd', usd: 5 }, usage: { costMicros: 1_000_000 } }
+    unmock = mockApi({ ...reads, [`GET ${base}/ai/status`]: () => json({ ...status, state: 'cap_reached', features: [own] }) })
+    await renderInWorkspace(<DraftFromBriefDialog onClose={vi.fn()} onAccepted={vi.fn()} />, { me: editor })
+    const generate = await screen.findByRole('button', { name: 'Generate proposal' })
+    await waitFor(() => expect(generate).toBeEnabled())
+    expect(screen.getByText('Own · Own model')).toBeVisible()
+    expect(screen.getByText(/^Own model · \$1\.00 of \$5\.00 this month/)).toBeVisible()
+  })
+
+  it('does not generate when the draft’s own model is at its cap, even with the workspace ready', async () => {
+    const spent = { ...draft, personal: true, state: 'cap_reached', usage: { costMicros: 5_000_000, resetsAt: '2026-12-01T00:00:00Z' } }
+    unmock = mockApi({ ...reads, [`GET ${base}/ai/status`]: () => json({ ...status, features: [spent] }) })
+    await renderInWorkspace(<DraftFromBriefDialog onClose={vi.fn()} onAccepted={vi.fn()} />, { me: editor })
+    expect(await screen.findByText(/This month's AI budget is used up/)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Generate proposal' })).toBeDisabled()
+  })
+
+  it('says a rejected key is the person’s own, and links where they replace it', async () => {
+    const rejected = { ...draft, personal: true, state: 'key_rejected', providerName: 'OpenAI' }
+    unmock = mockApi({ ...reads, [`GET ${base}/ai/status`]: () => json({ ...status, features: [rejected] }) })
+    await renderInWorkspace(<DraftFromBriefDialog onClose={vi.fn()} onAccepted={vi.fn()} />, { me: editor })
+    expect(await screen.findByText(/OpenAI rejected your own key/)).toBeVisible()
+    expect(screen.queryByText(/workspace's key/)).toBeNull()
+    expect(screen.getByRole('link', { name: 'AI settings' })).toBeVisible()
   })
 })

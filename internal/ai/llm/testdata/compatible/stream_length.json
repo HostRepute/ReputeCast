@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hi there,\"},\"finish_reason\":null}]}\n\n",
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\" this week\"},\"finish_reason\":null}]}\n\n",
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\" we're sharing a lot of\"},\"finish_reason\":null}]}\n\n",
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\"},\"finish_reason\":\"length\"}]}\n\n",
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[],\"usage\":{\"prompt_tokens\":31,\"completion_tokens\":64,\"total_tokens\":95}}\n\n",
+    "data: [DONE]\n\n"
+  ]
+}

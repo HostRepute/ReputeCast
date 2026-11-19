@@ -3,6 +3,9 @@ package ai
 import (
 	"context"
 	"slices"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -23,19 +26,26 @@ type usage struct {
 	reached bool
 }
 
-// usage sums this month's requests.
+// usage sums this month's requests against a model's budget: the
+// workspace's, or for a personal key its owner's own.
 func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection) (usage, error) {
+	return s.usageIn(ctx, s.Q, ws, c)
+}
+
+// usageIn is usage read through q: a caller in a transaction passes its
+// own, so the check never waits for a second connection of the pool while
+// it holds one (and its locks).
+func (s *Service) usageIn(ctx context.Context, q *store.Queries, ws *store.Workspace, c *connection) (usage, error) {
 	start, _ := s.month(ws)
-	t, err := s.Q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
+	if c.personal() {
+		return s.personalUsageIn(ctx, q, ws.ID, *c.AccountUserID, start, c.PersonalCapUsd)
+	}
+	t, err := q.AIBudgetTotals(ctx, store.AIBudgetTotalsParams{WorkspaceID: ws.ID, Since: start})
 	if err != nil {
 		return usage{}, err
 	}
-	u := usage{costMicros: t.CostMicros, inputTokens: t.InputTokens, outputTokens: t.OutputTokens, tokens: t.InputTokens + t.OutputTokens, requests: t.Requests}
-	held, err := s.Q.AIBudgetMonthly(ctx, ws.ID)
-	if err != nil {
-		return usage{}, err
-	}
-	u.reservedCost, u.reservedTokens, u.uncertain = held.CostMicros, held.Tokens, held.Uncertain
+	u := usage{costMicros: t.CostMicros, inputTokens: t.InputTokens, outputTokens: t.OutputTokens, tokens: t.InputTokens + t.OutputTokens, requests: t.Requests,
+		reservedCost: t.HeldCostMicros, reservedTokens: t.HeldTokens, uncertain: t.HeldUncertain}
 	switch c.CapKind {
 	case "usd":
 		if c.CapUsd > 0 {
@@ -51,9 +61,29 @@ func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection)
 	return u, nil
 }
 
+// personalUsage is a person's use of their own keys this month against
+// their cap (in dollars).
+func (s *Service) personalUsage(ctx context.Context, ws, user uuid.UUID, start time.Time, capUSD float64) (usage, error) {
+	return s.personalUsageIn(ctx, s.Q, ws, user, start, capUSD)
+}
+
+func (s *Service) personalUsageIn(ctx context.Context, q *store.Queries, ws, user uuid.UUID, start time.Time, capUSD float64) (usage, error) {
+	t, err := q.AIPersonalBudgetTotals(ctx, store.AIPersonalBudgetTotalsParams{WorkspaceID: ws, UserID: user, Since: start})
+	if err != nil {
+		return usage{}, err
+	}
+	u := usage{costMicros: t.CostMicros, requests: t.Requests, reservedCost: t.HeldCostMicros, uncertain: t.HeldUncertain}
+	if capUSD > 0 {
+		u.share = float64(u.costMicros+u.reservedCost) / (capUSD * 1e6)
+	}
+	u.reached = u.share >= 1
+	u.notice = !u.reached && u.share >= NoticeShare
+	return u, nil
+}
+
 // AIUsageFeature is one feature's use this month.
 type AIUsageFeature struct {
-	Feature    string `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test"`
+	Feature    string `json:"feature" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent,connection_test,assistant"`
 	CostMicros int64  `json:"costMicros"`
 	Tokens     int64  `json:"tokens"`
 	Requests   int64  `json:"requests"`
@@ -75,7 +105,7 @@ func (s *Service) byFeature(ctx context.Context, ws *store.Workspace) ([]AIUsage
 	if err != nil {
 		return nil, err
 	}
-	features := append(slices.Clone(Features), FeatureAgent, FeatureConnectionTest)
+	features := append(slices.Clone(Features), FeatureAgent, FeatureConnectionTest, FeatureAssistant)
 	out := make([]AIUsageFeature, 0, len(features))
 	for _, f := range features {
 		e := AIUsageFeature{Feature: f}

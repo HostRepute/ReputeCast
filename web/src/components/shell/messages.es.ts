@@ -204,5 +204,6 @@ export default translate(m, {
   shortcutReadiness: 'Abrir la revisión previa',
   shortcutClose: 'Cerrar el panel o el diálogo',
   shortcutHelp: 'Este panel',
+  shortcutAssistant: 'Abrir o cerrar el asistente',
   shortcutsFootnote: 'Cada atajo tiene un botón visible equivalente; ninguno es obligatorio.',
 })

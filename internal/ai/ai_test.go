@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/ai"
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/demo"
 )
@@ -553,9 +554,37 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 		t.Fatalf("models: %+v", models)
 	}
 	c.Do(http.MethodDelete, ws+"/ai/connection", nil).MustStatus(t, 200)
+	// A hosted OpenAI-compatible service needs its key, unlike a server on
+	// the workspace's own network: refused before anything is sent.
+	var catalog struct {
+		Catalog []struct {
+			Kind    string
+			Presets []struct{ ID, BaseURL string }
+		}
+	}
+	c.Do(http.MethodGet, ws+"/ai", nil).MustStatus(t, 200).JSON(t, &catalog)
+	if p := catalog.Catalog[len(catalog.Catalog)-1]; p.Kind != "compatible" || len(p.Presets) != 7 || p.Presets[0].BaseURL != "https://openrouter.ai/api/v1" {
+		t.Fatalf("compatible presets: %+v", p)
+	}
+	f.mu.Lock()
+	before := f.requests
+	f.mu.Unlock()
+	hosted := map[string]any{"provider": "compatible", "baseUrl": "https://openrouter.ai/api/v1/", "model": "openai/gpt-5-mini", "capKind": "usd", "capUsd": 10, "inputPrice": 0.25, "outputPrice": 2}
+	if r := c.Do(http.MethodPut, ws+"/ai/connection", hosted).MustStatus(t, 422); !strings.Contains(string(r.Body), "body.apiKey") || !strings.Contains(string(r.Body), "OpenRouter") {
+		t.Fatalf("hosted preset without a key: %s", r.Body)
+	}
+	c.Do(http.MethodPost, ws+"/ai/test", hosted).MustStatus(t, 422)
+	f.mu.Lock()
+	after := f.requests
+	f.mu.Unlock()
+	if after != before {
+		t.Fatalf("a refused preset reached a model server: %d requests", after-before)
+	}
 	key := "sk-local-secret-key-0042"
+	// Every feature ticked, as the connect dialog opens (#83); a text-only
+	// model gets all but alt text.
 	r := c.Do(http.MethodPut, ws+"/ai/connection", map[string]any{"provider": "compatible", "baseUrl": f.srv.URL + "/v1", "apiKey": key, "model": "llama3.3:70b", "capKind": "usd", "capUsd": 10,
-		"inputPrice": 2, "outputPrice": 10, "features": []string{"subject_ideas", "rewrite", "translate", "alt_text", "accessibility_fix", "segment_draft", "report_summary"}})
+		"inputPrice": 2, "outputPrice": 10, "features": ai.Features})
 	r.MustStatus(t, 200)
 	if strings.Contains(string(r.Body), key) {
 		t.Fatal("the key came back")
@@ -568,7 +597,7 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 		}
 	}
 	var stored []byte
-	_ = env.App.Pool.QueryRow(ctx, `SELECT key_sealed FROM ai_connections c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter'`).Scan(&stored)
+	_ = env.App.Pool.QueryRow(ctx, `SELECT key_sealed FROM ai_accounts c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter'`).Scan(&stored)
 	if len(stored) == 0 || strings.Contains(string(stored), key) {
 		t.Fatal("the key isn't sealed")
 	}
@@ -689,7 +718,7 @@ func TestAIConnectionCapAndErrors(t *testing.T) {
 	}
 	// Each entry has its details line (SettingsAudit).
 	for action, want := range map[string]string{
-		"ai.connection_created": "model llama3.3:70b · key added (write-only) · cap $10.00 a month · 6 of 9 features on",
+		"ai.connection_created": "model llama3.3:70b · key added (write-only) · cap $10.00 a month · 8 of 9 features on",
 		"ai.feature_disabled":   "Translate a language version turned off",
 		"ai.cap_updated":        "cap $10.00 a month → $50.00 a month",
 		"ai.key_replaced":       "key replaced (write-only) · test passed",

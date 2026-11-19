@@ -27,6 +27,8 @@ takes about 8 minutes; the database grows by 3 GB. Development only.
 | Go benchmarks | The same calls, and storing provider events | `go test -run '^$' -bench . ./internal/loadtest/` |
 | k6 scripts in `loadtest/k6` | Contacts, segment counts, the send API and webhook ingest against a running server | `k6 run loadtest/k6/contacts.js` with `BASE_URL` and `COOKIE` (`loadtest/session.sh` prints one) |
 | The "Load test" workflow | All of the above on a GitHub runner, Postgres 16, 17 or 18 | Actions › Load test › Run workflow; results are an artifact |
+| `loadtest/assistant` | The AI assistant's event streams: each event from its commit to a client, and the server's time to a turn's first token | `go run ./loadtest/assistant` against a running server ([below](#the-ai-assistant)) |
+| `web/scripts/assistant-perf.ts` | The assistant panel in Chrome: opening it, a streamed answer's delta to paint, and INP while it streams | `node scripts/assistant-perf.ts --app <url>` from `web/` |
 
 ## Results
 
@@ -647,3 +649,219 @@ was half of that. A campaign sent in one language has nothing to show
 there, and its send snapshot says so: the report now skips that query for
 it, and takes 20–21 ms for the same send in one language. A send in two or
 more languages still reads it (46–54 ms).
+
+## The AI assistant
+
+The targets: 200 event streams open at once with a delta's p95 under
+100 ms (the brief's B6 gate); the server's time to a turn's first token,
+without the provider's own, at a p95 under 150 ms; and in the browser, a
+delta painted within 50 ms and INP under 200 ms while an answer streams.
+
+### Event streams under load
+
+```bash
+REPUTECAST_DATABASE__URL=… go run ./loadtest/assistant -base http://127.0.0.1:8090 \
+  -fake 127.0.0.1:9711 -streams 200 -rounds 3 -chunks 150 -every 20ms \
+  [-spread 10s] -metrics … -metrics-token …
+```
+
+The program opens one thread stream per thread, sends a message in each
+thread (three rounds, each once the thread's previous turn ended) and
+answers the model requests itself, as a fake OpenAI-compatible provider
+that streams 150 pieces 20 ms apart. It times each event from its commit
+(the event row's `created_at`) to its arrival on the stream, on the same
+machine's clock. The streams are spread over the two Acme workspaces.
+Without `-spread` every message goes at once; `-spread 10s` sends each
+after a random wait of up to 10 seconds.
+
+Its setup writes to the database directly, so use it on a development or
+load test instance only. It needs the Acme sample (`reputecast seed`),
+`providers.allow_private_networks` for the fake on loopback, and
+`worker.concurrency` 400, which gives the `ai_assistant` queue 200 workers.
+It connects every workspace's model to the fake, raises the assistant's
+limits to 10 answers at once per person and 100 per workspace, and adds
+Editors with sessions. The header of `loadtest/assistant/main.go` has the
+details.
+
+The machine: 4 vCPUs (Xeon, 2.20 GHz), 15 GB of RAM, Postgres 18.7 with
+default settings, and one `reputecast serve` process with every role, a
+pool of 20 and `worker.concurrency` 400. The load test and the fake
+provider ran on the same machine, and **the machine was shared with other
+work during the runs**, so treat the tails (p99) in particular as rough.
+
+After claims stopped queueing on the workspace's configuration lock (the
+claims share it now, and the monthly caps read hourly totals instead of
+summing the month's requests), the same session measured, each run started
+with the machine's load average under 1.2 after a three-round warm-up:
+
+The server's time to the first token, what
+`reputecast_ai_assistant_ttft_overhead_seconds` measures: from the
+person's message committed to the first piece of the answer committed,
+without the provider's own time to its first token.
+
+| Load | p50 | p95 | p99 | Target p95 under 150 ms |
+|---|---|---|---|---|
+| 1 stream, spread | 29.0 ms | 43.7 ms | 50.3 ms | met |
+| 10 streams, spread | 43.0 ms | 66.6 ms | 69.8 ms | met |
+| 50 streams, spread | 25.6 ms | 49.1 ms | 67.2 ms | met |
+| 10 at once in one workspace (5 runs, 300 turns) | 45.5 ms | 91.5 ms | 110 ms | met (358 ms before the change) |
+
+200 streams, each event from its commit to the client:
+
+| Run | Time to first token p50 / p95 | Delta p50 | p95 | Target p95 under 100 ms |
+|---|---|---|---|---|
+| All at once, run 1 | 1.5 / 2.6 s | 39 ms | 164 ms | missed |
+| All at once, run 2 | 1.8 / 2.8 s | 39 ms | 157 ms | missed |
+| Before the change, all at once | 8.5 / 10.2 s | 6 ms | 30 ms | met |
+
+Before the change, the 200 streams met the delta target only because slow
+claims staggered them: each workspace's turns started one after another.
+Now all 200 answer at once, and on this machine, with the load generator
+and the fake provider on the same 4 vCPUs, the delta p95 misses. With
+200 fully overlapping 30-second answers both versions miss (255 ms now,
+274 ms before). Postgres averaged three active backends, mostly waiting on
+the client, so the limit was the server process and the shared CPU, not
+database locks.
+
+### The load generator on its own core
+
+The program also runs in roles, so that its clients can run apart from
+the server: `provider` (the fake model, which also samples the CPU the
+server, Postgres and the machine use), `setup`, `clients` and `collect`
+(the header of `loadtest/assistant/main.go` has the commands). The
+authoritative delay of a delta is the server's own
+`reputecast_ai_assistant_event_lag_seconds{kind="delta"}`, read from
+`/metrics` before and after a run, with p50, p95 and p99 interpolated
+within its buckets, which step by 10 ms from 10 to 150 ms. Times to the
+first token come from the database's timestamps.
+
+A second machine wasn't available, so the load was kept off the server's
+CPUs on the same 4 vCPU orb instead:
+
+- The clients and the fake provider ran on core 0 (`taskset -c 0`).
+- Postgres was stopped (`sudo -n kill -INT` on the postmaster) and started
+  on cores 1–3 with `sudo taskset -c 1-3 sudo -u postgres
+  /usr/lib/postgresql/18/bin/postgres -D /var/lib/postgresql/18/main -c
+  config_file=/etc/postgresql/18/main/postgresql.conf`. Its settings were
+  the defaults.
+- The server ran on cores 1–3 too (`taskset -c 1-3 reputecast serve`), one
+  process with every role, a pool of 20 and `worker.concurrency` 400.
+
+Each set began after a warm-up of 10 streams and three rounds; the 200
+streams sent three rounds, every message at once. "One transaction a
+batch" is the build before the group writer below.
+
+| Build | Runs | Delta p50 | p95 | p99 | At or under 100 ms | Server | Postgres |
+|---|---|---|---|---|---|---|---|
+| One transaction a batch, an earlier session | 2 | 43.7, 56.7 ms | 166.5, 206.9 ms | 406, 401 ms | 78.6, 69.9% | 1.05–1.09 cores | 1.65–1.68 cores |
+| One transaction a batch, the group writer's session | 2 | 49.4, 58.5 ms | 185.4, 198.3 ms | 366, 402 ms | 76.1, 71.7% | 1.06–1.10 cores | 1.63–1.69 cores (33–36 CPU s a run) |
+| Group writer | 2 | 9.0, 10.6 ms | 103.4, 100.8 ms | 208, 158 ms | 94.4, 94.8% | 1.00–1.07 cores | 23–27 CPU s a run |
+| Group writer, hourly totals in 8 rows | 7 | 6.9–9.1 ms | 99.6–116.1 ms (median 106.2) | 161–299 ms | 94.2–95.1% | 1.06–1.09 cores | 20.5–23.0 CPU s a run |
+
+The target, a delta p95 under 100 ms, is still missed on this setup: one
+run of the seven with both changes met it.
+
+The group writer commits every delta batch a process has due in one
+transaction with one NOTIFY: in a diagnostic run, 730 transactions
+carried 14,889 batches, which had been as many transactions before. The
+600 turns ended in 16–17 s instead of 20–21 s, and Postgres used 23–27 CPU
+seconds a run instead of 33–36.
+
+Each request's accounting adds it to its budget's hourly totals in
+`ai_usage_hours`, and with one row a workspace and hour, the checkpoints
+of a workspace queued on that row (the activity log's insert took 31 ms on
+average in a diagnostic run with `pg_stat_statements`, and it was the most
+frequent wait in `pg_stat_activity`). The totals are now spread over 8
+rows an hour, picked by the request id's last byte, so requests accounted
+at once mostly write different rows. The 600 turns then ended in
+15.0–15.7 s instead of 16–17 s and Postgres used 20.5–23.0 CPU seconds a
+run, but the delta p95 didn't move beyond the runs' variation. The caps
+sum up to 8 rows an hour: over a month of busy hours, 2.5 ms instead of
+0.9 ms for one row (16 rows would be 3.9 ms; `EXPLAIN ANALYZE` on the
+totals of one budget).
+
+What is left, from a build instrumented for it (not kept) with the hourly
+totals split, one 200-stream run:
+
+| A delta's delay, from its insert | p50 | p95 | p99 |
+|---|---|---|---|
+| To its group's commit | 3.6 ms | 20.6 ms | 32.3 ms |
+| To its stream starting to read it (commit, NOTIFY, wake) | 4.4 ms | 35.6 ms | 87.2 ms |
+| The read waiting for a pool connection | 0.4 ms | 65.6 ms | 85.6 ms |
+| The read itself | 1.2 ms | 4.4 ms | 7.4 ms |
+| Writing it to the stream | 0.3 ms | 0.5 ms | 1.1 ms |
+
+Acquiring one of the pool's 20 connections took 25 ms on average over
+54,000 acquisitions, and half found none free. Giving the streams' reads
+four connections of their own, outside the pool, removes that wait, but
+it didn't lower the p95. Alternating the two builds in the same minutes,
+the p95 was 98.9 vs 111.1 ms, 106.0 vs 107.3 ms and 111.4 vs 103.0 ms (own
+connections first). On its own, in a quieter quarter of an hour, the
+build with its own connections gave 74.6–106.1 ms over eight runs, which
+shows how much the machine varies; the paired runs are the comparison.
+With the server and Postgres at about 2.4 of their
+three CPUs, the wait moves to the CPUs. So the change wasn't kept: it
+would cost each web process four more Postgres connections for no
+measured gain. The next measurement is the load generator on another
+machine, which gives the server and Postgres the fourth CPU back.
+
+Times to the first token on the same setup, by the database: from the
+person's message committed to the first piece of the answer committed.
+The fake provider streams its first piece at once, so this is what
+`reputecast_ai_assistant_ttft_overhead_seconds` measures. "10 at once"
+means 10 threads in one workspace, six rounds, every message at once;
+five runs (300 turns) a set.
+
+| Load | Build | p50 | p95 | p99 |
+|---|---|---|---|---|
+| 1 stream, a message every 0–1 s (20 turns, then 36) | Group writer | 30.2 / 25.4 ms | 60.9 / 31.8 ms | 69.5 / 40.9 ms |
+| 10 streams, spread over 10 s (30 turns) | Group writer | 26.4 ms | 44.5 ms | 53.1 ms |
+| 50 streams, spread over 10 s (150 turns) | Group writer | 25.4 ms | 44.8 ms | 50.3 ms |
+| 10 at once, one set (300 turns) | One transaction a batch | 50.1 ms | 109.9 ms | 154 ms |
+| 10 at once, four sets (1,200 turns) | Group writer | 49.8 ms | 121.9 ms | 203 ms |
+| 10 at once, three of those sets (900 turns) | Group writer | 48.6 ms | 98.5 ms | 137 ms |
+| 10 at once, one set (300 turns) | Group writer, hourly totals in 8 rows | 52.1 ms | 96.1 ms | 131 ms |
+
+The target, p95 under 150 ms, is met. Without the load generator's core
+the server has three CPUs, not four, so these are not comparable with the
+first table's 91.5 ms. The fourth set of the group writer's was slower: in
+two of its runs the server and Postgres used twice the CPU for the same
+work, and a message's POST, which the group writer has no part in, took
+three times as long, so another load on the machine is the likely cause.
+An earlier version of this section also compared two sets "run back to
+back"; the switch between the two builds hadn't happened (the service
+commands ran outside the repository, which they are scoped to), so both
+were the group writer's, and they are two of its four sets above.
+
+### The panel in the browser
+
+`web/scripts/assistant-perf.ts`, in Chrome with the CPU four times slower,
+against the production build the binary serves, with the development demo
+model answering:
+
+```bash
+node scripts/assistant-perf.ts --app http://localhost:8080 [--runs 10] [--only open|stream] [--no-input]
+```
+
+- **Open:** from pressing the top bar's **Assistant** button to a focused,
+  usable composer.
+- **Delta to paint:** from a streamed delta's arrival until its words are on
+  screen and a frame has painted, over a 360-word answer in pieces of three.
+- **INP while streaming:** taps and typing during that answer on a phone
+  (390 px, touch), from the page's Event Timing entries.
+
+| Measure | Median / p95 |
+|---|---|
+| Open, prefetched by hovering the button | 99 / 117 ms |
+| Open after a reload, the panel's code in the HTTP cache | 82 / 92 ms |
+| Open on a phone | 105 / 120 ms |
+
+- **Delta to paint, p95:** 33 ms on a desktop. On a phone, 35–41 ms with no
+  input, and 57–66 ms while typing and tapping: the 50 ms target is missed
+  then.
+- **INP while streaming, on a phone:** 120–160 ms, under the 200 ms target.
+
+The panel's code is fetched once the page is idle, for people who can use
+the assistant while it's on, and not on Save-Data or 2G connections; on a
+touch screen, where nothing hovers, that is what makes the first open
+quick.

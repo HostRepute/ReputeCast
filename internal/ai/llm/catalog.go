@@ -46,6 +46,38 @@ func Info(kind string) ProviderInfo {
 	return ProviderInfo{Kind: kind, Name: kind}
 }
 
+// Preset is a hosted service that speaks the OpenAI API: a Compatible
+// connection whose address is filled in. Its models come from the service's
+// own /models list, and it has no prices here: they change too often for a
+// release's price list, so a manager enters them.
+type Preset struct {
+	ID      string
+	Name    string
+	BaseURL string
+}
+
+// Presets are the hosted OpenAI-compatible services, in the dialog's order.
+var Presets = []Preset{
+	{ID: "openrouter", Name: "OpenRouter", BaseURL: "https://openrouter.ai/api/v1"},
+	{ID: "mistral", Name: "Mistral", BaseURL: "https://api.mistral.ai/v1"},
+	{ID: "groq", Name: "Groq", BaseURL: "https://api.groq.com/openai/v1"},
+	{ID: "deepseek", Name: "DeepSeek", BaseURL: "https://api.deepseek.com/v1"},
+	{ID: "xai", Name: "xAI", BaseURL: "https://api.x.ai/v1"},
+	{ID: "together", Name: "Together AI", BaseURL: "https://api.together.xyz/v1"},
+	{ID: "fireworks", Name: "Fireworks AI", BaseURL: "https://api.fireworks.ai/inference/v1"},
+}
+
+// PresetOf returns the preset a Compatible connection's address belongs to.
+func PresetOf(baseURL string) (Preset, bool) {
+	u := strings.TrimRight(strings.ToLower(strings.TrimSpace(baseURL)), "/")
+	for _, p := range Presets {
+		if u == p.BaseURL {
+			return p, true
+		}
+	}
+	return Preset{}, false
+}
+
 // PriceListDate is the date of the price list below, the one ReputeCast's
 // release ships with.
 var PriceListDate = time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
@@ -59,22 +91,37 @@ type KnownModel struct {
 	Input      float64
 	Output     float64
 	ImageInput bool
+	// ContextTokens is the model's context window.
+	ContextTokens int
 }
 
 // PriceList holds the prices pre-filled when a model is picked. People edit
 // them when their contract differs; a model that isn't listed starts at 0.
 var PriceList = []KnownModel{
-	{Provider: Anthropic, ID: "claude-sonnet-5-5", Name: "Claude Sonnet 5.5", Input: 2, Output: 10, ImageInput: true},
-	{Provider: Anthropic, ID: "claude-haiku-4-5", Name: "Claude Haiku 4.5", Input: 1, Output: 5, ImageInput: true},
-	{Provider: Anthropic, ID: "claude-sonnet-4-5", Name: "Claude Sonnet 4.5", Input: 3, Output: 15, ImageInput: true},
-	{Provider: Anthropic, ID: "claude-opus-4-5", Name: "Claude Opus 4.5", Input: 5, Output: 25, ImageInput: true},
-	{Provider: OpenAI, ID: "gpt-5", Name: "GPT-5", Input: 1.25, Output: 10, ImageInput: true},
-	{Provider: OpenAI, ID: "gpt-5-mini", Name: "GPT-5 mini", Input: 0.25, Output: 2, ImageInput: true},
-	{Provider: OpenAI, ID: "gpt-4.1", Name: "GPT-4.1", Input: 2, Output: 8, ImageInput: true},
-	{Provider: OpenAI, ID: "gpt-4o-mini", Name: "GPT-4o mini", Input: 0.15, Output: 0.6, ImageInput: true},
-	{Provider: Google, ID: "gemini-2.5-pro", Name: "Gemini 2.5 Pro", Input: 1.25, Output: 10, ImageInput: true},
-	{Provider: Google, ID: "gemini-2.5-flash", Name: "Gemini 2.5 Flash", Input: 0.3, Output: 2.5, ImageInput: true},
-	{Provider: Google, ID: "gemini-2.5-flash-lite", Name: "Gemini 2.5 Flash-Lite", Input: 0.1, Output: 0.4, ImageInput: true},
+	{Provider: Anthropic, ID: "claude-sonnet-5-5", Name: "Claude Sonnet 5.5", Input: 2, Output: 10, ImageInput: true, ContextTokens: 200_000},
+	{Provider: Anthropic, ID: "claude-haiku-4-5", Name: "Claude Haiku 4.5", Input: 1, Output: 5, ImageInput: true, ContextTokens: 200_000},
+	{Provider: Anthropic, ID: "claude-sonnet-4-5", Name: "Claude Sonnet 4.5", Input: 3, Output: 15, ImageInput: true, ContextTokens: 200_000},
+	{Provider: Anthropic, ID: "claude-opus-4-5", Name: "Claude Opus 4.5", Input: 5, Output: 25, ImageInput: true, ContextTokens: 200_000},
+	{Provider: OpenAI, ID: "gpt-5", Name: "GPT-5", Input: 1.25, Output: 10, ImageInput: true, ContextTokens: 400_000},
+	{Provider: OpenAI, ID: "gpt-5-mini", Name: "GPT-5 mini", Input: 0.25, Output: 2, ImageInput: true, ContextTokens: 400_000},
+	{Provider: OpenAI, ID: "gpt-4.1", Name: "GPT-4.1", Input: 2, Output: 8, ImageInput: true, ContextTokens: 1_047_576},
+	{Provider: OpenAI, ID: "gpt-4o-mini", Name: "GPT-4o mini", Input: 0.15, Output: 0.6, ImageInput: true, ContextTokens: 128_000},
+	{Provider: Google, ID: "gemini-2.5-pro", Name: "Gemini 2.5 Pro", Input: 1.25, Output: 10, ImageInput: true, ContextTokens: 1_048_576},
+	{Provider: Google, ID: "gemini-2.5-flash", Name: "Gemini 2.5 Flash", Input: 0.3, Output: 2.5, ImageInput: true, ContextTokens: 1_048_576},
+	{Provider: Google, ID: "gemini-2.5-flash-lite", Name: "Gemini 2.5 Flash-Lite", Input: 0.1, Output: 0.4, ImageInput: true, ContextTokens: 1_048_576},
+}
+
+// DefaultContextTokens is the context window assumed for a model the price
+// list doesn't know (most open models served locally have at least this).
+const DefaultContextTokens = 32_768
+
+// ContextTokens is a model's context window: the price list's, or
+// DefaultContextTokens.
+func ContextTokens(provider, model string) int {
+	if k, ok := Known(provider, model); ok && k.ContextTokens > 0 {
+		return k.ContextTokens
+	}
+	return DefaultContextTokens
 }
 
 // Known returns the price list's entry for a model, matching dated

@@ -151,7 +151,7 @@ export interface paths {
         };
         /**
          * The AI assistant's settings: the model, the cap, this month's usage and the features
-         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
          */
         get: operations["get-ai-settings"];
         put?: never;
@@ -12947,6 +12947,30 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AIAccountView: {
+            apiVersion?: string;
+            baseUrl?: string;
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy?: string;
+            demo: boolean;
+            id: string;
+            key: components["schemas"]["AIKeyView"];
+            label?: string;
+            lastTest?: components["schemas"]["AITestView"];
+            models: components["schemas"]["AIModelView"][];
+            preset?: string;
+            primary: boolean;
+            privateNetwork: boolean;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected" | "disconnected";
+            /** Format: date-time */
+            statusAt?: string;
+            statusDetail?: string;
+        };
         AIActivityList: {
             items: components["schemas"]["AIActivityRow"][];
             members: components["schemas"]["AIActivityMember"][];
@@ -12970,7 +12994,7 @@ export interface components {
             /** @description 1 of 5, 529 overloaded */
             detail?: string;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             id: string;
             /** Format: int64 */
             inputTokens: number;
@@ -12980,9 +13004,10 @@ export interface components {
             /** @description What it was about: Weekly Digest #143 */
             on: string;
             /** @enum {string} */
-            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
+            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled" | "answered";
             /** Format: int64 */
             outputTokens: number;
+            personal: boolean;
             provider: string;
             targetId?: string;
             targetKind?: string;
@@ -12990,6 +13015,30 @@ export interface components {
             tokens: number;
             usageKnown: boolean;
             userId?: string;
+        };
+        AIAgentCapability: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** @enum {string} */
+            state: "untested" | "supported" | "unsupported";
+        };
+        AIAgentLimits: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int32 */
+            toolCalls: number;
+        };
+        AIAssistantSettings: {
+            enabled: boolean;
+            limits: components["schemas"]["AIAgentLimits"];
+            /** Format: int32 */
+            perPerson: number;
+            /** Format: int32 */
+            perWorkspace: number;
+            /** Format: int64 */
+            revision: number;
         };
         AICapView: {
             /** @enum {string} */
@@ -13017,6 +13066,7 @@ export interface components {
             lastTest?: components["schemas"]["AITestView"];
             model: string;
             modelName: string;
+            preset?: string;
             prices: components["schemas"]["AIPricesView"];
             privateNetwork: boolean;
             /** @enum {string} */
@@ -13028,10 +13078,17 @@ export interface components {
             statusAt?: string;
             statusDetail?: string;
         };
+        AIFeatureDefault: {
+            /** @enum {string} */
+            feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            modelId: string;
+        };
         AIFeatureState: {
             available: boolean;
             /** @enum {string} */
             key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            /** Format: uuid */
+            modelId?: string;
             on: boolean;
         };
         AIKeptSummary: {
@@ -13075,6 +13132,69 @@ export interface components {
              */
             output: number;
         };
+        AIModelView: {
+            deployment?: string;
+            features: ("assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft")[];
+            id: string;
+            imageInput: boolean;
+            model: string;
+            modelName: string;
+            prices: components["schemas"]["AIPricesView"];
+            tools: components["schemas"]["AIAgentCapability"];
+        };
+        AIPersonalAccount: {
+            id: string;
+            models: string[];
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected" | "disconnected";
+        };
+        AIPersonalPerson: {
+            accounts: components["schemas"]["AIPersonalAccount"][];
+            /** Format: int64 */
+            costMicros: number;
+            name: string;
+            /** Format: int64 */
+            requests: number;
+            userId: string;
+        };
+        AIPersonalSettings: {
+            accounts: components["schemas"]["AIAccountView"][];
+            canAdd: boolean;
+            /** Format: date-time */
+            capSetAt?: string;
+            capSetBy?: string;
+            /** Format: double */
+            capUsd: number;
+            catalog: components["schemas"]["AIProviderEntry"][];
+            choices: components["schemas"]["AIFeatureDefault"][];
+            enabled: boolean;
+            people: components["schemas"]["AIPersonalPerson"][];
+            /** Format: date-time */
+            priceListDate: string;
+            usage: components["schemas"]["AIPersonalUsageView"];
+        };
+        AIPersonalUsageView: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            reservedCostMicros: number;
+            /** Format: date-time */
+            resetsAt: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1
+             */
+            share: number;
+            /** @enum {string} */
+            state: "ok" | "notice" | "reached";
+            /** Format: int64 */
+            uncertainRequests: number;
+        };
         AIPricesView: {
             /** Format: date-time */
             from?: string;
@@ -13100,20 +13220,30 @@ export interface components {
             name: string;
             needsBaseUrl: boolean;
             needsKey: boolean;
+            presets: components["schemas"]["AIProviderPreset"][];
+        };
+        AIProviderPreset: {
+            baseUrl: string;
+            id: string;
+            name: string;
         };
         AISettings: {
+            accounts: components["schemas"]["AIAccountView"][];
             aiUseRoles: string[];
             allowPrivate: boolean;
+            assistant: components["schemas"]["AIAssistantSettings"];
             byFeature: components["schemas"]["AIUsageFeature"][];
             byMember: components["schemas"]["AIUsageMember"][];
             canManage: boolean;
             catalog: components["schemas"]["AIProviderEntry"][];
             connected: boolean;
             connection?: components["schemas"]["AIConnectionView"];
+            defaults: components["schemas"]["AIFeatureDefault"][];
             disconnected: boolean;
             features: components["schemas"]["AIFeatureState"][];
             helpers: string[];
             instanceAdmins: string[];
+            personal: components["schemas"]["AIPersonalSettings"];
             /** Format: date-time */
             priceListDate: string;
             usage: components["schemas"]["AIUsageView"];
@@ -13138,7 +13268,7 @@ export interface components {
             /** Format: int64 */
             costMicros: number;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             /** Format: int64 */
             requests: number;
             /** Format: int64 */
@@ -39723,8 +39853,8 @@ export interface operations {
             query?: {
                 /** @description A member's id */
                 member?: string;
-                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
-                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
+                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending" | "answered";
                 cursor?: string;
                 limit?: number;
             };

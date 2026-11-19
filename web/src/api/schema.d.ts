@@ -1220,6 +1220,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/mcp/oauth/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where an OAuth MCP server's authorization server sends the person back
+         * @description The state must be the caller's, from the session that started the sign-in, unused and at most ten minutes old (400 mcp_oauth_state otherwise). Redirects to Settings › MCP servers with connected=1 or error=denied|token. Audited as mcp_server.connect.
+         */
+        get: operations["remote-mcp-oauth-callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/identify": {
         parameters: {
             query?: never;
@@ -2525,11 +2545,151 @@ export interface paths {
         };
         /**
          * The AI assistant's settings: the model, the cap, this month's usage and the features
-         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
          */
         get: operations["get-ai-settings"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a model account with its first model, after the test passes
+         * @description The key is sealed and never returned. A workspace's first model becomes every feature's model. Audited as ai_account.add.
+         */
+        post: operations["add-ai-account"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an account, its key and its models
+         * @description Refused while a feature uses one of its models. The activity log keeps their requests. Audited as ai_account.remove.
+         */
+        delete: operations["remove-ai-account"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace an account's key, after it passes the test with the account's first model
+         * @description Audited as ai_account.key_replaced.
+         */
+        put: operations["replace-ai-account-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a model to an account, with its prices
+         * @description Prices follow the price list for a known model unless given. Audited as ai_model.add.
+         */
+        post: operations["add-ai-account-model"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models/{model}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a model from an account
+         * @description Refused while a feature uses it, and for an account's only model. Audited as ai_model.remove.
+         */
+        delete: operations["remove-ai-model"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models/{model}/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a model's prices per million tokens
+         * @description Audited as ai_model.prices_updated.
+         */
+        put: operations["set-ai-model-prices"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models/{model}/test-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a model's tool calling with fixed data, using the monthly AI budget
+         * @description The agent and the assistant use only a model that passed.
+         */
+        post: operations["test-ai-model-tools"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2691,6 +2851,252 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai/assistant/mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The MCP servers the caller may pick for their threads
+         * @description Enabled servers for everyone with Use the AI assistant (ai:use) or for the caller's role, with whether the caller still has to sign in (connected).
+         */
+        get: operations["list-ai-assistant-mcp-servers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The models a thread may use: the workspace's and the caller's own
+         * @description Each says whether a thread can use it now, and why not.
+         */
+        get: operations["list-ai-assistant-models"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn the assistant on or off and set its limits per thread and its turns at once
+         * @description Limits apply to threads started afterwards. The revision is the one read: a change since then is refused. Audited as ai_assistant.settings_updated.
+         */
+        put: operations["set-ai-assistant-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's assistant threads, the most recently active first */
+        get: operations["list-ai-threads"];
+        put?: never;
+        /**
+         * Start an assistant thread
+         * @description On the model given, or the caller's own pick for the assistant, or the workspace's; it needs a passed tool-calling check. A retry with the same request key returns the same thread. Audited as ai_assistant_thread.created.
+         */
+        post: operations["create-ai-thread"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of the caller's threads: its messages, attached resources, usage and latest turn */
+        get: operations["get-ai-thread"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a thread and all its content at once
+         * @description Its messages, attached resources and stream events go; the activity log keeps its usage. Works with the assistant switched off. Audited as ai_assistant_thread.deleted.
+         */
+        delete: operations["delete-ai-thread"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a thread, or pick another model for its next turns
+         * @description Audited as ai_assistant_thread.updated, without the title.
+         */
+        patch: operations["update-ai-thread"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/confirmations/{confirmation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Allow or deny a call of a writing MCP tool
+         * @description Only the thread's owner, as they are now. allow runs that exact call once (the tool must be as it was offered: changed, blocked or removed is a 409); deny tells the model it was refused. Either way the turn goes on. The same decision sent again changes nothing; another one, or one after Stop, is a 409 (ai_assistant_confirmation_closed). Audited as ai_assistant_confirmation.approved or .rejected, with the arguments' digest, never their content.
+         */
+        post: operations["decide-ai-thread-confirmation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach a resource to a thread, after the person reviewed sharing it
+         * @description The caller must be able to read it; every later read checks again. A report's numbers are its fixed snapshot. Audited as ai_assistant_context.add.
+         */
+        post: operations["attach-ai-thread-context"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts/{context}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an attached resource from a thread
+         * @description Audited as ai_assistant_context.remove.
+         */
+        delete: operations["detach-ai-thread-context"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pick the MCP servers a thread may use
+         * @description Servers the caller may use now (list-ai-assistant-mcp-servers); their approved tools are offered after ReputeCast's own, within 40. Audited as ai_assistant_thread.updated.
+         */
+        put: operations["set-ai-thread-mcp-servers"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a message: it starts a turn on the thread's model
+         * @description The answer streams on the thread's events (stream-ai-thread). One turn answers at a time in a thread (409 while one does). A question about sender reputation, blocklists or placement gets the HostRepute card at once, without a model call. A retry with the same request key returns the thread. Audited as ai_assistant_turn.created, without the text.
+         */
+        post: operations["send-ai-thread-message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Server-sent events of a thread: its turns, their answers as they arrive, its messages and usage
+         * @description Each event's id is its number in the thread; a client that reconnects with Last-Event-ID (or lastEventId) gets every event after it, once, in order. Without a cursor, or when the events after it are gone (24 hours after their turn, or lost in a crash), a `snapshot` event carries the whole thread first. A `heartbeat` event every 15 s says the connection is alive. A client that doesn't read is cut, and resumes from its last event. A `problem` event ends a stream the caller may not read (the thread isn't theirs, they lost ai:use, the assistant is off): don't reconnect after it.
+         */
+        get: operations["stream-ai-thread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/turns/{turn}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop a turn
+         * @description No model request starts for it any more; what a request already answering writes after now is dropped, and it is still accounted (the provider may charge for it). Stopping a turn that ended changes nothing. Works with the assistant switched off. Audited as ai_assistant_turn.cancelled.
+         */
+        post: operations["stop-ai-thread-turn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/ai/brand-voice": {
         parameters: {
             query?: never;
@@ -2768,7 +3174,7 @@ export interface paths {
         };
         get?: never;
         /**
-         * Connect the workspace's model (one per workspace), after the test passes
+         * Connect the workspace's model (its first account's first model), after the test passes
          * @description The key is sealed and never returned. Audited as ai.connection_created or ai.connection_updated.
          */
         put: operations["connect-ai-model"];
@@ -2904,6 +3310,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/ai/features/{feature}/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pick the model a feature uses
+         * @description A model of a connected account whose key works; alt text needs one that reads images, the agent and the assistant one that passed the tool-calling check. Requests already prepared with the previous model aren't sent; agent runs keep the model they began with. A personal key's model can't be one. Audited as ai_feature.model_changed.
+         */
+        put: operations["set-ai-feature-model"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/ai/key": {
         parameters: {
             query?: never;
@@ -2932,6 +3358,118 @@ export interface paths {
         put?: never;
         /** Link text that says where a link goes (an accessibility fix) */
         post: operations["suggest-link-text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workspace's MCP servers and their tools
+         * @description Never their secrets: headerSet and clientSecretSet say whether one is stored. A tool is offered to threads once a manager marked it read-only or writes at its current hash; changed says it moved since and is off.
+         */
+        get: operations["list-remote-mcp-servers"];
+        put?: never;
+        /**
+         * Add a remote MCP server
+         * @description Streamable HTTP, or HTTP with SSE; never a local process. Its address must pass the SSRF guard. Authentication: none, a shared header (write-only), or OAuth per member. It has no tools until a sync. Audited as mcp_server.created, without secrets.
+         */
+        post: operations["create-remote-mcp-server"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an MCP server, its tools and every member's sign-in to it
+         * @description Threads stop offering its tools; a call waiting for confirmation fails. Audited as mcp_server.deleted.
+         */
+        delete: operations["delete-remote-mcp-server"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename an MCP server, switch it, change who may use it or replace its secrets
+         * @description Audited as mcp_server.updated, without secrets.
+         */
+        patch: operations["update-remote-mcp-server"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Begin the caller's own sign-in to an OAuth MCP server
+         * @description Returns the authorization server's address to open in the browser; it sends the person back to remote-mcp-oauth-callback. The sign-in is the caller's only, and only from this session.
+         */
+        post: operations["start-remote-mcp-oauth"];
+        /**
+         * Remove the caller's own sign-in to an OAuth MCP server
+         * @description Audited as mcp_server.disconnect.
+         */
+        delete: operations["disconnect-remote-mcp-oauth"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List an MCP server's tools into its catalog
+         * @description As the caller (an OAuth server needs their own sign-in). New tools wait for a decision; a tool whose description, schema or annotations changed after a decision is off, and managers are notified. Audited as mcp_server.updated.
+         */
+        post: operations["sync-remote-mcp-server"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/tools/{tool}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark a tool read-only, writes or blocked
+         * @description At the hash the manager reviewed: a tool that changed since is a 409 (mcp_tool_reviewed). Annotations are the server's hints, not evidence. A read-only tool runs without asking; each call of a writing tool waits for its person's confirmation. Audited as mcp_tool.approved or mcp_tool.revoked.
+         */
+        put: operations["decide-remote-mcp-tool"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2970,6 +3508,290 @@ export interface paths {
          */
         post: operations["list-ai-models"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The caller's personal keys: their own accounts, models, picks and use
+         * @description The key is write-only: only whether one is set, and when.
+         */
+        get: operations["get-ai-personal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn personal keys on or off and set each person's monthly cap
+         * @description Turning them off keeps the accounts; their requests are refused until they are on again. Audited as ai_personal_keys.enabled, ai_personal_keys.disabled or ai_personal_keys.cap_updated.
+         */
+        put: operations["set-ai-personal-keys"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal-keys/accounts/{account}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a member's personal account, its key and its models
+         * @description For offboarding. The member's picks of its models go with it; the activity log keeps their requests. Audited as ai_account.remove.
+         */
+        delete: operations["remove-ai-member-account"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add one's own model account with its first model, after the test passes
+         * @description Needs personal keys on. The key is sealed and never returned; only its owner's requests use it, in their own monthly cap. Audited as ai_account.add.
+         */
+        post: operations["add-ai-personal-account"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove one's own account, its key and its models
+         * @description Refused while one of its models is picked for a feature. Audited as ai_account.remove.
+         */
+        delete: operations["remove-ai-personal-account"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace one's own account's key, after it passes the test
+         * @description Also adds the key again to an account whose key was removed. Audited as ai_account.key_replaced.
+         */
+        put: operations["replace-ai-personal-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a model to one's own account, with its prices
+         * @description Audited as ai_model.add.
+         */
+        post: operations["add-ai-personal-model"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a model from one's own account
+         * @description Refused while it is picked for a feature, and for an account's only model. Audited as ai_model.remove.
+         */
+        delete: operations["remove-ai-personal-model"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set one's own model's prices per million tokens
+         * @description Audited as ai_model.prices_updated.
+         */
+        put: operations["set-ai-personal-model-prices"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test one's own model: a fixed prompt with no workspace content
+         * @description In the caller's own monthly cap.
+         */
+        post: operations["test-ai-personal-model"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/test-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test one's own model's tool calling with fixed data
+         * @description In the caller's own monthly cap. The agent and the assistant use a personal model only once it passed.
+         */
+        post: operations["test-ai-personal-model-tools"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/budget-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List one's own usage reserved on personal keys, awaiting a response or reconciliation
+         * @description Only the caller's own holds; they count against the caller's personal monthly cap.
+         */
+        get: operations["list-ai-personal-budget-holds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/budget-holds/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record provider-verified usage of one's own hold without retrying the request
+         * @description Settles the hold in the caller's own budget. Another person's hold isn't found. Audited as ai.usage_reconciled.
+         */
+        post: operations["reconcile-ai-personal-budget"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/ai/personal/features/{feature}/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pick one of one's own models for one's own requests of a feature
+         * @description The rules of the workspace's models apply. Requests already prepared with another model aren't sent; agent runs keep the model they began with. Audited as ai_feature.model_changed.
+         */
+        put: operations["set-ai-personal-feature-model"];
+        post?: never;
+        /**
+         * Go back to the workspace's model for one's own requests of a feature
+         * @description Audited as ai_feature.model_changed.
+         */
+        delete: operations["clear-ai-personal-feature-model"];
         options?: never;
         head?: never;
         patch?: never;
@@ -20196,6 +21018,54 @@ export interface components {
             path: number[];
             text: string;
         };
+        AIAccountInput: {
+            apiKey?: string;
+            apiVersion?: string;
+            baseUrl?: string;
+            deployment?: string;
+            /** Format: double */
+            inputPrice?: number;
+            label?: string;
+            model: string;
+            modelName?: string;
+            /** Format: double */
+            outputPrice?: number;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+        };
+        AIAccountModelInput: {
+            deployment?: string;
+            /** Format: double */
+            inputPrice?: number;
+            model: string;
+            modelName?: string;
+            /** Format: double */
+            outputPrice?: number;
+        };
+        AIAccountView: {
+            apiVersion?: string;
+            baseUrl?: string;
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy?: string;
+            demo: boolean;
+            id: string;
+            key: components["schemas"]["AIKeyView"];
+            label?: string;
+            lastTest?: components["schemas"]["AITestView"];
+            models: components["schemas"]["AIModelView"][];
+            preset?: string;
+            primary: boolean;
+            privateNetwork: boolean;
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected" | "disconnected";
+            /** Format: date-time */
+            statusAt?: string;
+            statusDetail?: string;
+        };
         AIActivityList: {
             items: components["schemas"]["AIActivityRow"][];
             members: components["schemas"]["AIActivityMember"][];
@@ -20219,7 +21089,7 @@ export interface components {
             /** @description 1 of 5, 529 overloaded */
             detail?: string;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             id: string;
             /** Format: int64 */
             inputTokens: number;
@@ -20229,9 +21099,10 @@ export interface components {
             /** @description What it was about: Weekly Digest #143 */
             on: string;
             /** @enum {string} */
-            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled";
+            outcome: "pending" | "accepted" | "accepted_edits" | "kept" | "rejected" | "discarded" | "refused" | "error" | "nothing_drafted" | "cancelled" | "answered";
             /** Format: int64 */
             outputTokens: number;
+            personal: boolean;
             provider: string;
             targetId?: string;
             targetKind?: string;
@@ -20511,6 +21382,37 @@ export interface components {
             language?: string;
             src: string;
         };
+        AIAssistantModel: {
+            accountId: string;
+            id: string;
+            imageInput: boolean;
+            model: string;
+            modelName: string;
+            personal: boolean;
+            prices: components["schemas"]["AIPricesView"];
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            reason?: "disconnected" | "key_rejected" | "tools_unchecked" | "personal_keys_off";
+            tools: components["schemas"]["AIAgentCapability"];
+            usable: boolean;
+        };
+        AIAssistantModelList: {
+            /** Format: uuid */
+            defaultId?: string;
+            models: components["schemas"]["AIAssistantModel"][];
+        };
+        AIAssistantSettings: {
+            enabled: boolean;
+            limits: components["schemas"]["AIAgentLimits"];
+            /** Format: int32 */
+            perPerson: number;
+            /** Format: int32 */
+            perWorkspace: number;
+            /** Format: int64 */
+            revision: number;
+        };
         AIAutomationBriefInput: {
             automationId?: string;
             /** Format: int64 */
@@ -20669,6 +21571,7 @@ export interface components {
             lastTest?: components["schemas"]["AITestView"];
             model: string;
             modelName: string;
+            preset?: string;
             prices: components["schemas"]["AIPricesView"];
             privateNetwork: boolean;
             /** @enum {string} */
@@ -20696,13 +21599,24 @@ export interface components {
             preheader: string;
             subject: string;
         };
+        AIFeatureDefault: {
+            /** @enum {string} */
+            feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            modelId: string;
+        };
         AIFeatureInput: {
             on: boolean;
+        };
+        AIFeatureModelInput: {
+            /** Format: uuid */
+            modelId: string;
         };
         AIFeatureState: {
             available: boolean;
             /** @enum {string} */
             key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            /** Format: uuid */
+            modelId?: string;
             on: boolean;
         };
         AIKeepSummaryInput: {
@@ -20803,7 +21717,19 @@ export interface components {
              */
             output: number;
         };
+        AIModelView: {
+            deployment?: string;
+            features: ("assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft")[];
+            id: string;
+            imageInput: boolean;
+            model: string;
+            modelName: string;
+            prices: components["schemas"]["AIPricesView"];
+            tools: components["schemas"]["AIAgentCapability"];
+        };
         AIModelsInput: {
+            /** Format: uuid */
+            accountId?: string;
             apiKey?: string;
             apiVersion?: string;
             baseUrl?: string;
@@ -20825,6 +21751,68 @@ export interface components {
         AIPendingDrafts: {
             items: components["schemas"]["AIPendingDraft"][];
             next?: string;
+        };
+        AIPersonalAccount: {
+            id: string;
+            models: string[];
+            /** @enum {string} */
+            provider: "anthropic" | "openai" | "google" | "azure" | "compatible";
+            providerName: string;
+            /** @enum {string} */
+            status: "connected" | "key_rejected" | "disconnected";
+        };
+        AIPersonalKeyReplaced: {
+            personal: components["schemas"]["AIPersonalSettings"];
+            test: components["schemas"]["AITestResult"];
+        };
+        AIPersonalKeysInput: {
+            /** Format: double */
+            capUsd: number;
+            enabled: boolean;
+        };
+        AIPersonalPerson: {
+            accounts: components["schemas"]["AIPersonalAccount"][];
+            /** Format: int64 */
+            costMicros: number;
+            name: string;
+            /** Format: int64 */
+            requests: number;
+            userId: string;
+        };
+        AIPersonalSettings: {
+            accounts: components["schemas"]["AIAccountView"][];
+            canAdd: boolean;
+            /** Format: date-time */
+            capSetAt?: string;
+            capSetBy?: string;
+            /** Format: double */
+            capUsd: number;
+            catalog: components["schemas"]["AIProviderEntry"][];
+            choices: components["schemas"]["AIFeatureDefault"][];
+            enabled: boolean;
+            people: components["schemas"]["AIPersonalPerson"][];
+            /** Format: date-time */
+            priceListDate: string;
+            usage: components["schemas"]["AIPersonalUsageView"];
+        };
+        AIPersonalUsageView: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            reservedCostMicros: number;
+            /** Format: date-time */
+            resetsAt: string;
+            /**
+             * Format: double
+             * @description Share of the cap used, 0 to 1
+             */
+            share: number;
+            /** @enum {string} */
+            state: "ok" | "notice" | "reached";
+            /** Format: int64 */
+            uncertainRequests: number;
         };
         AIPricesInput: {
             /**
@@ -20863,6 +21851,12 @@ export interface components {
             name: string;
             needsBaseUrl: boolean;
             needsKey: boolean;
+            presets: components["schemas"]["AIProviderPreset"][];
+        };
+        AIProviderPreset: {
+            baseUrl: string;
+            id: string;
+            name: string;
         };
         AIReportAnswer: {
             answer: string;
@@ -20982,33 +21976,58 @@ export interface components {
             voiceRevision?: number;
         };
         AISettings: {
+            accounts: components["schemas"]["AIAccountView"][];
             aiUseRoles: string[];
             allowPrivate: boolean;
+            assistant: components["schemas"]["AIAssistantSettings"];
             byFeature: components["schemas"]["AIUsageFeature"][];
             byMember: components["schemas"]["AIUsageMember"][];
             canManage: boolean;
             catalog: components["schemas"]["AIProviderEntry"][];
             connected: boolean;
             connection?: components["schemas"]["AIConnectionView"];
+            defaults: components["schemas"]["AIFeatureDefault"][];
             disconnected: boolean;
             features: components["schemas"]["AIFeatureState"][];
             helpers: string[];
             instanceAdmins: string[];
+            personal: components["schemas"]["AIPersonalSettings"];
             /** Format: date-time */
             priceListDate: string;
             usage: components["schemas"]["AIUsageView"];
             withoutAiUse: components["schemas"]["AIMemberRole"][];
         };
         AIStatus: {
+            accounts: components["schemas"]["AIAccountView"][];
             agent: components["schemas"]["AIAgentSettings"];
             canManage: boolean;
             cap: components["schemas"]["AICapView"];
-            features: components["schemas"]["AIFeatureState"][];
+            defaults: components["schemas"]["AIFeatureDefault"][];
+            features: components["schemas"]["AIStatusFeature"][];
             helpers: string[];
             hostRepute: boolean;
             imageInput: boolean;
             model?: string;
             modelName?: string;
+            prices: components["schemas"]["AIPricesView"];
+            /** @enum {string} */
+            provider?: "anthropic" | "openai" | "google" | "azure" | "compatible" | "";
+            providerName?: string;
+            /** @enum {string} */
+            state: "ready" | "not_configured" | "key_rejected" | "cap_reached";
+            usage: components["schemas"]["AIUsageView"];
+        };
+        AIStatusFeature: {
+            available: boolean;
+            cap: components["schemas"]["AICapView"];
+            /** @enum {string} */
+            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent";
+            model?: string;
+            /** Format: uuid */
+            modelId?: string;
+            modelName?: string;
+            on: boolean;
+            personal: boolean;
             prices: components["schemas"]["AIPricesView"];
             /** @enum {string} */
             provider?: "anthropic" | "openai" | "google" | "azure" | "compatible" | "";
@@ -21047,6 +22066,8 @@ export interface components {
             voiceRevision?: number;
         };
         AITestInput: {
+            /** Format: uuid */
+            accountId?: string;
             apiKey?: string;
             apiVersion?: string;
             baseUrl?: string;
@@ -21054,6 +22075,8 @@ export interface components {
             /** Format: double */
             inputPrice?: number;
             model?: string;
+            /** Format: uuid */
+            modelId?: string;
             /** Format: double */
             outputPrice?: number;
             /** @enum {string} */
@@ -21091,6 +22114,206 @@ export interface components {
             /** Format: int64 */
             ms: number;
             ok: boolean;
+        };
+        AIThread: {
+            confirmation?: components["schemas"]["AIThreadConfirmation"];
+            contexts: components["schemas"]["AIThreadContext"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            eventSeq: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            /** Format: date-time */
+            lastActivityAt: string;
+            limits: components["schemas"]["AIAgentLimits"];
+            mcpServerIds: string[];
+            messages: components["schemas"]["AIThreadMessage"][];
+            model?: components["schemas"]["AIAssistantModel"];
+            screen?: string;
+            /** @enum {string} */
+            state: "open" | "expired";
+            title: string;
+            turn?: components["schemas"]["AIThreadTurn"];
+            usage: components["schemas"]["AIThreadUsage"];
+        };
+        AIThreadCard: {
+            brief?: string;
+            /** @enum {string} */
+            kind: "link" | "proposal" | "agent_task";
+            path: string;
+            proposalId?: string;
+            title: string;
+        };
+        AIThreadConfirmation: {
+            arguments: unknown;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** @enum {string} */
+            decision?: "allow" | "deny";
+            id: string;
+            /** @description The tool's name for the model: mcp__<server>__<tool> */
+            modelName: string;
+            serverId?: string;
+            serverName: string;
+            /** @enum {string} */
+            state: "pending" | "allowed" | "denied" | "calling" | "done" | "expired";
+            /** @description The tool's name on its server */
+            tool: string;
+            turnId: string;
+        };
+        AIThreadConfirmationDecision: {
+            /**
+             * @description allow runs this call once; deny tells the model it was refused
+             * @enum {string}
+             */
+            decision: "allow" | "deny";
+        };
+        AIThreadConfirmationEvent: {
+            confirmation: components["schemas"]["AIThreadConfirmation"];
+        };
+        AIThreadContext: {
+            available: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "post" | "report" | "segment" | "automation";
+            /** Format: int64 */
+            revision: number;
+            /** Format: date-time */
+            sharedAt: string;
+            targetId: string;
+            title: string;
+        };
+        AIThreadContextInput: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "report";
+            /** @description The person reviewed what is shared with the model and confirmed it */
+            sharingReviewed: boolean;
+        };
+        AIThreadDeltaEvent: {
+            text: string;
+            turnId: string;
+        };
+        AIThreadHeartbeat: {
+            /** Format: date-time */
+            at: string;
+        };
+        AIThreadInput: {
+            /** Format: uuid */
+            modelId?: string;
+            requestKey: string;
+            screen?: string;
+            title?: string;
+        };
+        AIThreadList: {
+            items: components["schemas"]["AIThreadListItem"][];
+            next?: string;
+        };
+        AIThreadListItem: {
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            /** Format: date-time */
+            lastActivityAt: string;
+            modelId?: string;
+            /** @enum {string} */
+            state: "open" | "expired";
+            title: string;
+        };
+        AIThreadMessage: {
+            /** @enum {string} */
+            card?: "hostrepute";
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            partial?: boolean;
+            /** @enum {string} */
+            role: "user" | "assistant" | "tool" | "summary";
+            text: string;
+            tools?: components["schemas"]["AIThreadToolRow"][];
+            turnId?: string;
+        };
+        AIThreadMessageEvent: {
+            message: components["schemas"]["AIThreadMessage"];
+        };
+        AIThreadMessageInput: {
+            requestKey: string;
+            text: string;
+        };
+        AIThreadServersInput: {
+            /** @description Servers from list-ai-assistant-mcp-servers; empty: none */
+            serverIds: string[];
+        };
+        AIThreadSnapshotEvent: {
+            thread: components["schemas"]["AIThread"];
+        };
+        AIThreadStreamProblem: {
+            code: string;
+            detail: string;
+            /** Format: int64 */
+            status: number;
+        };
+        AIThreadToolEvent: {
+            tool: components["schemas"]["AIThreadToolRow"];
+            turnId: string;
+        };
+        AIThreadToolRow: {
+            callId: string;
+            card?: components["schemas"]["AIThreadCard"];
+            code?: string;
+            label?: string;
+            /** Format: int64 */
+            ms: number;
+            name: string;
+            ok: boolean;
+        };
+        AIThreadTurn: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            endedAt?: string;
+            id: string;
+            modelId?: string;
+            reason?: string;
+            /** Format: int32 */
+            sequence: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            state: "queued" | "answering" | "waiting" | "stopped" | "failed" | "done";
+            text?: string;
+        };
+        AIThreadTurnEvent: {
+            turn: components["schemas"]["AIThreadTurn"];
+        };
+        AIThreadUpdate: {
+            /** Format: uuid */
+            modelId?: string;
+            title?: string;
+        };
+        AIThreadUsage: {
+            /** Format: int64 */
+            costMicros: number;
+            /** Format: int64 */
+            requests: number;
+            /** Format: int64 */
+            tokens: number;
+            /** Format: int32 */
+            toolCalls: number;
+            /** Format: int64 */
+            uncertainCostMicros: number;
+            /** Format: int64 */
+            uncertainRequests: number;
+            /** Format: int64 */
+            uncertainTokens: number;
+        };
+        AIThreadUsageEvent: {
+            usage: components["schemas"]["AIThreadUsage"];
         };
         AITranslateInput: {
             /** Format: uuid */
@@ -21186,7 +22409,7 @@ export interface components {
             /** Format: int64 */
             costMicros: number;
             /** @enum {string} */
-            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
+            feature: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
             /** Format: int64 */
             requests: number;
             /** Format: int64 */
@@ -40553,6 +41776,89 @@ export interface components {
             /** @enum {string} */
             token_endpoint_auth_method?: "none" | "client_secret_basic" | "client_secret_post";
         };
+        RemoteMCPOAuthStart: {
+            authorizationUrl: string;
+        };
+        RemoteMCPServer: {
+            /** @enum {string} */
+            auth: "none" | "header" | "oauth";
+            clientId?: string;
+            clientRegistered: boolean;
+            clientSecretSet: boolean;
+            connected: boolean;
+            enabled: boolean;
+            headerName?: string;
+            headerSet: boolean;
+            id: string;
+            /** @description The prefix of its tools for the model: mcp__<key>__<tool> */
+            key: string;
+            name: string;
+            redirectUri?: string;
+            roles: string[];
+            /** @enum {string} */
+            status: "new" | "ok" | "unreachable" | "sign_in";
+            statusDetail?: string;
+            /** Format: date-time */
+            syncedAt?: string;
+            tools: components["schemas"]["RemoteMCPTool"][];
+            /** @enum {string} */
+            transport: "streamable" | "sse";
+            url: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        RemoteMCPServerInput: {
+            /** @enum {string} */
+            auth: "none" | "header" | "oauth";
+            clientId?: string;
+            clientSecret?: string;
+            headerName?: string;
+            headerValue?: string;
+            name: string;
+            roles?: string[];
+            /** @enum {string} */
+            transport?: "streamable" | "sse";
+            /** @description The server's MCP endpoint (Streamable HTTP, or HTTP with SSE) */
+            url: string;
+        };
+        RemoteMCPServerList: {
+            servers: components["schemas"]["RemoteMCPServer"][];
+        };
+        RemoteMCPServerUpdate: {
+            clientId?: string;
+            clientSecret?: string;
+            enabled?: boolean;
+            headerValue?: string;
+            name?: string;
+            roles?: string[];
+        };
+        RemoteMCPTool: {
+            annotations: unknown;
+            approved?: components["schemas"]["RemoteMCPToolVersion"];
+            changed: boolean;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** @enum {string} */
+            decision: "pending" | "read_only" | "writes" | "blocked";
+            description: string;
+            hash: string;
+            id: string;
+            inputSchema: unknown;
+            modelName: string;
+            name: string;
+            removed: boolean;
+        };
+        RemoteMCPToolDecision: {
+            /** @enum {string} */
+            decision: "read_only" | "writes" | "blocked";
+            /** @description The hash of the description, schema and annotations reviewed */
+            hash: string;
+        };
+        RemoteMCPToolVersion: {
+            annotations: unknown;
+            description: string;
+            inputSchema: unknown;
+        };
         RemovalItem: {
             /** Format: int64 */
             changed?: number;
@@ -55012,6 +56318,38 @@ export interface operations {
             };
         };
     };
+    "remote-mcp-oauth-callback": {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description See Other */
+            303: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "auth-identify": {
         parameters: {
             query?: never;
@@ -57674,13 +59012,271 @@ export interface operations {
             };
         };
     };
+    "add-ai-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAccountInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-ai-account-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIKeyReplaced"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-ai-account-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAccountModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-model-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPricesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-model-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentCapability"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-ai-activity": {
         parameters: {
             query?: {
                 /** @description A member's id */
                 member?: string;
-                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test";
-                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending";
+                feature?: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent" | "connection_test" | "assistant";
+                outcome?: "accepted" | "kept" | "rejected" | "refused" | "error" | "nothing_drafted" | "pending" | "answered";
                 cursor?: string;
                 limit?: number;
             };
@@ -58042,6 +59638,648 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AIAltText"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-assistant-mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-assistant-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAssistantModelList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-assistant-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAssistantSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-threads": {
+        parameters: {
+            query?: {
+                /** @description Threads whose title has this */
+                q?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThreadList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-ai-thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-ai-thread-confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+                /** @description The call's confirmation id */
+                confirmation: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadConfirmationDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "attach-ai-thread-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadContextInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "detach-ai-thread-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+                /** @description The attached resource's id */
+                context: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-thread-mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadServersInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-ai-thread-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIThreadMessageInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stream-ai-thread": {
+        parameters: {
+            query?: {
+                /** @description Same as the Last-Event-ID header, for a new stream */
+                lastEventId?: string;
+            };
+            header?: {
+                /** @description Resume after this event id */
+                "Last-Event-ID"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": ({
+                        data: components["schemas"]["AIThreadConfirmationEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "confirmation";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadDeltaEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "delta";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadHeartbeat"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "heartbeat";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadMessageEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event?: "message";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadStreamProblem"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "problem";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadSnapshotEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "snapshot";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadToolEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "tool";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadTurnEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "turn";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    } | {
+                        data: components["schemas"]["AIThreadUsageEvent"];
+                        /**
+                         * @description The event name.
+                         * @constant
+                         */
+                        event: "usage";
+                        /** @description The event ID. */
+                        id?: number | string;
+                        /** @description The retry time in milliseconds. */
+                        retry?: number;
+                    })[];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "stop-ai-thread-turn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The thread's id */
+                thread: string;
+                /** @description The turn's id */
+                turn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIThread"];
                 };
             };
             /** @description Error */
@@ -58583,6 +60821,43 @@ export interface operations {
             };
         };
     };
+    "set-ai-feature-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIFeatureModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "replace-ai-key": {
         parameters: {
             query?: never;
@@ -58655,6 +60930,284 @@ export interface operations {
             };
         };
     };
+    "list-remote-mcp-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoteMCPServerInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoteMCPServerUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-remote-mcp-oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPOAuthStart"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-remote-mcp-oauth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sync-remote-mcp-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-remote-mcp-tool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The MCP server's id */
+                server: string;
+                /** @description The tool's id */
+                tool: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoteMCPToolDecision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoteMCPServer"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "change-ai-model": {
         parameters: {
             query?: never;
@@ -58714,6 +61267,539 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AIModelList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-ai-personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-personal-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPersonalKeysInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-member-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-ai-personal-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAccountInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-personal-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-ai-personal-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalKeyReplaced"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-ai-personal-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIAccountModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-ai-personal-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-personal-model-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIPricesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-personal-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AITestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-ai-personal-model-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The account's id */
+                account: string;
+                /** @description The model's id */
+                model: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAgentCapability"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-ai-personal-budget-holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIBudgetHolds"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconcile-ai-personal-budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIBudgetReconcileInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-ai-personal-feature-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AIFeatureModelInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "clear-ai-personal-feature-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                feature: "assistant" | "agent" | "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIPersonalSettings"];
                 };
             };
             /** @description Error */

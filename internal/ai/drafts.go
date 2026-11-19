@@ -85,6 +85,8 @@ type draftContext struct {
 	// Agent checkpoints keep the validated preview so polling never
 	// recompiles an unchanged email. It stays local, outside model context.
 	PreviewHTML string `json:",omitempty"`
+	// ThreadID is the assistant thread that proposed it, if one did.
+	ThreadID *uuid.UUID `json:",omitempty"`
 }
 
 type campaignDraftTask struct {
@@ -105,7 +107,7 @@ func draftProblem(ctx context.Context, status int, key string) error {
 const draftWriteTimeout = 3*longestTimeout + time.Minute
 
 func (s *Service) runDraft(ctx context.Context, ws *store.Workspace, p *authz.Principal, t task, validate func(llm.Response) (string, error)) (result, error) {
-	c, err := s.usable(ctx, ws, t.feature)
+	c, err := s.usable(ctx, ws, p, t.feature)
 	if err != nil {
 		return result{}, err
 	}
@@ -290,11 +292,11 @@ func (s *Service) GenerateCampaign(ctx context.Context, ws *store.Workspace, p *
 		if err := checkSource(ctx, q, fresh); err != nil {
 			return err
 		}
-		conn, err := q.AIConnectionForUpdate(ctx, ws.ID)
+		conn, err := s.current(ctx, q, ws.ID, res.conn)
 		if err != nil {
 			return err
 		}
-		if !(&connection{conn}).connected() || !(&connection{conn}).featureOn(FeatureDraft) {
+		if !conn.connected() || !conn.featureOn(FeatureDraft) {
 			return draftProblem(ctx, 409, "unavailable")
 		}
 		if err := q.AIDraftInsert(ctx, store.AIDraftInsertParams{ID: res.RequestID, WorkspaceID: ws.ID, UserID: p.UserID, Kind: "campaign", TargetID: in.CampaignID,
@@ -615,7 +617,7 @@ func (s *Service) DecideCampaign(ctx context.Context, ws *store.Workspace, p *au
 			if err := c.validateSaved(ctx, q, ws, email); err != nil {
 				return draftProblem(ctx, 422, "invalid")
 			}
-			result, revision, err := s.Campaigns.AcceptDraftIn(ctx, tx, ws, fresh, r.TargetID, r.BaseRevision, c.Name, email.Subject, email.Preheader, email.MJML, audit.ProposalOrigin{ProposalID: id})
+			result, revision, err := s.Campaigns.AcceptDraftIn(ctx, tx, ws, fresh, r.TargetID, r.BaseRevision, c.Name, email.Subject, email.Preheader, email.MJML, audit.ProposalOrigin{ProposalID: id, ThreadID: c.ThreadID})
 			if err != nil {
 				return err
 			}

@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { $api, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
+import { AskAssistant } from '@/features/assistant/AskButton'
 import { mh } from '@/features/composer/chrome.messages'
 import { useT } from '@/i18n'
 import { clock } from '@/lib/format'
@@ -79,6 +80,7 @@ export function ReadinessIssues({ slug, campaignId }: { slug: string; campaignId
         <Link to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId }} className="btn sm">
           {t(m.openInReview)}
         </Link>
+        <AskAssistant resource={{ kind: 'campaign', id: campaignId }} about={c.title} />
       </div>
     </div>
   ))

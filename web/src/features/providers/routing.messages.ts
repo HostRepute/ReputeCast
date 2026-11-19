@@ -22,7 +22,6 @@ export const mr = defineMessages('providers.routing', {
   savedAgoBy: 'Last saved {ago} by {name}',
   discard: 'Discard',
   upToDate: 'Routing is up to date',
-  upToDateDetail: 'Change a route, a split or the failover policy first.',
   saveRouting: 'Save routing',
   asideLabel: 'Route tester and shared settings',
   /** Leaving the routing screen with unsaved edits. {streams} is a list of stream names ("Broadcasts and System"). */
@@ -67,14 +66,10 @@ export const mr = defineMessages('providers.routing', {
 
   // Weighted split.
   weightedSplit: 'Weighted split',
-  splitUse: 'used for migration and warm-up',
-  splitUseWarming: 'used for migration and warm-up · adjusts daily with the {provider} plan',
   unknown: 'Unknown',
   /** {steps} lists the planned shares ("15% on day 12, 25% on day 15"). */
-  plannerRaises: 'The warm-up planner raises this automatically: {steps}.',
   plannerStep: '{share} on day {day}',
   shareLabel: '{provider} share',
-  sharePercent: '{provider} percentage',
 
   // Conditions.
   conditionsBeforeSplit: 'Conditions · checked before the split',
@@ -155,7 +150,6 @@ export const mr = defineMessages('providers.routing', {
 
   // ── Route tester ─────────────────────────────────────────────────────
   testerTitle: 'Route tester',
-  testerLine: 'Which provider would send this email?',
   testerStream: 'Stream',
   testerTemplate: 'Template',
   noTemplates: 'No templates yet',
@@ -268,7 +262,6 @@ export const mr = defineMessages('providers.routing', {
   checkSandbox: '{result, select, pass {not in sandbox} other {in the sandbox}}',
   checkAvailable: '{result, select, pass {available} other {not available now}}',
   checkBulk: "{result, select, pass {terms allow Broadcasts} other {terms don't allow Broadcasts}}",
-  noTarget: 'No fallback to check.',
   mxNote: 'Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records). Strict mailbox providers get their own lower caps while a provider warms up.',
 
   // The route tester's tabs.
@@ -284,7 +277,6 @@ export const mr = defineMessages('providers.routing', {
   draftLine: 'With your unsaved {pair} split:',
   draftStays: 'this address stays on {provider}.',
   draftMoves: 'this address moves to {provider}.',
-  draftSame: 'the route is the same.',
 
   // The Campaign tab.
   campaignLoading: 'Working out where the campaign goes…',

@@ -204,5 +204,6 @@ export default translate(m, {
   shortcutReadiness: 'Ouvrir le contrôle avant envoi',
   shortcutClose: 'Fermer le panneau ou la boîte de dialogue',
   shortcutHelp: 'Ce panneau',
+  shortcutAssistant: 'Ouvrir ou fermer l’assistant',
   shortcutsFootnote: 'Chaque raccourci a un bouton équivalent visible\u202F; aucun n’est obligatoire.',
 })

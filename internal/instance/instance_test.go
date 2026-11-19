@@ -195,10 +195,22 @@ func TestDeactivateSignOutReactivate(t *testing.T) {
 
 	aisha.SignInDemo("aisha@acme.io")
 	admin.Do("POST", "/admin/users/"+id+"/deactivate", map[string]any{"reason": ""}).MustStatus(t, 422)
+	var ws uuid.UUID
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT workspace_id FROM workspace_members WHERE user_id = $1`, id).Scan(&ws); err != nil {
+		t.Fatal(err)
+	}
+	user := uuid.MustParse(id)
+	env.SeedAssistantThread(ws, user)
+	env.SeedMCPSignIn(ws, user)
 	var res struct{ Sessions, Keys, Memberships int }
 	admin.Do("POST", "/admin/users/"+id+"/deactivate", map[string]any{"reason": "left the company", "revokeKeys": true}).MustStatus(t, 200).JSON(t, &res)
 	if res.Sessions < 1 || res.Memberships != 1 {
 		t.Fatalf("deactivate: %+v", res)
+	}
+	// Their MCP sign-ins go in every workspace; deactivation keeps their
+	// assistant threads.
+	if threads, signIns := env.MemberLeftovers(ws, user); threads != 1 || signIns != 0 {
+		t.Fatalf("after deactivation: %d threads (want 1), %d MCP sign-ins", threads, signIns)
 	}
 	aisha.Do("GET", "/me", nil).MustStatus(t, 401)
 	env.Client().Do("POST", "/auth/password", map[string]any{"email": "aisha@acme.io", "password": demo.Password}).MustStatus(t, 403)

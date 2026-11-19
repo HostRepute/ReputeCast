@@ -10,7 +10,6 @@ export const m = defineMessages('digests', {
     '{status, select, collecting {Collecting} preparing {Preparing} prepared {Prepared} waiting {Waiting for approval} held {Held} draft {Draft ready} sending {Sending} sent {Sent} skipped {Skipped} not_sent {Not sent} other {Collecting}}',
   feedUnreachableBadge: 'Feed unreachable',
   recurringDigest: 'Recurring digest',
-  recurringDigestIssue: 'Recurring digest issue',
   digestBadge: 'Digest',
   digestBadgeLabel: 'Issue of the recurring digest {name}',
   issuePrepared: 'prepared {time}',
@@ -116,14 +115,12 @@ export const m = defineMessages('digests', {
   postsLabel: 'Posts so far',
   postsFit: 'up to {count} fit',
   recipientsLabel: 'Recipients',
-  recipientsAbout: 'about · recounted at {time}',
   recipientsLive: 'about · counted now',
   preparedLabel: 'Prepared',
   preparedBefore: '{hours, plural, one {# hour before} other {# hours before}}',
   subjectAsItStands: 'Subject as it stands',
   subjectNoPosts: 'No posts yet: the subject is written once the first post arrives.',
   postsInIssue: 'Posts in this issue so far',
-  postsInPrepared: 'Posts in this issue',
   noPostsYet: 'No new posts yet. The issue is skipped if nothing new arrives by {time}.',
   needsApproval: 'Needs approval',
   needsApprovalBody:
@@ -133,7 +130,6 @@ export const m = defineMessages('digests', {
   ruleWarming: 'the route includes a Warming-up provider until {date}',
   ruleWarmingOpen: 'the route includes a Warming-up provider',
   ruleOther: '{label}',
-  noApprovalNeeded: 'No approval rule matches this digest: issues go out at their time once Send Readiness passes.',
   skipIssue: 'Skip this issue',
   approvalRules: 'Approval rules',
   skipTitle: 'Skip issue #{number}?',
@@ -184,7 +180,6 @@ export const m = defineMessages('digests', {
 
   // Sending
   sendingSub: '{date}, {time} · approved by {name} at {at}',
-  sendingSubNoApproval: '{date}, {time} · started {at}',
   openLive: 'Open the live monitor',
 
   // Draft mode
@@ -196,7 +191,6 @@ export const m = defineMessages('digests', {
   openDraft: 'Open the draft',
 
   // Just turned on
-  justOnSub: '{date}, {time} · skipped if nothing new by {prepare}',
   justOnBody: 'Nothing new since it was turned on. The first issue goes out after the next post.',
   turnedOnLabel: 'Turned on',
   turnedOnValue: '{date}, {time} by {name}',
@@ -219,7 +213,6 @@ export const m = defineMessages('digests', {
   pausedFeedSkip: '{date} ({kind, select, invalid {not a feed} other {unreachable}})',
   checkFeed: 'Check the feed',
   ownerLine: 'Owner {name}',
-  asYou: 'As {name}, {role}',
 
   // Turn on dialog
   turnOnTitle: 'Turn on {name}?',
@@ -287,7 +280,6 @@ export const m = defineMessages('digests', {
   // Issues
   issues: 'Issues',
   issuesSub: 'Each issue is its own campaign, with a report compared with the previous issue. Numbers count sent issues only.',
-  issuesSubShort: 'Each issue is its own campaign, with a report.',
   issuesLabel: 'Issues of {name}',
   colIssue: 'Issue',
   colPosts: 'Posts',
@@ -295,7 +287,6 @@ export const m = defineMessages('digests', {
   colHumanOpens: 'Human opens',
   colClicks: 'Clicks',
   colApprovedBy: 'Approved by',
-  issueDash: '–',
   postsDelta: '{delta} vs #{number}',
   firstIssue: 'first issue',
   pts: '{delta} pts',

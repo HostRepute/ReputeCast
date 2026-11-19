@@ -2,6 +2,7 @@ from enum import StrEnum
 
 class ListAiActivityOutcome(StrEnum):
     ACCEPTED = "accepted"
+    ANSWERED = "answered"
     ERROR = "error"
     KEPT = "kept"
     NOTHING_DRAFTED = "nothing_drafted"

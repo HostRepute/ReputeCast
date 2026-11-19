@@ -3,6 +3,7 @@ from enum import StrEnum
 class AIActivityRowOutcome(StrEnum):
     ACCEPTED = "accepted"
     ACCEPTED_EDITS = "accepted_edits"
+    ANSWERED = "answered"
     CANCELLED = "cancelled"
     DISCARDED = "discarded"
     ERROR = "error"

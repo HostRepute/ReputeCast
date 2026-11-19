@@ -3,6 +3,8 @@
 // speak the OpenAI API (Ollama, vLLM, LM Studio). It is plain HTTP with the
 // standard library: each provider is a small adapter that turns a Request
 // into the provider's JSON and its answer (or error) back into a Response.
+// Every adapter also streams the answer as it arrives (Streamer, from the
+// provider's server-sent events).
 //
 // Every adapter passes the shared contract suite in llm/contracttest against
 // recorded answers; tests never reach the network.
@@ -55,6 +57,8 @@ const (
 	DefaultTimeout          = 60 * time.Second
 	DefaultMaxResponseBytes = 4 << 20
 	DefaultMaxTokens        = 2048
+	// DefaultIdleTimeout ends a stream that sends nothing for this long.
+	DefaultIdleTimeout = 30 * time.Second
 	// DefaultAzureAPIVersion is Azure OpenAI's generally available API
 	// version for chat completions with images and JSON output.
 	DefaultAzureAPIVersion = "2024-10-21"
@@ -78,8 +82,12 @@ type Config struct {
 	HTTP *http.Client
 	// Timeout bounds one request, retries included (DefaultTimeout).
 	Timeout time.Duration
-	// MaxResponseBytes caps the answer read (DefaultMaxResponseBytes).
+	// MaxResponseBytes caps the answer read (DefaultMaxResponseBytes); a
+	// streamed answer counts every byte of the stream.
 	MaxResponseBytes int64
+	// IdleTimeout ends a stream when the provider sends nothing for this
+	// long, before or during the answer (DefaultIdleTimeout).
+	IdleTimeout time.Duration
 	// Retries is how many times an overloaded or unavailable provider is
 	// asked again (1 by default: "returned an error twice"); RetryWait is
 	// the pause before each retry (1 s).
@@ -183,7 +191,8 @@ type Model struct {
 	Name string `json:"name"`
 }
 
-// Provider is a connected model.
+// Provider is a connected model. Adapters that can stream are also a
+// Streamer.
 type Provider interface {
 	// Generate sends one request.
 	Generate(ctx context.Context, req Request) (Response, error)
@@ -286,6 +295,9 @@ func New(cfg Config) (Provider, error) {
 	if cfg.RetryWait <= 0 {
 		cfg.RetryWait = time.Second
 	}
+	if cfg.IdleTimeout <= 0 {
+		cfg.IdleTimeout = DefaultIdleTimeout
+	}
 	switch cfg.Kind {
 	case Anthropic:
 		return &anthropic{cfg: cfg}, nil
@@ -376,6 +388,17 @@ func (c call) do(ctx context.Context) ([]byte, error) {
 }
 
 func (c call) once(ctx context.Context, payload []byte) ([]byte, error) {
+	res, err := c.open(ctx, payload, "application/json")
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close() //nolint:errcheck
+	return c.read(ctx, res)
+}
+
+// open sends the request and returns a 2xx answer for the caller to read
+// and close; any other answer is read and classified.
+func (c call) open(ctx context.Context, payload []byte, accept string) (*http.Response, error) {
 	var rd io.Reader
 	if payload != nil {
 		rd = bytes.NewReader(payload)
@@ -392,12 +415,29 @@ func (c call) once(ctx context.Context, payload []byte) ([]byte, error) {
 	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", accept)
 	res, err := c.cfg.HTTP.Do(req)
 	if err != nil {
 		return nil, transportError(ctx, err)
 	}
+	if res.StatusCode >= 200 && res.StatusCode < 300 {
+		return res, nil
+	}
 	defer res.Body.Close() //nolint:errcheck
+	body, err := c.read(ctx, res)
+	if err != nil {
+		return nil, err
+	}
+	e := c.classify(res.StatusCode, res.Header, body)
+	if e.RetryAfter == 0 {
+		e.RetryAfter = retryAfter(res.Header)
+	}
+	c.redact(e)
+	return nil, e
+}
+
+// read reads a whole answer within the size limit.
+func (c call) read(ctx context.Context, res *http.Response) ([]byte, error) {
 	body, err := io.ReadAll(io.LimitReader(res.Body, c.cfg.MaxResponseBytes+1))
 	if err != nil {
 		return nil, transportError(ctx, err)
@@ -405,14 +445,17 @@ func (c call) once(ctx context.Context, payload []byte) ([]byte, error) {
 	if int64(len(body)) > c.cfg.MaxResponseBytes {
 		return nil, &Error{Kind: ErrTooLarge, Status: res.StatusCode, Message: fmt.Sprintf("the answer is over %d MB", c.cfg.MaxResponseBytes>>20)}
 	}
-	if res.StatusCode >= 200 && res.StatusCode < 300 {
-		return body, nil
+	return body, nil
+}
+
+// redact removes the key from what a provider said. A server may quote
+// the key it refused; its message is shown, logged and stored (the
+// account's status, the activity log), the key never.
+func (c call) redact(e *Error) {
+	if c.cfg.APIKey != "" {
+		e.Message = strings.ReplaceAll(e.Message, c.cfg.APIKey, "[key]")
+		e.Code = strings.ReplaceAll(e.Code, c.cfg.APIKey, "[key]")
 	}
-	e := c.classify(res.StatusCode, res.Header, body)
-	if e.RetryAfter == 0 {
-		e.RetryAfter = retryAfter(res.Header)
-	}
-	return nil, e
 }
 
 // transportError classifies a failure before an answer arrived.

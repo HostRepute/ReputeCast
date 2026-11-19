@@ -286,7 +286,7 @@ func TestCampaignDraftAcceptance(t *testing.T) {
 	// Permissions and the feature switch are rechecked after the model returns.
 	mu.Lock()
 	beforeAnswer = func() {
-		exec(`UPDATE ai_connections SET features_off=array_append(features_off,'draft') WHERE workspace_id=$1`, w.ID)
+		exec(`UPDATE ai_workspace_settings SET features_off=array_append(features_off,'draft') WHERE workspace_id=$1`, w.ID)
 	}
 	mu.Unlock()
 	c.Do("POST", endpoint, in).MustStatus(t, 409)
@@ -296,7 +296,7 @@ func TestCampaignDraftAcceptance(t *testing.T) {
 	if count("ai_draft_proposals") != baseline {
 		t.Fatal("late result committed after switch off")
 	}
-	exec(`UPDATE ai_connections SET features_off=array_remove(features_off,'draft') WHERE workspace_id=$1`, w.ID)
+	exec(`UPDATE ai_workspace_settings SET features_off=array_remove(features_off,'draft') WHERE workspace_id=$1`, w.ID)
 	mu.Lock()
 	calls := len(payloads)
 	mu.Unlock()
@@ -636,14 +636,14 @@ func TestAutomationDraftAcceptance(t *testing.T) {
 	mu.Lock()
 	answer = valid
 	hook = func() {
-		exec(`UPDATE ai_connections SET features_off=array_append(features_off,'draft') WHERE workspace_id=$1`, w.ID)
+		exec(`UPDATE ai_workspace_settings SET features_off=array_append(features_off,'draft') WHERE workspace_id=$1`, w.ID)
 	}
 	mu.Unlock()
 	c.Do("POST", endpoint, in).MustStatus(t, 409)
 	mu.Lock()
 	hook = nil
 	mu.Unlock()
-	exec(`UPDATE ai_connections SET features_off=array_remove(features_off,'draft') WHERE workspace_id=$1`, w.ID)
+	exec(`UPDATE ai_workspace_settings SET features_off=array_remove(features_off,'draft') WHERE workspace_id=$1`, w.ID)
 	c.Do("POST", endpoint, in).MustStatus(t, 200).JSON(t, &proposal)
 	exec(`UPDATE workspace_members SET scope=jsonb_build_object('lists',jsonb_build_array($1::text)) WHERE workspace_id=$2 AND user_id=$3`, uuid.NewString(), w.ID, owner.ID)
 	var pending ai.AIPendingDrafts

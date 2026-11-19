@@ -2,6 +2,7 @@ import type { Component } from 'grapesjs'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
+import { AskAssistant, useCanAsk } from '@/features/assistant/AskButton'
 import { LanguageBlockPanel } from '@/features/languages/composerParts'
 import { useComposer, type Issue, type RightTab } from './context'
 import { CommentsTab, useCommentsTabLabel } from './Comments'
@@ -178,6 +179,8 @@ function IssueRow({ issue, fixable = true, index, dismissed, area }: { issue: Is
   const select = () => {
     if (issue.path.length && fixable) reveal(c, issue.path)
   }
+  // Ask the assistant about it, with this draft suggested (AssistantEntry).
+  const ask = useCanAsk() && !dismissed && c.kind !== 'transactional' ? <AskAssistant resource={{ kind: 'campaign', id: c.campaign.id }} about={issue.title} className="self-start" /> : null
   return (
     <div className={`iss ${tone}`}>
       {area ? <span className="iss-area">{area}</span> : null}
@@ -216,8 +219,11 @@ function IssueRow({ issue, fixable = true, index, dismissed, area }: { issue: Is
               </button>
             ),
           )}
+          {ask}
         </div>
-      ) : null}
+      ) : (
+        ask
+      )}
       {index !== undefined ? <DismissControls issue={issue} index={index} dismissed={dismissed} /> : null}
     </div>
   )

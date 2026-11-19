@@ -6,7 +6,10 @@ proxy that terminates TLS, such as Caddy, nginx or Traefik.
 The public URL has to be right, and reachable from the internet:
 - sending providers deliver bounce and complaint webhooks to
   `<public URL>/hooks/…`;
-- links in emails, public pages, passkeys and SSO redirects use it.
+- links in emails, public pages, passkeys and SSO redirects use it;
+- MCP servers' sign-in sends people back to
+  `<public URL>/api/v1/ai/mcp/oauth/callback`
+  ([MCP servers](../ai/mcp-servers.md#the-oauth-redirect-address)).
 
 When a provider can't reach it, the connect wizard and the first-run setup say
 so; they check DNS, TLS and reachability for you.
@@ -59,12 +62,43 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        # The live send monitor streams server-sent events.
+        # The live send monitor and the AI assistant stream server-sent
+        # events (see "Event streams" below).
         proxy_buffering off;
         proxy_read_timeout 1h;
     }
 }
 ```
+
+## Event streams
+
+Two screens hold a server-sent events stream (`text/event-stream`) open:
+the live send monitor, and the AI assistant panel
+(`/api/v1/workspaces/<workspace>/ai/assistant/threads/<thread>/stream`).
+The proxy must pass each event on as it is written.
+
+- **Buffering off.** nginx buffers responses by default: keep
+  `proxy_buffering off;` as in the example above (ReputeCast doesn't send
+  `X-Accel-Buffering`). Caddy and Traefik flush `text/event-stream`
+  responses at once without extra settings. If the proxy or a CDN in front
+  compresses responses, leave `text/event-stream` out. A buffered stream
+  shows answers late, all at once, or not until the browser gives up and
+  reconnects.
+- **Timeouts.** The assistant's stream sends a heartbeat every 15 seconds
+  when nothing else happens, and the browser treats 45 seconds of silence
+  as a dropped connection. Any read or idle timeout above 15 seconds works
+  for it, nginx's default of 60 seconds included. When a proxy cuts a
+  stream anyway, the browser reconnects with the last event it had and
+  nothing is lost or repeated. The answer itself goes on on the server.
+- **HTTP/2.** Each assistant thread open in a panel or a full page, and each
+  live monitor, holds one connection. Over HTTP/1.1 a browser opens at most
+  six connections to one host, shared by all its tabs, so a few open tabs
+  can leave other requests waiting. Over HTTP/2 they share one connection.
+  Serve HTTP/2 to browsers (`http2 on;` in nginx; Caddy does by itself).
+
+A client that doesn't read an event within 5 seconds is cut, and resumes
+from its last event. Postgres connections for the streams are covered in
+[configuration](configuration.md#the-event-streams-database-connection).
 
 ## Testing without a public server
 

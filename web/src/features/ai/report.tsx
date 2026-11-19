@@ -116,7 +116,7 @@ function AskBox({ campaignId, model }: { campaignId: string; model: string }) {
 export function useReportAI(campaignId: string, sent: boolean): { button: ReactNode; panel: ReactNode } {
   const { slug } = useWorkspace()
   const t = useT()
-  const assist = useAssist()
+  const assist = useAssist('report_summary')
   const qc = useQueryClient()
   const outcome = useOutcome()
   const path = { workspace: slug, campaignId }

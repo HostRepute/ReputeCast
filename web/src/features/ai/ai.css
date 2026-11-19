@@ -232,6 +232,19 @@
   .ai-rows b {
     font-weight: 600;
   }
+  /* Rows that start a card's body (AIModels' facts): no rule above the
+     first; a fact's value goes at the end of its row, as on the board. */
+  .ai-facts > div:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .ai-facts > div:last-child {
+    padding-bottom: 0;
+  }
+  .ai-facts > div > b {
+    margin-left: auto;
+    text-align: right;
+  }
   .ai-share {
     display: flex;
     flex-direction: column;
@@ -1039,6 +1052,12 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--accent);
+  }
+  /* Phones: the connect dialog's provider buttons are 44 px targets. */
+  @media (max-width: 767px) {
+    .ai-cmain .seg button {
+      height: 44px;
+    }
   }
   /* Small screens: the header's facts under the title, actions full width. */
   @media (max-width: 640px) {

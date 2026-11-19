@@ -46,6 +46,7 @@ import { Route as WWorkspaceAppAgentRunIdRouteImport } from './routes/w/$workspa
 import { Route as WWorkspaceAppAgentNewRouteImport } from './routes/w/$workspace/_app/agent/new'
 import { Route as WWorkspaceAppApprovalsIndexRouteImport } from './routes/w/$workspace/_app/approvals/index'
 import { Route as WWorkspaceAppApprovalsApprovalIdRouteImport } from './routes/w/$workspace/_app/approvals/$approvalId'
+import { Route as WWorkspaceAppAssistantThreadRouteImport } from './routes/w/$workspace/_app/assistant/$thread'
 import { Route as WWorkspaceAppAudienceIndexRouteImport } from './routes/w/$workspace/_app/audience/index'
 import { Route as WWorkspaceAppAudienceGrowthRouteImport } from './routes/w/$workspace/_app/audience/growth'
 import { Route as WWorkspaceAppAudienceHealthRouteImport } from './routes/w/$workspace/_app/audience/health'
@@ -162,6 +163,7 @@ import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './ro
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
 import { Route as WWorkspaceAppSettingsIntegrationsAiRouteImport } from './routes/w/$workspace/_app/settings/integrations/ai'
 import { Route as WWorkspaceAppSettingsIntegrationsHostreputeRouteImport } from './routes/w/$workspace/_app/settings/integrations/hostrepute'
+import { Route as WWorkspaceAppSettingsIntegrationsMcpServersRouteImport } from './routes/w/$workspace/_app/settings/integrations/mcp-servers'
 import { Route as WWorkspaceAppSettingsIntegrationsTrackingRouteImport } from './routes/w/$workspace/_app/settings/integrations/tracking'
 import { Route as WWorkspaceAppSettingsIntegrationsVerificationRouteImport } from './routes/w/$workspace/_app/settings/integrations/verification'
 import { Route as WWorkspaceAppSettingsIntegrationsWordpressRouteImport } from './routes/w/$workspace/_app/settings/integrations/wordpress'
@@ -379,6 +381,12 @@ const WWorkspaceAppApprovalsApprovalIdRoute =
   WWorkspaceAppApprovalsApprovalIdRouteImport.update({
     id: '/approvals/$approvalId',
     path: '/approvals/$approvalId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppAssistantThreadRoute =
+  WWorkspaceAppAssistantThreadRouteImport.update({
+    id: '/assistant/$thread',
+    path: '/assistant/$thread',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppAudienceIndexRoute =
@@ -1073,6 +1081,12 @@ const WWorkspaceAppSettingsIntegrationsHostreputeRoute =
     path: '/settings/integrations/hostrepute',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsIntegrationsMcpServersRoute =
+  WWorkspaceAppSettingsIntegrationsMcpServersRouteImport.update({
+    id: '/settings/integrations/mcp-servers',
+    path: '/settings/integrations/mcp-servers',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsTrackingRoute =
   WWorkspaceAppSettingsIntegrationsTrackingRouteImport.update({
     id: '/settings/integrations/tracking',
@@ -1253,6 +1267,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
   '/w/$workspace/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/assistant/$thread': typeof WWorkspaceAppAssistantThreadRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
@@ -1355,6 +1370,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/mcp-servers': typeof WWorkspaceAppSettingsIntegrationsMcpServersRoute
   '/w/$workspace/settings/integrations/tracking': typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -1429,6 +1445,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
   '/w/$workspace/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/assistant/$thread': typeof WWorkspaceAppAssistantThreadRoute
   '/w/$workspace/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
@@ -1531,6 +1548,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/settings/integrations/mcp-servers': typeof WWorkspaceAppSettingsIntegrationsMcpServersRoute
   '/w/$workspace/settings/integrations/tracking': typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   '/w/$workspace/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -1609,6 +1627,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/agent/$runId': typeof WWorkspaceAppAgentRunIdRoute
   '/w/$workspace/_app/agent/new': typeof WWorkspaceAppAgentNewRoute
   '/w/$workspace/_app/approvals/$approvalId': typeof WWorkspaceAppApprovalsApprovalIdRoute
+  '/w/$workspace/_app/assistant/$thread': typeof WWorkspaceAppAssistantThreadRoute
   '/w/$workspace/_app/audience/growth': typeof WWorkspaceAppAudienceGrowthRoute
   '/w/$workspace/_app/audience/health': typeof WWorkspaceAppAudienceHealthRoute
   '/w/$workspace/_app/audience/holdout': typeof WWorkspaceAppAudienceHoldoutRoute
@@ -1711,6 +1730,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/_app/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  '/w/$workspace/_app/settings/integrations/mcp-servers': typeof WWorkspaceAppSettingsIntegrationsMcpServersRoute
   '/w/$workspace/_app/settings/integrations/tracking': typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   '/w/$workspace/_app/settings/integrations/verification': typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   '/w/$workspace/_app/settings/integrations/wordpress': typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -1789,6 +1809,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/agent/$runId'
     | '/w/$workspace/agent/new'
     | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/assistant/$thread'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
     | '/w/$workspace/audience/holdout'
@@ -1891,6 +1912,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/mcp-servers'
     | '/w/$workspace/settings/integrations/tracking'
     | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
@@ -1965,6 +1987,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/agent/$runId'
     | '/w/$workspace/agent/new'
     | '/w/$workspace/approvals/$approvalId'
+    | '/w/$workspace/assistant/$thread'
     | '/w/$workspace/audience/growth'
     | '/w/$workspace/audience/health'
     | '/w/$workspace/audience/holdout'
@@ -2067,6 +2090,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
+    | '/w/$workspace/settings/integrations/mcp-servers'
     | '/w/$workspace/settings/integrations/tracking'
     | '/w/$workspace/settings/integrations/verification'
     | '/w/$workspace/settings/integrations/wordpress'
@@ -2144,6 +2168,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/agent/$runId'
     | '/w/$workspace/_app/agent/new'
     | '/w/$workspace/_app/approvals/$approvalId'
+    | '/w/$workspace/_app/assistant/$thread'
     | '/w/$workspace/_app/audience/growth'
     | '/w/$workspace/_app/audience/health'
     | '/w/$workspace/_app/audience/holdout'
@@ -2246,6 +2271,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/integrations/$kind'
     | '/w/$workspace/_app/settings/integrations/ai'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
+    | '/w/$workspace/_app/settings/integrations/mcp-servers'
     | '/w/$workspace/_app/settings/integrations/tracking'
     | '/w/$workspace/_app/settings/integrations/verification'
     | '/w/$workspace/_app/settings/integrations/wordpress'
@@ -2560,6 +2586,13 @@ declare module '@tanstack/react-router' {
       path: '/approvals/$approvalId'
       fullPath: '/w/$workspace/approvals/$approvalId'
       preLoaderRoute: typeof WWorkspaceAppApprovalsApprovalIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/assistant/$thread': {
+      id: '/w/$workspace/_app/assistant/$thread'
+      path: '/assistant/$thread'
+      fullPath: '/w/$workspace/assistant/$thread'
+      preLoaderRoute: typeof WWorkspaceAppAssistantThreadRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/audience/': {
@@ -3374,6 +3407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/integrations/mcp-servers': {
+      id: '/w/$workspace/_app/settings/integrations/mcp-servers'
+      path: '/settings/integrations/mcp-servers'
+      fullPath: '/w/$workspace/settings/integrations/mcp-servers'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsMcpServersRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations/tracking': {
       id: '/w/$workspace/_app/settings/integrations/tracking'
       path: '/settings/integrations/tracking'
@@ -3571,6 +3611,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppAgentRunIdRoute: typeof WWorkspaceAppAgentRunIdRoute
   WWorkspaceAppAgentNewRoute: typeof WWorkspaceAppAgentNewRoute
   WWorkspaceAppApprovalsApprovalIdRoute: typeof WWorkspaceAppApprovalsApprovalIdRoute
+  WWorkspaceAppAssistantThreadRoute: typeof WWorkspaceAppAssistantThreadRoute
   WWorkspaceAppAudienceGrowthRoute: typeof WWorkspaceAppAudienceGrowthRoute
   WWorkspaceAppAudienceHealthRoute: typeof WWorkspaceAppAudienceHealthRoute
   WWorkspaceAppAudienceHoldoutRoute: typeof WWorkspaceAppAudienceHoldoutRoute
@@ -3656,6 +3697,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
   WWorkspaceAppSettingsIntegrationsAiRoute: typeof WWorkspaceAppSettingsIntegrationsAiRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
+  WWorkspaceAppSettingsIntegrationsMcpServersRoute: typeof WWorkspaceAppSettingsIntegrationsMcpServersRoute
   WWorkspaceAppSettingsIntegrationsTrackingRoute: typeof WWorkspaceAppSettingsIntegrationsTrackingRoute
   WWorkspaceAppSettingsIntegrationsVerificationRoute: typeof WWorkspaceAppSettingsIntegrationsVerificationRoute
   WWorkspaceAppSettingsIntegrationsWordpressRoute: typeof WWorkspaceAppSettingsIntegrationsWordpressRoute
@@ -3707,6 +3749,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppAgentRunIdRoute: WWorkspaceAppAgentRunIdRoute,
   WWorkspaceAppAgentNewRoute: WWorkspaceAppAgentNewRoute,
   WWorkspaceAppApprovalsApprovalIdRoute: WWorkspaceAppApprovalsApprovalIdRoute,
+  WWorkspaceAppAssistantThreadRoute: WWorkspaceAppAssistantThreadRoute,
   WWorkspaceAppAudienceGrowthRoute: WWorkspaceAppAudienceGrowthRoute,
   WWorkspaceAppAudienceHealthRoute: WWorkspaceAppAudienceHealthRoute,
   WWorkspaceAppAudienceHoldoutRoute: WWorkspaceAppAudienceHoldoutRoute,
@@ -3825,6 +3868,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppSettingsIntegrationsAiRoute,
   WWorkspaceAppSettingsIntegrationsHostreputeRoute:
     WWorkspaceAppSettingsIntegrationsHostreputeRoute,
+  WWorkspaceAppSettingsIntegrationsMcpServersRoute:
+    WWorkspaceAppSettingsIntegrationsMcpServersRoute,
   WWorkspaceAppSettingsIntegrationsTrackingRoute:
     WWorkspaceAppSettingsIntegrationsTrackingRoute,
   WWorkspaceAppSettingsIntegrationsVerificationRoute:

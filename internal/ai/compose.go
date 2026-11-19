@@ -138,6 +138,12 @@ func checkSubject(subject, lang string) AISubjectIdea {
 
 // SubjectIdeas asks for five subject lines and checks each one.
 func (s *Service) SubjectIdeas(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AISubjectIdeasInput) (AISubjectIdeas, error) {
+	return s.subjectIdeas(ctx, ws, p, in, emailText(in.MJML))
+}
+
+// subjectIdeas asks for subject ideas on a campaign's subject, preheader
+// and body text (in.MJML isn't read).
+func (s *Service) subjectIdeas(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AISubjectIdeasInput, body string) (AISubjectIdeas, error) {
 	c, err := s.campaignFor(ctx, ws, p, in.CampaignID)
 	if err != nil {
 		return AISubjectIdeas{}, err
@@ -146,7 +152,6 @@ func (s *Service) SubjectIdeas(ctx context.Context, ws *store.Workspace, p *auth
 	if in.Language != "" {
 		lang = languages.Base(in.Language)
 	}
-	body := emailText(in.MJML)
 	if chars(body) > maxEmailChars {
 		body = string([]rune(body)[:maxEmailChars])
 	}
@@ -242,7 +247,7 @@ func (s *Service) Rewrite(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if asksAboutReputation(in.Instruction) {
 			// Checked before anything is sent: whether HostRepute is
 			// connected decides where the answer points.
-			if _, err := s.usable(ctx, ws, FeatureRewrite); err != nil {
+			if _, err := s.usable(ctx, ws, p, FeatureRewrite); err != nil {
 				return AIRewrite{}, err
 			}
 			return AIRewrite{HTML: "", Tokens: []string{}, Reputation: &AIReputation{HostRepute: s.hostReputeConnected(ctx, ws.ID)}}, nil
@@ -327,7 +332,7 @@ func (s *Service) AltText(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return AIAltText{}, err
 	}
-	conn, err := s.usable(ctx, ws, FeatureAltText)
+	conn, err := s.usable(ctx, ws, p, FeatureAltText)
 	if err != nil {
 		return AIAltText{}, err
 	}

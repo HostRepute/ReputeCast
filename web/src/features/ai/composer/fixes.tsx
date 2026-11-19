@@ -88,7 +88,7 @@ export function AltTextAssist({
   )
   const [open, setOpen] = useState(false)
   if (!ca || !ca.assist.can || !c.canEdit || c.kind === 'transactional') return null
-  const a = ca.assist
+  const a = ca.assist.of('alt_text')
   const noImage = a.configured && a.status && !a.status.imageInput
   const off = a.configured && !noImage && !a.featureOn('alt_text')
   const ask = () => {
@@ -195,7 +195,7 @@ export function LinkTextAssist({ component, text, href, onAccept }: { component?
   )
   const [open, setOpen] = useState(false)
   if (!ca || !ca.assist.can || !c.canEdit || c.kind === 'transactional') return null
-  const a = ca.assist
+  const a = ca.assist.of('accessibility_fix')
   const off = a.configured && !a.featureOn('accessibility_fix')
   const close = (decided?: 'rejected') => {
     if (decided && s.state.phase === 'done') outcome(s.state.data.requestId, decided)

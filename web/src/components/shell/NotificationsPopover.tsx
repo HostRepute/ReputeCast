@@ -5,6 +5,7 @@ import { useState, type MouseEvent, type ReactNode } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { t, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
+import { getAssistant, openAssistant, setAssistantThread, waitingThread } from '@/features/assistant/store'
 import { notificationAgo } from '@/lib/format'
 import { useOptionalWorkspace, useWorkspace, workspaceMeKey } from '@/lib/session'
 import { Icon } from '../icons/Icon'
@@ -80,6 +81,9 @@ export function useNotificationActions() {
   return { markRead, markAll, marking }
 }
 
+/** The last notification opened the assistant's panel (a waiting call): the bell doesn't take focus back. */
+let toAssistant = false
+
 /**
  * A notification that opens the screen where you can act, and marks itself
  * read. It is a real link, so it can also open in a new tab.
@@ -104,14 +108,21 @@ export function NotificationLink({
 }) {
   const router = useRouter()
   const tr = useT()
+  const { slug } = useWorkspace()
   const { markRead } = useNotificationActions()
   const href = n.link || '#'
   const click = (e: MouseEvent<HTMLAnchorElement>) => {
     if (!n.read) void markRead(n.id)
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
     e.preventDefault()
+    // A call waiting for the person opens in the assistant's panel, where the screen has one.
+    const thread = waitingThread(n)
+    toAssistant = Boolean(thread && getAssistant().slots > 0)
     onOpen?.()
-    if (n.link) router.history.push(n.link)
+    if (toAssistant) {
+      setAssistantThread(slug, thread)
+      openAssistant()
+    } else if (n.link) router.history.push(n.link)
   }
   return (
     <a href={href} className={cn(className, !n.read && unreadClassName)} role={role} onClick={click}>
@@ -156,7 +167,19 @@ export function NotificationsPopover() {
         </button>
       </RPopover.Trigger>
       <RPopover.Portal>
-        <RPopover.Content className="menu w-[420px] p-0!" align="end" sideOffset={10} alignOffset={-20} collisionPadding={12} aria-label={tr(m.notificationsTitle)}>
+        <RPopover.Content
+          className="menu w-[420px] p-0!"
+          align="end"
+          sideOffset={10}
+          alignOffset={-20}
+          collisionPadding={12}
+          aria-label={tr(m.notificationsTitle)}
+          // A waiting call opened the assistant: focus stays in its panel.
+          onCloseAutoFocus={(e) => {
+            if (toAssistant) e.preventDefault()
+            toAssistant = false
+          }}
+        >
           {open ? <Panel slug={ws.slug} unread={n} onClose={() => setOpen(false)} /> : null}
         </RPopover.Content>
       </RPopover.Portal>

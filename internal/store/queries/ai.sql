@@ -1,61 +1,217 @@
--- AI assistant (design expansion M22): the workspace's model, the AI
--- activity log, kept report summaries and AI translations.
+-- AI assistant (design expansion M22): the workspace's AI settings, its
+-- model accounts and models (assistant brief D3), the AI activity log, kept
+-- report summaries and AI translations.
 
--- name: AIConnection :one
-SELECT * FROM ai_connections WHERE workspace_id = $1;
+-- name: AIBinding :one
+-- A model with its account and the workspace's settings: what a request is
+-- bound to. The column names are the single connection's before B1.
+SELECT m.id AS model_id, a.id AS account_id, s.workspace_id,
+    a.provider, a.label, a.base_url, m.deployment, a.api_version, m.model, m.model_name, m.image_input,
+    a.key_sealed, a.key_added_by, a.key_added_at, a.connected_by, a.connected_at, a.disconnected_by, a.disconnected_at,
+    a.status, a.status_detail, a.status_at, a.last_test_at, a.last_test_ok, a.last_test_ms,
+    s.cap_kind, s.cap_usd, s.cap_tokens, s.cap_set_by, s.cap_set_at,
+    m.input_price, m.output_price, m.prices_from, m.price_known,
+    s.features_off, s.notice_month, s.cap_notice_month, a.demo,
+    s.revision AS settings_revision, a.revision AS account_revision, m.revision AS model_revision,
+    m.updated_at AS model_updated_at, a.user_id AS account_user_id, s.personal_keys, s.personal_cap_usd
+FROM ai_models m
+JOIN ai_accounts a ON a.id = m.account_id AND a.workspace_id = m.workspace_id
+JOIN ai_workspace_settings s ON s.workspace_id = m.workspace_id
+WHERE m.workspace_id = @workspace_id AND m.id = @model_id;
 
--- name: AIConnectionForUpdate :one
-SELECT * FROM ai_connections WHERE workspace_id = $1 FOR UPDATE;
+-- name: AIPrimaryModel :one
+-- The workspace's first account and its first model: what the single-model
+-- settings and operations act on.
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = @workspace_id AND a.user_id IS NULL
+ORDER BY a.created_at, a.id, m.created_at, m.id
+LIMIT 1;
 
--- name: AIConnectionSave :exec
-INSERT INTO ai_connections (
-    workspace_id, provider, label, base_url, deployment, api_version, model, model_name, image_input,
-    key_sealed, key_added_by, key_added_at, connected_by, connected_at, disconnected_by, disconnected_at,
-    status, status_detail, status_at, last_test_at, last_test_ok, last_test_ms,
-    cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, input_price, output_price, prices_from,
-    features_off, notice_month, cap_notice_month, demo, updated_by, updated_at, price_known
-) VALUES (
-    @workspace_id, @provider, @label, @base_url, @deployment, @api_version, @model, @model_name, @image_input,
-    @key_sealed, @key_added_by, @key_added_at, @connected_by, @connected_at, @disconnected_by, @disconnected_at,
-    @status, @status_detail, @status_at, @last_test_at, @last_test_ok, @last_test_ms,
-    @cap_kind, @cap_usd, @cap_tokens, @cap_set_by, @cap_set_at, @input_price, @output_price, @prices_from,
-    @features_off, @notice_month, @cap_notice_month, @demo, @updated_by, @updated_at, @price_known
-)
-ON CONFLICT (workspace_id) DO UPDATE SET
-    provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url, deployment = EXCLUDED.deployment,
-    api_version = EXCLUDED.api_version, model = EXCLUDED.model, model_name = EXCLUDED.model_name, image_input = EXCLUDED.image_input,
-    key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by, key_added_at = EXCLUDED.key_added_at,
-    connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at, disconnected_by = EXCLUDED.disconnected_by,
-    disconnected_at = EXCLUDED.disconnected_at, status = EXCLUDED.status, status_detail = EXCLUDED.status_detail,
-    status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at, last_test_ok = EXCLUDED.last_test_ok,
-    last_test_ms = EXCLUDED.last_test_ms, cap_kind = EXCLUDED.cap_kind, cap_usd = EXCLUDED.cap_usd, cap_tokens = EXCLUDED.cap_tokens,
-    cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, input_price = EXCLUDED.input_price,
-    output_price = EXCLUDED.output_price, prices_from = EXCLUDED.prices_from, features_off = EXCLUDED.features_off,
-    notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month, demo = EXCLUDED.demo,
-    updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at, price_known = EXCLUDED.price_known;
+-- name: AIWorkspaceModels :many
+-- The workspace's models, the first account's first model first.
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = @workspace_id AND a.user_id IS NULL
+ORDER BY a.created_at, a.id, m.created_at, m.id;
 
--- name: AIConnectionSetStatus :execrows
--- The provider rejected the saved key (or a passing request cleared it).
-UPDATE ai_connections SET status = @status, status_detail = @status_detail, status_at = @status_at
-WHERE workspace_id = @workspace_id AND status <> @status AND updated_at = @expected_updated_at;
+-- name: AIPersonalModels :many
+-- A person's own models in the workspace.
+SELECT m.id FROM ai_accounts a JOIN ai_models m ON m.account_id = a.id
+WHERE a.workspace_id = @workspace_id AND a.user_id = @user_id
+ORDER BY a.created_at, a.id, m.created_at, m.id;
 
--- name: AIConnectionSetTest :exec
-UPDATE ai_connections SET last_test_at = @last_test_at, last_test_ok = @last_test_ok, last_test_ms = @last_test_ms
+-- name: AIPersonalAccounts :many
+-- Who has personal accounts, for managers: never a key.
+SELECT a.id, a.user_id, a.provider, a.base_url, a.status, a.disconnected_at, a.created_at,
+    coalesce(nullif(u.name, ''), u.email)::text AS user_name,
+    coalesce((SELECT array_agg(coalesce(nullif(m.model_name, ''), m.model) ORDER BY m.created_at, m.id) FROM ai_models m WHERE m.account_id = a.id), '{}')::text[] AS models
+FROM ai_accounts a JOIN users u ON u.id = a.user_id
+WHERE a.workspace_id = @workspace_id AND a.user_id IS NOT NULL
+ORDER BY user_name, a.user_id, a.created_at, a.id;
+
+-- name: AIMemberFeatureModel :one
+SELECT model_id FROM ai_member_feature_models WHERE workspace_id = @workspace_id AND user_id = @user_id AND feature = @feature;
+
+-- name: AIMemberFeatureModels :many
+SELECT feature, model_id FROM ai_member_feature_models WHERE workspace_id = @workspace_id AND user_id = @user_id ORDER BY feature;
+
+-- name: AIMemberFeatureModelSet :exec
+INSERT INTO ai_member_feature_models (workspace_id, user_id, feature, model_id) VALUES (@workspace_id, @user_id, @feature, @model_id)
+ON CONFLICT (workspace_id, user_id, feature) DO UPDATE SET model_id = EXCLUDED.model_id;
+
+-- name: AIMemberFeatureModelClear :execrows
+DELETE FROM ai_member_feature_models WHERE workspace_id = @workspace_id AND user_id = @user_id AND feature = @feature;
+
+-- name: AIPersonalKeysRemove :execrows
+-- A person left the workspace or was deactivated (sqlc.narg(workspace_id)
+-- NULL: every workspace): their personal accounts lose their keys and stop
+-- working. The revision fences requests already prepared.
+UPDATE ai_accounts SET key_sealed = NULL, key_added_by = NULL, key_added_at = NULL,
+    disconnected_at = coalesce(disconnected_at, now()), revision = revision + 1, updated_at = now()
+WHERE user_id = @user_id AND (sqlc.narg(workspace_id)::uuid IS NULL OR workspace_id = sqlc.narg(workspace_id))
+  AND (key_sealed IS NOT NULL OR disconnected_at IS NULL);
+
+-- name: AIAccountFirstModel :one
+-- An account's first model: what its key is tested with.
+SELECT m.id FROM ai_models m
+WHERE m.workspace_id = @workspace_id AND m.account_id = @account_id
+ORDER BY m.created_at, m.id
+LIMIT 1;
+
+-- name: AIAccountModelCount :one
+SELECT count(*)::bigint FROM ai_models WHERE workspace_id = @workspace_id AND account_id = @account_id;
+
+-- name: AIAccountDelete :execrows
+DELETE FROM ai_accounts WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: AIModelDelete :execrows
+DELETE FROM ai_models WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: AIFeatureModels :many
+SELECT feature, model_id FROM ai_feature_models WHERE workspace_id = @workspace_id ORDER BY feature;
+
+-- name: AIFeaturesOfAccount :many
+-- The features whose default is one of an account's models.
+SELECT f.feature FROM ai_feature_models f JOIN ai_models m ON m.id = f.model_id
+WHERE f.workspace_id = @workspace_id AND m.account_id = @account_id
+ORDER BY f.feature;
+
+-- name: AIFeaturesOfModel :many
+SELECT feature FROM ai_feature_models WHERE workspace_id = @workspace_id AND model_id = @model_id ORDER BY feature;
+
+-- name: AIFeatureModelSet :exec
+INSERT INTO ai_feature_models (workspace_id, feature, model_id) VALUES (@workspace_id, @feature, @model_id)
+ON CONFLICT (workspace_id, feature) DO UPDATE SET model_id = EXCLUDED.model_id;
+
+-- name: AIFeatureModel :one
+SELECT model_id FROM ai_feature_models WHERE workspace_id = @workspace_id AND feature = @feature;
+
+-- name: AIFeatureModelsFill :exec
+-- A first model is every feature's default; features with one keep it.
+INSERT INTO ai_feature_models (workspace_id, feature, model_id)
+SELECT @workspace_id::uuid, f, @model_id::uuid FROM unnest(@features::text[]) AS f
+ON CONFLICT (workspace_id, feature) DO NOTHING;
+
+-- name: AIFeatureModelsMove :exec
+-- Features whose default is one of an account's other models move to its kept one.
+UPDATE ai_feature_models f SET model_id = @keep_id
+WHERE f.workspace_id = @workspace_id AND f.model_id IN (
+    SELECT m.id FROM ai_models m WHERE m.workspace_id = @workspace_id AND m.account_id = @account_id AND m.id <> @keep_id);
+
+-- name: AIModelsDeleteOthers :exec
+DELETE FROM ai_models WHERE workspace_id = @workspace_id AND account_id = @account_id AND id <> @keep_id;
+
+-- name: AIWorkspaceSettings :one
+SELECT * FROM ai_workspace_settings WHERE workspace_id = $1;
+
+-- name: AIWorkspaceSettingsLock :one
+-- The AI configuration lock's row (see migration 03630), after AIConfigLock.
+SELECT * FROM ai_workspace_settings WHERE workspace_id = $1 FOR UPDATE;
+
+-- name: AIConfigLock :exec
+-- The AI configuration lock, taken alone: every change to the AI settings,
+-- accounts, models and defaults, and every reservation but an assistant
+-- turn's, takes it (with the settings row). A lock of the lock manager, so
+-- a change waiting for it is served before claims that ask after it.
+SELECT pg_advisory_xact_lock(hashtextextended('ai_config:' || (@workspace_id::uuid)::text, 0));
+
+-- name: AIConfigLockShared :exec
+-- The AI configuration lock shared: an assistant turn's claim or next
+-- round, with the workspace's other turns, never with a change.
+SELECT pg_advisory_xact_lock_shared(hashtextextended('ai_config:' || (@workspace_id::uuid)::text, 0));
+
+-- name: AIWorkspaceSettingsEnsure :exec
+INSERT INTO ai_workspace_settings (workspace_id) VALUES ($1) ON CONFLICT (workspace_id) DO NOTHING;
+
+-- name: AIWorkspaceSettingsSave :exec
+INSERT INTO ai_workspace_settings (workspace_id, cap_kind, cap_usd, cap_tokens, cap_set_by, cap_set_at, features_off,
+    notice_month, cap_notice_month, updated_by, updated_at)
+VALUES (@workspace_id, @cap_kind, @cap_usd, @cap_tokens, @cap_set_by, @cap_set_at, @features_off,
+    @notice_month, @cap_notice_month, @updated_by, @updated_at)
+ON CONFLICT (workspace_id) DO UPDATE SET cap_kind = EXCLUDED.cap_kind, cap_usd = EXCLUDED.cap_usd, cap_tokens = EXCLUDED.cap_tokens,
+    cap_set_by = EXCLUDED.cap_set_by, cap_set_at = EXCLUDED.cap_set_at, features_off = EXCLUDED.features_off,
+    notice_month = EXCLUDED.notice_month, cap_notice_month = EXCLUDED.cap_notice_month,
+    revision = ai_workspace_settings.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at;
+
+-- name: AIAccountSave :exec
+-- An account's owner (user_id) is set when it is made and never changes.
+INSERT INTO ai_accounts (id, workspace_id, provider, label, base_url, api_version, key_sealed, key_added_by, key_added_at,
+    connected_by, connected_at, disconnected_by, disconnected_at, status, status_detail, status_at,
+    last_test_at, last_test_ok, last_test_ms, demo, created_at, updated_by, updated_at, user_id)
+VALUES (@id, @workspace_id, @provider, @label, @base_url, @api_version, @key_sealed, @key_added_by, @key_added_at,
+    @connected_by, @connected_at, @disconnected_by, @disconnected_at, @status, @status_detail, @status_at,
+    @last_test_at, @last_test_ok, @last_test_ms, @demo, @updated_at, @updated_by, @updated_at, sqlc.narg(user_id))
+ON CONFLICT (id) DO UPDATE SET provider = EXCLUDED.provider, label = EXCLUDED.label, base_url = EXCLUDED.base_url,
+    api_version = EXCLUDED.api_version, key_sealed = EXCLUDED.key_sealed, key_added_by = EXCLUDED.key_added_by,
+    key_added_at = EXCLUDED.key_added_at, connected_by = EXCLUDED.connected_by, connected_at = EXCLUDED.connected_at,
+    disconnected_by = EXCLUDED.disconnected_by, disconnected_at = EXCLUDED.disconnected_at, status = EXCLUDED.status,
+    status_detail = EXCLUDED.status_detail, status_at = EXCLUDED.status_at, last_test_at = EXCLUDED.last_test_at,
+    last_test_ok = EXCLUDED.last_test_ok, last_test_ms = EXCLUDED.last_test_ms, demo = EXCLUDED.demo,
+    revision = ai_accounts.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+WHERE ai_accounts.workspace_id = EXCLUDED.workspace_id AND ai_accounts.user_id IS NOT DISTINCT FROM EXCLUDED.user_id;
+
+-- name: AIModelSave :exec
+INSERT INTO ai_models (id, workspace_id, account_id, model, model_name, deployment, image_input, input_price, output_price,
+    prices_from, price_known, created_at, updated_by, updated_at)
+VALUES (@id, @workspace_id, @account_id, @model, @model_name, @deployment, @image_input, @input_price, @output_price,
+    @prices_from, @price_known, @updated_at, @updated_by, @updated_at)
+ON CONFLICT (id) DO UPDATE SET model = EXCLUDED.model, model_name = EXCLUDED.model_name, deployment = EXCLUDED.deployment,
+    image_input = EXCLUDED.image_input, input_price = EXCLUDED.input_price, output_price = EXCLUDED.output_price,
+    prices_from = EXCLUDED.prices_from, price_known = EXCLUDED.price_known,
+    revision = ai_models.revision + 1, updated_by = EXCLUDED.updated_by, updated_at = EXCLUDED.updated_at
+WHERE ai_models.workspace_id = EXCLUDED.workspace_id AND ai_models.account_id = EXCLUDED.account_id;
+
+-- name: AIAccountSetStatus :execrows
+-- The provider rejected the saved key (or a passing request cleared it),
+-- unless the account changed since the request was bound to it.
+UPDATE ai_accounts SET status = @status, status_detail = @status_detail, status_at = @status_at
+WHERE id = @id AND workspace_id = @workspace_id AND status <> @status AND revision = @expected_revision;
+
+-- name: AIAccountSetTest :exec
+UPDATE ai_accounts SET last_test_at = @last_test_at, last_test_ok = @last_test_ok, last_test_ms = @last_test_ms
+WHERE id = @id AND workspace_id = @workspace_id;
+
+-- name: AIWorkspacePersonalSave :exec
+-- The personal-keys switch and the cap each person's own use has.
+UPDATE ai_workspace_settings SET personal_keys = @personal_keys, personal_cap_usd = @personal_cap_usd,
+    personal_cap_set_by = @personal_cap_set_by, personal_cap_set_at = @personal_cap_set_at,
+    revision = revision + 1, updated_by = @updated_by, updated_at = @updated_at
 WHERE workspace_id = @workspace_id;
 
--- name: AIConnectionClaimNotice :execrows
+-- name: AIWorkspaceSettingsClaimNotice :execrows
 -- Claims this month's 80% notice, once.
-UPDATE ai_connections SET notice_month = @month WHERE workspace_id = @workspace_id AND notice_month <> @month;
+UPDATE ai_workspace_settings SET notice_month = @month WHERE workspace_id = @workspace_id AND notice_month <> @month;
 
--- name: AIConnectionClaimCapNotice :execrows
+-- name: AIWorkspaceSettingsClaimCapNotice :execrows
 -- Claims this month's cap-reached notice, once.
-UPDATE ai_connections SET cap_notice_month = @month WHERE workspace_id = @workspace_id AND cap_notice_month <> @month;
+UPDATE ai_workspace_settings SET cap_notice_month = @month WHERE workspace_id = @workspace_id AND cap_notice_month <> @month;
 
 -- name: AIRequestInsert :exec
 INSERT INTO ai_requests (id, workspace_id, user_id, feature, action, target_kind, target_id, target_label, provider, model,
-    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known)
+    input_tokens, output_tokens, cost_micros, outcome, outcome_detail, duration_ms, created_at, decided_at, voice_revision, usage_known,
+    account_id, model_id, personal)
 VALUES (@id, @workspace_id, @user_id, @feature, @action, @target_kind, @target_id, @target_label, @provider, @model,
-    @input_tokens, @output_tokens, @cost_micros, @outcome, @outcome_detail, @duration_ms, @created_at, @decided_at, @voice_revision, @usage_known)
+    @input_tokens, @output_tokens, @cost_micros, @outcome, @outcome_detail, @duration_ms, @created_at, @decided_at, @voice_revision, @usage_known,
+    @account_id, @model_id, @personal)
 ON CONFLICT (id) DO UPDATE SET input_tokens = EXCLUDED.input_tokens, output_tokens = EXCLUDED.output_tokens,
     cost_micros = EXCLUDED.cost_micros, usage_known = EXCLUDED.usage_known
 WHERE ai_requests.workspace_id = EXCLUDED.workspace_id AND NOT ai_requests.usage_known;
@@ -85,23 +241,77 @@ LIMIT @lim;
 -- name: AIRequestCount :one
 SELECT count(*)::bigint FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since;
 
--- name: AIUsageTotal :one
-SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
-       coalesce(sum(output_tokens), 0)::bigint AS output_tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since;
+-- name: AIBudgetTotals :one
+-- The workspace budget since a time, in one snapshot: what it used
+-- (personal keys' never counts) and what its requests in flight hold. A
+-- request settled meanwhile is in exactly one of the two, so reserving
+-- doesn't wait for accounting (accountIn). The use is the hourly totals
+-- (ai_usage_hours) from the first whole hour on, and the requests of the
+-- hour before it when since isn't on the hour. Settled reservations are
+-- in ai_requests; old uncertain ones stay held across the month's end
+-- rather than becoming free to retry.
+WITH edge AS (SELECT sqlc.arg(since)::timestamptz AS since, ai_usage_hour_after(sqlc.arg(since)::timestamptz) AS at),
+parts AS (
+    SELECT h.requests, h.input_tokens, h.output_tokens, h.cost_micros FROM ai_usage_hours h, edge
+    WHERE h.workspace_id = @workspace_id AND NOT h.personal AND h.user_id = '00000000-0000-0000-0000-000000000000' AND h.hour >= edge.at
+    UNION ALL
+    SELECT 1, r.input_tokens, r.output_tokens, r.cost_micros FROM ai_requests r, edge
+    WHERE r.workspace_id = @workspace_id AND NOT r.personal AND r.created_at >= edge.since AND r.created_at < edge.at),
+held AS (
+    SELECT input_tokens, output_tokens, cost_micros, state FROM ai_budget_reservations
+    WHERE workspace_id = @workspace_id AND state <> 'settled' AND NOT personal)
+SELECT (SELECT coalesce(sum(cost_micros), 0) FROM parts)::bigint AS cost_micros,
+       (SELECT coalesce(sum(input_tokens), 0) FROM parts)::bigint AS input_tokens,
+       (SELECT coalesce(sum(output_tokens), 0) FROM parts)::bigint AS output_tokens,
+       (SELECT coalesce(sum(requests), 0) FROM parts)::bigint AS requests,
+       (SELECT coalesce(sum(input_tokens + output_tokens), 0) FROM held)::bigint AS held_tokens,
+       (SELECT coalesce(sum(cost_micros), 0) FROM held)::bigint AS held_cost_micros,
+       (SELECT count(*) FILTER (WHERE state = 'uncertain') FROM held)::bigint AS held_uncertain;
+
+-- name: AIPersonalBudgetTotals :one
+-- A person's own budget (their personal keys') as AIBudgetTotals reads the
+-- workspace's.
+WITH edge AS (SELECT sqlc.arg(since)::timestamptz AS since, ai_usage_hour_after(sqlc.arg(since)::timestamptz) AS at),
+parts AS (
+    SELECT h.requests, h.cost_micros FROM ai_usage_hours h, edge
+    WHERE h.workspace_id = @workspace_id AND h.personal AND h.user_id = @user_id::uuid AND h.hour >= edge.at
+    UNION ALL
+    SELECT 1, r.cost_micros FROM ai_requests r, edge
+    WHERE r.workspace_id = @workspace_id AND r.personal AND r.user_id = @user_id::uuid AND r.created_at >= edge.since AND r.created_at < edge.at),
+held AS (
+    SELECT cost_micros, state FROM ai_budget_reservations
+    WHERE workspace_id = @workspace_id AND user_id = @user_id::uuid AND state <> 'settled' AND personal)
+SELECT (SELECT coalesce(sum(cost_micros), 0) FROM parts)::bigint AS cost_micros,
+       (SELECT coalesce(sum(requests), 0) FROM parts)::bigint AS requests,
+       (SELECT coalesce(sum(cost_micros), 0) FROM held)::bigint AS held_cost_micros,
+       (SELECT count(*) FILTER (WHERE state = 'uncertain') FROM held)::bigint AS held_uncertain;
+
+-- name: AIPersonalUsageByUser :many
+SELECT user_id, coalesce(sum(cost_micros), 0)::bigint AS cost_micros, count(*)::bigint AS requests
+FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since AND personal AND user_id IS NOT NULL
+GROUP BY user_id;
 
 -- name: AIUsageByFeature :many
 SELECT feature, coalesce(sum(cost_micros), 0)::bigint AS cost_micros, coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens, count(*)::bigint AS requests
-FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since
+FROM ai_requests WHERE workspace_id = @workspace_id AND created_at >= @since AND NOT personal
 GROUP BY feature;
 
 -- name: AIUsageByMember :many
 SELECT r.user_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email,
        coalesce(sum(r.cost_micros), 0)::bigint AS cost_micros, coalesce(sum(r.input_tokens + r.output_tokens), 0)::bigint AS tokens, count(*)::bigint AS requests
 FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
-WHERE r.workspace_id = @workspace_id AND r.created_at >= @since
+WHERE r.workspace_id = @workspace_id AND r.created_at >= @since AND NOT r.personal
 GROUP BY r.user_id, u.name, u.email
 ORDER BY cost_micros DESC, user_name;
+
+-- name: AIActivityMembers :many
+-- The people who asked this month, on the workspace's keys or their own,
+-- the biggest first: the activity log's member filter.
+SELECT r.user_id, coalesce(u.name, '')::text AS user_name, coalesce(u.email, '')::text AS user_email
+FROM ai_requests r LEFT JOIN users u ON u.id = r.user_id
+WHERE r.workspace_id = @workspace_id AND r.created_at >= @since AND r.user_id IS NOT NULL
+GROUP BY r.user_id, u.name, u.email
+ORDER BY sum(r.cost_micros) DESC, user_name;
 
 -- name: AIRequestsPurge :execrows
 -- The activity log keeps 90 days.

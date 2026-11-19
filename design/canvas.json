@@ -2,6 +2,15 @@
  "v": 3,
  "attachments": {},
  "boards": {
+  "AssistantPanel.dc.html": { "h": 1000, "is_interactive": true, "page": "assistant-b0", "title": "Assistant · panel", "w": 1440, "x": 0, "y": 0 },
+  "AssistantStates.dc.html": { "h": 1000, "is_interactive": true, "page": "assistant-b0", "title": "Assistant · states", "w": 1440, "x": 1500, "y": 0 },
+  "AssistantEntry.dc.html": { "h": 1300, "is_interactive": true, "page": "assistant-b0", "title": "Assistant · entry points", "w": 1440, "x": 3000, "y": 0 },
+  "AssistantPanelTablet.dc.html": { "h": 1100, "is_interactive": true, "page": "assistant-b0", "title": "Assistant · panel · tablet", "w": 834, "x": 0, "y": 1100 },
+  "AssistantPanelPhone.dc.html": { "h": 844, "is_interactive": true, "page": "assistant-b0", "title": "Assistant · panel · phone", "w": 390, "x": 900, "y": 1100 },
+  "AssistantStatesTablet.dc.html": { "h": 1100, "is_interactive": true, "page": "assistant-b0", "title": "Assistant · states · tablet", "w": 834, "x": 1500, "y": 1100 },
+  "AssistantStatesPhone.dc.html": { "h": 844, "is_interactive": true, "page": "assistant-b0", "title": "Assistant · states · phone", "w": 390, "x": 2400, "y": 1100 },
+  "AIModels.dc.html": { "h": 1700, "is_interactive": true, "page": "assistant-b0", "title": "AI models · accounts, defaults and personal keys", "w": 1440, "x": 0, "y": 2300 },
+  "MCPServers.dc.html": { "h": 1600, "is_interactive": true, "page": "assistant-b0", "title": "MCP servers · approval and changed tools", "w": 1440, "x": 1500, "y": 2300 },
   "MCPConnect.dc.html": { "h": 1600, "is_interactive": true, "page": "agent-a5", "title": "External MCP · consent, connections and proposals", "w": 1440, "x": 0, "y": 0 },
   "AgentRun.dc.html": { "h": 1800, "is_interactive": true, "page": "agent-a0", "title": "Agent · brief and plan", "w": 1440, "x": 0, "y": 0 },
   "AgentReview.dc.html": { "h": 1700, "is_interactive": true, "page": "agent-a0", "title": "Agent · review drafts and diffs", "w": 1440, "x": 1500, "y": 0 },
@@ -6655,7 +6664,16 @@
   "AgentSettings.dc.html",
   "AgentVoice.dc.html",
   "AgentEntry.dc.html",
-  "MCPConnect.dc.html"
+  "MCPConnect.dc.html",
+  "AssistantPanel.dc.html",
+  "AssistantStates.dc.html",
+  "AssistantEntry.dc.html",
+  "AssistantPanelTablet.dc.html",
+  "AssistantPanelPhone.dc.html",
+  "AssistantStatesTablet.dc.html",
+  "AssistantStatesPhone.dc.html",
+  "AIModels.dc.html",
+  "MCPServers.dc.html"
  ],
  "pages": [
   {
@@ -6785,6 +6803,10 @@
   {
    "id": "agent-a5",
    "name": "A5 External MCP · design only"
+  },
+  {
+   "id": "assistant-b0",
+   "name": "B0 AI assistant · design only"
   }
  ],
  "title": "ReputeCast App Prototype"

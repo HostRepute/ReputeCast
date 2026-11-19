@@ -108,6 +108,17 @@ const icons = {
   redo: { body: <path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8" />, strokeWidth: 1.7 },
   move: { body: <path d="M8 2v12M2 8h12M5 5 8 2l3 3M5 11l3 3 3-3" /> },
   fullscreen: { body: <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" /> },
+  // The top bar's Assistant button (AssistantEntry board, on its 24-unit grid).
+  chat: {
+    viewBox: '0 0 24 24',
+    strokeWidth: 1.7,
+    body: (
+      <>
+        <path d="M4 5h16v11H9l-5 4Z" />
+        <path d="M8 9h8M8 12h5" />
+      </>
+    ),
+  },
 
   // Actions
   plus: { body: <path d="M8 3v10M3 8h10" />, strokeWidth: 2 },

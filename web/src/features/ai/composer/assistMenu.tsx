@@ -16,7 +16,8 @@ import { m, ms } from '../messages'
 import { NotConfigured, Sparkle, usageLine } from '../suggest'
 import { useIdeasInput } from './ideas'
 import { useRewriteSelected } from './rewrite'
-import { useComposerAssist } from './state'
+import { composerMenu, itemBlock, useComposerAssist } from './state'
+import type { AIFeature } from '../api'
 import { DraftFromBriefDialog } from '../DraftFromBrief'
 import { md } from '../draft.messages'
 
@@ -49,8 +50,11 @@ export function AssistMenu() {
   // Quick review on a phone has no inspector: alt text and the accessibility
   // fixes open there, so they say where they work instead of doing nothing.
   const quickReview = useMediaQuery('(max-width: 767px)') && c.view === 'visual'
+  const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   if (!ca || !ca.assist.can || c.kind === 'transactional' || !c.canEdit) return null
-  const a = ca.assist
+  // Each feature goes to its own model (the person's own pick, or the workspace's).
+  const menu = composerMenu(ca.assist)
+  const a = menu.lead
   const s = a.status
   const trigger = (
     <button type="button" className="btn ai-assist" aria-haspopup="menu" aria-expanded={open} title={t(ms.assist)}>
@@ -60,7 +64,7 @@ export function AssistMenu() {
     </button>
   )
   const workspace = me.workspace.name
-  if (!a.configured) {
+  if (menu.none) {
     return (
       <Popover open={open} onOpenChange={setOpen} trigger={trigger} label={t(ms.assistMenu)} className="ai-pop">
         <h3>
@@ -71,8 +75,10 @@ export function AssistMenu() {
       </Popover>
     )
   }
-  if (s && (s.state === 'key_rejected' || s.state === 'cap_reached')) {
+  if (s && menu.blocked) {
     const helpers = s.helpers.length ? formatList(s.helpers, 'disjunction') : ''
+    // The person's own key is theirs to replace, on AI models.
+    const fix = a.personal ? s.state === 'key_rejected' : s.canManage
     return (
       <Popover open={open} onOpenChange={setOpen} trigger={trigger} label={t(ms.assistMenu)} className="ai-pop">
         <h3>
@@ -81,14 +87,16 @@ export function AssistMenu() {
         </h3>
         <p className="m-0 text-[13px] leading-normal">
           {s.state === 'key_rejected'
-            ? helpers
-              ? t(ms.keyRejectedMenu, { provider: s.providerName ?? '', helpers })
-              : t(ms.keyRejectedMenuAlone, { provider: s.providerName ?? '' })
+            ? a.personal
+              ? t(ms.keyRejectedOwn, { provider: s.providerName ?? '' })
+              : helpers
+                ? t(ms.keyRejectedMenu, { provider: s.providerName ?? '', helpers })
+                : t(ms.keyRejectedMenuAlone, { provider: s.providerName ?? '' })
             : helpers
               ? t(ms.capMenu, { date: dayMonthDate(s.usage.resetsAt), helpers })
               : t(ms.capMenuAlone, { date: dayMonthDate(s.usage.resetsAt) })}
         </p>
-        {s.canManage ? (
+        {fix ? (
           <div>
             <ButtonLink size="sm" variant="primary" to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }}>
               {s.state === 'key_rejected' ? t(m.replaceKey) : t(m.raiseCap)}
@@ -124,7 +132,10 @@ export function AssistMenu() {
       <span className="k">{off ?? sub}</span>
     </button>
   )
-  const offText = (f: Parameters<typeof a.featureOn>[0]) => (a.featureOn(f) ? undefined : f === 'alt_text' && s && !s.imageInput ? t(ms.noImageModel) : t(ms.featureOff))
+  const offText = (f: AIFeature) => {
+    const why = itemBlock(ca.assist, f)
+    return why ? t(why) : undefined
+  }
   return (
     <>
     <Popover open={open} onOpenChange={setOpen} trigger={trigger} label={t(ms.assistMenu)} className="ai-menu">
@@ -155,7 +166,7 @@ export function AssistMenu() {
                 const first = images[0]!
                 c.editor?.select(first)
                 c.setRightTab('settings')
-                first.getEl()?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                first.getEl()?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' })
               }
             : undefined,
           quickReview ? t(ms.largerScreen) : offText('alt_text'),

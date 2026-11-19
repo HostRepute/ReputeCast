@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \"Re: your note\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 31, \"totalTokenCount\": 31}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \" from last week\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 31, \"totalTokenCount\": 31}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [{\"text\": \"\"}], \"role\": \"model\"}, \"index\": 0}], \"usageMetadata\": {\"promptTokenCount\": 31, \"totalTokenCount\": 31}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n",
+    "data: {\"candidates\": [{\"content\": {\"parts\": [], \"role\": \"model\"}, \"index\": 0, \"finishReason\": \"SAFETY\", \"safetyRatings\": [{\"category\": \"HARM_CATEGORY_HARASSMENT\", \"probability\": \"MEDIUM\", \"blocked\": true}]}], \"usageMetadata\": {\"promptTokenCount\": 31, \"candidatesTokenCount\": 6, \"totalTokenCount\": 37}, \"modelVersion\": \"gemini-2.5-flash\", \"responseId\": \"q5TvaMb8LZ2N-8YP0p-x8Q4\"}\r\n\r\n"
+  ]
+}
