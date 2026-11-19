@@ -41,7 +41,7 @@ export default translate(mx, {
   goTo: 'Zur Anfrage',
   rowDenied: 'Sie haben {label} abgelehnt. An {server} wurde nichts gesendet.',
   rowUnknown: '{label} ist vielleicht gelaufen, aber sein Ergebnis ging verloren. Prüfen Sie {server}, bevor Sie erneut fragen.',
-  rowProblem: '{label} · {code, select, mcp_sign_in {Anmeldung nötig} mcp_tool_changed {geändert, aus bis zur Prüfung} mcp_tool_blocked {gesperrt} mcp_unreachable {Server nicht erreichbar} mcp_timeout {keine Antwort in 30 s} mcp_too_large {Antwort über 32 KB} tool_error {der Server meldete einen Fehler} not_available {für Sie nicht verfügbar} forbidden {nicht erlaubt} tool_limit {über dem Tool-Limit der Unterhaltung} other {fehlgeschlagen}}',
+  rowProblem: '{label} · {code, select, mcp_sign_in {Anmeldung nötig} mcp_tool_changed {geändert, aus bis zur Prüfung} mcp_tool_blocked {gesperrt} mcp_unreachable {Server nicht erreichbar} mcp_timeout {keine Antwort in 30 s} mcp_too_large {Antwort über 32 KB} tool_error {der Server meldete einen Fehler} not_available {für Sie nicht verfügbar} no_longer_available {für Sie nicht mehr verfügbar} forbidden {nicht erlaubt} tool_limit {über dem Tool-Limit der Unterhaltung} other {fehlgeschlagen}}',
   signInTitle: 'Erneut bei {server} anmelden',
   signInBadge: 'Anmeldung nötig',
   signInBody: 'Ihre Verbindung zu {server} ist abgelaufen oder wurde nie hergestellt. Der Assistent antwortet ohne {server}, bis Sie sich wieder anmelden.',

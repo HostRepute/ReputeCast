@@ -41,7 +41,7 @@ export default translate(mx, {
   goTo: 'Ir a la solicitud',
   rowDenied: 'Denegaste {label}. No se envió nada a {server}.',
   rowUnknown: 'Puede que {label} se ejecutara, pero su resultado se perdió. Comprueba {server} antes de volver a preguntar.',
-  rowProblem: '{label} · {code, select, mcp_sign_in {hay que iniciar sesión} mcp_tool_changed {cambiada, desactivada hasta revisarla} mcp_tool_blocked {bloqueada} mcp_unreachable {servidor inaccesible} mcp_timeout {sin respuesta en 30 s} mcp_too_large {respuesta de más de 32 KB} tool_error {el servidor informó de un error} not_available {no disponible para ti} forbidden {no permitido} tool_limit {supera el límite de llamadas de la conversación} other {falló}}',
+  rowProblem: '{label} · {code, select, mcp_sign_in {hay que iniciar sesión} mcp_tool_changed {cambiada, desactivada hasta revisarla} mcp_tool_blocked {bloqueada} mcp_unreachable {servidor inaccesible} mcp_timeout {sin respuesta en 30 s} mcp_too_large {respuesta de más de 32 KB} tool_error {el servidor informó de un error} not_available {no disponible para ti} no_longer_available {ya no disponible para ti} forbidden {no permitido} tool_limit {supera el límite de llamadas de la conversación} other {falló}}',
   signInTitle: 'Vuelve a iniciar sesión en {server}',
   signInBadge: 'Hay que iniciar sesión',
   signInBody: 'Tu conexión con {server} caducó o nunca se hizo. El asistente responde sin {server} hasta que vuelvas a iniciar sesión.',

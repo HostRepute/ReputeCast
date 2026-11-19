@@ -21,6 +21,7 @@ export function Composer({
   onStop,
   answering,
   blocked,
+  note,
   placeholder,
   bound,
   handle,
@@ -32,6 +33,8 @@ export function Composer({
   answering: boolean
   /** Why nothing can be sent here (a state of the assistant): Send says so. */
   blocked?: string
+  /** Why the server didn't take the last message, in its words (the draft stays to edit). */
+  note?: string
   placeholder: string
   /** The element whose height bounds the composer (the panel). */
   bound?: () => HTMLElement | null
@@ -91,6 +94,11 @@ export function Composer({
       <label htmlFor={`${id}-draft`} className="vh">
         {t(m.composerLabel)}
       </label>
+      {note ? (
+        <p className="asst-note" id={`${id}-note`} role="alert">
+          {note}
+        </p>
+      ) : null}
       <textarea
         ref={area}
         id={`${id}-draft`}
@@ -99,7 +107,7 @@ export function Composer({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        aria-describedby={`${id}-hint`}
+        aria-describedby={note ? `${id}-note ${id}-hint` : `${id}-hint`}
       />
       <div className="asst-composer-row">
         <span className="asst-hint" id={`${id}-hint`}>

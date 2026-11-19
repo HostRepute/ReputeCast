@@ -49,7 +49,7 @@ export const mx = defineMessages('assistant.mcp', {
   // label: "Linear · create_issue".
   rowDenied: 'You denied {label}. Nothing was sent to {server}.',
   rowUnknown: '{label} may have run, but its result was lost. Check {server} before asking again.',
-  rowProblem: '{label} · {code, select, mcp_sign_in {sign-in needed} mcp_tool_changed {changed, off until reviewed} mcp_tool_blocked {blocked} mcp_unreachable {server unreachable} mcp_timeout {no answer in 30 s} mcp_too_large {answer over 32 KB} tool_error {the server reported an error} not_available {not available to you} forbidden {not allowed} tool_limit {over the thread’s tool-call limit} other {failed}}',
+  rowProblem: '{label} · {code, select, mcp_sign_in {sign-in needed} mcp_tool_changed {changed, off until reviewed} mcp_tool_blocked {blocked} mcp_unreachable {server unreachable} mcp_timeout {no answer in 30 s} mcp_too_large {answer over 32 KB} tool_error {the server reported an error} not_available {not available to you} no_longer_available {no longer available to you} forbidden {not allowed} tool_limit {over the thread’s tool-call limit} other {failed}}',
 
   // ── States ──────────────────────────────────────────────────────────
   signInTitle: 'Sign in to {server} again',

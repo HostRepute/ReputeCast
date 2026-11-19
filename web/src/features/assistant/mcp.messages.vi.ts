@@ -41,7 +41,7 @@ export default translate(mx, {
   goTo: 'Đến yêu cầu',
   rowDenied: 'Bạn đã từ chối {label}. Không gì được gửi tới {server}.',
   rowUnknown: '{label} có thể đã chạy nhưng kết quả bị mất. Hãy kiểm tra {server} trước khi hỏi lại.',
-  rowProblem: '{label} · {code, select, mcp_sign_in {cần đăng nhập} mcp_tool_changed {đã thay đổi, tắt cho đến khi được xem lại} mcp_tool_blocked {bị chặn} mcp_unreachable {không kết nối được máy chủ} mcp_timeout {không trả lời trong 30 giây} mcp_too_large {câu trả lời vượt 32 KB} tool_error {máy chủ báo lỗi} not_available {bạn không dùng được} forbidden {không được phép} tool_limit {vượt giới hạn lượt gọi công cụ của cuộc trò chuyện} other {thất bại}}',
+  rowProblem: '{label} · {code, select, mcp_sign_in {cần đăng nhập} mcp_tool_changed {đã thay đổi, tắt cho đến khi được xem lại} mcp_tool_blocked {bị chặn} mcp_unreachable {không kết nối được máy chủ} mcp_timeout {không trả lời trong 30 giây} mcp_too_large {câu trả lời vượt 32 KB} tool_error {máy chủ báo lỗi} not_available {bạn không dùng được} no_longer_available {bạn không còn dùng được} forbidden {không được phép} tool_limit {vượt giới hạn lượt gọi công cụ của cuộc trò chuyện} other {thất bại}}',
   signInTitle: 'Đăng nhập lại vào {server}',
   signInBadge: 'Cần đăng nhập',
   signInBody: 'Kết nối {server} của bạn đã hết hạn hoặc chưa từng được tạo. Trợ lý trả lời mà không có {server} cho đến khi bạn đăng nhập lại.',

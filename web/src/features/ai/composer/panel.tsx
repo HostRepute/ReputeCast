@@ -4,7 +4,7 @@ import { ms } from '../messages'
 import { tags } from '../parts'
 import { IdeasPanel } from './ideas'
 import { RewritePanel } from './rewrite'
-import { useComposerAssist } from './state'
+import { COMPOSER_FEATURES, useComposerAssist } from './state'
 
 /** The composer's right column: the assistant's panel while one is open, else the inspector. */
 export function AssistRight({ fallback }: { fallback: ReactNode }) {
@@ -44,7 +44,7 @@ export function AssistRight({ fallback }: { fallback: ReactNode }) {
  */
 export function useAssistBanner(): ((p: { name: string; role: string; helpers: string[] }) => ReactNode) | undefined {
   const ca = useComposerAssist()
-  if (!ca || !ca.assist.can || !ca.assist.configured) return undefined
+  if (!ca || !ca.assist.can || !COMPOSER_FEATURES.some((f) => ca.assist.of(f).configured)) return undefined
   return ({ name, role, helpers }) =>
     helpers.length ? (
       <T msg={ms.bannerAssist} values={{ ...tags, name, role, helpers: formatList(helpers, 'disjunction') }} />

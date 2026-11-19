@@ -125,6 +125,9 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   // A message refused before its turn started (the monthly cap, a rejected key…), with the server's words, in the thread it was sent to.
   const [refusal, setSendProblem] = useState<{ at: string; problem: TurnProblem; detail?: string; text: string }>()
   const sendProblem = refusal?.at === here ? refusal : undefined
+  // A message the server didn't take (a contact's address or phone, a credential): its words at the composer, over the kept draft.
+  const [held, setHeld] = useState<{ at: string; text: string }>()
+  const composerNote = held?.at === here ? held.text : undefined
   // The composer registers its handle; the controller only focuses it.
   const composer = useRef<ComposerHandle | null>(null)
   const attachComposer = useCallback((h: ComposerHandle | null) => {
@@ -242,10 +245,10 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
 
   /** The thread to write to: this one, or a new one on the screen it opened on. */
   const ensureThread = useCallback(
-    async (title?: string): Promise<string> => {
+    async (): Promise<string> => {
       if (threadId) return threadId
       const from = shownAt.current
-      let th = await createThread(slug, { requestKey: requestKey(), screen: screen.screen, modelId: picked, title: title ? clip(title, 80) : undefined })
+      let th = await createThread(slug, { requestKey: requestKey(), screen: screen.screen, modelId: picked })
       // Servers picked before the thread existed come with it.
       if (pickedServers.length) th = await setThreadServers(slug, th.id, pickedServers)
       void refreshThreads()
@@ -266,12 +269,14 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
       const from = shownAt.current
       let id = threadId
       dispatch({ type: 'pending', text: body })
+      setHeld(undefined)
       // The composer empties when it holds what goes (not when Retry sends a refused message over new text).
       setDraft((d) => (d.trim() === body ? '' : d))
       try {
-        id = await ensureThread(body)
-        if (state.thread && !state.thread.title) void updateThread(slug, id, { title: clip(body, 80) }).then(() => refreshThreads())
+        id = await ensureThread()
         const th = await sendMessage(slug, id, body, requestKey())
+        // Named after the first message the server took: a refused one (an address in it) never names the thread.
+        if (!th.title) void updateThread(slug, th.id, { title: clip(body, 80) }).then(() => refreshThreads())
         if (!stillShown(from, th.id)) return
         setSendProblem(undefined)
         dispatch({ type: 'thread', thread: th })
@@ -282,6 +287,11 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
         draft.setAt(at, (d) => d || body)
         if (!stillShown(from, id)) return
         dispatch({ type: 'pending' })
+        if (e instanceof ApiError && e.code === 'ai_assistant_private_data') {
+          setHeld({ at, text: e.problem.detail || e.message })
+          focusComposer()
+          return
+        }
         // A refusal the panel has a state for shows as that state; anything else is a toast.
         const known = e instanceof ApiError && e.code ? problemOf(e.code.replace(/^ai_/, '')) : 'failed'
         if (known !== 'failed') {
@@ -290,7 +300,7 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
         } else toast({ kind: 'error', title: t(m.sendFailed), detail: errorMessage(e) })
       }
     },
-    [active, gate, threadId, ensureThread, state.thread, slug, t, refreshThreads, model, dispatch, setDraft, draft, stillShown],
+    [active, gate, threadId, ensureThread, slug, t, refreshThreads, model, dispatch, setDraft, draft, stillShown, focusComposer],
   )
 
   const stop = useCallback(async () => {
@@ -299,7 +309,7 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     const from = shownAt.current
     try {
       const th = await stopTurn(slug, threadId, turn.id)
-      if (stillShown(from)) dispatch({ type: 'thread', thread: th })
+      if (stillShown(from)) dispatch({ type: 'thread', thread: th, fromStop: true })
     } catch (e) {
       if (stillShown(from)) toast({ kind: 'error', title: t(m.stopFailed), detail: errorMessage(e) })
     }
@@ -459,6 +469,7 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     setPickerOpen,
     announce,
     sendProblem,
+    composerNote,
     reviewDialog,
     send,
     stop,
@@ -972,6 +983,7 @@ export function ThreadComposer({ c, bound }: { c: ThreadController; bound?: () =
       onStop={() => void c.stop()}
       answering={answering}
       blocked={c.gate ? t(problemCopyOfGate(c.gate)) : undefined}
+      note={c.composerNote}
       placeholder={t(placeholderOf(c.screen.kind))}
       bound={bound}
     />

@@ -65,7 +65,6 @@ export default translate(m, {
   summaryMarker: 'Los mensajes anteriores están resumidos',
   copy: 'Copiar',
   copied: 'Copiado',
-  copyFailed: 'No se pudo copiar. Selecciona el código y cópialo tú.',
   codeLabel: 'Código ({lang})',
   codeLabelPlain: 'Código',
   tableLabel: 'Tabla de la respuesta',
@@ -73,7 +72,7 @@ export default translate(m, {
   imageNoAlt: 'Imagen ({domain})',
   newTab: '(se abre en una pestaña nueva)',
   tool: '{name, select, read_report {Leyó el informe} read_attached {Leyó lo adjunto} search_help {Buscó en la ayuda} describe_screen {Describió la pantalla} suggest_link {Sugirió un enlace} propose_edit {Propuso un cambio} draft_agent_task {Redactó una tarea para el agente} subject_ideas {Ideas de asunto} rewrite {Reescritura} other {Llamó a una herramienta}}',
-  toolFailed: '{code, select, not_available {no disponible para ti} forbidden {no permitido} tool_limit {supera el límite de llamadas de la conversación} not_found {no encontrado} too_large {resultado demasiado grande} invalid_arguments {argumentos no válidos} report_unavailable {informe no disponible} other {falló}}',
+  toolFailed: '{code, select, not_available {no disponible para ti} no_longer_available {ya no disponible para ti} forbidden {no permitido} tool_limit {supera el límite de llamadas de la conversación} not_found {no encontrado} too_large {resultado demasiado grande} invalid_arguments {argumentos no válidos} report_unavailable {informe no disponible} other {falló}}',
   seconds: '{s} s',
   milliseconds: '{ms} ms',
   cardLink: 'Abre la pantalla. Desde aquí no cambia nada.',
@@ -198,10 +197,8 @@ export default translate(m, {
   failedBadge: 'Falló',
   failedBody: 'Se detuvo ({reason}). Se conserva lo escrito. Reintentar envía una solicitud nueva con su propio costo.',
   retry: 'Reintentar',
-  closePanel: 'Cerrar',
   loadFailed: 'No se cargó la conversación',
   threadsFailed: 'No se cargaron las conversaciones',
-  modelsFailed: 'No se cargaron los modelos',
   sendFailed: 'No se envió tu mensaje',
   stopFailed: 'No se detuvo la respuesta',
 
@@ -235,5 +232,4 @@ export default translate(m, {
   deleteBody: 'Sus mensajes y recursos adjuntos se eliminan de inmediato. Su uso queda en el registro de actividad de IA, sin contenido.',
   deleted: 'Conversación eliminada',
   renamed: 'Nombre cambiado',
-  moreThreads: 'Ver más conversaciones',
 })

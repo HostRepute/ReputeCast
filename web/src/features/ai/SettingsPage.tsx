@@ -139,8 +139,8 @@ export function AISettingsPage({ connect }: { connect?: AIProvider }) {
 /**
  * Your personal key alone, for someone who holds ai:use but not
  * integrations:view: from the personal endpoint, with the workspace's
- * models and helpers from the person's AI status. Model lists for a new key
- * come with the workspace's settings, so its model is typed.
+ * models and helpers from the person's AI status. A new key's providers,
+ * models and prices are the personal endpoint's catalog.
  */
 function PersonalOnly() {
   const { slug } = useWorkspace()
@@ -152,7 +152,7 @@ function PersonalOnly() {
   const st = status.data
   const helpers = st?.helpers ?? []
   // Only the parts Your personal key reads; the rest are the workspace's, which this person doesn't see.
-  const s = { personal: p.data, accounts: st?.accounts ?? [], defaults: st?.defaults ?? [], helpers, canManage: false, catalog: [], connected: false, disconnected: false, instanceAdmins: [], aiUseRoles: [], priceListDate: '' } as unknown as AISettings
+  const s = { personal: p.data, accounts: st?.accounts ?? [], defaults: st?.defaults ?? [], helpers, canManage: false, catalog: p.data.catalog, connected: false, disconnected: false, instanceAdmins: [], aiUseRoles: [], priceListDate: p.data.priceListDate } as unknown as AISettings
   return (
     <>
       <AINote tone="neutral">{t(mm.personalOnly, { helpers: helpers.length ? formatList(helpers, 'disjunction') : 'none' })}</AINote>

@@ -639,6 +639,11 @@
     font-size: 11px;
     color: var(--ink-3);
   }
+  .asst-note {
+    margin: 0;
+    font-size: 12px;
+    color: var(--warn-fg);
+  }
 
   /* The docked panel's resize handle, on its left edge */
   .asst-sep {

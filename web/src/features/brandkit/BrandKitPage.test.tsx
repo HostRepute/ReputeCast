@@ -234,7 +234,7 @@ describe('brand voice', () => {
     unmock = mockApi({
       [`GET ${base}/voice`]: () => json(voice),
       [`GET ${base}/voice/history`]: () => json({ items: [voice] }),
-      [`GET ${ai}/status`]: () => json({ state: 'ready', providerName: 'Fixture', modelName: 'Local model', features: [{ key: 'brand_voice', on: true, available: true }], prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }),
+      [`GET ${ai}/status`]: () => json({ state: 'ready', providerName: 'Fixture', modelName: 'Local model', features: [{ key: 'brand_voice', on: true, available: true, state: 'ready', personal: false, providerName: 'Fixture', modelName: 'Local model', prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }], prices: { input: 1, output: 2 }, cap: { kind: 'usd', usd: 10 }, usage: { costMicros: 0 } }),
       'GET /api/v1/workspaces/acme-newsletter/campaigns': () => json({ items: [{ id: 'selected', name: 'Selected campaign' }, { id: 'excluded', name: 'Other campaign' }], total: 2 }),
       [`POST ${ai}/brand-voice`]: async (r) => {
         learns.push(await r.json())

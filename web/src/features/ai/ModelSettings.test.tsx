@@ -83,7 +83,8 @@ describe('a disconnected workspace account', () => {
 
 describe('someone with ai:use but not integrations:view', () => {
   const me = workspaceMe({ permissions: ['ai:use', 'campaigns:view'] })
-  const personal = { accounts: [], canAdd: true, capUsd: 10, choices: [], enabled: true, people: [], usage: { costMicros: 0, requests: 0, reservedCostMicros: 0, resetsAt: '2026-12-01T00:00:00Z', share: 0, state: 'ok' } }
+  const catalog = [{ kind: 'anthropic', name: 'Anthropic', models: [{ id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', known: true, imageInput: true, input: 3, output: 15 }], presets: [], needsKey: true, needsBaseUrl: false, capabilities: [] }]
+  const personal = { accounts: [], canAdd: true, capUsd: 10, choices: [], enabled: true, people: [], usage: { costMicros: 0, requests: 0, reservedCostMicros: 0, resetsAt: '2026-12-01T00:00:00Z', share: 0, state: 'ok' }, catalog, priceListDate: '2026-11-01T00:00:00Z' }
   const status = { helpers: ['Linh Nguyen'], accounts: [], defaults: [], features: [], prices: { known: true }, agent: { enabled: false }, usage: { costMicros: 0 } }
 
   it('manages their own key on AI models, from the personal endpoint', async () => {
@@ -96,7 +97,9 @@ describe('someone with ai:use but not integrations:view', () => {
     expect(screen.getByText(/for people who can view integrations\. Ask Linh Nguyen\./)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add a personal key' }))
     const dialog = await screen.findByRole('dialog', { name: 'Add your personal key' })
-    expect(within(dialog).getByRole('textbox', { name: /Model/ })).toBeInTheDocument()
+    // The personal endpoint's price list: the model is picked, its prices come with it.
+    expect(within(dialog).getByRole('combobox', { name: /Model/ })).toHaveValue('claude-sonnet-5-5')
+    expect(within(dialog).getByText(/Prices pre-filled from ReputeCast's price list of/)).toBeInTheDocument()
   })
 
   it('finds the way to it from Settings › Integrations', async () => {

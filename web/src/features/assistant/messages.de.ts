@@ -65,7 +65,6 @@ export default translate(m, {
   summaryMarker: 'Frühere Nachrichten sind zusammengefasst',
   copy: 'Kopieren',
   copied: 'Kopiert',
-  copyFailed: 'Kopieren nicht möglich. Markieren Sie den Code und kopieren Sie ihn selbst.',
   codeLabel: 'Code ({lang})',
   codeLabelPlain: 'Code',
   tableLabel: 'Tabelle in der Antwort',
@@ -73,7 +72,7 @@ export default translate(m, {
   imageNoAlt: 'Bild ({domain})',
   newTab: '(öffnet in einem neuen Tab)',
   tool: '{name, select, read_report {Bericht gelesen} read_attached {Anhang gelesen} search_help {Hilfe durchsucht} describe_screen {Ansicht beschrieben} suggest_link {Link vorgeschlagen} propose_edit {Änderung vorgeschlagen} draft_agent_task {Agentenaufgabe entworfen} subject_ideas {Betreffideen} rewrite {Umschreiben} other {Tool aufgerufen}}',
-  toolFailed: '{code, select, not_available {für Sie nicht verfügbar} forbidden {nicht erlaubt} tool_limit {über dem Tool-Limit der Unterhaltung} not_found {nicht gefunden} too_large {Ergebnis zu groß} invalid_arguments {ungültige Argumente} report_unavailable {Bericht nicht verfügbar} other {fehlgeschlagen}}',
+  toolFailed: '{code, select, not_available {für Sie nicht verfügbar} no_longer_available {für Sie nicht mehr verfügbar} forbidden {nicht erlaubt} tool_limit {über dem Tool-Limit der Unterhaltung} not_found {nicht gefunden} too_large {Ergebnis zu groß} invalid_arguments {ungültige Argumente} report_unavailable {Bericht nicht verfügbar} other {fehlgeschlagen}}',
   seconds: '{s} s',
   milliseconds: '{ms} ms',
   cardLink: 'Öffnet die Ansicht. Von hier aus ändert sich nichts.',
@@ -198,10 +197,8 @@ export default translate(m, {
   failedBadge: 'Fehlgeschlagen',
   failedBody: 'Sie wurde gestoppt ({reason}). Was geschrieben wurde, bleibt erhalten. Ein neuer Versuch sendet eine neue Anfrage mit eigenen Kosten.',
   retry: 'Erneut versuchen',
-  closePanel: 'Schließen',
   loadFailed: 'Die Unterhaltung wurde nicht geladen',
   threadsFailed: 'Die Unterhaltungen wurden nicht geladen',
-  modelsFailed: 'Die Modelle wurden nicht geladen',
   sendFailed: 'Ihre Nachricht wurde nicht gesendet',
   stopFailed: 'Die Antwort wurde nicht gestoppt',
 
@@ -235,5 +232,4 @@ export default translate(m, {
   deleteBody: 'Ihre Nachrichten und angehängten Ressourcen werden sofort gelöscht. Ihre Nutzung bleibt im KI-Aktivitätsprotokoll, ohne Inhalte.',
   deleted: 'Unterhaltung gelöscht',
   renamed: 'Unterhaltung umbenannt',
-  moreThreads: 'Weitere Unterhaltungen anzeigen',
 })

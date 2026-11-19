@@ -41,7 +41,7 @@ export default translate(mx, {
   goTo: 'Aller à la demande',
   rowDenied: 'Vous avez refusé {label}. Rien n’a été envoyé à {server}.',
   rowUnknown: '{label} s’est peut-être exécuté, mais son résultat a été perdu. Vérifiez {server} avant de redemander.',
-  rowProblem: '{label} · {code, select, mcp_sign_in {connexion requise} mcp_tool_changed {modifié, désactivé jusqu’à l’examen} mcp_tool_blocked {bloqué} mcp_unreachable {serveur injoignable} mcp_timeout {pas de réponse en 30 s} mcp_too_large {réponse de plus de 32 Ko} tool_error {le serveur a signalé une erreur} not_available {non disponible pour vous} forbidden {non autorisé} tool_limit {au-delà de la limite d’appels de la conversation} other {échec}}',
+  rowProblem: '{label} · {code, select, mcp_sign_in {connexion requise} mcp_tool_changed {modifié, désactivé jusqu’à l’examen} mcp_tool_blocked {bloqué} mcp_unreachable {serveur injoignable} mcp_timeout {pas de réponse en 30 s} mcp_too_large {réponse de plus de 32 Ko} tool_error {le serveur a signalé une erreur} not_available {non disponible pour vous} no_longer_available {plus disponible pour vous} forbidden {non autorisé} tool_limit {au-delà de la limite d’appels de la conversation} other {échec}}',
   signInTitle: 'Reconnectez-vous à {server}',
   signInBadge: 'Connexion requise',
   signInBody: 'Votre connexion à {server} a expiré ou n’a jamais été établie. L’assistant répond sans {server} jusqu’à ce que vous vous reconnectiez.',

@@ -19,6 +19,14 @@ describe('Composer', () => {
     expect(onSend).toHaveBeenCalledTimes(1)
   })
 
+  it('says at the composer why the server didn’t take the message, and the text stays', () => {
+    const note = 'This message contains an email address. Remove it before sending.'
+    render(<Composer value="Write to linh@acme.io" onChange={() => {}} onSend={() => {}} onStop={() => {}} answering={false} note={note} placeholder="Ask" />)
+    expect(screen.getByRole('alert')).toHaveTextContent(note)
+    expect(screen.getByRole('textbox')).toHaveValue('Write to linh@acme.io')
+    expect(screen.getByRole('textbox')).toHaveAccessibleDescription(new RegExp(`^${note}`))
+  })
+
   it('turns Send into Stop while the assistant answers', () => {
     const { onSend, area } = setup(true)
     fireEvent.keyDown(area, { key: 'Enter' })

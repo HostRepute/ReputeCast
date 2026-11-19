@@ -46,7 +46,8 @@ export function AgentBriefPage({ initialKind = 'campaign', initialBrief = '' }: 
   const t = useT()
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
-  const assist = useAssist()
+  // The agent's own model, as its runs go: the person's pick, or the workspace's.
+  const assist = useAssist('agent')
   const [reviewSharing, sharingDialog] = useSharingReview(`${assist.provider} · ${assist.model}`)
   const form = useForm<BriefFields>({ defaultValues: { kind: initialKind, brief: initialBrief, language: 'en', templateId: '', links: '', trigger: 'joined_list', resource: '' } })
   const kind = useWatch({ control: form.control, name: 'kind' })

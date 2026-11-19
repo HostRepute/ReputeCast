@@ -134,5 +134,34 @@ describe('the thread controller', () => {
     expect(sent.filter((x) => x.url === 'POST /ai/assistant/threads/N/messages').map((x) => (x.body as { text: string }).text)).toEqual(['First question', 'First question'])
     expect(probe.c!.draft.get()).toBe('Something else')
   })
+
+  it('shows a message refused for private data at the composer, in the server’s words, and keeps it to edit', async () => {
+    const detail = 'This message contains an email address. Remove it before sending.'
+    let calls = 0
+    const sent = serve({
+      'GET /ai/assistant/models': () => json({ models: [model], defaultId: 'm1' }),
+      'POST /ai/assistant/threads': () => json(thread('N', undefined, { title: '' })),
+      'GET /ai/assistant/threads/N': () => json(thread('N', undefined, { title: '' })),
+      'PATCH /ai/assistant/threads/N': () => json(thread('N', 'Write to Linh', { title: 'Write to Linh' })),
+      'POST /ai/assistant/threads/N/messages': () =>
+        ++calls === 1 ? json({ status: 422, title: 'Unprocessable Entity', code: 'ai_assistant_private_data', detail, meta: { kind: 'email' } }, 422) : json(thread('N', 'Write to Linh', { eventSeq: 5, title: '' })),
+    })
+    await renderInWorkspace(<Probing />)
+    await waitFor(() => expect(probe.c!.list.length).toBe(1))
+    act(() => probe.c!.setDraft('Write to linh@acme.io'))
+    await act(async () => probe.c!.send('Write to linh@acme.io'))
+    await waitFor(() => expect(probe.c!.composerNote).toBe(detail))
+    expect(probe.c!.draft.get()).toBe('Write to linh@acme.io')
+    expect(probe.c!.sendProblem).toBeUndefined()
+    expect(document.querySelector('.toasts')?.textContent ?? '').toBe('')
+    // The next message goes, and the note with it.
+    await act(async () => probe.c!.send('Write to Linh'))
+    await waitFor(() => expect(probe.c!.state.messages.map((x) => x.text)).toEqual(['Write to Linh']))
+    expect(probe.c!.composerNote).toBeUndefined()
+    expect(sent.filter((x) => x.url === 'POST /ai/assistant/threads/N/messages')).toHaveLength(2)
+    // The refused text names nothing: the thread is named after the message the server took.
+    await waitFor(() => expect(sent.filter((x) => x.url === 'PATCH /ai/assistant/threads/N').map((x) => x.body)).toEqual([{ title: 'Write to Linh' }]))
+    expect(JSON.stringify(sent.filter((x) => x.url !== 'POST /ai/assistant/threads/N/messages'))).not.toContain('linh@acme.io')
+  })
 })
 

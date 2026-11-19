@@ -66,7 +66,6 @@ export default translate(m, {
   summaryMarker: 'Les messages précédents sont résumés',
   copy: 'Copier',
   copied: 'Copié',
-  copyFailed: 'Copie impossible. Sélectionnez le code et copiez-le vous-même.',
   codeLabel: 'Code ({lang})',
   codeLabelPlain: 'Code',
   tableLabel: 'Tableau de la réponse',
@@ -74,7 +73,7 @@ export default translate(m, {
   imageNoAlt: 'Image ({domain})',
   newTab: '(s’ouvre dans un nouvel onglet)',
   tool: '{name, select, read_report {Rapport lu} read_attached {Pièce jointe lue} search_help {Aide consultée} describe_screen {Écran décrit} suggest_link {Lien suggéré} propose_edit {Modification proposée} draft_agent_task {Tâche d’agent rédigée} subject_ideas {Idées d’objet} rewrite {Réécriture} other {Outil appelé}}',
-  toolFailed: '{code, select, not_available {non disponible pour vous} forbidden {non autorisé} tool_limit {au-delà de la limite d’appels de la conversation} not_found {introuvable} too_large {résultat trop volumineux} invalid_arguments {arguments non valides} report_unavailable {rapport indisponible} other {échec}}',
+  toolFailed: '{code, select, not_available {non disponible pour vous} no_longer_available {plus disponible pour vous} forbidden {non autorisé} tool_limit {au-delà de la limite d’appels de la conversation} not_found {introuvable} too_large {résultat trop volumineux} invalid_arguments {arguments non valides} report_unavailable {rapport indisponible} other {échec}}',
   seconds: '{s}\u00A0s',
   milliseconds: '{ms}\u00A0ms',
   cardLink: 'Ouvre l’écran. Rien ne change d’ici.',
@@ -199,10 +198,8 @@ export default translate(m, {
   failedBadge: 'Échec',
   failedBody: 'Elle s’est arrêtée ({reason}). Ce qui a été écrit est conservé. Réessayer envoie une nouvelle requête avec son propre coût.',
   retry: 'Réessayer',
-  closePanel: 'Fermer',
   loadFailed: 'La conversation ne s’est pas chargée',
   threadsFailed: 'Les conversations ne se sont pas chargées',
-  modelsFailed: 'Les modèles ne se sont pas chargés',
   sendFailed: 'Votre message n’a pas été envoyé',
   stopFailed: 'La réponse n’a pas été arrêtée',
 
@@ -236,5 +233,4 @@ export default translate(m, {
   deleteBody: 'Ses messages et ressources jointes sont supprimés immédiatement. Sa consommation reste dans le journal d’activité de l’IA, sans contenu.',
   deleted: 'Conversation supprimée',
   renamed: 'Conversation renommée',
-  moreThreads: 'Afficher plus de conversations',
 })

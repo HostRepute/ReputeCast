@@ -2,7 +2,9 @@ import type { Component } from 'grapesjs'
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { http, type Schemas } from '@/api/client'
 import { useWorkspace } from '@/lib/session'
-import { aiBase } from '../api'
+import { aiBase, type AIFeature } from '../api'
+import { m, ms } from '../messages'
+import type { MessageDescriptor } from '@/i18n'
 import { useAssist, useSuggest, type Assist, type Suggest } from '../suggest'
 
 export type RewriteAction = 'shorten' | 'friendlier' | 'formal' | 'direct' | 'instruction'
@@ -36,6 +38,30 @@ export interface ComposerAssist {
   translation: Suggest<TranslateInput, Translation>
   /** Translate a language version with AI (the compare view's AI mode); null leaves it. */
   translate(language: string | null): void
+}
+
+/** The composer's AI features, each on its own model (the person's own pick, or the workspace's). */
+export const COMPOSER_FEATURES: AIFeature[] = ['subject_ideas', 'rewrite', 'draft', 'translate', 'alt_text', 'accessibility_fix']
+
+/**
+ * The Assist menu over its features' own models: none set up (it invites to
+ * connect one), all rejected or at their cap (it says so), or the menu,
+ * whose model line is the first ready feature's.
+ */
+export function composerMenu(assist: Assist): { lead: Assist; none: boolean; blocked: boolean } {
+  const usable = COMPOSER_FEATURES.map((f) => assist.of(f)).filter((x) => x.configured)
+  const lead = usable.find((x) => x.ready) ?? usable[0] ?? assist
+  const state = lead.status?.state
+  return { lead, none: !usable.length, blocked: !lead.ready && (state === 'key_rejected' || state === 'cap_reached') }
+}
+
+/** Why a feature's menu item can't be used: no model for it, switched off, or its own model rejected or at its cap. */
+export function itemBlock(assist: Assist, f: AIFeature): MessageDescriptor | undefined {
+  const x = assist.of(f)
+  if (!x.configured) return ms.itemNoModel
+  if (!x.featureOn(f)) return f === 'alt_text' && !x.status?.imageInput ? ms.noImageModel : ms.featureOff
+  const st = x.status?.state
+  return st === 'key_rejected' ? m.keyRejectedBadge : st === 'cap_reached' ? ms.itemCap : undefined
 }
 
 const Ctx = createContext<ComposerAssist | null>(null)

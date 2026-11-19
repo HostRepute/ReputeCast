@@ -56,7 +56,8 @@ export interface ThreadState {
 export type Action =
   | { type: 'events'; events: StreamEvent[] }
   /** The thread as an API call returned it (create, send, stop, attach…). */
-  | { type: 'thread'; thread: Thread }
+  /** fromStop: Stop's response, which works while the assistant is off: the stream's problem stays. */
+  | { type: 'thread'; thread: Thread; fromStop?: boolean }
   | { type: 'pending'; text?: string }
   | { type: 'reset' }
 
@@ -161,7 +162,7 @@ export function threadReducer(s: ThreadState, a: Action): ThreadState {
       // An API response is as new as its eventSeq: older than what the
       // stream already applied, it would undo events.
       if (s.thread && s.thread.id === a.thread.id && a.thread.eventSeq < s.lastId) return { ...s, thread: { ...a.thread, messages: s.messages, turn: s.turn, usage: s.usage ?? a.thread.usage } }
-      return fromThread(s, a.thread, a.thread.eventSeq)
+      return { ...fromThread(s, a.thread, a.thread.eventSeq), ...(a.fromStop && { problem: s.problem }) }
     case 'events':
       return a.events.reduce(applyEvent, s)
   }

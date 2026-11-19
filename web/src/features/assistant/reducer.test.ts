@@ -115,6 +115,16 @@ describe('threadReducer', () => {
     expect(s.problem?.code).toBe('ai_assistant_off')
   })
 
+  it('keeps the assistant off after Stop’s response, which works while it is off', () => {
+    const off = run(initialThreadState, snap(2, thread({ turn: turn('answering') })), { type: 'problem', id: 0, data: { status: 409, code: 'ai_assistant_off', detail: 'off' } })
+    const stopped = thread({ eventSeq: 4, turn: turn('stopped') })
+    const s = threadReducer(off, { type: 'thread', thread: stopped, fromStop: true })
+    expect(s.turn?.state).toBe('stopped')
+    expect(s.problem?.code).toBe('ai_assistant_off')
+    // A thread read again (the assistant is on to read it) ends the problem.
+    expect(threadReducer(off, { type: 'thread', thread: stopped }).problem).toBeUndefined()
+  })
+
   const conf = (state: Confirmation['state'], extra: Partial<Confirmation> = {}): Confirmation => ({
     id: 'c1',
     turnId: 't1',

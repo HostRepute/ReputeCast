@@ -64,7 +64,6 @@ export default translate(m, {
   summaryMarker: 'Các tin nhắn trước đã được tóm tắt',
   copy: 'Sao chép',
   copied: 'Đã sao chép',
-  copyFailed: 'Không sao chép được. Hãy chọn đoạn mã và tự sao chép.',
   codeLabel: 'Mã ({lang})',
   codeLabelPlain: 'Mã',
   tableLabel: 'Bảng trong câu trả lời',
@@ -72,7 +71,7 @@ export default translate(m, {
   imageNoAlt: 'Hình ảnh ({domain})',
   newTab: '(mở trong thẻ mới)',
   tool: '{name, select, read_report {Đã đọc báo cáo} read_attached {Đã đọc tệp đính kèm} search_help {Đã tìm trong trợ giúp} describe_screen {Đã mô tả màn hình} suggest_link {Đã gợi ý liên kết} propose_edit {Đã đề xuất chỉnh sửa} draft_agent_task {Đã soạn nhiệm vụ cho tác tử} subject_ideas {Gợi ý tiêu đề} rewrite {Viết lại} other {Đã gọi công cụ}}',
-  toolFailed: '{code, select, not_available {bạn không dùng được} forbidden {không được phép} tool_limit {vượt giới hạn lượt gọi công cụ của cuộc trò chuyện} not_found {không tìm thấy} too_large {kết quả quá lớn} invalid_arguments {tham số không hợp lệ} report_unavailable {báo cáo không khả dụng} other {thất bại}}',
+  toolFailed: '{code, select, not_available {bạn không dùng được} no_longer_available {bạn không còn dùng được} forbidden {không được phép} tool_limit {vượt giới hạn lượt gọi công cụ của cuộc trò chuyện} not_found {không tìm thấy} too_large {kết quả quá lớn} invalid_arguments {tham số không hợp lệ} report_unavailable {báo cáo không khả dụng} other {thất bại}}',
   seconds: '{s} giây',
   milliseconds: '{ms} ms',
   cardLink: 'Mở màn hình. Từ đây không có gì thay đổi.',
@@ -197,10 +196,8 @@ export default translate(m, {
   failedBadge: 'Thất bại',
   failedBody: 'Câu trả lời đã dừng ({reason}). Phần đã viết được giữ lại. Thử lại sẽ gửi một yêu cầu mới với chi phí riêng.',
   retry: 'Thử lại',
-  closePanel: 'Đóng',
   loadFailed: 'Không tải được cuộc trò chuyện',
   threadsFailed: 'Không tải được các cuộc trò chuyện',
-  modelsFailed: 'Không tải được các mô hình',
   sendFailed: 'Chưa gửi được tin nhắn của bạn',
   stopFailed: 'Chưa dừng được câu trả lời',
 
@@ -234,5 +231,4 @@ export default translate(m, {
   deleteBody: 'Tin nhắn và tài nguyên đính kèm bị xóa ngay. Mức sử dụng vẫn còn trong nhật ký hoạt động AI, không kèm nội dung.',
   deleted: 'Đã xóa cuộc trò chuyện',
   renamed: 'Đã đổi tên cuộc trò chuyện',
-  moreThreads: 'Xem thêm cuộc trò chuyện',
 })

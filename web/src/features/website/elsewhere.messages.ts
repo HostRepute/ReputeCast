@@ -79,7 +79,6 @@ export const me = defineMessages('website.elsewhere', {
   eventSignedOutBy: 'by {actor}',
   eventJoined: 'Joined on {host}',
   eventEmailChanged: 'Changed their email address',
-  siteOff: "The website is off: members can't sign in.",
 
   // The contacts filter
   filterSignedIn: 'Signed in to the website · {count}',
@@ -87,13 +86,7 @@ export const me = defineMessages('website.elsewhere', {
   filterLabel: 'Members',
 
   // The segment condition
-  condSignedIn: 'Signed in to the website',
-  condOperator: 'Operator',
   condWhen: 'When',
-  opSince: 'since',
-  opNotSince: 'not since',
-  opEver: 'ever',
-  opNever: 'never',
   days7: '7 days ago',
   days30: '30 days ago',
   days90: '90 days ago',
@@ -104,7 +97,6 @@ export const me = defineMessages('website.elsewhere', {
   policyPostText: "Off by default. Approvers are the workspace's approvers: the people who can approve campaigns. The approval covers the content, address, visibility and publish time.",
   policyPostNote: '“The author lacks the send permission” also covers {perm}: an author without it gets Request approval instead of Publish.',
   inboxPost: 'Post',
-  inboxPostLine: 'Post · {visibility} · requested by {name}, {date} · web preview',
   reviewWeb: 'The post on the web',
   reviewWebSub: '{url} · as a reader with access sees it',
   reviewTitle: 'Title',

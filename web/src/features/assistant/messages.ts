@@ -77,7 +77,6 @@ export const m = defineMessages('assistant', {
   summaryMarker: 'Earlier messages are summarized',
   copy: 'Copy',
   copied: 'Copied',
-  copyFailed: 'Couldn’t copy. Select the code and copy it yourself.',
   // lang: the code block's language as the answer names it (liquid, sql).
   codeLabel: 'Code ({lang})',
   codeLabelPlain: 'Code',
@@ -88,7 +87,7 @@ export const m = defineMessages('assistant', {
   newTab: '(opens in a new tab)',
   // name: a tool the assistant called; unknown ones show their own name.
   tool: '{name, select, read_report {Read report} read_attached {Read attached} search_help {Searched help} describe_screen {Described the screen} suggest_link {Suggested a link} propose_edit {Proposed an edit} draft_agent_task {Drafted an agent task} subject_ideas {Subject ideas} rewrite {Rewrite} other {Called a tool}}',
-  toolFailed: '{code, select, not_available {not available to you} forbidden {not allowed} tool_limit {over the thread’s tool-call limit} not_found {not found} too_large {result too large} invalid_arguments {invalid arguments} report_unavailable {report not available} other {failed}}',
+  toolFailed: '{code, select, not_available {not available to you} no_longer_available {no longer available to you} forbidden {not allowed} tool_limit {over the thread’s tool-call limit} not_found {not found} too_large {result too large} invalid_arguments {invalid arguments} report_unavailable {report not available} other {failed}}',
   // s: seconds, one decimal ("0.3").
   seconds: '{s} s',
   // ms: milliseconds.
@@ -225,10 +224,8 @@ export const m = defineMessages('assistant', {
   // reason: the turn's reason code (provider_error, refused…).
   failedBody: 'It stopped ({reason}). What was written is kept. Retry sends a new request with its own cost.',
   retry: 'Retry',
-  closePanel: 'Close',
   loadFailed: 'The thread didn’t load',
   threadsFailed: 'Threads didn’t load',
-  modelsFailed: 'Models didn’t load',
   sendFailed: 'Your message wasn’t sent',
   stopFailed: 'The answer wasn’t stopped',
 
@@ -268,5 +265,4 @@ export const m = defineMessages('assistant', {
   deleteBody: 'Its messages and attached resources are deleted at once. Its usage stays in the AI activity log, without content.',
   deleted: 'Thread deleted',
   renamed: 'Thread renamed',
-  moreThreads: 'Show more threads',
 })
