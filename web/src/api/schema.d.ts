@@ -1240,6 +1240,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/mcp/oauth/client-metadata.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ReputeCast's OAuth client for MCP servers, as a Client ID Metadata Document
+         * @description Its address is the client_id ReputeCast uses with an authorization server that supports Client ID Metadata Documents (client_id_metadata_document_supported) when a manager entered no client; the authorization server fetches it. A public client: the exact redirect URI remote-mcp-oauth-callback, PKCE, no secret. Only on an https public URL (404 otherwise).
+         */
+        get: operations["get-mcp-client-metadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/identify": {
         parameters: {
             query?: never;
@@ -22237,6 +22257,7 @@ export interface components {
             text: string;
             tools?: components["schemas"]["AIThreadToolRow"][];
             turnId?: string;
+            withheld?: boolean;
         };
         AIThreadMessageEvent: {
             message: components["schemas"]["AIThreadMessage"];
@@ -22287,6 +22308,7 @@ export interface components {
             /** @enum {string} */
             state: "queued" | "answering" | "waiting" | "stopped" | "failed" | "done";
             text?: string;
+            withheld?: boolean;
         };
         AIThreadTurnEvent: {
             turn: components["schemas"]["AIThreadTurn"];
@@ -35769,6 +35791,14 @@ export interface components {
             /** @enum {string} */
             level: "allow" | "approve" | "partial" | "deny";
         };
+        MCPClientMetadataDocument: {
+            client_id: string;
+            client_name: string;
+            grant_types: string[];
+            redirect_uris: string[];
+            response_types: string[];
+            token_endpoint_auth_method: string;
+        };
         MCPConnection: {
             allowedIps: string[];
             clientName: string;
@@ -41783,6 +41813,7 @@ export interface components {
             /** @enum {string} */
             auth: "none" | "header" | "oauth";
             clientId?: string;
+            clientMetadata: boolean;
             clientRegistered: boolean;
             clientSecretSet: boolean;
             connected: boolean;
@@ -56338,6 +56369,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-mcp-client-metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPClientMetadataDocument"];
+                };
             };
             /** @description Error */
             default: {

@@ -72,23 +72,24 @@ func (s *Service) request(ctx context.Context, q *store.Queries, ws *store.Works
 		}
 	}
 	access := s.readable(q, ws, run.owner)
-	withheld, err := access.withheld(ctx, messages, contents)
+	h, err := access.history(ctx, messages, contents)
 	if err != nil {
 		return assembled{}, err
 	}
+	withheld := h.calls
 	summary, upto, sources := "", int32(0), []toolSource{}
 	for i, m := range messages {
 		if m.Role != "summary" {
 			continue
 		}
-		c := contents[i]
-		summary, upto, sources = c.Text, c.Upto, c.Sources
-		if ok, err := access.all(ctx, c.Sources); err != nil {
-			return assembled{}, err
-		} else if !ok {
+		summary, upto, sources = contents[i].Text, contents[i].Upto, h.sources[i]
+		if h.held[i] {
 			summary, sources = noSummary, []toolSource{}
 		}
 	}
+	// What this request carries comes from: kept with the answer it
+	// produces.
+	used := merge([]toolSource{}, sources)
 	req := llm.Request{System: system, Messages: []llm.Message{}, MaxTokens: maxAnswerTokens}
 	if run.rounds < maxRounds && t.ToolCalls < t.ToolLimit {
 		offered, err := s.offered(ctx, q, ws, run.owner, t.ID, contexts)
@@ -114,8 +115,9 @@ func (s *Service) request(ctx context.Context, q *store.Queries, ws *store.Works
 		}
 		if m.Role == "tool" {
 			calls = withheld[i]
+			used = merge(used, sourcesOf(contents[i], calls))
 		}
-		if msg, ok := s.replay(m, contents[i], next, run.model.ID(), calls); ok {
+		if msg, ok := s.replay(m, contents[i], next, run.model.ID(), calls, h.held[i]); ok {
 			req.Messages = append(req.Messages, msg)
 		}
 	}
@@ -127,22 +129,37 @@ func (s *Service) request(ctx context.Context, q *store.Queries, ws *store.Works
 		req.Messages = append(req.Messages, llm.Message{Role: "user", Parts: []llm.Part{{Text: volatile}}})
 	}
 	if !run.summarized && len(older) >= 2 && estimateTokens(req) > int(summaryShare*float64(run.model.ContextTokens())) {
-		sum, used := summaryRequest(summary, messages, contents, older, withheld)
-		return assembled{req: sum, kind: "summary", upto: messages[older[len(older)-1]].Sequence, sources: append(sources, used...)}, nil
+		sum, from := summaryRequest(summary, messages, contents, older, h)
+		return assembled{req: sum, kind: "summary", upto: messages[older[len(older)-1]].Sequence, sources: merge(merge([]toolSource{}, sources), from)}, nil
 	}
-	return assembled{req: req, kind: "answer"}, nil
+	return assembled{req: req, kind: "answer", sources: used}, nil
 }
 
 // replay is a saved message as the model reads it again. Another model
 // never gets the provider's own parts (Gemini's thoughts and their
 // signatures), and tool calls without their results are left out. A
 // withheld call's result reads that it is no longer available, and the
-// call keeps no arguments (they may quote what it read).
-func (s *Service) replay(m store.AiAssistantMessage, c messageContent, next string, model uuid.UUID, withheld map[string]bool) (llm.Message, bool) {
+// call keeps no arguments (they may quote what it read). A withheld answer
+// (held) is a placeholder: its calls stay, without arguments, for their
+// results to follow, and nothing else of it is sent.
+func (s *Service) replay(m store.AiAssistantMessage, c messageContent, next string, model uuid.UUID, withheld map[string]bool, held bool) (llm.Message, bool) {
 	switch m.Role {
 	case "user":
 		return llm.Message{Role: "user", Parts: []llm.Part{{Text: defang(c.Text)}}}, strings.TrimSpace(c.Text) != ""
 	case "assistant":
+		if held {
+			parts := []llm.Part{{Text: withheldAnswer}}
+			if c.Replay != nil && next == "tool" {
+				for _, p := range c.Replay.Parts {
+					if p.ToolCall != nil {
+						call := *p.ToolCall
+						call.Arguments = json.RawMessage("{}")
+						parts = append(parts, llm.Part{ToolCall: &call})
+					}
+				}
+			}
+			return llm.Message{Role: "assistant", Parts: parts}, true
+		}
 		if c.Replay == nil {
 			return llm.Message{Role: "assistant", Parts: []llm.Part{{Text: c.Text}}}, strings.TrimSpace(c.Text) != ""
 		}
@@ -224,10 +241,13 @@ const (
 
 // summaryRequest asks for a summary of the older messages (and the
 // summary before them), with the results of their tools the owner may
-// still read, as data from their source; used are those results' sources.
-func summaryRequest(previous string, messages []store.AiAssistantMessage, contents []messageContent, older []int, withheld map[int]map[string]bool) (llm.Request, []toolSource) {
+// still read, as data from their source, and the answers they may still
+// read (an answer's sources are among those results' or the previous
+// summary's); used are what those results came from.
+func summaryRequest(previous string, messages []store.AiAssistantMessage, contents []messageContent, older []int, h *history) (llm.Request, []toolSource) {
 	var b strings.Builder
 	used := []toolSource{}
+	withheld := h.calls
 	if previous != "" {
 		b.WriteString("<previous_summary>\n" + defang(previous) + "\n</previous_summary>\n")
 	}
@@ -239,11 +259,14 @@ func summaryRequest(previous string, messages []store.AiAssistantMessage, conten
 		case "user":
 			b.WriteString("Person: " + defang(c.Text) + "\n")
 		case "assistant":
-			if strings.TrimSpace(c.Text) != "" {
+			switch {
+			case h.held[i]:
+				b.WriteString("Assistant: (an answer left out: it used something the person can no longer read)\n")
+			case strings.TrimSpace(c.Text) != "":
 				b.WriteString("Assistant: " + defang(c.Text) + "\n")
 			}
 		case "tool":
-			used = append(used, sourcesOf(c, withheld[i])...)
+			used = merge(used, sourcesOf(c, withheld[i]))
 			for j, r := range c.Tools {
 				state := "done"
 				if !r.OK {

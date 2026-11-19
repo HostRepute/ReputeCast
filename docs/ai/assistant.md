@@ -95,6 +95,25 @@ A thread holds up to 10 attached resources. Remove one with its chip's
 available to you** and the assistant doesn't read it. Every read checks your
 access again.
 
+What the thread read stays tied to where it came from: each tool result to
+its campaign, report or MCP server, and each answer to everything its
+request carried. When you can no longer read one of them (your role
+changed, the campaign was deleted, the server is no longer allowed for
+you):
+
+- the tool's result isn't sent to the model again, and its row shows that
+  it is no longer available;
+- an answer that used it is withheld: the thread shows it without its
+  text, and the model reads only that an earlier answer was left out;
+- a summary of earlier messages made from it, or from such an answer, is
+  left out too;
+- an answer still being written shows no text after a reload. Pieces you
+  already watched arrive don't disappear until you reload.
+
+Answers from before the thread read anything stay. Answers saved before
+ReputeCast kept their sources, and answers cut short by **Stop** or by a
+failure, count everything the thread had read before them.
+
 Only reports and email campaigns can be attached for now. Your messages go
 to the model exactly as you write them, so don't paste personal data into
 them.

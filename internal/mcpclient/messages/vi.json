@@ -11,6 +11,8 @@
   "problem.input": "Hãy kiểm tra tên, cách xác thực và thông tin xác thực của máy chủ: chúng không khớp nhau.",
   "problem.state": "Liên kết đăng nhập này đã hết hạn hoặc đã được dùng. Hãy bắt đầu đăng nhập lại từ Cài đặt › Tích hợp · Máy chủ MCP.",
   "problem.oauth": "Không thiết lập được đăng nhập cho {server}: máy chủ cấp quyền không trả lời như mong đợi. Hãy kiểm tra địa chỉ hoặc nhập một client đã đăng ký.",
+  "problem.noClient": "Máy chủ cấp quyền của {server} không cho ReputeCast tự đăng ký. Quản lý có thể đăng ký một client tại đó với URI chuyển hướng được hiển thị, rồi nhập client ID (và secret) trong Cài đặt › Tích hợp · Máy chủ MCP.",
+  "problem.clientAuth": "Máy chủ cấp quyền của {server} chỉ chấp nhận cách xác thực client mà ReputeCast không hỗ trợ, như private_key_jwt. ReputeCast đăng nhập như một client công khai (none) hoặc bằng client secret (client_secret_basic hoặc client_secret_post): hãy đăng ký một client dùng một trong các cách đó.",
   "problem.reviewed": "{tool} đã thay đổi từ khi bạn xem. Hãy xem mô tả và lược đồ mới, rồi quyết định lại.",
   "notify.changedTitle": "Công cụ của {server} đã thay đổi",
   "notify.changedBody": "{count, plural, other {# công cụ}} của {server} đã thay đổi sau khi được duyệt và đang tắt cho đến khi bạn xem lại."

@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/brandkit"
 	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -145,6 +146,7 @@ func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.
 	// checked: the thread was read after the last events read, so every
 	// event it counts was committed when the events were read again.
 	checked := false
+	var f *eventFilter
 	for {
 		if snapshot {
 			th, err := s.snapshot(ctx, ws, p, thread)
@@ -188,6 +190,16 @@ func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.
 			data, err := s.eventData(thread, r)
 			if err != nil {
 				return after, false, err
+			}
+			// What the thread read and its owner can no longer read stays out
+			// of what is sent again: answers, rows and, caught up on, pieces.
+			if r.Kind == kindMessage || r.Kind == kindTool || (r.Kind == kindDelta && !live) {
+				if f == nil {
+					if f, err = s.eventFilter(ctx, s.Q, ws, p, thread); err != nil {
+						return after, false, err
+					}
+				}
+				f.apply(data)
 			}
 			if err := c.do(sse.Message{IDString: strconv.FormatInt(r.Seq, 10), Data: data}); err != nil {
 				return after, false, err
@@ -252,4 +264,58 @@ func (s *Service) snapshot(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return AIThread{}, err
 	}
 	return s.view(ctx, q, ws, fresh, t)
+}
+
+// eventFilter withholds, in events sent again, what a thread's owner can
+// no longer read (sources.go): an answer or summary that used it, a call's
+// row that read it, and the pieces of an answer that used it.
+type eventFilter struct {
+	h        *history
+	messages []store.AiAssistantMessage
+	contents []messageContent
+	index    map[uuid.UUID]int  // message → its index
+	calls    map[string]bool    // withheld calls
+	turns    map[uuid.UUID]bool // turns with a withheld answer
+	answered map[uuid.UUID]bool // turns with a saved answer
+}
+
+func (s *Service) eventFilter(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, thread uuid.UUID) (*eventFilter, error) {
+	fresh, err := brandkit.VoiceActor(ctx, q, ws, p)
+	if err != nil {
+		return nil, err
+	}
+	messages, contents, h, err := s.history(ctx, q, ws, fresh, thread)
+	if err != nil {
+		return nil, err
+	}
+	f := &eventFilter{h: h, messages: messages, contents: contents, index: map[uuid.UUID]int{}, calls: map[string]bool{}, turns: map[uuid.UUID]bool{},
+		answered: map[uuid.UUID]bool{}}
+	for i, m := range messages {
+		f.index[m.ID] = i
+		for call := range h.calls[i] {
+			f.calls[call] = true
+		}
+		if m.Role == "assistant" && m.TurnID != nil {
+			f.answered[*m.TurnID] = true
+			f.turns[*m.TurnID] = f.turns[*m.TurnID] || h.held[i]
+		}
+	}
+	return f, nil
+}
+
+func (f *eventFilter) apply(data any) {
+	switch v := data.(type) {
+	case *AIThreadMessageEvent:
+		if i, ok := f.index[v.Message.ID]; ok {
+			v.Message = f.h.view(i, f.messages[i], f.contents[i])
+		}
+	case *AIThreadToolEvent:
+		if f.calls[v.Tool.CallID] {
+			v.Tool = withheldRow(v.Tool)
+		}
+	case *AIThreadDeltaEvent:
+		if f.turns[v.TurnID] || (!f.answered[v.TurnID] && !f.h.readable) {
+			v.Text = ""
+		}
+	}
 }

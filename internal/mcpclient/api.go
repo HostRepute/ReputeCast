@@ -46,6 +46,12 @@ type redirect struct {
 	Location string `header:"Location"`
 }
 
+type clientMetadataResponse struct {
+	CacheControl string `header:"Cache-Control"`
+	ContentType  string `header:"Content-Type"`
+	Body         MCPClientMetadataDocument
+}
+
 // Register adds the MCP servers' operations: managers add, sync and
 // review servers; members sign in to OAuth servers and pick the servers
 // their threads use. People only: API keys and MCP agents can't.
@@ -113,6 +119,16 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *workspaceInput) (*api.Body[RemoteMCPServerList], error) {
 			out, err := s.Usable(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
 			return api.OK(out), err
+		})
+	api.Get(h, api.Op{ID: "get-mcp-client-metadata", Path: clientMetadataPath, Summary: "ReputeCast's OAuth client for MCP servers, as a Client ID Metadata Document",
+		Description: "Its address is the client_id ReputeCast uses with an authorization server that supports Client ID Metadata Documents (client_id_metadata_document_supported) when a manager entered no client; the authorization server fetches it. A public client: the exact redirect URI remote-mcp-oauth-callback, PKCE, no secret. Only on an https public URL (404 otherwise).",
+		Tags:        tags, Access: api.Public},
+		func(ctx context.Context, _ *struct{}) (*clientMetadataResponse, error) {
+			doc, ok := s.ClientMetadataDocument()
+			if !ok {
+				return nil, api.NotFound("client metadata document")
+			}
+			return &clientMetadataResponse{CacheControl: "public, max-age=300", ContentType: "application/json", Body: doc}, nil
 		})
 	api.Get(h, api.Op{ID: "remote-mcp-oauth-callback", Path: "/ai/mcp/oauth/callback", Status: http.StatusSeeOther, Summary: "Where an OAuth MCP server's authorization server sends the person back",
 		Description: "The state must be the caller's, from the session that started the sign-in, unused and at most ten minutes old (400 mcp_oauth_state otherwise). Redirects to Settings › MCP servers with connected=1 or error=denied|token. Audited as mcp_server.connect.",
