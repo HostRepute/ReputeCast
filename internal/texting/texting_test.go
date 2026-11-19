@@ -68,7 +68,8 @@ func workspace(t *testing.T, env *apptest.Env) *store.Workspace {
 func TestSMSDemo(t *testing.T) {
 	env := apptest.New(t)
 	// This month's texts and spend: seeded mid-month, so they hold on any day.
-	env.SeedDemoAt(apptest.MidMonth())
+	seeded := apptest.MidMonth()
+	env.SeedDemoAt(seeded)
 	linh := env.Client()
 	linh.SignInDemo("linh@acme.io")
 
@@ -277,10 +278,14 @@ func TestSMSDemo(t *testing.T) {
 	if n := segCount(map[string]any{"field": "sms_consent", "op": "includes", "value": summit}); n != consented || n == 0 {
 		t.Fatalf("SMS consent on the Summit: %d, want %d", n, consented)
 	}
+	// Segments count from the database's clock, not the app's seeded one:
+	// "the last 30 days" as of the seeded day reaches back 30 days more than
+	// the days since the seed (up to 42 at the end of a month).
+	days := 30 + int(time.Since(seeded)/(24*time.Hour)) + 1
 	texted := one[int64](t, env, `SELECT count(DISTINCT m.contact_id) FROM channel_messages m JOIN contacts c ON c.id = m.contact_id
-		WHERE m.channel = 'sms' AND m.sent_at >= now() - interval '30 days' AND `+notSuppressed)
-	if n := segCount(map[string]any{"field": "texted", "op": "in_last", "amount": 30, "unit": "days"}); n != texted || n == 0 {
-		t.Fatalf("got a text in 30 days: %d, want %d", n, texted)
+		WHERE m.channel = 'sms' AND m.sent_at >= now() - make_interval(days => $1) AND `+notSuppressed, days)
+	if n := segCount(map[string]any{"field": "texted", "op": "in_last", "amount": days, "unit": "days"}); n != texted || n == 0 {
+		t.Fatalf("got a text in %d days: %d, want %d", days, n, texted)
 	}
 	if n := segCount(map[string]any{"field": "phone_country", "op": "is", "value": "gb"}); n == 0 {
 		t.Fatal("nobody with a UK number")
