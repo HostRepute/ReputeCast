@@ -103,7 +103,8 @@ export function RewriteActions() {
   const c = useComposer()
   const t = useT()
   if (!ca || !ca.assist.can || c.kind === 'transactional' || !c.canEdit) return null
-  const off = ca.assist.configured && !ca.assist.featureOn('rewrite')
+  const own = ca.assist.of('rewrite')
+  const off = own.configured && !own.featureOn('rewrite')
   const go = async (action: RewriteAction) => {
     const comp = c.editor?.getEditing()
     if (!comp) return
@@ -189,7 +190,8 @@ export function RewritePanel() {
   if (!panel) return null
   const title = panel.action === 'instruction' ? t(ms.instructionTitle) : t(ms[panel.action])
   const chars = plain(panel.html).length
-  const prices = ca.assist.status?.prices ?? { input: 0, output: 0 }
+  const own = ca.assist.of('rewrite')
+  const prices = own.status?.prices ?? { input: 0, output: 0 }
   const sentMsg = panel.action === 'instruction' ? ms.sentInstruction : ms.sentParagraph
   const close = (decided?: 'rejected') => {
     if (done?.requestId && decided) outcome(done.requestId, decided)
@@ -218,7 +220,7 @@ export function RewritePanel() {
   if (panel.action === 'instruction' && !panel.input) {
     return (
       <aside className="cpanel right ai-panel ai-panel-card" aria-label={title}>
-        <SuggestionCard title={title} model={ca.assist.model} onClose={() => close()}>
+        <SuggestionCard title={title} model={own.model} onClose={() => close()}>
           <form
             className="flex flex-col gap-2"
             onSubmit={(e) => {
@@ -247,9 +249,9 @@ export function RewritePanel() {
     <aside className="cpanel right ai-panel ai-panel-card" aria-label={title}>
       <SuggestFlow
         title={title}
-        assist={ca.assist}
+        assist={own}
         s={s}
-        sending={sendingText(t, sentMsg, ca.assist.status, estimateMicros(chars + (panel.instruction?.length ?? 0), Math.ceil(chars / 3), prices), { count: chars })}
+        sending={sendingText(t, sentMsg, own.status, estimateMicros(chars + (panel.instruction?.length ?? 0), Math.ceil(chars / 3), prices), { count: chars })}
         onClose={() => close()}
         onRetry={ca.rewriting.retry}
         done={(r) => {
@@ -269,7 +271,7 @@ export function RewritePanel() {
           }
           if (r.refusal) {
             return {
-              body: <Refusal model={ca.assist.model} text={r.refusal} instruction={panel.instruction} />,
+              body: <Refusal model={own.model} text={r.refusal} instruction={panel.instruction} />,
               actions: (
                 <>
                   {panel.action === 'instruction' ? (

@@ -129,7 +129,15 @@ export function ModelAccounts({ s }: { s: AISettings }) {
   const t = useT()
   const [adding, setAdding] = useState(false)
   const [managing, setManaging] = useState<string>()
+  const [reconnecting, setReconnecting] = useState(false)
   const c = s.connection
+  // The workspace's first account after Disconnect: its models, cap and prices
+  // are kept, and it connects again (not as another account) with a key.
+  const kept = s.canManage && s.disconnected ? s.accounts.find((a) => a.primary && a.status === 'disconnected') : undefined
+  const reconnect = () => {
+    setManaging(undefined)
+    setReconnecting(true)
+  }
   const u = s.usage
   const total = !c
     ? undefined
@@ -179,7 +187,12 @@ export function ModelAccounts({ s }: { s: AISettings }) {
                   {a.demo ? <span className="k">{t(mm.demoAccount)}</span> : null}
                   {/* On a phone the table scrolls: Manage goes with the account. */}
                   {s.canManage ? (
-                    <span className="ih-only-phone mt-2 items-start">
+                    <span className="ih-only-phone mt-2 items-start gap-1.5">
+                      {a === kept ? (
+                        <Button size="sm" variant="primary" onClick={reconnect}>
+                          {t(mm.reconnect)}
+                        </Button>
+                      ) : null}
                       <Button size="sm" aria-label={t(mm.manageLabel, { account: accountName(a) })} onClick={() => setManaging(a.id)}>
                         {t(mm.manage)}
                       </Button>
@@ -193,9 +206,16 @@ export function ModelAccounts({ s }: { s: AISettings }) {
               </Td>
               {s.canManage ? (
                 <Td align="right" className="ih-no-phone">
-                  <Button size="sm" aria-label={t(mm.manageLabel, { account: accountName(a) })} onClick={() => setManaging(a.id)}>
-                    {t(mm.manage)}
-                  </Button>
+                  <span className="inline-flex gap-1.5">
+                    {a === kept ? (
+                      <Button size="sm" variant="primary" onClick={reconnect}>
+                        {t(mm.reconnect)}
+                      </Button>
+                    ) : null}
+                    <Button size="sm" aria-label={t(mm.manageLabel, { account: accountName(a) })} onClick={() => setManaging(a.id)}>
+                      {t(mm.manage)}
+                    </Button>
+                  </span>
                 </Td>
               ) : null}
             </tr>
@@ -208,7 +228,9 @@ export function ModelAccounts({ s }: { s: AISettings }) {
         </div>
       ) : null}
       {adding ? <ConnectDialog s={s} initial="anthropic" target="account" open onOpenChange={(o) => !o && setAdding(false)} /> : null}
-      {managed ? <AccountDialog s={s} a={managed} owner={{ id: managed.id }} onClose={() => setManaging(undefined)} /> : null}
+      {/* Without a target the dialog connects the kept account again, with its settings (PUT /ai/connection). */}
+      {reconnecting && kept ? <ConnectDialog s={s} initial={kept.provider} open onOpenChange={(o) => !o && setReconnecting(false)} /> : null}
+      {managed ? <AccountDialog s={s} a={managed} owner={{ id: managed.id }} onClose={() => setManaging(undefined)} onReconnect={managed === kept ? reconnect : undefined} /> : null}
     </section>
   )
 }
@@ -220,7 +242,7 @@ type Sub = { kind: 'key' } | { kind: 'model' } | { kind: 'prices'; model: Model 
  * check, Add model and Remove. The workspace's for managers; a person's
  * own (owner.personal) for that person.
  */
-function AccountDialog({ s, a, owner, onClose }: { s: AISettings; a: Account; owner: AccountRef; onClose: () => void }) {
+function AccountDialog({ s, a, owner, onClose, onReconnect }: { s: AISettings; a: Account; owner: AccountRef; onClose: () => void; onReconnect?: () => void }) {
   const { slug } = useWorkspace()
   const t = useT()
   const refresh = useRefreshAI()
@@ -318,7 +340,12 @@ function AccountDialog({ s, a, owner, onClose }: { s: AISettings; a: Account; ow
               <span className="k">{t(m.keyNone)}</span>
             )}
           </span>
-          {a.demo ? null : (
+          {a.demo ? null : onReconnect ? (
+            // The kept account's key comes with connecting it again: its own key endpoint refuses it.
+            <Button size="sm" variant="primary" className="flex-none" onClick={onReconnect}>
+              {t(mm.reconnect)}
+            </Button>
+          ) : (
             <Button size="sm" className="flex-none" onClick={() => setSub({ kind: 'key' })}>
               {a.key.set ? t(m.replace) : t(m.addKey)}
             </Button>

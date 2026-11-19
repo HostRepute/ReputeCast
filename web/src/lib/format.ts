@@ -59,10 +59,19 @@ export function rate(v: number | null | undefined): string {
   return v < 1 ? `${v.toFixed(2)}%` : `${v.toFixed(1)}%`
 }
 
+// toLocaleString builds a formatter on every call; screens that re-render
+// often (a streaming answer's cost) reuse one per precision.
+const usd = new Map<number, Intl.NumberFormat>()
+
 export function money(v: number | null | undefined, digits = 2): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—'
   if (!standard()) return formatMoney(region(), v, digits)
-  return `$${v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`
+  let f = usd.get(digits)
+  if (!f) {
+    f = new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+    usd.set(digits, f)
+  }
+  return `$${f.format(v)}`
 }
 
 export function perSecond(v: number | null | undefined): string {

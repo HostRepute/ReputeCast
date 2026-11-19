@@ -227,10 +227,10 @@ func TestAssistantLastDollar(t *testing.T) {
 	defer close(release)
 	f.streams.set(held(release, "Spent."))
 	w := f.worker()
-	var turns []uuid.UUID
+	var threads, turns []uuid.UUID
 	for _, c := range []*apptest.Client{f.mc, f.cc} {
 		th := f.thread(c, map[string]any{})
-		turns = append(turns, f.send(c, th.ID, "Draft an intro").Turn.ID)
+		threads, turns = append(threads, th.ID), append(turns, f.send(c, th.ID, "Draft an intro").Turn.ID)
 	}
 	errs := make(chan error, 2)
 	for _, turn := range turns {
@@ -261,6 +261,20 @@ func TestAssistantLastDollar(t *testing.T) {
 	}
 	if n := f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = ANY($1) AND state = 'answering'`, turns); n != 1 {
 		t.Fatalf("%d turns answering", n)
+	}
+	// The refused turn never started: its claim saved the start and the
+	// step before reserving, and the refusal undid them. Its turn events
+	// are its queued and its failed state.
+	if n := f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = ANY($1) AND state = 'failed' AND started_at IS NULL
+		AND NOT EXISTS (SELECT 1 FROM ai_assistant_steps s WHERE s.turn_id = ai_assistant_turns.id)
+		AND (SELECT count(*) FROM ai_assistant_events e WHERE e.turn_id = ai_assistant_turns.id AND e.kind = 'turn') = 2`, turns); n != 1 {
+		t.Fatal("the refused turn kept its start, its step or its started event")
+	}
+	for _, th := range threads {
+		if n := f.count(`SELECT count(*) FROM ai_assistant_threads t WHERE id = $1
+			AND event_seq = (SELECT count(*) FROM ai_assistant_events e WHERE e.thread_id = t.id)`, th); n != 1 {
+			t.Fatal("a thread's events aren't numbered without gaps")
+		}
 	}
 }
 
@@ -546,5 +560,43 @@ func TestAssistantUncertainHoldCounts(t *testing.T) {
 	}
 	if fourth := run("Now?"); f.count(`SELECT count(*) FROM ai_assistant_turns WHERE id = $1 AND state = 'done'`, fourth) != 1 {
 		t.Fatal("the reconciled thread refused")
+	}
+}
+
+// Many turns starting at once don't exhaust the database pool: a claim
+// holds one connection (and the workspace's configuration lock) and never
+// waits for a second one, so turns more than the pool's connections all
+// answer (B6's load test found claims waiting on each other for minutes).
+func TestAssistantTurnsShareThePool(t *testing.T) {
+	f := newFixture(t)
+	f.setAssistant(ai.AIAssistantSettings{Enabled: true, Limits: ai.AIAgentLimits{ToolCalls: 40, Tokens: 300000, CostMicros: 2000000}, PerPerson: 10, PerWorkspace: 10})
+	n := int(f.env.App.Cfg.Database.MaxConns) + 2
+	jobs := make([]assistant.TurnArgs, n)
+	for i := range jobs {
+		th := f.thread(f.mc, map[string]any{})
+		jobs[i] = f.job(f.send(f.mc, th.ID, "Hello").Turn.ID)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	errs := make(chan error, n)
+	for _, args := range jobs {
+		go func() {
+			for {
+				err := f.worker().ExecuteTurn(ctx, args)
+				if !isSnooze(err) {
+					errs <- err
+					return
+				}
+				time.Sleep(50 * time.Millisecond)
+			}
+		}()
+	}
+	for range n {
+		if err := <-errs; err != nil {
+			t.Fatalf("a turn of %d at once: %v", n, err)
+		}
+	}
+	if got := f.count(`SELECT count(*) FROM ai_assistant_turns t JOIN ai_assistant_threads h ON h.id = t.thread_id WHERE h.workspace_id = $1 AND t.state = 'done'`, f.ws.ID); got != n {
+		t.Fatalf("%d of %d turns done", got, n)
 	}
 }

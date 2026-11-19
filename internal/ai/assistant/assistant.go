@@ -12,6 +12,7 @@ package assistant
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -43,7 +44,7 @@ type Models interface {
 	// A turn's request: ready, reserved under the thread's lock, sent,
 	// then accounted.
 	LockAssistantConfig(ctx context.Context, q *store.Queries, ws uuid.UUID) error
-	ReadyAssistant(ctx context.Context, ws *store.Workspace, m *ai.AssistantModel) error
+	ReadyAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, m *ai.AssistantModel) error
 	ReserveAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, m *ai.AssistantModel, req *llm.Request, l ai.AssistantLedger, id uuid.UUID) error
 	AssistantProvider(m *ai.AssistantModel) (llm.Provider, error)
 	AccountAssistant(ctx context.Context, q *store.Queries, r ai.AssistantRequest, res llm.Response, callErr error) (bool, error)
@@ -83,6 +84,9 @@ type Service struct {
 	// afterAnswer runs once the provider answered, before the turn's
 	// checkpoint (tests).
 	afterAnswer func(turn uuid.UUID)
+	// inClaim runs in a claim's transaction: once its locks are taken
+	// ("locked"), and once its slot is ("slot") (tests).
+	inClaim func(turn uuid.UUID, stage string)
 }
 
 // Retention is how long a thread keeps its content after its last activity.
@@ -123,8 +127,56 @@ var (
 	mModelGone          = msgs.M("problem.modelGone")
 	mTurnKey            = msgs.M("problem.turnKey")
 	mConfirmationClosed = msgs.M("problem.confirmationClosed")
-	mReputation         = msgs.M("answer.reputation")
+	// A message holding an email address, a phone number or a credential
+	// isn't sent (by the kind editorial.Chat names).
+	mPrivateData = map[string]i18n.Msg{"email": msgs.M("problem.privateData.email"), "phone": msgs.M("problem.privateData.phone"),
+		"credential": msgs.M("problem.privateData.credential")}
+	mReputation = msgs.M("answer.reputation")
+	// Why a thread's model can't answer, and who can fix it: the owner for
+	// their own key (Own), integration managers for the workspace's.
+	mModelDisconnected      = msgs.M("problem.model.disconnected")
+	mModelDisconnectedOwn   = msgs.M("problem.model.disconnectedOwn")
+	mModelKeyRejected       = msgs.M("problem.model.keyRejected")
+	mModelKeyRejectedOwn    = msgs.M("problem.model.keyRejectedOwn")
+	mModelToolsUnchecked    = msgs.M("problem.model.toolsUnchecked")
+	mModelToolsUncheckedOwn = msgs.M("problem.model.toolsUncheckedOwn")
+	mModelPersonalKeysOff   = msgs.M("problem.model.personalKeysOff")
 )
+
+// modelProblem is why a thread's model can't answer, in the thread's
+// words and saying who can fix it: the same problem code (a turn that
+// fails for it has the code without "ai_" as its reason).
+func (s *Service) modelProblem(ctx context.Context, q *store.Queries, ws, user uuid.UUID, model *uuid.UUID, err error) error {
+	var p *api.Problem
+	if !errors.As(err, &p) {
+		return err
+	}
+	var own, team i18n.Msg
+	switch p.Code {
+	case "ai_account_disconnected":
+		own, team = mModelDisconnectedOwn, mModelDisconnected
+	case "ai_key_rejected":
+		own, team = mModelKeyRejectedOwn, mModelKeyRejected
+	case "ai_tools_unchecked":
+		own, team = mModelToolsUncheckedOwn, mModelToolsUnchecked
+	case "ai_personal_keys_off":
+		own, team = mModelPersonalKeysOff, mModelPersonalKeysOff
+	default:
+		return err
+	}
+	v, verr := s.AI.AssistantModelView(ctx, q, ws, user, model)
+	if verr != nil {
+		return verr
+	}
+	m, args := team, i18n.Args{"provider": ""}
+	if v != nil {
+		args["provider"] = v.ProviderName
+		if v.Personal {
+			m = own
+		}
+	}
+	return api.Err(p.Status, p.Code, m.Text(i18n.LangFrom(ctx), args))
+}
 
 // Error codes of the assistant's problems.
 const (
@@ -138,6 +190,7 @@ const (
 	codeModelGone          = "ai_assistant_model_gone"
 	codeTurnKey            = "ai_assistant_turn_key"
 	codeConfirmationClosed = "ai_assistant_confirmation_closed"
+	codePrivateData        = "ai_assistant_private_data"
 )
 
 func problem(ctx context.Context, status int, code string, m i18n.Msg, args i18n.Args) *api.Problem {

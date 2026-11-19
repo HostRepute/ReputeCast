@@ -627,7 +627,7 @@ var verbs = map[string]string{
 	"reactivated": "reactivated", "removed": "removed", "signed_out": "signedOut", "invite_revoked": "revokedInvitation",
 	"invite_resent": "resentInvitation", "transferred": "transferredOwnership", "sign_in": "signedInTo", "tested": "tested",
 	"retried": "retriedDeliveries", "secret_rotated": "rotatedSecret", "settings_updated": "changedSettings",
-	"called": "called",
+	"called": "called", "expired": "expired",
 	// Actions named in the present tense.
 	"create": "created", "update": "changed", "delete": "deleted", "remove": "removed", "rename": "renamed", "pause": "paused",
 	"resume": "resumed", "restore": "restored", "restored": "restored", "unscheduled": "unscheduled", "cancel": "cancelled",

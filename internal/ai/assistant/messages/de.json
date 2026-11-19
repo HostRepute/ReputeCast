@@ -1,5 +1,5 @@
 {
-  "problem.off": "Der KI-Assistent ist in diesem Arbeitsbereich ausgeschaltet. Wer Integrationen verwalten darf, kann ihn unter Einstellungen › Integrationen · KI-Assistent einschalten.",
+  "problem.off": "Der KI-Assistent ist in diesem Arbeitsbereich ausgeschaltet. Wer Integrationen verwalten darf, kann ihn unter Einstellungen › Integrationen · KI-Modelle einschalten.",
   "problem.requestKey": "Dieser Anfrageschlüssel wurde schon für einen anderen Verlauf verwendet. Verwenden Sie für einen neuen Verlauf einen neuen Schlüssel.",
   "problem.sharingReview": "Prüfen Sie, was Sie anhängen, und bestätigen Sie, dass es mit dem Modell geteilt wird. Es wurde nichts angehängt.",
   "problem.contextsFull": "Ein Verlauf hat höchstens {max} angehängte Ressourcen. Entfernen Sie zuerst eine.",
@@ -8,8 +8,20 @@
   "problem.cursor": "Diese Seite der Verläufe gibt es nicht mehr. Laden Sie die Liste neu.",
   "problem.turnActive": "Der Assistent antwortet in diesem Verlauf noch. Warten Sie auf die Antwort oder stoppen Sie sie, und senden Sie dann Ihre Nachricht.",
   "problem.nothingToSend": "Schreiben Sie zuerst eine Nachricht.",
+  "problem.privateData.email": "Ihre Nachricht wurde nicht gesendet: Sie enthält eine E-Mail-Adresse. Der Assistent kann ohnehin keine Kontakte nachschlagen. Entfernen Sie die Adresse und senden Sie die Nachricht erneut.",
+  "problem.privateData.phone": "Ihre Nachricht wurde nicht gesendet: Sie enthält eine Telefonnummer. Der Assistent kann ohnehin keine Kontakte nachschlagen. Entfernen Sie die Nummer und senden Sie die Nachricht erneut.",
+  "problem.privateData.credential": "Ihre Nachricht wurde nicht gesendet: Sie enthält etwas, das wie ein Passwort, ein Schlüssel oder ein Token aussieht. Der Assistent kann ohnehin keine Kontakte nachschlagen und keine Zugangsdaten verwenden. Entfernen Sie es und senden Sie die Nachricht erneut.",
   "problem.modelGone": "Das Modell dieses Verlaufs wurde entfernt. Wählen Sie ein anderes Modell für den Verlauf und senden Sie Ihre Nachricht dann erneut.",
   "problem.turnKey": "Dieser Anfrageschlüssel wurde schon für eine andere Nachricht verwendet. Verwenden Sie für eine neue Nachricht einen neuen Schlüssel.",
   "answer.reputation": "Fragen zur Absenderreputation, zu Blocklisten und zur Zustellung in den Posteingang beantwortet HostRepute: Es überwacht Ihre Domains und IP-Adressen und sagt Ihnen, was zu beheben ist. Fragen Sie mich zur Nutzung von ReputeCast oder zu dem, was Sie angehängt haben.",
-  "problem.confirmationClosed": "Über diesen Aufruf wurde schon entschieden, oder seine Antwort ist beendet. Es wurde nichts ausgeführt."
+  "problem.confirmationClosed": "Über diesen Aufruf wurde schon entschieden, oder seine Antwort ist beendet. Es wurde nichts ausgeführt.",
+  "notify.confirmationTitle": "Der Assistent wartet auf Sie",
+  "notify.confirmationBody": "{server} · {tool} wartet darauf, dass Sie den Aufruf erlauben oder ablehnen. Bis dahin wird nichts gesendet.",
+  "problem.model.disconnected": "Das Konto des Modells dieser Unterhaltung wurde getrennt, daher wurde nichts gesendet. Wer Integrationen verwalten darf, kann es unter Einstellungen › Integrationen · KI-Modelle wieder verbinden, oder Sie wählen ein anderes Modell für die Unterhaltung.",
+  "problem.model.disconnectedOwn": "Ihr eigenes Konto für das Modell dieser Unterhaltung wurde getrennt, daher wurde nichts gesendet. Verbinden Sie es unter Einstellungen › Integrationen · KI-Modelle wieder oder wählen Sie ein anderes Modell für die Unterhaltung.",
+  "problem.model.keyRejected": "{provider} hat den Schlüssel des Modells dieser Unterhaltung abgelehnt, daher wurde nichts gesendet. Wer Integrationen verwalten darf, kann ihn unter Einstellungen › Integrationen · KI-Modelle ersetzen, oder Sie wählen ein anderes Modell für die Unterhaltung.",
+  "problem.model.keyRejectedOwn": "{provider} hat Ihren eigenen Schlüssel abgelehnt, daher wurde nichts gesendet. Ersetzen Sie ihn unter Einstellungen › Integrationen · KI-Modelle oder wählen Sie ein anderes Modell für die Unterhaltung.",
+  "problem.model.toolsUnchecked": "Das Modell dieser Unterhaltung hat die Prüfung für Werkzeugaufrufe, die der Assistent braucht, nicht bestanden (sie läuft nach einem Schlüsselwechsel erneut), daher wurde nichts gesendet. Wer Integrationen verwalten darf, kann seine Werkzeuge unter Einstellungen › Integrationen · KI-Modelle prüfen, oder Sie wählen ein anderes Modell für die Unterhaltung.",
+  "problem.model.toolsUncheckedOwn": "Ihr eigenes Modell hat die Prüfung für Werkzeugaufrufe, die der Assistent braucht, nicht bestanden (sie läuft nach einem Schlüsselwechsel erneut), daher wurde nichts gesendet. Prüfen Sie seine Werkzeuge unter Einstellungen › Integrationen · KI-Modelle oder wählen Sie ein anderes Modell für die Unterhaltung.",
+  "problem.model.personalKeysOff": "Persönliche Schlüssel wurden in diesem Arbeitsbereich ausgeschaltet, daher kann diese Unterhaltung Ihr eigenes Modell nicht verwenden, und es wurde nichts gesendet. Wählen Sie ein Modell des Arbeitsbereichs für die Unterhaltung oder bitten Sie jemanden, der Integrationen verwalten darf, persönliche Schlüssel wieder einzuschalten."
 }

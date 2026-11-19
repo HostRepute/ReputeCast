@@ -77,7 +77,6 @@ export const m = defineMessages('assistant', {
   summaryMarker: 'Earlier messages are summarized',
   copy: 'Copy',
   copied: 'Copied',
-  copyFailed: 'Couldn’t copy. Select the code and copy it yourself.',
   // lang: the code block's language as the answer names it (liquid, sql).
   codeLabel: 'Code ({lang})',
   codeLabelPlain: 'Code',
@@ -88,7 +87,7 @@ export const m = defineMessages('assistant', {
   newTab: '(opens in a new tab)',
   // name: a tool the assistant called; unknown ones show their own name.
   tool: '{name, select, read_report {Read report} read_attached {Read attached} search_help {Searched help} describe_screen {Described the screen} suggest_link {Suggested a link} propose_edit {Proposed an edit} draft_agent_task {Drafted an agent task} subject_ideas {Subject ideas} rewrite {Rewrite} other {Called a tool}}',
-  toolFailed: '{code, select, not_available {not available to you} forbidden {not allowed} tool_limit {over the thread’s tool-call limit} not_found {not found} too_large {result too large} invalid_arguments {invalid arguments} report_unavailable {report not available} other {failed}}',
+  toolFailed: '{code, select, not_available {not available to you} no_longer_available {no longer available to you} forbidden {not allowed} tool_limit {over the thread’s tool-call limit} not_found {not found} too_large {result too large} invalid_arguments {invalid arguments} report_unavailable {report not available} other {failed}}',
   // s: seconds, one decimal ("0.3").
   seconds: '{s} s',
   // ms: milliseconds.
@@ -167,7 +166,8 @@ export const m = defineMessages('assistant', {
   personalCapBody: 'Your personal key used its monthly cap. Pick a workspace model, or wait for next month.',
   keyTitle: '{provider} rejected the key',
   keyBadge: 'Key rejected',
-  keyBody: '{provider} refused the key. Its models stop until the key is replaced. Other models still work.',
+  // own: yes when the thread's model is on the person's own key.
+  keyBody: '{own, select, yes {{provider} rejected your own key, so nothing was sent. Replace it in AI models, or switch model.} other {{provider} rejected the key, so its models stop until someone who can manage integrations replaces it. Other models still work.}}',
   replaceKey: 'Replace key',
   switchModel: 'Switch model',
   rateTitle: '{provider} is limiting requests',
@@ -199,6 +199,24 @@ export const m = defineMessages('assistant', {
   lostBody: 'Your role can no longer use AI features. The answer stopped before its next step; what was written stays readable.',
   modelGoneTitle: 'This thread’s model was removed',
   modelGoneBody: 'Pick another model for the thread, then send your message again.',
+  disconnectedTitle: 'The model’s account was disconnected',
+  disconnectedBadge: 'Disconnected',
+  disconnectedBody: '{own, select, yes {Your own {provider} account was disconnected, so nothing was sent. Connect it again in AI models, or switch model.} other {The {provider} account of this model was disconnected, so nothing was sent. Someone who can manage integrations can connect it again.}}',
+  // model: the model's name.
+  toolsTitle: '{model} hasn’t passed its tool check',
+  toolsBadge: 'Not checked',
+  toolsBody: '{own, select, yes {The assistant needs your own model to pass its tool check, so nothing was sent. Run it, or switch model.} other {The assistant needs a model that passed its tool check (it runs again after a key is replaced), so nothing was sent. Someone who can manage integrations can run it.}}',
+  runCheck: 'Run the tool check',
+  checkPassed: '{model} passed its tool check',
+  checkFailed: '{model} didn’t pass its tool check',
+  personalOffTitle: 'Personal keys are off',
+  personalOffBody: 'Personal keys were turned off in {workspace}, so this thread can’t use your own model and nothing was sent. Switch to a workspace model, or ask someone who can manage integrations to turn them on.',
+  notConfiguredTitle: 'The model isn’t set up',
+  notConfiguredBody: '{own, select, yes {There’s no key for your own {provider} model, so nothing was sent. Add it in AI models, or switch model.} other {No model account is connected, so nothing was sent. Someone who can manage integrations can connect one.}}',
+  openModels: 'Open AI models',
+  addKey: 'Add your key',
+  confirmExpiredTitle: 'The request expired',
+  confirmExpiredBody: 'The tool call waited 24 hours for your decision, so nothing was sent and the answer stopped. Retry sends your message again as a new message, with its own cost.',
   interruptedTitle: 'The answer was interrupted',
   interruptedBody: 'The server answering it stopped. What was written is kept; its cost stays unknown until a manager reconciles it. Retry sends a new request with its own cost.',
   failedTitle: 'The answer didn’t finish',
@@ -206,10 +224,8 @@ export const m = defineMessages('assistant', {
   // reason: the turn's reason code (provider_error, refused…).
   failedBody: 'It stopped ({reason}). What was written is kept. Retry sends a new request with its own cost.',
   retry: 'Retry',
-  closePanel: 'Close',
   loadFailed: 'The thread didn’t load',
   threadsFailed: 'Threads didn’t load',
-  modelsFailed: 'Models didn’t load',
   sendFailed: 'Your message wasn’t sent',
   stopFailed: 'The answer wasn’t stopped',
 
@@ -249,5 +265,4 @@ export const m = defineMessages('assistant', {
   deleteBody: 'Its messages and attached resources are deleted at once. Its usage stays in the AI activity log, without content.',
   deleted: 'Thread deleted',
   renamed: 'Thread renamed',
-  moreThreads: 'Show more threads',
 })

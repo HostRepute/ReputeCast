@@ -25,39 +25,78 @@ export function Sparkle({ size = 14, color = 'var(--accent)' }: { size?: number;
   )
 }
 
+/** A feature with its own model in the status: the AI features and the agent. */
+export type AssistFeature = AIStatus['features'][number]['key']
+
 /**
  * The assistant as the signed-in person sees it: whether they hold ai:use,
  * the model, and whether a feature can be asked for now. For one feature,
  * the state, model, prices, cap and use are that feature's own model's (the
- * person's own pick, or the workspace's), as its requests go.
+ * person's own pick, or the workspace's), as its requests go; `of` gives
+ * another feature's, from the same status (the composer's features each
+ * go to theirs). A feature the status doesn't list has the top level's.
  */
-export function useAssist(feature?: AIFeature) {
+export interface Assist {
+  can: boolean
+  status?: AIStatus
+  loading: boolean
+  ready: boolean
+  configured: boolean
+  model: string
+  provider: string
+  /** The feature's model is the person's own (their key, their cap). */
+  personal: boolean
+  featureOn: (f: AIFeature) => boolean
+  of: (f: AssistFeature) => Assist
+  refetch: () => Promise<unknown>
+}
+
+export function useAssist(feature?: AssistFeature): Assist {
   const can = useCan('ai:use')
   const q = useAIStatus()
   const data = can ? q.data : undefined
   const loading = can && q.isPending
   const refetch = q.refetch
-  return useMemo(() => {
-    const own = feature ? data?.features.find((x) => x.key === feature) : undefined
-    const status: AIStatus | undefined =
-      data && own
-        ? { ...data, state: own.state, provider: own.provider, providerName: own.providerName, model: own.model, modelName: own.modelName, prices: own.prices, cap: own.cap, usage: own.usage }
-        : data
-    return {
-      can,
-      status,
-      loading,
-      ready: status?.state === 'ready',
-      configured: Boolean(status && status.state !== 'not_configured'),
-      model: status?.modelName || status?.model || '',
-      provider: status?.providerName ?? '',
-      featureOn: (f: AIFeature) => Boolean(status?.features.find((x) => x.key === f && x.on && x.available)),
-      refetch,
-    }
-  }, [can, data, feature, loading, refetch])
+  return useMemo(() => assistView(can, data, loading, refetch, feature), [can, data, feature, loading, refetch])
 }
 
-export type Assist = ReturnType<typeof useAssist>
+function assistView(can: boolean, data: AIStatus | undefined, loading: boolean, refetch: () => Promise<unknown>, feature?: AssistFeature): Assist {
+  const own = feature ? data?.features.find((x) => x.key === feature) : undefined
+  const status: AIStatus | undefined =
+    data && own
+      ? {
+          ...data,
+          state: own.state,
+          provider: own.provider,
+          providerName: own.providerName,
+          model: own.model,
+          modelName: own.modelName,
+          prices: own.prices,
+          cap: own.cap,
+          usage: own.usage,
+          // Alt text alone is unavailable when its model reads no images.
+          imageInput: own.key === 'alt_text' ? own.available : data.imageInput,
+        }
+      : data
+  const others = new Map<AssistFeature, Assist>()
+  return {
+    can,
+    status,
+    loading,
+    ready: status?.state === 'ready',
+    configured: Boolean(status && status.state !== 'not_configured'),
+    model: status?.modelName || status?.model || '',
+    provider: status?.providerName ?? '',
+    personal: Boolean(own?.personal),
+    featureOn: (f: AIFeature) => Boolean(status?.features.find((x) => x.key === f && x.on && x.available)),
+    of: (f) => {
+      let a = others.get(f)
+      if (!a) others.set(f, (a = assistView(can, data, loading, refetch, f)))
+      return a
+    },
+    refetch,
+  }
+}
 
 export type SuggestError = {
   kind: 'not_configured' | 'feature_off' | 'cap' | 'key' | 'rate' | 'provider' | 'no_image' | 'demo' | 'error'

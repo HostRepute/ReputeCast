@@ -4,8 +4,12 @@
 // no authentication, a shared header secret, or OAuth per member; a sync
 // lists their tools, each of which waits for a manager to mark it
 // read-only, writes or blocked. A tool that changes after it was decided
-// on is off until a manager decides again. Every request goes through the
-// SSRF guard; secrets and tokens are sealed and never returned.
+// on is off until a manager decides again: each call lists the server's
+// tools first, in its own session, and servers without a person's sign-in
+// are synced every hour. A sign-in removed (disconnected, or its member
+// gone) has its refresh token revoked when the authorization server can.
+// Every request goes through the SSRF guard; secrets and tokens are
+// sealed and never returned.
 package mcpclient
 
 import (
@@ -540,10 +544,12 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 func (s *Service) save(ctx context.Context, q *store.Queries, srv store.McpServer) error {
 	return q.MCPServerSave(ctx, store.MCPServerSaveParams{Name: srv.Name, Enabled: srv.Enabled, AccessRoles: srv.AccessRoles, HeaderSealed: srv.HeaderSealed,
 		ClientID: srv.ClientID, ClientSecretSealed: srv.ClientSecretSealed, ClientRegistered: srv.ClientRegistered, Issuer: srv.Issuer,
-		AuthorizationEndpoint: srv.AuthorizationEndpoint, TokenEndpoint: srv.TokenEndpoint, Scopes: srv.Scopes, Now: s.now(), WorkspaceID: srv.WorkspaceID, ID: srv.ID})
+		AuthorizationEndpoint: srv.AuthorizationEndpoint, TokenEndpoint: srv.TokenEndpoint, Scopes: srv.Scopes, Resource: srv.Resource,
+		RevocationEndpoint: srv.RevocationEndpoint, Now: s.now(), WorkspaceID: srv.WorkspaceID, ID: srv.ID})
 }
 
-// Delete removes a server, its tools and every member's sign-in to it.
+// Delete removes a server, its tools and every member's sign-in to it,
+// queueing their refresh tokens for revocation in the same transaction.
 func (s *Service) Delete(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) error {
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -554,9 +560,16 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return api.MapError(err, "MCP server")
 		}
+		// Its members' sign-ins go with it; their refresh tokens are revoked
+		// by the minute's job.
+		queued, err := q.MCPServerRevocationsQueue(ctx, store.MCPServerRevocationsQueueParams{WorkspaceID: ws.ID, ID: id})
+		if err != nil {
+			return err
+		}
 		if _, err := q.MCPServerDelete(ctx, store.MCPServerDeleteParams{WorkspaceID: ws.ID, ID: id}); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "mcp_server.deleted", TargetType: "mcp_server", TargetID: id.String(), TargetName: srv.Name})
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "mcp_server.deleted", TargetType: "mcp_server", TargetID: id.String(), TargetName: srv.Name,
+			Metadata: map[string]any{"refresh_tokens_queued": queued}})
 	})
 }

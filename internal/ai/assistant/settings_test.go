@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/ai/assistant"
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/brandkit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -71,14 +72,23 @@ func TestAssistantThreadLedger(t *testing.T) {
 	ctx := context.Background()
 	reserve := func(th assistant.AIThread) (uuid.UUID, error) {
 		id := uuid.Must(uuid.NewV7())
+		// As a claim reserves: under the configuration lock, with the
+		// person and the model read under it.
 		return id, db.Tx(ctx, f.env.App.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
+			if err := s.LockAssistantConfig(ctx, q, f.ws.ID); err != nil {
+				return err
+			}
+			fresh, err := brandkit.VoiceActor(ctx, q, &f.ws, person(f.ws, f.member))
+			if err != nil {
+				return err
+			}
 			m, err := s.ResolveAssistantModel(ctx, q, f.ws.ID, f.member, &th.Model.ID)
 			if err != nil {
 				return err
 			}
 			req := llm.Request{MaxTokens: 8000, Messages: []llm.Message{{Role: "user", Parts: []llm.Part{{Text: "Why did opens fall?"}}}}}
-			return s.ReserveAssistant(ctx, q, &f.ws, person(f.ws, f.member), m, &req,
+			return s.ReserveAssistant(ctx, q, &f.ws, fresh, m, &req,
 				ai.AssistantLedger{ThreadID: th.ID, TokenLimit: th.Limits.Tokens, CostLimitMicros: th.Limits.CostMicros}, id)
 		})
 	}

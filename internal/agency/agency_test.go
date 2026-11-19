@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/mailbox"
 )
@@ -408,7 +410,22 @@ func TestAssignmentsAndTheEscalationGuard(t *testing.T) {
 	if len(keys.Keys) != 1 || keys.Keys[0].Name != "Ella's export key" {
 		t.Fatalf("keys: %+v", keys)
 	}
+	var ellaUser uuid.UUID
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT id FROM users WHERE email = 'ella@northwind.studio'`).Scan(&ellaUser); err != nil {
+		t.Fatal(err)
+	}
+	contosoID := uuid.MustParse(contoso)
+	env.SeedAssistantThread(contosoID, ellaUser)
+	env.SeedMCPSignIn(contosoID, ellaUser)
 	p["tomas"].Do("POST", "/agency/assignments/remove", map[string]any{"staffId": ella, "workspaceId": contoso, "revokeKeys": true}).MustStatus(t, 204)
+	// Their assistant threads and MCP sign-ins there go with the assignment.
+	if threads, signIns := env.MemberLeftovers(contosoID, ellaUser); threads != 0 || signIns != 0 {
+		t.Fatalf("after the assignment's removal: %d threads, %d MCP sign-ins", threads, signIns)
+	}
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'agency.unassigned' AND workspace_id = $1 AND (after->>'assistant_threads_removed')::int = 1
+		AND (after->>'mcp_sign_ins_removed')::int = 1`, contoso); n != 1 {
+		t.Fatal("the removal doesn't say the threads and sign-ins went")
+	}
 	if n := count(t, env, `SELECT count(*) FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE u.email = 'ella@northwind.studio' AND m.workspace_id = $1`, contoso); n != 0 {
 		t.Fatal("the membership is gone")
 	}

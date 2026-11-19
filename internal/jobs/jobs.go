@@ -85,7 +85,12 @@ func NewClient(pool *pgxpool.Pool, reg *Registry, o Options) (*Client, error) {
 			QueueEvents:      {MaxWorkers: max(c/2, 2)},
 			QueueSystem:      {MaxWorkers: max(c/5, 2)},
 			QueueMaintenance: {MaxWorkers: 2},
-			QueueAssistant:   {MaxWorkers: max(c/2, 10)},
+			// A turn's job is the wait before the person's answer begins:
+			// River notifies one insert a queue per client cooldown (100 ms),
+			// so turns sent together would otherwise wait for the next poll.
+			// Polling this queue every 20 ms costs one indexed query each
+			// time (50 a second a worker process, idle or not).
+			QueueAssistant: {MaxWorkers: max(c/2, 10), FetchCooldown: 10 * time.Millisecond, FetchPollInterval: 20 * time.Millisecond},
 		}
 		cfg.PeriodicJobs = reg.Periodic
 	}

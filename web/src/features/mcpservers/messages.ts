@@ -169,7 +169,7 @@ export const m = defineMessages('mcpservers', {
   // uri: the callback address to register with the server's OAuth app.
   redirectHint: 'Redirect address to register: {uri}',
   fieldWho: 'Who can use it',
-  whoAll: 'Everyone with Use AI features',
+  whoAll: 'Everyone with “Use the AI assistant”',
   whoManagers: 'Owners and Admins',
   // roles: role names, as a list.
   whoCustom: 'Only {roles}',

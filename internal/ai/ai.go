@@ -267,11 +267,16 @@ func (s *Service) binding(ctx context.Context, q *store.Queries, ws uuid.UUID, m
 	return &connection{row}, nil
 }
 
-// lockSettings takes the AI configuration lock: the workspace's settings
-// row, made with the default cap when there is none yet. Every change to
-// the settings, accounts, models and defaults takes it first, and so does
-// every reservation (before the budget lock).
+// lockSettings takes the AI configuration lock: the lock manager's lock
+// (AIConfigLock), then the workspace's settings row, made with the default
+// cap when there is none yet. Every change to the settings, accounts,
+// models and defaults takes it first, and so does every reservation
+// (before the budget lock) but an assistant turn's, which takes it shared
+// (LockAssistantConfig).
 func lockSettings(ctx context.Context, q *store.Queries, ws uuid.UUID) (store.AiWorkspaceSetting, error) {
+	if err := q.AIConfigLock(ctx, ws); err != nil {
+		return store.AiWorkspaceSetting{}, err
+	}
 	row, err := q.AIWorkspaceSettingsLock(ctx, ws)
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return row, err
@@ -359,7 +364,11 @@ func (s *Service) provider(c *connection, feature string) (llm.Provider, error) 
 
 // helpers are the members who can connect or change the model.
 func (s *Service) helpers(ctx context.Context, ws uuid.UUID) []string {
-	return access.Helpers(ctx, s.Q, ws, authz.IntegrationsManage)
+	return helpersIn(ctx, s.Q, ws)
+}
+
+func helpersIn(ctx context.Context, q *store.Queries, ws uuid.UUID) []string {
+	return access.Helpers(ctx, q, ws, authz.IntegrationsManage)
 }
 
 // month returns the start of the current month and of the next one, in

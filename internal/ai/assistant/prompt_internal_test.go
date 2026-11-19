@@ -40,15 +40,15 @@ func TestReplayStripsThoughtsForAnotherModel(t *testing.T) {
 	c := messageContent{Text: "Answer", Replay: &llm.Message{Role: "assistant", Parts: []llm.Part{
 		{Text: "thinking", Thought: true}, {Text: "Answer", ThoughtSignature: "sig"}, {ToolCall: &llm.ToolCall{ID: "1", Name: "search_help"}}}}}
 	s := &Service{}
-	same, _ := s.replay(m, c, "tool", writer)
+	same, _ := s.replay(m, c, "tool", writer, nil)
 	if len(same.Parts) != 3 || same.Parts[1].ThoughtSignature != "sig" {
 		t.Fatalf("to the same model: %+v", same.Parts)
 	}
-	another, _ := s.replay(m, c, "tool", other)
+	another, _ := s.replay(m, c, "tool", other, nil)
 	if len(another.Parts) != 2 || another.Parts[0].Thought || another.Parts[0].ThoughtSignature != "" || another.Parts[1].ToolCall == nil {
 		t.Fatalf("to another model: %+v", another.Parts)
 	}
-	unanswered, _ := s.replay(m, c, "user", writer)
+	unanswered, _ := s.replay(m, c, "user", writer, nil)
 	if len(unanswered.Parts) != 2 || unanswered.Parts[1].ToolCall != nil {
 		t.Fatalf("calls without their results: %+v", unanswered.Parts)
 	}

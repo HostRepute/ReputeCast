@@ -47,7 +47,7 @@ export function TranslateMenuItems({ data, current, close }: { data: Langs; curr
   const ca = useComposerAssist()
   const t = useT()
   if (!ca || !ca.assist.can || !data.canEdit) return null
-  const a = ca.assist
+  const a = ca.assist.of('translate')
   const blocked = translateBlocked(t, a)
   const onSource = current === data.source
   const targets: Lang[] = onSource
@@ -87,7 +87,7 @@ export function useAddLanguageAI(): { title: string; detail: string; disabledRea
   const ca = useComposerAssist()
   const t = useT()
   if (!ca || !ca.assist.can) return undefined
-  const a = ca.assist
+  const a = ca.assist.of('translate')
   return {
     title: t(ms.translateOption),
     detail: t(ms.translateOptionSub, { model: a.model || a.provider }),
@@ -101,7 +101,7 @@ export function CompareTranslateButton({ language, name }: { language: string; n
   const ca = useComposerAssist()
   const t = useT()
   if (!ca || !ca.assist.can) return null
-  const blocked = translateBlocked(t, ca.assist)
+  const blocked = translateBlocked(t, ca.assist.of('translate'))
   return (
     <Button icon={undefined} className="ai-assist" disabledReason={blocked} onClick={() => ca.translate(language)}>
       <Sparkle />
@@ -260,10 +260,11 @@ export function AITranslateView() {
     leave(keys.size ? lang : undefined)
   }
   const choices = (data?.versions ?? []).filter((v) => v.status !== 'source' && v.offered)
-  const prices = ca.assist.status?.prices ?? { input: 0, output: 0 }
+  const own = ca.assist.of('translate')
+  const prices = own.status?.prices ?? { input: 0, output: 0 }
   const sentLine = tr
     ? sentText(t, ms.sentTranslate, tr.sent, { source, language: name })
-    : sendingText(t, ms.sentTranslate, ca.assist.status, estimateMicros(4000, 1400, prices), { source, language: name })
+    : sendingText(t, ms.sentTranslate, own.status, estimateMicros(4000, 1400, prices), { source, language: name })
   const rows: ReactNode[] = []
   if (tr) {
     const row = (k: string, label: ReactNode, badges: ReactNode, src: string, suggestion: ReactNode, editor: ReactNode) => {
@@ -366,7 +367,7 @@ export function AITranslateView() {
             {tr && !tr.refusal ? (
               <span className="ai-trby">
                 <Sparkle />
-                {t(ms.translatedBy, { model: ca.assist.model, count: tr.blocks.length })}
+                {t(ms.translatedBy, { model: own.model, count: tr.blocks.length })}
               </span>
             ) : null}
             <span className="ml-auto flex flex-wrap gap-2">
@@ -404,7 +405,7 @@ export function AITranslateView() {
             </div>
           ) : tr?.refusal ? (
             <div className="pad flex flex-col gap-2">
-              <Refusal model={ca.assist.model} text={tr.refusal} />
+              <Refusal model={own.model} text={tr.refusal} />
             </div>
           ) : tr ? (
             <>
@@ -445,7 +446,7 @@ export function AITranslateView() {
             </>
           ) : null}
           {/* An error card says what happened instead, as the other cards do. */}
-          {ca.assist.status && s.phase !== 'error' ? <div className="ai-sug-f">{sentLine}</div> : null}
+          {own.status && s.phase !== 'error' ? <div className="ai-sug-f">{sentLine}</div> : null}
         </section>
       </div>
     </div>

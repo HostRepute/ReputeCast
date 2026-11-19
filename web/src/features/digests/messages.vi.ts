@@ -15,7 +15,6 @@ export default translate(m, {
     '{status, select, collecting {Đang thu thập} preparing {Đang chuẩn bị} prepared {Đã chuẩn bị} waiting {Chờ phê duyệt} held {Tạm giữ} draft {Bản nháp sẵn sàng} sending {Đang gửi} sent {Đã gửi} skipped {Đã bỏ qua} not_sent {Không được gửi} other {Đang thu thập}}',
   feedUnreachableBadge: 'Không đọc được nguồn cấp',
   recurringDigest: 'Bản tin định kỳ',
-  recurringDigestIssue: 'Số của bản tin định kỳ',
   digestBadge: 'Bản tin định kỳ',
   digestBadgeLabel: 'Số của bản tin định kỳ {name}',
   issuePrepared: 'chuẩn bị lúc {time}',
@@ -121,14 +120,12 @@ export default translate(m, {
   postsLabel: 'Bài viết hiện có',
   postsFit: 'chứa được tối đa {count}',
   recipientsLabel: 'Người nhận',
-  recipientsAbout: 'ước tính · đếm lại lúc {time}',
   recipientsLive: 'ước tính · vừa đếm',
   preparedLabel: 'Chuẩn bị',
   preparedBefore: '{hours, plural, other {# giờ trước giờ gửi}}',
   subjectAsItStands: 'Tiêu đề hiện tại',
   subjectNoPosts: 'Chưa có bài viết nào: tiêu đề sẽ được viết khi có bài viết đầu tiên.',
   postsInIssue: 'Các bài viết đã có trong số này',
-  postsInPrepared: 'Bài viết trong số này',
   noPostsYet: 'Chưa có bài viết mới. Số này sẽ bị bỏ qua nếu đến {time} vẫn không có gì mới.',
   needsApproval: 'Cần phê duyệt',
   needsApprovalBody:
@@ -138,7 +135,6 @@ export default translate(m, {
   ruleWarming: 'tuyến có nhà cung cấp Đang khởi động cho đến {date}',
   ruleWarmingOpen: 'tuyến có nhà cung cấp Đang khởi động',
   ruleOther: '{label}',
-  noApprovalNeeded: 'Không quy tắc phê duyệt nào khớp với bản tin định kỳ này: các số được gửi đúng giờ khi đạt Độ sẵn sàng gửi.',
   skipIssue: 'Bỏ qua số này',
   approvalRules: 'Quy tắc phê duyệt',
   skipTitle: 'Bỏ qua số #{number}?',
@@ -190,7 +186,6 @@ export default translate(m, {
 
   // Sending
   sendingSub: '{date}, {time} · {name} đã phê duyệt lúc {at}',
-  sendingSubNoApproval: '{date}, {time} · bắt đầu lúc {at}',
   openLive: 'Mở theo dõi trực tiếp',
 
   // Draft mode
@@ -203,7 +198,6 @@ export default translate(m, {
   openDraft: 'Mở bản nháp',
 
   // Just turned on
-  justOnSub: '{date}, {time} · bị bỏ qua nếu đến {prepare} không có gì mới',
   justOnBody: 'Chưa có gì mới kể từ khi được bật. Số đầu tiên sẽ được gửi sau bài viết tiếp theo.',
   turnedOnLabel: 'Đã bật',
   turnedOnValue: '{name} bật vào {date}, {time}',
@@ -230,7 +224,6 @@ export default translate(m, {
   pausedFeedSkip: '{date} ({kind, select, invalid {không phải nguồn cấp} other {không truy cập được}})',
   checkFeed: 'Kiểm tra nguồn cấp',
   ownerLine: 'Người phụ trách {name}',
-  asYou: 'Với tư cách {name}, {role}',
 
   // Turn on dialog
   turnOnTitle: 'Bật {name}?',
@@ -299,7 +292,6 @@ export default translate(m, {
   // Issues
   issues: 'Các số',
   issuesSub: 'Mỗi số là một chiến dịch riêng, có báo cáo so sánh với số trước. Chỉ những số đã gửi mới được đánh số.',
-  issuesSubShort: 'Mỗi số là một chiến dịch riêng, có báo cáo.',
   issuesLabel: 'Các số của {name}',
   colIssue: 'Số',
   colPosts: 'Bài viết',
@@ -307,7 +299,6 @@ export default translate(m, {
   colHumanOpens: 'Lượt mở bởi người đọc',
   colClicks: 'Lượt nhấp',
   colApprovedBy: 'Người phê duyệt',
-  issueDash: '–',
   postsDelta: '{delta} so với #{number}',
   firstIssue: 'số đầu tiên',
   pts: '{delta} điểm %',

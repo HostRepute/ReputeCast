@@ -149,7 +149,7 @@ type AIMemberRole struct {
 	Role string `json:"role"`
 }
 
-// AISettings is Settings › Integrations › AI assistant.
+// AISettings is Settings › Integrations › AI models.
 type AISettings struct {
 	Connected bool `json:"connected"`
 	// Connection is the model, also while disconnected (Disconnected says

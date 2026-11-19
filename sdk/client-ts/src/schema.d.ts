@@ -151,7 +151,7 @@ export interface paths {
         };
         /**
          * The AI assistant's settings: the model, the cap, this month's usage and the features
-         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+         * @description The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
          */
         get: operations["get-ai-settings"];
         put?: never;
@@ -13168,9 +13168,12 @@ export interface components {
             capSetBy?: string;
             /** Format: double */
             capUsd: number;
+            catalog: components["schemas"]["AIProviderEntry"][];
             choices: components["schemas"]["AIFeatureDefault"][];
             enabled: boolean;
             people: components["schemas"]["AIPersonalPerson"][];
+            /** Format: date-time */
+            priceListDate: string;
             usage: components["schemas"]["AIPersonalUsageView"];
         };
         AIPersonalUsageView: {

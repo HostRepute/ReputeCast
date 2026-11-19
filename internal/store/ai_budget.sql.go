@@ -117,28 +117,6 @@ func (q *Queries) AIBudgetLock(ctx context.Context, arg AIBudgetLockParams) (AiB
 	return i, err
 }
 
-const aIBudgetMonthly = `-- name: AIBudgetMonthly :one
-SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
-       coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
-       count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain
-FROM ai_budget_reservations WHERE workspace_id = $1 AND state <> 'settled' AND NOT personal
-`
-
-type AIBudgetMonthlyRow struct {
-	Tokens     int64 `json:"tokens"`
-	CostMicros int64 `json:"costMicros"`
-	Uncertain  int64 `json:"uncertain"`
-}
-
-// Settled reservations are already in ai_requests. Old uncertain requests
-// stay reserved across month rollover rather than becoming free to retry.
-func (q *Queries) AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (AIBudgetMonthlyRow, error) {
-	row := q.db.QueryRow(ctx, aIBudgetMonthly, workspaceID)
-	var i AIBudgetMonthlyRow
-	err := row.Scan(&i.Tokens, &i.CostMicros, &i.Uncertain)
-	return i, err
-}
-
 const aIBudgetPending = `-- name: AIBudgetPending :many
 SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal, thread_id FROM ai_budget_reservations
 WHERE workspace_id = $1 AND state <> 'settled' AND NOT personal
@@ -204,30 +182,6 @@ func (q *Queries) AIBudgetPersonLock(ctx context.Context, arg AIBudgetPersonLock
 	return err
 }
 
-const aIBudgetPersonal = `-- name: AIBudgetPersonal :one
-SELECT coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
-       count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain
-FROM ai_budget_reservations WHERE workspace_id = $1 AND user_id = $2 AND state <> 'settled' AND personal
-`
-
-type AIBudgetPersonalParams struct {
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	UserID      *uuid.UUID `json:"userId"`
-}
-
-type AIBudgetPersonalRow struct {
-	CostMicros int64 `json:"costMicros"`
-	Uncertain  int64 `json:"uncertain"`
-}
-
-// What a person's own requests in flight hold of their cap.
-func (q *Queries) AIBudgetPersonal(ctx context.Context, arg AIBudgetPersonalParams) (AIBudgetPersonalRow, error) {
-	row := q.db.QueryRow(ctx, aIBudgetPersonal, arg.WorkspaceID, arg.UserID)
-	var i AIBudgetPersonalRow
-	err := row.Scan(&i.CostMicros, &i.Uncertain)
-	return i, err
-}
-
 const aIBudgetPersonalPending = `-- name: AIBudgetPersonalPending :many
 SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal, thread_id FROM ai_budget_reservations
 WHERE workspace_id = $1 AND user_id = $2 AND state <> 'settled' AND personal
@@ -282,15 +236,58 @@ func (q *Queries) AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPerso
 }
 
 const aIBudgetPurge = `-- name: AIBudgetPurge :execrows
-DELETE FROM ai_budget_reservations WHERE state = 'settled' AND created_at < $1
+DELETE FROM ai_budget_reservations WHERE state = 'settled' AND created_at < $1 AND thread_id IS NULL
 `
 
+// Settled reservations of the 90-day activity log. An assistant thread's
+// stay while the thread does (its activity keeps it open past 90 days):
+// they are its cumulative use, which its lifetime ceilings count. Deleting
+// the thread clears thread_id.
 func (q *Queries) AIBudgetPurge(ctx context.Context, before time.Time) (int64, error) {
 	result, err := q.db.Exec(ctx, aIBudgetPurge, before)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const aIBudgetReservation = `-- name: AIBudgetReservation :one
+SELECT id, workspace_id, user_id, run_id, provider, model, feature, pricing_revision, input_price, output_price, state, input_tokens, output_tokens, cost_micros, created_at, settled_at, account_id, model_id, personal, thread_id FROM ai_budget_reservations WHERE id = $1 AND workspace_id = $2
+`
+
+type AIBudgetReservationParams struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// A reservation as accounting first reads it, without its lock: whose
+// budget it is in, what it holds and at which prices never change.
+func (q *Queries) AIBudgetReservation(ctx context.Context, arg AIBudgetReservationParams) (AiBudgetReservation, error) {
+	row := q.db.QueryRow(ctx, aIBudgetReservation, arg.ID, arg.WorkspaceID)
+	var i AiBudgetReservation
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.UserID,
+		&i.RunID,
+		&i.Provider,
+		&i.Model,
+		&i.Feature,
+		&i.PricingRevision,
+		&i.InputPrice,
+		&i.OutputPrice,
+		&i.State,
+		&i.InputTokens,
+		&i.OutputTokens,
+		&i.CostMicros,
+		&i.CreatedAt,
+		&i.SettledAt,
+		&i.AccountID,
+		&i.ModelID,
+		&i.Personal,
+		&i.ThreadID,
+	)
+	return i, err
 }
 
 const aIBudgetRun = `-- name: AIBudgetRun :one
@@ -415,9 +412,9 @@ const aIBudgetWorkspaceLock = `-- name: AIBudgetWorkspaceLock :exec
 SELECT pg_advisory_xact_lock(hashtextextended('ai_budget:' || ($1::uuid)::text, 0))
 `
 
-// The workspace budget's lock, across all its accounts and models. It is
-// taken after the AI configuration lock (AIWorkspaceSettingsLock), never
-// before; accounting needs only this one.
+// The workspace budget's lock, across all its accounts and models: every
+// reservation takes it, after the AI configuration lock, never before.
+// Accounting takes only this one, and only to settle above a reservation.
 func (q *Queries) AIBudgetWorkspaceLock(ctx context.Context, workspaceID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, aIBudgetWorkspaceLock, workspaceID)
 	return err

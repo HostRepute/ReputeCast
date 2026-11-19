@@ -77,6 +77,13 @@ export async function deleteThread(slug: string, thread: string) {
   await http.DELETE(`${base}/threads/{thread}`, { params: { path: { workspace: slug, thread } } })
 }
 
+/** Runs a model's tool-calling check again (its own key's, or the workspace's); true when it passed. */
+export async function testModelTools(slug: string, model: AssistantModel): Promise<boolean> {
+  const p = { params: { path: { workspace: slug, account: model.accountId, model: model.id } } }
+  const res = model.personal ? await http.POST('/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/test-tools', p) : await http.POST('/api/v1/workspaces/{workspace}/ai/accounts/{account}/models/{model}/test-tools', p)
+  return res.data?.state === 'supported'
+}
+
 export async function attachContext(slug: string, thread: string, body: Schemas['AIThreadContextInput']) {
   const { data } = await http.POST(`${base}/threads/{thread}/contexts`, { params: { path: { workspace: slug, thread } }, body })
   return data!

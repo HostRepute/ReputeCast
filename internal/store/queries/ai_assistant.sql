@@ -60,6 +60,21 @@ SELECT * FROM ai_assistant_contexts WHERE thread_id = @thread_id ORDER BY shared
 -- name: AIAssistantContextDelete :one
 DELETE FROM ai_assistant_contexts WHERE thread_id = @thread_id AND id = @id RETURNING kind, target_id;
 
+-- name: AIAssistantThreadsOfModelsLock :many
+-- Removing models (or their account) first locks the assistant threads
+-- whose rows their removal sets to NULL (the threads', or their turns'):
+-- in the threads' lock order, before the model rows. A turn writing its
+-- thread meanwhile finishes first; otherwise its foreign key check would
+-- wait for the model row the removal holds while the removal waits for
+-- the thread.
+WITH m AS (
+    SELECT id FROM ai_models WHERE workspace_id = @workspace_id AND (id = sqlc.narg(model_id)::uuid OR account_id = sqlc.narg(account_id)::uuid)
+)
+SELECT h.id FROM ai_assistant_threads h
+WHERE h.workspace_id = @workspace_id AND (h.model_id IN (SELECT id FROM m)
+   OR EXISTS (SELECT 1 FROM ai_assistant_turns t WHERE t.thread_id = h.id AND t.model_id IN (SELECT id FROM m)))
+ORDER BY h.id FOR UPDATE OF h;
+
 -- name: AIAssistantThreadLockByID :one
 -- A thread as its turns' worker and the sweep lock it: the owner's lock,
 -- without naming the owner (the worker is nobody's session).
@@ -70,18 +85,52 @@ SELECT * FROM ai_assistant_threads WHERE workspace_id = @workspace_id AND id = @
 -- numbered without gaps, in commit order.
 UPDATE ai_assistant_threads SET event_seq = event_seq + 1 WHERE id = @id RETURNING event_seq;
 
--- name: AIAssistantEventInsert :exec
+-- name: AIAssistantDeltaThreadsLock :many
+-- The threads of a group of answers' delta batches, locked in the threads'
+-- lock order. A thread another transaction holds (Stop, the sweep, a
+-- removal, another process) is skipped: its batch waits for the next
+-- group, and a group never waits for a lock.
+SELECT id, workspace_id FROM ai_assistant_threads WHERE id = ANY(@ids::uuid[]) ORDER BY id FOR UPDATE SKIP LOCKED;
+
+-- name: AIAssistantTurnFences :many
+-- Turns' versions and states (the group's fences, authoritative for the
+-- threads it locked).
+SELECT id, version, state FROM ai_assistant_turns WHERE id = ANY(@ids::uuid[]);
+
+-- name: AIAssistantDeltaSeqs :many
+-- A group's event numbers: n more for each thread, which the caller holds
+-- locked; returns each thread's last.
+UPDATE ai_assistant_threads h SET event_seq = h.event_seq + c.n
+FROM (SELECT unnest(@ids::uuid[]) AS id, unnest(@ns::bigint[]) AS n) AS c
+WHERE h.id = c.id
+RETURNING h.id, h.event_seq;
+
+-- name: AIAssistantDeltasInsert :exec
+-- A group's delta events, numbered by the caller under their threads'
+-- locks.
 INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
-VALUES (@thread_id, @seq, sqlc.narg(turn_id), @kind, @payload_sealed, @created_at);
+SELECT d.thread_id, d.seq, d.turn_id, 'delta', d.payload, d.created_at
+FROM (SELECT unnest(@thread_ids::uuid[]) AS thread_id, unnest(@seqs::bigint[]) AS seq, unnest(@turn_ids::uuid[]) AS turn_id,
+    unnest(@payloads::bytea[]) AS payload, unnest(@created_ats::timestamptz[]) AS created_at) AS d;
 
 -- name: AIAssistantNotify :exec
--- Wakes the streams of a thread when the transaction commits. The payload
--- is "thread:seq" only: readers read the events themselves.
+-- Wakes the streams of the threads a payload names ("thread:seq" pairs,
+-- comma-separated) once the transaction commits.
 SELECT pg_notify('ai_assistant', @payload::text);
+
+-- name: AIAssistantEventInsert :exec
+-- Adds an event and wakes the thread's streams when the transaction
+-- commits. The notification's payload is "thread:seq" only: readers read
+-- the events themselves.
+WITH e AS (
+    INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
+    VALUES (@thread_id, @seq, sqlc.narg(turn_id), @kind, @payload_sealed, @created_at)
+    RETURNING thread_id, seq)
+SELECT pg_notify('ai_assistant', e.thread_id::text || ':' || e.seq::text) FROM e;
 
 -- name: AIAssistantEvents :many
 -- A thread's events after a stream's cursor, in order.
-SELECT seq, turn_id, kind, payload_sealed FROM ai_assistant_events
+SELECT seq, turn_id, kind, payload_sealed, created_at FROM ai_assistant_events
 WHERE thread_id = @thread_id AND seq > @after ORDER BY seq LIMIT @lim;
 
 -- name: AIAssistantTurnDeltas :many
@@ -145,6 +194,12 @@ UPDATE ai_assistant_steps SET state = @state, updated_at = @now WHERE id = @id;
 -- sweep's: answering without a live slot is a worker that died.
 DELETE FROM ai_assistant_slots WHERE workspace_id = @workspace_id AND expires_at <= @now;
 
+-- name: AIAssistantSlotsTaken :one
+-- The workspace's and the person's slots whose lease holds: a turn that
+-- would find none free waits without trying.
+SELECT count(*)::int AS workspace, (count(*) FILTER (WHERE user_id = @user_id))::int AS person
+FROM ai_assistant_slots WHERE workspace_id = @workspace_id AND expires_at > @now;
+
 -- name: AIAssistantSlotClaim :one
 -- A turn's slot: the thread's only one, one of the person's per_person and
 -- one of the workspace's per_workspace. None free: no row.
@@ -184,10 +239,28 @@ ORDER BY t.created_at LIMIT 100;
 -- One more of the thread's tool calls, under its lock.
 UPDATE ai_assistant_threads SET tool_calls = tool_calls + 1 WHERE id = @id;
 
--- name: AIAssistantThreadsRemove :execrows
+-- name: AIAssistantThreadsRemove :one
 -- A person left the workspace or was removed from it: their threads there
--- go, with all their content. Deactivation keeps them.
-DELETE FROM ai_assistant_threads WHERE workspace_id = @workspace_id AND user_id = @user_id;
+-- go, with all their content and the notices of calls waiting in them.
+-- Deactivation keeps them.
+WITH gone AS (
+    DELETE FROM ai_assistant_threads h WHERE h.workspace_id = @workspace_id AND h.user_id = @user_id RETURNING h.id
+), notices AS (
+    DELETE FROM notifications n WHERE n.user_id = @user_id AND n.workspace_id = @workspace_id AND n.kind = 'ai_assistant_confirmation' RETURNING 1
+)
+SELECT count(*) FROM gone;
+
+-- name: AIAssistantConfirmationNoticesRemove :exec
+-- The notice of a call waiting in a thread goes once the call was decided,
+-- stopped or expired, or the thread went (a thread has one waiting call at
+-- most).
+DELETE FROM notifications WHERE user_id = @user_id AND kind = 'ai_assistant_confirmation' AND data->>'thread_id' = @thread_id::text;
+
+-- name: AIAssistantConfirmationsExpiring :many
+-- Calls waiting for their owner since before @before: they expire.
+SELECT c.id, c.thread_id, h.workspace_id FROM ai_assistant_confirmations c JOIN ai_assistant_threads h ON h.id = c.thread_id
+WHERE c.state = 'pending' AND c.created_at < @before
+ORDER BY c.created_at, c.id LIMIT 100;
 
 -- name: AIAssistantEventsPurge :execrows
 -- Stream events 24 hours after their turn ended.

@@ -36,7 +36,7 @@ export function IdeasButton() {
   const t = useT()
   const input = useIdeasInput()
   if (!ca || !ca.assist.can || !c.canEdit || c.kind === 'transactional') return null
-  const a = ca.assist
+  const a = ca.assist.of('subject_ideas')
   const off = a.configured && !a.featureOn('subject_ideas')
   const button = (
     <Button
@@ -114,17 +114,18 @@ export function IdeasPanel() {
   const panel = ca.panel?.kind === 'ideas' ? ca.panel : null
   const language = langName(data?.language ?? versionLanguage(c.campaign) ?? c.campaign.sourceLanguage ?? 'en')
   const chars = panel ? textLength(panel.input.mjml) : 0
-  const prices = ca.assist.status?.prices ?? { input: 0, output: 0 }
+  const ideasAssist = ca.assist.of('subject_ideas')
+  const prices = ideasAssist.status?.prices ?? { input: 0, output: 0 }
   const sentLine =
     s.phase === 'done' && data
       ? sentText(t, ms.sentSubjectIdeas, data.sent, { count: data.sent.characters, language })
-      : sendingText(t, ms.sentSubjectIdeas, ca.assist.status, estimateMicros(chars, 300, prices), { count: chars, language })
+      : sendingText(t, ms.sentSubjectIdeas, ideasAssist.status, estimateMicros(chars, 300, prices), { count: chars, language })
   return (
     <aside className="cpanel right ai-panel" aria-label={t(ms.ideasTitle)}>
       <div className="ai-panel-h">
         <Sparkle />
         <span className="ai-sug-t">{t(ms.ideasTitle)}</span>
-        {ca.assist.model ? <span className="ai-sug-m">{t(m.cardModel, { model: ca.assist.model })}</span> : null}
+        {ideasAssist.model ? <span className="ai-sug-m">{t(m.cardModel, { model: ideasAssist.model })}</span> : null}
         <button type="button" className="ai-sug-x" aria-label={t(ms.closeSuggestion)} onClick={close}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
             <path d="M4 4l8 8M12 4l-8 8" />
@@ -141,7 +142,7 @@ export function IdeasPanel() {
         ) : s.phase === 'error' ? (
           <AINote tone={s.error.kind === 'rate' ? 'warn' : 'bad'}>{s.error.message}</AINote>
         ) : data?.refusal ? (
-          <Refusal model={ca.assist.model} text={data.refusal} />
+          <Refusal model={ideasAssist.model} text={data.refusal} />
         ) : data && !data.ideas.length ? (
           <span className="k">{t(ms.ideasNone)}</span>
         ) : data ? (
@@ -190,7 +191,7 @@ export function IdeasPanel() {
           </>
         )}
       </div>
-      {ca.assist.status && s.phase !== 'error' ? <div className="ai-panel-f">{sentLine}</div> : null}
+      {ideasAssist.status && s.phase !== 'error' ? <div className="ai-panel-f">{sentLine}</div> : null}
     </aside>
   )
 }

@@ -171,18 +171,20 @@ func (s *Service) AssistantModelView(ctx context.Context, q *store.Queries, ws, 
 
 // ReadyAssistant checks that a thread's model can take a request now: the
 // key works, the switch and the caps allow it.
-func (s *Service) ReadyAssistant(ctx context.Context, ws *store.Workspace, m *AssistantModel) error {
-	_, err := s.ready(ctx, ws, m.c, FeatureAssistant)
+func (s *Service) ReadyAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, m *AssistantModel) error {
+	_, err := s.readyIn(ctx, q, ws, m.c, FeatureAssistant)
 	return err
 }
 
-// LockAssistantConfig takes the workspace's AI configuration lock, which
-// every model request takes before its budget's. A turn's worker takes it
-// before its thread's: removing a model clears the threads using it under
-// this lock.
+// LockAssistantConfig takes the workspace's AI configuration lock for a
+// turn's claim or next round, before its thread's: shared with the
+// workspace's other turns, never with a change to the configuration (a
+// change waits for the turns holding it; turns that ask after a waiting
+// change wait for it). Removing a model clears the threads using it under
+// the exclusive lock. The turn's reservation then takes the budget's lock
+// (ReserveAssistant): one turn at a time reserves.
 func (s *Service) LockAssistantConfig(ctx context.Context, q *store.Queries, ws uuid.UUID) error {
-	_, err := lockSettings(ctx, q, ws)
-	return err
+	return q.AIConfigLockShared(ctx, ws)
 }
 
 // AssistantLedger is a thread's cumulative ceilings.
@@ -194,10 +196,13 @@ type AssistantLedger struct {
 // ReserveAssistant reserves one model request of a thread: against the
 // monthly cap (the workspace's or the key owner's) and the thread's
 // ceilings, at the model's prices. It bounds req's answer to what is left.
-// The caller holds the thread's lock; id is the request's.
+// The caller holds the configuration lock (LockAssistantConfig) and the
+// thread's, and read p (as the workspace knows them now) and m
+// (ResolveAssistantModel) under them in this transaction: they aren't read
+// again. id is the request's.
 func (s *Service) ReserveAssistant(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, m *AssistantModel, req *llm.Request, l AssistantLedger, id uuid.UUID) error {
 	t := task{feature: FeatureAssistant, req: *req}
-	if err := s.reserveIn(ctx, q, ws, p, m.c, &t, &ledger{threadID: &l.ThreadID, tokenLimit: l.TokenLimit, costLimitMicros: l.CostLimitMicros}, id); err != nil {
+	if err := s.reserveIn(ctx, q, ws, p, m.c, &t, &ledger{threadID: &l.ThreadID, tokenLimit: l.TokenLimit, costLimitMicros: l.CostLimitMicros, bound: true}, id); err != nil {
 		return err
 	}
 	*req = t.req

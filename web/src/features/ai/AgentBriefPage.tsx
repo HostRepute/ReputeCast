@@ -33,13 +33,23 @@ function newRequestKey(): string {
 }
 const AgentAudience = lazy(() => import('./AgentAudience').then((m) => ({ default: m.AgentAudience })))
 
-export function AgentBriefPage({ initialKind = 'campaign' }: { initialKind?: Kind }) {
+/**
+ * The brief an assistant's agent-task card hands over (Start an agent run):
+ * the page's history state, for this workspace only, at most 4000 characters.
+ */
+export function handoffBrief(state: unknown, workspace: string): string {
+  const b = (state as { agentBrief?: { workspace?: unknown; text?: unknown } } | undefined)?.agentBrief
+  return b && b.workspace === workspace && typeof b.text === 'string' ? b.text.slice(0, 4000) : ''
+}
+
+export function AgentBriefPage({ initialKind = 'campaign', initialBrief = '' }: { initialKind?: Kind; initialBrief?: string }) {
   const t = useT()
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
-  const assist = useAssist()
+  // The agent's own model, as its runs go: the person's pick, or the workspace's.
+  const assist = useAssist('agent')
   const [reviewSharing, sharingDialog] = useSharingReview(`${assist.provider} · ${assist.model}`)
-  const form = useForm<BriefFields>({ defaultValues: { kind: initialKind, brief: '', language: 'en', templateId: '', links: '', trigger: 'joined_list', resource: '' } })
+  const form = useForm<BriefFields>({ defaultValues: { kind: initialKind, brief: initialBrief, language: 'en', templateId: '', links: '', trigger: 'joined_list', resource: '' } })
   const kind = useWatch({ control: form.control, name: 'kind' })
   const trigger = useWatch({ control: form.control, name: 'trigger' })
   const [voiceRevision, setVoiceRevision] = useState<number>()

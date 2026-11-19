@@ -116,13 +116,13 @@ func runReadAttached(ctx context.Context, s *Service, c *toolCall) toolResult {
 		if err != nil {
 			return failed(problemCode(err))
 		}
-		return toolResult{data: map[string]any{"kind": "campaign", "campaign": camp}, label: camp.Name}
+		return toolResult{data: map[string]any{"kind": "campaign", "campaign": camp}, label: camp.Name, source: resourceSource(a)}
 	default:
 		att, err := s.AI.AssistantAttachment(ctx, s.Q, c.ws, c.owner, a.Kind, a.TargetID, false)
 		if err != nil {
 			return failed(problemCode(err))
 		}
-		return toolResult{data: map[string]any{"kind": a.Kind, "title": att.Title, "hint": "read_report has its numbers"}, label: att.Title}
+		return toolResult{data: map[string]any{"kind": a.Kind, "title": att.Title, "hint": "read_report has its numbers"}, label: att.Title, source: resourceSource(a)}
 	}
 }
 
@@ -147,7 +147,7 @@ func runReadReport(ctx context.Context, s *Service, c *toolCall) toolResult {
 	if err != nil {
 		return failed("unavailable")
 	}
-	return toolResult{data: map[string]any{"title": att.Title, "snapshot": json.RawMessage(raw)}, label: att.Title}
+	return toolResult{data: map[string]any{"title": att.Title, "snapshot": json.RawMessage(raw)}, label: att.Title, source: resourceSource(a)}
 }
 
 func runProposeEdit(ctx context.Context, s *Service, c *toolCall) toolResult {
@@ -172,7 +172,7 @@ func runProposeEdit(ctx context.Context, s *Service, c *toolCall) toolResult {
 	}
 	sc, _ := screenOf("campaign.edit")
 	card := &AIThreadCard{Kind: "proposal", Title: "Review the proposal", Path: sc.path(c.ws.Slug, a.TargetID), ProposalID: &id}
-	return toolResult{data: map[string]any{"proposal": id, "shown": "a card to review the proposal in the composer"}, label: in.Subject, card: card}
+	return toolResult{data: map[string]any{"proposal": id, "shown": "a card to review the proposal in the composer"}, label: in.Subject, card: card, source: resourceSource(a)}
 }
 
 func runDraftAgentTask(_ context.Context, _ *Service, c *toolCall) toolResult {
@@ -204,7 +204,7 @@ func runSubjectIdeas(ctx context.Context, s *Service, c *toolCall) toolResult {
 	for _, i := range ideas.Ideas {
 		out = append(out, map[string]any{"subject": i.Subject, "verdict": i.Verdict, "heuristics": i.Heuristics})
 	}
-	return toolResult{data: map[string]any{"ideas": out}, label: "Subject ideas"}
+	return toolResult{data: map[string]any{"ideas": out}, label: "Subject ideas", source: resourceSource(a)}
 }
 
 func runRewrite(ctx context.Context, s *Service, c *toolCall) toolResult {
@@ -222,5 +222,5 @@ func runRewrite(ctx context.Context, s *Service, c *toolCall) toolResult {
 	if err != nil {
 		return failed(problemCode(err))
 	}
-	return toolResult{data: map[string]any{"html": r.HTML}, label: "Rewrite"}
+	return toolResult{data: map[string]any{"html": r.HTML}, label: "Rewrite", source: resourceSource(a)}
 }

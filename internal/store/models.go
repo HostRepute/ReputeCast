@@ -536,6 +536,18 @@ type AiRequest struct {
 	Personal      bool       `json:"personal"`
 }
 
+type AiUsageHour struct {
+	WorkspaceID  uuid.UUID `json:"workspaceId"`
+	Personal     bool      `json:"personal"`
+	UserID       uuid.UUID `json:"userId"`
+	Hour         time.Time `json:"hour"`
+	Shard        int16     `json:"shard"`
+	Requests     int64     `json:"requests"`
+	InputTokens  int64     `json:"inputTokens"`
+	OutputTokens int64     `json:"outputTokens"`
+	CostMicros   int64     `json:"costMicros"`
+}
+
 type AiWorkspaceSetting struct {
 	WorkspaceID      uuid.UUID  `json:"workspaceId"`
 	CapKind          string     `json:"capKind"`
@@ -2995,6 +3007,8 @@ type McpServer struct {
 	CreatedBy             *uuid.UUID `json:"createdBy"`
 	CreatedAt             time.Time  `json:"createdAt"`
 	UpdatedAt             time.Time  `json:"updatedAt"`
+	Resource              string     `json:"resource"`
+	RevocationEndpoint    string     `json:"revocationEndpoint"`
 }
 
 type McpToken struct {
@@ -3006,6 +3020,17 @@ type McpToken struct {
 	ExpiresAt     *time.Time `json:"expiresAt"`
 	CreatedAt     time.Time  `json:"createdAt"`
 	UpdatedAt     time.Time  `json:"updatedAt"`
+}
+
+type McpTokenRevocation struct {
+	ID                 int64     `json:"id"`
+	ServerID           uuid.UUID `json:"serverId"`
+	UserID             uuid.UUID `json:"userId"`
+	RevocationEndpoint string    `json:"revocationEndpoint"`
+	ClientID           string    `json:"clientId"`
+	ClientSecretSealed []byte    `json:"clientSecretSealed"`
+	RefreshSealed      []byte    `json:"refreshSealed"`
+	CreatedAt          time.Time `json:"createdAt"`
 }
 
 type McpTool struct {

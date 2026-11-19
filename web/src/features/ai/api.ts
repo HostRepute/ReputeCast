@@ -17,9 +17,9 @@ export type AIProviderPreset = Schemas['AIProviderPreset']
 export const AI_FEATURES: AIFeature[] = ['subject_ideas', 'rewrite', 'translate', 'alt_text', 'accessibility_fix', 'segment_draft', 'report_summary', 'brand_voice', 'draft']
 
 /** Settings › Integrations › AI assistant. */
-export function useAISettings() {
+export function useAISettings(enabled = true) {
   const { slug } = useWorkspace()
-  return $api.useQuery('get', aiBase, { params: { path: { workspace: slug } } })
+  return $api.useQuery('get', aiBase, { params: { path: { workspace: slug } } }, { enabled })
 }
 
 /**

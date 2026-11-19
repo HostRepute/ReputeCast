@@ -97,6 +97,10 @@ type Querier interface {
 	AIAssistantConfirmationDecide(ctx context.Context, arg AIAssistantConfirmationDecideParams) error
 	AIAssistantConfirmationInsert(ctx context.Context, arg AIAssistantConfirmationInsertParams) error
 	AIAssistantConfirmationLock(ctx context.Context, arg AIAssistantConfirmationLockParams) (AiAssistantConfirmation, error)
+	// The notice of a call waiting in a thread goes once the call was decided,
+	// stopped or expired, or the thread went (a thread has one waiting call at
+	// most).
+	AIAssistantConfirmationNoticesRemove(ctx context.Context, arg AIAssistantConfirmationNoticesRemoveParams) error
 	// A turn's call waiting for, or carrying, its owner's decision.
 	AIAssistantConfirmationOpen(ctx context.Context, turnID uuid.UUID) (AiAssistantConfirmation, error)
 	// A thread's call waiting for its owner, as the thread shows it.
@@ -104,11 +108,27 @@ type Querier interface {
 	AIAssistantConfirmationSet(ctx context.Context, arg AIAssistantConfirmationSetParams) error
 	// Stop: a turn's open call is closed without running.
 	AIAssistantConfirmationsClose(ctx context.Context, turnID uuid.UUID) error
+	// Calls waiting for their owner since before @before: they expire.
+	AIAssistantConfirmationsExpiring(ctx context.Context, before time.Time) ([]AIAssistantConfirmationsExpiringRow, error)
 	AIAssistantConfirmationsPurge(ctx context.Context, threadID uuid.UUID) error
 	AIAssistantContextDelete(ctx context.Context, arg AIAssistantContextDeleteParams) (AIAssistantContextDeleteRow, error)
 	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
 	AIAssistantContexts(ctx context.Context, threadID uuid.UUID) ([]AiAssistantContext, error)
 	AIAssistantContextsPurge(ctx context.Context, threadID uuid.UUID) error
+	// A group's event numbers: n more for each thread, which the caller holds
+	// locked; returns each thread's last.
+	AIAssistantDeltaSeqs(ctx context.Context, arg AIAssistantDeltaSeqsParams) ([]AIAssistantDeltaSeqsRow, error)
+	// The threads of a group of answers' delta batches, locked in the threads'
+	// lock order. A thread another transaction holds (Stop, the sweep, a
+	// removal, another process) is skipped: its batch waits for the next
+	// group, and a group never waits for a lock.
+	AIAssistantDeltaThreadsLock(ctx context.Context, ids []uuid.UUID) ([]AIAssistantDeltaThreadsLockRow, error)
+	// A group's delta events, numbered by the caller under their threads'
+	// locks.
+	AIAssistantDeltasInsert(ctx context.Context, arg AIAssistantDeltasInsertParams) error
+	// Adds an event and wakes the thread's streams when the transaction
+	// commits. The notification's payload is "thread:seq" only: readers read
+	// the events themselves.
 	AIAssistantEventInsert(ctx context.Context, arg AIAssistantEventInsertParams) error
 	// The next stream event's number. Only under the thread's lock: events are
 	// numbered without gaps, in commit order.
@@ -126,8 +146,8 @@ type Querier interface {
 	AIAssistantMessageOfTurn(ctx context.Context, turnID *uuid.UUID) (AiAssistantMessage, error)
 	AIAssistantMessages(ctx context.Context, threadID uuid.UUID) ([]AiAssistantMessage, error)
 	AIAssistantMessagesPurge(ctx context.Context, threadID uuid.UUID) error
-	// Wakes the streams of a thread when the transaction commits. The payload
-	// is "thread:seq" only: readers read the events themselves.
+	// Wakes the streams of the threads a payload names ("thread:seq" pairs,
+	// comma-separated) once the transaction commits.
 	AIAssistantNotify(ctx context.Context, payload string) error
 	// The AI assistant (B3): its settings, threads and their attached context.
 	// A thread is read only through its owner: every query that returns one
@@ -146,6 +166,9 @@ type Querier interface {
 	// Frees the workspace's slots whose lease lapsed. Their turns are the
 	// sweep's: answering without a live slot is a worker that died.
 	AIAssistantSlotsExpire(ctx context.Context, arg AIAssistantSlotsExpireParams) error
+	// The workspace's and the person's slots whose lease holds: a turn that
+	// would find none free waits without trying.
+	AIAssistantSlotsTaken(ctx context.Context, arg AIAssistantSlotsTakenParams) (AIAssistantSlotsTakenRow, error)
 	AIAssistantStepInsert(ctx context.Context, arg AIAssistantStepInsertParams) error
 	AIAssistantStepLast(ctx context.Context, turnID uuid.UUID) (AiAssistantStep, error)
 	AIAssistantStepSave(ctx context.Context, arg AIAssistantStepSaveParams) error
@@ -181,8 +204,16 @@ type Querier interface {
 	AIAssistantThreadTurnsEnd(ctx context.Context, arg AIAssistantThreadTurnsEndParams) ([]uuid.UUID, error)
 	// The person's threads, the most recently active first.
 	AIAssistantThreads(ctx context.Context, arg AIAssistantThreadsParams) ([]AiAssistantThread, error)
+	// Removing models (or their account) first locks the assistant threads
+	// whose rows their removal sets to NULL (the threads', or their turns'):
+	// in the threads' lock order, before the model rows. A turn writing its
+	// thread meanwhile finishes first; otherwise its foreign key check would
+	// wait for the model row the removal holds while the removal waits for
+	// the thread.
+	AIAssistantThreadsOfModelsLock(ctx context.Context, arg AIAssistantThreadsOfModelsLockParams) ([]uuid.UUID, error)
 	// A person left the workspace or was removed from it: their threads there
-	// go, with all their content. Deactivation keeps them.
+	// go, with all their content and the notices of calls waiting in them.
+	// Deactivation keeps them.
 	AIAssistantThreadsRemove(ctx context.Context, arg AIAssistantThreadsRemoveParams) (int64, error)
 	// Expired threads' tombstones, 90 days after their content went.
 	AIAssistantTombstonesPurge(ctx context.Context, before time.Time) (int64, error)
@@ -192,6 +223,9 @@ type Querier interface {
 	AIAssistantTurnDeltas(ctx context.Context, arg AIAssistantTurnDeltasParams) ([]AIAssistantTurnDeltasRow, error)
 	// A turn's version and state, read under its thread's lock.
 	AIAssistantTurnFence(ctx context.Context, id uuid.UUID) (AIAssistantTurnFenceRow, error)
+	// Turns' versions and states (the group's fences, authoritative for the
+	// threads it locked).
+	AIAssistantTurnFences(ctx context.Context, ids []uuid.UUID) ([]AIAssistantTurnFencesRow, error)
 	AIAssistantTurnInsert(ctx context.Context, arg AIAssistantTurnInsertParams) (AiAssistantTurn, error)
 	AIAssistantTurnLock(ctx context.Context, arg AIAssistantTurnLockParams) (AiAssistantTurn, error)
 	// A waiting turn goes on once its owner decided: a new version for its job.
@@ -208,20 +242,22 @@ type Querier interface {
 	AIBudgetAbandoned(ctx context.Context, before time.Time) (int64, error)
 	AIBudgetInsert(ctx context.Context, arg AIBudgetInsertParams) error
 	AIBudgetLock(ctx context.Context, arg AIBudgetLockParams) (AiBudgetReservation, error)
-	// Settled reservations are already in ai_requests. Old uncertain requests
-	// stay reserved across month rollover rather than becoming free to retry.
-	AIBudgetMonthly(ctx context.Context, workspaceID uuid.UUID) (AIBudgetMonthlyRow, error)
 	// The workspace's holds; personal keys' are their owners'.
 	AIBudgetPending(ctx context.Context, workspaceID uuid.UUID) ([]AiBudgetReservation, error)
 	// A person's own budget (their personal keys' cap) has its own lock, so it
 	// never waits for the workspace's nor the workspace's for it. Taken after
 	// the AI configuration lock, like the workspace's.
 	AIBudgetPersonLock(ctx context.Context, arg AIBudgetPersonLockParams) error
-	// What a person's own requests in flight hold of their cap.
-	AIBudgetPersonal(ctx context.Context, arg AIBudgetPersonalParams) (AIBudgetPersonalRow, error)
 	// A person's holds on their own keys.
 	AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPersonalPendingParams) ([]AiBudgetReservation, error)
+	// Settled reservations of the 90-day activity log. An assistant thread's
+	// stay while the thread does (its activity keeps it open past 90 days):
+	// they are its cumulative use, which its lifetime ceilings count. Deleting
+	// the thread clears thread_id.
 	AIBudgetPurge(ctx context.Context, before time.Time) (int64, error)
+	// A reservation as accounting first reads it, without its lock: whose
+	// budget it is in, what it holds and at which prices never change.
+	AIBudgetReservation(ctx context.Context, arg AIBudgetReservationParams) (AiBudgetReservation, error)
 	AIBudgetRun(ctx context.Context, runID *uuid.UUID) (AIBudgetRunRow, error)
 	// Whose budget a reservation is in; set when it is made and never changed.
 	AIBudgetScope(ctx context.Context, arg AIBudgetScopeParams) (AIBudgetScopeRow, error)
@@ -229,13 +265,30 @@ type Querier interface {
 	// An assistant thread's cumulative use, reserved and settled; uncertain
 	// requests count at their reserved maximum.
 	AIBudgetThread(ctx context.Context, threadID *uuid.UUID) (AIBudgetThreadRow, error)
+	// The workspace budget since a time, in one snapshot: what it used
+	// (personal keys' never counts) and what its requests in flight hold. A
+	// request settled meanwhile is in exactly one of the two, so reserving
+	// doesn't wait for accounting (accountIn). The use is the hourly totals
+	// (ai_usage_hours) from the first whole hour on, and the requests of the
+	// hour before it when since isn't on the hour. Settled reservations are
+	// in ai_requests; old uncertain ones stay held across the month's end
+	// rather than becoming free to retry.
+	AIBudgetTotals(ctx context.Context, arg AIBudgetTotalsParams) (AIBudgetTotalsRow, error)
 	AIBudgetUncertain(ctx context.Context, id uuid.UUID) error
-	// The workspace budget's lock, across all its accounts and models. It is
-	// taken after the AI configuration lock (AIWorkspaceSettingsLock), never
-	// before; accounting needs only this one.
+	// The workspace budget's lock, across all its accounts and models: every
+	// reservation takes it, after the AI configuration lock, never before.
+	// Accounting takes only this one, and only to settle above a reservation.
 	AIBudgetWorkspaceLock(ctx context.Context, workspaceID uuid.UUID) error
 	// What the assistant needs about a campaign: its name, content and language.
 	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
+	// The AI configuration lock, taken alone: every change to the AI settings,
+	// accounts, models and defaults, and every reservation but an assistant
+	// turn's, takes it (with the settings row). A lock of the lock manager, so
+	// a change waiting for it is served before claims that ask after it.
+	AIConfigLock(ctx context.Context, workspaceID uuid.UUID) error
+	// The AI configuration lock shared: an assistant turn's claim or next
+	// round, with the workspace's other turns, never with a change.
+	AIConfigLockShared(ctx context.Context, workspaceID uuid.UUID) error
 	// Only the exact version referenced by the selected flow, never recipients.
 	AIDraftAutomationEmail(ctx context.Context, arg AIDraftAutomationEmailParams) (AIDraftAutomationEmailRow, error)
 	AIDraftCampaign(ctx context.Context, arg AIDraftCampaignParams) (AIDraftCampaignRow, error)
@@ -272,6 +325,9 @@ type Querier interface {
 	AIModelsDeleteOthers(ctx context.Context, arg AIModelsDeleteOthersParams) error
 	// Who has personal accounts, for managers: never a key.
 	AIPersonalAccounts(ctx context.Context, workspaceID uuid.UUID) ([]AIPersonalAccountsRow, error)
+	// A person's own budget (their personal keys') as AIBudgetTotals reads the
+	// workspace's.
+	AIPersonalBudgetTotals(ctx context.Context, arg AIPersonalBudgetTotalsParams) (AIPersonalBudgetTotalsRow, error)
 	// A person left the workspace or was deactivated (sqlc.narg(workspace_id)
 	// NULL: every workspace): their personal accounts lose their keys and stop
 	// working. The revision fences requests already prepared.
@@ -279,8 +335,6 @@ type Querier interface {
 	// A person's own models in the workspace.
 	AIPersonalModels(ctx context.Context, arg AIPersonalModelsParams) ([]uuid.UUID, error)
 	AIPersonalUsageByUser(ctx context.Context, arg AIPersonalUsageByUserParams) ([]AIPersonalUsageByUserRow, error)
-	// A person's use of their own keys.
-	AIPersonalUsageTotal(ctx context.Context, arg AIPersonalUsageTotalParams) (AIPersonalUsageTotalRow, error)
 	// The workspace's first account and its first model: what the single-model
 	// settings and operations act on.
 	AIPrimaryModel(ctx context.Context, workspaceID uuid.UUID) (uuid.UUID, error)
@@ -307,8 +361,6 @@ type Querier interface {
 	AITranslationReviewed(ctx context.Context, arg AITranslationReviewedParams) (int64, error)
 	AIUsageByFeature(ctx context.Context, arg AIUsageByFeatureParams) ([]AIUsageByFeatureRow, error)
 	AIUsageByMember(ctx context.Context, arg AIUsageByMemberParams) ([]AIUsageByMemberRow, error)
-	// The workspace's use: personal keys' never counts.
-	AIUsageTotal(ctx context.Context, arg AIUsageTotalParams) (AIUsageTotalRow, error)
 	// The workspace's models, the first account's first model first.
 	AIWorkspaceModels(ctx context.Context, workspaceID uuid.UUID) ([]uuid.UUID, error)
 	// The personal-keys switch and the cap each person's own use has.
@@ -319,7 +371,7 @@ type Querier interface {
 	// Claims this month's 80% notice, once.
 	AIWorkspaceSettingsClaimNotice(ctx context.Context, arg AIWorkspaceSettingsClaimNoticeParams) (int64, error)
 	AIWorkspaceSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
-	// The AI configuration lock (see migration 03630).
+	// The AI configuration lock's row (see migration 03630), after AIConfigLock.
 	AIWorkspaceSettingsLock(ctx context.Context, workspaceID uuid.UUID) (AiWorkspaceSetting, error)
 	AIWorkspaceSettingsSave(ctx context.Context, arg AIWorkspaceSettingsSaveParams) error
 	AcceptInvitation(ctx context.Context, arg AcceptInvitationParams) error
@@ -3078,9 +3130,17 @@ type Querier interface {
 	MCPServerInsert(ctx context.Context, arg MCPServerInsertParams) error
 	MCPServerKeys(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	MCPServerLock(ctx context.Context, arg MCPServerLockParams) (McpServer, error)
+	// A server is deleted: its members' refresh tokens are queued for
+	// revocation first, in the delete's transaction (the rows outlive it).
+	MCPServerRevocationsQueue(ctx context.Context, arg MCPServerRevocationsQueueParams) (int64, error)
 	MCPServerSave(ctx context.Context, arg MCPServerSaveParams) error
 	MCPServerStatus(ctx context.Context, arg MCPServerStatusParams) error
 	MCPServers(ctx context.Context, workspaceID uuid.UUID) ([]McpServer, error)
+	// Servers the hourly sync looks at: enabled, synced before but neither
+	// synced nor tried since @before (one that fails waits its hour too), with
+	// a shared credential or none (an OAuth server is listed as a person: by a
+	// manager's sync, and before each call).
+	MCPServersDue(ctx context.Context, arg MCPServersDueParams) ([]MCPServersDueRow, error)
 	MCPThreadServerAdd(ctx context.Context, arg MCPThreadServerAddParams) error
 	MCPThreadServers(ctx context.Context, threadID uuid.UUID) ([]uuid.UUID, error)
 	MCPThreadServersClear(ctx context.Context, threadID uuid.UUID) error
@@ -3088,11 +3148,18 @@ type Querier interface {
 	// decided on at their current hash (read-only or writes), still listed.
 	MCPThreadTools(ctx context.Context, arg MCPThreadToolsParams) ([]MCPThreadToolsRow, error)
 	MCPToken(ctx context.Context, arg MCPTokenParams) (McpToken, error)
+	// A person's sign-in to a server goes; its refresh token is queued for
+	// revocation when the authorization server has an endpoint for it (data-
+	// modifying CTEs run whether or not they're read).
 	MCPTokenDelete(ctx context.Context, arg MCPTokenDeleteParams) (int64, error)
 	MCPTokenLock(ctx context.Context, arg MCPTokenLockParams) (McpToken, error)
+	// Up to @lim queued refresh tokens with what revoking them needs, taken
+	// off the queue (revocation is best effort: a token is tried once).
+	MCPTokenRevocationsTake(ctx context.Context, lim int32) ([]MCPTokenRevocationsTakeRow, error)
 	MCPTokenSave(ctx context.Context, arg MCPTokenSaveParams) error
 	// A person left the workspace or was deactivated (sqlc.narg(workspace_id)
-	// NULL: every workspace): their MCP sign-ins go.
+	// NULL: every workspace): their MCP sign-ins go, their refresh tokens
+	// queued for revocation as MCPTokenDelete does.
 	MCPTokensRemove(ctx context.Context, arg MCPTokensRemoveParams) (int64, error)
 	MCPTool(ctx context.Context, arg MCPToolParams) (McpTool, error)
 	// The tool as reviewed is kept with the decision: a later change shows as

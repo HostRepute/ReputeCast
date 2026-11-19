@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -61,7 +64,8 @@ type TurnWorker struct {
 
 const (
 	// turnLease is how long a slot is a worker's without renewal; it is
-	// renewed every renewEvery while the answer streams.
+	// renewed every renewEvery (by the service's clock) while the worker
+	// answers the turn, and at each of its rounds.
 	turnLease  = time.Minute
 	renewEvery = 15 * time.Second
 	// turnSnooze is how soon a turn without a free slot tries again.
@@ -107,13 +111,18 @@ type turnRun struct {
 	lease   uuid.UUID
 	started time.Time
 	// kind is the round's ("answer" or "summary"), upto the last message a
-	// summary covers; rounds counts the turn's requests.
+	// summary covers and sources what it is made from; rounds counts the
+	// turn's requests.
 	kind       string
 	upto       int32
+	sources    []toolSource
 	rounds     int
 	summarized bool
 	// resume: the turn goes on after its owner decided on a call.
 	resume *resume
+	// renewed is when the lease was last renewed (UnixNano, by the
+	// service's clock): the claim, a round, or the turn's watch.
+	renewed atomic.Int64
 }
 
 // Why a worker cut its own stream.
@@ -141,16 +150,21 @@ func (s *Service) ExecuteTurn(ctx context.Context, args TurnArgs) error {
 	}
 	var run *turnRun
 	busy := false
-	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-		var err error
-		run, busy, err = s.claim(ctx, store.New(tx), &ws, args)
-		return err
-	})
+	release, err := configGate(ctx, ws.ID)
 	if err != nil {
 		return err
 	}
-	if busy {
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		var err error
+		run, busy, err = s.claim(ctx, tx, &ws, args)
+		return err
+	})
+	release()
+	if busy || errors.Is(err, errNoSlot) {
 		return river.JobSnooze(turnSnooze)
+	}
+	if err != nil {
+		return err
 	}
 	if run == nil {
 		return nil
@@ -158,9 +172,17 @@ func (s *Service) ExecuteTurn(ctx context.Context, args TurnArgs) error {
 	return s.answer(ctx, &ws, args, run)
 }
 
+// errNoSlot: a claim found no slot free once its request was reserved; its
+// transaction is rolled back, the reservation with it, and the turn waits.
+var errNoSlot = errors.New("assistant: no slot free")
+
 // claim takes a queued turn for this worker, or reports that it must wait
-// (busy) or that there is nothing to do (nil).
-func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspace, args TurnArgs) (*turnRun, bool, error) {
+// (busy) or that there is nothing to do (nil). It holds the configuration
+// lock shared with the workspace's other claims (a change to the AI
+// configuration waits for them, and they for a change); what one turn at a
+// time does is the reservation, under the budget's lock, and the slot.
+func (s *Service) claim(ctx context.Context, tx pgx.Tx, ws *store.Workspace, args TurnArgs) (*turnRun, bool, error) {
+	q := store.New(tx)
 	// The configuration first, as every request does: a model removed
 	// meanwhile clears threads' models under it.
 	if err := s.AI.LockAssistantConfig(ctx, q, ws.ID); err != nil {
@@ -197,6 +219,9 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspa
 	default:
 		return nil, false, nil
 	}
+	if s.inClaim != nil {
+		s.inClaim(turn.ID, "locked")
+	}
 	owner := &authz.Principal{Type: authz.ActorUser, ID: t.UserID, UserID: t.UserID, WorkspaceID: ws.ID}
 	fresh, settings, err := s.actor(ctx, q, ws, owner, true)
 	if err != nil {
@@ -209,20 +234,22 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspa
 	if err != nil {
 		return nil, false, s.failFor(ctx, q, &turn, err)
 	}
-	if err := s.AI.ReadyAssistant(ctx, ws, m); err != nil {
+	if err := s.AI.ReadyAssistant(ctx, q, ws, m); err != nil {
 		return nil, false, s.failFor(ctx, q, &turn, err)
 	}
 	if err := q.AIAssistantSlotsExpire(ctx, store.AIAssistantSlotsExpireParams{WorkspaceID: ws.ID, Now: now}); err != nil {
 		return nil, false, err
 	}
-	lease := uuid.Must(uuid.NewV7())
-	if _, err := q.AIAssistantSlotClaim(ctx, store.AIAssistantSlotClaimParams{ThreadID: t.ID, TurnID: turn.ID, WorkspaceID: ws.ID, UserID: t.UserID, LeaseID: lease,
-		ExpiresAt: now.Add(turnLease), PerWorkspace: settings.PerWorkspace, PerPerson: settings.PerPerson}); errors.Is(err, pgx.ErrNoRows) {
-		return nil, true, nil
-	} else if err != nil {
+	// A turn that would find no slot free waits before its request is
+	// assembled; the slot itself is taken after the reservation.
+	if taken, err := q.AIAssistantSlotsTaken(ctx, store.AIAssistantSlotsTakenParams{UserID: t.UserID, WorkspaceID: ws.ID, Now: now}); err != nil {
 		return nil, false, err
+	} else if taken.Workspace >= settings.PerWorkspace || taken.Person >= settings.PerPerson {
+		return nil, true, nil
 	}
-	run := &turnRun{thread: t, turn: turn, owner: fresh, model: m, lease: lease}
+	run := &turnRun{thread: t, turn: turn, owner: fresh, model: m, lease: uuid.Must(uuid.NewV7())}
+	run.renewed.Store(now.UnixNano())
+	var next *assembled
 	conf, err := q.AIAssistantConfirmationOpen(ctx, turn.ID)
 	switch {
 	case err == nil && conf.State != "pending":
@@ -240,45 +267,123 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspa
 	case err != nil && !errors.Is(err, pgx.ErrNoRows):
 		return nil, false, err
 	default:
-		err = s.prepareRound(ctx, q, ws, run)
-	}
-	if err != nil {
-		if err := q.AIAssistantSlotRelease(ctx, store.AIAssistantSlotReleaseParams{TurnID: turn.ID, LeaseID: lease}); err != nil {
-			return nil, false, err
+		a, err := s.request(ctx, q, ws, run)
+		if err != nil {
+			return nil, false, s.failFor(ctx, q, &turn, err)
 		}
-		return nil, false, s.failFor(ctx, q, &turn, err)
+		next = &a
 	}
-	turn.State, turn.StartedAt = "answering", &now
-	if err := q.AIAssistantTurnSave(ctx, store.AIAssistantTurnSaveParams{ID: turn.ID, State: turn.State, Reason: "", Version: turn.Version, StartedAt: turn.StartedAt}); err != nil {
+	// The turn's start and its step are saved before the reservation,
+	// which takes the budget's lock: the workspace's claims hold it one at
+	// a time, so each holds it for as little as it can. A reservation
+	// refused undoes them (the savepoint) and fails the turn.
+	sp, err := tx.Begin(ctx)
+	if err != nil {
 		return nil, false, err
 	}
-	if err := s.turnEvent(ctx, q, turn); err != nil {
+	started := turn
+	started.State, started.StartedAt = "answering", &now
+	if err := q.AIAssistantTurnSave(ctx, store.AIAssistantTurnSaveParams{ID: turn.ID, State: started.State, Reason: "", Version: turn.Version, StartedAt: started.StartedAt}); err != nil {
 		return nil, false, err
 	}
-	run.turn = turn
+	if err := s.turnEvent(ctx, q, started); err != nil {
+		return nil, false, err
+	}
+	if next != nil {
+		if err := s.reserveRound(ctx, q, ws, run, *next, true); err != nil {
+			if err := sp.Rollback(ctx); err != nil {
+				return nil, false, err
+			}
+			return nil, false, s.failFor(ctx, q, &turn, err)
+		}
+	}
+	ok, err := s.claimSlot(ctx, q, ws, t, turn, run.lease, settings, now)
+	if err != nil {
+		return nil, false, err
+	}
+	if !ok {
+		return nil, false, errNoSlot
+	}
+	if s.inClaim != nil {
+		s.inClaim(turn.ID, "slot")
+	}
+	run.turn = started
 	return run, false, nil
+}
+
+// assembled is a request assembled for a turn's next round: a summary's
+// covers the messages up to upto and is made from sources.
+type assembled struct {
+	req     llm.Request
+	kind    string
+	upto    int32
+	sources []toolSource
+}
+
+// claimSlot takes a turn's slot: the thread's only one, one of its
+// person's and one of the workspace's. Claims made at once can pick the
+// same free slot (a workspace key's and a personal key's, under different
+// budget locks): the later one waits for the earlier's commit, finds it
+// taken, and tries the next while any is free.
+func (s *Service) claimSlot(ctx context.Context, q *store.Queries, ws *store.Workspace, t store.AiAssistantThread, turn store.AiAssistantTurn, lease uuid.UUID,
+	settings ai.AIAssistantSettings, now time.Time) (bool, error) {
+	for range 3 {
+		_, err := q.AIAssistantSlotClaim(ctx, store.AIAssistantSlotClaimParams{ThreadID: t.ID, TurnID: turn.ID, WorkspaceID: ws.ID, UserID: t.UserID, LeaseID: lease,
+			ExpiresAt: now.Add(turnLease), PerWorkspace: settings.PerWorkspace, PerPerson: settings.PerPerson})
+		if err == nil {
+			return true, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return false, err
+		}
+		taken, err := q.AIAssistantSlotsTaken(ctx, store.AIAssistantSlotsTakenParams{UserID: t.UserID, WorkspaceID: ws.ID, Now: now})
+		if err != nil {
+			return false, err
+		}
+		if taken.Workspace >= settings.PerWorkspace || taken.Person >= settings.PerPerson {
+			return false, nil
+		}
+	}
+	return false, nil
 }
 
 // prepareRound assembles the turn's next request, reserves its budget in
 // the thread's ledger and saves its step: committed before it is sent.
-// The thread and the turn are locked.
+// The thread and the turn are locked; from the reservation on, the
+// budget's lock too, until the transaction commits.
 func (s *Service) prepareRound(ctx context.Context, q *store.Queries, ws *store.Workspace, run *turnRun) error {
-	req, kind, upto, err := s.request(ctx, q, ws, run)
+	a, err := s.request(ctx, q, ws, run)
 	if err != nil {
 		return err
 	}
-	step := uuid.Must(uuid.NewV7())
-	t := run.thread
+	return s.reserveRound(ctx, q, ws, run, a, false)
+}
+
+// reserveRound reserves a round's request in the thread's ledger and saves
+// its step; stepFirst saves the step before the reservation (the claim,
+// which undoes both when the reservation is refused).
+func (s *Service) reserveRound(ctx context.Context, q *store.Queries, ws *store.Workspace, run *turnRun, r assembled, stepFirst bool) error {
+	step, now := uuid.Must(uuid.NewV7()), s.now()
+	insert := func() error {
+		return q.AIAssistantStepInsert(ctx, store.AIAssistantStepInsertParams{ID: step, TurnID: run.turn.ID, TurnVersion: run.turn.Version, Kind: r.kind, Now: now})
+	}
+	if stepFirst {
+		if err := insert(); err != nil {
+			return err
+		}
+	}
+	t, req := run.thread, r.req
 	if err := s.AI.ReserveAssistant(ctx, q, ws, run.owner, run.model, &req, ai.AssistantLedger{ThreadID: t.ID, TokenLimit: t.TokenLimit, CostLimitMicros: t.CostLimitMicros}, step); err != nil {
 		return err
 	}
-	now := s.now()
-	if err := q.AIAssistantStepInsert(ctx, store.AIAssistantStepInsertParams{ID: step, TurnID: run.turn.ID, TurnVersion: run.turn.Version, Kind: kind, Now: now}); err != nil {
-		return err
+	if !stepFirst {
+		if err := insert(); err != nil {
+			return err
+		}
 	}
-	run.req, run.kind, run.upto, run.step, run.started = req, kind, upto, step, now
+	run.req, run.kind, run.upto, run.sources, run.step, run.started = req, r.kind, r.upto, r.sources, step, now
 	run.rounds++
-	run.summarized = run.summarized || kind == "summary"
+	run.summarized = run.summarized || r.kind == "summary"
 	return nil
 }
 
@@ -320,7 +425,7 @@ func (s *Service) lockActive(ctx context.Context, q *store.Queries, ws *store.Wo
 // worker's any more: false); the turn's next job goes on from that call
 // (conf), which runs at most once: it is marked calling, committed,
 // before it is sent, and a call found calling is never sent again.
-func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, rd round, conf *store.AiAssistantConfirmation) (bool, error) {
+func (s *Service) runTools(ctx, tctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, rd round, conf *store.AiAssistantConfirmation) (bool, error) {
 	for i := len(rd.Results); i < len(rd.Calls); i++ {
 		call := rd.Calls[i]
 		decided := conf != nil && int(conf.CallIndex) == i
@@ -393,7 +498,9 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			if decided {
 				confirmed = conf
 			}
-			r, content = s.runTool(ctx, s.Q, c, call.Name, confirmed)
+			// Within the turn's lifecycle: Stop, a lost lease or lost
+			// access cancels the call.
+			r, content = s.runTool(tctx, s.Q, c, call.Name, confirmed)
 		} else {
 			if decided {
 				// A denied or half-sent call is still named by its server and tool.
@@ -402,8 +509,21 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			content = envelope(call.Name, r)
 		}
 		row := AIThreadToolRow{CallID: call.ID, Name: call.Name, OK: r.code == "", Code: r.code, Ms: time.Since(start).Milliseconds(), Label: clip(r.label, 120), Card: r.card}
+		kind := "reputecast"
+		switch {
+		case decided:
+			kind = "mcp_write"
+		case strings.HasPrefix(call.Name, "mcp__"):
+			kind = "mcp_read"
+		}
+		opsmetrics.AssistantToolCalls.WithLabelValues(kind, opsmetrics.ToolOutcome(r.code)).Inc()
 		rd.Results = append(rd.Results, llm.Part{ToolResult: &llm.ToolResult{ID: call.ID, Name: call.Name, Content: content, IsError: r.code != ""}})
 		rd.Rows = append(rd.Rows, row)
+		if r.source != nil {
+			src := *r.source
+			src.CallID = call.ID
+			rd.Sources = append(rd.Sources, src)
+		}
 		active = false
 		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
@@ -432,7 +552,7 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			return err
 		}
 		active = true
-		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "tool", turn.ModelID, messageContent{Results: rd.Results, Tools: rd.Rows})
+		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "tool", turn.ModelID, messageContent{Results: rd.Results, Tools: rd.Rows, Sources: rd.Sources})
 		if err != nil {
 			return err
 		}
@@ -464,13 +584,22 @@ func (s *Service) failRunning(ctx context.Context, q *store.Queries, run *turnRu
 // owner's access and the turn's model as they are now.
 func (s *Service) nextRound(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun) (bool, error) {
 	ok := false
-	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	release, err := configGate(ctx, ws.ID)
+	if err != nil {
+		return false, err
+	}
+	defer release()
+	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := s.AI.LockAssistantConfig(ctx, q, ws.ID); err != nil {
 			return err
 		}
 		t, turn, active, err := s.lockActive(ctx, q, ws, args, run)
 		if err != nil || !active {
+			return err
+		}
+		// Each round renews the lease, whatever its requests took.
+		if renewed, err := s.renew(ctx, q, run, turn.ID); err != nil || !renewed {
 			return err
 		}
 		run.thread, run.turn = t, turn
@@ -548,9 +677,27 @@ func providerReason(err error) string {
 // streams its answer and is saved; one that calls tools runs them, then
 // the next request goes with their results.
 func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun) error {
+	// One lifecycle for as long as this worker answers the turn, over its
+	// requests, checkpoints, tools and rounds (and from a confirmation's
+	// decision on): its watch renews the lease and cancels tctx, and so
+	// what runs in it, once the turn isn't this worker's any more (Stop,
+	// a lost lease) or its owner can't use the assistant.
+	tctx, stop := context.WithCancelCause(ctx)
+	watched := make(chan struct{})
+	// Read before the watch starts: the rounds replace run.turn and
+	// run.owner while it runs.
+	turnID, version, owner := run.turn.ID, run.turn.Version, run.owner
+	go func() {
+		defer close(watched)
+		s.watch(tctx, ws, run, turnID, version, owner, stop)
+	}()
+	defer func() {
+		stop(nil)
+		<-watched
+	}()
 	if r := run.resume; r != nil {
 		run.resume = nil
-		if ok, err := s.runTools(ctx, ws, args, run, r.round, &r.conf); err != nil || !ok {
+		if ok, err := s.runTools(ctx, tctx, ws, args, run, r.round, &r.conf); err != nil || !ok {
 			return err
 		}
 		if ok, err := s.nextRound(ctx, ws, args, run); err != nil || !ok {
@@ -558,7 +705,7 @@ func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs
 		}
 	}
 	for {
-		r := s.send(ctx, ws, run)
+		r := s.send(ctx, tctx, ws, run)
 		calls, more, err := s.checkpoint(ctx, ws, args, run, r)
 		if err != nil {
 			return err
@@ -568,7 +715,7 @@ func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs
 			return nil
 		}
 		if len(calls) > 0 {
-			if ok, err := s.runTools(ctx, ws, args, run, round{Calls: calls, Results: []llm.Part{}, Rows: []AIThreadToolRow{}}, nil); err != nil || !ok {
+			if ok, err := s.runTools(ctx, tctx, ws, args, run, round{Calls: calls, Results: []llm.Part{}, Rows: []AIThreadToolRow{}}, nil); err != nil || !ok {
 				return err
 			}
 		}
@@ -585,44 +732,50 @@ type sent struct {
 	res            llm.Response
 	callErr, cause error
 	text, rest     string
+	// took is how long the request streamed (zero: it was never sent).
+	took time.Duration
 }
 
 // send sends a round's request and streams its answer (a summary's isn't
-// shown).
-func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) sent {
-	sctx, stop := context.WithCancelCause(ctx)
+// shown), within the turn's lifecycle (tctx); ctx is the worker's.
+func (s *Service) send(ctx, tctx context.Context, ws *store.Workspace, run *turnRun) sent {
+	sctx, stop := context.WithCancelCause(tctx)
 	defer stop(nil)
-	w := &deltaWriter{s: s, ws: ws.ID, thread: run.thread.ID, turn: run.turn.ID, version: run.turn.Version, stop: stop}
+	w := s.deltaWriter(ws.ID, run.thread.ID, run.turn.ID, run.turn.Version, stop)
 	emit := w.emit
 	if run.kind == "summary" {
 		emit = func(llm.Delta) error { return nil }
 	}
 	var res llm.Response
 	var cause error
+	var took time.Duration
 	prov, callErr := s.AI.AssistantProvider(run.model)
 	if callErr != nil {
 		// Built here, before any request: nothing was sent.
 		res.UsageKnown = true
 	} else {
-		watched := make(chan struct{})
-		go func() {
-			defer close(watched)
-			s.watch(sctx, ws, run, stop)
-		}()
+		sentAt := time.Now()
 		res, callErr = llm.StreamOrGenerate(sctx, prov, run.req, emit)
+		took = time.Since(sentAt)
 		cause = context.Cause(sctx)
+		if firstAt, committedAt := w.first(); run.rounds == 1 && run.kind == "answer" && !committedAt.IsZero() {
+			// What the server added before the first token: everything
+			// from the person's message to its commit but the provider's
+			// own time to its first token.
+			overhead := committedAt.Sub(run.turn.CreatedAt) - firstAt.Sub(sentAt)
+			opsmetrics.AssistantTTFTOverhead.Observe(max(overhead, 0).Seconds())
+		}
 		if ctx.Err() != nil {
 			// The worker is stopping (a deploy): the answer was cut short.
 			cause = errShutdown
 		}
 		stop(nil)
-		<-watched
 	}
 	rest := w.take()
 	if s.afterAnswer != nil {
 		s.afterAnswer(run.turn.ID)
 	}
-	return sent{res: res, callErr: callErr, cause: cause, text: w.text(), rest: rest}
+	return sent{res: res, callErr: callErr, cause: cause, text: w.text(), rest: rest, took: took}
 }
 
 // toolCalls are a response's calls, in order.
@@ -636,41 +789,52 @@ func toolCalls(m llm.Message) []llm.ToolCall {
 	return out
 }
 
-// watch checks, while the answer streams, that the turn is still this
-// worker's and its owner may still use the assistant, and renews the
-// lease; it cuts the stream (stop) when one of them no longer holds.
-func (s *Service) watch(ctx context.Context, ws *store.Workspace, run *turnRun, stop context.CancelCauseFunc) {
+// watch checks, while the worker answers a turn, that the turn is still
+// this worker's and its owner may still use the assistant, and renews the
+// lease once renewEvery passed since it was last renewed; it cancels the
+// turn's lifecycle (stop) when one of them no longer holds. Of run it
+// reads only what doesn't change while the turn answers (its lease) and
+// the renewal time; the turn's id, version and owner come as they were
+// when the worker began answering.
+func (s *Service) watch(ctx context.Context, ws *store.Workspace, run *turnRun, turnID uuid.UUID, version int64, owner *authz.Principal, stop context.CancelCauseFunc) {
 	tick := time.NewTicker(s.watchEvery())
 	defer tick.Stop()
-	renewed := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-tick.C:
 		}
-		f, err := s.Q.AIAssistantTurnFence(ctx, run.turn.ID)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Version != run.turn.Version || f.State != "answering")) {
+		f, err := s.Q.AIAssistantTurnFence(ctx, turnID)
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Version != version || f.State != "answering")) {
 			stop(errFenced)
 			return
 		}
 		var p *api.Problem
-		if _, _, err := s.actor(ctx, s.Q, ws, run.owner, true); errors.As(err, &p) {
+		if _, _, err := s.actor(ctx, s.Q, ws, owner, true); errors.As(err, &p) {
 			stop(&accessError{err: err})
 			return
 		}
-		if time.Since(renewed) >= renewEvery {
-			now := s.now()
-			n, err := s.Q.AIAssistantSlotRenew(ctx, store.AIAssistantSlotRenewParams{ExpiresAt: now.Add(turnLease), TurnID: run.turn.ID, LeaseID: run.lease, Now: now})
-			if err == nil && n == 0 {
-				stop(errLeaseLost)
-				return
-			}
-			if err == nil {
-				renewed = time.Now()
-			}
+		if renewed, err := s.renew(ctx, s.Q, run, turnID); err == nil && !renewed {
+			stop(errLeaseLost)
+			return
 		}
 	}
+}
+
+// renew extends a turn's lease when renewEvery passed since it was last
+// renewed; false: the lease isn't the worker's any more.
+func (s *Service) renew(ctx context.Context, q *store.Queries, run *turnRun, turnID uuid.UUID) (bool, error) {
+	now := s.now()
+	if now.Sub(time.Unix(0, run.renewed.Load())) < renewEvery {
+		return true, nil
+	}
+	n, err := q.AIAssistantSlotRenew(ctx, store.AIAssistantSlotRenewParams{ExpiresAt: now.Add(turnLease), TurnID: turnID, LeaseID: run.lease, Now: now})
+	if err != nil || n == 0 {
+		return false, err
+	}
+	run.renewed.Store(now.UnixNano())
+	return true, nil
 }
 
 // checkpoint accounts the round's request and, while the turn is still
@@ -720,19 +884,32 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 		case res.Refused:
 			outcome = ai.OutcomeRefused
 		}
+		if r.took > 0 {
+			opsmetrics.AssistantStream.WithLabelValues(run.kind, outcome).Observe(r.took.Seconds())
+			if res.UsageKnown {
+				opsmetrics.AssistantTokens.WithLabelValues("input").Add(float64(res.InputTokens))
+				opsmetrics.AssistantTokens.WithLabelValues("output").Add(float64(res.OutputTokens))
+			}
+		}
 		// Always, even when the turn was stopped meanwhile: the provider may
-		// charge for the request.
-		known, err := s.AI.AccountAssistant(ctx, q, ai.AssistantRequest{ID: run.step, WorkspaceID: ws.ID, UserID: run.thread.UserID, ThreadID: run.thread.ID,
-			Action: run.kind, Outcome: outcome, CreatedAt: run.started}, res, callErr)
-		if err != nil {
-			return err
-		}
-		stepState := "done"
-		if !known {
-			stepState = "uncertain"
-		}
-		if err := q.AIAssistantStepSave(ctx, store.AIAssistantStepSaveParams{ID: run.step, State: stepState, Now: s.now()}); err != nil {
-			return err
+		// charge for the request. Settling within the reservation doesn't
+		// wait for the budget's lock; it updates the workspace's hourly
+		// totals, which other turns' accounting waits for: so as late as
+		// the transaction allows, after what it saves of the answer and
+		// before the usage it shows.
+		known := false
+		settle := func() error {
+			var err error
+			known, err = s.AI.AccountAssistant(ctx, q, ai.AssistantRequest{ID: run.step, WorkspaceID: ws.ID, UserID: run.thread.UserID, ThreadID: run.thread.ID,
+				Action: run.kind, Outcome: outcome, CreatedAt: run.started}, res, callErr)
+			if err != nil {
+				return err
+			}
+			stepState := "done"
+			if !known {
+				stepState = "uncertain"
+			}
+			return q.AIAssistantStepSave(ctx, store.AIAssistantStepSaveParams{ID: run.step, State: stepState, Now: s.now()})
 		}
 		slot, slotErr := q.AIAssistantSlotOfTurn(ctx, store.AIAssistantSlotOfTurnParams{TurnID: run.turn.ID, Now: s.now()})
 		if slotErr != nil && !errors.Is(slotErr, pgx.ErrNoRows) {
@@ -743,6 +920,9 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 			return q.AIAssistantSlotRelease(ctx, store.AIAssistantSlotReleaseParams{TurnID: run.turn.ID, LeaseID: run.lease})
 		}
 		if !active {
+			if err := settle(); err != nil {
+				return err
+			}
 			return release()
 		}
 		if rest != "" {
@@ -772,7 +952,7 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 			// Earlier messages are summarized: later requests send the
 			// summary instead of them.
 			if strings.TrimSpace(text) != "" {
-				msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "summary", turn.ModelID, messageContent{Text: text, Upto: run.upto})
+				msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "summary", turn.ModelID, messageContent{Text: text, Upto: run.upto, Sources: run.sources})
 				if err != nil {
 					return err
 				}
@@ -781,6 +961,9 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 				}
 			}
 			more = true
+			if err := settle(); err != nil {
+				return err
+			}
 			return s.usageEvent(ctx, q, t, turn.ID)
 		}
 		if state == "done" && res.StopReason == llm.StopTools && len(toolCalls(res.Message)) > 0 {
@@ -796,6 +979,9 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 				}
 			}
 			calls, more = toolCalls(res.Message), true
+			if err := settle(); err != nil {
+				return err
+			}
 			if known {
 				if err := q.AIAssistantStepSave(ctx, store.AIAssistantStepSaveParams{ID: run.step, State: "responded", Now: s.now()}); err != nil {
 					return err
@@ -815,13 +1001,16 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 				return err
 			}
 		}
+		if err := s.touch(ctx, q, t); err != nil {
+			return err
+		}
+		if err := settle(); err != nil {
+			return err
+		}
 		if err := s.usageEvent(ctx, q, t, turn.ID); err != nil {
 			return err
 		}
-		if err := s.endTurn(ctx, q, &turn, state, reason); err != nil {
-			return err
-		}
-		return s.touch(ctx, q, t)
+		return s.endTurn(ctx, q, &turn, state, reason)
 	})
 	return calls, more, err
 }
@@ -866,6 +1055,33 @@ func (s *Service) interrupt(ctx context.Context, q *store.Queries, t store.AiAss
 	return s.endTurn(ctx, q, turn, "failed", "interrupted")
 }
 
+// gates are this process's turns entering a workspace's claims and next
+// rounds, one channel a workspace.
+var gates sync.Map // uuid.UUID → chan struct{}
+
+// claimsAtOnce is how many of this process's claims (or next rounds) of a
+// workspace are in their transactions at once. They share the AI
+// configuration lock, and the budget's lock takes them one at a time for
+// their reservations: a few at once assemble their requests while one
+// reserves, and waiting here rather than in the database keeps a hundred
+// turns starting at once from holding a hundred pool connections, which
+// starved the streams' reads (B6's load test).
+const claimsAtOnce = 2
+
+// configGate lets one of claimsAtOnce of this process's claims (or next
+// rounds) of a workspace into its transaction; release lets the next one
+// in.
+func configGate(ctx context.Context, ws uuid.UUID) (func(), error) {
+	v, _ := gates.LoadOrStore(ws, make(chan struct{}, claimsAtOnce))
+	gate := v.(chan struct{})
+	select {
+	case gate <- struct{}{}:
+		return func() { <-gate }, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 // SweepArgs is the minute's sweep of turns no worker answers.
 type SweepArgs struct{}
 
@@ -890,10 +1106,15 @@ func (w *SweepWorker) Work(ctx context.Context, _ *river.Job[SweepArgs]) error {
 }
 
 // Sweep fails the turns no worker answers: answering without a live lease
-// (interrupted) and queued for half an hour (not_started). It reports how
-// many it looked at.
+// (interrupted) and queued for half an hour (not_started); and the turns
+// whose call waited a day for its owner (confirmation_expired). It
+// reports how many it looked at.
 func (s *Service) Sweep(ctx context.Context) (int, error) {
 	now := s.now()
+	expired, err := s.expireConfirmations(ctx, now)
+	if err != nil {
+		return expired, err
+	}
 	rows, err := s.Q.AIAssistantSweepTurns(ctx, store.AIAssistantSweepTurnsParams{Now: now, QueuedBefore: now.Add(-queueTimeout)})
 	if err != nil {
 		return 0, err
@@ -937,9 +1158,9 @@ func (s *Service) Sweep(ctx context.Context) (int, error) {
 			return nil
 		})
 		if err != nil {
-			return n, fmt.Errorf("assistant sweep: %w", err)
+			return expired + n, fmt.Errorf("assistant sweep: %w", err)
 		}
 		n++
 	}
-	return n, nil
+	return expired + n, nil
 }

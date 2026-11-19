@@ -141,10 +141,10 @@ function VoiceEditor({ voice }: { voice: Voice }) {
   )
 }
 
-function VoiceLearning({ blocked, onBusy, onSuggestion }: { blocked: boolean; onBusy: (busy: boolean) => void; onSuggestion: (s: Suggestion) => void }) {
+export function VoiceLearning({ blocked, onBusy, onSuggestion }: { blocked: boolean; onBusy: (busy: boolean) => void; onSuggestion: (s: Suggestion) => void }) {
   const t = useT()
   const { slug } = useWorkspace()
-  const assist = useAssist()
+  const assist = useAssist('brand_voice')
   const [reviewSharing, sharingDialog] = useSharingReview(`${assist.provider} · ${assist.model}`)
   const [query, setQuery] = useState('')
   const search = useDebounced(query, 250)

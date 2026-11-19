@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type ComponentProps, type ReactElement, type ReactNode } from 'react'
+import { createContext, memo, useContext, useEffect, useState, type ComponentProps, type ReactElement, type ReactNode } from 'react'
 import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useT } from '@/i18n'
@@ -10,7 +10,7 @@ import { m } from './messages'
 /**
  * An answer's Markdown (assistant brief §3.2, D5): paragraphs, lists, GFM
  * tables and code with Copy. Raw HTML shows as the text it is
- * (react-markdown never renders it), Liquid tokens stay as written,
+ * (react-markdown never renders it), Liquid tokens stay as written (as code),
  * remote images are never loaded (each is a link with its domain) and
  * links show their domain and open in a new tab without a referrer.
  */
@@ -25,26 +25,35 @@ function domainOf(href: string | undefined): string {
   }
 }
 
+/** Inside a link: an image in its text can't be a second link. */
+const InLink = createContext(false)
+
+/**
+ * A link: its domain shown, a new tab without a referrer. A link whose
+ * scheme isn't safe (javascript:, data:, vbscript:…) arrives without an
+ * href (react-markdown's URL transform) and is plain text.
+ */
 function Anchor({ href, children }: ComponentProps<'a'>) {
   const t = useT()
   const domain = domainOf(href)
   if (!href) return <span>{children}</span>
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
-      {children}
+      <InLink.Provider value>{children}</InLink.Provider>
       {domain ? <span className="asst-dom"> ({domain})</span> : null}
       <span className="vh"> {t(m.newTab)}</span>
     </a>
   )
 }
 
-/** An image is never fetched: it becomes a link that names its domain. */
+/** An image is never fetched: it becomes a link that names its domain (text, inside a link). */
 function Img({ src, alt }: ComponentProps<'img'>) {
   const t = useT()
+  const inLink = useContext(InLink)
   const href = typeof src === 'string' ? src : ''
   const domain = domainOf(href) || href
   const label = alt ? t(m.image, { alt, domain }) : t(m.imageNoAlt, { domain })
-  if (!href) return <span>{label}</span>
+  if (!href || inLink) return <span>{label}</span>
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="asst-img">
       {label}
@@ -141,11 +150,40 @@ const components: Components = {
 
 const plugins = [remarkGfm]
 
+const liquidToken = /\{\{[^\n]*?\}\}|\{%[^\n]*?%\}/g
+
+/**
+ * Liquid in prose shows as code, exactly as written: Markdown never reads
+ * inside it, so a tag holding HTML, an address or asterisks stays the text
+ * it is (no link, emphasis or markup). Fenced code and code spans are left
+ * as they are.
+ */
+export function literalLiquid(text: string): string {
+  let fence = ''
+  return text
+    .split('\n')
+    .map((line) => {
+      const open = /^\s{0,3}(`{3,}|~{3,})/.exec(line)
+      if (open) {
+        const marker = open[1]!
+        if (!fence) fence = marker
+        else if (marker[0] === fence[0] && marker.length >= fence.length) fence = ''
+        return line
+      }
+      if (fence || !line.includes('{')) return line
+      return line
+        .split(/(`+[^`]*`+)/)
+        .map((part, i) => (i % 2 ? part : part.replace(liquidToken, (tok) => (tok.includes('`') ? `\`\` ${tok} \`\`` : `\`${tok}\``))))
+        .join('')
+    })
+    .join('\n')
+}
+
 /** One Markdown text, parsed again only when it changes. */
 export const MarkdownText = memo(function MarkdownText({ text }: { text: string }) {
   return (
     <Markdown remarkPlugins={plugins} components={components}>
-      {text}
+      {literalLiquid(text)}
     </Markdown>
   )
 })
@@ -181,14 +219,37 @@ export function streamBlocks(text: string): string[] {
   return out
 }
 
-/** A streaming answer: its finished blocks memoized, the last one live. */
+/**
+ * What Markdown would read in a line of prose: inline marks, links,
+ * images, HTML, entities, Liquid, tables, autolinked addresses.
+ */
+const marks = /[\\`*_~[\]!<>&{}|#@]|https?:|www\.|mailto:|xmpp:/i
+
+/**
+ * The text of a block that Markdown renders as one paragraph holding
+ * exactly that text: one line without anything Markdown reads, not
+ * indented as code nor starting like a list, a heading or a rule.
+ * Anything else is undefined.
+ */
+export function plainParagraph(block: string): string | undefined {
+  const s = block.replace(/[ \t\r\n]+$/, '')
+  if (!s || /[\r\n]/.test(s) || /^ *\t|^ {4}/.test(s) || marks.test(s)) return undefined
+  const t = s.replace(/^ +/, '')
+  return /^([-+=]|\d{1,9}[.)](\s|$))/.test(t) ? undefined : t
+}
+
+/**
+ * A streaming answer: its finished blocks memoized, the last one live.
+ * While the last one is plain prose (as most of an answer is), it renders
+ * as the paragraph Markdown would make of it, without parsing; once it
+ * holds Markdown, or another block follows it, it is parsed.
+ */
 export function StreamingMarkdown({ text }: { text: string }) {
   const blocks = streamBlocks(text)
+  const plain = blocks.length ? plainParagraph(blocks[blocks.length - 1]!) : undefined
   return (
     <>
-      {blocks.map((b, i) => (
-        <MarkdownText key={i} text={b} />
-      ))}
+      {blocks.map((b, i) => (plain !== undefined && i === blocks.length - 1 ? <p key={i}>{plain}</p> : <MarkdownText key={i} text={b} />))}
     </>
   )
 }

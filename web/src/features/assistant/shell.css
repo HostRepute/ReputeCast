@@ -149,4 +149,10 @@
   .app.asst-fullscreen .side {
     display: none;
   }
+  /* So does the screen, which isn't styled or laid out again meanwhile
+     (opening the panel would restyle all of it, twice: its scroll lock);
+     the panel puts its scroll position back when it closes. */
+  .app.asst-fullscreen > .mainc {
+    content-visibility: hidden;
+  }
 }

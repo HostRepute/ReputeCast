@@ -78,7 +78,7 @@ The assistant shares the agent's tool registry and projections. The model only s
 
 Denied: the agent brief's denied categories, unchanged. Questions about reputation, blocklists or placement get the HostRepute boundary card.
 
-Brief text, attached content and voice samples pass `internal/editorial` and need `sharingReviewed: true`, as for agent runs. Outside content from MCP tools is untrusted data: it is size-capped, stripped of images and HTML, delimited with its source and never treated as instructions.
+Attached content and voice samples pass `internal/editorial` and need `sharingReviewed: true`, as for agent runs; so does what the assistant's tools send on to another model (Subject ideas and Rewrite get the same editorial projection as Read attached and are refused the same way). The person's own chat messages are not briefs: they need no per-message sharing review (the person writes them, and the panel says the model receives them) and don't pass the full `editorial.Text`, which would refuse ordinary chat (a greeting with a name, an ISO date, an id). A narrower check (`editorial.Chat`) refuses a message holding an email address, a phone number in international form or unmistakably shaped as one (an ISO date can't match), or a credential (an API key, a private key, or a password, secret or token given with its value): 422 `ai_assistant_private_data`, saying which kind it found and that the assistant can't look up contacts anyway. Outside content from MCP tools is untrusted data: it is size-capped, stripped of images and HTML, delimited with its source and never treated as instructions.
 
 ### 3.6 MCP servers
 

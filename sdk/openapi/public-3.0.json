@@ -819,6 +819,12 @@
             "format": "double",
             "type": "number"
           },
+          "catalog": {
+            "items": {
+              "$ref": "#/components/schemas/AIProviderEntry"
+            },
+            "type": "array"
+          },
           "choices": {
             "items": {
               "$ref": "#/components/schemas/AIFeatureDefault"
@@ -834,6 +840,10 @@
             },
             "type": "array"
           },
+          "priceListDate": {
+            "format": "date-time",
+            "type": "string"
+          },
           "usage": {
             "$ref": "#/components/schemas/AIPersonalUsageView"
           }
@@ -845,7 +855,9 @@
           "accounts",
           "choices",
           "usage",
-          "people"
+          "people",
+          "catalog",
+          "priceListDate"
         ],
         "type": "object"
       },
@@ -92856,7 +92868,7 @@
     },
     "/api/v1/workspaces/{workspace}/ai": {
       "get": {
-        "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.",
+        "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.",
         "operationId": "get-ai-settings",
         "parameters": [
           {

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/sso"
@@ -275,14 +277,25 @@ func TestGroupMappings(t *testing.T) {
 	}
 
 	// Mappings are re-applied at every sign-in: leaving a group ends the
-	// role it gave. Outside the JIT workspace the membership goes; in it,
-	// the JIT default role applies.
+	// role it gave. Outside the JIT workspace the membership goes (with the
+	// person's assistant threads and MCP sign-ins there); in it, the JIT
+	// default role applies.
+	var sofia uuid.UUID
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT id FROM users WHERE email = 'sofia@acme.io'`).Scan(&sofia); err != nil {
+		t.Fatal(err)
+	}
+	engID := uuid.MustParse(eng)
+	env.SeedAssistantThread(engID, sofia)
+	env.SeedMCPSignIn(engID, sofia)
 	signIn("sofia@acme.io")
+	if threads, signIns := env.MemberLeftovers(engID, sofia); threads != 0 || signIns != 0 {
+		t.Fatalf("after the group's removal: %d threads, %d MCP sign-ins", threads, signIns)
+	}
 	if got := role("sofia@acme.io", "acme-engineering-blog"); got != "" {
 		t.Fatalf("sofia left Eng Leads but stays in the blog: %s", got)
 	}
 	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'member.removed' AND metadata->>'group' = 'Eng Leads' AND actor_type = 'system'
-		AND reason = 'no longer in Test IdP group “Eng Leads”, which granted Admin'`); n != 1 {
+		AND reason = 'no longer in Test IdP group “Eng Leads”, which granted Admin' AND (after->>'assistant_threads_removed')::int = 1 AND (after->>'mcp_sign_ins_removed')::int = 1`); n != 1 {
 		t.Fatalf("%d removals audited", n)
 	}
 	if got := role("sofia@acme.io", "acme-newsletter"); got != "editor/sso_jit" {

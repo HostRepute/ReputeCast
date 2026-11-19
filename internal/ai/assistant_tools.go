@@ -6,6 +6,7 @@ import (
 	"errors"
 	"html"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -145,20 +146,46 @@ func (s *Service) AssistantProposeCampaign(ctx context.Context, ws *store.Worksp
 }
 
 // AssistantSubjectIdeas runs the subject ideas on an attached campaign as
-// it is saved: their own switch, model and reservation.
+// it is saved: their own switch, model and reservation. What they send is
+// the editorial projection read_attached gives (the same privacy checks,
+// refused the same way), its Liquid tokens as written.
 func (s *Service) AssistantSubjectIdeas(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (AISubjectIdeas, error) {
-	cur, err := draftCampaign(ctx, s.Q, ws, p, id)
+	_, c, t, err := s.assistantDraft(ctx, s.Q, ws, p, id)
 	if err != nil {
 		return AISubjectIdeas{}, err
 	}
-	return s.SubjectIdeas(ctx, ws, p, AISubjectIdeasInput{CampaignID: id.String(), Subject: cur.Subject, Preheader: cur.Preheader, MJML: cur.Mjml})
+	return s.subjectIdeas(ctx, ws, p, AISubjectIdeasInput{CampaignID: id.String(), Subject: c.tokensBack(t.Subject), Preheader: c.tokensBack(t.Preheader)},
+		c.tokensBack(t.Source))
 }
 
 // AssistantRewrite runs the rewrite on a passage of an attached campaign:
-// its own switch, model and reservation.
+// its own switch, model and reservation. The campaign must pass the
+// editorial projection, and the passage and the instruction (the model
+// wrote both) its privacy checks, as read_attached's text does.
 func (s *Service) AssistantRewrite(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, text, action, instruction string) (AIRewrite, error) {
-	if _, err := draftCampaign(ctx, s.Q, ws, p, id); err != nil {
+	if _, _, _, err := s.assistantDraft(ctx, s.Q, ws, p, id); err != nil {
 		return AIRewrite{}, err
 	}
-	return s.Rewrite(ctx, ws, p, AIRewriteInput{CampaignID: id.String(), Action: action, Instruction: instruction, HTML: "<p>" + html.EscapeString(text) + "</p>"})
+	passage, ok := editorial.Text(text)
+	if !ok {
+		return AIRewrite{}, draftProblem(ctx, 422, "privacy")
+	}
+	if instruction != "" {
+		if instruction, ok = editorial.Text(instruction); !ok {
+			return AIRewrite{}, draftProblem(ctx, 422, "privacy")
+		}
+	}
+	return s.Rewrite(ctx, ws, p, AIRewriteInput{CampaignID: id.String(), Action: action, Instruction: instruction, HTML: "<p>" + html.EscapeString(passage) + "</p>"})
+}
+
+// tokensBack is projected text with its Liquid tokens as written; links
+// and images stay out of it.
+func (c *draftContext) tokensBack(text string) string {
+	pairs := []string{}
+	for _, b := range c.Bindings {
+		if b.Kind == "token" {
+			pairs = append(pairs, b.Handle, b.Value)
+		}
+	}
+	return strings.NewReplacer(pairs...).Replace(text)
 }

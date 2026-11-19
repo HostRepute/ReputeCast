@@ -21,6 +21,7 @@ export function Composer({
   onStop,
   answering,
   blocked,
+  note,
   placeholder,
   bound,
   handle,
@@ -32,6 +33,8 @@ export function Composer({
   answering: boolean
   /** Why nothing can be sent here (a state of the assistant): Send says so. */
   blocked?: string
+  /** Why the server didn't take the last message, in its words (the draft stays to edit). */
+  note?: string
   placeholder: string
   /** The element whose height bounds the composer (the panel). */
   bound?: () => HTMLElement | null
@@ -57,16 +60,22 @@ export function Composer({
     })
     return () => handle?.(null)
   }, [handle])
-  // Grow with the text, up to 40% of the panel's height.
+  // Grow with the text, up to 40% of the panel's height: measured only when
+  // the text changes (measuring forces a layout of the panel, which a
+  // streaming answer re-renders many times a second).
+  const boundRef = useRef(bound)
+  useLayoutEffect(() => {
+    boundRef.current = bound
+  })
   useLayoutEffect(() => {
     const el = area.current
     if (!el) return
-    const limit = Math.max(44, (bound?.()?.clientHeight ?? window.innerHeight) * 0.4)
+    const limit = Math.max(44, (boundRef.current?.()?.clientHeight ?? window.innerHeight) * 0.4)
     el.style.height = 'auto'
     const next = Math.min(el.scrollHeight, limit)
     el.style.height = `${next}px`
     el.style.overflowY = el.scrollHeight > limit ? 'auto' : 'hidden'
-  }, [value, bound])
+  }, [value])
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Enter' || e.shiftKey) return
     // An input method uses Enter to commit a word: never send then.
@@ -85,6 +94,11 @@ export function Composer({
       <label htmlFor={`${id}-draft`} className="vh">
         {t(m.composerLabel)}
       </label>
+      {note ? (
+        <p className="asst-note" id={`${id}-note`} role="alert">
+          {note}
+        </p>
+      ) : null}
       <textarea
         ref={area}
         id={`${id}-draft`}
@@ -93,7 +107,7 @@ export function Composer({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        aria-describedby={`${id}-hint`}
+        aria-describedby={note ? `${id}-note ${id}-hint` : `${id}-hint`}
       />
       <div className="asst-composer-row">
         <span className="asst-hint" id={`${id}-hint`}>

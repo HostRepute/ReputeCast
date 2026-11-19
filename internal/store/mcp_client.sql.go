@@ -319,7 +319,7 @@ func (q *Queries) MCPOAuthStatesPurge(ctx context.Context, before time.Time) (in
 }
 
 const mCPServer = `-- name: MCPServer :one
-SELECT id, workspace_id, key, name, url, transport, auth, header_name, header_sealed, client_id, client_secret_sealed, client_registered, issuer, authorization_endpoint, token_endpoint, scopes, access_roles, enabled, status, status_detail, synced_at, revision, created_by, created_at, updated_at FROM mcp_servers WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, key, name, url, transport, auth, header_name, header_sealed, client_id, client_secret_sealed, client_registered, issuer, authorization_endpoint, token_endpoint, scopes, access_roles, enabled, status, status_detail, synced_at, revision, created_by, created_at, updated_at, resource, revocation_endpoint FROM mcp_servers WHERE workspace_id = $1 AND id = $2
 `
 
 type MCPServerParams struct {
@@ -356,6 +356,8 @@ func (q *Queries) MCPServer(ctx context.Context, arg MCPServerParams) (McpServer
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Resource,
+		&i.RevocationEndpoint,
 	)
 	return i, err
 }
@@ -448,7 +450,7 @@ func (q *Queries) MCPServerKeys(ctx context.Context, workspaceID uuid.UUID) ([]s
 }
 
 const mCPServerLock = `-- name: MCPServerLock :one
-SELECT id, workspace_id, key, name, url, transport, auth, header_name, header_sealed, client_id, client_secret_sealed, client_registered, issuer, authorization_endpoint, token_endpoint, scopes, access_roles, enabled, status, status_detail, synced_at, revision, created_by, created_at, updated_at FROM mcp_servers WHERE workspace_id = $1 AND id = $2 FOR UPDATE
+SELECT id, workspace_id, key, name, url, transport, auth, header_name, header_sealed, client_id, client_secret_sealed, client_registered, issuer, authorization_endpoint, token_endpoint, scopes, access_roles, enabled, status, status_detail, synced_at, revision, created_by, created_at, updated_at, resource, revocation_endpoint FROM mcp_servers WHERE workspace_id = $1 AND id = $2 FOR UPDATE
 `
 
 type MCPServerLockParams struct {
@@ -485,16 +487,40 @@ func (q *Queries) MCPServerLock(ctx context.Context, arg MCPServerLockParams) (M
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Resource,
+		&i.RevocationEndpoint,
 	)
 	return i, err
+}
+
+const mCPServerRevocationsQueue = `-- name: MCPServerRevocationsQueue :execrows
+INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, refresh_sealed, created_at)
+SELECT t.server_id, t.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, t.refresh_sealed, now()
+FROM mcp_tokens t JOIN mcp_servers s ON s.id = t.server_id
+WHERE s.workspace_id = $1 AND s.id = $2 AND t.refresh_sealed IS NOT NULL AND s.revocation_endpoint <> ''
+`
+
+type MCPServerRevocationsQueueParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ID          uuid.UUID `json:"id"`
+}
+
+// A server is deleted: its members' refresh tokens are queued for
+// revocation first, in the delete's transaction (the rows outlive it).
+func (q *Queries) MCPServerRevocationsQueue(ctx context.Context, arg MCPServerRevocationsQueueParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mCPServerRevocationsQueue, arg.WorkspaceID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const mCPServerSave = `-- name: MCPServerSave :exec
 UPDATE mcp_servers SET name = $1, enabled = $2, access_roles = $3, header_sealed = $4,
     client_id = $5, client_secret_sealed = $6, client_registered = $7,
     issuer = $8, authorization_endpoint = $9, token_endpoint = $10, scopes = $11,
-    revision = revision + 1, updated_at = $12
-WHERE workspace_id = $13 AND id = $14
+    resource = $12, revocation_endpoint = $13, revision = revision + 1, updated_at = $14
+WHERE workspace_id = $15 AND id = $16
 `
 
 type MCPServerSaveParams struct {
@@ -509,6 +535,8 @@ type MCPServerSaveParams struct {
 	AuthorizationEndpoint string    `json:"authorizationEndpoint"`
 	TokenEndpoint         string    `json:"tokenEndpoint"`
 	Scopes                string    `json:"scopes"`
+	Resource              string    `json:"resource"`
+	RevocationEndpoint    string    `json:"revocationEndpoint"`
 	Now                   time.Time `json:"now"`
 	WorkspaceID           uuid.UUID `json:"workspaceId"`
 	ID                    uuid.UUID `json:"id"`
@@ -527,6 +555,8 @@ func (q *Queries) MCPServerSave(ctx context.Context, arg MCPServerSaveParams) er
 		arg.AuthorizationEndpoint,
 		arg.TokenEndpoint,
 		arg.Scopes,
+		arg.Resource,
+		arg.RevocationEndpoint,
 		arg.Now,
 		arg.WorkspaceID,
 		arg.ID,
@@ -559,7 +589,7 @@ func (q *Queries) MCPServerStatus(ctx context.Context, arg MCPServerStatusParams
 }
 
 const mCPServers = `-- name: MCPServers :many
-SELECT id, workspace_id, key, name, url, transport, auth, header_name, header_sealed, client_id, client_secret_sealed, client_registered, issuer, authorization_endpoint, token_endpoint, scopes, access_roles, enabled, status, status_detail, synced_at, revision, created_by, created_at, updated_at FROM mcp_servers WHERE workspace_id = $1 ORDER BY name, id
+SELECT id, workspace_id, key, name, url, transport, auth, header_name, header_sealed, client_id, client_secret_sealed, client_registered, issuer, authorization_endpoint, token_endpoint, scopes, access_roles, enabled, status, status_detail, synced_at, revision, created_by, created_at, updated_at, resource, revocation_endpoint FROM mcp_servers WHERE workspace_id = $1 ORDER BY name, id
 `
 
 func (q *Queries) MCPServers(ctx context.Context, workspaceID uuid.UUID) ([]McpServer, error) {
@@ -597,7 +627,49 @@ func (q *Queries) MCPServers(ctx context.Context, workspaceID uuid.UUID) ([]McpS
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Resource,
+			&i.RevocationEndpoint,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const mCPServersDue = `-- name: MCPServersDue :many
+SELECT s.id, s.workspace_id FROM mcp_servers s
+WHERE s.enabled AND s.auth IN ('none', 'header') AND s.synced_at < $1::timestamptz AND s.updated_at < $1
+ORDER BY s.updated_at, s.id LIMIT $2
+`
+
+type MCPServersDueParams struct {
+	Before time.Time `json:"before"`
+	Lim    int32     `json:"lim"`
+}
+
+type MCPServersDueRow struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// Servers the hourly sync looks at: enabled, synced before but neither
+// synced nor tried since @before (one that fails waits its hour too), with
+// a shared credential or none (an OAuth server is listed as a person: by a
+// manager's sync, and before each call).
+func (q *Queries) MCPServersDue(ctx context.Context, arg MCPServersDueParams) ([]MCPServersDueRow, error) {
+	rows, err := q.db.Query(ctx, mCPServersDue, arg.Before, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MCPServersDueRow{}
+	for rows.Next() {
+		var i MCPServersDueRow
+		if err := rows.Scan(&i.ID, &i.WorkspaceID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -763,8 +835,18 @@ func (q *Queries) MCPToken(ctx context.Context, arg MCPTokenParams) (McpToken, e
 	return i, err
 }
 
-const mCPTokenDelete = `-- name: MCPTokenDelete :execrows
-DELETE FROM mcp_tokens WHERE server_id = $1 AND user_id = $2
+const mCPTokenDelete = `-- name: MCPTokenDelete :one
+WITH gone AS (
+    DELETE FROM mcp_tokens t WHERE t.server_id = $1 AND t.user_id = $2
+    RETURNING t.server_id, t.user_id, t.refresh_sealed
+), queued AS (
+    INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, refresh_sealed, created_at)
+    SELECT g.server_id, g.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, g.refresh_sealed, now()
+    FROM gone g JOIN mcp_servers s ON s.id = g.server_id
+    WHERE g.refresh_sealed IS NOT NULL AND s.revocation_endpoint <> ''
+    RETURNING 1
+)
+SELECT count(*) FROM gone
 `
 
 type MCPTokenDeleteParams struct {
@@ -772,12 +854,14 @@ type MCPTokenDeleteParams struct {
 	UserID   uuid.UUID `json:"userId"`
 }
 
+// A person's sign-in to a server goes; its refresh token is queued for
+// revocation when the authorization server has an endpoint for it (data-
+// modifying CTEs run whether or not they're read).
 func (q *Queries) MCPTokenDelete(ctx context.Context, arg MCPTokenDeleteParams) (int64, error) {
-	result, err := q.db.Exec(ctx, mCPTokenDelete, arg.ServerID, arg.UserID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	row := q.db.QueryRow(ctx, mCPTokenDelete, arg.ServerID, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const mCPTokenLock = `-- name: MCPTokenLock :one
@@ -803,6 +887,55 @@ func (q *Queries) MCPTokenLock(ctx context.Context, arg MCPTokenLockParams) (Mcp
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const mCPTokenRevocationsTake = `-- name: MCPTokenRevocationsTake :many
+WITH taken AS (
+    DELETE FROM mcp_token_revocations r WHERE r.id IN (SELECT q.id FROM mcp_token_revocations q ORDER BY q.id LIMIT $1 FOR UPDATE SKIP LOCKED)
+    RETURNING r.id, r.server_id, r.user_id, r.refresh_sealed, r.revocation_endpoint, r.client_id, r.client_secret_sealed
+)
+SELECT taken.id, taken.server_id, taken.user_id, taken.refresh_sealed, taken.revocation_endpoint, taken.client_id, taken.client_secret_sealed
+FROM taken ORDER BY taken.id
+`
+
+type MCPTokenRevocationsTakeRow struct {
+	ID                 int64     `json:"id"`
+	ServerID           uuid.UUID `json:"serverId"`
+	UserID             uuid.UUID `json:"userId"`
+	RefreshSealed      []byte    `json:"refreshSealed"`
+	RevocationEndpoint string    `json:"revocationEndpoint"`
+	ClientID           string    `json:"clientId"`
+	ClientSecretSealed []byte    `json:"clientSecretSealed"`
+}
+
+// Up to @lim queued refresh tokens with what revoking them needs, taken
+// off the queue (revocation is best effort: a token is tried once).
+func (q *Queries) MCPTokenRevocationsTake(ctx context.Context, lim int32) ([]MCPTokenRevocationsTakeRow, error) {
+	rows, err := q.db.Query(ctx, mCPTokenRevocationsTake, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MCPTokenRevocationsTakeRow{}
+	for rows.Next() {
+		var i MCPTokenRevocationsTakeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServerID,
+			&i.UserID,
+			&i.RefreshSealed,
+			&i.RevocationEndpoint,
+			&i.ClientID,
+			&i.ClientSecretSealed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const mCPTokenSave = `-- name: MCPTokenSave :exec
@@ -835,8 +968,18 @@ func (q *Queries) MCPTokenSave(ctx context.Context, arg MCPTokenSaveParams) erro
 	return err
 }
 
-const mCPTokensRemove = `-- name: MCPTokensRemove :execrows
-DELETE FROM mcp_tokens WHERE user_id = $1 AND ($2::uuid IS NULL OR workspace_id = $2)
+const mCPTokensRemove = `-- name: MCPTokensRemove :one
+WITH gone AS (
+    DELETE FROM mcp_tokens t WHERE t.user_id = $1 AND ($2::uuid IS NULL OR t.workspace_id = $2)
+    RETURNING t.server_id, t.user_id, t.refresh_sealed
+), queued AS (
+    INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, refresh_sealed, created_at)
+    SELECT g.server_id, g.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, g.refresh_sealed, now()
+    FROM gone g JOIN mcp_servers s ON s.id = g.server_id
+    WHERE g.refresh_sealed IS NOT NULL AND s.revocation_endpoint <> ''
+    RETURNING 1
+)
+SELECT count(*) FROM gone
 `
 
 type MCPTokensRemoveParams struct {
@@ -845,13 +988,13 @@ type MCPTokensRemoveParams struct {
 }
 
 // A person left the workspace or was deactivated (sqlc.narg(workspace_id)
-// NULL: every workspace): their MCP sign-ins go.
+// NULL: every workspace): their MCP sign-ins go, their refresh tokens
+// queued for revocation as MCPTokenDelete does.
 func (q *Queries) MCPTokensRemove(ctx context.Context, arg MCPTokensRemoveParams) (int64, error) {
-	result, err := q.db.Exec(ctx, mCPTokensRemove, arg.UserID, arg.WorkspaceID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	row := q.db.QueryRow(ctx, mCPTokensRemove, arg.UserID, arg.WorkspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const mCPTool = `-- name: MCPTool :one

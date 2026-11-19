@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useId, useState, type ReactNode } from 'react'
+import { createContext, memo, useContext, useId, useLayoutEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import { HOSTREPUTE } from '@/lib/hostrepute'
@@ -11,6 +11,8 @@ import { mx } from './mcp.messages'
 import { m } from './messages'
 import { turnActive, type ThreadMessage, type ThreadState, type ToolRow } from './reducer'
 import { StateCard } from './states'
+import { closeAssistant } from './store'
+import type { LiveText } from './useThreadStream'
 
 /** One block of the conversation: the person's message, an answer (a turn's tools and text), or the summary marker. */
 export type Item =
@@ -61,8 +63,11 @@ export function mcpOf(row: Pick<ToolRow, 'name' | 'label'>): { key: string; serv
   const x = splitModelName(row.name)
   if (!x) return undefined
   const suffix = ` · ${x.tool}`
-  const server = row.label && row.label.endsWith(suffix) ? row.label.slice(0, -suffix.length) : x.key
-  return { key: x.key, server, tool: x.tool, label: `${server}${suffix}` }
+  if (row.label && row.label.endsWith(suffix)) return { key: x.key, server: row.label.slice(0, -suffix.length), tool: x.tool, label: row.label }
+  // A tool whose own name isn't safe for the model (mcp__linear__note_b_ for "note<b>") keeps it in the label.
+  const at = row.label ? row.label.lastIndexOf(' · ') : -1
+  if (row.label && at > 0) return { key: x.key, server: row.label.slice(0, at), tool: row.label.slice(at + 3), label: row.label }
+  return { key: x.key, server: x.key, tool: x.tool, label: `${x.key}${suffix}` }
 }
 
 /** "Read report · September Product Update · 0.3 s"; "Linear · search_issues · 1.2 s". */
@@ -106,6 +111,11 @@ function ToolRowView({ row }: { row: ToolRow }) {
   )
 }
 
+/** A sheet or the full screen would cover the page a card's link opens. */
+export const uncover = () => {
+  if (!document.querySelector('.asst-docked')) closeAssistant({ refocus: false })
+}
+
 /** A handoff into an existing screen (it only navigates). */
 function HandoffCard({ card }: { card: NonNullable<ToolRow['card']> }) {
   const t = useT()
@@ -121,7 +131,13 @@ function HandoffCard({ card }: { card: NonNullable<ToolRow['card']> }) {
         <strong>{card.title}</strong>
         <small>{t(desc)}</small>
       </div>
-      <Link to={card.path as never} className="btn">
+      {/* An agent task's brief goes with it as the page's state (its content isn't in the URL); the person still starts it. */}
+      <Link
+        to={card.path as never}
+        state={card.kind === 'agent_task' && card.brief ? ({ agentBrief: { workspace: slug, text: card.brief.slice(0, 4000) } } as never) : undefined}
+        className="btn"
+        onClick={uncover}
+      >
         {t(label)}
       </Link>
     </div>
@@ -152,7 +168,48 @@ function HostReputeCard({ text }: { text: string }) {
   )
 }
 
-function Answer({ item }: { item: Extract<Item, { kind: 'answer' }> }) {
+/**
+ * The streaming answer's text as it arrives (useThreadState), and what
+ * keeps the conversation at its end meanwhile (the log's own scrolling).
+ */
+export const LiveContext = createContext<{ text: LiveText; stick: () => void } | undefined>(undefined)
+const unsubscribed = () => () => {}
+
+/**
+ * The streaming answer's Markdown: the turn's newest text, which renders
+ * here alone, without the panel around it, for each frame of deltas.
+ */
+function LiveMarkdown({ turnId, text }: { turnId?: string; text: string }) {
+  const ctx = useContext(LiveContext)
+  const now = useSyncExternalStore(ctx?.text.subscribe ?? unsubscribed, () => ctx?.text.get())
+  const shown = now && now.turnId === turnId && now.text.length >= text.length ? now.text : text
+  const stick = ctx?.stick
+  useLayoutEffect(() => {
+    stick?.()
+  }, [shown, stick])
+  return <StreamingMarkdown text={shown} />
+}
+
+type AnswerItem = Extract<Item, { kind: 'answer' }>
+const sameList = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((x, i) => x === b[i])
+
+/**
+ * An answer renders again only when it changed: a streaming answer's
+ * deltas, or a keystroke in the composer, leave the finished ones alone
+ * (buildItems makes new items each time, from the same messages and rows).
+ */
+const Answer = memo(
+  AnswerView,
+  (a, b) =>
+    a.item.key === b.item.key &&
+    a.item.status === b.item.status &&
+    a.item.live === b.item.live &&
+    a.item.stopped === b.item.stopped &&
+    sameList(a.item.tools, b.item.tools) &&
+    sameList(a.item.texts, b.item.texts),
+)
+
+function AnswerView({ item }: { item: AnswerItem }) {
   const t = useT()
   const id = useId()
   const streaming = item.status !== undefined
@@ -177,7 +234,7 @@ function Answer({ item }: { item: Extract<Item, { kind: 'answer' }> }) {
       )}
       {item.live ? (
         <div className="asst-md">
-          <StreamingMarkdown text={item.live} />
+          <LiveMarkdown turnId={item.turnId} text={item.live} />
         </div>
       ) : null}
       {item.stopped ? (
@@ -199,7 +256,9 @@ function Answer({ item }: { item: Extract<Item, { kind: 'answer' }> }) {
   )
 }
 
-function UserMessage({ item }: { item: Extract<Item, { kind: 'user' }> }) {
+const UserMessage = memo(UserMessageView, (a, b) => a.item.key === b.item.key && a.item.text === b.item.text && a.item.pending === b.item.pending)
+
+function UserMessageView({ item }: { item: Extract<Item, { kind: 'user' }> }) {
   const t = useT()
   const id = useId()
   return (

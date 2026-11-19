@@ -89,6 +89,9 @@ func (s *Service) Purge(ctx context.Context) (PurgeResult, error) {
 						return err
 					}
 				}
+				if err := noticesGone(ctx, q, t); err != nil {
+					return err
+				}
 				if err := q.AIAssistantThreadExpire(ctx, store.AIAssistantThreadExpireParams{ID: t.ID, Now: now}); err != nil {
 					return err
 				}

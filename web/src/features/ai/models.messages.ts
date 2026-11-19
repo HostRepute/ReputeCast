@@ -10,6 +10,10 @@ export const mm = defineMessages('ai.models', {
   accountsTitle: 'Model accounts',
   accountsCaption: 'Keys are write-only. They are never shown again and never sent to another address.',
   addAccount: 'Add account',
+  // The workspace's first account, disconnected with its models kept: connected again with a key.
+  reconnect: 'Reconnect',
+  // On AI models for someone who holds ai:use but not integrations:view; helpers: who can grant it, or none.
+  personalOnly: 'Model accounts are for people who can view integrations.{helpers, select, none {} other { Ask {helpers}.}}',
   thAccount: 'Account',
   thModels: 'Models',
   thStatus: 'Status',
@@ -121,10 +125,10 @@ export const mm = defineMessages('ai.models', {
   leavesBody: 'Only what a person attaches and confirms, ReputeCast’s help articles and the answers of approved MCP tools. MCP servers receive only the arguments of their own tools’ calls. The model account’s own terms decide how the provider stores it.',
   // The link from the note to Settings › Integrations › MCP servers.
   mcpLink: 'MCP servers and their approved tools',
-  limitsFoot: 'Limits apply to threads started after a change. Answers already written stay readable when the assistant is off.',
+  limitsFoot: 'Limits apply to threads started after a change. While the assistant is off, threads are kept, and they can only be stopped or deleted until it’s switched on again.',
   assistantOnToast: 'The assistant is on',
   assistantOffToast: 'The assistant is off',
-  assistantOffDetail: 'Threads keep their answers; nobody can send a new message until it’s on again.',
+  assistantOffDetail: 'Threads are kept; until it’s switched on again, they can only be stopped or deleted.',
   assistantChanged: 'Someone changed these settings meanwhile. The page shows their version now.',
   editLimits: 'Edit limits',
   limitsTitle: 'Assistant limits',

@@ -256,9 +256,10 @@ func TestAssistantProposeEdit(t *testing.T) {
 		AND metadata->>'via' = 'ai_assistant' AND metadata->>'thread_id' = $3 AND metadata->>'proposal_id' = $4`, d.ws.ID, d.draft.String(), th.ID.String(), proposal.String()); n != 1 {
 		t.Fatal("the acceptance isn't audited with the thread")
 	}
-	if n := d.count(`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action = 'ai.draft.propose' AND target_id = $2 AND metadata->>'thread_id' = $3`,
-		d.ws.ID, proposal.String(), th.ID.String()); n != 1 {
-		t.Fatal("the proposal isn't audited with the thread")
+	// The worker made it for the thread's owner: it is theirs in the log.
+	if n := d.count(`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action = 'ai.draft.propose' AND target_id = $2 AND metadata->>'thread_id' = $3
+		AND actor_type = 'user' AND actor_id = $4 AND actor_name <> ''`, d.ws.ID, proposal.String(), th.ID.String(), d.member); n != 1 {
+		t.Fatal("the proposal isn't audited with the thread, as the thread's owner")
 	}
 }
 

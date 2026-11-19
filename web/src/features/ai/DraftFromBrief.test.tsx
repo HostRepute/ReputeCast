@@ -164,4 +164,13 @@ describe('draft from a brief', () => {
     expect(await screen.findByText(/This month's AI budget is used up/)).toBeVisible()
     expect(screen.getByRole('button', { name: 'Generate proposal' })).toBeDisabled()
   })
+
+  it('says a rejected key is the person’s own, and links where they replace it', async () => {
+    const rejected = { ...draft, personal: true, state: 'key_rejected', providerName: 'OpenAI' }
+    unmock = mockApi({ ...reads, [`GET ${base}/ai/status`]: () => json({ ...status, features: [rejected] }) })
+    await renderInWorkspace(<DraftFromBriefDialog onClose={vi.fn()} onAccepted={vi.fn()} />, { me: editor })
+    expect(await screen.findByText(/OpenAI rejected your own key/)).toBeVisible()
+    expect(screen.queryByText(/workspace's key/)).toBeNull()
+    expect(screen.getByRole('link', { name: 'AI settings' })).toBeVisible()
+  })
 })

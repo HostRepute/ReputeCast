@@ -1,6 +1,9 @@
+import { act, renderHook } from '@testing-library/react'
 import { buildItems, mcpOf } from './Conversation'
 import { streamBlocks } from './Markdown'
 import { initialThreadState, threadReducer, type Confirmation, type StreamEvent, type Thread, type ThreadMessage, type ThreadState, type ThreadTurn } from './reducer'
+import { problemOf } from './states'
+import { useThreadState } from './useThreadStream'
 
 const at = '2026-11-17T10:00:00Z'
 const turn = (state: ThreadTurn['state'], extra: Partial<ThreadTurn> = {}): ThreadTurn => ({ id: 't1', sequence: 1, state, createdAt: at, ...extra })
@@ -71,6 +74,24 @@ describe('threadReducer', () => {
     expect(s.stopped?.text).toBe('Here are')
   })
 
+  it('shows a stopped answer once when Stop’s response already has it saved', () => {
+    let s = run(initialThreadState, snap(2), turnEv(3, turn('answering')), delta(4, 'Here are'))
+    const saved = msg('a1', 'assistant', 'Here are', { partial: true })
+    s = threadReducer(s, { type: 'thread', thread: thread({ eventSeq: 6, turn: turn('stopped', { reason: 'stopped' }), messages: [msg('u1', 'user', 'Why did opens fall?'), saved] }) })
+    expect(s.stopped).toBeUndefined()
+    // The stream's message and turn events (5, 6) come after the response, and are skipped.
+    s = run(s, message(5, saved), turnEv(6, turn('stopped', { reason: 'stopped' })))
+    const answer = buildItems(s).find((x) => x.kind === 'answer')
+    expect(answer && answer.kind === 'answer' ? [answer.texts.map((x) => x.text), answer.stopped] : []).toEqual([['Here are'], undefined])
+  })
+
+  it('drops the kept copy when the stopped answer’s saved message comes after its turn event', () => {
+    let s = run(initialThreadState, snap(2), turnEv(3, turn('answering')), delta(4, 'Here are'), turnEv(5, turn('stopped', { reason: 'stopped' })))
+    expect(s.stopped?.text).toBe('Here are')
+    s = run(s, message(6, msg('a1', 'assistant', 'Here are', { partial: true })))
+    expect(s.stopped).toBeUndefined()
+  })
+
   it('takes an API response only when it is as new as the stream', () => {
     let s = run(initialThreadState, snap(2), turnEv(3, turn('answering')), message(4, msg('a1', 'assistant', 'Done.')))
     // A response read before event 4 must not take the answer away.
@@ -92,6 +113,16 @@ describe('threadReducer', () => {
   it('ends on a problem event', () => {
     const s = run(initialThreadState, snap(2), { type: 'problem', id: 0, data: { status: 409, code: 'ai_assistant_off', detail: 'off' } })
     expect(s.problem?.code).toBe('ai_assistant_off')
+  })
+
+  it('keeps the assistant off after Stop’s response, which works while it is off', () => {
+    const off = run(initialThreadState, snap(2, thread({ turn: turn('answering') })), { type: 'problem', id: 0, data: { status: 409, code: 'ai_assistant_off', detail: 'off' } })
+    const stopped = thread({ eventSeq: 4, turn: turn('stopped') })
+    const s = threadReducer(off, { type: 'thread', thread: stopped, fromStop: true })
+    expect(s.turn?.state).toBe('stopped')
+    expect(s.problem?.code).toBe('ai_assistant_off')
+    // A thread read again (the assistant is on to read it) ends the problem.
+    expect(threadReducer(off, { type: 'thread', thread: stopped }).problem).toBeUndefined()
   })
 
   const conf = (state: Confirmation['state'], extra: Partial<Confirmation> = {}): Confirmation => ({
@@ -168,5 +199,56 @@ describe('mcpOf', () => {
     expect(mcpOf({ name: 'mcp__linear__create_issue', label: 'Linear · create_issue' })).toEqual({ key: 'linear', server: 'Linear', tool: 'create_issue', label: 'Linear · create_issue' })
     expect(mcpOf({ name: 'mcp__wiki__search' })?.label).toBe('wiki · search')
     expect(mcpOf({ name: 'read_report', label: 'September' })).toBeUndefined()
+    // A name the model can't take is sanitized in its tool name, never in the label.
+    expect(mcpOf({ name: 'mcp__wiki__note_b_', label: '<i>Wiki</i> · note<b>' })).toMatchObject({ server: '<i>Wiki</i>', tool: 'note<b>' })
+  })
+})
+
+describe('useThreadState', () => {
+  it('holds deltas that only lengthen the answer, and applies them before anything else', () => {
+    const { result } = renderHook(() => useThreadState())
+    const send = (...events: StreamEvent[]) => act(() => result.current[1]({ type: 'events', events }))
+    send(snap(2), turnEv(3, turn('answering')), delta(4, 'Opens '))
+    const shown = result.current[0]
+    expect(shown.live?.text).toBe('Opens ')
+    const heard: string[] = []
+    const off = result.current[2].subscribe(() => heard.push(result.current[2].get()?.text ?? ''))
+    send(delta(5, 'fell '))
+    send(delta(6, 'by 4%.'))
+    // The panel's state didn't change; only the live text did.
+    expect(result.current[0]).toBe(shown)
+    expect(heard).toEqual(['Opens fell ', 'Opens fell by 4%.'])
+    // The next other event comes after them, as if each had been dispatched.
+    send(message(7, msg('a1', 'assistant', 'Opens fell by 4%.')), turnEv(8, turn('done')))
+    const direct = run(initialThreadState, snap(2), turnEv(3, turn('answering')), delta(4, 'Opens '), delta(5, 'fell '), delta(6, 'by 4%.'), message(7, msg('a1', 'assistant', 'Opens fell by 4%.')), turnEv(8, turn('done')))
+    expect(result.current[0]).toEqual(direct)
+    expect(result.current[2].get()).toBeUndefined()
+    off()
+  })
+
+  it('applies held deltas before a stop, so the stopped text is whole', () => {
+    const { result } = renderHook(() => useThreadState())
+    const send = (...events: StreamEvent[]) => act(() => result.current[1]({ type: 'events', events }))
+    send(snap(2), turnEv(3, turn('answering')), delta(4, 'Opens '))
+    send(delta(5, 'fell'))
+    send(turnEv(6, turn('stopped')))
+    expect(result.current[0].stopped).toEqual({ turnId: 't1', text: 'Opens fell' })
+  })
+})
+
+describe('problemOf', () => {
+  it('tells each model problem and an expired call apart, as reasons and as refused messages’ codes', () => {
+    const cases: [string, string][] = [
+      ['model_gone', 'modelGone'],
+      ['assistant_model_gone', 'modelGone'],
+      ['account_disconnected', 'disconnected'],
+      ['key_rejected', 'key'],
+      ['tools_unchecked', 'toolsUnchecked'],
+      ['personal_keys_off', 'personalKeysOff'],
+      ['not_configured', 'notConfigured'],
+      ['confirmation_expired', 'confirmationExpired'],
+      ['something_new', 'failed'],
+    ]
+    for (const [reason, problem] of cases) expect(problemOf(reason), reason).toBe(problem)
   })
 })

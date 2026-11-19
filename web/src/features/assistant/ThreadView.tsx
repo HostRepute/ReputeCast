@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, errorMessage } from '@/api/client'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
@@ -8,28 +9,69 @@ import { useAIStatus } from '@/features/ai/api'
 import { useSharingReview } from '@/features/ai/SharingReview'
 import { useT } from '@/i18n'
 import { count, money } from '@/lib/format'
-import { deniedReason, useCan, useWorkspace } from '@/lib/session'
+import { deniedReason, useCan, useWorkspace, workspaceMeKey } from '@/lib/session'
+import type { NotificationItem } from '@/components/shell/NotificationsPopover'
 import { startSignIn, useUsableMCPServers, type MCPServer } from '@/features/mcpservers/api'
-import { attachContext, createThread, decideConfirmation, detachContext, requestKey, sendMessage, setThreadServers, stopTurn, updateThread, useAssistantModels, useRefreshThreads, useThread, type AssistantModel } from './api'
+import { attachContext, createThread, decideConfirmation, detachContext, requestKey, sendMessage, setThreadServers, stopTurn, testModelTools, updateThread, useAssistantModels, useRefreshThreads, useThread, type AssistantModel } from './api'
 import { Composer, type ComposerHandle } from './Composer'
 import { CONFIRM_ID, ConfirmCard, MCPStates, pendingConfirmation, WaitingLine } from './Confirmation'
-import { buildItems, Conversation } from './Conversation'
+import { buildItems, Conversation, LiveContext, uncover } from './Conversation'
 import { placeholderOf, suggestions, useResourceTitle, useScreenContext } from './context'
 import { AsstIcon } from './icons'
 import { mx } from './mcp.messages'
 import { m } from './messages'
 import { ModelPicker } from './ModelPicker'
-import { initialThreadState, threadReducer, turnActive, type Confirmation, type ThreadContext } from './reducer'
+import { turnActive, type Confirmation, type ThreadContext } from './reducer'
 import { ServerPicker } from './ServerPicker'
-import { problemCopy, problemOf, StateCard, useProblemTitle, type TurnProblem } from './states'
-import { getAssistant, markDraftTaken, setAssistantThread, untakenDraft, useAssistant } from './store'
+import { modelProblems, problemCopy, problemOf, StateCard, useProblemTitle, type TurnProblem } from './states'
+import { getAssistant, markDraftTaken, setAssistantThread, untakenDraft, useAssistant, waitingThread } from './store'
 import { MAX_ATTEMPTS } from '@/features/live/useLiveSend'
-import { useThreadStream } from './useThreadStream'
+import { useThreadState, useThreadStream } from './useThreadStream'
 
 /** A state that keeps the assistant from answering here at all. */
 export type Gate = 'noAccess' | 'off' | 'noModel' | 'noUsable' | 'expired' | 'lost'
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s)
+
+/** A text that renders only where it's read (the composer's draft). */
+/** A workspace and the thread shown in it (none: a new thread). */
+type Shown = { slug: string; threadId?: string }
+
+/**
+ * A text that renders only where it's read (the composer's draft): one per
+ * workspace and thread, the shown one's current.
+ */
+function textStore(initial: string, at: string) {
+  let value = initial
+  let key = at
+  const kept = new Map<string, string>()
+  const listeners = new Set<() => void>()
+  const set = (next: string | ((now: string) => string)) => {
+    const v = typeof next === 'function' ? next(value) : next
+    if (v === value) return
+    value = v
+    for (const l of listeners) l()
+  }
+  return {
+    get: () => value,
+    set,
+    /** The draft of another workspace or thread shows now; this one's is kept for its return. */
+    show: (k: string) => {
+      if (k === key) return
+      kept.set(key, value)
+      key = k
+      set(kept.get(k) ?? '')
+    },
+    /** Changes the draft of `k`, shown or not. */
+    setAt: (k: string, next: (now: string) => string) => (k === key ? set(next) : kept.set(k, next(kept.get(k) ?? ''))),
+    subscribe: (l: () => void) => {
+      listeners.add(l)
+      return () => {
+        listeners.delete(l)
+      }
+    },
+  }
+}
 
 /** An answer's first sentence, without Markdown marks, for the live region. */
 export function firstSentence(text: string): string {
@@ -59,20 +101,42 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   const models = useAssistantModels()
   const query = useThread(threadId)
   const refreshThreads = useRefreshThreads()
-  const [state, dispatch] = useReducer(threadReducer, initialThreadState)
-  const [draft, setDraft] = useState(untakenDraft)
+  const [state, dispatch, live] = useThreadState()
+  // What this shows now. An answer to a request made for another workspace
+  // or thread (the person switched meanwhile) changes nothing here; its
+  // draft and its refusal stay with it.
+  const here = `${slug}:${threadId ?? ''}`
+  const shownAt = useRef<Shown>({ slug, threadId })
+  useLayoutEffect(() => {
+    shownAt.current = { slug, threadId }
+  }, [slug, threadId])
+  /** Whether what was asked for `from` still shows: its thread, or the one created for it. */
+  const stillShown = useCallback((from: Shown, created?: string) => {
+    const now = shownAt.current
+    return now.slug === from.slug && (now.threadId === from.threadId || (!from.threadId && (!now.threadId || now.threadId === created)))
+  }, [])
+  // The composer's text lives outside this state: a keystroke renders the composer alone.
+  const [draft] = useState(() => textStore(untakenDraft(), here))
+  const setDraft = draft.set
+  useLayoutEffect(() => draft.show(here), [draft, here])
   const [picked, setPicked] = useState<string>()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [announce, setAnnounce] = useState('')
-  // A message refused before its turn started (the monthly cap, a rejected key…).
-  const [sendProblem, setSendProblem] = useState<TurnProblem>()
+  // A message refused before its turn started (the monthly cap, a rejected key…), with the server's words, in the thread it was sent to.
+  const [refusal, setSendProblem] = useState<{ at: string; problem: TurnProblem; detail?: string; text: string }>()
+  const sendProblem = refusal?.at === here ? refusal : undefined
+  // A message the server didn't take (a contact's address or phone, a credential): its words at the composer, over the kept draft.
+  const [held, setHeld] = useState<{ at: string; text: string }>()
+  const composerNote = held?.at === here ? held.text : undefined
   // The composer registers its handle; the controller only focuses it.
   const composer = useRef<ComposerHandle | null>(null)
   const attachComposer = useCallback((h: ComposerHandle | null) => {
     composer.current = h
   }, [])
-  const focusComposer = useCallback(() => {
-    window.setTimeout(() => composer.current?.focus())
+  /** Focus to the composer: at once when it is there (the panel opening), else once it is. */
+  const focusComposer = useCallback((now = false) => {
+    if (now && composer.current) composer.current.focus()
+    else window.setTimeout(() => composer.current?.focus())
   }, [])
   const screen = useScreenContext()
   const resourceTitle = useResourceTitle(screen.resource)
@@ -80,6 +144,13 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   const usable = useUsableMCPServers()
   const servers = usable.data?.servers ?? []
   const [pickedServers, setPickedServers] = useState<string[]>([])
+  // A new thread's model and servers are the workspace's own.
+  const [pickedIn, setPickedIn] = useState(slug)
+  if (pickedIn !== slug) {
+    setPickedIn(slug)
+    setPicked(undefined)
+    setPickedServers([])
+  }
   const [deciding, setDeciding] = useState<'allow' | 'deny'>()
   const [closedConf, setClosedConf] = useState<Confirmation>()
   const [confProblem, setConfProblem] = useState<{ id: string; code: 'mcp_tool_changed' | 'mcp_tool_blocked' }>()
@@ -87,14 +158,28 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   // A new thread starts from nothing; the API's thread replaces what was kept.
   useEffect(() => {
     dispatch({ type: 'reset' })
-  }, [threadId])
+  }, [threadId, slug, dispatch])
   useEffect(() => {
     if (query.data && query.data.id === threadId) dispatch({ type: 'thread', thread: query.data })
-  }, [query.data, threadId])
+  }, [query.data, threadId, dispatch])
   // A thread that is gone (deleted, not this person's) leaves a new one.
   useEffect(() => {
     if (query.error instanceof ApiError && query.error.status === 404) setAssistantThread(slug, undefined)
   }, [query.error, slug])
+
+  // The server removes a waiting call's notification once the call is
+  // decided, stopped or expired: a thread that shows here without its call
+  // waiting, while a notification of it is still kept, has the bell and the
+  // launcher's dot asked again.
+  const qc = useQueryClient()
+  const shown = state.thread && state.thread.id === threadId ? (state.turn?.state ?? 'none') : undefined
+  useEffect(() => {
+    if (!threadId || !shown || shown === 'waiting') return
+    const notes = qc.getQueriesData<{ items?: NotificationItem[] }>({ queryKey: ['get', '/api/v1/workspaces/{workspace}/notifications'] })
+    if (!notes.some(([, d]) => d?.items?.some((n) => waitingThread(n) === threadId))) return
+    void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/notifications'] })
+    void qc.invalidateQueries({ queryKey: workspaceMeKey(slug) })
+  }, [threadId, shown, qc, slug])
 
   // A stopped turn's request is accounted after it stops, with no usage
   // event: read the thread again for its cost.
@@ -106,18 +191,18 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     return () => window.clearTimeout(id)
   }, [turnKey, refetch])
 
-  const stream = useThreadStream(slug, threadId, state.lastId, Boolean(state.thread && state.thread.id === threadId && state.thread.state === 'open'), dispatch)
+  const stream = useThreadStream(slug, threadId, { thread: state.thread?.id, id: state.lastId }, Boolean(state.thread && state.thread.id === threadId && state.thread.state === 'open'), dispatch)
 
   // ⌘K › Ask the assistant: the question waits in the composer, unsent.
-  const [nonce, setNonce] = useState(ui.draftNonce)
-  if (nonce !== ui.draftNonce) {
-    setNonce(ui.draftNonce)
-    setDraft(getAssistant().draft)
-  }
+  const nonce = useRef(ui.draftNonce)
   useEffect(() => {
+    if (nonce.current !== ui.draftNonce) {
+      nonce.current = ui.draftNonce
+      setDraft(getAssistant().draft)
+    }
     markDraftTaken(ui.draftNonce)
     if (ui.draftNonce) focusComposer()
-  }, [ui.draftNonce, focusComposer])
+  }, [ui.draftNonce, focusComposer, setDraft])
 
   const list = models.data?.models ?? []
   const modelId = state.thread?.model?.id ?? picked ?? models.data?.defaultId
@@ -160,58 +245,79 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
 
   /** The thread to write to: this one, or a new one on the screen it opened on. */
   const ensureThread = useCallback(
-    async (title?: string): Promise<string> => {
+    async (): Promise<string> => {
       if (threadId) return threadId
-      let th = await createThread(slug, { requestKey: requestKey(), screen: screen.screen, modelId: picked, title: title ? clip(title, 80) : undefined })
+      const from = shownAt.current
+      let th = await createThread(slug, { requestKey: requestKey(), screen: screen.screen, modelId: picked })
       // Servers picked before the thread existed come with it.
       if (pickedServers.length) th = await setThreadServers(slug, th.id, pickedServers)
-      dispatch({ type: 'thread', thread: th })
-      setAssistantThread(slug, th.id)
       void refreshThreads()
+      // Shown here unless the person went to another thread meanwhile.
+      if (stillShown(from, th.id)) {
+        dispatch({ type: 'thread', thread: th })
+        setAssistantThread(slug, th.id)
+      }
       return th.id
     },
-    [threadId, slug, screen.screen, picked, pickedServers, refreshThreads],
+    [threadId, slug, screen.screen, picked, pickedServers, refreshThreads, dispatch, stillShown],
   )
 
   const send = useCallback(
     async (text: string) => {
       const body = text.trim()
       if (!body || active || gate) return
+      const from = shownAt.current
+      let id = threadId
       dispatch({ type: 'pending', text: body })
-      setDraft('')
+      setHeld(undefined)
+      // The composer empties when it holds what goes (not when Retry sends a refused message over new text).
+      setDraft((d) => (d.trim() === body ? '' : d))
       try {
-        const id = await ensureThread(body)
-        if (state.thread && !state.thread.title) void updateThread(slug, id, { title: clip(body, 80) }).then(() => refreshThreads())
+        id = await ensureThread()
         const th = await sendMessage(slug, id, body, requestKey())
+        // Named after the first message the server took: a refused one (an address in it) never names the thread.
+        if (!th.title) void updateThread(slug, th.id, { title: clip(body, 80) }).then(() => refreshThreads())
+        if (!stillShown(from, th.id)) return
         setSendProblem(undefined)
         dispatch({ type: 'thread', thread: th })
         setAnnounce(t(m.announceStart))
       } catch (e) {
+        // The message waits in its own thread's composer, shown or not.
+        const at = `${from.slug}:${id ?? ''}`
+        draft.setAt(at, (d) => d || body)
+        if (!stillShown(from, id)) return
         dispatch({ type: 'pending' })
-        setDraft((d) => d || body)
+        if (e instanceof ApiError && e.code === 'ai_assistant_private_data') {
+          setHeld({ at, text: e.problem.detail || e.message })
+          focusComposer()
+          return
+        }
         // A refusal the panel has a state for shows as that state; anything else is a toast.
         const known = e instanceof ApiError && e.code ? problemOf(e.code.replace(/^ai_/, '')) : 'failed'
         if (known !== 'failed') {
-          setSendProblem(known)
+          setSendProblem({ at, problem: known, detail: e instanceof ApiError ? e.problem.detail : undefined, text: body })
           setAnnounce(t(m.announceFailed, { title: t(problemCopy[known].title, { provider: model?.providerName ?? '', model: model?.modelName ?? '' }) }))
         } else toast({ kind: 'error', title: t(m.sendFailed), detail: errorMessage(e) })
       }
     },
-    [active, gate, ensureThread, state.thread, slug, t, refreshThreads, model],
+    [active, gate, threadId, ensureThread, slug, t, refreshThreads, model, dispatch, setDraft, draft, stillShown, focusComposer],
   )
 
   const stop = useCallback(async () => {
     const turn = state.turn
     if (!threadId || !turn || !turnActive(turn)) return
+    const from = shownAt.current
     try {
-      dispatch({ type: 'thread', thread: await stopTurn(slug, threadId, turn.id) })
+      const th = await stopTurn(slug, threadId, turn.id)
+      if (stillShown(from)) dispatch({ type: 'thread', thread: th, fromStop: true })
     } catch (e) {
-      toast({ kind: 'error', title: t(m.stopFailed), detail: errorMessage(e) })
+      if (stillShown(from)) toast({ kind: 'error', title: t(m.stopFailed), detail: errorMessage(e) })
     }
-  }, [state.turn, threadId, slug, t])
+  }, [state.turn, threadId, slug, t, dispatch, stillShown])
 
   const lastQuestion = [...state.messages].reverse().find((x) => x.role === 'user')?.text ?? ''
-  const retry = () => void send(lastQuestion)
+  // A refused message is sent again as it was; a failed turn's question is the thread's last.
+  const retry = () => void send(sendProblem ? sendProblem.text : lastQuestion)
   const edit = () => {
     setDraft(lastQuestion)
     focusComposer()
@@ -222,10 +328,13 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     if (!chosen || !chosen.usable) return
     if (!threadId || !state.thread) setPicked(id)
     else {
+      const from = shownAt.current
       try {
-        dispatch({ type: 'thread', thread: await updateThread(slug, threadId, { modelId: id }) })
+        const th = await updateThread(slug, threadId, { modelId: id })
+        if (!stillShown(from)) return
+        dispatch({ type: 'thread', thread: th })
       } catch (e) {
-        toast({ kind: 'error', title: errorMessage(e) })
+        if (stillShown(from)) toast({ kind: 'error', title: errorMessage(e) })
         return
       }
     }
@@ -243,26 +352,32 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     const res = screen.resource
     if (!res || !resourceTitle) return
     review(async () => {
+      const from = shownAt.current
       try {
         const id = await ensureThread()
-        dispatch({ type: 'thread', thread: await attachContext(slug, id, { id: res.id, kind: res.kind, sharingReviewed: true }) })
+        const th = await attachContext(slug, id, { id: res.id, kind: res.kind, sharingReviewed: true })
+        if (!stillShown(from, th.id)) return
+        dispatch({ type: 'thread', thread: th })
         setAnnounce(t(m.attached, { title: resourceTitle }))
         // The Attach button is gone: the composer has focus.
         focusComposer()
       } catch (e) {
-        toast({ kind: 'error', title: t(m.attachFailed, { title: resourceTitle }), detail: errorMessage(e) })
+        if (stillShown(from)) toast({ kind: 'error', title: t(m.attachFailed, { title: resourceTitle }), detail: errorMessage(e) })
       }
     })
   }
   const detach = async (c: ThreadContext) => {
     if (!threadId) return
     const title = c.title || t(m.unavailable)
+    const from = shownAt.current
     try {
-      dispatch({ type: 'thread', thread: await detachContext(slug, threadId, c.id) })
+      const th = await detachContext(slug, threadId, c.id)
+      if (!stillShown(from)) return
+      dispatch({ type: 'thread', thread: th })
       setAnnounce(t(m.removed, { title }))
       focusComposer()
     } catch (e) {
-      toast({ kind: 'error', title: t(m.removeFailed, { title }), detail: errorMessage(e) })
+      if (stillShown(from)) toast({ kind: 'error', title: t(m.removeFailed, { title }), detail: errorMessage(e) })
     }
   }
 
@@ -272,10 +387,13 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     const next = on ? [...new Set([...serverIds, id])] : serverIds.filter((x) => x !== id)
     if (!threadId || !state.thread) setPickedServers(next)
     else {
+      const from = shownAt.current
       try {
-        dispatch({ type: 'thread', thread: await setThreadServers(slug, threadId, next) })
+        const th = await setThreadServers(slug, threadId, next)
+        if (!stillShown(from)) return
+        dispatch({ type: 'thread', thread: th })
       } catch (e) {
-        toast({ kind: 'error', title: t(mx.failed), detail: errorMessage(e) })
+        if (stillShown(from)) toast({ kind: 'error', title: t(mx.failed), detail: errorMessage(e) })
         return
       }
     }
@@ -293,11 +411,15 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
   const decide = async (conf: Confirmation, decision: 'allow' | 'deny') => {
     if (!threadId || deciding) return
     setDeciding(decision)
+    const from = shownAt.current
     try {
-      dispatch({ type: 'thread', thread: await decideConfirmation(slug, threadId, conf.id, decision) })
+      const th = await decideConfirmation(slug, threadId, conf.id, decision)
+      if (!stillShown(from)) return
+      dispatch({ type: 'thread', thread: th })
       setAnnounce(t(decision === 'allow' ? mx.announceAllowed : mx.announceDenied, { server: conf.serverName, tool: conf.tool }))
       focusComposer()
     } catch (e) {
+      if (!stillShown(from)) return
       if (e instanceof ApiError && e.status === 409 && e.code === 'ai_assistant_confirmation_closed') {
         setClosedConf(conf)
         setAnnounce(t(mx.closed))
@@ -327,6 +449,7 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     threadId,
     query,
     state,
+    live,
     stream,
     models,
     list,
@@ -346,6 +469,7 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     setPickerOpen,
     announce,
     sendProblem,
+    composerNote,
     reviewDialog,
     send,
     stop,
@@ -437,13 +561,64 @@ export function ThreadSub({ c }: { c: ThreadController }) {
 function ManagerAction({ c, label }: { c: ThreadController; label: string }) {
   if (c.canManage)
     return (
-      <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }} variant="primary">
+      <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }} variant="primary" onClick={uncover}>
         {label}
       </ButtonLink>
     )
   return (
     <Button variant="primary" disabledReason={deniedReason('integrations:manage', c.helpers)}>
       {label}
+    </Button>
+  )
+}
+
+/** A state card's action on the person's own key: Settings › Integrations › AI models, at Your personal key. */
+function OwnKeyAction({ c, label }: { c: ThreadController; label: string }) {
+  return (
+    <ButtonLink to="/w/$workspace/settings/integrations/ai" params={{ workspace: c.slug }} hash="ai-yk-h" variant="primary" onClick={uncover}>
+      {label}
+    </ButtonLink>
+  )
+}
+
+/**
+ * Runs the model's tool check again, from its card: the person's own
+ * model, or a workspace model for those who manage integrations (the rest
+ * see who can). Once it passes, Retry sends the message.
+ */
+function ToolCheck({ c }: { c: ThreadController }) {
+  const t = useT()
+  const [state, setState] = useState<'idle' | 'running' | 'passed'>('idle')
+  const model = c.model
+  const name = model?.modelName || model?.model || ''
+  if (state === 'passed')
+    return (
+      <Button variant="primary" onClick={c.retry}>
+        {t(m.retry)}
+      </Button>
+    )
+  if (!model?.personal && !c.canManage)
+    return (
+      <Button variant="primary" disabledReason={deniedReason('integrations:manage', c.helpers)}>
+        {t(m.runCheck)}
+      </Button>
+    )
+  const run = async () => {
+    if (!model) return
+    setState('running')
+    try {
+      const passed = await testModelTools(c.slug, model)
+      await c.models.refetch()
+      setState(passed ? 'passed' : 'idle')
+      toast(passed ? { kind: 'success', title: t(m.checkPassed, { model: name }) } : { kind: 'error', title: t(m.checkFailed, { model: name }) })
+    } catch (e) {
+      setState('idle')
+      toast({ kind: 'error', title: t(m.checkFailed, { model: name }), detail: errorMessage(e) })
+    }
+  }
+  return (
+    <Button variant="primary" loading={state === 'running'} onClick={() => void run()}>
+      {t(m.runCheck)}
     </Button>
   )
 }
@@ -509,6 +684,8 @@ function TurnProblemCard({ c, problem }: { c: ThreadController; problem: TurnPro
   const thread = c.state.thread
   const usage = c.state.usage ?? thread?.usage
   const values = { provider: c.model?.providerName, model: c.model?.modelName || c.model?.model }
+  // The thread's model on the person's own key: they fix it themselves.
+  const own = c.model?.personal ? 'yes' : 'no'
   const copy = problemCopy[problem]
   const personal = c.list.find((x) => x.personal && x.usable && x.id !== c.model?.id)
   const retry = <Button variant="primary" onClick={c.retry}>{t(m.retry)}</Button>
@@ -548,13 +725,54 @@ function TurnProblemCard({ c, problem }: { c: ThreadController; problem: TurnPro
       actions = switchModel
       break
     case 'key':
-      body = t(m.keyBody, values)
+      body = t(m.keyBody, { ...values, own })
       actions = (
         <>
-          <ManagerAction c={c} label={t(m.replaceKey)} />
+          {own === 'yes' ? <OwnKeyAction c={c} label={t(m.replaceKey)} /> : <ManagerAction c={c} label={t(m.replaceKey)} />}
           {switchModel}
         </>
       )
+      break
+    case 'disconnected':
+      body = t(m.disconnectedBody, { ...values, own })
+      actions = (
+        <>
+          {own === 'yes' ? <OwnKeyAction c={c} label={t(m.openModels)} /> : <ManagerAction c={c} label={t(m.openModels)} />}
+          {switchModel}
+        </>
+      )
+      break
+    case 'toolsUnchecked':
+      body = t(m.toolsBody, { own })
+      actions = (
+        <>
+          <ToolCheck c={c} />
+          {switchModel}
+        </>
+      )
+      break
+    case 'personalKeysOff':
+      body = t(m.personalOffBody, { workspace: c.workspace })
+      actions = (
+        <Button variant="primary" onClick={() => c.setPickerOpen(true)}>
+          {t(m.switchModel)}
+        </Button>
+      )
+      break
+    case 'notConfigured':
+      body = t(m.notConfiguredBody, { ...values, own })
+      actions =
+        own === 'yes' ? (
+          <>
+            <OwnKeyAction c={c} label={t(m.addKey)} />
+            {switchModel}
+          </>
+        ) : (
+          <ManagerAction c={c} label={t(m.noModelAction)} />
+        )
+      break
+    case 'confirmationExpired':
+      body = t(m.confirmExpiredBody)
       break
     case 'rate':
       body = t(m.rateBody)
@@ -594,6 +812,9 @@ function TurnProblemCard({ c, problem }: { c: ThreadController; problem: TurnPro
     default:
       body = t(m.failedBody, { reason: c.state.turn?.reason || 'error' })
   }
+  // A refused message's detail already says what happened and who can fix it, in the server's words.
+  const detail = c.sendProblem?.problem === problem && modelProblems.has(problem) ? c.sendProblem.detail : undefined
+  if (detail) body = detail
   return (
     <StateCard tone={copy.tone} badge={t(copy.badge)} title={title(problem, values)} actions={actions}>
       <p>{body}</p>
@@ -612,7 +833,7 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
   const liveLength = c.state.live?.text.length ?? 0
   // The conversation sticks to its end while the person is there.
   const near = useRef(true)
-  const content = `${items.length}:${c.state.messages.length}:${c.state.pending ? 1 : 0}:${liveLength}:${c.state.tools.length}:${turn?.id}:${turn?.state}:${c.sendProblem ?? ''}:${c.state.confirmation?.id ?? ''}`
+  const content = `${items.length}:${c.state.messages.length}:${c.state.pending ? 1 : 0}:${liveLength}:${c.state.tools.length}:${turn?.id}:${turn?.state}:${c.sendProblem?.problem ?? ''}:${c.state.confirmation?.id ?? ''}`
   const sending = Boolean(c.state.pending)
   useLayoutEffect(() => {
     const el = log.current
@@ -624,11 +845,23 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
     const el = log.current
     if (el) near.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
   }
+  // The streaming answer grows without the log rendering again: it keeps the log at its end itself.
+  const liveText = c.live
+  const live = useMemo(
+    () => ({
+      text: liveText,
+      stick: () => {
+        const el = log.current
+        if (el && near.current) el.scrollTop = el.scrollHeight
+      },
+    }),
+    [liveText],
+  )
   const loading = Boolean(c.threadId) && !c.state.thread && c.query.isPending
   const empty = !c.gate && !loading && !c.query.isError && items.length === 0 && !c.sendProblem
   const latest = items[items.length - 1]
   const denied = latest && latest.kind === 'answer' && latest.tools.some((r) => !r.ok && (r.code === 'not_available' || r.code === 'forbidden') && contactTool.test(r.name))
-  const problem = c.sendProblem ?? (turn && turn.state === 'failed' ? problemOf(turn.reason) : undefined)
+  const problem = c.sendProblem?.problem ?? (turn && turn.state === 'failed' ? problemOf(turn.reason) : undefined)
   const [lostFor, setLostFor] = useState(0)
   const reconnecting = c.stream.status === 'retrying' || c.stream.status === 'stopped'
   useEffect(() => {
@@ -642,7 +875,9 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
   const emptyId = useId()
   // The call the turn waits on, or one closed as it was decided (its card says so).
   const asking = pendingConfirmation(c)
-  const conf = asking ?? (c.closedConf && c.closedConf.turnId === turn?.id && turnActive(turn) ? c.closedConf : undefined)
+  // An expired call keeps its card, saying so, beside the turn it stopped.
+  const expired = c.state.confirmation?.state === 'expired' && c.state.confirmation.turnId === turn?.id ? c.state.confirmation : undefined
+  const conf = asking ?? (c.closedConf && c.closedConf.turnId === turn?.id && turnActive(turn) ? c.closedConf : undefined) ?? expired
   const latestRows = latest && latest.kind === 'answer' ? latest.tools : []
   // A new request takes focus, unless the person is typing.
   const askingId = asking?.id
@@ -689,34 +924,36 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
           <small>{t(m.emptyNote)}</small>
         </section>
       ) : null}
-      <Conversation items={items}>
-        {turn?.state === 'stopped' ? <p className="asst-status">{t(m.stoppedNote)}</p> : null}
-        {turn?.state === 'done' && turn.reason === 'length' ? <p className="asst-status">{t(m.lengthNote)}</p> : null}
-        {denied ? (
-          <StateCard
-                        tone="bad"
-            badge={t(m.contactsBadge)}
-            title={t(m.contactsTitle)}
-            actions={
-              <Button
-                variant="primary"
-                onClick={() => {
-                  c.setDraft(t(m.contactsQuestion))
-                  c.focusComposer()
-                }}
-              >
-                {t(m.contactsAction)}
-              </Button>
-            }
-          >
-            <p>{t(m.contactsBody)}</p>
-          </StateCard>
-        ) : null}
-        <MCPStates c={c} rows={latestRows} />
-        {conf ? <ConfirmCard c={c} conf={conf} /> : null}
-        {problem ? <TurnProblemCard c={c} problem={problem} /> : null}
-        {c.gate === 'lost' ? <GateCard c={c} gate="lost" /> : null}
-      </Conversation>
+      <LiveContext.Provider value={live}>
+        <Conversation items={items}>
+          {turn?.state === 'stopped' ? <p className="asst-status">{t(m.stoppedNote)}</p> : null}
+          {turn?.state === 'done' && turn.reason === 'length' ? <p className="asst-status">{t(m.lengthNote)}</p> : null}
+          {denied ? (
+            <StateCard
+              tone="bad"
+              badge={t(m.contactsBadge)}
+              title={t(m.contactsTitle)}
+              actions={
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    c.setDraft(t(m.contactsQuestion))
+                    c.focusComposer()
+                  }}
+                >
+                  {t(m.contactsAction)}
+                </Button>
+              }
+            >
+              <p>{t(m.contactsBody)}</p>
+            </StateCard>
+          ) : null}
+          <MCPStates c={c} rows={latestRows} />
+          {conf ? <ConfirmCard c={c} conf={conf} /> : null}
+          {problem ? <TurnProblemCard c={c} problem={problem} /> : null}
+          {c.gate === 'lost' ? <GateCard c={c} gate="lost" /> : null}
+        </Conversation>
+      </LiveContext.Provider>
       {reconnecting ? (
         <StateCard
                     tone="warn"
@@ -736,15 +973,17 @@ export function ThreadLog({ c, label }: { c: ThreadController; label?: string })
 export function ThreadComposer({ c, bound }: { c: ThreadController; bound?: () => HTMLElement | null }) {
   const t = useT()
   const answering = turnActive(c.state.turn)
+  const value = useSyncExternalStore(c.draft.subscribe, c.draft.get)
   return (
     <Composer
       handle={c.attachComposer}
-      value={c.draft}
+      value={value}
       onChange={c.setDraft}
-      onSend={() => void c.send(c.draft)}
+      onSend={() => void c.send(value)}
       onStop={() => void c.stop()}
       answering={answering}
       blocked={c.gate ? t(problemCopyOfGate(c.gate)) : undefined}
+      note={c.composerNote}
       placeholder={t(placeholderOf(c.screen.kind))}
       bound={bound}
     />

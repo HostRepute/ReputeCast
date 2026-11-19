@@ -36,6 +36,10 @@ func budgetProblem(ctx context.Context, key string) error {
 type ledger struct {
 	runID, threadID             *uuid.UUID
 	tokenLimit, costLimitMicros int64
+	// bound: the caller holds the configuration lock (shared: an assistant
+	// turn's claim or next round) and read the principal and the model
+	// under it, in this transaction: they aren't read again.
+	bound bool
 }
 
 // runLedger is an agent run's ledger.
@@ -69,9 +73,13 @@ func (l *ledger) capProblem(ctx context.Context) error {
 // thread also locks it before calling this function.
 // No database lock spans an HTTP call. Request IDs survive worker retries.
 func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, c *connection, t *task, l *ledger, id uuid.UUID) error {
-	fresh, err := brandkit.VoiceActor(ctx, q, ws, p)
-	if err != nil {
-		return err
+	bound := l != nil && l.bound
+	fresh := p
+	if !bound {
+		var err error
+		if fresh, err = brandkit.VoiceActor(ctx, q, ws, p); err != nil {
+			return err
+		}
 	}
 	// A workspace account's test is a manager's; a personal key's its
 	// owner's, with ai:use.
@@ -88,9 +96,18 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 		}
 	}
 	// Domain continuations may already hold the configuration lock. Always
-	// acquire it before the budget lock; accounting needs only the latter.
+	// acquire it before the budget lock; accounting needs at most the
+	// latter (accountIn).
 	// A first connection's test makes the settings row, with the default cap.
-	row, err := lockSettings(ctx, q, ws.ID)
+	// An assistant turn's claim holds it shared (bound): no change is made
+	// while it does, so the row is read as it is.
+	var row store.AiWorkspaceSetting
+	var err error
+	if bound {
+		row, err = q.AIWorkspaceSettings(ctx, ws.ID)
+	} else {
+		row, err = lockSettings(ctx, q, ws.ID)
+	}
 	if err != nil {
 		return err
 	}
@@ -105,40 +122,11 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 			return personalKeysOff(ctx)
 		}
 	}
-	if err := budgetLock(ctx, q, ws.ID, owner); err != nil {
-		return err
-	}
-	if t.feature != FeatureConnectionTest {
-		// The request is bound to its model, that model's account and their
-		// prices as they were when it was prepared; any change since refuses it.
-		cur, err := s.binding(ctx, q, ws.ID, &c.ModelID)
-		if err != nil {
-			return err
-		}
-		if cur == nil || cur.SettingsRevision != c.SettingsRevision || cur.AccountRevision != c.AccountRevision || cur.ModelRevision != c.ModelRevision ||
-			!cur.connected() || cur.Status == "key_rejected" || !cur.featureOn(t.feature) {
-			return budgetProblem(ctx, "connection_changed")
-		}
-		// A one-shot request goes to its feature's model (the person's own
-		// pick, or the workspace's default); once that changes, it isn't
-		// sent. A run or a thread keeps the model it began with.
-		if l == nil {
-			model, ok, err := featureModel(ctx, q, ws.ID, &fresh.UserID, t.feature)
-			if err != nil {
-				return err
-			}
-			if !ok || model != c.ModelID {
-				return budgetProblem(ctx, "connection_changed")
-			}
-		}
-		c = cur
-	}
-	if !c.PriceKnown && !c.Demo {
-		return budgetProblem(ctx, "price_unknown")
-	}
-	// Bound text separately from binary image transport. Base64 length is
-	// neither an image's token count nor part of the model's text context.
-	// Clone before stripping bytes so the provider still receives the image.
+	// The request's size, before the budget's lock (every reservation of
+	// the budget waits for it). Bound text separately from binary image
+	// transport. Base64 length is neither an image's token count nor part
+	// of the model's text context. Clone before stripping bytes so the
+	// provider still receives the image.
 	req := t.req
 	req.Task = nil
 	req.Messages = slices.Clone(req.Messages)
@@ -174,33 +162,61 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 	}
 	output = min(output, 16384)
 	minimumOutput := min(output, 64)
+	if err := budgetLock(ctx, q, ws.ID, owner); err != nil {
+		return err
+	}
+	if t.feature != FeatureConnectionTest {
+		// The request is bound to its model, that model's account and their
+		// prices as they were when it was prepared; any change since refuses it.
+		cur := c
+		if !bound {
+			var err error
+			if cur, err = s.binding(ctx, q, ws.ID, &c.ModelID); err != nil {
+				return err
+			}
+		}
+		if cur == nil || cur.SettingsRevision != c.SettingsRevision || cur.AccountRevision != c.AccountRevision || cur.ModelRevision != c.ModelRevision ||
+			!cur.connected() || cur.Status == "key_rejected" || !cur.featureOn(t.feature) {
+			return budgetProblem(ctx, "connection_changed")
+		}
+		// A one-shot request goes to its feature's model (the person's own
+		// pick, or the workspace's default); once that changes, it isn't
+		// sent. A run or a thread keeps the model it began with.
+		if l == nil {
+			model, ok, err := featureModel(ctx, q, ws.ID, &fresh.UserID, t.feature)
+			if err != nil {
+				return err
+			}
+			if !ok || model != c.ModelID {
+				return budgetProblem(ctx, "connection_changed")
+			}
+		}
+		c = cur
+	}
+	if !c.PriceKnown && !c.Demo {
+		return budgetProblem(ctx, "price_unknown")
+	}
 	start, _ := s.month(ws)
+	// What the budget used and holds is read in one snapshot: accounting
+	// settles without this lock (accountIn).
 	if owner != nil {
 		// A personal key's use is its owner's: their own monthly cap, never
 		// the workspace's.
-		used, err := q.AIPersonalUsageTotal(ctx, store.AIPersonalUsageTotalParams{WorkspaceID: ws.ID, UserID: owner, Since: start})
+		b, err := q.AIPersonalBudgetTotals(ctx, store.AIPersonalBudgetTotalsParams{WorkspaceID: ws.ID, UserID: *owner, Since: start})
 		if err != nil {
 			return err
 		}
-		held, err := q.AIBudgetPersonal(ctx, store.AIBudgetPersonalParams{WorkspaceID: ws.ID, UserID: owner})
-		if err != nil {
-			return err
-		}
-		output = min(output, affordableOutput(int64(math.Floor(row.PersonalCapUsd*1e6))-used.CostMicros-held.CostMicros, input, c.InputPrice, c.OutputPrice))
+		output = min(output, affordableOutput(int64(math.Floor(row.PersonalCapUsd*1e6))-b.CostMicros-b.HeldCostMicros, input, c.InputPrice, c.OutputPrice))
 	} else {
-		used, err := q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
-		if err != nil {
-			return err
-		}
-		held, err := q.AIBudgetMonthly(ctx, ws.ID)
+		b, err := q.AIBudgetTotals(ctx, store.AIBudgetTotalsParams{WorkspaceID: ws.ID, Since: start})
 		if err != nil {
 			return err
 		}
 		switch row.CapKind {
 		case "tokens":
-			output = min(output, row.CapTokens-used.InputTokens-used.OutputTokens-held.Tokens-input)
+			output = min(output, row.CapTokens-b.InputTokens-b.OutputTokens-b.HeldTokens-input)
 		case "usd":
-			output = min(output, affordableOutput(int64(math.Floor(row.CapUsd*1e6))-used.CostMicros-held.CostMicros, input, c.InputPrice, c.OutputPrice))
+			output = min(output, affordableOutput(int64(math.Floor(row.CapUsd*1e6))-b.CostMicros-b.HeldCostMicros, input, c.InputPrice, c.OutputPrice))
 		}
 	}
 	if output < minimumOutput {
@@ -282,10 +298,32 @@ func affordableOutput(micros, input int64, inputPrice, outputPrice float64) int6
 // An absent counter is not zero; a lost answer retains the upper bound.
 // The same accounting is safe to replay after a worker loses acknowledgment.
 func (s *Service) accountIn(ctx context.Context, q *store.Queries, row store.AIRequestInsertParams, res llm.Response, callErr error) (bool, error) {
-	// Use the reservation lock order: the monthly total and held amounts
-	// must not change between the two reads in reserveIn.
-	r, err := reservationLock(ctx, q, row.WorkspaceID, row.ID)
+	r, err := q.AIBudgetReservation(ctx, store.AIBudgetReservationParams{WorkspaceID: row.WorkspaceID, ID: row.ID})
 	if err != nil {
+		return false, err
+	}
+	known := res.UsageKnown
+	// Explicit pre-execution HTTP rejections are non-billable. Timeouts,
+	// server errors and invalid/oversized responses are not safe to retry.
+	if e, ok := llm.AsError(callErr); ok && !known && (e.Kind == llm.ErrAuth || e.Kind == llm.ErrRateLimit || e.Kind == llm.ErrBadRequest) {
+		known = true
+	}
+	// Settling within what was reserved only lowers what the budget used
+	// and holds together, and reserving reads both in one snapshot: it
+	// needn't wait for the budget's lock, which every reservation of the
+	// budget takes. A provider reporting more than was reserved adds to
+	// them, so that settles under the lock, as a reservation would.
+	cost := int64(math.Ceil(float64(res.InputTokens)*r.InputPrice + float64(res.OutputTokens)*r.OutputPrice))
+	if known && (int64(res.InputTokens)+int64(res.OutputTokens) > r.InputTokens+r.OutputTokens || cost > r.CostMicros) {
+		var person *uuid.UUID
+		if r.Personal {
+			person = r.UserID
+		}
+		if err := budgetLock(ctx, q, row.WorkspaceID, person); err != nil {
+			return false, err
+		}
+	}
+	if r, err = q.AIBudgetLock(ctx, store.AIBudgetLockParams{WorkspaceID: row.WorkspaceID, ID: row.ID}); err != nil {
 		return false, err
 	}
 	if r.State == "settled" {
@@ -294,12 +332,6 @@ func (s *Service) accountIn(ctx context.Context, q *store.Queries, row store.AIR
 	// The log names the model and account the reservation bound, whatever
 	// the caller passed, and whose budget it was in.
 	row.Provider, row.Model, row.AccountID, row.ModelID, row.Personal = r.Provider, r.Model, r.AccountID, r.ModelID, r.Personal
-	known := res.UsageKnown
-	// Explicit pre-execution HTTP rejections are non-billable. Timeouts,
-	// server errors and invalid/oversized responses are not safe to retry.
-	if e, ok := llm.AsError(callErr); ok && !known && (e.Kind == llm.ErrAuth || e.Kind == llm.ErrRateLimit || e.Kind == llm.ErrBadRequest) {
-		known = true
-	}
 	if !known {
 		if err := q.AIBudgetUncertain(ctx, row.ID); err != nil {
 			return false, err
@@ -313,7 +345,7 @@ func (s *Service) accountIn(ctx context.Context, q *store.Queries, row store.AIR
 	}
 	row.UsageKnown = true
 	row.InputTokens, row.OutputTokens = int32(res.InputTokens), int32(res.OutputTokens)
-	row.CostMicros = int64(math.Ceil(float64(res.InputTokens)*r.InputPrice + float64(res.OutputTokens)*r.OutputPrice))
+	row.CostMicros = cost
 	// A provider reporting more than the conservative reservation is
 	// accounted fully; its run will pause rather than hiding the excess.
 	if err := q.AIBudgetSettle(ctx, store.AIBudgetSettleParams{ID: row.ID, InputTokens: int64(row.InputTokens), OutputTokens: int64(row.OutputTokens), CostMicros: row.CostMicros, SettledAt: ptr(s.now())}); err != nil {

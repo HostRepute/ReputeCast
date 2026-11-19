@@ -257,7 +257,7 @@ func Register(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-ai-settings", Path: base, Summary: "The AI assistant's settings: the model, the cap, this month's usage and the features",
-		Description: "The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.", Tags: tags, Access: view},
+		Description: "The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.", Tags: tags, Access: view},
 		func(ctx context.Context, in *settingsInput) (*api.Body[AISettings], error) {
 			out, err := s.Settings(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx))
 			return api.OK(out), err

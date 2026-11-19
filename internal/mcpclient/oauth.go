@@ -72,22 +72,157 @@ func wellKnown(raw, suffix string) string {
 	return u.Scheme + "://" + u.Host + "/.well-known/" + suffix + path
 }
 
+// originOf is a URL's scheme and host.
+func originOf(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
+}
+
+// resourceOf is the resource tokens are asked for (RFC 8707): the server's
+// endpoint, or its origin when its metadata names that (found at the root
+// well-known address).
+func resourceOf(srv store.McpServer) string {
+	if srv.Resource != "" {
+		return srv.Resource
+	}
+	return srv.Url
+}
+
+// secure reports whether an address of a server's authorization may be
+// used: https, or plain http only for a plain http server where the
+// instance allows private addresses (a development setup).
+func (s *Service) secure(srv store.McpServer, raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "https":
+		return true
+	case "http":
+		server, err := url.Parse(srv.Url)
+		return err == nil && strings.EqualFold(server.Scheme, "http") && s.policy().AllowPrivate
+	}
+	return false
+}
+
+// challenges are the WWW-Authenticate challenges of the server's answer to
+// a request without credentials (MCP authorization: the 401 names its
+// resource metadata and the scope to ask for). None when it doesn't
+// answer 401.
+func (s *Service) challenges(ctx context.Context, srv store.McpServer) []oauthex.Challenge {
+	method, body := http.MethodPost, `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"ReputeCast","version":"1"}}}`
+	if srv.Transport == "sse" {
+		method, body = http.MethodGet, ""
+	}
+	req, err := http.NewRequestWithContext(ctx, method, srv.Url, strings.NewReader(body))
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	res, err := s.oauthClient().Do(req)
+	if err != nil {
+		return nil
+	}
+	defer res.Body.Close() //nolint:errcheck
+	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, 64<<10))
+	if res.StatusCode != http.StatusUnauthorized {
+		return nil
+	}
+	cs, _ := oauthex.ParseWWWAuthenticate(res.Header.Values("WWW-Authenticate"))
+	return cs
+}
+
+// challenge is a parameter of the first Bearer challenge that has it.
+func challenge(cs []oauthex.Challenge, param string) string {
+	for _, c := range cs {
+		if (c.Scheme == "bearer" || param == "resource_metadata") && c.Params[param] != "" {
+			return c.Params[param]
+		}
+	}
+	return ""
+}
+
+// resourceMetadata is the server's protected resource metadata (RFC 9728)
+// and the resource it names, from (in order) the address its 401 names,
+// the well-known address at its endpoint's path, and the root well-known
+// address (MCP authorization, 2025-11-25). The metadata must name the
+// endpoint, or the origin at the root address: never another resource.
+func (s *Service) resourceMetadata(ctx context.Context, srv store.McpServer, cs []oauthex.Challenge) (*oauthex.ProtectedResourceMetadata, error) {
+	type candidate struct{ url, resource string }
+	var list []candidate
+	if u := challenge(cs, "resource_metadata"); u != "" {
+		if _, err := s.policy().ValidateURL(u); err == nil && s.secure(srv, u) {
+			list = append(list, candidate{u, srv.Url})
+		}
+	}
+	root := originOf(srv.Url)
+	list = append(list, candidate{wellKnown(srv.Url, "oauth-protected-resource"), srv.Url}, candidate{root + "/.well-known/oauth-protected-resource", root})
+	var last error
+	for _, c := range list {
+		prm, err := oauthex.GetProtectedResourceMetadata(ctx, c.url, c.resource, s.oauthClient())
+		if err != nil || prm == nil {
+			last = err
+			continue
+		}
+		if len(prm.AuthorizationServers) == 0 {
+			return nil, errors.New("protected resource metadata names no authorization server")
+		}
+		return prm, nil
+	}
+	return nil, last
+}
+
+// authServerMetadata is the authorization server's metadata: OAuth (RFC
+// 8414), then OpenID Connect discovery, with the issuer's path inserted
+// and, for OpenID Connect, appended (MCP authorization, 2025-11-25).
+func (s *Service) authServerMetadata(ctx context.Context, issuer string) (*oauthex.AuthServerMeta, error) {
+	u, err := url.Parse(issuer)
+	if err != nil {
+		return nil, err
+	}
+	base, path := u.Scheme+"://"+u.Host, strings.Trim(u.Path, "/")
+	urls := []string{base + "/.well-known/oauth-authorization-server", base + "/.well-known/openid-configuration"}
+	if path != "" {
+		urls = []string{base + "/.well-known/oauth-authorization-server/" + path, base + "/.well-known/openid-configuration/" + path,
+			base + "/" + path + "/.well-known/openid-configuration"}
+	}
+	var last error
+	for _, m := range urls {
+		asm, err := oauthex.GetAuthServerMeta(ctx, m, issuer, s.oauthClient())
+		if err == nil && asm != nil {
+			return asm, nil
+		}
+		last = err
+	}
+	if last == nil {
+		last = errors.New("no authorization server metadata")
+	}
+	return nil, last
+}
+
 // discover finds a server's authorization server and registers a client
-// when none was entered. The protected resource's metadata must name this
-// server exactly.
+// when none was entered. Every request goes through the SSRF guard and
+// follows no redirect.
 func (s *Service) discover(ctx context.Context, srv *store.McpServer) error {
-	c := s.oauthClient()
-	prm, err := oauthex.GetProtectedResourceMetadata(ctx, wellKnown(srv.Url, "oauth-protected-resource"), srv.Url, c)
-	if err != nil || len(prm.AuthorizationServers) == 0 {
+	cs := s.challenges(ctx, *srv)
+	prm, err := s.resourceMetadata(ctx, *srv, cs)
+	if err != nil || prm == nil {
 		s.log().WarnContext(ctx, "mcp: protected resource metadata", "server", srv.ID, "err", err)
 		return oauthProblem(ctx, *srv)
 	}
 	issuer := prm.AuthorizationServers[0]
-	if _, err := s.policy().ValidateURL(issuer); err != nil {
+	if _, err := s.policy().ValidateURL(issuer); err != nil || !s.secure(*srv, issuer) {
 		return oauthProblem(ctx, *srv)
 	}
-	asm, err := oauthex.GetAuthServerMeta(ctx, wellKnown(issuer, "oauth-authorization-server"), issuer, c)
-	if err != nil || asm == nil {
+	asm, err := s.authServerMetadata(ctx, issuer)
+	if err != nil {
 		s.log().WarnContext(ctx, "mcp: authorization server metadata", "server", srv.ID, "err", err)
 		return oauthProblem(ctx, *srv)
 	}
@@ -99,21 +234,40 @@ func (s *Service) discover(ctx context.Context, srv *store.McpServer) error {
 		return oauthProblem(ctx, *srv)
 	}
 	// The browser opens the authorization endpoint; ReputeCast posts to the
-	// token endpoint (through the guard, as every request).
-	if a, err := url.Parse(asm.AuthorizationEndpoint); err != nil || (a.Scheme != "https" && a.Scheme != "http") || a.Host == "" {
+	// token endpoint (through the guard, as every request). Codes, tokens
+	// and client secrets travel over https only: metadata naming a plain
+	// http endpoint is refused, whichever it is.
+	for _, e := range []string{asm.AuthorizationEndpoint, asm.TokenEndpoint, asm.RegistrationEndpoint, asm.RevocationEndpoint} {
+		if e != "" && !s.secure(*srv, e) {
+			return oauthProblem(ctx, *srv)
+		}
+	}
+	if a, err := url.Parse(asm.AuthorizationEndpoint); err != nil || a.Host == "" {
 		return oauthProblem(ctx, *srv)
 	}
 	if _, err := s.policy().ValidateURL(asm.TokenEndpoint); err != nil {
 		return oauthProblem(ctx, *srv)
 	}
 	srv.Issuer, srv.AuthorizationEndpoint, srv.TokenEndpoint = issuer, asm.AuthorizationEndpoint, asm.TokenEndpoint
-	srv.Scopes = strings.Join(prm.ScopesSupported, " ")
+	srv.Resource = ""
+	if prm.Resource != srv.Url {
+		srv.Resource = prm.Resource
+	}
+	// The scope the server's 401 asks for, else every scope it supports.
+	srv.Scopes = challenge(cs, "scope")
+	if srv.Scopes == "" {
+		srv.Scopes = strings.Join(prm.ScopesSupported, " ")
+	}
+	srv.RevocationEndpoint = ""
+	if _, err := s.policy().ValidateURL(asm.RevocationEndpoint); asm.RevocationEndpoint != "" && err == nil {
+		srv.RevocationEndpoint = asm.RevocationEndpoint
+	}
 	if srv.ClientID == "" {
 		if asm.RegistrationEndpoint == "" {
 			return oauthProblem(ctx, *srv)
 		}
 		reg, err := oauthex.RegisterClient(ctx, asm.RegistrationEndpoint, &oauthex.ClientRegistrationMetadata{RedirectURIs: []string{s.redirectURI()},
-			TokenEndpointAuthMethod: "none", GrantTypes: []string{"authorization_code", "refresh_token"}, ResponseTypes: []string{"code"}, ClientName: "ReputeCast"}, c)
+			TokenEndpointAuthMethod: "none", GrantTypes: []string{"authorization_code", "refresh_token"}, ResponseTypes: []string{"code"}, ClientName: "ReputeCast"}, s.oauthClient())
 		if err != nil {
 			s.log().WarnContext(ctx, "mcp: client registration", "server", srv.ID, "err", err)
 			return oauthProblem(ctx, *srv)
@@ -166,6 +320,7 @@ func (s *Service) StartOAuth(ctx context.Context, ws *store.Workspace, p *authz.
 				return err
 			}
 			cur.Issuer, cur.AuthorizationEndpoint, cur.TokenEndpoint, cur.Scopes = srv.Issuer, srv.AuthorizationEndpoint, srv.TokenEndpoint, srv.Scopes
+			cur.Resource, cur.RevocationEndpoint = srv.Resource, srv.RevocationEndpoint
 			if cur.ClientID == "" {
 				cur.ClientID, cur.ClientRegistered, cur.ClientSecretSealed = srv.ClientID, srv.ClientRegistered, srv.ClientSecretSealed
 			}
@@ -189,7 +344,7 @@ func (s *Service) StartOAuth(ctx context.Context, ws *store.Workspace, p *authz.
 	}
 	challenge := sha256.Sum256([]byte(verifier))
 	v := url.Values{"response_type": {"code"}, "client_id": {srv.ClientID}, "redirect_uri": {s.redirectURI()}, "state": {state},
-		"code_challenge": {base64.RawURLEncoding.EncodeToString(challenge[:])}, "code_challenge_method": {"S256"}, "resource": {srv.Url}}
+		"code_challenge": {base64.RawURLEncoding.EncodeToString(challenge[:])}, "code_challenge_method": {"S256"}, "resource": {resourceOf(srv)}}
 	if srv.Scopes != "" {
 		v.Set("scope", srv.Scopes)
 	}
@@ -213,7 +368,7 @@ type tokenResponse struct {
 func (s *Service) token(ctx context.Context, srv store.McpServer, form url.Values) (tokenResponse, error) {
 	var out tokenResponse
 	form.Set("client_id", srv.ClientID)
-	form.Set("resource", srv.Url)
+	form.Set("resource", resourceOf(srv))
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, srv.TokenEndpoint, strings.NewReader(form.Encode()))
 	if err != nil {
 		return out, err
@@ -326,9 +481,11 @@ func (s *Service) Callback(ctx context.Context, p *authz.Principal, in MCPOAuthC
 	return back + "&connected=1", nil
 }
 
-// Disconnect removes the person's own sign-in to a server.
+// Disconnect removes the person's own sign-in to a server, then revokes
+// its refresh token at the authorization server when it has a revocation
+// endpoint (best effort: the sign-in is gone whatever it answers).
 func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) error {
-	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		fresh, err := manager(ctx, q, ws, p, authz.AIUse)
 		if err != nil {
@@ -345,6 +502,90 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, p *authz.
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "mcp_server.disconnect", TargetType: "mcp_server", TargetID: srv.ID.String(),
 			TargetName: srv.Name, Metadata: map[string]any{"via": "ai_assistant"}})
 	})
+	if err != nil {
+		return err
+	}
+	rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	_, _ = s.Revoke(rctx, 10)
+	return nil
+}
+
+// Revoke revokes up to limit refresh tokens queued when sign-ins were
+// removed (RFC 7009), each tried once: a token is off the queue before it
+// is sent, and a failure is logged, never the token.
+func (s *Service) Revoke(ctx context.Context, limit int32) (int, error) {
+	rows, err := s.Q.MCPTokenRevocationsTake(ctx, limit)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, r := range rows {
+		if r.RevocationEndpoint == "" {
+			continue
+		}
+		token, err := s.Box.OpenString(r.RefreshSealed, tokenAD(r.ServerID, r.UserID, "refresh"))
+		if err == nil {
+			err = s.revoke(ctx, r, token)
+		}
+		if err != nil {
+			s.log().WarnContext(ctx, "mcp: token revocation", "server", r.ServerID, "err", err)
+			continue
+		}
+		n++
+	}
+	return n, nil
+}
+
+// revoke asks the authorization server to revoke a refresh token, as the
+// client the token was issued to.
+func (s *Service) revoke(ctx context.Context, r store.MCPTokenRevocationsTakeRow, token string) error {
+	form := url.Values{"token": {token}, "token_type_hint": {"refresh_token"}, "client_id": {r.ClientID}}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.RevocationEndpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return errors.New("revocation endpoint: bad address")
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if len(r.ClientSecretSealed) > 0 {
+		secret, err := s.Box.OpenString(r.ClientSecretSealed, secretAD(r.ServerID))
+		if err != nil {
+			return err
+		}
+		req.SetBasicAuth(url.QueryEscape(r.ClientID), url.QueryEscape(secret))
+	}
+	res, err := s.oauthClient().Do(req)
+	if err != nil {
+		return errors.New("revocation endpoint unreachable")
+	}
+	defer res.Body.Close() //nolint:errcheck
+	_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, 64<<10))
+	if res.StatusCode != http.StatusOK {
+		return errors.New("revocation endpoint: " + res.Status)
+	}
+	return nil
+}
+
+// RevokeArgs is the minute's revocation of removed sign-ins' tokens.
+type RevokeArgs struct{}
+
+// Kind implements river.JobArgs.
+func (RevokeArgs) Kind() string { return "mcp.tokens_revoke" }
+
+// InsertOpts runs it once at a time.
+func (RevokeArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{Queue: jobs.QueueMaintenance, UniqueOpts: river.UniqueOpts{ByPeriod: time.Minute}}
+}
+
+// RevokeWorker runs the revocations, 100 a run.
+type RevokeWorker struct {
+	river.WorkerDefaults[RevokeArgs]
+	S *Service
+}
+
+// Work implements river.Worker.
+func (w *RevokeWorker) Work(ctx context.Context, _ *river.Job[RevokeArgs]) error {
+	_, err := w.S.Revoke(ctx, 100)
+	return err
 }
 
 // accessToken is a person's access token for a server, refreshed (under

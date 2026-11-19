@@ -151,7 +151,7 @@ export default translate(m, {
   clientHint: 'Opcional. Deja ambos vacíos cuando el servidor registre ReputeCast por sí mismo.',
   redirectHint: 'Dirección de redirección que hay que registrar: {uri}',
   fieldWho: 'Quién puede usarlo',
-  whoAll: 'Todas las personas con Usar funciones de IA',
+  whoAll: 'Todas las personas con «Usar el asistente de IA»',
   whoManagers: 'Propietarios y administradores',
   whoCustom: 'Solo {roles}',
   enabled: 'Ofrecer sus herramientas en las conversaciones',

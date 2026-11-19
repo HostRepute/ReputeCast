@@ -138,6 +138,12 @@ func checkSubject(subject, lang string) AISubjectIdea {
 
 // SubjectIdeas asks for five subject lines and checks each one.
 func (s *Service) SubjectIdeas(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AISubjectIdeasInput) (AISubjectIdeas, error) {
+	return s.subjectIdeas(ctx, ws, p, in, emailText(in.MJML))
+}
+
+// subjectIdeas asks for subject ideas on a campaign's subject, preheader
+// and body text (in.MJML isn't read).
+func (s *Service) subjectIdeas(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AISubjectIdeasInput, body string) (AISubjectIdeas, error) {
 	c, err := s.campaignFor(ctx, ws, p, in.CampaignID)
 	if err != nil {
 		return AISubjectIdeas{}, err
@@ -146,7 +152,6 @@ func (s *Service) SubjectIdeas(ctx context.Context, ws *store.Workspace, p *auth
 	if in.Language != "" {
 		lang = languages.Base(in.Language)
 	}
-	body := emailText(in.MJML)
 	if chars(body) > maxEmailChars {
 		body = string([]rune(body)[:maxEmailChars])
 	}

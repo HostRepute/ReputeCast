@@ -189,11 +189,8 @@ export const m = defineMessages('integrations', {
   actions: 'Actions',
   triggersHint: 'instant, through webhooks {name} creates',
   triggersHintConnect: 'instant, through a webhook {name} creates',
-  triggersAllAvailable: 'all {count} available',
   actionsHint: 'calls with the key',
   actionsHintConnect: 'calls {name} makes with the key',
-  actionsSomeAvailable: '{available} of {total} available',
-  triggersOn: '{count} on',
   available: 'Available',
   off: 'Off',
   onByDefault: 'On by default',
@@ -226,7 +223,6 @@ export const m = defineMessages('integrations', {
   loadingApp: 'Loading {name}',
   loadAppError: "Couldn't load {name}'s activity",
   loadAppErrorBody: "{detail} {name} keeps working: its key and calls don't depend on this page.",
-  notFoundTitle: 'No integration called “{kind}”',
 
   statCalls: 'Calls · 7 days',
   statCallsFrom:
@@ -254,7 +250,6 @@ export const m = defineMessages('integrations', {
   colWorkflow: '{kind, select, zapier {Zap} make {Scenario} other {Workflow}}',
   colUses: 'Uses',
   colCalls7d: 'Calls · 7 days',
-  colLast7d: 'Last 7 days',
   colErrors: 'Errors',
   colLastRun: 'Last run',
   consentKept: 'consent kept',
@@ -317,9 +312,7 @@ export const m = defineMessages('integrations', {
   opSample: 'Sample data',
   opLists: 'List lists',
   opFields: 'List fields',
-  opTemplates: 'List templates',
   opReport: 'Report in',
-  opOther: '{method} {path}',
   explainMissing:
     "{count, plural, one {<mono>{vars}</mono> is required, and the {kind, select, zapier {Zap} make {scenario} other {workflow}} didn't send it.} other {<mono>{vars}</mono> are required, and the {kind, select, zapier {Zap} make {scenario} other {workflow}} didn't send them.}}",
   toChange: '<b>To change in {name}:</b> {fix}',
@@ -508,7 +501,6 @@ export const m = defineMessages('integrations', {
   checkReach: 'Reachable from the internet',
   checkedAgo: 'checked {ago}',
   keyLabel: 'Key · {key}',
-  newKey: 'New key',
   copyKey: 'Copy the key',
   copy: 'Copy',
   copied: 'Copied',
@@ -540,7 +532,6 @@ export const m = defineMessages('integrations', {
   evConnectedCard: "{name}'s card and page update",
   close: 'Close',
   done: 'Done',
-  connectedTitle: '{name} is connected',
   evKeyCreatedLine: '{time} · {key} · {count, plural, one {# trigger or action} other {# triggers and actions}}',
   evCalledAt: '{name} called at {time}',
   evCalledSub: '{operation} · {status} · {ip} · {client}',
@@ -566,8 +557,6 @@ export const m = defineMessages('integrations', {
   unreachableListed:
     'The {triggers, plural, one {# trigger} other {# triggers}} and {actions, plural, one {# action} other {# actions}} are listed here, as in step 1, once {name} can reach the instance. Nothing is created until then: no key, no webhook.',
   needsPublic: 'Steps 2 and 3 need a public address',
-  checkingPublic: 'Checking the public address',
-  n8nEyebrow: 'n8n on your own network',
   n8nAddress: 'Your n8n address',
   n8nAddressHint: 'To open n8n from here, and to check that ReputeCast can reach it for triggers.',
   n8nAddressPlaceholder: 'https://n8n.example.com',
@@ -595,11 +584,8 @@ export const m = defineMessages('integrations', {
   wpFirstReportSub: 'Plugin, WordPress and PHP versions, the feed, and where forms are used',
   wpConnectedSub: 'The site shows on this page',
   wpWaitFoot: 'The plugin reports in when you press Connect in WordPress, then every 12 hours and with every post. You can close this; the key stays valid.',
-  wpConnectedTitle: '{host} is connected',
   wpReportedAt: '{host} reported in at {time}',
-  wpReportedSub: 'Plugin {version}',
   wpConnectedNote: 'The site shows on this page, with its signup forms and plugin version.',
-  connectError: "Couldn't create the key",
 
   // ── Key dialogs ──────────────────────────────────────────────────────
   eyebrowPath: 'Settings › Integrations › {name}',
@@ -626,10 +612,6 @@ export const m = defineMessages('integrations', {
   takeOverConfirm: 'Take over',
   takenOverToast: 'You own {key} now',
   takeOverError: "Couldn't take over the key",
-  reconnectTitle: 'Reconnect {name}?',
-  reconnectBody: 'A new key is created with what {name} can do now, and shown once. Paste it into {name} to start the calls again.',
-  reconnectConfirm: 'Create a new key',
-  reconnectError: "Couldn't reconnect",
   disconnectDialogTitle: 'Disconnect {name}?',
   disconnectDialogBody:
     '{kind, select, zapier {The key stops working at once. Zaps that use ReputeCast fail from their next run.} make {The key stops working at once. Scenarios that use ReputeCast fail from their next run.} other {The key stops working at once. Workflows that use ReputeCast fail from their next run.}}',
@@ -657,7 +639,6 @@ export const m = defineMessages('integrations', {
   changeConfirm: 'Save',
   changedToast: 'What {name} can do is saved',
   changedDetail: '{removed, plural, =0 {The key changed in place.} one {The key changed in place, and # webhook of a turned-off trigger was removed.} other {The key changed in place, and # webhooks of turned-off triggers were removed.}}',
-  changeError: "Couldn't save what {name} can do",
   loadingDialog: 'Loading',
 
   // ── WordPress sites ──────────────────────────────────────────────────
@@ -816,7 +797,6 @@ export const m = defineMessages('integrations', {
   memberDisconnect: 'Disconnect',
   memberFoot: "Take over makes you the keys' owner. The keys keep their values, so nothing changes in {tools}.",
   memberNoManage: 'These stop working until someone who can manage integrations takes them over or disconnects them in Settings › Integrations.',
-  memberError: "Couldn't hand over {name}",
 
   // ── HostRepute ───────────────────────────────────────────────────────
   hrAdds: 'Adds',

@@ -19,7 +19,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/riverqueue/river"
 	"golang.org/x/net/html"
 
 	"github.com/hostrepute/reputecast/internal/api"
@@ -28,8 +30,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/brandkit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/opsmetrics"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -198,99 +202,191 @@ func (s *Service) Sync(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	}
 	listed, transport, err := s.list(ctx, srv, fresh.UserID)
 	if err != nil {
-		status := "unreachable"
-		var pr *api.Problem
-		if errors.As(err, &pr) && pr.Code == CodeSignIn {
-			status = "sign_in"
-		}
-		_ = s.Q.MCPServerStatus(ctx, store.MCPServerStatusParams{Status: status, StatusDetail: "", Now: s.now(), ID: srv.ID})
+		s.unlisted(ctx, srv, err)
 		return RemoteMCPServer{}, err
 	}
 	var out RemoteMCPServer
-	changed := []string{}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		srv, err := q.MCPServerLock(ctx, store.MCPServerLockParams{WorkspaceID: ws.ID, ID: id})
-		if err != nil {
-			return api.MapError(err, "MCP server")
-		}
-		have, err := q.MCPTools(ctx, srv.ID)
+		srv, err := s.record(ctx, tx, ws, id, listed, transport, byManager)
 		if err != nil {
 			return err
 		}
-		byName := map[string]store.McpTool{}
-		names := []string{}
-		for _, t := range have {
-			byName[t.Name] = t
-			names = append(names, t.ModelName)
-		}
-		seen := map[string]bool{}
-		added := 0
-		for _, t := range listed {
-			seen[t.name] = true
-			hash := toolHash(t.description, t.schema, t.annotations)
-			cur, ok := byName[t.name]
-			if !ok {
-				model := modelName(srv.Key, t.name, names)
-				names = append(names, model)
-				if err := q.MCPToolInsert(ctx, store.MCPToolInsertParams{ID: uuid.Must(uuid.NewV7()), ServerID: srv.ID, Name: t.name, ModelName: model,
-					Description: t.description, InputSchema: t.schema, Annotations: t.annotations, Hash: hash, Now: s.now()}); err != nil {
-					return err
-				}
-				added++
-				continue
-			}
-			if cur.Decision != "pending" && !bytes.Equal(cur.ApprovedHash, hash) && bytes.Equal(cur.ApprovedHash, cur.Hash) {
-				changed = append(changed, t.name)
-			}
-			if err := q.MCPToolSeen(ctx, store.MCPToolSeenParams{ID: cur.ID, Description: t.description, InputSchema: t.schema, Annotations: t.annotations, Hash: hash}); err != nil {
-				return err
-			}
-		}
-		removed := 0
-		for _, t := range have {
-			if !seen[t.Name] && t.RemovedAt == nil {
-				removed++
-				if err := q.MCPToolGone(ctx, store.MCPToolGoneParams{ID: t.ID, Now: s.now()}); err != nil {
-					return err
-				}
-			}
-		}
-		now := s.now()
-		if err := q.MCPServerStatus(ctx, store.MCPServerStatusParams{Status: "ok", StatusDetail: "", SyncedAt: &now, Now: now, ID: srv.ID}); err != nil {
-			return err
-		}
-		if transport != srv.Transport {
-			if _, err := tx.Exec(ctx, `UPDATE mcp_servers SET transport = $2 WHERE id = $1`, srv.ID, transport); err != nil {
-				return err
-			}
-		}
-		if len(changed) > 0 {
-			// Off until a manager decides again: they are told.
-			l := i18n.Default
-			if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.IntegrationsManage, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindIntegrationAttention,
-				Severity: "warn", Title: msgs.M("notify.changedTitle").Text(l, i18n.Args{"server": srv.Name}),
-				Body: msgs.M("notify.changedBody").Text(l, i18n.Args{"server": srv.Name, "count": len(changed)}),
-				Link: "/w/" + ws.Slug + "/settings/integrations/mcp-servers"}); err != nil {
-				return err
-			}
-		}
-		if srv, err = q.MCPServer(ctx, store.MCPServerParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return err
-		}
-		if out, err = s.view(ctx, q, srv, fresh.UserID, true); err != nil {
-			return err
-		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "mcp_server.updated", TargetType: "mcp_server", TargetID: id.String(), TargetName: srv.Name,
-			Metadata: map[string]any{"sync": true, "added": added, "changed": changed, "removed": removed, "transport": transport}})
+		out, err = s.view(ctx, q, srv, fresh.UserID, true)
+		return err
 	})
 	return out, err
+}
+
+// unlisted keeps why a server couldn't be listed.
+func (s *Service) unlisted(ctx context.Context, srv store.McpServer, err error) {
+	status := "unreachable"
+	var pr *api.Problem
+	if errors.As(err, &pr) && pr.Code == CodeSignIn {
+		status = "sign_in"
+	}
+	_ = s.Q.MCPServerStatus(context.WithoutCancel(ctx), store.MCPServerStatusParams{Status: status, StatusDetail: "", Now: s.now(), ID: srv.ID})
+}
+
+// origin is who listed a server's tools.
+type origin int
+
+const (
+	byManager origin = iota // a manager's sync
+	byHour                  // the hourly sync
+	byCall                  // the check before a call
+)
+
+// differs reports whether a listing isn't what the catalog has: a tool
+// added, gone, or with another description, schema or annotations.
+func differs(have []store.McpTool, listed []listedTool) bool {
+	byName := map[string]store.McpTool{}
+	live := 0
+	for _, t := range have {
+		byName[t.Name] = t
+		if t.RemovedAt == nil {
+			live++
+		}
+	}
+	if live != len(listed) {
+		return true
+	}
+	for _, l := range listed {
+		cur, ok := byName[l.name]
+		if !ok || cur.RemovedAt != nil || !bytes.Equal(cur.Hash, l.hash()) {
+			return true
+		}
+	}
+	return false
+}
+
+// record keeps a server's listing in its catalog, under the server's
+// lock: a new tool waits for a manager; a decided tool whose description,
+// schema or annotations moved is off until a manager decides again, and
+// managers are told; a tool no longer listed is removed. A manager's sync
+// is audited as theirs; the hourly sync and a call's check are audited, as
+// the system, only when the catalog changed.
+func (s *Service) record(ctx context.Context, tx pgx.Tx, ws *store.Workspace, id uuid.UUID, listed []listedTool, transport string, how origin) (store.McpServer, error) {
+	q := store.New(tx)
+	srv, err := q.MCPServerLock(ctx, store.MCPServerLockParams{WorkspaceID: ws.ID, ID: id})
+	if err != nil {
+		return srv, api.MapError(err, "MCP server")
+	}
+	have, err := q.MCPTools(ctx, srv.ID)
+	if err != nil {
+		return srv, err
+	}
+	moved := differs(have, listed) || transport != srv.Transport
+	byName := map[string]store.McpTool{}
+	names := []string{}
+	for _, t := range have {
+		byName[t.Name] = t
+		names = append(names, t.ModelName)
+	}
+	changed := []string{}
+	seen := map[string]bool{}
+	added := 0
+	for _, t := range listed {
+		seen[t.name] = true
+		hash := t.hash()
+		cur, ok := byName[t.name]
+		if !ok {
+			model := modelName(srv.Key, t.name, names)
+			names = append(names, model)
+			if err := q.MCPToolInsert(ctx, store.MCPToolInsertParams{ID: uuid.Must(uuid.NewV7()), ServerID: srv.ID, Name: t.name, ModelName: model,
+				Description: t.description, InputSchema: t.schema, Annotations: t.annotations, Hash: hash, Now: s.now()}); err != nil {
+				return srv, err
+			}
+			added++
+			continue
+		}
+		if cur.Decision != "pending" && !bytes.Equal(cur.ApprovedHash, hash) && bytes.Equal(cur.ApprovedHash, cur.Hash) {
+			changed = append(changed, t.name)
+		}
+		if err := q.MCPToolSeen(ctx, store.MCPToolSeenParams{ID: cur.ID, Description: t.description, InputSchema: t.schema, Annotations: t.annotations, Hash: hash}); err != nil {
+			return srv, err
+		}
+	}
+	removed := 0
+	for _, t := range have {
+		if !seen[t.Name] && t.RemovedAt == nil {
+			removed++
+			if err := q.MCPToolGone(ctx, store.MCPToolGoneParams{ID: t.ID, Now: s.now()}); err != nil {
+				return srv, err
+			}
+		}
+	}
+	now := s.now()
+	if err := q.MCPServerStatus(ctx, store.MCPServerStatusParams{Status: "ok", StatusDetail: "", SyncedAt: &now, Now: now, ID: srv.ID}); err != nil {
+		return srv, err
+	}
+	if transport != srv.Transport {
+		if _, err := tx.Exec(ctx, `UPDATE mcp_servers SET transport = $2 WHERE id = $1`, srv.ID, transport); err != nil {
+			return srv, err
+		}
+	}
+	if len(changed) > 0 {
+		// Off until a manager decides again: they are told.
+		l := i18n.Default
+		if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.IntegrationsManage, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindIntegrationAttention,
+			Severity: "warn", Title: msgs.M("notify.changedTitle").Text(l, i18n.Args{"server": srv.Name}),
+			Body: msgs.M("notify.changedBody").Text(l, i18n.Args{"server": srv.Name, "count": len(changed)}),
+			Link: "/w/" + ws.Slug + "/settings/integrations/mcp-servers"}); err != nil {
+			return srv, err
+		}
+	}
+	if srv, err = q.MCPServer(ctx, store.MCPServerParams{WorkspaceID: ws.ID, ID: id}); err != nil {
+		return srv, err
+	}
+	meta := map[string]any{"sync": true, "added": added, "changed": changed, "removed": removed, "transport": transport}
+	ev := audit.Event{WorkspaceID: &ws.ID, Action: "mcp_server.updated", TargetType: "mcp_server", TargetID: id.String(), TargetName: srv.Name, Metadata: meta}
+	switch how {
+	case byManager:
+	case byHour, byCall:
+		if !moved {
+			return srv, nil
+		}
+		ev.Actor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
+		if how == byHour {
+			meta["periodic"] = true
+		} else {
+			meta["live_check"] = true
+		}
+	}
+	return srv, s.Audit.LogWith(ctx, q, ev)
 }
 
 // listedTool is a tool as a server listed it.
 type listedTool struct {
 	name, description   string
 	schema, annotations json.RawMessage
+}
+
+// listedOf is a listed tool as the catalog keeps it.
+func listedOf(t *mcp.Tool) listedTool {
+	schema, _ := json.Marshal(t.InputSchema)
+	ann := []byte("{}")
+	if t.Annotations != nil {
+		ann, _ = json.Marshal(t.Annotations)
+	}
+	return listedTool{name: clip(t.Name, 128), description: clip(t.Description, 4000), schema: schema, annotations: ann}
+}
+
+func (t listedTool) hash() []byte { return toolHash(t.description, t.schema, t.annotations) }
+
+// tools lists a session's tools, at most maxTools of them.
+func tools(ctx context.Context, sess *session) ([]listedTool, error) {
+	out := []listedTool{}
+	for t, err := range sess.cs.Tools(ctx, nil) {
+		if err != nil {
+			return nil, err
+		}
+		if len(out) == maxTools {
+			break
+		}
+		out = append(out, listedOf(t))
+	}
+	return out, nil
 }
 
 // list connects and lists the tools, falling back to HTTP with SSE when
@@ -315,22 +411,77 @@ func (s *Service) list(ctx context.Context, srv store.McpServer, user uuid.UUID)
 	defer sess.close()
 	lctx, cancel := context.WithTimeout(ctx, s.callTimeout())
 	defer cancel()
-	out := []listedTool{}
-	for t, err := range sess.cs.Tools(lctx, nil) {
-		if err != nil {
-			return nil, transport, s.connectProblem(ctx, srv, sess.rt, err)
-		}
-		if len(out) == maxTools {
-			break
-		}
-		schema, _ := json.Marshal(t.InputSchema)
-		ann := []byte("{}")
-		if t.Annotations != nil {
-			ann, _ = json.Marshal(t.Annotations)
-		}
-		out = append(out, listedTool{name: clip(t.Name, 128), description: clip(t.Description, 4000), schema: schema, annotations: ann})
+	out, err := tools(lctx, sess)
+	if err != nil {
+		return nil, transport, s.connectProblem(ctx, srv, sess.rt, err)
 	}
 	return out, transport, nil
+}
+
+// SyncDue syncs, as the system, up to limit enabled servers last synced
+// over an hour ago that need no person's sign-in, so a tool changed after
+// it was decided on is off even when nobody calls it. It reports how many
+// it listed.
+func (s *Service) SyncDue(ctx context.Context, limit int32) (int, error) {
+	rows, err := s.Q.MCPServersDue(ctx, store.MCPServersDueParams{Before: s.now().Add(-time.Hour), Lim: limit})
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, r := range rows {
+		ws, err := s.Q.GetWorkspace(ctx, r.WorkspaceID)
+		if err != nil {
+			return n, err
+		}
+		srv, err := s.Q.MCPServer(ctx, store.MCPServerParams{WorkspaceID: ws.ID, ID: r.ID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return n, err
+		}
+		listed, transport, err := s.list(ctx, srv, uuid.Nil)
+		if err != nil {
+			s.unlisted(ctx, srv, err)
+			s.log().WarnContext(ctx, "mcp: hourly sync", "server", srv.ID, "code", problemCode(err))
+			continue
+		}
+		if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+			_, err := s.record(ctx, tx, &ws, srv.ID, listed, transport, byHour)
+			return err
+		}); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
+}
+
+// SyncArgs is the hourly sync of servers without per-person sign-ins.
+type SyncArgs struct{}
+
+// Kind implements river.JobArgs.
+func (SyncArgs) Kind() string { return "mcp.servers_sync" }
+
+// InsertOpts runs it once at a time.
+func (SyncArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{Queue: jobs.QueueMaintenance, UniqueOpts: river.UniqueOpts{ByPeriod: time.Hour}}
+}
+
+// SyncWorker runs the hourly sync, 20 servers a run.
+type SyncWorker struct {
+	river.WorkerDefaults[SyncArgs]
+	S *Service
+}
+
+// Timeout bounds a run: each server's listing has its own timeouts (a
+// minute at most, with the fallback to HTTP with SSE).
+func (w *SyncWorker) Timeout(*river.Job[SyncArgs]) time.Duration { return 25 * time.Minute }
+
+// Work implements river.Worker.
+func (w *SyncWorker) Work(ctx context.Context, _ *river.Job[SyncArgs]) error {
+	_, err := w.S.SyncDue(ctx, 20)
+	return err
 }
 
 var unsafeName = regexp.MustCompile(`[^A-Za-z0-9_-]`)
@@ -488,6 +639,27 @@ func (s *Service) Current(ctx context.Context, q *store.Queries, ws *store.Works
 	return t, srv, nil
 }
 
+// MayRead reports whether owner may still use a server (it is enabled and
+// their role may use it): what its tools returned in a thread is sent to
+// the model again only then.
+func (s *Service) MayRead(ctx context.Context, q *store.Queries, ws *store.Workspace, owner *authz.Principal, server uuid.UUID) (bool, error) {
+	srv, err := q.MCPServer(ctx, store.MCPServerParams{WorkspaceID: ws.ID, ID: server})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil || !srv.Enabled {
+		return false, err
+	}
+	return MayUse(ctx, q, ws.ID, owner.UserID, srv.AccessRoles)
+}
+
+// cancelGrace is how long a session stays open after its caller cancelled
+// a call, for the server to be told.
+const cancelGrace = time.Second
+
+// maxErrorText bounds what a server's refusal of a call says to the model.
+const maxErrorText = 2000
+
 // Result is a call's result as the model may read it: text only, images
 // and HTML stripped, at most MaxResult bytes.
 type Result struct {
@@ -522,8 +694,15 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 	}
 	start := s.now()
 	outcome := "ok"
+	began := time.Now()
 	defer func() {
 		r.Ms = s.now().Sub(start).Milliseconds()
+		if outcome == "ok" {
+			opsmetrics.MCPCall.WithLabelValues("ok").Observe(time.Since(began).Seconds())
+		} else {
+			opsmetrics.MCPCall.WithLabelValues("error").Observe(time.Since(began).Seconds())
+			opsmetrics.MCPCallErrors.WithLabelValues(opsmetrics.MCPErrorCode(outcome)).Inc()
+		}
 		_ = s.Audit.Log(context.WithoutCancel(ctx), audit.Event{WorkspaceID: &ws.ID, Actor: &audit.Actor{Type: authz.ActorUser, ID: &fresh.UserID, Name: fresh.Name},
 			Action: "mcp_tool.called", TargetType: "mcp_tool", TargetID: t.ID.String(), TargetName: t.Name,
 			Metadata: map[string]any{"via": "ai_assistant", "thread_id": thread.String(), "server_id": srv.ID.String(), "arguments_digest": hexOf(digest),
@@ -537,9 +716,31 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 		}
 		return r, err
 	}
-	defer sess.close()
+	defer func() {
+		if ctx.Err() == nil {
+			sess.close()
+			return
+		}
+		// The caller cancelled the call (its turn was stopped): the SDK
+		// tells the server off the call's return path, which the session
+		// closing would refuse, so it closes in the background once that
+		// had time, and the caller doesn't wait for it.
+		go func() {
+			time.Sleep(cancelGrace)
+			sess.close()
+		}()
+	}()
 	cctx, cancel := context.WithTimeout(ctx, s.callTimeout())
 	defer cancel()
+	// The tool as the server lists it now, in the same session, must be
+	// the one decided on: a server can change a tool between syncs.
+	if err := s.check(ctx, cctx, ws, srv, sess, t, hash); err != nil {
+		outcome = problemCode(err)
+		if outcome == CodeSignIn {
+			s.SignedOut(ctx, srv.ID, fresh.UserID)
+		}
+		return r, err
+	}
 	var arguments any = map[string]any{}
 	if len(args) > 0 {
 		arguments = args
@@ -549,6 +750,14 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 		if errors.Is(cctx.Err(), context.DeadlineExceeded) {
 			outcome = "timeout"
 			return r, problem(ctx, http.StatusGatewayTimeout, CodeTimeout, "problem.timeout", i18n.Args{"server": srv.Name})
+		}
+		var rpc *jsonrpc.Error
+		if errors.As(err, &rpc) {
+			// The server refused the call itself: what it said is its own
+			// text, read like a result (bounded, HTML stripped).
+			outcome = "tool_error"
+			r.Text, r.IsError = clip(stripHTML(rpc.Message), maxErrorText), true
+			return r, nil
 		}
 		err = s.connectProblem(ctx, srv, sess.rt, err)
 		outcome = problemCode(err)
@@ -567,6 +776,39 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 		outcome = "tool_error"
 	}
 	return r, nil
+}
+
+// check lists a server's tools in a call's session before the call: the
+// tool called must be listed at the hash it was decided on (else it is
+// off, as a sync would leave it, and the call isn't sent). Anything else
+// the listing changed is kept too.
+func (s *Service) check(ctx, cctx context.Context, ws *store.Workspace, srv store.McpServer, sess *session, t store.McpTool, hash []byte) error {
+	listed, err := tools(cctx, sess)
+	if err != nil {
+		if errors.Is(cctx.Err(), context.DeadlineExceeded) {
+			return problem(ctx, http.StatusGatewayTimeout, CodeTimeout, "problem.timeout", i18n.Args{"server": srv.Name})
+		}
+		return s.connectProblem(ctx, srv, sess.rt, err)
+	}
+	i := slices.IndexFunc(listed, func(l listedTool) bool { return l.name == t.Name })
+	same := i >= 0 && bytes.Equal(listed[i].hash(), hash)
+	have, err := s.Q.MCPTools(ctx, srv.ID)
+	if err != nil {
+		return err
+	}
+	if differs(have, listed) {
+		err := db.Tx(context.WithoutCancel(ctx), s.Pool, func(tx pgx.Tx) error {
+			_, err := s.record(context.WithoutCancel(ctx), tx, ws, srv.ID, listed, srv.Transport, byCall)
+			return err
+		})
+		if err != nil {
+			return err
+		}
+	}
+	if !same {
+		return toolChanged(ctx, t.Name)
+	}
+	return nil
 }
 
 func problemCode(err error) string {

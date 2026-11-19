@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/ai/assistant"
 )
 
@@ -157,7 +159,8 @@ func TestAssistantRetention(t *testing.T) {
 	if after.State != "expired" || after.Title != "" || len(after.Messages) != 0 || after.Usage.Requests != 1 {
 		t.Fatalf("the tombstone: %+v", after)
 	}
-	f.contentGone(th.ID.String(), "4d2e")
+	// With its word: four hex digits alone can be part of an id.
+	f.contentGone(th.ID.String(), "sentinel 4d2e")
 	if r, err := at(122 * 24 * time.Hour).Purge(ctx); err != nil || r.Tombstones != 1 {
 		t.Fatalf("90 days after that: %+v %v", r, err)
 	}
@@ -219,11 +222,25 @@ func TestAssistantThreadsGoWithTheMember(t *testing.T) {
 	if n := f.count(`SELECT count(*) FROM ai_assistant_messages WHERE thread_id = $1`, mine.ID); n != 2 {
 		t.Fatalf("deactivation left %d messages, want 2", n)
 	}
+	// A notice of a call waiting in one of their threads goes with them;
+	// their other notices stay.
+	for _, kind := range []string{"ai_assistant_confirmation", "ai_usage"} {
+		if _, err := f.env.App.Pool.Exec(ctx, `INSERT INTO notifications (id, user_id, workspace_id, kind, title, data) VALUES ($1, $2, $3, $4, 'Waiting', $5)`,
+			uuid.New(), f.member, f.ws.ID, kind, `{"thread_id":"`+mine.ID.String()+`"}`); err != nil {
+			t.Fatal(err)
+		}
+	}
 	f.oc.Do(http.MethodDelete, ws+"/members/"+member, nil).MustStatus(t, 204)
 	if n := f.count(`SELECT count(*) FROM ai_assistant_threads WHERE workspace_id = $1 AND user_id = $2`, f.ws.ID, f.member); n != 0 {
 		t.Fatalf("%d threads of the removed member", n)
 	}
-	f.contentGone(mine.ID.String(), "77ab")
+	if n := f.count(`SELECT count(*) FROM notifications WHERE user_id = $1 AND kind = 'ai_assistant_confirmation'`, f.member); n != 0 {
+		t.Fatal("the removed member's confirmation notice is kept")
+	}
+	if n := f.count(`SELECT count(*) FROM notifications WHERE user_id = $1 AND kind = 'ai_usage'`, f.member); n != 1 {
+		t.Fatal("the removal took another notice")
+	}
+	f.contentGone(mine.ID.String(), "sentinel 77ab")
 	if n := f.count(`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND action = 'member.removed' AND (after->>'assistant_threads_removed')::int = 1`, f.ws.ID); n != 1 {
 		t.Fatal("the removal doesn't say the threads went")
 	}

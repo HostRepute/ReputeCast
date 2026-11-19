@@ -248,22 +248,28 @@ func TestAIPersonalBudget(t *testing.T) {
 // Status follows each feature's own model and budget, as the requests do:
 // the member's draft on their own key is ready with the workspace's cap used
 // up, stops at their own cap while the workspace is ready, and is ready with
-// no workspace model connected.
+// no workspace model connected. The agent follows the model a new run of
+// theirs takes, and its switch.
 func TestAIStatusFollowsPersonalBudget(t *testing.T) {
 	first, mine := newModelServer(t), newModelServer(t)
 	p := newPersonal(t, first, map[string]any{"capKind": "usd", "capUsd": 25})
 	p.enable(5)
-	_, model := p.addOwn(mine.srv.URL, "", 1, 2)
+	p.c.Do(http.MethodPut, p.base+"/agent/settings", ai.AIAgentSettings{Enabled: true, Limits: ai.AIAgentLimits{ToolCalls: 40, Tokens: 300000, CostMicros: 2000000}}).MustStatus(t, 204)
+	account, model := p.addOwn(mine.srv.URL, "", 1, 2)
 	p.pick("draft", model)
+	var agent ai.AIStatusFeature
 	status := func() (st ai.AIStatus, draft, rewrite ai.AIStatusFeature) {
 		t.Helper()
 		p.mc.Do(http.MethodGet, p.base+"/status", nil).MustStatus(t, 200).JSON(t, &st)
+		agent = ai.AIStatusFeature{}
 		for _, f := range st.Features {
 			switch f.Key {
 			case "draft":
 				draft = f
 			case "rewrite":
 				rewrite = f
+			case "agent":
+				agent = f
 			}
 		}
 		return st, draft, rewrite
@@ -282,6 +288,11 @@ func TestAIStatusFollowsPersonalBudget(t *testing.T) {
 		draft.Cap.Kind != "usd" || draft.Cap.USD != 5 || draft.Usage.State != "ok" || draft.Usage.Requests != 1 || draft.Usage.CostMicros != 113*1+29*2 {
 		t.Fatalf("the member's draft with the workspace at its cap: %+v", draft)
 	}
+	// The agent's runs go to the workspace's model: its cap, reached.
+	if agent.Key != "agent" || agent.State != "cap_reached" || !agent.On || agent.Personal || agent.ModelID == nil || *agent.ModelID != *rewrite.ModelID ||
+		agent.ModelName != rewrite.ModelName || agent.Cap.USD != 25 || agent.Prices.Input != rewrite.Prices.Input {
+		t.Fatalf("the agent with the workspace at its cap: %+v", agent)
+	}
 	draftBy(p.mc, p.base).MustStatus(t, 200)
 
 	// The member's cap used up: their draft stops, the workspace is ready.
@@ -290,8 +301,8 @@ func TestAIStatusFollowsPersonalBudget(t *testing.T) {
 	p.exec(`INSERT INTO ai_requests (id, workspace_id, user_id, feature, provider, model, cost_micros, outcome, created_at, personal)
 		VALUES ($1, $2, $3, 'rewrite', 'compatible', 'own-model', 5000000, 'accepted', now(), true)`, own, p.ws.ID, p.member)
 	st, draft, rewrite = status()
-	if st.State != "ready" || rewrite.State != "ready" || draft.State != "cap_reached" || draft.Usage.State != "reached" {
-		t.Fatalf("the member at their cap: %s, rewrite %+v, draft %+v", st.State, rewrite, draft)
+	if st.State != "ready" || rewrite.State != "ready" || draft.State != "cap_reached" || draft.Usage.State != "reached" || agent.State != "ready" {
+		t.Fatalf("the member at their cap: %s, rewrite %+v, draft %+v, agent %+v", st.State, rewrite, draft, agent)
 	}
 	if res := draftBy(p.mc, p.base).MustStatus(t, 409).Problem(t); res["code"] != "ai_personal_cap_reached" {
 		t.Fatalf("the member's draft at their cap: %v", res)
@@ -305,6 +316,28 @@ func TestAIStatusFollowsPersonalBudget(t *testing.T) {
 		t.Fatalf("without a workspace model: %s, rewrite %+v, draft %+v", st.State, rewrite, draft)
 	}
 	draftBy(p.mc, p.base).MustStatus(t, 200)
+
+	// The agent on the member's own model once its tool check passed: its
+	// state, model, prices, cap and use are the draft's; it's off with the
+	// agent's switch.
+	if agent.State != "not_configured" || agent.On {
+		t.Fatalf("the agent without a workspace model: %+v", agent)
+	}
+	var tools ai.AIAgentCapability
+	p.mc.Do(http.MethodPost, p.base+"/personal/accounts/"+account.String()+"/models/"+model.String()+"/test-tools", nil).MustStatus(t, 200).JSON(t, &tools)
+	if tools.State != "supported" {
+		t.Fatalf("the personal tool check: %+v", tools)
+	}
+	p.pick("agent", model)
+	st, draft, _ = status()
+	if agent.State != "ready" || !agent.On || !agent.Available || !agent.Personal || agent.ModelID == nil || *agent.ModelID != model || agent.ModelName != "own-model" ||
+		agent.Prices.Input != 1 || agent.Prices.Output != 2 || agent.Cap.USD != 5 || agent.Usage.Requests != draft.Usage.Requests || agent.Usage.CostMicros != draft.Usage.CostMicros {
+		t.Fatalf("the agent on the member's model: %+v, draft %+v", agent, draft)
+	}
+	p.c.Do(http.MethodPut, p.base+"/agent/settings", ai.AIAgentSettings{Enabled: false, Limits: st.Agent.Limits, Revision: st.Agent.Revision}).MustStatus(t, 204)
+	if status(); agent.On || agent.State != "ready" {
+		t.Fatalf("the agent switched off: %+v", agent)
+	}
 }
 
 // Two requests on one person's key race that person's cap: of two tests

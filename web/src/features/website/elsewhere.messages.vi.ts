@@ -79,7 +79,6 @@ export default translate(me, {
   eventSignedOutBy: 'bởi {actor}',
   eventJoined: 'Đã tham gia trên {host}',
   eventEmailChanged: 'Đã đổi địa chỉ email',
-  siteOff: 'Trang web đang tắt: hội viên không đăng nhập được.',
 
   // The contacts filter
   filterSignedIn: 'Đã đăng nhập vào trang web · {count}',
@@ -87,13 +86,7 @@ export default translate(me, {
   filterLabel: 'Hội viên',
 
   // The segment condition
-  condSignedIn: 'Đã đăng nhập vào trang web',
-  condOperator: 'Toán tử',
   condWhen: 'Thời điểm',
-  opSince: 'kể từ',
-  opNotSince: 'không kể từ',
-  opEver: 'từng',
-  opNever: 'chưa từng',
   days7: '7 ngày trước',
   days30: '30 ngày trước',
   days90: '90 ngày trước',
@@ -104,7 +97,6 @@ export default translate(me, {
   policyPostText: 'Tắt theo mặc định. Người phê duyệt là những người phê duyệt của không gian làm việc: những người có thể phê duyệt chiến dịch. Phê duyệt bao gồm nội dung, địa chỉ, chế độ hiển thị và thời điểm xuất bản.',
   policyPostNote: '“Tác giả không có quyền gửi” cũng bao gồm {perm}: tác giả không có quyền này sẽ thấy Yêu cầu phê duyệt thay vì Xuất bản.',
   inboxPost: 'Bài viết',
-  inboxPostLine: 'Bài viết · {visibility} · {name} yêu cầu, {date} · bản xem trước trên web',
   reviewWeb: 'Bài viết trên web',
   reviewWebSub: '{url} · như người đọc có quyền xem thấy',
   reviewTitle: 'Tựa đề',

@@ -31528,15 +31528,17 @@ type AIPersonalPerson struct {
 
 // AIPersonalSettings defines model for AIPersonalSettings.
 type AIPersonalSettings struct {
-	Accounts []AIAccountView     `json:"accounts"`
-	CanAdd   bool                `json:"canAdd"`
-	CapSetAt *time.Time          `json:"capSetAt,omitempty"`
-	CapSetBy *string             `json:"capSetBy,omitempty"`
-	CapUsd   float64             `json:"capUsd"`
-	Choices  []AIFeatureDefault  `json:"choices"`
-	Enabled  bool                `json:"enabled"`
-	People   []AIPersonalPerson  `json:"people"`
-	Usage    AIPersonalUsageView `json:"usage"`
+	Accounts      []AIAccountView     `json:"accounts"`
+	CanAdd        bool                `json:"canAdd"`
+	CapSetAt      *time.Time          `json:"capSetAt,omitempty"`
+	CapSetBy      *string             `json:"capSetBy,omitempty"`
+	CapUsd        float64             `json:"capUsd"`
+	Catalog       []AIProviderEntry   `json:"catalog"`
+	Choices       []AIFeatureDefault  `json:"choices"`
+	Enabled       bool                `json:"enabled"`
+	People        []AIPersonalPerson  `json:"people"`
+	PriceListDate time.Time           `json:"priceListDate"`
+	Usage         AIPersonalUsageView `json:"usage"`
 }
 
 // AIPersonalUsageView defines model for AIPersonalUsageView.
@@ -62380,7 +62382,7 @@ type ClientInterface interface {
 
 	// GetAiSettings The AI assistant's settings: the model, the cap, this month's usage and the features
 	//
-	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 	//
 	// Corresponds with GET /api/v1/workspaces/{workspace}/ai (the `GetAiSettings` operationId).
 	GetAiSettings(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -69959,7 +69961,7 @@ func (c *Client) GetWorkspaceAgency(ctx context.Context, workspace string, reqEd
 
 // GetAiSettings The AI assistant's settings: the model, the cap, this month's usage and the features
 //
-// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 //
 // Corresponds with GET /api/v1/workspaces/{workspace}/ai (the `GetAiSettings` operationId).
 func (c *Client) GetAiSettings(ctx context.Context, workspace string, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -130966,7 +130968,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetAiSettingsWithResponse The AI assistant's settings: the model, the cap, this month's usage and the features
 	//
-	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+	// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -179585,7 +179587,7 @@ func (c *ClientWithResponses) GetWorkspaceAgencyWithResponse(ctx context.Context
 
 // GetAiSettingsWithResponse The AI assistant's settings: the model, the cap, this month's usage and the features
 //
-// The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.
+// The key is write-only: only whether one is set, and when. Settings › Integrations › AI models.
 //
 // Returns a wrapper object for the known response body format(s).
 //

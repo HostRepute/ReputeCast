@@ -14,7 +14,7 @@ has one name everywhere: `REPUTECAST_PUBLIC_URL`.
 | `REPUTECAST_DATABASE__MAX_CONNS` | `20` | Pool size per process. |
 | `REPUTECAST_HTTP__ADDR` | `:8080` | Listen address. |
 | `PORT` | — | Set by platforms such as Render, Railway, Heroku and Cloud Run: ReputeCast listens on `:<PORT>` when `REPUTECAST_HTTP__ADDR` isn't set (`--addr` and `REPUTECAST_HTTP__ADDR` win). The Docker image sets `REPUTECAST_HTTP__ADDR=:8080`, so a container listens on 8080 whatever `PORT` says; the one-click templates set `PORT=8080`, which tells the platform where to route. A `PORT` that isn't a port number (1–65535) stops the start. |
-| `REPUTECAST_PUBLIC_URL` | `http://localhost:8080` | The address people and providers reach. (`REPUTECAST_HTTP__PUBLIC_URL`, its earlier name, still works when `REPUTECAST_PUBLIC_URL` isn't set.) Used for webhooks, SSO redirects, passkeys, public pages and links in emails. Use `https://` in production. An address saved in Instance admin › Instance & updates replaces it for links, pages and webhooks (moving provider webhooks with it); HTTPS-only cookies and HSTS follow this setting, so keep the two the same. |
+| `REPUTECAST_PUBLIC_URL` | `http://localhost:8080` | The address people and providers reach. (`REPUTECAST_HTTP__PUBLIC_URL`, its earlier name, still works when `REPUTECAST_PUBLIC_URL` isn't set.) Used for webhooks, SSO redirects, passkeys, public pages, links in emails and the MCP servers' OAuth redirect ([the AI assistant](#the-ai-assistant)). Use `https://` in production. An address saved in Instance admin › Instance & updates replaces it for links, pages and webhooks (moving provider webhooks with it); HTTPS-only cookies and HSTS follow this setting, so keep the two the same. |
 | `REPUTECAST_HTTP__PUBLIC_URL_LOCKED` | `false` | Pins the public URL to `REPUTECAST_PUBLIC_URL`: an address saved in Instance admin is ignored, the field there and at the first sign-in is read only, and the API refuses another address (`409`, code `operator_locked`). At start the locked address becomes the saved one and provider webhooks move to it, audited as the server configuration's; webhooks that providers keep in their own settings are listed in the log. So changing the locked address and restarting moves the instance. For a hosting company or an IT team that runs the instance for someone else and owns its DNS and TLS; `reputecast doctor` warns when it pins an address only the server reaches. |
 | `REPUTECAST_HTTP__TRUSTED_PROXIES` | — | Comma-separated CIDRs or IPs of your reverse proxies, or `private`; only then is `X-Forwarded-For` trusted. `private` stands for every private (RFC 1918), shared (`100.64.0.0/10`) and loopback network, IPv6 unique local and loopback included: the router in front of ReputeCast on Render, Railway, Coolify, DigitalOcean App Platform or a Kubernetes Ingress controller, whose address you can't know in advance. Don't use it when clients can reach ReputeCast directly from a private network (an office LAN): they could claim any address. Entries that are none of these are logged and ignored. Allowed IPs on API keys and MCP agents (Settings › Keys & MCP) compare the client address ReputeCast resolves with this setting: behind a proxy that isn't listed, every call seems to come from the proxy, so list it before relying on allowed IPs (the dialog warns while untrusted proxies are seen). The SMTP relay checks the connecting address itself. |
 | `REPUTECAST_HTTP__RATE_LIMIT_AUTH` | `30` | Sign-in requests per minute per client IP (on top of per-email lockout). |
@@ -34,7 +34,7 @@ has one name everywhere: `REPUTECAST_PUBLIC_URL`.
 | `REPUTECAST_UPDATES__CHECK` | `true` | Daily check of GitHub releases (only the version number is fetched). Can also be turned off in Instance admin. ReputeCast never sends usage data anywhere. |
 | `REPUTECAST_UPDATES__MANAGED_BY` | — | Who upgrades this instance, when someone runs it for its users (`Northwind Hosting`). Instance admin › Instance & updates then says upgrades are managed by them instead of showing the `docker compose` command and the backup line. |
 | `REPUTECAST_AUTH__COOKIE_SECURE` | `true` | Secure session cookie (always on when the public URL is https). |
-| `REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` | `false` | Let provider URLs entered in a workspace (a Postal server, a generic HTTP adapter) and community adapters' addresses (a sidecar; plain `http://` only there) resolve to loopback or private addresses, for providers on your own network. Cloud metadata and link-local addresses are always refused. |
+| `REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` | `false` | Let provider URLs entered in a workspace (a Postal server, a generic HTTP adapter, an OpenAI-compatible model server such as Ollama, the assistant's MCP servers and their authorization servers) and community adapters' addresses (a sidecar; plain `http://` only there) resolve to loopback or private addresses, for providers on your own network. Cloud metadata and link-local addresses are always refused. |
 | `REPUTECAST_WEBHOOKS__ALLOW_PRIVATE_NETWORKS` | `false` | The same for outgoing webhooks and the audit stream. |
 | `REPUTECAST_ADMIN_EMAIL` / `_NAME` / `_PASSWORD` | — | Used by `install` and `serve --auto-install`. Without a password a temporary one is printed. |
 | `REPUTECAST_AUTO_MIGRATE`, `REPUTECAST_AUTO_INSTALL` | `false` | Container conveniences (the Docker image enables both). |
@@ -108,3 +108,144 @@ Sign-in policies (methods, password length, breached-password check,
 two-factor enforcement and grace period, session lifetime and idle timeout,
 lockout, SSO and social providers) are managed in **Instance admin ›
 Authentication**, not in configuration.
+
+## The AI assistant
+
+The assistant ([docs/ai](../ai/README.md)) has no settings of its own here:
+managers switch it on per workspace in Settings › Integrations › AI models.
+This is what it asks of the instance.
+
+### Roles and the `ai_assistant` queue
+
+| Role | What it does for the assistant |
+|---|---|
+| `web` | The panel and its API, the MCP servers' OAuth callback, and each open thread's event stream (server-sent events). |
+| `worker` | Answers turns on the `ai_assistant` River queue. On the `maintenance` queue: every minute, the sweep of turns no worker answers and of calls that waited 24 hours for a confirmation, and `mcp.tokens_revoke`, which revokes removed MCP sign-ins' refresh tokens; every hour, retention of thread content and events, the purge of unfinished MCP sign-ins, and `mcp.servers_sync`, which lists the tools of MCP servers without per-member sign-in (20 servers a run). |
+| `ingest` | Nothing. |
+
+- A person's message is committed with its job, and any worker process
+  takes it. The answer streams to the web processes through Postgres, so
+  `--role=web` and `--role=worker` can run on different hosts.
+- Each worker process answers up to half of `REPUTECAST_WORKER__CONCURRENCY`
+  turns at once, and at least 10 (25 with the default 50), apart from its
+  other queues. A turn mostly waits on the model provider. Each workspace's
+  **Answers at once** limits (2 per person and 10 per workspace by default)
+  apply across all workers.
+- With no worker running, messages stay **Queued…**. After 30 minutes the
+  sweep fails them, and the panel shows **The answer was interrupted**.
+- A stopping worker (a deploy, SIGTERM) gives running jobs 10 seconds. A
+  turn still answering then fails as interrupted: what it wrote is kept, its
+  cost stays unknown until a manager reconciles it, and the person can
+  retry.
+- A turn waiting for a person's confirmation holds no worker and no slot.
+  After 24 hours the sweep expires the call: nothing is sent, and the turn
+  ends.
+- Besides the model providers, both roles reach MCP servers and their
+  authorization servers: workers for each call (its tool listing first),
+  the hourly sync and the revocation job; web processes for sign-ins, a
+  manager's **Sync tools** and the revocation on **Disconnect**. Allow both
+  out through any egress firewall.
+
+### The event stream's database connection
+
+- Each process with the `web` role opens one Postgres connection of its own
+  to `LISTEN` for thread events, outside the pool
+  (`REPUTECAST_DATABASE__MAX_CONNS`), with the same
+  `REPUTECAST_DATABASE__URL`. It opens with the first stream and closes a
+  minute after the last one ends. `pg_stat_activity` shows it with
+  `application_name` `reputecast-assistant`.
+- Leave room for it in Postgres's `max_connections`: each web process's pool
+  plus one.
+- Workers `NOTIFY` on the channel `ai_assistant` with threads' IDs and
+  event numbers (several in one notification for a group of answers'
+  pieces), never content. Each stream then reads its events from the
+  database.
+- `LISTEN` needs a session: connect directly, or through PgBouncer in
+  session mode. PgBouncer's transaction mode doesn't support it; streams
+  then only catch up at their five-second access check, so answers arrive
+  in steps.
+- When the connection drops (Postgres restarted, a proxy cut it), the
+  process logs `assistant: listening for thread events failed; streams poll
+  until it listens again` and wakes every stream each second until it
+  listens again.
+
+Behind a reverse proxy, the event streams need buffering off
+([reverse proxy](reverse-proxy.md#event-streams)).
+
+### Model servers and MCP servers on your network
+
+`REPUTECAST_PROVIDERS__ALLOW_PRIVATE_NETWORKS` decides whether an
+OpenAI-compatible model server, an MCP server or an MCP server's
+authorization server may be on a loopback or private address. Every request
+goes through the SSRF guard, which checks the resolved address at each
+connection and never follows redirects. Link-local and cloud metadata
+addresses are always refused. Restart after changing it.
+
+### The public URL and MCP sign-in
+
+MCP servers that sign members in with OAuth send them back to
+`<public URL>/api/v1/ai/mcp/oauth/callback`. The public URL is the one saved
+in Instance admin › Instance & updates, or `REPUTECAST_PUBLIC_URL`.
+
+- People's browsers must reach it. The MCP authorization specification asks
+  for an `https://` redirect address (or localhost).
+- With dynamic client registration ReputeCast registers it by itself; for a
+  client a manager created on the server's side, they register it there.
+  When the public URL changes, the address changes with it
+  ([MCP servers](../ai/mcp-servers.md#the-oauth-redirect-address)).
+
+### Secrets
+
+Model keys, MCP header secrets, OAuth client secrets and tokens (refresh
+tokens waiting to be revoked included), and thread content (titles,
+messages, attached snapshots, events, waiting calls' arguments) are
+encrypted with the instance's secret key (`REPUTECAST_SECRETS__KEY` or its
+key file). `reputecast secrets reseal` covers them. Without the key, none
+of them can be read after a restore.
+
+### Timeouts
+
+These are fixed in this release; there are no settings for them.
+
+| What | Limit |
+|---|---|
+| One assistant request to the model provider, its whole streamed answer included | 3 minutes |
+| A provider's stream that sends nothing | 30 seconds |
+| One response | 4 MB; 4,000 output tokens per answer request |
+| Requests per message | 8 |
+| Automatic retries of a model request | None: a request the provider may have charged isn't repeated |
+| A job attempt of a turn | 4 minutes |
+| A queued turn no worker takes | 30 minutes |
+| A call waiting for a person's confirmation | 24 hours |
+| **Test connection** / the tool check / listing a provider's models | 30 / 45 / 20 seconds |
+| Connecting to an MCP server | 30 seconds |
+| One MCP tool call: the server's tool listing, then the call | 30 seconds together |
+| OAuth discovery, registration, token and revocation requests | 15 seconds each |
+| Revoking on **Disconnect**, before the answer returns | 10 seconds |
+| One run of the hourly MCP sync | 25 minutes |
+| The event stream's heartbeat | Every 15 seconds while nothing else is sent |
+| A browser that doesn't read an event | Cut after 5 seconds; it resumes from its last event |
+
+Other AI features have their own limits for one request: 3 minutes for the
+agent and drafts, 2 minutes for translations, 60 seconds for summaries,
+segment drafts and subject ideas, and 45 seconds for the rest.
+
+### Metrics
+
+None of them carries content, ids or names; every label has a fixed set of
+values.
+
+| Metric | What it measures |
+| --- | --- |
+| `reputecast_ai_assistant_ttft_overhead_seconds` | Server time before a turn's first answer token is committed, without the provider: from the person's message being committed to the first piece of the answer being committed, minus the provider's own time to its first token. It includes waiting for a worker and a slot, building the request, the budget hold and writing the first piece. |
+| `reputecast_ai_assistant_stream_seconds{kind,outcome}` | How long one model request streams, by `kind` (`answer`, `summary`) and `outcome` (`answered`, `refused`, `error`, `cancelled`). |
+| `reputecast_ai_assistant_tokens_total{direction}` | Tokens as the providers reported them, `input` or `output`. Requests whose usage wasn't reported aren't counted. |
+| `reputecast_ai_assistant_tool_calls_total{kind,outcome}` | Tool calls the models asked for, by `kind` (`reputecast`, `mcp_read`, `mcp_write`) and `outcome` (`ok`, `not_available`, `forbidden`, `not_found`, `tool_limit`, `denied`, `outcome_unknown`, `timeout`, `error`). |
+| `reputecast_mcp_call_seconds{result}` | How long a call to an MCP server's tool takes, connection included, `ok` or `error`. |
+| `reputecast_mcp_call_errors_total{code}` | Failed MCP tool calls by `code` (`mcp_unreachable`, `mcp_sign_in`, `mcp_timeout`, `mcp_too_large`, `mcp_tool_changed`, `mcp_tool_blocked`, `tool_error`, `forbidden`, `error`). |
+| `reputecast_ai_assistant_streams` | Event streams this process serves now. |
+| `reputecast_ai_assistant_event_lag_seconds{kind}` | Time from an event's insert to an open stream writing it to its browser, by `kind` (`turn`, `delta`, `message`, `usage`, `tool`, `confirmation`). Events a stream catches up on when it reconnects aren't counted. |
+
+Turns also show in `reputecast_jobs{queue="ai_assistant"}` and
+`reputecast_job_queue_lag_seconds{queue="ai_assistant"}`
+([health checks and metrics](README.md#health-checks-and-metrics)).

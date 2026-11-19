@@ -12,6 +12,56 @@ import (
 	"github.com/google/uuid"
 )
 
+const aIAssistantConfirmationNoticesRemove = `-- name: AIAssistantConfirmationNoticesRemove :exec
+DELETE FROM notifications WHERE user_id = $1 AND kind = 'ai_assistant_confirmation' AND data->>'thread_id' = $2::text
+`
+
+type AIAssistantConfirmationNoticesRemoveParams struct {
+	UserID   uuid.UUID `json:"userId"`
+	ThreadID string    `json:"threadId"`
+}
+
+// The notice of a call waiting in a thread goes once the call was decided,
+// stopped or expired, or the thread went (a thread has one waiting call at
+// most).
+func (q *Queries) AIAssistantConfirmationNoticesRemove(ctx context.Context, arg AIAssistantConfirmationNoticesRemoveParams) error {
+	_, err := q.db.Exec(ctx, aIAssistantConfirmationNoticesRemove, arg.UserID, arg.ThreadID)
+	return err
+}
+
+const aIAssistantConfirmationsExpiring = `-- name: AIAssistantConfirmationsExpiring :many
+SELECT c.id, c.thread_id, h.workspace_id FROM ai_assistant_confirmations c JOIN ai_assistant_threads h ON h.id = c.thread_id
+WHERE c.state = 'pending' AND c.created_at < $1
+ORDER BY c.created_at, c.id LIMIT 100
+`
+
+type AIAssistantConfirmationsExpiringRow struct {
+	ID          uuid.UUID `json:"id"`
+	ThreadID    uuid.UUID `json:"threadId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// Calls waiting for their owner since before @before: they expire.
+func (q *Queries) AIAssistantConfirmationsExpiring(ctx context.Context, before time.Time) ([]AIAssistantConfirmationsExpiringRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantConfirmationsExpiring, before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantConfirmationsExpiringRow{}
+	for rows.Next() {
+		var i AIAssistantConfirmationsExpiringRow
+		if err := rows.Scan(&i.ID, &i.ThreadID, &i.WorkspaceID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const aIAssistantContextDelete = `-- name: AIAssistantContextDelete :one
 DELETE FROM ai_assistant_contexts WHERE thread_id = $1 AND id = $2 RETURNING kind, target_id
 `
@@ -106,9 +156,112 @@ func (q *Queries) AIAssistantContextsPurge(ctx context.Context, threadID uuid.UU
 	return err
 }
 
-const aIAssistantEventInsert = `-- name: AIAssistantEventInsert :exec
+const aIAssistantDeltaSeqs = `-- name: AIAssistantDeltaSeqs :many
+UPDATE ai_assistant_threads h SET event_seq = h.event_seq + c.n
+FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::bigint[]) AS n) AS c
+WHERE h.id = c.id
+RETURNING h.id, h.event_seq
+`
+
+type AIAssistantDeltaSeqsParams struct {
+	Ids []uuid.UUID `json:"ids"`
+	Ns  []int64     `json:"ns"`
+}
+
+type AIAssistantDeltaSeqsRow struct {
+	ID       uuid.UUID `json:"id"`
+	EventSeq int64     `json:"eventSeq"`
+}
+
+// A group's event numbers: n more for each thread, which the caller holds
+// locked; returns each thread's last.
+func (q *Queries) AIAssistantDeltaSeqs(ctx context.Context, arg AIAssistantDeltaSeqsParams) ([]AIAssistantDeltaSeqsRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantDeltaSeqs, arg.Ids, arg.Ns)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantDeltaSeqsRow{}
+	for rows.Next() {
+		var i AIAssistantDeltaSeqsRow
+		if err := rows.Scan(&i.ID, &i.EventSeq); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIAssistantDeltaThreadsLock = `-- name: AIAssistantDeltaThreadsLock :many
+SELECT id, workspace_id FROM ai_assistant_threads WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE SKIP LOCKED
+`
+
+type AIAssistantDeltaThreadsLockRow struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// The threads of a group of answers' delta batches, locked in the threads'
+// lock order. A thread another transaction holds (Stop, the sweep, a
+// removal, another process) is skipped: its batch waits for the next
+// group, and a group never waits for a lock.
+func (q *Queries) AIAssistantDeltaThreadsLock(ctx context.Context, ids []uuid.UUID) ([]AIAssistantDeltaThreadsLockRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantDeltaThreadsLock, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantDeltaThreadsLockRow{}
+	for rows.Next() {
+		var i AIAssistantDeltaThreadsLockRow
+		if err := rows.Scan(&i.ID, &i.WorkspaceID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIAssistantDeltasInsert = `-- name: AIAssistantDeltasInsert :exec
 INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+SELECT d.thread_id, d.seq, d.turn_id, 'delta', d.payload, d.created_at
+FROM (SELECT unnest($1::uuid[]) AS thread_id, unnest($2::bigint[]) AS seq, unnest($3::uuid[]) AS turn_id,
+    unnest($4::bytea[]) AS payload, unnest($5::timestamptz[]) AS created_at) AS d
+`
+
+type AIAssistantDeltasInsertParams struct {
+	ThreadIds  []uuid.UUID `json:"threadIds"`
+	Seqs       []int64     `json:"seqs"`
+	TurnIds    []uuid.UUID `json:"turnIds"`
+	Payloads   [][]byte    `json:"payloads"`
+	CreatedAts []time.Time `json:"createdAts"`
+}
+
+// A group's delta events, numbered by the caller under their threads'
+// locks.
+func (q *Queries) AIAssistantDeltasInsert(ctx context.Context, arg AIAssistantDeltasInsertParams) error {
+	_, err := q.db.Exec(ctx, aIAssistantDeltasInsert,
+		arg.ThreadIds,
+		arg.Seqs,
+		arg.TurnIds,
+		arg.Payloads,
+		arg.CreatedAts,
+	)
+	return err
+}
+
+const aIAssistantEventInsert = `-- name: AIAssistantEventInsert :exec
+WITH e AS (
+    INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING thread_id, seq)
+SELECT pg_notify('ai_assistant', e.thread_id::text || ':' || e.seq::text) FROM e
 `
 
 type AIAssistantEventInsertParams struct {
@@ -120,6 +273,9 @@ type AIAssistantEventInsertParams struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 }
 
+// Adds an event and wakes the thread's streams when the transaction
+// commits. The notification's payload is "thread:seq" only: readers read
+// the events themselves.
 func (q *Queries) AIAssistantEventInsert(ctx context.Context, arg AIAssistantEventInsertParams) error {
 	_, err := q.db.Exec(ctx, aIAssistantEventInsert,
 		arg.ThreadID,
@@ -146,7 +302,7 @@ func (q *Queries) AIAssistantEventSeq(ctx context.Context, id uuid.UUID) (int64,
 }
 
 const aIAssistantEvents = `-- name: AIAssistantEvents :many
-SELECT seq, turn_id, kind, payload_sealed FROM ai_assistant_events
+SELECT seq, turn_id, kind, payload_sealed, created_at FROM ai_assistant_events
 WHERE thread_id = $1 AND seq > $2 ORDER BY seq LIMIT $3
 `
 
@@ -161,6 +317,7 @@ type AIAssistantEventsRow struct {
 	TurnID        *uuid.UUID `json:"turnId"`
 	Kind          string     `json:"kind"`
 	PayloadSealed []byte     `json:"payloadSealed"`
+	CreatedAt     time.Time  `json:"createdAt"`
 }
 
 // A thread's events after a stream's cursor, in order.
@@ -178,6 +335,7 @@ func (q *Queries) AIAssistantEvents(ctx context.Context, arg AIAssistantEventsPa
 			&i.TurnID,
 			&i.Kind,
 			&i.PayloadSealed,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -351,8 +509,8 @@ const aIAssistantNotify = `-- name: AIAssistantNotify :exec
 SELECT pg_notify('ai_assistant', $1::text)
 `
 
-// Wakes the streams of a thread when the transaction commits. The payload
-// is "thread:seq" only: readers read the events themselves.
+// Wakes the streams of the threads a payload names ("thread:seq" pairs,
+// comma-separated) once the transaction commits.
 func (q *Queries) AIAssistantNotify(ctx context.Context, payload string) error {
 	_, err := q.db.Exec(ctx, aIAssistantNotify, payload)
 	return err
@@ -547,6 +705,31 @@ type AIAssistantSlotsExpireParams struct {
 func (q *Queries) AIAssistantSlotsExpire(ctx context.Context, arg AIAssistantSlotsExpireParams) error {
 	_, err := q.db.Exec(ctx, aIAssistantSlotsExpire, arg.WorkspaceID, arg.Now)
 	return err
+}
+
+const aIAssistantSlotsTaken = `-- name: AIAssistantSlotsTaken :one
+SELECT count(*)::int AS workspace, (count(*) FILTER (WHERE user_id = $1))::int AS person
+FROM ai_assistant_slots WHERE workspace_id = $2 AND expires_at > $3
+`
+
+type AIAssistantSlotsTakenParams struct {
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Now         time.Time `json:"now"`
+}
+
+type AIAssistantSlotsTakenRow struct {
+	Workspace int32 `json:"workspace"`
+	Person    int32 `json:"person"`
+}
+
+// The workspace's and the person's slots whose lease holds: a turn that
+// would find none free waits without trying.
+func (q *Queries) AIAssistantSlotsTaken(ctx context.Context, arg AIAssistantSlotsTakenParams) (AIAssistantSlotsTakenRow, error) {
+	row := q.db.QueryRow(ctx, aIAssistantSlotsTaken, arg.UserID, arg.WorkspaceID, arg.Now)
+	var i AIAssistantSlotsTakenRow
+	err := row.Scan(&i.Workspace, &i.Person)
+	return i, err
 }
 
 const aIAssistantStepInsert = `-- name: AIAssistantStepInsert :exec
@@ -1070,8 +1253,55 @@ func (q *Queries) AIAssistantThreads(ctx context.Context, arg AIAssistantThreads
 	return items, nil
 }
 
-const aIAssistantThreadsRemove = `-- name: AIAssistantThreadsRemove :execrows
-DELETE FROM ai_assistant_threads WHERE workspace_id = $1 AND user_id = $2
+const aIAssistantThreadsOfModelsLock = `-- name: AIAssistantThreadsOfModelsLock :many
+WITH m AS (
+    SELECT id FROM ai_models WHERE workspace_id = $1 AND (id = $2::uuid OR account_id = $3::uuid)
+)
+SELECT h.id FROM ai_assistant_threads h
+WHERE h.workspace_id = $1 AND (h.model_id IN (SELECT id FROM m)
+   OR EXISTS (SELECT 1 FROM ai_assistant_turns t WHERE t.thread_id = h.id AND t.model_id IN (SELECT id FROM m)))
+ORDER BY h.id FOR UPDATE OF h
+`
+
+type AIAssistantThreadsOfModelsLockParams struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ModelID     *uuid.UUID `json:"modelId"`
+	AccountID   *uuid.UUID `json:"accountId"`
+}
+
+// Removing models (or their account) first locks the assistant threads
+// whose rows their removal sets to NULL (the threads', or their turns'):
+// in the threads' lock order, before the model rows. A turn writing its
+// thread meanwhile finishes first; otherwise its foreign key check would
+// wait for the model row the removal holds while the removal waits for
+// the thread.
+func (q *Queries) AIAssistantThreadsOfModelsLock(ctx context.Context, arg AIAssistantThreadsOfModelsLockParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, aIAssistantThreadsOfModelsLock, arg.WorkspaceID, arg.ModelID, arg.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIAssistantThreadsRemove = `-- name: AIAssistantThreadsRemove :one
+WITH gone AS (
+    DELETE FROM ai_assistant_threads h WHERE h.workspace_id = $1 AND h.user_id = $2 RETURNING h.id
+), notices AS (
+    DELETE FROM notifications n WHERE n.user_id = $2 AND n.workspace_id = $1 AND n.kind = 'ai_assistant_confirmation' RETURNING 1
+)
+SELECT count(*) FROM gone
 `
 
 type AIAssistantThreadsRemoveParams struct {
@@ -1080,13 +1310,13 @@ type AIAssistantThreadsRemoveParams struct {
 }
 
 // A person left the workspace or was removed from it: their threads there
-// go, with all their content. Deactivation keeps them.
+// go, with all their content and the notices of calls waiting in them.
+// Deactivation keeps them.
 func (q *Queries) AIAssistantThreadsRemove(ctx context.Context, arg AIAssistantThreadsRemoveParams) (int64, error) {
-	result, err := q.db.Exec(ctx, aIAssistantThreadsRemove, arg.WorkspaceID, arg.UserID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	row := q.db.QueryRow(ctx, aIAssistantThreadsRemove, arg.WorkspaceID, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const aIAssistantTombstonesPurge = `-- name: AIAssistantTombstonesPurge :execrows
@@ -1188,6 +1418,38 @@ func (q *Queries) AIAssistantTurnFence(ctx context.Context, id uuid.UUID) (AIAss
 	var i AIAssistantTurnFenceRow
 	err := row.Scan(&i.Version, &i.State)
 	return i, err
+}
+
+const aIAssistantTurnFences = `-- name: AIAssistantTurnFences :many
+SELECT id, version, state FROM ai_assistant_turns WHERE id = ANY($1::uuid[])
+`
+
+type AIAssistantTurnFencesRow struct {
+	ID      uuid.UUID `json:"id"`
+	Version int64     `json:"version"`
+	State   string    `json:"state"`
+}
+
+// Turns' versions and states (the group's fences, authoritative for the
+// threads it locked).
+func (q *Queries) AIAssistantTurnFences(ctx context.Context, ids []uuid.UUID) ([]AIAssistantTurnFencesRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantTurnFences, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantTurnFencesRow{}
+	for rows.Next() {
+		var i AIAssistantTurnFencesRow
+		if err := rows.Scan(&i.ID, &i.Version, &i.State); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const aIAssistantTurnInsert = `-- name: AIAssistantTurnInsert :one
