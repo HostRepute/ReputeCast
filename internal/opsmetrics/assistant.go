@@ -54,7 +54,9 @@ var (
 		Name: "reputecast_ai_assistant_event_lag_seconds",
 		Help: "Time from an assistant thread event's insert in its committing transaction to an open stream writing it to its client, by kind (turn, delta, message, usage, tool, " +
 			"confirmation). Events a stream catches up on when it (re)connects aren't counted.",
-		Buckets: []float64{.001, .0025, .005, .01, .025, .05, .1, .25, .5, 1, 2.5},
+		// 10 ms apart from 10 to 150 ms, so a quantile near the 100 ms target
+		// (B6's gate) interpolates within 10 ms.
+		Buckets: []float64{.001, .0025, .005, .01, .02, .03, .04, .05, .06, .07, .08, .09, .1, .11, .12, .13, .14, .15, .175, .2, .25, .3, .5, 1, 2.5},
 	}, []string{"kind"})
 )
 
