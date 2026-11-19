@@ -391,8 +391,9 @@ type AIConnectInput struct {
 	// Prices in dollars per million tokens; empty takes the price list's.
 	InputPrice  *float64 `json:"inputPrice,omitempty" minimum:"0"`
 	OutputPrice *float64 `json:"outputPrice,omitempty" minimum:"0"`
-	// Features to switch on (all when empty).
-	Features []string `json:"features,omitempty" maxItems:"8"`
+	// Features to switch on (all when empty): at most one of each in
+	// Features, which TestAIConnectionCapAndErrors connects with in full.
+	Features []string `json:"features,omitempty" maxItems:"9"`
 }
 
 // candidate is a connection being set up or changed.
