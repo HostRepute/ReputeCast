@@ -1991,7 +1991,7 @@
             "items": {
               "type": "string"
             },
-            "maxItems": 8,
+            "maxItems": 9,
             "type": "array"
           },
           "inputPrice": {
