@@ -156,8 +156,9 @@ This is what it asks of the instance.
   `application_name` `reputecast-assistant`.
 - Leave room for it in Postgres's `max_connections`: each web process's pool
   plus one.
-- Workers `NOTIFY` on the channel `ai_assistant` with a thread's ID and an
-  event number, never content. Each stream then reads its events from the
+- Workers `NOTIFY` on the channel `ai_assistant` with threads' IDs and
+  event numbers (several in one notification for a group of answers'
+  pieces), never content. Each stream then reads its events from the
   database.
 - `LISTEN` needs a session: connect directly, or through PgBouncer in
   session mode. PgBouncer's transaction mode doesn't support it; streams

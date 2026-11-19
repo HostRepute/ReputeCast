@@ -220,8 +220,7 @@ func (h *Hub) listen(ctx context.Context, conn *pgx.Conn) error {
 		cancel()
 		switch {
 		case err == nil:
-			thread, _, _ := strings.Cut(n.Payload, ":")
-			if id, err := uuid.Parse(thread); err == nil {
+			for _, id := range notified(n.Payload) {
 				h.wake(id)
 			}
 			continue
@@ -238,4 +237,17 @@ func (h *Hub) listen(ctx context.Context, conn *pgx.Conn) error {
 			return nil
 		}
 	}
+}
+
+// notified are the threads a notification names: "thread:seq", or several
+// comma-separated (a group of deltas).
+func notified(payload string) []uuid.UUID {
+	var out []uuid.UUID
+	for entry := range strings.SplitSeq(payload, ",") {
+		thread, _, _ := strings.Cut(entry, ":")
+		if id, err := uuid.Parse(thread); err == nil {
+			out = append(out, id)
+		}
+	}
+	return out
 }

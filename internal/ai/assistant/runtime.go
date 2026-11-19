@@ -741,7 +741,7 @@ type sent struct {
 func (s *Service) send(ctx, tctx context.Context, ws *store.Workspace, run *turnRun) sent {
 	sctx, stop := context.WithCancelCause(tctx)
 	defer stop(nil)
-	w := &deltaWriter{s: s, ws: ws.ID, thread: run.thread.ID, turn: run.turn.ID, version: run.turn.Version, stop: stop}
+	w := s.deltaWriter(ws.ID, run.thread.ID, run.turn.ID, run.turn.Version, stop)
 	emit := w.emit
 	if run.kind == "summary" {
 		emit = func(llm.Delta) error { return nil }

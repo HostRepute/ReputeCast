@@ -109,7 +109,7 @@ type usage struct {
 func (p *provider) window(from, to time.Time) (usage, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	u := usage{From: from, To: to, CPUs: runtime.NumCPU(), Chunks: p.chunks, Every: p.every.String()}
+	u := usage{From: from, To: to, CPUs: machineCPUs(), Chunks: p.chunks, Every: p.every.String()}
 	if len(p.samples) < 2 {
 		return u, fmt.Errorf("%d CPU samples so far", len(p.samples))
 	}
@@ -252,6 +252,22 @@ func machineBusy() float64 {
 		}
 	}
 	return busy / 100
+}
+
+// machineCPUs is the machine's CPUs (/proc/stat), which this process's
+// affinity may not include.
+func machineCPUs() int {
+	raw, err := os.ReadFile("/proc/stat")
+	if err != nil {
+		return runtime.NumCPU()
+	}
+	n := 0
+	for line := range strings.SplitSeq(string(raw), "\n") {
+		if len(line) > 3 && strings.HasPrefix(line, "cpu") && line[3] >= '0' && line[3] <= '9' {
+			n++
+		}
+	}
+	return max(n, 1)
 }
 
 func load1() float64 {

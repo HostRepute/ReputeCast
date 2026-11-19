@@ -115,10 +115,17 @@ type Querier interface {
 	AIAssistantContextInsert(ctx context.Context, arg AIAssistantContextInsertParams) (int64, error)
 	AIAssistantContexts(ctx context.Context, threadID uuid.UUID) ([]AiAssistantContext, error)
 	AIAssistantContextsPurge(ctx context.Context, threadID uuid.UUID) error
-	// A batch of an answer's next event number: the update takes the thread's
-	// lock (a worker's batch needs no more of the thread). No row: the thread
-	// is gone.
-	AIAssistantDeltaSeq(ctx context.Context, arg AIAssistantDeltaSeqParams) (int64, error)
+	// A group's event numbers: n more for each thread, which the caller holds
+	// locked; returns each thread's last.
+	AIAssistantDeltaSeqs(ctx context.Context, arg AIAssistantDeltaSeqsParams) ([]AIAssistantDeltaSeqsRow, error)
+	// The threads of a group of answers' delta batches, locked in the threads'
+	// lock order. A thread another transaction holds (Stop, the sweep, a
+	// removal, another process) is skipped: its batch waits for the next
+	// group, and a group never waits for a lock.
+	AIAssistantDeltaThreadsLock(ctx context.Context, ids []uuid.UUID) ([]AIAssistantDeltaThreadsLockRow, error)
+	// A group's delta events, numbered by the caller under their threads'
+	// locks.
+	AIAssistantDeltasInsert(ctx context.Context, arg AIAssistantDeltasInsertParams) error
 	// Adds an event and wakes the thread's streams when the transaction
 	// commits. The notification's payload is "thread:seq" only: readers read
 	// the events themselves.
@@ -139,6 +146,9 @@ type Querier interface {
 	AIAssistantMessageOfTurn(ctx context.Context, turnID *uuid.UUID) (AiAssistantMessage, error)
 	AIAssistantMessages(ctx context.Context, threadID uuid.UUID) ([]AiAssistantMessage, error)
 	AIAssistantMessagesPurge(ctx context.Context, threadID uuid.UUID) error
+	// Wakes the streams of the threads a payload names ("thread:seq" pairs,
+	// comma-separated) once the transaction commits.
+	AIAssistantNotify(ctx context.Context, payload string) error
 	// The AI assistant (B3): its settings, threads and their attached context.
 	// A thread is read only through its owner: every query that returns one
 	// names the person.
@@ -213,6 +223,9 @@ type Querier interface {
 	AIAssistantTurnDeltas(ctx context.Context, arg AIAssistantTurnDeltasParams) ([]AIAssistantTurnDeltasRow, error)
 	// A turn's version and state, read under its thread's lock.
 	AIAssistantTurnFence(ctx context.Context, id uuid.UUID) (AIAssistantTurnFenceRow, error)
+	// Turns' versions and states (the group's fences, authoritative for the
+	// threads it locked).
+	AIAssistantTurnFences(ctx context.Context, ids []uuid.UUID) ([]AIAssistantTurnFencesRow, error)
 	AIAssistantTurnInsert(ctx context.Context, arg AIAssistantTurnInsertParams) (AiAssistantTurn, error)
 	AIAssistantTurnLock(ctx context.Context, arg AIAssistantTurnLockParams) (AiAssistantTurn, error)
 	// A waiting turn goes on once its owner decided: a new version for its job.

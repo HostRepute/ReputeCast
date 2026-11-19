@@ -156,23 +156,104 @@ func (q *Queries) AIAssistantContextsPurge(ctx context.Context, threadID uuid.UU
 	return err
 }
 
-const aIAssistantDeltaSeq = `-- name: AIAssistantDeltaSeq :one
-UPDATE ai_assistant_threads SET event_seq = event_seq + 1 WHERE workspace_id = $1 AND id = $2 RETURNING event_seq
+const aIAssistantDeltaSeqs = `-- name: AIAssistantDeltaSeqs :many
+UPDATE ai_assistant_threads h SET event_seq = h.event_seq + c.n
+FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::bigint[]) AS n) AS c
+WHERE h.id = c.id
+RETURNING h.id, h.event_seq
 `
 
-type AIAssistantDeltaSeqParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	ID          uuid.UUID `json:"id"`
+type AIAssistantDeltaSeqsParams struct {
+	Ids []uuid.UUID `json:"ids"`
+	Ns  []int64     `json:"ns"`
 }
 
-// A batch of an answer's next event number: the update takes the thread's
-// lock (a worker's batch needs no more of the thread). No row: the thread
-// is gone.
-func (q *Queries) AIAssistantDeltaSeq(ctx context.Context, arg AIAssistantDeltaSeqParams) (int64, error) {
-	row := q.db.QueryRow(ctx, aIAssistantDeltaSeq, arg.WorkspaceID, arg.ID)
-	var event_seq int64
-	err := row.Scan(&event_seq)
-	return event_seq, err
+type AIAssistantDeltaSeqsRow struct {
+	ID       uuid.UUID `json:"id"`
+	EventSeq int64     `json:"eventSeq"`
+}
+
+// A group's event numbers: n more for each thread, which the caller holds
+// locked; returns each thread's last.
+func (q *Queries) AIAssistantDeltaSeqs(ctx context.Context, arg AIAssistantDeltaSeqsParams) ([]AIAssistantDeltaSeqsRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantDeltaSeqs, arg.Ids, arg.Ns)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantDeltaSeqsRow{}
+	for rows.Next() {
+		var i AIAssistantDeltaSeqsRow
+		if err := rows.Scan(&i.ID, &i.EventSeq); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIAssistantDeltaThreadsLock = `-- name: AIAssistantDeltaThreadsLock :many
+SELECT id, workspace_id FROM ai_assistant_threads WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE SKIP LOCKED
+`
+
+type AIAssistantDeltaThreadsLockRow struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
+
+// The threads of a group of answers' delta batches, locked in the threads'
+// lock order. A thread another transaction holds (Stop, the sweep, a
+// removal, another process) is skipped: its batch waits for the next
+// group, and a group never waits for a lock.
+func (q *Queries) AIAssistantDeltaThreadsLock(ctx context.Context, ids []uuid.UUID) ([]AIAssistantDeltaThreadsLockRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantDeltaThreadsLock, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantDeltaThreadsLockRow{}
+	for rows.Next() {
+		var i AIAssistantDeltaThreadsLockRow
+		if err := rows.Scan(&i.ID, &i.WorkspaceID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const aIAssistantDeltasInsert = `-- name: AIAssistantDeltasInsert :exec
+INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
+SELECT d.thread_id, d.seq, d.turn_id, 'delta', d.payload, d.created_at
+FROM (SELECT unnest($1::uuid[]) AS thread_id, unnest($2::bigint[]) AS seq, unnest($3::uuid[]) AS turn_id,
+    unnest($4::bytea[]) AS payload, unnest($5::timestamptz[]) AS created_at) AS d
+`
+
+type AIAssistantDeltasInsertParams struct {
+	ThreadIds  []uuid.UUID `json:"threadIds"`
+	Seqs       []int64     `json:"seqs"`
+	TurnIds    []uuid.UUID `json:"turnIds"`
+	Payloads   [][]byte    `json:"payloads"`
+	CreatedAts []time.Time `json:"createdAts"`
+}
+
+// A group's delta events, numbered by the caller under their threads'
+// locks.
+func (q *Queries) AIAssistantDeltasInsert(ctx context.Context, arg AIAssistantDeltasInsertParams) error {
+	_, err := q.db.Exec(ctx, aIAssistantDeltasInsert,
+		arg.ThreadIds,
+		arg.Seqs,
+		arg.TurnIds,
+		arg.Payloads,
+		arg.CreatedAts,
+	)
+	return err
 }
 
 const aIAssistantEventInsert = `-- name: AIAssistantEventInsert :exec
@@ -421,6 +502,17 @@ DELETE FROM ai_assistant_messages WHERE thread_id = $1
 
 func (q *Queries) AIAssistantMessagesPurge(ctx context.Context, threadID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, aIAssistantMessagesPurge, threadID)
+	return err
+}
+
+const aIAssistantNotify = `-- name: AIAssistantNotify :exec
+SELECT pg_notify('ai_assistant', $1::text)
+`
+
+// Wakes the streams of the threads a payload names ("thread:seq" pairs,
+// comma-separated) once the transaction commits.
+func (q *Queries) AIAssistantNotify(ctx context.Context, payload string) error {
+	_, err := q.db.Exec(ctx, aIAssistantNotify, payload)
 	return err
 }
 
@@ -1326,6 +1418,38 @@ func (q *Queries) AIAssistantTurnFence(ctx context.Context, id uuid.UUID) (AIAss
 	var i AIAssistantTurnFenceRow
 	err := row.Scan(&i.Version, &i.State)
 	return i, err
+}
+
+const aIAssistantTurnFences = `-- name: AIAssistantTurnFences :many
+SELECT id, version, state FROM ai_assistant_turns WHERE id = ANY($1::uuid[])
+`
+
+type AIAssistantTurnFencesRow struct {
+	ID      uuid.UUID `json:"id"`
+	Version int64     `json:"version"`
+	State   string    `json:"state"`
+}
+
+// Turns' versions and states (the group's fences, authoritative for the
+// threads it locked).
+func (q *Queries) AIAssistantTurnFences(ctx context.Context, ids []uuid.UUID) ([]AIAssistantTurnFencesRow, error) {
+	rows, err := q.db.Query(ctx, aIAssistantTurnFences, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AIAssistantTurnFencesRow{}
+	for rows.Next() {
+		var i AIAssistantTurnFencesRow
+		if err := rows.Scan(&i.ID, &i.Version, &i.State); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const aIAssistantTurnInsert = `-- name: AIAssistantTurnInsert :one

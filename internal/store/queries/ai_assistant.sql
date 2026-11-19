@@ -85,11 +85,38 @@ SELECT * FROM ai_assistant_threads WHERE workspace_id = @workspace_id AND id = @
 -- numbered without gaps, in commit order.
 UPDATE ai_assistant_threads SET event_seq = event_seq + 1 WHERE id = @id RETURNING event_seq;
 
--- name: AIAssistantDeltaSeq :one
--- A batch of an answer's next event number: the update takes the thread's
--- lock (a worker's batch needs no more of the thread). No row: the thread
--- is gone.
-UPDATE ai_assistant_threads SET event_seq = event_seq + 1 WHERE workspace_id = @workspace_id AND id = @id RETURNING event_seq;
+-- name: AIAssistantDeltaThreadsLock :many
+-- The threads of a group of answers' delta batches, locked in the threads'
+-- lock order. A thread another transaction holds (Stop, the sweep, a
+-- removal, another process) is skipped: its batch waits for the next
+-- group, and a group never waits for a lock.
+SELECT id, workspace_id FROM ai_assistant_threads WHERE id = ANY(@ids::uuid[]) ORDER BY id FOR UPDATE SKIP LOCKED;
+
+-- name: AIAssistantTurnFences :many
+-- Turns' versions and states (the group's fences, authoritative for the
+-- threads it locked).
+SELECT id, version, state FROM ai_assistant_turns WHERE id = ANY(@ids::uuid[]);
+
+-- name: AIAssistantDeltaSeqs :many
+-- A group's event numbers: n more for each thread, which the caller holds
+-- locked; returns each thread's last.
+UPDATE ai_assistant_threads h SET event_seq = h.event_seq + c.n
+FROM (SELECT unnest(@ids::uuid[]) AS id, unnest(@ns::bigint[]) AS n) AS c
+WHERE h.id = c.id
+RETURNING h.id, h.event_seq;
+
+-- name: AIAssistantDeltasInsert :exec
+-- A group's delta events, numbered by the caller under their threads'
+-- locks.
+INSERT INTO ai_assistant_events (thread_id, seq, turn_id, kind, payload_sealed, created_at)
+SELECT d.thread_id, d.seq, d.turn_id, 'delta', d.payload, d.created_at
+FROM (SELECT unnest(@thread_ids::uuid[]) AS thread_id, unnest(@seqs::bigint[]) AS seq, unnest(@turn_ids::uuid[]) AS turn_id,
+    unnest(@payloads::bytea[]) AS payload, unnest(@created_ats::timestamptz[]) AS created_at) AS d;
+
+-- name: AIAssistantNotify :exec
+-- Wakes the streams of the threads a payload names ("thread:seq" pairs,
+-- comma-separated) once the transaction commits.
+SELECT pg_notify('ai_assistant', @payload::text);
 
 -- name: AIAssistantEventInsert :exec
 -- Adds an event and wakes the thread's streams when the transaction

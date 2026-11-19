@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -19,7 +18,8 @@ import (
 // A thread's stream events. Each is numbered (its SSE id) without gaps in
 // the order it committed: under the thread's lock, in the transaction of
 // the change it tells. Their data is sealed at rest; NOTIFY carries only
-// "thread:seq", to wake the streams that then read the events themselves.
+// "thread:seq" (comma-separated pairs for a group of deltas), to wake the
+// streams that then read the events themselves.
 
 // AIThreadTurnEvent: a turn was queued, began answering, stopped, failed
 // or was done.
@@ -158,7 +158,9 @@ func (s *Service) answerSoFar(ctx context.Context, q *store.Queries, thread, tur
 
 // Deltas are written in batches: the answer's first piece at once (the
 // person sees the answer begin), then once 2 KB arrived, or 100 ms after
-// the first piece of a batch.
+// the first piece of a batch. A batch due goes to the process's group
+// writer (deltaGroup), which commits the batches of every answering turn
+// together.
 const (
 	batchBytes = 2 << 10
 	batchWait  = 100 * time.Millisecond
@@ -168,10 +170,12 @@ const (
 // deleted since the worker took it; nothing more of it is written.
 var errFenced = errors.New("assistant: the turn changed")
 
-// deltaWriter writes a turn's answer as it arrives, in batches, each in its
-// own transaction under the thread's lock and the turn's fence.
+// deltaWriter collects a turn's answer as it arrives and hands its batches
+// to the group writer, which writes each under the thread's lock and the
+// turn's fence.
 type deltaWriter struct {
 	s                *Service
+	g                *deltaGroup
 	ws, thread, turn uuid.UUID
 	version          int64
 	// stop cancels the stream when a batch can't be written.
@@ -185,9 +189,21 @@ type deltaWriter struct {
 	// firstAt is when the first piece arrived, committedAt when it was
 	// committed (the metrics' time to first token).
 	firstAt, committedAt time.Time
-	// flushing serializes batches, so they commit in order.
-	flushing sync.Mutex
+	// writing is held while a group writes a batch of this writer's: take
+	// waits for its outcome.
+	writing sync.Mutex
+	// settled closes once the first batch was written or can't be: the
+	// first piece's emit waits for it, as the person waits for it.
+	settled   chan struct{}
+	settledAt sync.Once
 }
+
+func (s *Service) deltaWriter(ws, thread, turn uuid.UUID, version int64, stop func(error)) *deltaWriter {
+	return &deltaWriter{s: s, g: groupOf(s.Pool), ws: ws, thread: thread, turn: turn, version: version, stop: stop, settled: make(chan struct{})}
+}
+
+// settle says the first batch's outcome is known.
+func (w *deltaWriter) settle() { w.settledAt.Do(func() { close(w.settled) }) }
 
 // emit takes a piece of the answer. Tool calls aren't offered yet, so their
 // pieces are ignored (the response says the model asked for one).
@@ -204,27 +220,41 @@ func (w *deltaWriter) emit(d llm.Delta) error {
 	}
 	w.buf.WriteString(d.Text)
 	w.all.WriteString(d.Text)
-	full := w.buf.Len() >= batchBytes
-	if w.firstAt.IsZero() {
-		w.firstAt, full = time.Now(), true
+	first := w.firstAt.IsZero()
+	if first {
+		w.firstAt = time.Now()
 	}
-	if !full && w.timer == nil {
-		w.timer = time.AfterFunc(batchWait, func() { _ = w.flush() })
+	due := first || w.buf.Len() >= batchBytes
+	if !due && w.timer == nil {
+		w.timer = time.AfterFunc(batchWait, func() { w.g.ready(w, false) })
 	}
 	w.mu.Unlock()
-	if full {
-		return w.flush()
+	if due {
+		w.g.ready(w, first)
 	}
-	return nil
+	if !first {
+		return nil
+	}
+	// The first piece is committed before the answer goes on, as when each
+	// batch was its own transaction (the time to first token is measured
+	// from it).
+	t := time.NewTimer(10 * time.Second)
+	defer t.Stop()
+	select {
+	case <-w.settled:
+	case <-t.C:
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.err
 }
 
 // take returns what wasn't written yet and stops batching: the checkpoint
-// writes it.
+// writes it. A batch the group is writing is first written or not.
 func (w *deltaWriter) take() string {
-	w.flushing.Lock()
-	defer w.flushing.Unlock()
+	w.writing.Lock()
+	defer w.writing.Unlock()
 	w.mu.Lock()
-	defer w.mu.Unlock()
 	if w.timer != nil {
 		w.timer.Stop()
 		w.timer = nil
@@ -234,6 +264,9 @@ func (w *deltaWriter) take() string {
 	}
 	rest := w.buf.String()
 	w.buf.Reset()
+	w.mu.Unlock()
+	w.g.forget(w)
+	w.settle()
 	return rest
 }
 
@@ -250,80 +283,4 @@ func (w *deltaWriter) text() string {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.all.String()
-}
-
-func (w *deltaWriter) flush() error {
-	w.flushing.Lock()
-	defer w.flushing.Unlock()
-	w.mu.Lock()
-	if w.timer != nil {
-		w.timer.Stop()
-		w.timer = nil
-	}
-	text, err := w.buf.String(), w.err
-	w.buf.Reset()
-	w.mu.Unlock()
-	if err != nil || text == "" {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	err = w.write(ctx, text)
-	if err == nil {
-		w.mu.Lock()
-		if w.committedAt.IsZero() {
-			w.committedAt = time.Now()
-		}
-		w.mu.Unlock()
-	}
-	if err != nil {
-		w.mu.Lock()
-		if w.err == nil {
-			w.err = err
-		}
-		w.mu.Unlock()
-		w.stop(err)
-	}
-	return err
-}
-
-// write commits a batch: the thread's next number (its update takes the
-// thread's lock), the turn's fence read under that lock, then the event.
-// Every stream's batches hold pool connections, so a batch makes four
-// round trips (B6's load test: 200 streams waited for connections).
-func (w *deltaWriter) write(ctx context.Context, text string) error {
-	raw, err := json.Marshal(AIThreadDeltaEvent{TurnID: w.turn, Text: text})
-	if err != nil {
-		return err
-	}
-	// A batch's only lasting change is its thread's event number (the
-	// events table is unlogged): its commit needn't wait for the WAL to
-	// reach the disk. A crash may lose the last batches' numbers with the
-	// events themselves; streams then resume from a snapshot. Transactions
-	// that notify commit one at a time, so waiting for the disk in each one
-	// held up every stream (B6's load test).
-	tx, err := w.s.Pool.BeginTx(ctx, pgx.TxOptions{BeginQuery: "BEGIN; SET LOCAL synchronous_commit TO OFF"})
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback(context.WithoutCancel(ctx)) }()
-	q := store.New(tx)
-	seq, err := q.AIAssistantDeltaSeq(ctx, store.AIAssistantDeltaSeqParams{WorkspaceID: w.ws, ID: w.thread})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return errFenced
-	}
-	if err != nil {
-		return err
-	}
-	f, err := q.AIAssistantTurnFence(ctx, w.turn)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Version != w.version || f.State != "answering")) {
-		return errFenced
-	}
-	if err != nil {
-		return err
-	}
-	if err := w.s.insertEvent(ctx, q, w.thread, seq, &w.turn, kindDelta, raw); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
 }
