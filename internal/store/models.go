@@ -541,6 +541,7 @@ type AiUsageHour struct {
 	Personal     bool      `json:"personal"`
 	UserID       uuid.UUID `json:"userId"`
 	Hour         time.Time `json:"hour"`
+	Shard        int16     `json:"shard"`
 	Requests     int64     `json:"requests"`
 	InputTokens  int64     `json:"inputTokens"`
 	OutputTokens int64     `json:"outputTokens"`

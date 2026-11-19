@@ -220,11 +220,97 @@ func sameAsLog(t *testing.T, pool *pgxpool.Pool, atLeast int) {
 		}
 		return b.String()
 	}
-	kept := read(`SELECT workspace_id, personal, user_id, hour, requests, input_tokens, output_tokens, cost_micros FROM ai_usage_hours ORDER BY 1, 2, 3, 4`)
+	// Each request in the shard its id's last byte names: a change takes it
+	// out of the row it was added to.
+	kept := read(`SELECT workspace_id, personal, user_id, hour, shard, requests, input_tokens, output_tokens, cost_micros FROM ai_usage_hours ORDER BY 1, 2, 3, 4, 5`)
 	summed := read(`SELECT workspace_id, personal, CASE WHEN personal THEN user_id ELSE '00000000-0000-0000-0000-000000000000' END,
-			date_bin('1 hour', created_at, '2000-01-01 00:00:00+00'), count(*), sum(input_tokens)::bigint, sum(output_tokens)::bigint, sum(cost_micros)::bigint
-		FROM ai_requests WHERE NOT personal OR user_id IS NOT NULL GROUP BY 1, 2, 3, 4 ORDER BY 1, 2, 3, 4`)
+			date_bin('1 hour', created_at, '2000-01-01 00:00:00+00'), (get_byte(uuid_send(id), 15) % 8)::smallint,
+			count(*), sum(input_tokens)::bigint, sum(output_tokens)::bigint, sum(cost_micros)::bigint
+		FROM ai_requests WHERE NOT personal OR user_id IS NOT NULL GROUP BY 1, 2, 3, 4, 5 ORDER BY 1, 2, 3, 4, 5`)
 	if kept != summed || strings.Count(kept, "\n") < atLeast {
 		t.Fatalf("the hourly totals aren't the log's:\nkept\n%s\nsummed\n%s", kept, summed)
 	}
+}
+
+// Requests accounted at once in one budget and hour go to its 8 shard rows,
+// so they don't wait for each other: one whose shard another transaction is
+// writing still goes through when it's another shard's.
+func TestAIUsageHoursShards(t *testing.T) {
+	env := apptest.New(t)
+	user := env.CreateUser(apptest.UserOpts{Email: "owner@shards.test"})
+	ws := env.CreateWorkspace("Shards", user.ID)
+	ctx := context.Background()
+	pool := env.App.Pool
+	insert := `INSERT INTO ai_requests (id, workspace_id, user_id, feature, provider, model, input_tokens, output_tokens, cost_micros, outcome, created_at, personal)
+		VALUES ($1, $2, $3, 'rewrite', 'compatible', 'model-a', 100, 10, 1000, 'accepted', $4, false)`
+	hour := time.Now().Truncate(time.Hour).Add(10 * time.Minute)
+	var wg sync.WaitGroup
+	errs := make(chan error, 128)
+	for range 128 {
+		wg.Go(func() {
+			if _, err := pool.Exec(ctx, insert, uuid.Must(uuid.NewV7()), ws.ID, user.ID, hour); err != nil {
+				errs <- err
+			}
+		})
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatal(err)
+	}
+	var shards, requests int
+	if err := pool.QueryRow(ctx, `SELECT count(*), coalesce(sum(requests), 0) FROM ai_usage_hours WHERE workspace_id = $1`, ws.ID).Scan(&shards, &requests); err != nil {
+		t.Fatal(err)
+	}
+	if shards != 8 || requests != 128 {
+		t.Fatalf("128 requests in one hour: %d rows holding %d", shards, requests)
+	}
+	sameAsLog(t, pool, 8)
+	// Changes and deletions take each request out of its own shard's row,
+	// which holds others too.
+	for _, q := range []string{
+		`UPDATE ai_requests SET cost_micros = cost_micros * 2 + 7 WHERE workspace_id = $1 AND get_byte(uuid_send(id), 14) % 3 = 0`,
+		`UPDATE ai_requests SET created_at = created_at - interval '2 hours' WHERE workspace_id = $1 AND get_byte(uuid_send(id), 14) % 5 = 1`,
+		`DELETE FROM ai_requests WHERE workspace_id = $1 AND get_byte(uuid_send(id), 14) % 4 = 2`,
+	} {
+		if _, err := pool.Exec(ctx, q, ws.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The hour's 8 rows, and at least one in the hour requests moved to.
+	sameAsLog(t, pool, 9)
+
+	// A request being accounted in shard 3 doesn't hold up one in shard 4.
+	id := func(shard byte) uuid.UUID {
+		u := uuid.Must(uuid.NewV7())
+		u[15] = shard
+		return u
+	}
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, insert, id(3), ws.ID, user.ID, hour); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := pool.Exec(ctx, insert, id(4), ws.ID, user.ID, hour)
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(3 * time.Second):
+		_ = tx.Rollback(ctx)
+		<-done
+		t.Fatal("a request in another shard waited for the one being accounted")
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sameAsLog(t, pool, 8)
 }

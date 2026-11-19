@@ -749,47 +749,61 @@ CPUs on the same 4 vCPU orb instead:
 
 Each set began after a warm-up of 10 streams and three rounds; the 200
 streams sent three rounds, every message at once. "One transaction a
-batch" is the build before the group writer below; it was measured both
-in an earlier session and in the same session as the group writer.
+batch" is the build before the group writer below.
 
-| Build and run | Delta p50 | p95 | p99 | At or under 100 ms | Server | Postgres |
-|---|---|---|---|---|---|---|
-| One transaction a batch, earlier run A | 43.7 ms | 166.5 ms | 406 ms | 78.6% | 1.05–1.09 cores (both runs) | 1.65–1.68 cores (both runs) |
-| One transaction a batch, earlier run B | 56.7 ms | 206.9 ms | 401 ms | 69.9% | 1.05–1.09 cores (both runs) | 1.65–1.68 cores (both runs) |
-| One transaction a batch, same session, A | 49.4 ms | 185.4 ms | 366 ms | 76.1% | 1.06 cores | 1.69 cores |
-| One transaction a batch, same session, B | 58.5 ms | 198.3 ms | 402 ms | 71.7% | 1.10 cores | 1.63 cores |
-| Group writer, A | 9.0 ms | 103.4 ms | 208 ms | 94.4% | 1.00 cores | 1.63 cores |
-| Group writer, B | 10.6 ms | 100.8 ms | 158 ms | 94.8% | 1.07 cores | 1.36 cores |
+| Build | Runs | Delta p50 | p95 | p99 | At or under 100 ms | Server | Postgres |
+|---|---|---|---|---|---|---|---|
+| One transaction a batch, an earlier session | 2 | 43.7, 56.7 ms | 166.5, 206.9 ms | 406, 401 ms | 78.6, 69.9% | 1.05–1.09 cores | 1.65–1.68 cores |
+| One transaction a batch, the group writer's session | 2 | 49.4, 58.5 ms | 185.4, 198.3 ms | 366, 402 ms | 76.1, 71.7% | 1.06–1.10 cores | 1.63–1.69 cores (33–36 CPU s a run) |
+| Group writer | 2 | 9.0, 10.6 ms | 103.4, 100.8 ms | 208, 158 ms | 94.4, 94.8% | 1.00–1.07 cores | 23–27 CPU s a run |
+| Group writer, hourly totals in 8 rows | 7 | 6.9–9.1 ms | 99.6–116.1 ms (median 106.2) | 161–299 ms | 94.2–95.1% | 1.06–1.09 cores | 20.5–23.0 CPU s a run |
 
-The target, a delta p95 under 100 ms, is still missed, by a few
-milliseconds. The group writer commits every delta batch a process has
-due in one transaction with one NOTIFY: in the diagnostic run below, 730
-transactions carried 14,889 batches, which had been as many transactions
-before. The 600 turns ended
-in 16–17 s instead of 20–21 s, and Postgres used 23–27 CPU seconds a run
-instead of 33–36.
+The target, a delta p95 under 100 ms, is still missed on this setup: one
+run of the seven with both changes met it.
 
-What is left, from a diagnostic run with `pg_stat_statements` loaded and
-`pg_stat_activity` sampled every 100 ms (not one of the runs above):
+The group writer commits every delta batch a process has due in one
+transaction with one NOTIFY: in a diagnostic run, 730 transactions
+carried 14,889 batches, which had been as many transactions before. The
+600 turns ended in 16–17 s instead of 20–21 s, and Postgres used 23–27 CPU
+seconds a run instead of 33–36.
 
-- **The activity log's insert waits.** Each request's accounting inserts
-  into `ai_requests`, whose trigger adds the request to its workspace's
-  row for that hour in `ai_usage_hours`. Every checkpoint in a workspace
-  updates that one row, so they wait for each other: the insert took
-  31 ms on average, 18.8 s of statement time in a 16 s run, and it was the
-  most frequent wait in the samples. Each waiting checkpoint keeps its pool
-  connection meanwhile.
-- **The pool.** Acquiring one of the 20 connections took 26 ms on average
-  over 54,000 acquisitions, and half of them found none free. A stream
-  reads its new events through the same pool, so its deltas wait behind
-  the checkpoints.
-- **Commits that notify.** The turn, message and usage events (about 160
-  transactions a second) still each commit one at a time in Postgres's
-  notification queue.
+Each request's accounting adds it to its budget's hourly totals in
+`ai_usage_hours`, and with one row a workspace and hour, the checkpoints
+of a workspace queued on that row (the activity log's insert took 31 ms on
+average in a diagnostic run with `pg_stat_statements`, and it was the most
+frequent wait in `pg_stat_activity`). The totals are now spread over 8
+rows an hour, picked by the request id's last byte, so requests accounted
+at once mostly write different rows. The 600 turns then ended in
+15.0–15.7 s instead of 16–17 s and Postgres used 20.5–23.0 CPU seconds a
+run, but the delta p95 didn't move beyond the runs' variation. The caps
+sum up to 8 rows an hour: over a month of busy hours, 2.5 ms instead of
+0.9 ms for one row (16 rows would be 3.9 ms; `EXPLAIN ANALYZE` on the
+totals of one budget).
 
-Two changes would address the first two: the hourly usage row split into
-several rows a workspace and hour, which its readers already sum, and the
-streams' reads on connections of their own.
+What is left, from a build instrumented for it (not kept) with the hourly
+totals split, one 200-stream run:
+
+| A delta's delay, from its insert | p50 | p95 | p99 |
+|---|---|---|---|
+| To its group's commit | 3.6 ms | 20.6 ms | 32.3 ms |
+| To its stream starting to read it (commit, NOTIFY, wake) | 4.4 ms | 35.6 ms | 87.2 ms |
+| The read waiting for a pool connection | 0.4 ms | 65.6 ms | 85.6 ms |
+| The read itself | 1.2 ms | 4.4 ms | 7.4 ms |
+| Writing it to the stream | 0.3 ms | 0.5 ms | 1.1 ms |
+
+Acquiring one of the pool's 20 connections took 25 ms on average over
+54,000 acquisitions, and half found none free. Giving the streams' reads
+four connections of their own, outside the pool, removes that wait, but
+it didn't lower the p95. Alternating the two builds in the same minutes,
+the p95 was 98.9 vs 111.1 ms, 106.0 vs 107.3 ms and 111.4 vs 103.0 ms (own
+connections first). On its own, in a quieter quarter of an hour, the
+build with its own connections gave 74.6–106.1 ms over eight runs, which
+shows how much the machine varies; the paired runs are the comparison.
+With the server and Postgres at about 2.4 of their
+three CPUs, the wait moves to the CPUs. So the change wasn't kept: it
+would cost each web process four more Postgres connections for no
+measured gain. The next measurement is the load generator on another
+machine, which gives the server and Postgres the fourth CPU back.
 
 Times to the first token on the same setup, by the database: from the
 person's message committed to the first piece of the answer committed.
@@ -803,18 +817,21 @@ five runs (300 turns) a set.
 | 1 stream, a message every 0–1 s (20 turns, then 36) | Group writer | 30.2 / 25.4 ms | 60.9 / 31.8 ms | 69.5 / 40.9 ms |
 | 10 streams, spread over 10 s (30 turns) | Group writer | 26.4 ms | 44.5 ms | 53.1 ms |
 | 50 streams, spread over 10 s (150 turns) | Group writer | 25.4 ms | 44.8 ms | 50.3 ms |
-| 10 at once, two sets (600 turns) | One transaction a batch | 49.0 ms | 100.2 ms | 141 ms |
-| 10 at once, three sets (900 turns) | Group writer | 50.7 ms | 133.6 ms | 215 ms |
-| 10 at once, the last two sets, run back to back | One transaction a batch, then group writer | 47.9 / 46.4 ms | 93.8 / 94.9 ms | 112 / 104 ms |
+| 10 at once, one set (300 turns) | One transaction a batch | 50.1 ms | 109.9 ms | 154 ms |
+| 10 at once, four sets (1,200 turns) | Group writer | 49.8 ms | 121.9 ms | 203 ms |
+| 10 at once, three of those sets (900 turns) | Group writer | 48.6 ms | 98.5 ms | 137 ms |
+| 10 at once, one set (300 turns) | Group writer, hourly totals in 8 rows | 52.1 ms | 96.1 ms | 131 ms |
 
 The target, p95 under 150 ms, is met. Without the load generator's core
 the server has three CPUs, not four, so these are not comparable with the
-first table's 91.5 ms. One set of the group writer's was slower: in two
-of its runs the server and Postgres used twice the CPU for the same work,
-and a message's POST, which the group writer has no part in, took three
-times as long, so another load on the machine is the likely cause. The
-two sets run back to back, with the same CPU per run, show no
-regression.
+first table's 91.5 ms. The fourth set of the group writer's was slower: in
+two of its runs the server and Postgres used twice the CPU for the same
+work, and a message's POST, which the group writer has no part in, took
+three times as long, so another load on the machine is the likely cause.
+An earlier version of this section also compared two sets "run back to
+back"; the switch between the two builds hadn't happened (the service
+commands ran outside the repository, which they are scoped to), so both
+were the group writer's, and they are two of its four sets above.
 
 ### The panel in the browser
 
