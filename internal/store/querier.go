@@ -237,6 +237,10 @@ type Querier interface {
 	AIBudgetPersonLock(ctx context.Context, arg AIBudgetPersonLockParams) error
 	// A person's holds on their own keys.
 	AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPersonalPendingParams) ([]AiBudgetReservation, error)
+	// Settled reservations of the 90-day activity log. An assistant thread's
+	// stay while the thread does (its activity keeps it open past 90 days):
+	// they are its cumulative use, which its lifetime ceilings count. Deleting
+	// the thread clears thread_id.
 	AIBudgetPurge(ctx context.Context, before time.Time) (int64, error)
 	// A reservation as accounting first reads it, without its lock: whose
 	// budget it is in, what it holds and at which prices never change.

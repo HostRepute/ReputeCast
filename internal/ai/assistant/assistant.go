@@ -127,7 +127,11 @@ var (
 	mModelGone          = msgs.M("problem.modelGone")
 	mTurnKey            = msgs.M("problem.turnKey")
 	mConfirmationClosed = msgs.M("problem.confirmationClosed")
-	mReputation         = msgs.M("answer.reputation")
+	// A message holding an email address, a phone number or a credential
+	// isn't sent (by the kind editorial.Chat names).
+	mPrivateData = map[string]i18n.Msg{"email": msgs.M("problem.privateData.email"), "phone": msgs.M("problem.privateData.phone"),
+		"credential": msgs.M("problem.privateData.credential")}
+	mReputation = msgs.M("answer.reputation")
 	// Why a thread's model can't answer, and who can fix it: the owner for
 	// their own key (Own), integration managers for the workspace's.
 	mModelDisconnected      = msgs.M("problem.model.disconnected")
@@ -186,6 +190,7 @@ const (
 	codeModelGone          = "ai_assistant_model_gone"
 	codeTurnKey            = "ai_assistant_turn_key"
 	codeConfirmationClosed = "ai_assistant_confirmation_closed"
+	codePrivateData        = "ai_assistant_private_data"
 )
 
 func problem(ctx context.Context, status int, code string, m i18n.Msg, args i18n.Args) *api.Problem {

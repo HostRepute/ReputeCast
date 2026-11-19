@@ -91,6 +91,24 @@ func resourceOf(srv store.McpServer) string {
 	return srv.Url
 }
 
+// secure reports whether an address of a server's authorization may be
+// used: https, or plain http only for a plain http server where the
+// instance allows private addresses (a development setup).
+func (s *Service) secure(srv store.McpServer, raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "https":
+		return true
+	case "http":
+		server, err := url.Parse(srv.Url)
+		return err == nil && strings.EqualFold(server.Scheme, "http") && s.policy().AllowPrivate
+	}
+	return false
+}
+
 // challenges are the WWW-Authenticate challenges of the server's answer to
 // a request without credentials (MCP authorization: the 401 names its
 // resource metadata and the scope to ask for). None when it doesn't
@@ -140,7 +158,7 @@ func (s *Service) resourceMetadata(ctx context.Context, srv store.McpServer, cs 
 	type candidate struct{ url, resource string }
 	var list []candidate
 	if u := challenge(cs, "resource_metadata"); u != "" {
-		if _, err := s.policy().ValidateURL(u); err == nil {
+		if _, err := s.policy().ValidateURL(u); err == nil && s.secure(srv, u) {
 			list = append(list, candidate{u, srv.Url})
 		}
 	}
@@ -200,7 +218,7 @@ func (s *Service) discover(ctx context.Context, srv *store.McpServer) error {
 		return oauthProblem(ctx, *srv)
 	}
 	issuer := prm.AuthorizationServers[0]
-	if _, err := s.policy().ValidateURL(issuer); err != nil {
+	if _, err := s.policy().ValidateURL(issuer); err != nil || !s.secure(*srv, issuer) {
 		return oauthProblem(ctx, *srv)
 	}
 	asm, err := s.authServerMetadata(ctx, issuer)
@@ -216,8 +234,15 @@ func (s *Service) discover(ctx context.Context, srv *store.McpServer) error {
 		return oauthProblem(ctx, *srv)
 	}
 	// The browser opens the authorization endpoint; ReputeCast posts to the
-	// token endpoint (through the guard, as every request).
-	if a, err := url.Parse(asm.AuthorizationEndpoint); err != nil || (a.Scheme != "https" && a.Scheme != "http") || a.Host == "" {
+	// token endpoint (through the guard, as every request). Codes, tokens
+	// and client secrets travel over https only: metadata naming a plain
+	// http endpoint is refused, whichever it is.
+	for _, e := range []string{asm.AuthorizationEndpoint, asm.TokenEndpoint, asm.RegistrationEndpoint, asm.RevocationEndpoint} {
+		if e != "" && !s.secure(*srv, e) {
+			return oauthProblem(ctx, *srv)
+		}
+	}
+	if a, err := url.Parse(asm.AuthorizationEndpoint); err != nil || a.Host == "" {
 		return oauthProblem(ctx, *srv)
 	}
 	if _, err := s.policy().ValidateURL(asm.TokenEndpoint); err != nil {

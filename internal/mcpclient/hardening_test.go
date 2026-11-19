@@ -311,3 +311,36 @@ func TestMCPRevocation(t *testing.T) {
 	}
 	f.noSecret("refresh-editor-", "refresh-colleague-", "refresh-owner-", "access-editor-", "access-owner-", clientSecret)
 }
+
+// An https server's authorization goes over https only: metadata naming a
+// plain http authorization, token, registration or revocation endpoint is
+// refused before anything is sent there, private addresses allowed or not
+// (plain http is for a plain http server, in development). With every
+// endpoint on https the sign-in goes through.
+func TestMCPOAuthOverHTTPS(t *testing.T) {
+	for _, plain := range []string{"", "authorization", "token", "registration", "revocation"} {
+		t.Run("plain "+plain, func(t *testing.T) {
+			f := newFx(t)
+			fake := mcptest.NewTLSServer(t, "", "")
+			fake.Tool("search", "Search", true, mcptest.Text("hit"))
+			auth := mcptest.NewAuthWith(t, fake, mcptest.AuthOptions{TLS: true, Plain: plain})
+			if !strings.HasPrefix(fake.URL, "https://") || !strings.HasPrefix(auth.URL, "https://") {
+				t.Fatalf("not https: %s %s", fake.URL, auth.URL)
+			}
+			s := f.create(map[string]any{"name": "Docs", "url": fake.Endpoint(), "auth": "oauth"})
+			if plain != "" {
+				if p := f.do(f.oc, http.MethodPost, f.base+"/"+s.ID.String()+"/oauth", nil, 502).Problem(t); p["code"] != "mcp_oauth" {
+					t.Fatalf("a plain http %s endpoint: %v", plain, p)
+				}
+				if n := f.count(`SELECT count(*) FROM mcp_servers WHERE id = $1 AND (token_endpoint <> '' OR client_id <> '')`, s.ID); n != 0 {
+					t.Fatal("the refused discovery was kept")
+				}
+				return
+			}
+			r := f.signIn(f.oc, auth, s.ID, "owner").MustStatus(t, 303)
+			if loc := r.Header.Get("Location"); !strings.HasSuffix(loc, "&connected=1") {
+				t.Fatalf("back to %s", loc)
+			}
+		})
+	}
+}

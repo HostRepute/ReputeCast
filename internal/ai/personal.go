@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -46,6 +47,11 @@ type AIPersonalSettings struct {
 	// People are the members with personal accounts or personal use this
 	// month, for integration managers (empty otherwise). Never a key.
 	People []AIPersonalPerson `json:"people"`
+	// Catalog is every provider a personal account may use, with the
+	// models and prices of ReputeCast's price list (as /ai gives them);
+	// PriceListDate is that list's date.
+	Catalog       []AIProviderEntry `json:"catalog"`
+	PriceListDate time.Time         `json:"priceListDate"`
 }
 
 // AIPersonalUsageView is a person's use of their own keys this month
@@ -163,7 +169,7 @@ func (s *Service) pickedFeatures(ctx context.Context, q *store.Queries, ws, user
 func (s *Service) Personal(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIPersonalSettings, error) {
 	start, next := s.month(ws)
 	out := AIPersonalSettings{CapUSD: 10, Accounts: []AIAccountView{}, Choices: []AIFeatureDefault{}, People: []AIPersonalPerson{},
-		Usage: AIPersonalUsageView{State: "ok", ResetsAt: next}}
+		Usage: AIPersonalUsageView{State: "ok", ResetsAt: next}, Catalog: catalog(), PriceListDate: llm.PriceListDate}
 	row, err := s.Q.AIWorkspaceSettings(ctx, ws.ID)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return out, err

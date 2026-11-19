@@ -13168,9 +13168,12 @@ export interface components {
             capSetBy?: string;
             /** Format: double */
             capUsd: number;
+            catalog: components["schemas"]["AIProviderEntry"][];
             choices: components["schemas"]["AIFeatureDefault"][];
             enabled: boolean;
             people: components["schemas"]["AIPersonalPerson"][];
+            /** Format: date-time */
+            priceListDate: string;
             usage: components["schemas"]["AIPersonalUsageView"];
         };
         AIPersonalUsageView: {

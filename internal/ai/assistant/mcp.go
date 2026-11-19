@@ -41,6 +41,7 @@ type Servers interface {
 	Current(ctx context.Context, q *store.Queries, ws *store.Workspace, owner *authz.Principal, toolID uuid.UUID, hash []byte) (store.McpTool, store.McpServer, error)
 	Call(ctx context.Context, ws *store.Workspace, owner *authz.Principal, thread uuid.UUID, callID string, toolID uuid.UUID, hash []byte, args json.RawMessage) (mcpclient.Result, error)
 	Usable(ctx context.Context, ws *store.Workspace, p *authz.Principal) (mcpclient.RemoteMCPServerList, error)
+	MayRead(ctx context.Context, q *store.Queries, ws *store.Workspace, owner *authz.Principal, server uuid.UUID) (bool, error)
 }
 
 var _ Servers = (*mcpclient.Service)(nil)
@@ -92,6 +93,7 @@ type round struct {
 	Calls   []llm.ToolCall    `json:"calls"`
 	Results []llm.Part        `json:"results"`
 	Rows    []AIThreadToolRow `json:"rows"`
+	Sources []toolSource      `json:"sources,omitempty"`
 }
 
 // resume is a turn going on after its owner decided on a call.
@@ -146,7 +148,7 @@ func (s *Service) mcpSpecs(ctx context.Context, q *store.Queries, ws *store.Work
 func (s *Service) runMCP(ctx context.Context, c *toolCall, spec ToolSpec, hash []byte) (toolResult, json.RawMessage) {
 	t := spec.mcp
 	source := t.ServerName + " · " + t.Name
-	res := toolResult{label: source}
+	res := toolResult{label: source, source: &toolSource{Kind: "mcp_server", ID: t.ServerID, Permission: authz.AIUse}}
 	r, err := s.MCP.Call(ctx, c.ws, c.owner, c.thread.ID, c.callID, t.ID, hash, c.args)
 	if err != nil {
 		res.code = problemCode(err)

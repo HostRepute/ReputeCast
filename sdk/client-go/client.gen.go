@@ -31528,15 +31528,17 @@ type AIPersonalPerson struct {
 
 // AIPersonalSettings defines model for AIPersonalSettings.
 type AIPersonalSettings struct {
-	Accounts []AIAccountView     `json:"accounts"`
-	CanAdd   bool                `json:"canAdd"`
-	CapSetAt *time.Time          `json:"capSetAt,omitempty"`
-	CapSetBy *string             `json:"capSetBy,omitempty"`
-	CapUsd   float64             `json:"capUsd"`
-	Choices  []AIFeatureDefault  `json:"choices"`
-	Enabled  bool                `json:"enabled"`
-	People   []AIPersonalPerson  `json:"people"`
-	Usage    AIPersonalUsageView `json:"usage"`
+	Accounts      []AIAccountView     `json:"accounts"`
+	CanAdd        bool                `json:"canAdd"`
+	CapSetAt      *time.Time          `json:"capSetAt,omitempty"`
+	CapSetBy      *string             `json:"capSetBy,omitempty"`
+	CapUsd        float64             `json:"capUsd"`
+	Catalog       []AIProviderEntry   `json:"catalog"`
+	Choices       []AIFeatureDefault  `json:"choices"`
+	Enabled       bool                `json:"enabled"`
+	People        []AIPersonalPerson  `json:"people"`
+	PriceListDate time.Time           `json:"priceListDate"`
+	Usage         AIPersonalUsageView `json:"usage"`
 }
 
 // AIPersonalUsageView defines model for AIPersonalUsageView.

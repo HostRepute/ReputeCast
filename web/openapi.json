@@ -2919,6 +2919,12 @@
             "format": "double",
             "type": "number"
           },
+          "catalog": {
+            "items": {
+              "$ref": "#/components/schemas/AIProviderEntry"
+            },
+            "type": "array"
+          },
           "choices": {
             "items": {
               "$ref": "#/components/schemas/AIFeatureDefault"
@@ -2934,6 +2940,10 @@
             },
             "type": "array"
           },
+          "priceListDate": {
+            "format": "date-time",
+            "type": "string"
+          },
           "usage": {
             "$ref": "#/components/schemas/AIPersonalUsageView"
           }
@@ -2945,7 +2955,9 @@
           "accounts",
           "choices",
           "usage",
-          "people"
+          "people",
+          "catalog",
+          "priceListDate"
         ],
         "type": "object"
       },
@@ -3774,7 +3786,8 @@
               "segment_draft",
               "report_summary",
               "brand_voice",
-              "draft"
+              "draft",
+              "agent"
             ],
             "type": "string"
           },

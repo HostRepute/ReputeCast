@@ -21787,9 +21787,12 @@ export interface components {
             capSetBy?: string;
             /** Format: double */
             capUsd: number;
+            catalog: components["schemas"]["AIProviderEntry"][];
             choices: components["schemas"]["AIFeatureDefault"][];
             enabled: boolean;
             people: components["schemas"]["AIPersonalPerson"][];
+            /** Format: date-time */
+            priceListDate: string;
             usage: components["schemas"]["AIPersonalUsageView"];
         };
         AIPersonalUsageView: {
@@ -22018,7 +22021,7 @@ export interface components {
             available: boolean;
             cap: components["schemas"]["AICapView"];
             /** @enum {string} */
-            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft";
+            key: "subject_ideas" | "rewrite" | "translate" | "alt_text" | "accessibility_fix" | "segment_draft" | "report_summary" | "brand_voice" | "draft" | "agent";
             model?: string;
             /** Format: uuid */
             modelId?: string;

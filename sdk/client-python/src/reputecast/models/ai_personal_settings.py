@@ -17,6 +17,7 @@ if TYPE_CHECKING:
   from ..models.ai_feature_default import AIFeatureDefault
   from ..models.ai_personal_person import AIPersonalPerson
   from ..models.ai_personal_usage_view import AIPersonalUsageView
+  from ..models.ai_provider_entry import AIProviderEntry
 
 
 
@@ -33,9 +34,11 @@ class AIPersonalSettings:
             accounts (list[AIAccountView]):
             can_add (bool):
             cap_usd (float):
+            catalog (list[AIProviderEntry]):
             choices (list[AIFeatureDefault]):
             enabled (bool):
             people (list[AIPersonalPerson]):
+            price_list_date (datetime.datetime):
             usage (AIPersonalUsageView):
             cap_set_at (datetime.datetime | Unset):
             cap_set_by (str | Unset):
@@ -44,9 +47,11 @@ class AIPersonalSettings:
     accounts: list[AIAccountView]
     can_add: bool
     cap_usd: float
+    catalog: list[AIProviderEntry]
     choices: list[AIFeatureDefault]
     enabled: bool
     people: list[AIPersonalPerson]
+    price_list_date: datetime.datetime
     usage: AIPersonalUsageView
     cap_set_at: datetime.datetime | Unset = UNSET
     cap_set_by: str | Unset = UNSET
@@ -60,6 +65,7 @@ class AIPersonalSettings:
         from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_personal_person import AIPersonalPerson # noqa: PLC0415
         from ..models.ai_personal_usage_view import AIPersonalUsageView # noqa: PLC0415
+        from ..models.ai_provider_entry import AIProviderEntry # noqa: PLC0415
         accounts = []
         for accounts_item_data in self.accounts:
             accounts_item = accounts_item_data.to_dict()
@@ -70,6 +76,13 @@ class AIPersonalSettings:
         can_add = self.can_add
 
         cap_usd = self.cap_usd
+
+        catalog = []
+        for catalog_item_data in self.catalog:
+            catalog_item = catalog_item_data.to_dict()
+            catalog.append(catalog_item)
+
+
 
         choices = []
         for choices_item_data in self.choices:
@@ -87,6 +100,8 @@ class AIPersonalSettings:
 
 
 
+        price_list_date = self.price_list_date.isoformat()
+
         usage = self.usage.to_dict()
 
         cap_set_at: str | Unset = UNSET
@@ -102,9 +117,11 @@ class AIPersonalSettings:
             "accounts": accounts,
             "canAdd": can_add,
             "capUsd": cap_usd,
+            "catalog": catalog,
             "choices": choices,
             "enabled": enabled,
             "people": people,
+            "priceListDate": price_list_date,
             "usage": usage,
         })
         if cap_set_at is not UNSET:
@@ -122,6 +139,7 @@ class AIPersonalSettings:
         from ..models.ai_feature_default import AIFeatureDefault # noqa: PLC0415
         from ..models.ai_personal_person import AIPersonalPerson # noqa: PLC0415
         from ..models.ai_personal_usage_view import AIPersonalUsageView # noqa: PLC0415
+        from ..models.ai_provider_entry import AIProviderEntry # noqa: PLC0415
         d = dict(src_dict)
         accounts = []
         _accounts = d.pop("accounts")
@@ -136,6 +154,16 @@ class AIPersonalSettings:
         can_add = d.pop("canAdd")
 
         cap_usd = d.pop("capUsd")
+
+        catalog = []
+        _catalog = d.pop("catalog")
+        for catalog_item_data in (_catalog):
+            catalog_item = AIProviderEntry.from_dict(catalog_item_data)
+
+
+
+            catalog.append(catalog_item)
+
 
         choices = []
         _choices = d.pop("choices")
@@ -159,6 +187,11 @@ class AIPersonalSettings:
             people.append(people_item)
 
 
+        price_list_date = datetime.datetime.fromisoformat(d.pop("priceListDate"))
+
+
+
+
         usage = AIPersonalUsageView.from_dict(d.pop("usage"))
 
 
@@ -180,9 +213,11 @@ class AIPersonalSettings:
             accounts=accounts,
             can_add=can_add,
             cap_usd=cap_usd,
+            catalog=catalog,
             choices=choices,
             enabled=enabled,
             people=people,
+            price_list_date=price_list_date,
             usage=usage,
             cap_set_at=cap_set_at,
             cap_set_by=cap_set_by,

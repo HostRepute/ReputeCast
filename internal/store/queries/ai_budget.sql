@@ -56,7 +56,11 @@ WHERE id = @id AND state <> 'settled';
 UPDATE ai_budget_reservations SET state = 'uncertain' WHERE id = @id AND state = 'reserved';
 
 -- name: AIBudgetPurge :execrows
-DELETE FROM ai_budget_reservations WHERE state = 'settled' AND created_at < @before;
+-- Settled reservations of the 90-day activity log. An assistant thread's
+-- stay while the thread does (its activity keeps it open past 90 days):
+-- they are its cumulative use, which its lifetime ceilings count. Deleting
+-- the thread clears thread_id.
+DELETE FROM ai_budget_reservations WHERE state = 'settled' AND created_at < @before AND thread_id IS NULL;
 
 -- name: AIBudgetPending :many
 -- The workspace's holds; personal keys' are their owners'.

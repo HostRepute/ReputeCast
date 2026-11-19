@@ -639,6 +639,24 @@ func (s *Service) Current(ctx context.Context, q *store.Queries, ws *store.Works
 	return t, srv, nil
 }
 
+// MayRead reports whether owner may still use a server (it is enabled and
+// their role may use it): what its tools returned in a thread is sent to
+// the model again only then.
+func (s *Service) MayRead(ctx context.Context, q *store.Queries, ws *store.Workspace, owner *authz.Principal, server uuid.UUID) (bool, error) {
+	srv, err := q.MCPServer(ctx, store.MCPServerParams{WorkspaceID: ws.ID, ID: server})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil || !srv.Enabled {
+		return false, err
+	}
+	return MayUse(ctx, q, ws.ID, owner.UserID, srv.AccessRoles)
+}
+
+// cancelGrace is how long a session stays open after its caller cancelled
+// a call, for the server to be told.
+const cancelGrace = time.Second
+
 // maxErrorText bounds what a server's refusal of a call says to the model.
 const maxErrorText = 2000
 
@@ -698,7 +716,20 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 		}
 		return r, err
 	}
-	defer sess.close()
+	defer func() {
+		if ctx.Err() == nil {
+			sess.close()
+			return
+		}
+		// The caller cancelled the call (its turn was stopped): the SDK
+		// tells the server off the call's return path, which the session
+		// closing would refuse, so it closes in the background once that
+		// had time, and the caller doesn't wait for it.
+		go func() {
+			time.Sleep(cancelGrace)
+			sess.close()
+		}()
+	}()
 	cctx, cancel := context.WithTimeout(ctx, s.callTimeout())
 	defer cancel()
 	// The tool as the server lists it now, in the same session, must be

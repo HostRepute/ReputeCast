@@ -145,9 +145,10 @@ func TestAssistantMCPReadToolAndInjection(t *testing.T) {
 	if n := f.count(`SELECT count(*) FROM ai_assistant_confirmations WHERE thread_id = $1`, th.ID); n != 0 {
 		t.Fatal("a confirmation was asked for a tool that wasn't offered")
 	}
+	// As the thread's owner, named, though the worker has no session.
 	if n := f.count(`SELECT count(*) FROM audit_events WHERE action = 'mcp_tool.called' AND metadata->>'outcome' = 'ok' AND metadata->>'thread_id' = $1
-		AND length(metadata->>'arguments_digest') = 64`, th.ID.String()); n != 1 {
-		t.Fatalf("%d calls audited", n)
+		AND length(metadata->>'arguments_digest') = 64 AND actor_type = 'user' AND actor_id = $2 AND actor_name = 'Thread Owner'`, th.ID.String(), f.member); n != 1 {
+		t.Fatalf("%d calls audited as the thread's owner", n)
 	}
 	after := f.get(f.mc, th.ID)
 	if after.Turn.State != "done" || after.Usage.ToolCalls != 3 || after.Messages[1].Tools[0].Label != "Wiki · search" || !after.Messages[1].Tools[0].OK {

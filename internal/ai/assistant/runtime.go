@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -63,7 +64,8 @@ type TurnWorker struct {
 
 const (
 	// turnLease is how long a slot is a worker's without renewal; it is
-	// renewed every renewEvery while the answer streams.
+	// renewed every renewEvery (by the service's clock) while the worker
+	// answers the turn, and at each of its rounds.
 	turnLease  = time.Minute
 	renewEvery = 15 * time.Second
 	// turnSnooze is how soon a turn without a free slot tries again.
@@ -109,13 +111,18 @@ type turnRun struct {
 	lease   uuid.UUID
 	started time.Time
 	// kind is the round's ("answer" or "summary"), upto the last message a
-	// summary covers; rounds counts the turn's requests.
+	// summary covers and sources what it is made from; rounds counts the
+	// turn's requests.
 	kind       string
 	upto       int32
+	sources    []toolSource
 	rounds     int
 	summarized bool
 	// resume: the turn goes on after its owner decided on a call.
 	resume *resume
+	// renewed is when the lease was last renewed (UnixNano, by the
+	// service's clock): the claim, a round, or the turn's watch.
+	renewed atomic.Int64
 }
 
 // Why a worker cut its own stream.
@@ -241,6 +248,7 @@ func (s *Service) claim(ctx context.Context, tx pgx.Tx, ws *store.Workspace, arg
 		return nil, true, nil
 	}
 	run := &turnRun{thread: t, turn: turn, owner: fresh, model: m, lease: uuid.Must(uuid.NewV7())}
+	run.renewed.Store(now.UnixNano())
 	var next *assembled
 	conf, err := q.AIAssistantConfirmationOpen(ctx, turn.ID)
 	switch {
@@ -259,11 +267,11 @@ func (s *Service) claim(ctx context.Context, tx pgx.Tx, ws *store.Workspace, arg
 	case err != nil && !errors.Is(err, pgx.ErrNoRows):
 		return nil, false, err
 	default:
-		req, kind, upto, err := s.request(ctx, q, ws, run)
+		a, err := s.request(ctx, q, ws, run)
 		if err != nil {
 			return nil, false, s.failFor(ctx, q, &turn, err)
 		}
-		next = &assembled{req: req, kind: kind, upto: upto}
+		next = &a
 	}
 	// The turn's start and its step are saved before the reservation,
 	// which takes the budget's lock: the workspace's claims hold it one at
@@ -303,11 +311,13 @@ func (s *Service) claim(ctx context.Context, tx pgx.Tx, ws *store.Workspace, arg
 	return run, false, nil
 }
 
-// assembled is a request assembled for a turn's next round.
+// assembled is a request assembled for a turn's next round: a summary's
+// covers the messages up to upto and is made from sources.
 type assembled struct {
-	req  llm.Request
-	kind string
-	upto int32
+	req     llm.Request
+	kind    string
+	upto    int32
+	sources []toolSource
 }
 
 // claimSlot takes a turn's slot: the thread's only one, one of its
@@ -342,11 +352,11 @@ func (s *Service) claimSlot(ctx context.Context, q *store.Queries, ws *store.Wor
 // The thread and the turn are locked; from the reservation on, the
 // budget's lock too, until the transaction commits.
 func (s *Service) prepareRound(ctx context.Context, q *store.Queries, ws *store.Workspace, run *turnRun) error {
-	req, kind, upto, err := s.request(ctx, q, ws, run)
+	a, err := s.request(ctx, q, ws, run)
 	if err != nil {
 		return err
 	}
-	return s.reserveRound(ctx, q, ws, run, assembled{req: req, kind: kind, upto: upto}, false)
+	return s.reserveRound(ctx, q, ws, run, a, false)
 }
 
 // reserveRound reserves a round's request in the thread's ledger and saves
@@ -371,7 +381,7 @@ func (s *Service) reserveRound(ctx context.Context, q *store.Queries, ws *store.
 			return err
 		}
 	}
-	run.req, run.kind, run.upto, run.step, run.started = req, r.kind, r.upto, step, now
+	run.req, run.kind, run.upto, run.sources, run.step, run.started = req, r.kind, r.upto, r.sources, step, now
 	run.rounds++
 	run.summarized = run.summarized || r.kind == "summary"
 	return nil
@@ -415,7 +425,7 @@ func (s *Service) lockActive(ctx context.Context, q *store.Queries, ws *store.Wo
 // worker's any more: false); the turn's next job goes on from that call
 // (conf), which runs at most once: it is marked calling, committed,
 // before it is sent, and a call found calling is never sent again.
-func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, rd round, conf *store.AiAssistantConfirmation) (bool, error) {
+func (s *Service) runTools(ctx, tctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, rd round, conf *store.AiAssistantConfirmation) (bool, error) {
 	for i := len(rd.Results); i < len(rd.Calls); i++ {
 		call := rd.Calls[i]
 		decided := conf != nil && int(conf.CallIndex) == i
@@ -488,7 +498,9 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			if decided {
 				confirmed = conf
 			}
-			r, content = s.runTool(ctx, s.Q, c, call.Name, confirmed)
+			// Within the turn's lifecycle: Stop, a lost lease or lost
+			// access cancels the call.
+			r, content = s.runTool(tctx, s.Q, c, call.Name, confirmed)
 		} else {
 			if decided {
 				// A denied or half-sent call is still named by its server and tool.
@@ -507,6 +519,11 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 		opsmetrics.AssistantToolCalls.WithLabelValues(kind, opsmetrics.ToolOutcome(r.code)).Inc()
 		rd.Results = append(rd.Results, llm.Part{ToolResult: &llm.ToolResult{ID: call.ID, Name: call.Name, Content: content, IsError: r.code != ""}})
 		rd.Rows = append(rd.Rows, row)
+		if r.source != nil {
+			src := *r.source
+			src.CallID = call.ID
+			rd.Sources = append(rd.Sources, src)
+		}
 		active = false
 		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
@@ -535,7 +552,7 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			return err
 		}
 		active = true
-		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "tool", turn.ModelID, messageContent{Results: rd.Results, Tools: rd.Rows})
+		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "tool", turn.ModelID, messageContent{Results: rd.Results, Tools: rd.Rows, Sources: rd.Sources})
 		if err != nil {
 			return err
 		}
@@ -579,6 +596,10 @@ func (s *Service) nextRound(ctx context.Context, ws *store.Workspace, args TurnA
 		}
 		t, turn, active, err := s.lockActive(ctx, q, ws, args, run)
 		if err != nil || !active {
+			return err
+		}
+		// Each round renews the lease, whatever its requests took.
+		if renewed, err := s.renew(ctx, q, run, turn.ID); err != nil || !renewed {
 			return err
 		}
 		run.thread, run.turn = t, turn
@@ -656,9 +677,27 @@ func providerReason(err error) string {
 // streams its answer and is saved; one that calls tools runs them, then
 // the next request goes with their results.
 func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun) error {
+	// One lifecycle for as long as this worker answers the turn, over its
+	// requests, checkpoints, tools and rounds (and from a confirmation's
+	// decision on): its watch renews the lease and cancels tctx, and so
+	// what runs in it, once the turn isn't this worker's any more (Stop,
+	// a lost lease) or its owner can't use the assistant.
+	tctx, stop := context.WithCancelCause(ctx)
+	watched := make(chan struct{})
+	// Read before the watch starts: the rounds replace run.turn and
+	// run.owner while it runs.
+	turnID, version, owner := run.turn.ID, run.turn.Version, run.owner
+	go func() {
+		defer close(watched)
+		s.watch(tctx, ws, run, turnID, version, owner, stop)
+	}()
+	defer func() {
+		stop(nil)
+		<-watched
+	}()
 	if r := run.resume; r != nil {
 		run.resume = nil
-		if ok, err := s.runTools(ctx, ws, args, run, r.round, &r.conf); err != nil || !ok {
+		if ok, err := s.runTools(ctx, tctx, ws, args, run, r.round, &r.conf); err != nil || !ok {
 			return err
 		}
 		if ok, err := s.nextRound(ctx, ws, args, run); err != nil || !ok {
@@ -666,7 +705,7 @@ func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs
 		}
 	}
 	for {
-		r := s.send(ctx, ws, run)
+		r := s.send(ctx, tctx, ws, run)
 		calls, more, err := s.checkpoint(ctx, ws, args, run, r)
 		if err != nil {
 			return err
@@ -676,7 +715,7 @@ func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs
 			return nil
 		}
 		if len(calls) > 0 {
-			if ok, err := s.runTools(ctx, ws, args, run, round{Calls: calls, Results: []llm.Part{}, Rows: []AIThreadToolRow{}}, nil); err != nil || !ok {
+			if ok, err := s.runTools(ctx, tctx, ws, args, run, round{Calls: calls, Results: []llm.Part{}, Rows: []AIThreadToolRow{}}, nil); err != nil || !ok {
 				return err
 			}
 		}
@@ -698,9 +737,9 @@ type sent struct {
 }
 
 // send sends a round's request and streams its answer (a summary's isn't
-// shown).
-func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) sent {
-	sctx, stop := context.WithCancelCause(ctx)
+// shown), within the turn's lifecycle (tctx); ctx is the worker's.
+func (s *Service) send(ctx, tctx context.Context, ws *store.Workspace, run *turnRun) sent {
+	sctx, stop := context.WithCancelCause(tctx)
 	defer stop(nil)
 	w := &deltaWriter{s: s, ws: ws.ID, thread: run.thread.ID, turn: run.turn.ID, version: run.turn.Version, stop: stop}
 	emit := w.emit
@@ -715,11 +754,6 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) s
 		// Built here, before any request: nothing was sent.
 		res.UsageKnown = true
 	} else {
-		watched := make(chan struct{})
-		go func() {
-			defer close(watched)
-			s.watch(sctx, ws, run, stop)
-		}()
 		sentAt := time.Now()
 		res, callErr = llm.StreamOrGenerate(sctx, prov, run.req, emit)
 		took = time.Since(sentAt)
@@ -736,7 +770,6 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, run *turnRun) s
 			cause = errShutdown
 		}
 		stop(nil)
-		<-watched
 	}
 	rest := w.take()
 	if s.afterAnswer != nil {
@@ -756,41 +789,52 @@ func toolCalls(m llm.Message) []llm.ToolCall {
 	return out
 }
 
-// watch checks, while the answer streams, that the turn is still this
-// worker's and its owner may still use the assistant, and renews the
-// lease; it cuts the stream (stop) when one of them no longer holds.
-func (s *Service) watch(ctx context.Context, ws *store.Workspace, run *turnRun, stop context.CancelCauseFunc) {
+// watch checks, while the worker answers a turn, that the turn is still
+// this worker's and its owner may still use the assistant, and renews the
+// lease once renewEvery passed since it was last renewed; it cancels the
+// turn's lifecycle (stop) when one of them no longer holds. Of run it
+// reads only what doesn't change while the turn answers (its lease) and
+// the renewal time; the turn's id, version and owner come as they were
+// when the worker began answering.
+func (s *Service) watch(ctx context.Context, ws *store.Workspace, run *turnRun, turnID uuid.UUID, version int64, owner *authz.Principal, stop context.CancelCauseFunc) {
 	tick := time.NewTicker(s.watchEvery())
 	defer tick.Stop()
-	renewed := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-tick.C:
 		}
-		f, err := s.Q.AIAssistantTurnFence(ctx, run.turn.ID)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Version != run.turn.Version || f.State != "answering")) {
+		f, err := s.Q.AIAssistantTurnFence(ctx, turnID)
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Version != version || f.State != "answering")) {
 			stop(errFenced)
 			return
 		}
 		var p *api.Problem
-		if _, _, err := s.actor(ctx, s.Q, ws, run.owner, true); errors.As(err, &p) {
+		if _, _, err := s.actor(ctx, s.Q, ws, owner, true); errors.As(err, &p) {
 			stop(&accessError{err: err})
 			return
 		}
-		if time.Since(renewed) >= renewEvery {
-			now := s.now()
-			n, err := s.Q.AIAssistantSlotRenew(ctx, store.AIAssistantSlotRenewParams{ExpiresAt: now.Add(turnLease), TurnID: run.turn.ID, LeaseID: run.lease, Now: now})
-			if err == nil && n == 0 {
-				stop(errLeaseLost)
-				return
-			}
-			if err == nil {
-				renewed = time.Now()
-			}
+		if renewed, err := s.renew(ctx, s.Q, run, turnID); err == nil && !renewed {
+			stop(errLeaseLost)
+			return
 		}
 	}
+}
+
+// renew extends a turn's lease when renewEvery passed since it was last
+// renewed; false: the lease isn't the worker's any more.
+func (s *Service) renew(ctx context.Context, q *store.Queries, run *turnRun, turnID uuid.UUID) (bool, error) {
+	now := s.now()
+	if now.Sub(time.Unix(0, run.renewed.Load())) < renewEvery {
+		return true, nil
+	}
+	n, err := q.AIAssistantSlotRenew(ctx, store.AIAssistantSlotRenewParams{ExpiresAt: now.Add(turnLease), TurnID: turnID, LeaseID: run.lease, Now: now})
+	if err != nil || n == 0 {
+		return false, err
+	}
+	run.renewed.Store(now.UnixNano())
+	return true, nil
 }
 
 // checkpoint accounts the round's request and, while the turn is still
@@ -908,7 +952,7 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 			// Earlier messages are summarized: later requests send the
 			// summary instead of them.
 			if strings.TrimSpace(text) != "" {
-				msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "summary", turn.ModelID, messageContent{Text: text, Upto: run.upto})
+				msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "summary", turn.ModelID, messageContent{Text: text, Upto: run.upto, Sources: run.sources})
 				if err != nil {
 					return err
 				}

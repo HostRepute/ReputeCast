@@ -263,7 +263,13 @@ func (s *Service) sameRequest(t store.AiAssistantThread, in AIThreadInput) (bool
 
 // Thread returns one of the person's threads.
 func (s *Service) Thread(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (AIThread, error) {
-	fresh, _, err := s.actor(ctx, s.Q, ws, p, true)
+	return s.thread(ctx, ws, p, id, true)
+}
+
+// thread reads one of the person's threads; on: only with the assistant
+// switched on.
+func (s *Service) thread(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, on bool) (AIThread, error) {
+	fresh, _, err := s.actor(ctx, s.Q, ws, p, on)
 	if err != nil {
 		return AIThread{}, err
 	}
@@ -385,6 +391,9 @@ type messageContent struct {
 	Results []llm.Part        `json:"results,omitempty"`
 	Tools   []AIThreadToolRow `json:"tools,omitempty"`
 	Upto    int32             `json:"upto,omitempty"`
+	// Sources are where a tool message's results came from, or what a
+	// summary was made from (sources.go).
+	Sources []toolSource `json:"sources,omitempty"`
 }
 
 func (c messageContent) view(m store.AiAssistantMessage) AIThreadMessage {

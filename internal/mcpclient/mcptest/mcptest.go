@@ -8,9 +8,12 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,11 +48,43 @@ type Server struct {
 
 // NewServer starts a server without tools; header and value, when set,
 // are a shared header every request must carry.
-func NewServer(t testing.TB, header, value string) *Server {
+func NewServer(t testing.TB, header, value string) *Server { return newServer(t, header, value, false) }
+
+// NewTLSServer is NewServer over https, with httptest's certificate (a
+// client trusts it through TrustTLS).
+func NewTLSServer(t testing.TB, header, value string) *Server {
+	return newServer(t, header, value, true)
+}
+
+// TrustTLS makes httptest's certificate the only trusted root of the test
+// process's TLS clients: call it from TestMain, before any TLS
+// connection is made.
+func TrustTLS() (func(), error) {
+	srv := httptest.NewTLSServer(http.NotFoundHandler())
+	defer srv.Close()
+	dir, err := os.MkdirTemp("", "mcptest-ca")
+	if err != nil {
+		return nil, err
+	}
+	file := filepath.Join(dir, "ca.pem")
+	if err := os.WriteFile(file, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw}), 0o600); err != nil {
+		return nil, err
+	}
+	if err := os.Setenv("SSL_CERT_FILE", file); err != nil {
+		return nil, err
+	}
+	return func() { _ = os.RemoveAll(dir) }, nil
+}
+
+func newServer(t testing.TB, header, value string, secure bool) *Server {
 	s := &Server{MCP: mcp.NewServer(&mcp.Implementation{Name: "fake", Version: "1"}, nil), calls: map[string][]json.RawMessage{}, Header: header, Value: value}
 	streamable := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return s.MCP }, nil)
 	sse := mcp.NewSSEHandler(func(*http.Request) *mcp.Server { return s.MCP }, nil)
-	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	start := httptest.NewServer
+	if secure {
+		start = httptest.NewTLSServer
+	}
+	s.Server = start(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.Requests.Add(1)
 		cred := r.Header.Get("Authorization")
 		if s.Header != "" {
@@ -90,6 +125,12 @@ func (s *Server) Endpoint() string { return s.URL + "/mcp" }
 // Tool adds or replaces a tool; result answers each call with the call's
 // arguments.
 func (s *Server) Tool(name, description string, readOnly bool, result func(args map[string]any) *mcp.CallToolResult) {
+	s.ToolCtx(name, description, readOnly, func(_ context.Context, args map[string]any) *mcp.CallToolResult { return result(args) })
+}
+
+// ToolCtx is Tool, result getting the call's context (cancelled when the
+// client cancels the call).
+func (s *Server) ToolCtx(name, description string, readOnly bool, result func(ctx context.Context, args map[string]any) *mcp.CallToolResult) {
 	schema := map[string]any{"type": "object", "properties": map[string]any{"query": map[string]any{"type": "string"}, "title": map[string]any{"type": "string"}}}
 	s.MCP.AddTool(&mcp.Tool{Name: name, Description: description, InputSchema: schema, Annotations: &mcp.ToolAnnotations{ReadOnlyHint: readOnly}},
 		func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -99,7 +140,7 @@ func (s *Server) Tool(name, description string, readOnly bool, result func(args 
 			s.mu.Unlock()
 			var args map[string]any
 			_ = json.Unmarshal(raw, &args)
-			return result(args), nil
+			return result(ctx, args), nil
 		})
 }
 
@@ -178,6 +219,11 @@ type AuthOptions struct {
 	// OIDC: the issuer has a path and only OpenID Connect discovery,
 	// appended to it.
 	OIDC bool
+	// TLS serves the authorization server over https; Plain names one of
+	// its endpoints its metadata gives as plain http instead (token,
+	// registration, authorization or revocation).
+	TLS   bool
+	Plain string
 }
 
 // Revoked are the tokens revoked, as "<token> <token_type_hint> <client_id>",
@@ -219,8 +265,14 @@ func NewAuthWith(t testing.TB, srv *Server, o AuthOptions) *Auth {
 		if o.OIDC {
 			issuer += "/tenant"
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"issuer": issuer, "authorization_endpoint": a.URL + "/authorize", "token_endpoint": a.URL + "/token",
-			"registration_endpoint": a.URL + "/register", "revocation_endpoint": a.URL + "/revoke", "code_challenge_methods_supported": []string{"S256"},
+		endpoint := func(name, path string) string {
+			if o.Plain == name {
+				return strings.Replace(a.URL, "https://", "http://", 1) + path
+			}
+			return a.URL + path
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"issuer": issuer, "authorization_endpoint": endpoint("authorization", "/authorize"), "token_endpoint": endpoint("token", "/token"),
+			"registration_endpoint": endpoint("registration", "/register"), "revocation_endpoint": endpoint("revocation", "/revoke"), "code_challenge_methods_supported": []string{"S256"},
 			"response_types_supported": []string{"code"}, "grant_types_supported": []string{"authorization_code", "refresh_token"},
 			"token_endpoint_auth_methods_supported": []string{"none"}})
 	}
@@ -257,7 +309,11 @@ func NewAuthWith(t testing.TB, srv *Server, o AuthOptions) *Auth {
 		writeJSON(w, http.StatusCreated, map[string]any{"client_id": id, "redirect_uris": in.RedirectURIs, "token_endpoint_auth_method": "none"})
 	})
 	mux.HandleFunc("/token", a.token)
-	a.Server = httptest.NewServer(mux)
+	if o.TLS {
+		a.Server = httptest.NewTLSServer(mux)
+	} else {
+		a.Server = httptest.NewServer(mux)
+	}
 	t.Cleanup(a.Close)
 	issuer := a.URL
 	if o.OIDC {

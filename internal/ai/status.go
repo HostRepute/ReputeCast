@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -41,9 +43,10 @@ type AIStatus struct {
 // AIStatusFeature is a feature for the person: its switch, and whether it
 // can be asked for now with the model it uses for them (their own pick, or
 // the workspace's) in the budget that model's requests count against (the
-// workspace's cap, or the person's own for their own model).
+// workspace's cap, or the person's own for their own model). The features
+// are the settings' and then the agent, for the model a new run of theirs
+// takes.
 type AIStatusFeature struct {
-	AIFeatureState
 	// State is as the top-level State, for this feature's model and budget;
 	// On says whether the switches (the feature's, personal keys) allow it.
 	State string `json:"state" enum:"ready,not_configured,key_rejected,cap_reached"`
@@ -56,6 +59,13 @@ type AIStatusFeature struct {
 	Usage        AIUsageView  `json:"usage"`
 	Cap          AICapView    `json:"cap"`
 	Prices       AIPricesView `json:"prices"`
+	// Key, On, Available and ModelID are as AIFeatureState's. The agent's On
+	// is its switch (the agent's settings) with a model whose tool check
+	// lets runs start; Available is false when the check doesn't.
+	Key       string     `json:"key" enum:"subject_ideas,rewrite,translate,alt_text,accessibility_fix,segment_draft,report_summary,brand_voice,draft,agent"`
+	On        bool       `json:"on"`
+	Available bool       `json:"available"`
+	ModelID   *uuid.UUID `json:"modelId,omitempty" format:"uuid"`
 }
 
 // Status describes the assistant for a person with ai:use. Each feature is
@@ -120,8 +130,8 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return AIStatus{}, err
 	}
-	for _, f := range Features {
-		st := AIStatusFeature{AIFeatureState: AIFeatureState{Key: f, On: false, Available: true}, State: "not_configured", Usage: AIUsageView{State: "ok", MonthStart: start, ResetsAt: next}}
+	for _, f := range append(slices.Clone(Features), FeatureAgent) {
+		st := AIStatusFeature{Key: f, On: false, Available: true, State: "not_configured", Usage: AIUsageView{State: "ok", MonthStart: start, ResetsAt: next}}
 		d := m.of(f)
 		if o, ok := mine[f]; ok {
 			d = o
@@ -130,8 +140,18 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			st.ModelID = &d.ModelID
 			if d.connected() && (!d.personal() || d.PersonalKeys) {
 				st.On = !slices.Contains(d.FeaturesOff, f)
-				if f == FeatureAltText && !d.ImageInput {
+				switch {
+				case f == FeatureAltText && !d.ImageInput:
 					st.On, st.Available = false, false
+				case f == FeatureAgent:
+					// As a run starts: the agent's switch, and a tool check
+					// that didn't fail (a personal key's must have passed).
+					tools, err := agentCapability(ctx, s.Q, d)
+					if err != nil {
+						return AIStatus{}, err
+					}
+					st.Available = tools.State == "supported" || (tools.State == "untested" && !d.personal())
+					st.On = out.Agent.Enabled && st.Available
 				}
 			}
 		}

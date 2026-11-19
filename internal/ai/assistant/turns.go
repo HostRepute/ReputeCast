@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/editorial"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -35,6 +36,11 @@ func (s *Service) SendMessage(ctx context.Context, ws *store.Workspace, p *authz
 	text := strings.TrimSpace(in.Text)
 	if text == "" {
 		return AIThread{}, api.Invalid("body.text", mNothingToSend.Text(i18n.LangFrom(ctx), nil))
+	}
+	// The person writes it and the panel says the model receives it: no
+	// sharing review, but no contact's record or credential either.
+	if kind := editorial.Chat(text); kind != "" {
+		return AIThread{}, problem(ctx, http.StatusUnprocessableEntity, codePrivateData, mPrivateData[kind], nil).WithMeta("kind", kind)
 	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -199,7 +205,8 @@ func (s *Service) StopTurn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if err != nil {
 		return AIThread{}, err
 	}
-	return s.Thread(ctx, ws, p, thread)
+	// As the person may read it now, switched off or not.
+	return s.thread(ctx, ws, p, thread, false)
 }
 
 // endTurn ends a locked turn and tells its streams. Its version moves on,

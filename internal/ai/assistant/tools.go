@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/ai"
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/mcpclient"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -71,6 +72,8 @@ type toolResult struct {
 	code  string // failed: why
 	label string
 	card  *AIThreadCard
+	// source is what the result's content came from (sources.go).
+	source *toolSource
 }
 
 func failed(code string) toolResult { return toolResult{code: code} }
@@ -189,6 +192,16 @@ func llmTools(specs []ToolSpec) []llm.Tool {
 // or one they weren't offered, fails without running. A tool that needs
 // a confirmation runs only as the call its owner allowed (confirmed).
 func (s *Service) runTool(ctx context.Context, q *store.Queries, c *toolCall, name string, confirmed *store.AiAssistantConfirmation) (toolResult, json.RawMessage) {
+	// What a call writes is audited as the owner it runs as (the worker
+	// has no session), named.
+	owner := *c.owner
+	if owner.Name == "" {
+		if u, err := q.GetUser(ctx, owner.UserID); err == nil {
+			owner.Name = u.Name
+		}
+	}
+	c.owner = &owner
+	ctx = audit.WithPrincipal(ctx, c.owner)
 	result := failed("not_available")
 	var content json.RawMessage
 	offered, err := s.offered(ctx, q, c.ws, c.owner, c.thread.ID, c.contexts)

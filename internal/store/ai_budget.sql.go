@@ -236,9 +236,13 @@ func (q *Queries) AIBudgetPersonalPending(ctx context.Context, arg AIBudgetPerso
 }
 
 const aIBudgetPurge = `-- name: AIBudgetPurge :execrows
-DELETE FROM ai_budget_reservations WHERE state = 'settled' AND created_at < $1
+DELETE FROM ai_budget_reservations WHERE state = 'settled' AND created_at < $1 AND thread_id IS NULL
 `
 
+// Settled reservations of the 90-day activity log. An assistant thread's
+// stay while the thread does (its activity keeps it open past 90 days):
+// they are its cumulative use, which its lifetime ceilings count. Deleting
+// the thread clears thread_id.
 func (q *Queries) AIBudgetPurge(ctx context.Context, before time.Time) (int64, error) {
 	result, err := q.db.Exec(ctx, aIBudgetPurge, before)
 	if err != nil {
