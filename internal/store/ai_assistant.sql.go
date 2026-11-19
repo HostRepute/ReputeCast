@@ -1132,8 +1132,8 @@ func (q *Queries) AIAssistantTurnByRequest(ctx context.Context, arg AIAssistantT
 }
 
 const aIAssistantTurnDeltas = `-- name: AIAssistantTurnDeltas :many
-SELECT seq, payload_sealed FROM ai_assistant_events
-WHERE thread_id = $1 AND turn_id = $2 AND kind = 'delta' AND seq <= $3 ORDER BY seq
+SELECT seq, kind, payload_sealed FROM ai_assistant_events
+WHERE thread_id = $1 AND turn_id = $2 AND kind IN ('delta', 'message') AND seq <= $3 ORDER BY seq
 `
 
 type AIAssistantTurnDeltasParams struct {
@@ -1144,10 +1144,12 @@ type AIAssistantTurnDeltasParams struct {
 
 type AIAssistantTurnDeltasRow struct {
 	Seq           int64  `json:"seq"`
+	Kind          string `json:"kind"`
 	PayloadSealed []byte `json:"payloadSealed"`
 }
 
-// What a turn wrote so far, up to an event: its answer's pieces.
+// What a turn wrote up to an event: its answers' pieces and the messages
+// that saved them.
 func (q *Queries) AIAssistantTurnDeltas(ctx context.Context, arg AIAssistantTurnDeltasParams) ([]AIAssistantTurnDeltasRow, error) {
 	rows, err := q.db.Query(ctx, aIAssistantTurnDeltas, arg.ThreadID, arg.TurnID, arg.Upto)
 	if err != nil {
@@ -1157,7 +1159,7 @@ func (q *Queries) AIAssistantTurnDeltas(ctx context.Context, arg AIAssistantTurn
 	items := []AIAssistantTurnDeltasRow{}
 	for rows.Next() {
 		var i AIAssistantTurnDeltasRow
-		if err := rows.Scan(&i.Seq, &i.PayloadSealed); err != nil {
+		if err := rows.Scan(&i.Seq, &i.Kind, &i.PayloadSealed); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -116,6 +116,21 @@ export function AINote({ tone = 'info', children, className, role }: { tone?: ke
   )
 }
 
+/** A settings card's header: the title, its caption and what goes at its end (a button, a switch). */
+export function CardHead({ id, title, caption, children }: { id: string; title: string; caption?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="ai-ch">
+      <div>
+        <h2 className="h2" id={id}>
+          {title}
+        </h2>
+        {caption ? <span className="k">{caption}</span> : null}
+      </div>
+      {children}
+    </div>
+  )
+}
+
 /** The masked key's crossed-out eye. */
 export function EyeOffIcon({ size = 14 }: { size?: number }) {
   return (

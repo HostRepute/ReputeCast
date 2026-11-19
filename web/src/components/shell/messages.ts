@@ -242,5 +242,6 @@ export const m = defineMessages('shell', {
   shortcutReadiness: 'Open Send Readiness',
   shortcutClose: 'Close panel or dialog',
   shortcutHelp: 'This sheet',
+  shortcutAssistant: 'Open or close the assistant',
   shortcutsFootnote: 'Every shortcut has a visible button equivalent; none is required.',
 })

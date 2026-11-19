@@ -394,7 +394,7 @@ export function ReportBody({
         {r.campaign.final ? <MeasurableDisclosure r={r} /> : null}
       </section>
       <div className="flex flex-wrap items-start gap-5">
-        <Insights r={r} onShowLink={actions ? (p, v) => toMap('human', p, v) : undefined} />
+        <Insights r={r} onShowLink={actions ? (p, v) => toMap('human', p, v) : undefined} campaignId={actions ? r.campaign.id : undefined} />
         <Growth r={r} campaignId={actions ? r.campaign.id : undefined} />
       </div>
       <EngagementChart e={r.engagement} startedAt={r.campaign.startedAt} final={r.campaign.final} remaining={remaining} />

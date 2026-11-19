@@ -176,7 +176,8 @@ type Querier interface {
 	// Expired threads' tombstones, 90 days after their content went.
 	AIAssistantTombstonesPurge(ctx context.Context, before time.Time) (int64, error)
 	AIAssistantTurnByRequest(ctx context.Context, arg AIAssistantTurnByRequestParams) (AiAssistantTurn, error)
-	// What a turn wrote so far, up to an event: its answer's pieces.
+	// What a turn wrote up to an event: its answers' pieces and the messages
+	// that saved them.
 	AIAssistantTurnDeltas(ctx context.Context, arg AIAssistantTurnDeltasParams) ([]AIAssistantTurnDeltasRow, error)
 	// A turn's version and state, read under its thread's lock.
 	AIAssistantTurnFence(ctx context.Context, id uuid.UUID) (AIAssistantTurnFenceRow, error)
@@ -212,7 +213,8 @@ type Querier interface {
 	// Whose budget a reservation is in; set when it is made and never changed.
 	AIBudgetScope(ctx context.Context, arg AIBudgetScopeParams) (AIBudgetScopeRow, error)
 	AIBudgetSettle(ctx context.Context, arg AIBudgetSettleParams) error
-	// An assistant thread's cumulative use, reserved and settled.
+	// An assistant thread's cumulative use, reserved and settled; uncertain
+	// requests count at their reserved maximum.
 	AIBudgetThread(ctx context.Context, threadID *uuid.UUID) (AIBudgetThreadRow, error)
 	AIBudgetUncertain(ctx context.Context, id uuid.UUID) error
 	// The workspace budget's lock, across all its accounts and models. It is

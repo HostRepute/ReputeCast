@@ -259,6 +259,34 @@ func (f *fixture) events(thread uuid.UUID) []event {
 	return out
 }
 
+// deltaText is what a thread's delta events wrote, in order.
+func (f *fixture) deltaText(thread uuid.UUID) string {
+	f.t.Helper()
+	rows, err := f.env.App.Pool.Query(context.Background(), `SELECT seq, payload_sealed FROM ai_assistant_events WHERE thread_id = $1 AND kind = 'delta' ORDER BY seq`, thread)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	defer rows.Close()
+	var b strings.Builder
+	for rows.Next() {
+		var seq int64
+		var sealed []byte
+		if err := rows.Scan(&seq, &sealed); err != nil {
+			f.t.Fatal(err)
+		}
+		raw, err := f.env.App.Secrets.Open(sealed, fmt.Sprintf("ai_assistant_event:%s:%d", thread, seq))
+		if err != nil {
+			f.t.Fatal(err)
+		}
+		var d assistant.AIThreadDeltaEvent
+		if err := json.Unmarshal(raw, &d); err != nil {
+			f.t.Fatal(err)
+		}
+		b.WriteString(d.Text)
+	}
+	return b.String()
+}
+
 // waitFor polls cond until it holds.
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()

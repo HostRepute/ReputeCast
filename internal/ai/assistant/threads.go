@@ -48,12 +48,22 @@ type AIThread struct {
 }
 
 // AIThreadUsage is what a thread used of its ceilings, reserved included.
+// A request whose usage the provider never reported (one stopped, or cut
+// short) is uncertain: it counts at its reserved maximum, in Tokens and
+// CostMicros too, until a person reconciles it.
 type AIThreadUsage struct {
-	ToolCalls         int32 `json:"toolCalls"`
-	Tokens            int64 `json:"tokens"`
-	CostMicros        int64 `json:"costMicros"`
-	Requests          int64 `json:"requests"`
-	UncertainRequests int64 `json:"uncertainRequests"`
+	ToolCalls           int32 `json:"toolCalls"`
+	Tokens              int64 `json:"tokens"`
+	CostMicros          int64 `json:"costMicros"`
+	Requests            int64 `json:"requests"`
+	UncertainRequests   int64 `json:"uncertainRequests"`
+	UncertainTokens     int64 `json:"uncertainTokens"`
+	UncertainCostMicros int64 `json:"uncertainCostMicros"`
+}
+
+func usageOf(t store.AiAssistantThread, u store.AIBudgetThreadRow) AIThreadUsage {
+	return AIThreadUsage{ToolCalls: t.ToolCalls, Tokens: u.Tokens, CostMicros: u.CostMicros, Requests: u.Requests, UncertainRequests: u.Uncertain,
+		UncertainTokens: u.UncertainTokens, UncertainCostMicros: u.UncertainCostMicros}
 }
 
 // AIThreadContext is a resource attached to a thread. Available is false
@@ -92,8 +102,8 @@ type AIThreadMessage struct {
 // short: stopped; interrupted (the worker was lost, so its usage is
 // unknown); access_lost, assistant_off; model_gone, a model problem
 // (not_connected, key_rejected, tools_unchecked, personal_keys_off…), a
-// budget problem (cap_reached, reservation_cap, thread_cap,
-// usage_unknown…), a provider problem (rate_limited, timeout,
+// budget problem (cap_reached, reservation_cap, thread_cap…), a
+// provider problem (rate_limited, timeout,
 // provider_error, too_large), refused; length (done, cut at its length);
 // reputation (done, the HostRepute card); not_started; expired (retention
 // removed the thread's content while it answered).
@@ -274,7 +284,7 @@ func (s *Service) view(ctx context.Context, q *store.Queries, ws *store.Workspac
 	if err != nil {
 		return AIThread{}, err
 	}
-	out.Usage = AIThreadUsage{ToolCalls: t.ToolCalls, Tokens: used.Tokens, CostMicros: used.CostMicros, Requests: used.Requests, UncertainRequests: used.Uncertain}
+	out.Usage = usageOf(t, used)
 	contexts, err := q.AIAssistantContexts(ctx, t.ID)
 	if err != nil {
 		return AIThread{}, err

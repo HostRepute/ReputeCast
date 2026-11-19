@@ -371,18 +371,23 @@ const aIBudgetThread = `-- name: AIBudgetThread :one
 SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
        coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
        count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain,
-       count(*)::bigint AS requests
+       count(*)::bigint AS requests,
+       coalesce(sum(input_tokens + output_tokens) FILTER (WHERE state = 'uncertain'), 0)::bigint AS uncertain_tokens,
+       coalesce(sum(cost_micros) FILTER (WHERE state = 'uncertain'), 0)::bigint AS uncertain_cost_micros
 FROM ai_budget_reservations WHERE thread_id = $1
 `
 
 type AIBudgetThreadRow struct {
-	Tokens     int64 `json:"tokens"`
-	CostMicros int64 `json:"costMicros"`
-	Uncertain  int64 `json:"uncertain"`
-	Requests   int64 `json:"requests"`
+	Tokens              int64 `json:"tokens"`
+	CostMicros          int64 `json:"costMicros"`
+	Uncertain           int64 `json:"uncertain"`
+	Requests            int64 `json:"requests"`
+	UncertainTokens     int64 `json:"uncertainTokens"`
+	UncertainCostMicros int64 `json:"uncertainCostMicros"`
 }
 
-// An assistant thread's cumulative use, reserved and settled.
+// An assistant thread's cumulative use, reserved and settled; uncertain
+// requests count at their reserved maximum.
 func (q *Queries) AIBudgetThread(ctx context.Context, threadID *uuid.UUID) (AIBudgetThreadRow, error) {
 	row := q.db.QueryRow(ctx, aIBudgetThread, threadID)
 	var i AIBudgetThreadRow
@@ -391,6 +396,8 @@ func (q *Queries) AIBudgetThread(ctx context.Context, threadID *uuid.UUID) (AIBu
 		&i.CostMicros,
 		&i.Uncertain,
 		&i.Requests,
+		&i.UncertainTokens,
+		&i.UncertainCostMicros,
 	)
 	return i, err
 }

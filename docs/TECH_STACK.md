@@ -87,6 +87,7 @@ Dev tools:
 | Forms | react-hook-form + zod | 7.91.0 / 4.6.7 |
 | Charts | recharts | 3.10.1 |
 | Code editors (SQL, Liquid, HTML) | @codemirror/view, @codemirror/lang-sql, @codemirror/lang-liquid, @codemirror/lang-html | 6.43.x / 6.10.0 / 6.3.3 / 6.4.12 |
+| Assistant answers: Markdown with GFM tables, code highlighted with the CodeMirror languages above (owner decision D5, assistant brief) | react-markdown + remark-gfm + @lezer/highlight | 10.1.0 / 4.0.1 / 1.2.5 |
 | Email composer | grapesjs + grapesjs-mjml (own thin React wrapper, not @grapesjs/react) | 0.23.8 / 1.0.8 (bundles mjml-browser ^4.18) |
 | Automation canvas | @xyflow/react | 12.12.0 |
 | API types | openapi-typescript (generated from the Huma OpenAPI spec) | 7.13.0 |

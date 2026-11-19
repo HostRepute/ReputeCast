@@ -4641,7 +4641,15 @@
             "format": "int32",
             "type": "integer"
           },
+          "uncertainCostMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
           "uncertainRequests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uncertainTokens": {
             "format": "int64",
             "type": "integer"
           }
@@ -4651,7 +4659,9 @@
           "tokens",
           "costMicros",
           "requests",
-          "uncertainRequests"
+          "uncertainRequests",
+          "uncertainTokens",
+          "uncertainCostMicros"
         ],
         "type": "object"
       },

@@ -294,6 +294,7 @@ func (s *Service) AssistantAttachment(ctx context.Context, q *store.Queries, ws 
 	return out, nil
 }
 
-// AsksAboutReputation reports whether a message asks about sender
-// reputation, blocklists or placement: HostRepute's, not the assistant's.
-func AsksAboutReputation(text string) bool { return asksAboutReputation(text) }
+// AsksAboutReputation reports whether a message asks to diagnose sender
+// reputation, a blocklisting or spam placement: HostRepute's, not the
+// assistant's. Setup questions (DKIM, SPF, DMARC) are the model's.
+func AsksAboutReputation(text string) bool { return asksForReputationDiagnosis(text) }

@@ -18,6 +18,16 @@ describe('shortcutFor', () => {
     expect(shortcutFor(key('Enter', { ctrlKey: true }), false).action).toEqual({ type: 'readiness' })
   })
 
+  it('maps ⌘J and Ctrl J to the assistant, also while typing; ⌘⇧J stays the browser’s', () => {
+    const area = document.createElement('textarea')
+    document.body.appendChild(area)
+    expect(shortcutFor(key('j', { metaKey: true }), false).action).toEqual({ type: 'assistant' })
+    expect(shortcutFor(key('J', { ctrlKey: true }, area), false).action).toEqual({ type: 'assistant' })
+    expect(shortcutFor(key('J', { ctrlKey: true, shiftKey: true }), false).action).toBeUndefined()
+    expect(shortcutFor(key('j', {}, document.body), false).action).toBeUndefined()
+    area.remove()
+  })
+
   it('keeps ⌘ shortcuts working while typing, single keys never', () => {
     const input = document.createElement('input')
     document.body.appendChild(input)

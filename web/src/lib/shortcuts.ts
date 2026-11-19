@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
  * button equivalent; none is required.
  *
  *   ⌘/Ctrl K       Search everything      (works while typing)
+ *   ⌘/Ctrl J       Open or close the assistant (works while typing)
  *   ⌘/Ctrl S       Save version           (works while typing)
  *   ⌘/Ctrl Enter   Open Send Readiness    (works while typing)
  *   N              New campaign
@@ -19,6 +20,7 @@ export type GoTarget = 'overview' | 'campaigns' | 'automations' | 'audience' | '
 
 export type ShortcutAction =
   | { type: 'search' }
+  | { type: 'assistant' }
   | { type: 'save' }
   | { type: 'readiness' }
   | { type: 'new-campaign' }
@@ -76,6 +78,7 @@ export function shortcutFor(e: KeyLike, pendingG: boolean): { action?: ShortcutA
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
   if (mod && !e.altKey) {
     if (key === 'k' && !e.shiftKey) return { action: { type: 'search' }, pendingG: false }
+    if (key === 'j' && !e.shiftKey) return { action: { type: 'assistant' }, pendingG: false }
     if (key === 's' && !e.shiftKey) return { action: { type: 'save' }, pendingG: false }
     if (key === 'Enter') return { action: { type: 'readiness' }, pendingG: false }
     return { pendingG: false }
@@ -91,9 +94,9 @@ export function shortcutFor(e: KeyLike, pendingG: boolean): { action?: ShortcutA
   return { pendingG: false }
 }
 
-export type HandlerKind = 'search' | 'save' | 'readiness'
+export type HandlerKind = 'search' | 'save' | 'readiness' | 'assistant'
 type Handler = () => boolean | void
-const handlers: Record<HandlerKind, Handler[]> = { search: [], save: [], readiness: [] }
+const handlers: Record<HandlerKind, Handler[]> = { search: [], save: [], readiness: [], assistant: [] }
 
 /**
  * Lets the screen that owns an action handle its shortcut, e.g. the

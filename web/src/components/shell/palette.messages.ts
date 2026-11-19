@@ -36,6 +36,10 @@ export const mp = defineMessages('shell.palette', {
   subscribed: '{count, plural, one {# subscribed} other {# subscribed}}',
   contactsCount: '{count, plural, one {# contact} other {# contacts}}',
   newCampaign: 'New campaign',
+  // q: what the person typed, moved into the assistant's composer unsent.
+  askAssistant: 'Ask the assistant: {q}',
+  askAssistantDetail: 'Moves your question into the assistant, unsent',
+  assistant: 'Assistant',
   noResults: 'No results for “{q}”',
   noResultsHint: 'Check the spelling, or search by an email address. Archived campaigns and deleted lists aren’t searched.',
   searching: 'Searching…',

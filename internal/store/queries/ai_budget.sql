@@ -46,11 +46,14 @@ SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
 FROM ai_budget_reservations WHERE run_id = @run_id;
 
 -- name: AIBudgetThread :one
--- An assistant thread's cumulative use, reserved and settled.
+-- An assistant thread's cumulative use, reserved and settled; uncertain
+-- requests count at their reserved maximum.
 SELECT coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
        coalesce(sum(cost_micros), 0)::bigint AS cost_micros,
        count(*) FILTER (WHERE state = 'uncertain')::bigint AS uncertain,
-       count(*)::bigint AS requests
+       count(*)::bigint AS requests,
+       coalesce(sum(input_tokens + output_tokens) FILTER (WHERE state = 'uncertain'), 0)::bigint AS uncertain_tokens,
+       coalesce(sum(cost_micros) FILTER (WHERE state = 'uncertain'), 0)::bigint AS uncertain_cost_micros
 FROM ai_budget_reservations WHERE thread_id = @thread_id;
 
 -- name: AIBudgetSettle :exec

@@ -85,9 +85,10 @@ SELECT seq, turn_id, kind, payload_sealed FROM ai_assistant_events
 WHERE thread_id = @thread_id AND seq > @after ORDER BY seq LIMIT @lim;
 
 -- name: AIAssistantTurnDeltas :many
--- What a turn wrote so far, up to an event: its answer's pieces.
-SELECT seq, payload_sealed FROM ai_assistant_events
-WHERE thread_id = @thread_id AND turn_id = @turn_id AND kind = 'delta' AND seq <= @upto ORDER BY seq;
+-- What a turn wrote up to an event: its answers' pieces and the messages
+-- that saved them.
+SELECT seq, kind, payload_sealed FROM ai_assistant_events
+WHERE thread_id = @thread_id AND turn_id = @turn_id AND kind IN ('delta', 'message') AND seq <= @upto ORDER BY seq;
 
 -- name: AIAssistantMessages :many
 SELECT * FROM ai_assistant_messages WHERE thread_id = @thread_id ORDER BY sequence;

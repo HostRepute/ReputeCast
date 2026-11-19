@@ -68,6 +68,10 @@ export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenC
                 {t(m.shortcutSearch)}
               </Row>
               <Row>
+                <Keys keys={[mod, 'J']} />
+                {t(m.shortcutAssistant)}
+              </Row>
+              <Row>
                 <Keys keys={['N']} />
                 {t(m.shortcutNewCampaign)}
               </Row>
@@ -156,6 +160,11 @@ export function GlobalShortcuts() {
           // FE-1); a screen that handles it itself (an editor) still can.
           e.preventDefault()
           if (!runShortcutHandler('search')) setPalette(true)
+          return
+        case 'assistant':
+          // Where the shell has the assistant's panel; elsewhere (full-screen
+          // editors) the browser keeps its own ⌘J.
+          if (runShortcutHandler('assistant')) e.preventDefault()
           return
         case 'save':
           if (runShortcutHandler('save')) e.preventDefault()

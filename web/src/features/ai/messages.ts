@@ -31,11 +31,11 @@ export const m = defineMessages('ai', {
   factCap: 'A monthly cap you set',
   factAzure: 'Endpoint, deployment and key',
   factNoKey: 'No key needed for local servers',
-  factOneModel: 'One model per workspace',
+  // provider: the connected provider ("Anthropic"); this one is added as another model account.
+  factAlongside: 'Can be added alongside {provider}',
   factUsage: '{spent} of {cap} this month',
   factUsageTokens: '{spent} of {cap} tokens this month',
   factUsageNoCap: '{spent} this month',
-  oneModelNote: 'One model per workspace: disconnect {provider} first to switch provider.',
   groupSettings: 'AI assistant settings',
   groupLineConnected: 'Your own model for subject ideas, rewrites, translations and alt text. Nothing is sent anywhere until a person asks.',
   connect: 'Connect',
@@ -43,10 +43,10 @@ export const m = defineMessages('ai', {
   view: 'View',
 
   // ── Settings › Integrations › AI assistant ───────────────────────────
-  documentTitle: 'AI assistant · Integrations · Settings',
+  documentTitle: 'AI models · Integrations · Settings',
   crumbSettings: 'Settings',
   crumbIntegrations: 'Integrations',
-  title: 'AI assistant',
+  title: 'AI models',
   tileAI: 'AI',
   statusConnected: 'Connected',
   statusNotConnected: 'Not connected',
@@ -241,7 +241,7 @@ export const m = defineMessages('ai', {
   replaceKey: 'Replace key',
 
   // ── Connect dialog ──────────────────────────────────────────────────
-  connectEyebrow: 'Settings › Integrations › AI assistant',
+  connectEyebrow: 'Settings › Integrations › AI models',
   connectTitle: 'Connect an AI model',
   changeTitle: 'Change model',
   replaceTitle: 'Replace the key',

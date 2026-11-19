@@ -218,5 +218,6 @@ export default translate(m, {
   shortcutReadiness: 'Mở Độ sẵn sàng gửi',
   shortcutClose: 'Đóng bảng hoặc hộp thoại',
   shortcutHelp: 'Bảng này',
+  shortcutAssistant: 'Mở hoặc đóng trợ lý',
   shortcutsFootnote: 'Phím tắt nào cũng có nút tương ứng hiển thị trên màn hình; không phím tắt nào là bắt buộc.',
 })

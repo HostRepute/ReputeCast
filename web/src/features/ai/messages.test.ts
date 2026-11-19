@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { t } from '@/i18n'
 import { m, ms } from './messages'
 import vi from './messages.vi'
+import { mm } from './models.messages'
+import mmVi from './models.messages.vi'
 
 // X-1: the assistant's settings and composer copy say who can act (people
 // who can manage integrations, everyone who can use the assistant), never
@@ -10,10 +12,10 @@ const key = /\b(?:ai|integrations|campaigns|providers|transactional):(?:use|mana
 
 describe('AI copy', () => {
   it('names people, not permission keys, in English and Vietnamese', () => {
-    for (const d of [...Object.values(m), ...Object.values(ms)]) {
+    for (const d of [...Object.values(m), ...Object.values(ms), ...Object.values(mm)]) {
       expect(d.message, d.id).not.toMatch(key)
     }
-    for (const [id, text] of Object.entries(vi)) {
+    for (const [id, text] of Object.entries({ ...vi, ...mmVi })) {
       expect(text, id).not.toMatch(key)
     }
   })

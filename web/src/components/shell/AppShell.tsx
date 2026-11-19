@@ -1,6 +1,8 @@
 import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router'
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ManagedByCard, useClientSections, useIsClientPerson } from '@/features/agency/WorkspaceParts'
+import { AssistantPlace, AssistantSlot, useAssistantLayout } from '@/features/assistant/AssistantShell'
+import { useAssistant } from '@/features/assistant/store'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useCurrentTabInView, useFirstLoadSettled, useMediaQuery } from '@/lib/hooks'
@@ -23,19 +25,31 @@ import './shell.css'
  * opens a sheet with the rest. Sections the workspace hides (Settings ›
  * General) are left out everywhere; their screens still open by link.
  * `children` replaces the routed screen, for the in-shell 404 and 500 states.
+ * The AI assistant's panel is the shell's last part (AssistantSlot).
  */
 export function AppShell({ children }: { children?: ReactNode } = {}) {
   const t = useT()
+  // The assistant docks as the shell's last column above 1100 px, and the
+  // content narrows; narrower, it is a sheet or the whole screen.
+  const { open } = useAssistant()
+  const layout = useAssistantLayout()
+  const docked = open && layout.mode === 'docked'
   return (
-    <div className="app rc-app">
+    <div
+      className={cn('app rc-app', docked && 'asst-docked', open && layout.mode === 'full' && 'asst-fullscreen')}
+      style={docked || (open && layout.mode === 'overlay') ? ({ '--asst-w': `${layout.width}px` } as CSSProperties) : undefined}
+    >
       <a href="#main" className="skip">
         {t(m.skipToContent)}
       </a>
       <Sidebar />
-      <div className="mainc">
-        <SystemBanners />
-        {children ?? <Outlet />}
-      </div>
+      <AssistantPlace.Provider value>
+        <div className="mainc">
+          <SystemBanners />
+          {children ?? <Outlet />}
+        </div>
+        <AssistantSlot layout={layout} />
+      </AssistantPlace.Provider>
     </div>
   )
 }
