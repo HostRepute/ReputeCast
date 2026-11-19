@@ -38,6 +38,7 @@ func TestAnthropicContract(t *testing.T) {
 			if b["model"] != "claude-sonnet-5-5" || b["max_tokens"] != float64(64) || !strings.HasPrefix(b["system"].(string), contracttest.SystemMarker) {
 				t.Fatalf("body: %v", b)
 			}
+			checkStream(t, scenario, r, b["stream"] == true)
 			msgs := b["messages"].([]any)
 			content := msgs[0].(map[string]any)["content"].([]any)
 			if scenario == contracttest.Image {
@@ -55,14 +56,30 @@ func TestAnthropicContract(t *testing.T) {
 			Text: "Ready.", InputTokens: 14, OutputTokens: 3, JSONKey: "subject", JSONValue: "A year of on-call, in numbers",
 			RefusalText: "I can't write a subject that pretends to be a reply to an email the reader never sent.",
 			AuthStatus:  401, AuthMessage: "authentication_error: invalid x-api-key", RetryAfter: 20 * time.Second, OverloadedStatus: 529,
-			Models: []string{"claude-sonnet-5-5", "claude-haiku-4-5"},
+			Models:             []string{"claude-sonnet-5-5", "claude-haiku-4-5"},
+			StreamErrorMessage: "overloaded_error: Overloaded",
 		},
 	})
+}
+
+// checkStream asserts that a streamed scenario's request, and only one,
+// asks for a stream of server-sent events.
+func checkStream(t *testing.T, scenario string, r contracttest.Recorded, asked bool) {
+	t.Helper()
+	want := contracttest.Streaming(scenario)
+	if asked != want || (r.Header.Get("Accept") == "text/event-stream") != want {
+		t.Fatalf("%s: asks for a stream %v, accepts %q", scenario, asked, r.Header.Get("Accept"))
+	}
 }
 
 func checkChat(t *testing.T, scenario string, r contracttest.Recorded, model string, maxKey string) {
 	t.Helper()
 	b := r.JSONBody(t)
+	opts, _ := b["stream_options"].(map[string]any)
+	checkStream(t, scenario, r, b["stream"] == true && opts["include_usage"] == true)
+	if !contracttest.Streaming(scenario) && b["stream_options"] != nil {
+		t.Fatalf("stream_options without a stream: %v", b)
+	}
 	if model == "" {
 		if _, ok := b["model"]; ok {
 			t.Fatalf("an Azure deployment names the model in its URL: %v", b)
@@ -130,7 +147,8 @@ func TestOpenAIContract(t *testing.T) {
 			Text: "Ready.", InputTokens: 19, OutputTokens: 2, JSONKey: "subject", JSONValue: "A year of on-call, in numbers",
 			RefusalText: "I can't write a subject that pretends to be a reply to an email the reader never sent.",
 			AuthStatus:  401, AuthMessage: "Incorrect API key provided", RetryAfter: 20 * time.Second, OverloadedStatus: 503,
-			Models: []string{"gpt-5", "gpt-5-mini"},
+			Models:             []string{"gpt-5", "gpt-5-mini"},
+			StreamErrorMessage: "server_error: The server had an error while processing your request",
 		},
 	})
 }
@@ -154,7 +172,8 @@ func TestAzureOpenAIContract(t *testing.T) {
 		Want: contracttest.Want{
 			Text: "Ready.", InputTokens: 19, OutputTokens: 2, JSONKey: "subject", JSONValue: "A year of on-call, in numbers",
 			AuthStatus: 401, AuthMessage: "invalid subscription key", RetryAfter: 20 * time.Second, OverloadedStatus: 503,
-			Models: []string{"acme-gpt41"},
+			Models:             []string{"acme-gpt41"},
+			StreamErrorMessage: "InternalServerError: The service encountered an internal error",
 		},
 	})
 }
@@ -190,7 +209,8 @@ func TestCompatibleContract(t *testing.T) {
 		Want: contracttest.Want{
 			Text: "Ready.", InputTokens: 26, OutputTokens: 3, JSONKey: "subject", JSONValue: "A year of on-call, in numbers",
 			AuthStatus: 401, AuthMessage: "Unauthorized", OverloadedStatus: 503,
-			Models: []string{"llama3.3:70b", "gemma3:27b"},
+			Models:             []string{"llama3.3:70b", "gemma3:27b"},
+			StreamErrorMessage: "api_error: an error was encountered while running the model",
 		},
 	})
 }
@@ -212,9 +232,14 @@ func TestGeminiContract(t *testing.T) {
 				}
 				return
 			}
-			if r.Path != "/v1beta/models/gemini-2.5-flash:generateContent" {
-				t.Fatalf("path: %s", r.Path)
+			if contracttest.Streaming(scenario) {
+				if r.Path != "/v1beta/models/gemini-2.5-flash:streamGenerateContent" || r.Query != "alt=sse" {
+					t.Fatalf("url: %s?%s", r.Path, r.Query)
+				}
+			} else if r.Path != "/v1beta/models/gemini-2.5-flash:generateContent" || r.Query != "" {
+				t.Fatalf("url: %s?%s", r.Path, r.Query)
 			}
+			checkStream(t, scenario, r, contracttest.Streaming(scenario))
 			b := r.JSONBody(t)
 			sys := b["systemInstruction"].(map[string]any)["parts"].([]any)[0].(map[string]any)
 			if sys["text"] != contracttest.SystemMarker {
@@ -237,7 +262,15 @@ func TestGeminiContract(t *testing.T) {
 		Want: contracttest.Want{
 			Text: "Ready.", InputTokens: 12, OutputTokens: 2, JSONKey: "subject", JSONValue: "A year of on-call, in numbers",
 			AuthStatus: 400, AuthMessage: "API key not valid", RetryAfter: 20 * time.Second, OverloadedStatus: 503,
-			Models: []string{"gemini-2.5-flash", "gemini-2.5-pro"},
+			Models:             []string{"gemini-2.5-flash", "gemini-2.5-pro"},
+			StreamErrorMessage: "UNAVAILABLE: The model is overloaded",
+			// Function calls arrive whole; signatures stay on their parts,
+			// one that came in a last part with no text included.
+			ToolArgsWhole: true,
+			Signatures: map[string][]string{
+				contracttest.StreamTools:  {"c2lnbmF0dXJlMQ==", "c2lnbmF0dXJlMg=="},
+				contracttest.StreamLength: {"c2lnbmF0dXJlMw=="},
+			},
 		},
 	})
 }

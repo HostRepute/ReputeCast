@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":null,\"refusal\":\"\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"refusal\":\"I can't write a subject that pretends\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"refusal\":\" to be a reply to an email the reader never sent.\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{},\"logprobs\":null,\"finish_reason\":\"stop\"}],\"usage\":null}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[],\"usage\":{\"prompt_tokens\":40,\"completion_tokens\":21,\"total_tokens\":61,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}},\"obfuscation\":\"vXk2\"}\n\n",
+    "data: [DONE]\n\n"
+  ]
+}

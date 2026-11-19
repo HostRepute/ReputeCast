@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Here's\"},\"finish_reason\":null}]}\n\n",
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\" a\"},\"finish_reason\":null}]}\n\n",
+    "data: {\"id\":\"chatcmpl-412\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"llama3.3:70b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\" subject\"},\"finish_reason\":null}]}\n\n",
+    "data: {\"error\":{\"message\":\"an error was encountered while running the model: unexpected EOF\",\"type\":\"api_error\",\"param\":null,\"code\":null}}\n\n"
+  ]
+}

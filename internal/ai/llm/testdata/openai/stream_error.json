@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "text/event-stream"
+  },
+  "stream": [
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"\",\"refusal\":null},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Here's\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null}\n\n",
+    "data: {\"id\":\"chatcmpl-CQ8ZtE4k5sQpB2d3vY0aWnLm9rX1\",\"object\":\"chat.completion.chunk\",\"created\":1760538011,\"model\":\"gpt-5-2025-08-07\",\"service_tier\":\"default\",\"system_fingerprint\":null,\"choices\":[{\"index\":0,\"delta\":{\"content\":\" a subject\"},\"logprobs\":null,\"finish_reason\":null}],\"usage\":null}\n\n",
+    "data: {\"error\":{\"message\":\"The server had an error while processing your request. Sorry about that!\",\"type\":\"server_error\",\"param\":null,\"code\":null}}\n\n"
+  ]
+}
