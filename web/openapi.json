@@ -4098,6 +4098,9 @@
       "AIThread": {
         "additionalProperties": false,
         "properties": {
+          "confirmation": {
+            "$ref": "#/components/schemas/AIThreadConfirmation"
+          },
           "contexts": {
             "items": {
               "$ref": "#/components/schemas/AIThreadContext"
@@ -4125,6 +4128,12 @@
           },
           "limits": {
             "$ref": "#/components/schemas/AIAgentLimits"
+          },
+          "mcpServerIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "messages": {
             "items": {
@@ -4163,6 +4172,7 @@
           "usage",
           "contexts",
           "messages",
+          "mcpServerIds",
           "eventSeq",
           "createdAt",
           "lastActivityAt",
@@ -4198,6 +4208,97 @@
           "kind",
           "title",
           "path"
+        ],
+        "type": "object"
+      },
+      "AIThreadConfirmation": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {},
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "allow",
+              "deny"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "modelName": {
+            "description": "The tool's name for the model: mcp__\u003cserver\u003e__\u003ctool\u003e",
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "allowed",
+              "denied",
+              "calling",
+              "done"
+            ],
+            "type": "string"
+          },
+          "tool": {
+            "description": "The tool's name on its server",
+            "type": "string"
+          },
+          "turnId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "turnId",
+          "serverName",
+          "tool",
+          "modelName",
+          "arguments",
+          "state",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AIThreadConfirmationDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "description": "allow runs this call once; deny tells the model it was refused",
+            "enum": [
+              "allow",
+              "deny"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "type": "object"
+      },
+      "AIThreadConfirmationEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation": {
+            "$ref": "#/components/schemas/AIThreadConfirmation"
+          }
+        },
+        "required": [
+          "confirmation"
         ],
         "type": "object"
       },
@@ -4459,6 +4560,23 @@
         "required": [
           "text",
           "requestKey"
+        ],
+        "type": "object"
+      },
+      "AIThreadServersInput": {
+        "additionalProperties": false,
+        "properties": {
+          "serverIds": {
+            "description": "Servers from list-ai-assistant-mcp-servers; empty: none",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          }
+        },
+        "required": [
+          "serverIds"
         ],
         "type": "object"
       },
@@ -72663,6 +72781,329 @@
         ],
         "type": "object"
       },
+      "RemoteMCPOAuthStart": {
+        "additionalProperties": false,
+        "properties": {
+          "authorizationUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorizationUrl"
+        ],
+        "type": "object"
+      },
+      "RemoteMCPServer": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "enum": [
+              "none",
+              "header",
+              "oauth"
+            ],
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientRegistered": {
+            "type": "boolean"
+          },
+          "clientSecretSet": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "headerName": {
+            "type": "string"
+          },
+          "headerSet": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "description": "The prefix of its tools for the model: mcp__\u003ckey\u003e__\u003ctool\u003e",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "ok",
+              "unreachable",
+              "sign_in"
+            ],
+            "type": "string"
+          },
+          "statusDetail": {
+            "type": "string"
+          },
+          "syncedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/RemoteMCPTool"
+            },
+            "type": "array"
+          },
+          "transport": {
+            "enum": [
+              "streamable",
+              "sse"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "waiting": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "url",
+          "transport",
+          "auth",
+          "headerSet",
+          "clientSecretSet",
+          "clientRegistered",
+          "roles",
+          "enabled",
+          "status",
+          "connected",
+          "tools",
+          "waiting"
+        ],
+        "type": "object"
+      },
+      "RemoteMCPServerInput": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "enum": [
+              "none",
+              "header",
+              "oauth"
+            ],
+            "type": "string"
+          },
+          "clientId": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "clientSecret": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "headerName": {
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9-]*$",
+            "type": "string"
+          },
+          "headerValue": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "transport": {
+            "enum": [
+              "streamable",
+              "sse"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "The server's MCP endpoint (Streamable HTTP, or HTTP with SSE)",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "auth"
+        ],
+        "type": "object"
+      },
+      "RemoteMCPServerList": {
+        "additionalProperties": false,
+        "properties": {
+          "servers": {
+            "items": {
+              "$ref": "#/components/schemas/RemoteMCPServer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "servers"
+        ],
+        "type": "object"
+      },
+      "RemoteMCPServerUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "clientSecret": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "headerValue": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RemoteMCPTool": {
+        "additionalProperties": false,
+        "properties": {
+          "annotations": {},
+          "approved": {
+            "$ref": "#/components/schemas/RemoteMCPToolVersion"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "pending",
+              "read_only",
+              "writes",
+              "blocked"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "inputSchema": {},
+          "modelName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "removed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "modelName",
+          "description",
+          "inputSchema",
+          "annotations",
+          "hash",
+          "decision",
+          "changed",
+          "removed"
+        ],
+        "type": "object"
+      },
+      "RemoteMCPToolDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "read_only",
+              "writes",
+              "blocked"
+            ],
+            "type": "string"
+          },
+          "hash": {
+            "description": "The hash of the description, schema and annotations reviewed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "hash"
+        ],
+        "type": "object"
+      },
+      "RemoteMCPToolVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "annotations": {},
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {}
+        },
+        "required": [
+          "description",
+          "inputSchema",
+          "annotations"
+        ],
+        "type": "object"
+      },
       "RemovalItem": {
         "additionalProperties": false,
         "properties": {
@@ -117829,6 +118270,73 @@
         "x-permission": "agency:usage"
       }
     },
+    "/api/v1/ai/mcp/oauth/callback": {
+      "get": {
+        "description": "The state must be the caller's, from the session that started the sign-in, unused and at most ten minutes old (400 mcp_oauth_state otherwise). Redirects to Settings › MCP servers with connected=1 or error=denied|token. Audited as mcp_server.connect.",
+        "operationId": "remote-mcp-oauth-callback",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "code",
+            "schema": {
+              "maxLength": 4000,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "error",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "See Other",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Where an OAuth MCP server's authorization server sends the person back",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "user"
+      }
+    },
     "/api/v1/auth/identify": {
       "post": {
         "operationId": "auth-identify",
@@ -123304,6 +123812,61 @@
         "x-permission": "ai:use"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai/assistant/mcp-servers": {
+      "get": {
+        "description": "Enabled servers for everyone with Use AI features or for the caller's role, with whether the caller still has to sign in (connected).",
+        "operationId": "list-ai-assistant-mcp-servers",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteMCPServerList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The MCP servers the caller may pick for their threads",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai/assistant/models": {
       "get": {
         "description": "Each says whether a thread can use it now, and why not.",
@@ -123769,6 +124332,93 @@
         "x-permission": "ai:use"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/confirmations/{confirmation}": {
+      "post": {
+        "description": "Only the thread's owner, as they are now. allow runs that exact call once (the tool must be as it was offered: changed, blocked or removed is a 409); deny tells the model it was refused. Either way the turn goes on. The same decision sent again changes nothing; another one, or one after Stop, is a 409 (ai_assistant_confirmation_closed). Audited as ai_assistant_confirmation.approved or .rejected, with the arguments' digest, never their content.",
+        "operationId": "decide-ai-thread-confirmation",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The call's confirmation id",
+            "in": "path",
+            "name": "confirmation",
+            "required": true,
+            "schema": {
+              "description": "The call's confirmation id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIThreadConfirmationDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Allow or deny a call of a writing MCP tool",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/contexts": {
       "post": {
         "description": "The caller must be able to read it; every later read checks again. A report's numbers are its fixed snapshot. Audited as ai_assistant_context.add.",
@@ -123922,6 +124572,82 @@
         "x-permission": "ai:use"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/mcp-servers": {
+      "put": {
+        "description": "Servers the caller may use now (list-ai-assistant-mcp-servers); their approved tools are offered after ReputeCast's own, within 40. Audited as ai_assistant_thread.updated.",
+        "operationId": "set-ai-thread-mcp-servers",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The thread's id",
+            "in": "path",
+            "name": "thread",
+            "required": true,
+            "schema": {
+              "description": "The thread's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIThreadServersInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIThread"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pick the MCP servers a thread may use",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai/assistant/threads/{thread}/messages": {
       "post": {
         "description": "The answer streams on the thread's events (stream-ai-thread). One turn answers at a time in a thread (409 while one does). A question about sender reputation, blocklists or placement gets the HostRepute card at once, without a model call. A retry with the same request key returns the thread. Audited as ai_assistant_turn.created, without the text.",
@@ -124056,6 +124782,39 @@
                   "description": "Each oneOf object in the array represents one possible Server Sent Events (SSE) message, serialized as UTF-8 text according to the SSE specification.",
                   "items": {
                     "oneOf": [
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/AIThreadConfirmationEvent"
+                          },
+                          "event": {
+                            "const": "confirmation",
+                            "description": "The event name.",
+                            "type": "string"
+                          },
+                          "id": {
+                            "description": "The event ID.",
+                            "oneOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "retry": {
+                            "description": "The retry time in milliseconds.",
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "data",
+                          "event"
+                        ],
+                        "title": "Event confirmation",
+                        "type": "object"
+                      },
                       {
                         "properties": {
                           "data": {
@@ -125645,6 +126404,533 @@
         ],
         "x-access": "workspace",
         "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers": {
+      "get": {
+        "description": "Never their secrets: headerSet and clientSecretSet say whether one is stored. A tool is offered to threads once a manager marked it read-only or writes at its current hash; changed says it moved since and is off.",
+        "operationId": "list-remote-mcp-servers",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteMCPServerList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The workspace's MCP servers and their tools",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:view"
+      },
+      "post": {
+        "description": "Streamable HTTP, or HTTP with SSE; never a local process. Its address must pass the SSRF guard. Authentication: none, a shared header (write-only), or OAuth per member. It has no tools until a sync. Audited as mcp_server.created, without secrets.",
+        "operationId": "create-remote-mcp-server",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoteMCPServerInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteMCPServer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a remote MCP server",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}": {
+      "delete": {
+        "description": "Threads stop offering its tools; a call waiting for confirmation fails. Audited as mcp_server.deleted.",
+        "operationId": "delete-remote-mcp-server",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The MCP server's id",
+            "in": "path",
+            "name": "server",
+            "required": true,
+            "schema": {
+              "description": "The MCP server's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove an MCP server, its tools and every member's sign-in to it",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      },
+      "patch": {
+        "description": "Audited as mcp_server.updated, without secrets.",
+        "operationId": "update-remote-mcp-server",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The MCP server's id",
+            "in": "path",
+            "name": "server",
+            "required": true,
+            "schema": {
+              "description": "The MCP server's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoteMCPServerUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteMCPServer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rename an MCP server, switch it, change who may use it or replace its secrets",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/oauth": {
+      "delete": {
+        "description": "Audited as mcp_server.disconnect.",
+        "operationId": "disconnect-remote-mcp-oauth",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The MCP server's id",
+            "in": "path",
+            "name": "server",
+            "required": true,
+            "schema": {
+              "description": "The MCP server's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove the caller's own sign-in to an OAuth MCP server",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      },
+      "post": {
+        "description": "Returns the authorization server's address to open in the browser; it sends the person back to remote-mcp-oauth-callback. The sign-in is the caller's only, and only from this session.",
+        "operationId": "start-remote-mcp-oauth",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The MCP server's id",
+            "in": "path",
+            "name": "server",
+            "required": true,
+            "schema": {
+              "description": "The MCP server's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteMCPOAuthStart"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Begin the caller's own sign-in to an OAuth MCP server",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/sync": {
+      "post": {
+        "description": "As the caller (an OAuth server needs their own sign-in). New tools wait for a decision; a tool whose description, schema or annotations changed after a decision is off, and managers are notified. Audited as mcp_server.updated.",
+        "operationId": "sync-remote-mcp-server",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The MCP server's id",
+            "in": "path",
+            "name": "server",
+            "required": true,
+            "schema": {
+              "description": "The MCP server's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteMCPServer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List an MCP server's tools into its catalog",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/mcp/servers/{server}/tools/{tool}": {
+      "put": {
+        "description": "At the hash the manager reviewed: a tool that changed since is a 409 (mcp_tool_reviewed). Annotations are the server's hints, not evidence. A read-only tool runs without asking; each call of a writing tool waits for its person's confirmation. Audited as mcp_tool.approved or mcp_tool.revoked.",
+        "operationId": "decide-remote-mcp-tool",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The MCP server's id",
+            "in": "path",
+            "name": "server",
+            "required": true,
+            "schema": {
+              "description": "The MCP server's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The tool's id",
+            "in": "path",
+            "name": "tool",
+            "required": true,
+            "schema": {
+              "description": "The tool's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoteMCPToolDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteMCPServer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Mark a tool read-only, writes or blocked",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
       }
     },
     "/api/v1/workspaces/{workspace}/ai/model": {

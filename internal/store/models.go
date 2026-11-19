@@ -299,6 +299,29 @@ type AiAgentStep struct {
 	UpdatedAt  time.Time       `json:"updatedAt"`
 }
 
+type AiAssistantConfirmation struct {
+	ID              uuid.UUID  `json:"id"`
+	ThreadID        uuid.UUID  `json:"threadId"`
+	TurnID          uuid.UUID  `json:"turnId"`
+	StepID          uuid.UUID  `json:"stepId"`
+	CallIndex       int32      `json:"callIndex"`
+	CallID          string     `json:"callId"`
+	ServerID        *uuid.UUID `json:"serverId"`
+	ToolID          *uuid.UUID `json:"toolId"`
+	ServerName      string     `json:"serverName"`
+	ToolName        string     `json:"toolName"`
+	ModelName       string     `json:"modelName"`
+	ToolHash        []byte     `json:"toolHash"`
+	ArgumentsSealed []byte     `json:"argumentsSealed"`
+	ArgumentsDigest []byte     `json:"argumentsDigest"`
+	DoneSealed      []byte     `json:"doneSealed"`
+	State           string     `json:"state"`
+	Decision        *string    `json:"decision"`
+	DecidedBy       *uuid.UUID `json:"decidedBy"`
+	DecidedAt       *time.Time `json:"decidedAt"`
+	CreatedAt       time.Time  `json:"createdAt"`
+}
+
 type AiAssistantContext struct {
 	ID             uuid.UUID `json:"id"`
 	ThreadID       uuid.UUID `json:"threadId"`
@@ -385,6 +408,11 @@ type AiAssistantThread struct {
 	ExpiresAt       time.Time  `json:"expiresAt"`
 }
 
+type AiAssistantThreadServer struct {
+	ThreadID uuid.UUID `json:"threadId"`
+	ServerID uuid.UUID `json:"serverId"`
+}
+
 type AiAssistantTurn struct {
 	ID         uuid.UUID  `json:"id"`
 	ThreadID   uuid.UUID  `json:"threadId"`
@@ -398,6 +426,7 @@ type AiAssistantTurn struct {
 	CreatedAt  time.Time  `json:"createdAt"`
 	StartedAt  *time.Time `json:"startedAt"`
 	EndedAt    *time.Time `json:"endedAt"`
+	QueuedAt   *time.Time `json:"queuedAt"`
 }
 
 type AiBudgetReservation struct {
@@ -2926,6 +2955,77 @@ type McpConnectToken struct {
 	Kind      string     `json:"kind"`
 	ExpiresAt time.Time  `json:"expiresAt"`
 	UsedAt    *time.Time `json:"usedAt"`
+}
+
+type McpOauthState struct {
+	ID             uuid.UUID  `json:"id"`
+	StateHash      []byte     `json:"stateHash"`
+	ServerID       uuid.UUID  `json:"serverId"`
+	UserID         uuid.UUID  `json:"userId"`
+	SessionID      uuid.UUID  `json:"sessionId"`
+	VerifierSealed []byte     `json:"verifierSealed"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	ExpiresAt      time.Time  `json:"expiresAt"`
+	UsedAt         *time.Time `json:"usedAt"`
+}
+
+type McpServer struct {
+	ID                    uuid.UUID  `json:"id"`
+	WorkspaceID           uuid.UUID  `json:"workspaceId"`
+	Key                   string     `json:"key"`
+	Name                  string     `json:"name"`
+	Url                   string     `json:"url"`
+	Transport             string     `json:"transport"`
+	Auth                  string     `json:"auth"`
+	HeaderName            string     `json:"headerName"`
+	HeaderSealed          []byte     `json:"headerSealed"`
+	ClientID              string     `json:"clientId"`
+	ClientSecretSealed    []byte     `json:"clientSecretSealed"`
+	ClientRegistered      bool       `json:"clientRegistered"`
+	Issuer                string     `json:"issuer"`
+	AuthorizationEndpoint string     `json:"authorizationEndpoint"`
+	TokenEndpoint         string     `json:"tokenEndpoint"`
+	Scopes                string     `json:"scopes"`
+	AccessRoles           []string   `json:"accessRoles"`
+	Enabled               bool       `json:"enabled"`
+	Status                string     `json:"status"`
+	StatusDetail          string     `json:"statusDetail"`
+	SyncedAt              *time.Time `json:"syncedAt"`
+	Revision              int64      `json:"revision"`
+	CreatedBy             *uuid.UUID `json:"createdBy"`
+	CreatedAt             time.Time  `json:"createdAt"`
+	UpdatedAt             time.Time  `json:"updatedAt"`
+}
+
+type McpToken struct {
+	ServerID      uuid.UUID  `json:"serverId"`
+	UserID        uuid.UUID  `json:"userId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	AccessSealed  []byte     `json:"accessSealed"`
+	RefreshSealed []byte     `json:"refreshSealed"`
+	ExpiresAt     *time.Time `json:"expiresAt"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+}
+
+type McpTool struct {
+	ID                  uuid.UUID       `json:"id"`
+	ServerID            uuid.UUID       `json:"serverId"`
+	Name                string          `json:"name"`
+	ModelName           string          `json:"modelName"`
+	Description         string          `json:"description"`
+	InputSchema         json.RawMessage `json:"inputSchema"`
+	Annotations         json.RawMessage `json:"annotations"`
+	Hash                []byte          `json:"hash"`
+	Decision            string          `json:"decision"`
+	ApprovedHash        []byte          `json:"approvedHash"`
+	DecidedBy           *uuid.UUID      `json:"decidedBy"`
+	DecidedAt           *time.Time      `json:"decidedAt"`
+	FirstSeenAt         time.Time       `json:"firstSeenAt"`
+	RemovedAt           *time.Time      `json:"removedAt"`
+	ApprovedDescription *string         `json:"approvedDescription"`
+	ApprovedInputSchema json.RawMessage `json:"approvedInputSchema"`
+	ApprovedAnnotations json.RawMessage `json:"approvedAnnotations"`
 }
 
 type MediaAsset struct {

@@ -416,6 +416,95 @@
     flex: 1;
     min-width: 0;
   }
+  /* The confirmation card (board .confirm) and the waiting line */
+  .asst-confirm {
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--ground-3);
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+  .asst-confirm:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .asst-confirm-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .asst-confirm-head strong {
+    overflow-wrap: anywhere;
+  }
+  .asst-confirm .sub {
+    margin: 0;
+  }
+  .asst-confirm-args {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+  .asst-confirm-args pre {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .asst-confirm-copy {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .asst-confirm-copy:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .asst-confirm-acts {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .asst-waiting {
+    flex-wrap: wrap;
+  }
+  .asst-waiting svg {
+    flex: none;
+  }
+  .asst-waiting a {
+    color: var(--accent);
+  }
+  .asst-warn-ic,
+  .asst-confirm-problem svg {
+    color: var(--warn-fg);
+    flex: none;
+  }
+  .asst-confirm-problem {
+    align-items: flex-start;
+    color: var(--ink-2);
+  }
+  .asst-menu-note {
+    font-size: 12px;
+    color: var(--ink-3);
+    padding: 6px 10px;
+  }
+  .asst-menu-action strong {
+    font-weight: 600;
+    color: var(--accent);
+  }
   .asst-status {
     display: flex;
     align-items: center;
@@ -754,8 +843,14 @@
   .asst-chip button,
   .asst-tool,
   .asst-iconbtn,
-  .asst-copy {
+  .asst-copy,
+  .asst-confirm-copy,
+  .asst-waiting a {
     min-height: 44px;
+  }
+  .asst-waiting a {
+    display: inline-flex;
+    align-items: center;
   }
   .asst-iconbtn,
   .asst-chip button {

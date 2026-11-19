@@ -193,6 +193,8 @@ func (s *Service) eventData(thread uuid.UUID, r store.AIAssistantEventsRow) (any
 		v = &AIThreadUsageEvent{}
 	case kindTool:
 		v = &AIThreadToolEvent{}
+	case kindConfirmation:
+		v = &AIThreadConfirmationEvent{}
 	default:
 		return nil, errors.New("assistant: unknown event kind " + r.Kind)
 	}

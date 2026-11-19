@@ -1,0 +1,32 @@
+{
+  "problem.unreachable": {
+    "message": "{server} didn't answer. Check that the server is running and its address is right, then try again.",
+    "note": "an MCP server couldn't be reached"
+  },
+  "problem.refused": "{server} refused ReputeCast's credentials. A manager can replace the shared secret in Settings › Integrations · MCP servers.",
+  "problem.elsewhere": {
+    "message": "{server} asked ReputeCast to send its requests to another address. They go only to the address entered for the server, so nothing was sent there. Check the server's address in Settings › Integrations · MCP servers.",
+    "note": "an MCP server (its HTTP with SSE endpoint) named another origin, or plain http for an https server; the request was refused"
+  },
+  "problem.signIn": {
+    "message": "Sign in to {server} to use its tools: your sign-in is missing or expired.",
+    "note": "OAuth per member; the panel offers Reconnect"
+  },
+  "problem.toolChanged": "{tool} changed or was removed since it was approved. A manager has to review it again before it runs.",
+  "problem.toolBlocked": "A manager blocked {tool}. It doesn't run.",
+  "problem.timeout": "{server} took too long to answer. Try again later.",
+  "problem.tooLarge": "{server} answered with more than {kb} KB. The result wasn't read.",
+  "problem.url": "This address can't be used: {reason}. Use the server's public https:// address.",
+  "problem.input": "Check the server's name, authentication and credentials: they don't fit together.",
+  "problem.state": "This sign-in link expired or was already used. Start the sign-in again from Settings › Integrations · MCP servers.",
+  "problem.oauth": {
+    "message": "{server}'s sign-in couldn't be set up: its authorization server didn't answer as expected. Check the address or enter a registered client.",
+    "note": "OAuth discovery, registration or token failure"
+  },
+  "problem.reviewed": "{tool} changed since you reviewed it. Review its new description and schema, then decide again.",
+  "notify.changedTitle": {
+    "message": "Tools of {server} changed",
+    "note": "notification to managers"
+  },
+  "notify.changedBody": "{count, plural, one {# tool} other {# tools}} of {server} changed after they were approved and are off until you review them."
+}

@@ -118,7 +118,9 @@ export const mm = defineMessages('ai.models', {
   contentKept: 'Content kept',
   contentKeptValue: '30 days after the last message',
   leavesTitle: 'What leaves the instance',
-  leavesBody: 'Only what a person attaches and confirms, and ReputeCast’s help articles. The model account’s own terms decide how the provider stores it.',
+  leavesBody: 'Only what a person attaches and confirms, ReputeCast’s help articles and the answers of approved MCP tools. MCP servers receive only the arguments of their own tools’ calls. The model account’s own terms decide how the provider stores it.',
+  // The link from the note to Settings › Integrations › MCP servers.
+  mcpLink: 'MCP servers and their approved tools',
   limitsFoot: 'Limits apply to threads started after a change. Answers already written stay readable when the assistant is off.',
   assistantOnToast: 'The assistant is on',
   assistantOffToast: 'The assistant is off',

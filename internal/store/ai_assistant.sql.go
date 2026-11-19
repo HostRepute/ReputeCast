@@ -612,7 +612,7 @@ func (q *Queries) AIAssistantStepSave(ctx context.Context, arg AIAssistantStepSa
 const aIAssistantSweepTurns = `-- name: AIAssistantSweepTurns :many
 SELECT t.id, t.thread_id, h.workspace_id FROM ai_assistant_turns t JOIN ai_assistant_threads h ON h.id = t.thread_id
 WHERE (t.state = 'answering' AND NOT EXISTS (SELECT 1 FROM ai_assistant_slots s WHERE s.turn_id = t.id AND s.expires_at > $1))
-   OR (t.state = 'queued' AND t.created_at < $2)
+   OR (t.state = 'queued' AND coalesce(t.queued_at, t.created_at) < $2::timestamptz)
 ORDER BY t.created_at LIMIT 100
 `
 
@@ -688,7 +688,7 @@ func (q *Queries) AIAssistantThread(ctx context.Context, arg AIAssistantThreadPa
 }
 
 const aIAssistantThreadActiveTurn = `-- name: AIAssistantThreadActiveTurn :one
-SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at FROM ai_assistant_turns WHERE thread_id = $1 AND state IN ('queued', 'answering', 'waiting')
+SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at, queued_at FROM ai_assistant_turns WHERE thread_id = $1 AND state IN ('queued', 'answering', 'waiting')
 `
 
 // The thread's turn that is queued, answering or waiting, if any.
@@ -708,6 +708,7 @@ func (q *Queries) AIAssistantThreadActiveTurn(ctx context.Context, threadID uuid
 		&i.CreatedAt,
 		&i.StartedAt,
 		&i.EndedAt,
+		&i.QueuedAt,
 	)
 	return i, err
 }
@@ -833,7 +834,7 @@ func (q *Queries) AIAssistantThreadInsert(ctx context.Context, arg AIAssistantTh
 }
 
 const aIAssistantThreadLastTurn = `-- name: AIAssistantThreadLastTurn :one
-SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at FROM ai_assistant_turns WHERE thread_id = $1 ORDER BY sequence DESC LIMIT 1
+SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at, queued_at FROM ai_assistant_turns WHERE thread_id = $1 ORDER BY sequence DESC LIMIT 1
 `
 
 func (q *Queries) AIAssistantThreadLastTurn(ctx context.Context, threadID uuid.UUID) (AiAssistantTurn, error) {
@@ -852,6 +853,7 @@ func (q *Queries) AIAssistantThreadLastTurn(ctx context.Context, threadID uuid.U
 		&i.CreatedAt,
 		&i.StartedAt,
 		&i.EndedAt,
+		&i.QueuedAt,
 	)
 	return i, err
 }
@@ -1103,7 +1105,7 @@ func (q *Queries) AIAssistantTombstonesPurge(ctx context.Context, before time.Ti
 }
 
 const aIAssistantTurnByRequest = `-- name: AIAssistantTurnByRequest :one
-SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at FROM ai_assistant_turns WHERE thread_id = $1 AND request_key = $2
+SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at, queued_at FROM ai_assistant_turns WHERE thread_id = $1 AND request_key = $2
 `
 
 type AIAssistantTurnByRequestParams struct {
@@ -1127,6 +1129,7 @@ func (q *Queries) AIAssistantTurnByRequest(ctx context.Context, arg AIAssistantT
 		&i.CreatedAt,
 		&i.StartedAt,
 		&i.EndedAt,
+		&i.QueuedAt,
 	)
 	return i, err
 }
@@ -1191,7 +1194,7 @@ const aIAssistantTurnInsert = `-- name: AIAssistantTurnInsert :one
 INSERT INTO ai_assistant_turns (id, thread_id, sequence, model_id, state, reason, request_key, created_at, ended_at)
 SELECT $1, $2, coalesce(max(sequence), 0) + 1, $3, $4, $5, $6, $7, $8
 FROM ai_assistant_turns WHERE thread_id = $2
-RETURNING id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at
+RETURNING id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at, queued_at
 `
 
 type AIAssistantTurnInsertParams struct {
@@ -1230,12 +1233,13 @@ func (q *Queries) AIAssistantTurnInsert(ctx context.Context, arg AIAssistantTurn
 		&i.CreatedAt,
 		&i.StartedAt,
 		&i.EndedAt,
+		&i.QueuedAt,
 	)
 	return i, err
 }
 
 const aIAssistantTurnLock = `-- name: AIAssistantTurnLock :one
-SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at FROM ai_assistant_turns WHERE thread_id = $1 AND id = $2 FOR UPDATE
+SELECT id, thread_id, sequence, model_id, version, state, reason, request_key, retry_of, created_at, started_at, ended_at, queued_at FROM ai_assistant_turns WHERE thread_id = $1 AND id = $2 FOR UPDATE
 `
 
 type AIAssistantTurnLockParams struct {
@@ -1259,6 +1263,7 @@ func (q *Queries) AIAssistantTurnLock(ctx context.Context, arg AIAssistantTurnLo
 		&i.CreatedAt,
 		&i.StartedAt,
 		&i.EndedAt,
+		&i.QueuedAt,
 	)
 	return i, err
 }

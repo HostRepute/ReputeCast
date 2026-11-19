@@ -12,7 +12,7 @@ export interface ThreadStream {
   reconnect: () => void
 }
 
-const KINDS = ['snapshot', 'turn', 'delta', 'tool', 'message', 'usage', 'problem'] as const
+const KINDS = ['snapshot', 'turn', 'delta', 'tool', 'message', 'usage', 'confirmation', 'problem'] as const
 
 /**
  * The server says something at least every 15 s (a heartbeat while nothing

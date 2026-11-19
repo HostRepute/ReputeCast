@@ -592,12 +592,18 @@ func (s *Service) LeaveWorkspace(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		// So do their sign-ins to the assistant's MCP servers.
+		mcpSignIns, err := q.MCPTokensRemove(ctx, store.MCPTokensRemoveParams{UserID: u.ID, WorkspaceID: &wsID})
+		if err != nil {
+			return err
+		}
 		// Their assistant threads there go, content and all.
 		threads, err := q.AIAssistantThreadsRemove(ctx, store.AIAssistantThreadsRemoveParams{WorkspaceID: wsID, UserID: u.ID})
 		if err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "member.leave", TargetType: "member", TargetID: m.ID.String(), TargetName: u.Email,
-			Before: map[string]any{"role": m.RoleKey}, Metadata: map[string]any{"api_keys_revoked": keys, "personal_ai_keys_removed": aiKeys, "assistant_threads_removed": threads}})
+			Before: map[string]any{"role": m.RoleKey}, Metadata: map[string]any{"api_keys_revoked": keys, "personal_ai_keys_removed": aiKeys,
+				"mcp_sign_ins_removed": mcpSignIns, "assistant_threads_removed": threads}})
 	})
 }

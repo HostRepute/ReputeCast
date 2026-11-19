@@ -13,6 +13,7 @@ export type ToolRow = Schemas['AIThreadToolRow']
 export type ThreadUsage = Schemas['AIThreadUsage']
 export type ThreadContext = Schemas['AIThreadContext']
 export type StreamProblem = Schemas['AIThreadStreamProblem']
+export type Confirmation = Schemas['AIThreadConfirmation']
 
 export type StreamEvent =
   | { type: 'snapshot'; id: number; data: Schemas['AIThreadSnapshotEvent'] }
@@ -21,6 +22,7 @@ export type StreamEvent =
   | { type: 'tool'; id: number; data: Schemas['AIThreadToolEvent'] }
   | { type: 'message'; id: number; data: Schemas['AIThreadMessageEvent'] }
   | { type: 'usage'; id: number; data: Schemas['AIThreadUsageEvent'] }
+  | { type: 'confirmation'; id: number; data: Schemas['AIThreadConfirmationEvent'] }
   | { type: 'problem'; id: number; data: StreamProblem }
 
 export interface ThreadState {
@@ -38,6 +40,12 @@ export interface ThreadState {
    * the panel shows it until the thread is read again.
    */
   stopped?: { turnId: string; text: string }
+  /**
+   * The call of a writing MCP tool the latest turn waits on, or decided:
+   * pending, the card asks the person; decided, the thread says so until
+   * the turn goes on.
+   */
+  confirmation?: Confirmation
   /** The person's message on its way, shown before the server has it. */
   pending?: string
   /** The last event applied: a resumed stream starts after it. */
@@ -77,7 +85,9 @@ function fromThread(s: ThreadState, thread: Thread, id: number): ThreadState {
   // A stopped turn keeps what it wrote on screen (the server saves none of it).
   const wrote = s.stopped ?? (s.live?.text ? s.live : undefined)
   const stopped = wrote && turn?.id === wrote.turnId && turn.state === 'stopped' ? wrote : undefined
-  return { ...s, thread, messages: thread.messages, turn, usage: thread.usage, live, tools: [], toolsTurn: undefined, stopped, pending, lastId: Math.max(id, 0), problem: undefined }
+  // A thread read while its turn waits has the call; otherwise a decided one of the same turn stays.
+  const confirmation = thread.confirmation ?? (s.confirmation && s.confirmation.turnId === turn?.id && s.confirmation.state !== 'pending' ? s.confirmation : undefined)
+  return { ...s, thread, messages: thread.messages, turn, usage: thread.usage, live, tools: [], toolsTurn: undefined, stopped, pending, confirmation, lastId: Math.max(id, 0), problem: undefined }
 }
 
 function applyEvent(s: ThreadState, e: StreamEvent): ThreadState {
@@ -101,7 +111,10 @@ function applyEvent(s: ThreadState, e: StreamEvent): ThreadState {
       }
       if (live && live.turnId !== turn.id) live = undefined
       const tools = s.toolsTurn && s.toolsTurn !== turn.id ? [] : s.tools
-      return { ...s, turn, live, stopped, tools, lastId }
+      // Another turn's call is over; a turn that ended without a decision closed its call.
+      let confirmation = s.confirmation && s.confirmation.turnId === turn.id ? s.confirmation : undefined
+      if (confirmation && confirmation.state === 'pending' && !turnActive(turn)) confirmation = undefined
+      return { ...s, turn, live, stopped, tools, confirmation, lastId }
     }
     case 'delta': {
       const { turnId, text } = e.data
@@ -129,6 +142,8 @@ function applyEvent(s: ThreadState, e: StreamEvent): ThreadState {
     }
     case 'usage':
       return { ...s, usage: e.data.usage, lastId }
+    case 'confirmation':
+      return { ...s, confirmation: e.data.confirmation, lastId }
   }
 }
 

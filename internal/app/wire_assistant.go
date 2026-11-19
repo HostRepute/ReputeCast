@@ -21,7 +21,7 @@ func (a *App) Assistant() *assistant.Service {
 	if v, ok := assistants.Load(a); ok {
 		return v.(*assistant.Service)
 	}
-	s := &assistant.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, AI: a.ai(), Log: a.Log,
+	s := &assistant.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, AI: a.ai(), MCP: a.MCPClient(), Log: a.Log,
 		Jobs: func() *jobs.Client { return a.Jobs },
 		Hub:  &assistant.Hub{Pool: a.Pool, Log: a.Log}}
 	v, _ := assistants.LoadOrStore(a, s)

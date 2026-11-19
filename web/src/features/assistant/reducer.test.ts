@@ -1,6 +1,6 @@
-import { buildItems } from './Conversation'
+import { buildItems, mcpOf } from './Conversation'
 import { streamBlocks } from './Markdown'
-import { initialThreadState, threadReducer, type StreamEvent, type Thread, type ThreadMessage, type ThreadState, type ThreadTurn } from './reducer'
+import { initialThreadState, threadReducer, type Confirmation, type StreamEvent, type Thread, type ThreadMessage, type ThreadState, type ThreadTurn } from './reducer'
 
 const at = '2026-11-17T10:00:00Z'
 const turn = (state: ThreadTurn['state'], extra: Partial<ThreadTurn> = {}): ThreadTurn => ({ id: 't1', sequence: 1, state, createdAt: at, ...extra })
@@ -18,6 +18,7 @@ const thread = (extra: Partial<Thread> = {}): Thread => ({
   limits: { toolCalls: 40, tokens: 300000, costMicros: 2000000 },
   usage,
   contexts: [],
+  mcpServerIds: [],
   messages: [msg('u1', 'user', 'Why did opens fall?')],
   turn: turn('queued'),
   ...extra,
@@ -92,6 +93,43 @@ describe('threadReducer', () => {
     const s = run(initialThreadState, snap(2), { type: 'problem', id: 0, data: { status: 409, code: 'ai_assistant_off', detail: 'off' } })
     expect(s.problem?.code).toBe('ai_assistant_off')
   })
+
+  const conf = (state: Confirmation['state'], extra: Partial<Confirmation> = {}): Confirmation => ({
+    id: 'c1',
+    turnId: 't1',
+    serverId: 's1',
+    serverName: 'Linear',
+    tool: 'create_issue',
+    modelName: 'mcp__linear__create_issue',
+    arguments: { title: 'Compare subjects' },
+    state,
+    createdAt: at,
+    ...extra,
+  })
+  const confEv = (id: number, c: Confirmation): StreamEvent => ({ type: 'confirmation', id, data: { confirmation: c } })
+
+  it('keeps the call a waiting turn asks about, then its decision until the turn goes on', () => {
+    let s = run(initialThreadState, snap(2), turnEv(3, turn('answering')), confEv(4, conf('pending')), turnEv(5, turn('waiting')))
+    expect(s.confirmation?.state).toBe('pending')
+    expect(s.turn?.state).toBe('waiting')
+    s = run(s, confEv(6, conf('allowed', { decision: 'allow' })), turnEv(7, turn('queued')))
+    expect(s.confirmation?.state).toBe('allowed')
+    // The next turn has nothing to confirm.
+    s = run(s, turnEv(8, turn('done')), turnEv(9, turn('queued', { id: 't2', sequence: 2 })))
+    expect(s.confirmation).toBeUndefined()
+  })
+
+  it('takes the call from a snapshot of a waiting thread, and drops it when the turn ended unanswered', () => {
+    let s = run(initialThreadState, snap(2, thread({ turn: turn('waiting'), confirmation: conf('pending') })))
+    expect(s.confirmation?.id).toBe('c1')
+    // Stopped while it waited: the call is closed.
+    s = run(s, turnEv(3, turn('stopped')))
+    expect(s.confirmation).toBeUndefined()
+    // A thread read again after a decision keeps the decided call of its turn.
+    s = run(initialThreadState, snap(2, thread({ turn: turn('waiting'), confirmation: conf('pending') })), confEv(3, conf('denied', { decision: 'deny' })))
+    s = threadReducer(s, { type: 'thread', thread: thread({ eventSeq: 4, turn: turn('queued') }) })
+    expect(s.confirmation?.state).toBe('denied')
+  })
 })
 
 describe('buildItems', () => {
@@ -122,5 +160,13 @@ describe('streamBlocks', () => {
   it('splits a streaming answer at blank lines, never inside a code fence', () => {
     const text = 'First paragraph.\n\n```liquid\nHi {{ name }}\n\nBye\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\nLast, still arriv'
     expect(streamBlocks(text)).toEqual(['First paragraph.\n\n', '```liquid\nHi {{ name }}\n\nBye\n```\n\n', '| a | b |\n|---|---|\n| 1 | 2 |\n\n', 'Last, still arriv'])
+  })
+})
+
+describe('mcpOf', () => {
+  it('labels an MCP row "Server · tool" from its label, else from its key', () => {
+    expect(mcpOf({ name: 'mcp__linear__create_issue', label: 'Linear · create_issue' })).toEqual({ key: 'linear', server: 'Linear', tool: 'create_issue', label: 'Linear · create_issue' })
+    expect(mcpOf({ name: 'mcp__wiki__search' })?.label).toBe('wiki · search')
+    expect(mcpOf({ name: 'read_report', label: 'September' })).toBeUndefined()
   })
 })

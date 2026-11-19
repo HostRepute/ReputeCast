@@ -620,6 +620,11 @@ func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.Ss
 	if err != nil {
 		return err
 	}
+	// So do their sign-ins to the assistant's MCP servers.
+	mcpSignIns, err := q.MCPTokensRemove(ctx, store.MCPTokensRemoveParams{UserID: u.ID, WorkspaceID: &ws})
+	if err != nil {
+		return err
+	}
 	// Their assistant threads there go, content and all.
 	threads, err := q.AIAssistantThreadsRemove(ctx, store.AIAssistantThreadsRemoveParams{WorkspaceID: ws, UserID: u.ID})
 	if err != nil {
@@ -633,7 +638,7 @@ func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.Ss
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: "member.removed", TargetType: "member", TargetID: c.MemberID.String(), TargetName: displayName(u),
 		Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
 		Before:   map[string]any{"email": u.Email, "role": c.FromName, "status": "active"},
-		After:    map[string]any{"keys_revoked": names, "personal_ai_keys_removed": aiKeys, "assistant_threads_removed": threads},
+		After:    map[string]any{"keys_revoked": names, "personal_ai_keys_removed": aiKeys, "mcp_sign_ins_removed": mcpSignIns, "assistant_threads_removed": threads},
 		Metadata: meta})
 }
 

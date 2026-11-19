@@ -4,8 +4,10 @@ import { ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { useT } from '@/i18n'
 import { HOSTREPUTE } from '@/lib/hostrepute'
 import { useWorkspace } from '@/lib/session'
+import { splitModelName } from '@/features/mcpservers/api'
 import { AsstIcon } from './icons'
 import { MarkdownText, StreamingMarkdown } from './Markdown'
+import { mx } from './mcp.messages'
 import { m } from './messages'
 import { turnActive, type ThreadMessage, type ThreadState, type ToolRow } from './reducer'
 import { StateCard } from './states'
@@ -51,10 +53,29 @@ export function buildItems(s: ThreadState): Item[] {
 
 const knownTools = new Set(['read_report', 'read_attached', 'search_help', 'describe_screen', 'suggest_link', 'propose_edit', 'draft_agent_task', 'subject_ideas', 'rewrite'])
 
-/** "Read report · September Product Update · 0.3 s" */
+/**
+ * An MCP tool's row: its server and tool, from its label ("Linear ·
+ * create_issue") and its name for the model (mcp__linear__create_issue).
+ */
+export function mcpOf(row: Pick<ToolRow, 'name' | 'label'>): { key: string; server: string; tool: string; label: string } | undefined {
+  const x = splitModelName(row.name)
+  if (!x) return undefined
+  const suffix = ` · ${x.tool}`
+  const server = row.label && row.label.endsWith(suffix) ? row.label.slice(0, -suffix.length) : x.key
+  return { key: x.key, server, tool: x.tool, label: `${server}${suffix}` }
+}
+
+/** "Read report · September Product Update · 0.3 s"; "Linear · search_issues · 1.2 s". */
 function useToolLine() {
   const t = useT()
   return (row: ToolRow) => {
+    const mcp = mcpOf(row)
+    if (mcp) {
+      if (row.code === 'denied') return t(mx.rowDenied, { label: mcp.label, server: mcp.server })
+      if (row.code === 'outcome_unknown') return t(mx.rowUnknown, { label: mcp.label, server: mcp.server })
+      const line = row.ok ? mcp.label : t(mx.rowProblem, { label: mcp.label, code: row.code ?? '' })
+      return row.ms >= 100 ? `${line} · ${t(m.seconds, { s: (row.ms / 1000).toFixed(1) })}` : line
+    }
     const verb = knownTools.has(row.name) ? t(m.tool, { name: row.name }) : row.name
     const parts = [verb]
     if (row.ok) {
@@ -167,7 +188,8 @@ function Answer({ item }: { item: Extract<Item, { kind: 'answer' }> }) {
       {cards.map((c, i) => (
         <HandoffCard key={i} card={c} />
       ))}
-      {streaming && !item.live ? (
+      {/* A waiting turn says so under the conversation, with its card. */}
+      {streaming && !item.live && item.status !== 'waiting' ? (
         <p className="asst-status">
           <span className="asst-pulse" aria-hidden="true" />
           {item.status === 'queued' ? t(m.queued) : t(m.answering)}

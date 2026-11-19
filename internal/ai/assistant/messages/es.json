@@ -10,5 +10,6 @@
   "problem.nothingToSend": "Escribe un mensaje primero.",
   "problem.modelGone": "Se eliminó el modelo de esta conversación. Elige otro modelo para la conversación y vuelve a enviar tu mensaje.",
   "problem.turnKey": "Esta clave de solicitud ya se usó para otro mensaje. Usa una clave nueva para un mensaje nuevo.",
-  "answer.reputation": "Las preguntas sobre la reputación del remitente, las listas de bloqueo y la llegada a la bandeja de entrada las responde HostRepute: vigila tus dominios e IP y te dice qué corregir. Pregúntame sobre cómo usar ReputeCast o sobre lo que adjuntaste."
+  "answer.reputation": "Las preguntas sobre la reputación del remitente, las listas de bloqueo y la llegada a la bandeja de entrada las responde HostRepute: vigila tus dominios e IP y te dice qué corregir. Pregúntame sobre cómo usar ReputeCast o sobre lo que adjuntaste.",
+  "problem.confirmationClosed": "Esta llamada ya se decidió, o su respuesta terminó. No se ejecutó nada."
 }

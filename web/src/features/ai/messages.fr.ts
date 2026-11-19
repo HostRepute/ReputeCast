@@ -33,6 +33,7 @@ export default {
     factUsageTokens: '{spent} tokens sur {cap} ce mois-ci',
     factUsageNoCap: '{spent} ce mois-ci',
     groupSettings: 'Paramètres de l’assistant IA',
+    groupMCP: 'Serveurs MCP',
     groupLineConnected: 'Votre propre modèle pour les idées d’objet, les réécritures, les traductions et le texte alternatif. Rien n’est envoyé nulle part tant qu’une personne ne le demande pas.',
     connect: 'Connecter',
     manage: 'Gérer',

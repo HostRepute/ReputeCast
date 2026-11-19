@@ -2,8 +2,10 @@ package assistant
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -110,6 +112,8 @@ type turnRun struct {
 	upto       int32
 	rounds     int
 	summarized bool
+	// resume: the turn goes on after its owner decided on a call.
+	resume *resume
 }
 
 // Why a worker cut its own stream.
@@ -219,7 +223,26 @@ func (s *Service) claim(ctx context.Context, q *store.Queries, ws *store.Workspa
 		return nil, false, err
 	}
 	run := &turnRun{thread: t, turn: turn, owner: fresh, model: m, lease: lease}
-	if err := s.prepareRound(ctx, q, ws, run); err != nil {
+	conf, err := q.AIAssistantConfirmationOpen(ctx, turn.ID)
+	switch {
+	case err == nil && conf.State != "pending":
+		// The owner decided on a call: the round goes on from it, with no
+		// new request until its calls ran.
+		rd, err := s.openRound(conf)
+		if err != nil {
+			return nil, false, err
+		}
+		step, err := q.AIAssistantStepLast(ctx, turn.ID)
+		if err != nil {
+			return nil, false, err
+		}
+		run.resume, run.step, run.rounds = &resume{conf: conf, round: rd}, conf.StepID, int(step.Sequence)
+	case err != nil && !errors.Is(err, pgx.ErrNoRows):
+		return nil, false, err
+	default:
+		err = s.prepareRound(ctx, q, ws, run)
+	}
+	if err != nil {
 		if err := q.AIAssistantSlotRelease(ctx, store.AIAssistantSlotReleaseParams{TurnID: turn.ID, LeaseID: lease}); err != nil {
 			return nil, false, err
 		}
@@ -292,17 +315,22 @@ func (s *Service) lockActive(ctx context.Context, q *store.Queries, ws *store.Wo
 // now, while the turn stays this worker's and the thread's tool-call
 // ceiling allows; then saves their results for the next request. A call
 // past the ceiling doesn't run: the model reads tool_limit, and its next
-// request offers no tools.
-func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, calls []llm.ToolCall) (bool, error) {
-	results := []llm.Part{}
-	rows := []AIThreadToolRow{}
-	for _, call := range calls {
-		allowed := false
-		c := &toolCall{ws: ws, owner: run.owner, args: call.Arguments}
+// request offers no tools. A call of a tool that writes outside
+// ReputeCast stops the turn until its owner decides (it isn't this
+// worker's any more: false); the turn's next job goes on from that call
+// (conf), which runs at most once: it is marked calling, committed,
+// before it is sent, and a call found calling is never sent again.
+func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun, rd round, conf *store.AiAssistantConfirmation) (bool, error) {
+	for i := len(rd.Results); i < len(rd.Calls); i++ {
+		call := rd.Calls[i]
+		decided := conf != nil && int(conf.CallIndex) == i
+		// What happens to the call: run, paused, or a code the model reads.
+		do, code := "", "tool_limit"
+		c := &toolCall{ws: ws, owner: run.owner, callID: call.ID, args: call.Arguments}
 		active := false
 		err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
-			t, _, ok, err := s.lockActive(ctx, q, ws, args, run)
+			t, turn, ok, err := s.lockActive(ctx, q, ws, args, run)
 			if err != nil || !ok {
 				return err
 			}
@@ -315,26 +343,76 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			if c.contexts, err = q.AIAssistantContexts(ctx, t.ID); err != nil {
 				return err
 			}
+			if decided {
+				cur, err := q.AIAssistantConfirmationLock(ctx, store.AIAssistantConfirmationLockParams{ThreadID: t.ID, ID: conf.ID})
+				if err != nil {
+					return err
+				}
+				*conf = cur
+				switch {
+				case cur.State == "denied":
+					code = "denied"
+					return nil
+				case cur.State == "calling":
+					// Sent before, by a worker that was lost: never again.
+					code = "outcome_unknown"
+					return nil
+				case cur.State != "allowed":
+					code = "not_available"
+					return nil
+				case t.ToolCalls >= t.ToolLimit:
+					return nil
+				}
+				if err := q.AIAssistantConfirmationSet(ctx, store.AIAssistantConfirmationSetParams{ID: cur.ID, State: "calling"}); err != nil {
+					return err
+				}
+				do = "run"
+				return q.AIAssistantThreadToolCall(ctx, t.ID)
+			}
 			if t.ToolCalls >= t.ToolLimit {
 				return nil
 			}
-			allowed = true
+			offered, err := s.offered(ctx, q, ws, fresh, t.ID, c.contexts)
+			if err != nil {
+				return err
+			}
+			if j := slices.IndexFunc(offered, func(x ToolSpec) bool { return x.Name == call.Name }); j >= 0 && offered[j].Confirm {
+				do = "pause"
+				return s.pause(ctx, q, run, turn, rd, i, offered[j])
+			}
+			do = "run"
 			return q.AIAssistantThreadToolCall(ctx, t.ID)
 		})
-		if err != nil || !active || c.thread.ID == uuid.Nil {
+		if err != nil || !active || c.thread.ID == uuid.Nil || do == "pause" {
 			return false, err
 		}
 		start := time.Now()
-		r, content := toolResult{code: "tool_limit"}, envelope(call.Name, toolResult{code: "tool_limit"})
-		if allowed {
-			r, content = s.runTool(ctx, s.Q, c, call.Name)
+		r, content := failed(code), json.RawMessage(nil)
+		if do == "run" {
+			var confirmed *store.AiAssistantConfirmation
+			if decided {
+				confirmed = conf
+			}
+			r, content = s.runTool(ctx, s.Q, c, call.Name, confirmed)
+		} else {
+			if decided {
+				// A denied or half-sent call is still named by its server and tool.
+				r.label = conf.ServerName + " · " + conf.ToolName
+			}
+			content = envelope(call.Name, r)
 		}
 		row := AIThreadToolRow{CallID: call.ID, Name: call.Name, OK: r.code == "", Code: r.code, Ms: time.Since(start).Milliseconds(), Label: clip(r.label, 120), Card: r.card}
-		results = append(results, llm.Part{ToolResult: &llm.ToolResult{ID: call.ID, Name: call.Name, Content: content, IsError: r.code != ""}})
-		rows = append(rows, row)
+		rd.Results = append(rd.Results, llm.Part{ToolResult: &llm.ToolResult{ID: call.ID, Name: call.Name, Content: content, IsError: r.code != ""}})
+		rd.Rows = append(rd.Rows, row)
 		active = false
 		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
+			if decided {
+				// Done, whatever happened next: the call is never sent again.
+				if err := q.AIAssistantConfirmationSet(ctx, store.AIAssistantConfirmationSetParams{ID: conf.ID, State: "done"}); err != nil {
+					return err
+				}
+			}
 			t, turn, ok, err := s.lockActive(ctx, q, ws, args, run)
 			if err != nil || !ok {
 				return err
@@ -354,7 +432,7 @@ func (s *Service) runTools(ctx context.Context, ws *store.Workspace, args TurnAr
 			return err
 		}
 		active = true
-		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "tool", turn.ModelID, messageContent{Results: results, Tools: rows})
+		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "tool", turn.ModelID, messageContent{Results: rd.Results, Tools: rd.Rows})
 		if err != nil {
 			return err
 		}
@@ -470,6 +548,15 @@ func providerReason(err error) string {
 // streams its answer and is saved; one that calls tools runs them, then
 // the next request goes with their results.
 func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs, run *turnRun) error {
+	if r := run.resume; r != nil {
+		run.resume = nil
+		if ok, err := s.runTools(ctx, ws, args, run, r.round, &r.conf); err != nil || !ok {
+			return err
+		}
+		if ok, err := s.nextRound(ctx, ws, args, run); err != nil || !ok {
+			return err
+		}
+	}
 	for {
 		r := s.send(ctx, ws, run)
 		calls, more, err := s.checkpoint(ctx, ws, args, run, r)
@@ -481,7 +568,7 @@ func (s *Service) answer(ctx context.Context, ws *store.Workspace, args TurnArgs
 			return nil
 		}
 		if len(calls) > 0 {
-			if ok, err := s.runTools(ctx, ws, args, run, calls); err != nil || !ok {
+			if ok, err := s.runTools(ctx, ws, args, run, round{Calls: calls, Results: []llm.Part{}, Rows: []AIThreadToolRow{}}, nil); err != nil || !ok {
 				return err
 			}
 		}
@@ -838,7 +925,11 @@ func (s *Service) Sweep(ctx context.Context) (int, error) {
 				}
 				return s.interrupt(ctx, q, t, &turn)
 			case "queued":
-				if !turn.CreatedAt.Before(now.Add(-queueTimeout)) {
+				queued := turn.CreatedAt
+				if turn.QueuedAt != nil {
+					queued = *turn.QueuedAt
+				}
+				if !queued.Before(now.Add(-queueTimeout)) {
 					return nil
 				}
 				return s.endTurn(ctx, q, &turn, "failed", "not_started")

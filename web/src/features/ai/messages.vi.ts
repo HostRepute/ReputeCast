@@ -39,6 +39,7 @@ export default {
     factUsageTokens: '{spent} trên {cap} token tháng này',
     factUsageNoCap: '{spent} tháng này',
     groupSettings: 'Cài đặt trợ lý AI',
+    groupMCP: 'Máy chủ MCP',
     groupLineConnected: 'Mô hình của riêng bạn cho gợi ý tiêu đề, viết lại, dịch và văn bản thay thế. Không có gì được gửi đi cho đến khi có người yêu cầu.',
     connect: 'Kết nối',
     manage: 'Quản lý',

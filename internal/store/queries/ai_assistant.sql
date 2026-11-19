@@ -177,7 +177,7 @@ DELETE FROM ai_assistant_slots WHERE turn_id = @turn_id;
 -- gone).
 SELECT t.id, t.thread_id, h.workspace_id FROM ai_assistant_turns t JOIN ai_assistant_threads h ON h.id = t.thread_id
 WHERE (t.state = 'answering' AND NOT EXISTS (SELECT 1 FROM ai_assistant_slots s WHERE s.turn_id = t.id AND s.expires_at > @now))
-   OR (t.state = 'queued' AND t.created_at < @queued_before)
+   OR (t.state = 'queued' AND coalesce(t.queued_at, t.created_at) < @queued_before::timestamptz)
 ORDER BY t.created_at LIMIT 100;
 
 -- name: AIAssistantThreadToolCall :exec

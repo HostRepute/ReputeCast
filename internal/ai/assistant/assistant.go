@@ -65,7 +65,9 @@ type Service struct {
 	Audit *audit.Logger
 	Box   *secrets.Box
 	AI    Models
-	Log   *slog.Logger
+	// MCP is the remote MCP servers' tools (nil: none).
+	MCP Servers
+	Log *slog.Logger
 	// Jobs enqueues turns (any role's client can insert).
 	Jobs func() *jobs.Client
 	// Hub wakes this process's streams; one per process.
@@ -109,31 +111,33 @@ var messagesFS embed.FS
 var msgs = i18n.MustLoad(messagesFS, "assistant")
 
 var (
-	mOff           = msgs.M("problem.off")
-	mRequestKey    = msgs.M("problem.requestKey")
-	mSharingReview = msgs.M("problem.sharingReview")
-	mContextsFull  = msgs.M("problem.contextsFull")
-	mExpired       = msgs.M("problem.expired")
-	mNothingToSave = msgs.M("problem.nothingToSave")
-	mCursor        = msgs.M("problem.cursor")
-	mTurnActive    = msgs.M("problem.turnActive")
-	mNothingToSend = msgs.M("problem.nothingToSend")
-	mModelGone     = msgs.M("problem.modelGone")
-	mTurnKey       = msgs.M("problem.turnKey")
-	mReputation    = msgs.M("answer.reputation")
+	mOff                = msgs.M("problem.off")
+	mRequestKey         = msgs.M("problem.requestKey")
+	mSharingReview      = msgs.M("problem.sharingReview")
+	mContextsFull       = msgs.M("problem.contextsFull")
+	mExpired            = msgs.M("problem.expired")
+	mNothingToSave      = msgs.M("problem.nothingToSave")
+	mCursor             = msgs.M("problem.cursor")
+	mTurnActive         = msgs.M("problem.turnActive")
+	mNothingToSend      = msgs.M("problem.nothingToSend")
+	mModelGone          = msgs.M("problem.modelGone")
+	mTurnKey            = msgs.M("problem.turnKey")
+	mConfirmationClosed = msgs.M("problem.confirmationClosed")
+	mReputation         = msgs.M("answer.reputation")
 )
 
 // Error codes of the assistant's problems.
 const (
-	codeOff           = "ai_assistant_off"
-	codeRequestKey    = "ai_assistant_request_key"
-	codeSharingReview = "ai_assistant_sharing_review"
-	codeContextsFull  = "ai_assistant_contexts_full"
-	codeExpired       = "ai_assistant_thread_expired"
-	codeNothingToSave = "ai_assistant_nothing_to_save"
-	codeTurnActive    = "ai_assistant_turn_active"
-	codeModelGone     = "ai_assistant_model_gone"
-	codeTurnKey       = "ai_assistant_turn_key"
+	codeOff                = "ai_assistant_off"
+	codeRequestKey         = "ai_assistant_request_key"
+	codeSharingReview      = "ai_assistant_sharing_review"
+	codeContextsFull       = "ai_assistant_contexts_full"
+	codeExpired            = "ai_assistant_thread_expired"
+	codeNothingToSave      = "ai_assistant_nothing_to_save"
+	codeTurnActive         = "ai_assistant_turn_active"
+	codeModelGone          = "ai_assistant_model_gone"
+	codeTurnKey            = "ai_assistant_turn_key"
+	codeConfirmationClosed = "ai_assistant_confirmation_closed"
 )
 
 func problem(ctx context.Context, status int, code string, m i18n.Msg, args i18n.Args) *api.Problem {

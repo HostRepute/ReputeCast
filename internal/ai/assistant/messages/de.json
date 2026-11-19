@@ -10,5 +10,6 @@
   "problem.nothingToSend": "Schreiben Sie zuerst eine Nachricht.",
   "problem.modelGone": "Das Modell dieses Verlaufs wurde entfernt. Wählen Sie ein anderes Modell für den Verlauf und senden Sie Ihre Nachricht dann erneut.",
   "problem.turnKey": "Dieser Anfrageschlüssel wurde schon für eine andere Nachricht verwendet. Verwenden Sie für eine neue Nachricht einen neuen Schlüssel.",
-  "answer.reputation": "Fragen zur Absenderreputation, zu Blocklisten und zur Zustellung in den Posteingang beantwortet HostRepute: Es überwacht Ihre Domains und IP-Adressen und sagt Ihnen, was zu beheben ist. Fragen Sie mich zur Nutzung von ReputeCast oder zu dem, was Sie angehängt haben."
+  "answer.reputation": "Fragen zur Absenderreputation, zu Blocklisten und zur Zustellung in den Posteingang beantwortet HostRepute: Es überwacht Ihre Domains und IP-Adressen und sagt Ihnen, was zu beheben ist. Fragen Sie mich zur Nutzung von ReputeCast oder zu dem, was Sie angehängt haben.",
+  "problem.confirmationClosed": "Über diesen Aufruf wurde schon entschieden, oder seine Antwort ist beendet. Es wurde nichts ausgeführt."
 }

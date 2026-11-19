@@ -238,6 +238,11 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	if err != nil {
 		return res, err
 	}
+	// So do their sign-ins to the assistant's MCP servers.
+	mcpSignIns, err := q.MCPTokensRemove(ctx, store.MCPTokensRemoveParams{UserID: m.UserID, WorkspaceID: &ws.ID})
+	if err != nil {
+		return res, err
+	}
 	invites, err := s.revokeInvitationsBy(ctx, q, ws, m.UserID, msgs.M("audit.inviterDeactivated").Keep(i18n.Args{"name": name}))
 	if err != nil {
 		return res, err
@@ -289,7 +294,7 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	return res, s.Audit.LogWith(ctx, q, audit.Event{
 		WorkspaceID: &ws.ID, Action: "member.deactivated", TargetType: "member", TargetID: m.ID.String(), TargetName: name, Reason: strings.TrimSpace(in.Reason),
 		Before:   map[string]any{"status": "active", "role": m.RoleName},
-		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys},
+		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys, "mcp_sign_ins_removed": mcpSignIns},
 		Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}, parts...),
 	})
 }
@@ -431,6 +436,11 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return err
 		}
+		// So do their sign-ins to the assistant's MCP servers.
+		mcpSignIns, err := q.MCPTokensRemove(ctx, store.MCPTokensRemoveParams{UserID: m.UserID, WorkspaceID: &ws.ID})
+		if err != nil {
+			return err
+		}
 		// Their assistant threads here go, content and all (deactivation keeps them).
 		threads, err := q.AIAssistantThreadsRemove(ctx, store.AIAssistantThreadsRemoveParams{WorkspaceID: ws.ID, UserID: m.UserID})
 		if err != nil {
@@ -441,7 +451,7 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "member.removed", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
 			Before:   map[string]any{"email": m.Email, "role": m.RoleName, "status": m.Status},
-			After:    map[string]any{"keys_revoked": names, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys, "assistant_threads_removed": threads},
+			After:    map[string]any{"keys_revoked": names, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys, "mcp_sign_ins_removed": mcpSignIns, "assistant_threads_removed": threads},
 			Metadata: map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}})
 	})
 }

@@ -33,6 +33,7 @@ export default {
     factUsageTokens: '{spent} von {cap} Token in diesem Monat',
     factUsageNoCap: '{spent} in diesem Monat',
     groupSettings: 'Einstellungen des KI-Assistenten',
+    groupMCP: 'MCP-Server',
     groupLineConnected: 'Ihr eigenes Modell für Betreffideen, Umformulierungen, Übersetzungen und Alternativtexte. Nichts wird gesendet, bevor eine Person darum bittet.',
     connect: 'Verbinden',
     manage: 'Verwalten',

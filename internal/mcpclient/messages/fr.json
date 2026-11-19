@@ -1,0 +1,17 @@
+{
+  "problem.unreachable": "{server} n’a pas répondu. Vérifiez que le serveur fonctionne et que son adresse est correcte, puis réessayez.",
+  "problem.refused": "{server} a refusé les identifiants de ReputeCast. Un responsable peut remplacer le secret partagé dans Paramètres › Intégrations · Serveurs MCP.",
+  "problem.elsewhere": "{server} a demandé à ReputeCast d’envoyer ses requêtes à une autre adresse. Elles ne vont qu’à l’adresse saisie pour le serveur, donc rien n’y a été envoyé. Vérifiez l’adresse du serveur dans Paramètres › Intégrations · Serveurs MCP.",
+  "problem.signIn": "Connectez-vous à {server} pour utiliser ses outils : votre connexion manque ou a expiré.",
+  "problem.toolChanged": "{tool} a changé ou a été retiré depuis son approbation. Un responsable doit le revoir avant qu’il s’exécute.",
+  "problem.toolBlocked": "Un responsable a bloqué {tool}. Il ne s’exécute pas.",
+  "problem.timeout": "{server} a mis trop de temps à répondre. Réessayez plus tard.",
+  "problem.tooLarge": "{server} a répondu avec plus de {kb} Ko. Le résultat n’a pas été lu.",
+  "problem.url": "Cette adresse ne peut pas être utilisée : {reason}. Utilisez l’adresse https:// publique du serveur.",
+  "problem.input": "Vérifiez le nom, l’authentification et les identifiants du serveur : ils ne vont pas ensemble.",
+  "problem.state": "Ce lien de connexion a expiré ou a déjà servi. Recommencez la connexion depuis Paramètres › Intégrations · Serveurs MCP.",
+  "problem.oauth": "La connexion à {server} n’a pas pu être configurée : son serveur d’autorisation n’a pas répondu comme prévu. Vérifiez l’adresse ou saisissez un client enregistré.",
+  "problem.reviewed": "{tool} a changé depuis votre examen. Examinez sa nouvelle description et son schéma, puis décidez à nouveau.",
+  "notify.changedTitle": "Des outils de {server} ont changé",
+  "notify.changedBody": "{count, plural, one {# outil} other {# outils}} de {server} ont changé après leur approbation et restent désactivés jusqu’à votre examen."
+}
