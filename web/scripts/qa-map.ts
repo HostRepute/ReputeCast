@@ -361,6 +361,9 @@ export const entries: Entry[] = [
     'AgentStatesTablet', 'AgentStatesPhone'].map(board => ({ board, manual: true })),
   // A5 OAuth has a separate design-only security and consent board.
   { board: 'MCPConnect', manual: true, widths: [1440, 834, 390] },
+  // B0 assistant boards are design-only fixtures; B4 adds routes and real-API browser checks.
+  ...['AssistantPanel', 'AssistantStates', 'AssistantEntry', 'AIModels', 'MCPServers',
+    'AssistantPanelTablet', 'AssistantPanelPhone', 'AssistantStatesTablet', 'AssistantStatesPhone'].map(board => ({ board, manual: true })),
   // The composer with the assistant: Weekly Digest #143, the draft. Its frames (Ideas, a rewrite
   // shown inline, alt text, the accessibility fixes, a translation's blocks) open from the Assist
   // menu and the selection's toolbar, so the sweep compares the composer around them.
