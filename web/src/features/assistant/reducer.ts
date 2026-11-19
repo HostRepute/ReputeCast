@@ -30,8 +30,12 @@ export interface ThreadState {
   messages: ThreadMessage[]
   turn?: ThreadTurn
   usage?: ThreadUsage
-  /** The answer of the latest turn as it arrives, until its message replaces it. */
-  live?: { turnId: string; text: string }
+  /**
+   * The answer of the latest turn as it arrives, until its message replaces
+   * it. Withheld: the thread read something the person can no longer open,
+   * so its text isn't shown (its saved message says whether it used it).
+   */
+  live?: { turnId: string; text: string; withheld?: boolean }
   /** Tool rows of a running turn, until its tool message holds them. */
   tools: ToolRow[]
   toolsTurn?: string
@@ -81,7 +85,7 @@ function upsert(messages: ThreadMessage[], m: ThreadMessage): ThreadMessage[] {
 /** The whole thread replaces what was kept (a snapshot, or an API response at least as new). */
 function fromThread(s: ThreadState, thread: Thread, id: number): ThreadState {
   const turn = thread.turn
-  const live = turn && turnActive(turn) && turn.text ? { turnId: turn.id, text: turn.text } : undefined
+  const live = turn && turnActive(turn) && (turn.text || turn.withheld) ? { turnId: turn.id, text: turn.withheld ? '' : turn.text!, withheld: turn.withheld } : undefined
   const pending = s.pending && !thread.messages.some((m) => m.role === 'user' && m.text === s.pending) ? s.pending : undefined
   // A stopped turn keeps what it wrote on screen, unless the thread has it
   // saved (Stop saves what arrived as a partial message).
@@ -121,13 +125,16 @@ function applyEvent(s: ThreadState, e: StreamEvent): ThreadState {
     }
     case 'delta': {
       const { turnId, text } = e.data
-      const live = s.live && s.live.turnId === turnId ? { turnId, text: s.live.text + text } : { turnId, text }
-      return { ...s, live, lastId }
+      const same = s.live?.turnId === turnId ? s.live : undefined
+      // An empty piece is a withheld one (caught up on after a reconnection): what was shown goes too.
+      if (!text || same?.withheld) return { ...s, live: same?.withheld ? same : { turnId, text: '', withheld: true }, stopped: s.stopped?.turnId === turnId ? undefined : s.stopped, lastId }
+      return { ...s, live: { turnId, text: (same?.text ?? '') + text }, lastId }
     }
     case 'tool': {
       const { turnId, tool } = e.data
       const base = s.toolsTurn === turnId ? s.tools : []
-      const tools = base.some((t) => t.callId === tool.callId) ? base : [...base, tool]
+      // Sent again (a reconnection), a row replaces its copy: a withheld one drops its label.
+      const tools = base.some((t) => t.callId === tool.callId) ? base.map((t) => (t.callId === tool.callId ? tool : t)) : [...base, tool]
       return { ...s, tools, toolsTurn: turnId, lastId }
     }
     case 'message': {

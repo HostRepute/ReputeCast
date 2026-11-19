@@ -218,7 +218,8 @@ export function useThreadController(threadId: string | undefined, opts: { onNewT
     if (seen.turn === turnNow.id) {
       if (turnNow.state === 'done') {
         const last = [...state.messages].reverse().find((x) => x.role === 'assistant' && x.turnId === turnNow.id)
-        if (last) setAnnounce(t(m.announceDone, { sentence: firstSentence(last.text) }))
+        // A withheld answer isn't one to quote.
+        if (last) setAnnounce(last.withheld ? t(m.withheld) : t(m.announceDone, { sentence: firstSentence(last.text) }))
       } else if (turnNow.state === 'stopped') setAnnounce(t(m.announceStopped))
       else if (turnNow.state === 'failed')
         setAnnounce(t(m.announceFailed, { title: t(problemCopy[problemOf(turnNow.reason)].title, { provider: model?.providerName ?? '', model: model?.modelName ?? '' }) }))

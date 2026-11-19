@@ -17,7 +17,7 @@ import type { LiveText } from './useThreadStream'
 /** One block of the conversation: the person's message, an answer (a turn's tools and text), or the summary marker. */
 export type Item =
   | { kind: 'user'; key: string; text: string; pending?: boolean }
-  | { kind: 'answer'; key: string; turnId?: string; tools: ToolRow[]; texts: ThreadMessage[]; live?: string; stopped?: string; status?: 'queued' | 'answering' | 'waiting' }
+  | { kind: 'answer'; key: string; turnId?: string; tools: ToolRow[]; texts: ThreadMessage[]; live?: string; withheld?: boolean; stopped?: string; status?: 'queued' | 'answering' | 'waiting' }
   | { kind: 'summary'; key: string }
 
 /** The conversation's blocks, in order, from a thread's state (pure). */
@@ -44,7 +44,10 @@ export function buildItems(s: ThreadState): Item[] {
   if (turn && (turnActive(turn) || s.live || (s.toolsTurn === turn.id && s.tools.length) || s.stopped?.turnId === turn.id)) {
     const a = answerOf(turn.id, `turn-${turn.id}`)
     if (s.toolsTurn === turn.id) a.tools.push(...s.tools.filter((x) => !a.tools.some((y) => y.callId === x.callId)))
-    if (s.live?.turnId === turn.id) a.live = s.live.text
+    if (s.live?.turnId === turn.id) {
+      a.live = s.live.text
+      a.withheld = s.live.withheld
+    }
     if (s.stopped?.turnId === turn.id) a.stopped = s.stopped.text
     if (turnActive(turn)) a.status = turn.state as 'queued' | 'answering' | 'waiting'
   } else if (s.pending) {
@@ -204,6 +207,7 @@ const Answer = memo(
     a.item.key === b.item.key &&
     a.item.status === b.item.status &&
     a.item.live === b.item.live &&
+    a.item.withheld === b.item.withheld &&
     a.item.stopped === b.item.stopped &&
     sameList(a.item.tools, b.item.tools) &&
     sameList(a.item.texts, b.item.texts),
@@ -223,7 +227,11 @@ function AnswerView({ item }: { item: AnswerItem }) {
         <ToolRowView key={row.callId} row={row} />
       ))}
       {item.texts.map((msg) =>
-        msg.card === 'hostrepute' ? (
+        msg.withheld ? (
+          <p key={msg.id} className="asst-status">
+            {t(m.withheld)}
+          </p>
+        ) : msg.card === 'hostrepute' ? (
           <HostReputeCard key={msg.id} text={msg.text} />
         ) : (
           <div key={msg.id} className="asst-md">
@@ -232,6 +240,7 @@ function AnswerView({ item }: { item: AnswerItem }) {
           </div>
         ),
       )}
+      {item.withheld ? <p className="asst-status">{t(m.withheld)}</p> : null}
       {item.live ? (
         <div className="asst-md">
           <LiveMarkdown turnId={item.turnId} text={item.live} />

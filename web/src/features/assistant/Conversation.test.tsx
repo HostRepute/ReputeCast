@@ -29,6 +29,38 @@ describe('a conversation whose sources the person can no longer read', () => {
     expect(screen.getByRole('button', { name: 'Linear · search_issues · no longer available to you' })).toBeInTheDocument()
   })
 
+  it('renders a withheld row as the server sends it: no label, no card', async () => {
+    const items: Item[] = [{ kind: 'answer', key: 'a1', turnId: 't1', texts: [], tools: [{ callId: 'c1', name: 'mcp__linear__search_issues', ok: false, code: 'no_longer_available', ms: 1200 }] }]
+    await renderInWorkspace(<Conversation items={items} />)
+    expect(screen.getByRole('button', { name: 'linear · search_issues · no longer available to you · 1.2 s' })).toBeInTheDocument()
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('shows a withheld answer as a short note in its place, with nothing to copy', async () => {
+    const items = buildItems({
+      ...initialThreadState,
+      messages: [
+        { id: 'u1', role: 'user', text: 'Why did opens fall?', createdAt: at, turnId: 't1' },
+        { id: 'a1', role: 'assistant', text: '', withheld: true, createdAt: at, turnId: 't1' },
+      ],
+    })
+    await renderInWorkspace(<Conversation items={items} />)
+    const answer = screen.getByRole('article', { name: 'The assistant' })
+    expect(answer).toHaveTextContent("This answer used something you can no longer open, so it's hidden.")
+    expect(answer.querySelector('.asst-md')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Copy/ })).toBeNull()
+  })
+
+  it('shows a withheld answer in progress the same way, still answering', async () => {
+    const items: Item[] = [{ kind: 'answer', key: 'turn-t1', turnId: 't1', texts: [], tools: [], live: '', withheld: true, status: 'answering' }]
+    await renderInWorkspace(<Conversation items={items} />)
+    const answer = screen.getByRole('article', { name: 'The assistant' })
+    expect(answer).toHaveAttribute('aria-busy', 'true')
+    expect(answer).toHaveTextContent("This answer used something you can no longer open, so it's hidden.")
+    expect(answer).toHaveTextContent('Answering…')
+    expect(answer.querySelector('.asst-md')).toBeNull()
+  })
+
   it('shows a left-out summary as the marker, without its text', async () => {
     const placeholder = 'An earlier part of this conversation used something the person can no longer read, so it is left out.'
     const items = buildItems({ ...initialThreadState, messages: [{ id: 's1', role: 'summary', text: placeholder, createdAt: at }, { id: 'u1', role: 'user', text: 'Next?', createdAt: at }] })

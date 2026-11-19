@@ -168,6 +168,11 @@ export const m = defineMessages('mcpservers', {
   clientHint: 'Optional. Leave both empty when the server registers ReputeCast itself.',
   // uri: the callback address to register with the server's OAuth app.
   redirectHint: 'Redirect address to register: {uri}',
+  // The server's client is this instance's Client ID Metadata Document (its address is the client ID).
+  clientMetadata: 'Client: this instance (client metadata document)',
+  // A sign-in that stopped on the server's client: the server's own detail follows.
+  noClientTitle: 'Enter a client for {server}',
+  clientAuthTitle: '{server}’s sign-in method isn’t supported',
   fieldWho: 'Who can use it',
   whoAll: 'Everyone with “Use the AI assistant”',
   whoManagers: 'Owners and Admins',

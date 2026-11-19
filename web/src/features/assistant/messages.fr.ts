@@ -213,6 +213,7 @@ export default translate(m, {
 
   announceStart: 'L’assistant répond.',
   announceDone: 'Réponse terminée\u00A0: {sentence}',
+  withheld: 'Cette réponse utilise un élément que vous ne pouvez plus ouvrir, elle est donc masquée.',
   announceStopped: 'Arrêtée.',
   announceFailed: 'La réponse s’est arrêtée\u00A0: {title}',
 
