@@ -37,6 +37,7 @@ class AIActivityRow:
             on (str): What it was about: Weekly Digest #143
             outcome (AIActivityRowOutcome):
             output_tokens (int):
+            personal (bool):
             provider (str):
             tokens (int):
             usage_known (bool):
@@ -58,6 +59,7 @@ class AIActivityRow:
     on: str
     outcome: AIActivityRowOutcome
     output_tokens: int
+    personal: bool
     provider: str
     tokens: int
     usage_known: bool
@@ -93,6 +95,8 @@ class AIActivityRow:
 
         output_tokens = self.output_tokens
 
+        personal = self.personal
+
         provider = self.provider
 
         tokens = self.tokens
@@ -125,6 +129,7 @@ class AIActivityRow:
             "on": on,
             "outcome": outcome,
             "outputTokens": output_tokens,
+            "personal": personal,
             "provider": provider,
             "tokens": tokens,
             "usageKnown": usage_known,
@@ -178,6 +183,8 @@ class AIActivityRow:
 
         output_tokens = d.pop("outputTokens")
 
+        personal = d.pop("personal")
+
         provider = d.pop("provider")
 
         tokens = d.pop("tokens")
@@ -207,6 +214,7 @@ class AIActivityRow:
             on=on,
             outcome=outcome,
             output_tokens=output_tokens,
+            personal=personal,
             provider=provider,
             tokens=tokens,
             usage_known=usage_known,

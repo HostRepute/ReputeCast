@@ -32,6 +32,17 @@ type AIProviderEntry struct {
 	DefaultModel string   `json:"defaultModel,omitempty"`
 	// Models are the price list's models of the provider.
 	Models []AIModelOption `json:"models"`
+	// Presets are hosted services that speak this provider's API, with their
+	// address filled in (OpenAI-compatible only).
+	Presets []AIProviderPreset `json:"presets"`
+}
+
+// AIProviderPreset is a hosted OpenAI-compatible service. It needs a key;
+// its models come from the service and its prices from the person.
+type AIProviderPreset struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	BaseURL string `json:"baseUrl"`
 }
 
 // AIModelOption is a model to pick, with its prices from the price list.
@@ -102,6 +113,8 @@ type AIConnectionView struct {
 	PrivateNetwork bool `json:"privateNetwork"`
 	// Demo is the demo's sample connection (answers from recordings).
 	Demo bool `json:"demo"`
+	// Preset is the hosted OpenAI-compatible service the address belongs to.
+	Preset string `json:"preset,omitempty"`
 }
 
 // AIUsageView is this month's use against the cap.
@@ -126,6 +139,8 @@ type AIFeatureState struct {
 	On  bool   `json:"on"`
 	// Available is false for alt text with a model that doesn't read images.
 	Available bool `json:"available"`
+	// ModelID is the model the feature uses.
+	ModelID *uuid.UUID `json:"modelId,omitempty" format:"uuid"`
 }
 
 // AIMemberRole is a member and their role.
@@ -159,12 +174,24 @@ type AISettings struct {
 	// addresses; InstanceAdmins can change that.
 	AllowPrivate   bool     `json:"allowPrivate"`
 	InstanceAdmins []string `json:"instanceAdmins"`
+	// Accounts are the model accounts with their models, the first
+	// (Connection's) first; Defaults the model each feature uses.
+	Accounts []AIAccountView    `json:"accounts"`
+	Defaults []AIFeatureDefault `json:"defaults"`
+	// Personal is the personal-keys switch, each person's cap, the caller's
+	// own accounts and, for managers, who has personal accounts.
+	Personal AIPersonalSettings `json:"personal"`
 }
 
 func catalog() []AIProviderEntry {
 	out := make([]AIProviderEntry, 0, len(llm.Providers))
 	for _, p := range llm.Providers {
-		e := AIProviderEntry{Kind: p.Kind, Name: p.Name, NeedsKey: p.NeedsKey, NeedsBaseURL: p.NeedsBaseURL, Capabilities: slices.Clone(p.Capabilities), DefaultModel: p.DefaultModel, Models: []AIModelOption{}}
+		e := AIProviderEntry{Kind: p.Kind, Name: p.Name, NeedsKey: p.NeedsKey, NeedsBaseURL: p.NeedsBaseURL, Capabilities: slices.Clone(p.Capabilities), DefaultModel: p.DefaultModel, Models: []AIModelOption{}, Presets: []AIProviderPreset{}}
+		if p.Kind == llm.Compatible {
+			for _, pr := range llm.Presets {
+				e.Presets = append(e.Presets, AIProviderPreset{ID: pr.ID, Name: pr.Name, BaseURL: pr.BaseURL})
+			}
+		}
 		for _, k := range llm.PriceList {
 			if k.Provider == p.Kind {
 				e.Models = append(e.Models, AIModelOption{ID: k.ID, Name: k.Name, Known: true, Input: k.Input, Output: k.Output, ImageInput: k.ImageInput})
@@ -195,6 +222,9 @@ func (s *Service) connectionView(ctx context.Context, c *connection) *AIConnecti
 		Model: c.Model, ModelName: c.modelName(), ImageInput: c.ImageInput, ConnectedAt: c.ConnectedAt, ConnectedBy: s.userName(ctx, c.ConnectedBy),
 		Status: "connected", Cap: AICapView{Kind: c.CapKind, USD: c.CapUsd, Tokens: c.CapTokens, SetBy: s.userName(ctx, c.CapSetBy), SetAt: c.CapSetAt},
 		Prices: AIPricesView{Input: c.InputPrice, Output: c.OutputPrice, Known: c.PriceKnown || c.Demo, From: c.PricesFrom}, Demo: c.Demo}
+	if p, ok := c.preset(); ok {
+		v.Preset = p.ID
+	}
 	if len(c.KeySealed) > 0 {
 		v.Key = AIKeyView{Set: true, AddedAt: c.KeyAddedAt, AddedBy: s.userName(ctx, c.KeyAddedBy)}
 	}
@@ -233,7 +263,7 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	cap := c
 	if cap == nil {
-		cap = &connection{store.AiConnection{CapKind: "usd", CapUsd: 25}}
+		cap = &connection{store.AIBindingRow{CapKind: "usd", CapUsd: 25}}
 	}
 	u, err := s.usage(ctx, ws, cap)
 	if err != nil {
@@ -248,11 +278,23 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	case u.notice:
 		out.Usage.State = "notice"
 	}
+	m, err := s.models(ctx, s.Q, ws.ID)
+	if err != nil {
+		return AISettings{}, err
+	}
+	if out.Accounts, err = s.accountViews(ctx, s.Q, m); err != nil {
+		return AISettings{}, err
+	}
+	out.Defaults = m.defaultViews()
 	for _, f := range Features {
 		st := AIFeatureState{Key: f, On: true, Available: true}
 		if c != nil {
 			st.On = !slices.Contains(c.FeaturesOff, f)
-			if f == FeatureAltText && !c.ImageInput {
+		}
+		// Alt text needs the model it uses to read images.
+		if d := m.of(f); d != nil {
+			st.ModelID = &d.ModelID
+			if f == FeatureAltText && !d.ImageInput {
 				st.On, st.Available = false, false
 			}
 		}
@@ -265,6 +307,9 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return AISettings{}, err
 	}
 	out.AIUseRoles, out.WithoutAIUse = s.aiUseHolders(ctx, ws)
+	if out.Personal, err = s.Personal(ctx, ws, p); err != nil {
+		return AISettings{}, err
+	}
 	return out, nil
 }
 
@@ -421,6 +466,18 @@ func (s *Service) validCandidate(ctx context.Context, c *candidate) error {
 	return nil
 }
 
+// keyNeeded reports whether a candidate can't be reached without a key, and
+// the provider's name for the message: the hosted providers, and a hosted
+// OpenAI-compatible service (unlike a server on the workspace's network).
+func keyNeeded(provider, baseURL string) (string, bool) {
+	if provider == llm.Compatible {
+		p, ok := llm.PresetOf(baseURL)
+		return p.Name, ok
+	}
+	info := llm.Info(provider)
+	return info.Name, info.NeedsKey
+}
+
 // savedKey is the key a form left blank stands for: the saved one, for the
 // same provider at the same server address (Change model, Test connection,
 // saving other settings). A saved key is never sent to an address it wasn't
@@ -434,7 +491,7 @@ func (s *Service) savedKey(ctx context.Context, ws *store.Workspace, cur *connec
 	if (c.provider == llm.Azure || c.provider == llm.Compatible) && !netguard.SameAddress(c.baseURL, cur.BaseUrl) {
 		return "", invalid(ctx, "body.apiKey", mKeyAgain, nil)
 	}
-	return s.Box.OpenString(cur.KeySealed, keyAD(ws.ID))
+	return s.Box.OpenString(cur.KeySealed, keyAD(cur.AccountID))
 }
 
 // AITestResult is Test connection: the fixed prompt, the answer and the time.
@@ -534,17 +591,16 @@ func (s *Service) test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	return out, nil
 }
 
-// A candidate's own prices must never inherit another model's prices. Before
-// first connection its tests use the normal $25 monthly default; an existing
-// connection's cap (including while disconnected) wins inside reserveIn.
+// A candidate's own prices must never inherit another model's prices. The
+// workspace's cap applies inside reserveIn: before a first connection, the
+// settings row's default of $25 a month.
 func (s *Service) testPricing(ctx context.Context, ws *store.Workspace, c candidate, in, out *float64) (*connection, error) {
 	input, output, from := pricesOf(c.provider, c.model, in, out)
 	if err := validPrices(ctx, input, output); err != nil {
 		return nil, err
 	}
-	return &connection{store.AiConnection{WorkspaceID: ws.ID, Provider: c.provider, Model: c.model,
-		InputPrice: input, OutputPrice: output, PricesFrom: from, PriceKnown: pricesKnown(c.provider, c.model, in, out),
-		CapKind: "usd", CapUsd: 25, UpdatedAt: s.now()}}, nil
+	return &connection{store.AIBindingRow{WorkspaceID: ws.ID, Provider: c.provider, Model: c.model,
+		InputPrice: input, OutputPrice: output, PricesFrom: from, PriceKnown: pricesKnown(c.provider, c.model, in, out)}}, nil
 }
 
 // demoTestMs is how long the recorded test took (AISettings: "answered in 1.2 s").
@@ -563,51 +619,42 @@ type AITestInput struct {
 	Model       string   `json:"model,omitempty" maxLength:"120"`
 	InputPrice  *float64 `json:"inputPrice,omitempty" minimum:"0" maximum:"1000"`
 	OutputPrice *float64 `json:"outputPrice,omitempty" minimum:"0" maximum:"1000"`
+	// ModelID tests a saved model instead of the first account's; AccountID
+	// tests an account's first model, or lends its saved key to a model
+	// being set up on it.
+	ModelID   *uuid.UUID `json:"modelId,omitempty" format:"uuid"`
+	AccountID *uuid.UUID `json:"accountId,omitempty" format:"uuid"`
+}
+
+// testedModel is the workspace's saved model a test or a model list is
+// about: the one named, an account's first, or the first account's. A
+// personal key's model is its owner's (the personal operations).
+func (s *Service) testedModel(ctx context.Context, ws uuid.UUID, model, account *uuid.UUID) (*connection, error) {
+	switch {
+	case model != nil:
+		c, err := s.binding(ctx, s.Q, ws, model)
+		if err == nil && (c == nil || c.personal()) {
+			return nil, api.NotFound("AI model")
+		}
+		return c, err
+	case account != nil:
+		c, err := s.accountModel(ctx, s.Q, ws, *account, nil)
+		if err == nil && c == nil {
+			return nil, api.NotFound("AI account")
+		}
+		return c, err
+	}
+	return s.load(ctx, s.Q, ws)
 }
 
 // Test runs Test connection on the saved model, or on the one being set up.
 func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AITestInput) (AITestResult, error) {
-	cur, err := s.load(ctx, s.Q, ws.ID)
+	cur, err := s.testedModel(ctx, ws.ID, in.ModelID, in.AccountID)
 	if err != nil {
 		return AITestResult{}, err
 	}
 	if in.Provider == "" {
-		if !cur.connected() {
-			return AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
-		}
-		c := candidate{provider: cur.Provider, baseURL: cur.BaseUrl, deployment: cur.Deployment, apiVersion: cur.ApiVersion, model: cur.Model}
-		if len(cur.KeySealed) > 0 {
-			if c.key, err = s.Box.OpenString(cur.KeySealed, keyAD(ws.ID)); err != nil {
-				return AITestResult{}, err
-			}
-		}
-		res, err := s.test(ctx, ws, p, c, cur)
-		if err != nil {
-			return res, err
-		}
-		ms := int32(res.Ms)
-		now := s.now()
-		if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
-			q := store.New(tx)
-			if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
-				return err
-			}
-			if err := q.AIConnectionSetTest(ctx, store.AIConnectionSetTestParams{WorkspaceID: ws.ID, LastTestAt: &now, LastTestOk: &res.OK, LastTestMs: &ms}); err != nil {
-				return err
-			}
-			if res.OK && cur.Status != "ok" {
-				_, err := q.AIConnectionSetStatus(ctx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "ok", StatusAt: &now, ExpectedUpdatedAt: cur.UpdatedAt})
-				return err
-			}
-			return nil
-		}); err != nil {
-			return AITestResult{}, err
-		}
-		if res.ErrorKind == string(llm.ErrAuth) {
-			s.keyRejected(ctx, ws, cur, &llm.Error{Kind: llm.ErrAuth, Status: res.ErrorStatus, Message: res.ErrorDetail})
-		}
-		s.explain(ctx, &res, cur.providerName())
-		return res, nil
+		return s.testSaved(ctx, ws, p, cur)
 	}
 	c := candidate{provider: in.Provider, baseURL: in.BaseURL, deployment: in.Deployment, apiVersion: in.APIVersion, key: in.APIKey, model: in.Model}
 	if c.key, err = s.savedKey(ctx, ws, cur, c); err != nil {
@@ -616,23 +663,73 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err := s.validCandidate(ctx, &c); err != nil {
 		return AITestResult{}, err
 	}
+	name, need := keyNeeded(c.provider, c.baseURL)
+	if need && c.key == "" {
+		return AITestResult{}, invalid(ctx, "body.apiKey", mKeyNeeded, i18n.Args{"provider": name})
+	}
 	priced, err := s.testPricing(ctx, ws, c, in.InputPrice, in.OutputPrice)
 	if err != nil {
 		return AITestResult{}, err
 	}
 	res, err := s.test(ctx, ws, p, c, priced)
-	s.explain(ctx, &res, llm.Info(c.provider).Name)
+	s.explain(ctx, &res, (&connection{store.AIBindingRow{Provider: c.provider, BaseUrl: c.baseURL}}).providerName(), false)
 	return res, err
 }
 
-// explain words a failed test for the person.
-func (s *Service) explain(ctx context.Context, res *AITestResult, provider string) {
+// testSaved tests a saved model with its saved key and records the test on
+// its account.
+func (s *Service) testSaved(ctx context.Context, ws *store.Workspace, p *authz.Principal, cur *connection) (AITestResult, error) {
+	if !cur.connected() {
+		return AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
+	}
+	c := candidate{provider: cur.Provider, baseURL: cur.BaseUrl, deployment: cur.Deployment, apiVersion: cur.ApiVersion, model: cur.Model}
+	if len(cur.KeySealed) > 0 {
+		var err error
+		if c.key, err = s.Box.OpenString(cur.KeySealed, keyAD(cur.AccountID)); err != nil {
+			return AITestResult{}, err
+		}
+	}
+	res, err := s.test(ctx, ws, p, c, cur)
+	if err != nil {
+		return res, err
+	}
+	ms := int32(res.Ms)
+	now := s.now()
+	if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
+			return err
+		}
+		if err := q.AIAccountSetTest(ctx, store.AIAccountSetTestParams{ID: cur.AccountID, WorkspaceID: ws.ID, LastTestAt: &now, LastTestOk: &res.OK, LastTestMs: &ms}); err != nil {
+			return err
+		}
+		if res.OK && cur.Status != "ok" {
+			_, err := q.AIAccountSetStatus(ctx, store.AIAccountSetStatusParams{ID: cur.AccountID, WorkspaceID: ws.ID, Status: "ok", StatusAt: &now, ExpectedRevision: cur.AccountRevision})
+			return err
+		}
+		return nil
+	}); err != nil {
+		return AITestResult{}, err
+	}
+	if res.ErrorKind == string(llm.ErrAuth) {
+		s.keyRejected(ctx, ws, cur, &llm.Error{Kind: llm.ErrAuth, Status: res.ErrorStatus, Message: res.ErrorDetail})
+	}
+	s.explain(ctx, &res, cur.providerName(), cur.personal())
+	return res, nil
+}
+
+// explain words a failed test for the person (whose own key a personal
+// one is).
+func (s *Service) explain(ctx context.Context, res *AITestResult, provider string, personal bool) {
 	if res.OK || res.ErrorKind == "" {
 		return
 	}
 	switch llm.ErrorKind(res.ErrorKind) {
 	case llm.ErrAuth:
 		res.ErrorMessage = text(ctx, mKeyRejectedAlone, i18n.Args{"provider": provider})
+		if personal {
+			res.ErrorMessage = text(ctx, mPersonalKeyRejected, i18n.Args{"provider": provider})
+		}
 	case llm.ErrRateLimit:
 		res.ErrorMessage = text(ctx, mRateLimitedNow, i18n.Args{"provider": provider})
 	case llm.ErrTimeout:
@@ -654,6 +751,9 @@ type AIModelsInput struct {
 	Deployment string `json:"deployment,omitempty" maxLength:"120"`
 	APIVersion string `json:"apiVersion,omitempty" maxLength:"40"`
 	APIKey     string `json:"apiKey,omitempty" maxLength:"500"`
+	// AccountID lends that account's saved key (at the same address)
+	// instead of the first account's.
+	AccountID *uuid.UUID `json:"accountId,omitempty" format:"uuid"`
 }
 
 // AIModelList is a provider's models, the price list's first.
@@ -674,7 +774,7 @@ func (s *Service) Models(ctx context.Context, ws *store.Workspace, in AIModelsIn
 		}
 	}
 	c := candidate{provider: in.Provider, baseURL: in.BaseURL, deployment: in.Deployment, apiVersion: in.APIVersion, key: in.APIKey, model: "list"}
-	cur, err := s.load(ctx, s.Q, ws.ID)
+	cur, err := s.testedModel(ctx, ws.ID, nil, in.AccountID)
 	if err != nil {
 		return out, err
 	}
@@ -684,7 +784,7 @@ func (s *Service) Models(ctx context.Context, ws *store.Workspace, in AIModelsIn
 	if cur.connected() && cur.Demo && cur.Provider == c.provider && in.APIKey == "" {
 		return out, nil
 	}
-	if llm.Info(c.provider).NeedsKey && c.key == "" {
+	if _, need := keyNeeded(c.provider, c.baseURL); need && c.key == "" {
 		return out, nil
 	}
 	if err := s.validCandidate(ctx, &c); err != nil {
@@ -816,7 +916,7 @@ func featuresOff(ctx context.Context, on []string) ([]string, error) {
 }
 
 // auditView is what the audit entry keeps of a connection: never the key.
-func auditView(c store.AiConnection) map[string]any {
+func auditView(c store.AIBindingRow) map[string]any {
 	on := []string{}
 	for _, f := range Features {
 		if !slices.Contains(c.FeaturesOff, f) {
@@ -842,13 +942,28 @@ func auditView(c store.AiConnection) map[string]any {
 	return m
 }
 
-func saveParams(c store.AiConnection) store.AIConnectionSaveParams {
-	return store.AIConnectionSaveParams(c)
+// What of a connection each table keeps. Saving bumps the row's revision,
+// which the requests bound to it compare.
+func settingsParams(c store.AIBindingRow, by *uuid.UUID, at time.Time) store.AIWorkspaceSettingsSaveParams {
+	return store.AIWorkspaceSettingsSaveParams{WorkspaceID: c.WorkspaceID, CapKind: c.CapKind, CapUsd: c.CapUsd, CapTokens: c.CapTokens, CapSetBy: c.CapSetBy, CapSetAt: c.CapSetAt,
+		FeaturesOff: c.FeaturesOff, NoticeMonth: c.NoticeMonth, CapNoticeMonth: c.CapNoticeMonth, UpdatedBy: by, UpdatedAt: at}
 }
 
-// Connect connects the workspace's model, after the fixed test prompt
-// passes. One model per workspace: another provider needs a disconnect
-// first.
+func accountParams(c store.AIBindingRow, by *uuid.UUID, at time.Time) store.AIAccountSaveParams {
+	return store.AIAccountSaveParams{ID: c.AccountID, WorkspaceID: c.WorkspaceID, Provider: c.Provider, Label: c.Label, BaseUrl: c.BaseUrl, ApiVersion: c.ApiVersion,
+		KeySealed: c.KeySealed, KeyAddedBy: c.KeyAddedBy, KeyAddedAt: c.KeyAddedAt, ConnectedBy: c.ConnectedBy, ConnectedAt: c.ConnectedAt,
+		DisconnectedBy: c.DisconnectedBy, DisconnectedAt: c.DisconnectedAt, Status: c.Status, StatusDetail: c.StatusDetail, StatusAt: c.StatusAt,
+		LastTestAt: c.LastTestAt, LastTestOk: c.LastTestOk, LastTestMs: c.LastTestMs, Demo: c.Demo, UpdatedBy: by, UpdatedAt: at, UserID: c.AccountUserID}
+}
+
+func modelParams(c store.AIBindingRow, by *uuid.UUID, at time.Time) store.AIModelSaveParams {
+	return store.AIModelSaveParams{ID: c.ModelID, WorkspaceID: c.WorkspaceID, AccountID: c.AccountID, Model: c.Model, ModelName: c.ModelName, Deployment: c.Deployment,
+		ImageInput: c.ImageInput, InputPrice: c.InputPrice, OutputPrice: c.OutputPrice, PricesFrom: c.PricesFrom, PriceKnown: c.PriceKnown, UpdatedBy: by, UpdatedAt: at}
+}
+
+// Connect connects the workspace's model (its first account's first model),
+// after the fixed test prompt passes. Here another provider needs a
+// disconnect first. A first model becomes every feature's default.
 func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AIConnectInput) (AISettings, error) {
 	c := candidate{provider: in.Provider, label: strings.TrimSpace(in.Label), baseURL: in.BaseURL, deployment: strings.TrimSpace(in.Deployment), apiVersion: strings.TrimSpace(in.APIVersion),
 		key: strings.TrimSpace(in.APIKey), model: strings.TrimSpace(in.Model)}
@@ -878,6 +993,9 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return AISettings{}, err
 		}
 	}
+	if name, need := keyNeeded(c.provider, c.baseURL); need && c.key == "" {
+		return AISettings{}, invalid(ctx, "body.apiKey", mKeyNeeded, i18n.Args{"provider": name})
+	}
 	priced, err := s.testPricing(ctx, ws, c, in.InputPrice, in.OutputPrice)
 	if err != nil {
 		return AISettings{}, err
@@ -887,14 +1005,19 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return AISettings{}, err
 	}
 	if !res.OK {
-		s.explain(ctx, &res, llm.Info(c.provider).Name)
+		s.explain(ctx, &res, llm.Info(c.provider).Name, false)
 		return AISettings{}, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
 	}
 	now := s.now()
 	actor := actorID(p)
+	// The first account and model of the workspace, or the ones it has.
+	accountID, modelID := uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7())
+	if cur != nil {
+		accountID, modelID = cur.AccountID, cur.ModelID
+	}
 	var sealed []byte
 	if c.key != "" {
-		if sealed, err = s.Box.SealString(c.key, keyAD(ws.ID)); err != nil {
+		if sealed, err = s.Box.SealString(c.key, keyAD(accountID)); err != nil {
 			return AISettings{}, err
 		}
 	}
@@ -904,12 +1027,12 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	ms := int32(res.Ms)
 	ok := true
-	row := store.AiConnection{
-		WorkspaceID: ws.ID, Provider: c.provider, Label: c.label, BaseUrl: c.baseURL, Deployment: c.deployment, ApiVersion: c.apiVersion,
+	row := store.AIBindingRow{
+		ModelID: modelID, AccountID: accountID, WorkspaceID: ws.ID, Provider: c.provider, Label: c.label, BaseUrl: c.baseURL, Deployment: c.deployment, ApiVersion: c.apiVersion,
 		Model: c.model, ModelName: name, ImageInput: llm.ImageInput(c.provider, c.model), KeySealed: sealed, KeyAddedBy: actor, KeyAddedAt: &now,
 		ConnectedBy: actor, ConnectedAt: now, Status: "ok", LastTestAt: &now, LastTestOk: &ok, LastTestMs: &ms,
 		CapKind: in.CapKind, CapUsd: in.CapUSD, CapTokens: in.CapTokens, CapSetBy: actor, CapSetAt: &now,
-		InputPrice: input, OutputPrice: output, PricesFrom: from, FeaturesOff: off, UpdatedBy: actor, UpdatedAt: now,
+		InputPrice: input, OutputPrice: output, PricesFrom: from, FeaturesOff: off,
 		PriceKnown: pricesKnown(c.provider, c.model, in.InputPrice, in.OutputPrice),
 	}
 	if row.CapKind == "" {
@@ -924,7 +1047,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		row.NoticeMonth, row.CapNoticeMonth = cur.NoticeMonth, cur.CapNoticeMonth
 		if cur.connected() {
 			action = "ai.connection_updated"
-			before = auditView(cur.AiConnection)
+			before = auditView(cur.AIBindingRow)
 			row.ConnectedBy, row.ConnectedAt = cur.ConnectedBy, cur.ConnectedAt
 			if in.APIKey == "" && len(cur.KeySealed) > 0 {
 				row.KeyAddedBy, row.KeyAddedAt = cur.KeyAddedBy, cur.KeyAddedAt
@@ -936,7 +1059,26 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
 			return err
 		}
-		if err := q.AIConnectionSave(ctx, saveParams(row)); err != nil {
+		if err := q.AIWorkspaceSettingsSave(ctx, settingsParams(row, actor, now)); err != nil {
+			return err
+		}
+		if err := q.AIAccountSave(ctx, accountParams(row, actor, now)); err != nil {
+			return err
+		}
+		if cur != nil && cur.Provider != row.Provider {
+			// The account's other models were the previous provider's: their
+			// features move to the one connected now.
+			if err := q.AIFeatureModelsMove(ctx, store.AIFeatureModelsMoveParams{WorkspaceID: ws.ID, AccountID: accountID, KeepID: modelID}); err != nil {
+				return err
+			}
+			if err := q.AIModelsDeleteOthers(ctx, store.AIModelsDeleteOthersParams{WorkspaceID: ws.ID, AccountID: accountID, KeepID: modelID}); err != nil {
+				return err
+			}
+		}
+		if err := q.AIModelSave(ctx, modelParams(row, actor, now)); err != nil {
+			return modelExists(ctx, err, row.Model)
+		}
+		if err := q.AIFeatureModelsFill(ctx, store.AIFeatureModelsFillParams{WorkspaceID: ws.ID, ModelID: modelID, Features: defaultFeatures}); err != nil {
 			return err
 		}
 		meta := map[string]any{"test": map[string]any{"ok": true, "ms": res.Ms}}
@@ -973,63 +1115,79 @@ func (s *Service) ReplaceKey(ctx context.Context, ws *store.Workspace, p *authz.
 	if err != nil {
 		return AISettings{}, AITestResult{}, err
 	}
-	if !cur.connected() {
-		return AISettings{}, AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
+	test, err := s.replaceKey(ctx, ws, p, cur, in, "ai.key_replaced", ws.ID.String())
+	if err != nil {
+		return AISettings{}, test, err
+	}
+	out, err := s.Settings(ctx, ws, p)
+	return out, test, err
+}
+
+// replaceKey tests a new key for a model's account with that model, and
+// saves it. A person's own account whose key was removed (they left the
+// workspace and came back) is connected again with a new key.
+func (s *Service) replaceKey(ctx context.Context, ws *store.Workspace, p *authz.Principal, cur *connection, in AIKeyInput, action, target string) (AITestResult, error) {
+	if !cur.connected() && !cur.personal() {
+		return AITestResult{}, problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
 	}
 	c := candidate{provider: cur.Provider, baseURL: cur.BaseUrl, deployment: cur.Deployment, apiVersion: cur.ApiVersion, model: cur.Model, key: strings.TrimSpace(in.APIKey)}
 	priced := *cur
 	priced.Demo = false
 	res, err := s.test(ctx, ws, p, c, &priced)
 	if err != nil {
-		return AISettings{}, res, err
+		return res, err
 	}
 	if !res.OK {
-		s.explain(ctx, &res, cur.providerName())
-		return AISettings{}, res, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
+		s.explain(ctx, &res, cur.providerName(), cur.personal())
+		return res, api.Err(http.StatusUnprocessableEntity, "ai_test_failed", res.ErrorMessage).WithMeta("test", res)
 	}
-	sealed, err := s.Box.SealString(c.key, keyAD(ws.ID))
+	sealed, err := s.Box.SealString(c.key, keyAD(cur.AccountID))
 	if err != nil {
-		return AISettings{}, res, err
+		return res, err
 	}
 	now := s.now()
-	row := cur.AiConnection
+	row := cur.AIBindingRow
 	ok := true
 	ms := int32(res.Ms)
 	row.KeySealed, row.KeyAddedBy, row.KeyAddedAt, row.Status, row.StatusDetail, row.StatusAt = sealed, actorID(p), &now, "ok", "", &now
-	row.LastTestAt, row.LastTestOk, row.LastTestMs, row.Demo, row.UpdatedBy, row.UpdatedAt = &now, &ok, &ms, false, actorID(p), now
+	row.LastTestAt, row.LastTestOk, row.LastTestMs, row.Demo = &now, &ok, &ms, false
+	if !cur.connected() {
+		row.ConnectedBy, row.ConnectedAt, row.DisconnectedBy, row.DisconnectedAt = actorID(p), now, nil, nil
+	}
+	meta := map[string]any{"key": "replaced (write-only)", "test": map[string]any{"ok": true, "ms": res.Ms}, "summary": keyReplaced + " · test passed"}
+	if cur.personal() {
+		meta["personal"] = true
+	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := checkTestConnection(ctx, q, ws, p, cur); err != nil {
 			return err
 		}
-		if err := q.AIConnectionSave(ctx, saveParams(row)); err != nil {
+		if err := q.AIAccountSave(ctx, accountParams(row, actorID(p), now)); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.key_replaced", TargetType: "ai_assistant", TargetID: ws.ID.String(),
-			TargetName: cur.providerName(), Metadata: map[string]any{"key": "replaced (write-only)", "test": map[string]any{"ok": true, "ms": res.Ms}, "summary": keyReplaced + " · test passed"}})
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "ai_assistant", TargetID: target,
+			TargetName: cur.providerName(), Metadata: meta})
 	})
-	if err != nil {
-		return AISettings{}, res, err
-	}
-	out, err := s.Settings(ctx, ws, p)
-	return out, res, err
+	return res, err
 }
 
 // A successful test cannot overwrite newer settings or outlive the manager's
-// access. Onboarding serializes the absent row with other first connections.
+// access. Onboarding serializes the absent model with other first connections.
 func checkTestConnection(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, before *connection) error {
-	if _, err := draftActor(ctx, q, ws, p, false, authz.IntegrationsManage); err != nil {
+	// A personal key's owner tests and saves it with ai:use.
+	permission := authz.IntegrationsManage
+	if before.personal() {
+		permission = authz.AIUse
+	}
+	if _, err := draftActor(ctx, q, ws, p, false, permission); err != nil {
 		return err
 	}
-	row, err := q.AIConnectionForUpdate(ctx, ws.ID)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if _, err := lockSettings(ctx, q, ws.ID); err != nil {
 		return err
 	}
 	if before == nil {
-		if err := q.AIBudgetWorkspaceLock(ctx, ws.ID); err != nil {
-			return err
-		}
-		_, err := q.AIConnection(ctx, ws.ID)
+		_, err := q.AIPrimaryModel(ctx, ws.ID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -1038,7 +1196,11 @@ func checkTestConnection(ctx context.Context, q *store.Queries, ws *store.Worksp
 		}
 		return budgetProblem(ctx, "connection_changed")
 	}
-	if err != nil || !row.UpdatedAt.Equal(before.UpdatedAt) {
+	row, err := q.AIBinding(ctx, store.AIBindingParams{WorkspaceID: ws.ID, ModelID: before.ModelID})
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if err != nil || row.SettingsRevision != before.SettingsRevision || row.AccountRevision != before.AccountRevision || row.ModelRevision != before.ModelRevision {
 		return budgetProblem(ctx, "connection_changed")
 	}
 	return nil
@@ -1059,24 +1221,50 @@ type auditChange struct {
 	summary       string
 }
 
-// update applies a change to the connected model and audits it.
-func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Principal, action string, change func(row *store.AiConnection) (auditChange, error)) (AISettings, error) {
+// What a change saves: the workspace's settings, the account or the model.
+const (
+	saveSettings = 1 << iota
+	saveAccount
+	saveModel
+)
+
+// update applies a change to the connected model (the workspace's first),
+// its account or the workspace's settings, and audits it. The settings (the
+// cap, the feature switches) are the workspace's, not the first account's:
+// they change while that account is disconnected and others serve.
+func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Principal, action string, parts int, change func(row *store.AIBindingRow) (auditChange, error)) (AISettings, error) {
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		row, err := q.AIConnectionForUpdate(ctx, ws.ID)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.DisconnectedAt != nil) {
-			return problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
+		if _, err := lockSettings(ctx, q, ws.ID); err != nil {
+			return err
 		}
+		c, err := s.load(ctx, q, ws.ID)
 		if err != nil {
 			return err
 		}
+		if c == nil || (parts != saveSettings && !c.connected()) {
+			return problem(ctx, http.StatusConflict, codeNotConnected, mNotConnectedYet, nil)
+		}
+		row := c.AIBindingRow
 		ch, err := change(&row)
 		if err != nil {
 			return err
 		}
-		row.UpdatedBy, row.UpdatedAt = actorID(p), s.now()
-		if err := q.AIConnectionSave(ctx, saveParams(row)); err != nil {
-			return err
+		by, at := actorID(p), s.now()
+		if parts&saveSettings != 0 {
+			if err := q.AIWorkspaceSettingsSave(ctx, settingsParams(row, by, at)); err != nil {
+				return err
+			}
+		}
+		if parts&saveAccount != 0 {
+			if err := q.AIAccountSave(ctx, accountParams(row, by, at)); err != nil {
+				return err
+			}
+		}
+		if parts&saveModel != 0 {
+			if err := q.AIModelSave(ctx, modelParams(row, by, at)); err != nil {
+				return modelExists(ctx, err, row.Model)
+			}
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action, TargetType: "ai_assistant", TargetID: ws.ID.String(),
 			TargetName: llm.Info(row.Provider).Name, Before: ch.before, After: ch.after, Metadata: map[string]any{"summary": ch.summary}})
@@ -1089,7 +1277,7 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 
 // ChangeModel picks another model of the same provider.
 func (s *Service) ChangeModel(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AIModelInput) (AISettings, error) {
-	return s.update(ctx, ws, p, "ai.model_changed", func(row *store.AiConnection) (auditChange, error) {
+	return s.update(ctx, ws, p, "ai.model_changed", saveModel, func(row *store.AIBindingRow) (auditChange, error) {
 		model := strings.TrimSpace(in.Model)
 		input, output, from := pricesOf(row.Provider, model, in.InputPrice, in.OutputPrice)
 		if err := validPrices(ctx, input, output); err != nil {
@@ -1122,7 +1310,7 @@ func (s *Service) SetCap(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err := validCap(ctx, in.Kind, in.USD, in.Tokens); err != nil {
 		return AISettings{}, err
 	}
-	return s.update(ctx, ws, p, "ai.cap_updated", func(row *store.AiConnection) (auditChange, error) {
+	return s.update(ctx, ws, p, "ai.cap_updated", saveSettings, func(row *store.AIBindingRow) (auditChange, error) {
 		before := map[string]any{"capKind": row.CapKind, "capUsd": row.CapUsd, "capTokens": row.CapTokens}
 		summary := capLine(*row, in.Kind, in.USD, in.Tokens)
 		now := s.now()
@@ -1144,7 +1332,7 @@ func (s *Service) SetPrices(ctx context.Context, ws *store.Workspace, p *authz.P
 	if err := validPrices(ctx, in.Input, in.Output); err != nil {
 		return AISettings{}, err
 	}
-	return s.update(ctx, ws, p, "ai.prices_updated", func(row *store.AiConnection) (auditChange, error) {
+	return s.update(ctx, ws, p, "ai.prices_updated", saveModel, func(row *store.AIBindingRow) (auditChange, error) {
 		before := map[string]any{"inputPrice": row.InputPrice, "outputPrice": row.OutputPrice}
 		summary := pricesLine(row.InputPrice, row.OutputPrice, in.Input, in.Output)
 		in1, out1 := in.Input, in.Output
@@ -1163,7 +1351,7 @@ func (s *Service) SetFeature(ctx context.Context, ws *store.Workspace, p *authz.
 	if on {
 		action = "ai.feature_enabled"
 	}
-	return s.update(ctx, ws, p, action, func(row *store.AiConnection) (auditChange, error) {
+	return s.update(ctx, ws, p, action, saveSettings, func(row *store.AIBindingRow) (auditChange, error) {
 		was := !slices.Contains(row.FeaturesOff, feature)
 		off := slices.DeleteFunc(slices.Clone(row.FeaturesOff), func(f string) bool { return f == feature })
 		if !on {
@@ -1178,7 +1366,7 @@ func (s *Service) SetFeature(ctx context.Context, ws *store.Workspace, p *authz.
 // the next connection; the activity log, kept summaries and accepted text
 // stay too.
 func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AISettings, error) {
-	return s.update(ctx, ws, p, "ai.connection_removed", func(row *store.AiConnection) (auditChange, error) {
+	return s.update(ctx, ws, p, "ai.connection_removed", saveAccount, func(row *store.AIBindingRow) (auditChange, error) {
 		before := auditView(*row)
 		now := s.now()
 		row.KeySealed, row.KeyAddedBy, row.KeyAddedAt, row.DisconnectedAt, row.DisconnectedBy, row.Status, row.StatusDetail = nil, nil, nil, &now, actorID(p), "ok", ""

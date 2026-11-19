@@ -194,15 +194,16 @@ func (s *Service) StartAgent(ctx context.Context, ws *store.Workspace, p *authz.
 		if err != nil {
 			return err
 		}
-		conn, err := q.AIConnection(ctx, ws.ID)
+		// The run keeps the agent's model as it is now (agentAccess checked it).
+		conn, err := s.agentModel(ctx, q, ws.ID, r, c)
 		if err != nil {
 			return err
 		}
 		if !conn.PriceKnown && !conn.Demo {
 			return budgetProblem(ctx, "price_unknown")
 		}
-		c.Model = agentModelOf(conn)
-		if err := q.AIAgentRunInsert(ctx, store.AIAgentRunInsertParams{ID: id, WorkspaceID: ws.ID, UserID: p.UserID, Model: conn.Model,
+		c.Model = agentModelOf(conn.AIBindingRow)
+		if err := q.AIAgentRunInsert(ctx, store.AIAgentRunInsertParams{ID: id, WorkspaceID: ws.ID, UserID: p.UserID, Model: conn.Model, ModelID: &conn.ModelID,
 			ToolLimit: settings.ToolLimit, TokenLimit: settings.TokenLimit, CostLimitMicros: settings.CostLimitMicros, Now: now, ExpiresAt: expires,
 			RequestKey: key, RequestHash: digest}); err != nil {
 			return err
@@ -369,7 +370,8 @@ func (s *Service) ExecuteAgent(ctx context.Context, args AgentArgs) error {
 		} else if err != nil {
 			return err
 		}
-		conn, err = s.load(ctx, q, ws.ID)
+		// agentAccess found the run's model under the configuration lock.
+		conn, err = s.agentModel(ctx, q, ws.ID, r, c)
 		if err != nil {
 			return err
 		}

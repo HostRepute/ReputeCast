@@ -412,6 +412,11 @@ func (c call) once(ctx context.Context, payload []byte) ([]byte, error) {
 	if e.RetryAfter == 0 {
 		e.RetryAfter = retryAfter(res.Header)
 	}
+	// A server may quote the key it refused; its message is shown, logged
+	// and stored (the account's status, the activity log), the key never.
+	if c.cfg.APIKey != "" {
+		e.Message = strings.ReplaceAll(e.Message, c.cfg.APIKey, "[key]")
+	}
 	return nil, e
 }
 

@@ -47,7 +47,7 @@ export function AutomationFromBriefDialog({ onClose, target, onAccepted, initial
 }) {
   const t = useT()
   const { slug } = useWorkspace()
-  const assist = useAssist()
+  const assist = useAssist('draft')
   const [reviewSharing, sharingDialog] = useSharingReview(`${assist.provider} · ${assist.model}`)
   const canEdit = useCan('automations:edit')
   const editReason = usePermissionReason('automations:edit')

@@ -615,6 +615,11 @@ func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.Ss
 	for _, k := range revoked {
 		names = append(names, k.Name)
 	}
+	// Their personal AI keys there stop working and are deleted.
+	aiKeys, err := q.AIPersonalKeysRemove(ctx, store.AIPersonalKeysRemoveParams{UserID: &u.ID, WorkspaceID: &ws})
+	if err != nil {
+		return err
+	}
 	if _, err := q.DeleteMember(ctx, store.DeleteMemberParams{ID: *c.MemberID, WorkspaceID: ws}); err != nil {
 		return err
 	}
@@ -623,7 +628,7 @@ func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.Ss
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: "member.removed", TargetType: "member", TargetID: c.MemberID.String(), TargetName: displayName(u),
 		Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
 		Before:   map[string]any{"email": u.Email, "role": c.FromName, "status": "active"},
-		After:    map[string]any{"keys_revoked": names},
+		After:    map[string]any{"keys_revoked": names, "personal_ai_keys_removed": aiKeys},
 		Metadata: meta})
 }
 

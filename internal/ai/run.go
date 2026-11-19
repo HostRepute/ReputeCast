@@ -18,6 +18,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -78,12 +79,27 @@ func (r result) sent(chars int) AISent {
 		CostMicros: r.CostMicros, InputTokens: r.Response.InputTokens, OutputTokens: r.Response.OutputTokens, VoiceRevision: r.voiceRevision}
 }
 
-// usable checks that a feature can send a request now: a model is
+// usable checks that a feature can send a person's request now: a model is
 // connected, the feature is on, the key works and the cap isn't reached.
-func (s *Service) usable(ctx context.Context, ws *store.Workspace, feature string) (*connection, error) {
-	c, err := s.load(ctx, s.Q, ws.ID)
+func (s *Service) usable(ctx context.Context, ws *store.Workspace, p *authz.Principal, feature string) (*connection, error) {
+	c, err := s.loadFor(ctx, s.Q, ws.ID, actorID(p), feature)
 	if err != nil {
 		return nil, err
+	}
+	return s.ready(ctx, ws, c, feature)
+}
+
+// ready checks that a model can take a feature's request now. A feature
+// whose default model is disconnected waits for it: another model is never
+// used instead. A personal key is its owner's to fix.
+func (s *Service) ready(ctx context.Context, ws *store.Workspace, c *connection, feature string) (*connection, error) {
+	if c.personal() {
+		if !c.PersonalKeys {
+			return nil, personalKeysOff(ctx)
+		}
+		if !c.connected() {
+			return nil, problem(ctx, http.StatusConflict, codeNotConnected, mPersonalNoKey, i18n.Args{"provider": c.providerName()})
+		}
 	}
 	if !c.connected() {
 		return nil, s.notConnected(ctx, ws)
@@ -95,6 +111,9 @@ func (s *Service) usable(ctx context.Context, ws *store.Workspace, feature strin
 		return nil, withHelpers(ctx, http.StatusConflict, codeFeatureOff, mFeatureOff, mFeatureOffAlone, i18n.Args{"feature": feature}, s.helpers(ctx, ws.ID))
 	}
 	if c.Status == "key_rejected" {
+		if c.personal() {
+			return nil, problem(ctx, http.StatusConflict, codeKeyRejected, mPersonalKeyRejected, i18n.Args{"provider": c.providerName()})
+		}
 		return nil, withHelpers(ctx, http.StatusConflict, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": c.providerName()}, s.helpers(ctx, ws.ID))
 	}
 	u, err := s.usage(ctx, ws, c)
@@ -102,6 +121,9 @@ func (s *Service) usable(ctx context.Context, ws *store.Workspace, feature strin
 		return nil, err
 	}
 	if u.reached {
+		if c.personal() {
+			return nil, s.personalCapReached(ctx, ws, c, u)
+		}
 		return nil, s.capReached(ctx, ws, c, u)
 	}
 	return c, nil
@@ -127,11 +149,25 @@ func (s *Service) capReached(ctx context.Context, ws *store.Workspace, c *connec
 		WithMeta("resetsAt", next, "capUsd", c.CapUsd, "spentMicros", u.costMicros)
 }
 
+// personalCapReached: a person's own budget for their personal keys is
+// used up this month.
+func (s *Service) personalCapReached(ctx context.Context, ws *store.Workspace, c *connection, u usage) *api.Problem {
+	l := i18n.LangFrom(ctx)
+	_, next := s.month(ws)
+	return problem(ctx, http.StatusConflict, codePersonalCapReached, mPersonalCapReached, i18n.Args{"date": l.Region.DayMonth(next), "cap": l.Region.Money(c.PersonalCapUsd, 2)}).
+		WithMeta("resetsAt", next, "capUsd", c.PersonalCapUsd, "spentMicros", u.costMicros)
+}
+
+// personalKeysOff: managers turned personal keys off; the accounts stay.
+func personalKeysOff(ctx context.Context) *api.Problem {
+	return problem(ctx, http.StatusConflict, codePersonalKeysOff, mPersonalKeysOff, nil)
+}
+
 // run sends one request and records it in the activity log. A refusal is
 // an answer (Refusal is set); errors are problems that say nothing was
 // changed.
 func (s *Service) run(ctx context.Context, ws *store.Workspace, p *authz.Principal, t task) (result, error) {
-	c, err := s.usable(ctx, ws, t.feature)
+	c, err := s.usable(ctx, ws, p, t.feature)
 	if err != nil {
 		return result{}, err
 	}
@@ -226,7 +262,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return result{}, err
 	}
 	if c.Status != "ok" {
-		_, _ = s.Q.AIConnectionSetStatus(logCtx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "ok", StatusAt: ptr(s.now()), ExpectedUpdatedAt: c.UpdatedAt})
+		_, _ = s.Q.AIAccountSetStatus(logCtx, store.AIAccountSetStatusParams{ID: c.AccountID, WorkspaceID: ws.ID, Status: "ok", StatusAt: ptr(s.now()), ExpectedRevision: c.AccountRevision})
 	}
 	return out, nil
 }
@@ -301,6 +337,9 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, feature st
 		}
 		return p.WithMeta("retryAfter", secs)
 	case llm.ErrAuth:
+		if c.personal() {
+			return problem(ctx, http.StatusBadGateway, codeKeyRejected, mPersonalKeyRejected, i18n.Args{"provider": name}).WithMeta("status", e.Status, "detail", e.Error())
+		}
 		return withHelpers(ctx, http.StatusBadGateway, codeKeyRejected, mKeyRejected, mKeyRejectedAlone, i18n.Args{"provider": name}, s.helpers(ctx, c.WorkspaceID)).
 			WithMeta("status", e.Status, "detail", e.Error())
 	case llm.ErrTimeout:
@@ -324,19 +363,25 @@ func (s *Service) providerProblem(ctx context.Context, c *connection, feature st
 	return problem(ctx, http.StatusBadGateway, codeProviderError, m, args).WithMeta("status", e.Status, "attempts", e.Attempts)
 }
 
-// keyRejected marks the connection's key rejected and tells the members who
+// keyRejected marks the account's key rejected and tells the members who
 // can replace it, once.
 func (s *Service) keyRejected(ctx context.Context, ws *store.Workspace, c *connection, e *llm.Error) {
 	now := s.now()
-	n, err := s.Q.AIConnectionSetStatus(ctx, store.AIConnectionSetStatusParams{WorkspaceID: ws.ID, Status: "key_rejected", StatusDetail: clip(e.Error(), 300), StatusAt: &now, ExpectedUpdatedAt: c.UpdatedAt})
+	n, err := s.Q.AIAccountSetStatus(ctx, store.AIAccountSetStatusParams{ID: c.AccountID, WorkspaceID: ws.ID, Status: "key_rejected", StatusDetail: clip(e.Error(), 300), StatusAt: &now, ExpectedRevision: c.AccountRevision})
 	if err != nil || n == 0 {
 		return
 	}
-	err = s.notifyMembers(ctx, ws.ID, authz.IntegrationsManage, func(l i18n.Lang) notify.Notification {
+	notification := func(l i18n.Lang, body i18n.Msg) notify.Notification {
 		return notify.Notification{Kind: notify.KindAIKeyRejected, Severity: "bad", Title: mNotifyKeyTitle.Text(l, nil),
-			Body: mNotifyKeyBody.Text(l, i18n.Args{"provider": c.providerName(), "status": e.Status}),
-			Link: "/w/" + ws.Slug + "/settings/integrations/ai"}
-	})
+			Body: body.Text(l, i18n.Args{"provider": c.providerName(), "status": e.Status}),
+			Link: "/w/" + ws.Slug + "/settings/integrations/ai", WorkspaceID: &ws.ID}
+	}
+	if c.personal() {
+		// A personal key is its owner's to replace.
+		err = notify.ToUser(ctx, s.Pool, *c.AccountUserID, notification(applang.ForUserID(ctx, s.Q, *c.AccountUserID), mNotifyPersonalKey))
+	} else {
+		err = s.notifyMembers(ctx, ws.ID, authz.IntegrationsManage, func(l i18n.Lang) notify.Notification { return notification(l, mNotifyKeyBody) })
+	}
 	if err != nil {
 		s.log().WarnContext(ctx, "ai: notify a rejected key", "err", err)
 	}
@@ -366,7 +411,7 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace) {
 	}
 	link := "/w/" + ws.Slug + "/settings/integrations/ai"
 	if u.reached {
-		if n, err := s.Q.AIConnectionClaimCapNotice(ctx, store.AIConnectionClaimCapNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
+		if n, err := s.Q.AIWorkspaceSettingsClaimCapNotice(ctx, store.AIWorkspaceSettingsClaimCapNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
 			return
 		}
 		body := mNotifyCapBody
@@ -384,7 +429,7 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace) {
 	if !u.notice {
 		return
 	}
-	if n, err := s.Q.AIConnectionClaimNotice(ctx, store.AIConnectionClaimNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
+	if n, err := s.Q.AIWorkspaceSettingsClaimNotice(ctx, store.AIWorkspaceSettingsClaimNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
 		return
 	}
 	body := mNotifyUsageBody

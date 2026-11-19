@@ -9,18 +9,35 @@ import (
 )
 
 // CatalogEntries are the "AI models" group of Settings › Integrations: the
-// five providers, the connected one with this month's use.
+// five providers, each connected one with this month's use. A provider
+// without a connected account names the connected one, which Connect waits
+// for (it changes the first account).
 func (s *Service) CatalogEntries(ctx context.Context, ws *store.Workspace) ([]integrations.IntegrationEntry, error) {
-	c, err := s.load(ctx, s.Q, ws.ID)
+	m, err := s.models(ctx, s.Q, ws.ID)
 	if err != nil {
 		return nil, err
+	}
+	// The first connected account, the first account when it is.
+	var first *connection
+	for _, c := range m.list {
+		if c.connected() {
+			first = c
+			break
+		}
 	}
 	out := make([]integrations.IntegrationEntry, 0, len(llm.Providers))
 	for _, p := range llm.Providers {
 		e := integrations.IntegrationEntry{Key: p.Kind, Status: "not_connected", Reasons: []integrations.IntegrationReason{}, Facts: integrations.IntegrationFacts{}}
-		if c.connected() {
+		if first != nil {
 			facts := &integrations.IntegrationAIFacts{}
-			if c.Provider == p.Kind {
+			var c *connection
+			for _, a := range m.list {
+				if a.Provider == p.Kind && a.connected() {
+					c = a
+					break
+				}
+			}
+			if c != nil {
 				e.Status = "connected"
 				if c.Status == "key_rejected" {
 					e.Status = "attention"
@@ -33,7 +50,7 @@ func (s *Service) CatalogEntries(ctx context.Context, ws *store.Workspace) ([]in
 				facts.ModelName, facts.CostMicros, facts.Tokens, facts.CapKind, facts.CapUSD, facts.CapTokens, facts.Share =
 					c.modelName(), u.costMicros, u.tokens, c.CapKind, c.CapUsd, c.CapTokens, u.share
 			} else {
-				facts.Connected = c.providerName()
+				facts.Connected = first.providerName()
 			}
 			e.Facts.AI = facts
 		}

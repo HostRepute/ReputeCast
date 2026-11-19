@@ -85,7 +85,7 @@ func TestSavedKeyStaysWithItsAddress(t *testing.T) {
 		t.Fatalf("the saved key reached another server: %v", theirs.got())
 	}
 	var base string
-	if err := env.App.Pool.QueryRow(context.Background(), `SELECT base_url FROM ai_connections c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter'`).Scan(&base); err != nil || base != mine.srv.URL+"/v1" {
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT base_url FROM ai_accounts c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter'`).Scan(&base); err != nil || base != mine.srv.URL+"/v1" {
 		t.Fatalf("saved address %q (%v)", base, err)
 	}
 

@@ -39,6 +39,9 @@ type AIActivityRow struct {
 	UsageKnown   bool      `json:"usageKnown"`
 	Outcome      string    `json:"outcome" enum:"pending,accepted,accepted_edits,kept,rejected,discarded,refused,error,nothing_drafted,cancelled"`
 	Detail       string    `json:"detail,omitempty" doc:"1 of 5, 529 overloaded"`
+	// Personal: sent with the member's own key (personal keys), in their
+	// own budget.
+	Personal bool `json:"personal"`
 }
 
 // AIActivityList is a page of the log.
@@ -145,7 +148,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, f AIActivit
 		}
 		row := AIActivityRow{ID: r.ID.String(), At: r.CreatedAt, Member: r.UserName, MemberColor: r.UserColor, Feature: r.Feature, Action: r.Action, TargetKind: r.TargetKind,
 			On: onIn(l, r.Feature, r.TargetKind, r.TargetID, r.TargetLabel), Provider: r.Provider, Model: r.Model, InputTokens: int64(r.InputTokens), OutputTokens: int64(r.OutputTokens),
-			Tokens: int64(r.InputTokens) + int64(r.OutputTokens), CostMicros: r.CostMicros, UsageKnown: r.UsageKnown, Outcome: r.Outcome, Detail: detailIn(l, r.OutcomeDetail)}
+			Tokens: int64(r.InputTokens) + int64(r.OutputTokens), CostMicros: r.CostMicros, UsageKnown: r.UsageKnown, Outcome: r.Outcome, Detail: detailIn(l, r.OutcomeDetail), Personal: r.Personal}
 		if row.Member == "" {
 			row.Member = r.UserEmail
 		}
@@ -161,12 +164,15 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, f AIActivit
 	if n, err := s.Q.AIRequestCount(ctx, store.AIRequestCountParams{WorkspaceID: ws.ID, Since: start}); err == nil {
 		out.MonthRequests = n
 	}
-	members, err := s.byMember(ctx, ws)
+	// The filter names everyone who asked, on the workspace's keys or their own.
+	members, err := s.Q.AIActivityMembers(ctx, store.AIActivityMembersParams{WorkspaceID: ws.ID, Since: start})
 	if err == nil {
 		for _, m := range members {
-			if m.UserID != "" {
-				out.Members = append(out.Members, AIActivityMember{ID: m.UserID, Name: m.Name})
+			name := m.UserName
+			if name == "" {
+				name = m.UserEmail
 			}
+			out.Members = append(out.Members, AIActivityMember{ID: m.UserID.String(), Name: name})
 		}
 	}
 	return out, nil

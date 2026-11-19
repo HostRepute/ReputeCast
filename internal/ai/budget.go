@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"image"
 	"math"
 	"slices"
@@ -30,16 +29,20 @@ func budgetProblem(ctx context.Context, key string) error {
 	return api.Err(409, "ai_"+key, text(ctx, msgs.M("budget."+key), nil))
 }
 
-// reserveIn serializes every spending path, even before a connection exists.
-// A caller handling a run also locks that run before calling this function.
+// reserveIn serializes every spending path of a budget, across all its
+// accounts and models, even before a connection exists: the workspace's,
+// or a person's own for their personal keys. A caller handling a run also
+// locks that run before calling this function.
 // No database lock spans an HTTP call. Request IDs survive worker retries.
 func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, c *connection, t *task, run *store.AiAgentRun, id uuid.UUID) error {
 	fresh, err := brandkit.VoiceActor(ctx, q, ws, p)
 	if err != nil {
 		return err
 	}
+	// A workspace account's test is a manager's; a personal key's its
+	// owner's, with ai:use.
 	permission := authz.AIUse
-	if t.feature == FeatureConnectionTest {
+	if t.feature == FeatureConnectionTest && !c.personal() {
 		permission = authz.IntegrationsManage
 	}
 	if !fresh.Can(permission) {
@@ -50,31 +53,51 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 			return err
 		}
 	}
-	row, err := q.AIConnectionForUpdate(ctx, ws.ID)
-	missing := errors.Is(err, pgx.ErrNoRows)
-	if errors.Is(err, pgx.ErrNoRows) && t.feature == FeatureConnectionTest {
-		row, err = c.AiConnection, nil
-	}
-	if err != nil {
-		return api.MapError(err, "AI connection")
-	}
 	// Domain continuations may already hold the configuration lock. Always
 	// acquire it before the budget lock; accounting needs only the latter.
-	if err := q.AIBudgetWorkspaceLock(ctx, ws.ID); err != nil {
+	// A first connection's test makes the settings row, with the default cap.
+	row, err := lockSettings(ctx, q, ws.ID)
+	if err != nil {
 		return err
 	}
-	if missing {
-		// A first connection may have committed while this probe waited.
-		// Its cap applies now; never take a row lock after the budget lock.
-		current, err := q.AIConnection(ctx, ws.ID)
-		if err == nil {
-			row = current
-		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return err
+	// A personal key works only for its owner, and only while managers
+	// allow personal keys; its use is in the owner's own budget.
+	owner := c.AccountUserID
+	if owner != nil {
+		if fresh.UserID != *owner {
+			return api.NotFound("AI model")
+		}
+		if !row.PersonalKeys {
+			return personalKeysOff(ctx)
 		}
 	}
-	if t.feature != FeatureConnectionTest && (!row.UpdatedAt.Equal(c.UpdatedAt) || row.DisconnectedAt != nil || row.Status == "key_rejected" || !(&connection{row}).featureOn(t.feature)) {
-		return budgetProblem(ctx, "connection_changed")
+	if err := budgetLock(ctx, q, ws.ID, owner); err != nil {
+		return err
+	}
+	if t.feature != FeatureConnectionTest {
+		// The request is bound to its model, that model's account and their
+		// prices as they were when it was prepared; any change since refuses it.
+		cur, err := s.binding(ctx, q, ws.ID, &c.ModelID)
+		if err != nil {
+			return err
+		}
+		if cur == nil || cur.SettingsRevision != c.SettingsRevision || cur.AccountRevision != c.AccountRevision || cur.ModelRevision != c.ModelRevision ||
+			!cur.connected() || cur.Status == "key_rejected" || !cur.featureOn(t.feature) {
+			return budgetProblem(ctx, "connection_changed")
+		}
+		// A one-shot request goes to its feature's model (the person's own
+		// pick, or the workspace's default); once that changes, it isn't
+		// sent. A run keeps the model it began with.
+		if run == nil {
+			model, ok, err := featureModel(ctx, q, ws.ID, &fresh.UserID, t.feature)
+			if err != nil {
+				return err
+			}
+			if !ok || model != c.ModelID {
+				return budgetProblem(ctx, "connection_changed")
+			}
+		}
+		c = cur
 	}
 	if !c.PriceKnown && !c.Demo {
 		return budgetProblem(ctx, "price_unknown")
@@ -118,19 +141,33 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 	output = min(output, 16384)
 	minimumOutput := min(output, 64)
 	start, _ := s.month(ws)
-	used, err := q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
-	if err != nil {
-		return err
-	}
-	held, err := q.AIBudgetMonthly(ctx, ws.ID)
-	if err != nil {
-		return err
-	}
-	switch row.CapKind {
-	case "tokens":
-		output = min(output, row.CapTokens-used.InputTokens-used.OutputTokens-held.Tokens-input)
-	case "usd":
-		output = min(output, affordableOutput(int64(math.Floor(row.CapUsd*1e6))-used.CostMicros-held.CostMicros, input, c.InputPrice, c.OutputPrice))
+	if owner != nil {
+		// A personal key's use is its owner's: their own monthly cap, never
+		// the workspace's.
+		used, err := q.AIPersonalUsageTotal(ctx, store.AIPersonalUsageTotalParams{WorkspaceID: ws.ID, UserID: owner, Since: start})
+		if err != nil {
+			return err
+		}
+		held, err := q.AIBudgetPersonal(ctx, store.AIBudgetPersonalParams{WorkspaceID: ws.ID, UserID: owner})
+		if err != nil {
+			return err
+		}
+		output = min(output, affordableOutput(int64(math.Floor(row.PersonalCapUsd*1e6))-used.CostMicros-held.CostMicros, input, c.InputPrice, c.OutputPrice))
+	} else {
+		used, err := q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
+		if err != nil {
+			return err
+		}
+		held, err := q.AIBudgetMonthly(ctx, ws.ID)
+		if err != nil {
+			return err
+		}
+		switch row.CapKind {
+		case "tokens":
+			output = min(output, row.CapTokens-used.InputTokens-used.OutputTokens-held.Tokens-input)
+		case "usd":
+			output = min(output, affordableOutput(int64(math.Floor(row.CapUsd*1e6))-used.CostMicros-held.CostMicros, input, c.InputPrice, c.OutputPrice))
+		}
 	}
 	if output < minimumOutput {
 		return budgetProblem(ctx, "reservation_cap")
@@ -152,11 +189,44 @@ func (s *Service) reserveIn(ctx context.Context, q *store.Queries, ws *store.Wor
 		}
 	}
 	t.req.MaxTokens = int(output)
-	pricing, _ := json.Marshal([]any{c.Provider, c.Model, c.InputPrice, c.OutputPrice, c.UpdatedAt})
+	pricing, _ := json.Marshal([]any{c.AccountID, c.AccountRevision, c.ModelID, c.ModelRevision, c.Provider, c.Model, c.InputPrice, c.OutputPrice})
 	digest := sha256.Sum256(pricing)
+	// A candidate being tested has no account or model yet.
+	var account, model *uuid.UUID
+	if c.ModelID != uuid.Nil {
+		account, model = &c.AccountID, &c.ModelID
+	}
 	return q.AIBudgetInsert(ctx, store.AIBudgetInsertParams{ID: id, WorkspaceID: ws.ID, UserID: actorID(p), RunID: runID, Feature: t.feature,
 		Provider: c.Provider, Model: c.Model, PricingRevision: hex.EncodeToString(digest[:]), InputPrice: c.InputPrice, OutputPrice: c.OutputPrice,
-		InputTokens: input, OutputTokens: output, CostMicros: int64(math.Ceil(float64(input)*c.InputPrice + float64(output)*c.OutputPrice)), CreatedAt: s.now()})
+		InputTokens: input, OutputTokens: output, CostMicros: int64(math.Ceil(float64(input)*c.InputPrice + float64(output)*c.OutputPrice)), CreatedAt: s.now(),
+		AccountID: account, ModelID: model, Personal: owner != nil})
+}
+
+// budgetLock takes a budget's lock, after the configuration lock: the
+// workspace's (person nil), or a person's own for their personal keys. The
+// two never wait for each other.
+func budgetLock(ctx context.Context, q *store.Queries, ws uuid.UUID, person *uuid.UUID) error {
+	if person != nil {
+		return q.AIBudgetPersonLock(ctx, store.AIBudgetPersonLockParams{WorkspaceID: ws, UserID: *person})
+	}
+	return q.AIBudgetWorkspaceLock(ctx, ws)
+}
+
+// reservationLock takes the lock of the budget a reservation is in, then the
+// reservation's row. Whose budget it is never changes once it is made.
+func reservationLock(ctx context.Context, q *store.Queries, ws, id uuid.UUID) (store.AiBudgetReservation, error) {
+	scope, err := q.AIBudgetScope(ctx, store.AIBudgetScopeParams{ID: id, WorkspaceID: ws})
+	if err != nil {
+		return store.AiBudgetReservation{}, err
+	}
+	var person *uuid.UUID
+	if scope.Personal {
+		person = scope.UserID
+	}
+	if err := budgetLock(ctx, q, ws, person); err != nil {
+		return store.AiBudgetReservation{}, err
+	}
+	return q.AIBudgetLock(ctx, store.AIBudgetLockParams{WorkspaceID: ws, ID: id})
 }
 
 func affordableOutput(micros, input int64, inputPrice, outputPrice float64) int64 {
@@ -176,16 +246,16 @@ func affordableOutput(micros, input int64, inputPrice, outputPrice float64) int6
 func (s *Service) accountIn(ctx context.Context, q *store.Queries, row store.AIRequestInsertParams, res llm.Response, callErr error) (bool, error) {
 	// Use the reservation lock order: the monthly total and held amounts
 	// must not change between the two reads in reserveIn.
-	if err := q.AIBudgetWorkspaceLock(ctx, row.WorkspaceID); err != nil {
-		return false, err
-	}
-	r, err := q.AIBudgetLock(ctx, store.AIBudgetLockParams{WorkspaceID: row.WorkspaceID, ID: row.ID})
+	r, err := reservationLock(ctx, q, row.WorkspaceID, row.ID)
 	if err != nil {
 		return false, err
 	}
 	if r.State == "settled" {
 		return true, nil
 	}
+	// The log names the model and account the reservation bound, whatever
+	// the caller passed, and whose budget it was in.
+	row.Provider, row.Model, row.AccountID, row.ModelID, row.Personal = r.Provider, r.Model, r.AccountID, r.ModelID, r.Personal
 	known := res.UsageKnown
 	// Explicit pre-execution HTTP rejections are non-billable. Timeouts,
 	// server errors and invalid/oversized responses are not safe to retry.
@@ -261,15 +331,32 @@ type AIBudgetReconcileInput struct {
 // BudgetHolds also shows abandoned reserved calls before the maintenance
 // sweep runs. Reconciliation waits longer than every possible HTTP timeout.
 func (s *Service) BudgetHolds(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIBudgetHolds, error) {
+	return s.budgetHolds(ctx, ws, p, false)
+}
+
+// PersonalBudgetHolds lists the caller's own holds on their personal keys.
+func (s *Service) PersonalBudgetHolds(ctx context.Context, ws *store.Workspace, p *authz.Principal) (AIBudgetHolds, error) {
+	return s.budgetHolds(ctx, ws, p, true)
+}
+
+// budgetHolds lists the workspace's holds (for integration managers) or the
+// caller's own on their personal keys (personal, with ai:use).
+func (s *Service) budgetHolds(ctx context.Context, ws *store.Workspace, p *authz.Principal, personal bool) (AIBudgetHolds, error) {
 	out := AIBudgetHolds{Items: []AIBudgetHold{}}
 	fresh, err := brandkit.VoiceActor(ctx, s.Q, ws, p)
 	if err != nil {
 		return out, err
 	}
-	if !fresh.Can(authz.IntegrationsManage) {
-		return out, api.Forbidden(authz.IntegrationsManage, nil)
+	permission := holdsPermission(personal)
+	if !fresh.Can(permission) {
+		return out, api.Forbidden(permission, nil)
 	}
-	rows, err := s.Q.AIBudgetPending(ctx, ws.ID)
+	var rows []store.AiBudgetReservation
+	if personal {
+		rows, err = s.Q.AIBudgetPersonalPending(ctx, store.AIBudgetPersonalPendingParams{WorkspaceID: ws.ID, UserID: &fresh.UserID})
+	} else {
+		rows, err = s.Q.AIBudgetPending(ctx, ws.ID)
+	}
 	if err != nil {
 		return out, err
 	}
@@ -280,9 +367,30 @@ func (s *Service) BudgetHolds(ctx context.Context, ws *store.Workspace, p *authz
 	return out, nil
 }
 
+// holdsPermission is what the holds take: integrations:manage for the
+// workspace's, ai:use for one's own personal keys'.
+func holdsPermission(personal bool) authz.Permission {
+	if personal {
+		return authz.AIUse
+	}
+	return authz.IntegrationsManage
+}
+
 // ReconcileBudget records provider-verified counts. It does not restart a
 // run, recover a lost response, accept a draft or reset cumulative limits.
 func (s *Service) ReconcileBudget(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in AIBudgetReconcileInput) error {
+	return s.reconcile(ctx, ws, p, id, in, false)
+}
+
+// ReconcilePersonalBudget records provider-verified counts for one of the
+// caller's own holds on their personal keys, in their own budget.
+func (s *Service) ReconcilePersonalBudget(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in AIBudgetReconcileInput) error {
+	return s.reconcile(ctx, ws, p, id, in, true)
+}
+
+// reconcile settles a workspace hold, or (personal) one of the caller's own.
+// Someone else's personal hold isn't there, even for a manager.
+func (s *Service) reconcile(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in AIBudgetReconcileInput, personal bool) error {
 	if !in.Confirmed || in.InputTokens < 0 || in.OutputTokens < 0 || in.InputTokens > 1_000_000_000 || in.OutputTokens > 1_000_000_000 {
 		return budgetProblem(ctx, "reconcile_confirm")
 	}
@@ -292,13 +400,19 @@ func (s *Service) ReconcileBudget(ctx context.Context, ws *store.Workspace, p *a
 		if err != nil {
 			return err
 		}
-		if !fresh.Can(authz.IntegrationsManage) {
-			return api.Forbidden(authz.IntegrationsManage, nil)
+		permission := holdsPermission(personal)
+		if !fresh.Can(permission) {
+			return api.Forbidden(permission, nil)
 		}
-		if err := q.AIBudgetWorkspaceLock(ctx, ws.ID); err != nil {
-			return err
+		// A personal key's holds are its owner's, not the workspace's.
+		scope, err := q.AIBudgetScope(ctx, store.AIBudgetScopeParams{ID: id, WorkspaceID: ws.ID})
+		if err != nil {
+			return api.MapError(err, "AI request")
 		}
-		r, err := q.AIBudgetLock(ctx, store.AIBudgetLockParams{ID: id, WorkspaceID: ws.ID})
+		if scope.Personal != personal || (personal && (scope.UserID == nil || *scope.UserID != fresh.UserID)) {
+			return api.NotFound("AI request")
+		}
+		r, err := reservationLock(ctx, q, ws.ID, id)
 		if err != nil {
 			return api.MapError(err, "AI request")
 		}
@@ -317,10 +431,14 @@ func (s *Service) ReconcileBudget(ctx context.Context, ws *store.Workspace, p *a
 		if err != nil {
 			return err
 		}
+		meta := map[string]any{"pricing_revision": r.PricingRevision, "run_id": r.RunID}
+		if personal {
+			meta["personal"] = true
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "ai.usage_reconciled", TargetType: "ai_request", TargetID: id.String(),
 			Before:   map[string]any{"reserved_tokens": r.InputTokens + r.OutputTokens, "reserved_cost_micros": r.CostMicros},
 			After:    map[string]any{"input_tokens": in.InputTokens, "output_tokens": in.OutputTokens},
-			Metadata: map[string]any{"pricing_revision": r.PricingRevision, "run_id": r.RunID}})
+			Metadata: meta})
 	})
 	if err == nil {
 		s.afterUse(ctx, ws)

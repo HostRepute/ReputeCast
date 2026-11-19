@@ -95,6 +95,20 @@
   "problem.questionEmpty": { "message": "Ask a question about this report.", "note": "the Ask box was sent empty" },
   "problem.numbersUnmatched": { "message": "{count, plural, one {This number isn't in the report: {numbers}. Change it to the report's number before keeping the summary.} other {These numbers aren't in the report: {numbers}. Change them to the report's numbers before keeping the summary.}}", "note": "an edited AI summary with numbers the report doesn't have; numbers: the numbers as written, comma-separated" },
   "problem.suggestionId": { "message": "Name the suggestion.", "note": "a request without the suggestion it keeps or accepts" },
+  "problem.modelExists": { "message": "This account already has the model {model}. Pick another one, or change that one's prices.", "note": "model: gpt-5-mini; an account has each model (and Azure deployment) once" },
+  "problem.modelInUse": { "message": "{count, plural, one {{features} uses this model} other {{features} use this model}}. Pick another model for {count, plural, one {it} other {them}} first.", "note": "removing a model features use; features: their names joined as 'A and B', such as Alt text and Draft from a brief" },
+  "problem.accountInUse": { "message": "{count, plural, one {{features} uses a model of this account} other {{features} use models of this account}}. Pick other models for {count, plural, one {it} other {them}} first.", "note": "removing an account whose models features use; features: as in problem.modelInUse" },
+  "problem.lastModel": "This is the account's only model. Add another model first, or remove the account.",
+  "problem.accountDisconnected": { "message": "That model's account is disconnected. Pick a model of a connected account.", "note": "picking the model a feature uses" },
+  "problem.keyRejectedModel": { "message": "{provider} rejected this account's key. Replace the key, then pick its model again.", "note": "picking the model a feature uses; provider: Anthropic, OpenAI…" },
+  "problem.defaultNoImages": "Alt text needs a model that reads images. Pick one that does.",
+  "problem.toolsUnchecked": { "message": "The AI agent and the AI assistant need a model that passed the tool-calling check. Test this model's tools first.", "note": "picking the model the agent or the assistant uses" },
+  "problem.personalKeysOff": { "message": "Personal keys are turned off in this workspace, so your own keys aren't used and none can be added. Nothing was sent. Someone who can manage integrations can turn them on.", "note": "a request on a member's own key, or adding one, while managers turned personal keys off; the accounts are kept" },
+  "problem.personalCapReached": { "message": "This month's budget for your own keys ({cap}) is used up. They work again on {date}. Nothing was sent.", "note": "cap: $10.00, each person's monthly cap for their personal keys; date: 1 Dec" },
+  "problem.personalKeyRejected": { "message": "{provider} rejected your own key. Nothing was sent. Replace it in Settings › Integrations · AI assistant.", "note": "a personal key; provider: Anthropic, OpenAI…" },
+  "problem.personalNoKey": { "message": "Your own {provider} account has no key any more, so nothing was sent. Add its key again, or go back to the workspace's model, in Settings › Integrations · AI assistant.", "note": "the key of a member's own account was removed when they left the workspace or were deactivated" },
+  "problem.personalModel": { "message": "A personal key's model can't be the workspace's model for a feature. Only its owner's requests use it. Pick a model of one of the workspace's accounts.", "note": "picking the model a feature uses" },
+  "feature.name": { "message": "{feature, select, subject_ideas {Subject ideas} rewrite {Rewrite, shorten and tone} translate {Translate a language version} alt_text {Alt text} accessibility_fix {Accessibility fixes} segment_draft {Describe the segment} report_summary {Report summaries} brand_voice {Brand voice learning} draft {Draft from a brief} agent {AI agent} assistant {AI assistant} other {{feature}}}", "note": "a feature's name, as Settings › Integrations · AI assistant lists them" },
   "activity.newSegment": { "message": "New segment", "note": "the AI activity log's “On” column, for a segment not saved yet" },
   "activity.onField": { "message": "{name} {field, select, subject {subject} other {preheader}}", "note": "the AI activity log's “On” column for a rewrite of a campaign's subject or preheader; name: the campaign's name" },
   "activity.rateLimited": { "message": "rate limited", "note": "why a request failed, after “Error ·” in the AI activity log" },
@@ -113,5 +127,6 @@
   "notify.tokenUsageBody": { "message": "{spent} of this month's {cap} tokens. At the cap, AI features pause until {date}.", "note": "spent, cap: token counts" },
   "notify.tokenCapBody": "This month's {cap} tokens are used up. AI features pause until {date}; editing, sending and reports work as usual.",
   "notify.keyTitle": "AI key rejected by the provider",
-  "notify.keyBody": { "message": "{provider} answered {status} for the workspace's key. Replace it in Settings › Integrations · AI assistant.", "note": "status: 401" }
+  "notify.keyBody": { "message": "{provider} answered {status} for the workspace's key. Replace it in Settings › Integrations · AI assistant.", "note": "status: 401" },
+  "notify.personalKeyBody": { "message": "{provider} answered {status} for your own key. Replace it in Settings › Integrations · AI assistant.", "note": "status: 401; a member's personal key" }
 }

@@ -59,6 +59,186 @@
         ],
         "type": "object"
       },
+      "AIAccountInput": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "apiVersion": {
+            "maxLength": 40,
+            "type": "string"
+          },
+          "baseUrl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "deployment": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "inputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "label": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "modelName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "outputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model"
+        ],
+        "type": "object"
+      },
+      "AIAccountModelInput": {
+        "additionalProperties": false,
+        "properties": {
+          "deployment": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "inputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "model": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "modelName": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "outputPrice": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "type": "object"
+      },
+      "AIAccountView": {
+        "additionalProperties": false,
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "connectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "demo": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "$ref": "#/components/schemas/AIKeyView"
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastTest": {
+            "$ref": "#/components/schemas/AITestView"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/AIModelView"
+            },
+            "type": "array"
+          },
+          "preset": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "privateNetwork": {
+            "type": "boolean"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "key_rejected",
+              "disconnected"
+            ],
+            "type": "string"
+          },
+          "statusAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "statusDetail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "providerName",
+          "key",
+          "status",
+          "connectedAt",
+          "privateNetwork",
+          "demo",
+          "primary",
+          "models"
+        ],
+        "type": "object"
+      },
       "AIActivityList": {
         "additionalProperties": false,
         "properties": {
@@ -184,6 +364,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "personal": {
+            "type": "boolean"
+          },
           "provider": {
             "type": "string"
           },
@@ -217,7 +400,8 @@
           "outputTokens",
           "costMicros",
           "usageKnown",
-          "outcome"
+          "outcome",
+          "personal"
         ],
         "type": "object"
       },
@@ -1769,6 +1953,9 @@
           "modelName": {
             "type": "string"
           },
+          "preset": {
+            "type": "string"
+          },
           "prices": {
             "$ref": "#/components/schemas/AIPricesView"
           },
@@ -1883,6 +2070,35 @@
         ],
         "type": "object"
       },
+      "AIFeatureDefault": {
+        "additionalProperties": false,
+        "properties": {
+          "feature": {
+            "enum": [
+              "assistant",
+              "agent",
+              "subject_ideas",
+              "rewrite",
+              "translate",
+              "alt_text",
+              "accessibility_fix",
+              "segment_draft",
+              "report_summary",
+              "brand_voice",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "modelId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "feature",
+          "modelId"
+        ],
+        "type": "object"
+      },
       "AIFeatureInput": {
         "additionalProperties": false,
         "properties": {
@@ -1892,6 +2108,19 @@
         },
         "required": [
           "on"
+        ],
+        "type": "object"
+      },
+      "AIFeatureModelInput": {
+        "additionalProperties": false,
+        "properties": {
+          "modelId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "modelId"
         ],
         "type": "object"
       },
@@ -1913,6 +2142,10 @@
               "brand_voice",
               "draft"
             ],
+            "type": "string"
+          },
+          "modelId": {
+            "format": "uuid",
             "type": "string"
           },
           "on": {
@@ -2272,9 +2505,68 @@
         ],
         "type": "object"
       },
+      "AIModelView": {
+        "additionalProperties": false,
+        "properties": {
+          "deployment": {
+            "type": "string"
+          },
+          "features": {
+            "items": {
+              "enum": [
+                "assistant",
+                "agent",
+                "subject_ideas",
+                "rewrite",
+                "translate",
+                "alt_text",
+                "accessibility_fix",
+                "segment_draft",
+                "report_summary",
+                "brand_voice",
+                "draft"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "imageInput": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/AIPricesView"
+          },
+          "tools": {
+            "$ref": "#/components/schemas/AIAgentCapability"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "modelName",
+          "imageInput",
+          "prices",
+          "tools",
+          "features"
+        ],
+        "type": "object"
+      },
       "AIModelsInput": {
         "additionalProperties": false,
         "properties": {
+          "accountId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "apiKey": {
             "maxLength": 500,
             "type": "string"
@@ -2366,6 +2658,217 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "AIPersonalAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible"
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "key_rejected",
+              "disconnected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "providerName",
+          "status",
+          "models"
+        ],
+        "type": "object"
+      },
+      "AIPersonalKeyReplaced": {
+        "additionalProperties": false,
+        "properties": {
+          "personal": {
+            "$ref": "#/components/schemas/AIPersonalSettings"
+          },
+          "test": {
+            "$ref": "#/components/schemas/AITestResult"
+          }
+        },
+        "required": [
+          "personal",
+          "test"
+        ],
+        "type": "object"
+      },
+      "AIPersonalKeysInput": {
+        "additionalProperties": false,
+        "properties": {
+          "capUsd": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "capUsd"
+        ],
+        "type": "object"
+      },
+      "AIPersonalPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AIPersonalAccount"
+            },
+            "type": "array"
+          },
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "accounts",
+          "costMicros",
+          "requests"
+        ],
+        "type": "object"
+      },
+      "AIPersonalSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAccountView"
+            },
+            "type": "array"
+          },
+          "canAdd": {
+            "type": "boolean"
+          },
+          "capSetAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "capSetBy": {
+            "type": "string"
+          },
+          "capUsd": {
+            "format": "double",
+            "type": "number"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/AIFeatureDefault"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/AIPersonalPerson"
+            },
+            "type": "array"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AIPersonalUsageView"
+          }
+        },
+        "required": [
+          "enabled",
+          "capUsd",
+          "canAdd",
+          "accounts",
+          "choices",
+          "usage",
+          "people"
+        ],
+        "type": "object"
+      },
+      "AIPersonalUsageView": {
+        "additionalProperties": false,
+        "properties": {
+          "costMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "reservedCostMicros": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "resetsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "share": {
+            "description": "Share of the cap used, 0 to 1",
+            "format": "double",
+            "type": "number"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "notice",
+              "reached"
+            ],
+            "type": "string"
+          },
+          "uncertainRequests": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "costMicros",
+          "reservedCostMicros",
+          "uncertainRequests",
+          "requests",
+          "share",
+          "state",
+          "resetsAt"
         ],
         "type": "object"
       },
@@ -2463,6 +2966,12 @@
           },
           "needsKey": {
             "type": "boolean"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/AIProviderPreset"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -2471,7 +2980,28 @@
           "needsKey",
           "needsBaseUrl",
           "capabilities",
-          "models"
+          "models",
+          "presets"
+        ],
+        "type": "object"
+      },
+      "AIProviderPreset": {
+        "additionalProperties": false,
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "baseUrl"
         ],
         "type": "object"
       },
@@ -2895,6 +3425,12 @@
       "AISettings": {
         "additionalProperties": false,
         "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAccountView"
+            },
+            "type": "array"
+          },
           "aiUseRoles": {
             "items": {
               "type": "string"
@@ -2931,6 +3467,12 @@
           "connection": {
             "$ref": "#/components/schemas/AIConnectionView"
           },
+          "defaults": {
+            "items": {
+              "$ref": "#/components/schemas/AIFeatureDefault"
+            },
+            "type": "array"
+          },
           "disconnected": {
             "type": "boolean"
           },
@@ -2951,6 +3493,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "personal": {
+            "$ref": "#/components/schemas/AIPersonalSettings"
           },
           "priceListDate": {
             "format": "date-time",
@@ -2980,13 +3525,22 @@
           "withoutAiUse",
           "priceListDate",
           "allowPrivate",
-          "instanceAdmins"
+          "instanceAdmins",
+          "accounts",
+          "defaults",
+          "personal"
         ],
         "type": "object"
       },
       "AIStatus": {
         "additionalProperties": false,
         "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAccountView"
+            },
+            "type": "array"
+          },
           "agent": {
             "$ref": "#/components/schemas/AIAgentSettings"
           },
@@ -2996,9 +3550,15 @@
           "cap": {
             "$ref": "#/components/schemas/AICapView"
           },
+          "defaults": {
+            "items": {
+              "$ref": "#/components/schemas/AIFeatureDefault"
+            },
+            "type": "array"
+          },
           "features": {
             "items": {
-              "$ref": "#/components/schemas/AIFeatureState"
+              "$ref": "#/components/schemas/AIStatusFeature"
             },
             "type": "array"
           },
@@ -3060,7 +3620,90 @@
           "prices",
           "canManage",
           "helpers",
-          "hostRepute"
+          "hostRepute",
+          "accounts",
+          "defaults"
+        ],
+        "type": "object"
+      },
+      "AIStatusFeature": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "cap": {
+            "$ref": "#/components/schemas/AICapView"
+          },
+          "key": {
+            "enum": [
+              "subject_ideas",
+              "rewrite",
+              "translate",
+              "alt_text",
+              "accessibility_fix",
+              "segment_draft",
+              "report_summary",
+              "brand_voice",
+              "draft"
+            ],
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "modelId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "personal": {
+            "type": "boolean"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/AIPricesView"
+          },
+          "provider": {
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "azure",
+              "compatible",
+              ""
+            ],
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ready",
+              "not_configured",
+              "key_rejected",
+              "cap_reached"
+            ],
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AIUsageView"
+          }
+        },
+        "required": [
+          "state",
+          "personal",
+          "usage",
+          "cap",
+          "prices",
+          "key",
+          "on",
+          "available"
         ],
         "type": "object"
       },
@@ -3168,6 +3811,10 @@
       "AITestInput": {
         "additionalProperties": false,
         "properties": {
+          "accountId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "apiKey": {
             "maxLength": 500,
             "type": "string"
@@ -3192,6 +3839,10 @@
           },
           "model": {
             "maxLength": 120,
+            "type": "string"
+          },
+          "modelId": {
+            "format": "uuid",
             "type": "string"
           },
           "outputPrice": {
@@ -120684,6 +121335,530 @@
         "x-permission": "integrations:view"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai/accounts": {
+      "post": {
+        "description": "The key is sealed and never returned. A workspace's first model becomes every feature's model. Audited as ai_account.add.",
+        "operationId": "add-ai-account",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAccountInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a model account with its first model, after the test passes",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}": {
+      "delete": {
+        "description": "Refused while a feature uses one of its models. The activity log keeps their requests. Audited as ai_account.remove.",
+        "operationId": "remove-ai-account",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove an account, its key and its models",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/key": {
+      "put": {
+        "description": "Audited as ai_account.key_replaced.",
+        "operationId": "replace-ai-account-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIKeyReplaced"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Replace an account's key, after it passes the test with the account's first model",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models": {
+      "post": {
+        "description": "Prices follow the price list for a known model unless given. Audited as ai_model.add.",
+        "operationId": "add-ai-account-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAccountModelInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a model to an account, with its prices",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models/{model}": {
+      "delete": {
+        "description": "Refused while a feature uses it, and for an account's only model. Audited as ai_model.remove.",
+        "operationId": "remove-ai-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model's id",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "The model's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a model from an account",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models/{model}/prices": {
+      "put": {
+        "description": "Audited as ai_model.prices_updated.",
+        "operationId": "set-ai-model-prices",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model's id",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "The model's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIPricesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set a model's prices per million tokens",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/accounts/{account}/models/{model}/test-tools": {
+      "post": {
+        "description": "The agent and the assistant use only a model that passed.",
+        "operationId": "test-ai-model-tools",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model's id",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "The model's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAgentCapability"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Test a model's tool calling with fixed data, using the monthly AI budget",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai/activity": {
       "get": {
         "operationId": "list-ai-activity",
@@ -121772,7 +122947,7 @@
             "session": []
           }
         ],
-        "summary": "Connect the workspace's model (one per workspace), after the test passes",
+        "summary": "Connect the workspace's model (its first account's first model), after the test passes",
         "tags": [
           "AI assistant"
         ],
@@ -122419,6 +123594,92 @@
         "x-permission": "integrations:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/ai/features/{feature}/model": {
+      "put": {
+        "description": "A model of a connected account whose key works; alt text needs one that reads images, the agent and the assistant one that passed the tool-calling check. Requests already prepared with the previous model aren't sent; agent runs keep the model they began with. A personal key's model can't be one. Audited as ai_feature.model_changed.",
+        "operationId": "set-ai-feature-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "feature",
+            "required": true,
+            "schema": {
+              "enum": [
+                "assistant",
+                "agent",
+                "subject_ideas",
+                "rewrite",
+                "translate",
+                "alt_text",
+                "accessibility_fix",
+                "segment_draft",
+                "report_summary",
+                "brand_voice",
+                "draft"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIFeatureModelInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pick the model a feature uses",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai/key": {
       "put": {
         "operationId": "replace-ai-key",
@@ -122674,6 +123935,1074 @@
         ],
         "x-access": "workspace",
         "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal": {
+      "get": {
+        "description": "The key is write-only: only whether one is set, and when.",
+        "operationId": "get-ai-personal",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The caller's personal keys: their own accounts, models, picks and use",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal-keys": {
+      "put": {
+        "description": "Turning them off keeps the accounts; their requests are refused until they are on again. Audited as ai_personal_keys.enabled, ai_personal_keys.disabled or ai_personal_keys.cap_updated.",
+        "operationId": "set-ai-personal-keys",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIPersonalKeysInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn personal keys on or off and set each person's monthly cap",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal-keys/accounts/{account}": {
+      "delete": {
+        "description": "For offboarding. The member's picks of its models go with it; the activity log keeps their requests. Audited as ai_account.remove.",
+        "operationId": "remove-ai-member-account",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a member's personal account, its key and its models",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "integrations:manage"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts": {
+      "post": {
+        "description": "Needs personal keys on. The key is sealed and never returned; only its owner's requests use it, in their own monthly cap. Audited as ai_account.add.",
+        "operationId": "add-ai-personal-account",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAccountInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add one's own model account with its first model, after the test passes",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}": {
+      "delete": {
+        "description": "Refused while one of its models is picked for a feature. Audited as ai_account.remove.",
+        "operationId": "remove-ai-personal-account",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove one's own account, its key and its models",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/key": {
+      "put": {
+        "description": "Also adds the key again to an account whose key was removed. Audited as ai_account.key_replaced.",
+        "operationId": "replace-ai-personal-key",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalKeyReplaced"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Replace one's own account's key, after it passes the test",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models": {
+      "post": {
+        "description": "Audited as ai_model.add.",
+        "operationId": "add-ai-personal-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAccountModelInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add a model to one's own account, with its prices",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}": {
+      "delete": {
+        "description": "Refused while it is picked for a feature, and for an account's only model. Audited as ai_model.remove.",
+        "operationId": "remove-ai-personal-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model's id",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "The model's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a model from one's own account",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/prices": {
+      "put": {
+        "description": "Audited as ai_model.prices_updated.",
+        "operationId": "set-ai-personal-model-prices",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model's id",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "The model's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIPricesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set one's own model's prices per million tokens",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/test": {
+      "post": {
+        "description": "In the caller's own monthly cap.",
+        "operationId": "test-ai-personal-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model's id",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "The model's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AITestResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Test one's own model: a fixed prompt with no workspace content",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/accounts/{account}/models/{model}/test-tools": {
+      "post": {
+        "description": "In the caller's own monthly cap. The agent and the assistant use a personal model only once it passed.",
+        "operationId": "test-ai-personal-model-tools",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The account's id",
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "description": "The account's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The model's id",
+            "in": "path",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "The model's id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIAgentCapability"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Test one's own model's tool calling with fixed data",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/budget-holds": {
+      "get": {
+        "description": "Only the caller's own holds; they count against the caller's personal monthly cap.",
+        "operationId": "list-ai-personal-budget-holds",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIBudgetHolds"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List one's own usage reserved on personal keys, awaiting a response or reconciliation",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/budget-holds/{id}/reconcile": {
+      "post": {
+        "description": "Settles the hold in the caller's own budget. Another person's hold isn't found. Audited as ai.usage_reconciled.",
+        "operationId": "reconcile-ai-personal-budget",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIBudgetReconcileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Record provider-verified usage of one's own hold without retrying the request",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/ai/personal/features/{feature}/model": {
+      "delete": {
+        "description": "Audited as ai_feature.model_changed.",
+        "operationId": "clear-ai-personal-feature-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "feature",
+            "required": true,
+            "schema": {
+              "enum": [
+                "assistant",
+                "agent",
+                "subject_ideas",
+                "rewrite",
+                "translate",
+                "alt_text",
+                "accessibility_fix",
+                "segment_draft",
+                "report_summary",
+                "brand_voice",
+                "draft"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Go back to the workspace's model for one's own requests of a feature",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
+      },
+      "put": {
+        "description": "The rules of the workspace's models apply. Requests already prepared with another model aren't sent; agent runs keep the model they began with. Audited as ai_feature.model_changed.",
+        "operationId": "set-ai-personal-feature-model",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "feature",
+            "required": true,
+            "schema": {
+              "enum": [
+                "assistant",
+                "agent",
+                "subject_ideas",
+                "rewrite",
+                "translate",
+                "alt_text",
+                "accessibility_fix",
+                "segment_draft",
+                "report_summary",
+                "brand_voice",
+                "draft"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIFeatureModelInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIPersonalSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pick one of one's own models for one's own requests of a feature",
+        "tags": [
+          "AI assistant"
+        ],
+        "x-access": "workspace",
+        "x-permission": "ai:use"
       }
     },
     "/api/v1/workspaces/{workspace}/ai/prices": {

@@ -48,16 +48,23 @@ from .add_suppressions_input import AddSuppressionsInput
 from .add_workspace_language import AddWorkspaceLanguage
 from .agency_person_ref import AgencyPersonRef
 from .agency_rate import AgencyRate
+from .ai_account_view import AIAccountView
+from .ai_account_view_provider import AIAccountViewProvider
+from .ai_account_view_status import AIAccountViewStatus
 from .ai_activity_list import AIActivityList
 from .ai_activity_member import AIActivityMember
 from .ai_activity_row import AIActivityRow
 from .ai_activity_row_feature import AIActivityRowFeature
 from .ai_activity_row_outcome import AIActivityRowOutcome
+from .ai_agent_capability import AIAgentCapability
+from .ai_agent_capability_state import AIAgentCapabilityState
 from .ai_cap_view import AICapView
 from .ai_cap_view_kind import AICapViewKind
 from .ai_connection_view import AIConnectionView
 from .ai_connection_view_provider import AIConnectionViewProvider
 from .ai_connection_view_status import AIConnectionViewStatus
+from .ai_feature_default import AIFeatureDefault
+from .ai_feature_default_feature import AIFeatureDefaultFeature
 from .ai_feature_state import AIFeatureState
 from .ai_feature_state_key import AIFeatureStateKey
 from .ai_kept_summary import AIKeptSummary
@@ -65,10 +72,20 @@ from .ai_kept_summary_view import AIKeptSummaryView
 from .ai_key_view import AIKeyView
 from .ai_member_role import AIMemberRole
 from .ai_model_option import AIModelOption
+from .ai_model_view import AIModelView
+from .ai_model_view_features_item import AIModelViewFeaturesItem
+from .ai_personal_account import AIPersonalAccount
+from .ai_personal_account_provider import AIPersonalAccountProvider
+from .ai_personal_account_status import AIPersonalAccountStatus
+from .ai_personal_person import AIPersonalPerson
+from .ai_personal_settings import AIPersonalSettings
+from .ai_personal_usage_view import AIPersonalUsageView
+from .ai_personal_usage_view_state import AIPersonalUsageViewState
 from .ai_prices_view import AIPricesView
 from .ai_provider_entry import AIProviderEntry
 from .ai_provider_entry_capabilities_item import AIProviderEntryCapabilitiesItem
 from .ai_provider_entry_kind import AIProviderEntryKind
+from .ai_provider_preset import AIProviderPreset
 from .ai_settings import AISettings
 from .ai_test_view import AITestView
 from .ai_translation_mark import AITranslationMark
@@ -3553,16 +3570,23 @@ __all__ = (
     "AddWorkspaceLanguage",
     "AgencyPersonRef",
     "AgencyRate",
+    "AIAccountView",
+    "AIAccountViewProvider",
+    "AIAccountViewStatus",
     "AIActivityList",
     "AIActivityMember",
     "AIActivityRow",
     "AIActivityRowFeature",
     "AIActivityRowOutcome",
+    "AIAgentCapability",
+    "AIAgentCapabilityState",
     "AICapView",
     "AICapViewKind",
     "AIConnectionView",
     "AIConnectionViewProvider",
     "AIConnectionViewStatus",
+    "AIFeatureDefault",
+    "AIFeatureDefaultFeature",
     "AIFeatureState",
     "AIFeatureStateKey",
     "AIKeptSummary",
@@ -3570,10 +3594,20 @@ __all__ = (
     "AIKeyView",
     "AIMemberRole",
     "AIModelOption",
+    "AIModelView",
+    "AIModelViewFeaturesItem",
+    "AIPersonalAccount",
+    "AIPersonalAccountProvider",
+    "AIPersonalAccountStatus",
+    "AIPersonalPerson",
+    "AIPersonalSettings",
+    "AIPersonalUsageView",
+    "AIPersonalUsageViewState",
     "AIPricesView",
     "AIProviderEntry",
     "AIProviderEntryCapabilitiesItem",
     "AIProviderEntryKind",
+    "AIProviderPreset",
     "AISettings",
     "AITestView",
     "AITranslationMark",

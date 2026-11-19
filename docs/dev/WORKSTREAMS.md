@@ -149,7 +149,7 @@ The B0 brief in `docs/spec/reputecast-design-addon-assistant.md` defines this tr
 | Phase | Branch | Owners | Migrations |
 |---|---|---|---|
 | B0 · Brief and boards | `assistant-b0` | `docs/spec`, `design/boards`, canvas, inventory, QA map | None |
-| B1 · Model registry and keys | `assistant-b1-models` | `ai` (connections, per-feature defaults, personal keys), `ai/llm` catalog, AI settings UI | Reserved at start |
+| B1 · Model registry and keys | `assistant-b1-models` | `ai` (accounts, models, per-feature defaults, personal keys), `ai/llm` catalog; settings screens in B4 | 03630–03639 |
 | B2 · Streaming | `assistant-b2-streaming` | `ai/llm` adapters and contract suite | None |
 | B3 · Threads and turns | `assistant-b3-runtime` | `ai/assistant` (new), River jobs, SSE, shared tool registry, retention | Reserved at start |
 | B4 · Panel and screens | `assistant-b4-ui` | `web/src/features/assistant` (new), shell entry points, settings screens | None |

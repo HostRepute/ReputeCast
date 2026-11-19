@@ -13,7 +13,7 @@ import { T, formatList, useT } from '@/i18n'
 import { clock, clockSeconds, count } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
-import { aiBase, AI_FEATURES, problemCode, problemMeta, useRefreshAI, type AIConnection, type AIFeature, type AIModelOption, type AISettings, type AITest } from './api'
+import { aiBase, AI_FEATURES, problemCode, problemMeta, useRefreshAI, type AIConnection, type AIFeature, type AIModelOption, type AIProviderPreset, type AISettings, type AITest } from './api'
 import { AITile } from './catalog'
 import { aiCapabilities, aiEntryName, AI_PROVIDERS, type AIProvider } from './entries'
 import { calendarDay, seconds, tokens } from './format'
@@ -57,6 +57,12 @@ function useModels(provider: AIProvider, s: AISettings) {
   return { models, fromProvider: Boolean(mine?.fromProvider), error: mine?.error, ask }
 }
 
+/** The hosted OpenAI-compatible service an address belongs to (OpenRouter, Mistral…). */
+function presetOf(presets: AIProviderPreset[], baseUrl: string): AIProviderPreset | undefined {
+  const u = baseUrl.trim().replace(/\/+$/, '').toLowerCase()
+  return presets.find((p) => p.baseUrl === u)
+}
+
 /** The model a dialog starts on: the provider's default when it's listed, else the first. */
 function defaultModel(models: AIModelOption[], preferred?: string): string {
   if (preferred && models.some((o) => o.id === preferred)) return preferred
@@ -88,6 +94,10 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
   const [typed, setTyped] = useState('')
   const compatible = provider === 'compatible'
   const azure = provider === 'azure'
+  // A hosted service (OpenRouter, Groq…) is an OpenAI-compatible connection
+  // with its address filled in; unlike a server of your own, it needs a key.
+  const presets = compatible ? (entry?.presets ?? []) : []
+  const preset = presetOf(presets, baseUrl)
   const [capKind, setCapKind] = useState<CapKind>(keepFor?.cap.kind ?? (compatible ? 'tokens' : 'usd'))
   const [capUsd, setCapUsd] = useState(fixed(keepFor?.cap.usd ?? 25))
   const [capTokens, setCapTokens] = useState(String(keepFor?.cap.tokens || DEFAULT_TOKENS))
@@ -104,7 +114,8 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
   const keyErrorId = useId()
   const [saving, setSaving] = useState(false)
   const keyRef = useRef<HTMLInputElement>(null)
-  const name = t(aiEntryName[provider])
+  // A hosted service is named as itself: what goes to OpenRouter, not to "OpenAI-compatible".
+  const name = preset?.name ?? t(aiEntryName[provider])
 
   // A new provider starts from its own defaults (or the kept connection's).
   function pick(p: AIProvider) {
@@ -138,6 +149,18 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
     setInputPrice(null)
     setOutputPrice(null)
     stale()
+  }
+
+  function choosePreset(id: string) {
+    const next = presets.find((p) => p.id === id)
+    const url = next?.baseUrl ?? ''
+    // The name follows the service until someone types their own.
+    if (!label.trim() || label === preset?.name) setLabel(next?.name ?? '')
+    setBaseUrl(url)
+    // A hosted service bills in dollars; a server of your own counts tokens.
+    if (!keepFor) setCapKind(next ? 'usd' : 'tokens')
+    stale()
+    if (url) void ask({ baseUrl: url, apiKey: key.trim() || undefined })
   }
 
   const stale = () => {
@@ -252,6 +275,20 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
             />
           </div>
 
+          {compatible && presets.length ? (
+            <label className="lbl">
+              {t(m.serviceLabel)}
+              <select className="in" value={preset?.id ?? ''} onChange={(e) => choosePreset(e.target.value)}>
+                <option value="">{t(m.serviceOwn)}</option>
+                {presets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              {preset ? <span className="k font-medium">{t(m.serviceHint)}</span> : null}
+            </label>
+          ) : null}
           {compatible ? (
             <div className="ai-pair">
               <label className="lbl">
@@ -309,7 +346,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
 
           <div className="ai-pair">
             <label className="lbl">
-              {compatible ? t(m.apiKeyOptional) : t(m.apiKey)}
+              {compatible && !preset ? t(m.apiKeyOptional) : t(m.apiKey)}
               <input
                 ref={keyRef}
                 type="password"
@@ -330,7 +367,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
                   {keyError}
                 </span>
               ) : (
-                <span className="k font-medium">{compatible ? t(m.apiKeyLocal) : t(m.apiKeyHint)}</span>
+                <span className="k font-medium">{compatible && !preset ? t(m.apiKeyLocal) : t(m.apiKeyHint)}</span>
               )}
             </label>
             {azure ? (
@@ -463,7 +500,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
           <span className="k">{t(m.whenAgents)}</span>
           {compatible ? (
             <div className="ih-caps">
-              {aiCapabilities(true).compatible.map((c) => (
+              {(preset ? [m.capText] : aiCapabilities(true).compatible).map((c) => (
                 <span key={c.id} className="ih-cap">
                   {t(c)}
                 </span>

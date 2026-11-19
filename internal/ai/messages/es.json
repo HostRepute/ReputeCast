@@ -95,6 +95,20 @@
   "problem.questionEmpty": "Haz una pregunta sobre este informe.",
   "problem.numbersUnmatched": "{count, plural, one {Este número no está en el informe: {numbers}. Cámbialo por el número del informe antes de conservar el resumen.} other {Estos números no están en el informe: {numbers}. Cámbialos por los números del informe antes de conservar el resumen.}}",
   "problem.suggestionId": "Indica la sugerencia.",
+  "problem.modelExists": "Esta cuenta ya tiene el modelo {model}. Elige otro o cambia los precios de ese.",
+  "problem.modelInUse": "{count, plural, one {{features} usa este modelo} other {{features} usan este modelo}}. Elige antes otro modelo para {count, plural, one {esa función} other {esas funciones}}.",
+  "problem.accountInUse": "{count, plural, one {{features} usa un modelo de esta cuenta} other {{features} usan modelos de esta cuenta}}. Elige antes otros modelos para {count, plural, one {esa función} other {esas funciones}}.",
+  "problem.lastModel": "Es el único modelo de la cuenta. Añade antes otro modelo o quita la cuenta.",
+  "problem.accountDisconnected": "La cuenta de ese modelo está desconectada. Elige un modelo de una cuenta conectada.",
+  "problem.keyRejectedModel": "{provider} rechazó la clave de esta cuenta. Reemplaza la clave y vuelve a elegir su modelo.",
+  "problem.defaultNoImages": "El texto alternativo necesita un modelo que lea imágenes. Elige uno que lo haga.",
+  "problem.toolsUnchecked": "El agente de IA y el asistente de IA necesitan un modelo que haya superado la prueba de llamadas a herramientas. Prueba antes las herramientas de este modelo.",
+  "problem.personalKeysOff": "Las claves personales están desactivadas en este espacio de trabajo, así que tus propias claves no se usan y no se pueden añadir. No se envió nada. Alguien que pueda gestionar integraciones puede activarlas.",
+  "problem.personalCapReached": "El presupuesto de este mes para tus propias claves ({cap}) se ha agotado. Vuelven a funcionar el {date}. No se envió nada.",
+  "problem.personalKeyRejected": "{provider} rechazó tu propia clave. No se envió nada. Reemplázala en Configuración › Integraciones · Asistente de IA.",
+  "problem.personalNoKey": "Tu propia cuenta de {provider} ya no tiene clave, así que no se envió nada. Vuelve a añadir su clave, o regresa al modelo del espacio de trabajo, en Configuración › Integraciones · Asistente de IA.",
+  "problem.personalModel": "El modelo de una clave personal no puede ser el modelo del espacio de trabajo para una función. Solo las solicitudes de su propietario lo usan. Elige un modelo de una cuenta del espacio de trabajo.",
+  "feature.name": "{feature, select, subject_ideas {Ideas de asunto} rewrite {Reescribir, acortar y cambiar el tono} translate {Traducir una versión de idioma} alt_text {Texto alternativo} accessibility_fix {Correcciones de accesibilidad} segment_draft {Describir el segmento} report_summary {Resúmenes de informes} brand_voice {Aprender la voz de marca} draft {Borrador desde una descripción} agent {Agente de IA} assistant {Asistente de IA} other {{feature}}}",
   "activity.newSegment": "Nuevo segmento",
   "activity.onField": "{name} ({field, select, subject {asunto} other {preencabezado}})",
   "activity.rateLimited": "velocidad limitada",
@@ -113,5 +127,6 @@
   "notify.tokenUsageBody": "{spent} de los {cap} tokens de este mes. Al llegar al límite, las funciones de IA se pausan hasta el {date}.",
   "notify.tokenCapBody": "Se agotaron los {cap} tokens de este mes. Las funciones de IA se pausan hasta el {date}; la edición, los envíos y los informes funcionan con normalidad.",
   "notify.keyTitle": "El proveedor rechazó la clave de IA",
-  "notify.keyBody": "{provider} respondió {status} a la clave del espacio de trabajo. Reemplázala en Configuración › Integraciones · Asistente de IA."
+  "notify.keyBody": "{provider} respondió {status} a la clave del espacio de trabajo. Reemplázala en Configuración › Integraciones · Asistente de IA.",
+  "notify.personalKeyBody": "{provider} respondió {status} a tu propia clave. Reemplázala en Configuración › Integraciones · Asistente de IA."
 }

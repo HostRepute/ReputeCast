@@ -55,7 +55,7 @@ Remaining acceptance work: test connection/reconnect/scope denial/proposal revie
 | Phase | Scope | State |
 |---|---|---|
 | B0 | Brief, agent-brief amendments, interactive panel/states/entry/models/MCP boards at 1440/834/390 in light and dark | Design prepared for review |
-| B1 | Model registry: several accounts, per-feature defaults, OpenAI-compatible presets, capability checks, personal keys | ⏳ |
+| B1 | Model registry: several accounts, per-feature defaults, OpenAI-compatible presets, capability checks, personal keys (03630–03631) | Implemented locally on `assistant-b1-models`: hosted OpenAI-compatible presets; settings, accounts, models and each feature's model split from the one connection with its key, usage, caps and runs kept; reservations locked on the settings row and bound to the model's price; account/model/feature endpoints; personal keys behind a manager switch with their own cap, lock and reconcile, deleted when the member leaves. API only: the settings screens are B4 |
 | B2 | Streaming in `internal/ai/llm` with recorded SSE contract fixtures | ⏳ |
 | B3 | Threads and turns on River, stream events and SSE, budgets and slots, tool registry, retention, audit | ⏳ |
 | B4 | The panel, states and settings screens, five locales, accessibility and responsive checks | ⏳ |
@@ -63,6 +63,8 @@ Remaining acceptance work: test connection/reconnect/scope denial/proposal revie
 | B6 | Injection fixtures, load test of concurrent streams, docs | ⏳ |
 
 B1 and B2 can proceed in parallel; B3 needs both; B4 can start against mocked responses once B3's API is fixed; B5 needs B3. Migration ranges are reserved when each phase starts.
+
+B1 verification: Go tests on Postgres 18.7 for `internal/ai` (including `-race`, 834 s wall alone), `sealed`, `mcpconnect`, `demo`, `app`, `auditlog`, `integrations`, `team`, `accounts`, `instance`, `agency` and `sso`; web `tsc -b`; the TypeScript, Python and Go client tests after regenerating them. Each regression test (another model's price, a reservation serialized per account or on the wrong ledger, a key opened with the workspace's associated data, a fallback from an unusable default, a run following a changed default, a manager reaching a personal key or hold) was checked to fail with its fix removed. Not covered: Postgres 16/17, a whole-repository `make test`/`make lint`, and real provider accounts.
 
 | Milestone | Scope | Workstreams | Status |
 |---|---|---|---|

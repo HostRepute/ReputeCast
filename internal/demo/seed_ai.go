@@ -79,7 +79,8 @@ func seedAIImpl(ctx context.Context, s *Seeder) error {
 	if marcus.ID == uuid.Nil || linh.ID == uuid.Nil {
 		return nil
 	}
-	sealed, err := s.Box.SealString(AIDemoKey, "ai:"+ws.ID.String()+":key")
+	account, model := ID(), ID()
+	sealed, err := s.Box.SealString(AIDemoKey, "ai:"+account.String()+":key")
 	if err != nil {
 		return err
 	}
@@ -88,13 +89,21 @@ func seedAIImpl(ctx context.Context, s *Seeder) error {
 	ok := true
 	ms := int32(1200)
 	priceDate := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
-	if err := s.Q.AIConnectionSave(ctx, store.AIConnectionSaveParams{
-		WorkspaceID: ws.ID, Provider: "anthropic", Model: "claude-sonnet-5-5", ModelName: "Claude Sonnet 5.5", ImageInput: true,
+	if err := s.Q.AIWorkspaceSettingsSave(ctx, store.AIWorkspaceSettingsSaveParams{WorkspaceID: ws.ID, CapKind: "usd", CapUsd: 25, CapSetBy: &linh.ID, CapSetAt: &capSet,
+		FeaturesOff: []string{}, UpdatedBy: &linh.ID, UpdatedAt: capSet}); err != nil {
+		return err
+	}
+	if err := s.Q.AIAccountSave(ctx, store.AIAccountSaveParams{ID: account, WorkspaceID: ws.ID, Provider: "anthropic",
 		KeySealed: sealed, KeyAddedBy: &marcus.ID, KeyAddedAt: &connected, ConnectedBy: &marcus.ID, ConnectedAt: connected,
-		Status: "ok", LastTestAt: &connected, LastTestOk: &ok, LastTestMs: &ms,
-		CapKind: "usd", CapUsd: 25, CapSetBy: &linh.ID, CapSetAt: &capSet, InputPrice: 2, OutputPrice: 10, PricesFrom: &priceDate,
-		FeaturesOff: []string{}, Demo: true, UpdatedBy: &linh.ID, UpdatedAt: capSet,
-	}); err != nil {
+		Status: "ok", LastTestAt: &connected, LastTestOk: &ok, LastTestMs: &ms, Demo: true, UpdatedBy: &marcus.ID, UpdatedAt: connected}); err != nil {
+		return err
+	}
+	if err := s.Q.AIModelSave(ctx, store.AIModelSaveParams{ID: model, WorkspaceID: ws.ID, AccountID: account, Model: "claude-sonnet-5-5", ModelName: "Claude Sonnet 5.5",
+		ImageInput: true, InputPrice: 2, OutputPrice: 10, PricesFrom: &priceDate, UpdatedBy: &marcus.ID, UpdatedAt: connected}); err != nil {
+		return err
+	}
+	if err := s.Q.AIFeatureModelsFill(ctx, store.AIFeatureModelsFillParams{WorkspaceID: ws.ID, ModelID: model,
+		Features: []string{"assistant", "agent", "subject_ideas", "rewrite", "translate", "alt_text", "accessibility_fix", "segment_draft", "report_summary", "brand_voice", "draft"}}); err != nil {
 		return err
 	}
 	meta, _ := json.Marshal(map[string]any{"key": "added (write-only)", "test": map[string]any{"ok": true, "ms": 1200},
@@ -131,7 +140,7 @@ func seedAIImpl(ctx context.Context, s *Seeder) error {
 		cost := int64(r.in*2 + r.out*10)
 		decided := r.at.Add(40 * time.Second)
 		if err := s.Q.AIRequestInsert(ctx, store.AIRequestInsertParams{ID: ID(), WorkspaceID: ws.ID, UserID: &u.ID, Feature: r.feature, Action: r.action,
-			TargetKind: r.targetKind, TargetID: target, TargetLabel: label, Provider: "anthropic", Model: "claude-sonnet-5-5", InputTokens: int32(r.in),
+			TargetKind: r.targetKind, TargetID: target, TargetLabel: label, Provider: "anthropic", Model: "claude-sonnet-5-5", AccountID: &account, ModelID: &model, InputTokens: int32(r.in),
 			OutputTokens: int32(r.out), CostMicros: cost, Outcome: r.outcome, OutcomeDetail: r.detail, DurationMs: int32(2200 + (r.in+r.out)%4000), CreatedAt: r.at, DecidedAt: &decided}); err != nil {
 			return err
 		}

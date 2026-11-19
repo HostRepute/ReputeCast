@@ -3,6 +3,9 @@ package ai
 import (
 	"context"
 	"slices"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -23,9 +26,13 @@ type usage struct {
 	reached bool
 }
 
-// usage sums this month's requests.
+// usage sums this month's requests against a model's budget: the
+// workspace's, or for a personal key its owner's own.
 func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection) (usage, error) {
 	start, _ := s.month(ws)
+	if c.personal() {
+		return s.personalUsage(ctx, ws.ID, *c.AccountUserID, start, c.PersonalCapUsd)
+	}
 	t, err := s.Q.AIUsageTotal(ctx, store.AIUsageTotalParams{WorkspaceID: ws.ID, Since: start})
 	if err != nil {
 		return usage{}, err
@@ -47,6 +54,26 @@ func (s *Service) usage(ctx context.Context, ws *store.Workspace, c *connection)
 		}
 	}
 	u.reached = c.CapKind != "none" && u.share >= 1
+	u.notice = !u.reached && u.share >= NoticeShare
+	return u, nil
+}
+
+// personalUsage is a person's use of their own keys this month against
+// their cap (in dollars).
+func (s *Service) personalUsage(ctx context.Context, ws, user uuid.UUID, start time.Time, capUSD float64) (usage, error) {
+	t, err := s.Q.AIPersonalUsageTotal(ctx, store.AIPersonalUsageTotalParams{WorkspaceID: ws, UserID: &user, Since: start})
+	if err != nil {
+		return usage{}, err
+	}
+	held, err := s.Q.AIBudgetPersonal(ctx, store.AIBudgetPersonalParams{WorkspaceID: ws, UserID: &user})
+	if err != nil {
+		return usage{}, err
+	}
+	u := usage{costMicros: t.CostMicros, requests: t.Requests, reservedCost: held.CostMicros, uncertain: held.Uncertain}
+	if capUSD > 0 {
+		u.share = float64(u.costMicros+u.reservedCost) / (capUSD * 1e6)
+	}
+	u.reached = u.share >= 1
 	u.notice = !u.reached && u.share >= NoticeShare
 	return u, nil
 }

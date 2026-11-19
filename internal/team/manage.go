@@ -233,6 +233,11 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	if err := q.TeamSetMemberStatus(ctx, store.TeamSetMemberStatusParams{ID: m.ID, WorkspaceID: ws.ID, Status: "deactivated"}); err != nil {
 		return res, err
 	}
+	// Their personal AI keys stop working and are deleted (assistant brief D4).
+	aiKeys, err := q.AIPersonalKeysRemove(ctx, store.AIPersonalKeysRemoveParams{UserID: &m.UserID, WorkspaceID: &ws.ID})
+	if err != nil {
+		return res, err
+	}
 	invites, err := s.revokeInvitationsBy(ctx, q, ws, m.UserID, msgs.M("audit.inviterDeactivated").Keep(i18n.Args{"name": name}))
 	if err != nil {
 		return res, err
@@ -284,7 +289,7 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 	return res, s.Audit.LogWith(ctx, q, audit.Event{
 		WorkspaceID: &ws.ID, Action: "member.deactivated", TargetType: "member", TargetID: m.ID.String(), TargetName: name, Reason: strings.TrimSpace(in.Reason),
 		Before:   map[string]any{"status": "active", "role": m.RoleName},
-		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept, "invitations_revoked": invites},
+		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys},
 		Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}, parts...),
 	})
 }
@@ -421,12 +426,17 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err != nil {
 			return err
 		}
+		// Their personal AI keys stop working and are deleted (assistant brief D4).
+		aiKeys, err := q.AIPersonalKeysRemove(ctx, store.AIPersonalKeysRemoveParams{UserID: &m.UserID, WorkspaceID: &ws.ID})
+		if err != nil {
+			return err
+		}
 		if _, err := q.TeamDeleteMember(ctx, store.TeamDeleteMemberParams{ID: m.ID, WorkspaceID: ws.ID}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "member.removed", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
 			Before:   map[string]any{"email": m.Email, "role": m.RoleName, "status": m.Status},
-			After:    map[string]any{"keys_revoked": names, "invitations_revoked": invites},
+			After:    map[string]any{"keys_revoked": names, "invitations_revoked": invites, "personal_ai_keys_removed": aiKeys},
 			Metadata: map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}})
 	})
 }
