@@ -3009,6 +3009,9 @@ type McpServer struct {
 	UpdatedAt             time.Time  `json:"updatedAt"`
 	Resource              string     `json:"resource"`
 	RevocationEndpoint    string     `json:"revocationEndpoint"`
+	ClientMetadata        bool       `json:"clientMetadata"`
+	TokenAuthMethods      []string   `json:"tokenAuthMethods"`
+	TokenAuthMethod       string     `json:"tokenAuthMethod"`
 }
 
 type McpToken struct {
@@ -3031,6 +3034,7 @@ type McpTokenRevocation struct {
 	ClientSecretSealed []byte    `json:"clientSecretSealed"`
 	RefreshSealed      []byte    `json:"refreshSealed"`
 	CreatedAt          time.Time `json:"createdAt"`
+	TokenAuthMethod    string    `json:"tokenAuthMethod"`
 }
 
 type McpTool struct {

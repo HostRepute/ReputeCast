@@ -212,6 +212,7 @@ export default translate(m, {
 
   announceStart: 'Der Assistent antwortet.',
   announceDone: 'Antwort fertig: {sentence}',
+  withheld: 'Diese Antwort hat etwas verwendet, das Sie nicht mehr öffnen können. Daher ist sie ausgeblendet.',
   announceStopped: 'Gestoppt.',
   announceFailed: 'Die Antwort wurde gestoppt: {title}',
 

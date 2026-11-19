@@ -96,7 +96,7 @@ func (s *Service) SendMessage(ctx context.Context, ws *store.Workspace, p *authz
 			return err
 		}
 		if reputation {
-			card, err := s.addMessage(ctx, q, thread, &turn.ID, "assistant", nil, messageContent{Text: mReputation.Text(i18n.LangFrom(ctx), nil), Card: "hostrepute"})
+			card, err := s.addMessage(ctx, q, thread, &turn.ID, "assistant", nil, messageContent{Text: mReputation.Text(i18n.LangFrom(ctx), nil), Card: "hostrepute", SourcesKnown: true})
 			if err != nil {
 				return err
 			}
@@ -189,7 +189,13 @@ func (s *Service) StopTurn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			return err
 		}
 		if strings.TrimSpace(text) != "" {
-			msg, err := s.addMessage(ctx, q, th.ID, &t.ID, "assistant", t.ModelID, messageContent{Text: text, Partial: true})
+			// The request it answered is the worker's: everything the
+			// thread read before counts.
+			sources, err := s.threadSources(ctx, q, th.ID)
+			if err != nil {
+				return err
+			}
+			msg, err := s.addMessage(ctx, q, th.ID, &t.ID, "assistant", t.ModelID, messageContent{Text: text, Partial: true, Sources: sources, SourcesKnown: true})
 			if err != nil {
 				return err
 			}

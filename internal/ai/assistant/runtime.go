@@ -952,7 +952,7 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 			// Earlier messages are summarized: later requests send the
 			// summary instead of them.
 			if strings.TrimSpace(text) != "" {
-				msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "summary", turn.ModelID, messageContent{Text: text, Upto: run.upto, Sources: run.sources})
+				msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "summary", turn.ModelID, messageContent{Text: text, Upto: run.upto, Sources: run.sources, SourcesKnown: true})
 				if err != nil {
 					return err
 				}
@@ -969,7 +969,7 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 		if state == "done" && res.StopReason == llm.StopTools && len(toolCalls(res.Message)) > 0 {
 			// The model's message and its calls; the turn goes on.
 			replay := res.Message
-			msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Replay: &replay})
+			msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Replay: &replay, Sources: run.sources, SourcesKnown: true})
 			if err != nil {
 				return err
 			}
@@ -993,7 +993,8 @@ func (s *Service) checkpoint(ctx context.Context, ws *store.Workspace, args Turn
 			return err
 		}
 		if strings.TrimSpace(text) != "" {
-			msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Partial: state == "failed" && reason != "refused"})
+			msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Partial: state == "failed" && reason != "refused",
+				Sources: run.sources, SourcesKnown: true})
 			if err != nil {
 				return err
 			}
@@ -1038,7 +1039,12 @@ func (s *Service) interrupt(ctx context.Context, q *store.Queries, t store.AiAss
 		return err
 	}
 	if strings.TrimSpace(text) != "" {
-		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Partial: true})
+		// Its request isn't here: everything the thread read before counts.
+		sources, err := s.threadSources(ctx, q, t.ID)
+		if err != nil {
+			return err
+		}
+		msg, err := s.addMessage(ctx, q, t.ID, &turn.ID, "assistant", turn.ModelID, messageContent{Text: text, Partial: true, Sources: sources, SourcesKnown: true})
 		if err != nil {
 			return err
 		}

@@ -26,7 +26,8 @@ export function useThreadState(): [ThreadState, Dispatch<Action>, LiveText] {
     const before = box.latest
     box.latest = threadReducer(before, a)
     const turn = before.live?.turnId
-    if (turn && a.type === 'events' && a.events.every((e) => e.type === 'delta' && e.data.turnId === turn)) box.held.push(...a.events)
+    // Only text that lengthens the answer waits; a withheld piece (empty) goes at once.
+    if (turn && !before.live?.withheld && a.type === 'events' && a.events.every((e) => e.type === 'delta' && e.data.turnId === turn && e.data.text)) box.held.push(...a.events)
     else {
       if (box.held.length) apply({ type: 'events', events: box.held })
       box.held = []

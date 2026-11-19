@@ -23,6 +23,14 @@
     "message": "{server}'s sign-in couldn't be set up: its authorization server didn't answer as expected. Check the address or enter a registered client.",
     "note": "OAuth discovery, registration or token failure"
   },
+  "problem.noClient": {
+    "message": "{server}'s authorization server doesn't let ReputeCast register itself. A manager can register a client with it, using the redirect URI shown, and enter its client ID (and secret) in Settings › Integrations · MCP servers.",
+    "note": "no pre-registered client, no Client ID Metadata Document support, no dynamic registration"
+  },
+  "problem.clientAuth": {
+    "message": "{server}'s authorization server accepts only client authentication ReputeCast doesn't support, such as private_key_jwt. ReputeCast signs in as a public client (none) or with a client secret (client_secret_basic or client_secret_post): register a client that uses one of those.",
+    "note": "token_endpoint_auth_methods_supported lists none of none, client_secret_basic, client_secret_post"
+  },
   "problem.reviewed": "{tool} changed since you reviewed it. Review its new description and schema, then decide again.",
   "notify.changedTitle": {
     "message": "Tools of {server} changed",

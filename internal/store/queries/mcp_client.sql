@@ -22,7 +22,8 @@ SELECT key FROM mcp_servers WHERE workspace_id = @workspace_id;
 UPDATE mcp_servers SET name = @name, enabled = @enabled, access_roles = sqlc.narg(access_roles), header_sealed = sqlc.narg(header_sealed),
     client_id = @client_id, client_secret_sealed = sqlc.narg(client_secret_sealed), client_registered = @client_registered,
     issuer = @issuer, authorization_endpoint = @authorization_endpoint, token_endpoint = @token_endpoint, scopes = @scopes,
-    resource = @resource, revocation_endpoint = @revocation_endpoint, revision = revision + 1, updated_at = @now
+    resource = @resource, revocation_endpoint = @revocation_endpoint, client_metadata = @client_metadata, token_auth_methods = @token_auth_methods,
+    token_auth_method = @token_auth_method, revision = revision + 1, updated_at = @now
 WHERE workspace_id = @workspace_id AND id = @id;
 
 -- name: MCPServerStatus :exec
@@ -32,8 +33,8 @@ WHERE id = @id;
 -- name: MCPServerRevocationsQueue :execrows
 -- A server is deleted: its members' refresh tokens are queued for
 -- revocation first, in the delete's transaction (the rows outlive it).
-INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, refresh_sealed, created_at)
-SELECT t.server_id, t.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, t.refresh_sealed, now()
+INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, token_auth_method, refresh_sealed, created_at)
+SELECT t.server_id, t.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, s.token_auth_method, t.refresh_sealed, now()
 FROM mcp_tokens t JOIN mcp_servers s ON s.id = t.server_id
 WHERE s.workspace_id = @workspace_id AND s.id = @id AND t.refresh_sealed IS NOT NULL AND s.revocation_endpoint <> '';
 
@@ -119,8 +120,8 @@ WITH gone AS (
     DELETE FROM mcp_tokens t WHERE t.server_id = @server_id AND t.user_id = @user_id
     RETURNING t.server_id, t.user_id, t.refresh_sealed
 ), queued AS (
-    INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, refresh_sealed, created_at)
-    SELECT g.server_id, g.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, g.refresh_sealed, now()
+    INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, token_auth_method, refresh_sealed, created_at)
+    SELECT g.server_id, g.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, s.token_auth_method, g.refresh_sealed, now()
     FROM gone g JOIN mcp_servers s ON s.id = g.server_id
     WHERE g.refresh_sealed IS NOT NULL AND s.revocation_endpoint <> ''
     RETURNING 1
@@ -135,8 +136,8 @@ WITH gone AS (
     DELETE FROM mcp_tokens t WHERE t.user_id = @user_id AND (sqlc.narg(workspace_id)::uuid IS NULL OR t.workspace_id = sqlc.narg(workspace_id))
     RETURNING t.server_id, t.user_id, t.refresh_sealed
 ), queued AS (
-    INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, refresh_sealed, created_at)
-    SELECT g.server_id, g.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, g.refresh_sealed, now()
+    INSERT INTO mcp_token_revocations (server_id, user_id, revocation_endpoint, client_id, client_secret_sealed, token_auth_method, refresh_sealed, created_at)
+    SELECT g.server_id, g.user_id, s.revocation_endpoint, s.client_id, s.client_secret_sealed, s.token_auth_method, g.refresh_sealed, now()
     FROM gone g JOIN mcp_servers s ON s.id = g.server_id
     WHERE g.refresh_sealed IS NOT NULL AND s.revocation_endpoint <> ''
     RETURNING 1
@@ -148,9 +149,10 @@ SELECT count(*) FROM gone;
 -- off the queue (revocation is best effort: a token is tried once).
 WITH taken AS (
     DELETE FROM mcp_token_revocations r WHERE r.id IN (SELECT q.id FROM mcp_token_revocations q ORDER BY q.id LIMIT @lim FOR UPDATE SKIP LOCKED)
-    RETURNING r.id, r.server_id, r.user_id, r.refresh_sealed, r.revocation_endpoint, r.client_id, r.client_secret_sealed
+    RETURNING r.id, r.server_id, r.user_id, r.refresh_sealed, r.revocation_endpoint, r.client_id, r.client_secret_sealed, r.token_auth_method
 )
-SELECT taken.id, taken.server_id, taken.user_id, taken.refresh_sealed, taken.revocation_endpoint, taken.client_id, taken.client_secret_sealed
+SELECT taken.id, taken.server_id, taken.user_id, taken.refresh_sealed, taken.revocation_endpoint, taken.client_id, taken.client_secret_sealed,
+    taken.token_auth_method
 FROM taken ORDER BY taken.id;
 
 -- name: MCPServersDue :many

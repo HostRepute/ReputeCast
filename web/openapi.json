@@ -4536,6 +4536,9 @@
           },
           "turnId": {
             "type": "string"
+          },
+          "withheld": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -4718,6 +4721,9 @@
           },
           "text": {
             "type": "string"
+          },
+          "withheld": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -51650,6 +51656,47 @@
         ],
         "type": "object"
       },
+      "MCPClientMetadataDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "grant_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "redirect_uris": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "response_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "client_name",
+          "redirect_uris",
+          "grant_types",
+          "response_types",
+          "token_endpoint_auth_method"
+        ],
+        "type": "object"
+      },
       "MCPConnection": {
         "additionalProperties": false,
         "properties": {
@@ -72821,6 +72868,9 @@
           "clientId": {
             "type": "string"
           },
+          "clientMetadata": {
+            "type": "boolean"
+          },
           "clientRegistered": {
             "type": "boolean"
           },
@@ -72905,6 +72955,7 @@
           "headerSet",
           "clientSecretSet",
           "clientRegistered",
+          "clientMetadata",
           "roles",
           "enabled",
           "status",
@@ -118349,6 +118400,51 @@
           "AI assistant · MCP servers"
         ],
         "x-access": "user"
+      }
+    },
+    "/api/v1/ai/mcp/oauth/client-metadata.json": {
+      "get": {
+        "description": "Its address is the client_id ReputeCast uses with an authorization server that supports Client ID Metadata Documents (client_id_metadata_document_supported) when a manager entered no client; the authorization server fetches it. A public client: the exact redirect URI remote-mcp-oauth-callback, PKCE, no secret. Only on an https public URL (404 otherwise).",
+        "operationId": "get-mcp-client-metadata",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPClientMetadataDocument"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "ReputeCast's OAuth client for MCP servers, as a Client ID Metadata Document",
+        "tags": [
+          "AI assistant · MCP servers"
+        ],
+        "x-access": "public"
       }
     },
     "/api/v1/auth/identify": {

@@ -11,6 +11,8 @@
   "problem.input": "Prüfen Sie Name, Authentifizierung und Zugangsdaten des Servers: Sie passen nicht zusammen.",
   "problem.state": "Dieser Anmeldelink ist abgelaufen oder wurde schon verwendet. Starten Sie die Anmeldung erneut unter Einstellungen › Integrationen · MCP-Server.",
   "problem.oauth": "Die Anmeldung bei {server} ließ sich nicht einrichten: Der Autorisierungsserver hat nicht wie erwartet geantwortet. Prüfen Sie die Adresse oder tragen Sie einen registrierten Client ein.",
+  "problem.noClient": "Der Autorisierungsserver von {server} lässt ReputeCast sich nicht selbst registrieren. Ein Manager kann dort einen Client mit der angezeigten Weiterleitungs-URI registrieren und dessen Client-ID (und Secret) unter Einstellungen › Integrationen · MCP-Server eintragen.",
+  "problem.clientAuth": "Der Autorisierungsserver von {server} akzeptiert nur Client-Authentifizierung, die ReputeCast nicht unterstützt, etwa private_key_jwt. ReputeCast meldet sich als öffentlicher Client (none) oder mit einem Client-Secret an (client_secret_basic oder client_secret_post): Registrieren Sie einen Client, der eine dieser Methoden nutzt.",
   "problem.reviewed": "{tool} hat sich seit Ihrer Prüfung geändert. Prüfen Sie die neue Beschreibung und das Schema und entscheiden Sie erneut.",
   "notify.changedTitle": "Werkzeuge von {server} haben sich geändert",
   "notify.changedBody": "{count, plural, one {# Werkzeug} other {# Werkzeuge}} von {server} haben sich nach der Freigabe geändert und sind aus, bis Sie sie prüfen."

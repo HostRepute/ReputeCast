@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -104,11 +105,13 @@ func (t *authTransport) refused() string {
 	return t.elsewhere
 }
 
-// session is a connection to a server as one person.
+// session is a connection to a server as one person. changed counts the
+// server's notifications/tools/list_changed during it.
 type session struct {
-	cs     *mcp.ClientSession
-	rt     *authTransport
-	cancel context.CancelFunc
+	cs      *mcp.ClientSession
+	rt      *authTransport
+	cancel  context.CancelFunc
+	changed atomic.Int64
 }
 
 func (s *session) close() {
@@ -121,7 +124,10 @@ func (s *session) close() {
 
 // connect opens a session to a server: with its shared header, or as the
 // person's own OAuth sign-in. Servers can't ask ReputeCast for sampling
-// (no handler is offered) or elicitation.
+// (no handler is offered) or elicitation. They can say their tools changed
+// (notifications/tools/list_changed: on the session's own stream, or a
+// subscription in the 2026-07-28 protocol); the session counts it, and a
+// call using it lists the tools again before its result is used.
 func (s *Service) connect(ctx context.Context, srv store.McpServer, user uuid.UUID, transport string) (*session, error) {
 	// The call's own context bounds it; the transport's header timeout is
 	// only a backstop.
@@ -145,11 +151,13 @@ func (s *Service) connect(ctx context.Context, srv store.McpServer, user uuid.UU
 		rt.header, rt.value = "Authorization", "Bearer "+token
 	}
 	hc := &http.Client{Transport: rt, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	var t mcp.Transport = &mcp.StreamableClientTransport{Endpoint: srv.Url, HTTPClient: hc, MaxRetries: -1, DisableStandaloneSSE: true}
+	var t mcp.Transport = &mcp.StreamableClientTransport{Endpoint: srv.Url, HTTPClient: hc, MaxRetries: -1}
 	if transport == "sse" {
 		t = &mcp.SSEClientTransport{Endpoint: srv.Url, HTTPClient: hc}
 	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "ReputeCast", Version: "1"}, &mcp.ClientOptions{})
+	sess := &session{rt: rt}
+	client := mcp.NewClient(&mcp.Implementation{Name: "ReputeCast", Version: "1"}, &mcp.ClientOptions{
+		ToolListChangedHandler: func(context.Context, *mcp.ToolListChangedRequest) { sess.changed.Add(1) }})
 	// The session's context outlives Connect (HTTP with SSE keeps its
 	// stream on it); Connect itself has the call's timeout.
 	sctx, cancel := context.WithCancel(ctx)
@@ -163,7 +171,8 @@ func (s *Service) connect(ctx context.Context, srv store.McpServer, user uuid.UU
 		}
 		return nil, s.connectProblem(ctx, srv, rt, err)
 	}
-	return &session{cs: cs, rt: rt, cancel: cancel}, nil
+	sess.cs, sess.cancel = cs, cancel
+	return sess, nil
 }
 
 func (s *Service) connectProblem(ctx context.Context, srv store.McpServer, rt *authTransport, err error) error {
@@ -235,6 +244,7 @@ const (
 	byManager origin = iota // a manager's sync
 	byHour                  // the hourly sync
 	byCall                  // the check before a call
+	byNotice                // the server's tools/list_changed during a call
 )
 
 // differs reports whether a listing isn't what the catalog has: a tool
@@ -342,15 +352,18 @@ func (s *Service) record(ctx context.Context, tx pgx.Tx, ws *store.Workspace, id
 	ev := audit.Event{WorkspaceID: &ws.ID, Action: "mcp_server.updated", TargetType: "mcp_server", TargetID: id.String(), TargetName: srv.Name, Metadata: meta}
 	switch how {
 	case byManager:
-	case byHour, byCall:
+	case byHour, byCall, byNotice:
 		if !moved {
 			return srv, nil
 		}
 		ev.Actor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
-		if how == byHour {
+		switch how {
+		case byHour:
 			meta["periodic"] = true
-		} else {
+		case byCall:
 			meta["live_check"] = true
+		default:
+			meta["list_changed"] = true
 		}
 	}
 	return srv, s.Audit.LogWith(ctx, q, ev)
@@ -734,7 +747,8 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 	defer cancel()
 	// The tool as the server lists it now, in the same session, must be
 	// the one decided on: a server can change a tool between syncs.
-	if err := s.check(ctx, cctx, ws, srv, sess, t, hash); err != nil {
+	seen := sess.changed.Load()
+	if err := s.check(ctx, cctx, ws, srv, sess, t, hash, byCall); err != nil {
 		outcome = problemCode(err)
 		if outcome == CodeSignIn {
 			s.SignedOut(ctx, srv.ID, fresh.UserID)
@@ -746,6 +760,19 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 		arguments = args
 	}
 	res, err := sess.cs.CallTool(cctx, &mcp.CallToolParams{Name: t.Name, Arguments: arguments})
+	// The server said its tools changed before the result came back: they
+	// are listed again in the session and kept, and if the tool called
+	// isn't the one decided on any more, its result isn't used. A change
+	// told after the result doesn't undo a call that completed.
+	if sess.changed.Load() > seen {
+		if cerr := s.check(ctx, cctx, ws, srv, sess, t, hash, byNotice); cerr != nil {
+			var p *api.Problem
+			if err == nil || (errors.As(cerr, &p) && p.Code == CodeToolChanged) {
+				outcome = problemCode(cerr)
+				return r, cerr
+			}
+		}
+	}
 	if err != nil {
 		if errors.Is(cctx.Err(), context.DeadlineExceeded) {
 			outcome = "timeout"
@@ -778,11 +805,12 @@ func (s *Service) Call(ctx context.Context, ws *store.Workspace, owner *authz.Pr
 	return r, nil
 }
 
-// check lists a server's tools in a call's session before the call: the
-// tool called must be listed at the hash it was decided on (else it is
-// off, as a sync would leave it, and the call isn't sent). Anything else
-// the listing changed is kept too.
-func (s *Service) check(ctx, cctx context.Context, ws *store.Workspace, srv store.McpServer, sess *session, t store.McpTool, hash []byte) error {
+// check lists a server's tools in a call's session, before the call or
+// when the server said they changed: the tool called must be listed at the
+// hash it was decided on (else it is off, as a sync would leave it, and
+// the call isn't sent or its result isn't used). Anything else the listing
+// changed is kept too.
+func (s *Service) check(ctx, cctx context.Context, ws *store.Workspace, srv store.McpServer, sess *session, t store.McpTool, hash []byte, how origin) error {
 	listed, err := tools(cctx, sess)
 	if err != nil {
 		if errors.Is(cctx.Err(), context.DeadlineExceeded) {
@@ -798,7 +826,7 @@ func (s *Service) check(ctx, cctx context.Context, ws *store.Workspace, srv stor
 	}
 	if differs(have, listed) {
 		err := db.Tx(context.WithoutCancel(ctx), s.Pool, func(tx pgx.Tx) error {
-			_, err := s.record(context.WithoutCancel(ctx), tx, ws, srv.ID, listed, srv.Transport, byCall)
+			_, err := s.record(context.WithoutCancel(ctx), tx, ws, srv.ID, listed, srv.Transport, how)
 			return err
 		})
 		if err != nil {

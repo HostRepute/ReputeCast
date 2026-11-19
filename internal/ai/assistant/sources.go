@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -165,4 +166,129 @@ func sourcesOf(c messageContent, withheld map[string]bool) []toolSource {
 		}
 	}
 	return out
+}
+
+// An answer quotes what was in the request that produced it, so it is
+// shown and sent again only while its owner may still read all of that:
+// each assistant message (and summary) keeps the sources of its request's
+// content: the tools' results and the summary it carried (whatever an
+// earlier answer it carried quoted is among them). Messages saved before
+// they kept them, and partial answers saved by Stop or the sweep (which
+// don't have the request), count every source the thread's tools and
+// summaries read before them: fail-closed.
+
+// unknownSource is what a result with content and no recorded source came
+// from: never readable.
+var unknownSource = toolSource{Kind: "unknown"}
+
+// withheldAnswer is a withheld assistant message as the model reads it
+// again.
+const withheldAnswer = "An earlier answer here used something the person can no longer read, so it is left out."
+
+// history is a thread's messages as their owner may read them now.
+type history struct {
+	// calls are the tool messages' withheld calls, by message index; held
+	// the withheld assistant messages and summaries.
+	calls map[int]map[string]bool
+	held  map[int]bool
+	// sources are what each message's content came from; prior is every
+	// source the thread's messages read, and readable whether the owner
+	// may read all of it (what an answer in flight may have used).
+	sources  [][]toolSource
+	prior    []toolSource
+	readable bool
+}
+
+// toolSources are a tool message's sources: a result with content and no
+// recorded source counts as unknownSource.
+func toolSources(c messageContent) []toolSource {
+	out := slices.Clone(c.Sources)
+	for _, p := range c.Results {
+		tr := p.ToolResult
+		if tr == nil || !sourced(tr.Name) || tr.IsError {
+			continue
+		}
+		if !slices.ContainsFunc(c.Sources, func(s toolSource) bool { return s.CallID == tr.ID }) {
+			out = append(out, unknownSource)
+		}
+	}
+	return out
+}
+
+// merge adds srcs to a set of sources, without their calls' ids.
+func merge(set []toolSource, srcs []toolSource) []toolSource {
+	for _, s := range srcs {
+		s.CallID = ""
+		if !slices.Contains(set, s) {
+			set = append(set, s)
+		}
+	}
+	return set
+}
+
+// priorSources is every source a thread's messages read: what an answer
+// saved without its request (Stop, the sweep) may have used.
+func priorSources(messages []store.AiAssistantMessage, contents []messageContent) []toolSource {
+	out := []toolSource{}
+	for i, m := range messages {
+		c := contents[i]
+		switch m.Role {
+		case "tool":
+			out = merge(out, toolSources(c))
+		case "assistant", "summary":
+			out = merge(out, c.Sources)
+		}
+	}
+	return out
+}
+
+// history decides which of a thread's results, answers and summaries its
+// owner may read now, reading each source once.
+func (r *readable) history(ctx context.Context, messages []store.AiAssistantMessage, contents []messageContent) (*history, error) {
+	calls, err := r.withheld(ctx, messages, contents)
+	if err != nil {
+		return nil, err
+	}
+	h := &history{calls: calls, held: map[int]bool{}, sources: make([][]toolSource, len(messages)), prior: []toolSource{}}
+	for i, m := range messages {
+		c := contents[i]
+		var srcs []toolSource
+		switch m.Role {
+		case "tool":
+			srcs = toolSources(c)
+		case "assistant", "summary":
+			srcs = c.Sources
+			if !c.SourcesKnown {
+				srcs = merge(slices.Clone(h.prior), c.Sources)
+			}
+			ok, err := r.all(ctx, srcs)
+			if err != nil {
+				return nil, err
+			}
+			h.held[i] = !ok
+		default:
+			continue
+		}
+		h.sources[i] = srcs
+		h.prior = merge(h.prior, srcs)
+	}
+	if h.readable, err = r.all(ctx, h.prior); err != nil {
+		return nil, err
+	}
+	return h, nil
+}
+
+// threadSources is every source a thread's messages read so far.
+func (s *Service) threadSources(ctx context.Context, q *store.Queries, thread uuid.UUID) ([]toolSource, error) {
+	messages, err := q.AIAssistantMessages(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
+	contents := make([]messageContent, len(messages))
+	for i, m := range messages {
+		if contents[i], err = s.messageContent(m); err != nil {
+			return nil, err
+		}
+	}
+	return priorSources(messages, contents), nil
 }

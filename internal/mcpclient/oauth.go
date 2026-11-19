@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -28,13 +29,16 @@ import (
 )
 
 // OAuth per member (MCP authorization, 2025-11-25): discovery of the
-// protected resource (RFC 9728) and its authorization server (RFC 8414), a
-// client registered dynamically (RFC 7591) unless a manager entered one,
-// PKCE S256, the resource indicator (RFC 8707), a state bound to the
-// person's session and used once, an exact redirect URI on the instance's
-// address. Tokens are sealed for (server, person); a refresh replaces a
-// rotated refresh token. No redirect is ever followed: every request goes
-// through the SSRF guard's client.
+// protected resource (RFC 9728) and its authorization server (RFC 8414),
+// a client a manager entered, else the instance's Client ID Metadata
+// Document when the authorization server takes one, else a client
+// registered dynamically (RFC 7591); the client authenticates with none,
+// client_secret_basic or client_secret_post as its server lists. PKCE
+// S256, the resource indicator (RFC 8707), a state bound to the person's
+// session and used once, an exact redirect URI on the instance's address.
+// Tokens are sealed for (server, person); a refresh replaces a rotated
+// refresh token. No redirect is ever followed: every request goes through
+// the SSRF guard's client.
 
 const stateTTL = 10 * time.Minute
 
@@ -59,6 +63,118 @@ func (s *Service) oauthClient() *http.Client { return s.policy().Client(15 * tim
 
 func oauthProblem(ctx context.Context, srv store.McpServer) error {
 	return problem(ctx, http.StatusBadGateway, codeOAuth, "problem.oauth", i18n.Args{"server": srv.Name})
+}
+
+// Client authentication at the token and revocation endpoints (RFC 6749
+// §2.3.1, RFC 8414's token_endpoint_auth_methods_supported): none for a
+// client without a secret; with one, client_secret_basic when the
+// authorization server offers it (or lists nothing: RFC 8414's default),
+// else client_secret_post (MCP authorization, 2025-11-25). private_key_jwt
+// and the TLS methods aren't supported.
+const (
+	authNone  = "none"
+	authBasic = "client_secret_basic"
+	authPost  = "client_secret_post"
+)
+
+// pickAuth is the method a client uses, from the methods its
+// authorization server lists; false when it lists only methods ReputeCast
+// doesn't support (a client with a secret needs basic or post).
+func pickAuth(methods []string, secret bool) (string, bool) {
+	offers := func(m string) bool { return len(methods) == 0 || slices.Contains(methods, m) }
+	switch {
+	case !secret && (offers(authNone) || offers(authBasic) || offers(authPost)):
+		return authNone, true
+	case secret && offers(authBasic):
+		return authBasic, true
+	case secret && offers(authPost):
+		return authPost, true
+	}
+	return "", false
+}
+
+// methodOf is a client's method as stored: a server set up before the
+// method was kept sends its secret, when it has one, with Basic.
+func methodOf(method string, secret []byte) string {
+	switch {
+	case method != "":
+		return method
+	case len(secret) > 0:
+		return authBasic
+	}
+	return authNone
+}
+
+func clientAuthProblem(ctx context.Context, status int, srv store.McpServer) error {
+	return problem(ctx, status, codeClientAuth, "problem.clientAuth", i18n.Args{"server": srv.Name})
+}
+
+// postForm posts a form to a token or revocation endpoint as the client:
+// its client_id in the form, and its secret as its method says (Basic
+// authentication, or client_secret in the form). Through the guard's
+// client: no redirect is followed.
+func (s *Service) postForm(ctx context.Context, endpoint string, form url.Values, method, client string, sealed []byte, server uuid.UUID) (*http.Response, error) {
+	form.Set("client_id", client)
+	secret := ""
+	if method != authNone && len(sealed) > 0 {
+		var err error
+		if secret, err = s.Box.OpenString(sealed, secretAD(server)); err != nil {
+			return nil, err
+		}
+	}
+	if method == authPost && secret != "" {
+		form.Set("client_secret", secret)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, errors.New("bad endpoint address")
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	if method == authBasic && secret != "" {
+		req.SetBasicAuth(url.QueryEscape(client), url.QueryEscape(secret))
+	}
+	return s.oauthClient().Do(req)
+}
+
+// clientMetadataPath is the instance's Client ID Metadata Document, under
+// the API.
+const clientMetadataPath = "/ai/mcp/oauth/client-metadata.json"
+
+// clientMetadataURL is the document's address, the client_id of a client
+// that uses it: only on an https public URL ("" otherwise).
+func (s *Service) clientMetadataURL() string {
+	if s.PublicURL == nil {
+		return ""
+	}
+	base := strings.TrimRight(s.PublicURL(), "/")
+	if u, err := url.Parse(base); err != nil || u.Scheme != "https" || u.Host == "" {
+		return ""
+	}
+	return base + api.Version + clientMetadataPath
+}
+
+// MCPClientMetadataDocument is ReputeCast's OAuth client as an
+// authorization server reads it (OAuth Client ID Metadata Document,
+// draft-ietf-oauth-client-id-metadata-document-00): client_id is this
+// document's own address. A public client: PKCE, no secret.
+type MCPClientMetadataDocument struct {
+	ClientID                string   `json:"client_id"`
+	ClientName              string   `json:"client_name"`
+	RedirectURIs            []string `json:"redirect_uris"`
+	GrantTypes              []string `json:"grant_types"`
+	ResponseTypes           []string `json:"response_types"`
+	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
+}
+
+// ClientMetadataDocument is the document, when the public URL is https.
+func (s *Service) ClientMetadataDocument() (MCPClientMetadataDocument, bool) {
+	id := s.clientMetadataURL()
+	if id == "" {
+		return MCPClientMetadataDocument{}, false
+	}
+	return MCPClientMetadataDocument{ClientID: id, ClientName: "ReputeCast", RedirectURIs: []string{s.redirectURI()},
+		GrantTypes: []string{"authorization_code", "refresh_token"}, ResponseTypes: []string{"code"}, TokenEndpointAuthMethod: authNone}, true
 }
 
 // wellKnown is a well-known address for a URL, with its path appended
@@ -262,24 +378,54 @@ func (s *Service) discover(ctx context.Context, srv *store.McpServer) error {
 	if _, err := s.policy().ValidateURL(asm.RevocationEndpoint); asm.RevocationEndpoint != "" && err == nil {
 		srv.RevocationEndpoint = asm.RevocationEndpoint
 	}
-	if srv.ClientID == "" {
-		if asm.RegistrationEndpoint == "" {
-			return oauthProblem(ctx, *srv)
-		}
+	srv.TokenAuthMethods = authMethods(asm.TokenEndpointAuthMethodsSupported)
+	// The client (MCP authorization, 2025-11-25): the one a manager
+	// entered; else the instance's Client ID Metadata Document when the
+	// authorization server takes one (and the public URL is https); else a
+	// client registered dynamically; else a manager has to enter one.
+	methods := srv.TokenAuthMethods
+	switch {
+	case srv.ClientID != "":
+	case asm.ClientIDMetadataDocumentSupported && s.clientMetadataURL() != "":
+		srv.ClientID, srv.ClientMetadata, srv.ClientRegistered, srv.ClientSecretSealed = s.clientMetadataURL(), true, false, nil
+	case asm.RegistrationEndpoint != "":
 		reg, err := oauthex.RegisterClient(ctx, asm.RegistrationEndpoint, &oauthex.ClientRegistrationMetadata{RedirectURIs: []string{s.redirectURI()},
-			TokenEndpointAuthMethod: "none", GrantTypes: []string{"authorization_code", "refresh_token"}, ResponseTypes: []string{"code"}, ClientName: "ReputeCast"}, s.oauthClient())
+			TokenEndpointAuthMethod: authNone, GrantTypes: []string{"authorization_code", "refresh_token"}, ResponseTypes: []string{"code"}, ClientName: "ReputeCast"}, s.oauthClient())
 		if err != nil {
 			s.log().WarnContext(ctx, "mcp: client registration", "server", srv.ID, "err", err)
 			return oauthProblem(ctx, *srv)
 		}
-		srv.ClientID, srv.ClientRegistered, srv.ClientSecretSealed = reg.ClientID, true, nil
+		srv.ClientID, srv.ClientRegistered, srv.ClientMetadata, srv.ClientSecretSealed = reg.ClientID, true, false, nil
 		if reg.ClientSecret != "" {
 			if srv.ClientSecretSealed, err = s.Box.SealString(reg.ClientSecret, secretAD(srv.ID)); err != nil {
 				return err
 			}
 		}
+		// The registration says how its client authenticates.
+		if reg.TokenEndpointAuthMethod != "" {
+			methods = []string{reg.TokenEndpointAuthMethod}
+		}
+	default:
+		return problem(ctx, http.StatusUnprocessableEntity, codeNoClient, "problem.noClient", i18n.Args{"server": srv.Name})
 	}
+	method, ok := pickAuth(methods, len(srv.ClientSecretSealed) > 0)
+	if !ok {
+		return clientAuthProblem(ctx, http.StatusBadGateway, *srv)
+	}
+	srv.TokenAuthMethod = method
 	return nil
+}
+
+// authMethods are the client authentication methods an authorization
+// server lists, bounded (they are kept with the server).
+func authMethods(listed []string) []string {
+	out := []string{}
+	for _, m := range listed {
+		if len(out) < 20 && len(m) <= 64 && m != "" && !slices.Contains(out, m) {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // RemoteMCPOAuthStart is where the person signs in.
@@ -320,9 +466,12 @@ func (s *Service) StartOAuth(ctx context.Context, ws *store.Workspace, p *authz.
 				return err
 			}
 			cur.Issuer, cur.AuthorizationEndpoint, cur.TokenEndpoint, cur.Scopes = srv.Issuer, srv.AuthorizationEndpoint, srv.TokenEndpoint, srv.Scopes
-			cur.Resource, cur.RevocationEndpoint = srv.Resource, srv.RevocationEndpoint
+			cur.Resource, cur.RevocationEndpoint, cur.TokenAuthMethods = srv.Resource, srv.RevocationEndpoint, srv.TokenAuthMethods
 			if cur.ClientID == "" {
-				cur.ClientID, cur.ClientRegistered, cur.ClientSecretSealed = srv.ClientID, srv.ClientRegistered, srv.ClientSecretSealed
+				cur.ClientID, cur.ClientRegistered, cur.ClientSecretSealed, cur.ClientMetadata = srv.ClientID, srv.ClientRegistered, srv.ClientSecretSealed, srv.ClientMetadata
+			}
+			if cur.ClientID == srv.ClientID {
+				cur.TokenAuthMethod = srv.TokenAuthMethod
 			}
 			srv = cur
 			return s.save(ctx, q, cur)
@@ -364,25 +513,12 @@ type tokenResponse struct {
 	Error        string `json:"error"`
 }
 
-// token asks the token endpoint, always with the resource indicator.
+// token asks the token endpoint, always with the resource indicator, as
+// the client authenticates (postForm).
 func (s *Service) token(ctx context.Context, srv store.McpServer, form url.Values) (tokenResponse, error) {
 	var out tokenResponse
-	form.Set("client_id", srv.ClientID)
 	form.Set("resource", resourceOf(srv))
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, srv.TokenEndpoint, strings.NewReader(form.Encode()))
-	if err != nil {
-		return out, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
-	if len(srv.ClientSecretSealed) > 0 {
-		secret, err := s.Box.OpenString(srv.ClientSecretSealed, secretAD(srv.ID))
-		if err != nil {
-			return out, err
-		}
-		req.SetBasicAuth(url.QueryEscape(srv.ClientID), url.QueryEscape(secret))
-	}
-	res, err := s.oauthClient().Do(req)
+	res, err := s.postForm(ctx, srv.TokenEndpoint, form, methodOf(srv.TokenAuthMethod, srv.ClientSecretSealed), srv.ClientID, srv.ClientSecretSealed, srv.ID)
 	if err != nil {
 		return out, err
 	}
@@ -538,22 +674,10 @@ func (s *Service) Revoke(ctx context.Context, limit int32) (int, error) {
 }
 
 // revoke asks the authorization server to revoke a refresh token, as the
-// client the token was issued to.
+// client the token was issued to authenticates.
 func (s *Service) revoke(ctx context.Context, r store.MCPTokenRevocationsTakeRow, token string) error {
-	form := url.Values{"token": {token}, "token_type_hint": {"refresh_token"}, "client_id": {r.ClientID}}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.RevocationEndpoint, strings.NewReader(form.Encode()))
-	if err != nil {
-		return errors.New("revocation endpoint: bad address")
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if len(r.ClientSecretSealed) > 0 {
-		secret, err := s.Box.OpenString(r.ClientSecretSealed, secretAD(r.ServerID))
-		if err != nil {
-			return err
-		}
-		req.SetBasicAuth(url.QueryEscape(r.ClientID), url.QueryEscape(secret))
-	}
-	res, err := s.oauthClient().Do(req)
+	form := url.Values{"token": {token}, "token_type_hint": {"refresh_token"}}
+	res, err := s.postForm(ctx, r.RevocationEndpoint, form, methodOf(r.TokenAuthMethod, r.ClientSecretSealed), r.ClientID, r.ClientSecretSealed, r.ServerID)
 	if err != nil {
 		return errors.New("revocation endpoint unreachable")
 	}

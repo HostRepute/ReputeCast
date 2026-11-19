@@ -211,6 +211,7 @@ export default translate(m, {
 
   announceStart: 'Trợ lý đang trả lời.',
   announceDone: 'Đã trả lời xong: {sentence}',
+  withheld: 'Câu trả lời này dùng nội dung bạn không còn mở được nên đã được ẩn.',
   announceStopped: 'Đã dừng.',
   announceFailed: 'Câu trả lời đã dừng: {title}',
 

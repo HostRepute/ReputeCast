@@ -11,6 +11,8 @@
   "problem.input": "Revisa el nombre, la autenticación y las credenciales del servidor: no encajan entre sí.",
   "problem.state": "Este enlace de inicio de sesión caducó o ya se usó. Vuelve a iniciar sesión desde Configuración › Integraciones · Servidores MCP.",
   "problem.oauth": "No se pudo configurar el inicio de sesión de {server}: su servidor de autorización no respondió como se esperaba. Revisa la dirección o introduce un cliente registrado.",
+  "problem.noClient": "El servidor de autorización de {server} no permite que ReputeCast se registre por sí mismo. Un administrador puede registrar allí un cliente con la URI de redirección indicada e introducir su ID de cliente (y su secreto) en Configuración › Integraciones · Servidores MCP.",
+  "problem.clientAuth": "El servidor de autorización de {server} solo acepta autenticación de cliente que ReputeCast no admite, como private_key_jwt. ReputeCast inicia sesión como cliente público (none) o con un secreto de cliente (client_secret_basic o client_secret_post): registra un cliente que use uno de ellos.",
   "problem.reviewed": "{tool} cambió desde que la revisaste. Revisa su nueva descripción y su esquema y vuelve a decidir.",
   "notify.changedTitle": "Cambiaron herramientas de {server}",
   "notify.changedBody": "{count, plural, one {# herramienta} other {# herramientas}} de {server} cambiaron después de aprobarse y quedan desactivadas hasta que las revises."

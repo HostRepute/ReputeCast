@@ -227,7 +227,7 @@ func TestMCPRevocation(t *testing.T) {
 	ctx := context.Background()
 	fake := mcptest.NewServer(t, "", "")
 	fake.Tool("search", "Search", true, mcptest.Text("hit"))
-	auth := mcptest.NewAuth(t, fake)
+	auth := mcptest.NewAuthWith(t, fake, mcptest.AuthOptions{Methods: []string{"none", "client_secret_basic"}})
 	s := f.create(map[string]any{"name": "Notion", "url": fake.Endpoint(), "auth": "oauth"})
 	f.signIn(f.ec, auth, s.ID, "editor").MustStatus(t, 303)
 	f.signIn(f.cc, auth, s.ID, "colleague").MustStatus(t, 303)
@@ -284,6 +284,7 @@ func TestMCPRevocation(t *testing.T) {
 	f.signIn(f.oc, auth, s.ID, "owner").MustStatus(t, 303)
 	const clientSecret = "mcp-client-secret-sentinel-41c2"
 	f.do(f.oc, http.MethodPatch, f.base+"/"+s.ID.String(), map[string]any{"clientSecret": clientSecret}, 200)
+	auth.Preregister(client, clientSecret, f.env.App.PublicURL.Get()+"/api/v1/ai/mcp/oauth/callback")
 	f.do(f.oc, http.MethodDelete, f.base+"/"+s.ID.String(), nil, 204)
 	if f.count(`SELECT count(*) FROM mcp_servers WHERE id = $1`, s.ID)+f.count(`SELECT count(*) FROM mcp_tokens WHERE server_id = $1`, s.ID) != 0 {
 		t.Fatal("the deleted server or its sign-ins are kept")

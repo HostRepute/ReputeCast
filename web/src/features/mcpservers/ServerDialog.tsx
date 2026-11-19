@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { errorMessage, type Schemas } from '@/api/client'
+import { ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
@@ -28,6 +28,17 @@ function whoOf(roles: string[]): 'all' | 'managers' | 'custom' {
   return roles.length === MANAGERS.length && MANAGERS.every((r) => roles.includes(r)) ? 'managers' : 'custom'
 }
 
+/**
+ * A sign-in the server's OAuth client stops (mcp_oauth_client: no client and
+ * the server registers none; mcp_oauth_client_auth: only private_key_jwt),
+ * titled, with what a manager can do in the server's words.
+ */
+export type ClientProblem = { title: string; detail: string }
+export function clientProblem(t: ReturnType<typeof useT>, e: unknown, server: string): ClientProblem | undefined {
+  if (!(e instanceof ApiError) || (e.code !== 'mcp_oauth_client' && e.code !== 'mcp_oauth_client_auth')) return undefined
+  return { title: t(e.code === 'mcp_oauth_client' ? m.noClientTitle : m.clientAuthTitle, { server }), detail: e.message }
+}
+
 function validUrl(s: string): boolean {
   try {
     const u = new URL(s.trim())
@@ -43,7 +54,18 @@ function validUrl(s: string): boolean {
  * "Set", and Replace takes a new one. Adding a server without OAuth syncs
  * its tools at once; an OAuth one waits for the manager's own sign-in.
  */
-export function ServerDialog({ server, onClose, onSaved }: { server?: MCPServer; onClose: () => void; onSaved: (id: string | undefined) => void }) {
+export function ServerDialog({
+  server,
+  problem,
+  onClose,
+  onSaved,
+}: {
+  server?: MCPServer
+  /** Why its sign-in stopped (opened from it): the client details show. */
+  problem?: ClientProblem
+  onClose: () => void
+  onSaved: (id: string | undefined, problem?: ClientProblem) => void
+}) {
   const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshMCP()
@@ -62,7 +84,7 @@ export function ServerDialog({ server, onClose, onSaved }: { server?: MCPServer;
   const [enabled, setEnabled] = useState(server?.enabled ?? true)
   const [errors, setErrors] = useState<{ name?: string; url?: string; headerName?: string; headerValue?: string }>({})
   const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState<string>()
+  const [failed, setFailed] = useState<{ title?: string; detail: string } | undefined>(problem)
   const [removing, setRemoving] = useState(false)
 
   const roles = who === 'all' ? [] : who === 'managers' ? MANAGERS : (server?.roles ?? [])
@@ -110,7 +132,14 @@ export function ServerDialog({ server, onClose, onSaved }: { server?: MCPServer;
         try {
           await startSignIn(slug, created.id)
           return
-        } catch {
+        } catch (err) {
+          // Added, but its sign-in needs a client: Edit says why.
+          const p = clientProblem(t, err, created.name)
+          if (p) {
+            await refresh()
+            onSaved(created.id, p)
+            return
+          }
           toast({ kind: 'success', title: t(m.addedSignIn, { server: created.name }) })
         }
       } else {
@@ -124,7 +153,7 @@ export function ServerDialog({ server, onClose, onSaved }: { server?: MCPServer;
       await refresh()
       onSaved(created.id)
     } catch (err) {
-      setFailed(errorMessage(err))
+      setFailed(clientProblem(t, err, name.trim()) ?? { detail: errorMessage(err) })
     } finally {
       setBusy(false)
     }
@@ -162,7 +191,12 @@ export function ServerDialog({ server, onClose, onSaved }: { server?: MCPServer;
         }
       >
         <form id={formId} className="mcp-dlg" onSubmit={(e) => void submit(e)} noValidate>
-          {failed ? <Note tone="bad">{failed}</Note> : null}
+          {failed ? (
+            <Note tone="bad">
+              {failed.title ? <strong className="block">{failed.title}</strong> : null}
+              {failed.detail}
+            </Note>
+          ) : null}
           <Field label={t(m.fieldName)} error={errors.name}>
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="off" />
           </Field>
@@ -219,9 +253,10 @@ export function ServerDialog({ server, onClose, onSaved }: { server?: MCPServer;
             </>
           ) : null}
           {auth === 'oauth' ? (
-            <details className="mcp-client" open={Boolean(server?.clientId)}>
+            <details className="mcp-client" open={Boolean(server?.clientId || problem)}>
               <summary>{t(m.clientSummary)}</summary>
               <div className="mcp-client-body">
+                {server?.clientMetadata ? <small className="k">{t(m.clientMetadata)}</small> : null}
                 <Field label={t(m.fieldClientId)} hint={t(m.clientHint)} optional>
                   <Input value={clientId} onChange={(e) => setClientId(e.target.value)} autoComplete="off" spellCheck={false} />
                 </Field>

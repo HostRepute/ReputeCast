@@ -242,6 +242,8 @@ export const m = defineMessages('assistant', {
   announceStart: 'The assistant is answering.',
   // sentence: the answer's first sentence.
   announceDone: 'Answer finished: {sentence}',
+  // An answer that used something the person can no longer open (a campaign or report, an MCP server): its text isn't shown.
+  withheld: "This answer used something you can no longer open, so it's hidden.",
   announceStopped: 'Stopped.',
   // title: the state's title ("Anthropic is unavailable").
   announceFailed: 'The answer stopped: {title}',

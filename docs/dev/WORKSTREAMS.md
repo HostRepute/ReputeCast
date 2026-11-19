@@ -155,3 +155,4 @@ The B0 brief in `docs/spec/reputecast-design-addon-assistant.md` defines this tr
 | B4 · Panel and screens | `assistant-b4-ui` | `web/src/features/assistant` (new), shell entry points, settings screens | None |
 | B5 · MCP servers | `assistant-b5-mcp` | `mcpclient` (new), OAuth client, tool approval, MCP settings UI | 03650–03659 |
 | B6 · Hardening | `assistant-b6-hardening` | Injection fixtures, `loadtest`, docs | None |
+| Security follow-ups | `assistant-security-followups` | `ai/assistant` (answers re-checked against their sources), `mcpclient` (`tools/list_changed`, Client ID Metadata Documents, `client_secret_post`) | 03660–03669 |

@@ -21,14 +21,14 @@ import '@/features/ai/ai.css'
 import '@/features/integrations/integrations.css'
 import { disconnect, startSignIn, syncServer, useMCPServers, useRefreshMCP, type MCPServer, type MCPTool } from './api'
 import { m } from './messages'
-import { rolesList, ServerDialog } from './ServerDialog'
+import { clientProblem, rolesList, ServerDialog, type ClientProblem } from './ServerDialog'
 import { ChangedCard, kindLabel, ReviewDialog, toolState } from './ToolReview'
 import { firstLine, isChanged } from './tools'
 import './mcp.css'
 
 export type Callback = { server?: string; connected?: boolean; error?: 'denied' | 'token' }
 
-type Dialog = { kind: 'add' } | { kind: 'edit'; server: string } | { kind: 'review'; server: string; tool: string } | null
+type Dialog = { kind: 'add' } | { kind: 'edit'; server: string; problem?: ClientProblem } | { kind: 'review'; server: string; tool: string } | null
 
 /** The server's badge: off, unreachable, sign-in, changed or waiting tools, else its tool count. */
 function ServerBadge({ s }: { s: MCPServer }) {
@@ -70,7 +70,7 @@ function ServerBadge({ s }: { s: MCPServer }) {
 }
 
 function authLine(t: ReturnType<typeof useT>, s: MCPServer): string {
-  if (s.auth === 'oauth') return t(m.authOAuth)
+  if (s.auth === 'oauth') return s.clientMetadata ? `${t(m.authOAuth)} · ${t(m.clientMetadata)}` : t(m.authOAuth)
   if (s.auth === 'header') return s.headerSet ? t(m.authHeaderSet) : t(m.authHeaderUnset)
   return t(m.authNone)
 }
@@ -125,7 +125,10 @@ export function MCPServersPage({ callback }: { callback: Callback }) {
       await startSignIn(slug, s.id)
     } catch (e) {
       setSigning(undefined)
-      toast({ kind: 'error', title: t(m.signInFailed, { server: s.name }), detail: errorMessage(e) })
+      // A client is needed (or one that isn't private_key_jwt): a manager enters it in Edit.
+      const p = clientProblem(t, e, s.name)
+      if (p && canManage) setDialog({ kind: 'edit', server: s.id, problem: p })
+      else toast({ kind: 'error', title: p?.title ?? t(m.signInFailed, { server: s.name }), detail: errorMessage(e) })
     }
   }
 
@@ -328,8 +331,8 @@ export function MCPServersPage({ callback }: { callback: Callback }) {
       {dialog?.kind === 'add' && canManage ? (
         <ServerDialog
           onClose={() => setDialog(null)}
-          onSaved={(id) => {
-            setDialog(null)
+          onSaved={(id, problem) => {
+            setDialog(id && problem ? { kind: 'edit', server: id, problem } : null)
             if (id) setPicked(id)
           }}
         />
@@ -337,6 +340,7 @@ export function MCPServersPage({ callback }: { callback: Callback }) {
       {editing && canManage ? (
         <ServerDialog
           server={editing}
+          problem={dialog?.kind === 'edit' ? dialog.problem : undefined}
           onClose={() => setDialog(null)}
           onSaved={(id) => {
             setDialog(null)

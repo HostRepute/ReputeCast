@@ -104,6 +104,11 @@ public URL is the one saved in Instance admin › Instance & updates, or
 `REPUTECAST_PUBLIC_URL`. It's the same address for every server and
 workspace.
 
+- When the authorization server takes Client ID Metadata Documents,
+  ReputeCast's client is its own metadata document at
+  `<public URL>/api/v1/ai/mcp/oauth/client-metadata.json`: that address is
+  the client ID, and the authorization server reads the redirect address
+  from it. This needs an `https://` public URL. You don't enter anything.
 - When ReputeCast registers itself with the authorization server (dynamic
   client registration), it registers this address. You don't enter
   anything.
@@ -119,10 +124,31 @@ https (or localhost), and authorization servers may refuse others: use an
 it from their browser.
 
 If the public URL changes, the redirect address changes with it. Register
-the new one for a client you entered. A client ReputeCast registered keeps
-the old address: clear its **Client ID** in **Edit**, and the next sign-in
-registers a new client. Members' existing sign-ins belong to the old
-client; expect them to sign in again.
+the new one for a client you entered. A client ReputeCast registered, or its
+metadata document's address, keeps the old address: clear its **Client ID**
+in **Edit**, and the next sign-in sets up a new client. Members' existing
+sign-ins belong to the old client; expect them to sign in again.
+
+### The client metadata document
+
+`GET <public URL>/api/v1/ai/mcp/oauth/client-metadata.json` needs no
+sign-in, is served as `application/json` with `Cache-Control: public,
+max-age=300`, and reads:
+
+```json
+{
+  "client_id": "https://news.example.com/api/v1/ai/mcp/oauth/client-metadata.json",
+  "client_name": "ReputeCast",
+  "redirect_uris": ["https://news.example.com/api/v1/ai/mcp/oauth/callback"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "token_endpoint_auth_method": "none"
+}
+```
+
+It is a public client: PKCE, no secret. On an instance whose public URL
+isn't `https://` (development), the address answers 404 and ReputeCast
+doesn't offer it.
 
 ### What ReputeCast expects from an OAuth server
 
@@ -147,12 +173,23 @@ again after its **Client ID** is cleared):
    path inserted after `/.well-known/` and, for OpenID Connect, also
    appended. The metadata must list `S256` in
    `code_challenge_methods_supported`.
-4. Without a client you entered, the authorization server needs a
-   `registration_endpoint`. Client ID metadata documents aren't supported.
+4. The client, in the order the MCP specification gives: the one you
+   entered; else ReputeCast's [client metadata document](#the-client-metadata-document)
+   when the metadata says `client_id_metadata_document_supported` and the
+   public URL is `https://`; else a client registered at its
+   `registration_endpoint`. Without any of them, the sign-in says that a
+   manager has to register a client with the server and enter it
+   (`mcp_oauth_client`).
 5. It asks for the scope the 401 named, or else every scope in the
    resource's `scopes_supported`.
-6. Client authentication is none, or HTTP basic with the client secret.
-   Other methods (`client_secret_post`, `private_key_jwt`) aren't supported.
+6. Client authentication, for the token, refresh and revocation requests,
+   follows `token_endpoint_auth_methods_supported`: none for a client
+   without a secret; with a secret, `client_secret_basic` when listed (or
+   when nothing is listed), else `client_secret_post`. A dynamic
+   registration's own `token_endpoint_auth_method` wins. `private_key_jwt`
+   and the TLS methods aren't supported: when the server lists only
+   those, the sign-in (or saving a client secret in **Edit**) says so
+   (`mcp_oauth_client_auth`).
 7. Metadata addresses must be https (plain http only on loopback).
 8. It keeps the authorization server's `revocation_endpoint`, if it has
    one, to [revoke removed sign-ins](#revoking-removed-sign-ins).
@@ -196,13 +233,21 @@ schema and annotations as you reviewed them. If the tool changed on the
 server while you reviewed it, the decision isn't saved and the page shows
 the new version: "This tool changed on the server while you reviewed it."
 
-ReputeCast compares a server's tools with what was decided at three
+ReputeCast compares a server's tools with what was decided at these
 moments:
 
 - **Before every call.** In the call's own session, ReputeCast lists the
   server's tools first. If the tool is no longer listed, or its
   description, schema or annotations differ from the version decided on,
   the call isn't sent. Whatever else the listing changed is recorded too.
+- **When the server says its tools changed during a call**
+  (`notifications/tools/list_changed`, on the session's stream or, in the
+  2026-07-28 protocol, a subscription). ReputeCast lists the tools again in
+  that session and records the change the same way. If the tool being
+  called changed or went, its result isn't used: the call ends as
+  `mcp_tool_changed`, though the server may already have acted on it. A
+  notification that arrives after the result came back doesn't undo the
+  call; the next call's check sees the change.
 - **Every hour**, for servers with **None** or a **Shared header secret**
   that are on and were synced before: the `mcp.servers_sync` job lists
   them as the system, at most 20 servers a run across the instance, the
@@ -222,9 +267,10 @@ When one of them finds that an approved or blocked tool changed:
   **Approve the new version**.
 
 A tool the server no longer lists becomes **Gone from the server** and isn't
-offered or called; no notification is sent for it. The hourly sync and the
-check before a call write an audit entry, as the system, only when the
-catalog changed.
+offered or called; no notification is sent for it. The hourly sync, the
+check before a call and a server's change notification write an audit
+entry (`mcp_server.updated`, as the system, marked `periodic`, `live_check`
+or `list_changed`), only when the catalog changed.
 
 ## Who can use a server
 
@@ -320,7 +366,9 @@ discovery, ReputeCast also revokes the refresh token of every sign-in it
 removes: on **Disconnect**, when the member leaves, is removed or is
 deactivated, when the server is removed, and when the server refused the
 sign-in. The token is queued, still encrypted, and sent to the endpoint
-(RFC 7009) as the client it was issued to:
+(RFC 7009) as the client it was issued to, authenticating as that client
+does at the token endpoint (none, `client_secret_basic` or
+`client_secret_post`):
 
 - On **Disconnect** ReputeCast works through the queue at once (up to 10
   tokens, for up to 10 seconds), so the member's own token normally goes

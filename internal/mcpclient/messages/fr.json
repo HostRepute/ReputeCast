@@ -11,6 +11,8 @@
   "problem.input": "Vérifiez le nom, l’authentification et les identifiants du serveur : ils ne vont pas ensemble.",
   "problem.state": "Ce lien de connexion a expiré ou a déjà servi. Recommencez la connexion depuis Paramètres › Intégrations · Serveurs MCP.",
   "problem.oauth": "La connexion à {server} n’a pas pu être configurée : son serveur d’autorisation n’a pas répondu comme prévu. Vérifiez l’adresse ou saisissez un client enregistré.",
+  "problem.noClient": "Le serveur d’autorisation de {server} ne permet pas à ReputeCast de s’enregistrer lui-même. Un responsable peut y enregistrer un client avec l’URI de redirection indiquée, puis saisir son identifiant client (et son secret) dans Paramètres › Intégrations · Serveurs MCP.",
+  "problem.clientAuth": "Le serveur d’autorisation de {server} n’accepte qu’une authentification client que ReputeCast ne prend pas en charge, comme private_key_jwt. ReputeCast se connecte comme client public (none) ou avec un secret client (client_secret_basic ou client_secret_post) : enregistrez un client qui utilise l’une de ces méthodes.",
   "problem.reviewed": "{tool} a changé depuis votre examen. Examinez sa nouvelle description et son schéma, puis décidez à nouveau.",
   "notify.changedTitle": "Des outils de {server} ont changé",
   "notify.changedBody": "{count, plural, one {# outil} other {# outils}} de {server} ont changé après leur approbation et restent désactivés jusqu’à votre examen."

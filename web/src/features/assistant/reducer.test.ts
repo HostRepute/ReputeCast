@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { buildItems, mcpOf } from './Conversation'
 import { streamBlocks } from './Markdown'
-import { initialThreadState, threadReducer, type Confirmation, type StreamEvent, type Thread, type ThreadMessage, type ThreadState, type ThreadTurn } from './reducer'
+import { initialThreadState, threadReducer, type Confirmation, type StreamEvent, type Thread, type ThreadMessage, type ThreadState, type ThreadTurn, type ToolRow } from './reducer'
 import { problemOf } from './states'
 import { useThreadState } from './useThreadStream'
 
@@ -163,6 +163,42 @@ describe('threadReducer', () => {
   })
 })
 
+describe('a withheld answer (its sources can no longer be opened)', () => {
+  const held = (id: string, extra: Partial<ThreadMessage> = {}) => msg(id, 'assistant', '', { withheld: true, ...extra })
+  const row = (callId: string, extra: Partial<ToolRow> = {}): ToolRow => ({ callId, name: 'read_report', ok: true, ms: 300, label: 'September Product Update', ...extra })
+
+  it('keeps a withheld message’s place in its answer, without text', () => {
+    const s = run(initialThreadState, snap(2, thread({ messages: [msg('u1', 'user', 'Why?'), held('a1')], turn: turn('done') })))
+    const answer = buildItems(s)[1]
+    expect(answer?.kind === 'answer' && answer.texts).toEqual([held('a1')])
+  })
+
+  it('shows a withheld turn in progress as withheld, and takes no text for it', () => {
+    let s = run(initialThreadState, snap(2, thread({ turn: turn('answering', { withheld: true }) })))
+    expect(s.live).toEqual({ turnId: 't1', text: '', withheld: true })
+    s = run(s, delta(3, 'what it read'))
+    expect(s.live).toEqual({ turnId: 't1', text: '', withheld: true })
+    const answer = buildItems(s)[1]
+    expect(answer?.kind === 'answer' && [answer.withheld, answer.live, answer.status]).toEqual([true, '', 'answering'])
+    // Its saved message says how it is shown.
+    s = run(s, message(4, held('a1')), turnEv(5, turn('done')))
+    expect(s.live).toBeUndefined()
+    expect(s.messages.at(-1)).toEqual(held('a1'))
+  })
+
+  it('drops what it showed when a resumed stream withholds it', () => {
+    let s = run(initialThreadState, snap(2, thread({ messages: [msg('u1', 'user', 'Why?'), msg('a0', 'assistant', 'Earlier: the September numbers', { turnId: 't0' })], turn: turn('answering') })))
+    s = run(s, tool(3, 'c1'), delta(4, 'Opens fell '))
+    expect(s.live?.text).toBe('Opens fell ')
+    // Sent again after a reconnection: the pieces empty, the row and an earlier answer without what they read.
+    s = run(s, delta(5, ''), { type: 'tool', id: 6, data: { turnId: 't1', tool: row('c1', { ok: false, code: 'no_longer_available', label: undefined }) } }, message(7, held('a0', { turnId: 't0' })))
+    expect(s.live).toEqual({ turnId: 't1', text: '', withheld: true })
+    expect(s.tools).toEqual([{ callId: 'c1', name: 'read_report', ok: false, code: 'no_longer_available', ms: 300, label: undefined }])
+    expect(s.messages.find((x) => x.id === 'a0')).toEqual(held('a0', { turnId: 't0' }))
+    expect(JSON.stringify(buildItems(s))).not.toMatch(/Opens fell|September/)
+  })
+})
+
 describe('buildItems', () => {
   it('puts a turn’s tool rows and text in one answer, the live text last', () => {
     const s = run(
@@ -224,6 +260,16 @@ describe('useThreadState', () => {
     expect(result.current[0]).toEqual(direct)
     expect(result.current[2].get()).toBeUndefined()
     off()
+  })
+
+  it('applies a withheld (empty) piece at once, so the live text doesn’t show what came before', () => {
+    const { result } = renderHook(() => useThreadState())
+    const send = (...events: StreamEvent[]) => act(() => result.current[1]({ type: 'events', events }))
+    send(snap(2), turnEv(3, turn('answering')), delta(4, 'Opens '))
+    send(delta(5, 'fell '))
+    send(delta(6, ''))
+    expect(result.current[0].live).toEqual({ turnId: 't1', text: '', withheld: true })
+    expect(result.current[2].get()).toEqual({ turnId: 't1', text: '', withheld: true })
   })
 
   it('applies held deltas before a stop, so the stopped text is whole', () => {

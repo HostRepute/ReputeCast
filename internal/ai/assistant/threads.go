@@ -94,6 +94,11 @@ type AIThreadMessage struct {
 	// Partial: the answer stopped before it ended (its turn failed); it is
 	// what arrived.
 	Partial bool `json:"partial,omitempty"`
+	// Withheld: an answer or summary that used something the person can no
+	// longer read (a campaign or report they lost access to or that was
+	// deleted, an MCP server they may no longer use). Its text is left out
+	// and the model doesn't read it again.
+	Withheld bool `json:"withheld,omitempty"`
 	// Card is a fixed answer the app shows as a card, without a model call:
 	// hostrepute, for questions about reputation, blocklists or placement.
 	Card string `json:"card,omitempty" enum:"hostrepute"`
@@ -124,8 +129,11 @@ type AIThreadTurn struct {
 	Reason   string    `json:"reason,omitempty"`
 	// ModelID is the model the turn uses, fixed when it was sent.
 	ModelID *uuid.UUID `json:"modelId,omitempty"`
-	// Text is the answer so far while it answers.
+	// Text is the answer so far while it answers. Withheld: it is left out
+	// because the thread read something the person can no longer read (the
+	// saved answer then says whether it used it).
 	Text      string     `json:"text,omitempty"`
+	Withheld  bool       `json:"withheld,omitempty"`
 	CreatedAt time.Time  `json:"createdAt"`
 	StartedAt *time.Time `json:"startedAt,omitempty"`
 	EndedAt   *time.Time `json:"endedAt,omitempty"`
@@ -323,19 +331,16 @@ func (s *Service) view(ctx context.Context, q *store.Queries, ws *store.Workspac
 		}
 		out.Contexts = append(out.Contexts, v)
 	}
-	messages, err := q.AIAssistantMessages(ctx, t.ID)
+	messages, contents, h, err := s.history(ctx, q, ws, p, t.ID)
 	if err != nil {
 		return AIThread{}, err
 	}
-	for _, m := range messages {
-		c, err := s.messageContent(m)
-		if err != nil {
-			return AIThread{}, err
-		}
+	for i, m := range messages {
+		c := contents[i]
 		if m.Role == "assistant" && strings.TrimSpace(c.Text) == "" {
 			continue // only tool calls: the tool message shows them
 		}
-		out.Messages = append(out.Messages, c.view(m))
+		out.Messages = append(out.Messages, h.view(i, m, c))
 	}
 	turn, err := q.AIAssistantThreadLastTurn(ctx, t.ID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -346,7 +351,10 @@ func (s *Service) view(ctx context.Context, q *store.Queries, ws *store.Workspac
 	}
 	v := turnView(turn)
 	if turnActive(turn.State) {
-		if v.Text, err = s.answerSoFar(ctx, q, t.ID, turn.ID, t.EventSeq); err != nil {
+		// The answer in flight may use anything the thread read.
+		if !h.readable {
+			v.Withheld = true
+		} else if v.Text, err = s.answerSoFar(ctx, q, t.ID, turn.ID, t.EventSeq); err != nil {
 			return AIThread{}, err
 		}
 	}
@@ -391,13 +399,57 @@ type messageContent struct {
 	Results []llm.Part        `json:"results,omitempty"`
 	Tools   []AIThreadToolRow `json:"tools,omitempty"`
 	Upto    int32             `json:"upto,omitempty"`
-	// Sources are where a tool message's results came from, or what a
-	// summary was made from (sources.go).
-	Sources []toolSource `json:"sources,omitempty"`
+	// Sources are where a tool message's results came from, or what an
+	// assistant message's or a summary's request carried (sources.go);
+	// SourcesKnown says an assistant message or summary kept them (one
+	// saved before doesn't).
+	Sources      []toolSource `json:"sources,omitempty"`
+	SourcesKnown bool         `json:"sourcesKnown,omitempty"`
 }
 
 func (c messageContent) view(m store.AiAssistantMessage) AIThreadMessage {
 	return AIThreadMessage{ID: m.ID, Role: m.Role, Text: c.Text, TurnID: m.TurnID, Partial: c.Partial, Card: c.Card, Tools: c.Tools, CreatedAt: m.CreatedAt}
+}
+
+// history reads a thread's messages and which of them its owner may read
+// now (sources.go).
+func (s *Service) history(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, thread uuid.UUID) ([]store.AiAssistantMessage, []messageContent, *history, error) {
+	messages, err := q.AIAssistantMessages(ctx, thread)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	contents := make([]messageContent, len(messages))
+	for i, m := range messages {
+		if contents[i], err = s.messageContent(m); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	h, err := s.readable(q, ws, p).history(ctx, messages, contents)
+	return messages, contents, h, err
+}
+
+// view is message i as its owner may read it now: a withheld answer or
+// summary without its text, a withheld call's row without its label.
+func (h *history) view(i int, m store.AiAssistantMessage, c messageContent) AIThreadMessage {
+	v := c.view(m)
+	if h.held[i] {
+		v.Text, v.Card, v.Withheld = "", "", true
+	}
+	if calls := h.calls[i]; len(calls) > 0 {
+		v.Tools = slices.Clone(v.Tools)
+		for j, r := range v.Tools {
+			if calls[r.CallID] {
+				v.Tools[j] = withheldRow(r)
+			}
+		}
+	}
+	return v
+}
+
+// withheldRow is a tool call's row once its source can't be read: no label
+// (it may name what it read), no card.
+func withheldRow(r AIThreadToolRow) AIThreadToolRow {
+	return AIThreadToolRow{CallID: r.CallID, Name: r.Name, OK: false, Code: "no_longer_available", Ms: r.Ms}
 }
 
 func (s *Service) messageContent(m store.AiAssistantMessage) (messageContent, error) {

@@ -106,6 +106,8 @@ const (
 	codeInput       = "mcp_input"
 	codeState       = "mcp_oauth_state"
 	codeOAuth       = "mcp_oauth"
+	codeNoClient    = "mcp_oauth_client"
+	codeClientAuth  = "mcp_oauth_client_auth"
 	codeReviewed    = "mcp_tool_reviewed"
 )
 
@@ -172,16 +174,21 @@ type RemoteMCPServer struct {
 	Auth       string    `json:"auth" enum:"none,header,oauth"`
 	HeaderName string    `json:"headerName,omitempty"`
 	HeaderSet  bool      `json:"headerSet"`
-	// ClientID is the OAuth client: entered by a manager, or registered
-	// by ReputeCast (ClientRegistered).
-	ClientID         string     `json:"clientId,omitempty"`
-	ClientSecretSet  bool       `json:"clientSecretSet"`
-	ClientRegistered bool       `json:"clientRegistered"`
-	Roles            []string   `json:"roles"`
-	Enabled          bool       `json:"enabled"`
-	Status           string     `json:"status" enum:"new,ok,unreachable,sign_in"`
-	StatusDetail     string     `json:"statusDetail,omitempty"`
-	SyncedAt         *time.Time `json:"syncedAt,omitempty"`
+	// ClientID is the OAuth client: entered by a manager, registered by
+	// ReputeCast (ClientRegistered), or the instance's metadata document
+	// (ClientMetadata).
+	ClientID         string `json:"clientId,omitempty"`
+	ClientSecretSet  bool   `json:"clientSecretSet"`
+	ClientRegistered bool   `json:"clientRegistered"`
+	// ClientMetadata: the client is the instance's Client ID Metadata
+	// Document (clientId is its https address), as the authorization
+	// server offered.
+	ClientMetadata bool       `json:"clientMetadata"`
+	Roles          []string   `json:"roles"`
+	Enabled        bool       `json:"enabled"`
+	Status         string     `json:"status" enum:"new,ok,unreachable,sign_in"`
+	StatusDetail   string     `json:"statusDetail,omitempty"`
+	SyncedAt       *time.Time `json:"syncedAt,omitempty"`
 	// Connected: the caller's own OAuth sign-in is there (auth oauth).
 	Connected bool `json:"connected"`
 	// RedirectURI is the address to register with the authorization server
@@ -285,7 +292,8 @@ func canonical(raw json.RawMessage) []byte {
 func (s *Service) view(ctx context.Context, q *store.Queries, srv store.McpServer, user uuid.UUID, withTools bool) (RemoteMCPServer, error) {
 	v := RemoteMCPServer{ID: srv.ID, Key: srv.Key, Name: srv.Name, URL: srv.Url, Transport: srv.Transport, Auth: srv.Auth, HeaderName: srv.HeaderName,
 		HeaderSet: len(srv.HeaderSealed) > 0, ClientID: srv.ClientID, ClientSecretSet: len(srv.ClientSecretSealed) > 0, ClientRegistered: srv.ClientRegistered,
-		Roles: []string{}, Enabled: srv.Enabled, Status: srv.Status, StatusDetail: srv.StatusDetail, SyncedAt: srv.SyncedAt, Tools: []RemoteMCPTool{}}
+		ClientMetadata: srv.ClientMetadata,
+		Roles:          []string{}, Enabled: srv.Enabled, Status: srv.Status, StatusDetail: srv.StatusDetail, SyncedAt: srv.SyncedAt, Tools: []RemoteMCPTool{}}
 	if srv.AccessRoles != nil {
 		v.Roles = srv.AccessRoles
 	}
@@ -516,7 +524,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 				return problem(ctx, http.StatusUnprocessableEntity, codeInput, "problem.input", nil)
 			}
 			if in.ClientID != nil {
-				srv.ClientID, srv.ClientRegistered = *in.ClientID, false
+				srv.ClientID, srv.ClientRegistered, srv.ClientMetadata = *in.ClientID, false, false
 			}
 			srv.ClientSecretSealed = nil
 			if in.ClientSecret != nil && *in.ClientSecret != "" {
@@ -524,6 +532,13 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 					return err
 				}
 			}
+			// How the client authenticates, from what the authorization
+			// server listed (a discovery yet to come decides it again).
+			method, ok := pickAuth(srv.TokenAuthMethods, len(srv.ClientSecretSealed) > 0)
+			if !ok {
+				return clientAuthProblem(ctx, http.StatusUnprocessableEntity, srv)
+			}
+			srv.TokenAuthMethod = method
 			changed = append(changed, "client")
 		}
 		if err := s.save(ctx, q, srv); err != nil {
@@ -545,7 +560,8 @@ func (s *Service) save(ctx context.Context, q *store.Queries, srv store.McpServe
 	return q.MCPServerSave(ctx, store.MCPServerSaveParams{Name: srv.Name, Enabled: srv.Enabled, AccessRoles: srv.AccessRoles, HeaderSealed: srv.HeaderSealed,
 		ClientID: srv.ClientID, ClientSecretSealed: srv.ClientSecretSealed, ClientRegistered: srv.ClientRegistered, Issuer: srv.Issuer,
 		AuthorizationEndpoint: srv.AuthorizationEndpoint, TokenEndpoint: srv.TokenEndpoint, Scopes: srv.Scopes, Resource: srv.Resource,
-		RevocationEndpoint: srv.RevocationEndpoint, Now: s.now(), WorkspaceID: srv.WorkspaceID, ID: srv.ID})
+		RevocationEndpoint: srv.RevocationEndpoint, ClientMetadata: srv.ClientMetadata, TokenAuthMethods: srv.TokenAuthMethods, TokenAuthMethod: srv.TokenAuthMethod,
+		Now: s.now(), WorkspaceID: srv.WorkspaceID, ID: srv.ID})
 }
 
 // Delete removes a server, its tools and every member's sign-in to it,
