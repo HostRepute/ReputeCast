@@ -198,13 +198,68 @@ A process whose database is missing migrations it needs serves read-only:
 pages and the API read as usual with a banner ("ReputeCast is being
 upgraded"), writes answer 503 `maintenance`, provider webhooks are still
 stored, workers wait, and `/readyz` answers 503 so a load balancer keeps
-using the previous release. It carries on by itself once `reputecast migrate
+using the previous release. Reads of what the upgrade adds (a table or
+column the pending migrations create) answer 503 `maintenance` too until
+it's migrated. It carries on by itself once `reputecast migrate
 up` (or another process's `--auto-migrate`) has run. Downgrades are covered
 in [backup and restore](backup-restore.md#downgrades).
 
 Read the [release notes](https://github.com/hostrepute/reputecast/releases)
 first. Instance admin › Instance & updates shows the running version and the
 latest release.
+
+### From 1.7.0 to 1.8.0
+
+1.8.0 has 7 migrations for the AI assistant. Each workspace's model
+connection becomes its first model account, with the same key, prices, cap
+and usage, and its model becomes every feature's default. The assistant and
+personal keys stay off until a manager turns them on.
+
+- **Back up first:** `pg_dump`, the secret key and the files folder
+  ([backups](#backups)). Going back to 1.7.0 needs that backup or the down
+  migrations below.
+- **Order.** Start the new binary or image first: it serves read-only until
+  migrated. Then run `reputecast migrate up`, or let `--auto-migrate` run
+  them. Replace every 1.7.0 process: once the first migration commits,
+  1.7.0's AI pages fail.
+- **Locks.** The migrations took 1 to 6 seconds in total in the upgrade
+  test. They lock the AI activity log (`ai_requests`) and briefly `users`
+  and `workspaces`. With 2 million AI requests (558 MB), writes to the log
+  waited up to 2.8 seconds and its reads up to 1.5 seconds, and sign-ins
+  and other updates of people and workspaces up to 1.5 seconds. Count about
+  1.4 seconds of waiting for writes per million AI requests. Run them at a
+  quiet moment, with no long-running transaction open: a migration waiting
+  for one makes every request on those tables wait behind it.
+
+Rolling back to 1.7.0 is an exception to the
+[downgrade policy](backup-restore.md#downgrades). 1.7.0 reports ready on
+the 1.8.0 schema, but its AI pages answer 500, because the table they read
+is gone. To go back, either restore the backup, or stop every 1.8.0
+process, run `reputecast migrate down` seven times with the 1.8.0 binary,
+and then start 1.7.0. The seven down migrations leave the schema of a fresh
+1.7.0.
+
+Going down deletes what was created in 1.8.0:
+
+- the assistant's settings, threads, messages and their usage;
+- MCP servers, their tools, members' sign-ins and waiting confirmations;
+  refresh tokens still queued for revocation are never sent;
+- personal keys and members' own model picks;
+- every model account after a workspace's first, every model after that
+  account's first, and the default model of each feature.
+
+And some things mean something else again:
+
+- Requests on personal keys count toward the workspace's cap.
+- 1.7.0 uses the first account's first model.
+- If the account the upgrade made was removed in 1.8.0, the oldest
+  remaining account comes back disconnected and without a key: connect it
+  again.
+- A workspace with no model account left loses its cap and the features it
+  had switched off.
+
+Changes 1.8.0 made to the first account, such as its cap or a replaced key,
+are kept.
 
 ## Backups
 
@@ -280,4 +335,7 @@ carry `job` (`kind:id`).
 
 Several processes started with `--auto-migrate` take turns: one runs the
 migrations while the others wait for it (up to 15 minutes). Migrations need
-a direct or session-mode connection, not PgBouncer in transaction mode.
+a direct or session-mode connection, not PgBouncer in transaction mode. So
+do the AI assistant's event streams: each web process keeps one `LISTEN`
+connection outside the pool
+([configuration](configuration.md#the-event-streams-database-connection)).

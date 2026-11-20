@@ -146,11 +146,13 @@ keeps working against a schema a newer patch release migrated. So:
   minor release: the older binary runs on the newer schema (it logs that the
   database was migrated by a newer release). Read the release notes first:
   a release that drops or renames something says so and isn't covered.
+  1.8.0 → 1.7.0 isn't covered: see
+  [from 1.7.0 to 1.8.0](README.md#from-170-to-180).
 - Further back, restore the backup taken before the upgrade.
 
 `reputecast migrate down` rolls back one migration at a time and is meant
-for development. Don't use it on a production database: down migrations
-drop data.
+for development. Don't use it on a production database, except for the
+1.8.0 → 1.7.0 path that release documents: down migrations drop data.
 
 A process whose binary is newer than the database (migrations pending)
 serves read-only until they are applied; see [Upgrades](README.md#upgrades).
