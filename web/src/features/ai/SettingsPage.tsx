@@ -385,10 +385,11 @@ function ShareRows({ rows }: { rows: { key: string; label: string; value: string
 function ByFeature({ s, c }: { s: AISettings; c: AIConnection }) {
   const t = useT()
   const byTokens = c.cap.kind === 'tokens'
-  const rows = [...AI_FEATURES, 'agent' as const, 'connection_test' as const].map((f) => {
+  const rows = [...AI_FEATURES, 'agent' as const, 'assistant' as const, 'connection_test' as const].map((f) => {
     const u = s.byFeature.find((x) => x.feature === f)
     const amount = byTokens ? (u?.tokens ?? 0) : (u?.costMicros ?? 0)
-    return { key: f, label: t(f === 'agent' ? ag.title : f === 'connection_test' ? m.testConnection : featureName[f]), amount, value: byTokens ? tokens(amount) : dollars(amount) }
+    const label = f === 'agent' ? ag.title : f === 'assistant' ? mm.featureAssistant : f === 'connection_test' ? m.testConnection : featureName[f]
+    return { key: f, label: t(label), amount, value: byTokens ? tokens(amount) : dollars(amount) }
   })
   return (
     <section className="card ai-card" aria-labelledby="ai-feat-h">
