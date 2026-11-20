@@ -656,6 +656,8 @@ The targets: 200 event streams open at once with a delta's p95 under
 100 ms (the brief's B6 gate); the server's time to a turn's first token,
 without the provider's own, at a p95 under 150 ms; and in the browser, a
 delta painted within 50 ms and INP under 200 ms while an answer streams.
+The 200-stream target was accepted with a hardware note
+([the owner's decision](#the-load-generator-on-its-own-core)).
 
 ### Event streams under load
 
@@ -760,6 +762,12 @@ batch" is the build before the group writer below.
 
 The target, a delta p95 under 100 ms, is still missed on this setup: one
 run of the seven with both changes met it.
+
+**Owner decision, 19 November 2026:** the 200-stream gate is accepted as
+measured, with this hardware note. On three vCPUs shared by the server and
+Postgres, the delta p95 sits at about 100–116 ms (median 106 ms), and the
+limit is CPU, not locks or connections. The run with the load generator on
+a separate machine is still to do.
 
 The group writer commits every delta batch a process has due in one
 transaction with one NOTIFY: in a diagnostic run, 730 transactions
