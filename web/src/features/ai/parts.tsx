@@ -8,6 +8,7 @@ import type { AIFeature } from './api'
 import { langName } from './format'
 import { m, ms } from './messages'
 import { ag } from './agent.messages'
+import { mm } from './models.messages'
 
 type ActivityRow = Schemas['AIActivityRow']
 
@@ -65,10 +66,14 @@ export function rowFeature(t: ReturnType<typeof useT>, r: Pick<ActivityRow, 'fea
       return t(m.featureDraft)
     case 'agent':
       return t(ag.title)
+    case 'assistant':
+      return t(mm.featureAssistant)
     case 'connection_test':
       return t(m.testConnection)
   }
-  return r.feature
+  // Every feature the API can log has its label: a new one fails to compile here.
+  const unlabelled: never = r.feature
+  return unlabelled
 }
 
 /** The outcome's badge: "Accepted 1 of 5", "Refused by the model", "Error · 529 overloaded". */
