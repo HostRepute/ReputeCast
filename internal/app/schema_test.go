@@ -49,6 +49,24 @@ func TestPendingMigrationsServeReadOnly(t *testing.T) {
 	if r := c.DoRaw("GET", "/healthz", "", nil); r.Status != http.StatusOK {
 		t.Fatalf("healthz %d", r.Status)
 	}
+	// A read that needs what the pending migrations add (here a table they
+	// would create) answers maintenance too, not an unexpected error.
+	hide := func(hidden bool) {
+		t.Helper()
+		from, to := "ai_workspace_settings", "ai_workspace_settings_pending"
+		if !hidden {
+			from, to = to, from
+		}
+		if _, err := env.App.Pool.Exec(ctx, `ALTER TABLE `+from+` RENAME TO `+to); err != nil {
+			t.Fatal(err)
+		}
+	}
+	hide(true)
+	p = c.Do("GET", "/workspaces/acme-newsletter/ai/status", nil).MustStatus(t, http.StatusServiceUnavailable).Problem(t)
+	if meta, _ := p["meta"].(map[string]any); p["code"] != "maintenance" || meta["startedAt"] == nil {
+		t.Fatalf("a read of what the upgrade adds: %+v", p)
+	}
+	hide(false)
 
 	// `migrate up` runs elsewhere: writes resume without a restart.
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE goose_db_version SET version_id = -version_id WHERE version_id = $1`, -latest); err != nil {
@@ -65,5 +83,12 @@ func TestPendingMigrationsServeReadOnly(t *testing.T) {
 	}
 	if r := c.DoRaw("GET", "/readyz", "", nil); r.Status != http.StatusOK {
 		t.Fatalf("readyz after %d", r.Status)
+	}
+	// Once the schema is current, a missing table is an unexpected error.
+	hide(true)
+	p = c.Do("GET", "/workspaces/acme-newsletter/ai/status", nil).MustStatus(t, http.StatusInternalServerError).Problem(t)
+	hide(false)
+	if p["code"] != "internal_error" {
+		t.Fatalf("a missing table after the upgrade: %+v", p)
 	}
 }

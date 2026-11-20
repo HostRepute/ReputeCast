@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -83,9 +84,11 @@ func (a *App) warnNewer(st db.SchemaState) {
 }
 
 // readOnlyGuard refuses writes while the schema is behind. Reads go through
-// with a header the web app shows the maintenance banner from; provider
-// webhooks are still stored (their normalizing waits for the workers), and
-// people can still sign in and out.
+// with a header the web app shows the maintenance banner from (a read that
+// needs a table or column the pending migrations add answers 503
+// maintenance too, api.Upgrading); provider webhooks are still stored
+// (their normalizing waits for the workers), and people can still sign in
+// and out.
 func (a *App) readOnlyGuard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !a.readOnly() {
@@ -100,7 +103,8 @@ func (a *App) readOnlyGuard(next http.Handler) http.Handler {
 		case r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions,
 			strings.HasPrefix(r.URL.Path, "/hooks/"),
 			strings.HasPrefix(r.URL.Path, "/api/v1/auth/"):
-			next.ServeHTTP(w, r)
+			// What the pending migrations add isn't there to read yet.
+			next.ServeHTTP(w, r.WithContext(api.Upgrading(r.Context(), since)))
 			return
 		}
 		w.Header().Set("Retry-After", strconv.Itoa(int(schemaPoll.Seconds())*6))
@@ -113,7 +117,7 @@ func (a *App) readOnlyGuard(next http.Handler) http.Handler {
 		body, _ := json.Marshal(map[string]any{
 			"status": http.StatusServiceUnavailable,
 			"title":  "Service Unavailable",
-			"code":   "maintenance",
+			"code":   api.CodeMaintenance,
 			"detail": "ReputeCast is being upgraded: reading works; edits and sends resume when it finishes.",
 			"meta":   map[string]any{"version": version.Get().Version, "startedAt": since},
 		})

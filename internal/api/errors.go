@@ -12,8 +12,10 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/version"
 )
 
 // Problem is ReputeCast's RFC 9457 error body: Huma's model plus a stable
@@ -49,6 +51,9 @@ const (
 	CodeProviderUnavailable = "provider_unavailable"
 	CodeUnavailable         = "unavailable"
 	CodeInternal            = "internal_error"
+	// CodeMaintenance: the database is being upgraded (migrations are
+	// pending); writes, and reads of what the upgrade adds, wait for it.
+	CodeMaintenance = "maintenance"
 	// CodeOperatorLocked refuses a change to a setting the server's
 	// configuration pins (http.public_url_locked).
 	CodeOperatorLocked = "operator_locked"
@@ -99,18 +104,52 @@ func init() {
 	}
 
 	// A 5xx from an unexpected error answers with a reference, and the error
-	// is logged under that reference with the request id.
+	// is logged under that reference with the request id. While migrations
+	// are pending, a read that needs what they add answers 503 maintenance.
 	huma.NewErrorWithContext = func(hctx huma.Context, status int, msg string, errs ...error) huma.StatusError {
 		se := huma.NewError(status, msg, errs...)
 		p, ok := se.(*Problem)
 		if !ok || status < http.StatusInternalServerError || chosen(errs) {
 			return se
 		}
+		if hctx != nil && schemaMissing(errs) {
+			if since, ok := hctx.Context().Value(upgradingKey{}).(string); ok {
+				return Err(http.StatusServiceUnavailable, CodeMaintenance, "ReputeCast is being upgraded: this reads again when the upgrade finishes.").
+					WithMeta("version", version.Get().Version).WithMeta("startedAt", since)
+			}
+		}
 		p.Code = CodeInternal
 		ref := reference()
 		logUnexpected(hctx, ref, status, msg, errs)
 		return p.WithMeta("reference", ref)
 	}
+}
+
+// upgradingKey marks a request served while migrations are pending.
+type upgradingKey struct{}
+
+// Upgrading marks a read served while the database's schema is behind the
+// binary (the web app is read-only until `reputecast migrate up`, since
+// the time given): an error from a table, column or function the pending
+// migrations add then answers 503 maintenance, as refused writes do,
+// instead of 500 and an unexpected error in the log.
+func Upgrading(ctx context.Context, since string) context.Context {
+	return context.WithValue(ctx, upgradingKey{}, since)
+}
+
+// schemaMissing reports whether errs hold Postgres's undefined table,
+// column or function error.
+func schemaMissing(errs []error) bool {
+	for _, e := range errs {
+		var pe *pgconn.PgError
+		if errors.As(e, &pe) {
+			switch pe.Code {
+			case "42P01", "42703", "42883":
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // chosen reports whether errs carry a problem a handler or middleware wrote
