@@ -96,6 +96,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 		out.PublishedAt, out.PublishedBy = lv.PublishedAt, lv.PublishedByName
 		if *a.LiveVersion != a.DraftVersion {
 			out.Changes = Changes(Diff(live, draft, DiffContext{FromRefs: refs, ToVersion: int(a.DraftVersion)}))
+			out.Issues = append(out.Issues, liveSunsetWarnings(langOf(ctx), live, refs)...)
 		}
 	}
 	counts, err := s.Q.CountAutomationInFlow(ctx, []uuid.UUID{a.ID})

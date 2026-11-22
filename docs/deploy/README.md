@@ -261,6 +261,46 @@ And some things mean something else again:
 Changes 1.8.0 made to the first account, such as its cap or a replaced key,
 are kept.
 
+### Sunset/re-engagement repair (after 1.8.0, not yet released)
+
+Migration `03670` adds the last human reply time to contacts and backfills
+it from retained replies, excluding spam, auto-replies and erased contacts.
+It does not change saved automation graphs, list consent or paid access.
+The next tier calculation counts these replies along with human opens and
+clicks. Replies must reach ReputeCast's inbox to count. The update scans
+retained replies and locks `contacts`; back up first and run at a quiet time.
+Its down migration removes the timestamp, including replies whose inbox
+detail has since been deleted.
+
+New **Re-engagement** starters listen for `sunset`, send one email per
+entry, and exit on human engagement or after 14 days. The workspace's
+Sunset policy alone decides when to stop Broadcasts (30 days by default).
+Silence is not withdrawal of consent. Automations, System/Transactional
+mail and paid access keep their existing rules. Optional policy erasure
+is a separate setting, not enabled by this repair.
+
+**Existing flows require review**, including copies with different names:
+
+1. Look for a `sunset-entered` tag trigger and an **Unsubscribe from all
+   lists** step labeled "Stop broadcasts". The editor and publish preview
+   warn about these patterns. Do not fix just the tag: that can activate
+   the destructive step.
+2. Pause the old flow and inspect its active runs before changing it.
+   Keep its version history. Create a replacement from the new starter,
+   or review a draft of the existing flow, including email content, links,
+   receiving configuration and goals. The new starter's CTA opens the
+   workspace archive; replace it if a different destination suits the publication.
+3. Test the replacement with consented test contacts. When publishing an
+   edited flow, **finish on the old version** preserves that version's
+   behavior for current runs. Review the move-to-new-version impact or
+   remove affected runs with an audit reason; do not blindly resume them.
+4. Check the Sunset policy's re-engagement and stop-after settings. Contacts
+   already tagged `sunset` are not bulk enrolled by this upgrade. Avoid
+   mass tag removal/re-addition, which would send another email.
+5. Do not bulk resubscribe people affected by an older flow. Audit the
+   consent history and use the normal opt-in process when renewed consent
+   is needed. A reply or click restores engagement eligibility, not consent.
+
 ## Backups
 
 Back up Postgres (`pg_dump`) **and** the secret key: `REPUTECAST_SECRETS__KEY`,

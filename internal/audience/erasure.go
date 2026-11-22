@@ -22,7 +22,7 @@ func CoreErasure() erasure.Source {
 		Tables: []erasure.Table{
 			{Name: "contacts", Action: "anonymize",
 				Columns: []string{"email", "first_name", "last_name", "company", "country", "timezone", "language", "tags", "attributes", "consent_evidence",
-					"mailbox_detail", "phone", "phone_country", "phone_line_type", "phone_line_source", "phone_set_at"}},
+					"mailbox_detail", "phone", "phone_country", "phone_line_type", "phone_line_source", "phone_set_at", "last_human_reply_at"}},
 			{Name: "list_memberships", Action: "delete"},
 			{Name: "consent_events", Action: "delete", Columns: []string{"ip", "user_agent", "consent_text"}},
 			{Name: "contact_preferences", Action: "delete"},
@@ -60,6 +60,7 @@ func CoreErasure() erasure.Source {
 				`UPDATE contacts SET erased_at = now(), email = 'erased-' || id || '@erased.invalid', first_name = '', last_name = '', company = '',
 				    country = '', timezone = '', language = '', tags = '{}', attributes = '{}', consent_evidence = '{}', mailbox_detail = '',
 				    phone = '', phone_country = '', phone_line_type = 'unknown', phone_line_source = '', phone_set_at = NULL,
+				    last_human_reply_at = NULL,
 				    status = 'suppressed', updated_at = now()
 				 WHERE id = ANY ($1)`,
 			)

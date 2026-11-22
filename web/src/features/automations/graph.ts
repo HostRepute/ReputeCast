@@ -432,6 +432,8 @@ export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
       return c.urlContains ? tt(mg.goalClickedUrl, { url: c.urlContains }) : tt(mg.goalClickedAny)
     case 'opened':
       return tt(mg.goalOpened)
+    case 'replied':
+      return capFirst(conditionPhrase({ nodes: [], edges: [] }, c, refs))
     case 'tag':
       return tt(mg.goalTagged, { tag: c.tag ?? '' })
     case 'list':

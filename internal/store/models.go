@@ -1425,6 +1425,7 @@ type Contact struct {
 	PhoneLineSource     string          `json:"phoneLineSource"`
 	PhoneSetAt          *time.Time      `json:"phoneSetAt"`
 	MailboxCheckedAt    *time.Time      `json:"mailboxCheckedAt"`
+	LastHumanReplyAt    *time.Time      `json:"lastHumanReplyAt"`
 }
 
 type ContactAddressCheck struct {

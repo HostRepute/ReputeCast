@@ -46,6 +46,12 @@ describe('Sunset policy (review 2026-11 AU-12)', () => {
     })
     await renderInWorkspace(<PolicyCard h={health(policy)} />, { path: '/w/acme-newsletter/audience/health', me: manager })
 
+    const machineOpens = screen.getByRole('combobox', { name: /Count machine opens/ })
+    expect(machineOpens).toHaveAccessibleDescription('Human opens, clicks and received replies only')
+    fireEvent.change(machineOpens, { target: { value: 'yes' } })
+    expect(screen.queryByText('Human opens, clicks and received replies only')).not.toBeInTheDocument()
+    fireEvent.change(machineOpens, { target: { value: 'no' } })
+
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Months in Sunset' }), { target: { value: '18' } })
     fireEvent.click(screen.getByRole('checkbox', { name: /Erase the contact after/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Save policy' }))

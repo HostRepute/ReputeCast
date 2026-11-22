@@ -74,6 +74,7 @@ func (s *Service) ExportContact(ctx context.Context, ws *store.Workspace, id uui
 		ew.field("contact", prof)
 		ew.field("customFields", json.RawMessage(nonEmptyJSON(c.Attributes)))
 		ew.field("consentEvidence", json.RawMessage(nonEmptyJSON(c.ConsentEvidence)))
+		ew.field("lastHumanReplyAt", c.LastHumanReplyAt)
 		if prof.Suppression != nil {
 			ew.field("suppression", prof.Suppression)
 		}

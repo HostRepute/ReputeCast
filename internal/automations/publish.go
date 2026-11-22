@@ -394,6 +394,16 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	if other != "" {
 		out = append(out, AutomationPublishCheck{Status: "bad", Label: other})
 	}
+	for _, issue := range st.issues {
+		if issue.Severity == "warning" {
+			out = append(out, AutomationPublishCheck{Status: "warn", Label: issue.Message})
+		}
+	}
+	if st.live != nil && st.a.DraftVersion != *st.a.LiveVersion {
+		for _, issue := range liveSunsetWarnings(l, *st.live, st.refs) {
+			out = append(out, AutomationPublishCheck{Status: "warn", Label: issue.Message})
+		}
+	}
 	// Phase 8: the channels' badges (an SMS step's quiet hours and senders).
 	out = append(out, channelPublishChecks(ctx, ws.ID, st.draft)...)
 	// Other domains' badges about the emails (countdowns, discount codes).
