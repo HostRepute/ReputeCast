@@ -56,9 +56,7 @@ func TestSunsetReengagement(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if _, err := svc.Dispatch(ctx); err != nil {
-				t.Fatal(err)
-			}
+			dispatchAll(t, svc, clk)
 			if n := countWhere(t, env, `SELECT count(*) FROM automation_runs WHERE automation_id = $1 AND contact_id = $2`, created.ID, who); n != 1 {
 				t.Fatalf("policy entered sunset; starter runs = %d, want 1", n)
 			}
@@ -136,9 +134,7 @@ func TestSunsetStarterRecognizesHumanEngagement(t *testing.T) {
 	if _, err := aud.RecomputeTiers(ctx, ws.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.Dispatch(ctx); err != nil {
-		t.Fatal(err)
-	}
+	dispatchAll(t, svc, clk)
 	if _, err := svc.Tick(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -220,9 +216,7 @@ func TestSunsetStarterRecognizesHumanEngagement(t *testing.T) {
 		if _, err := aud.RecomputeTiers(ctx, ws.ID); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := svc.Dispatch(ctx); err != nil {
-			t.Fatal(err)
-		}
+		dispatchAll(t, svc, clk)
 	}
 	if n := countWhere(t, env, `SELECT count(*) FROM automation_runs WHERE automation_id = $1 AND contact_id = $2`, created.ID, people["click"]); n != 2 {
 		t.Errorf("second sunset entry: runs=%d, want 2", n)
@@ -284,5 +278,25 @@ func TestLegacySunsetWarnsWithoutRewriting(t *testing.T) {
 	}
 	if after != before {
 		t.Error("saving a draft rewrote the published graph")
+	}
+}
+
+// dispatchAll dispatches every due event. The demo's 48,000 contacts enter
+// Sunset along with the test's, and one Dispatch (20 s) may not reach a
+// test contact's event on a busy runner under -race.
+func dispatchAll(t *testing.T, svc *automations.Service, clk *clock) {
+	t.Helper()
+	ctx := context.Background()
+	for {
+		var due int64
+		if err := svc.Pool.QueryRow(ctx, `SELECT count(*) FROM automation_events WHERE processed_at IS NULL AND (retry_at IS NULL OR retry_at <= $1)`, clk.now()).Scan(&due); err != nil {
+			t.Fatal(err)
+		}
+		if due == 0 {
+			return
+		}
+		if _, err := svc.Dispatch(ctx); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
