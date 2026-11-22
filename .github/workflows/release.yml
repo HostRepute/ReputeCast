@@ -68,30 +68,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # The client SDKs, stamped with the tag's version (v1.7.0 → 1.7.0;
-  # sdk/scripts/set-version.mjs) once the release is out. npm and PyPI need
-  # accounts the owner holds: until they're set up, each job says what's
-  # missing and the release still succeeds.
+  # sdk/scripts/set-version.mjs) once the release is out.
+  #
+  # npm trusts this workflow (release.yml) as @reputecast/client's trusted
+  # publisher, so pnpm publishes with the job's OIDC token and needs no
+  # secret. The NPM_TOKEN secret, which published 1.8.1, is only a fallback
+  # while it exists.
   sdk-npm:
     name: TypeScript SDK · npm
     needs: goreleaser
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # npm provenance
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      id-token: write # npm trusted publishing and provenance
     steps:
-      - name: Publishing is off
-        if: env.NPM_TOKEN == ''
-        run: echo "::notice title=@reputecast/client was not published::Add the NPM_TOKEN secret (a granular token of the @reputecast npm organization that may publish) to publish it."
-      - if: env.NPM_TOKEN != ''
-        uses: actions/checkout@v7
-      - if: env.NPM_TOKEN != ''
-        uses: pnpm/action-setup@v6
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           package_json_file: sdk/package.json
-      - if: env.NPM_TOKEN != ''
-        uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
@@ -100,7 +95,6 @@ jobs:
       # A pre-release (v1.7.0-rc.1) goes out under the next tag, so latest
       # stays the newest release.
       - name: Build and publish @reputecast/client
-        if: env.NPM_TOKEN != ''
         working-directory: sdk
         run: |
           node scripts/set-version.mjs "$GITHUB_REF_NAME"

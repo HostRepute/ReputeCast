@@ -1,0 +1,52 @@
+name: n8n nodes · publish
+
+# A tag n8n-nodes-reputecast/v1.1.0 publishes integrations/n8n to npm with
+# provenance: n8n verifies only community nodes published from GitHub
+# Actions with provenance (since 1 May 2026). The tag's version must be
+# package.json's.
+#
+# npm trusts this workflow (n8n-publish.yml) as the package's trusted
+# publisher, so the publish needs no token. Trusted publishing can only be
+# set up for a package that exists, so the first publish used the NPM_TOKEN
+# secret; once that secret is deleted npm uses only the workflow's OIDC token.
+on:
+  push:
+    tags: ["n8n-nodes-reputecast/v*"]
+
+permissions:
+  contents: read
+  id-token: write # npm trusted publishing and provenance
+
+jobs:
+  publish:
+    name: n8n-nodes-reputecast · npm
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/n8n
+    steps:
+      - uses: actions/checkout@v7
+      # Node 24's npm (11.19) does trusted publishing. No cache in a release
+      # build.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: The tag matches package.json
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          if [ "${GITHUB_REF_NAME#n8n-nodes-reputecast/v}" != "$version" ]; then
+            echo "::error title=Wrong version::$GITHUB_REF_NAME doesn't match package.json's version $version."
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      # In GitHub Actions, n8n-node release runs the strict lint and the
+      # build, then npm publish with provenance (a plain npm publish is
+      # refused by the package's prepublishOnly).
+      - name: Publish
+        run: npm run release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
