@@ -71,9 +71,8 @@ jobs:
   # sdk/scripts/set-version.mjs) once the release is out.
   #
   # npm trusts this workflow (release.yml) as @reputecast/client's trusted
-  # publisher, so pnpm publishes with the job's OIDC token and needs no
-  # secret. The NPM_TOKEN secret, which published 1.8.1, is only a fallback
-  # while it exists.
+  # publisher, so pnpm publishes with the job's OIDC token and no secret.
+  # The package disallows tokens.
   sdk-npm:
     name: TypeScript SDK · npm
     needs: goreleaser
@@ -89,7 +88,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
           cache: pnpm
           cache-dependency-path: sdk/pnpm-lock.yaml
       # A pre-release (v1.7.0-rc.1) goes out under the next tag, so latest
@@ -103,8 +101,6 @@ jobs:
           tag=latest
           case "$GITHUB_REF_NAME" in *-*) tag=next ;; esac
           pnpm --filter @reputecast/client publish --provenance --access public --no-git-checks --tag "$tag"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   sdk-python:
     name: Python SDK · build
