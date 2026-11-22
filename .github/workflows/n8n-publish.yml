@@ -45,8 +45,10 @@ jobs:
       - run: npm test
       # In GitHub Actions, n8n-node release runs the strict lint and the
       # build, then npm publish with provenance (a plain npm publish is
-      # refused by the package's prepublishOnly).
+      # refused by the package's prepublishOnly). npm generates provenance
+      # for a package's first version only when access is set to public.
       - name: Publish
         run: npm run release
         env:
+          NPM_CONFIG_ACCESS: public
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
