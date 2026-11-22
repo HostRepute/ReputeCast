@@ -6,9 +6,8 @@ name: n8n nodes · publish
 # package.json's.
 #
 # npm trusts this workflow (n8n-publish.yml) as the package's trusted
-# publisher, so the publish needs no token. Trusted publishing can only be
-# set up for a package that exists, so the first publish used the NPM_TOKEN
-# secret; once that secret is deleted npm uses only the workflow's OIDC token.
+# publisher, so npm publishes with the job's OIDC token and no secret. The
+# package disallows tokens.
 on:
   push:
     tags: ["n8n-nodes-reputecast/v*"]
@@ -31,7 +30,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - name: The tag matches package.json
         run: |
@@ -51,4 +49,3 @@ jobs:
         run: npm run release
         env:
           NPM_CONFIG_ACCESS: public
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
