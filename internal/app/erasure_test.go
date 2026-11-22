@@ -87,11 +87,18 @@ func TestEraseLeavesNothingPersonal(t *testing.T) {
 		people[id] = w
 		ids = append(ids, id.String())
 	}
+	if _, err := pool.Exec(ctx, `UPDATE contacts SET last_human_reply_at = now() WHERE id = ANY ($1::uuid[])`, ids); err != nil {
+		t.Fatal(err)
+	}
 
 	var res struct{ Matched, Done int64 }
 	c.Do("POST", erasePath, map[string]any{"ids": ids, "confirm": len(ids)}).MustStatus(t, 200).JSON(t, &res)
 	if res.Done != int64(len(ids)) {
 		t.Fatalf("erased %d of %d", res.Done, len(ids))
+	}
+	var repliesLeft int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM contacts WHERE id = ANY ($1::uuid[]) AND last_human_reply_at IS NOT NULL`, ids).Scan(&repliesLeft); err != nil || repliesLeft != 0 {
+		t.Fatalf("reply timestamps left after erasure: %d (%v)", repliesLeft, err)
 	}
 
 	uids := make([]uuid.UUID, 0, len(picked))
@@ -365,6 +372,10 @@ func TestContactExportIsComplete(t *testing.T) {
 		WHERE w.slug = 'acme-newsletter' AND c.erased_at IS NULL ORDER BY c.id LIMIT 1`).Scan(&ws, &contact, &email); err != nil {
 		t.Fatal(err)
 	}
+	replied := time.Now().UTC().Truncate(time.Second)
+	if _, err := pool.Exec(ctx, `UPDATE contacts SET last_human_reply_at = $2 WHERE id = $1`, contact, replied); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := pool.Exec(ctx, `INSERT INTO messages (id, workspace_id, contact_id, stream, email, status, queued_at)
 		SELECT gen_random_uuid(), $1, $2, 'broadcast', $3, 'delivered', now() - make_interval(mins => g) FROM generate_series(1, 10050) g`, ws, contact, email); err != nil {
 		t.Fatal(err)
@@ -378,14 +389,18 @@ func TestContactExportIsComplete(t *testing.T) {
 		t.Fatalf("Content-Disposition = %q", r.Header.Get("Content-Disposition"))
 	}
 	var doc struct {
-		Contact  map[string]any   `json:"contact"`
-		Messages []map[string]any `json:"messages"`
-		Events   []map[string]any `json:"events"`
-		Sections map[string]any   `json:"sections"`
-		Cut      []map[string]any `json:"cut"`
-		Complete bool             `json:"complete"`
+		Contact          map[string]any   `json:"contact"`
+		Messages         []map[string]any `json:"messages"`
+		Events           []map[string]any `json:"events"`
+		Sections         map[string]any   `json:"sections"`
+		Cut              []map[string]any `json:"cut"`
+		Complete         bool             `json:"complete"`
+		LastHumanReplyAt *time.Time       `json:"lastHumanReplyAt"`
 	}
 	r.JSON(t, &doc)
+	if doc.LastHumanReplyAt == nil || !doc.LastHumanReplyAt.Equal(replied) {
+		t.Errorf("export omitted the last human reply: %v", doc.LastHumanReplyAt)
+	}
 	if len(doc.Messages) != want || want <= 10000 {
 		t.Fatalf("exported %d of %d messages", len(doc.Messages), want)
 	}

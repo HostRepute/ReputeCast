@@ -28,7 +28,7 @@ export const m = defineMessages('audience.health', {
     'Each column is one week; heights are shares of the list. Direct values for this week: Active {active}, Cooling {cooling}, At risk {atRisk}, Sunset {sunset}.',
 
   // ── Sunset policy ────────────────────────────────────────────────────
-  daysWithoutOpen: '{n} days without an open',
+  daysWithoutOpen: '{n} days without engagement',
   days: '{n} days',
   thresholdsNumbers: 'Enter the tier thresholds as numbers of days.',
   policySaved: 'Saved the sunset policy',
@@ -41,11 +41,11 @@ export const m = defineMessages('audience.health', {
   atRiskFrom: 'At risk from',
   sunsetFrom: 'Sunset from',
   countMachine: 'Count machine opens?',
-  humanOnly: 'No, human opens and clicks only',
+  humanOnly: 'Human opens, clicks and received replies only',
   reengage: 'Send one re-engagement email when a contact enters Sunset',
   reengageAutomation: '· automation "{name}"',
   reengageDefault: 'Re-engagement',
-  stopBroadcasts: "Stop sending Broadcasts <n></n> days after that if there's still no open",
+  stopBroadcasts: "Stop sending Broadcasts <n></n> days after that if there's still no engagement",
   stopDays: 'Days after entering Sunset',
   stopNote: '· Automations and System mail continue',
   deleteAfter: 'Erase the contact after <n></n> months in Sunset',

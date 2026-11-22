@@ -29,7 +29,7 @@ export default translate(m, {
     'Mỗi cột là một tuần; chiều cao là tỷ lệ trong danh sách. Giá trị của tuần này: Tích cực {active}, Nguội dần {cooling}, Có nguy cơ {atRisk}, Ngừng gửi dần {sunset}.',
 
   // ── Sunset policy ────────────────────────────────────────────────────
-  daysWithoutOpen: '{n} ngày không mở thư',
+  daysWithoutOpen: '{n} ngày không tương tác',
   days: '{n} ngày',
   thresholdsNumbers: 'Hãy nhập ngưỡng của các nhóm tương tác bằng số ngày.',
   policySaved: 'Đã lưu chính sách ngừng gửi dần',
@@ -42,11 +42,11 @@ export default translate(m, {
   atRiskFrom: 'Có nguy cơ từ',
   sunsetFrom: 'Ngừng gửi dần từ',
   countMachine: 'Tính lượt mở tự động?',
-  humanOnly: 'Không, chỉ người đọc mở và nhấp',
+  humanOnly: 'Chỉ lượt mở, nhấp và thư trả lời nhận được từ người thật',
   reengage: 'Gửi một email kéo tương tác lại khi liên hệ vào nhóm Ngừng gửi dần',
   reengageAutomation: '· tự động hóa "{name}"',
   reengageDefault: 'Kéo tương tác lại',
-  stopBroadcasts: 'Ngừng gửi hàng loạt <n></n> ngày sau đó nếu vẫn không mở thư',
+  stopBroadcasts: 'Ngừng gửi hàng loạt <n></n> ngày sau đó nếu vẫn không tương tác',
   stopDays: 'Số ngày sau khi vào nhóm Ngừng gửi dần',
   stopNote: '· Tự động hóa và thư Hệ thống vẫn tiếp tục',
   deleteAfter: 'Xóa vĩnh viễn liên hệ sau <n></n> tháng ở nhóm Ngừng gửi dần',

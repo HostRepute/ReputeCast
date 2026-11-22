@@ -185,7 +185,7 @@ function Trend({ h }: { h: Health }) {
   )
 }
 
-/** "30 days without an open" ↔ 30. */
+/** "30 days without engagement" ↔ 30. */
 function daysText(n: number, withoutOpen: boolean) {
   return t(withoutOpen ? m.daysWithoutOpen : m.days, { n: String(n) })
 }
@@ -294,7 +294,7 @@ export function PolicyCard({ h }: { h: Health }) {
       >
         {err ? <Note tone="bad">{err}</Note> : null}
         <div className="grid grid-cols-2 gap-2.5 max-md:grid-cols-1">
-          <label className="lbl">
+          <label className="lbl col-span-full">
             {tr(m.activeUntil)}
             <input className="in" value={active} onChange={(e) => setActive(e.target.value)} onBlur={() => setActive(daysText(parseDays(active) || p.activeDays, true))} />
           </label>
@@ -306,13 +306,13 @@ export function PolicyCard({ h }: { h: Health }) {
             {tr(m.sunsetFrom)}
             <input className="in" value={sunset} onChange={(e) => setSunset(e.target.value)} onBlur={() => setSunset(daysText(parseDays(sunset) || p.sunsetDays, false))} />
           </label>
-          {/* hp-machine: a longer language gives this select the whole row (styles/expansion.css). */}
-          <label className="lbl hp-machine">
+          <label className="lbl col-span-full">
             {tr(m.countMachine)}
-            <select className="in" value={machine ? 'yes' : 'no'} onChange={(e) => setMachine(e.target.value === 'yes')}>
-              <option value="no">{tr(m.humanOnly)}</option>
+            <select className="in" aria-describedby={!machine ? 'policy-human-only' : undefined} value={machine ? 'yes' : 'no'} onChange={(e) => setMachine(e.target.value === 'yes')}>
+              <option value="no">{tr(common.no)}</option>
               <option value="yes">{tr(common.yes)}</option>
             </select>
+            {!machine ? <span id="policy-human-only" className="k">{tr(m.humanOnly)}</span> : null}
           </label>
         </div>
         <label className="flex items-start gap-2.5 text-[13px]">

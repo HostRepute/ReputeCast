@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/store"
+	emailtemplates "github.com/hostrepute/reputecast/internal/templates"
 )
 
 // Limits keep graphs small enough to edit and diff instantly.
@@ -118,6 +119,16 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 			emailIDs := map[string]uuid.UUID{}
 			for _, def := range tpl.emails {
 				e := tpl.email(l, def)
+				if tpl.key == "re-engagement" {
+					// A real, trackable destination, not an unset Liquid token.
+					e.ctaURL = s.URLs.Archive(ws.Slug)
+					// Like campaign starters, snapshot the editable footer.
+					// These aren't recipient variables in the sending engine.
+					e.workspaceName, e.footerAddress = ws.Name, emailtemplates.WorkspaceAddress(ws)
+					if e.footerAddress == "" {
+						e.footerAddress = emailtemplates.DefaultAddressIn(l)
+					}
+				}
 				eid := uuid.Must(uuid.NewV7())
 				emailIDs["tpl:"+e.key] = eid
 				c := starterEmail(l, e)
@@ -242,6 +253,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.U
 				return err
 			}
 			out.Changes = Changes(Diff(s.graphOf(lv.Graph), g, DiffContext{FromRefs: refs, ToVersion: int(version)}))
+			out.Issues = append(out.Issues, liveSunsetWarnings(l, s.graphOf(lv.Graph), refs)...)
 		}
 		edits := Diff(before, g, DiffContext{FromRefs: refs, ToVersion: int(version)})
 		if Changes(edits) == 0 {

@@ -401,6 +401,46 @@ func TestStopOnReply(t *testing.T) {
 	}
 }
 
+// A human reply is engagement even when pixels and click tracking are
+// unavailable. It restores broadcast eligibility, never list consent.
+func TestReplyReengagesSunset(t *testing.T) {
+	f := setup(t)
+	o := f.ourMessage("October Product Update", 0)
+	f.exec(`UPDATE contacts SET last_open_at = NULL, last_human_open_at = NULL, last_click_at = NULL,
+		created_at = now() - interval '250 days', tier = 'sunset', sunset_at = now() - interval '40 days',
+		broadcasts_stopped_at = now() - interval '10 days', tags = array_append(tags, 'sunset') WHERE id = $1`, o.contact)
+	f.exec(`UPDATE list_memberships SET status = 'unsubscribed' WHERE contact_id = $1`, o.contact)
+	to := f.address(inbound.LetterReply, o.id)
+	for _, x := range []struct{ name, headers string }{
+		{"auto", "Auto-Submitted: auto-replied\r\n"},
+		{"spam", "X-Spam-Flag: YES\r\n"},
+		{"human", ""},
+	} {
+		if st := f.post(message("<"+o.email+">", to, "Re: Keep sending", x.name+"@sunset.example", x.headers, "Please keep sending."), true); st != http.StatusOK {
+			t.Fatalf("%s hook: %d", x.name, st)
+		}
+		f.process()
+		if _, err := f.env.App.Audience().RecomputeTiers(f.ctx, f.ws.ID); err != nil {
+			t.Fatal(err)
+		}
+		var tier string
+		var stopped *time.Time
+		if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT tier, broadcasts_stopped_at FROM contacts WHERE id = $1`, o.contact).Scan(&tier, &stopped); err != nil {
+			t.Fatal(err)
+		}
+		if x.name == "human" {
+			if tier != "active" || stopped != nil {
+				t.Errorf("human reply: tier=%s broadcasts stopped=%v; want active and eligible", tier, stopped)
+			}
+		} else if tier != "sunset" || stopped == nil {
+			t.Errorf("%s should not re-engage: tier=%s stopped=%v", x.name, tier, stopped)
+		}
+		if n := f.count(`SELECT count(*) FROM list_memberships WHERE contact_id = $1 AND status <> 'unsubscribed'`, o.contact); n != 0 {
+			t.Error("a reply restored withdrawn consent")
+		}
+	}
+}
+
 // M58 G-19: a DMARC aggregate report sent to dmarc@ is stored with via
 // 'inbound'; an ARF report at fbl@ becomes one complaint event for the
 // original message.

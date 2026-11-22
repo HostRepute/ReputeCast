@@ -814,7 +814,38 @@ func validate(l i18n.Lang, g AutomationGraph, refs *Refs) []AutomationGraphIssue
 			add(n.ID, "", p.code, "error", p.text)
 		}
 	}
+	// Old starters (and copies) stay unchanged. Flag the broken trigger
+	// and destructive action together, so fixing only the tag is not
+	// mistaken for a safe repair.
+	if t := g.Trigger(); t != nil {
+		sunset := false
+		for _, tr := range t.Data.Trigger.Triggers() {
+			if tr.Kind == TriggerTagAdded && (tr.Tag == "sunset" || tr.Tag == "sunset-entered") {
+				sunset = true
+				if tr.Tag == "sunset-entered" {
+					add(t.ID, "", "sunset_trigger", "warning", txt(msg("problem.sunsetTrigger")))
+				}
+			}
+		}
+		if sunset {
+			for _, n := range g.Nodes {
+				if n.Type == NodeList && n.Data.Action != nil && n.Data.Action.Kind == "unsubscribe_all" {
+					add(n.ID, "", "sunset_unsubscribe", "warning", txt(msg("problem.sunsetUnsubscribe")))
+				}
+			}
+		}
+	}
 	return issues
+}
+
+// A repaired draft does not repair the version still receiving contacts.
+func liveSunsetWarnings(l i18n.Lang, live AutomationGraph, refs *Refs) []AutomationGraphIssue {
+	for _, issue := range validate(l, live, refs) {
+		if issue.Code == "sunset_trigger" || issue.Code == "sunset_unsubscribe" {
+			return []AutomationGraphIssue{{Code: "sunset_live", Severity: "warning", Message: say(l, txt(msg("problem.sunsetLive")))}}
+		}
+	}
+	return nil
 }
 
 // configProblem is a problem with a step's settings.

@@ -548,7 +548,7 @@ INSERT INTO contacts (id, workspace_id, email, first_name, last_name, company, c
                       mailbox_provider, mailbox_detail, consent, source, tags, attributes, role_address, last_activity_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, $14, $15, $16, now())
-RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at
+RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at, last_human_reply_at
 `
 
 type CreateContactParams struct {
@@ -634,6 +634,7 @@ func (q *Queries) CreateContact(ctx context.Context, arg CreateContactParams) (C
 		&i.PhoneLineSource,
 		&i.PhoneSetAt,
 		&i.MailboxCheckedAt,
+		&i.LastHumanReplyAt,
 	)
 	return i, err
 }
@@ -995,7 +996,7 @@ func (q *Queries) GetAudienceState(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const getContact = `-- name: GetContact :one
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at, last_human_reply_at FROM contacts WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
 `
 
 type GetContactParams struct {
@@ -1050,12 +1051,13 @@ func (q *Queries) GetContact(ctx context.Context, arg GetContactParams) (Contact
 		&i.PhoneLineSource,
 		&i.PhoneSetAt,
 		&i.MailboxCheckedAt,
+		&i.LastHumanReplyAt,
 	)
 	return i, err
 }
 
 const getContactByEmail = `-- name: GetContactByEmail :one
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at FROM contacts WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at, last_human_reply_at FROM contacts WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
 `
 
 type GetContactByEmailParams struct {
@@ -1110,6 +1112,7 @@ func (q *Queries) GetContactByEmail(ctx context.Context, arg GetContactByEmailPa
 		&i.PhoneLineSource,
 		&i.PhoneSetAt,
 		&i.MailboxCheckedAt,
+		&i.LastHumanReplyAt,
 	)
 	return i, err
 }
@@ -2488,7 +2491,7 @@ UPDATE contacts
 SET first_name = $1, last_name = $2, company = $3, country = $4, timezone = $5,
     language = $6, tags = $7, attributes = $8, updated_at = now()
 WHERE workspace_id = $9 AND id = $10 AND erased_at IS NULL
-RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at
+RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at, last_human_reply_at
 `
 
 type UpdateContactFieldsParams struct {
@@ -2562,6 +2565,7 @@ func (q *Queries) UpdateContactFields(ctx context.Context, arg UpdateContactFiel
 		&i.PhoneLineSource,
 		&i.PhoneSetAt,
 		&i.MailboxCheckedAt,
+		&i.LastHumanReplyAt,
 	)
 	return i, err
 }

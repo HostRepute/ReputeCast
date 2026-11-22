@@ -19,7 +19,7 @@ import (
 )
 
 // SunsetPolicy decides the engagement tiers and what happens to contacts
-// who stop opening (List health › Sunset policy).
+// who stop engaging (List health › Sunset policy).
 type SunsetPolicy struct {
 	Enabled bool `json:"enabled"`
 	// EnabledAt is the day the policy was switched on (2026-09-01).
@@ -37,7 +37,7 @@ type SunsetPolicy struct {
 	Reengage           bool   `json:"reengage"`
 	ReengageAutomation string `json:"reengageAutomation,omitempty" doc:"Name of the automation that sends it"`
 	// StopBroadcasts stops Broadcasts StopAfterDays after entering Sunset if
-	// there's still no open. Automations and System mail continue.
+	// there's still no engagement. Automations and System mail continue.
 	StopBroadcasts bool `json:"stopBroadcasts"`
 	StopAfterDays  int  `json:"stopAfterDays" minimum:"1" maximum:"365"`
 	// DeleteAfter erases contacts after DeleteAfterMonths in Sunset.
@@ -221,7 +221,7 @@ func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p SunsetP
 }
 
 // engagementExpr is the date a contact last engaged under policy p: the
-// latest human open (or any open when machine opens count) or click, or
+// latest human open (or any open when machine opens count), click or reply, or
 // the day they joined when they never engaged. Imported engagement history
 // counts, so a contact imported today who last opened in June is At risk.
 func engagementExpr(p SunsetPolicy) string {
@@ -229,7 +229,7 @@ func engagementExpr(p SunsetPolicy) string {
 	if p.CountMachineOpens {
 		open = "c.last_open_at"
 	}
-	return "coalesce(greatest(" + open + ", c.last_click_at), c.created_at)"
+	return "coalesce(greatest(" + open + ", c.last_click_at, c.last_human_reply_at), c.created_at)"
 }
 
 // tierExpr assigns the tier from the days since engagement.
@@ -241,8 +241,8 @@ func tierExpr(p SunsetPolicy, now string) string {
 		ELSE 'sunset' END`, e, now, p.ActiveDays+1, p.AtRiskDays, p.SunsetDays)
 }
 
-// TierFor assigns a tier in Go, the same way the nightly SQL does, for
-// contacts created between runs (imports).
+// TierFor assigns a tier to newly imported contacts, which have no
+// received replies yet. Existing contacts use engagementExpr's reply history.
 func TierFor(p SunsetPolicy, lastHumanOpen, lastOpen, lastClick *time.Time, created, now time.Time) string {
 	open := lastHumanOpen
 	if p.CountMachineOpens {

@@ -407,12 +407,19 @@ type authView struct {
 	DMARC string `json:"dmarc,omitempty"`
 }
 
-// applyReply stops the flows a person's reply stops and tells developers.
+// applyReply records human engagement, stops the flows a person's reply
+// stops and tells developers. Engagement does not grant consent.
 func (s *Service) applyReply(ctx context.Context, tx pgx.Tx, ws *store.Workspace, st stored, p Parsed, at time.Time) error {
 	if st.spam {
 		return nil
 	}
 	human := !st.autoReply
+	if human && st.contactID != nil {
+		if _, err := tx.Exec(ctx, `UPDATE contacts SET last_human_reply_at = greatest(last_human_reply_at, $3)
+			WHERE id = $1 AND workspace_id = $2 AND erased_at IS NULL`, *st.contactID, ws.ID, at); err != nil {
+			return err
+		}
+	}
 	if human && st.automationID != nil && st.contactID != nil && s.EndRunsOnReply != nil {
 		if _, err := s.EndRunsOnReply(ctx, tx, ws.ID, *st.automationID, *st.contactID, at); err != nil {
 			return err

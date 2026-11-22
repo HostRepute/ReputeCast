@@ -22,7 +22,7 @@ import { Badge, Dot } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Banner } from '@/components/ui/Note'
+import { Banner, Note } from '@/components/ui/Note'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { AutomationFromBriefDialog, supportsAutomationBrief } from '@/features/ai/AutomationFromBrief'
@@ -648,6 +648,10 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
           </Banner>
         </div>
       ) : null}
+
+      {meta.issues.filter((issue) => issue.severity === 'warning').map((issue, i) => (
+        <Note key={i} tone="warn" className="mx-4 mt-2">{issue.message}</Note>
+      ))}
 
       <div className="fe-body">
         <aside className="fe-panel fe-left" aria-label={t(mf.stepsPanel)}>

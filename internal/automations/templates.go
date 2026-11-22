@@ -27,6 +27,8 @@ type AutomationStarterTemplate struct {
 type templateEmail struct {
 	key, name, subject, preheader, heading, cta string
 	body                                        []string
+	ctaURL                                      string
+	workspaceName, footerAddress                string
 }
 
 // starterEmail is a starter's email: its messages are
@@ -119,19 +121,21 @@ var templates = []templateDef{
 		},
 	},
 	{
-		key: "re-engagement", msg: "reengagement", steps: 5, preview: []string{NodeTrigger, NodeEmail, NodeBranch, NodeExit},
+		key: "re-engagement", msg: "reengagement", steps: 7, preview: []string{NodeTrigger, NodeEmail, NodeGoal, NodeBranch, NodeExit},
 		emails: []starterEmailDef{{"r1", 2}},
 		build: func(_ string, say func(string) string) AutomationGraph {
 			return AutomationGraph{
 				Nodes: []AutomationNode{
-					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerTagAdded, Tag: "sunset-entered", Reentry: "once"}}),
+					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerTagAdded, Tag: "sunset", Reentry: "always"}}),
 					emailNode("n2", "r1", say("r1.subject")),
+					fork("clicked", NodeGoal, AutomationNodeData{Condition: &AutomationCondition{Kind: "clicked", HumanOnly: true}}),
+					fork("replied", NodeGoal, AutomationNodeData{Condition: &AutomationCondition{Kind: CondReplied}}),
 					fork("n3", NodeBranch, AutomationNodeData{Condition: &AutomationCondition{Kind: "opened", Step: "n2", Within: &AutomationDuration{Amount: 14, Unit: "days"}, HumanOnly: true}}),
 					fork("n4", NodeExit, AutomationNodeData{Label: say("exit")}),
-					fork("n5", NodeList, AutomationNodeData{Label: say("stop"), Action: &AutomationListAction{Kind: "unsubscribe_all"}}),
+					fork("n5", NodeExit, AutomationNodeData{Label: say("stop")}),
 				},
 				Edges: []AutomationEdge{
-					link("n1", "n2", ""), link("n2", "n3", ""),
+					link("n1", "n2", ""), link("n2", "clicked", ""), link("clicked", "replied", ""), link("replied", "n3", ""),
 					link("n3", "n4", PathYes), link("n3", "n5", PathNo),
 				},
 			}
@@ -229,15 +233,25 @@ func starterEmail(l i18n.Lang, e templateEmail) EmailContent {
 		tx.WriteString(p + "\n\n")
 	}
 	if e.cta != "" {
-		mj.WriteString(`<mj-button href="{{ cta_url }}" background-color="#0F766E" border-radius="8px">` + html.EscapeString(e.cta) + `</mj-button>`)
-		hb.WriteString(`<p style="margin:20px 0"><a href="{{ cta_url }}" style="display:inline-block;padding:12px 18px;background:#0F766E;color:#FFFFFF;border-radius:8px;text-decoration:none;font-weight:600">` + html.EscapeString(e.cta) + `</a></p>`)
-		tx.WriteString(e.cta + ": {{ cta_url }}\n\n")
+		url := e.ctaURL
+		if url == "" {
+			url = "{{ cta_url }}"
+		}
+		mj.WriteString(`<mj-button href="` + html.EscapeString(url) + `" background-color="#0F766E" border-radius="8px">` + html.EscapeString(e.cta) + `</mj-button>`)
+		hb.WriteString(`<p style="margin:20px 0"><a href="` + html.EscapeString(url) + `" style="display:inline-block;padding:12px 18px;background:#0F766E;color:#FFFFFF;border-radius:8px;text-decoration:none;font-weight:600">` + html.EscapeString(e.cta) + `</a></p>`)
+		tx.WriteString(e.cta + ": " + url + "\n\n")
 	}
-	footer := mEmailFooter.HTML(l, i18n.Args{"workspace": i18n.HTML("{{ workspace_name }}"), "address": i18n.HTML("{{ footer_address }}")},
+	workspace, address := "{{ workspace_name }}", "{{ footer_address }}"
+	textAddress := address
+	if e.workspaceName != "" {
+		workspace, address = html.EscapeString(e.workspaceName), html.EscapeString(e.footerAddress)
+		textAddress = e.footerAddress
+	}
+	footer := mEmailFooter.HTML(l, i18n.Args{"workspace": i18n.HTML(workspace), "address": i18n.HTML(address)},
 		i18n.Tags{"link": func(inner string) string { return `<a href="{{ unsubscribe_url }}">` + inner + `</a>` }})
 	mj.WriteString(`<mj-text font-size="12px" color="#5B6472">` + footer + `</mj-text></mj-column></mj-section></mj-body></mjml>`)
 	hb.WriteString(`<p style="margin:24px 0 0;font-size:12px;color:#5B6472">` + footer + `</p></td></tr></table></td></tr></table></body></html>`)
-	tx.WriteString(mEmailFooterText.Text(l, i18n.Args{"url": "{{ unsubscribe_url }}"}) + "\n{{ footer_address }}\n")
+	tx.WriteString(mEmailFooterText.Text(l, i18n.Args{"url": "{{ unsubscribe_url }}"}) + "\n" + textAddress + "\n")
 	return EmailContent{Subject: e.subject, Preheader: e.preheader, MJML: mj.String(), HTML: hb.String(), Text: tx.String()}
 }
 

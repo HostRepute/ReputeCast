@@ -20,6 +20,9 @@ describe('step titles (as on the AutomationFlow board)', () => {
     expect(nodeDetail(nodeById(g, 'n1')!)).toBe('double opt-in confirmed only')
     expect(nodeDetail(nodeById(g, 'n4')!)).toBe('human opens only')
   })
+  it('names the reply goal in the re-engagement starter', () => {
+    expect(nodeTitle(g, { id: 'reply', type: 'goal', position: { x: 0, y: 0 }, data: { condition: { kind: 'replied' } } }, welcomeRefs)).toBe('Replied to any email')
+  })
   it('labels the trigger for the list', () => {
     expect(triggerLabel(nodeById(g, 'n1')!.data.trigger, welcomeRefs)).toBe('Joined list · Weekly Digest')
   })
