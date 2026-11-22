@@ -122,18 +122,20 @@ REPUTECAST_URL=http://localhost:8080 REPUTECAST_KEY=rc_live_… npm test
 
 ## Publish
 
-Publishing happens on npm and in n8n's creator portal, outside this
-repository. Since 1 May 2026 n8n accepts only community nodes published from
-GitHub Actions with npm provenance.
+Since 1 May 2026 n8n accepts only community nodes published from GitHub
+Actions with npm provenance. A tag `n8n-nodes-reputecast/vX.Y.Z` publishes
+this package that way
+([`n8n-publish.yml`](../../.github/workflows/n8n-publish.yml)), through
+npm trusted publishing.
 
 1. Raise `version` in `package.json` and add it to `CHANGELOG.md`.
 2. `npm run lint` and `npm run build` must pass: verification runs the same
    linter.
-3. Publish with provenance from a GitHub Actions workflow (the n8n template's
-   `publish.yml`: `npm run release` with `id-token: write`, OIDC trusted
-   publishing or an `NPM_TOKEN` secret), from a tag of this repository, in
-   `integrations/n8n`.
-4. Submit the package for verification in the
+3. Once that's on `main`, tag it: `git tag -a n8n-nodes-reputecast/vX.Y.Z -m
+   "n8n-nodes-reputecast X.Y.Z"` and push the tag. The workflow refuses a tag
+   that doesn't match `package.json`, then runs the typecheck, tests, lint
+   and build and publishes.
+4. Submit a new package for verification in the
    [n8n creator portal](https://creators.n8n.io); once verified it shows in
    n8n Cloud's nodes panel.
 
