@@ -261,8 +261,9 @@ And some things mean something else again:
 Changes 1.8.0 made to the first account, such as its cap or a replaced key,
 are kept.
 
-### Sunset/re-engagement repair (after 1.8.0, not yet released)
+### From 1.8.0 to 1.8.1
 
+1.8.1 has one migration, for the Sunset and re-engagement repair.
 Migration `03670` adds the last human reply time to contacts and backfills
 it from retained replies, excluding spam, auto-replies and erased contacts.
 It does not change saved automation graphs, list consent or paid access.
