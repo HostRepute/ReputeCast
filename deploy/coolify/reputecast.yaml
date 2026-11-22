@@ -15,7 +15,7 @@
 
 services:
   reputecast:
-    image: ghcr.io/hostrepute/reputecast:${REPUTECAST_VERSION:-v1.8.1}
+    image: ghcr.io/hostrepute/reputecast:${REPUTECAST_VERSION:-v1.8.2}
     environment:
       - SERVICE_URL_REPUTECAST_8080
       - REPUTECAST_PUBLIC_URL=${SERVICE_URL_REPUTECAST}
