@@ -6,7 +6,7 @@
   "homepage": "https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md#client-sdks",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hostrepute/reputecast.git",
+    "url": "git+https://github.com/HostRepute/ReputeCast.git",
     "directory": "sdk/client-ts"
   },
   "keywords": [

@@ -6,7 +6,7 @@
   "homepage": "https://docs.reputecast.com/adapters/community/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hostrepute/reputecast.git",
+    "url": "git+https://github.com/HostRepute/ReputeCast.git",
     "directory": "sdk/adapter-sdk"
   },
   "type": "module",
