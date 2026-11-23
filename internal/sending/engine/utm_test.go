@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/clicktoken"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -96,13 +98,25 @@ func testUTMLinks(t *testing.T, s *sendtest.Suite) {
 		}
 	}
 
-	// ReputeCast's click redirect goes to the tagged address.
-	if _, _, err := on.E.Drive(on.Ctx, on.Campaign, on.Start, 3*time.Second); err != nil {
-		t.Fatal(err)
-	}
+	// ReputeCast's click redirect goes to the tagged address. Drive until the
+	// first message has gone out: the demo transport throttles about one
+	// call in a thousand, and the route then waits 5 s before trying again.
 	var msg, contact uuid.UUID
-	if err := on.Env.App.Pool.QueryRow(on.Ctx, `SELECT id, contact_id FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL ORDER BY id LIMIT 1`, on.Campaign).Scan(&msg, &contact); err != nil {
-		t.Fatal(err)
+	for at, end := on.Start, on.Start.Add(2*time.Minute); ; {
+		err := on.Env.App.Pool.QueryRow(on.Ctx, `SELECT id, contact_id FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL ORDER BY id LIMIT 1`, on.Campaign).Scan(&msg, &contact)
+		if err == nil {
+			break
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			t.Fatal(err)
+		}
+		if !at.Before(end) {
+			on.Dump()
+			t.Fatal("no message went out in the send's first 2 minutes")
+		}
+		if at, _, err = on.E.Drive(on.Ctx, on.Campaign, at, time.Second); err != nil {
+			t.Fatal(err)
+		}
 	}
 	click := on.Env.App.Links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: on.WS, MessageID: msg, ContactID: contact, Link: 0})
 	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }, Timeout: 10 * time.Second}
