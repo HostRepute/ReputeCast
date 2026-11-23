@@ -59,7 +59,11 @@ func TestHoldoutLeavesOutWhatReadinessCounts(t *testing.T) {
 		f.AddContacts(sendtest.ContactSpec{N: 10000, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
 		open(f)
 		held := f.Count(`SELECT count(*) FROM list_memberships WHERE list_id = $1 AND rc_holdout_bucket(contact_id, $2) < 500`, f.List, int64(seed))
-		if held < 440 || held > 560 {
+		// The contacts' ids are random, so the group's size is binomial:
+		// 500 on average with a standard deviation of 22. Six of them either
+		// way fails by chance about once in 240 million runs (440–560 failed
+		// once in 180), and still catches a wrong share: 3% or 7% fails.
+		if held < 370 || held > 630 {
 			t.Fatalf("%d of 10,000 in the 5%% holdout group", held)
 		}
 		a := facts(f)
