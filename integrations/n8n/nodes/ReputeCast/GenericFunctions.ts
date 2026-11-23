@@ -320,8 +320,10 @@ export function verifySignature(input: {
 	const ok = signature
 		.split(',')
 		.map((s) => s.trim())
+		// Only lowercase hex can match the sender's digest. Equal string
+		// lengths alone do not guarantee equal UTF-8 byte lengths.
 		.some(
-			(s) => s.length === expected.length && timingSafeEqual(Buffer.from(s), Buffer.from(expected)),
+			(s) => /^[a-f0-9]{64}$/.test(s) && timingSafeEqual(Buffer.from(s), Buffer.from(expected)),
 		);
 	return ok
 		? { ok: true }
