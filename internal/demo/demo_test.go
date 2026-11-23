@@ -79,3 +79,26 @@ func TestSeed(t *testing.T) {
 		t.Fatalf("want 63 demo campaigns, got %d", campaigns)
 	}
 }
+
+// Every sample Send Readiness run reaches a verdict, as its board does: a
+// check left Unknown turns Review & send into "Couldn't finish every
+// check" (Weekly Digest #143's personalized links once did).
+func TestSampleReadinessRunsLeaveNothingUnknown(t *testing.T) {
+	pool, _, _ := seededSample(t)
+	rows, err := pool.Query(context.Background(), `SELECT c.name, ch->>'key' FROM readiness_runs r JOIN campaigns c ON c.id = r.campaign_id,
+		jsonb_array_elements(r.checks->'checks') ch WHERE ch->>'status' = 'unknown' ORDER BY 1, 2`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name, key string
+		if err := rows.Scan(&name, &key); err != nil {
+			t.Fatal(err)
+		}
+		t.Errorf("%s: %s is Unknown", name, key)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+}
