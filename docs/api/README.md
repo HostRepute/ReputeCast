@@ -34,7 +34,7 @@ public OpenAPI document: every operation an API key may call
 its OpenAPI 3.0 copy `public-3.0.json`). Each client:
 
 - sends the key as a bearer token and its own User-Agent, so Settings ›
-  Integrations names it ("ReputeCast SDK for Python 1.7.0");
+  Integrations names it ("ReputeCast SDK for Python 1.8.2");
 - sends a request again after a 429, 502, 503 or 504, twice by default:
   GET, HEAD, PUT and DELETE requests, and POSTs with an `Idempotency-Key`
   (the server answers a repeat with the first result instead of acting
@@ -46,15 +46,23 @@ its OpenAPI 3.0 copy `public-3.0.json`). Each client:
 
 | Language | Install | Needs |
 |---|---|---|
-| TypeScript and JavaScript | `npm install @reputecast/client` | Node 20 or later (ESM); its one dependency is `openapi-fetch` |
-| Python | `pip install reputecast` | Python 3.11 or later; `httpx` and `attrs` |
-| Go | `go get github.com/hostrepute/reputecast/sdk/client-go` | Go 1.27.3 or later |
+| TypeScript and JavaScript | `npm install @reputecast/client@1.8.3` | Node 20 or later (ESM); its one dependency is `openapi-fetch` |
+| Python | `python -m pip install reputecast==1.8.3` | Python 3.11 or later; `httpx` and `attrs` |
+| Go | `go get github.com/hostrepute/reputecast/sdk/client-go@v1.8.3` | Go 1.27.3 or later |
 
-**Versions follow the server's.** Each release (v1.7.0) publishes
-`@reputecast/client` 1.7.0, `reputecast` 1.7.0 and the Go module version
-v1.7.0 (tag `sdk/client-go/v1.7.0`), generated from that release's API. Use
-the SDK of your server's version or an earlier one: a newer SDK knows
-operations an older server doesn't have.
+**Published packages:** each release since 1.8.1 is on
+[npm](https://www.npmjs.com/package/@reputecast/client),
+[PyPI](https://pypi.org/project/reputecast/) (wheel and source distribution)
+and the Go module proxy (tag `sdk/client-go/vX.Y.Z`); the latest is 1.8.3.
+No source checkout is needed. The 1.8.2 packages were installed in clean
+environments and checked against the released v1.8.2 binary on 23 November
+2026; 1.8.3 changes no API.
+
+**Versions follow the server's.** Pin a published version matching your
+server, or an older compatible SDK; don't assume every historical server
+tag has packages on every registry. A newer SDK can call operations an
+older server doesn't have. The client SDKs remain `AGPL-3.0-only`; the MIT
+license of the n8n integration does not apply to them.
 
 ### Create a client
 
