@@ -6,9 +6,20 @@ add contacts, tag them, record events and send transactional email. They are
 free, like everything in ReputeCast, and use only the public API
 ([`docs/integrations/hub.md`](../../docs/integrations/hub.md)).
 
-Version 1.1.0 · built and tested with n8n-workflow 2.43 (nodes API 1) ·
+Version 1.1.1 on npm · built with n8n-workflow 2.43 (nodes API 1) ·
 self-hosted n8n, and n8n Cloud once verified: the nodes have no dependencies
 and import only n8n-workflow and Node's crypto.
+
+**Upgrade from 1.1.0:** its trigger could start a workflow without a valid
+signature. It skipped verification when n8n did not retain the raw request
+body, as with multipart requests, or when the signing secret was missing.
+A malformed non-ASCII signature made it fail instead of refusing the
+delivery, which started the error workflow and, with Continue On Fail
+enabled, ran the next nodes with an empty item. 1.1.1 refuses all of these
+with 401 and starts nothing. Update the package in Settings › Community
+nodes; until then, deactivate ReputeCast Trigger workflows on 1.1.0.
+Action-only workflows are unaffected. npm publication and provenance do not
+mean n8n Cloud verification.
 
 ## Nodes
 
@@ -26,9 +37,13 @@ and import only n8n-workflow and Node's crypto.
 Activating the workflow creates a webhook in ReputeCast (shown read-only as
 "Managed by n8n" on Settings › Webhooks), deactivating it removes it, and n8n
 checks the webhook still exists whenever it starts or the workflow is turned
-on. Every delivery is checked against the webhook's signing secret; one that
-doesn't match, or is more than 5 minutes old, is refused with 401 and starts
-nothing.
+on. A delivery with a missing raw body or secret, an invalid signature, or a
+timestamp more than 5 minutes from the receiver's clock is refused with 401
+and starts nothing, including an error workflow. Signature candidates must be
+64 lowercase hexadecimal characters; malformed candidates are skipped so a
+valid signature in a comma-separated header still works. If the secret is
+missing, deactivate and reactivate the workflow to create a new managed
+webhook.
 
 **ReputeCast** does:
 

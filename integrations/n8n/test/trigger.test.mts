@@ -222,6 +222,12 @@ describe('deliveries', () => {
 			deliver(body, { key: 'whsec_other' }),
 			deliver(body, { ts: Math.floor(Date.now() / 1000) - 3600 }),
 			{ ...deliver(body), headers: {} },
+			...['é'.repeat(64), `${'é'.repeat(64)}, ${'g'.repeat(64)}`, 'g'.repeat(64)].map(
+				(signature) => {
+					const d = deliver(body);
+					return { ...d, headers: { ...d.headers, 'x-reputecast-signature': signature } };
+				},
+			),
 		]) {
 			const c = context({
 				server,
@@ -234,6 +240,42 @@ describe('deliveries', () => {
 			expect(out.noWebhookResponse).toBe(true);
 			expect(c.response.statusCode).toBe(401);
 			expect(c.warnings).toHaveLength(1);
+		}
+	});
+
+	it('accepts a valid signature even beside malformed candidates, in either order', async () => {
+		const server = mockServer([]);
+		const d = deliver(envelope('contact.updated', { email: 'rob@example.net' }));
+		const valid = d.headers['x-reputecast-signature'];
+		for (const signature of [`${'é'.repeat(64)}, ${valid}`, `${valid}, ${'é'.repeat(64)}`]) {
+			const c = context({
+				server,
+				...d,
+				headers: { ...d.headers, 'x-reputecast-signature': signature },
+				params: { event: 'contact.updated' },
+				staticData: { webhookId: hookId, webhookSecret: secret },
+			});
+			const out = await receive(c.ctx);
+			expect(out.workflowData?.[0][0].json.email).toBe('rob@example.net');
+			expect(c.warnings).toHaveLength(0);
+		}
+	});
+
+	it('refuses deliveries when the raw body or signing secret is missing', async () => {
+		const server = mockServer([]);
+		const d = deliver(envelope('contact.updated', { email: 'rob@example.net' }));
+		for (const missing of [{ rawBody: undefined }, { staticData: { webhookId: hookId } }]) {
+			const c = context({
+				server,
+				...d,
+				params: { event: 'contact.updated' },
+				staticData: { webhookId: hookId, webhookSecret: secret },
+				...missing,
+			});
+			const out = await receive(c.ctx);
+			expect(out.workflowData).toBeUndefined();
+			expect(out.noWebhookResponse).toBe(true);
+			expect(c.response.statusCode).toBe(401);
 		}
 	});
 

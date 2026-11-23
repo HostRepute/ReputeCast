@@ -216,27 +216,22 @@ export class ReputeCastTrigger implements INodeType {
 		const headers = this.getHeaderData();
 		const req = this.getRequestObject() as unknown as { rawBody?: Buffer };
 		const body = this.getBodyData();
-		if (data.webhookSecret) {
-			if (!req.rawBody) {
-				// n8n keeps the raw body of webhook requests; without it the
-				// signature can't be recomputed byte for byte.
-				this.logger.warn(
-					'ReputeCast Trigger: the raw body is missing, so the delivery’s signature wasn’t checked',
-				);
-			} else {
-				const check = verifySignature({
-					secret: data.webhookSecret,
-					body: req.rawBody,
-					signature: String(headers['x-reputecast-signature'] ?? ''),
-					timestamp: String(headers['x-reputecast-timestamp'] ?? ''),
-				});
-				if (!check.ok) {
-					this.logger.warn(`ReputeCast Trigger: ignored a delivery, ${check.why}`);
-					const res = this.getResponseObject();
-					res.status(401).json({ message: `Ignored: ${check.why}.` });
-					return { noWebhookResponse: true };
-				}
-			}
+		// Multipart parsing does not retain rawBody in n8n. Never run a
+		// workflow when the delivery cannot be authenticated byte for byte.
+		const check =
+			!data.webhookSecret || !req.rawBody
+				? { ok: false, why: 'the signing secret or raw body is missing' }
+				: verifySignature({
+						secret: data.webhookSecret,
+						body: req.rawBody,
+						signature: String(headers['x-reputecast-signature'] ?? ''),
+						timestamp: String(headers['x-reputecast-timestamp'] ?? ''),
+					});
+		if (!check.ok) {
+			this.logger.warn(`ReputeCast Trigger: ignored a delivery, ${check.why}`);
+			const res = this.getResponseObject();
+			res.status(401).json({ message: `Ignored: ${check.why}.` });
+			return { noWebhookResponse: true };
 		}
 		const event = this.getNodeParameter('event') as string;
 		if (body.type && body.type !== event) {
