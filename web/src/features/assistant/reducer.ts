@@ -126,7 +126,7 @@ function applyEvent(s: ThreadState, e: StreamEvent): ThreadState {
     case 'delta': {
       const { turnId, text } = e.data
       const same = s.live?.turnId === turnId ? s.live : undefined
-      // An empty piece is a withheld one (caught up on after a reconnection): what was shown goes too.
+      // An empty piece is a withheld one (caught up on after a reconnection, or live once the owner can't open what the answer used): what was shown goes too.
       if (!text || same?.withheld) return { ...s, live: same?.withheld ? same : { turnId, text: '', withheld: true }, stopped: s.stopped?.turnId === turnId ? undefined : s.stopped, lastId }
       return { ...s, live: { turnId, text: (same?.text ?? '') + text }, lastId }
     }

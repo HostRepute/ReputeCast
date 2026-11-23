@@ -68,3 +68,28 @@ func TestHistoryOfLegacyAnswers(t *testing.T) {
 		t.Fatalf("without the result's source: held %v, calls %v, readable %v", h.held, h.calls, h.readable)
 	}
 }
+
+// A summary made from an answer carries what the answer carried: the
+// title of an attached campaign it repeated.
+func TestSummaryCarriesItsAnswersSources(t *testing.T) {
+	campaign := toolSource{Kind: "campaign", ID: uuid.Must(uuid.NewV7()), Permission: authz.CampaignsView}
+	turn := uuid.Must(uuid.NewV7())
+	msg := func(seq int32, role string) store.AiAssistantMessage {
+		return store.AiAssistantMessage{ID: uuid.Must(uuid.NewV7()), Role: role, Sequence: seq, TurnID: &turn}
+	}
+	messages := []store.AiAssistantMessage{msg(1, "user"), msg(2, "assistant"), msg(3, "user"), msg(4, "assistant")}
+	contents := []messageContent{
+		{Text: "What did I attach?"},
+		{Text: "You attached Spring sale.", Sources: []toolSource{campaign}, SourcesKnown: true},
+		{Text: "Thanks"},
+		{Text: "You're welcome.", SourcesKnown: true},
+	}
+	r := &readable{owner: &authz.Principal{Type: authz.ActorUser}, known: map[toolSource]bool{campaign: true}}
+	h, err := r.history(context.Background(), messages, contents)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, used := summaryRequest("", messages, contents, []int{0, 1, 2, 3}, h); len(used) != 1 || used[0] != campaign {
+		t.Fatalf("the summary carries %v", used)
+	}
+}

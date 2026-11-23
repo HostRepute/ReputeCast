@@ -117,14 +117,19 @@ func (s *Service) request(ctx context.Context, q *store.Queries, ws *store.Works
 			calls = withheld[i]
 			used = merge(used, sourcesOf(contents[i], calls))
 		}
+		if m.Role == "assistant" && !h.held[i] {
+			// An earlier answer may carry what isn't attached now (a title).
+			used = merge(used, h.sources[i])
+		}
 		if msg, ok := s.replay(m, contents[i], next, run.model.ID(), calls, h.held[i]); ok {
 			req.Messages = append(req.Messages, msg)
 		}
 	}
-	volatile, err := s.volatile(ctx, q, ws, run, t, contexts)
+	volatile, attached, err := s.volatile(ctx, q, ws, run, t, contexts)
 	if err != nil {
 		return assembled{}, err
 	}
+	used = merge(used, attached)
 	if volatile != "" {
 		req.Messages = append(req.Messages, llm.Message{Role: "user", Parts: []llm.Part{{Text: volatile}}})
 	}
@@ -199,13 +204,15 @@ func (s *Service) replay(m store.AiAssistantMessage, c messageContent, next stri
 }
 
 // volatile is what changes between requests: the screen and the attached
-// resources the owner may still read (others are left out), by handle.
-func (s *Service) volatile(ctx context.Context, q *store.Queries, ws *store.Workspace, run *turnRun, t store.AiAssistantThread, contexts []store.AiAssistantContext) (string, error) {
+// resources the owner may still read (others are left out), by handle;
+// sources are the resources whose titles it lists, which the answer
+// carries like what it read.
+func (s *Service) volatile(ctx context.Context, q *store.Queries, ws *store.Workspace, run *turnRun, t store.AiAssistantThread, contexts []store.AiAssistantContext) (string, []toolSource, error) {
 	var b strings.Builder
 	if t.Screen != "" {
 		b.WriteString("<screen>" + t.Screen + "</screen>\n")
 	}
-	attached := []string{}
+	attached, sources := []string{}, []toolSource{}
 	for _, c := range contexts {
 		a, err := s.AI.AssistantAttachment(ctx, q, ws, run.owner, c.Kind, c.TargetID, false)
 		var p *api.Problem
@@ -213,17 +220,18 @@ func (s *Service) volatile(ctx context.Context, q *store.Queries, ws *store.Work
 			continue
 		}
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		attached = append(attached, "- handle "+c.ID.String()+": "+c.Kind+" "+tagSafe(a.Title))
+		sources = append(sources, *resourceSource(c))
 	}
 	if len(attached) > 0 {
 		b.WriteString("<attached>\n" + strings.Join(attached, "\n") + "\n</attached>\n")
 	}
 	if b.Len() == 0 {
-		return "", nil
+		return "", sources, nil
 	}
-	return "<context>\n" + b.String() + "</context>", nil
+	return "<context>\n" + b.String() + "</context>", sources, nil
 }
 
 // estimateTokens is a request's size in tokens, at about four bytes each.
@@ -242,8 +250,8 @@ const (
 // summaryRequest asks for a summary of the older messages (and the
 // summary before them), with the results of their tools the owner may
 // still read, as data from their source, and the answers they may still
-// read (an answer's sources are among those results' or the previous
-// summary's); used are what those results came from.
+// read; used are what those results came from and what those answers
+// carried (a title among them).
 func summaryRequest(previous string, messages []store.AiAssistantMessage, contents []messageContent, older []int, h *history) (llm.Request, []toolSource) {
 	var b strings.Builder
 	used := []toolSource{}
@@ -264,6 +272,7 @@ func summaryRequest(previous string, messages []store.AiAssistantMessage, conten
 				b.WriteString("Assistant: (an answer left out: it used something the person can no longer read)\n")
 			case strings.TrimSpace(c.Text) != "":
 				b.WriteString("Assistant: " + defang(c.Text) + "\n")
+				used = merge(used, h.sources[i])
 			}
 		case "tool":
 			used = merge(used, sourcesOf(c, withheld[i]))

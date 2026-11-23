@@ -412,7 +412,9 @@ func (c messageContent) view(m store.AiAssistantMessage) AIThreadMessage {
 }
 
 // history reads a thread's messages and which of them its owner may read
-// now (sources.go).
+// now (sources.go). An answer in flight may also repeat the title of what
+// is attached (its request listed them), so it is readable only while
+// those are too.
 func (s *Service) history(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, thread uuid.UUID) ([]store.AiAssistantMessage, []messageContent, *history, error) {
 	messages, err := q.AIAssistantMessages(ctx, thread)
 	if err != nil {
@@ -424,8 +426,21 @@ func (s *Service) history(ctx context.Context, q *store.Queries, ws *store.Works
 			return nil, nil, nil, err
 		}
 	}
-	h, err := s.readable(q, ws, p).history(ctx, messages, contents)
-	return messages, contents, h, err
+	r := s.readable(q, ws, p)
+	h, err := r.history(ctx, messages, contents)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	contexts, err := q.AIAssistantContexts(ctx, thread)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if h.readable {
+		if h.readable, err = r.all(ctx, attachedSources(contexts)); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	return messages, contents, h, nil
 }
 
 // view is message i as its owner may read it now: a withheld answer or
