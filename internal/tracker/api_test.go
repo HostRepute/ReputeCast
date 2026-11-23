@@ -315,14 +315,22 @@ func TestCollect(t *testing.T) {
 		t.Fatalf("anonymous events %d", n)
 	}
 
-	// The per-address limit: 240 calls a minute.
+	// The per-address limit: 240 calls a minute. The limiter counts in clock
+	// minutes, so if a new one began during the calls the count started
+	// over: they are made again in that minute, which already holds some.
 	limited := &collector{t: t, url: col.url}
-	status := 0
-	for range 241 {
-		status = limited.post(origin, chrome, map[string]any{"vid": vid, "c": 1, "events": []any{}})
-	}
-	if status != 429 {
-		t.Fatalf("the 241st call: %d", status)
+	for try := 1; ; try++ {
+		minute := time.Now().Truncate(time.Minute)
+		status := 0
+		for range 241 {
+			status = limited.post(origin, chrome, map[string]any{"vid": vid, "c": 1, "events": []any{}})
+		}
+		if status == 429 {
+			break
+		}
+		if try == 2 || time.Now().Truncate(time.Minute).Equal(minute) {
+			t.Fatalf("the 241st call: %d", status)
+		}
 	}
 
 	// Retention: anonymous visitors unseen 30 days go with their events.
