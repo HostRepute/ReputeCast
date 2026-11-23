@@ -23,9 +23,9 @@ import (
 const (
 	defaultHeartbeat  = 15 * time.Second
 	defaultSlowClient = 5 * time.Second
-	// streamAccessEvery is how often a stream checks that its reader may
-	// still read the thread.
-	streamAccessEvery = 5 * time.Second
+	// defaultAccessEvery is how often a stream checks that its reader may
+	// still read the thread, and what its answers used.
+	defaultAccessEvery = 5 * time.Second
 	// streamPage bounds the events read at once.
 	streamPage = 200
 )
@@ -42,6 +42,13 @@ func (s *Service) slowClient() time.Duration {
 		return s.SlowClient
 	}
 	return defaultSlowClient
+}
+
+func (s *Service) accessEvery() time.Duration {
+	if s.AccessEvery > 0 {
+		return s.AccessEvery
+	}
+	return defaultAccessEvery
 }
 
 // writerKey holds the stream's http.ResponseWriter in its context: a slow
@@ -107,14 +114,17 @@ func (s *Service) Stream(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	snapshot := err != nil || after < 0
 	beat := time.NewTicker(s.heartbeat())
 	defer beat.Stop()
-	check := time.NewTicker(streamAccessEvery)
+	check := time.NewTicker(s.accessEvery())
 	defer check.Stop()
 	_ = c.do(sse.Message{Retry: 2000, Comment: "connected"})
 	// What the stream catches up on first isn't late: it is the client's.
 	live := false
+	// filter is what the reader may read of the thread, for the pieces of
+	// an answer: read again at most every accessEvery while they stream.
+	var filter *eventFilter
 	for {
 		var err error
-		if after, snapshot, err = s.sendEvents(ctx, ws, p, thread, after, snapshot, live, c); err != nil {
+		if after, snapshot, err = s.sendEvents(ctx, ws, p, thread, after, snapshot, live, &filter, c); err != nil {
 			var pr *api.Problem
 			if errors.As(err, &pr) {
 				_ = c.do(sse.Message{Data: streamProblem(err)})
@@ -135,18 +145,21 @@ func (s *Service) Stream(ctx context.Context, ws *store.Workspace, p *authz.Prin
 				_ = c.do(sse.Message{Data: streamProblem(err)})
 				return
 			}
+			filter = nil
 		}
 	}
 }
 
 // sendEvents sends what the thread has after the cursor and returns the
 // new cursor. A send that fails (the client left, or was cut) ends the
-// stream.
-func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.Principal, thread uuid.UUID, after int64, snapshot, live bool, c cutter) (int64, bool, error) {
+// stream. Answers and tools' rows are filtered as the reader may read the
+// thread now, an answer's pieces as of the last filter (at most
+// accessEvery old).
+func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.Principal, thread uuid.UUID, after int64, snapshot, live bool, filter **eventFilter, c cutter) (int64, bool, error) {
 	// checked: the thread was read after the last events read, so every
 	// event it counts was committed when the events were read again.
 	checked := false
-	var f *eventFilter
+	fresh := false
 	for {
 		if snapshot {
 			th, err := s.snapshot(ctx, ws, p, thread)
@@ -192,14 +205,17 @@ func (s *Service) sendEvents(ctx context.Context, ws *store.Workspace, p *authz.
 				return after, false, err
 			}
 			// What the thread read and its owner can no longer read stays out
-			// of what is sent again: answers, rows and, caught up on, pieces.
-			if r.Kind == kindMessage || r.Kind == kindTool || (r.Kind == kindDelta && !live) {
-				if f == nil {
-					if f, err = s.eventFilter(ctx, s.Q, ws, p, thread); err != nil {
+			// of what is sent: answers and rows as of now, an answer's pieces
+			// as of the last filter (a live answer stops showing within
+			// accessEvery of its owner losing what it may have used).
+			if r.Kind == kindMessage || r.Kind == kindTool || r.Kind == kindDelta {
+				if !fresh && (r.Kind != kindDelta || *filter == nil) {
+					if *filter, err = s.eventFilter(ctx, s.Q, ws, p, thread); err != nil {
 						return after, false, err
 					}
+					fresh = true
 				}
-				f.apply(data)
+				(*filter).apply(data)
 			}
 			if err := c.do(sse.Message{IDString: strconv.FormatInt(r.Seq, 10), Data: data}); err != nil {
 				return after, false, err

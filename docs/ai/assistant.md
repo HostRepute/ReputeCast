@@ -97,22 +97,28 @@ access again.
 
 What the thread read stays tied to where it came from: each tool result to
 its campaign, report or MCP server, and each answer to everything its
-request carried. When you can no longer read one of them (your role
-changed, the campaign was deleted, the server is no longer allowed for
-you):
+request carried, including the titles of what was attached. When you can
+no longer read one of them (your role changed, the campaign was deleted,
+the server is no longer allowed for you):
 
 - the tool's result isn't sent to the model again, and its row shows that
   it is no longer available;
-- an answer that used it is withheld: the thread shows it without its
-  text, and the model reads only that an earlier answer was left out;
+- an answer that used it, even only its title, is withheld: the thread
+  shows it without its text, and the model reads only that an earlier
+  answer was left out;
 - a summary of earlier messages made from it, or from such an answer, is
   left out too;
-- an answer still being written shows no text after a reload. Pieces you
-  already watched arrive don't disappear until you reload.
+- an answer still being written stops showing: within about 5 seconds its
+  next pieces arrive without text, the panel hides what it had shown and
+  says the answer is hidden, and after a reload it shows no text.
 
-Answers from before the thread read anything stay. Answers saved before
-ReputeCast kept their sources, and answers cut short by **Stop** or by a
-failure, count everything the thread had read before them.
+What you already read or copied, and what the model provider already
+received, can't be taken back.
+
+Answers from before anything was read or attached stay. Answers saved
+before ReputeCast kept their sources count everything the thread had read
+before them; answers cut short by **Stop** or by a failure also count what
+is attached.
 
 Only reports and email campaigns can be attached for now. Your messages go
 to the model exactly as you write them, so don't paste personal data into

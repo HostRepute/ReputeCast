@@ -7,6 +7,17 @@ milestones; each milestone is shippable and testable on its own.
 
 Status: ✅ done · 🚧 in progress · ⏳ planned
 
+### Competitive plan P0-3: the assistant's source boundaries
+
+**🚧 Both gaps #96 left open are closed in code; live checks against real providers and MCP servers are still to do.** Each was reproduced first on the unchanged code through the public API and the thread stream:
+
+- **Titles.** An answer that only repeated an attached campaign's title, without reading it, stayed readable and went back to the model after its owner lost `campaigns:view` (keeping `ai:use`) or the campaign was deleted; so did an answer stopped mid-stream. An answer now keeps, among its sources, the attached resources whose titles its request listed and what the earlier answers it carried kept (an answer that repeats one after the chip is removed), a summary keeps what its answers kept, and an answer saved by Stop or the sweep also counts what is attached.
+- **Live streams.** An answer still being written kept streaming its new pieces after the owner lost what it may have used. A stream now filters live pieces too, with what the owner may read checked at most every 5 seconds (the stream's existing access check). After that, pieces arrive empty, and the panel already shows an empty piece as withheld and drops what it showed. An answer in flight also counts what is attached.
+
+`TestAssistantWithholdsAnswersThatRepeatATitle` (permission, deleted, stopped) and `TestAssistantLiveAnswerStopsWhenASourceIsLost` (read and title) failed before the change and pass after it; the latter's control, a thread that used nothing, keeps streaming both before and after. `TestAssistantWithholdsAnswersThatRepeatAnEarlierAnswer` and `TestSummaryCarriesItsAnswersSources` fail without the answer-to-answer part. `internal/ai/...` passes on PostgreSQL 16. In the B6 load test on one 4-vCPU machine, a delta's p95 with the change vs without was 24.0 vs 28.2 ms with 150-piece answers, and 6.5 vs 6.0 ms with 500-piece answers that refresh the filter while they stream: the same within noise. Those threads were short; a long thread's filter reads more. What a person already read or copied, and what the provider already received, isn't recalled (`docs/ai/assistant.md`, brief §3.7).
+
+Remaining P0-3: verified-or-fixture-only status for the pilot's model provider, two real MCP servers with different auth, and ChatGPT/Claude connecting to ReputeCast, each with client, server, version and date.
+
 ### Competitive plan P0-2: published-package acceptance
 
 **Registry acceptance completed on 23 November 2026; n8n-nodes-reputecast 1.1.1 fixes the trigger and passed acceptance from npm.** Installed `@reputecast/client@1.8.2` from npm, `reputecast==1.8.2` from PyPI (wheel and source distribution), and `github.com/hostrepute/reputecast/sdk/client-go@v1.8.2` from the Go proxy outside the source workspaces. All three clients passed the existing API scenarios against the checksum-verified released Linux v1.8.2 binary and disposable PostgreSQL 16.16: lists, contact create/update, 75 contacts across three cursor pages without duplicates, idempotent transactional requests and structured 403 errors. Installed TypeScript declarations compiled. Each package passed 15 server signature vectors and HTTP fault fixtures for safe retries, unkeyed POST refusal to retry and identical keyed POST replays; Python's asynchronous retry path also passed. Transactional results were queued, not evidence of delivery to external mailboxes.

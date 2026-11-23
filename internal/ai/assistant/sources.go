@@ -171,11 +171,12 @@ func sourcesOf(c messageContent, withheld map[string]bool) []toolSource {
 // An answer quotes what was in the request that produced it, so it is
 // shown and sent again only while its owner may still read all of that:
 // each assistant message (and summary) keeps the sources of its request's
-// content: the tools' results and the summary it carried (whatever an
-// earlier answer it carried quoted is among them). Messages saved before
-// they kept them, and partial answers saved by Stop or the sweep (which
-// don't have the request), count every source the thread's tools and
-// summaries read before them: fail-closed.
+// content: the tools' results, the summary and the earlier answers it
+// carried, and the attached resources whose titles it listed. Partial
+// answers saved by Stop or the sweep (which don't have the request) count
+// every source the thread's tools and summaries read before them and what
+// is attached; messages saved before they kept sources count what the
+// thread read before them: fail-closed.
 
 // unknownSource is what a result with content and no recorded source came
 // from: never readable.
@@ -193,7 +194,8 @@ type history struct {
 	held  map[int]bool
 	// sources are what each message's content came from; prior is every
 	// source the thread's messages read, and readable whether the owner
-	// may read all of it (what an answer in flight may have used).
+	// may read all of it and what is attached (what an answer in flight
+	// may have used: Service.history adds the attachments).
 	sources  [][]toolSource
 	prior    []toolSource
 	readable bool
@@ -278,7 +280,8 @@ func (r *readable) history(ctx context.Context, messages []store.AiAssistantMess
 	return h, nil
 }
 
-// threadSources is every source a thread's messages read so far.
+// threadSources is every source a thread's messages read so far, and what
+// is attached (its requests list their titles).
 func (s *Service) threadSources(ctx context.Context, q *store.Queries, thread uuid.UUID) ([]toolSource, error) {
 	messages, err := q.AIAssistantMessages(ctx, thread)
 	if err != nil {
@@ -290,5 +293,18 @@ func (s *Service) threadSources(ctx context.Context, q *store.Queries, thread uu
 			return nil, err
 		}
 	}
-	return priorSources(messages, contents), nil
+	contexts, err := q.AIAssistantContexts(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
+	return merge(priorSources(messages, contents), attachedSources(contexts)), nil
+}
+
+// attachedSources are a thread's attached resources as sources.
+func attachedSources(contexts []store.AiAssistantContext) []toolSource {
+	out := make([]toolSource, 0, len(contexts))
+	for _, c := range contexts {
+		out = append(out, *resourceSource(c))
+	}
+	return out
 }

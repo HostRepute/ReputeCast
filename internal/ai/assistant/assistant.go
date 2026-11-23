@@ -75,11 +75,12 @@ type Service struct {
 	Hub *Hub
 	// Now is the clock (tests); nil is the wall clock.
 	Now func() time.Time
-	// Heartbeat, WatchEvery and SlowClient tune streams and turns (tests);
-	// zero takes the default: a heartbeat event every 15 s, a turn's
-	// access and Stop checked every second while it answers, a stream cut
-	// once one event takes 5 s to reach its client.
-	Heartbeat, WatchEvery, SlowClient time.Duration
+	// Heartbeat, WatchEvery, SlowClient and AccessEvery tune streams and
+	// turns (tests); zero takes the default: a heartbeat event every 15 s,
+	// a turn's access and Stop checked every second while it answers, a
+	// stream cut once one event takes 5 s to reach its client, and a
+	// stream's reader and sources checked again every 5 s.
+	Heartbeat, WatchEvery, SlowClient, AccessEvery time.Duration
 
 	// afterAnswer runs once the provider answered, before the turn's
 	// checkpoint (tests).

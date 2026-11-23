@@ -240,3 +240,218 @@ func TestAssistantAnswerInFlightWithheld(t *testing.T) {
 		}
 	}
 }
+
+// An answer carries what its request carried, and a request carries the
+// titles of what is attached: an answer that only repeats a title, without
+// reading the resource, is withheld like a quote once its owner can no
+// longer read the resource, and so is an answer stopped mid-stream. An
+// answer from before the resource was attached stays.
+func TestAssistantWithholdsAnswersThatRepeatATitle(t *testing.T) {
+	for _, how := range []string{"permission", "deleted", "stopped"} {
+		t.Run(how, func(t *testing.T) {
+			d := newDemoFixture(t)
+			const title = "Zephyr pricing leak, do not share"
+			if _, err := d.env.App.Pool.Exec(context.Background(), `UPDATE campaigns SET name = $2 WHERE id = $1`, d.draft, title); err != nil {
+				t.Fatal(err)
+			}
+			th := d.thread(d.mc, map[string]any{})
+			const before = "Before anything was attached: hello."
+			d.streams.then(says(before))
+			d.run(th.ID, "Hi")
+			d.attach(d.mc, th.ID, "campaign", d.draft)
+			echo := "You attached " + title + "."
+			var turn uuid.UUID
+			if how == "stopped" {
+				turn = d.send(d.mc, th.ID, "What did I attach?").Turn.ID
+				d.streams.set(drip(echo+" ", 50*time.Millisecond, 200))
+				done := make(chan error, 1)
+				args := d.job(turn)
+				go func() { done <- d.worker().ExecuteTurn(context.Background(), args) }()
+				waitFor(t, "a piece of the answer", func() bool {
+					return d.count(`SELECT count(*) FROM ai_assistant_events WHERE turn_id = $1 AND kind = 'delta'`, turn) > 0
+				})
+				d.mc.Do(http.MethodPost, demoAI+"/assistant/threads/"+th.ID.String()+"/turns/"+turn.String()+"/stop", nil).MustStatus(t, 200)
+				if err := <-done; err != nil {
+					t.Fatal(err)
+				}
+				d.streams.set(nil)
+			} else {
+				d.streams.then(says(echo))
+				turn = d.run(th.ID, "What did I attach?")
+			}
+			if body := mustJSON(t, d.streams.streamed(t)[1]); !strings.Contains(body, title) {
+				t.Fatal("the request didn't carry the title")
+			}
+			if got := d.get(d.mc, th.ID); !strings.Contains(mustJSON(t, got), "You attached "+title) {
+				t.Fatalf("the answer didn't repeat the title: %s", mustJSON(t, got))
+			}
+
+			lose := how
+			if how == "stopped" {
+				lose = "permission"
+			}
+			d.lose(lose)
+			d.streams.then(says("Noted."))
+			d.run(th.ID, "And now?")
+			bodies := d.streams.streamed(t)
+			if body := mustJSON(t, bodies[len(bodies)-1]); strings.Contains(body, title) || !strings.Contains(body, before) {
+				t.Fatalf("the next request: %s", body)
+			}
+			got := d.get(d.mc, th.ID)
+			var withheld, kept int
+			for _, m := range got.Messages {
+				switch {
+				case m.TurnID != nil && *m.TurnID == turn && m.Role == "assistant":
+					if !m.Withheld || m.Text != "" {
+						t.Fatalf("the answer that repeated the title: %+v", m)
+					}
+					withheld++
+				case m.Text == before:
+					if m.Withheld {
+						t.Fatalf("the earlier answer: %+v", m)
+					}
+					kept++
+				}
+			}
+			if withheld != 1 || kept != 1 || strings.Contains(mustJSON(t, got), title) {
+				t.Fatalf("the thread: %s", mustJSON(t, got))
+			}
+			s := d.openStream(d.mc, th.ID, "")
+			if ev := s.next(t, 10*time.Second); ev.Event != "snapshot" || strings.Contains(string(ev.Data), title) {
+				t.Fatalf("the snapshot: %s %s", ev.Event, ev.Data)
+			}
+			s.close()
+			s = d.openStream(d.mc, th.ID, "0")
+			for last := strconv.FormatInt(got.EventSeq, 10); ; {
+				ev := s.next(t, 10*time.Second)
+				if strings.Contains(string(ev.Data), title) {
+					t.Fatalf("event %s (%s) sent the title again: %s", ev.ID, ev.Event, ev.Data)
+				}
+				if ev.ID == last {
+					break
+				}
+			}
+		})
+	}
+}
+
+// A stream stops sending an answer's pieces soon after its owner loses
+// something the answer may have used (a resource the thread read, or one
+// attached whose title the request carried), while they keep ai:use: the
+// pieces that follow arrive empty, which the panel shows as withheld, and
+// the answer's message is withheld. A thread that used nothing keeps
+// streaming through the same role change.
+func TestAssistantLiveAnswerStopsWhenASourceIsLost(t *testing.T) {
+	for _, used := range []string{"read", "title", "nothing"} {
+		t.Run(used, func(t *testing.T) {
+			d := newDemoFixture(t)
+			svc := d.env.App.Assistant()
+			old := svc.AccessEvery
+			svc.AccessEvery = 100 * time.Millisecond
+			t.Cleanup(func() { svc.AccessEvery = old })
+			th := d.thread(d.mc, map[string]any{})
+			switch used {
+			case "read":
+				d.readOnce(th)
+			case "title":
+				d.attach(d.mc, th.ID, "campaign", d.draft)
+			}
+			cursor := strconv.FormatInt(d.get(d.mc, th.ID).EventSeq, 10)
+			s := d.openStream(d.mc, th.ID, cursor)
+			const first, second = "The first piece. ", "The second piece, written after access changed."
+			release := make(chan struct{})
+			d.streams.set(held(release, first, second))
+			turn := d.send(d.mc, th.ID, "Tell me more").Turn.ID
+			done := make(chan error, 1)
+			args := d.job(turn)
+			go func() { done <- d.worker().ExecuteTurn(context.Background(), args) }()
+			released := false
+			defer func() {
+				if !released {
+					close(release)
+				}
+				<-done
+			}()
+			for {
+				ev := s.next(t, 10*time.Second)
+				if ev.Event == "delta" && strings.Contains(string(ev.Data), first) {
+					break
+				}
+			}
+			d.lose("permission")
+			time.Sleep(5 * svc.AccessEvery)
+			close(release)
+			released = true
+			var empty, sawSecond bool
+			var message *assistant.AIThreadMessageEvent
+			for message == nil {
+				ev := s.next(t, 10*time.Second)
+				switch ev.Event {
+				case "delta":
+					var e assistant.AIThreadDeltaEvent
+					if err := json.Unmarshal(ev.Data, &e); err != nil {
+						t.Fatal(err)
+					}
+					empty = empty || e.Text == ""
+					sawSecond = sawSecond || strings.Contains(e.Text, "second piece")
+				case "message":
+					var e assistant.AIThreadMessageEvent
+					if err := json.Unmarshal(ev.Data, &e); err != nil {
+						t.Fatal(err)
+					}
+					if e.Message.Role == "assistant" {
+						message = &e
+					}
+				}
+			}
+			if used == "nothing" {
+				if !sawSecond || empty || message.Message.Withheld {
+					t.Fatalf("the answer that used nothing: second piece %v, an empty piece %v, its message %+v", sawSecond, empty, message.Message)
+				}
+				return
+			}
+			if sawSecond || !empty || !message.Message.Withheld || message.Message.Text != "" {
+				t.Fatalf("after access changed: second piece %v, an empty piece %v, the message %+v", sawSecond, empty, message.Message)
+			}
+		})
+	}
+}
+
+// An answer that repeats an earlier answer carries what that answer
+// carried: after the resource whose title they repeat is removed from the
+// thread (it is no longer attached, so the request doesn't list it) and its
+// owner then loses it, both answers are withheld.
+func TestAssistantWithholdsAnswersThatRepeatAnEarlierAnswer(t *testing.T) {
+	d := newDemoFixture(t)
+	const title = "Zephyr pricing leak, do not share"
+	if _, err := d.env.App.Pool.Exec(context.Background(), `UPDATE campaigns SET name = $2 WHERE id = $1`, d.draft, title); err != nil {
+		t.Fatal(err)
+	}
+	th := d.thread(d.mc, map[string]any{})
+	handle := d.attach(d.mc, th.ID, "campaign", d.draft)
+	d.streams.then(says("You attached " + title + "."))
+	first := d.run(th.ID, "What did I attach?")
+	d.mc.Do(http.MethodDelete, demoAI+"/assistant/threads/"+th.ID.String()+"/contexts/"+handle.String(), nil).MustStatus(t, 200)
+	d.streams.then(says("Earlier you attached " + title + "."))
+	second := d.run(th.ID, "Remind me what it was?")
+	if body := mustJSON(t, d.streams.streamed(t)[1]); strings.Contains(body, "<attached>") || !strings.Contains(body, "You attached "+title) {
+		t.Fatalf("the second request: %s", body)
+	}
+
+	d.lose("permission")
+	got := d.get(d.mc, th.ID)
+	for _, m := range got.Messages {
+		if m.Role == "assistant" && m.TurnID != nil && (*m.TurnID == first || *m.TurnID == second) && (!m.Withheld || m.Text != "") {
+			t.Fatalf("an answer that repeated the title: %+v", m)
+		}
+	}
+	if strings.Contains(mustJSON(t, got), title) {
+		t.Fatalf("the thread: %s", mustJSON(t, got))
+	}
+	d.streams.then(says("Noted."))
+	d.run(th.ID, "And now?")
+	bodies := d.streams.streamed(t)
+	if body := mustJSON(t, bodies[len(bodies)-1]); strings.Contains(body, title) {
+		t.Fatalf("the next request: %s", body)
+	}
+}
