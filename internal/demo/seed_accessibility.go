@@ -238,6 +238,9 @@ func seedDigest143(ctx context.Context, s *Seeder) error {
 		Role: 27, Duplicates: 26, Final: 31604, Unengaged: 412, UnengagedDays: 180,
 		Mailboxes: map[string]int64{"gmail": 14538, "outlook": 6637, "yahoo": 2844, "icloud": 2528, "other": 5057}}
 	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28444, 90), r.postal(3160, 10)}}
+	// The links the checker requests: personalized ones ({{ unsubscribe_url }},
+	// preferences, view in browser) aren't in the list, as contentcheck
+	// leaves them out (linkHost), but Links still counts all 15.
 	links := []contentcheck.ContentCheckLink{}
 	for i, l := range [][3]string{
 		{"https://acme.io", "Acme", "image"}, {"https://acme.io/blog", "Blog", "link"}, {"https://docs.acme.io", "Docs", "link"}, {"https://acme.io/changelog", "Changelog", "link"},
@@ -245,14 +248,13 @@ func seedDigest143(ctx context.Context, s *Seeder) error {
 		{"https://acme.io/changelog", "See the changelog", "button"}, {"https://docs.acme.io/migrate-v2", "https://docs.acme.io/migrate-v2", "link"},
 		{"https://docs.acme.io/migrate-v2/plan", "Plan your migration", "button"}, {"https://x.com/acme", "Acme on X", "image"},
 		{"https://www.linkedin.com/company/acme", "Acme on LinkedIn", "image"}, {"https://github.com/acme", "Acme on GitHub", "image"},
-		{"{{ unsubscribe_url }}", "Unsubscribe", "link"}, {"{{ preferences_url }}", "Email preferences", "link"}, {"{{ view_in_browser_url }}", "View in browser", "link"},
 	} {
 		host := strings.TrimPrefix(strings.SplitN(strings.TrimPrefix(l[0], "https://"), "/", 2)[0], "www.")
 		ms := 140 + (i*53)%380
 		if l[0] == "https://docs.acme.io/migrate-v2" {
 			ms = 620
 		}
-		links = append(links, contentcheck.ContentCheckLink{URL: l[0], Host: host, Text: l[1], Kind: l[2], Path: []int{}, Probed: !strings.Contains(l[0], "{{"), Status: 200, Millis: ms})
+		links = append(links, contentcheck.ContentCheckLink{URL: l[0], Host: host, Text: l[1], Kind: l[2], Path: []int{}, Probed: true, Status: 200, Millis: ms})
 	}
 	f.Content = readiness.ContentFacts{Checked: true, Address: "Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105", InlineCSSBytes: 11 * 1024,
 		URIBlocklists: readiness.URIBlocklists, OwnDomain: "acme.io",
