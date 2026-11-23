@@ -304,8 +304,15 @@ func (f *Fixture) Drive(d time.Duration) (time.Time, bool) {
 // before anything can apply it.
 func (f *Fixture) DriveWithout(d time.Duration, kinds ...string) (time.Time, bool) {
 	f.T.Helper()
-	end := f.Start.Add(d)
-	for at := f.Start; at.Before(end); at = at.Add(time.Second) {
+	return f.DriveOnWithout(f.Start, d, kinds...)
+}
+
+// DriveOnWithout is DriveWithout from where an earlier drive stopped
+// instead of from the fixture's start.
+func (f *Fixture) DriveOnWithout(from time.Time, d time.Duration, kinds ...string) (time.Time, bool) {
+	f.T.Helper()
+	end := from.Add(d)
+	for at := from; at.Before(end); at = at.Add(time.Second) {
 		_, done, err := f.E.Drive(f.Ctx, f.Campaign, at, min(100*time.Millisecond, end.Sub(at)))
 		if err != nil {
 			f.T.Fatalf("drive: %v", err)

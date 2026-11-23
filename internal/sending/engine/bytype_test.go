@@ -23,7 +23,12 @@ func testTypedLevels(t *testing.T, f *sendtest.Fixture) {
 		sendtest.ContactSpec{N: 2000, Mailbox: "gmail", Domain: "gmail.com", Engaged: true},
 	)
 	f.StartSend(engine.StartOptions{})
-	at, _ := f.Drive(3 * time.Minute)
+	// The test scripts the bounces and deferrals (eventsFor), so the demo
+	// transport's own are dropped: a few of its random block bounces among
+	// Outlook's first hundreds, clearly over the 0.5% limit, paused Outlook
+	// before the test's own did (PR #112, Postgres 16).
+	random := []string{"hard_bounce", "soft_bounce", "deferred"}
+	at, _ := f.DriveWithout(3*time.Minute, random...)
 	setClock(t, f, at)
 	// eventsFor adds events for a share of what was sent to a mailbox
 	// provider, a minute ago.
@@ -38,10 +43,7 @@ func testTypedLevels(t *testing.T, f *sendtest.Fixture) {
 	}
 	drive := func(d time.Duration) {
 		t.Helper()
-		var err error
-		if at, _, err = f.E.Drive(f.Ctx, f.Campaign, at, d); err != nil {
-			t.Fatal(err)
-		}
+		at, _ = f.DriveOnWithout(at, d, random...)
 		setClock(t, f, at)
 	}
 	incidents := func(metric string) int64 {
