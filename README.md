@@ -127,12 +127,12 @@ seat or workspace limit.
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshots/send-readiness.png" alt="Review and send: Send Readiness says the campaign is ready with warnings and needs approval, with the audience, the route split and each check">
+      <img src="docs/assets/screenshots/send-readiness.png" alt="Review and send: Send Readiness says the campaign is ready with warnings and is waiting for approval, with the audience, the route split and the warnings to fix">
       <b>Send Readiness</b> checks reputation, authentication, content and routing before you send.
     </td>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshots/live-monitor.png" alt="Live monitor of a send: progress per sending provider, results per mailbox provider and the auto-pause thresholds">
-      <b>Live monitor</b> with results per mailbox provider and auto-pause thresholds.
+      <img src="docs/assets/screenshots/live-monitor.png" alt="Live monitor of a send: the canary passed, progress per sending provider, live results and the auto-pause thresholds per mailbox provider">
+      <b>Live monitor</b> with a canary phase and auto-pause thresholds per mailbox provider.
     </td>
   </tr>
   <tr>
@@ -141,7 +141,7 @@ seat or workspace limit.
       <b>Composer</b> that flags deliverability problems while you write.
     </td>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshots/report.png" alt="Campaign report: an AI summary, human and machine opens, engagement over 72 hours and a click map">
+      <img src="docs/assets/screenshots/report.png" alt="Campaign report: an AI summary checked against the report's numbers, a question box, and human, privacy-protected and machine opens counted apart">
       <b>Reports</b> that count human and machine opens apart.
     </td>
   </tr>
@@ -165,19 +165,29 @@ seat or workspace limit.
       <b>SMS campaigns</b> that send at local time, with results per country.
     </td>
   </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/assistant.png" alt="AI assistant: the chat panel docked beside a campaign report, suggesting the report to attach, with the workspace's model and suggested questions">
+      <b>AI assistant</b> beside every screen, with your own model and key.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/dark-theme.png" alt="Overview in the dark theme: the sender health score, the next scheduled campaign and each sending provider's rates">
+      <b>Dark theme</b> for the whole app, following your device or your choice.
+    </td>
+  </tr>
 </table>
 
 <details>
 <summary>More screenshots</summary>
 <br>
 
-<img src="docs/assets/screenshots/routing.png" alt="Routing: a weighted 90/10 split between Amazon SES and Postal, conditions per mailbox provider, the failover policy and the route tester">
+<img src="docs/assets/screenshots/routing.png" alt="Routing: a weighted 90/10 split between Amazon SES and Postal, conditions by list and sender domain, the failover policy and the route tester">
 <p><b>Routing</b> across providers, with weighted splits, failover and a route tester.</p>
 
 <img src="docs/assets/screenshots/deliverability.png" alt="Deliverability: health per sending domain and IP, account health per provider and blocklist status">
 <p><b>Deliverability:</b> health per sending domain and IP, and each provider's account health.</p>
 
-<img src="docs/assets/screenshots/providers.png" alt="Sending providers: health, quotas, costs and capability badges for Amazon SES, Postmark and Postal">
+<img src="docs/assets/screenshots/providers.png" alt="Sending providers: health, quotas, costs and capability badges for Amazon SES and Postmark">
 <p><b>Sending providers:</b> health, quotas, costs and what each provider supports.</p>
 
 <img src="docs/assets/screenshots/segments.png" alt="Segment builder: conditions in AND and OR groups with a live count">
