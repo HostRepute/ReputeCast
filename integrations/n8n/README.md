@@ -157,4 +157,5 @@ npm trusted publishing.
 ## License
 
 [MIT](LICENSE.md): n8n's community-node rules and verification require it.
-The rest of ReputeCast is AGPL-3.0.
+[LICENSING.md](https://github.com/hostrepute/reputecast/blob/main/LICENSING.md)
+lists the license of each part of ReputeCast.

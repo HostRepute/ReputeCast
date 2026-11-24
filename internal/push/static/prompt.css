@@ -1,3 +1,5 @@
+/*! SPDX-FileCopyrightText: 2026 HostRepute
+ *  SPDX-License-Identifier: MIT */
 /* ReputeCast push prompt: drawn inside its own shadow root, in the
    publisher's colour (--rc-accent). */
 :host,

@@ -171,4 +171,5 @@ published as a public app.
 
 ## License
 
-AGPL-3.0-only, like ReputeCast.
+[MIT](LICENSE), like everything of ReputeCast's that runs inside other
+people's systems ([LICENSING.md](../../LICENSING.md)).

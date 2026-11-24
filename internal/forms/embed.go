@@ -27,13 +27,14 @@ var embedScriptSource string
 
 // embedScript is the form script as served: its comments and indentation
 // left out (they are a third of what visitors would download), every line
-// break kept, so the source stays the readable one.
+// break kept, so the source stays the readable one. Its license comment
+// stays: sites get the script under MIT, whose notice goes with each copy.
 var embedScript = compactScript(embedScriptSource)
 
 // compactScript drops the lines of a script that are only a comment (//
-// lines, and /* */ blocks that start a line) and the indentation of the
-// others. The script has no template literals, so no line's leading
-// whitespace is part of a string.
+// lines, and /* */ blocks that start a line, but not /*! license comments,
+// as minifiers keep them) and the indentation of the others. The script has
+// no template literals, so no line's leading whitespace is part of a string.
 func compactScript(src string) string {
 	var b strings.Builder
 	b.Grow(len(src))
@@ -48,7 +49,7 @@ func compactScript(src string) string {
 				continue
 			}
 		}
-		if strings.HasPrefix(l, "/*") {
+		if strings.HasPrefix(l, "/*") && !strings.HasPrefix(l, "/*!") {
 			if i := strings.Index(l, "*/"); i >= 0 {
 				l = strings.TrimLeft(l[i+2:], " \t")
 			} else {

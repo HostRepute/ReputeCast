@@ -1,3 +1,5 @@
+/*! SPDX-FileCopyrightText: 2026 HostRepute
+ *  SPDX-License-Identifier: MIT */
 /* ReputeCast push service worker · version 1 · https://reputecast.com
  *
  * Shows the notifications a ReputeCast workspace sends, reports when the

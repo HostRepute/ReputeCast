@@ -7,6 +7,17 @@ milestones; each milestone is shippable and testable on its own.
 
 Status: ✅ done · 🚧 in progress · ⏳ planned
 
+### Competitive plan P0-4: the licensing standard
+
+**🚧 In review: the owner chose the map, DCO and `AGPL-3.0-only` on 24 November 2026.** The server stays `AGPL-3.0-only`. Everything that runs inside other people's programs and sites becomes MIT: the client SDKs, the OpenAPI documents, the adapter SDK, the form, tracker and push scripts, and the Zapier and Make apps. The adapter template and the starter email templates, made to be copied, become MIT-0. The logos in `brand/` take a trademark-only license. The n8n nodes stay MIT and the WordPress plugin GPL-2.0-or-later. Packages 1.8.1–1.8.3 keep `AGPL-3.0-only`; HostRepute wrote all the code that changed license (`git log` on each path: HostRepute and dependabot version bumps only).
+
+- **`LICENSING.md`** has the map, what it means for self-hosters, hosts, SDK users and adapter authors, and the project's commitments: no open core, ReputeCast Cloud runs the public image unmodified, security fixes are public no later than they reach Cloud, and no CLA. **`TRADEMARKS.md`** follows the Model Trademark Guidelines: hosting "for ReputeCast" is fine; "ReputeCast Cloud", "Hosted ReputeCast", the name in a domain, the logos on a commercial service and a modified version under the name need permission. Attribution is never required.
+- **REUSE 3.3:** `REUSE.toml` and `LICENSES/` give every one of the 12,380 files a license and a copyright (the IBM Plex fonts under OFL-1.1). `reuse lint` passes.
+- **Each published package has its own `LICENSE`.** Before, the 1.8.3 npm tarball and wheel had none, and the go command copied the root AGPL `LICENSE` into the Go module. The PyPI metadata is `License-Expression: MIT` with `License-File: LICENSE`. The embedded scripts and styles start with an SPDX notice, which the served form script now keeps (`/*!`, as minifiers keep it).
+- **Checks:** `make licenses` and CI's `licenses` job run `reuse lint`. They also check each package's `LICENSE` text and declared license against `REUSE.toml`, `npm pack`, and the built wheel and sdist. Removing the Go SDK's `LICENSE`, declaring the TypeScript SDK AGPL, giving the template the MIT text, or removing the Python `LICENSE` each fails it. CI's `dco` job fails a pull request with a commit not signed off by its author's email; bots are left out.
+
+Remaining P0-4: mark `dco` and `licenses` as required checks on `main`; the docs site's SDK and integration pages (ReputeCastDocs, five locales); the first release with MIT SDKs; a lawyer's review of `TRADEMARKS.md`, the trademark file license and registering the mark. Later, a configurable "Source code" link for modified instances (AGPL §13) and a `license` field in the adapter manifest.
+
 ### Competitive plan P0-3: the assistant's source boundaries
 
 **🚧 Both gaps #96 left open are closed in code; live checks against real providers and MCP servers are still to do.** Each was reproduced first on the unchanged code through the public API and the thread stream:

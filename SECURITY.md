@@ -4,7 +4,8 @@
 
 Security fixes go into the latest release. Run the newest version of
 ReputeCast to get them; [upgrading](docs/deploy/README.md#upgrades) takes one
-command.
+command. ReputeCast Cloud runs the public image, so it gets a fix no earlier
+than the release that contains it ([LICENSING.md](LICENSING.md#our-commitments)).
 
 ## Reporting a vulnerability
 

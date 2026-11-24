@@ -134,6 +134,10 @@ sdks: ## Regenerate, check and test the client SDKs (TypeScript, Python, Go), th
 	  export REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)"; fi; \
 	REPUTECAST_SDK_E2E=required $(GO) test -count=1 -timeout 30m -v -run 'TestClientSDKs' ./internal/sdktest/
 
+.PHONY: licenses
+licenses: ## Every file's license (reuse lint) and each published package's LICENSE (LICENSING.md)
+	scripts/check-licenses.sh
+
 .PHONY: docker
 docker: ## Build the Docker image
 	docker build -t reputecast:$(VERSION) --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) .

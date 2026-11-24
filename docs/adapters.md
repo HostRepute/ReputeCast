@@ -679,7 +679,10 @@ The rest of this section is about remote adapters.
 A remote adapter is usually written in TypeScript with the adapter SDK
 (`@reputecast/adapter-sdk`, in [`sdk/adapter-sdk`](../sdk/adapter-sdk)) from
 the template in [`sdk/adapter-template`](../sdk/adapter-template), but any
-language works: the protocol is JSON over HTTP(S) with HMAC signatures.
+language works: the protocol is JSON over HTTP(S) with HMAC signatures. The
+SDK is MIT and the template MIT-0, and an adapter is a program of its own, so
+yours can take any license, a proprietary one included
+([LICENSING.md](../LICENSING.md)).
 
 - [How it works](#how-it-works)
 - [Build an adapter](#build-an-adapter)

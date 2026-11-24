@@ -2,7 +2,7 @@
   "name": "@reputecast/client",
   "version": "0.0.0-dev",
   "description": "The ReputeCast API client for TypeScript and JavaScript: typed requests, retries, RFC 9457 errors, pagination and webhook verification.",
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "homepage": "https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md#client-sdks",
   "repository": {
     "type": "git",

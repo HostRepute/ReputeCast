@@ -1,3 +1,5 @@
+/*! SPDX-FileCopyrightText: 2026 HostRepute
+ *  SPDX-License-Identifier: MIT */
 /* ReputeCast signup form. Renders the form below into every element with
    data-reputecast-form="<id>", or opens it as a popup. No third-party code,
    no cookies, no iframe: the form takes the site's fonts. Built with DOM

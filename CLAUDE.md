@@ -2,7 +2,7 @@
 
 ReputeCast is an open-source, self-hosted newsletter platform. It works with any email sending provider, and AWS SES is fully supported. It is a sibling of HostRepute (hostrepute.com).
 
-The license is AGPL-3.0. Every feature in this repo is free. Never add paywalls, license checks, seat limits or "Pro/Enterprise" gates.
+The server is AGPL-3.0-only; the SDKs, the embedded scripts and the Zapier, Make and n8n apps are MIT (WordPress: GPL-2.0-or-later), and what is made to be copied is MIT-0 (`LICENSING.md`, `REUSE.toml`). A new file takes the license of its directory, and every commit is signed off (DCO, `git commit -s`). Every feature in this repo is free. Never add paywalls, license checks, seat limits or "Pro/Enterprise" gates.
 
 ## Source of truth
 - Product spec: `docs/spec/reputecast-design-spec.md`

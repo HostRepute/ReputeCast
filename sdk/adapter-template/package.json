@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "ReputeCast community adapter for Example ESP: the template to start your own adapter from.",
-  "license": "AGPL-3.0-only",
+  "license": "MIT-0",
   "type": "module",
   "engines": {
     "node": ">=24.11"

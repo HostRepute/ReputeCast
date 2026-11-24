@@ -106,3 +106,10 @@ URL> --url <where it runs>` or from the Adapters tab.
 During a secret rotation (`reputecast adapter secret example-esp`), set both
 secrets, new first: `REPUTECAST_ADAPTER_SECRET=rcas_new,rcas_old`. The old
 one keeps working in ReputeCast for 24 hours.
+
+## License
+
+This template is [MIT-0](LICENSE): copy it and license your adapter as you
+like, a proprietary license included. Delete `LICENSE` or replace it with
+yours. The adapter SDK it uses is MIT
+([LICENSING.md](../../LICENSING.md)).
