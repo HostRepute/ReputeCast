@@ -818,31 +818,36 @@ func (h *Handler) issueBar(s *site, pl pageLang, docLang, meta string, also []la
 // issueFoot is the language menu under an archived issue and the link to
 // the server's source code (source: Handler.Source); "" without either.
 func issueFoot(pl pageLang, docLang string, menu []langLink, source string) string {
-	if len(menu) == 0 && source == "" {
-		return ""
+	if len(menu) == 0 {
+		if source == "" {
+			return ""
+		}
+		return "\n" + `<footer class="rcia rcia-foot"` + langAttrs(pl, docLang) + `>` + sourceLink(pl, source) + "</footer>\n"
 	}
 	esc := html.EscapeString
 	var out strings.Builder
-	out.WriteString("\n" + `<footer class="rcia rcia-foot"` + langAttrs(pl, docLang) + `>`)
-	if len(menu) > 0 {
-		out.WriteString(`<nav class="rcia-langs" aria-label="` + esc(pl.Labels.Text("page.languages", nil)) + `">` + globe)
-		for i, m := range menu {
-			if i > 0 {
-				out.WriteString(`<span aria-hidden="true">·</span>`)
-			}
-			current := ""
-			if m.Current {
-				current = ` aria-current="true"`
-			}
-			out.WriteString(`<a href="` + esc(m.Href) + `" lang="` + esc(m.Code) + `" hreflang="` + esc(m.Code) + `"` + current + `>` + esc(m.Name) + `</a>`)
+	out.WriteString("\n" + `<footer class="rcia rcia-foot"` + langAttrs(pl, docLang) + `><nav class="rcia-langs" aria-label="` + esc(pl.Labels.Text("page.languages", nil)) + `">` + globe)
+	for i, m := range menu {
+		if i > 0 {
+			out.WriteString(`<span aria-hidden="true">·</span>`)
 		}
-		out.WriteString("</nav>")
+		current := ""
+		if m.Current {
+			current = ` aria-current="true"`
+		}
+		out.WriteString(`<a href="` + esc(m.Href) + `" lang="` + esc(m.Code) + `" hreflang="` + esc(m.Code) + `"` + current + `>` + esc(m.Name) + `</a>`)
 	}
-	if source != "" {
-		out.WriteString(`<p class="rcia-src"><a href="` + esc(source) + `">` + esc(pl.Labels.Text("page.sourceCode", nil)) + `</a></p>`)
-	}
-	out.WriteString("</footer>\n")
+	out.WriteString("</nav>" + sourceLink(pl, source) + "</footer>\n")
 	return out.String()
+}
+
+// sourceLink is the link to the server's source code under an archived
+// issue ("" without one).
+func sourceLink(pl pageLang, source string) string {
+	if source == "" {
+		return ""
+	}
+	return `<p class="rcia-src"><a href="` + html.EscapeString(source) + `">` + html.EscapeString(pl.Labels.Text("page.sourceCode", nil)) + `</a></p>`
 }
 
 type rssFeed struct {
