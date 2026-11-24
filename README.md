@@ -256,6 +256,12 @@ problems privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-ReputeCast is licensed under the [GNU Affero General Public License v3.0](LICENSE).
-It is built by [HostRepute](https://hostrepute.com) and works with or without a
+The ReputeCast server is licensed under the
+[GNU Affero General Public License v3.0 only](LICENSE). The client SDKs, the
+adapter SDK, the scripts that sites embed and the Zapier, Make and n8n apps are
+MIT, so they add no obligations to your programs. [LICENSING.md](LICENSING.md)
+lists the license of each part and what it means for you; the name and logos
+follow the [trademark policy](TRADEMARKS.md). Every feature is free.
+
+ReputeCast is built by [HostRepute](https://hostrepute.com) and works with or without a
 HostRepute account.

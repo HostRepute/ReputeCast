@@ -1,3 +1,5 @@
+/*! SPDX-FileCopyrightText: 2026 HostRepute
+ *  SPDX-License-Identifier: MIT */
 /*
  * ReputeCast site tracker (M62). A site adds:
  *

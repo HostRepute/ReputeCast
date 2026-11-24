@@ -68,6 +68,7 @@ providers are all demo providers.
 | Landing site: build, or live reload on :5288 | `make site`, `make site-dev` |
 | Landing site in a browser: axe, keyboard, no JavaScript, reflow (after `make site`) | `cd site && pnpm e2e` |
 | Adapter SDK and template: build, test, run through the Go runtime | `make sdk` |
+| Every file's license (`reuse lint`; `pipx install reuse`) and each published package's `LICENSE` | `make licenses` |
 | Compare a screen with its design board at 1440/834/390 | `cd web && pnpm shot --path /w/acme-newsletter/campaigns --design Campaigns` |
 | Side-by-side QA of boards and screens, with a difference score (`scripts/qa-map.ts` maps boards to routes) | `cd web && pnpm qa --only Report,Campaigns` |
 | Accessibility sweep of the same screens (axe-core, WCAG 2.0–2.2 A and AA) | `cd web && pnpm a11y` |
@@ -117,8 +118,54 @@ tests.
 - Never add paywalls, license checks or seat limits: every feature in this
   repository is free.
 
-Contributions are accepted under the project's license,
-[AGPL-3.0](LICENSE).
+## Licenses and sign-off
+
+A contribution takes the license of the directory it changes, as
+[`LICENSING.md`](LICENSING.md) and [`REUSE.toml`](REUSE.toml) list them:
+`AGPL-3.0-only` for the server and the web app, `MIT` for the SDKs, the
+embedded scripts and the integration apps, and so on. A new file takes the
+license of its directory. Code you didn't write needs its own entry in
+`REUSE.toml` with its author and license. `make licenses` (CI runs it too)
+checks that every file has a license and every published package its own
+`LICENSE`. There's no contributor license agreement and no copyright
+assignment.
+
+### Developer Certificate of Origin
+
+Sign off every commit: `git commit -s` adds a
+`Signed-off-by: Your Name <you@example.com>` line with your Git name and
+email. The line certifies the
+[Developer Certificate of Origin 1.1](https://developercertificate.org/):
+
+```text
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+```
+
+CI's DCO check fails a pull request with a commit that isn't signed off by
+its author. To sign off the commits you already made, run
+`git rebase --signoff origin/main` and push again with `--force-with-lease`.
 
 ## Project layout
 

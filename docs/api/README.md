@@ -61,8 +61,9 @@ environments and checked against the released v1.8.2 binary on 23 November
 **Versions follow the server's.** Pin a published version matching your
 server, or an older compatible SDK; don't assume every historical server
 tag has packages on every registry. A newer SDK can call operations an
-older server doesn't have. The client SDKs remain `AGPL-3.0-only`; the MIT
-license of the n8n integration does not apply to them.
+older server doesn't have. The client SDKs are MIT from the first release
+after 1.8.3; the 1.8.1–1.8.3 packages are `AGPL-3.0-only`
+([LICENSING.md](../../LICENSING.md)).
 
 ### Create a client
 

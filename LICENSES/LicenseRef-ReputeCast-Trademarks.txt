@@ -1,0 +1,18 @@
+ReputeCast trademark files
+
+Copyright 2026 HostRepute
+
+The files under this license are the ReputeCast name and logos. ReputeCast is
+a trademark of HostRepute.
+
+You may copy, redistribute and display these files, unmodified, to refer to
+ReputeCast in the ways TRADEMARKS.md allows: for example together with an
+unmodified copy of ReputeCast, in an article or tutorial about ReputeCast, or
+to show that your product works with ReputeCast. Any other use, including
+modifying the files or using them for your own product, service or modified
+version of ReputeCast, needs HostRepute's written permission.
+
+No other right under copyright or trademark law is granted. The licenses of the
+other files in the ReputeCast repository do not apply to these files.
+
+THESE FILES ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

@@ -71,6 +71,7 @@ Dev tools:
 - GoReleaser v2.18.3
 - sqlc and goose, pinned with `go get -tool`
 - Helm v4.3.1 (the chart in `deploy/helm/reputecast` is `apiVersion: v2`, so Helm 3.8+ installs it too), kubeconform v0.8.0 and kind v0.33.0, for `make helm` and the CI `helm` job
+- reuse v6.3.0 (FSFE's REUSE tool, a Python program, `pipx install reuse`): `make licenses` and the CI `licenses` job lint `REUSE.toml` against the REUSE 3.3 specification (LICENSING.md). It is installed on its own, not added to any module or package.
 
 ## Frontend (npm)
 
@@ -110,7 +111,7 @@ Generated from the public OpenAPI document (`sdk/openapi`, `reputecast openapi -
 | Python client: HTTP and models (runtime, the generated code's own ranges) | httpx + attrs | `>=0.23.1,<0.29.0` (0.28.1 today) / `>=22.2.0` |
 | Python client: build backend | hatchling | `>=1.27` (PEP 639 license metadata; 1.33.0 today) |
 | Python client: tests | pytest (dev) | 9.2.0 |
-| Python client: sdist and wheel (release only) | build | 1.6.1 |
+| Python client: sdist and wheel (release, and `make licenses`, which checks their license metadata) | build | 1.6.1 |
 | Go client: generator (a `tool` of `sdk/client-go/go.mod`) | github.com/oapi-codegen/oapi-codegen/v2 | v2.8.2 |
 | Go client: runtime of the generated code | github.com/oapi-codegen/runtime | v1.9.0 |
 
@@ -137,7 +138,7 @@ Generated from the public OpenAPI document (`sdk/openapi`, `reputecast openapi -
 8. **hostrepute-go must be public** (with a version tag) before ReputeCast imports it; otherwise public builds and contributors can't fetch it.
 9. **Single binary.** `go:embed` bundles the built SPA and the goose migrations. GoReleaser builds linux/darwin/windows for amd64/arm64, plus a multi-arch Docker image.
 10. **Every provider adapter** must pass the shared contract-test suite: Send, ParseWebhook (signature verification and event normalization), and Capabilities. These tests run against recorded fixtures, plus Mailpit for SMTP.
-11. **Integration apps** (`integrations/`) are JavaScript and PHP projects with their own package managers. The n8n nodes are MIT and the WordPress plugin GPL-2.0-or-later, because each platform's directory requires it; the Zapier and Make apps are AGPL-3.0 like the rest. `integrations/go.mod` makes the folder a module of its own, so the server module's `./...` never reaches their installed dependencies.
+11. **Integration apps** (`integrations/`) are JavaScript and PHP projects with their own package managers. The n8n nodes are MIT and the WordPress plugin GPL-2.0-or-later, because each platform's directory requires it; the Zapier and Make apps are MIT, like everything that runs inside other people's systems (LICENSING.md). `integrations/go.mod` makes the folder a module of its own, so the server module's `./...` never reaches their installed dependencies.
 12. **Forms and charts: an open question for the owner (review 2026-11 D6, FE-6).** Measured on 1 November 2026:
     - **recharts** is listed and installed but imported nowhere: every chart is hand-drawn SVG (growth, revenue, placement trends, score spread, engagement), sized for the design's exact look and its table view.
     - **react-hook-form** is used in one file (`features/audience/ContactDialogs.tsx`); every other form (several hundred fields) keeps its values in React state and shows server problems with `Field`'s `error`, which the RFC 9457 `errors[]` of the API fill.
@@ -147,4 +148,4 @@ Generated from the public OpenAPI document (`sdk/openapi`, `reputecast openapi -
 13. **Client SDKs** (`sdk/client-ts`, `sdk/client-python`, `sdk/client-go`, M64). Each is generated from the public document: the 3.1 one for openapi-typescript, the 3.0 one (Huma's `Downgrade`) for the Python and Go generators, which read 3.0 best. Generated code is committed and CI fails when it differs from what `make sdks` generates; a construct a generator rejects is fixed in the Go type it comes from, never by editing the document (the first: `PushPromptStatus`, a schema name that clashed with the enum of `PushPrompt.status`, is now `PushPromptStatusChange`).
     - **openapi-python-client 0.29.x, not 0.30.** 0.30.0 (2026-11-07) moved generated clients from httpx to httpx2 (pydantic's fork, first released 2026-05); 0.29.1 has the fix for the advisory GHSA-5293-mq8x-g3xj and generates for httpx. Its generated code needs Python 3.11 (`StrEnum`; 0.29 dropped 3.10, and 3.9 and 3.10 are past their end of life), so the package needs 3.11, not the 3.9 first planned. Move to httpx2 with a later generator once it is established.
     - **oapi-codegen** is a `tool` of the Go module, which has its own `go.mod` (module `github.com/hostrepute/reputecast/sdk/client-go`, tagged `sdk/client-go/vX.Y.Z` by the release workflow), so the server module's `./...` never reaches it. A v2 server release needs the module path's `/v2` first (the workflow refuses to tag it otherwise).
-    - **License**: the SDKs are AGPL-3.0 like the rest (the adapter SDK's choice); an application that links them is then a work based on them. Whether the client libraries should take a permissive license, as the n8n nodes and the WordPress plugin do for their platforms, is the owner's decision.
+    - **License**: MIT from the first release after v1.8.3 (packages 1.8.1–1.8.3 stay AGPL-3.0-only), so an application that links an SDK keeps its own license; the adapter SDK is MIT and its template MIT-0 for the same reason (LICENSING.md). Each SDK has its own `LICENSE`: PEP 639 can't reach a parent directory, and the go command copies the repository's root `LICENSE` (AGPL) into a module that has none. `make licenses` checks both, and the wheel's and sdist's `License-Expression`.

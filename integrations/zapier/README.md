@@ -143,4 +143,5 @@ Publishing happens in Zapier, outside this repository.
 
 ## License
 
-AGPL-3.0-only, like ReputeCast. Zapier's directory accepts any license.
+[MIT](LICENSE), like everything of ReputeCast's that runs inside other
+people's systems ([LICENSING.md](../../LICENSING.md)).

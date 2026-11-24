@@ -1,3 +1,5 @@
+/*! SPDX-FileCopyrightText: 2026 HostRepute
+ *  SPDX-License-Identifier: MIT */
 /* ReputeCast push prompt · https://reputecast.com
  *
  * Asks readers for permission to send notifications: ReputeCast's own

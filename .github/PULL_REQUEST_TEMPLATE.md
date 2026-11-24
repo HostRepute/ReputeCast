@@ -11,6 +11,7 @@
 ## Checklist
 
 - [ ] `make test`, `make lint` and `make build` pass
+- [ ] Every commit is signed off (`git commit -s`, the DCO in `CONTRIBUTING.md`)
 - [ ] Tests cover the change
 - [ ] UI follows the design boards and behaviour follows the specs (any difference is noted above)
 - [ ] New dependencies are explained (see `docs/TECH_STACK.md`)

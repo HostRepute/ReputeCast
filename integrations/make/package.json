@@ -3,7 +3,7 @@
   "version": "1.0.4",
   "description": "ReputeCast for Make: the custom app's definition, its validation and its tests.",
   "private": true,
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=24.11"
