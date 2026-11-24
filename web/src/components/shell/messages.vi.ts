@@ -67,6 +67,7 @@ export default translate(m, {
   userMenuWorkspaceSettings: 'Cài đặt không gian làm việc',
   userMenuInstanceAdmin: 'Quản trị hệ thống',
   userMenuAdminsOnly: 'chỉ quản trị viên',
+  userMenuSourceCode: 'Mã nguồn',
   userMenuSignOut: 'Đăng xuất',
   userMenuVersion: '{name} {version}',
   userMenuVersionUpdate: '{name} {version} · <link>đã có bản {latest}</link>',

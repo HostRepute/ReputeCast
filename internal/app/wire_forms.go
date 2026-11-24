@@ -163,6 +163,11 @@ func (a *App) publicPages() *publicpages.Handler {
 			return ""
 		},
 	}
+	// A modified version's source code (source_url) is linked from every
+	// public page (AGPL-3.0 section 13).
+	if cfg := a.Cfg; cfg != nil {
+		h.Source = func() string { return cfg.SourceURL }
+	}
 	formsPages[a] = h
 	return h
 }

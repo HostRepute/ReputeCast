@@ -65,6 +65,7 @@
 {{- if .Frame.On}}{{if .Frame.Footer.Archive}}<a href="{{.Href.Archive}}">{{.T "site.archive"}}</a>{{end}}{{if .Frame.Footer.RSS}}<a href="{{.Href.Feed}}" class="st-rc"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11a2 2 0 1 1 0 .01M3 7a6 6 0 0 1 6 6M3 3a10 10 0 0 1 10 10"></path></svg>{{.T "site.rss"}}</a>{{end}}{{end}}
 {{- with .Href.Privacy}}<a href="{{.}}">{{$.T "site.privacy"}}</a>{{end}}
 {{- if or (not .Frame.On) .Frame.Footer.Preferences}}<a href="{{.Href.Preferences}}">{{.T "site.preferences"}}</a>{{end}}
+{{- with .Source}}<a href="{{.}}">{{$.T "site.sourceCode"}}</a>{{end}}
 {{- if .PoweredBy}}<a href="{{.Landing}}" class="st-rc"><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{.T "site.poweredBy"}}</a>{{end}}
 {{- with .Menu}}<span class="langs">{{range $i, $l := .}}{{if $i}}<span aria-hidden="true">·</span>{{end}}<a href="{{$l.Href}}" lang="{{$l.Code}}" hreflang="{{$l.Code}}"{{if $l.Current}} aria-current="true"{{end}}>{{$l.Name}}</a>{{end}}</span>{{end}}
 </nav></div></footer>{{end}}

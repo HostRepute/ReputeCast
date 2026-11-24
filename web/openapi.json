@@ -52565,6 +52565,9 @@
           "setupComplete": {
             "type": "boolean"
           },
+          "sourceUrl": {
+            "type": "string"
+          },
           "version": {
             "type": "string"
           }
@@ -52573,7 +52576,8 @@
           "name",
           "publicUrl",
           "version",
-          "setupComplete"
+          "setupComplete",
+          "sourceUrl"
         ],
         "type": "object"
       },

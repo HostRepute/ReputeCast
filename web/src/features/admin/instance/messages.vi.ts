@@ -62,6 +62,7 @@ export default translate(m, {
   upToDate: 'Đã là bản mới nhất',
   releasedDemo: 'Phát hành ngày {date} · bản phát hành mẫu đi kèm dữ liệu mẫu',
   releasedChangelog: 'Phát hành ngày {date} · <link>nhật ký thay đổi trên GitHub</link>',
+  sourceCode: 'Mã nguồn',
   notChecked: 'Chưa kiểm tra',
   checkOff: 'Kiểm tra cập nhật đang tắt',
   checkFailed: 'Kiểm tra thất bại',

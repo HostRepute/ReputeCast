@@ -88,6 +88,10 @@ type Handler struct {
 	SPA http.Handler
 	// LandingURL is where "Sent with ReputeCast" points.
 	LandingURL string
+	// Source is the source code link of a modified version the server runs
+	// (source_url): every page's footer links it (AGPL-3.0 section 13).
+	// nil or "": no link, as on the official builds.
+	Source func() string
 	// Notifications is transactional mail's Optional categories (nil:
 	// the preference center has no such section).
 	Notifications Notifications
@@ -145,6 +149,13 @@ func (h *Handler) now() time.Time {
 		return h.Now()
 	}
 	return time.Now()
+}
+
+func (h *Handler) source() string {
+	if h.Source != nil {
+		return h.Source()
+	}
+	return ""
 }
 
 func (h *Handler) log() *slog.Logger {
@@ -496,6 +507,8 @@ type view struct {
 	Landing     string
 	PoweredBy   bool
 	Privacy     string
+	// Source is the server's source code link (Handler.Source).
+	Source string
 	// Preview renders an in-app preview: forms don't submit.
 	Preview bool
 	Body    any
@@ -528,7 +541,7 @@ func (h *Handler) view(s *site, title string, body any) *view {
 	v := &view{
 		Title: title, Robots: "noindex, nofollow", CSS: s.links.Static("public.css?v=" + h.version),
 		Theme: s.links.Theme(themeVersion(s.set)), Brand: brandView{Name: b.PublisherName, Initial: b.Initial()},
-		Links: s.links, Landing: h.LandingURL, PoweredBy: b.PoweredBy, Privacy: b.PrivacyURL, Body: body,
+		Links: s.links, Landing: h.LandingURL, PoweredBy: b.PoweredBy, Privacy: b.PrivacyURL, Source: h.source(), Body: body,
 		// Until setLang picks one, a page is in the pages' own language.
 		Lang: s.set.CopyLanguage(), Dir: pagelabels.Dir(s.set.CopyLanguage()), labels: pagelabels.For(s.set.CopyLanguage(), nil),
 	}

@@ -4,6 +4,8 @@ import (
 	"net/netip"
 	"strings"
 	"testing"
+
+	"github.com/hostrepute/reputecast/internal/version"
 )
 
 // PR-9: REPUTECAST_PUBLIC_URL is the public URL's name everywhere; the
@@ -153,5 +155,45 @@ func TestStorageConfig(t *testing.T) {
 	t.Setenv("REPUTECAST_STORAGE__BACKEND", "gcs")
 	if _, err := Load("", nil); err == nil {
 		t.Error("backend gcs loaded")
+	}
+}
+
+// The source code link (AGPL-3.0 section 13): a release links its tag in
+// updates.repo, any other build its commit; REPUTECAST_SOURCE_URL, for a
+// modified version, replaces both and must be an http(s) URL.
+func TestSourceURL(t *testing.T) {
+	v, commit := version.Version, version.Commit
+	t.Cleanup(func() { version.Version, version.Commit = v, commit })
+	c, err := Load("", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ version, commit, repo, want string }{
+		{"v1.8.4", "0123abc", "", "https://github.com/hostrepute/reputecast/tree/v1.8.4"},
+		{"v1.9.0-rc.1", "", "acme/reputecast", "https://github.com/acme/reputecast/tree/v1.9.0-rc.1"},
+		{"ci", "0123abc", "", "https://github.com/hostrepute/reputecast/tree/0123abc"},
+		{"1.8.4", "", "", "https://github.com/hostrepute/reputecast"},
+	} {
+		version.Version, version.Commit = tc.version, tc.commit
+		if tc.repo != "" {
+			c.Updates.Repo = tc.repo
+		} else {
+			c.Updates.Repo = Defaults().Updates.Repo
+		}
+		if got := c.Source(); got != tc.want {
+			t.Errorf("%s (commit %q, repo %q): %q, want %q", tc.version, tc.commit, c.Updates.Repo, got, tc.want)
+		}
+	}
+
+	t.Setenv("REPUTECAST_SOURCE_URL", "https://git.example.org/acme/reputecast-fork")
+	if c, err = Load("", nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := c.Source(); got != "https://git.example.org/acme/reputecast-fork" {
+		t.Errorf("REPUTECAST_SOURCE_URL: %q", got)
+	}
+	t.Setenv("REPUTECAST_SOURCE_URL", "git.example.org/acme/reputecast-fork")
+	if _, err := Load("", nil); err == nil || !strings.Contains(err.Error(), "source_url") {
+		t.Errorf("a source URL without a scheme loaded: %v", err)
 	}
 }

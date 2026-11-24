@@ -23,6 +23,8 @@ import (
 	"github.com/knadh/koanf/providers/structs"
 	"github.com/knadh/koanf/v2"
 	"github.com/spf13/pflag"
+
+	"github.com/hostrepute/reputecast/internal/version"
 )
 
 // EnvPrefix is the prefix of every environment variable ReputeCast reads.
@@ -59,6 +61,11 @@ type Config struct {
 	Files      FilesConfig      `koanf:"files"`
 	Storage    StorageConfig    `koanf:"storage"`
 	GeoIP      GeoIPConfig      `koanf:"geoip"`
+	// SourceURL is where the source code of the version this server runs
+	// can be had (AGPL-3.0 section 13). Empty: the release (or the commit)
+	// in updates.repo on GitHub, linked from the app's menus. Set it when
+	// you run a modified version: the public pages then link to it too.
+	SourceURL string `koanf:"source_url"`
 }
 
 // FilesConfig is the local files folder: with storage.backend "local" (the
@@ -431,6 +438,19 @@ func flagKey(f *pflag.Flag) (string, any) {
 	return "", nil
 }
 
+// Source is the link to the source code of the version this server runs:
+// source_url, or the running build's tree in updates.repo on GitHub.
+func (c *Config) Source() string {
+	if c.SourceURL != "" {
+		return c.SourceURL
+	}
+	repo := c.Updates.Repo
+	if repo == "" {
+		repo = "hostrepute/reputecast"
+	}
+	return version.SourceURL(repo)
+}
+
 // Validate checks the configuration for mistakes that would otherwise fail late.
 func (c *Config) Validate() error {
 	var errs []error
@@ -441,6 +461,11 @@ func (c *Config) Validate() error {
 	}
 	if u, err := url.Parse(c.HTTP.PublicURL); err != nil || u.Scheme == "" || u.Host == "" {
 		errs = append(errs, fmt.Errorf("http.public_url must be an absolute URL, got %q", c.HTTP.PublicURL))
+	}
+	if c.SourceURL != "" {
+		if u, err := url.Parse(c.SourceURL); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			errs = append(errs, fmt.Errorf("source_url must be an http(s) URL, got %q", c.SourceURL))
+		}
 	}
 	if c.Secrets.Key != "" {
 		if _, err := DecodeKey(c.Secrets.Key); err != nil {

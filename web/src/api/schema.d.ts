@@ -36012,6 +36012,7 @@ export interface components {
             name: string;
             publicUrl: string;
             setupComplete: boolean;
+            sourceUrl: string;
             version: string;
         };
         MeUser: {

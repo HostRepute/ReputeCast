@@ -5,6 +5,7 @@
   "page.pastIssues": "Read past issues",
   "page.privacy": {"message": "Privacy", "note": "the footer link to the publisher's privacy policy"},
   "page.poweredBy": "Sent with ReputeCast",
+  "page.sourceCode": {"message": "Source code", "note": "the footer link to the source code of the modified ReputeCast the server runs (its operator set source_url)"},
   "page.preferences": "Email preferences",
   "page.subscribePage": "Subscribe page",
   "page.backToForm": "Back to the form",

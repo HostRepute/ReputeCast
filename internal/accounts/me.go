@@ -59,6 +59,9 @@ type MeInstance struct {
 	Version       string `json:"version"`
 	LatestVersion string `json:"latestVersion,omitempty"`
 	SetupComplete bool   `json:"setupComplete"`
+	// SourceURL is where the source code of the version the server runs is
+	// (source_url, AGPL-3.0 section 13).
+	SourceURL string `json:"sourceUrl"`
 	// DefaultLanguage and DefaultRegionFormat apply to members who haven't chosen.
 	DefaultLanguage     string `json:"defaultLanguage,omitempty" example:"en"`
 	DefaultRegionFormat string `json:"defaultRegionFormat,omitempty" example:"standard"`
@@ -105,7 +108,7 @@ func (s *Service) Me(ctx context.Context) (Me, error) {
 	if err != nil {
 		return Me{}, err
 	}
-	me.Instance = MeInstance{Name: st.Name, PublicURL: publicurl.Setting(st.PublicUrl, s.Cfg.HTTP.PublicURL, s.publicURLLocked()), Version: version.Get().Version, SetupComplete: st.SetupCompletedAt != nil,
+	me.Instance = MeInstance{Name: st.Name, PublicURL: publicurl.Setting(st.PublicUrl, s.Cfg.HTTP.PublicURL, s.publicURLLocked()), Version: version.Get().Version, SetupComplete: st.SetupCompletedAt != nil, SourceURL: s.Cfg.Source(),
 		DefaultLanguage: st.DefaultLanguage, DefaultRegionFormat: st.DefaultRegionFormat, Languages: applang.Languages()}
 	me.User.Preferences = applang.Choices(*u)
 	me.User.LanguageSuggestionAnswered = u.LanguagePromptedAt != nil

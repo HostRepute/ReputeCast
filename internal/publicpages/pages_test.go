@@ -1479,3 +1479,27 @@ func TestTurnstileErrorReportNeedsAChallenge(t *testing.T) {
 		t.Errorf("an anonymous report without a challenge set Turnstile to %q (accept reports only for a live form_challenges id, and rate limit them)", st)
 	}
 }
+
+// AGPL-3.0 section 13: a server that runs a modified version says where its
+// source is (source_url), and every public page's footer links it: the
+// standalone pages, the website and archived issues, in the page's
+// language. The official builds link nothing there.
+func TestSourceCodeLink(t *testing.T) {
+	env, ids := demo(t)
+	site := hdr{"Host": "news.acme.io"}
+	const src = "https://git.example.org/acme/reputecast-fork"
+	lacks(t, do(t, env, http.MethodGet, "/subscribe", nil, site), `class="source"`, ">Source code</a>")
+	lacks(t, do(t, env, http.MethodGet, "/", nil, site), ">Source code</a>")
+
+	env.App.Cfg.SourceURL = src
+	must(t, do(t, env, http.MethodGet, "/subscribe", nil, site), 200, `<div class="source"><a href="`+src+`">Source code</a></div>`)
+	must(t, do(t, env, http.MethodGet, "/subscribe", nil, hdr{"Host": "news.acme.io", "Accept-Language": "es-ES"}), 200,
+		`<div class="source"><a href="`+src+`">Código fuente</a></div>`)
+	must(t, do(t, env, http.MethodGet, "/", nil, site), 200, `<a href="`+src+`">Source code</a>`)
+
+	websiteOff(t, env, ids.ws)
+	// The archive files its issues on its first read.
+	must(t, do(t, env, http.MethodGet, "/p/acme-newsletter/archive", nil, nil), 200)
+	must(t, do(t, env, http.MethodGet, "/p/acme-newsletter/archive/the-case-for-boring-infrastructure", nil, nil), 200,
+		`<p class="rcia-src"><a href="`+src+`">Source code</a></p></footer>`)
+}

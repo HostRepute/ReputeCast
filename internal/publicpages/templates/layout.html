@@ -32,7 +32,8 @@
 {{template "content" .}}
 {{template "foot" .}}
 {{template "langs" .}}
-</div>
+{{with .Source}}<div class="source"><a href="{{.}}">{{$.T "page.sourceCode"}}</a></div>
+{{end}}</div>
 </body>
 </html>
 {{define "brand"}}{{if not .SiteBar}}<div class="brand">{{if .Brand.Logo}}<span class="mark logo"><img src="{{.Brand.Logo}}" alt="" width="40" height="40"></span>{{else}}<span class="mark" aria-hidden="true">{{.Brand.Initial}}</span>{{end}}<span class="brand-name">{{.Brand.Name}}</span></div>{{end}}{{end}}

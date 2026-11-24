@@ -764,7 +764,7 @@ func (h *Handler) issueDocument(r *http.Request, s *site, row store.ArchiveIssue
 		// as a reader of that language gets it.
 		menu[i].Href = s.links.Issue(row.Slug) + "?" + langParam + "=" + url.QueryEscape(menu[i].Code)
 	}
-	return injectBottom(doc, issueFoot(pl, code, menu))
+	return injectBottom(doc, issueFoot(pl, code, menu, h.source()))
 }
 
 // withStylesheet links the issue bar's stylesheet in the document's head.
@@ -815,25 +815,33 @@ func (h *Handler) issueBar(s *site, pl pageLang, docLang, meta string, also []la
 	return out.String()
 }
 
-// issueFoot is the language menu under an archived issue ("" without one).
-func issueFoot(pl pageLang, docLang string, menu []langLink) string {
-	if len(menu) == 0 {
+// issueFoot is the language menu under an archived issue and the link to
+// the server's source code (source: Handler.Source); "" without either.
+func issueFoot(pl pageLang, docLang string, menu []langLink, source string) string {
+	if len(menu) == 0 && source == "" {
 		return ""
 	}
 	esc := html.EscapeString
 	var out strings.Builder
-	out.WriteString("\n" + `<footer class="rcia rcia-foot"` + langAttrs(pl, docLang) + `><nav class="rcia-langs" aria-label="` + esc(pl.Labels.Text("page.languages", nil)) + `">` + globe)
-	for i, m := range menu {
-		if i > 0 {
-			out.WriteString(`<span aria-hidden="true">·</span>`)
+	out.WriteString("\n" + `<footer class="rcia rcia-foot"` + langAttrs(pl, docLang) + `>`)
+	if len(menu) > 0 {
+		out.WriteString(`<nav class="rcia-langs" aria-label="` + esc(pl.Labels.Text("page.languages", nil)) + `">` + globe)
+		for i, m := range menu {
+			if i > 0 {
+				out.WriteString(`<span aria-hidden="true">·</span>`)
+			}
+			current := ""
+			if m.Current {
+				current = ` aria-current="true"`
+			}
+			out.WriteString(`<a href="` + esc(m.Href) + `" lang="` + esc(m.Code) + `" hreflang="` + esc(m.Code) + `"` + current + `>` + esc(m.Name) + `</a>`)
 		}
-		current := ""
-		if m.Current {
-			current = ` aria-current="true"`
-		}
-		out.WriteString(`<a href="` + esc(m.Href) + `" lang="` + esc(m.Code) + `" hreflang="` + esc(m.Code) + `"` + current + `>` + esc(m.Name) + `</a>`)
+		out.WriteString("</nav>")
 	}
-	out.WriteString("</nav></footer>\n")
+	if source != "" {
+		out.WriteString(`<p class="rcia-src"><a href="` + esc(source) + `">` + esc(pl.Labels.Text("page.sourceCode", nil)) + `</a></p>`)
+	}
+	out.WriteString("</footer>\n")
 	return out.String()
 }
 

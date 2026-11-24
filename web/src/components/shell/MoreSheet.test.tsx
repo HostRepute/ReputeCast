@@ -22,7 +22,7 @@ const me: Me = {
     { id: 'ws-1', slug: 'acme-newsletter', name: 'Acme Newsletter', roleKey: 'owner', roleName: 'Owner', memberCount: 6, subscribers: 48213 },
     { id: 'ws-2', slug: 'acme-engineering-blog', name: 'Acme Engineering Blog', roleKey: 'owner', roleName: 'Owner', memberCount: 2, subscribers: 3100 },
   ],
-  instance: { name: 'Acme ReputeCast', publicUrl: 'https://reputecast.acme.io', version: 'v1.0.0', setupComplete: true },
+  instance: { name: 'Acme ReputeCast', publicUrl: 'https://reputecast.acme.io', version: 'v1.0.0', setupComplete: true, sourceUrl: 'https://github.com/hostrepute/reputecast/tree/v1.0.0' },
 }
 
 const owner = (patch: Partial<WorkspaceMe> = {}) =>

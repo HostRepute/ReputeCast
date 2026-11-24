@@ -60,6 +60,7 @@ export default translate(m, {
   userMenuWorkspaceSettings: 'Configuración del espacio de trabajo',
   userMenuInstanceAdmin: 'Administración de la instancia',
   userMenuAdminsOnly: 'solo administradores',
+  userMenuSourceCode: 'Código fuente',
   userMenuSignOut: 'Cerrar sesión',
   userMenuVersion: '{name} {version}',
   userMenuVersionUpdate: '{name} {version} · <link>{latest} disponible</link>',

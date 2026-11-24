@@ -121,6 +121,8 @@ type siteView struct {
 	Session   *website.Session
 	PoweredBy bool
 	Landing   string
+	// Source is the server's source code link (Handler.Source).
+	Source string
 	// Year is the copyright year, as text so it isn't grouped like a number ("2,026").
 	Year  string
 	Owner string
@@ -338,7 +340,7 @@ func (h *Handler) siteViewIn(ctx context.Context, s *site, pl pageLang) (*siteVi
 	v := &siteView{
 		Robots: "index, follow", CSS: s.links.Static("site.css?v=" + h.siteVersion()), Theme: s.links.Theme(themeVersion(s.set)),
 		Lang: pl.Code, Dir: pagelabels.Dir(pl.Code), Preview: s.preview, Brand: siteBrand{Initial: b.Initial()}, Frame: frame,
-		PoweredBy: b.PoweredBy, Landing: h.LandingURL, Year: strconv.Itoa(h.now().In(location(s.ws)).Year()), Owner: owner(s),
+		PoweredBy: b.PoweredBy, Landing: h.LandingURL, Source: h.source(), Year: strconv.Itoa(h.now().In(location(s.ws)).Year()), Owner: owner(s),
 		words: website.WordsIn(pl.Labels.Lang()), labels: pl.Labels,
 	}
 	if b.Logo != nil {

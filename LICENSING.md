@@ -41,8 +41,9 @@ use them.
   version you changed.
 - **Hosting ReputeCast for others, or selling hosting:** you may. If you
   changed the code, section 13 of the AGPL requires you to offer the users of
-  your instance the source of your version. The name rules are in
-  [TRADEMARKS.md](TRADEMARKS.md).
+  your instance the source of your version: set `REPUTECAST_SOURCE_URL` to it
+  and every page links it ([configuration](docs/deploy/configuration.md)).
+  The name rules are in [TRADEMARKS.md](TRADEMARKS.md).
 - **Building an app with the SDKs or the API, including a closed-source
   one:** you may. The SDKs are MIT, and your app talks to ReputeCast over
   HTTP, so the AGPL doesn't reach it. Keep the SDK's MIT notice.
