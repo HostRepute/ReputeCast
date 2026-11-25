@@ -272,6 +272,13 @@ func (s *Service) Authorize(ctx context.Context, in url.Values) (string, error) 
 // nothing about the person's access.
 func (s *Service) membership(ctx context.Context, q *store.Queries, ws, user uuid.UUID) (store.MCPConnectAuthorityRow, error) {
 	r, err := q.MCPConnectAuthority(ctx, store.MCPConnectAuthorityParams{WorkspaceID: ws, UserID: user})
+	if errors.Is(err, pgx.ErrNoRows) {
+		// A role change that commits while the read waits for the
+		// membership's lock makes it find no row under READ COMMITTED (the
+		// new role_id no longer matches the role row read first); reading
+		// again sees the new role (brandkit.ActorRow).
+		r, err = q.MCPConnectAuthority(ctx, store.MCPConnectAuthorityParams{WorkspaceID: ws, UserID: user})
+	}
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return r, err
 	}

@@ -132,13 +132,27 @@ func VoiceSources(ctx context.Context, q *store.Queries, ws *store.Workspace, p 
 	return rows, nil
 }
 
+// ActorRow reads and locks a person's active membership, role and account
+// (BrandVoiceActor). A role change that commits while the read waits for
+// the membership's lock makes it find no row under READ COMMITTED: the
+// updated membership is checked again against the role row read first, and
+// its new role_id doesn't match. So a read that finds nothing reads once
+// more, with the new role; a person who really left still finds nothing.
+func ActorRow(ctx context.Context, q *store.Queries, ws, user uuid.UUID) (store.BrandVoiceActorRow, error) {
+	r, err := q.BrandVoiceActor(ctx, store.BrandVoiceActorParams{WorkspaceID: ws, UserID: user})
+	if errors.Is(err, pgx.ErrNoRows) {
+		r, err = q.BrandVoiceActor(ctx, store.BrandVoiceActorParams{WorkspaceID: ws, UserID: user})
+	}
+	return r, err
+}
+
 // VoiceActor refreshes human permissions. In a transaction its row locks
 // fence membership and role changes until the voice decision commits.
 func VoiceActor(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal) (*authz.Principal, error) {
 	if !p.IsHuman() || p.WorkspaceID != ws.ID {
 		return nil, api.Forbidden(authz.AIUse, nil)
 	}
-	r, err := q.BrandVoiceActor(ctx, store.BrandVoiceActorParams{WorkspaceID: ws.ID, UserID: p.UserID})
+	r, err := ActorRow(ctx, q, ws.ID, p.UserID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, api.Forbidden(authz.AIUse, nil)
 	}
