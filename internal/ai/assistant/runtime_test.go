@@ -30,7 +30,9 @@ import (
 func TestAssistantTurnAnswers(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()
-	const sentinel = "Sentinel question 51b2 about subject lines"
+	// The word looked for below isn't hexadecimal: a hex word can turn up by
+	// chance in a row's ids (51b2 once matched a UUID in ai_requests).
+	const sentinel = "Sentinel question kumquat about subject lines"
 	th := f.thread(f.mc, map[string]any{"screen": "campaign.report"})
 	path := f.base + "/assistant/threads/" + th.ID.String()
 	f.vc.Do(http.MethodPost, path+"/messages", map[string]any{"text": "Hi", "requestKey": "viewer-1"}).MustStatus(t, 403)
@@ -60,7 +62,7 @@ func TestAssistantTurnAnswers(t *testing.T) {
 	}
 	var keys map[string]any
 	if err := json.Unmarshal([]byte(raw), &keys); err != nil || len(keys) != 4 || keys["turnId"] != turn.String() || keys["threadId"] != th.ID.String() ||
-		strings.Contains(raw, "51b2") {
+		strings.Contains(raw, "kumquat") {
 		t.Fatalf("the job's args: %s", raw)
 	}
 	f.streams.set(answer("Shorter ", "subjects ", "work."))
@@ -110,13 +112,13 @@ func TestAssistantTurnAnswers(t *testing.T) {
 		AND metadata->>'turn_id' = $3 AND metadata->>'via' = 'ai_assistant'`, f.ws.ID, th.ID.String(), turn.String()); n != 1 {
 		t.Fatalf("%d audit entries of the message", n)
 	}
-	for _, q := range []string{`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND (row_to_json(audit_events.*)::text LIKE '%51b2%' OR row_to_json(audit_events.*)::text LIKE '%Shorter%')`,
-		`SELECT count(*) FROM ai_requests WHERE workspace_id = $1 AND (row_to_json(ai_requests.*)::text LIKE '%51b2%' OR row_to_json(ai_requests.*)::text LIKE '%Shorter%')`,
-		`SELECT count(*) FROM river_job WHERE $1::uuid IS NOT NULL AND (args::text LIKE '%51b2%' OR args::text LIKE '%Shorter%')`,
+	for _, q := range []string{`SELECT count(*) FROM audit_events WHERE workspace_id = $1 AND (row_to_json(audit_events.*)::text LIKE '%kumquat%' OR row_to_json(audit_events.*)::text LIKE '%Shorter%')`,
+		`SELECT count(*) FROM ai_requests WHERE workspace_id = $1 AND (row_to_json(ai_requests.*)::text LIKE '%kumquat%' OR row_to_json(ai_requests.*)::text LIKE '%Shorter%')`,
+		`SELECT count(*) FROM river_job WHERE $1::uuid IS NOT NULL AND (args::text LIKE '%kumquat%' OR args::text LIKE '%Shorter%')`,
 		`SELECT count(*) FROM ai_assistant_events e JOIN ai_assistant_threads t ON t.id = e.thread_id WHERE t.workspace_id = $1
-			AND (position(convert_to('51b2', 'UTF8') in e.payload_sealed) > 0 OR position(convert_to('Shorter', 'UTF8') in e.payload_sealed) > 0)`,
+			AND (position(convert_to('kumquat', 'UTF8') in e.payload_sealed) > 0 OR position(convert_to('Shorter', 'UTF8') in e.payload_sealed) > 0)`,
 		`SELECT count(*) FROM ai_assistant_messages m JOIN ai_assistant_threads t ON t.id = m.thread_id WHERE t.workspace_id = $1
-			AND (position(convert_to('51b2', 'UTF8') in m.content_sealed) > 0 OR position(convert_to('Shorter', 'UTF8') in m.content_sealed) > 0)`} {
+			AND (position(convert_to('kumquat', 'UTF8') in m.content_sealed) > 0 OR position(convert_to('Shorter', 'UTF8') in m.content_sealed) > 0)`} {
 		if n := f.count(q, f.ws.ID); n != 0 {
 			t.Fatalf("the content in plain text: %d rows of %s", n, q)
 		}
