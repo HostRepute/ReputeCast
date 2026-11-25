@@ -9,7 +9,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 
 ### Competitive plan P0-4 follow-up: the source code link (AGPL-3.0 section 13)
 
-**🚧 In review.** `source_url` (`REPUTECAST_SOURCE_URL`) says where the source code of the version a server runs is. Unset, it is the running release's tag in `updates.repo` on GitHub (the commit for other builds); a server running a modified version sets its own. Everyone's account menu and Instance admin › Instance & updates link it. Once it is set, the footer of every public page links it too, in the page's language: the standalone pages, the website and archived issues. Public pages of the official builds don't change. The design boards have no such link: the menu takes one of its own rows, and the footers take the language menu's style.
+**🚧 In review, with the docs in HostRepute/ReputeCastDocs#27.** `source_url` (`REPUTECAST_SOURCE_URL`) says where the source code of the version a server runs is. Unset, it is the running release's tag in `updates.repo` on GitHub (the commit for other builds); a server running a modified version sets its own. Everyone's account menu and Instance admin › Instance & updates link it. Once it is set, the footer of every public page links it too, in the page's language: the standalone pages, the website and archived issues. Public pages of the official builds don't change. The design boards have no such link: the menu takes one of its own rows, and the footers take the language menu's style.
 
 `TestSourceURL` covers the release tag, a pre-release, a commit, the override and a URL without a scheme (refused). `TestSourceCodeLink` checks that no page links by default, then the subscribe page in English and Spanish, the website's footer and an archived issue once it is set. The account menu's test checks the item and its link.
 
@@ -24,7 +24,7 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 
 - **Enforced on `main`:** the "Protect main" ruleset requires the `Licenses · REUSE, published packages` and `DCO · commits are signed off` checks, with no bypass, so every change reaches `main` through a pull request (checked through the API on 24 November 2026). The docs site's SDK, FAQ, community adapter, contributing, Zapier, Make, n8n and WordPress pages say the same in five languages, from the next release after 1.8.3.
 
-Remaining P0-4: the first release with MIT SDKs (the docs' "from the next release after 1.8.3" then name it); a lawyer's review of `TRADEMARKS.md`, the trademark file license and registering the mark. Later, a configurable "Source code" link for modified instances (AGPL §13) and a `license` field in the adapter manifest.
+Remaining P0-4: the first release with MIT SDKs (the docs' "from the next release after 1.8.3" then name it); a lawyer's review of `TRADEMARKS.md`, the trademark file license and registering the mark. Later, a `license` field in the adapter manifest. The configurable "Source code" link for modified instances (AGPL §13) is the follow-up above.
 
 ### Competitive plan P0-3: the assistant's source boundaries
 
