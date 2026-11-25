@@ -358,6 +358,34 @@ func TestAssistantLiveAnswerStopsWhenASourceIsLost(t *testing.T) {
 			}
 			cursor := strconv.FormatInt(d.get(d.mc, th.ID).EventSeq, 10)
 			s := d.openStream(d.mc, th.ID, cursor)
+			// read is the stream's next event. The server may end a stream
+			// before the turn ends, and its reader then resumes from the last
+			// event it read, as the panel does (on CI one ended right after
+			// the owner's role changed, even for the thread that used
+			// nothing). This test checks what the reader is sent, so it
+			// resumes too; a problem event fails it.
+			last, resumed := cursor, 0
+			read := func() sseEvent {
+				t.Helper()
+				for {
+					ev, ok := s.nextOrEnd(t, 10*time.Second)
+					if !ok {
+						if resumed++; resumed > 3 {
+							t.Fatalf("the stream ended %d times", resumed)
+						}
+						t.Logf("the stream ended after event %s; resuming from it", last)
+						s = d.openStream(d.mc, th.ID, last)
+						continue
+					}
+					if ev.Event == "problem" {
+						t.Fatalf("the stream sent a problem: %s", ev.Data)
+					}
+					if ev.ID != "" {
+						last = ev.ID
+					}
+					return ev
+				}
+			}
 			const first, second = "The first piece. ", "The second piece, written after access changed."
 			release := make(chan struct{})
 			d.streams.set(held(release, first, second))
@@ -373,7 +401,7 @@ func TestAssistantLiveAnswerStopsWhenASourceIsLost(t *testing.T) {
 				<-done
 			}()
 			for {
-				ev := s.next(t, 10*time.Second)
+				ev := read()
 				if ev.Event == "delta" && strings.Contains(string(ev.Data), first) {
 					break
 				}
@@ -385,7 +413,7 @@ func TestAssistantLiveAnswerStopsWhenASourceIsLost(t *testing.T) {
 			var empty, sawSecond bool
 			var message *assistant.AIThreadMessageEvent
 			for message == nil {
-				ev := s.next(t, 10*time.Second)
+				ev := read()
 				switch ev.Event {
 				case "delta":
 					var e assistant.AIThreadDeltaEvent

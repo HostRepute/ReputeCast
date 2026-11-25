@@ -393,6 +393,32 @@ func (s *stream) close() {
 // next reads the next event other than a heartbeat, within d.
 func (s *stream) next(t *testing.T, d time.Duration) sseEvent {
 	t.Helper()
+	ev, err := s.read(t, d)
+	if err != nil {
+		t.Fatalf("stream ended: %v", err)
+	}
+	return ev
+}
+
+// nextOrEnd is next, except that the server ending the stream is false
+// rather than a failure, for a reader that resumes from the last event it
+// read, as the panel does.
+func (s *stream) nextOrEnd(t *testing.T, d time.Duration) (sseEvent, bool) {
+	t.Helper()
+	ev, err := s.read(t, d)
+	if errors.Is(err, io.EOF) {
+		return sseEvent{}, false
+	}
+	if err != nil {
+		t.Fatalf("stream ended: %v", err)
+	}
+	return ev, true
+}
+
+// read reads the next event other than a heartbeat, failing the test when
+// none comes within d.
+func (s *stream) read(t *testing.T, d time.Duration) (sseEvent, error) {
+	t.Helper()
 	type result struct {
 		ev  sseEvent
 		err error
@@ -410,16 +436,13 @@ func (s *stream) next(t *testing.T, d time.Duration) sseEvent {
 	}()
 	select {
 	case r := <-ch:
-		if r.err != nil {
-			t.Fatalf("stream ended: %v", r.err)
-		}
-		return r.ev
+		return r.ev, r.err
 	case <-time.After(d):
 		s.stop()
 		<-ch
 		t.Fatalf("no event within %s", d)
 	}
-	return sseEvent{}
+	return sseEvent{}, nil
 }
 
 // until reads events up to the turn event with state (included).
