@@ -46,23 +46,24 @@ its OpenAPI 3.0 copy `public-3.0.json`). Each client:
 
 | Language | Install | Needs |
 |---|---|---|
-| TypeScript and JavaScript | `npm install @reputecast/client@1.8.3` | Node 20 or later (ESM); its one dependency is `openapi-fetch` |
-| Python | `python -m pip install reputecast==1.8.3` | Python 3.11 or later; `httpx` and `attrs` |
-| Go | `go get github.com/hostrepute/reputecast/sdk/client-go@v1.8.3` | Go 1.27.3 or later |
+| TypeScript and JavaScript | `npm install @reputecast/client@1.8.4` | Node 20 or later (ESM); its one dependency is `openapi-fetch` |
+| Python | `python -m pip install reputecast==1.8.4` | Python 3.11 or later; `httpx` and `attrs` |
+| Go | `go get github.com/hostrepute/reputecast/sdk/client-go@v1.8.4` | Go 1.27.3 or later |
 
 **Published packages:** each release since 1.8.1 is on
 [npm](https://www.npmjs.com/package/@reputecast/client),
 [PyPI](https://pypi.org/project/reputecast/) (wheel and source distribution)
-and the Go module proxy (tag `sdk/client-go/vX.Y.Z`); the latest is 1.8.3.
+and the Go module proxy (tag `sdk/client-go/vX.Y.Z`); the latest is 1.8.4.
 No source checkout is needed. The 1.8.2 packages were installed in clean
 environments and checked against the released v1.8.2 binary on 23 November
-2026; 1.8.3 changes no API.
+2026; 1.8.3 and 1.8.4 change no operation the SDKs call (1.8.4 changes their
+license).
 
 **Versions follow the server's.** Pin a published version matching your
 server, or an older compatible SDK; don't assume every historical server
 tag has packages on every registry. A newer SDK can call operations an
-older server doesn't have. The client SDKs are MIT from the first release
-after 1.8.3; the 1.8.1–1.8.3 packages are `AGPL-3.0-only`
+older server doesn't have. The client SDKs are MIT from 1.8.4; the
+1.8.1–1.8.3 packages are `AGPL-3.0-only`
 ([LICENSING.md](../../LICENSING.md)).
 
 ### Create a client

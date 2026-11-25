@@ -80,5 +80,5 @@ use them.
 - **Up to v1.8.3** everything except the n8n nodes (MIT) and the WordPress
   plugin (GPL-2.0-or-later) was `AGPL-3.0-only`, including the client SDK
   packages 1.8.1 to 1.8.3. Those releases keep that license.
-- **From the first release after v1.8.3** the table above applies. HostRepute
-  wrote all of the code that changed license.
+- **From v1.8.4** the table above applies. HostRepute wrote all of the code
+  that changed license.
