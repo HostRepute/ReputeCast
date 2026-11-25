@@ -253,7 +253,7 @@ func MayUse(ctx context.Context, q *store.Queries, ws uuid.UUID, user uuid.UUID,
 	if len(roles) == 0 {
 		return true, nil
 	}
-	r, err := q.BrandVoiceActor(ctx, store.BrandVoiceActorParams{WorkspaceID: ws, UserID: user})
+	r, err := brandkit.ActorRow(ctx, q, ws, user)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}
