@@ -589,18 +589,24 @@ jobs:
         with:
           version: v0.33.0
           cluster_name: reputecast
-      # The kind node pulls from Docker Hub anonymously and is often refused
-      # (429 Too Many Requests), so Postgres is pulled here, retried, with
-      # Google's Docker Hub mirror as the fallback, and loaded like our image.
-      - name: Load the images and start Postgres 18
+      # Docker Hub often refuses the kind node's anonymous pulls (429 Too
+      # Many Requests), and kubelet then gives up on Postgres. So the node
+      # pulls it before the Deployment exists, retried, with Google's Docker
+      # Hub mirror as the fallback (tagged as docker.io's). kind load can't
+      # carry it: a multi-platform image from the runner's containerd store
+      # fails to import ("content digest … not found").
+      - name: Load the image and start Postgres 18
         run: |
+          kind load docker-image reputecast:ci --name reputecast
+          node=reputecast-control-plane
           for i in 1 2 3 4 5; do
-            docker pull postgres:18-alpine && break
-            docker pull mirror.gcr.io/library/postgres:18-alpine && docker tag mirror.gcr.io/library/postgres:18-alpine postgres:18-alpine && break
+            docker exec "$node" crictl pull docker.io/library/postgres:18-alpine && break
+            docker exec "$node" crictl pull mirror.gcr.io/library/postgres:18-alpine \
+              && docker exec "$node" ctr --namespace k8s.io images tag --force mirror.gcr.io/library/postgres:18-alpine docker.io/library/postgres:18-alpine \
+              && break
             if [ "$i" = 5 ]; then exit 1; fi
             sleep $((i * 15))
           done
-          kind load docker-image reputecast:ci postgres:18-alpine --name reputecast
           kubectl apply -f deploy/helm/reputecast/ci/postgres.yaml
           kubectl rollout status deployment/postgres --timeout=180s
       - name: Install the chart (single mode)

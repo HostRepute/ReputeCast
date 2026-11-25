@@ -28,7 +28,7 @@ spec:
       containers:
         - name: postgres
           image: postgres:18-alpine
-          # Loaded into the kind node by CI (kind load docker-image).
+          # CI pulls it into the kind node first (ci.yml, helm job).
           imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_USER
