@@ -15,6 +15,7 @@ import { m as lm } from '@/features/language/messages'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { ago, usDate } from '@/lib/format'
+import { useMe } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { RelayAdminCard } from '@/features/transactional/RelayAdminCard'
 import { WorkspacesCard } from './WorkspacesCard'
@@ -378,6 +379,7 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
   const t = useT()
   const qc = useQueryClient()
   const toggle = $api.useMutation('put', '/api/v1/admin/updates')
+  const { data: me } = useMe()
   const latest = v.latest
   const installedLine = v.release
     ? v.builtAt
@@ -395,6 +397,15 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
           <span className="k">
             {installedLine}
             {v.checkEnabled && v.checkAllowed && v.checkedAt ? ` · ${t(m.checkedForUpdates, { ago: ago(v.checkedAt) })}` : ''}
+            {me?.instance.sourceUrl ? (
+              // The source code of this version (source_url; AGPL-3.0 section 13).
+              <>
+                {' · '}
+                <a href={me.instance.sourceUrl} target="_blank" rel="noopener noreferrer">
+                  {t(m.sourceCode)}
+                </a>
+              </>
+            ) : null}
           </span>
         </div>
         <div className="col flex-[1_1_240px] gap-0.5">

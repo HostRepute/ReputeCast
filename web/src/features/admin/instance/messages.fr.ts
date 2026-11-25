@@ -53,6 +53,7 @@ export default translate(m, {
   upToDate: 'À jour',
   releasedDemo: 'Publiée le {date} · version d’exemple des données de démo',
   releasedChangelog: 'Publiée le {date} · <link>notes de version sur GitHub</link>',
+  sourceCode: 'Code source',
   notChecked: 'Pas encore vérifiée',
   checkOff: 'Vérification des mises à jour désactivée',
   checkFailed: 'Échec de la vérification',

@@ -764,7 +764,7 @@ func (h *Handler) issueDocument(r *http.Request, s *site, row store.ArchiveIssue
 		// as a reader of that language gets it.
 		menu[i].Href = s.links.Issue(row.Slug) + "?" + langParam + "=" + url.QueryEscape(menu[i].Code)
 	}
-	return injectBottom(doc, issueFoot(pl, code, menu))
+	return injectBottom(doc, issueFoot(pl, code, menu, h.source()))
 }
 
 // withStylesheet links the issue bar's stylesheet in the document's head.
@@ -815,10 +815,14 @@ func (h *Handler) issueBar(s *site, pl pageLang, docLang, meta string, also []la
 	return out.String()
 }
 
-// issueFoot is the language menu under an archived issue ("" without one).
-func issueFoot(pl pageLang, docLang string, menu []langLink) string {
+// issueFoot is the language menu under an archived issue and the link to
+// the server's source code (source: Handler.Source); "" without either.
+func issueFoot(pl pageLang, docLang string, menu []langLink, source string) string {
 	if len(menu) == 0 {
-		return ""
+		if source == "" {
+			return ""
+		}
+		return "\n" + `<footer class="rcia rcia-foot"` + langAttrs(pl, docLang) + `>` + sourceLink(pl, source) + "</footer>\n"
 	}
 	esc := html.EscapeString
 	var out strings.Builder
@@ -833,8 +837,17 @@ func issueFoot(pl pageLang, docLang string, menu []langLink) string {
 		}
 		out.WriteString(`<a href="` + esc(m.Href) + `" lang="` + esc(m.Code) + `" hreflang="` + esc(m.Code) + `"` + current + `>` + esc(m.Name) + `</a>`)
 	}
-	out.WriteString("</nav></footer>\n")
+	out.WriteString("</nav>" + sourceLink(pl, source) + "</footer>\n")
 	return out.String()
+}
+
+// sourceLink is the link to the server's source code under an archived
+// issue ("" without one).
+func sourceLink(pl pageLang, source string) string {
+	if source == "" {
+		return ""
+	}
+	return `<p class="rcia-src"><a href="` + html.EscapeString(source) + `">` + html.EscapeString(pl.Labels.Text("page.sourceCode", nil)) + `</a></p>`
 }
 
 type rssFeed struct {

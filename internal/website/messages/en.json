@@ -102,6 +102,7 @@
   "site.rss": "RSS",
   "site.privacy": { "message": "Privacy", "note": "the footer link to the publisher's privacy policy" },
   "site.preferences": "Email preferences",
+  "site.sourceCode": { "message": "Source code", "note": "the footer link to the source code of the modified ReputeCast the server runs (its operator set source_url)" },
   "site.poweredBy": "Sent with ReputeCast",
   "site.copyright": { "message": "© {year} {owner}.", "note": "the footer's copyright after the tagline; owner: the publisher's legal name" },
   "site.dismiss": "Dismiss",

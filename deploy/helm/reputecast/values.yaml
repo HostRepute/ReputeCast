@@ -257,6 +257,8 @@ hpa:
 extraEnv: []
 #  - name: REPUTECAST_UPDATES__MANAGED_BY
 #    value: Northwind Hosting
+#  - name: REPUTECAST_SOURCE_URL   # a modified version's source (AGPL-3.0 section 13)
+#    value: https://git.example.com/acme/reputecast
 extraEnvFrom: []
 #  - secretRef:
 #      name: reputecast-extra

@@ -12,7 +12,7 @@ import { Avatar } from '../ui/Avatar'
 import { m } from './messages'
 import { initials, wsColor } from './WorkspaceSwitcher'
 
-/** Account menu: Account & security, language, theme, notification preferences, settings, instance admin, sign out (ShellUserMenu). */
+/** Account menu: Account & security, language, theme, notification preferences, settings, instance admin, source code, sign out (ShellUserMenu). */
 export function UserMenu() {
   const { data: me } = useMe()
   const ws = useOptionalWorkspace()
@@ -105,6 +105,13 @@ export function UserMenu() {
             </>
           ) : null}
           <DropdownMenu.Separator />
+          <DropdownMenu.Item asChild>
+            {/* The source code of the version this server runs (source_url; AGPL-3.0 section 13). */}
+            <a href={me.instance.sourceUrl} target="_blank" rel="noopener noreferrer">
+              <Icon name="code" />
+              {t(m.userMenuSourceCode)}
+            </a>
+          </DropdownMenu.Item>
           <DropdownMenu.Item onSelect={signOut}>
             <Icon name="signOut" />
             {t(m.userMenuSignOut)}

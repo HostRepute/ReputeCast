@@ -75,7 +75,7 @@ const aisha: Me = {
     theme: 'system',
   },
   workspaces: [{ id: 'ws-1', slug: 'acme-newsletter', name: 'Acme Newsletter', roleKey: 'viewer', roleName: 'Viewer', memberCount: 6, subscribers: 48213 }],
-  instance: { name: 'Acme ReputeCast', publicUrl: 'https://reputecast.acme.io', version: 'v1.0.0', setupComplete: true },
+  instance: { name: 'Acme ReputeCast', publicUrl: 'https://reputecast.acme.io', version: 'v1.0.0', setupComplete: true, sourceUrl: 'https://github.com/hostrepute/reputecast/tree/v1.0.0' },
 }
 const owner = workspaceMe({ permissions: ['providers:view', 'providers:manage', 'campaigns:edit'] })
 

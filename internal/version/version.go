@@ -1,7 +1,10 @@
 // Package version exposes build information set by the linker.
 package version
 
-import "runtime/debug"
+import (
+	"regexp"
+	"runtime/debug"
+)
 
 // Set with -ldflags "-X github.com/hostrepute/reputecast/internal/version.Version=v1.4.2 ...".
 var (
@@ -38,4 +41,23 @@ func Get() Info {
 		}
 	}
 	return info
+}
+
+// releaseTag is a release's version (v1.8.3, v1.9.0-rc.1): a tag of the
+// repository.
+var releaseTag = regexp.MustCompile(`^v\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`)
+
+// SourceURL is where the source code of the running build is, in a GitHub
+// repository (owner/name): its release tag, else its commit, else the
+// repository itself.
+func SourceURL(repo string) string {
+	u := "https://github.com/" + repo
+	i := Get()
+	switch {
+	case releaseTag.MatchString(i.Version):
+		return u + "/tree/" + i.Version
+	case i.Commit != "":
+		return u + "/tree/" + i.Commit
+	}
+	return u
 }

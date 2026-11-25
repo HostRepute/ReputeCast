@@ -66,6 +66,7 @@ export const m = defineMessages('admin.instance', {
   upToDate: 'Up to date',
   releasedDemo: 'Released {date} · sample release from the demo data',
   releasedChangelog: 'Released {date} · <link>changelog on GitHub</link>',
+  sourceCode: 'Source code',
   notChecked: 'Not checked yet',
   checkOff: 'The update check is off',
   checkFailed: 'Check failed',

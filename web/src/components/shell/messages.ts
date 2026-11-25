@@ -82,6 +82,7 @@ export const m = defineMessages('shell', {
   userMenuWorkspaceSettings: 'Workspace settings',
   userMenuInstanceAdmin: 'Instance admin',
   userMenuAdminsOnly: 'admins only',
+  userMenuSourceCode: 'Source code',
   userMenuSignOut: 'Sign out',
   userMenuVersion: '{name} {version}',
   userMenuVersionUpdate: '{name} {version} · <link>{latest} available</link>',
