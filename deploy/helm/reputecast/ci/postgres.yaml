@@ -28,6 +28,8 @@ spec:
       containers:
         - name: postgres
           image: postgres:18-alpine
+          # Loaded into the kind node by CI (kind load docker-image).
+          imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_USER
               value: reputecast
