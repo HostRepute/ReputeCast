@@ -56,6 +56,16 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U reputecast" --health-interval 2s --health-timeout 3s --health-retries 30
+      # The demo's providers send through Mailpit (127.0.0.1:1025), as with
+      # make dev. Without it the double opt-in mail of forms-embed.spec.ts
+      # fails, and the Overview the smoke test opens after it says "Couldn't
+      # refresh Amazon SES account health".
+      mailpit:
+        image: axllent/mailpit:v1.31.5
+        env:
+          MP_SMTP_AUTH_ACCEPT_ANY: "1"
+          MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+        ports: ["1025:1025", "8025:8025"]
     env:
       REPUTECAST_ENV: development
       REPUTECAST_DATABASE__URL: postgres://reputecast:reputecast@localhost:5432/reputecast?sslmode=disable
