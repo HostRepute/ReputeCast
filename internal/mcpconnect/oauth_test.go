@@ -560,6 +560,10 @@ func TestOAuthMFAAndFrozenScope(t *testing.T) {
 
 func TestOAuthRegistrationAndAbuse(t *testing.T) {
 	f := newFixture(t)
+	// A fixed clock keeps every request in one ten-minute quota window: a
+	// window that starts mid-test resets the counts the floods rely on.
+	now := time.Now()
+	f.env.App.Now = func() time.Time { return now }
 	// Unknown metadata is discarded, not fetched. A missing auth method has
 	// RFC 7591's confidential-basic default, never silent public-client auth.
 	var c mcpconnect.RegisteredClient
